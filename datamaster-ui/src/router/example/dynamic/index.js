@@ -1,0 +1,9 @@
+﻿
+/* Layout */
+import Layout from '@/layout/index.vue'
+
+// 示例模块动态路由，基于用户权限动态去加载
+export default [
+
+]
+

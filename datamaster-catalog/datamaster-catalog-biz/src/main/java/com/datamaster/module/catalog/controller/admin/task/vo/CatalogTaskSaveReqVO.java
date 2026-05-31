@@ -1,0 +1,94 @@
+package com.datamaster.module.catalog.controller.admin.task.vo;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import com.datamaster.common.core.domain.BaseEntity;
+
+import java.util.List;
+
+/**
+ * 采集任务 创建/修改 Request VO Catalog_TASK
+ *
+ * @author DATAMASTER
+ * @date 2025-12-16
+ */
+@Schema(description = "采集任务 Response VO")
+@Data
+public class CatalogTaskSaveReqVO extends BaseEntity {
+
+    private static final long serialVersionUID = 1L;
+
+    @Schema(description = "ID")
+    private Long id;
+
+    @Schema(description = "来源系统ID", example = "")
+    private Long sourceSystemId;
+
+    @Schema(description = "来源系统名称", example = "")
+    private String sourceSystemName;
+
+    @Schema(description = "任务名称", example = "")
+    private String name;
+
+    @Schema(description = "数据连接id", example = "")
+    private Long datasourceId;
+
+    @Schema(description = "数据库类型", example = "")
+    private String dbType;
+
+    @Schema(description = "责任人", example = "")
+    private Long leader;
+
+    @Schema(description = "责任人电话", example = "")
+    private String leaderPhone;
+
+    @Schema(description = "采集模式", example = "")
+    private String collectionMode;
+
+    @Schema(description = "采集范围", example = "")
+    private String collectionScope;
+
+    @Schema(description = "任务状态", example = "")
+    private String status;
+
+    @Schema(description = "备注", example = "")
+    private String remark;
+
+    @Schema(description = "描述", example = "")
+    private String description;
+
+    /**
+     * 采集任务类型：1-采集，2-DDL
+     */
+    @Schema(description = "采集任务类型：1-采集，2-DDL", example = "1")
+    private String collectType;
+
+    /**
+     * 采集黑名单
+     */
+    @Schema(description = "采集黑名单", example = "")
+    private String blacklist;
+
+    /**
+     * cron表达式
+     */
+    @TableField(exist = false)
+    private String cronExpression;
+
+    /**
+     * 调度状态
+     */
+    @TableField(exist = false)
+    private String schedulerStatus;
+
+    /**
+     * 采集范围
+     */
+    @TableField(exist = false)
+    private List<CatalogTaskScopeSaveReqVO> scopeSaveReqVOS;
+
+    @Schema(description = "所属部门", example = "")
+    private Long responsibleDept;
+
+}

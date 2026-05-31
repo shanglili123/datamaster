@@ -1,0 +1,59 @@
+# Maven and Java build output
+**/target/
+**/${project.build.directory}/
+${project.basedir}/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.flattened-pom.xml
+**/.flattened-pom.xml
+dependency-reduced-pom.xml
+
+# Frontend dependencies and generated bundles
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+**/.cache/
+
+# Archives and packaged artifacts
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+*.gz
+
+# Runtime files and local tooling
+**/logs/
+**/upload/
+*.log
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Local inspection output
+package-inspect-current.json
+package-network-current.json
+
+# Environment-specific configuration can contain credentials
+**/.env
+**/.env.*
+!**/.env.example
+**/application.yml
+**/application-dev.yml
+**/application-prod.yml
+**/application-*-dev.yml
+**/application-*-prod.yml
+
+# Private key material
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.datamaster</groupId>
+        <artifactId>datamaster-mdule-ai</artifactId>
+        <version>${dataMaster.version}</version>
+    </parent>
+    <artifactId>datamaster-module-ai-biz</artifactId>
+    <description>
+        datamaster-module-ai-biz模块
+    </description>
+    <dependencies>
+        <!-- 核心模块 config-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-config</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系統模块 websocket-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-websocket</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系统模块 datamaster-security -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-security</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系统模块 mybatis -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-mybatis</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- common基础模块(包含redis, file, quartz, neo4j) -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-base</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-module-system-api</artifactId>
+            <version>${dataMaster.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-module-ai-api</artifactId>
+            <version>${dataMaster.version}</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>

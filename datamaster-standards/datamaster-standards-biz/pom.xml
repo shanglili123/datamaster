@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>datamaster-standards</artifactId>
+        <groupId>com.datamaster</groupId>
+        <version>${dataMaster.version}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>datamaster-standards-biz</artifactId>
+    <description>
+        datamaster-standards-biz 数据标准模块
+    </description>
+    <dependencies>
+        <!-- 核心模块 config-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-config</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系統模块 websocket-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-websocket</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系统模块 datasource -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-datasource</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系统模块 mybatis -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-mybatis</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- common基础模块(包含redis, file, quartz, neo4j) -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-base</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 通用工具-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-common</artifactId>
+        </dependency>
+        <!-- 文件上传-->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-assets-api</artifactId>
+            <version>${dataMaster.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-standards-api</artifactId>
+            <version>${dataMaster.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-service-biz</artifactId>
+            <version>${dataMaster.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-catalog-api</artifactId>
+            <version>${dataMaster.version}</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>

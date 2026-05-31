@@ -1,0 +1,35 @@
+
+
+package com.datamaster.module.taxonomy.controller.admin.cat.vo;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import com.datamaster.common.core.page.PageParam;
+
+/**
+ * 逻辑模型类目管理 Request VO 对象 TAX_MODEL_CAT
+ *
+ * @author DATAMASTER
+ * @date 2025-01-20
+ */
+@Schema(description = "逻辑模型类目管理 Request VO")
+@Data
+public class TaxonomyModelCatPageReqVO extends PageParam {
+
+    private static final long serialVersionUID = 1L;
+
+    @Schema(description = "类别名称", example = "")
+    private String name;
+    @Schema(description = "类别编码", example = "")
+    private String code;
+
+
+    private Boolean validFlag;
+
+
+
+
+
+
+
+}

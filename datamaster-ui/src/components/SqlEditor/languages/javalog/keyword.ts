@@ -1,0 +1,20 @@
+export const JAVA_LOG_KEYWORD: string[] = [
+  'Start Process',
+  'Start Process Step',
+  'SUBMIT_PRECHECK',
+  'SUBMIT_EXECUTE',
+  'SUBMIT_BUILD_CONFIG',
+  'info',
+  'debug',
+  'error',
+  'warn',
+  'trace',
+  'fatal',
+  'log',
+  'logger',
+  'root',
+  'level',
+  'additivity',
+  'appender',
+  'logger'
+];

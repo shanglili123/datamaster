@@ -1,0 +1,168 @@
+
+
+package com.datamaster.module.taxonomy.service.sourceSystem.impl;
+
+import com.aliyun.oss.ServiceException;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.utils.StringUtils;
+import com.datamaster.common.utils.object.BeanUtils;
+import com.datamaster.module.taxonomy.controller.admin.sourceSystem.vo.TaxonomySourceSystemPageReqVO;
+import com.datamaster.module.taxonomy.controller.admin.sourceSystem.vo.TaxonomySourceSystemRespVO;
+import com.datamaster.module.taxonomy.controller.admin.sourceSystem.vo.TaxonomySourceSystemSaveReqVO;
+import com.datamaster.module.taxonomy.dal.dataobject.sourceSystem.TaxonomySourceSystemDO;
+import com.datamaster.module.taxonomy.dal.mapper.sourceSystem.TaxonomySourceSystemMapper;
+import com.datamaster.module.taxonomy.service.sourceSystem.ITaxonomySourceSystemService;
+import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * 来源系统Service业务层处理
+ *
+ * @author DATAMASTER
+ * @date 2026-04-03
+ */
+@Slf4j
+@Service
+@Transactional(rollbackFor = Exception.class)
+public class TaxonomySourceSystemServiceImpl  extends ServiceImpl<TaxonomySourceSystemMapper,TaxonomySourceSystemDO> implements ITaxonomySourceSystemService {
+    @Resource
+    private TaxonomySourceSystemMapper TaxonomySourceSystemMapper;
+
+    @Override
+    public PageResult<TaxonomySourceSystemDO> getAttSourceSystemPage(TaxonomySourceSystemPageReqVO pageReqVO) {
+        return TaxonomySourceSystemMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public Long createAttSourceSystem(TaxonomySourceSystemSaveReqVO createReqVO) {
+        TaxonomySourceSystemDO dictType = BeanUtils.toBean(createReqVO, TaxonomySourceSystemDO.class);
+        TaxonomySourceSystemMapper.insert(dictType);
+        return dictType.getId();
+    }
+
+    @Override
+    public int updateAttSourceSystem(TaxonomySourceSystemSaveReqVO updateReqVO) {
+        // 相关校验
+
+        // 更新来源系统
+        TaxonomySourceSystemDO updateObj = BeanUtils.toBean(updateReqVO, TaxonomySourceSystemDO.class);
+        return TaxonomySourceSystemMapper.updateById(updateObj);
+    }
+    @Override
+    public int removeAttSourceSystem(Collection<Long> idList) {
+        //判断validFlag是否为true
+        if (idList.stream().anyMatch(id -> TaxonomySourceSystemMapper.selectById(id).getValidFlag() == true)) {
+            throw new IllegalArgumentException("已启用的来源系统，不能删除！");
+        }
+        // 批量删除来源系统
+        return TaxonomySourceSystemMapper.deleteBatchIds(idList);
+    }
+
+    @Override
+    public TaxonomySourceSystemDO getAttSourceSystemById(Long id) {
+        return TaxonomySourceSystemMapper.selectById(id);
+    }
+
+    @Override
+    public List<TaxonomySourceSystemDO> getAttSourceSystemList() {
+        return TaxonomySourceSystemMapper.selectList();
+    }
+
+    @Override
+    public List<TaxonomySourceSystemDO> getAttSourceSystemListByValidFlag(Boolean validFlag) {
+        return TaxonomySourceSystemMapper.selectList(new LambdaQueryWrapperX<TaxonomySourceSystemDO>().eq(validFlag != null, TaxonomySourceSystemDO::getValidFlag, Boolean.TRUE.equals(validFlag) ? "1" : "0"));
+    }
+
+    @Override
+    public Map<Long, TaxonomySourceSystemDO> getAttSourceSystemMap() {
+        List<TaxonomySourceSystemDO> TaxonomySourceSystemList = TaxonomySourceSystemMapper.selectList();
+        return TaxonomySourceSystemList.stream()
+                .collect(Collectors.toMap(
+                        TaxonomySourceSystemDO::getId,
+                        TaxonomySourceSystemDO -> TaxonomySourceSystemDO,
+                        // 保留已存在的值
+                        (existing, replacement) -> existing
+                ));
+    }
+
+
+        /**
+         * 导入来源系统数据
+         *
+         * @param importExcelList 来源系统数据列表
+         * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
+         * @param operName 操作用户
+         * @return 结果
+         */
+        @Override
+        public String importAttSourceSystem(List<TaxonomySourceSystemRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+            if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
+                throw new ServiceException("导入数据不能为空！");
+            }
+
+            int successNum = 0;
+            int failureNum = 0;
+            List<String> successMessages = new ArrayList<>();
+            List<String> failureMessages = new ArrayList<>();
+
+            for (TaxonomySourceSystemRespVO respVO : importExcelList) {
+                try {
+                    TaxonomySourceSystemDO TaxonomySourceSystemDO = BeanUtils.toBean(respVO, TaxonomySourceSystemDO.class);
+                    Long TaxonomySourceSystemId = respVO.getId();
+                    if (isUpdateSupport) {
+                        if (TaxonomySourceSystemId != null) {
+                            TaxonomySourceSystemDO existingAttSourceSystem = TaxonomySourceSystemMapper.selectById(TaxonomySourceSystemId);
+                            if (existingAttSourceSystem != null) {
+                                TaxonomySourceSystemMapper.updateById(TaxonomySourceSystemDO);
+                                successNum++;
+                                successMessages.add("数据更新成功，ID为 " + TaxonomySourceSystemId + " 的来源系统记录。");
+                            } else {
+                                failureNum++;
+                                failureMessages.add("数据更新失败，ID为 " + TaxonomySourceSystemId + " 的来源系统记录不存在。");
+                            }
+                        } else {
+                            failureNum++;
+                            failureMessages.add("数据更新失败，某条记录的ID不存在。");
+                        }
+                    } else {
+                        QueryWrapper<TaxonomySourceSystemDO> queryWrapper = new QueryWrapper<>();
+                        queryWrapper.eq("id", TaxonomySourceSystemId);
+                        TaxonomySourceSystemDO existingAttSourceSystem = TaxonomySourceSystemMapper.selectOne(queryWrapper);
+                        if (existingAttSourceSystem == null) {
+                            TaxonomySourceSystemMapper.insert(TaxonomySourceSystemDO);
+                            successNum++;
+                            successMessages.add("数据插入成功，ID为 " + TaxonomySourceSystemId + " 的来源系统记录。");
+                        } else {
+                            failureNum++;
+                            failureMessages.add("数据插入失败，ID为 " + TaxonomySourceSystemId + " 的来源系统记录已存在。");
+                        }
+                    }
+                } catch (Exception e) {
+                    failureNum++;
+                    String errorMsg = "数据导入失败，错误信息：" + e.getMessage();
+                    failureMessages.add(errorMsg);
+                    log.error(errorMsg, e);
+                }
+            }
+            StringBuilder resultMsg = new StringBuilder();
+            if (failureNum > 0) {
+                resultMsg.append("很抱歉，导入失败！共 ").append(failureNum).append(" 条数据格式不正确，错误如下：");
+                resultMsg.append("<br/>").append(String.join("<br/>", failureMessages));
+                throw new ServiceException(resultMsg.toString());
+            } else {
+                resultMsg.append("恭喜您，数据已全部导入成功！共 ").append(successNum).append(" 条。");
+            }
+            return resultMsg.toString();
+        }
+}

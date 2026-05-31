@@ -1,0 +1,31 @@
+package com.datamaster.module.system.dal.mapper;
+
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+import java.util.Map;
+
+public interface SysHomeMapper {
+
+    @Select("SELECT COUNT(*) FROM COL_ETL_TASK WHERE PROJECT_ID = #{projectId} AND TYPE = '1' AND DEL_FLAG = '0'")
+    long countIntegrationTaskTotal(@Param("projectId") Long projectId);
+
+    @Select("SELECT COUNT(DISTINCT t.ID) FROM COL_ETL_TASK t INNER JOIN COL_ETL_TASK_INSTANCE i ON t.ID = i.TASK_ID WHERE t.PROJECT_ID = #{projectId} AND t.TYPE = '1' AND t.DEL_FLAG = '0' AND i.STATUS IN (6, 8) AND i.DEL_FLAG = '0'")
+    long countIntegrationTaskFailed(@Param("projectId") Long projectId);
+
+    @Select("SELECT COUNT(*) FROM COL_ETL_TASK WHERE PROJECT_ID = #{projectId} AND TYPE = '3' AND DEL_FLAG = '0'")
+    long countDevelopTaskTotal(@Param("projectId") Long projectId);
+
+    @Select("SELECT COUNT(DISTINCT t.ID) FROM COL_ETL_TASK t INNER JOIN COL_ETL_TASK_INSTANCE i ON t.ID = i.TASK_ID WHERE t.PROJECT_ID = #{projectId} AND t.TYPE = '3' AND t.DEL_FLAG = '0' AND i.STATUS IN (6, 8) AND i.DEL_FLAG = '0'")
+    long countDevelopTaskFailed(@Param("projectId") Long projectId);
+
+    @Select("SELECT COUNT(*) FROM SVC_API_LOG WHERE DEL_FLAG = '0'")
+    long countApiCallTotal();
+
+    @Select("SELECT COUNT(*) FROM SVC_API_LOG WHERE STATUS = 0 AND DEL_FLAG = '0'")
+    long countApiCallFailed();
+
+    @Select("SELECT ds.DATASOURCE_NAME AS datasourceName, ct.SCHEMA_NAME AS schemaName, ct.TABLE_NAME AS tableName, ct.ROW_COUNT AS rowCount, ct.CREATE_TIME AS updateTime FROM CAT_TABLE ct INNER JOIN AST_DATASOURCE_PROJECT_REL rel ON ct.DATASOURCE_ID = rel.DATASOURCE_ID LEFT JOIN AST_DATASOURCE ds ON ct.DATASOURCE_ID = ds.ID WHERE rel.PROJECT_ID = #{projectId} AND ct.DEL_FLAG = '0' AND rel.VALID_FLAG = true AND ds.DEL_FLAG = '0' ORDER BY ct.ROW_COUNT DESC LIMIT 20")
+    List<Map<String, Object>> selectTableRows(@Param("projectId") Long projectId);
+}

@@ -1,0 +1,40 @@
+
+
+package com.datamaster.module.standards.api.codeMap.dto;
+
+import lombok.Data;
+
+/**
+ * 数据元代码映射 DTO 对象 STD_CODE_MAP
+ *
+ * @author DATAMASTER
+ * @date 2025-01-21
+ */
+@Data
+public class StandardsCodeMapRespDTO {
+
+    private static final long serialVersionUID = 1L;
+
+    /** ID */
+    private Long id;
+
+    /** 数据元id */
+    private String dataElemId;
+
+    /** 原始值 */
+    private String originalValue;
+
+    /** 代码名 */
+    private String codeName;
+
+    /** 代码值 */
+    private String codeValue;
+
+    /** 是否有效 */
+    private Boolean validFlag;
+
+    /** 删除标志 */
+    private Boolean delFlag;
+
+
+}

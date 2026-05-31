@@ -1,0 +1,62 @@
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.ehcache.org/v3"
+        xsi:schemaLocation="http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd">
+
+    <cache-template name="defaultCache">
+        <expiry>
+            <ttl unit="seconds">300</ttl>
+        </expiry>
+        <resources>
+            <heap unit="entries">1000</heap>
+        </resources>
+    </cache-template>
+
+    <cache alias="cache5Minutes" uses-template="defaultCache">
+        <expiry>
+            <ttl unit="seconds">300</ttl>
+        </expiry>
+    </cache>
+
+    <cache alias="cache10Minutes" uses-template="defaultCache">
+        <expiry>
+            <ttl unit="seconds">600</ttl>
+        </expiry>
+    </cache>
+
+    <cache alias="cache30Minutes" uses-template="defaultCache">
+        <expiry>
+            <ttl unit="seconds">1800</ttl>
+        </expiry>
+    </cache>
+
+    <cache alias="cache6Hours" uses-template="defaultCache">
+        <expiry>
+            <ttl unit="seconds">21600</ttl>
+        </expiry>
+    </cache>
+
+    <cache alias="cache12Hours" uses-template="defaultCache">
+        <expiry>
+            <ttl unit="seconds">43200</ttl>
+        </expiry>
+    </cache>
+
+    <cache alias="cache24Hours" uses-template="defaultCache">
+        <expiry>
+            <ttl unit="seconds">86400</ttl>
+        </expiry>
+    </cache>
+
+    <cache alias="cache7Days" uses-template="defaultCache">
+        <expiry>
+            <ttl unit="seconds">604800</ttl>
+        </expiry>
+    </cache>
+
+    <cache alias="cache30Days" uses-template="defaultCache">
+        <expiry>
+            <ttl unit="seconds">2592000</ttl>
+        </expiry>
+    </cache>
+
+</config>

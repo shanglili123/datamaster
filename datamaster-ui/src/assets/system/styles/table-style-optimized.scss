@@ -1,0 +1,209 @@
+/* 表格样式优化 - table-style-optimized.scss */
+
+// 任务标题行布局
+.task-title-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 8px;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap;
+    margin-bottom: 6px;
+    cursor: pointer;
+}
+
+// 任务名称省略
+.task-name-ellipsis {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 190px;
+
+    .el-link__inner {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-weight: 600;
+    }
+}
+
+// 任务分类标签
+.task-cat-ellipsis {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0 7px;
+    height: 22px;
+    line-height: 20px;
+    border-radius: 4px;
+
+    .el-tag__content {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 12px !important;
+    }
+}
+
+// 名称容器整体
+.name-label.task-title {
+    width: 100%;
+    min-width: 0;
+    padding: 2px 0;
+}
+
+// 描述文本
+.desc-text {
+    color: #8a8f99;
+    font-size: 12px;
+    line-height: 18px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding-left: 33px;
+}
+
+// Cron 表达式容器
+.cron-text {
+    display: inline-block;
+    max-width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+// 责任人信息
+.person-charge-ellipsis {
+    display: inline-block;
+    max-width: 100px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+// 最近执行列
+.last-execute-col {
+    align-items: flex-start;
+}
+
+// 数据源图标
+.datasource-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.black-label {
+    color: #333 !important;
+    font-weight: normal;
+}
+
+// 操作区域 - 更多下拉按钮列表
+.butgdlist {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.app-container .task-title .el-tag--default .el-tag__content {
+    font-size: 12px !important;
+}
+
+.dpp-task-list-page {
+    .el-container {
+        width: 100%;
+    }
+
+    .main-content {
+        min-width: 0;
+        margin: 0;
+        padding: 2px 0;
+    }
+
+    .qt-wrap {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .qt-table--main {
+        overflow: hidden;
+        border-radius: 6px;
+    }
+
+    .el-table {
+        --el-table-row-hover-bg-color: #f7fbff;
+        font-size: 13px;
+    }
+
+    .el-table .el-table__header-wrapper th {
+        height: 44px;
+        font-weight: 600;
+    }
+
+    .el-table .el-table__cell {
+        padding: 12px 0;
+        vertical-align: top;
+    }
+
+    .el-table .cell {
+        line-height: 20px;
+    }
+
+    .el-table__row {
+        transition: background-color 0.2s ease;
+    }
+
+    .task-status-stack {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 7px;
+        min-width: 118px;
+        padding: 2px 0;
+    }
+
+    .task-status-stack .flex-center,
+    .grey-black-text .flex-center {
+        min-width: 0;
+        gap: 2px;
+    }
+
+    .last-execute-col,
+    .person-charge-ellipsis,
+    .grey-black-text {
+        color: #4e5969;
+    }
+
+    .task-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        column-gap: 10px;
+        row-gap: 4px;
+        min-width: 0;
+        padding: 1px 0;
+    }
+
+    .task-actions .el-button {
+        margin-left: 0;
+        min-height: 22px;
+        line-height: 22px;
+    }
+
+    .task-actions .el-button [class*="el-icon"] + span {
+        margin-left: 3px;
+    }
+
+    .el-tag {
+        border-radius: 4px;
+    }
+
+    .qt-table--pagination {
+        padding: 18px 4px 4px;
+    }
+}

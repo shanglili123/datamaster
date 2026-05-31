@@ -1,0 +1,62 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B5FFF"/>
+      <stop offset="1" stop-color="#0A2D7A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1220 210) rotate(145) scale(420 420)">
+      <stop stop-color="#57C7FF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#57C7FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="260" y1="220" x2="1320" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.06"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="290" y1="260" x2="1090" y2="710" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9FE6FF"/>
+      <stop offset="1" stop-color="#4FC3FF"/>
+    </linearGradient>
+    <filter id="blur" x="0" y="0" width="1600" height="900" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="35"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1230" cy="220" r="320" fill="url(#glow)" filter="url(#blur)"/>
+  <circle cx="300" cy="760" r="240" fill="#2E86FF" fill-opacity="0.22" filter="url(#blur)"/>
+
+  <path d="M-20 690C210 560 420 520 670 590C890 652 1060 680 1250 630C1410 588 1520 510 1640 420V920H-20V690Z" fill="#061C4A" fill-opacity="0.32"/>
+  <path d="M-30 760C210 640 430 615 690 675C920 727 1090 742 1280 704C1430 673 1540 622 1650 560V920H-30V760Z" fill="#041634" fill-opacity="0.42"/>
+
+  <rect x="210" y="170" width="1080" height="560" rx="42" fill="url(#card)" stroke="#9FE6FF" stroke-opacity="0.22"/>
+  <rect x="250" y="210" width="1000" height="480" rx="34" fill="#071F56" fill-opacity="0.38"/>
+
+  <circle cx="1040" cy="360" r="170" fill="url(#accent)" fill-opacity="0.18"/>
+  <circle cx="1130" cy="330" r="90" fill="#FFFFFF" fill-opacity="0.12"/>
+  <circle cx="990" cy="420" r="28" fill="#FFFFFF" fill-opacity="0.26"/>
+  <circle cx="1050" cy="470" r="16" fill="#FFFFFF" fill-opacity="0.24"/>
+  <circle cx="1112" cy="410" r="10" fill="#FFFFFF" fill-opacity="0.26"/>
+
+  <path d="M350 395C470 300 600 272 750 304C836 322 906 360 958 418C1010 476 1060 508 1140 516" stroke="url(#accent)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M350 455C492 386 612 368 750 392C847 409 919 450 968 515C1008 568 1060 598 1140 605" stroke="#BDEBFF" stroke-opacity="0.7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g transform="translate(350 332)">
+    <circle cx="70" cy="70" r="70" fill="#FFFFFF" fill-opacity="0.14"/>
+    <circle cx="70" cy="70" r="44" fill="none" stroke="#9FE6FF" stroke-width="10"/>
+    <circle cx="70" cy="70" r="10" fill="#FFFFFF"/>
+    <path d="M70 18V34" stroke="#D6F4FF" stroke-width="8" stroke-linecap="round"/>
+    <path d="M70 106V122" stroke="#D6F4FF" stroke-width="8" stroke-linecap="round"/>
+    <path d="M18 70H34" stroke="#D6F4FF" stroke-width="8" stroke-linecap="round"/>
+    <path d="M106 70H122" stroke="#D6F4FF" stroke-width="8" stroke-linecap="round"/>
+    <path d="M38 38L50 50" stroke="#57C7FF" stroke-width="8" stroke-linecap="round"/>
+    <path d="M102 102L90 90" stroke="#57C7FF" stroke-width="8" stroke-linecap="round"/>
+    <path d="M102 38L90 50" stroke="#57C7FF" stroke-width="8" stroke-linecap="round"/>
+    <path d="M38 102L50 90" stroke="#57C7FF" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <text x="520" y="462" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="118" font-weight="800" letter-spacing="1.5">DataMaster</text>
+  <text x="522" y="505" fill="#D6F4FF" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="500" letter-spacing="6">DATA PLATFORM</text>
+
+  <rect x="360" y="585" width="680" height="14" rx="7" fill="#FFFFFF" fill-opacity="0.25"/>
+  <rect x="360" y="615" width="540" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.18"/>
+  <rect x="360" y="645" width="440" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.14"/>
+</svg>

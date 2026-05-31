@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>dataMaster</artifactId>
+        <groupId>com.datamaster</groupId>
+        <version>${dataMaster.version}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <modules>
+        <module>datamaster-api-ds-api</module>
+        <module>datamaster-api-ds-biz</module>
+    </modules>
+    <packaging>pom</packaging>
+    <artifactId>datamaster-api-ds</artifactId>
+    <description>
+        datamaster-api-ds 调度平台适配层
+    </description>
+</project>

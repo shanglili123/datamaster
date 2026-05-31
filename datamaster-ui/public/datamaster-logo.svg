@@ -1,0 +1,16 @@
+<svg width="150" height="36" viewBox="0 0 150 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="markBg" x1="3" y1="3" x2="33" y2="33" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B5FFF"/>
+      <stop offset="1" stop-color="#0A2D7A"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="32" height="32" rx="8" fill="url(#markBg)"/>
+  <circle cx="18" cy="13.5" r="5.4" stroke="#9FE6FF" stroke-width="2.2"/>
+  <circle cx="18" cy="13.5" r="1.7" fill="#FFFFFF"/>
+  <path d="M18 6.5V9.4" stroke="#D6F4FF" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M18 17.6V20.6" stroke="#D6F4FF" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M11 13.5H13.9" stroke="#D6F4FF" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M22.1 13.5H25" stroke="#D6F4FF" stroke-width="1.8" stroke-linecap="round"/>
+  <text x="43" y="23.7" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800">DataMaster</text>
+</svg>
