@@ -43,7 +43,7 @@ import com.datamaster.module.modeling.service.dm.IModelingDataLayerService;
  */
 @Tag(name = "数仓分层管理")
 @RestController
-@RequestMapping("/dm/dataLayer")
+@RequestMapping("/mdl/dataLayer")
 @Validated
 public class ModelingDataLayerController extends BaseController {
     @Resource

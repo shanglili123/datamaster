@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Tag(name = "数据库")
 @RestController
-@RequestMapping("/mc/db")
+@RequestMapping("/cat/db")
 @Validated
 public class CatalogDbController extends BaseController {
     @Resource

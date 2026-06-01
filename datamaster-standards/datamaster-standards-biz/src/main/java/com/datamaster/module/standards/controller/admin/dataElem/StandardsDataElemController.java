@@ -37,7 +37,7 @@ import com.datamaster.module.standards.service.dataElem.IStandardsDataElemServic
  */
 @Tag(name = "数据元")
 @RestController
-@RequestMapping("/dp/dataElem")
+@RequestMapping("/std/dataElem")
 @Validated
 public class StandardsDataElemController extends BaseController {
     @Resource

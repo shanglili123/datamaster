@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request'
 
 
@@ -18,7 +18,7 @@ export function listDppEtlNodeInstance(query) {
  */
 export function getDppEtlNodeInstance(id) {
         return request({
-                url: `/dpp/etlNodeInstance/${id}`,
+                url: `/col/etlNodeInstance/${id}`,
                 method: 'get'
         });
 }
@@ -50,7 +50,7 @@ export function updateDppEtlNodeInstance(data) {
  */
 export function delDppEtlNodeInstance(id) {
         return request({
-                url: `/dpp/etlNodeInstance/${id}`,
+                url: `/col/etlNodeInstance/${id}`,
                 method: 'delete'
         });
 }
@@ -60,7 +60,7 @@ export function delDppEtlNodeInstance(id) {
  */
 export function logDetailCat(id) {
         return request({
-                url: `/dpp/etlNodeInstance/log/${id}`,
+                url: `/col/etlNodeInstance/log/${id}`,
                 method: 'get'
         });
 }

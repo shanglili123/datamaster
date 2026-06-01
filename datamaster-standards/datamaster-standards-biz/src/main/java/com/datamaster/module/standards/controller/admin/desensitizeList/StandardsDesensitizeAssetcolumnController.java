@@ -39,7 +39,7 @@ import com.datamaster.module.standards.service.desensitizeList.IStandardsDesensi
  */
 @Tag(name = "脱敏清单关联关系")
 @RestController
-@RequestMapping("/dg/standardsDesensitizeList")
+@RequestMapping("/cat/standardsDesensitizeList")
 @Validated
 public class StandardsDesensitizeAssetcolumnController extends BaseController {
     @Resource

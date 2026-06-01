@@ -43,7 +43,7 @@ import com.datamaster.module.collector.service.etl.ICollectorQualityLogService;
  */
 @Tag(name = "数据质量日志")
 @RestController
-@RequestMapping("/dpp/qualityLog")
+@RequestMapping("/col/qualityLog")
 @Validated
 public class CollectorQualityLogController extends BaseController {
     @Resource

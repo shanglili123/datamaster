@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request';
 
 // 查询项目列表
@@ -46,7 +46,7 @@ export function addUserAndProject(id) {
 // 修改状态
 export function editProjectStatus(id, status) {
     return request({
-        url: `/att/project/editProjectStatus/${id}/${status}`,
+        url: `/tax/project/editProjectStatus/${id}/${status}`,
         method: 'get'
     });
 }

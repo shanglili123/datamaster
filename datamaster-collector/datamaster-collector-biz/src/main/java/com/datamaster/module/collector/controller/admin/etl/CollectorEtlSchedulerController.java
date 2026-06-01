@@ -39,7 +39,7 @@ import com.datamaster.module.collector.service.etl.ICollectorEtlSchedulerService
  */
 @Tag(name = "数据集成调度信息")
 @RestController
-@RequestMapping("/dpp/etlScheduler")
+@RequestMapping("/col/etlScheduler")
 @Validated
 public class CollectorEtlSchedulerController extends BaseController {
     @Resource

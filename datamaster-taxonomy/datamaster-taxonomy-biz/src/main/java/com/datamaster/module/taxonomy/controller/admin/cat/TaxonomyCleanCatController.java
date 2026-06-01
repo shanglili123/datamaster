@@ -37,7 +37,7 @@ import com.datamaster.module.taxonomy.service.cat.ITaxonomyCleanCatService;
  */
 @Tag(name = "清洗规则类目")
 @RestController
-@RequestMapping("/att/cleanCat")
+@RequestMapping("/tax/cleanCat")
 @Validated
 public class TaxonomyCleanCatController extends BaseController {
     @Resource

@@ -16,6 +16,9 @@ import com.datamaster.api.ds.api.project.DsProjectCreateReqDTO;
 import com.datamaster.api.ds.api.project.DsProjectDeleteRespDTO;
 import com.datamaster.api.ds.api.project.DsProjectRespDTO;
 import com.datamaster.api.ds.api.project.DsProjectUpdateReqDTO;
+import com.datamaster.api.ds.api.project.DsWorkerGroupRespDTO;
+import com.datamaster.api.ds.api.base.DsResultDTO;
+import com.datamaster.api.ds.api.base.DsStatusRespDTO;
 import com.datamaster.api.ds.api.service.project.IDsProjectService;
 import com.datamaster.common.constant.Constants;
 import com.datamaster.common.core.domain.entity.SysRole;
@@ -105,8 +108,30 @@ public class ITaxonomyProjectServiceImpl extends ServiceImpl<TaxonomyProjectMapp
         if (dsProjectRespDTO.getCode() != 0) {
             return -1L;
         }
+        Long projectCode = dsProjectRespDTO.getData().getCode();
+        String workerGroup = buildWorkerGroupName(projectCode);
+        Integer workerGroupId = null;
+        try {
+            DsWorkerGroupRespDTO workerGroupRespDTO = dsProjectService.saveWorkerGroup(workerGroup);
+            if (!isSuccess(workerGroupRespDTO) || workerGroupRespDTO.getData() == null) {
+                cleanupDsResources(projectCode, null);
+                return -1L;
+            }
+            workerGroupId = workerGroupRespDTO.getData().getId();
+            DsStatusRespDTO assignRespDTO = dsProjectService.assignWorkerGroup(projectCode, workerGroup);
+            if (!isSuccess(assignRespDTO)) {
+                cleanupDsResources(projectCode, workerGroupId);
+                return -1L;
+            }
+        } catch (Exception e) {
+            cleanupDsResources(projectCode, workerGroupId);
+            log.error("Failed to create or assign DS worker group, projectCode={}", projectCode, e);
+            return -1L;
+        }
         TaxonomyProjectDO dictType = BeanUtils.toBean(createReqVO, TaxonomyProjectDO.class);
-        dictType.setCode(dsProjectRespDTO.getData().getCode().toString());
+        dictType.setCode(projectCode.toString());
+        dictType.setWorkerGroupId(workerGroupId);
+        dictType.setWorkerGroup(workerGroup);
         try {
             // 新增项目管理数据
             TaxonomyProjectMapper.insert(dictType);
@@ -166,7 +191,7 @@ public class ITaxonomyProjectServiceImpl extends ServiceImpl<TaxonomyProjectMapp
             }
         }catch (Exception e){
             // 如果发送报错就删除ds里面的数据
-            dsProjectService.deleteProject(dsProjectRespDTO.getData().getCode());
+            cleanupDsResources(projectCode, workerGroupId);
             e.printStackTrace();
             // 手动回滚事务
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
@@ -218,6 +243,13 @@ public class ITaxonomyProjectServiceImpl extends ServiceImpl<TaxonomyProjectMapp
                 // 手动回滚事务
                 TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                 return -2;
+            }
+            if (TaxonomyProjectDO.getWorkerGroupId() != null) {
+                DsStatusRespDTO deleteWorkerGroupRespDTO = dsProjectService.deleteWorkerGroup(TaxonomyProjectDO.getWorkerGroupId());
+                if (!isSuccess(deleteWorkerGroupRespDTO)) {
+                    log.warn("Failed to delete DS worker group, projectCode={}, workerGroupId={}",
+                            TaxonomyProjectDO.getCode(), TaxonomyProjectDO.getWorkerGroupId());
+                }
             }
         }
         // 批量删除项目
@@ -407,5 +439,42 @@ public class ITaxonomyProjectServiceImpl extends ServiceImpl<TaxonomyProjectMapp
             return projectDO.getId();
         }
         return null;
+    }
+
+    @Override
+    public String getProjectCodeByProjectId(Long projectId) {
+        TaxonomyProjectDO projectDO = baseMapper.selectById(projectId);
+        return projectDO == null ? null : projectDO.getCode();
+    }
+
+    @Override
+    public String getWorkerGroupByProjectCode(String projectCode) {
+        TaxonomyProjectDO projectDO = baseMapper.selectOne(Wrappers.lambdaQuery(TaxonomyProjectDO.class)
+                .eq(TaxonomyProjectDO::getCode, projectCode));
+        return projectDO == null ? null : projectDO.getWorkerGroup();
+    }
+
+    private String buildWorkerGroupName(Long projectCode) {
+        return "project_" + projectCode;
+    }
+
+    private boolean isSuccess(DsResultDTO result) {
+        return result != null && Integer.valueOf(0).equals(result.getCode());
+    }
+
+    private void cleanupDsResources(Long projectCode, Integer workerGroupId) {
+        try {
+            dsProjectService.deleteProject(projectCode);
+        } catch (Exception e) {
+            log.warn("Failed to clean up DS project, projectCode={}", projectCode, e);
+        }
+        if (workerGroupId == null) {
+            return;
+        }
+        try {
+            dsProjectService.deleteWorkerGroup(workerGroupId);
+        } catch (Exception e) {
+            log.warn("Failed to clean up DS worker group, workerGroupId={}", workerGroupId, e);
+        }
     }
 }

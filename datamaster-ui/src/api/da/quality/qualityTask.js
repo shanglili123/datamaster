@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request'
 
 // 查询数据质量任务列表
@@ -72,7 +72,7 @@ export function validationValidDataSql(data) {
 //执行一次
 export function startDppQualityTask(id) {
   return request({
-    url: `/dpp/qualityTask//startDppQualityTask/${id}`,
+    url: `/col/qualityTask//startDppQualityTask/${id}`,
     method: 'put',
   })
 }

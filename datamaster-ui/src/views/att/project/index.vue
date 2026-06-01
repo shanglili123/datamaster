@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
 
     <div class="pagecont-top" v-show="showSearch">
@@ -542,7 +542,7 @@ const upload = reactive({
   // 设置上传的请求头部
   headers: { Authorization: "Bearer " + getToken() },
   // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + "/att/attProject/importData",
+  url: import.meta.env.VITE_APP_BASE_API + "/tax/attProject/importData",
 });
 
 const data = reactive({

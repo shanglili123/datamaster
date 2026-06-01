@@ -39,7 +39,7 @@ import com.datamaster.module.collector.service.etl.ICollectorEtlTaskNodeRelServi
  */
 @Tag(name = "数据集成任务节点关系")
 @RestController
-@RequestMapping("/dpp/etlTaskNodeRel")
+@RequestMapping("/col/etlTaskNodeRel")
 @Validated
 public class CollectorEtlTaskNodeRelController extends BaseController {
     @Resource

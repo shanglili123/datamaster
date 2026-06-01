@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request'
 
 // 查询数据资产操作记录列表
@@ -46,7 +46,7 @@ export function delDaAssetOperateLog(id) {
 // 回滚
 export function rollBack(id) {
   return request({
-    url: `/da/assetOperateLog/rollBack/${id}`,
+    url: `/ast/assetOperateLog/rollBack/${id}`,
     method: 'post'
   })
 }
@@ -63,7 +63,7 @@ export function getDaAssetList(query) {
 // // 回滚
 // export function rollBack(id) {
 //   return request({
-//     url: `/da/assetOperateLog/rollBack/${id}`,
+//     url: `/ast/assetOperateLog/rollBack/${id}`,
 //     method: 'get',
 //   })
 // }

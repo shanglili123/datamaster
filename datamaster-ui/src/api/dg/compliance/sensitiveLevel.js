@@ -29,7 +29,7 @@ export function addDgSensitiveLevel(data) {
 // 修改状态 上线/下线
 export function updateStatus(id, status) {
     return request({
-        url: `/dg/sensitiveLevel/updateStatus/${id}/${status}`,
+        url: `/cat/sensitiveLevel/updateStatus/${id}/${status}`,
         method: 'post'
     });
 }

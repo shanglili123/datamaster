@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- 非结构化数据 -->
   <el-row :gutter="20">
     <el-col :span="12">
@@ -131,7 +131,7 @@ const currentPageData = computed(() => {
 const upload = reactive({
   isUploading: false,
   headers: { Authorization: "Bearer " + getToken() },
-  url: import.meta.env.VITE_APP_BASE_API + "/da/daDatasource/file",
+  url: import.meta.env.VITE_APP_BASE_API + "/ast/daDatasource/file",
   fileSize: 50,
 });
 const uploadData = computed(() => {

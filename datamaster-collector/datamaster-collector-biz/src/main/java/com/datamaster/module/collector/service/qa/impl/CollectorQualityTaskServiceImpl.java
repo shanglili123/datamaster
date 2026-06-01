@@ -470,7 +470,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
             return error("任务状态错误，请刷新后重试！");
         }
 
-        DsStartTaskReqDTO dsStartTaskReqDTO = CollectorTaskConverter.createDsStartTaskReqDTO(CollectorQualityTaskDO.getTaskCode());
+        DsStartTaskReqDTO dsStartTaskReqDTO = CollectorTaskConverter.createDsStartTaskReqDTO(CollectorQualityTaskDO.getTaskCode(), CollectorQualityTaskDO.getWorkerGroup());
 
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, projectCode);
 
@@ -551,7 +551,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         if(systemJobId != null){
             try {
                 //     * 创建调度器 (只有任务发布了才能调用该接口)
-                DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(systemJobId, daDiscoveryTask.getCycle(), CollectorQualityTaskById.getTaskCode());
+                DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(systemJobId, daDiscoveryTask.getCycle(), CollectorQualityTaskById.getTaskCode(), CollectorQualityTaskById.getWorkerGroup());
                 DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(projectCode));
                 if(dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()){
                     daDiscoveryTask.setTaskId(CollectorQualityTaskById.getTaskId());
@@ -613,6 +613,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         input.setName(daDiscoveryTaskById.getTaskName() + StringUtils.generateRandomString());
         input.addHttpParam("id", "BODY", daDiscoveryTaskById.getId());
         input.setId(daDiscoveryTaskById.getId());
+        input.setWorkerGroup(daDiscoveryTaskById.getWorkerGroup());
         ProcessDefinition definition = this.createProcessDefinition(input);
         TaskDefinition firstTaskDefinition = CollectorTaskConverter.getFirstTaskDefinition(definition);
 
@@ -627,6 +628,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         input.setName(daDiscoveryTaskById.getTaskName() + StringUtils.generateRandomString());
         input.addHttpParam("id", "BODY", daDiscoveryTaskById.getId());
         input.setId(daDiscoveryTaskById.getId());
+        input.setWorkerGroup(daDiscoveryTaskById.getWorkerGroup());
 
         input.setTaskId(daDiscoveryTaskById.getTaskId());
         input.setTaskCode(String.valueOf(daDiscoveryTaskById.getTaskCode()));
@@ -667,7 +669,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
 
 
     private void updateExistingScheduler(CollectorQualityTaskSaveReqVO daDiscoveryTask, Long systemJobId) {
-        DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(systemJobId, daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode());
+        DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(systemJobId, daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode(), daDiscoveryTask.getWorkerGroup());
         DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(projectCode));
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
             createSchedulerIfNeeded(daDiscoveryTask);
@@ -678,7 +680,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     }
 
     private void createNewScheduler(CollectorQualityTaskSaveReqVO daDiscoveryTask) {
-        DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = CollectorTaskConverter.createSchedulerRequest(daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode());
+        DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = CollectorTaskConverter.createSchedulerRequest(daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode(), daDiscoveryTask.getWorkerGroup());
         DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, String.valueOf(projectCode));
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
             createSchedulerIfNeeded(daDiscoveryTask);
@@ -693,7 +695,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(String.valueOf(projectCode), daDiscoveryTask.getTaskCode());
         if (byTaskCode == null || !byTaskCode.getSuccess()) {
             //     * 创建调度器 (只有任务发布了才能调用该接口)
-            DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = CollectorTaskConverter.createSchedulerRequest(daDiscoveryTask.getCycle(),daDiscoveryTask.getTaskCode());
+            DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = CollectorTaskConverter.createSchedulerRequest(daDiscoveryTask.getCycle(),daDiscoveryTask.getTaskCode(), daDiscoveryTask.getWorkerGroup());
             DsSchedulerRespDTO saveScheduler = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, String.valueOf(projectCode));
             if(saveScheduler == null || !saveScheduler.getSuccess()){
                 throw new ServiceException("创建调度器，失败！");
@@ -705,7 +707,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         }
         Schedule schedule = byTaskCode.getData();
         daDiscoveryTask.setSystemJobId(schedule.getId());
-        DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(schedule.getId(), daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode());
+        DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(schedule.getId(), daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode(), daDiscoveryTask.getWorkerGroup());
         DsSchedulerRespDTO updated = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(projectCode));
         if (updated == null || !updated.getSuccess()) {
             throw new ServiceException("更新调度器，失败！");

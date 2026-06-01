@@ -34,6 +34,10 @@ public class TaxonomyProjectRespVO implements Serializable {
     @Schema(description = "项目编码", example = "")
     private String code;
 
+    @Excel(name = "DS 专属工作组")
+    @Schema(description = "DS 专属工作组", example = "")
+    private String workerGroup;
+
     @Excel(name = "项目管理员id")
     @Schema(description = "项目管理员id", example = "")
     private Long managerId;

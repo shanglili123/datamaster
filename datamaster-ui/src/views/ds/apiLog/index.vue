@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
     <el-container style="90%">
       <DeptTree :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入API服务类目'" ref="DeptTreeRef"
@@ -406,7 +406,7 @@ const upload = reactive({
   // 设置上传的请求头部
   headers: { Authorization: "Bearer " + getToken() },
   // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + "/ds/apiLog/importData",
+  url: import.meta.env.VITE_APP_BASE_API + "/svc/apiLog/importData",
 });
 
 const data = reactive({

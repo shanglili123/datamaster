@@ -217,7 +217,7 @@ import {
   getCurrentInstance,
 } from "vue";
 
-import { getNodeUniqueKey } from "@/api/dpp/task/index.js";
+import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/dpp/task/index.js";
 import useUserStore from "@/store/system/user.js";
 import { createNodeSelect, getParentNode } from "@/views/dpp/utils/opBase.js";
 import draggable from "vuedraggable";

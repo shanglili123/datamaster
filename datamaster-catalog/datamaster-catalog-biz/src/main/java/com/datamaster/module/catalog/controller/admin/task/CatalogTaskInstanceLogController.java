@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Tag(name = "采集任务实例-日志")
 @RestController
-@RequestMapping("/mc/taskInstanceLog")
+@RequestMapping("/cat/taskInstanceLog")
 @Validated
 public class CatalogTaskInstanceLogController extends BaseController {
     @Resource

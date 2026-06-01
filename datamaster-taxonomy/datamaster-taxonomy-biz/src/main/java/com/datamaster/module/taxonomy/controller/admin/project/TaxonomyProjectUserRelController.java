@@ -51,7 +51,7 @@ import java.util.List;
  */
 @Tag(name = "项目与用户关联关系")
 @RestController
-@RequestMapping("/att/projectUserRel")
+@RequestMapping("/tax/projectUserRel")
 @Validated
 public class TaxonomyProjectUserRelController extends BaseController {
     @Resource

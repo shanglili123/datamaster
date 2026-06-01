@@ -24,6 +24,8 @@ Use UTF-8 and Java 8-compatible code. Keep Java package names under `com.datamas
 
 Backend modules use JUnit dependencies, with `datamaster-etl` configured for JUnit 5. Place tests in the matching module under `src/test/java` and name them after the unit under test, for example `ValueParserUtilsTest`. Add focused tests for parsing, SQL generation, ETL behavior, and service logic. No frontend test runner is defined; use linting and production build as minimum verification.
 
+Do not proactively run compilation, build, lint, or test commands after making changes unless the user explicitly requests verification. The user will run verification locally.
+
 ## Commit & Pull Request Guidelines
 
 This checkout does not include `.git`, so local history conventions are unavailable. Use short, imperative commit subjects such as `Fix asset mapper null handling` or `Add catalog task validation`. Pull requests should describe the change, affected modules, database or configuration impacts, and verification commands. Include screenshots for visible frontend changes.

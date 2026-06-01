@@ -39,7 +39,7 @@ import com.datamaster.module.collector.service.etl.ICollectorEtlSqlTempService;
  */
 @Tag(name = "数据集成SQL模版")
 @RestController
-@RequestMapping("/dpp/etlSqlTemp")
+@RequestMapping("/col/etlSqlTemp")
 @Validated
 public class CollectorEtlSqlTempController extends BaseController {
     @Resource

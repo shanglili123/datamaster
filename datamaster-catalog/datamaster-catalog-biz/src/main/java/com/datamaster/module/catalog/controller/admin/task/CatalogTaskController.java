@@ -38,7 +38,7 @@ import java.util.Map;
  */
 @Tag(name = "采集任务")
 @RestController
-@RequestMapping("/mc/task")
+@RequestMapping("/cat/task")
 @Validated
 public class CatalogTaskController extends BaseController {
     @Resource

@@ -123,7 +123,7 @@ import CreateEditModal from "../fieldMergeModal.vue";
 import FieldConflictDialog from "../fieldDetection.vue";
 import { defineProps, defineEmits, ref, computed, watchEffect, getCurrentInstance } from "vue";
 import { typeList } from "@/utils/graph.js";
-import { getNodeUniqueKey } from "@/api/dpp/task/index.js";
+import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/dpp/task/index.js";
 import useUserStore from "@/store/system/user.js";
 import { createNodeSelect, getParentNode } from "@/views/dpp/utils/opBase.js";
 import draggable from "vuedraggable";

@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request';
 
 // 查询数据源列表
@@ -115,14 +115,14 @@ export function removeDppOrDa(id, type) {
 // 修改状态
 export function editDatasourceStatus(id, status) {
     return request({
-        url: `/da/dataSource/editDatasourceStatus/${id}/${status}`,
+        url: `/ast/dataSource/editDatasourceStatus/${id}/${status}`,
         method: 'get'
     });
 }
 
 export function tableList(id) {
     return request({
-        url: `/da/dataSource/tableList/${id}`,
+        url: `/ast/dataSource/tableList/${id}`,
         method: 'get',
     });
 }
@@ -130,7 +130,7 @@ export function tableList(id) {
 // 表字段
 export function columnsList(data) {
     return request({
-        url: `/da/dataSource/columnsList`,
+        url: `/ast/dataSource/columnsList`,
         method: 'post',
         data: data
     });

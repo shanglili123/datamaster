@@ -329,7 +329,7 @@ import SqlEditor from '@/components/SqlEditor/index1.vue';
 import {
     getTablesByDataSourceId,
     getColumnByAssetId,
-    getNodeUniqueKey
+    getLocalNodeUniqueKey as getNodeUniqueKey
 } from '@/api/dpp/task/index.js';
 import {
     listDaDatasource,

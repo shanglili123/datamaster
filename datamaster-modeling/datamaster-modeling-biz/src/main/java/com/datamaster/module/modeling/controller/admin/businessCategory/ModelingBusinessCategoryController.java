@@ -39,7 +39,7 @@ import java.util.List;
  */
 @Tag(name = "业务分类")
 @RestController
-@RequestMapping("/dm/businessCategory")
+@RequestMapping("/mdl/businessCategory")
 @Validated
 public class ModelingBusinessCategoryController extends BaseController {
     @Resource

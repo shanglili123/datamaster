@@ -39,7 +39,7 @@ import com.datamaster.module.collector.service.qa.ICollectorQualityTaskObjServic
  */
 @Tag(name = "数据质量任务-稽查对象")
 @RestController
-@RequestMapping("/dpp/qualityTaskObj")
+@RequestMapping("/col/qualityTaskObj")
 @Validated
 public class CollectorQualityTaskObjController extends BaseController {
     @Resource

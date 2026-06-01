@@ -39,7 +39,7 @@ import com.datamaster.module.standards.service.dataElem.IStandardsDataElemCodeSe
  */
 @Tag(name = "数据元代码")
 @RestController
-@RequestMapping("/dp/dataElemCode")
+@RequestMapping("/std/dataElemCode")
 @Validated
 public class StandardsDataElemCodeController extends BaseController {
     @Resource

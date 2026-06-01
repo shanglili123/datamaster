@@ -36,7 +36,7 @@ import java.util.List;
  */
 @Tag(name = "标准信息分类管理")
 @RestController
-@RequestMapping("/att/documentCat")
+@RequestMapping("/tax/documentCat")
 @Validated
 public class TaxonomyDocumentCatController extends BaseController {
     @Resource

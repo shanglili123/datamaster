@@ -35,7 +35,7 @@ import com.datamaster.module.collector.service.etl.ICollectorEtlTaskService;
  */
 @Tag(name = "数据集成任务")
 @RestController
-@RequestMapping("/dpp/etlTask")
+@RequestMapping("/col/etlTask")
 @Validated
 public class CollectorEtlTaskController extends BaseController {
     @Resource
@@ -69,23 +69,6 @@ public class CollectorEtlTaskController extends BaseController {
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
         return CommonResult.toAjax(CollectorEtlTaskService.removeCollectorEtlTask(Arrays.asList(ids)));
-    }
-
-    /**
-     * 2025-06-18改版，此为历史版本
-     *
-     * @param CollectorEtlNewNodeSaveReqVO
-     * @return
-     */
-    @Operation(summary = "新增节点")
-    @PostMapping("/createProcessDefinitionEx")
-    @ResponseStatus(HttpStatus.CREATED)
-    public CommonResult createProcessDefinition(@Valid @RequestBody CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
-        if (StringUtils.isBlank(CollectorEtlNewNodeSaveReqVO.getType())) {
-            CollectorEtlNewNodeSaveReqVO.setType("1");//默认离线数据集成
-        }
-        CollectorEtlTaskSaveReqVO result = CollectorEtlTaskService.createProcessDefinition(CollectorEtlNewNodeSaveReqVO);
-        return CommonResult.success(result);
     }
 
     @Operation(summary = "上下线")
@@ -128,6 +111,12 @@ public class CollectorEtlTaskController extends BaseController {
         return CommonResult.success(CollectorEtlTaskService.getNodeUniqueKey(CollectorEtlNewNodeSaveReqVO));
     }
 
+    @Operation(summary = "新增数据集成节点-获取本地临时唯一键")
+    @GetMapping("/getLocalNodeUniqueKey")
+    public CommonResult<Long> getLocalNodeUniqueKey() {
+        return CommonResult.success(CollectorEtlTaskService.getLocalNodeUniqueKey());
+    }
+
     @Operation(summary = "获取数据集成任务详细信息")
 //    @PreAuthorize("@ss.hasPermi('dpp:etlTask:query')")
     @GetMapping(value = "/{id}")
@@ -143,14 +132,6 @@ public class CollectorEtlTaskController extends BaseController {
         return CommonResult.success(CollectorEtlTaskService.getuUpdateQueryInfo(id));
     }
 
-
-    @Operation(summary = "修改节点")
-    @PostMapping("/updateProcessDefinition")
-    @ResponseStatus(HttpStatus.CREATED)
-    public CommonResult updateProcessDefinition(@Valid @RequestBody CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
-        CollectorEtlTaskSaveReqVO result = CollectorEtlTaskService.updateProcessDefinition(CollectorEtlNewNodeSaveReqVO);
-        return CommonResult.success(result);
-    }
 
     @Operation(summary = "查询数据集成任务列表")
 //    @PreAuthorize("@ss.hasPermi('dpp:etlTask:list')")
@@ -174,15 +155,6 @@ public class CollectorEtlTaskController extends BaseController {
         return CollectorEtlTaskService.startCollectorEtlTask(id);
     }
 
-
-    @Operation(summary = "新增数据汇聚任务")
-    @PostMapping("/createEtlTask")
-    @ResponseStatus(HttpStatus.CREATED)
-    public CommonResult createEtlTask(@Valid @RequestBody CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
-        CollectorEtlNewNodeSaveReqVO.setType("1");//默认离线数据集成
-        CollectorEtlTaskSaveReqVO result = CollectorEtlTaskService.createEtlTask(CollectorEtlNewNodeSaveReqVO);
-        return CommonResult.success(result);
-    }
 
     @Operation(summary = "修改数据汇聚任务")
     @PostMapping("/updateEtlTask")

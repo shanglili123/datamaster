@@ -102,7 +102,21 @@ public class TaskConverter {
 
     public static final String ETL_READER_DATE_KEY = "etl:reader:date:";
 
+    private static String resolveWorkerGroup(String projectWorkerGroup, Object configuredWorkerGroup) {
+        if (StringUtils.isNotEmpty(projectWorkerGroup)) {
+            return projectWorkerGroup;
+        }
+        if (configuredWorkerGroup != null && StringUtils.isNotEmpty(String.valueOf(configuredWorkerGroup))) {
+            return String.valueOf(configuredWorkerGroup);
+        }
+        return DEFAULT_WORKER_GROUP;
+    }
+
     public static DsTaskSaveReqDTO buildDsTaskSaveReq(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {//名字
+        return buildDsTaskSaveReq(CollectorEtlNewNodeSaveReqVO, null);
+    }
+
+    public static DsTaskSaveReqDTO buildDsTaskSaveReq(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO, String projectWorkerGroup) {//名字
         //创建返回实体
         DsTaskSaveReqDTO dsTaskSaveReqDTO = new DsTaskSaveReqDTO();
         //1、封装基础参数
@@ -115,7 +129,7 @@ public class TaskConverter {
 
 
         //2、封装节点信息 DATAX、SPARK
-        String taskDefinition = buildTaskDefinition(CollectorEtlNewNodeSaveReqVO.getTaskDefinitionList());
+        String taskDefinition = buildTaskDefinition(CollectorEtlNewNodeSaveReqVO.getTaskDefinitionList(), projectWorkerGroup);
 
         String taskRelation = buildTaskRelationJson(CollectorEtlNewNodeSaveReqVO.getTaskRelationJson());
 
@@ -186,6 +200,10 @@ public class TaskConverter {
      * @return 构建后的任务定义JSON字符串
      */
     public static String buildTaskDefinition(String taskDefinitionJson) {
+        return buildTaskDefinition(taskDefinitionJson, null);
+    }
+
+    public static String buildTaskDefinition(String taskDefinitionJson, String projectWorkerGroup) {
         List<Map<String, Object>> list = JSONUtils.convertTaskDefinitionJson(taskDefinitionJson);
 
         List<Map<String, Object>> result = new ArrayList<>();
@@ -205,7 +223,7 @@ public class TaskConverter {
             taskMap.put("code", task.getOrDefault("code", 0L)); // 默认 code 为 0L
             taskMap.put("version", task.getOrDefault("version", 0)); // 默认版本号为1
             taskMap.put("description", task.getOrDefault("description", "")); // 默认描述为空
-            taskMap.put("workerGroup", task.getOrDefault("workerGroup", DEFAULT_WORKER_GROUP)); // 默认 workerGroup 为 "default"
+            taskMap.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, task.get("workerGroup"))); // 项目专属工作组优先
             taskMap.put("environmentCode", task.getOrDefault("environmentCode", DEFAULT_ENVIRONMENT_CODE)); // 默认环境编码
             taskMap.put("flag", DEFAULT_FLAG); // 默认 flag 为 "YES"
             taskMap.put("isCache", task.getOrDefault("isCache", DEFAULT_IS_CACHE)); // 默认 isCache 为 "NO"
@@ -664,6 +682,10 @@ public class TaskConverter {
      * @return DsSchedulerSaveReqDTO
      */
     public static DsSchedulerSaveReqDTO createSchedulerRequest(String crontab, String processDefinitionCode) {
+        return createSchedulerRequest(crontab, processDefinitionCode, null);
+    }
+
+    public static DsSchedulerSaveReqDTO createSchedulerRequest(String crontab, String processDefinitionCode, String projectWorkerGroup) {
         // 获取当前时间
         String startTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
@@ -677,7 +699,7 @@ public class TaskConverter {
                 startTime, endTime, crontab));
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
-        dto.setWorkerGroup("default");
+        dto.setWorkerGroup(resolveWorkerGroup(projectWorkerGroup, null));
         dto.setTenantCode("default");
 
         return dto;
@@ -721,6 +743,10 @@ public class TaskConverter {
      * @return DsSchedulerUpdateReqDTO
      */
     public static DsSchedulerUpdateReqDTO createSchedulerUpdateRequest(Long id, String crontab, String processDefinitionCode) {
+        return createSchedulerUpdateRequest(id, crontab, processDefinitionCode, null);
+    }
+
+    public static DsSchedulerUpdateReqDTO createSchedulerUpdateRequest(Long id, String crontab, String processDefinitionCode, String projectWorkerGroup) {
         // 获取当前时间
         String startTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
@@ -735,7 +761,7 @@ public class TaskConverter {
                 startTime, endTime, crontab));
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
-        dto.setWorkerGroup("default");
+        dto.setWorkerGroup(resolveWorkerGroup(projectWorkerGroup, null));
         dto.setTenantCode("default");
 
         return dto;
@@ -802,6 +828,10 @@ public class TaskConverter {
 
 
     public static DsStartTaskReqDTO createDsStartTaskReqDTO(String processDefinitionCode) {
+        return createDsStartTaskReqDTO(processDefinitionCode, null);
+    }
+
+    public static DsStartTaskReqDTO createDsStartTaskReqDTO(String processDefinitionCode, String projectWorkerGroup) {
         // 获取当前日期，格式为 "yyyy-MM-dd"
         String currentDate = DateUtil.today();
         // 构造 scheduleTime 字段，固定格式 "yyyy-MM-dd 00:00:00"
@@ -813,6 +843,7 @@ public class TaskConverter {
                 .failureStrategy("CONTINUE")
                 .warningType(DEFAULT_CONDITION_TYPE)
                 .processInstancePriority(DEFAULT_TASK_PRIORITY)
+                .workerGroup(resolveWorkerGroup(projectWorkerGroup, null))
                 .scheduleTime(scheduleTime)
                 .build();
     }
@@ -870,6 +901,10 @@ public class TaskConverter {
      * @return
      */
     public static String buildEtlTaskDefinitionJson(Long id, String name, String code, Integer version, Map<String, Object> mainArgs, String draftJson) {
+        return buildEtlTaskDefinitionJson(id, name, code, version, mainArgs, draftJson, null);
+    }
+
+    public static String buildEtlTaskDefinitionJson(Long id, String name, String code, Integer version, Map<String, Object> mainArgs, String draftJson, String projectWorkerGroup) {
         List<Map<String, Object>> result = new ArrayList<>();
         //自定义参数
         Map<String, Object> definitionJsonMap = JSONUtils.convertTaskDefinitionJsonMap(draftJson);
@@ -883,7 +918,7 @@ public class TaskConverter {
         taskMap.put("code", code); // 默认 code 为 0L
         taskMap.put("version", version); // 默认版本号为1
         taskMap.put("description", ""); // 默认描述为空
-        taskMap.put("workerGroup", MapUtils.getObject(definitionJsonMap,"workerGroup",DEFAULT_WORKER_GROUP) ); // 默认 workerGroup 为 "default"
+        taskMap.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, definitionJsonMap.get("workerGroup"))); // 项目专属工作组优先
         taskMap.put("environmentCode", DEFAULT_ENVIRONMENT_CODE); // 默认环境编码
         taskMap.put("flag", DEFAULT_FLAG); // 默认 flag 为 "YES"
         taskMap.put("isCache", DEFAULT_IS_CACHE); // 默认 isCache 为 "NO"
@@ -946,6 +981,11 @@ public class TaskConverter {
      */
     public static String buildEtlTaskDefinitionJsonFlinkx(Long id, String name, String code, Integer version,
                                                           String flinkxJobJson, String draftJson) {
+        return buildEtlTaskDefinitionJsonFlinkx(id, name, code, version, flinkxJobJson, draftJson, null);
+    }
+
+    public static String buildEtlTaskDefinitionJsonFlinkx(Long id, String name, String code, Integer version,
+                                                          String flinkxJobJson, String draftJson, String projectWorkerGroup) {
         List<Map<String, Object>> result = new ArrayList<>();
         Map<String, Object> definitionJsonMap = JSONUtils.convertTaskDefinitionJsonMap(draftJson);
 
@@ -955,7 +995,7 @@ public class TaskConverter {
         taskMap.put("code", code);
         taskMap.put("version", version);
         taskMap.put("description", "");
-        taskMap.put("workerGroup", MapUtils.getObject(definitionJsonMap, "workerGroup", DEFAULT_WORKER_GROUP));
+        taskMap.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, definitionJsonMap.get("workerGroup")));
         taskMap.put("environmentCode", DEFAULT_ENVIRONMENT_CODE);
         taskMap.put("flag", DEFAULT_FLAG);
         taskMap.put("isCache", DEFAULT_IS_CACHE);

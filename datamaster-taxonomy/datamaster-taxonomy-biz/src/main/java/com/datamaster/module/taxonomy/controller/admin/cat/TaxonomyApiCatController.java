@@ -37,7 +37,7 @@ import com.datamaster.module.taxonomy.service.cat.ITaxonomyApiCatService;
  */
 @Tag(name = "数据服务类目管理")
 @RestController
-@RequestMapping("/att/apiCat")
+@RequestMapping("/tax/apiCat")
 @Validated
 public class TaxonomyApiCatController extends BaseController {
     @Resource

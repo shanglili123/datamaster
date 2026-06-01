@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="app-container" ref="app-container">
         <div class="pagecont-top" v-show="showSearch">
             <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
@@ -334,7 +334,7 @@ const upload = reactive({
     // 设置上传的请求头部
     headers: { Authorization: 'Bearer ' + getToken() },
     // 上传的地址
-    url: import.meta.env.VITE_APP_BASE_API + '/att/AttTaskCat/importData'
+    url: import.meta.env.VITE_APP_BASE_API + '/tax/AttTaskCat/importData'
 });
 
 const data = reactive({

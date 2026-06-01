@@ -308,7 +308,7 @@ import {
   getCurrentInstance,
 } from "vue";
 
-import { getNodeUniqueKey } from "@/api/dpp/task/index.js";
+import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/dpp/task/index.js";
 import useUserStore from "@/store/system/user.js";
 import { createNodeSelect } from "@/views/dpp/utils/opBase.js";
 const { proxy } = getCurrentInstance();

@@ -39,7 +39,7 @@ import com.datamaster.module.standards.service.desensitizeRules.IStandardsDesens
  */
 @Tag(name = "脱敏区间")
 @RestController
-@RequestMapping("/dg/desensitizeInterval")
+@RequestMapping("/cat/desensitizeInterval")
 @Validated
 public class StandardsDesensitizeIntervalController extends BaseController {
     @Resource

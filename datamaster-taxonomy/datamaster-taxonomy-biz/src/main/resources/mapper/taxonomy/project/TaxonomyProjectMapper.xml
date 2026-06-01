@@ -8,6 +8,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="id"    column="ID"    />
         <result property="name"    column="NAME"    />
         <result property="code"    column="CODE"    />
+        <result property="workerGroupId"    column="WORKER_GROUP_ID"    />
+        <result property="workerGroup"    column="WORKER_GROUP"    />
         <result property="managerId"    column="MANAGER_ID"    />
         <result property="managerName"    column="managerName"    />
         <result property="managerPhone"    column="managerPhone"    />
@@ -24,7 +26,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAttProjectVo">
-        select ID, NAME,CODE, MANAGER_ID, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from TAX_PROJECT
+        select ID, NAME,CODE, WORKER_GROUP_ID, WORKER_GROUP, MANAGER_ID, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from TAX_PROJECT
     </sql>
 
     <select id="selectAttProjectList" parameterType="TaxonomyProjectDO" resultMap="TaxonomyProjectResult">
@@ -34,7 +36,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
     <select id="selectAttProjectListByPage" parameterType="TaxonomyProjectDO" resultMap="TaxonomyProjectResult">
-        select p.ID, p.NAME,p.CODE, p.MANAGER_ID, u.NICK_NAME as nickName, u.PHONENUMBER as managerPhone ,p.DESCRIPTION, p.VALID_FLAG, p.DEL_FLAG, p.CREATE_BY, p.CREATOR_ID, p.CREATE_TIME, p.UPDATE_BY, p.UPDATER_ID, p.UPDATE_TIME, p.REMARK from TAX_PROJECT p
+        select p.ID, p.NAME,p.CODE, p.WORKER_GROUP_ID, p.WORKER_GROUP, p.MANAGER_ID, u.NICK_NAME as nickName, u.PHONENUMBER as managerPhone ,p.DESCRIPTION, p.VALID_FLAG, p.DEL_FLAG, p.CREATE_BY, p.CREATOR_ID, p.CREATE_TIME, p.UPDATE_BY, p.UPDATER_ID, p.UPDATE_TIME, p.REMARK from TAX_PROJECT p
 
         LEFT JOIN SYSTEM_USER u ON p.MANAGER_ID = u.USER_ID
         <where>
@@ -50,7 +52,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </select>
     <select id="selectById" resultMap="TaxonomyProjectResult">
-        select p.ID, p.NAME,p.CODE, p.MANAGER_ID, u.NICK_NAME as nickName, u.PHONENUMBER as managerPhone ,p.DESCRIPTION, p.VALID_FLAG, p.DEL_FLAG, p.CREATE_BY, p.CREATOR_ID, p.CREATE_TIME, p.UPDATE_BY, p.UPDATER_ID, p.UPDATE_TIME, p.REMARK from TAX_PROJECT p
+        select p.ID, p.NAME,p.CODE, p.WORKER_GROUP_ID, p.WORKER_GROUP, p.MANAGER_ID, u.NICK_NAME as nickName, u.PHONENUMBER as managerPhone ,p.DESCRIPTION, p.VALID_FLAG, p.DEL_FLAG, p.CREATE_BY, p.CREATOR_ID, p.CREATE_TIME, p.UPDATE_BY, p.UPDATER_ID, p.UPDATE_TIME, p.REMARK from TAX_PROJECT p
 
         LEFT JOIN SYSTEM_USER u ON p.MANAGER_ID = u.USER_ID
         where ID = #{id}
@@ -62,6 +64,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="id != null">ID,</if>
             <if test="name != null">NAME,</if>
             <if test="code != null">CODE,</if>
+            <if test="workerGroupId != null">WORKER_GROUP_ID,</if>
+            <if test="workerGroup != null">WORKER_GROUP,</if>
             <if test="managerId != null">MANAGER_ID,</if>
             <if test="description != null">DESCRIPTION,</if>
             <if test="validFlag != null">VALID_FLAG,</if>
@@ -78,6 +82,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="id != null">#{id},</if>
             <if test="name != null">#{name},</if>
             <if test="code != null">#{code},</if>
+            <if test="workerGroupId != null">#{workerGroupId},</if>
+            <if test="workerGroup != null">#{workerGroup},</if>
             <if test="managerId != null">#{managerId},</if>
             <if test="description != null">#{description},</if>
             <if test="validFlag != null">#{validFlag},</if>
@@ -97,6 +103,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="SET" suffixOverrides=",">
             <if test="name != null">NAME = #{name},</if>
             <if test="code != null">CODE = #{code},</if>
+            <if test="workerGroupId != null">WORKER_GROUP_ID = #{workerGroupId},</if>
+            <if test="workerGroup != null">WORKER_GROUP = #{workerGroup},</if>
             <if test="managerId != null">MANAGER_ID = #{managerId},</if>
             <if test="description != null">DESCRIPTION = #{description},</if>
             <if test="validFlag != null">VALID_FLAG = #{validFlag},</if>

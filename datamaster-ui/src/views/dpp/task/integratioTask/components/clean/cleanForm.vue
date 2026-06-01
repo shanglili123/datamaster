@@ -291,7 +291,7 @@
 <script setup>
 import { defineProps, defineEmits, ref, computed, watch } from "vue";
 
-import { getNodeUniqueKey } from "@/api/dpp/task/index.js";
+import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/dpp/task/index.js";
 const { proxy } = getCurrentInstance();
 import Sortable from "sortablejs";
 import useUserStore from "@/store/system/user.js";

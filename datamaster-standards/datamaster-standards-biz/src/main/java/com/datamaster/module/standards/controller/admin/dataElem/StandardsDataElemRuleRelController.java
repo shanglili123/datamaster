@@ -39,7 +39,7 @@ import com.datamaster.module.standards.service.dataElem.IStandardsDataElemRuleRe
  */
 @Tag(name = "数据元数据规则关联信息")
 @RestController
-@RequestMapping("/dp/dataElemRuleRel")
+@RequestMapping("/std/dataElemRuleRel")
 @Validated
 public class StandardsDataElemRuleRelController extends BaseController {
     @Resource

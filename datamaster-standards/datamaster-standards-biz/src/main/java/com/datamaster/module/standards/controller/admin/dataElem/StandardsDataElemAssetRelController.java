@@ -36,7 +36,7 @@ import com.datamaster.module.standards.service.dataElem.IStandardsDataElemAssetR
  */
 @Tag(name = "数据元数据资产关联信息")
 @RestController
-@RequestMapping("/dp/dataElemAssetRel")
+@RequestMapping("/std/dataElemAssetRel")
 @Validated
 public class StandardsDataElemAssetRelController extends BaseController {
     @Resource

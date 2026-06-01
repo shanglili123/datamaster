@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Tag(name = "元数据信息 - 日志")
 @RestController
-@RequestMapping("/mc/catalogTableLog")
+@RequestMapping("/cat/catalogTableLog")
 @Validated
 public class CatalogTableLogController extends BaseController {
     @Resource

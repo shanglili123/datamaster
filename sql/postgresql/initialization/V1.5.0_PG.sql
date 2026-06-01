@@ -923,7 +923,9 @@ CREATE TABLE public.tax_project (
   updater_id BIGINT,
   update_time timestamp,
   remark varchar,
-  code varchar
+  code varchar,
+  worker_group_id integer,
+  worker_group varchar
 );
 
 COMMENT ON TABLE public.tax_project IS 'tax_project';

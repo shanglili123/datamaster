@@ -33,6 +33,9 @@ public class TaskSaveReqInput extends BaseEntity {
     @Schema(description = "任务编码", example = "")
     private String taskCode;
 
+    /** Worker 分组 */
+    private String workerGroup;
+
     /**
      * {
      *   "prop": "id",

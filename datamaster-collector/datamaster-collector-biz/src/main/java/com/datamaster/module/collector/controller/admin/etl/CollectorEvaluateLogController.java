@@ -42,7 +42,7 @@ import com.datamaster.module.collector.service.etl.ICollectorEvaluateLogService;
  */
 @Tag(name = "评测规则结果")
 @RestController
-@RequestMapping("/dpp/evaluateLog")
+@RequestMapping("/col/evaluateLog")
 @Validated
 public class CollectorEvaluateLogController extends BaseController {
     @Resource

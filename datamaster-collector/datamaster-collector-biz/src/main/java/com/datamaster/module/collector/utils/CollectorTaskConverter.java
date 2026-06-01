@@ -13,6 +13,7 @@ import com.datamaster.api.ds.api.etl.ds.ProcessDefinition;
 import com.datamaster.api.ds.api.etl.ds.TaskDefinition;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.JSONUtils;
+import com.datamaster.common.utils.StringUtils;
 import com.datamaster.module.collector.utils.model.TaskSaveReqInput;
 
 import java.text.SimpleDateFormat;
@@ -86,7 +87,7 @@ public class CollectorTaskConverter {
         taskMap.put("code", input.getNodeCode());  // 使用传入的任务 code
         taskMap.put("version", 1);  // 写死版本
         taskMap.put("description", "");  // 描述为空
-        taskMap.put("workerGroup",DEFAULT_WORKER_GROUP);  // 写死工作组
+        taskMap.put("workerGroup", resolveWorkerGroup(input.getWorkerGroup()));
         taskMap.put("environmentCode", DEFAULT_ENVIRONMENT_CODE);  // 写死环境编码
         taskMap.put("flag",  DEFAULT_FLAG); // 默认 flag 为 "YES"
         taskMap.put("isCache", DEFAULT_IS_CACHE);  // 不缓存
@@ -177,6 +178,10 @@ public class CollectorTaskConverter {
      * @return DsSchedulerSaveReqDTO
      */
     public static DsSchedulerSaveReqDTO createSchedulerRequest(String crontab, String processDefinitionCode) {
+        return createSchedulerRequest(crontab, processDefinitionCode, null);
+    }
+
+    public static DsSchedulerSaveReqDTO createSchedulerRequest(String crontab, String processDefinitionCode, String workerGroup) {
         // 获取当前时间
         String startTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
@@ -190,7 +195,7 @@ public class CollectorTaskConverter {
                 startTime, endTime, crontab));
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
-        dto.setWorkerGroup("default");
+        dto.setWorkerGroup(resolveWorkerGroup(workerGroup));
         dto.setTenantCode("default");
 
         return dto;
@@ -205,6 +210,10 @@ public class CollectorTaskConverter {
      * @return DsSchedulerUpdateReqDTO
      */
     public static DsSchedulerUpdateReqDTO createSchedulerUpdateRequest(Long id, String crontab, String processDefinitionCode) {
+        return createSchedulerUpdateRequest(id, crontab, processDefinitionCode, null);
+    }
+
+    public static DsSchedulerUpdateReqDTO createSchedulerUpdateRequest(Long id, String crontab, String processDefinitionCode, String workerGroup) {
         // 获取当前时间
         String startTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 
@@ -219,13 +228,17 @@ public class CollectorTaskConverter {
                 startTime, endTime, crontab));
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
-        dto.setWorkerGroup("default");
+        dto.setWorkerGroup(resolveWorkerGroup(workerGroup));
         dto.setTenantCode("default");
 
         return dto;
     }
 
     public static DsStartTaskReqDTO createDsStartTaskReqDTO(String processDefinitionCode) {
+        return createDsStartTaskReqDTO(processDefinitionCode, null);
+    }
+
+    public static DsStartTaskReqDTO createDsStartTaskReqDTO(String processDefinitionCode, String workerGroup) {
         // 获取当前日期，格式为 "yyyy-MM-dd"
         String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         // 构造 scheduleTime 字段，固定格式 "yyyy-MM-dd 00:00:00"
@@ -237,7 +250,12 @@ public class CollectorTaskConverter {
                 .failureStrategy("CONTINUE")
                 .warningType("NONE")
                 .processInstancePriority("MEDIUM")
+                .workerGroup(resolveWorkerGroup(workerGroup))
                 .scheduleTime(scheduleTime)
                 .build();
+    }
+
+    private static String resolveWorkerGroup(String workerGroup) {
+        return StringUtils.isEmpty(workerGroup) ? DEFAULT_WORKER_GROUP : workerGroup;
     }
 }

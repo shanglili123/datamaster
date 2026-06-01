@@ -39,7 +39,7 @@ import java.util.List;
  */
 @Tag(name = "清洗规则")
 @RestController
-@RequestMapping("/att/cleanRule")
+@RequestMapping("/tax/cleanRule")
 @Validated
 public class TaxonomyCleanRuleController extends BaseController {
     @Resource

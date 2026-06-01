@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
     <el-container style="90%">
       <DeptTree ref="DeptTreeRef" :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入数据开发类目名称'"
@@ -234,7 +234,7 @@ const upload = reactive({
   // 设置上传的请求头部
   headers: { Authorization: "Bearer " + getToken() },
   // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + "/dpp/dppEtlTaskLog/importData",
+  url: import.meta.env.VITE_APP_BASE_API + "/col/dppEtlTaskLog/importData",
 });
 
 const data = reactive({

@@ -9,7 +9,7 @@ import com.datamaster.api.ds.api.base.DsStatusRespDTO;
 import com.datamaster.api.ds.api.etl.DSExecuteDTO;
 import com.datamaster.api.ds.api.service.etl.IDsEtlExecutorService;
 import com.datamaster.common.httpClient.DsRequestUtils;
-import com.datamaster.common.httpClient.constants.QianTongDCApiType;
+import com.datamaster.common.httpClient.constants.DataMasterDSApiType;
 
 /**
  * <P>
@@ -24,7 +24,7 @@ import com.datamaster.common.httpClient.constants.QianTongDCApiType;
 public class DsEtlExecutorServiceImpl implements IDsEtlExecutorService {
     @Override
     public DsStatusRespDTO execute(DSExecuteDTO dsExecuteDTO, String projectCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.POST_EXECUTORS_EXECUTE;
+        DataMasterDSApiType apiType = DataMasterDSApiType.POST_EXECUTORS_EXECUTE;
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode),
                 apiType.getMethod(), JSONObject.parseObject(JSONObject.toJSONString(dsExecuteDTO)),
                 DsStatusRespDTO.class);

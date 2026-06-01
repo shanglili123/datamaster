@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Tag(name = "标准信息登记")
 @RestController
-@RequestMapping("/dp/document")
+@RequestMapping("/std/document")
 @Validated
 public class StandardsDocumentController extends BaseController {
     @Resource

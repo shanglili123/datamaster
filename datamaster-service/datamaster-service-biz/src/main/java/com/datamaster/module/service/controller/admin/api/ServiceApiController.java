@@ -48,7 +48,7 @@ import java.util.List;
  */
 @Tag(name = "API服务")
 @RestController
-@RequestMapping("/ds/api")
+@RequestMapping("/svc/api")
 @Validated
 public class ServiceApiController extends BaseController {
     @Resource

@@ -31,7 +31,7 @@ import java.util.Arrays;
  */
 @Tag(name = "敏感等级")
 @RestController
-@RequestMapping("/dg/sensitiveLevel")
+@RequestMapping("/cat/sensitiveLevel")
 @Validated
 public class StandardsSensitiveLevelController extends BaseController {
     @Resource

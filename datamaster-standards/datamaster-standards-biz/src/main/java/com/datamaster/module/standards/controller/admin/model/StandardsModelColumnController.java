@@ -37,7 +37,7 @@ import com.datamaster.module.standards.service.model.IStandardsModelColumnServic
  */
 @Tag(name = "逻辑模型属性信息")
 @RestController
-@RequestMapping("/dp/modelColumn")
+@RequestMapping("/std/modelColumn")
 @Validated
 public class StandardsModelColumnController extends BaseController {
     @Resource

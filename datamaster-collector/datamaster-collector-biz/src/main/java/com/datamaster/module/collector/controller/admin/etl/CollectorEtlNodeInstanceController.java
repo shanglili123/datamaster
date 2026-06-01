@@ -53,7 +53,7 @@ import com.datamaster.redis.service.IRedisService;
  */
 @Tag(name = "数据集成节点实例")
 @RestController
-@RequestMapping("/dpp/etlNodeInstance")
+@RequestMapping("/col/etlNodeInstance")
 @Validated
 public class CollectorEtlNodeInstanceController extends BaseController {
     @Resource

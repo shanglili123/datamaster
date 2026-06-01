@@ -39,7 +39,7 @@ import com.datamaster.module.service.service.apiLog.IServiceApiLogService;
  */
 @Tag(name = "API服务调用日志")
 @RestController
-@RequestMapping("/ds/apiLog")
+@RequestMapping("/svc/apiLog")
 @Validated
 public class ServiceApiLogController extends BaseController {
     @Resource

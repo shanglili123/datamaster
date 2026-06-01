@@ -104,7 +104,7 @@
 <script setup>
 import { getToken } from "@/utils/auth.js";
 import { typeList } from "@/utils/graph.js";
-import { getNodeUniqueKey, getExcelColumn } from "@/api/dpp/task/index.js";
+import { getLocalNodeUniqueKey as getNodeUniqueKey, getExcelColumn } from "@/api/dpp/task/index.js";
 import excelUploadDialog from "../excelUpload.vue";
 import FileUploadbtn from '@/components/FileUploadbtn/index1.vue'
 const { proxy } = getCurrentInstance();

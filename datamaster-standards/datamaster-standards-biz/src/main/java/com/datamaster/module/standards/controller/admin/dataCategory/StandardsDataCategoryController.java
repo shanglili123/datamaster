@@ -32,7 +32,7 @@ import java.util.List;
  */
 @Tag(name = "数据分类")
 @RestController
-@RequestMapping("/dg/dataCategory")
+@RequestMapping("/cat/dataCategory")
 @Validated
 public class StandardsDataCategoryController extends BaseController {
     @Resource

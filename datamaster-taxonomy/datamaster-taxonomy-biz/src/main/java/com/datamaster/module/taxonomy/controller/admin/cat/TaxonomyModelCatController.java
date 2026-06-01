@@ -37,7 +37,7 @@ import java.util.List;
  */
 @Tag(name = "逻辑模型类目管理")
 @RestController
-@RequestMapping("/att/modelCat")
+@RequestMapping("/tax/modelCat")
 @Validated
 public class TaxonomyModelCatController extends BaseController {
     @Resource

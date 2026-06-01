@@ -46,7 +46,7 @@ export function updateDpDataElem(data) {
 // 修改数据元
 export function updateStatusDpDataElem(id, status) {
     return request({
-        url: `/dg/dataElem/updateStatus/${id}/${status}`,
+        url: `/cat/dataElem/updateStatus/${id}/${status}`,
         method: 'post'
     });
 }
@@ -247,7 +247,7 @@ export function delDpDataElemRuleRel(id) {
 // 保存关联信息
 export function save(dataElemId, ruleType, data) {
     return request({
-        url: `/dg/dataElemRuleRel/save/${dataElemId}/${ruleType}`,
+        url: `/cat/dataElemRuleRel/save/${dataElemId}/${ruleType}`,
         method: 'post',
         data
     })

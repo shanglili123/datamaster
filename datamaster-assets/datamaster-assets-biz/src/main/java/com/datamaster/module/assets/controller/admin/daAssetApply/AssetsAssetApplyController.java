@@ -34,7 +34,7 @@ import com.datamaster.module.assets.service.daAssetApply.IAssetsAssetApplyServic
  */
 @Tag(name = "数据资产申请")
 @RestController
-@RequestMapping("/da/assetApply")
+@RequestMapping("/ast/assetApply")
 @Validated
 public class AssetsAssetApplyController extends BaseController {
     @Resource

@@ -186,7 +186,7 @@
                   link
                   type="success"
                   icon="Upload"
-                  :disabled="row.status == '1' || row.status == '-1'"
+                  :disabled="row.status == '1'"
                   @click="handlePublish(row)">发布</el-button
                 >
                 <el-button

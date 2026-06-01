@@ -38,6 +38,10 @@ public class DsStartTaskReqDTO {
      */
     private String processInstancePriority;
     /**
+     * Worker 分组
+     */
+    private String workerGroup;
+    /**
      * 写死{"complementStartDate":"当前天 00:00:00","complementEndDate":"当前天 00:00:00"}
      * 例子{"complementStartDate":"2025-03-26 00:00:00","complementEndDate":"2025-03-26 00:00:00"}
      */

@@ -2,7 +2,7 @@ package com.datamaster.module.assets.controller.admin.discovery;import cn.hutool
 
 @Tag(name = "")
 @RestController
-@RequestMapping("/da/discoveryTaskLog")
+@RequestMapping("/ast/discoveryTaskLog")
 @Validated
 public class AssetsDiscoveryTaskLogController extends BaseController {
     @Resource

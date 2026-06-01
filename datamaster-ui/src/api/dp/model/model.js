@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request';
 
 // 查询逻辑模型列表
@@ -109,7 +109,7 @@ export function getDaDatasourceList(query) {
 // 修改状态
 export function updateStatusDpDataModel(id, status) {
     return request({
-        url: `/dp/model/updateStatus/${id}/${status}`,
+        url: `/std/model/updateStatus/${id}/${status}`,
         method: 'post'
     });
 }
@@ -124,7 +124,7 @@ export function tableList(ID) {
 // 表字段
 export function columnsList(data) {
     return request({
-        url: `/da/dataSource/columnsList`,
+        url: `/ast/dataSource/columnsList`,
         method: 'post',
         data: data
     });

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
 
     <el-container style="90%">
@@ -438,7 +438,7 @@ const upload = reactive({
   // 设置上传的请求头部
   headers: { Authorization: "Bearer " + getToken() },
   // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + "/att/auditRule/importData",
+  url: import.meta.env.VITE_APP_BASE_API + "/tax/auditRule/importData",
 });
 
 const data = reactive({

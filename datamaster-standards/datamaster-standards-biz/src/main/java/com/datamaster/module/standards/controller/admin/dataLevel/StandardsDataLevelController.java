@@ -39,7 +39,7 @@ import com.datamaster.module.standards.service.dataLevel.IStandardsDataLevelServ
  */
 @Tag(name = "数据分级")
 @RestController
-@RequestMapping("/dg/dataLevel")
+@RequestMapping("/cat/dataLevel")
 @Validated
 public class StandardsDataLevelController extends BaseController {
     @Resource

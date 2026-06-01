@@ -11,7 +11,7 @@ import com.datamaster.api.ds.api.etl.DsTaskSaveReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveRespDTO;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.httpClient.DsRequestUtils;
-import com.datamaster.common.httpClient.constants.QianTongDCApiType;
+import com.datamaster.common.httpClient.constants.DataMasterDSApiType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +29,7 @@ import java.util.Map;
 public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
     @Override
     public DsTaskSaveRespDTO createTask(DsTaskSaveReqDTO dsTaskSaveReqDTO, Long projectCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.CREATE_PROCESS_DEFINITION;
+        DataMasterDSApiType apiType = DataMasterDSApiType.CREATE_PROCESS_DEFINITION;
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCode(apiType.getUrl(), String.valueOf(projectCode)),
                 apiType.getMethod(),
                 JSONObject.parseObject(JSONObject.toJSONString(dsTaskSaveReqDTO)),
@@ -38,7 +38,7 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
 
     @Override
     public DsTaskSaveRespDTO updateTask(DsTaskSaveReqDTO dsTaskSaveReqDTO, String projectCode, String taskCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.UPDATE_PROCESS_DEFINITION;
+        DataMasterDSApiType apiType = DataMasterDSApiType.UPDATE_PROCESS_DEFINITION;
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCodeAndCode(apiType.getUrl(), String.valueOf(projectCode), taskCode),
                 apiType.getMethod(),
                 JSONObject.parseObject(JSONObject.toJSONString(dsTaskSaveReqDTO)),
@@ -47,7 +47,7 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
 
     @Override
     public DsStatusRespDTO releaseTask(String releaseState, String projectCode, String code) {
-        QianTongDCApiType apiType = QianTongDCApiType.RELEASE_PROCESS_DEFINITION;
+        DataMasterDSApiType apiType = DataMasterDSApiType.RELEASE_PROCESS_DEFINITION;
         Map<String, Object> params = new HashMap<>();
         params.put("releaseState", releaseState);
         return DsRequestUtils.request(DsRequestUtils.replaceProjectCodeAndCode(apiType.getUrl(), projectCode, code),
@@ -58,7 +58,7 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
 
     @Override
     public DsStatusRespDTO deleteTask(String projectCode, String code) {
-        QianTongDCApiType apiType = QianTongDCApiType.DELETE_PROCESS_DEFINITION;
+        DataMasterDSApiType apiType = DataMasterDSApiType.DELETE_PROCESS_DEFINITION;
         return DsRequestUtils.request(DsRequestUtils.replaceProjectCodeAndCode(apiType.getUrl(), projectCode, code),
                 apiType.getMethod(),
                 null, null,
@@ -67,7 +67,7 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
 
     @Override
     public DsStatusRespDTO startTask(DsStartTaskReqDTO dsStartTaskReqDTO, String projectCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.POST_START_PROCESS;
+        DataMasterDSApiType apiType = DataMasterDSApiType.POST_START_PROCESS;
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode),
                 apiType.getMethod(), JSONObject.parseObject(JSONObject.toJSONString(dsStartTaskReqDTO)),
                 DsStatusRespDTO.class);
@@ -75,7 +75,7 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
 
     @Override
     public DsTaskSaveRespDTO batchCopy(String code, String projectCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.BATCH_COPY_PROCESS_DEFINITION;
+        DataMasterDSApiType apiType = DataMasterDSApiType.BATCH_COPY_PROCESS_DEFINITION;
 
         // URL 拼接
         String url = DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode);

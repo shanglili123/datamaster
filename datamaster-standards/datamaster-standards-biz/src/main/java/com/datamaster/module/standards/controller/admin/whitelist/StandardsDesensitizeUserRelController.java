@@ -39,7 +39,7 @@ import com.datamaster.module.standards.service.whitelist.IStandardsDesensitizeUs
  */
 @Tag(name = "脱敏白名单与用户关联关系")
 @RestController
-@RequestMapping("/dg/desensitizeUserRel")
+@RequestMapping("/cat/desensitizeUserRel")
 @Validated
 public class StandardsDesensitizeUserRelController extends BaseController {
     @Resource

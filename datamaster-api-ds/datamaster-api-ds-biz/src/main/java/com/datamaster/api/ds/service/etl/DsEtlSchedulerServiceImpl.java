@@ -11,7 +11,7 @@ import com.datamaster.api.ds.api.etl.DsSchedulerSaveReqDTO;
 import com.datamaster.api.ds.api.etl.DsSchedulerUpdateReqDTO;
 import com.datamaster.api.ds.api.service.etl.IDsEtlSchedulerService;
 import com.datamaster.common.httpClient.DsRequestUtils;
-import com.datamaster.common.httpClient.constants.QianTongDCApiType;
+import com.datamaster.common.httpClient.constants.DataMasterDSApiType;
 
 /**
  * <P>
@@ -26,7 +26,7 @@ import com.datamaster.common.httpClient.constants.QianTongDCApiType;
 public class DsEtlSchedulerServiceImpl implements IDsEtlSchedulerService {
     @Override
     public DsSchedulerRespDTO saveScheduler(DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO, String projectCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.CREATE_SCHEDULE;
+        DataMasterDSApiType apiType = DataMasterDSApiType.CREATE_SCHEDULE;
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode),
                 apiType.getMethod(),
                 JSONObject.parseObject(JSONObject.toJSONString(dsSchedulerSaveReqDTO)),
@@ -35,7 +35,7 @@ public class DsEtlSchedulerServiceImpl implements IDsEtlSchedulerService {
 
     @Override
     public DsSchedulerRespDTO updateScheduler(DsSchedulerUpdateReqDTO dsSchedulerUpdateReqDTO, String projectCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.UPDATE_SCHEDULE;
+        DataMasterDSApiType apiType = DataMasterDSApiType.UPDATE_SCHEDULE;
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCodeAndId(apiType.getUrl(), projectCode, dsSchedulerUpdateReqDTO.getId()),
                 apiType.getMethod(),
                 JSONObject.parseObject(JSONObject.toJSONString(dsSchedulerUpdateReqDTO)),
@@ -44,7 +44,7 @@ public class DsEtlSchedulerServiceImpl implements IDsEtlSchedulerService {
 
     @Override
     public DsStatusRespDTO onlineScheduler(String projectCode, Long id) {
-        QianTongDCApiType apiType = QianTongDCApiType.SCHEDULE_ONLINE;
+        DataMasterDSApiType apiType = DataMasterDSApiType.SCHEDULE_ONLINE;
         return DsRequestUtils.request(DsRequestUtils.replaceProjectCodeAndId(apiType.getUrl(), projectCode, id),
                 apiType.getMethod(),
                 null, null,
@@ -53,7 +53,7 @@ public class DsEtlSchedulerServiceImpl implements IDsEtlSchedulerService {
 
     @Override
     public DsStatusRespDTO offlineScheduler(String projectCode, Long id) {
-        QianTongDCApiType apiType = QianTongDCApiType.SCHEDULE_OFFLINE;
+        DataMasterDSApiType apiType = DataMasterDSApiType.SCHEDULE_OFFLINE;
         return DsRequestUtils.request(DsRequestUtils.replaceProjectCodeAndId(apiType.getUrl(), projectCode, id),
                 apiType.getMethod(),
                 null, null,
@@ -62,7 +62,7 @@ public class DsEtlSchedulerServiceImpl implements IDsEtlSchedulerService {
 
     @Override
     public DsSchedulerRespDTO getByTaskCode(String projectCode, String taskCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.GET_SCHEDULE_BY_PROCESS_CODE;
+        DataMasterDSApiType apiType = DataMasterDSApiType.GET_SCHEDULE_BY_PROCESS_CODE;
         return DsRequestUtils.request(DsRequestUtils.replaceProjectCodeAndCode(apiType.getUrl(), projectCode, taskCode),
                 apiType.getMethod(),
                 null, null,

@@ -39,7 +39,7 @@ import com.datamaster.module.collector.service.etl.ICollectorEtlNodeLogService;
  */
 @Tag(name = "数据集成节点-日志")
 @RestController
-@RequestMapping("/dpp/etlNodeLog")
+@RequestMapping("/col/etlNodeLog")
 @Validated
 public class CollectorEtlNodeLogController extends BaseController {
     @Resource

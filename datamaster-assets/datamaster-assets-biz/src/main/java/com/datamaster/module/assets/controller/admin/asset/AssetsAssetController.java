@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 
 @Tag(name = "")
 @RestController
-@RequestMapping("/da/asset")
+@RequestMapping("/ast/asset")
 @Validated
 public class AssetsAssetController extends BaseController {
     @Resource

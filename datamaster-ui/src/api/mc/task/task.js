@@ -72,7 +72,7 @@ export function updateReleaseSchedule(data) {
 //执行一次
 export function runJobOnce(data) {
   return request({
-    url: `/mc/task/runJobOnce`,
+    url: `/cat/task/runJobOnce`,
     method: 'post',
     data
   })

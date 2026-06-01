@@ -37,7 +37,7 @@ import com.datamaster.module.taxonomy.service.cat.ITaxonomyQualityCatService;
  */
 @Tag(name = "数据质量类目")
 @RestController
-@RequestMapping("/att/qualityCat")
+@RequestMapping("/tax/qualityCat")
 @Validated
 public class TaxonomyQualityCatController extends BaseController {
     @Resource

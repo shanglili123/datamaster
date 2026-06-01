@@ -7,7 +7,6 @@ import { tansParams, blobValidate } from '@/utils/anivia.js'
 import cache from '@/plugins/cache'
 import { saveAs } from 'file-saver'
 import useUserStore from '@/store/system/user'
-import { normalizeApiRequestUrl } from '@/utils/apiPrefix'
 
 let downloadLoadingInstance;
 // 是否显示重新登录
@@ -26,7 +25,6 @@ let cancelTokens = [];
 
 // request拦截器
 service.interceptors.request.use(config => {
-  config.url = normalizeApiRequestUrl(config.url)
   // 是否需要设置 token
   const isToken = (config.headers || {}).isToken === false
   // 是否需要防止数据重复提交

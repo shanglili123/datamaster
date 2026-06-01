@@ -40,7 +40,7 @@ import com.datamaster.module.standards.service.dataCategoryCat.IStandardsDataCat
  */
 @Tag(name = "数据分类-类目")
 @RestController
-@RequestMapping("/dg/dataCategoryCat")
+@RequestMapping("/cat/dataCategoryCat")
 @Validated
 public class StandardsDataCategoryCatController extends BaseController {
     @Resource

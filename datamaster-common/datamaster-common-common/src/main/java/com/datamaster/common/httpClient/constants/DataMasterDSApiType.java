@@ -2,13 +2,7 @@
 
 package com.datamaster.common.httpClient.constants;
 
-/**
- * DolphinScheduler API 类型
- *
- * @author QianTongDC
- * @date 2025-02-14
- */
-public enum QianTongDCApiType {
+public enum DataMasterDSApiType {
 
 
     /**
@@ -174,6 +168,20 @@ public enum QianTongDCApiType {
      */
     POST_EXECUTORS_EXECUTE("31", "执行流程实例", "/projects/{projectCode}/executors/execute", "POST"),
 
+    /**
+     * 创建工作组
+     */
+    CREATE_WORKER_GROUP("32", "创建工作组", "/worker-groups", "POST"),
+
+    /**
+     * 将工作组绑定到项目
+     */
+    ASSIGN_WORKER_GROUP_TO_PROJECT("33", "将工作组绑定到项目", "/projects/{projectCode}/worker-group", "POST"),
+
+    /**
+     * 删除工作组
+     */
+    DELETE_WORKER_GROUP("34", "删除工作组", "/worker-groups/{id}", "DELETE"),
 
 
     ;
@@ -198,7 +206,7 @@ public enum QianTongDCApiType {
      */
     private final String method;
 
-    QianTongDCApiType(String apiId, String description, String url, String method) {
+    DataMasterDSApiType(String apiId, String description, String url, String method) {
         this.apiId = apiId;
         this.description = description;
         this.url = url;
@@ -227,8 +235,8 @@ public enum QianTongDCApiType {
      * @param apiId API 类型字符串
      * @return 对应的 ApiType 枚举
      */
-    public static QianTongDCApiType getApiType(String apiId) {
-        for (QianTongDCApiType type : QianTongDCApiType.values()) {
+    public static DataMasterDSApiType getApiType(String apiId) {
+        for (DataMasterDSApiType type : DataMasterDSApiType.values()) {
             if (type.apiId.equals(apiId)) {
                 return type;
             }

@@ -39,7 +39,7 @@ import com.datamaster.module.modeling.service.dm.IModelingDataDomainService;
  */
 @Tag(name = "数据域管理")
 @RestController
-@RequestMapping("/dm/dataDomain")
+@RequestMapping("/mdl/dataDomain")
 @Validated
 public class ModelingDataDomainController extends BaseController {
     @Resource

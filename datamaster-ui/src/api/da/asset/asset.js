@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request';
 
 // 查询数据资产列表
@@ -80,7 +80,7 @@ export function delDaAsset(id) {
 // 更新数据接口
 export function startDaDiscoveryTask(data) {
     return request({
-        url: `/da/asset/startDaDiscoveryTask`,
+        url: `/ast/asset/startDaDiscoveryTask`,
         method: 'put',
         data: data
     });

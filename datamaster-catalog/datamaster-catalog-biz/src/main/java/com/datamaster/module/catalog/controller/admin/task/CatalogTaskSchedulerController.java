@@ -36,7 +36,7 @@ import java.util.List;
  */
 @Tag(name = "数据集成调度信息")
 @RestController
-@RequestMapping("/mc/taskScheduler")
+@RequestMapping("/cat/taskScheduler")
 @Validated
 public class CatalogTaskSchedulerController extends BaseController {
     @Resource

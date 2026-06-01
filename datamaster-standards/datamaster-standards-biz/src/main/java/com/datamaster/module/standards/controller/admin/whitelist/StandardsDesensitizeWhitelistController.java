@@ -39,7 +39,7 @@ import com.datamaster.module.standards.service.whitelist.IStandardsDesensitizeWh
  */
 @Tag(name = "脱敏白名单")
 @RestController
-@RequestMapping("/dg/desensitizeWhitelist")
+@RequestMapping("/cat/desensitizeWhitelist")
 @Validated
 public class StandardsDesensitizeWhitelistController extends BaseController {
     @Resource

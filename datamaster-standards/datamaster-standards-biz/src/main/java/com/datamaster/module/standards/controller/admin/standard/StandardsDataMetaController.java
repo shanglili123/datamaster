@@ -32,7 +32,7 @@ import java.util.List;
  */
 @Tag(name = "数据元")
 @RestController
-@RequestMapping("/dg/dataElem")
+@RequestMapping("/cat/dataElem")
 @Validated
 public class StandardsDataMetaController extends BaseController {
     @Resource

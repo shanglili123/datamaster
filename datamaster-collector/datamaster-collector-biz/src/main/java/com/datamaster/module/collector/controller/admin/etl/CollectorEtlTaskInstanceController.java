@@ -42,7 +42,7 @@ import com.datamaster.module.collector.service.etl.ICollectorEtlTaskInstanceServ
  */
 @Tag(name = "数据集成任务实例")
 @RestController
-@RequestMapping("/dpp/etlTaskInstance")
+@RequestMapping("/col/etlTaskInstance")
 @Validated
 public class CollectorEtlTaskInstanceController extends BaseController {
     @Resource

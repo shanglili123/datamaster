@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request';
 
 // 查询数据元列表
@@ -47,7 +47,7 @@ export function updateDpDataElem(data) {
 // 修改数据元
 export function updateStatusDpDataElem(id, status) {
     return request({
-        url: `/dp/dataElem/updateStatus/${id}/${status}`,
+        url: `/std/dataElem/updateStatus/${id}/${status}`,
         method: 'post'
     });
 }
@@ -240,7 +240,7 @@ export function delDpDataElemRuleRel(id) {
 // 保存关联信息
 export function save(dataElemId, ruleType, data) {
     return request({
-        url: `/dp/dataElemRuleRel/save/${dataElemId}/${ruleType}`,
+        url: `/std/dataElemRuleRel/save/${dataElemId}/${ruleType}`,
         method: 'post',
         data
     })

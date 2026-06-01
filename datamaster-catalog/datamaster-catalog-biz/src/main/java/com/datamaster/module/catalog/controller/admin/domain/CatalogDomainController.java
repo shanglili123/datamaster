@@ -35,7 +35,7 @@ import java.util.List;
  */
 @Tag(name = "业务域")
 @RestController
-@RequestMapping("/mc/domain")
+@RequestMapping("/cat/domain")
 @Validated
 public class CatalogDomainController extends BaseController {
     @Resource

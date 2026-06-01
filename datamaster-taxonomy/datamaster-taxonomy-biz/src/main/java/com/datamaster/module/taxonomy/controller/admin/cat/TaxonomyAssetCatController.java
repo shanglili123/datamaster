@@ -38,7 +38,7 @@ import java.util.List;
  */
 @Tag(name = "数据资产类目管理")
 @RestController
-@RequestMapping("/att/assetCat")
+@RequestMapping("/tax/assetCat")
 @Validated
 public class TaxonomyAssetCatController extends BaseController {
     @Resource

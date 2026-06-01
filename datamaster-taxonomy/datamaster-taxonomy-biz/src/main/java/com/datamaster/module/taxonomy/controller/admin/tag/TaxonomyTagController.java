@@ -39,7 +39,7 @@ import java.util.List;
  */
 @Tag(name = "标签管理")
 @RestController
-@RequestMapping("/att/tag")
+@RequestMapping("/tax/tag")
 @Validated
 public class TaxonomyTagController extends BaseController {
     @Resource

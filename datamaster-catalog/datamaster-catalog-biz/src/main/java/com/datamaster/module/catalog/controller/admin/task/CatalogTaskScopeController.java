@@ -36,7 +36,7 @@ import java.util.List;
  */
 @Tag(name = "采集范围")
 @RestController
-@RequestMapping("/mc/taskScope")
+@RequestMapping("/cat/taskScope")
 @Validated
 public class CatalogTaskScopeController extends BaseController {
     @Resource

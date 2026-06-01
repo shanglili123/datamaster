@@ -39,7 +39,7 @@ import java.util.List;
  */
 @Tag(name = "业务分类数据域关联关系")
 @RestController
-@RequestMapping("/dm/businessDomainRel")
+@RequestMapping("/mdl/businessDomainRel")
 @Validated
 public class ModelingBusinessDomainRelController extends BaseController {
     @Resource

@@ -39,7 +39,7 @@ import com.datamaster.module.modeling.service.dm.IModelingThemeDomainService;
  */
 @Tag(name = "主题域管理")
 @RestController
-@RequestMapping("/dm/themeDomain")
+@RequestMapping("/mdl/themeDomain")
 @Validated
 public class ModelingThemeDomainController extends BaseController {
     @Resource

@@ -38,7 +38,7 @@ import com.datamaster.module.standards.service.model.IStandardsModelMaterialized
  */
 @Tag(name = "物化模型记录")
 @RestController
-@RequestMapping("/dp/modelMaterialized")
+@RequestMapping("/std/modelMaterialized")
 @Validated
 public class StandardsModelMaterializedController extends BaseController {
     @Resource

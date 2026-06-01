@@ -22,7 +22,7 @@ import javax.annotation.Resource;
  */
 @Tag(name = "采集任务执行器")
 @RestController
-@RequestMapping("/mc/taskExecutor")
+@RequestMapping("/cat/taskExecutor")
 @Validated
 public class CatalogTaskExecutorController extends BaseController {
 

@@ -39,7 +39,7 @@ import java.util.List;
  */
 @Tag(name = "主题")
 @RestController
-@RequestMapping("/att/theme")
+@RequestMapping("/tax/theme")
 @Validated
 public class TaxonomyThemeController extends BaseController {
     @Resource

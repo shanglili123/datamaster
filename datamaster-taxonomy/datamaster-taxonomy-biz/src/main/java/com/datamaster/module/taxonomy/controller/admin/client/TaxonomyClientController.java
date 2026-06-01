@@ -39,7 +39,7 @@ import java.util.List;
  */
 @Tag(name = "应用管理")
 @RestController
-@RequestMapping("/att/client")
+@RequestMapping("/tax/client")
 @Validated
 public class TaxonomyClientController extends BaseController {
     @Resource

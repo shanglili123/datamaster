@@ -85,13 +85,11 @@ public interface ICollectorEtlTaskService extends IService<CollectorEtlTaskDO> {
 
     PageResult<CollectorEtlTaskRespVO> getCollectorEtlTaskPageList(CollectorEtlTaskPageReqVO CollectorEtlTask);
 
-    CollectorEtlTaskSaveReqVO createProcessDefinition(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
-
     Long getNodeUniqueKey(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
 
-    Map<String, Object> updateReleaseTask(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
+    Long getLocalNodeUniqueKey();
 
-    CollectorEtlTaskSaveReqVO updateProcessDefinition(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
+    Map<String, Object> updateReleaseTask(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
 
     Map<String, Object> releaseTaskCrontab(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
 
@@ -122,13 +120,6 @@ public interface ICollectorEtlTaskService extends IService<CollectorEtlTaskDO> {
     Map<String, Object> updateReleaseJobTask(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
 
     Map<String, Object> updateReleaseSchedule(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
-
-    /**
-     * 新增ETL任务
-     * @param CollectorEtlNewNodeSaveReqVO
-     * @return
-     */
-    CollectorEtlTaskSaveReqVO createEtlTask(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
 
     /**
      * 修改ETL任务

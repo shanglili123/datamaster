@@ -31,6 +31,12 @@ public class TaxonomyProjectDO extends BaseEntity {
     /** 项目编码 */
     private String code;
 
+    /** DS 专属工作组 ID */
+    private Integer workerGroupId;
+
+    /** DS 专属工作组 */
+    private String workerGroup;
+
     /** 项目管理员id */
     private Long managerId;
     /** 项目管理员 */

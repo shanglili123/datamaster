@@ -25,6 +25,22 @@ public interface ITaxonomyProjectApi {
     Long getProjectIdByProjectCode(String projectCode);
 
     /**
+     * 根据项目 ID 获取项目编码
+     *
+     * @param projectId 项目 ID
+     * @return 项目编码
+     */
+    String getProjectCodeByProjectId(Long projectId);
+
+    /**
+     * 根据项目编码获取专属工作组
+     *
+     * @param projectCode 项目编码
+     * @return 工作组名称
+     */
+    String getWorkerGroupByProjectCode(String projectCode);
+
+    /**
      * 获得项目分页列表
      *
      * @param pageReqVO 分页请求

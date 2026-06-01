@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import com.datamaster.api.ds.api.etl.DsNodeGenCodeRespDTO;
 import com.datamaster.api.ds.api.service.etl.IDsEtlNodeService;
 import com.datamaster.common.httpClient.DsRequestUtils;
-import com.datamaster.common.httpClient.constants.QianTongDCApiType;
+import com.datamaster.common.httpClient.constants.DataMasterDSApiType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +25,7 @@ import java.util.Map;
 public class DsEtlNodeServiceImpl implements IDsEtlNodeService {
     @Override
     public DsNodeGenCodeRespDTO genCode(Long projectCode) {
-        QianTongDCApiType apiType = QianTongDCApiType.GEN_TASK_DEFINITION_CODES;
+        DataMasterDSApiType apiType = DataMasterDSApiType.GEN_TASK_DEFINITION_CODES;
         Map<String, Object> params = new HashMap<>();
         params.put("genNum", 1);
         return DsRequestUtils.request(apiType.getUrl(),

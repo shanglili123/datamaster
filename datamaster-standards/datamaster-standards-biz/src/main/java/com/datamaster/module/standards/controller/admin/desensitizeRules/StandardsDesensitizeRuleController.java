@@ -39,7 +39,7 @@ import com.datamaster.module.standards.service.desensitizeRules.IStandardsDesens
  */
 @Tag(name = "脱敏规则")
 @RestController
-@RequestMapping("/dg/desensitizeRules")
+@RequestMapping("/cat/desensitizeRules")
 @Validated
 public class StandardsDesensitizeRuleController extends BaseController {
     @Resource

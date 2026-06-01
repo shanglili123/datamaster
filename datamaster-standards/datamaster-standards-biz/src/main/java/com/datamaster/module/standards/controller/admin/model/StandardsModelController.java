@@ -38,7 +38,7 @@ import com.datamaster.module.standards.service.model.IStandardsModelService;
  */
 @Tag(name = "逻辑模型")
 @RestController
-@RequestMapping("/dp/model")
+@RequestMapping("/std/model")
 @Validated
 public class StandardsModelController extends BaseController {
     @Resource

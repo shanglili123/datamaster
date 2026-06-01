@@ -39,7 +39,7 @@ import java.util.List;
  */
 @Tag(name = "稽查规则")
 @RestController
-@RequestMapping("/att/auditRule")
+@RequestMapping("/tax/auditRule")
 @Validated
 public class TaxonomyAuditRuleController extends BaseController {
     @Resource

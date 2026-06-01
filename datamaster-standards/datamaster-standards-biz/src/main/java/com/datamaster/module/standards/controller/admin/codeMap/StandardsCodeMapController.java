@@ -36,7 +36,7 @@ import com.datamaster.module.standards.service.codeMap.IStandardsCodeMapService;
  */
 @Tag(name = "数据元代码映射")
 @RestController
-@RequestMapping("/dp/codeMap")
+@RequestMapping("/std/codeMap")
 @Validated
 public class StandardsCodeMapController extends BaseController {
     @Resource

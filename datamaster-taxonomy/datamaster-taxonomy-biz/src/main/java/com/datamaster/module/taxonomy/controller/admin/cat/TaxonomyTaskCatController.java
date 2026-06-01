@@ -37,7 +37,7 @@ import com.datamaster.module.taxonomy.service.cat.ITaxonomyTaskCatService;
  */
 @Tag(name = "数据集成任务类目管理")
 @RestController
-@RequestMapping("/att/taskCat")
+@RequestMapping("/tax/taskCat")
 @Validated
 public class TaxonomyTaskCatController extends BaseController {
     @Resource

@@ -31,7 +31,7 @@ import java.util.List;
  */
 @Tag(name = "数据元类目管理")
 @RestController
-@RequestMapping("/dg/dataElemCat")
+@RequestMapping("/cat/dataElemCat")
 @Validated
 public class StandardsDataElemCatController extends BaseController {
     @Resource

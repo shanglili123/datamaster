@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request'
 
 // 查询数据集成任务列表
@@ -62,7 +62,7 @@ export function getTablesByDataSourceId(ID) {
 // 表字段
 export function getColumnByAssetId(data) {
   return request({
-    url: `/da/dataSource/columnsAsAssetColumnList`,
+    url: `/ast/dataSource/columnsAsAssetColumnList`,
     method: 'post',
     data: data
   });
@@ -83,6 +83,13 @@ export function getNodeUniqueKey(query) {
     params: query
   })
 }
+// 本地临时 code 获取（保存集成任务草稿时不依赖 DolphinScheduler）
+export function getLocalNodeUniqueKey() {
+  return request({
+    url: '/col/etlTask/getLocalNodeUniqueKey',
+    method: 'get'
+  })
+}
 // code获取
 export function getCleaningRuleTree(query) {
   return request({
@@ -95,23 +102,6 @@ export function getCleaningRuleTree(query) {
 export function createTaskTempTable(data) {
   return request({
     url: '/ast/dataSource/createTaskTempTable',
-    method: 'post',
-    data: data
-  })
-}
-// 新增接口 dag
-export function createProcessDefinition(data) {
-  return request({
-    url: '/col/etlTask/createProcessDefinitionEx',
-    method: 'post',
-    data: data
-  })
-}
-// 新增接口 数据集成dag
-export function createProcessDefinitions(data) {
-  return request({
-    // url: '/col/etlTask/createProcessDefinitionEx',
-    url: '/col/etlTask/createEtlTask',
     method: 'post',
     data: data
   })
@@ -158,14 +148,6 @@ export function etlTask(id) {
   })
 }
 
-// 修改
-export function updateProcessDefinition(data) {
-  return request({
-    url: '/col/etlTask/updateProcessDefinition',
-    method: 'post',
-    data: data
-  })
-}
 // 数据集成修改
 export function updateProcessDefinitions(data, query) {
   return request({
@@ -309,7 +291,7 @@ export function copyCreateEtl(data) {
 // 执行命令
 export function execute(taskInstanceId, executeType) {
   return request({
-    url: `/dpp/etlExecutors/execute/${taskInstanceId}/${executeType}`,
+    url: `/col/etlExecutors/execute/${taskInstanceId}/${executeType}`,
     method: 'post'
   })
 }

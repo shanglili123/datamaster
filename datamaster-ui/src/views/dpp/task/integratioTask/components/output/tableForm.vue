@@ -188,7 +188,7 @@ import { typeList } from "@/utils/graph.js";
 import {
   getTablesByDataSourceId,
   getColumnByAssetId,
-  getNodeUniqueKey,
+  getLocalNodeUniqueKey as getNodeUniqueKey,
 } from "@/api/dpp/task/index.js";
 const { proxy } = getCurrentInstance();
 import useUserStore from "@/store/system/user.js";

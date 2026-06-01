@@ -38,7 +38,7 @@ import java.util.List;
  */
 @Tag(name = "标签与资产关联关系")
 @RestController
-@RequestMapping("/att/tagAssetRel")
+@RequestMapping("/tax/tagAssetRel")
 @Validated
 public class TaxonomyTagAssetRelController extends BaseController {
     @Resource

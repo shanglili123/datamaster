@@ -10,7 +10,7 @@ import "@/assets/system/styles/global.scss";
 import { cuPort } from "@/utils/graph";
 import useUserStore from "@/store/system/user";
 const userStore = useUserStore();
-import { getNodeUniqueKey } from "@/api/dpp/task/etlTask";
+import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/dpp/task/etlTask";
 import { ElMessage } from "element-plus";
 import { DagreLayout } from '@antv/layout';
 import { register } from '@antv/x6-vue-shape';

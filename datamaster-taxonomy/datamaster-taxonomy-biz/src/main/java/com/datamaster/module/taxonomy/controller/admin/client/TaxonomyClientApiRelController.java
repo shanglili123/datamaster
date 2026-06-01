@@ -34,7 +34,7 @@ import com.datamaster.module.taxonomy.service.client.ITaxonomyClientApiRelServic
  */
 @Tag(name = "应用API服务关联")
 @RestController
-@RequestMapping("/att/clientApiRel")
+@RequestMapping("/tax/clientApiRel")
 @Validated
 public class TaxonomyClientApiRelController extends BaseController {
     @Resource

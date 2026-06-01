@@ -30,7 +30,7 @@ import javax.annotation.Resource;
  **/
 @Tag(name = "调度执行")
 @RestController
-@RequestMapping("/dpp/etlExecutors")
+@RequestMapping("/col/etlExecutors")
 public class CollectorEtlExecutorController {
 
     @Resource

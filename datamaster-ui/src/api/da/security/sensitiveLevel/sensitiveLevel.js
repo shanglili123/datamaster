@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request.js';
 
 // 查询敏感等级列表
@@ -30,7 +30,7 @@ export function addDaSensitiveLevel(data) {
 // 修改状态 上线/下线
 export function updateStatus(id, status) {
     return request({
-        url: `/da/sensitiveLevel/updateStatus/${id}/${status}`,
+        url: `/ast/sensitiveLevel/updateStatus/${id}/${status}`,
         method: 'post'
     });
 }
