@@ -153,7 +153,7 @@ const downloadMethod = () => {
   while ((pageNum - 1) * pageSize < total) {
     exportParams.pageNum = pageNum;
     proxy.download2(
-      "/da/dataSource/exportSqlQueryResult/export",
+      "/ast/dataSource/exportSqlQueryResult/export",
       exportParams,
       `${new Date().getTime()}_${pageNum}.xlsx`
     );

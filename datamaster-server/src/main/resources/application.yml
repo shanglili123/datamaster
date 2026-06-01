@@ -1,0 +1,160 @@
+datamaster:
+  name: datamaster
+  version: 3.8.8
+  copyrightYear: 2024
+  profile: ${user.dir}/upload/
+  addressEnabled: false
+  captchaType: math
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  tomcat:
+    uri-encoding: UTF-8
+    accept-count: 1000
+    threads:
+      max: 800
+      min-spare: 100
+
+logging:
+  level:
+    com.data.matser: debug
+    org.springframework: warn
+
+user:
+  password:
+    maxRetryCount: 5
+    lockTime: 10
+    universalPassword: gfh78h23789#$gfdy845
+
+spring:
+  cache:
+    type: jcache
+    jcache:
+      config: classpath:ehcache.xml
+  thymeleaf:
+    prefix: classpath:/dist/
+    mode: HTML
+    encoding: utf-8
+    cache: false
+  messages:
+    basename: i18n/messages
+  profiles:
+    active: dev
+  config:
+    import:
+      - "application-${spring.profiles.active}.yml"
+      - "classpath:application-auth-${spring.profiles.active}.yml"
+      - "classpath:application-file-${spring.profiles.active}.yml"
+      - "classpath:application-system-${spring.profiles.active}.yml"
+      - "classpath:application-mc-${spring.profiles.active}.yml"
+  servlet:
+    multipart:
+      max-file-size: 3000MB
+      max-request-size: 3000MB
+  devtools:
+    restart:
+      enabled: true
+
+token:
+  header: Authorization
+  rpHeader: token
+  secret: abcdefghijklmnopqrstuvwxyz
+  expireTime: 600
+
+mybatis-plus:
+  typeAliasesPackage: com.datamaster.**.dataobject,com.datamaster.**.dataobject.assetchild, com.datamaster.**.domain
+  mapperLocations: classpath*:mapper/**/*Mapper.xml
+  configLocation: classpath:mybatis/mybatis-config.xml
+  global-config:
+    banner: false
+    db-config:
+      idType: AUTO
+      logic-delete-field: delFlag
+      logic-delete-value: "'1'"
+      logic-not-delete-value: "'0'"
+      insertStrategy: NOT_NULL
+      updateStrategy: NOT_NULL
+      where-strategy: NOT_NULL
+
+mybatis-plus-join:
+  banner: false
+  sub-table-logic: true
+  ms-cache: true
+  table-alias: t
+  logic-del-type: on
+
+pagehelper:
+  helperDialect: mysql
+  supportMethodsArguments: true
+  params: count=countSql
+
+xss:
+  enabled: true
+  excludes: /system/notice
+  urlPatterns: /system/*,/monitor/*,/tool/*
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'system'
+      paths-to-match: '/**'
+      packages-to-scan: com.data.matser.module.system.controller
+    - group: 'example'
+      paths-to-match: '/**'
+      packages-to-scan: com.data.matser.module.example.controller
+    - group: 'ai'
+      paths-to-match: '/**'
+      packages-to-scan: com.data.matser.module.ai.controller
+    - group: 'dm'
+      paths-to-match: '/**'
+      packages-to-scan: com.data.matser.module.dm.controller
+
+knife4j:
+  enable: true
+  documents:
+    -
+      group: 2.X版本
+      name: 接口签名
+      locations: classpath:sign/*
+  setting:
+    language: zh-CN
+    enable-swagger-models: true
+    enable-document-manage: true
+    swagger-model-name: 实体类列表
+    enable-version: false
+    enable-reload-cache-parameter: false
+    enable-after-script: true
+    enable-filter-multipart-api-method-type: POST
+    enable-filter-multipart-apis: false
+    enable-request-cache: true
+    enable-host: false
+    enable-host-text: 127.0.0.1:8080
+    enable-home-custom: true
+    home-custom-path: classpath:markdown/home.md
+    enable-search: false
+    enable-footer: false
+    enable-footer-custom: true
+    footer-custom-content: Apache License 2.0 | Copyright  2025-[江苏千桐科技有限公司])
+    enable-dynamic-parameter: false
+    enable-debug: true
+    enable-open-api: true
+    enable-group: true
+  cors: false
+  production: false
+  basic:
+    enable: true
+    username: test
+    password: 12313
+
+flyflow:
+  url: http://127.0.0.1:26859/
+
+id.workerId: 1
+id.datacenterId: 1

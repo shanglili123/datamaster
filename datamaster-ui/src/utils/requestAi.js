@@ -12,7 +12,7 @@ let downloadLoadingInstance;
 // 是否显示重新登录
 export let isRelogin = { show: false };
 // 白名单
-const errorSilentWhitelist = ['/dpp/etlTask/compile/check'];
+const errorSilentWhitelist = ['/col/etlTask/compile/check'];
 const isInWhitelist = (url) => errorSilentWhitelist.some(p => typeof url === 'string' && url.indexOf(p) !== -1);
 
 axios.defaults.headers['Content-Type'] = 'application/json;charset=utf-8'

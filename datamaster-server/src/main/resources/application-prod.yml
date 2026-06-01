@@ -1,0 +1,105 @@
+datasource:
+  type: PostgreSQL
+
+spring:
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    database: 0
+    password:
+    timeout: 10s
+    lettuce:
+      pool:
+        min-idle: 0
+        max-idle: 8
+        max-active: 8
+        max-wait: -1ms
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: 账号
+    password: 密码
+    listener:
+      simple:
+        acknowledge-mode: manual
+        concurrency: 1
+        max-concurrency: 10
+  datasource:
+    druid:
+      stat-view-servlet:
+        enabled: false
+        loginUsername: DATAMASTER
+        loginPassword: 123456
+    dynamic:
+      druid:
+        initial-size: 5
+        min-idle: 5
+        maxActive: 20
+        maxWait: 60000
+        connectTimeout: 30000
+        socketTimeout: 60000
+        timeBetweenEvictionRunsMillis: 60000
+        minEvictableIdleTimeMillis: 300000
+        validationQuery: SELECT 1
+        testWhileIdle: true
+        testOnBorrow: false
+        testOnReturn: false
+        poolPreparedStatements: true
+        maxPoolPreparedStatementPerConnectionSize: 20
+        filters: stat,slf4j
+        connectionProperties: druid.stat.mergeSql\=true;druid.stat.slowSqlMillis\=5000
+      datasource:
+        master:
+          driver-class-name: ${${datasource.type}.driver-class-name}
+          url: ${${datasource.type}.url}
+          username: ${${datasource.type}.username}
+          password: ${${datasource.type}.password}
+
+PostgreSQL:
+  driver-class-name: org.postgresql.Driver
+  url: jdbc:postgresql://postgresql:5432/DATAMASTER?stringtype=unspecified
+  username: DATAMASTER
+  password: DATAMASTER
+
+dm8:
+  driver-class-name: dm.jdbc.driver.DmDriver
+  url: jdbc:dm://127.0.0.1:5236/DATAMASTER?STU&zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf-8&schema=DATAMASTER&serverTimezone=Asia/Shanghai
+  username: DATAMASTER
+  password: 密码
+
+kingbase8:
+  driver-class-name: com.kingbase8.Driver
+  url: jdbc:kingbase8://127.0.0.1:54321/DATAMASTER_dev?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC&currentSchema=DATAMASTER
+  username: kingbase
+  password: 123456
+
+oracle:
+  driver-class-name: oracle.jdbc.OracleDriver
+  url: jdbc:oracle:thin:@127.0.0.1:1521:xe?oracle.jdbc.timezoneAsRegion=true&oracle.jdbc.defaultTimezone=Asia/Shanghai&currentSchema=ANIVIA
+  username: ANIVIA
+  password: ANIVIA
+
+ds:
+  base_url: http://127.0.0.1:12345/dolphinscheduler
+  quality_url: http://127.0.0.1:8083/quality/qualityTaskExecutor/runExecuteTask
+  mc_url: http://localhost:8080/mc/taskExecutor/runExecuteTask
+  http_projectCode: 134799536571008
+  http_quality_projectCode: 134799536571008
+  http_mc_projectCode: 173091707675808
+  token: b07f0e57c4818043a57ba05a28da291a
+  resource_url: /dolphinscheduler/
+  spark:
+    master_url: spark://127.0.0.1:7077
+    main_jar: file:/dolphinscheduler/default/resources/spark-jar/DATAMASTER-etl-3.8.8.jar
+    main_class: com.data.matser.spark.etl.EtlApplication
+  hdfs:
+    url: hdfs://127.0.0.1:8020
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    database: 0
+    password:
+
+path:
+  quality_url: http://127.0.0.1:8083/quality/qualityTaskExecutor
+  mc_url: http://localhost:8080/mc/taskExecutor
