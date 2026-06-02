@@ -91,4 +91,22 @@ public class CollectorEtlTaskExtRespVO implements Serializable {
     @Schema(description = "FlinkX任务JSON配置", example = "")
     private String flinkxJobJson;
 
+    @Schema(description = "FlinkX基础任务JSON模板", example = "")
+    private String flinkxJobTemplateJson;
+
+    @Schema(description = "增量类型：ID、TIME", example = "ID")
+    private String incrementalType;
+
+    @Schema(description = "首次增量同步初始游标", example = "")
+    private String incrementalInitialValue;
+
+    @Schema(description = "本次增量同步起始值", example = "")
+    private String incrementalStartValue;
+
+    @Schema(description = "本次增量同步结束值", example = "")
+    private String incrementalEndValue;
+
+    @Schema(description = "增量完成HTTP节点编码", example = "")
+    private String completeNodeCode;
+
 }

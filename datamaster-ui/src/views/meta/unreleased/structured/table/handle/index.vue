@@ -309,16 +309,16 @@
 
 <script setup name="TableHandle">
 import { reactive, getCurrentInstance, toValue } from "vue";
-import { listDb, getDb } from "@/api/mc/unreleased/db";
+import { listDb, getDb } from "@/api/cat/unreleased/db";
 import { deptUserTree } from "@/api/system/system/user.js";
-import { listDaDatasource } from "@/api/mc/dataSource/dataSource";
+import { listDaDatasource } from "@/api/cat/dataSource/dataSource";
 import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
 import {
   getTable,
   updateTable,
   addTable,
   draftTable,
-} from "@/api/mc/unreleased/table";
+} from "@/api/cat/unreleased/table";
 import { useRoute, useRouter } from "vue-router";
 
 const DEFAULT_FORM = {

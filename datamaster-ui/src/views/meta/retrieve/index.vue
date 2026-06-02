@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <qt-wrap :config="{ fullContent: false, actions: { show: false } }">
@@ -369,9 +369,9 @@
 
 <script setup name="MetaRetrieve">
 import { getCurrentInstance, reactive, toValue } from "vue";
-import { listMeta } from "@/api/mc/retrieve.js";
+import { listMeta } from "@/api/cat/retrieve.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import { useRouter } from "vue-router";
 
 const BASE_URL = "/meta/unreleased/structured/";

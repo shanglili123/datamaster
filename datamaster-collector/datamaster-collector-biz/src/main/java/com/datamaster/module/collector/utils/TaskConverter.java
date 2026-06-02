@@ -13,6 +13,7 @@ import com.datamaster.api.ds.api.etl.ds.*;
 import com.datamaster.common.config.DsRedisConfig;
 import com.datamaster.common.config.RabbitmqConfig;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
+import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.JSONUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
@@ -23,6 +24,7 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskDO;
 import com.datamaster.module.collector.utils.datax.FlinkxJson;
 import com.datamaster.module.collector.utils.ds.component.ComponentFactory;
 import com.datamaster.module.collector.utils.model.DsResource;
+import com.datamaster.module.collector.utils.model.FlinkxIncrementalConfig;
 
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
@@ -91,6 +93,10 @@ public class TaskConverter {
     private static final int DEFAULT_TASK_failRetryTimes = 0; // failRetryTimes失败重试次数
     private static final int DEFAULT_TASK_delayTime = 0; // delayTime延时执行时间
     private static final int DEFAULT_TASK_failRetryInterval = 1; // failRetryInterval失败重试间隔
+
+    private static final String HTTP_CHECK_CONDITION = "STATUS_CODE_DEFAULT";
+    private static final int HTTP_CONNECT_TIMEOUT = 60000;
+    private static final int HTTP_SOCKET_TIMEOUT = 60000;
 
 
 
@@ -869,6 +875,28 @@ public class TaskConverter {
         return JSON.toJSONString(locationList);
     }
 
+    public static String buildIncrementalFlinkxTaskLocationsJson(List<Map<String, Object>> locations,
+                                                                 String prepareCode, String flinkxCode,
+                                                                 String completeCode) {
+        Map<String, Object> sourceLocation = locations == null || locations.isEmpty()
+                ? new HashMap<>() : locations.get(0);
+        double x = MapUtils.getDoubleValue(sourceLocation, "x", 0D);
+        double y = MapUtils.getDoubleValue(sourceLocation, "y", 0D);
+        List<Map<String, Object>> result = new ArrayList<>();
+        result.add(buildLocation(prepareCode, x - 220D, y));
+        result.add(buildLocation(flinkxCode, x, y));
+        result.add(buildLocation(completeCode, x + 220D, y));
+        return JSON.toJSONString(result);
+    }
+
+    private static Map<String, Object> buildLocation(String code, double x, double y) {
+        Map<String, Object> location = new HashMap<>();
+        location.put("taskCode", Long.parseLong(code));
+        location.put("x", x);
+        location.put("y", y);
+        return location;
+    }
+
     /**
      * 构建etl节点关系json数据
      *
@@ -876,16 +904,58 @@ public class TaskConverter {
      * @return
      */
     public static String buildEtlTaskRelationJson(Long id, String code) {
+        return buildEtlTaskRelationJson(id, code, 0);
+    }
+
+    public static String buildEtlTaskRelationJson(Long id, String code, Integer version) {
         List<Map<String, Object>> result = new ArrayList<>();
         Map<String, Object> taskRelation = new HashMap<>();
         taskRelation.put("id", id);
         taskRelation.put("preTaskCode", 0);
         taskRelation.put("preTaskVersion", 0);
         taskRelation.put("postTaskCode", Long.parseLong(code));
-        taskRelation.put("postTaskVersion", 0);
+        taskRelation.put("postTaskVersion", version == null ? 0 : version);
         taskRelation.put("conditionType", "NONE");
         result.add(taskRelation);
         return JSON.toJSONString(result);
+    }
+
+    public static String buildIncrementalFlinkxTaskRelationJson(Long prepareRelationId, Long flinkxRelationId,
+                                                                Long completeRelationId, String prepareCode,
+                                                                String flinkxCode, String completeCode) {
+        return buildIncrementalFlinkxTaskRelationJson(
+                prepareRelationId, flinkxRelationId, completeRelationId,
+                prepareCode, 0, flinkxCode, 0, completeCode, 0);
+    }
+
+    public static String buildIncrementalFlinkxTaskRelationJson(Long prepareRelationId, Long flinkxRelationId,
+                                                                Long completeRelationId,
+                                                                String prepareCode, Integer prepareVersion,
+                                                                String flinkxCode, Integer flinkxVersion,
+                                                                String completeCode, Integer completeVersion) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        result.add(buildRelation(prepareRelationId, "0", 0, prepareCode, defaultVersion(prepareVersion)));
+        result.add(buildRelation(flinkxRelationId, prepareCode, defaultVersion(prepareVersion),
+                flinkxCode, defaultVersion(flinkxVersion)));
+        result.add(buildRelation(completeRelationId, flinkxCode, defaultVersion(flinkxVersion),
+                completeCode, defaultVersion(completeVersion)));
+        return JSON.toJSONString(result);
+    }
+
+    private static int defaultVersion(Integer version) {
+        return version == null ? 0 : version;
+    }
+
+    private static Map<String, Object> buildRelation(Long id, String preCode, int preVersion,
+                                                     String postCode, int postVersion) {
+        Map<String, Object> relation = new HashMap<>();
+        relation.put("id", id);
+        relation.put("preTaskCode", Long.parseLong(preCode));
+        relation.put("preTaskVersion", preVersion);
+        relation.put("postTaskCode", Long.parseLong(postCode));
+        relation.put("postTaskVersion", postVersion);
+        relation.put("conditionType", "NONE");
+        return relation;
     }
 
 
@@ -1017,6 +1087,211 @@ public class TaskConverter {
 
         result.add(taskMap);
         return JSON.toJSONString(result);
+    }
+
+    public static String buildIncrementalFlinkxTaskDefinitionJson(Long prepareId, String prepareName,
+                                                                  String prepareCode, Integer prepareVersion,
+                                                                  Long flinkxId, String flinkxName,
+                                                                  String flinkxCode, Integer flinkxVersion,
+                                                                  Long completeId, String completeName,
+                                                                  String completeCode, Integer completeVersion,
+                                                                  String prepareCallbackUrl, String completeCallbackUrl,
+                                                                  String draftJson, String projectWorkerGroup) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        result.add(buildIncrementalPrepareHttpTask(prepareId, prepareName, prepareCode, prepareVersion,
+                prepareCallbackUrl, draftJson, projectWorkerGroup));
+        result.addAll(JSONUtils.convertTaskDefinitionJson(buildEtlTaskDefinitionJsonFlinkx(
+                flinkxId, flinkxName, flinkxCode, flinkxVersion, buildHttpResponsePlaceholder(prepareName),
+                draftJson, projectWorkerGroup)));
+        result.add(buildIncrementalCompleteHttpTask(completeId, completeName, completeCode, completeVersion,
+                completeCallbackUrl, draftJson, projectWorkerGroup));
+        return JSON.toJSONString(result);
+    }
+
+    private static String buildHttpResponsePlaceholder(String taskName) {
+        return "${" + taskName + ".response}";
+    }
+
+    private static Map<String, Object> buildIncrementalPrepareHttpTask(Long id, String name, String code,
+                                                                       Integer version, String callbackUrl,
+                                                                       String draftJson, String projectWorkerGroup) {
+        return buildIncrementalHttpTask(id, name, code, version, callbackUrl, draftJson, projectWorkerGroup);
+    }
+
+    private static Map<String, Object> buildIncrementalCompleteHttpTask(Long id, String name, String code,
+                                                                        Integer version, String callbackUrl,
+                                                                        String draftJson, String projectWorkerGroup) {
+        return buildIncrementalHttpTask(id, name, code, version, callbackUrl, draftJson, projectWorkerGroup);
+    }
+
+    private static Map<String, Object> buildIncrementalHttpTask(Long id, String name, String code,
+                                                                Integer version, String callbackUrl,
+                                                                String draftJson, String projectWorkerGroup) {
+        Map<String, Object> definitionJsonMap = JSONUtils.convertTaskDefinitionJsonMap(draftJson);
+        Map<String, Object> task = new HashMap<>();
+        task.put("id", id);
+        task.put("name", name);
+        task.put("code", code);
+        task.put("version", version == null ? 0 : version);
+        task.put("description", "");
+        task.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, definitionJsonMap.get("workerGroup")));
+        task.put("environmentCode", DEFAULT_ENVIRONMENT_CODE);
+        task.put("flag", DEFAULT_FLAG);
+        task.put("isCache", DEFAULT_IS_CACHE);
+        task.put("taskPriority", MapUtils.getObject(definitionJsonMap, "taskPriority", DEFAULT_TASK_PRIORITY));
+        task.put("taskType", "HTTP");
+        task.put("taskExecuteType", "BATCH");
+        task.put("failRetryTimes", MapUtils.getObject(definitionJsonMap, "failRetryTimes", DEFAULT_TASK_failRetryTimes));
+        task.put("delayTime", MapUtils.getObject(definitionJsonMap, "delayTime", DEFAULT_TASK_delayTime));
+        task.put("failRetryInterval", MapUtils.getObject(definitionJsonMap, "failRetryInterval", DEFAULT_TASK_failRetryInterval));
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("localParams", new ArrayList<>());
+        params.put("resourceList", new ArrayList<>());
+        params.put("httpMethod", "PUT");
+        params.put("httpBody", "");
+        params.put("httpCheckCondition", HTTP_CHECK_CONDITION);
+        params.put("httpParams", new ArrayList<>());
+        params.put("url", callbackUrl);
+        params.put("condition", "");
+        params.put("connectTimeout", HTTP_CONNECT_TIMEOUT);
+        params.put("socketTimeout", HTTP_SOCKET_TIMEOUT);
+        task.put("taskParams", params);
+        return task;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static FlinkxIncrementalConfig resolveFlinkxIncrementalConfig(Map<String, Object> mainArgs) {
+        Map<String, Object> reader = (Map<String, Object>) mainArgs.get("reader");
+        Map<String, Object> writer = (Map<String, Object>) mainArgs.get("writer");
+        if (reader == null || writer == null) {
+            return null;
+        }
+        Map<String, Object> readerParam = (Map<String, Object>) reader.get("parameter");
+        Map<String, Object> writerParam = (Map<String, Object>) writer.get("parameter");
+        if (readerParam == null || writerParam == null) {
+            return null;
+        }
+
+        String readModeType = String.valueOf(readerParam.get("readModeType"));
+        String incrementalType;
+        String sourceColumn;
+        if ("2".equals(readModeType)) {
+            incrementalType = FlinkxIncrementalConfig.TYPE_ID;
+            sourceColumn = extractIdIncrementColumn(readerParam);
+        } else if ("3".equals(readModeType)) {
+            incrementalType = FlinkxIncrementalConfig.TYPE_TIME;
+            sourceColumn = extractTimeIncrementColumn(readerParam);
+        } else {
+            return null;
+        }
+
+        List<String> sourceColumns = toColumnNames(readerParam.get("column"));
+        List<String> targetColumns = toColumnNames(writerParam.get("target_column"));
+        int sourceIndex = sourceColumns.indexOf(sourceColumn);
+        if (sourceIndex < 0 || sourceIndex >= targetColumns.size()) {
+            throw new ServiceException("增量字段 " + sourceColumn + " 未配置到目标表字段映射中");
+        }
+
+        return FlinkxIncrementalConfig.builder()
+                .incrementalType(incrementalType)
+                .sourceDatasourceId(toLong(readerParam.get("datasourceId"), "源数据源"))
+                .targetDatasourceId(toLong(writerParam.get("datasourceId"), "目标数据源"))
+                .sourceTableName(connectionTable(readerParam, "源表"))
+                .targetTableName(connectionTable(writerParam, "目标表"))
+                .sourceIncrementColumn(sourceColumn)
+                .targetIncrementColumn(targetColumns.get(sourceIndex))
+                .incrementalInitialValue(extractIncrementalInitialValue(readerParam, incrementalType))
+                .build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String extractIncrementalInitialValue(Map<String, Object> readerParam, String incrementalType) {
+        Object value;
+        if (FlinkxIncrementalConfig.TYPE_ID.equals(incrementalType)) {
+            Map<String, Object> config = (Map<String, Object>) readerParam.get("idIncrementConfig");
+            value = config == null ? null : config.get("incrementStart");
+        } else {
+            Map<String, Object> config = (Map<String, Object>) readerParam.get("dateIncrementConfig");
+            List<Map<String, Object>> columns = config == null ? null : (List<Map<String, Object>>) config.get("column");
+            value = columns == null || columns.isEmpty() ? null : columns.get(0).get("cursorTime");
+        }
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) {
+            throw new ServiceException("增量同步初始游标不能为空");
+        }
+        return String.valueOf(value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String extractIdIncrementColumn(Map<String, Object> readerParam) {
+        Map<String, Object> config = (Map<String, Object>) readerParam.get("idIncrementConfig");
+        String column = config == null ? null : String.valueOf(config.get("incrementColumn"));
+        if (StringUtils.isBlank(column) || "null".equals(column)) {
+            throw new ServiceException("ID增量字段不能为空");
+        }
+        return column;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String extractTimeIncrementColumn(Map<String, Object> readerParam) {
+        Map<String, Object> config = (Map<String, Object>) readerParam.get("dateIncrementConfig");
+        List<Map<String, Object>> columns = config == null ? null : (List<Map<String, Object>>) config.get("column");
+        Set<String> names = new LinkedHashSet<>();
+        if (columns != null) {
+            for (Map<String, Object> column : columns) {
+                Object name = column.get("incrementColumn");
+                if (name != null && StringUtils.isNotBlank(String.valueOf(name))) {
+                    names.add(String.valueOf(name));
+                }
+            }
+        }
+        if (names.size() != 1) {
+            throw new ServiceException("时间增量同步必须配置且只能配置一个增量字段");
+        }
+        return names.iterator().next();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String connectionTable(Map<String, Object> parameter, String label) {
+        Map<String, Object> connection = (Map<String, Object>) parameter.get("connection");
+        Object table = connection == null ? null : connection.get("table");
+        if (table instanceof List && !((List<?>) table).isEmpty()) {
+            table = ((List<?>) table).get(0);
+        }
+        if (table == null || StringUtils.isBlank(String.valueOf(table))) {
+            throw new ServiceException(label + "不能为空");
+        }
+        return String.valueOf(table);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> toColumnNames(Object rawColumns) {
+        List<String> result = new ArrayList<>();
+        if (!(rawColumns instanceof List)) {
+            return result;
+        }
+        for (Object rawColumn : (List<Object>) rawColumns) {
+            if (rawColumn instanceof Map) {
+                Object name = ((Map<String, Object>) rawColumn).get("name");
+                if (name != null) {
+                    result.add(String.valueOf(name));
+                }
+            } else if (rawColumn != null) {
+                result.add(String.valueOf(rawColumn));
+            }
+        }
+        return result;
+    }
+
+    private static Long toLong(Object value, String label) {
+        if (value == null) {
+            throw new ServiceException(label + "不能为空");
+        }
+        try {
+            return Long.valueOf(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            throw new ServiceException(label + "不合法: " + value);
+        }
     }
 
     public static List<CollectorEtlNodeSaveReqVO> convertToCollectorEtlNodeSaveReqVOList(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO, String taskDefinitionJson) {

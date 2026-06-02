@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
@@ -331,7 +331,7 @@
 
 <script setup name="UnreleasedStructuredColumn">
 import { getCurrentInstance, reactive, ref, toValue } from "vue";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
 import {
   listColumn,
@@ -340,9 +340,9 @@ import {
   updateColumn,
   updateColumnStatus,
   batchDeleteCheck,
-} from "@/api/mc/unreleased/column.js";
-import { listDb } from "@/api/mc/unreleased/db";
-import { listTable } from "@/api/mc/unreleased/table";
+} from "@/api/cat/unreleased/column.js";
+import { listDb } from "@/api/cat/unreleased/db";
+import { listTable } from "@/api/cat/unreleased/table";
 import { useRoute, useRouter } from "vue-router";
 import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
 // import { getDgDataElemList } from "@/api/dg/standard/dataElem.js";

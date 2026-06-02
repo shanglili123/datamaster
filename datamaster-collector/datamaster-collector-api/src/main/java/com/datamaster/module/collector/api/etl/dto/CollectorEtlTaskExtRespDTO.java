@@ -45,5 +45,22 @@ public class CollectorEtlTaskExtRespDTO {
     /** FlinkX 任务JSON（当执行引擎为FlinkX时使用） */
     private String flinkxJobJson;
 
+    /** FlinkX 基础任务JSON */
+    private String flinkxJobTemplateJson;
+
+    /** 增量类型：ID、TIME */
+    private String incrementalType;
+
+    /** 首次增量同步初始游标 */
+    private String incrementalInitialValue;
+
+    /** 本次增量同步起始值 */
+    private String incrementalStartValue;
+
+    /** 本次增量同步结束值 */
+    private String incrementalEndValue;
+
+    /** 增量完成HTTP节点编码 */
+    private String completeNodeCode;
 
 }

@@ -53,13 +53,13 @@
 
 <script setup name="ReleasedStructuredTable">
 import { reactive, ref, getCurrentInstance, computed } from "vue";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
-import { listTable } from "@/api/mc/unreleased/table";
+import { listTable } from "@/api/cat/unreleased/table";
 
 import { useRouter } from "vue-router";
-import { listDb } from "@/api/mc/unreleased/db";
-import SourceSystemTree from "@/views/mc/task/structured/components/SourceSystemTree.vue";
+import { listDb } from "@/api/cat/unreleased/db";
+import SourceSystemTree from "@/views/cat/task/structured/components/SourceSystemTree.vue";
 
 const BASE_URL = "/cat/meta/comparison";
 

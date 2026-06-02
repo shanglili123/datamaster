@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
@@ -77,11 +77,11 @@
 
 <script setup name="UnreleasedStructuredColumn">
 import { getCurrentInstance, reactive, ref } from "vue";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
-import { listColumn } from "@/api/mc/unreleased/column.js";
-import { listDb } from "@/api/mc/unreleased/db";
-import { listTable } from "@/api/mc/unreleased/table";
+import { listColumn } from "@/api/cat/unreleased/column.js";
+import { listDb } from "@/api/cat/unreleased/db";
+import { listTable } from "@/api/cat/unreleased/table";
 import { useRouter } from "vue-router";
 
 const BASE_URL = "/meta/released/structured/column";

@@ -60,5 +60,67 @@ public class CollectorEtlTaskExtDO extends BaseEntity {
     /** FlinkX 任务JSON（当执行引擎为FlinkX时使用） */
     private String flinkxJobJson;
 
+    /** FlinkX 基础任务JSON（每次增量执行前基于该模板重建where条件） */
+    private String flinkxJobTemplateJson;
+
+    /** 增量类型：ID、TIME */
+    private String incrementalType;
+
+    /** 源数据源ID */
+    private Long sourceDatasourceId;
+
+    /** 目标数据源ID */
+    private Long targetDatasourceId;
+
+    /** 源表名称 */
+    private String sourceTableName;
+
+    /** 目标表名称 */
+    private String targetTableName;
+
+    /** 源表增量字段 */
+    private String sourceIncrementColumn;
+
+    /** 目标表增量字段 */
+    private String targetIncrementColumn;
+
+    /** 首次增量同步初始游标 */
+    private String incrementalInitialValue;
+
+    /** 本次增量同步起始值 */
+    private String incrementalStartValue;
+
+    /** 本次增量同步结束值 */
+    private String incrementalEndValue;
+
+    /** 增量准备HTTP节点ID */
+    private Long prepareNodeId;
+
+    /** 增量准备HTTP节点名称 */
+    private String prepareNodeName;
+
+    /** 增量准备HTTP节点编码 */
+    private String prepareNodeCode;
+
+    /** 增量准备HTTP节点版本 */
+    private Integer prepareNodeVersion;
+
+    /** 根节点到增量准备HTTP节点的关系ID */
+    private Long prepareRelationId;
+
+    /** 增量完成HTTP节点ID */
+    private Long completeNodeId;
+
+    /** 增量完成HTTP节点名称 */
+    private String completeNodeName;
+
+    /** 增量完成HTTP节点编码 */
+    private String completeNodeCode;
+
+    /** 增量完成HTTP节点版本 */
+    private Integer completeNodeVersion;
+
+    /** CHUNJUN节点到增量完成HTTP节点的关系ID */
+    private Long completeRelationId;
 
 }

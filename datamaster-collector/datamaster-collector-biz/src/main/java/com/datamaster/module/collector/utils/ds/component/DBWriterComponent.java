@@ -103,10 +103,26 @@ public class DBWriterComponent implements ComponentItem {
             parameter.put("postSql", postSql.split(","));
         }
         Map<String, Object> connection = new HashMap<>();
-        connection.put("table", taskParams.get("target_table_name"));
+        connection.put("table", resolveTargetTableName(taskParams));
         connection.put("jdbcUrl", writerProperty.trainToJdbcUrl());
         parameter.put("connection", connection);
         parameter.put("writerProperty", writerProperty);
         return reader;
+    }
+
+    private String resolveTargetTableName(Map<String, Object> taskParams) {
+        String tableName = MapUtils.getString(taskParams, "target_table_name");
+        if (StringUtils.isNotBlank(tableName)) {
+            return tableName;
+        }
+        tableName = MapUtils.getString(taskParams, "table_name");
+        if (StringUtils.isNotBlank(tableName)) {
+            return tableName;
+        }
+        tableName = MapUtils.getString(taskParams, "target_asset_id");
+        if (StringUtils.isNotBlank(tableName)) {
+            return tableName;
+        }
+        return null;
     }
 }

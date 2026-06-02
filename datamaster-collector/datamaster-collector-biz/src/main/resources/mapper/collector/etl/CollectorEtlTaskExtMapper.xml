@@ -24,10 +24,31 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateTime"    column="UPDATE_TIME"    />
         <result property="remark"    column="REMARK"    />
         <result property="flinkxJobJson"    column="FLINKX_JOB_JSON"    />
+        <result property="flinkxJobTemplateJson"    column="FLINKX_JOB_TEMPLATE_JSON"    />
+        <result property="incrementalType"    column="INCREMENTAL_TYPE"    />
+        <result property="sourceDatasourceId"    column="SOURCE_DATASOURCE_ID"    />
+        <result property="targetDatasourceId"    column="TARGET_DATASOURCE_ID"    />
+        <result property="sourceTableName"    column="SOURCE_TABLE_NAME"    />
+        <result property="targetTableName"    column="TARGET_TABLE_NAME"    />
+        <result property="sourceIncrementColumn"    column="SOURCE_INCREMENT_COLUMN"    />
+        <result property="targetIncrementColumn"    column="TARGET_INCREMENT_COLUMN"    />
+        <result property="incrementalInitialValue"    column="INCREMENTAL_INITIAL_VALUE"    />
+        <result property="incrementalStartValue"    column="INCREMENTAL_START_VALUE"    />
+        <result property="incrementalEndValue"    column="INCREMENTAL_END_VALUE"    />
+        <result property="prepareNodeId"    column="PREPARE_NODE_ID"    />
+        <result property="prepareNodeName"    column="PREPARE_NODE_NAME"    />
+        <result property="prepareNodeCode"    column="PREPARE_NODE_CODE"    />
+        <result property="prepareNodeVersion"    column="PREPARE_NODE_VERSION"    />
+        <result property="prepareRelationId"    column="PREPARE_RELATION_ID"    />
+        <result property="completeNodeId"    column="COMPLETE_NODE_ID"    />
+        <result property="completeNodeName"    column="COMPLETE_NODE_NAME"    />
+        <result property="completeNodeCode"    column="COMPLETE_NODE_CODE"    />
+        <result property="completeNodeVersion"    column="COMPLETE_NODE_VERSION"    />
+        <result property="completeRelationId"    column="COMPLETE_RELATION_ID"    />
     </resultMap>
 
     <sql id="selectCollectorEtlTaskExtVo">
-        select ID, TASK_ID, ETL_NODE_ID, ETL_NODE_NAME, ETL_NODE_CODE, ETL_NODE_VERSION, ETL_RELATION_ID, ETL_TASK_CODE, ETL_TASK_VERSION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK, FLINKX_JOB_JSON from COL_ETL_TASK_EXT
+        select ID, TASK_ID, ETL_NODE_ID, ETL_NODE_NAME, ETL_NODE_CODE, ETL_NODE_VERSION, ETL_RELATION_ID, ETL_TASK_CODE, ETL_TASK_VERSION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK, FLINKX_JOB_JSON, FLINKX_JOB_TEMPLATE_JSON, INCREMENTAL_TYPE, SOURCE_DATASOURCE_ID, TARGET_DATASOURCE_ID, SOURCE_TABLE_NAME, TARGET_TABLE_NAME, SOURCE_INCREMENT_COLUMN, TARGET_INCREMENT_COLUMN, INCREMENTAL_INITIAL_VALUE, INCREMENTAL_START_VALUE, INCREMENTAL_END_VALUE, PREPARE_NODE_ID, PREPARE_NODE_NAME, PREPARE_NODE_CODE, PREPARE_NODE_VERSION, PREPARE_RELATION_ID, COMPLETE_NODE_ID, COMPLETE_NODE_NAME, COMPLETE_NODE_CODE, COMPLETE_NODE_VERSION, COMPLETE_RELATION_ID from COL_ETL_TASK_EXT
     </sql>
 
     <select id="selectCollectorEtlTaskExtList" parameterType="CollectorEtlTaskExtDO" resultMap="CollectorEtlTaskExtResult">
@@ -69,6 +90,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateTime != null">UPDATE_TIME,</if>
             <if test="remark != null">REMARK,</if>
             <if test="flinkxJobJson != null">FLINKX_JOB_JSON,</if>
+            <if test="flinkxJobTemplateJson != null">FLINKX_JOB_TEMPLATE_JSON,</if>
+            <if test="incrementalType != null">INCREMENTAL_TYPE,</if>
+            <if test="sourceDatasourceId != null">SOURCE_DATASOURCE_ID,</if>
+            <if test="targetDatasourceId != null">TARGET_DATASOURCE_ID,</if>
+            <if test="sourceTableName != null">SOURCE_TABLE_NAME,</if>
+            <if test="targetTableName != null">TARGET_TABLE_NAME,</if>
+            <if test="sourceIncrementColumn != null">SOURCE_INCREMENT_COLUMN,</if>
+            <if test="targetIncrementColumn != null">TARGET_INCREMENT_COLUMN,</if>
+            <if test="incrementalInitialValue != null">INCREMENTAL_INITIAL_VALUE,</if>
+            <if test="incrementalStartValue != null">INCREMENTAL_START_VALUE,</if>
+            <if test="incrementalEndValue != null">INCREMENTAL_END_VALUE,</if>
+            <if test="prepareNodeId != null">PREPARE_NODE_ID,</if>
+            <if test="prepareNodeName != null">PREPARE_NODE_NAME,</if>
+            <if test="prepareNodeCode != null">PREPARE_NODE_CODE,</if>
+            <if test="prepareNodeVersion != null">PREPARE_NODE_VERSION,</if>
+            <if test="prepareRelationId != null">PREPARE_RELATION_ID,</if>
+            <if test="completeNodeId != null">COMPLETE_NODE_ID,</if>
+            <if test="completeNodeName != null">COMPLETE_NODE_NAME,</if>
+            <if test="completeNodeCode != null">COMPLETE_NODE_CODE,</if>
+            <if test="completeNodeVersion != null">COMPLETE_NODE_VERSION,</if>
+            <if test="completeRelationId != null">COMPLETE_RELATION_ID,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -90,6 +132,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateTime != null">#{updateTime},</if>
             <if test="remark != null">#{remark},</if>
             <if test="flinkxJobJson != null">#{flinkxJobJson},</if>
+            <if test="flinkxJobTemplateJson != null">#{flinkxJobTemplateJson},</if>
+            <if test="incrementalType != null">#{incrementalType},</if>
+            <if test="sourceDatasourceId != null">#{sourceDatasourceId},</if>
+            <if test="targetDatasourceId != null">#{targetDatasourceId},</if>
+            <if test="sourceTableName != null">#{sourceTableName},</if>
+            <if test="targetTableName != null">#{targetTableName},</if>
+            <if test="sourceIncrementColumn != null">#{sourceIncrementColumn},</if>
+            <if test="targetIncrementColumn != null">#{targetIncrementColumn},</if>
+            <if test="incrementalInitialValue != null">#{incrementalInitialValue},</if>
+            <if test="incrementalStartValue != null">#{incrementalStartValue},</if>
+            <if test="incrementalEndValue != null">#{incrementalEndValue},</if>
+            <if test="prepareNodeId != null">#{prepareNodeId},</if>
+            <if test="prepareNodeName != null">#{prepareNodeName},</if>
+            <if test="prepareNodeCode != null">#{prepareNodeCode},</if>
+            <if test="prepareNodeVersion != null">#{prepareNodeVersion},</if>
+            <if test="prepareRelationId != null">#{prepareRelationId},</if>
+            <if test="completeNodeId != null">#{completeNodeId},</if>
+            <if test="completeNodeName != null">#{completeNodeName},</if>
+            <if test="completeNodeCode != null">#{completeNodeCode},</if>
+            <if test="completeNodeVersion != null">#{completeNodeVersion},</if>
+            <if test="completeRelationId != null">#{completeRelationId},</if>
          </trim>
     </insert>
 
@@ -114,6 +177,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateTime != null">UPDATE_TIME = #{updateTime},</if>
             <if test="remark != null">REMARK = #{remark},</if>
             <if test="flinkxJobJson != null">FLINKX_JOB_JSON = #{flinkxJobJson},</if>
+            <if test="flinkxJobTemplateJson != null">FLINKX_JOB_TEMPLATE_JSON = #{flinkxJobTemplateJson},</if>
+            <if test="incrementalType != null">INCREMENTAL_TYPE = #{incrementalType},</if>
+            <if test="sourceDatasourceId != null">SOURCE_DATASOURCE_ID = #{sourceDatasourceId},</if>
+            <if test="targetDatasourceId != null">TARGET_DATASOURCE_ID = #{targetDatasourceId},</if>
+            <if test="sourceTableName != null">SOURCE_TABLE_NAME = #{sourceTableName},</if>
+            <if test="targetTableName != null">TARGET_TABLE_NAME = #{targetTableName},</if>
+            <if test="sourceIncrementColumn != null">SOURCE_INCREMENT_COLUMN = #{sourceIncrementColumn},</if>
+            <if test="targetIncrementColumn != null">TARGET_INCREMENT_COLUMN = #{targetIncrementColumn},</if>
+            <if test="incrementalInitialValue != null">INCREMENTAL_INITIAL_VALUE = #{incrementalInitialValue},</if>
+            <if test="incrementalStartValue != null">INCREMENTAL_START_VALUE = #{incrementalStartValue},</if>
+            <if test="incrementalEndValue != null">INCREMENTAL_END_VALUE = #{incrementalEndValue},</if>
+            <if test="prepareNodeId != null">PREPARE_NODE_ID = #{prepareNodeId},</if>
+            <if test="prepareNodeName != null">PREPARE_NODE_NAME = #{prepareNodeName},</if>
+            <if test="prepareNodeCode != null">PREPARE_NODE_CODE = #{prepareNodeCode},</if>
+            <if test="prepareNodeVersion != null">PREPARE_NODE_VERSION = #{prepareNodeVersion},</if>
+            <if test="prepareRelationId != null">PREPARE_RELATION_ID = #{prepareRelationId},</if>
+            <if test="completeNodeId != null">COMPLETE_NODE_ID = #{completeNodeId},</if>
+            <if test="completeNodeName != null">COMPLETE_NODE_NAME = #{completeNodeName},</if>
+            <if test="completeNodeCode != null">COMPLETE_NODE_CODE = #{completeNodeCode},</if>
+            <if test="completeNodeVersion != null">COMPLETE_NODE_VERSION = #{completeNodeVersion},</if>
+            <if test="completeRelationId != null">COMPLETE_RELATION_ID = #{completeRelationId},</if>
         </trim>
         where ID = #{id}
     </update>

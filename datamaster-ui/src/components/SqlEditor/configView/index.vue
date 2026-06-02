@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container configView" :style="{ width: `${currWidth}px` }">
     <div class="move" @mousedown="resizeCurrDialog"></div>
     <div class="container-header">
@@ -131,8 +131,8 @@
 </template>
 <script setup name="EditorConfigView">
 //
-import { treeData } from "@/views/dpp/task/developTask/data";
-import { listDaDatasourceNoKafkaByProjectCode } from "@/api/da/dataSource/dataSource";
+import { treeData } from "@/views/col/task/developTask/data";
+import { listDaDatasourceNoKafkaByProjectCode } from "@/api/ast/dataSource/dataSource";
 const { proxy } = getCurrentInstance();
 const { dpp_etl_task_priority } = proxy.useDict("dpp_etl_task_priority");
 import useUserStore from "@/store/system/user";

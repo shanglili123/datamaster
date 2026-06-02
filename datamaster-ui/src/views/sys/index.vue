@@ -170,7 +170,7 @@ import {
   WarningFilled,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { currentUser } from "@/api/att/project/project";
+import { currentUser } from "@/api/tax/project/project";
 import { getRoutersDpp } from "@/api/system/menu";
 import { homeList } from "@/api/system/home";
 import usePermissionStore from "@/store/system/permission";

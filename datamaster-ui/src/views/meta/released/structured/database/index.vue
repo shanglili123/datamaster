@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
@@ -58,8 +58,8 @@
 
 <script setup name="ReleasedStructuredDatabase">
 import { reactive, ref, getCurrentInstance } from "vue";
-import { listDomain } from "@/api/att/domain/domain.js";
-import { listDb } from "@/api/mc/unreleased/db.js";
+import { listDomain } from "@/api/tax/domain/domain.js";
+import { listDb } from "@/api/cat/unreleased/db.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
 import { useRouter } from "vue-router";
 

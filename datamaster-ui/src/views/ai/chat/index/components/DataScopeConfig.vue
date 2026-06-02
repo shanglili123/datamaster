@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="data-scope-config app-container" ref="app-container">
     <!-- 1. 当前数据范围展示 (Summary Bar) -->
     <div class="summary-bar">
@@ -260,7 +260,7 @@ import DatasourceList from "@/components/Datasource/List.vue";
 import {
   getTablesByDataSourceId,
   getColumnByAssetId,
-} from "@/api/dpp/task/index.js";
+} from "@/api/col/task/index.js";
 import { ChatConversationApi } from "@/api/ai/chat/conversation/index.js";
 import { ElMessage, ElMessageBox } from "element-plus";
 

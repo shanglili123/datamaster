@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <el-container>
@@ -101,17 +101,17 @@
 
 <script setup name="UnreleasedStructuredTable">
 import { reactive, ref, getCurrentInstance, computed } from "vue";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
 import {
   listTable,
   delTable,
   updateTableStatus,
   batchDeleteCheck,
-} from "@/api/mc/unreleased/table";
+} from "@/api/cat/unreleased/table";
 import { useRoute, useRouter } from "vue-router";
-import { listDb } from "@/api/mc/unreleased/db";
-import SourceSystemTree from "@/views/mc/task/structured/components/SourceSystemTree.vue";
+import { listDb } from "@/api/cat/unreleased/db";
+import SourceSystemTree from "@/views/cat/task/structured/components/SourceSystemTree.vue";
 
 const { proxy } = getCurrentInstance();
 

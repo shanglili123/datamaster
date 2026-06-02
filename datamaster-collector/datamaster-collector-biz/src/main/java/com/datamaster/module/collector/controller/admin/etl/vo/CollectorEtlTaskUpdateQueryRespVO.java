@@ -313,8 +313,11 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
 
 
     public void createTaskConfig() {
-        // 创建 taskConfig Map
-        Map<String, Object> taskConfig = new HashMap<>();
+        Map<String, Object> taskConfig = JSONUtils.checkJsonValid(this.draftJson, false)
+                ? JSONUtils.convertTaskDefinitionJsonMap(this.draftJson) : new HashMap<>();
+        if (taskConfig == null) {
+            taskConfig = new HashMap<>();
+        }
         taskConfig.put("type", this.type);
         taskConfig.put("releaseState", this.status);
         taskConfig.put("description", this.description); // 从本身获取描述
@@ -324,6 +327,7 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
         taskConfig.put("personCharge", this.personCharge); // 责任人
         taskConfig.put("contactNumber", this.contactNumber); // 联系电话
         taskConfig.put("catCode", this.catCode); // 责任人
+        taskConfig.put("draftJson", this.draftJson);
 
         // 设置 taskConfig
         this.setTaskConfig(taskConfig);

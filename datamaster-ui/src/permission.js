@@ -9,7 +9,7 @@ import useUserStore from "@/store/system/user";
 import useSettingsStore from "@/store/system/settings";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
-import { currentUser } from "@/api/att/project/project";
+import { currentUser } from "@/api/tax/project/project";
 import { isProjectModuleRoute } from "@/utils/moduleRoute";
 
 NProgress.configure({ showSpinner: false });

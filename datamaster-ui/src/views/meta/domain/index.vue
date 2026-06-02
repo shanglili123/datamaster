@@ -163,7 +163,7 @@ import {
   updateDomainStatus,
   getDomain,
   batchDeleteCheck,
-} from "@/api/att/domain/domain.js";
+} from "@/api/tax/domain/domain.js";
 import { ElMessage } from "element-plus";
 import { computed, getCurrentInstance, reactive, ref } from "vue";
 

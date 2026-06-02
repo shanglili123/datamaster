@@ -1,5 +1,5 @@
 import { DatasourceTypes, config } from './config';
-import { listDaDatasource } from '@/api/da/dataSource/dataSource';
+import { listDaDatasource } from '@/api/ast/dataSource/dataSource';
 
 // 根据flag获取数据源类型
 export function getDatasourceTypes(flag) {

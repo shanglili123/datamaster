@@ -1,4 +1,4 @@
-﻿
+
 /**
  * 存放一些节点操作的公共方法
  */
@@ -12,7 +12,7 @@ import useUserStore from "@/store/system/user";
 const userStore = useUserStore();
 import {
   getNodeUniqueKey,
-} from "@/api/dpp/task/index.js";
+} from "@/api/col/task/index.js";
 import sxPng from '@/assets/system/images/dpp/sx.png';
 import xxPng from '@/assets/system/images/dpp/xx.png';
 

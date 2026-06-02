@@ -37,6 +37,12 @@ public class RedisServiceImpl implements IRedisService {
     }
 
     @Override
+    public boolean setIfAbsent(String key, String value, long timeout) {
+        Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(key, value, timeout, TimeUnit.SECONDS);
+        return Boolean.TRUE.equals(success);
+    }
+
+    @Override
     public String get(String key) {
         return stringRedisTemplate.opsForValue().get(key);
     }
@@ -127,4 +133,3 @@ public class RedisServiceImpl implements IRedisService {
         return stringRedisTemplate.opsForHash().hasKey(key, hashKey);
     }
 }
-

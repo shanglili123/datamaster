@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container console" :style="{ height: `${currHeight}px` }">
     <div class="move" @mousedown="resizeCurrDialog"></div>
     <div class="container-header">
@@ -52,7 +52,7 @@
 </template>
 <script setup name="EditorConsole">
 import CodeShow from "@/components/SqlEditor/editorShow/index.vue";
-import { getRunTaskInstance, getLogByTaskInstanceId } from "@/api/dpp/task/index.js";
+import { getRunTaskInstance, getLogByTaskInstanceId } from "@/api/col/task/index.js";
 // #region curr弹框拖拽
 const currHeight = ref(345); // 初始左侧宽度
 const isCurrResizing = ref(false); // 判断是否正在拖拽

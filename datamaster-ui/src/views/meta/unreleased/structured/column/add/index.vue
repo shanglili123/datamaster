@@ -373,10 +373,10 @@ import {
   nextTick,
   shallowRef,
 } from "vue";
-import { listDb, getDb } from "@/api/mc/unreleased/db";
-import { listTable } from "@/api/mc/unreleased/table";
-import { addColumn, draftColumn } from "@/api/mc/unreleased/column";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { listDb, getDb } from "@/api/cat/unreleased/db";
+import { listTable } from "@/api/cat/unreleased/table";
+import { addColumn, draftColumn } from "@/api/cat/unreleased/column";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
 // import { getDgDataElemList } from "@/api/dg/standard/dataElem.js";
 import { useRouter } from "vue-router";

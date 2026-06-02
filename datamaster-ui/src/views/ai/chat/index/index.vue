@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-container class="ai-layout">
     <!-- 左侧：对话列表 -->
     <ConversationList
@@ -226,7 +226,7 @@ import {
   watch,
 } from "vue";
 import DatasourceList from "@/components/Datasource/List.vue";
-import { getTablesByDataSourceId } from "@/api/dpp/task/index.js";
+import { getTablesByDataSourceId } from "@/api/col/task/index.js";
 import { Plus } from "@element-plus/icons-vue";
 
 /** dataMaster 智能问数聊天对话 列表 */

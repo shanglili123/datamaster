@@ -82,6 +82,8 @@ oracle:
 ds:
   base_url: http://127.0.0.1:12345/dolphinscheduler
   quality_url: http://127.0.0.1:8083/quality/qualityTaskExecutor/runExecuteTask
+  incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://127.0.0.1:8080/col/etlTask/incremental/prepare}
+  incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://127.0.0.1:8080/col/etlTask/incremental/complete}
   mc_url: http://localhost:8080/mc/taskExecutor/runExecuteTask
   http_projectCode: 134799536571008
   http_quality_projectCode: 134799536571008

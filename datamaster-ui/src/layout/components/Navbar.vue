@@ -314,7 +314,7 @@ import { loginOut } from "@/api/system/sso-auth.js";
 import { onMounted, ref, watch } from "vue";
 import moment from "moment";
 import { listNotice } from "@/api/system/system/notice";
-import { currentUser } from "@/api/att/project/project";
+import { currentUser } from "@/api/tax/project/project";
 import { da, id } from "element-plus/es/locale/index.mjs";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";

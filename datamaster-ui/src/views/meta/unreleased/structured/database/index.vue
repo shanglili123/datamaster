@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
@@ -344,7 +344,7 @@
 
 <script setup name="UnreleasedStructuredDatabase">
 import { reactive, ref, getCurrentInstance, toValue } from "vue";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import {
   listDb,
   addDb,
@@ -353,13 +353,13 @@ import {
   updateDbStatus,
   delDb,
   batchDeleteCheck,
-} from "@/api/mc/unreleased/db.js";
+} from "@/api/cat/unreleased/db.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
-import { listDaDatasource } from "@/api/mc/dataSource/dataSource";
+import { listDaDatasource } from "@/api/cat/dataSource/dataSource";
 import { deptUserTree } from "@/api/system/system/user.js";
 import { useRoute, useRouter } from "vue-router";
 import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
-import { getRealtimeMcTaskScopeList } from "@/api/mc/task/task.js";
+import { getRealtimeMcTaskScopeList } from "@/api/cat/task/task.js";
 
 // 表单验证规则
 const rules = {

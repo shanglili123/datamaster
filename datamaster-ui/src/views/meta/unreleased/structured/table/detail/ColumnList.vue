@@ -291,7 +291,7 @@ import {
   getColumn,
   updateColumn,
   updateColumnStatus,
-} from "@/api/mc/unreleased/column.js";
+} from "@/api/cat/unreleased/column.js";
 import { useRoute, useRouter } from "vue-router";
 import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
 // import { getDgDataElemList } from "@/api/dg/standard/dataElem.js";

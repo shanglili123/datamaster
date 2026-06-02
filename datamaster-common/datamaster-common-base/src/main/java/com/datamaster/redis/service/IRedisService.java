@@ -24,6 +24,11 @@ public interface IRedisService {
      */
     void set(String key, String value, long timeout);
 
+    /**
+     * 原子写入，键不存在时才设置，带超时。
+     */
+    boolean setIfAbsent(String key, String value, long timeout);
+
     String get(String key);
 
     boolean delete(String key);
@@ -67,4 +72,3 @@ public interface IRedisService {
      */
     Boolean hashHasKey(String key, String hashKey);
 }
-

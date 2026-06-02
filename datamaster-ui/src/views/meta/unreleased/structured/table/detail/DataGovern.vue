@@ -124,7 +124,7 @@
 
 <script setup name="DataGovern">
 import { reactive, ref, toValue, getCurrentInstance } from "vue";
-import { listColumn } from "@/api/mc/unreleased/column.js";
+import { listColumn } from "@/api/cat/unreleased/column.js";
 import { useRouter } from "vue-router";
 import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
 // import { getDgDataElemList } from "@/api/dg/standard/dataElem.js";

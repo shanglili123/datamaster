@@ -5,7 +5,7 @@ import { getRouters } from '@/api/system/menu.js';
 import Layout from '@/layout/index';
 import ParentView from '@/components/ParentView';
 import InnerLink from '@/layout/components/InnerLink';
-import { normalizeModuleRoute } from '@/utils/moduleRoute';
+import { normalizeModuleRoute, normalizeModuleRoutePath } from '@/utils/moduleRoute';
 import { isHttp } from '@/utils/validate';
 
 // 匹配views里面所有的.vue文件
@@ -370,7 +370,7 @@ function reorganizeDevelopmentMenus(routes) {
 function createDevelopmentCategoryRoute(sourceRoute) {
     return {
         path: 'setting',
-        name: 'DppDevelopmentCategory',
+        name: 'ColDevelopmentCategory',
         component: ParentView,
         redirect: 'noRedirect',
         alwaysShow: true,
@@ -706,7 +706,7 @@ function isSystemManagement(route) {
 function isDevelopmentManagement(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
-    return title === '数据研发' || path === '/col' || path === 'col' || path === '/dpp' || path === 'dpp';
+    return title === '数据研发' || path === '/col' || path === 'col';
 }
 
 function isProjectBaseManagement(route) {
@@ -722,7 +722,7 @@ function isProjectManagement(route) {
 function isProjectAssetManagement(route) {
     const title = route.meta && route.meta.title;
     const name = route.name || '';
-    return title === '项目资产' || name === 'dppAsset';
+    return title === '项目资产' || name === 'colAsset';
 }
 
 function isRuleManagement(route) {
@@ -738,7 +738,7 @@ function isCategoryManagement(route) {
 function isDevelopmentCategoryManagement(route) {
     const title = route.meta && route.meta.title;
     const name = route.name || '';
-    return title === '研发类目管理' || name === 'DppDevelopmentCategory';
+    return title === '研发类目管理' || name === 'ColDevelopmentCategory';
 }
 
 function isMemberRoleManagement(route) {
@@ -851,10 +851,11 @@ export function filterDynamicRoutes(routes) {
 }
 
 export const loadView = (view) => {
+    const normalizedView = normalizeModuleRoutePath(view);
     let res;
     for (const path in modules) {
         const dir = path.split('views/')[1].split('.vue')[0];
-        if (dir === view) {
+        if (dir === view || dir === normalizedView) {
             res = () => modules[path]();
         }
     }

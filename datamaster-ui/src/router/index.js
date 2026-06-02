@@ -1,4 +1,4 @@
-﻿
+
 import { createWebHistory, createRouter } from 'vue-router';
 import { clearCancelTokens } from '@/utils/request'; // 确保导入路径正确
 import { normalizeModuleRoutePath, normalizeModuleRouteTree } from '@/utils/moduleRoute';
@@ -14,34 +14,34 @@ import examplePublicRouter from './example/public/index.js';
 import exampleDynamicRouter from './example/dynamic/index.js';
 
 /* 示例模块公共路由 */
-import daPublicRouter from './da/public/index.js';
+import daPublicRouter from './ast/public/index.js';
 /* 示例模块动态路由 */
-import daDynamicRouter from './da/dynamic/index.js';
+import daDynamicRouter from './ast/dynamic/index.js';
 /* 数据资产资产地图 */
-import daAssetRouter from './da/asset/index.js';
+import daAssetRouter from './ast/asset/index.js';
 /* 数据质量 */
-import daQualityRouter from './da/quality/index.js';
+import daQualityRouter from './ast/quality/index.js';
 
-import dsPublicRouter from './ds/public/index.js';
+import dsPublicRouter from './svc/public/index.js';
 /* api服务 */
-import dsDynamicRouter from './ds/dynamic/index.js';
+import dsDynamicRouter from './svc/dynamic/index.js';
 
 /* 数据规划公共路由 */
-import dpPublicRouter from './dp/model/index.js';
+import dpPublicRouter from './std/model/index.js';
 /* 标签管理公共路由 */
-import dsCatRouter from './ds/client/index.js';
+import dsCatRouter from './svc/client/index.js';
 /* 数据规划动态路由 */
-import dpDataElemRouter from './dp/dataElem/index.js';
+import dpDataElemRouter from './std/dataElem/index.js';
 
 // // 研发路由
-import dppRouter from './dpp/index.js';
+import colRouter from './col/index.js';
 
-import dPdocument from './dp/document/index.js';
+import dPdocument from './std/document/index.js';
 
 /* 元数据采集*/
-import mcPublicRouter from './mc/public/index.js';
+import mcPublicRouter from './cat/public/index.js';
 /* 元数据采集 */
-import mcDynamicRouter from './mc/dynamic/index.js';
+import mcDynamicRouter from './cat/dynamic/index.js';
 /* 表元数据 */
 import metaPublicRouter from './meta/public/index.js';
 /* 表元数据 */
@@ -74,7 +74,7 @@ import metaDynamicRouter from './meta/dynamic/index.js';
  */
 
 // 公共路由
-export const constantRoutes = normalizeModuleRouteTree([...systemPublicRouter, ...examplePublicRouter, ...daPublicRouter, ...dsCatRouter, ...dsPublicRouter, ...dPdocument, ...dpPublicRouter, ...dpDataElemRouter, ...daAssetRouter, ...daQualityRouter, ...dppRouter, ...mcPublicRouter, ...metaPublicRouter, ...mcDynamicRouter, ...metaDynamicRouter]);
+export const constantRoutes = normalizeModuleRouteTree([...systemPublicRouter, ...examplePublicRouter, ...daPublicRouter, ...dsCatRouter, ...dsPublicRouter, ...dPdocument, ...dpPublicRouter, ...dpDataElemRouter, ...daAssetRouter, ...daQualityRouter, ...colRouter, ...mcPublicRouter, ...metaPublicRouter, ...mcDynamicRouter, ...metaDynamicRouter]);
 
 // 动态路由，基于用户权限动态去加载
 export const dynamicRoutes = normalizeModuleRouteTree([...systemDynamicRouter, ...exampleDynamicRouter, ...daDynamicRouter, ...dsDynamicRouter,]);

@@ -166,6 +166,7 @@ datamaster-server  (启动入口，依赖所有业务模块)
 - **关键类**：`AssetsDatasourceQualityServiceImpl`、`QualityTaskExecutorServiceImpl`、`RuleExecutorTask`
 - **依赖**：`datamaster-common`、`datamaster-assets`（通过 HTTP/RPC 引用主服务数据）
 - **被依赖**：由 `datamaster-server` 配置中的 `quality_url` 通过 HTTP 触发执行
+- **MongoDB**：质量模块使用 MongoDB（`spring-boot-starter-data-mongodb`）存储质量检测命中的**错误数据**，写入 `quality_error_data` 集合。通过 `@ConditionalOnProperty("custom.mongo.enabled")` 控制是否启用，非必选组件。数据模型为 `CheckErrorData`（`@Document`），通过 `MongoTemplate` / `MongoRepository` 读写。
 
 ### 3.5 模块间核心调用链路
 ```
@@ -480,5 +481,154 @@ mvn -q -DskipTests -pl datamaster-server -am compile
 | ATT_ | TAX_ | Taxonomy |
 | AI_ | AI_ | Intelligence（不变）|
 | SYS_ | SYS_ | System（不变）|
+
+## 附录：任务调度调用链路
+
+### 1. 元数据采集任务（HTTP 回调）
+
+```
+用户在系统创建采集任务
+        │
+        v
+CatalogTaskDolphinSchedulerService 在 DS 中创建 HTTP 类型工作流
+        │  URL = collector_url + "/" + taskId
+        │  （即 http://localhost:8080/mc/taskExecutor/runExecuteTask/{taskId}）
+        v
+DolphinScheduler 执行工作流 → HTTP 节点 → PUT 请求该地址
+        │
+        v
+反向代理 /mc/ → /cat/ → CatalogTaskExecutorController.runExecuteTask(id)
+        │
+        v
+CatalogTaskService.runDaDiscoveryTask(id)  → 扫描数据库表结构
+                                            → 比对变更（增/删/改）
+                                            → 记录元数据到 Catalog
+```
+
+**配置项：**
+- `ds.collector_url`（回调地址，dev/prod 通用）
+- `path.collector_url`（预留基路径）
+- `ds.http_mc_projectCode`（DS 项目编码）
+
+### 2. Spark ETL 任务（SPARK 提交）
+
+```
+用户在 UI 配置 ETL 任务（含 SPARK 节点）
+        │
+        v
+CollectorEtlTaskController (/col/etlTask/updateReleaseTask)
+        │
+        v
+CollectorEtlTaskServiceImpl.publishTask()
+        │── TaskConverter.buildEtlTaskParams()
+        │    → 将节点分组为 reader / transition[] / writer 管道
+        │── TaskConverter.buildEtlTaskDefinitionJson()
+        │    → 构建 DolphinScheduler SPARK 类型任务定义：
+        │       taskType: "SPARK"
+        │       mainClass: com.data.matser.spark.etl.EtlApplication
+        │       mainJar:   DATAMASTER-etl.jar
+        │       mainArgs:  Base64(管道JSON)
+        │       master:    spark://127.0.0.1:7077
+        │── dsEtlTaskService.createTask() / updateTask()  → DS API
+        │── dsEtlTaskService.releaseTask("ONLINE")        → DS API
+        v
+DolphinScheduler Worker 执行 SPARK 节点 → spark-submit
+        │
+        v
+EtlApplication.main() 在 Spark 集群上运行
+        │── ReaderFactory.getReader()      → 读取源数据
+        │── TransitionFactory.transition() → 清洗/转换
+        │── WriterFactory.getWriter()      → 写入目标
+        │── RabbitMQ 上报任务状态
+```
+
+**配置项：**
+- `ds.spark.master_url`（Spark 集群地址）
+- `ds.spark.main_jar`（ETL Jar 路径）
+- `ds.spark.main_class`（入口类）
+- `ds.http_mc_projectCode`（DS 项目编码）
+
+### 3. FLINKX ETL 任务（CHUNJUN 提交）
+
+```
+用户在 UI 配置 ETL 任务（执行引擎选择 FLINK / FlinkX）
+        │
+        v
+CollectorEtlTaskController (/col/etlTask/updateReleaseTask)
+        │
+        v
+CollectorEtlTaskServiceImpl.publishTask()
+        │── TaskConverter.buildEtlTaskParams()
+        │    → 将节点分组为 reader / transition[] / writer 管道
+        │── FlinkxEtlTaskConverter.convertToFlinkxJobJson()
+        │    → 将管道转换为 CHUNJUN job JSON
+        │── TaskConverter.resolveFlinkxIncrementalConfig()
+        │    → 根据 DB Reader 的 readModeType 判断全量或增量模式
+        v
+全量模式：在 DolphinScheduler 中创建单个 CHUNJUN 节点
+        │    taskType: "CHUNJUN"
+        │    taskParams.json: 完整 CHUNJUN job JSON
+        v
+DolphinScheduler Worker 执行 CHUNJUN 节点
+        │
+        v
+$CHUNJUN_HOME/bin/start-chunjun
+        │── Reader 读取源表
+        │── Transformer 清洗/转换
+        │── Writer 写入目标表
+```
+
+FLINKX 增量模式仍然使用同一个发布入口，但 DolphinScheduler 工作流会调整为三个节点：
+
+```
+HTTP 增量边界准备节点
+        │  PUT /col/etlTask/incremental/prepare/{taskId}
+        │      ?processInstanceId=${system.workflow.instance.id}
+        │
+        │── 使用 Redis SET NX 占用标记防止同一任务重叠执行
+        │    key: COL:ETL:FLINKX:INCREMENTAL:RUNNING:{taskId}
+        │    value: DolphinScheduler 流程实例 ID
+        │── 查询目标表 MAX(增量字段) 作为本次 startValue
+        │── 查询源表 MAX(增量字段)   作为本次 endValue
+        │── 目标表为空时，startValue 回退到发布时保存的初始游标
+        │── 返回带动态 where 条件的完整 CHUNJUN job JSON
+        v
+CHUNJUN 执行节点
+        │  taskParams.json = ${<增量边界准备节点名称>.response}
+        │  DolphinScheduler 在执行前将 HTTP 响应替换到 CHUNJUN 参数中
+        │
+        │── ID 增量窗口：   增量字段 > startValue  AND 增量字段 <= endValue
+        │── 时间增量窗口： 增量字段 >= startValue AND 增量字段 <= endValue
+        │── 源表为空时：   where 条件为 1 = 0
+        v
+HTTP 状态回写节点
+        │  PUT /col/etlTask/incremental/complete/{taskId}
+        │      ?processInstanceId=${system.workflow.instance.id}
+        │
+        │── 回写任务实例成功状态、开始时间和结束时间
+        │── 释放 Redis 占用标记
+```
+
+如果定时调度间隔短于任务执行时间，新的流程实例会在准备节点被 Redis 占用标记拒绝，不会进入 CHUNJUN 节点。占用标记默认 TTL 为 86400 秒，避免异常情况下永久占用。
+
+正常链路只依赖 HTTP 准备节点和 HTTP 状态回写节点。系统原有的 `ProcessListener` 还会通过 RabbitMQ 监听 DolphinScheduler 流程实例状态；如果流程失败、被停止或异常终止，导致 HTTP 状态回写节点没有执行，则在收到流程终态消息后兜底释放 Redis 占用标记。该消息由 DolphinScheduler 状态同步链路产生，不是 FLINKX 或 CHUNJUN 主动发送。
+
+**配置项：**
+- `ds.incremental_prepare_url`（增量边界准备 HTTP 回调地址，必须可由 DolphinScheduler Worker 访问）
+- `ds.incremental_complete_url`（增量状态回写 HTTP 回调地址，必须可由 DolphinScheduler Worker 访问）
+- `ds.incremental_running_ttl_seconds`（Redis 占用标记 TTL，默认 86400 秒）
+- `CHUNJUN_HOME`（DolphinScheduler Worker 中的 CHUNJUN 安装目录）
+- `FLINK_HOME`（DolphinScheduler Worker 中的 Flink 安装目录）
+
+### 4. 三种任务对比
+
+| 对比项 | 元数据采集 (Catalog) | Spark ETL (Collector) | FLINKX ETL (Collector) |
+|--------|---------------------|-----------------------|------------------------|
+| DS 节点类型 | HTTP | SPARK | 全量：CHUNJUN；增量：HTTP → CHUNJUN → HTTP |
+| 执行方式 | DS 发 HTTP 回调本系统 | DS 提交 spark-submit 到集群 | DS Worker 调用 CHUNJUN；增量任务先由 HTTP 节点计算窗口 |
+| 执行引擎 | 本系统 Java | Spark 分布式计算 | CHUNJUN / Flink |
+| 功能 | 扫描数据库/表结构元数据 | 数据抽取、清洗、转换、写入 | 数据抽取、清洗、转换、写入；支持运行前动态计算增量窗口 |
+
+---
 
 *本文档为最终整理版，可作为后续导入 IDE、排查启动、做二次开发时的基础说明。*

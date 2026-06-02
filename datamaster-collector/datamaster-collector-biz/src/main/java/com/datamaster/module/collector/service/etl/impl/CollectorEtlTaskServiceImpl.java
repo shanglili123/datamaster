@@ -21,6 +21,7 @@ import com.datamaster.api.ds.api.etl.*;
 import com.datamaster.api.ds.api.etl.ds.ProcessDefinition;
 import com.datamaster.api.ds.api.etl.ds.ProcessTaskRelation;
 import com.datamaster.api.ds.api.etl.ds.Schedule;
+import com.datamaster.api.ds.api.etl.ds.TaskDefinition;
 import com.datamaster.api.ds.api.service.etl.IDsEtlNodeService;
 import com.datamaster.api.ds.api.service.etl.IDsEtlSchedulerService;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
@@ -51,9 +52,11 @@ import com.datamaster.module.collector.utils.IDGeneratorUtils;
 import com.datamaster.flinkx.core.FlinkxEtlTaskConverter;
 import com.datamaster.module.collector.utils.TaskConverter;
 import com.datamaster.module.collector.utils.model.DsResource;
+import com.datamaster.module.collector.utils.model.FlinkxIncrementalConfig;
 import com.datamaster.mybatis.config.MasterDataSourceConfig;
 import com.datamaster.mybatis.core.util.MyBatisUtils;
 import com.datamaster.redis.service.IRedisService;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -112,6 +115,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @Resource
     private ITaxonomyProjectApi taxonomyProjectApi;
 
+    @Value("${ds.incremental_prepare_url:http://127.0.0.1:8080/col/etlTask/incremental/prepare}")
+    private String incrementalPrepareUrl;
+    @Value("${ds.incremental_complete_url:http://127.0.0.1:8080/col/etlTask/incremental/complete}")
+    private String incrementalCompleteUrl;
+
     @Override
     public PageResult<CollectorEtlTaskDO> getCollectorEtlTaskPage(CollectorEtlTaskPageReqVO pageReqVO) {
         return CollectorEtlTaskMapper.selectPage(pageReqVO);
@@ -166,27 +174,24 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 sum++;
                 continue;
             }
-            //1：离线任务 2：实时任务 3：数据开发任务 4：作业任务
-            String type = CollectorEtlTaskDO.getType();
-            //判断是否是离线任务 是需要获取扩展信息的任务编码进行接口调用
-            CollectorEtlTaskExtDO taskExt = null;
-            if (StringUtils.equals("1", type) && !StringUtils.equals("-1", CollectorEtlTaskDO.getStatus())) {
-                //获取扩展信息
-                taskExt = CollectorEtlTaskExtService.getByTaskId(CollectorEtlTaskDO.getId());
-                if (taskExt == null) {
-                    throw new ServiceException("暂无数据！");
-                }
-                CollectorEtlTaskDO.setCode(taskExt.getEtlTaskCode());
-            }
             if (StringUtils.equals("1", CollectorEtlTaskDO.getStatus())) {
                 throw new ServiceException("上线任务，不允删除，请先下线！");
             }
-            if (CollectorEtlTaskDO.getDsId() != null || (taskExt != null && StringUtils.isNotEmpty(taskExt.getEtlTaskCode()))) {
-                dsEtlTaskService.deleteTask(CollectorEtlTaskDO.getProjectCode(), CollectorEtlTaskDO.getCode());
-                sum += CollectorEtlTaskMapper.deleteById(id);
-            } else {
-                sum += CollectorEtlTaskMapper.deleteById(id);
+
+            //1：离线任务 2：实时任务 3：数据开发任务 4：作业任务
+            String type = CollectorEtlTaskDO.getType();
+            CollectorEtlTaskExtDO taskExt = StringUtils.equals("1", type)
+                    ? CollectorEtlTaskExtService.getByTaskId(CollectorEtlTaskDO.getId()) : null;
+            String dsTaskCode = CollectorEtlTaskDO.getCode();
+            boolean hasDsTask = CollectorEtlTaskDO.getDsId() != null && CollectorEtlTaskDO.getDsId() > 0;
+            if (taskExt != null && StringUtils.isNotEmpty(taskExt.getEtlTaskCode())) {
+                dsTaskCode = taskExt.getEtlTaskCode();
+                hasDsTask = true;
             }
+            if (hasDsTask) {
+                dsEtlTaskService.deleteTask(CollectorEtlTaskDO.getProjectCode(), dsTaskCode);
+            }
+            sum += CollectorEtlTaskMapper.deleteById(id);
         }
         // 批量删除数据集成任务
         return sum;
@@ -1518,6 +1523,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         String locations;
         String flinkxJobJson = null;
         boolean isFlinkx = TaskConverter.isFlinkxEngine(reqVO.getDraftJson());
+        FlinkxIncrementalConfig incrementalConfig = null;
+        String prepareNodeCode = null;
+        String prepareNodeName = reqVO.getName() + "-增量边界准备";
+        String completeNodeCode = null;
+        String completeNodeName = reqVO.getName() + "-状态回写";
         String taskCode;
 
         if (isFirstPublish) {
@@ -1534,13 +1544,32 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
             if (isFlinkx) {
                 flinkxJobJson = FlinkxEtlTaskConverter.convertToFlinkxJobJson(mainArgs);
-                taskDefinition = TaskConverter.buildEtlTaskDefinitionJsonFlinkx(null, nodeName, nodeCode, 0, flinkxJobJson, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                incrementalConfig = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
+                if (incrementalConfig != null) {
+                    prepareNodeCode = nextDsNodeCode(reqVO.getProjectCode());
+                    completeNodeCode = nextDsNodeCode(reqVO.getProjectCode());
+                    taskDefinition = TaskConverter.buildIncrementalFlinkxTaskDefinitionJson(
+                             null, prepareNodeName, prepareNodeCode, 0,
+                             null, nodeName, nodeCode, 0,
+                             null, completeNodeName, completeNodeCode, 0,
+                             incrementalCallbackUrl(incrementalPrepareUrl, taskDO.getId()),
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId()), reqVO.getDraftJson(),
+                             getProjectWorkerGroup(reqVO.getProjectCode()));
+                } else {
+                    taskDefinition = TaskConverter.buildEtlTaskDefinitionJsonFlinkx(null, nodeName, nodeCode, 0, flinkxJobJson, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                }
             } else {
                 taskDefinition = TaskConverter.buildEtlTaskDefinitionJson(null, nodeName, nodeCode, 0, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
             }
 
-            taskRelation = TaskConverter.buildEtlTaskRelationJson(null, nodeCode);
-            locations = TaskConverter.buildEtlTaskLocationsJson(reqVO.getLocations(), nodeCode);
+            taskRelation = incrementalConfig == null
+                    ? TaskConverter.buildEtlTaskRelationJson(null, nodeCode)
+                    : TaskConverter.buildIncrementalFlinkxTaskRelationJson(
+                            null, null, null, prepareNodeCode, nodeCode, completeNodeCode);
+            locations = incrementalConfig == null
+                    ? TaskConverter.buildEtlTaskLocationsJson(reqVO.getLocations(), nodeCode)
+                    : TaskConverter.buildIncrementalFlinkxTaskLocationsJson(
+                            reqVO.getLocations(), prepareNodeCode, nodeCode, completeNodeCode);
 
             dsTaskSaveReqDTO.setTaskDefinitionJson(taskDefinition);
             dsTaskSaveReqDTO.setTaskRelationJson(taskRelation);
@@ -1552,31 +1581,29 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 throw new ServiceException("发布任务错误:" + task.getMsg());
             }
             ProcessDefinition data = task.getData();
+            TaskDefinition dsFlinkxNode = getDsTaskDefinition(data, nodeCode);
+            ProcessTaskRelation dsFlinkxRelation = getDsTaskRelation(data, nodeCode);
 
             //保存扩展数据
             CollectorEtlTaskExtSaveReqVO extSaveReqVO = CollectorEtlTaskExtSaveReqVO.builder()
                     .taskId(taskDO.getId())
                     .etlTaskCode(data.getCode())
                     .etlTaskVersion(data.getVersion())
-                    .etlNodeId(data.getTaskDefinitionList().get(0).getId())
+                    .etlNodeId(dsFlinkxNode.getId())
                     .etlNodeName(nodeName)
                     .etlNodeCode(nodeCode)
-                    .etlNodeVersion(data.getTaskDefinitionList().get(0).getVersion())
-                    .etlRelationId(data.getTaskRelationList().get(0).getId())
+                    .etlNodeVersion(dsFlinkxNode.getVersion())
+                    .etlRelationId(dsFlinkxRelation.getId())
                     .build();
             if (isFlinkx) {
                 extSaveReqVO.setFlinkxJobJson(flinkxJobJson);
             }
+            fillIncrementalExt(extSaveReqVO, incrementalConfig, flinkxJobJson, data,
+                    prepareNodeCode, prepareNodeName, completeNodeCode, completeNodeName);
             if (taskExt != null) {
-                taskExt.setEtlTaskCode(data.getCode());
-                taskExt.setEtlTaskVersion(data.getVersion());
-                taskExt.setEtlNodeId(data.getTaskDefinitionList().get(0).getId());
-                taskExt.setEtlNodeName(nodeName);
-                taskExt.setEtlNodeCode(nodeCode);
-                taskExt.setEtlNodeVersion(data.getTaskDefinitionList().get(0).getVersion());
-                taskExt.setEtlRelationId(data.getTaskRelationList().get(0).getId());
-                if (isFlinkx) {
-                    taskExt.setFlinkxJobJson(flinkxJobJson);
+                copyPublishedExt(extSaveReqVO, taskExt);
+                if (incrementalConfig == null) {
+                    clearIncrementalExt(taskExt);
                 }
                 CollectorEtlTaskExtService.updateById(taskExt);
             } else {
@@ -1587,6 +1614,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         } else {
             //二次发布：使用已有DS任务编码
             taskCode = taskExt.getEtlTaskCode();
+            int nodeVersion = taskExt.getEtlNodeVersion() == null ? 0 : taskExt.getEtlNodeVersion();
 
             taskInfo.put("projectCode", reqVO.getProjectCode());
             taskInfo.put("taskCode", taskCode);
@@ -1597,13 +1625,38 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
             if (isFlinkx) {
                 flinkxJobJson = FlinkxEtlTaskConverter.convertToFlinkxJobJson(mainArgs);
-                taskDefinition = TaskConverter.buildEtlTaskDefinitionJsonFlinkx(taskExt.getEtlNodeId(), nodeName, nodeCode, 0, flinkxJobJson, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                incrementalConfig = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
+                if (incrementalConfig != null) {
+                    prepareNodeCode = StringUtils.isNotBlank(taskExt.getPrepareNodeCode())
+                            ? taskExt.getPrepareNodeCode() : nextDsNodeCode(reqVO.getProjectCode());
+                    completeNodeCode = StringUtils.isNotBlank(taskExt.getCompleteNodeCode())
+                            ? taskExt.getCompleteNodeCode() : nextDsNodeCode(reqVO.getProjectCode());
+                    taskDefinition = TaskConverter.buildIncrementalFlinkxTaskDefinitionJson(
+                             taskExt.getPrepareNodeId(), prepareNodeName, prepareNodeCode,
+                             taskExt.getPrepareNodeVersion(), taskExt.getEtlNodeId(), nodeName,
+                             nodeCode, taskExt.getEtlNodeVersion(), taskExt.getCompleteNodeId(),
+                             completeNodeName, completeNodeCode, taskExt.getCompleteNodeVersion(),
+                             incrementalCallbackUrl(incrementalPrepareUrl, taskDO.getId()),
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId()), reqVO.getDraftJson(),
+                             getProjectWorkerGroup(reqVO.getProjectCode()));
+                } else {
+                    taskDefinition = TaskConverter.buildEtlTaskDefinitionJsonFlinkx(taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, flinkxJobJson, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                }
             } else {
-                taskDefinition = TaskConverter.buildEtlTaskDefinitionJson(taskExt.getEtlNodeId(), nodeName, nodeCode, 0, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                taskDefinition = TaskConverter.buildEtlTaskDefinitionJson(taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
             }
 
-            taskRelation = TaskConverter.buildEtlTaskRelationJson(taskExt.getEtlRelationId(), nodeCode);
-            locations = TaskConverter.buildEtlTaskLocationsJson(reqVO.getLocations(), nodeCode);
+            taskRelation = incrementalConfig == null
+                    ? TaskConverter.buildEtlTaskRelationJson(taskExt.getEtlRelationId(), nodeCode, nodeVersion)
+                    : TaskConverter.buildIncrementalFlinkxTaskRelationJson(
+                            taskExt.getPrepareRelationId(), taskExt.getEtlRelationId(), taskExt.getCompleteRelationId(),
+                             prepareNodeCode, taskExt.getPrepareNodeVersion(),
+                             nodeCode, taskExt.getEtlNodeVersion(),
+                             completeNodeCode, taskExt.getCompleteNodeVersion());
+            locations = incrementalConfig == null
+                    ? TaskConverter.buildEtlTaskLocationsJson(reqVO.getLocations(), nodeCode)
+                    : TaskConverter.buildIncrementalFlinkxTaskLocationsJson(
+                            reqVO.getLocations(), prepareNodeCode, nodeCode, completeNodeCode);
 
             dsTaskSaveReqDTO.setTaskDefinitionJson(taskDefinition);
             dsTaskSaveReqDTO.setTaskRelationJson(taskRelation);
@@ -1615,14 +1668,19 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 throw new ServiceException("发布任务错误:" + task.getMsg());
             }
             ProcessDefinition data = task.getData();
+            TaskDefinition dsFlinkxNode = getDsTaskDefinition(data, nodeCode);
+            ProcessTaskRelation dsFlinkxRelation = getDsTaskRelation(data, nodeCode);
 
             //更新扩展数据
             taskExt.setEtlTaskVersion(data.getVersion());
-            taskExt.setEtlNodeVersion(data.getTaskDefinitionList().get(0).getVersion());
-            taskExt.setEtlRelationId(data.getTaskRelationList().get(0).getId());
+            taskExt.setEtlNodeId(dsFlinkxNode.getId());
+            taskExt.setEtlNodeVersion(dsFlinkxNode.getVersion());
+            taskExt.setEtlRelationId(dsFlinkxRelation.getId());
             if (isFlinkx) {
                 taskExt.setFlinkxJobJson(flinkxJobJson);
             }
+            fillIncrementalExt(taskExt, incrementalConfig, flinkxJobJson, data,
+                    prepareNodeCode, prepareNodeName, completeNodeCode, completeNodeName);
             CollectorEtlTaskExtService.updateById(taskExt);
         }
 
@@ -1878,6 +1936,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         taskSaveReqVO.setLocations(JSONUtils.toJson(locations));
         Long CollectorEtlTask = this.createCollectorEtlTask(taskSaveReqVO);
         taskSaveReqVO.setId(CollectorEtlTask);
+        CollectorEtlTaskExtDO origExt = CollectorEtlTaskExtService.getByTaskId(src.getId());
+        boolean copyIncremental = origExt != null && StringUtils.isNotBlank(origExt.getIncrementalType());
+        if (copyIncremental) {
+            data = rebuildCopiedIncrementalTask(taskSaveReqVO, data);
+        }
 
         //构建任务任务信息
         Map<String, Object> taskInfo = new HashMap<>();
@@ -1901,22 +1964,51 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         List<CollectorEtlNodeSaveReqVO> CollectorEtlNodeSaveReqVOList = TaskConverter.convertToCollectorEtlNodeSaveReqVOList(CollectorEtlNewNodeSaveReqVO, 1);
 
         //获取原始扩展数据中的flinkxJobJson（如果有）
-        CollectorEtlTaskExtDO origExt = CollectorEtlTaskExtService.getByTaskId(src.getId());
-        String copyFlinkxJobJson = (origExt != null) ? origExt.getFlinkxJobJson() : null;
+        String copyFlinkxJobJson = origExt == null ? null
+                : (copyIncremental ? origExt.getFlinkxJobTemplateJson() : origExt.getFlinkxJobJson());
+        TaskDefinition copiedEtlNode = copyIncremental
+                ? getDsTaskDefinitionByType(data, "CHUNJUN")
+                : data.getTaskDefinitionList().get(0);
+        ProcessTaskRelation copiedEtlRelation = getDsTaskRelation(data, copiedEtlNode.getCode());
 
         //创建etl任务扩展数据
         CollectorEtlTaskExtSaveReqVO extSaveReqVO = CollectorEtlTaskExtSaveReqVO.builder()
                 .taskId(CollectorEtlTask)
                 .etlTaskCode(data.getCode())
                 .etlTaskVersion(data.getVersion())
-                .etlNodeId(data.getTaskDefinitionList().get(0).getId())
-                .etlNodeName(data.getTaskDefinitionList().get(0).getName())
-                .etlNodeCode(data.getTaskDefinitionList().get(0).getCode())
-                .etlNodeVersion(data.getTaskDefinitionList().get(0).getVersion())
-                .etlRelationId(data.getTaskRelationList().get(0).getId())
+                .etlNodeId(copiedEtlNode.getId())
+                .etlNodeName(copiedEtlNode.getName())
+                .etlNodeCode(copiedEtlNode.getCode())
+                .etlNodeVersion(copiedEtlNode.getVersion())
+                .etlRelationId(copiedEtlRelation.getId())
                 .build();
         if (copyFlinkxJobJson != null) {
             extSaveReqVO.setFlinkxJobJson(copyFlinkxJobJson);
+        }
+        if (copyIncremental) {
+            TaskDefinition copiedPrepareNode = getDsPreviousTaskDefinition(data, copiedEtlNode.getCode());
+            TaskDefinition copiedCompleteNode = getDsNextTaskDefinition(data, copiedEtlNode.getCode());
+            ProcessTaskRelation copiedPrepareRelation = getDsTaskRelation(data, copiedPrepareNode.getCode());
+            ProcessTaskRelation copiedCompleteRelation = getDsTaskRelation(data, copiedCompleteNode.getCode());
+            extSaveReqVO.setFlinkxJobTemplateJson(origExt.getFlinkxJobTemplateJson());
+            extSaveReqVO.setIncrementalType(origExt.getIncrementalType());
+            extSaveReqVO.setSourceDatasourceId(origExt.getSourceDatasourceId());
+            extSaveReqVO.setTargetDatasourceId(origExt.getTargetDatasourceId());
+            extSaveReqVO.setSourceTableName(origExt.getSourceTableName());
+            extSaveReqVO.setTargetTableName(origExt.getTargetTableName());
+            extSaveReqVO.setSourceIncrementColumn(origExt.getSourceIncrementColumn());
+            extSaveReqVO.setTargetIncrementColumn(origExt.getTargetIncrementColumn());
+            extSaveReqVO.setIncrementalInitialValue(resolveCopiedIncrementalInitialValue(src, origExt));
+            extSaveReqVO.setPrepareNodeId(copiedPrepareNode.getId());
+            extSaveReqVO.setPrepareNodeName(copiedPrepareNode.getName());
+            extSaveReqVO.setPrepareNodeCode(copiedPrepareNode.getCode());
+            extSaveReqVO.setPrepareNodeVersion(copiedPrepareNode.getVersion());
+            extSaveReqVO.setPrepareRelationId(copiedPrepareRelation.getId());
+            extSaveReqVO.setCompleteNodeId(copiedCompleteNode.getId());
+            extSaveReqVO.setCompleteNodeName(copiedCompleteNode.getName());
+            extSaveReqVO.setCompleteNodeCode(copiedCompleteNode.getCode());
+            extSaveReqVO.setCompleteNodeVersion(copiedCompleteNode.getVersion());
+            extSaveReqVO.setCompleteRelationId(copiedCompleteRelation.getId());
         }
         CollectorEtlTaskExtService.createCollectorEtlTaskExt(extSaveReqVO);
 
@@ -2021,6 +2113,288 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     private static int safeToInt(Long v) {
         return v == null ? 1 : (int) Math.min(Math.max(v, 1L), Integer.MAX_VALUE);
+    }
+
+    private String nextDsNodeCode(Long projectCode) {
+        DsNodeGenCodeRespDTO response = dsEtlNodeService.genCode(projectCode);
+        if (response == null || response.getData() == null || response.getData().isEmpty()) {
+            throw new ServiceException("生成DolphinScheduler节点编码失败");
+        }
+        return String.valueOf(response.getData().get(0));
+    }
+
+    private TaskDefinition getDsTaskDefinition(ProcessDefinition definition, String nodeCode) {
+        if (definition != null && definition.getTaskDefinitionList() != null) {
+            for (TaskDefinition taskDefinition : definition.getTaskDefinitionList()) {
+                if (StringUtils.equals(nodeCode, taskDefinition.getCode())) {
+                    return taskDefinition;
+                }
+            }
+        }
+        throw new ServiceException("DolphinScheduler未返回节点: " + nodeCode);
+    }
+
+    private TaskDefinition getDsTaskDefinitionByType(ProcessDefinition definition, String taskType) {
+        if (definition != null && definition.getTaskDefinitionList() != null) {
+            for (TaskDefinition taskDefinition : definition.getTaskDefinitionList()) {
+                if (StringUtils.equalsIgnoreCase(taskType, taskDefinition.getTaskType())) {
+                    return taskDefinition;
+                }
+            }
+        }
+        throw new ServiceException("DolphinScheduler未返回类型为 " + taskType + " 的节点");
+    }
+
+    private TaskDefinition getDsPreviousTaskDefinition(ProcessDefinition definition, String nodeCode) {
+        if (definition != null && definition.getTaskRelationList() != null) {
+            for (ProcessTaskRelation relation : definition.getTaskRelationList()) {
+                if (StringUtils.equals(nodeCode, relation.getPostTaskCode())
+                        && !StringUtils.equals("0", relation.getPreTaskCode())) {
+                    return getDsTaskDefinition(definition, relation.getPreTaskCode());
+                }
+            }
+        }
+        throw new ServiceException("DolphinScheduler未返回前置节点: " + nodeCode);
+    }
+
+    private TaskDefinition findDsNextTaskDefinition(ProcessDefinition definition, String nodeCode) {
+        if (definition != null && definition.getTaskRelationList() != null) {
+            for (ProcessTaskRelation relation : definition.getTaskRelationList()) {
+                if (StringUtils.equals(nodeCode, relation.getPreTaskCode())) {
+                    return getDsTaskDefinition(definition, relation.getPostTaskCode());
+                }
+            }
+        }
+        return null;
+    }
+
+    private TaskDefinition getDsNextTaskDefinition(ProcessDefinition definition, String nodeCode) {
+        TaskDefinition taskDefinition = findDsNextTaskDefinition(definition, nodeCode);
+        if (taskDefinition == null) {
+            throw new ServiceException("DolphinScheduler未返回后置节点: " + nodeCode);
+        }
+        return taskDefinition;
+    }
+
+    private ProcessDefinition rebuildCopiedIncrementalTask(CollectorEtlTaskSaveReqVO task,
+                                                            ProcessDefinition copiedDefinition) {
+        TaskDefinition copiedFlinkxNode = getDsTaskDefinitionByType(copiedDefinition, "CHUNJUN");
+        TaskDefinition copiedPrepareNode = getDsPreviousTaskDefinition(copiedDefinition, copiedFlinkxNode.getCode());
+        TaskDefinition copiedCompleteNode = findDsNextTaskDefinition(copiedDefinition, copiedFlinkxNode.getCode());
+        String completeNodeCode = copiedCompleteNode == null
+                ? nextDsNodeCode(Long.valueOf(task.getProjectCode())) : copiedCompleteNode.getCode();
+        String completeNodeName = task.getName() + "-状态回写";
+
+        DsTaskSaveReqDTO request = new DsTaskSaveReqDTO();
+        request.setName(task.getName());
+        request.setDescription(task.getDescription());
+        request.setExecutionType(task.getExecutionType());
+        request.setTaskDefinitionJson(TaskConverter.buildIncrementalFlinkxTaskDefinitionJson(
+                copiedPrepareNode.getId(), task.getName() + "-增量边界准备", copiedPrepareNode.getCode(),
+                copiedPrepareNode.getVersion(), copiedFlinkxNode.getId(), copiedFlinkxNode.getName(),
+                copiedFlinkxNode.getCode(), copiedFlinkxNode.getVersion(),
+                copiedCompleteNode == null ? null : copiedCompleteNode.getId(), completeNodeName,
+                completeNodeCode, copiedCompleteNode == null ? 0 : copiedCompleteNode.getVersion(),
+                incrementalCallbackUrl(incrementalPrepareUrl, task.getId()),
+                incrementalCallbackUrl(incrementalCompleteUrl, task.getId()),
+                task.getDraftJson(), getProjectWorkerGroup(task.getProjectCode())));
+        ProcessTaskRelation prepareRelation = getDsTaskRelation(copiedDefinition, copiedPrepareNode.getCode());
+        ProcessTaskRelation flinkxRelation = getDsTaskRelation(copiedDefinition, copiedFlinkxNode.getCode());
+        ProcessTaskRelation completeRelation = copiedCompleteNode == null
+                ? null : getDsTaskRelation(copiedDefinition, copiedCompleteNode.getCode());
+        request.setTaskRelationJson(TaskConverter.buildIncrementalFlinkxTaskRelationJson(
+                prepareRelation.getId(), flinkxRelation.getId(),
+                completeRelation == null ? null : completeRelation.getId(),
+                copiedPrepareNode.getCode(), copiedPrepareNode.getVersion(),
+                copiedFlinkxNode.getCode(), copiedFlinkxNode.getVersion(),
+                completeNodeCode, copiedCompleteNode == null ? 0 : copiedCompleteNode.getVersion()));
+        List<Map<String, Object>> locations = JSONUtils.convertTaskDefinitionJson(task.getLocations());
+        request.setLocations(TaskConverter.buildIncrementalFlinkxTaskLocationsJson(
+                locations, copiedPrepareNode.getCode(), copiedFlinkxNode.getCode(), completeNodeCode));
+
+        DsTaskSaveRespDTO response = dsEtlTaskService.updateTask(request, task.getProjectCode(), copiedDefinition.getCode());
+        if (response == null || !response.getSuccess() || response.getData() == null) {
+            throw new ServiceException("重建复制任务的DolphinScheduler回调节点失败: "
+                    + (response == null ? "无响应" : response.getMsg()));
+        }
+        return response.getData();
+    }
+
+    private String resolveCopiedIncrementalInitialValue(CollectorEtlTaskUpdateQueryRespVO source,
+                                                        CollectorEtlTaskExtDO origExt) {
+        if (StringUtils.isNotBlank(origExt.getIncrementalInitialValue())) {
+            return origExt.getIncrementalInitialValue();
+        }
+        try {
+            Map<String, Object> mainArgs = TaskConverter.buildEtlTaskParams(
+                    JSON.toJSONString(source.getTaskDefinitionList()),
+                    new HashMap<>(), new HashMap<>(), new ArrayList<>());
+            FlinkxIncrementalConfig config = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
+            if (config != null && StringUtils.isNotBlank(config.getIncrementalInitialValue())) {
+                return config.getIncrementalInitialValue();
+            }
+        } catch (Exception e) {
+            log.warn("从历史增量任务草稿解析初始游标失败，taskId={}", source.getId(), e);
+        }
+        return origExt.getIncrementalStartValue();
+    }
+
+    private ProcessTaskRelation getDsTaskRelation(ProcessDefinition definition, String postNodeCode) {
+        if (definition != null && definition.getTaskRelationList() != null) {
+            for (ProcessTaskRelation relation : definition.getTaskRelationList()) {
+                if (StringUtils.equals(postNodeCode, relation.getPostTaskCode())) {
+                    return relation;
+                }
+            }
+        }
+        throw new ServiceException("DolphinScheduler未返回节点关系: " + postNodeCode);
+    }
+
+    private void fillIncrementalExt(CollectorEtlTaskExtSaveReqVO taskExt, FlinkxIncrementalConfig config,
+                                    String flinkxJobJson, ProcessDefinition definition,
+                                    String prepareNodeCode, String prepareNodeName,
+                                    String completeNodeCode, String completeNodeName) {
+        if (config == null) {
+            return;
+        }
+        TaskDefinition prepareNode = getDsTaskDefinition(definition, prepareNodeCode);
+        ProcessTaskRelation prepareRelation = getDsTaskRelation(definition, prepareNodeCode);
+        TaskDefinition completeNode = getDsTaskDefinition(definition, completeNodeCode);
+        ProcessTaskRelation completeRelation = getDsTaskRelation(definition, completeNodeCode);
+        taskExt.setFlinkxJobTemplateJson(flinkxJobJson);
+        taskExt.setIncrementalType(config.getIncrementalType());
+        taskExt.setSourceDatasourceId(config.getSourceDatasourceId());
+        taskExt.setTargetDatasourceId(config.getTargetDatasourceId());
+        taskExt.setSourceTableName(config.getSourceTableName());
+        taskExt.setTargetTableName(config.getTargetTableName());
+        taskExt.setSourceIncrementColumn(config.getSourceIncrementColumn());
+        taskExt.setTargetIncrementColumn(config.getTargetIncrementColumn());
+        taskExt.setIncrementalInitialValue(config.getIncrementalInitialValue());
+        taskExt.setPrepareNodeId(prepareNode.getId());
+        taskExt.setPrepareNodeName(prepareNodeName);
+        taskExt.setPrepareNodeCode(prepareNodeCode);
+        taskExt.setPrepareNodeVersion(prepareNode.getVersion());
+        taskExt.setPrepareRelationId(prepareRelation.getId());
+        taskExt.setCompleteNodeId(completeNode.getId());
+        taskExt.setCompleteNodeName(completeNodeName);
+        taskExt.setCompleteNodeCode(completeNodeCode);
+        taskExt.setCompleteNodeVersion(completeNode.getVersion());
+        taskExt.setCompleteRelationId(completeRelation.getId());
+    }
+
+    private void fillIncrementalExt(CollectorEtlTaskExtDO taskExt, FlinkxIncrementalConfig config,
+                                    String flinkxJobJson, ProcessDefinition definition,
+                                    String prepareNodeCode, String prepareNodeName,
+                                    String completeNodeCode, String completeNodeName) {
+        if (config == null) {
+            clearIncrementalExt(taskExt);
+            return;
+        }
+        TaskDefinition prepareNode = getDsTaskDefinition(definition, prepareNodeCode);
+        ProcessTaskRelation prepareRelation = getDsTaskRelation(definition, prepareNodeCode);
+        TaskDefinition completeNode = getDsTaskDefinition(definition, completeNodeCode);
+        ProcessTaskRelation completeRelation = getDsTaskRelation(definition, completeNodeCode);
+        taskExt.setFlinkxJobTemplateJson(flinkxJobJson);
+        taskExt.setIncrementalType(config.getIncrementalType());
+        taskExt.setSourceDatasourceId(config.getSourceDatasourceId());
+        taskExt.setTargetDatasourceId(config.getTargetDatasourceId());
+        taskExt.setSourceTableName(config.getSourceTableName());
+        taskExt.setTargetTableName(config.getTargetTableName());
+        taskExt.setSourceIncrementColumn(config.getSourceIncrementColumn());
+        taskExt.setTargetIncrementColumn(config.getTargetIncrementColumn());
+        taskExt.setIncrementalInitialValue(config.getIncrementalInitialValue());
+        taskExt.setPrepareNodeId(prepareNode.getId());
+        taskExt.setPrepareNodeName(prepareNodeName);
+        taskExt.setPrepareNodeCode(prepareNodeCode);
+        taskExt.setPrepareNodeVersion(prepareNode.getVersion());
+        taskExt.setPrepareRelationId(prepareRelation.getId());
+        taskExt.setCompleteNodeId(completeNode.getId());
+        taskExt.setCompleteNodeName(completeNodeName);
+        taskExt.setCompleteNodeCode(completeNodeCode);
+        taskExt.setCompleteNodeVersion(completeNode.getVersion());
+        taskExt.setCompleteRelationId(completeRelation.getId());
+    }
+
+    private void copyPublishedExt(CollectorEtlTaskExtSaveReqVO source, CollectorEtlTaskExtDO target) {
+        target.setEtlTaskCode(source.getEtlTaskCode());
+        target.setEtlTaskVersion(source.getEtlTaskVersion());
+        target.setEtlNodeId(source.getEtlNodeId());
+        target.setEtlNodeName(source.getEtlNodeName());
+        target.setEtlNodeCode(source.getEtlNodeCode());
+        target.setEtlNodeVersion(source.getEtlNodeVersion());
+        target.setEtlRelationId(source.getEtlRelationId());
+        target.setFlinkxJobJson(source.getFlinkxJobJson());
+        target.setFlinkxJobTemplateJson(source.getFlinkxJobTemplateJson());
+        target.setIncrementalType(source.getIncrementalType());
+        target.setSourceDatasourceId(source.getSourceDatasourceId());
+        target.setTargetDatasourceId(source.getTargetDatasourceId());
+        target.setSourceTableName(source.getSourceTableName());
+        target.setTargetTableName(source.getTargetTableName());
+        target.setSourceIncrementColumn(source.getSourceIncrementColumn());
+        target.setTargetIncrementColumn(source.getTargetIncrementColumn());
+        target.setIncrementalInitialValue(source.getIncrementalInitialValue());
+        target.setPrepareNodeId(source.getPrepareNodeId());
+        target.setPrepareNodeName(source.getPrepareNodeName());
+        target.setPrepareNodeCode(source.getPrepareNodeCode());
+        target.setPrepareNodeVersion(source.getPrepareNodeVersion());
+        target.setPrepareRelationId(source.getPrepareRelationId());
+        target.setCompleteNodeId(source.getCompleteNodeId());
+        target.setCompleteNodeName(source.getCompleteNodeName());
+        target.setCompleteNodeCode(source.getCompleteNodeCode());
+        target.setCompleteNodeVersion(source.getCompleteNodeVersion());
+        target.setCompleteRelationId(source.getCompleteRelationId());
+    }
+
+    private void clearIncrementalExt(CollectorEtlTaskExtDO taskExt) {
+        CollectorEtlTaskExtService.lambdaUpdate()
+                .eq(CollectorEtlTaskExtDO::getId, taskExt.getId())
+                .set(CollectorEtlTaskExtDO::getFlinkxJobTemplateJson, null)
+                .set(CollectorEtlTaskExtDO::getIncrementalType, null)
+                .set(CollectorEtlTaskExtDO::getSourceDatasourceId, null)
+                .set(CollectorEtlTaskExtDO::getTargetDatasourceId, null)
+                .set(CollectorEtlTaskExtDO::getSourceTableName, null)
+                .set(CollectorEtlTaskExtDO::getTargetTableName, null)
+                .set(CollectorEtlTaskExtDO::getSourceIncrementColumn, null)
+                .set(CollectorEtlTaskExtDO::getTargetIncrementColumn, null)
+                .set(CollectorEtlTaskExtDO::getIncrementalInitialValue, null)
+                .set(CollectorEtlTaskExtDO::getIncrementalStartValue, null)
+                .set(CollectorEtlTaskExtDO::getIncrementalEndValue, null)
+                .set(CollectorEtlTaskExtDO::getPrepareNodeId, null)
+                .set(CollectorEtlTaskExtDO::getPrepareNodeName, null)
+                .set(CollectorEtlTaskExtDO::getPrepareNodeCode, null)
+                .set(CollectorEtlTaskExtDO::getPrepareNodeVersion, null)
+                .set(CollectorEtlTaskExtDO::getPrepareRelationId, null)
+                .set(CollectorEtlTaskExtDO::getCompleteNodeId, null)
+                .set(CollectorEtlTaskExtDO::getCompleteNodeName, null)
+                .set(CollectorEtlTaskExtDO::getCompleteNodeCode, null)
+                .set(CollectorEtlTaskExtDO::getCompleteNodeVersion, null)
+                .set(CollectorEtlTaskExtDO::getCompleteRelationId, null)
+                .update();
+        taskExt.setFlinkxJobTemplateJson(null);
+        taskExt.setIncrementalType(null);
+        taskExt.setSourceDatasourceId(null);
+        taskExt.setTargetDatasourceId(null);
+        taskExt.setSourceTableName(null);
+        taskExt.setTargetTableName(null);
+        taskExt.setSourceIncrementColumn(null);
+        taskExt.setTargetIncrementColumn(null);
+        taskExt.setIncrementalInitialValue(null);
+        taskExt.setIncrementalStartValue(null);
+        taskExt.setIncrementalEndValue(null);
+        taskExt.setPrepareNodeId(null);
+        taskExt.setPrepareNodeName(null);
+        taskExt.setPrepareNodeCode(null);
+        taskExt.setPrepareNodeVersion(null);
+        taskExt.setPrepareRelationId(null);
+        taskExt.setCompleteNodeId(null);
+        taskExt.setCompleteNodeName(null);
+        taskExt.setCompleteNodeCode(null);
+        taskExt.setCompleteNodeVersion(null);
+        taskExt.setCompleteRelationId(null);
+    }
+
+    private String incrementalCallbackUrl(String baseUrl, Long taskId) {
+        return baseUrl + "/" + taskId + "?processInstanceId=${system.workflow.instance.id}";
     }
 
     private String getProjectWorkerGroup(Long projectCode) {

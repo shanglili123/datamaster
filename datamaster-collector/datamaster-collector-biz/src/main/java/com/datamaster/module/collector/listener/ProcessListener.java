@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 import com.datamaster.api.ds.api.etl.ds.ProcessInstance;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.module.collector.service.etl.ICollectorEtlTaskInstanceService;
+import com.datamaster.module.collector.service.etl.ICollectorEtlIncrementalService;
+import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskInstanceDO;
 
 import javax.annotation.Resource;
 import java.util.Map;
@@ -35,6 +37,8 @@ public class ProcessListener {
 
     @Resource
     private ICollectorEtlTaskInstanceService CollectorEtlTaskInstanceService;
+    @Resource
+    private ICollectorEtlIncrementalService collectorEtlIncrementalService;
 
 //    @SneakyThrows
 //    @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(name = "ds.exchange.processInstance", type = "direct", durable = "true", autoDelete = "false"),
@@ -84,6 +88,22 @@ public class ProcessListener {
             // 手动确认
             channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
         }
+        releaseIncrementalSlot(processInstance);
         log.info(processInstance.getId() + "流程实例创建更新消息结束>>>>>>>>>>>>>>>>>>>>>>>>>>>" + flag);
+    }
+
+    private void releaseIncrementalSlot(ProcessInstance processInstance) {
+        if (processInstance == null || processInstance.getState() == null || !processInstance.getState().isFinished()) {
+            return;
+        }
+        CollectorEtlTaskInstanceDO instance = CollectorEtlTaskInstanceService.getByDsId(processInstance.getId());
+        if (instance != null && instance.getTaskId() != null) {
+            try {
+                collectorEtlIncrementalService.releaseIncrementalTask(instance.getTaskId(), processInstance.getId());
+            } catch (Exception e) {
+                log.warn("释放FLINKX增量任务运行占用失败，taskId={}，processInstanceId={}",
+                        instance.getTaskId(), processInstance.getId(), e);
+            }
+        }
     }
 }

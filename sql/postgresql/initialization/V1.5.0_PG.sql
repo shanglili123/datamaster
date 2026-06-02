@@ -4665,12 +4665,38 @@ CREATE TABLE public.col_etl_task_ext (
   update_time timestamp,
   remark varchar,
   flinkx_job_json text,
+  flinkx_job_template_json text,
+  incremental_type varchar(16),
+  source_datasource_id BIGINT,
+  target_datasource_id BIGINT,
+  source_table_name varchar(512),
+  target_table_name varchar(512),
+  source_increment_column varchar(256),
+  target_increment_column varchar(256),
+  incremental_initial_value varchar(256),
+  incremental_start_value varchar(256),
+  incremental_end_value varchar(256),
+  prepare_node_id BIGINT,
+  prepare_node_name varchar(256),
+  prepare_node_code varchar(256),
+  prepare_node_version integer,
+  prepare_relation_id BIGINT,
+  complete_node_id BIGINT,
+  complete_node_name varchar(256),
+  complete_node_code varchar(256),
+  complete_node_version integer,
+  complete_relation_id BIGINT,
   etl_task_code varchar,
   etl_task_version varchar
 );
 
 COMMENT ON TABLE public.col_etl_task_ext IS 'col_etl_task_ext';
 COMMENT ON COLUMN public.col_etl_task_ext.flinkx_job_json IS 'FlinkX任务JSON（当执行引擎为FlinkX时使用）';
+COMMENT ON COLUMN public.col_etl_task_ext.flinkx_job_template_json IS 'FlinkX基础任务JSON模板';
+COMMENT ON COLUMN public.col_etl_task_ext.incremental_type IS '增量类型：ID、TIME';
+COMMENT ON COLUMN public.col_etl_task_ext.incremental_initial_value IS '首次增量同步初始游标';
+COMMENT ON COLUMN public.col_etl_task_ext.incremental_start_value IS '本次增量同步起始值';
+COMMENT ON COLUMN public.col_etl_task_ext.incremental_end_value IS '本次增量同步结束值';
 
 INSERT INTO public.col_etl_task_ext (id, task_id, etl_node_id, etl_node_name, etl_node_code, etl_node_version, etl_relation_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, etl_task_code, etl_task_version) VALUES
 (1, 1, 58, '转化_水位预警等级校验-2025-09-20', '152439162287424', 10, 196, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-30 15:22:38.0', NULL, '152439162752320', '9'),
@@ -11889,8 +11915,8 @@ INSERT INTO public.system_menu (menu_id, menu_name, parent_id, order_num, path, 
 (2722, '主题域管理导入', 2716, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dm:themeDomain:import', '#', 'admin', TIMESTAMP '2026-03-24 14:53:02.0', NULL, NULL, NULL),
 (2723, '数据治理', 0, 5, 'dg', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'sjzl', 'admin', TIMESTAMP '2026-03-25 17:42:27.0', 'admin', TIMESTAMP '2026-03-27 16:08:33.0', NULL),
 (2724, '元数据管理', 2723, 1, 'meta', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'ysjgl', 'admin', TIMESTAMP '2026-03-25 17:42:50.0', 'admin', TIMESTAMP '2026-03-27 16:10:44.0', NULL),
-(2725, '采集任务', 2724, 1, 'task', 'mc/task/structured/index', NULL, 1, 0, NULL, 'C', '0', '0', NULL, '#', 'admin', TIMESTAMP '2026-03-25 17:43:26.0', 'admin', TIMESTAMP '2026-05-07 11:47:58.0', NULL),
-(2726, '采集实例', 2724, 2, 'instance', 'mc/instance/structured/index', NULL, 1, 0, NULL, 'C', '0', '0', NULL, '#', 'admin', TIMESTAMP '2026-03-25 17:44:36.0', 'admin', TIMESTAMP '2026-05-07 11:48:22.0', NULL),
+(2725, '采集任务', 2724, 1, 'task', 'cat/task/structured/index', NULL, 1, 0, 'CatTask', 'C', '0', '0', NULL, '#', 'admin', TIMESTAMP '2026-03-25 17:43:26.0', 'admin', TIMESTAMP '2026-05-07 11:47:58.0', NULL),
+(2726, '采集实例', 2724, 2, 'instance', 'cat/instance/structured/index', NULL, 1, 0, 'CatInstance', 'C', '0', '0', NULL, '#', 'admin', TIMESTAMP '2026-03-25 17:44:36.0', 'admin', TIMESTAMP '2026-05-07 11:48:22.0', NULL),
 (2727, '最新元数据', 2724, 3, 'management', 'meta/unreleased/structured/table/index', NULL, 1, 0, NULL, 'C', '0', '0', 'mc:metadata:table:list', '#', 'admin', TIMESTAMP '2026-03-25 17:44:52.0', 'admin', TIMESTAMP '2026-05-12 14:57:16.0', NULL),
 (2728, '定版元数据', 2724, 4, 'comparison', 'meta/released/structured/table/index', NULL, 1, 0, NULL, 'C', '0', '0', NULL, '#', 'admin', TIMESTAMP '2026-03-25 17:45:07.0', 'admin', TIMESTAMP '2026-05-07 11:49:05.0', NULL),
 (2729, '元数据比对', 2724, 5, 'comparison', 'sys/developing/index', NULL, 1, 0, NULL, 'C', '1', '1', '', '#', 'admin', TIMESTAMP '2026-03-25 17:45:35.0', 'admin', TIMESTAMP '2026-05-12 14:50:21.0', NULL),

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <el-container>
@@ -25,7 +25,7 @@
 import DeptTree from "@/components/DeptTree/index.vue";
 import LineageShape from "@/views/meta/components/LineageShape.vue";
 import { getCurrentInstance, reactive } from "vue";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import { tableDataRes } from "@/views/meta/components/data";
 
 const { proxy } = getCurrentInstance();

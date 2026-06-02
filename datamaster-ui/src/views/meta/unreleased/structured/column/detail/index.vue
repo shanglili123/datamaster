@@ -110,8 +110,8 @@
 <script setup name="DatabaseDetail">
 import { computed, getCurrentInstance, reactive, toValue } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { getColumn } from "@/api/mc/unreleased/column";
-import { listDomain } from "@/api/att/domain/domain.js";
+import { getColumn } from "@/api/cat/unreleased/column";
+import { listDomain } from "@/api/tax/domain/domain.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
 
 const tabData = [
