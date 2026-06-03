@@ -66,14 +66,14 @@ import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.assetchild.file.AssetsAssetFileDO;
 import com.datamaster.module.assets.dal.dataobject.assetchild.files.AssetsAssetFilesDO;
-import com.datamaster.module.assets.dal.dataobject.daAssetApply.AssetsAssetApplyDO;
+import com.datamaster.module.assets.dal.dataobject.assetApply.AssetsAssetApplyDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
 import com.datamaster.module.assets.dal.dataobject.discovery.AssetsDiscoveryTaskDO;
 import com.datamaster.module.assets.dal.dataobject.sensitiveLevel.AssetsSensitiveLevelDO;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapper;
 import com.datamaster.module.assets.dal.mapper.assetchild.file.AssetsAssetFileMapper;
-import com.datamaster.module.assets.dal.mapper.daAssetApply.AssetsAssetApplyMapper;
+import com.datamaster.module.assets.dal.mapper.assetApply.AssetsAssetApplyMapper;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
 import com.datamaster.module.assets.dal.mapper.sensitiveLevel.AssetsSensitiveLevelMapper;
 import com.datamaster.module.assets.service.asset.IAssetsAssetService;
@@ -166,7 +166,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Resource
     private IAssetsDiscoveryTableService AssetsDiscoveryTableService;
     @Resource
-    private CollectorEtlTaskService dppEtlTaskService;
+    private CollectorEtlTaskService collectorEtlTaskService;
     @Resource
     private IAssetsAssetThemeRelService AssetsAssetThemeRelService;
     @Resource
@@ -184,24 +184,24 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Resource
     private IAssetsAssetFilesService AssetsAssetFilesService;
     @Resource
-    private ITaxonomyTagAssetRelApiService attTagAssetRelApiService;
+    private ITaxonomyTagAssetRelApiService taxonomyTagAssetRelApiService;
     @Resource
     private LineageDataService lineageDataService;
     @Resource
-    private CollectorEtlTaskInstanceService dppEtlTaskInstanceService;
+    private CollectorEtlTaskInstanceService collectorEtlTaskInstanceService;
     @Resource
-    private IModelingThemeDomainApiService dmThemeDomainApiService;
+    private IModelingThemeDomainApiService modelingThemeDomainApiService;
     @Resource
-    private IModelingBusinessCategoryApiService dmBusinessCategoryApiService;
+    private IModelingBusinessCategoryApiService modelingBusinessCategoryApiService;
     @Resource
-    private IModelingDataLayerApiService dmDataLayerApiService;
+    private IModelingDataLayerApiService modelingDataLayerApiService;
     @Resource
-    private CatalogColumnApiService mcColumnApiService;
+    private CatalogColumnApiService catalogColumnApiService;
 
     @Resource
-    private IStandardsDesensitizeAssetcolumnService dgDesensitizeAssetcolumnService;
+    private IStandardsDesensitizeAssetcolumnService standardsDesensitizeAssetcolumnService;
     @Resource
-    private IStandardsDesensitizeRuleService dgDesensitizeRuleService;
+    private IStandardsDesensitizeRuleService standardsDesensitizeRuleService;
     @Resource
     private IStandardsDesensitizeWhitelistService whitelistService;
     private static final List<String> SUPPORTED_EXTENSIONS = Arrays.asList(".xlsx", ".xls", ".csv");
@@ -211,64 +211,64 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public AssetsAssetRespDTO insertDaAsset(AssetsAssetReqDTO AssetsAssetReqDTO) {
-        StandardsModelRespDTO dpModelByIdApi = iStandardsModelApiService.getDpModelByIdApi(AssetsAssetReqDTO.getModelId());
-        if (dpModelByIdApi == null) {
+    public AssetsAssetRespDTO insertAsset(AssetsAssetReqDTO AssetsAssetReqDTO) {
+        StandardsModelRespDTO standardsModelByIdApi = iStandardsModelApiService.getDpModelByIdApi(AssetsAssetReqDTO.getModelId());
+        if (standardsModelByIdApi == null) {
             throw new ServiceException("");
         }
         AssetsAssetDO AssetsAssetDO = new AssetsAssetDO();
-        AssetsAssetDO.setName(dpModelByIdApi.getModelComment());
-        AssetsAssetDO.setCatCode(dpModelByIdApi.getCatCode());
+        AssetsAssetDO.setName(standardsModelByIdApi.getModelComment());
+        AssetsAssetDO.setCatCode(standardsModelByIdApi.getCatCode());
         AssetsAssetDO.setDatasourceId(AssetsAssetReqDTO.getDatasourceId());
         AssetsAssetDO.setSource(AssetsAssetReqDTO.getSource());
-        AssetsAssetDO.setTableName(dpModelByIdApi.getTableName());
-        AssetsAssetDO.setTableComment(dpModelByIdApi.getModelComment());
+        AssetsAssetDO.setTableName(standardsModelByIdApi.getTableName());
+        AssetsAssetDO.setTableComment(standardsModelByIdApi.getModelComment());
         AssetsAssetDO.setFieldCount(AssetsAssetReqDTO.getFieldCount());
-        AssetsAssetDO.setTableType(dpModelByIdApi.getTableType());
-        AssetsAssetDO.setDataLayerId(dpModelByIdApi.getDataLayerId());
-        AssetsAssetDO.setBusinessCategoryId(dpModelByIdApi.getBusinessCategoryId());
-        AssetsAssetDO.setBusinessCategoryCode(dpModelByIdApi.getBusinessCategoryCode());
-        AssetsAssetDO.setDataDomainId(dpModelByIdApi.getDataDomainId());
-        AssetsAssetDO.setThemeDomainId(dpModelByIdApi.getThemeDomainId());
-        AssetsAssetDO.setThemeDomainCode(dpModelByIdApi.getThemeDomainCode());
-        AssetsAssetDO.setTableCase(dpModelByIdApi.getTableCase());
+        AssetsAssetDO.setTableType(standardsModelByIdApi.getTableType());
+        AssetsAssetDO.setDataLayerId(standardsModelByIdApi.getDataLayerId());
+        AssetsAssetDO.setBusinessCategoryId(standardsModelByIdApi.getBusinessCategoryId());
+        AssetsAssetDO.setBusinessCategoryCode(standardsModelByIdApi.getBusinessCategoryCode());
+        AssetsAssetDO.setDataDomainId(standardsModelByIdApi.getDataDomainId());
+        AssetsAssetDO.setThemeDomainId(standardsModelByIdApi.getThemeDomainId());
+        AssetsAssetDO.setThemeDomainCode(standardsModelByIdApi.getThemeDomainCode());
+        AssetsAssetDO.setTableCase(standardsModelByIdApi.getTableCase());
         AssetsAssetPageReqVO AssetsAssetPageReqVO = new AssetsAssetPageReqVO();
-        AssetsAssetPageReqVO.setTableName(dpModelByIdApi.getTableName());
+        AssetsAssetPageReqVO.setTableName(standardsModelByIdApi.getTableName());
         AssetsAssetPageReqVO.setDatasourceId(String.valueOf(AssetsAssetReqDTO.getDatasourceId()));
-        AssetsAssetDO assetDO = this.getDaAssetByDaAssetPageReqVO(AssetsAssetPageReqVO);
+        AssetsAssetDO assetDO = this.getAssetByAssetPageReqVO(AssetsAssetPageReqVO);
         if (assetDO != null) {
             AssetsAssetDO.setId(assetDO.getId());
             AssetsAssetMapper.updateById(AssetsAssetDO);
-            redisCache.deleteObject(CacheConstants.ASSET_PREVIEW_KEY + AssetsAssetReqDTO.getId() + "_" + dpModelByIdApi.getTableName());
+            redisCache.deleteObject(CacheConstants.ASSET_PREVIEW_KEY + AssetsAssetReqDTO.getId() + "_" + standardsModelByIdApi.getTableName());
         } else {
             AssetsAssetMapper.insert(AssetsAssetDO);
         }
-        List<StandardsModelColumnRespDTO> dpModelColumnListByModelIdApi = iStandardsModelApiService.getDpModelColumnListByModelIdApi(AssetsAssetReqDTO.getModelId());
+        List<StandardsModelColumnRespDTO> standardsModelColumnListByModelIdApi = iStandardsModelApiService.getDpModelColumnListByModelIdApi(AssetsAssetReqDTO.getModelId());
         List<AssetsAssetColumnDO> AssetsAssetColumnDOList = new ArrayList<>();
         List<AssetsAssetColumnDO> AssetsAssetColumnList = new ArrayList<>();
         if (assetDO != null) {
             AssetsAssetColumnPageReqVO AssetsAssetColumnPageReqVO = new AssetsAssetColumnPageReqVO();
             AssetsAssetColumnPageReqVO.setAssetId(String.valueOf(assetDO.getId()));
-            List<AssetsAssetColumnDO> AssetsAssetColumnList1 = IAssetsAssetColumnService.getDaAssetColumnList(AssetsAssetColumnPageReqVO);
+            List<AssetsAssetColumnDO> AssetsAssetColumnList1 = IAssetsAssetColumnService.getAssetColumnList(AssetsAssetColumnPageReqVO);
             AssetsAssetColumnList = CollectionUtils.isEmpty(AssetsAssetColumnList1) ? AssetsAssetColumnList : AssetsAssetColumnList1;
         }
-        if (StringUtils.isNotEmpty(dpModelColumnListByModelIdApi)) {
-            for (StandardsModelColumnRespDTO dpModelColumnRespDTO : dpModelColumnListByModelIdApi) {
+        if (StringUtils.isNotEmpty(standardsModelColumnListByModelIdApi)) {
+            for (StandardsModelColumnRespDTO standardsModelColumnRespDTO : standardsModelColumnListByModelIdApi) {
                 AssetsAssetColumnDO AssetsAssetColumnDO = new AssetsAssetColumnDO();
-                AssetsAssetColumnDO columnDO = matchColumn(AssetsAssetColumnList, dpModelColumnRespDTO);
+                AssetsAssetColumnDO columnDO = matchColumn(AssetsAssetColumnList, standardsModelColumnRespDTO);
                 if (columnDO != null) {
                     AssetsAssetColumnDO.setId(columnDO.getId());
                 }
                 AssetsAssetColumnDO.setAssetId(AssetsAssetDO.getId());
-                AssetsAssetColumnDO.setDataElemCodeId(dpModelColumnRespDTO.getDataElemId());
-                AssetsAssetColumnDO.setColumnName(dpModelColumnRespDTO.getEngName());
-                AssetsAssetColumnDO.setColumnLength(dpModelColumnRespDTO.getColumnLength());
-                AssetsAssetColumnDO.setColumnScale(dpModelColumnRespDTO.getColumnScale());
-                AssetsAssetColumnDO.setColumnType(dpModelColumnRespDTO.getColumnType());
-                AssetsAssetColumnDO.setColumnComment(dpModelColumnRespDTO.getCnName());
-                AssetsAssetColumnDO.setDefaultValue(dpModelColumnRespDTO.getDefaultValue());
-                AssetsAssetColumnDO.setNullableFlag(dpModelColumnRespDTO.getNullableFlag());
-                AssetsAssetColumnDO.setPkFlag(dpModelColumnRespDTO.getPkFlag());
+                AssetsAssetColumnDO.setDataElemCodeId(standardsModelColumnRespDTO.getDataElemId());
+                AssetsAssetColumnDO.setColumnName(standardsModelColumnRespDTO.getEngName());
+                AssetsAssetColumnDO.setColumnLength(standardsModelColumnRespDTO.getColumnLength());
+                AssetsAssetColumnDO.setColumnScale(standardsModelColumnRespDTO.getColumnScale());
+                AssetsAssetColumnDO.setColumnType(standardsModelColumnRespDTO.getColumnType());
+                AssetsAssetColumnDO.setColumnComment(standardsModelColumnRespDTO.getCnName());
+                AssetsAssetColumnDO.setDefaultValue(standardsModelColumnRespDTO.getDefaultValue());
+                AssetsAssetColumnDO.setNullableFlag(standardsModelColumnRespDTO.getNullableFlag());
+                AssetsAssetColumnDO.setPkFlag(standardsModelColumnRespDTO.getPkFlag());
                 AssetsAssetColumnDOList.add(AssetsAssetColumnDO);
             }
         }
@@ -284,28 +284,28 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         }
         Collection<Long> nonExistingIdList = this.findNonExistingIdList(AssetsAssetColumnDOList, AssetsAssetColumnList);
         if (CollectionUtils.isNotEmpty(nonExistingIdList)) {
-            IAssetsAssetColumnService.removeDaAssetColumn(nonExistingIdList);
+            IAssetsAssetColumnService.removeAssetColumn(nonExistingIdList);
         }
 //Ã¨Â®Â¾Ã§Â½Â®Ã¦ÂÂ°Ã¦ÂÂ®Ã¥ÂÂÃ¦ÂÂ°Ã¦ÂÂ®Ã¨ÂµÂÃ¤ÂºÂ§Ã¥ÂÂ³Ã¨ÂÂÃ¤Â¿Â¡Ã¦ÂÂ¯
-        Set<Long> ids = dpModelColumnListByModelIdApi.stream().map(StandardsModelColumnRespDTO::getDataElemId).collect(Collectors.toSet());
+        Set<Long> ids = standardsModelColumnListByModelIdApi.stream().map(StandardsModelColumnRespDTO::getDataElemId).collect(Collectors.toSet());
 //idÃ¦ÂÂ°Ã¦ÂÂ®Ã¤Â¸ÂÃ¤Â¸ÂºÃ§Â©Âº
         if (StringUtils.isNotEmpty(ids)) {
-            List<StandardsDataElemRespDTO> dpDataElemListByIdsApi = iStandardsModelApiService.getDpDataElemListByIdsApi(ids);
-            List<StandardsDataElemAssetRelReqDTO> dpDataElemAssetRel = new ArrayList<>();
-            dpDataElemListByIdsApi.forEach(dpDataElemRespDTO -> {
-                StandardsDataElemAssetRelReqDTO dpDataElemAssetRelReqDTO = new StandardsDataElemAssetRelReqDTO();
+            List<StandardsDataElemRespDTO> standardsDataElemListByIdsApi = iStandardsModelApiService.getDpDataElemListByIdsApi(ids);
+            List<StandardsDataElemAssetRelReqDTO> standardsDataElemAssetRel = new ArrayList<>();
+            standardsDataElemListByIdsApi.forEach(standardsDataElemRespDTO -> {
+                StandardsDataElemAssetRelReqDTO standardsDataElemAssetRelReqDTO = new StandardsDataElemAssetRelReqDTO();
 //Ã¨Â®Â¾Ã§Â½Â®Ã¨ÂµÂÃ¤ÂºÂ§id
-                dpDataElemAssetRelReqDTO.setAssetId(AssetsAssetDO.getId());
-                dpDataElemAssetRelReqDTO.setDataElemType(dpDataElemRespDTO.getType());
-                dpDataElemAssetRelReqDTO.setTableName(dpModelByIdApi.getModelName());
-                dpDataElemAssetRelReqDTO.setColumnName(dpDataElemRespDTO.getEngName());
-                dpDataElemAssetRelReqDTO.setDataElemId(dpDataElemRespDTO.getId());
-                Optional<AssetsAssetColumnDO> first = AssetsAssetColumnDOList.stream().filter(AssetsAssetColumnDO -> AssetsAssetColumnDO.getDataElemCodeId() != null && AssetsAssetColumnDO.getDataElemCodeId().equals(dpDataElemRespDTO.getId())).findFirst();
-                first.ifPresent(AssetsAssetColumnDO -> dpDataElemAssetRelReqDTO.setColumnId(AssetsAssetColumnDO.getId()));
-                dpDataElemAssetRel.add(dpDataElemAssetRelReqDTO);
+                standardsDataElemAssetRelReqDTO.setAssetId(AssetsAssetDO.getId());
+                standardsDataElemAssetRelReqDTO.setDataElemType(standardsDataElemRespDTO.getType());
+                standardsDataElemAssetRelReqDTO.setTableName(standardsModelByIdApi.getModelName());
+                standardsDataElemAssetRelReqDTO.setColumnName(standardsDataElemRespDTO.getEngName());
+                standardsDataElemAssetRelReqDTO.setDataElemId(standardsDataElemRespDTO.getId());
+                Optional<AssetsAssetColumnDO> first = AssetsAssetColumnDOList.stream().filter(AssetsAssetColumnDO -> AssetsAssetColumnDO.getDataElemCodeId() != null && AssetsAssetColumnDO.getDataElemCodeId().equals(standardsDataElemRespDTO.getId())).findFirst();
+                first.ifPresent(AssetsAssetColumnDO -> standardsDataElemAssetRelReqDTO.setColumnId(AssetsAssetColumnDO.getId()));
+                standardsDataElemAssetRel.add(standardsDataElemAssetRelReqDTO);
             });
-            if (StringUtils.isNotEmpty(dpDataElemListByIdsApi)) {
-                boolean b = iStandardsModelApiService.insertElementAssetRelation(dpDataElemAssetRel);
+            if (StringUtils.isNotEmpty(standardsDataElemListByIdsApi)) {
+                boolean b = iStandardsModelApiService.insertElementAssetRelation(standardsDataElemAssetRel);
                 if (!b) {
                     throw new ServiceException("");
                 }
@@ -328,15 +328,15 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     /**
-     * dpModelColumnRespDTO  engName  AssetsAssetColumnList  AssetsAssetColumnDO      *     * @param AssetsAssetColumnList         * @param dpModelColumnRespDTO  DTO engName      * @return  AssetsAssetColumnDO  null
+     * standardsModelColumnRespDTO  engName  AssetsAssetColumnList  AssetsAssetColumnDO      *     * @param AssetsAssetColumnList         * @param standardsModelColumnRespDTO  DTO engName      * @return  AssetsAssetColumnDO  null
      */
-    public static AssetsAssetColumnDO matchColumn(List<AssetsAssetColumnDO> AssetsAssetColumnList, StandardsModelColumnRespDTO dpModelColumnRespDTO) {
-        if (AssetsAssetColumnList == null || dpModelColumnRespDTO == null || dpModelColumnRespDTO.getEngName() == null) {
+    public static AssetsAssetColumnDO matchColumn(List<AssetsAssetColumnDO> AssetsAssetColumnList, StandardsModelColumnRespDTO standardsModelColumnRespDTO) {
+        if (AssetsAssetColumnList == null || standardsModelColumnRespDTO == null || standardsModelColumnRespDTO.getEngName() == null) {
             return null;
         }
         for (AssetsAssetColumnDO AssetsAssetColumnDO : AssetsAssetColumnList) {
 // Ã¥Â½ÂÃ¥Â­ÂÃ¦Â®ÂµÃ¥ÂÂÃ§Â§Â°Ã¥ÂÂ¹Ã©ÂÂÃ¦ÂÂ¶Ã¯Â¼ÂÃ¨Â¿ÂÃ¥ÂÂÃ¨Â¯Â¥Ã¥Â¯Â¹Ã¨Â±Â¡
-            if (dpModelColumnRespDTO.getEngName().equals(AssetsAssetColumnDO.getColumnName())) {
+            if (standardsModelColumnRespDTO.getEngName().equals(AssetsAssetColumnDO.getColumnName())) {
                 return AssetsAssetColumnDO;
             }
         }
@@ -351,7 +351,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Override
     public PageResult<AssetsAssetRespDTO> AssetsAssetListPage(AssetsAssetReqDTO AssetsAssetReqDTO) {
         AssetsAssetPageReqVO AssetsAssetPageReqVO = BeanUtils.toBean(AssetsAssetReqDTO, AssetsAssetPageReqVO.class);
-        return BeanUtils.toBean(this.getDaAssetPage(AssetsAssetPageReqVO, "1"), AssetsAssetRespDTO.class);
+        return BeanUtils.toBean(this.getAssetPage(AssetsAssetPageReqVO, "1"), AssetsAssetRespDTO.class);
     }
 
     @Override
@@ -363,7 +363,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public AssetsAssetDO getDaAssetByDaAssetPageReqVO(AssetsAssetPageReqVO pageReqVO) {
+    public AssetsAssetDO getAssetByAssetPageReqVO(AssetsAssetPageReqVO pageReqVO) {
         MPJLambdaWrapper<AssetsAssetDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.eq(StringUtils.isNotEmpty(pageReqVO.getName()), AssetsAssetDO::getName, pageReqVO.getName()).eq(pageReqVO.getId() != null, AssetsAssetDO::getId, pageReqVO.getId()).eq(StringUtils.isNotEmpty(pageReqVO.getTableName()), AssetsAssetDO::getTableName, pageReqVO.getTableName()).eq(StringUtils.isNotEmpty(pageReqVO.getDatasourceId()), AssetsAssetDO::getDatasourceId, pageReqVO.getDatasourceId()).eq(StringUtils.isNotEmpty(pageReqVO.getTableComment()), AssetsAssetDO::getTableComment, pageReqVO.getTableComment());
         return baseMapper.selectOne(lambdaWrapper);
@@ -380,13 +380,13 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
      * 1-     * 2-
      */
     @Override
-    public PageResult<AssetsAssetDO> getDaAssetPage(AssetsAssetPageReqVO pageReqVO, String AssetsAssetQueryType) {
+    public PageResult<AssetsAssetDO> getAssetPage(AssetsAssetPageReqVO pageReqVO, String AssetsAssetQueryType) {
         PageResult<AssetsAssetDO> AssetsAssetDOPageResult = AssetsAssetMapper.selectPage(pageReqVO);
         List<AssetsAssetDO> AssetsAssetDOList = (List<AssetsAssetDO>) AssetsAssetDOPageResult.getRows();
         for (AssetsAssetDO AssetsAssetDO : AssetsAssetDOList) {
 //Ã¥ÂÂ¤Ã¦ÂÂ­Ã¦ÂÂ¯Ã¥ÂÂ¦Ã¦ÂÂ¯api
             if (StringUtils.equals("2", AssetsAssetDO.getType())) {
-                AssetsAssetApiRespVO AssetsAssetApiByAssetId = IAssetsAssetApiService.getDaAssetApiByAssetId(AssetsAssetDO.getId());
+                AssetsAssetApiRespVO AssetsAssetApiByAssetId = IAssetsAssetApiService.getAssetApiByAssetId(AssetsAssetDO.getId());
                 AssetsAssetDO.setAssetsAssetApi(AssetsAssetApiByAssetId);
             }
 //
@@ -394,7 +394,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
 //
             if (StringUtils.equals("1", AssetsAssetDO.getType())) {
 //
-                AssetsDatasourceDO AssetsDatasourceById = IAssetsDatasourceService.getDaDatasourceById(AssetsAssetDO.getDatasourceId());
+                AssetsDatasourceDO AssetsDatasourceById = IAssetsDatasourceService.getDatasourceDOById(AssetsAssetDO.getDatasourceId());
 //
                 AssetsDatasourceById = AssetsDatasourceById == null ? new AssetsDatasourceDO() : AssetsDatasourceById;
 //
@@ -410,14 +410,14 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public List<AssetsAssetDO> getDaAssetList(AssetsAssetPageReqVO reqVO) {
+    public List<AssetsAssetDO> getAssetList(AssetsAssetPageReqVO reqVO) {
         MPJLambdaWrapper<AssetsAssetDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.selectAll(AssetsAssetDO.class).select("t2.NAME AS catName").select("t3.PROJECT_ID AS projectId,t3.PROJECT_CODE AS projectCode").leftJoin("TAX_ASSET_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'").leftJoin("AST_ASSET_PROJECT_REL t3 on t.id = t3.ASSET_ID AND t3.DEL_FLAG = '0'").likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), AssetsAssetDO::getCatCode, reqVO.getCatCode()).like(StringUtils.isNotBlank(reqVO.getName()), AssetsAssetDO::getName, reqVO.getName()).eq(StringUtils.isNotBlank(reqVO.getDatasourceId()), AssetsAssetDO::getDatasourceId, reqVO.getDatasourceId()).like(StringUtils.isNotBlank(reqVO.getTableName()), AssetsAssetDO::getTableName, reqVO.getTableName()).eq(StringUtils.isNotBlank(reqVO.getTableComment()), AssetsAssetDO::getTableComment, reqVO.getTableComment()).eq(StringUtils.isNotBlank(reqVO.getStatus()), AssetsAssetDO::getStatus, reqVO.getStatus()).eq(StringUtils.isNotBlank(reqVO.getType()), AssetsAssetDO::getType, reqVO.getType()).eq(StringUtils.isNotBlank(reqVO.getDescription()), AssetsAssetDO::getDescription, reqVO.getDescription()).in(reqVO.getThemeAssetIdList() != null && !reqVO.getThemeAssetIdList().isEmpty(), AssetsAssetDO::getId, reqVO.getThemeAssetIdList()).orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return AssetsAssetMapper.selectJoinList(AssetsAssetDO.class, lambdaWrapper);
     }
 
     @Override
-    public AssetsAssetRespVO getDaAssetById(Long id) {
+    public AssetsAssetRespVO getAssetById(Long id) {
         MPJLambdaWrapper<AssetsAssetDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.selectAll(AssetsAssetDO.class).select("t2.NAME AS catName", "dd.DATASOURCE_NAME as datasourceName", "dd.IP as datasourceIp", "dd.DATASOURCE_TYPE as datasourceType", "t3.NAME AS dataLayerName", "t3.ENG_NAME AS dataLayerEngName", "t4.NAME AS businessCategoryName", "t4.ENG_NAME AS businessCategoryEngName", "t5.NAME AS dataDomainName", "t5.ENG_NAME AS dataDomainEngName", "t6.NAME AS themeDomainName", "t6.ENG_NAME AS themeDomainEngName", "u.PHONENUMBER AS createUserPhoneNumber", "u2.PHONENUMBER AS updateUserPhoneNumber").leftJoin("SYSTEM_USER u on t.CREATOR_ID = u.USER_ID AND u.DEL_FLAG = '0'").leftJoin("SYSTEM_USER u2 on t.UPDATER_ID = u2.USER_ID AND u2.DEL_FLAG = '0'").leftJoin("TAX_ASSET_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'").leftJoin("AST_DATASOURCE dd on t.DATASOURCE_ID = dd.ID").leftJoin("MDL_DATA_LAYER t3 ON t.DATA_LAYER_ID = t3.id AND t3.DEL_FLAG = '0'").leftJoin("MDL_BUSINESS_CATEGORY t4 ON t.BUSINESS_CATEGORY_ID = t4.id AND t4.DEL_FLAG = '0'").leftJoin("MDL_DATA_DOMAIN t5 ON t.DATA_DOMAIN_ID = t5.id AND t5.DEL_FLAG = '0'").leftJoin("MDL_THEME_DOMAIN t6 ON t.THEME_DOMAIN_ID = t6.id AND t6.DEL_FLAG = '0'").eq(AssetsAssetDO::getId, id);
         String subSelectSql = "SELECT\n" + "'['|| WM_CONCAT(DISTINCT '{\"tagId\":\"' || d.ID || '\",\"tagName\":\"' || d.name || '\"}' ) ||']'\n" + "FROM \n" + "     TAX_TAG d \n" + "JOIN TAX_TAG_ASSET_REL rel ON d.ID = rel.TAG_ID \n" + "WHERE \n" + "    d.DEL_FLAG ='0' \n" + "    AND rel.ASSET_ID = t.ID \n" + "HAVING COUNT(d.ID) > 0";
@@ -432,10 +432,10 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAssetDO AssetsAssetDO = AssetsAssetMapper.selectJoinOne(AssetsAssetDO.class, lambdaWrapper);
         AssetsAssetThemeRelPageReqVO AssetsAssetThemeRelPageReqVO = new AssetsAssetThemeRelPageReqVO();
         AssetsAssetThemeRelPageReqVO.setAssetId(AssetsAssetDO.getId());
-        List<AssetsAssetThemeRelRespVO> AssetsAssetThemeRelList = AssetsAssetThemeRelService.getDaAssetThemeRelList(AssetsAssetThemeRelPageReqVO);
+        List<AssetsAssetThemeRelRespVO> AssetsAssetThemeRelList = AssetsAssetThemeRelService.getAssetThemeRelList(AssetsAssetThemeRelPageReqVO);
         AssetsAssetDO.setAssetsAssetThemeRelList(AssetsAssetThemeRelList);
         AssetsAssetRespVO bean = BeanUtils.toBean(AssetsAssetDO, AssetsAssetRespVO.class);
-        queryDaAssetchild(bean);
+        queryAssetchild(bean);
         if (StringUtils.isNotBlank(bean.getTags())) {
             JSONArray tags = JSONArray.parse(bean.getTags());
             bean.setTagIds(tags.stream().map(tag -> ((com.alibaba.fastjson2.JSONObject) tag).getString("tagId")).collect(Collectors.toList()));
@@ -445,32 +445,32 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public AssetsAssetRespVO getDaAssetByIdSimple(Long id) {
+    public AssetsAssetRespVO getAssetByIdSimple(Long id) {
         return BeanUtils.toBean(AssetsAssetMapper.selectById(id), AssetsAssetRespVO.class);
     }
 
-    private void queryDaAssetchild(AssetsAssetRespVO AssetsAsset) {
+    private void queryAssetchild(AssetsAssetRespVO AssetsAsset) {
         Long assetId = AssetsAsset.getId();
         String type = AssetsAsset.getType();
         if (StringUtils.equals("1", type)) {
             return;
         } else if (StringUtils.equals("2", type)) {
-            AssetsAssetApiRespVO AssetsAssetApiByAssetId = IAssetsAssetApiService.getDaAssetApiByAssetId(assetId);
+            AssetsAssetApiRespVO AssetsAssetApiByAssetId = IAssetsAssetApiService.getAssetApiByAssetId(assetId);
             AssetsAsset.setAssetsAssetApi(AssetsAssetApiByAssetId);
             if (AssetsAssetApiByAssetId == null) {
                 AssetsAsset.setAssetsAssetApiParamList(new ArrayList<>());
                 return;
             }
-            List<AssetsAssetApiParamRespVO> AssetsAssetApiParamList = IAssetsAssetApiParamService.getDaAssetApiParamList(AssetsAssetApiByAssetId.getId());
+            List<AssetsAssetApiParamRespVO> AssetsAssetApiParamList = IAssetsAssetApiParamService.getAssetApiParamList(AssetsAssetApiByAssetId.getId());
             AssetsAsset.setAssetsAssetApiParamList(AssetsAssetApiParamList);
         } else if (StringUtils.equals("3", type)) {
-            AssetsAssetGisRespVO AssetsAssetGisByAssetId = IAssetsAssetGisService.getDaAssetGisByAssetId(assetId);
+            AssetsAssetGisRespVO AssetsAssetGisByAssetId = IAssetsAssetGisService.getAssetGisByAssetId(assetId);
             AssetsAsset.setAssetsAssetGis(AssetsAssetGisByAssetId);
         } else if (StringUtils.equals("4", type)) {
-            AssetsAssetGeoRespVO AssetsAssetGeoByAssetId = IAssetsAssetGeoService.getDaAssetGeoByAssetId(assetId);
+            AssetsAssetGeoRespVO AssetsAssetGeoByAssetId = IAssetsAssetGeoService.getAssetGeoByAssetId(assetId);
             AssetsAsset.setAssetsAssetGeo(AssetsAssetGeoByAssetId);
         } else if (StringUtils.equals("5", type)) {
-            AssetsAssetVideoRespVO AssetsAssetVideoByAssetId = IAssetsAssetVideoService.getDaAssetVideoByAssetId(assetId);
+            AssetsAssetVideoRespVO AssetsAssetVideoByAssetId = IAssetsAssetVideoService.getAssetVideoByAssetId(assetId);
             AssetsAsset.setAssetsAssetVideo(AssetsAssetVideoByAssetId);
         } else if (StringUtils.equals("6", type)) {
             AssetsAssetFilesDO serviceById = AssetsAssetFilesService.getOne(new LambdaQueryWrapperX<AssetsAssetFilesDO>().eq(AssetsAssetFilesDO::getAssetId, assetId));
@@ -487,14 +487,14 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public Long createDaAsset(AssetsAssetSaveReqVO createReqVO) {
+    public Long createAsset(AssetsAssetSaveReqVO createReqVO) {
         AssetsAssetDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetDO.class);
         AssetsAssetMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAsset(AssetsAssetSaveReqVO updateReqVO) {
+    public int updateAsset(AssetsAssetSaveReqVO updateReqVO) {
 // Ã§ÂÂ¸Ã¥ÂÂ³Ã¦Â Â¡Ã©ÂªÂ
 // Ã¦ÂÂ´Ã¦ÂÂ°Ã¦ÂÂ°Ã¦ÂÂ®Ã¨ÂµÂÃ¤ÂºÂ§
         AssetsAssetDO updateObj = BeanUtils.toBean(updateReqVO, AssetsAssetDO.class);
@@ -502,9 +502,9 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public int removeDaAsset(Collection<Long> idList) {
+    public int removeAsset(Collection<Long> idList) {
         ArrayList<Long> assetIdList = new ArrayList<>(idList);
-        int asset = dppEtlTaskService.checkTaskIdInAsset(assetIdList);
+        int asset = collectorEtlTaskService.checkTaskIdInAsset(assetIdList);
         if (asset > 0) {
             throw new ServiceException(",!");
         }
@@ -527,10 +527,10 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public int removeDaAsset(Long id) {
+    public int removeAsset(Long id) {
         ArrayList<Long> assetIdList = new ArrayList<>();
         assetIdList.add(id);
-        int asset = dppEtlTaskService.checkTaskIdInAsset(assetIdList);
+        int asset = collectorEtlTaskService.checkTaskIdInAsset(assetIdList);
         if (asset > 0) {
             throw new ServiceException(",!");
         }
@@ -557,17 +557,17 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAssetMapper.deleteAssetById(id);
 // Ã¦ÂÂ¹Ã©ÂÂÃ¥ÂÂ Ã©ÂÂ¤Ã¦ÂÂ°Ã¦ÂÂ®Ã¨ÂµÂÃ¤ÂºÂ§
 // Ã¦ÂÂ´Ã¦ÂÂ°Ã¦Â ÂÃ§Â­Â¾Ã¨ÂµÂÃ¤ÂºÂ§Ã¦ÂÂ°Ã©ÂÂ
-        attTagAssetRelApiService.deleteRelByUpdateTag(id);
+        taxonomyTagAssetRelApiService.deleteRelByUpdateTag(id);
         return 1;
     }
 
     @Override
-    public List<AssetsAssetDO> getDaAssetList() {
+    public List<AssetsAssetDO> getAssetList() {
         return AssetsAssetMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetDO> getDaAssetMap() {
+    public Map<Long, AssetsAssetDO> getAssetMap() {
         List<AssetsAssetDO> AssetsAssetList = AssetsAssetMapper.selectList();
         return AssetsAssetList.stream().collect(Collectors.toMap(AssetsAssetDO::getId, AssetsAssetDO -> AssetsAssetDO,
 // Ã¤Â¿ÂÃ§ÂÂÃ¥Â·Â²Ã¥Â­ÂÃ¥ÂÂ¨Ã§ÂÂÃ¥ÂÂ¼
@@ -578,7 +578,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
      * *     * @param importExcelList      * @param isUpdateSupport      * @param operName             * @return
      */
     @Override
-    public String importDaAsset(List<AssetsAssetRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAsset(List<AssetsAssetRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -592,8 +592,8 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
                 Long AssetsAssetId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetId != null) {
-                        AssetsAssetDO existingDaAsset = AssetsAssetMapper.selectById(AssetsAssetId);
-                        if (existingDaAsset != null) {
+                        AssetsAssetDO existingAsset = AssetsAssetMapper.selectById(AssetsAssetId);
+                        if (existingAsset != null) {
                             AssetsAssetMapper.updateById(AssetsAssetDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetId + " ");
@@ -608,8 +608,8 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
                 } else {
                     QueryWrapper<AssetsAssetDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetId);
-                    AssetsAssetDO existingDaAsset = AssetsAssetMapper.selectOne(queryWrapper);
-                    if (existingDaAsset == null) {
+                    AssetsAssetDO existingAsset = AssetsAssetMapper.selectOne(queryWrapper);
+                    if (existingAsset == null) {
                         AssetsAssetMapper.insert(AssetsAssetDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetId + " ");
@@ -655,7 +655,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
             DataSourceId = discoveryTaskDO.getDatasourceId();
         } else {
 // Ã¨ÂÂ·Ã¥ÂÂÃ¨ÂµÂÃ¤ÂºÂ§Ã¨Â¯Â¦Ã¦ÂÂ
-            AssetsAssetRespVO AssetsAssetDO = this.getDaAssetById(Long.valueOf(jsonObject.getStr("id")));
+            AssetsAssetRespVO AssetsAssetDO = this.getAssetById(Long.valueOf(jsonObject.getStr("id")));
             if (StringUtils.equals("6", AssetsAssetDO.getType())) {
                 AssetsAssetFilesDO filesServiceOne = AssetsAssetFilesService.getOne(new LambdaQueryWrapperX<AssetsAssetFilesDO>().eq(AssetsAssetFilesDO::getAssetId, AssetsAssetDO.getId()));
                 if (SUPPORTED_EXTENSIONS.contains(filesServiceOne.getType())) {
@@ -809,7 +809,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAssetPageReqVO AssetsAssetPageReqVO = new AssetsAssetPageReqVO();
         AssetsAssetPageReqVO.setTableName(AssetsAssetDO.getTableName());
         AssetsAssetPageReqVO.setDatasourceId(String.valueOf(AssetsAssetDO.getDatasourceId()));
-        AssetsAssetDO assetDO = this.getDaAssetByDaAssetPageReqVO(AssetsAssetPageReqVO);
+        AssetsAssetDO assetDO = this.getAssetByAssetPageReqVO(AssetsAssetPageReqVO);
         if (assetDO != null) {
             AssetsAssetDO.setId(assetDO.getId());
             AssetsAssetMapper.updateById(AssetsAssetDO);
@@ -820,13 +820,13 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         }
         List<String> themeIdList = AssetsAssetReqVO.getThemeIdList();
         if (CollectionUtils.isNotEmpty(themeIdList)) {
-            AssetsAssetThemeRelService.createDaAssetThemeRelList(themeIdList, AssetsAssetDO.getId());
+            AssetsAssetThemeRelService.createAssetThemeRelList(themeIdList, AssetsAssetDO.getId());
         }
         List<AssetsAssetColumnDO> AssetsAssetColumnList = new ArrayList<>();
         if (assetDO != null) {
             AssetsAssetColumnPageReqVO AssetsAssetColumnPageReqVO = new AssetsAssetColumnPageReqVO();
             AssetsAssetColumnPageReqVO.setAssetId(String.valueOf(assetDO.getId()));
-            List<AssetsAssetColumnDO> AssetsAssetColumnList1 = IAssetsAssetColumnService.getDaAssetColumnList(AssetsAssetColumnPageReqVO);
+            List<AssetsAssetColumnDO> AssetsAssetColumnList1 = IAssetsAssetColumnService.getAssetColumnList(AssetsAssetColumnPageReqVO);
             AssetsAssetColumnList = CollectionUtils.isEmpty(AssetsAssetColumnList1) ? AssetsAssetColumnList : AssetsAssetColumnList1;
         }
         Map<String, Long> columnNameToIdMap = AssetsAssetColumnList.stream().filter(columnDO -> columnDO.getColumnName() != null).collect(Collectors.toMap(AssetsAssetColumnDO::getColumnName, AssetsAssetColumnDO::getId, (id1, id2) -> id1));
@@ -840,15 +840,15 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         }
         Collection<Long> nonExistingIdList = this.findMissingColumnIds(AssetsAssetColumnList, columnSaveReqVOList);
         if (CollectionUtils.isNotEmpty(nonExistingIdList)) {
-            IAssetsAssetColumnService.removeDaAssetColumn(nonExistingIdList);
+            IAssetsAssetColumnService.removeAssetColumn(nonExistingIdList);
         }
         Long AssetsAssetDOId = AssetsAssetDO.getId();
         for (AssetsAssetColumnSaveReqVO AssetsAssetColumnSaveReqVO : columnSaveReqVOList) {
             AssetsAssetColumnSaveReqVO.setAssetId(String.valueOf(AssetsAssetDOId));
             if (AssetsAssetColumnSaveReqVO.getId() == null) {
-                IAssetsAssetColumnService.createDaAssetColumn(AssetsAssetColumnSaveReqVO);
+                IAssetsAssetColumnService.createAssetColumn(AssetsAssetColumnSaveReqVO);
             } else {
-                IAssetsAssetColumnService.updateDaAssetColumn(AssetsAssetColumnSaveReqVO);
+                IAssetsAssetColumnService.updateAssetColumn(AssetsAssetColumnSaveReqVO);
             }
         }
     }
@@ -868,7 +868,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAssetPageReqVO AssetsAssetPageReqVO = new AssetsAssetPageReqVO();
         AssetsAssetPageReqVO.setTableName(AssetsAssetDO.getTableName());
         AssetsAssetPageReqVO.setDatasourceId(String.valueOf(AssetsAssetDO.getDatasourceId()));
-        AssetsAssetDO assetDO = this.getDaAssetByDaAssetPageReqVO(AssetsAssetPageReqVO);
+        AssetsAssetDO assetDO = this.getAssetByAssetPageReqVO(AssetsAssetPageReqVO);
         if (assetDO == null) {
             return;
         }
@@ -878,7 +878,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public PageResult<AssetsAssetDO> getDppAssetPage(AssetsAssetPageReqVO AssetsAsset) {
+    public PageResult<AssetsAssetDO> getCollectorAssetPage(AssetsAssetPageReqVO AssetsAsset) {
         if (StringUtils.isEmpty(AssetsAsset.getProjectCode()) || AssetsAsset.getProjectId() == null) {
             return new PageResult<AssetsAssetDO>();
         }
@@ -899,7 +899,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
             assetIdList = AssetsAssetApplyDOMap.keySet().stream().collect(Collectors.toList());
         }
         AssetsAsset.setAssetIdList(assetIdList);
-        PageResult<AssetsAssetDO> AssetsAssetPage = this.getDaAssetPage(AssetsAsset, "2");
+        PageResult<AssetsAssetDO> AssetsAssetPage = this.getAssetPage(AssetsAsset, "2");
         if (CollectionUtils.isEmpty(AssetsAssetPage.getRows())) {
             return AssetsAssetPage;
         }
@@ -916,7 +916,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public List<AssetsAssetDO> getDppAssetNoPageList(AssetsAssetPageReqVO AssetsAsset) {
+    public List<AssetsAssetDO> getCollectorAssetNoPageList(AssetsAssetPageReqVO AssetsAsset) {
         if (StringUtils.isEmpty(AssetsAsset.getProjectCode()) || AssetsAsset.getProjectId() == null) {
             return new ArrayList<>();
         }
@@ -936,82 +936,82 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public Long createDaAssetNew(AssetsAssetSaveReqVO AssetsAsset) {
+    public Long createAssetNew(AssetsAssetSaveReqVO AssetsAsset) {
         if (StringUtils.equals("1", AssetsAsset.getCreateType())) {
-            setDaAssetDefaultValues(AssetsAsset);
-            Long assetId = createDaAsset(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
-            createDaAssetProjectRel(AssetsAsset);
-            createDaAssetThemeIdList(AssetsAsset);
+            createAssetProjectRel(AssetsAsset);
+            createAssetThemeIdList(AssetsAsset);
             return AssetsAsset.getId();
         }
 //1:Ã¦ÂÂ°Ã¦ÂÂ®Ã¥ÂºÂÃ¨Â¡Â¨  2:Ã¥Â¤ÂÃ©ÂÂ¨API 3: Ã¥ÂÂ°Ã§ÂÂÃ§Â©ÂºÃ©ÂÂ´Ã¦ÂÂÃ¥ÂÂ¡ 4:Ã§ÂÂ¢Ã©ÂÂÃ¦ÂÂ°Ã¦ÂÂ® 5:Ã¨Â§ÂÃ©Â¢ÂÃ¦ÂÂ°Ã¦ÂÂ®
         String type = AssetsAsset.getType();
         if (StringUtils.equals("1", type)) {
-            createDaAssetColumnNew(AssetsAsset);
+            createAssetColumnNew(AssetsAsset);
         } else if (StringUtils.equals("2", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetApiNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetApiNew(AssetsAsset);
         } else if (StringUtils.equals("3", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetGisNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetGisNew(AssetsAsset);
         } else if (StringUtils.equals("4", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetGeoNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetGeoNew(AssetsAsset);
         } else if (StringUtils.equals("5", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetVideoNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetVideoNew(AssetsAsset);
         } else if (StringUtils.equals("6", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetFilesNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetFilesNew(AssetsAsset);
         } else if ("7".equals(type)) {
             AssetsAsset.setTableName("-1");
             AssetsAsset.setDataCount(0L);
             AssetsAsset.setFieldCount(0L);
-            createDaAssetFileNew(AssetsAsset);
+            createAssetFileNew(AssetsAsset);
         } else {
             throw new ServiceException("");
         }
-        createDaAssetProjectRel(AssetsAsset);
-        createDaAssetThemeIdList(AssetsAsset);
+        createAssetProjectRel(AssetsAsset);
+        createAssetThemeIdList(AssetsAsset);
         return AssetsAsset.getId();
     }
 
     @Override
-    public Long createDaAssetBindResources(AssetsAssetSaveReqVO AssetsAsset) {
+    public Long createAssetBindResources(AssetsAssetSaveReqVO AssetsAsset) {
 //1:Ã¦ÂÂ°Ã¦ÂÂ®Ã¥ÂºÂÃ¨Â¡Â¨  2:Ã¥Â¤ÂÃ©ÂÂ¨API 3: Ã¥ÂÂ°Ã§ÂÂÃ§Â©ÂºÃ©ÂÂ´Ã¦ÂÂÃ¥ÂÂ¡ 4:Ã§ÂÂ¢Ã©ÂÂÃ¦ÂÂ°Ã¦ÂÂ® 5:Ã¨Â§ÂÃ©Â¢ÂÃ¦ÂÂ°Ã¦ÂÂ®
         String type = AssetsAsset.getType();
         if (StringUtils.equals("1", type)) {
-            createDaAssetColumnNew(AssetsAsset);
+            createAssetColumnNew(AssetsAsset);
         } else if (StringUtils.equals("2", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetApiNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetApiNew(AssetsAsset);
         } else if (StringUtils.equals("3", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetGisNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetGisNew(AssetsAsset);
         } else if (StringUtils.equals("4", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetGeoNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetGeoNew(AssetsAsset);
         } else if (StringUtils.equals("5", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetVideoNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetVideoNew(AssetsAsset);
         } else if (StringUtils.equals("6", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            createDaAssetFilesNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            createAssetFilesNew(AssetsAsset);
         } else {
             throw new ServiceException("");
         }
 //
-        createDaAssetProjectRel(AssetsAsset);
-        createDaAssetThemeIdList(AssetsAsset);
+        createAssetProjectRel(AssetsAsset);
+        createAssetThemeIdList(AssetsAsset);
         AssetsAsset.setCreateType("2");
-        updateDaAsset(AssetsAsset);
+        updateAsset(AssetsAsset);
         return 1L;
     }
 
-    private void createDaAssetFilesNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void createAssetFilesNew(AssetsAssetSaveReqVO AssetsAsset) {
         if (AssetsAsset.getId() == null) {
-            Long assetId = createDaAsset(AssetsAsset);
+            Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
         }
         AssetsAssetFilesSaveReqVO AssetsAssetFiles = AssetsAsset.getAssetsAssetFiles();
@@ -1019,7 +1019,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         int lastDot = AssetsAssetFiles.getUrl().lastIndexOf('.');
         String type = AssetsAssetFiles.getUrl().substring(lastDot);
         AssetsAssetFiles.setType(type);
-        AssetsAssetFilesService.createDaAssetFiles(AssetsAssetFiles);
+        AssetsAssetFilesService.createAssetFiles(AssetsAssetFiles);
         if (StringUtils.equalsIgnoreCase(".xls", AssetsAssetFiles.getType()) || StringUtils.equalsIgnoreCase(".xlsx", AssetsAssetFiles.getType())) {
             List<AssetsAssetColumnDO> AssetsAssetColumnDOS = getExcelColumn(AssetsAssetFiles.getUrl(), AssetsAssetFiles.getStartColumn(), AssetsAssetFiles.getStartData(), AssetsAsset.getId());
             IAssetsAssetColumnService.saveBatch(AssetsAssetColumnDOS);
@@ -1030,11 +1030,11 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         }
     }
 
-    private void createDaAssetFileNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void createAssetFileNew(AssetsAssetSaveReqVO AssetsAsset) {
         Assert.notNull(AssetsAsset.getFileInfo(), () -> new ServiceException(""));
         AssetsDatasourceDO AssetsDatasourceDO = AssetsDatasourceMapper.selectById(AssetsAsset.getDatasourceId());
         if (AssetsAsset.getId() == null) {
-            Long assetId = createDaAsset(AssetsAsset);
+            Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
         }
         FileInfo fileInfo = AssetsAsset.getFileInfo();
@@ -1094,34 +1094,34 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         return AssetsAssetColumnDOS;
     }
 
-    private void createDaAssetVideoNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void createAssetVideoNew(AssetsAssetSaveReqVO AssetsAsset) {
         if (AssetsAsset.getId() == null) {
-            Long assetId = createDaAsset(AssetsAsset);
+            Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
         }
         AssetsAssetVideoSaveReqVO AssetsAssetVideo = AssetsAsset.getAssetsAssetVideo();
         AssetsAssetVideo.setAssetId(AssetsAsset.getId());
-        IAssetsAssetVideoService.createDaAssetVideo(AssetsAssetVideo);
+        IAssetsAssetVideoService.createAssetVideo(AssetsAssetVideo);
     }
 
-    private void createDaAssetGisNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void createAssetGisNew(AssetsAssetSaveReqVO AssetsAsset) {
         if (AssetsAsset.getId() == null) {
-            Long assetId = createDaAsset(AssetsAsset);
+            Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
         }
         AssetsAssetGisSaveReqVO AssetsAssetGis = AssetsAsset.getAssetsAssetGis();
         AssetsAssetGis.setAssetId(AssetsAsset.getId());
-        IAssetsAssetGisService.createDaAssetGis(AssetsAssetGis);
+        IAssetsAssetGisService.createAssetGis(AssetsAssetGis);
     }
 
-    private void setDaAssetDefaultValues(AssetsAssetSaveReqVO AssetsAsset) {
+    private void setAssetDefaultValues(AssetsAssetSaveReqVO AssetsAsset) {
         AssetsAsset.setDatasourceId("-1");
         AssetsAsset.setTableName("-1");
         AssetsAsset.setDataCount(0L);
         AssetsAsset.setFieldCount(0L);
     }
 
-    private void createDaAssetProjectRel(AssetsAssetSaveReqVO AssetsAsset) {
+    private void createAssetProjectRel(AssetsAssetSaveReqVO AssetsAsset) {
         if (AssetsAsset.getProjectId() == null) {
             return;
         }
@@ -1129,143 +1129,143 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAssetProjectRelSaveReqVO.setProjectCode(AssetsAsset.getProjectCode());
         AssetsAssetProjectRelSaveReqVO.setProjectId(AssetsAsset.getProjectId());
         AssetsAssetProjectRelSaveReqVO.setAssetId(AssetsAsset.getId());
-        IAssetsAssetProjectRelService.createDaAssetProjectRel(AssetsAssetProjectRelSaveReqVO);
+        IAssetsAssetProjectRelService.createAssetProjectRel(AssetsAssetProjectRelSaveReqVO);
     }
 
     /**
      * @param AssetsAsset
      */
-    private void createDaAssetGeoNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void createAssetGeoNew(AssetsAssetSaveReqVO AssetsAsset) {
         if (AssetsAsset.getId() == null) {
-            Long assetId = createDaAsset(AssetsAsset);
+            Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
         }
         AssetsAssetGeoSaveReqVO AssetsAssetGeo = AssetsAsset.getAssetsAssetGeo();
         AssetsAssetGeo.setAssetId(AssetsAsset.getId());
-        IAssetsAssetGeoService.createDaAssetGeo(AssetsAssetGeo);
+        IAssetsAssetGeoService.createAssetGeo(AssetsAssetGeo);
     }
 
-    private void createDaAssetApiNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void createAssetApiNew(AssetsAssetSaveReqVO AssetsAsset) {
         if (AssetsAsset.getId() == null) {
-            Long assetId = createDaAsset(AssetsAsset);
+            Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
         }
         AssetsAssetApiSaveReqVO AssetsAssetApi = AssetsAsset.getAssetsAssetApi();
         AssetsAssetApi.setAssetId(AssetsAsset.getId());
-        Long AssetsAssetApiId = IAssetsAssetApiService.createDaAssetApi(AssetsAssetApi);
+        Long AssetsAssetApiId = IAssetsAssetApiService.createAssetApi(AssetsAssetApi);
         List<AssetsAssetApiParamSaveReqVO> AssetsAssetApiParamList = AssetsAsset.getAssetsAssetApiParamList();
-        IAssetsAssetApiParamService.createDaAssetApiParamDeep(AssetsAssetApiParamList, AssetsAssetApiId);
+        IAssetsAssetApiParamService.createAssetApiParamDeep(AssetsAssetApiParamList, AssetsAssetApiId);
     }
 
     /**
      * *     * @param AssetsAsset
      */
-    private void createDaAssetThemeIdList(AssetsAssetSaveReqVO AssetsAsset) {
+    private void createAssetThemeIdList(AssetsAssetSaveReqVO AssetsAsset) {
         List<String> themeIdList = AssetsAsset.getThemeIdList();
         if (CollectionUtils.isEmpty(themeIdList)) {
             return;
         }
-        AssetsAssetThemeRelService.createDaAssetThemeRelList(themeIdList, AssetsAsset.getId());
+        AssetsAssetThemeRelService.createAssetThemeRelList(themeIdList, AssetsAsset.getId());
     }
 
     /**
      * *     * @param AssetsAsset
      */
-    private void createDaAssetColumnNew(AssetsAssetSaveReqVO AssetsAsset) {
-        List<CatalogColumnRespDTO> CatalogColumnRespDTOList = mcColumnApiService.listByTableId(AssetsAsset.getTableId());
+    private void createAssetColumnNew(AssetsAssetSaveReqVO AssetsAsset) {
+        List<CatalogColumnRespDTO> CatalogColumnRespDTOList = catalogColumnApiService.listByTableId(AssetsAsset.getTableId());
         List<AssetsAssetColumnDO> AssetsAssetColumnDOS = CatalogColumnRespDTOList.stream().map(CatalogColumnRespDTO -> new AssetsAssetColumnDO(CatalogColumnRespDTO)).collect(Collectors.toList());
         AssetsAsset.setFieldCount(Long.valueOf(AssetsAssetColumnDOS.size()));
         if (AssetsAsset.getId() == null) {
-            Long assetId = createDaAsset(AssetsAsset);
+            Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
         }
         List<AssetsAssetColumnSaveReqVO> AssetsAssetColumnSaveReqVOList = BeanUtils.toBean(AssetsAssetColumnDOS, AssetsAssetColumnSaveReqVO.class);
         for (AssetsAssetColumnSaveReqVO AssetsAssetColumnSaveReqVO : AssetsAssetColumnSaveReqVOList) {
             AssetsAssetColumnSaveReqVO.setAssetId(String.valueOf(AssetsAsset.getId()));
-            IAssetsAssetColumnService.createDaAssetColumn(AssetsAssetColumnSaveReqVO);
+            IAssetsAssetColumnService.createAssetColumn(AssetsAssetColumnSaveReqVO);
         }
     }
 
     @Override
-    public int updateDaAssetNew(AssetsAssetSaveReqVO AssetsAsset) {
+    public int updateAssetNew(AssetsAssetSaveReqVO AssetsAsset) {
 //1:Ã¦ÂÂ°Ã¦ÂÂ®Ã¥ÂºÂÃ¨Â¡Â¨  2:Ã¥Â¤ÂÃ©ÂÂ¨API 3: Ã¥ÂÂ°Ã§ÂÂÃ§Â©ÂºÃ©ÂÂ´Ã¦ÂÂÃ¥ÂÂ¡ 4:Ã§ÂÂ¢Ã©ÂÂÃ¦ÂÂ°Ã¦ÂÂ® 5:Ã¨Â§ÂÃ©Â¢ÂÃ¦ÂÂ°Ã¦ÂÂ®
         String type = AssetsAsset.getType();
         if (StringUtils.equals("1", type)) {
-            AssetsAssetRespVO AssetsAssetById = getDaAssetById(AssetsAsset.getId());
+            AssetsAssetRespVO AssetsAssetById = getAssetById(AssetsAsset.getId());
             if (StringUtils.equals("1", AssetsAssetById.getCreateType()) && StringUtils.equals("2", AssetsAsset.getCreateType())) {
-                createDaAssetColumnNew(AssetsAsset);
+                createAssetColumnNew(AssetsAsset);
             }
         } else if (StringUtils.equals("2", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            updateDaAssetApiNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            updateAssetApiNew(AssetsAsset);
         } else if (StringUtils.equals("3", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            updateDaAssetGisNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            updateAssetGisNew(AssetsAsset);
         } else if (StringUtils.equals("4", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            updateDaAssetGeoNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            updateAssetGeoNew(AssetsAsset);
         } else if (StringUtils.equals("5", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            updateDaAssetVideoNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            updateAssetVideoNew(AssetsAsset);
         } else if (StringUtils.equals("6", type)) {
-            setDaAssetDefaultValues(AssetsAsset);
-            updateDaAssetFilesNew(AssetsAsset);
+            setAssetDefaultValues(AssetsAsset);
+            updateAssetFilesNew(AssetsAsset);
         }
-        createDaAssetProjectRel(AssetsAsset);
-        createDaAssetThemeIdList(AssetsAsset);
-        updateDaAsset(AssetsAsset);
+        createAssetProjectRel(AssetsAsset);
+        createAssetThemeIdList(AssetsAsset);
+        updateAsset(AssetsAsset);
         return 1;
     }
 
-    private void updateDaAssetVideoNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void updateAssetVideoNew(AssetsAssetSaveReqVO AssetsAsset) {
         AssetsAssetVideoSaveReqVO AssetsAssetVideo = AssetsAsset.getAssetsAssetVideo();
         if (AssetsAssetVideo == null) {
             return;
         }
         AssetsAssetVideo.setAssetId(AssetsAsset.getId());
-        IAssetsAssetVideoService.updateDaAssetVideo(AssetsAssetVideo);
+        IAssetsAssetVideoService.updateAssetVideo(AssetsAssetVideo);
     }
 
-    private void updateDaAssetGisNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void updateAssetGisNew(AssetsAssetSaveReqVO AssetsAsset) {
         AssetsAssetGisSaveReqVO AssetsAssetGis = AssetsAsset.getAssetsAssetGis();
         if (AssetsAssetGis == null) {
             return;
         }
         AssetsAssetGis.setAssetId(AssetsAsset.getId());
-        IAssetsAssetGisService.updateDaAssetGis(AssetsAssetGis);
+        IAssetsAssetGisService.updateAssetGis(AssetsAssetGis);
     }
 
-    private void updateDaAssetGeoNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void updateAssetGeoNew(AssetsAssetSaveReqVO AssetsAsset) {
         AssetsAssetGeoSaveReqVO AssetsAssetGeo = AssetsAsset.getAssetsAssetGeo();
         if (AssetsAssetGeo == null) {
             return;
         }
         AssetsAssetGeo.setAssetId(AssetsAsset.getId());
-        IAssetsAssetGeoService.updateDaAssetGeo(AssetsAssetGeo);
+        IAssetsAssetGeoService.updateAssetGeo(AssetsAssetGeo);
     }
 
-    private void updateDaAssetApiNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void updateAssetApiNew(AssetsAssetSaveReqVO AssetsAsset) {
         AssetsAssetApiSaveReqVO AssetsAssetApi = AssetsAsset.getAssetsAssetApi();
         if (AssetsAssetApi == null) {
             return;
         }
         AssetsAssetApi.setAssetId(AssetsAsset.getId());
-        IAssetsAssetApiService.updateDaAssetApi(AssetsAssetApi);
+        IAssetsAssetApiService.updateAssetApi(AssetsAssetApi);
         List<AssetsAssetApiParamSaveReqVO> AssetsAssetApiParamList = AssetsAsset.getAssetsAssetApiParamList();
-        IAssetsAssetApiParamService.createDaAssetApiParamDeep(AssetsAssetApiParamList, AssetsAssetApi.getId());
+        IAssetsAssetApiParamService.createAssetApiParamDeep(AssetsAssetApiParamList, AssetsAssetApi.getId());
     }
 
-    private void updateDaAssetColumnNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void updateAssetColumnNew(AssetsAssetSaveReqVO AssetsAsset) {
         return;
     }
 
-    private void updateDaAssetFilesNew(AssetsAssetSaveReqVO AssetsAsset) {
+    private void updateAssetFilesNew(AssetsAssetSaveReqVO AssetsAsset) {
         AssetsAssetFilesSaveReqVO AssetsAssetFiles = AssetsAsset.getAssetsAssetFiles();
         int lastDot = AssetsAssetFiles.getUrl().lastIndexOf('.');
         String type = AssetsAssetFiles.getUrl().substring(lastDot);
         AssetsAssetFiles.setType(type);
         AssetsAssetFiles.setAssetId(AssetsAsset.getId());
-        AssetsAssetFilesService.updateDaAssetFiles(AssetsAssetFiles);
+        AssetsAssetFilesService.updateAssetFiles(AssetsAssetFiles);
         if (StringUtils.equalsIgnoreCase("xls", AssetsAssetFiles.getType()) || StringUtils.equalsIgnoreCase("xlsx", AssetsAssetFiles.getType())) {
             LambdaQueryWrapperX<AssetsAssetColumnDO> queryWrapperX = new LambdaQueryWrapperX<>();
             queryWrapperX.eq(AssetsAssetColumnDO::getAssetId, AssetsAsset.getId());
@@ -1283,18 +1283,18 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public void startDaAssetDatasourceTaskNull() {
-        this.startDaAssetDatasourceTask(null);
+    public void startAssetDatasourceTaskNull() {
+        this.startAssetDatasourceTask(null);
     }
 
     @Override
-    public AjaxResult startDaAssetDatasourceTask(Long id) {
+    public AjaxResult startAssetDatasourceTask(Long id) {
         if (id != null) {
-            AssetsAssetRespVO AssetsAssetById = this.getDaAssetById(id);
+            AssetsAssetRespVO AssetsAssetById = this.getAssetById(id);
             if (StringUtils.equals("1", AssetsAssetById.getType())) {
 // Ã¥Â¦ÂÃ©ÂÂÃ§ÂÂ¹Ã¦Â®ÂÃ¥Â¤ÂÃ§ÂÂÃ¯Â¼ÂÃ¥Â¡Â«Ã¥ÂÂÃ©ÂÂ»Ã¨Â¾Â
             }
-            AssetsDatasourceDO AssetsDatasourceById = IAssetsDatasourceService.getDaDatasourceById(AssetsAssetById.getDatasourceId());
+            AssetsDatasourceDO AssetsDatasourceById = IAssetsDatasourceService.getDatasourceDOById(AssetsAssetById.getDatasourceId());
             DbQueryProperty dbQueryProperty = new DbQueryProperty(AssetsDatasourceById.getDatasourceType(), AssetsDatasourceById.getIp(), AssetsDatasourceById.getPort(), AssetsDatasourceById.getDatasourceConfig());
             if (!isCountSupported(dbQueryProperty.getDbType())) {
                 throw new DataQueryException("");
@@ -1308,12 +1308,12 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         } else {
             AssetsAssetPageReqVO AssetsAsset = new AssetsAssetPageReqVO();
             AssetsAsset.setType("1");
-            List<AssetsAssetDO> AssetsAssetList = this.getDaAssetList(AssetsAsset);
+            List<AssetsAssetDO> AssetsAssetList = this.getAssetList(AssetsAsset);
             Map<Long, List<AssetsAssetDO>> datasourceGroupMap = AssetsAssetList.stream().collect(Collectors.groupingBy(AssetsAssetDO::getDatasourceId));
             for (Map.Entry<Long, List<AssetsAssetDO>> entry : datasourceGroupMap.entrySet()) {
                 Long datasourceId = entry.getKey();
                 List<AssetsAssetDO> assets = entry.getValue();
-                AssetsDatasourceDO datasource = IAssetsDatasourceService.getDaDatasourceById(datasourceId);
+                AssetsDatasourceDO datasource = IAssetsDatasourceService.getDatasourceDOById(datasourceId);
                 if (datasource == null) {
                     continue;
                 }
@@ -1344,7 +1344,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public PageResult<AssetsAssetDO> getDaAssetByIds(List<Long> ids) {
+    public PageResult<AssetsAssetDO> getAssetByIds(List<Long> ids) {
         AssetsAssetPageReqVO AssetsAssetPageReqVO = new AssetsAssetPageReqVO();
         AssetsAssetPageReqVO.setAssetIdList(ids);
         return AssetsAssetMapper.selectPage(AssetsAssetPageReqVO);
@@ -1403,7 +1403,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         if (lineageDTO.getTasks() != null && lineageDTO.getTasks().size() > 0) {
             List<Long> ipList = lineageDTO.getTasks().stream().map(TaskNode::getTaskId).collect(Collectors.toList());
             Map<Long, TaskNode> taskNodeMap = lineageDTO.getTasks().stream().collect(Collectors.toMap(k -> k.getTaskId(), v -> v));
-            dppEtlTaskInstanceService.getLastTaskInstance(ipList).forEach(taskInstance -> {
+            collectorEtlTaskInstanceService.getLastTaskInstance(ipList).forEach(taskInstance -> {
                 TaskNode taskNode = taskNodeMap.get(taskInstance.getTaskId());
                 if (taskNode != null) {
                     taskNode.setTaskStatus(taskInstance.getStatus());
@@ -1415,7 +1415,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public List<AssetsAssetDO> getDaAssetListAll(AssetsAssetPageReqVO AssetsAsset, String number) {
+    public List<AssetsAssetDO> getAssetListAll(AssetsAssetPageReqVO AssetsAsset, String number) {
         List<AssetsAssetDO> AssetsAssetDOPageResult = AssetsAssetMapper.selectList();
         return AssetsAssetDOPageResult;
     }
@@ -1423,14 +1423,14 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Override
     public List<TreeData> getTreeData() {
         List<TreeData> treeData = new ArrayList<>();
-        treeData.add(TreeData.builder().name("").type("0").otherData(JSON.parseObject("{\"tooltipStr\":\"\"}")).children(dmBusinessCategoryApiService.getTreeData("1")).build());
-        treeData.add(TreeData.builder().name("").type("0").otherData(JSON.parseObject("{\"tooltipStr\":\"\"}")).children(dmThemeDomainApiService.getTreeData("1")).build());
-        treeData.add(TreeData.builder().name("").type("0").otherData(JSON.parseObject("{\"tooltipStr\":\"\"}")).children(dmDataLayerApiService.getTreeData("1")).build());
+        treeData.add(TreeData.builder().name("").type("0").otherData(JSON.parseObject("{\"tooltipStr\":\"\"}")).children(modelingBusinessCategoryApiService.getTreeData("1")).build());
+        treeData.add(TreeData.builder().name("").type("0").otherData(JSON.parseObject("{\"tooltipStr\":\"\"}")).children(modelingThemeDomainApiService.getTreeData("1")).build());
+        treeData.add(TreeData.builder().name("").type("0").otherData(JSON.parseObject("{\"tooltipStr\":\"\"}")).children(modelingDataLayerApiService.getTreeData("1")).build());
         return treeData;
     }
 
     @Override
-    public List<Long> createDaAssetBatchNew(List<AssetsAssetSaveReqVO> AssetsAssetList) {
+    public List<Long> createAssetBatchNew(List<AssetsAssetSaveReqVO> AssetsAssetList) {
         if (AssetsAssetList == null || AssetsAssetList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -1439,7 +1439,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
             throw new ServiceException("");
         }
         for (AssetsAssetSaveReqVO vo : AssetsAssetList) {
-            Long id = this.createDaAssetNew(vo);
+            Long id = this.createAssetNew(vo);
             ids.add(id);
         }
         return ids;
@@ -1452,11 +1452,11 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         Map<String, Object> mk = new HashMap<>();
         List<AssetsAssetColumnDO> cols = AssetsAssetColumnMapper.findByAssetId(assetId);
         for (AssetsAssetColumnDO col : cols) {
-            StandardsDesensitizeAssetcolumnDO assetcolumnDO = dgDesensitizeAssetcolumnService.getDgDesensitizeAssetcolumnByAid(col.getId());
+            StandardsDesensitizeAssetcolumnDO assetcolumnDO = standardsDesensitizeAssetcolumnService.getDgDesensitizeAssetcolumnByAid(col.getId());
             if (assetcolumnDO == null) {
                 mt.put(col.getColumnName(), 1);
             } else {
-                StandardsDesensitizeRuleDO rule = dgDesensitizeRuleService.getDgDesensitizeRuleByDataCategoryId(assetcolumnDO.getDataCategoryId());
+                StandardsDesensitizeRuleDO rule = standardsDesensitizeRuleService.getDgDesensitizeRuleByDataCategoryId(assetcolumnDO.getDataCategoryId());
                 StandardsDesensitizeWhitelistDO white = whitelistService.getDgDesensitizeWhitelistByCategoryId(assetcolumnDO.getDataCategoryId());
                 if (rule == null) {
                     mt.put(col.getColumnName(), 1);
@@ -1501,7 +1501,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public List<AssetsAssetDO> getDaAssetByDataSourceId(Long DataSourceId, String tableName) {
+    public List<AssetsAssetDO> getAssetByDataSourceId(Long DataSourceId, String tableName) {
         return this.list(Wrappers.lambdaQuery(AssetsAssetDO.class).eq(AssetsAssetDO::getDatasourceId, DataSourceId).eq(AssetsAssetDO::getTableName, tableName));
     }
     public static String desensitizeByInterval(String originalStr, String replaceStr, List<StandardsDesensitizeIntervalDO> intervalList) {
@@ -1559,7 +1559,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAssetSaveReqVO updateObj = BeanUtils.toBean(assetDO, AssetsAssetSaveReqVO.class);
         updateObj.setFieldCount((long) tableColumnsSize);
         updateObj.setDataCount((long) dataCount);
-        this.updateDaAsset(updateObj);
+        this.updateAsset(updateObj);
     }
 
     private void updateAssetFieldAndDataCount(DbQuery dbQuery, DbQueryProperty dbQueryProperty, AssetsAssetRespVO assetVO) {
@@ -1574,8 +1574,8 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     private static final Set<String> COUNT_SUPPORTED_TYPES = new HashSet<>(Arrays.asList(DbType.MYSQL.getDb(), DbType.ORACLE.getDb(), DbType.ORACLE_12C.getDb(), DbType.SQL_SERVER.getDb(), DbType.POSTGRE_SQL.getDb(), DbType.DM8.getDb(), DbType.KINGBASE8.getDb(), DbType.DORIS.getDb(), DbType.HIVE.getDb()));
 
     @Override
-    public Map<String, Object> getDaAssetOverviewStatistics() {
-        Map<String, Object> map = AssetsAssetMapper.getDaAssetOverviewStatistics();
+    public Map<String, Object> getAssetOverviewStatistics() {
+        Map<String, Object> map = AssetsAssetMapper.getAssetOverviewStatistics();
         int diffCount = MapUtils.getIntValue(map, "diffCount");
         int prevCount = MapUtils.getIntValue(map, "prevCount");
         BigDecimal growthRate = BigDecimal.ZERO;
@@ -1594,8 +1594,8 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public List<Long> getMcTableInDaAsset(List<Long> mcTableIds) {
-        List<AssetsAssetDO> AssetsAssetDOList = this.list(Wrappers.lambdaQuery(AssetsAssetDO.class).select(AssetsAssetDO::getTableId).in(AssetsAssetDO::getTableId, mcTableIds));
+    public List<Long> getCatalogTableInAsset(List<Long> catalogTableIds) {
+        List<AssetsAssetDO> AssetsAssetDOList = this.list(Wrappers.lambdaQuery(AssetsAssetDO.class).select(AssetsAssetDO::getTableId).in(AssetsAssetDO::getTableId, catalogTableIds));
         if (AssetsAssetDOList != null || AssetsAssetDOList.size() > 0) {
             return AssetsAssetDOList.stream().map(AssetsAssetDO::getTableId).collect(Collectors.toList());
         }
@@ -1603,7 +1603,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public void mcTableColumnUpdateToDaAssetColumn(Map<Long, List<CatalogColumnRespDTO>> columnMap) {
+    public void catalogTableColumnUpdateToAssetColumn(Map<Long, List<CatalogColumnRespDTO>> columnMap) {
         if (columnMap.isEmpty()) {
             return;
         }
@@ -1615,7 +1615,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
             }
 //
             //columnList List<CatalogColumnRespDTO> List<AssetsAssetColumnDO>
-            List<AssetsAssetColumnDO> newAssetColumns = convertMcColumnToDaAssetColumn(AssetsAssetDO, columnList);
+            List<AssetsAssetColumnDO> newAssetColumns = convertCatalogColumnToAssetColumn(AssetsAssetDO, columnList);
             List<AssetsAssetColumnDO> oldAssetColumns = IAssetsAssetColumnService.list(Wrappers.lambdaQuery(AssetsAssetColumnDO.class).eq(AssetsAssetColumnDO::getAssetId, AssetsAssetDO.getId()));
             Map<String, List<AssetsAssetColumnDO>> compareResult = compareAssetColumns(newAssetColumns, oldAssetColumns);
             List<AssetsAssetColumnDO> addList = compareResult.get("addList");
@@ -1634,22 +1634,22 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         }
     }
 
-    private List<AssetsAssetColumnDO> convertMcColumnToDaAssetColumn(AssetsAssetDO AssetsAssetDO, List<CatalogColumnRespDTO> mcColumnList) {
-        if (mcColumnList == null || mcColumnList.isEmpty()) {
+    private List<AssetsAssetColumnDO> convertCatalogColumnToAssetColumn(AssetsAssetDO AssetsAssetDO, List<CatalogColumnRespDTO> catalogColumnList) {
+        if (catalogColumnList == null || catalogColumnList.isEmpty()) {
             return new ArrayList<>();
 
         }
-        return mcColumnList.stream().map(mcColumn -> {
+        return catalogColumnList.stream().map(catalogColumn -> {
             AssetsAssetColumnDO assetColumn = new AssetsAssetColumnDO();
             assetColumn.setAssetId(AssetsAssetDO.getId());
-            assetColumn.setColumnName(mcColumn.getColumnName());
-            assetColumn.setColumnComment(mcColumn.getColumnComment());
-            assetColumn.setColumnType(mcColumn.getColumnType());
-            assetColumn.setColumnLength(mcColumn.getColumnLength() != null ? mcColumn.getColumnLength().longValue() : null);
-            assetColumn.setColumnScale(mcColumn.getColumnScale() != null ? mcColumn.getColumnScale().longValue() : null);
-            assetColumn.setNullableFlag(mcColumn.getNullableFlag());
-            assetColumn.setPkFlag(mcColumn.getPkFlag());
-            assetColumn.setDefaultValue(mcColumn.getDefaultValue());
+            assetColumn.setColumnName(catalogColumn.getColumnName());
+            assetColumn.setColumnComment(catalogColumn.getColumnComment());
+            assetColumn.setColumnType(catalogColumn.getColumnType());
+            assetColumn.setColumnLength(catalogColumn.getColumnLength() != null ? catalogColumn.getColumnLength().longValue() : null);
+            assetColumn.setColumnScale(catalogColumn.getColumnScale() != null ? catalogColumn.getColumnScale().longValue() : null);
+            assetColumn.setNullableFlag(catalogColumn.getNullableFlag());
+            assetColumn.setPkFlag(catalogColumn.getPkFlag());
+            assetColumn.setDefaultValue(catalogColumn.getDefaultValue());
             assetColumn.setDataElemCodeFlag("0");
             assetColumn.setRelDataElmeFlag("0");
             assetColumn.setRelCleanFlag("0");

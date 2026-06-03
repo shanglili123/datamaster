@@ -69,7 +69,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
     }
 
     @Override
-    public List<AssetsAssetColumnDO> getDaAssetColumnList(AssetsAssetColumnPageReqVO pageReqVO) {
+    public List<AssetsAssetColumnDO> getAssetColumnList(AssetsAssetColumnPageReqVO pageReqVO) {
         MPJLambdaWrapper<AssetsAssetColumnDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.eq(StringUtils.isNotEmpty(pageReqVO.getAssetId()), AssetsAssetColumnDO::getAssetId, pageReqVO.getAssetId())
                 .eq(StringUtils.isNotEmpty(pageReqVO.getSensitiveLevelId()), AssetsAssetColumnDO::getSensitiveLevelId, pageReqVO.getSensitiveLevelId());
@@ -77,7 +77,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
     }
 
     @Override
-    public PageResult<AssetsAssetColumnDO> getDaAssetColumnPage(AssetsAssetColumnPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetColumnDO> getAssetColumnPage(AssetsAssetColumnPageReqVO pageReqVO) {
         if (StringUtils.isEmpty(pageReqVO.getAssetId())) {
             return PageResult.empty();
         }
@@ -106,7 +106,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
     }
 
     @Override
-    public Long createDaAssetColumn(AssetsAssetColumnSaveReqVO createReqVO) {
+    public Long createAssetColumn(AssetsAssetColumnSaveReqVO createReqVO) {
         AssetsAssetColumnDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetColumnDO.class);
         AssetsAssetColumnMapper.insert(dictType);
         return dictType.getId();
@@ -114,7 +114,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int updateDaAssetColumn(AssetsAssetColumnSaveReqVO updateReqVO) {
+    public int updateAssetColumn(AssetsAssetColumnSaveReqVO updateReqVO) {
         AssetsAssetDO AssetsAssetDO = AssetsAssetService.getById(updateReqVO.getAssetId());
         if (AssetsAssetDO == null) {
             throw new ServiceException("");
@@ -139,17 +139,17 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
             updateObj.setDataElemCodeId(null);
         }
         // 更新数据资产字段
-        return AssetsAssetColumnMapper.updateDaAssetColumn(updateObj);
+        return AssetsAssetColumnMapper.updateAssetColumn(updateObj);
     }
 
     @Override
-    public int removeDaAssetColumn(Collection<Long> idList) {
+    public int removeAssetColumn(Collection<Long> idList) {
         // 批量删除数据资产字段
         return AssetsAssetColumnMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetColumnDO getDaAssetColumnById(Long id) {
+    public AssetsAssetColumnDO getAssetColumnById(Long id) {
         AssetsAssetColumnDO AssetsAssetColumnDO = AssetsAssetColumnMapper.selectById(id);
         //查询数据元id
         Set<Long> dpDataElemListByAssetIdApi = iStandardsModelApiService.getDpDataElemListByAssetIdApi(AssetsAssetColumnDO.getId());
@@ -158,12 +158,12 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
     }
 
     @Override
-    public List<AssetsAssetColumnDO> getDaAssetColumnList() {
+    public List<AssetsAssetColumnDO> getAssetColumnList() {
         return AssetsAssetColumnMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetColumnDO> getDaAssetColumnMap() {
+    public Map<Long, AssetsAssetColumnDO> getAssetColumnMap() {
         List<AssetsAssetColumnDO> AssetsAssetColumnList = AssetsAssetColumnMapper.selectList();
         return AssetsAssetColumnList.stream()
                 .collect(Collectors.toMap(
@@ -183,7 +183,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
      * @return
      */
     @Override
-    public String importDaAssetColumn(List<AssetsAssetColumnRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAssetColumn(List<AssetsAssetColumnRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -199,8 +199,8 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
                 Long AssetsAssetColumnId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetColumnId != null) {
-                        AssetsAssetColumnDO existingDaAssetColumn = AssetsAssetColumnMapper.selectById(AssetsAssetColumnId);
-                        if (existingDaAssetColumn != null) {
+                        AssetsAssetColumnDO existingAssetColumn = AssetsAssetColumnMapper.selectById(AssetsAssetColumnId);
+                        if (existingAssetColumn != null) {
                             AssetsAssetColumnMapper.updateById(AssetsAssetColumnDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetColumnId + " ");
@@ -215,8 +215,8 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
                 } else {
                     QueryWrapper<AssetsAssetColumnDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetColumnId);
-                    AssetsAssetColumnDO existingDaAssetColumn = AssetsAssetColumnMapper.selectOne(queryWrapper);
-                    if (existingDaAssetColumn == null) {
+                    AssetsAssetColumnDO existingAssetColumn = AssetsAssetColumnMapper.selectOne(queryWrapper);
+                    if (existingAssetColumn == null) {
                         AssetsAssetColumnMapper.insert(AssetsAssetColumnDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetColumnId + " ");

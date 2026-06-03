@@ -37,19 +37,19 @@ public class AssetsAssetFilesServiceImpl  extends ServiceImpl<AssetsAssetFilesMa
     private AssetsAssetFilesMapper AssetsAssetFilesMapper;
 
     @Override
-    public PageResult<AssetsAssetFilesDO> getDaAssetFilesPage(AssetsAssetFilesPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetFilesDO> getAssetFilesPage(AssetsAssetFilesPageReqVO pageReqVO) {
         return AssetsAssetFilesMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public Long createDaAssetFiles(AssetsAssetFilesSaveReqVO createReqVO) {
+    public Long createAssetFiles(AssetsAssetFilesSaveReqVO createReqVO) {
         AssetsAssetFilesDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetFilesDO.class);
         AssetsAssetFilesMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetFiles(AssetsAssetFilesSaveReqVO updateReqVO) {
+    public int updateAssetFiles(AssetsAssetFilesSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产-文件服务
@@ -57,23 +57,23 @@ public class AssetsAssetFilesServiceImpl  extends ServiceImpl<AssetsAssetFilesMa
         return AssetsAssetFilesMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetFiles(Collection<Long> idList) {
+    public int removeAssetFiles(Collection<Long> idList) {
         // 批量删除数据资产-文件服务
         return AssetsAssetFilesMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetFilesDO getDaAssetFilesById(Long id) {
+    public AssetsAssetFilesDO getAssetFilesById(Long id) {
         return AssetsAssetFilesMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetFilesDO> getDaAssetFilesList() {
+    public List<AssetsAssetFilesDO> getAssetFilesList() {
         return AssetsAssetFilesMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetFilesDO> getDaAssetFilesMap() {
+    public Map<Long, AssetsAssetFilesDO> getAssetFilesMap() {
         List<AssetsAssetFilesDO> AssetsAssetFilesList = AssetsAssetFilesMapper.selectList();
         return AssetsAssetFilesList.stream()
                 .collect(Collectors.toMap(
@@ -93,7 +93,7 @@ public class AssetsAssetFilesServiceImpl  extends ServiceImpl<AssetsAssetFilesMa
          * @return
          */
         @Override
-        public String importDaAssetFiles(List<AssetsAssetFilesRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+        public String importAssetFiles(List<AssetsAssetFilesRespVO> importExcelList, boolean isUpdateSupport, String operName) {
             if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
                 throw new ServiceException("");
             }
@@ -109,8 +109,8 @@ public class AssetsAssetFilesServiceImpl  extends ServiceImpl<AssetsAssetFilesMa
                     Long AssetsAssetFilesId = respVO.getId();
                     if (isUpdateSupport) {
                         if (AssetsAssetFilesId != null) {
-                            AssetsAssetFilesDO existingDaAssetFiles = AssetsAssetFilesMapper.selectById(AssetsAssetFilesId);
-                            if (existingDaAssetFiles != null) {
+                            AssetsAssetFilesDO existingAssetFiles = AssetsAssetFilesMapper.selectById(AssetsAssetFilesId);
+                            if (existingAssetFiles != null) {
                                 AssetsAssetFilesMapper.updateById(AssetsAssetFilesDO);
                                 successNum++;
                                 successMessages.add("ID " + AssetsAssetFilesId + " -");
@@ -125,8 +125,8 @@ public class AssetsAssetFilesServiceImpl  extends ServiceImpl<AssetsAssetFilesMa
                     } else {
                         QueryWrapper<AssetsAssetFilesDO> queryWrapper = new QueryWrapper<>();
                         queryWrapper.eq("id", AssetsAssetFilesId);
-                        AssetsAssetFilesDO existingDaAssetFiles = AssetsAssetFilesMapper.selectOne(queryWrapper);
-                        if (existingDaAssetFiles == null) {
+                        AssetsAssetFilesDO existingAssetFiles = AssetsAssetFilesMapper.selectOne(queryWrapper);
+                        if (existingAssetFiles == null) {
                             AssetsAssetFilesMapper.insert(AssetsAssetFilesDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetFilesId + " -");

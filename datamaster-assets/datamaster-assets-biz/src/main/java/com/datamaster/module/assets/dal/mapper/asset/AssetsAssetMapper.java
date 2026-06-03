@@ -175,7 +175,7 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
         return selectList(queryWrapper);
     }
 
-    Map<String, Object> getDaAssetOverviewStatistics();
+    Map<String, Object> getAssetOverviewStatistics();
 
     /**
      *  CAT_CODE  CAT_CODE

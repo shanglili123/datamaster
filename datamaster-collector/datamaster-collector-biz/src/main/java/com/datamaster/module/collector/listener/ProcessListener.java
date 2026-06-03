@@ -18,6 +18,7 @@ import com.datamaster.common.exception.ServiceException;
 import com.datamaster.module.collector.service.etl.ICollectorEtlTaskInstanceService;
 import com.datamaster.module.collector.service.etl.ICollectorEtlIncrementalService;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskInstanceDO;
+import com.datamaster.module.collector.service.etl.impl.CollectorEtlTaskStatusPushService;
 
 import javax.annotation.Resource;
 import java.util.Map;
@@ -39,6 +40,8 @@ public class ProcessListener {
     private ICollectorEtlTaskInstanceService CollectorEtlTaskInstanceService;
     @Resource
     private ICollectorEtlIncrementalService collectorEtlIncrementalService;
+    @Resource
+    private CollectorEtlTaskStatusPushService collectorEtlTaskStatusPushService;
 
 //    @SneakyThrows
 //    @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(name = "ds.exchange.processInstance", type = "direct", durable = "true", autoDelete = "false"),
@@ -88,8 +91,17 @@ public class ProcessListener {
             // 手动确认
             channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
         }
+        pushTaskStatus(processInstance);
         releaseIncrementalSlot(processInstance);
         log.info(processInstance.getId() + "流程实例创建更新消息结束>>>>>>>>>>>>>>>>>>>>>>>>>>>" + flag);
+    }
+
+    private void pushTaskStatus(ProcessInstance processInstance) {
+        if (processInstance == null || processInstance.getId() == null) {
+            return;
+        }
+        CollectorEtlTaskInstanceDO instance = CollectorEtlTaskInstanceService.getByDsId(processInstance.getId());
+        collectorEtlTaskStatusPushService.pushTaskInstanceStatus(instance);
     }
 
     private void releaseIncrementalSlot(ProcessInstance processInstance) {

@@ -87,13 +87,13 @@ public class StandardsModelMaterializedServiceImpl  extends ServiceImpl<Standard
             String status = StandardsModelMaterializedDO.getStatus();
             if(StringUtils.equals("3",status)){
                 //资产
-                AssetsAssetReqDTO daAssetReqDTO = new AssetsAssetReqDTO();
-                daAssetReqDTO.setSource("2");
-                daAssetReqDTO.setModelId(modelId);
-                daAssetReqDTO.setDatasourceId(StandardsModelMaterialized.getDatasourceId());
-                daAssetReqDTO.setFieldCount(StandardsModelMaterializedDO.getFieldCount());
-                AssetsAssetRespDTO daAssetRespDTO = iAssetsAssetApiService.insertDaAsset(daAssetReqDTO);
-                Long id = daAssetRespDTO.getId();//资产id
+                AssetsAssetReqDTO assetReqDTO = new AssetsAssetReqDTO();
+                assetReqDTO.setSource("2");
+                assetReqDTO.setModelId(modelId);
+                assetReqDTO.setDatasourceId(StandardsModelMaterialized.getDatasourceId());
+                assetReqDTO.setFieldCount(StandardsModelMaterializedDO.getFieldCount());
+                AssetsAssetRespDTO assetRespDTO = iAssetsAssetApiService.insertAsset(assetReqDTO);
+                Long id = assetRespDTO.getId();//资产id
                 StandardsModelMaterializedDO.setAssetId(id);
             }
             StandardsModelMaterializedMapper.insert(StandardsModelMaterializedDO);

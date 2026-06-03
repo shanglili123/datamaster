@@ -27,9 +27,9 @@ public interface IAssetsAssetVideoService extends IService<AssetsAssetVideoDO> {
      * @param pageReqVO
      * @return -
      */
-    PageResult<AssetsAssetVideoDO> getDaAssetVideoPage(AssetsAssetVideoPageReqVO pageReqVO);
+    PageResult<AssetsAssetVideoDO> getAssetVideoPage(AssetsAssetVideoPageReqVO pageReqVO);
 
-    AssetsAssetVideoRespVO getDaAssetVideoByAssetId(Long assetId);
+    AssetsAssetVideoRespVO getAssetVideoByAssetId(Long assetId);
 
     /**
      * -
@@ -37,21 +37,21 @@ public interface IAssetsAssetVideoService extends IService<AssetsAssetVideoDO> {
      * @param createReqVO -
      * @return -
      */
-    Long createDaAssetVideo(AssetsAssetVideoSaveReqVO createReqVO);
+    Long createAssetVideo(AssetsAssetVideoSaveReqVO createReqVO);
 
     /**
      * -
      *
      * @param updateReqVO -
      */
-    int updateDaAssetVideo(AssetsAssetVideoSaveReqVO updateReqVO);
+    int updateAssetVideo(AssetsAssetVideoSaveReqVO updateReqVO);
 
     /**
      * -
      *
      * @param idList -
      */
-    int removeDaAssetVideo(Collection<Long> idList);
+    int removeAssetVideo(Collection<Long> idList);
 
     /**
      * -
@@ -59,21 +59,21 @@ public interface IAssetsAssetVideoService extends IService<AssetsAssetVideoDO> {
      * @param id -
      * @return -
      */
-    AssetsAssetVideoDO getDaAssetVideoById(Long id);
+    AssetsAssetVideoDO getAssetVideoById(Long id);
 
     /**
      * -
      *
      * @return -
      */
-    List<AssetsAssetVideoDO> getDaAssetVideoList();
+    List<AssetsAssetVideoDO> getAssetVideoList();
 
     /**
      * - Map
      *
      * @return - Map
      */
-    Map<Long, AssetsAssetVideoDO> getDaAssetVideoMap();
+    Map<Long, AssetsAssetVideoDO> getAssetVideoMap();
 
     /**
      * -
@@ -83,7 +83,7 @@ public interface IAssetsAssetVideoService extends IService<AssetsAssetVideoDO> {
      * @param operName
      * @return
      */
-    String importDaAssetVideo(List<AssetsAssetVideoRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetVideo(List<AssetsAssetVideoRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     void queryServiceForwarding(HttpServletResponse response, AssetsAssetVideoReqVO AssetsAssetVideoReqVO);
 }

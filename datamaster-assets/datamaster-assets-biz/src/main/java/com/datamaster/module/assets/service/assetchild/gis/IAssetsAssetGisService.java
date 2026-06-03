@@ -27,9 +27,9 @@ public interface IAssetsAssetGisService extends IService<AssetsAssetGisDO> {
      * @param pageReqVO
      * @return -
      */
-    PageResult<AssetsAssetGisDO> getDaAssetGisPage(AssetsAssetGisPageReqVO pageReqVO);
+    PageResult<AssetsAssetGisDO> getAssetGisPage(AssetsAssetGisPageReqVO pageReqVO);
 
-    AssetsAssetGisRespVO getDaAssetGisByAssetId(Long assetId);
+    AssetsAssetGisRespVO getAssetGisByAssetId(Long assetId);
 
     /**
      * -
@@ -37,21 +37,21 @@ public interface IAssetsAssetGisService extends IService<AssetsAssetGisDO> {
      * @param createReqVO -
      * @return -
      */
-    Long createDaAssetGis(AssetsAssetGisSaveReqVO createReqVO);
+    Long createAssetGis(AssetsAssetGisSaveReqVO createReqVO);
 
     /**
      * -
      *
      * @param updateReqVO -
      */
-    int updateDaAssetGis(AssetsAssetGisSaveReqVO updateReqVO);
+    int updateAssetGis(AssetsAssetGisSaveReqVO updateReqVO);
 
     /**
      * -
      *
      * @param idList -
      */
-    int removeDaAssetGis(Collection<Long> idList);
+    int removeAssetGis(Collection<Long> idList);
 
     /**
      * -
@@ -59,21 +59,21 @@ public interface IAssetsAssetGisService extends IService<AssetsAssetGisDO> {
      * @param id -
      * @return -
      */
-    AssetsAssetGisDO getDaAssetGisById(Long id);
+    AssetsAssetGisDO getAssetGisById(Long id);
 
     /**
      * -
      *
      * @return -
      */
-    List<AssetsAssetGisDO> getDaAssetGisList();
+    List<AssetsAssetGisDO> getAssetGisList();
 
     /**
      * - Map
      *
      * @return - Map
      */
-    Map<Long, AssetsAssetGisDO> getDaAssetGisMap();
+    Map<Long, AssetsAssetGisDO> getAssetGisMap();
 
     /**
      * -
@@ -83,7 +83,7 @@ public interface IAssetsAssetGisService extends IService<AssetsAssetGisDO> {
      * @param operName
      * @return
      */
-    String importDaAssetGis(List<AssetsAssetGisRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetGis(List<AssetsAssetGisRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     void queryServiceForwarding(HttpServletResponse response, AssetsAssetGisReqVO AssetsAssetGisReqVO);
 }

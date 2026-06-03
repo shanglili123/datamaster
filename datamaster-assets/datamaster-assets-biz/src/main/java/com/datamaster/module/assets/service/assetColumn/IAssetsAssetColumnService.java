@@ -25,32 +25,32 @@ public interface IAssetsAssetColumnService extends IService<AssetsAssetColumnDO>
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsAssetColumnDO> getDaAssetColumnPage(AssetsAssetColumnPageReqVO pageReqVO);
+    PageResult<AssetsAssetColumnDO> getAssetColumnPage(AssetsAssetColumnPageReqVO pageReqVO);
 
     AjaxResult getColumnByAssetId(AssetsAssetColumnPageReqVO pageReqVO);
 
-    List<AssetsAssetColumnDO> getDaAssetColumnList(AssetsAssetColumnPageReqVO pageReqVO);
+    List<AssetsAssetColumnDO> getAssetColumnList(AssetsAssetColumnPageReqVO pageReqVO);
     /**
      *
      *
      * @param createReqVO
      * @return
      */
-    Long createDaAssetColumn(AssetsAssetColumnSaveReqVO createReqVO);
+    Long createAssetColumn(AssetsAssetColumnSaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaAssetColumn(AssetsAssetColumnSaveReqVO updateReqVO);
+    int updateAssetColumn(AssetsAssetColumnSaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaAssetColumn(Collection<Long> idList);
+    int removeAssetColumn(Collection<Long> idList);
 
     /**
      *
@@ -58,21 +58,21 @@ public interface IAssetsAssetColumnService extends IService<AssetsAssetColumnDO>
      * @param id
      * @return
      */
-    AssetsAssetColumnDO getDaAssetColumnById(Long id);
+    AssetsAssetColumnDO getAssetColumnById(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsAssetColumnDO> getDaAssetColumnList();
+    List<AssetsAssetColumnDO> getAssetColumnList();
 
     /**
      *  Map
      *
      * @return  Map
      */
-    Map<Long, AssetsAssetColumnDO> getDaAssetColumnMap();
+    Map<Long, AssetsAssetColumnDO> getAssetColumnMap();
 
     /**
      *
@@ -82,6 +82,6 @@ public interface IAssetsAssetColumnService extends IService<AssetsAssetColumnDO>
      * @param operName
      * @return
      */
-    String importDaAssetColumn(List<AssetsAssetColumnRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetColumn(List<AssetsAssetColumnRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
 }

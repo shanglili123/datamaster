@@ -24,9 +24,9 @@ public interface IAssetsAssetGeoService extends IService<AssetsAssetGeoDO> {
      * @param pageReqVO
      * @return -
      */
-    PageResult<AssetsAssetGeoDO> getDaAssetGeoPage(AssetsAssetGeoPageReqVO pageReqVO);
+    PageResult<AssetsAssetGeoDO> getAssetGeoPage(AssetsAssetGeoPageReqVO pageReqVO);
 
-    AssetsAssetGeoRespVO getDaAssetGeoByAssetId(Long assetId);
+    AssetsAssetGeoRespVO getAssetGeoByAssetId(Long assetId);
 
     /**
      * -
@@ -34,21 +34,21 @@ public interface IAssetsAssetGeoService extends IService<AssetsAssetGeoDO> {
      * @param createReqVO -
      * @return -
      */
-    Long createDaAssetGeo(AssetsAssetGeoSaveReqVO createReqVO);
+    Long createAssetGeo(AssetsAssetGeoSaveReqVO createReqVO);
 
     /**
      * -
      *
      * @param updateReqVO -
      */
-    int updateDaAssetGeo(AssetsAssetGeoSaveReqVO updateReqVO);
+    int updateAssetGeo(AssetsAssetGeoSaveReqVO updateReqVO);
 
     /**
      * -
      *
      * @param idList -
      */
-    int removeDaAssetGeo(Collection<Long> idList);
+    int removeAssetGeo(Collection<Long> idList);
 
     /**
      * -
@@ -56,21 +56,21 @@ public interface IAssetsAssetGeoService extends IService<AssetsAssetGeoDO> {
      * @param id -
      * @return -
      */
-    AssetsAssetGeoDO getDaAssetGeoById(Long id);
+    AssetsAssetGeoDO getAssetGeoById(Long id);
 
     /**
      * -
      *
      * @return -
      */
-    List<AssetsAssetGeoDO> getDaAssetGeoList();
+    List<AssetsAssetGeoDO> getAssetGeoList();
 
     /**
      * - Map
      *
      * @return - Map
      */
-    Map<Long, AssetsAssetGeoDO> getDaAssetGeoMap();
+    Map<Long, AssetsAssetGeoDO> getAssetGeoMap();
 
     /**
      * -
@@ -80,5 +80,5 @@ public interface IAssetsAssetGeoService extends IService<AssetsAssetGeoDO> {
      * @param operName
      * @return
      */
-    String importDaAssetGeo(List<AssetsAssetGeoRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetGeo(List<AssetsAssetGeoRespVO> importExcelList, boolean isUpdateSupport, String operName);
 }

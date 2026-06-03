@@ -9,7 +9,7 @@ import javax.validation.constraints.Size;
 /**
  * 采集任务实例-日志 创建/修改 Request VO Catalog_TASK_INSTANCE_LOG
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-12-16
  */
 @Schema(description = "采集任务实例-日志 Response VO")

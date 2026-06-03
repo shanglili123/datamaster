@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.datamaster.module.assets.dal.mapper.assetchild.api.AssetsAssetApiMapper">
 
-    <resultMap type="AssetsAssetApiDO" id="DaAssetApiResult">
+    <resultMap type="AssetsAssetApiDO" id="AssetApiResult">
         <result property="id"    column="ID"    />
         <result property="assetId"    column="ASSET_ID"    />
         <result property="url"    column="URL"    />
@@ -22,12 +22,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetApiVo">
+    <sql id="selectAssetApiVo">
         select ID, ASSET_ID, URL, HTTP_METHOD,DEVELOPER_NAME,APP_NAME, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_API
     </sql>
 
-    <select id="selectDaAssetApiList" parameterType="AssetsAssetApiDO" resultMap="DaAssetApiResult">
-        <include refid="selectDaAssetApiVo"/>
+    <select id="selectAssetApiList" parameterType="AssetsAssetApiDO" resultMap="AssetApiResult">
+        <include refid="selectAssetApiVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="url != null  and url != ''"> and URL = #{url}</if>
@@ -38,12 +38,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetApiById" parameterType="Long" resultMap="DaAssetApiResult">
-        <include refid="selectDaAssetApiVo"/>
+    <select id="selectAssetApiById" parameterType="Long" resultMap="AssetApiResult">
+        <include refid="selectAssetApiVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetApi" parameterType="AssetsAssetApiDO">
+    <insert id="insertAssetApi" parameterType="AssetsAssetApiDO">
         insert into AST_ASSET_API
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -81,7 +81,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetApi" parameterType="AssetsAssetApiDO">
+    <update id="updateAssetApi" parameterType="AssetsAssetApiDO">
         update AST_ASSET_API
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -102,11 +102,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetApiById" parameterType="Long">
+    <delete id="deleteAssetApiById" parameterType="Long">
         delete from AST_ASSET_API where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetApiByIds" parameterType="String">
+    <delete id="deleteAssetApiByIds" parameterType="String">
         delete from AST_ASSET_API where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

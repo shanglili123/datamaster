@@ -24,7 +24,7 @@ public interface IAssetsDatasourceProjectRelService extends IService<AssetsDatas
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsDatasourceProjectRelDO> getDaDatasourceProjectRelPage(AssetsDatasourceProjectRelPageReqVO pageReqVO);
+    PageResult<AssetsDatasourceProjectRelDO> getDatasourceProjectRelPage(AssetsDatasourceProjectRelPageReqVO pageReqVO);
 
     /**
      *
@@ -32,21 +32,21 @@ public interface IAssetsDatasourceProjectRelService extends IService<AssetsDatas
      * @param createReqVO
      * @return
      */
-    Long createDaDatasourceProjectRel(AssetsDatasourceProjectRelSaveReqVO createReqVO);
+    Long createDatasourceProjectRel(AssetsDatasourceProjectRelSaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaDatasourceProjectRel(AssetsDatasourceProjectRelSaveReqVO updateReqVO);
+    int updateDatasourceProjectRel(AssetsDatasourceProjectRelSaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaDatasourceProjectRel(Collection<Long> idList);
+    int removeDatasourceProjectRel(Collection<Long> idList);
 
     /**
      *
@@ -54,21 +54,21 @@ public interface IAssetsDatasourceProjectRelService extends IService<AssetsDatas
      * @param id
      * @return
      */
-    AssetsDatasourceProjectRelDO getDaDatasourceProjectRelById(Long id);
+    AssetsDatasourceProjectRelDO getDatasourceProjectRelById(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsDatasourceProjectRelDO> getDaDatasourceProjectRelList();
+    List<AssetsDatasourceProjectRelDO> getDatasourceProjectRelList();
 
     /**
      *
      *
      * @return
      */
-    List<AssetsDatasourceProjectRelDO> getDaDatasourceProjectRelList(AssetsDatasourceProjectRelDO AssetsDatasourceProjectRelDO);
+    List<AssetsDatasourceProjectRelDO> getDatasourceProjectRelList(AssetsDatasourceProjectRelDO AssetsDatasourceProjectRelDO);
 
     /**
      *
@@ -82,7 +82,7 @@ public interface IAssetsDatasourceProjectRelService extends IService<AssetsDatas
      *
      * @return  Map
      */
-    Map<Long, AssetsDatasourceProjectRelDO> getDaDatasourceProjectRelMap();
+    Map<Long, AssetsDatasourceProjectRelDO> getDatasourceProjectRelMap();
 
     /**
      *
@@ -92,6 +92,6 @@ public interface IAssetsDatasourceProjectRelService extends IService<AssetsDatas
      * @param operName
      * @return
      */
-    String importDaDatasourceProjectRel(List<AssetsDatasourceProjectRelRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importDatasourceProjectRel(List<AssetsDatasourceProjectRelRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
 }

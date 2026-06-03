@@ -37,7 +37,7 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsDatasourceDO> getDaDatasourcePage(AssetsDatasourcePageReqVO pageReqVO);
+    PageResult<AssetsDatasourceDO> getDatasourcePage(AssetsDatasourcePageReqVO pageReqVO);
 
     /**
      *
@@ -45,9 +45,9 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param AssetsDatasource
      * @return
      */
-    PageResult<AssetsDatasourceDO> getDaDatasourceDppPage(AssetsDatasourcePageReqVO AssetsDatasource);
+    PageResult<AssetsDatasourceDO> getDatasourceDppPage(AssetsDatasourcePageReqVO AssetsDatasource);
 
-    List<AssetsDatasourceDO> getDaDatasourceList(AssetsDatasourcePageReqVO pageReqVO);
+    List<AssetsDatasourceDO> getDatasourceList(AssetsDatasourcePageReqVO pageReqVO);
 
     /**
      *
@@ -63,21 +63,21 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param createReqVO
      * @return
      */
-    Long createDaDatasource(AssetsDatasourceSaveReqVO createReqVO);
+    Long createDatasource(AssetsDatasourceSaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaDatasource(AssetsDatasourceSaveReqVO updateReqVO);
+    int updateDatasource(AssetsDatasourceSaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaDatasource(Collection<Long> idList);
+    int removeDatasource(Collection<Long> idList);
 
     /**
      *
@@ -85,7 +85,7 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param type 0:1:
      * @return
      */
-    int removeDaDatasourceDppOrDa(List<Long> idList, Long type);
+    int removeDatasourceDppOrDa(List<Long> idList, Long type);
 
     /**
      *
@@ -93,22 +93,22 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param id
      * @return
      */
-    AssetsDatasourceDO getDaDatasourceById(Long id);
-    AssetsDatasourceRespVO getDaDatasourceByIdSimple(Long id);
+    AssetsDatasourceDO getDatasourceDOById(Long id);
+    AssetsDatasourceRespVO getDatasourceByIdSimple(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsDatasourceDO> getDaDatasourceList();
+    List<AssetsDatasourceDO> getDatasourceList();
 
     /**
      *  Map
      *
      * @return  Map
      */
-    Map<Long, AssetsDatasourceDO> getDaDatasourceMap();
+    Map<Long, AssetsDatasourceDO> getDatasourceMap();
 
     /**
      *
@@ -118,7 +118,7 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param operName
      * @return
      */
-    String importDaDatasource(List<AssetsDatasourceRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importDatasource(List<AssetsDatasourceRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     AjaxResult clientsTest(Long id);
 
@@ -175,7 +175,7 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param AssetsDatasource
      * @return
      */
-    List<AssetsDatasourceDO> getDaDatasourceDppNoKafka(AssetsDatasourcePageReqVO AssetsDatasource);
+    List<AssetsDatasourceDO> getDatasourceDppNoKafka(AssetsDatasourcePageReqVO AssetsDatasource);
 
     com.datamaster.common.database.core.PageResult<Map<String, Object>> executeSqlQuery(AssetsDatasourcePageReqVO AssetsDatasource);
 

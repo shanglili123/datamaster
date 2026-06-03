@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.datamaster.module.assets.dal.mapper.assetchild.audit.AssetsAssetAuditRuleMapper">
 
-    <resultMap type="AssetsAssetAuditRuleDO" id="DaAssetAuditRuleResult">
+    <resultMap type="AssetsAssetAuditRuleDO" id="AssetAuditRuleResult">
         <result property="id"    column="ID"    />
         <result property="assetId"    column="ASSET_ID"    />
         <result property="tableName"    column="TABLE_NAME"    />
@@ -31,12 +31,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetAuditRuleVo">
+    <sql id="selectAssetAuditRuleVo">
         select ID, ASSET_ID, TABLE_NAME, COLUMN_NAME, COLUMN_COMMENT, RULE_NAME, QUALITY_DIM, RULE_TYPE, RULE_LEVEL, RULE_DESCRIPTION, RULE_CONFIG, TOTAL_COUNT, ISSUE_COUNT, AUDIT_TIME, BATCH_NO, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_AUDIT_RULE
     </sql>
 
-    <select id="selectDaAssetAuditRuleList" parameterType="AssetsAssetAuditRuleDO" resultMap="DaAssetAuditRuleResult">
-        <include refid="selectDaAssetAuditRuleVo"/>
+    <select id="selectAssetAuditRuleList" parameterType="AssetsAssetAuditRuleDO" resultMap="AssetAuditRuleResult">
+        <include refid="selectAssetAuditRuleVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="tableName != null  and tableName != ''"> and TABLE_NAME like concat('%', #{tableName}, '%')</if>
@@ -56,12 +56,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetAuditRuleById" parameterType="Long" resultMap="DaAssetAuditRuleResult">
-        <include refid="selectDaAssetAuditRuleVo"/>
+    <select id="selectAssetAuditRuleById" parameterType="Long" resultMap="AssetAuditRuleResult">
+        <include refid="selectAssetAuditRuleVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetAuditRule" parameterType="AssetsAssetAuditRuleDO">
+    <insert id="insertAssetAuditRule" parameterType="AssetsAssetAuditRuleDO">
         insert into AST_ASSET_AUDIT_RULE
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -117,7 +117,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetAuditRule" parameterType="AssetsAssetAuditRuleDO">
+    <update id="updateAssetAuditRule" parameterType="AssetsAssetAuditRuleDO">
         update AST_ASSET_AUDIT_RULE
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -147,11 +147,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetAuditRuleById" parameterType="Long">
+    <delete id="deleteAssetAuditRuleById" parameterType="Long">
         delete from AST_ASSET_AUDIT_RULE where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetAuditRuleByIds" parameterType="String">
+    <delete id="deleteAssetAuditRuleByIds" parameterType="String">
         delete from AST_ASSET_AUDIT_RULE where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

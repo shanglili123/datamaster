@@ -3,7 +3,7 @@
 package com.datamaster.quality.controller.quality.vo;
 
 import lombok.Data;
-import com.datamaster.quality.dal.dataobject.datasource.DaDatasourceDO;
+import com.datamaster.quality.dal.dataobject.datasource.DatasourceDO;
 
 import java.io.Serializable;
 import java.util.List;
@@ -25,7 +25,7 @@ public class QualityRuleQueryReqDTO implements Serializable {
 
     private String dataId;
 
-    private DaDatasourceDO daDatasourceById;
+    private DatasourceDO datasourceById;
 
     private String evaColumn;
 

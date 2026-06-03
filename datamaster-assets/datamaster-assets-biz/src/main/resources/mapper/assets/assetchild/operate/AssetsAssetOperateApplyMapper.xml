@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -26,12 +26,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetOperateApplyVo">
+    <sql id="selectAssetOperateApplyVo">
         select ID, ASSET_ID, DATASOURCE_ID, TABLE_NAME, TABLE_COMMENT, OPERATE_TYPE, OPERATE_JSON, OPERATE_TIME, EXECUTE_FLAG, EXECUTE_TIME, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_OPERATE_APPLY
     </sql>
 
-    <select id="selectDaAssetOperateApplyList" parameterType="AssetsAssetOperateApplyDO" resultMap="AssetsAssetOperateApplyResult">
-        <include refid="selectDaAssetOperateApplyVo"/>
+    <select id="selectAssetOperateApplyList" parameterType="AssetsAssetOperateApplyDO" resultMap="AssetsAssetOperateApplyResult">
+        <include refid="selectAssetOperateApplyVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="datasourceId != null "> and DATASOURCE_ID = #{datasourceId}</if>
@@ -46,12 +46,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetOperateApplyById" parameterType="Long" resultMap="AssetsAssetOperateApplyResult">
-        <include refid="selectDaAssetOperateApplyVo"/>
+    <select id="selectAssetOperateApplyById" parameterType="Long" resultMap="AssetsAssetOperateApplyResult">
+        <include refid="selectAssetOperateApplyVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetOperateApply" parameterType="AssetsAssetOperateApplyDO">
+    <insert id="insertAssetOperateApply" parameterType="AssetsAssetOperateApplyDO">
         insert into AST_ASSET_OPERATE_APPLY
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -97,7 +97,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetOperateApply" parameterType="AssetsAssetOperateApplyDO">
+    <update id="updateAssetOperateApply" parameterType="AssetsAssetOperateApplyDO">
         update AST_ASSET_OPERATE_APPLY
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -122,11 +122,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetOperateApplyById" parameterType="Long">
+    <delete id="deleteAssetOperateApplyById" parameterType="Long">
         delete from AST_ASSET_OPERATE_APPLY where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetOperateApplyByIds" parameterType="String">
+    <delete id="deleteAssetOperateApplyByIds" parameterType="String">
         delete from AST_ASSET_OPERATE_APPLY where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

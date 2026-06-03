@@ -97,6 +97,12 @@ public class TaskConverter {
     private static final String HTTP_CHECK_CONDITION = "STATUS_CODE_DEFAULT";
     private static final int HTTP_CONNECT_TIMEOUT = 60000;
     private static final int HTTP_SOCKET_TIMEOUT = 60000;
+    private static final Set<String> SUPPORTED_INCREMENTAL_TIME_FORMATS = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    "yyyy-MM-dd",
+                    "yyyy-MM-dd HH:mm:ss",
+                    "yyyy-MM-dd HH:mm:ss.SSS",
+                    FlinkxIncrementalConfig.DEFAULT_TIME_FORMAT)));
 
 
 
@@ -1202,7 +1208,24 @@ public class TaskConverter {
                 .sourceIncrementColumn(sourceColumn)
                 .targetIncrementColumn(targetColumns.get(sourceIndex))
                 .incrementalInitialValue(extractIncrementalInitialValue(readerParam, incrementalType))
+                .incrementalTimeFormat(extractIncrementalTimeFormat(readerParam, incrementalType))
                 .build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String extractIncrementalTimeFormat(Map<String, Object> readerParam, String incrementalType) {
+        if (!FlinkxIncrementalConfig.TYPE_TIME.equals(incrementalType)) {
+            return null;
+        }
+        Map<String, Object> config = (Map<String, Object>) readerParam.get("dateIncrementConfig");
+        String format = config == null ? null : String.valueOf(config.get("dateFormat"));
+        if (StringUtils.isBlank(format) || "null".equals(format)) {
+            return FlinkxIncrementalConfig.DEFAULT_TIME_FORMAT;
+        }
+        if (!SUPPORTED_INCREMENTAL_TIME_FORMATS.contains(format)) {
+            throw new ServiceException("不支持的时间增量格式: " + format);
+        }
+        return format;
     }
 
     @SuppressWarnings("unchecked")

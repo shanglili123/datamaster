@@ -305,7 +305,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             t2.NAME AS catName,
             t3.CRON_EXPRESSION AS cronExpression,
             t3.STATUS AS schedulerState,
-            ti.CREATE_TIME AS lastExecuteTime,
+            ti.LAST_EXECUTE_TIME AS lastExecuteTime,
             ti.STATUS AS lastExecuteStatus
             <if test="params.type == '3'.toString()">
                 <choose>
@@ -316,7 +316,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                         ,JSON_EXTRACT(t.DRAFT_JSON, '$.typaCode') AS datasourceType
                     </when>
                 </choose>
-                ,(SELECT t4.ID FROM COL_ETL_TASK_INSTANCE t4 WHERE t4.TASK_CODE = t.CODE AND t4.DEL_FLAG = '0' AND t4.STATUS IN ('0','1') ORDER BY t4.CREATE_TIME DESC LIMIT 1) AS taskInstanceId
+                ,(SELECT t4.ID FROM COL_ETL_TASK_INSTANCE t4 WHERE t4.TASK_ID = t.ID AND t4.DEL_FLAG = '0' ORDER BY t4.CREATE_TIME DESC LIMIT 1) AS taskInstanceId
             </if>
         FROM
             COL_ETL_TASK t
@@ -346,21 +346,28 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <!-- 关键改造：关联“每个任务最新一条实例”的子查询 -->
         LEFT JOIN (
             SELECT
-                ti1.TASK_CODE, ti1.CREATE_TIME, ti1.STATUS
+                ti1.TASK_ID,
+                ti1.STATUS,
+                CASE
+                    WHEN ti1.END_TIME IS NOT NULL THEN ti1.END_TIME
+                    WHEN ti1.START_TIME IS NOT NULL THEN ti1.START_TIME
+                    ELSE ti1.CREATE_TIME
+                END AS LAST_EXECUTE_TIME,
+                ti1.CREATE_TIME
             FROM
                 COL_ETL_TASK_INSTANCE ti1
                 JOIN (
                     SELECT
-                        ti2.TASK_CODE,MAX(ti2.CREATE_TIME) AS CREATE_TIME
+                        ti2.TASK_ID,MAX(ti2.CREATE_TIME) AS CREATE_TIME
                     FROM
                         COL_ETL_TASK_INSTANCE ti2
                     WHERE
                         ti2.DEL_FLAG = '0'
-                    GROUP BY ti2.TASK_CODE
-                ) maxData ON maxData.TASK_CODE = ti1.TASK_CODE AND maxData.CREATE_TIME = ti1.CREATE_TIME
+                    GROUP BY ti2.TASK_ID
+                ) maxData ON maxData.TASK_ID = ti1.TASK_ID AND maxData.CREATE_TIME = ti1.CREATE_TIME
             WHERE
                 ti1.DEL_FLAG = '0'
-        ) ti ON ti.TASK_CODE = t.CODE
+        ) ti ON ti.TASK_ID = t.ID
         WHERE
             t.DEL_FLAG = '0'
             AND t.STATUS NOT IN ('-2', '-3')

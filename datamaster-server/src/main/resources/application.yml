@@ -19,7 +19,7 @@ server:
 
 logging:
   level:
-    com.data.matser: debug
+    com.datamaster: debug
     org.springframework: warn
 
 user:
@@ -105,16 +105,16 @@ springdoc:
   group-configs:
     - group: 'system'
       paths-to-match: '/**'
-      packages-to-scan: com.data.matser.module.system.controller
+      packages-to-scan: com.datamaster.module.system.controller
     - group: 'example'
       paths-to-match: '/**'
-      packages-to-scan: com.data.matser.module.example.controller
+      packages-to-scan: com.datamaster.module.example.controller
     - group: 'ai'
       paths-to-match: '/**'
-      packages-to-scan: com.data.matser.module.ai.controller
+      packages-to-scan: com.datamaster.module.ai.controller
     - group: 'dm'
       paths-to-match: '/**'
-      packages-to-scan: com.data.matser.module.dm.controller
+      packages-to-scan: com.datamaster.module.dm.controller
 
 knife4j:
   enable: true
@@ -141,7 +141,7 @@ knife4j:
     enable-search: false
     enable-footer: false
     enable-footer-custom: true
-    footer-custom-content: Apache License 2.0 | Copyright  2025-[江苏千桐科技有限公司])
+    footer-custom-content: Apache License 2.0
     enable-dynamic-parameter: false
     enable-debug: true
     enable-open-api: true

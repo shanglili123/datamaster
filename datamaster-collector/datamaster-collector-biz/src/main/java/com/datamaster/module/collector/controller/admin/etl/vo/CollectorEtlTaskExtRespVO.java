@@ -100,6 +100,9 @@ public class CollectorEtlTaskExtRespVO implements Serializable {
     @Schema(description = "首次增量同步初始游标", example = "")
     private String incrementalInitialValue;
 
+    @Schema(description = "时间增量边界格式", example = "yyyy-MM-dd HH:mm:ss.SSSSSS")
+    private String incrementalTimeFormat;
+
     @Schema(description = "本次增量同步起始值", example = "")
     private String incrementalStartValue;
 

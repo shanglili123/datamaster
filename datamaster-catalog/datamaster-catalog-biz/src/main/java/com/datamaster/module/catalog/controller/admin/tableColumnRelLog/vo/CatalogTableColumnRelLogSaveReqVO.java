@@ -9,7 +9,7 @@ import javax.validation.constraints.Size;
 /**
  * 元数据数据库与信息及字段信息关系-日志 创建/修改 Request VO Catalog_TABLE_COLUMN_REL_LOG
  *
- * @author qdata
+ * @author lili.shang
  * @date 2026-03-10
  */
 @Schema(description = "元数据数据库与信息及字段信息关系-日志 Response VO")

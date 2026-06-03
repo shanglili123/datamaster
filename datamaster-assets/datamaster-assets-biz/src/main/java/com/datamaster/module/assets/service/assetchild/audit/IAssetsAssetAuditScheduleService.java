@@ -24,7 +24,7 @@ public interface IAssetsAssetAuditScheduleService extends IService<AssetsAssetAu
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsAssetAuditScheduleDO> getDaAssetAuditSchedulePage(AssetsAssetAuditSchedulePageReqVO pageReqVO);
+    PageResult<AssetsAssetAuditScheduleDO> getAssetAuditSchedulePage(AssetsAssetAuditSchedulePageReqVO pageReqVO);
 
     /**
      *
@@ -32,21 +32,21 @@ public interface IAssetsAssetAuditScheduleService extends IService<AssetsAssetAu
      * @param createReqVO
      * @return
      */
-    Long createDaAssetAuditSchedule(AssetsAssetAuditScheduleSaveReqVO createReqVO);
+    Long createAssetAuditSchedule(AssetsAssetAuditScheduleSaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaAssetAuditSchedule(AssetsAssetAuditScheduleSaveReqVO updateReqVO);
+    int updateAssetAuditSchedule(AssetsAssetAuditScheduleSaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaAssetAuditSchedule(Collection<Long> idList);
+    int removeAssetAuditSchedule(Collection<Long> idList);
 
     /**
      *
@@ -54,21 +54,21 @@ public interface IAssetsAssetAuditScheduleService extends IService<AssetsAssetAu
      * @param id
      * @return
      */
-    AssetsAssetAuditScheduleDO getDaAssetAuditScheduleById(Long id);
+    AssetsAssetAuditScheduleDO getAssetAuditScheduleById(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsAssetAuditScheduleDO> getDaAssetAuditScheduleList();
+    List<AssetsAssetAuditScheduleDO> getAssetAuditScheduleList();
 
     /**
      *  Map
      *
      * @return  Map
      */
-    Map<Long, AssetsAssetAuditScheduleDO> getDaAssetAuditScheduleMap();
+    Map<Long, AssetsAssetAuditScheduleDO> getAssetAuditScheduleMap();
 
     /**
      *
@@ -78,6 +78,6 @@ public interface IAssetsAssetAuditScheduleService extends IService<AssetsAssetAu
      * @param operName
      * @return
      */
-    String importDaAssetAuditSchedule(List<AssetsAssetAuditScheduleRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetAuditSchedule(List<AssetsAssetAuditScheduleRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
 }

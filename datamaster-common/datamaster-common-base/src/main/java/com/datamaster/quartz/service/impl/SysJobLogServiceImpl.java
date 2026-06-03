@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 定时任务调度日志信息 服务层
  *
- * @author qdata
+ * @author lili.shang
  */
 @Service
 public class SysJobLogServiceImpl implements ISysJobLogService

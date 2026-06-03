@@ -36,19 +36,19 @@ public class AssetsAssetAuditScheduleServiceImpl  extends ServiceImpl<AssetsAsse
     private AssetsAssetAuditScheduleMapper AssetsAssetAuditScheduleMapper;
 
     @Override
-    public PageResult<AssetsAssetAuditScheduleDO> getDaAssetAuditSchedulePage(AssetsAssetAuditSchedulePageReqVO pageReqVO) {
+    public PageResult<AssetsAssetAuditScheduleDO> getAssetAuditSchedulePage(AssetsAssetAuditSchedulePageReqVO pageReqVO) {
         return AssetsAssetAuditScheduleMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public Long createDaAssetAuditSchedule(AssetsAssetAuditScheduleSaveReqVO createReqVO) {
+    public Long createAssetAuditSchedule(AssetsAssetAuditScheduleSaveReqVO createReqVO) {
         AssetsAssetAuditScheduleDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetAuditScheduleDO.class);
         AssetsAssetAuditScheduleMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetAuditSchedule(AssetsAssetAuditScheduleSaveReqVO updateReqVO) {
+    public int updateAssetAuditSchedule(AssetsAssetAuditScheduleSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新资产稽查调度
@@ -56,23 +56,23 @@ public class AssetsAssetAuditScheduleServiceImpl  extends ServiceImpl<AssetsAsse
         return AssetsAssetAuditScheduleMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetAuditSchedule(Collection<Long> idList) {
+    public int removeAssetAuditSchedule(Collection<Long> idList) {
         // 批量删除资产稽查调度
         return AssetsAssetAuditScheduleMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetAuditScheduleDO getDaAssetAuditScheduleById(Long id) {
+    public AssetsAssetAuditScheduleDO getAssetAuditScheduleById(Long id) {
         return AssetsAssetAuditScheduleMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetAuditScheduleDO> getDaAssetAuditScheduleList() {
+    public List<AssetsAssetAuditScheduleDO> getAssetAuditScheduleList() {
         return AssetsAssetAuditScheduleMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetAuditScheduleDO> getDaAssetAuditScheduleMap() {
+    public Map<Long, AssetsAssetAuditScheduleDO> getAssetAuditScheduleMap() {
         List<AssetsAssetAuditScheduleDO> AssetsAssetAuditScheduleList = AssetsAssetAuditScheduleMapper.selectList();
         return AssetsAssetAuditScheduleList.stream()
                 .collect(Collectors.toMap(
@@ -92,7 +92,7 @@ public class AssetsAssetAuditScheduleServiceImpl  extends ServiceImpl<AssetsAsse
      * @return
      */
     @Override
-    public String importDaAssetAuditSchedule(List<AssetsAssetAuditScheduleRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAssetAuditSchedule(List<AssetsAssetAuditScheduleRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -108,8 +108,8 @@ public class AssetsAssetAuditScheduleServiceImpl  extends ServiceImpl<AssetsAsse
                 Long AssetsAssetAuditScheduleId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetAuditScheduleId != null) {
-                        AssetsAssetAuditScheduleDO existingDaAssetAuditSchedule = AssetsAssetAuditScheduleMapper.selectById(AssetsAssetAuditScheduleId);
-                        if (existingDaAssetAuditSchedule != null) {
+                        AssetsAssetAuditScheduleDO existingAssetAuditSchedule = AssetsAssetAuditScheduleMapper.selectById(AssetsAssetAuditScheduleId);
+                        if (existingAssetAuditSchedule != null) {
                             AssetsAssetAuditScheduleMapper.updateById(AssetsAssetAuditScheduleDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetAuditScheduleId + " ");
@@ -124,8 +124,8 @@ public class AssetsAssetAuditScheduleServiceImpl  extends ServiceImpl<AssetsAsse
                 } else {
                     QueryWrapper<AssetsAssetAuditScheduleDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetAuditScheduleId);
-                    AssetsAssetAuditScheduleDO existingDaAssetAuditSchedule = AssetsAssetAuditScheduleMapper.selectOne(queryWrapper);
-                    if (existingDaAssetAuditSchedule == null) {
+                    AssetsAssetAuditScheduleDO existingAssetAuditSchedule = AssetsAssetAuditScheduleMapper.selectOne(queryWrapper);
+                    if (existingAssetAuditSchedule == null) {
                         AssetsAssetAuditScheduleMapper.insert(AssetsAssetAuditScheduleDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetAuditScheduleId + " ");

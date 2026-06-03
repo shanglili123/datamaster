@@ -4,10 +4,10 @@ package com.datamaster.quality.service.qa;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.datamaster.common.core.page.PageResult;
-import com.datamaster.quality.controller.qa.vo.DppQualityTaskObjPageReqVO;
-import com.datamaster.quality.controller.qa.vo.DppQualityTaskObjRespVO;
-import com.datamaster.quality.controller.qa.vo.DppQualityTaskObjSaveReqVO;
-import com.datamaster.quality.dal.dataobject.qa.DppQualityTaskObjDO;
+import com.datamaster.quality.controller.qa.vo.QualityTaskObjPageReqVO;
+import com.datamaster.quality.controller.qa.vo.QualityTaskObjRespVO;
+import com.datamaster.quality.controller.qa.vo.QualityTaskObjSaveReqVO;
+import com.datamaster.quality.dal.dataobject.qa.QualityTaskObjDO;
 
 import java.util.Collection;
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.Map;
  * @author Chaos
  * @date 2025-07-21
  */
-public interface IDppQualityTaskObjService extends IService<DppQualityTaskObjDO> {
+public interface IQualityTaskObjService extends IService<QualityTaskObjDO> {
 
     /**
      * 获得数据质量任务-稽查对象分页列表
@@ -26,7 +26,7 @@ public interface IDppQualityTaskObjService extends IService<DppQualityTaskObjDO>
      * @param pageReqVO 分页请求
      * @return 数据质量任务-稽查对象分页列表
      */
-    PageResult<DppQualityTaskObjDO> getDppQualityTaskObjPage(DppQualityTaskObjPageReqVO pageReqVO);
+    PageResult<QualityTaskObjDO> getQualityTaskObjPage(QualityTaskObjPageReqVO pageReqVO);
 
     /**
      * 创建数据质量任务-稽查对象
@@ -34,21 +34,21 @@ public interface IDppQualityTaskObjService extends IService<DppQualityTaskObjDO>
      * @param createReqVO 数据质量任务-稽查对象信息
      * @return 数据质量任务-稽查对象编号
      */
-    Long createDppQualityTaskObj(DppQualityTaskObjSaveReqVO createReqVO);
+    Long createQualityTaskObj(QualityTaskObjSaveReqVO createReqVO);
 
     /**
      * 更新数据质量任务-稽查对象
      *
      * @param updateReqVO 数据质量任务-稽查对象信息
      */
-    int updateDppQualityTaskObj(DppQualityTaskObjSaveReqVO updateReqVO);
+    int updateQualityTaskObj(QualityTaskObjSaveReqVO updateReqVO);
 
     /**
      * 删除数据质量任务-稽查对象
      *
      * @param idList 数据质量任务-稽查对象编号
      */
-    int removeDppQualityTaskObj(Collection<Long> idList);
+    int removeQualityTaskObj(Collection<Long> idList);
 
     /**
      * 获得数据质量任务-稽查对象详情
@@ -56,23 +56,23 @@ public interface IDppQualityTaskObjService extends IService<DppQualityTaskObjDO>
      * @param id 数据质量任务-稽查对象编号
      * @return 数据质量任务-稽查对象
      */
-    DppQualityTaskObjDO getDppQualityTaskObjById(Long id);
+    QualityTaskObjDO getQualityTaskObjById(Long id);
 
-    List<DppQualityTaskObjDO> getDppQualityTaskObjList(String taskId);
+    List<QualityTaskObjDO> getQualityTaskObjList(String taskId);
 
     /**
      * 获得全部数据质量任务-稽查对象列表
      *
      * @return 数据质量任务-稽查对象列表
      */
-    List<DppQualityTaskObjDO> getDppQualityTaskObjList();
+    List<QualityTaskObjDO> getQualityTaskObjList();
 
     /**
      * 获得全部数据质量任务-稽查对象 Map
      *
      * @return 数据质量任务-稽查对象 Map
      */
-    Map<Long, DppQualityTaskObjDO> getDppQualityTaskObjMap();
+    Map<Long, QualityTaskObjDO> getQualityTaskObjMap();
 
 
     /**
@@ -83,5 +83,5 @@ public interface IDppQualityTaskObjService extends IService<DppQualityTaskObjDO>
      * @param operName 操作用户
      * @return 结果
      */
-    String importDppQualityTaskObj(List<DppQualityTaskObjRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importQualityTaskObj(List<QualityTaskObjRespVO> importExcelList, boolean isUpdateSupport, String operName);
 }

@@ -31,13 +31,13 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsAssetDO> getDaAssetPage(AssetsAssetPageReqVO pageReqVO, String AssetsAssetQueryType);
+    PageResult<AssetsAssetDO> getAssetPage(AssetsAssetPageReqVO pageReqVO, String AssetsAssetQueryType);
 
-    List<AssetsAssetDO> getDaAssetList(AssetsAssetPageReqVO AssetsAsset);
+    List<AssetsAssetDO> getAssetList(AssetsAssetPageReqVO AssetsAsset);
 
     List<AssetsAssetDO> getTablesByDataSourceId(AssetsAssetPageReqVO pageReqVO);
 
-    AssetsAssetDO getDaAssetByDaAssetPageReqVO(AssetsAssetPageReqVO pageReqVO);
+    AssetsAssetDO getAssetByAssetPageReqVO(AssetsAssetPageReqVO pageReqVO);
 
     /**
      *
@@ -45,23 +45,23 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
      * @param createReqVO
      * @return
      */
-    Long createDaAsset(AssetsAssetSaveReqVO createReqVO);
+    Long createAsset(AssetsAssetSaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaAsset(AssetsAssetSaveReqVO updateReqVO);
+    int updateAsset(AssetsAssetSaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaAsset(Collection<Long> idList);
+    int removeAsset(Collection<Long> idList);
 
-    int removeDaAsset(Long id);
+    int removeAsset(Long id);
 
     /**
      *
@@ -69,23 +69,23 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
      * @param id
      * @return
      */
-    AssetsAssetRespVO getDaAssetById(Long id);
+    AssetsAssetRespVO getAssetById(Long id);
 
-    AssetsAssetRespVO getDaAssetByIdSimple(Long id);
+    AssetsAssetRespVO getAssetByIdSimple(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsAssetDO> getDaAssetList();
+    List<AssetsAssetDO> getAssetList();
 
     /**
      *  Map
      *
      * @return  Map
      */
-    Map<Long, AssetsAssetDO> getDaAssetMap();
+    Map<Long, AssetsAssetDO> getAssetMap();
 
     /**
      *
@@ -95,7 +95,7 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
      * @param operName
      * @return
      */
-    String importDaAsset(List<AssetsAssetRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAsset(List<AssetsAssetRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     /**
      *
@@ -118,24 +118,24 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
 
     void updateAssetByDiscoveryInfo(AssetsAssetPageReqVO AssetsAssetPageReqVO);
 
-    PageResult<AssetsAssetDO> getDppAssetPage(AssetsAssetPageReqVO AssetsAsset);
+    PageResult<AssetsAssetDO> getCollectorAssetPage(AssetsAssetPageReqVO AssetsAsset);
 
-    List<AssetsAssetDO> getDppAssetNoPageList(AssetsAssetPageReqVO AssetsAsset);
+    List<AssetsAssetDO> getCollectorAssetNoPageList(AssetsAssetPageReqVO AssetsAsset);
 
-    Long createDaAssetNew(AssetsAssetSaveReqVO AssetsAsset);
+    Long createAssetNew(AssetsAssetSaveReqVO AssetsAsset);
 
     /**
      *
      */
-    Long createDaAssetBindResources(AssetsAssetSaveReqVO AssetsAsset);
+    Long createAssetBindResources(AssetsAssetSaveReqVO AssetsAsset);
 
-    int updateDaAssetNew(AssetsAssetSaveReqVO AssetsAsset);
+    int updateAssetNew(AssetsAssetSaveReqVO AssetsAsset);
 
-    AjaxResult startDaAssetDatasourceTask(Long id);
+    AjaxResult startAssetDatasourceTask(Long id);
 
-    void startDaAssetDatasourceTaskNull();
+    void startAssetDatasourceTaskNull();
 
-    PageResult<AssetsAssetDO> getDaAssetByIds(List<Long> ids);
+    PageResult<AssetsAssetDO> getAssetByIds(List<Long> ids);
 
     List<AssetsAssetColumnRelRuleVO> listRelRule(Long id, String type);
 
@@ -149,7 +149,7 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
      */
     LineageDTO dataLineage(Long id);
 
-    List<AssetsAssetDO> getDaAssetListAll(AssetsAssetPageReqVO AssetsAsset, String number);
+    List<AssetsAssetDO> getAssetListAll(AssetsAssetPageReqVO AssetsAsset, String number);
 
     /**
      *
@@ -164,9 +164,9 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
      * @param AssetsAssetList
      * @return
      */
-    List<Long> createDaAssetBatchNew(List<AssetsAssetSaveReqVO> AssetsAssetList);
+    List<Long> createAssetBatchNew(List<AssetsAssetSaveReqVO> AssetsAssetList);
 
     List<Map<String, Object>> dataMaskings(Long id, List<Map<String, Object>> tableData, Long userId, String scene);
 
-    List<AssetsAssetDO> getDaAssetByDataSourceId(Long DataSourceId, String tableName);
+    List<AssetsAssetDO> getAssetByDataSourceId(Long DataSourceId, String tableName);
 }

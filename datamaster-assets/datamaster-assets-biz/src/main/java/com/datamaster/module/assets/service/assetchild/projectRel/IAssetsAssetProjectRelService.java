@@ -24,14 +24,14 @@ public interface IAssetsAssetProjectRelService extends IService<AssetsAssetProje
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsAssetProjectRelDO> getDaAssetProjectRelPage(AssetsAssetProjectRelPageReqVO pageReqVO);
+    PageResult<AssetsAssetProjectRelDO> getAssetProjectRelPage(AssetsAssetProjectRelPageReqVO pageReqVO);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsAssetProjectRelDO> getDaAssetProjectRelList(AssetsAssetProjectRelPageReqVO pageReqVO);
+    List<AssetsAssetProjectRelDO> getAssetProjectRelList(AssetsAssetProjectRelPageReqVO pageReqVO);
 
     /**
      *
@@ -39,21 +39,21 @@ public interface IAssetsAssetProjectRelService extends IService<AssetsAssetProje
      * @param createReqVO
      * @return
      */
-    Long createDaAssetProjectRel(AssetsAssetProjectRelSaveReqVO createReqVO);
+    Long createAssetProjectRel(AssetsAssetProjectRelSaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaAssetProjectRel(AssetsAssetProjectRelSaveReqVO updateReqVO);
+    int updateAssetProjectRel(AssetsAssetProjectRelSaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaAssetProjectRel(Collection<Long> idList);
+    int removeAssetProjectRel(Collection<Long> idList);
 
     /**
      *
@@ -61,21 +61,21 @@ public interface IAssetsAssetProjectRelService extends IService<AssetsAssetProje
      * @param id
      * @return
      */
-    AssetsAssetProjectRelDO getDaAssetProjectRelById(Long id);
+    AssetsAssetProjectRelDO getAssetProjectRelById(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsAssetProjectRelDO> getDaAssetProjectRelList();
+    List<AssetsAssetProjectRelDO> getAssetProjectRelList();
 
     /**
      *  Map
      *
      * @return  Map
      */
-    Map<Long, AssetsAssetProjectRelDO> getDaAssetProjectRelMap();
+    Map<Long, AssetsAssetProjectRelDO> getAssetProjectRelMap();
 
     /**
      *
@@ -85,7 +85,7 @@ public interface IAssetsAssetProjectRelService extends IService<AssetsAssetProje
      * @param operName
      * @return
      */
-    String importDaAssetProjectRel(List<AssetsAssetProjectRelRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetProjectRel(List<AssetsAssetProjectRelRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     int removeProjectRelByAssetId(Long assetId);
 }

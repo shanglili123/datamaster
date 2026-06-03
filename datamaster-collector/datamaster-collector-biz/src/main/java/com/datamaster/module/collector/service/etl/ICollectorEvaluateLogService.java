@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * 评测规则结果Service接口
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-07-21
  */
 public interface ICollectorEvaluateLogService extends IService<CollectorEvaluateLogDO> {

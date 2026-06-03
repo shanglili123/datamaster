@@ -16,28 +16,28 @@ public class CharacterValidationGenerator implements QualitySqlGenerator {
     @Override
     public String generateSql(QualityRuleEntity rule) {
         ComponentRegistry registry = new ComponentRegistry();
-        ComponentItem componentItem = registry.getComponentItem(rule.getDaDatasourceById().getDatasourceType());
+        ComponentItem componentItem = registry.getComponentItem(rule.getDatasourceById().getDatasourceType());
         return componentItem.generateCharacterValidationSql(rule);
     }
 
     @Override
     public String generateErrorSql(QualityRuleEntity rule) {
         ComponentRegistry registry = new ComponentRegistry();
-        ComponentItem componentItem = registry.getComponentItem(rule.getDaDatasourceById().getDatasourceType());
+        ComponentItem componentItem = registry.getComponentItem(rule.getDatasourceById().getDatasourceType());
         return componentItem.generateCharacterValidationErrorSql(rule);
     }
 
     @Override
     public String generateValidDataSql(QualityRuleEntity rule, int limit, int offset) {
         ComponentRegistry registry = new ComponentRegistry();
-        ComponentItem componentItem = registry.getComponentItem(rule.getDaDatasourceById().getDatasourceType());
+        ComponentItem componentItem = registry.getComponentItem(rule.getDatasourceById().getDatasourceType());
         return componentItem.generateCharacterValidationValidDataSql(rule,limit,offset);
     }
 
 
     public String generateDataCheckSql(QualityRuleEntity rule,String inputValue) {
         ComponentRegistry registry = new ComponentRegistry();
-        ComponentItem componentItem = registry.getComponentItem(rule.getDaDatasourceById().getDatasourceType());
+        ComponentItem componentItem = registry.getComponentItem(rule.getDatasourceById().getDatasourceType());
         return componentItem.generateValidDataCheckSql(rule,inputValue);
     }
 }

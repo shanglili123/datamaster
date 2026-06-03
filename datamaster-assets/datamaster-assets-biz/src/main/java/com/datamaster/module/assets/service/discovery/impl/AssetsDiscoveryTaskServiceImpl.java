@@ -104,9 +104,9 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         if (CollectionUtils.isEmpty(rows)) {
             return pageResult;
         }
-        List<AssetsDatasourceDO> AssetsDatasourceList = IAssetsDatasourceService.getDaDatasourceList();
+        List<AssetsDatasourceDO> AssetsDatasourceList = IAssetsDatasourceService.getDatasourceList();
         for (AssetsDiscoveryTaskRespVO row : rows) {
-            AssetsDatasourceDO AssetsDatasourceById = this.getDaDatasourceById(row.getDatasourceId(), AssetsDatasourceList);
+            AssetsDatasourceDO AssetsDatasourceById = this.getDatasourceById(row.getDatasourceId(), AssetsDatasourceList);
             AssetsDatasourceById = AssetsDatasourceById != null ? AssetsDatasourceById : new AssetsDatasourceDO();
             row.setDatasourceName(AssetsDatasourceById.getDatasourceName());
             row.setDatasourceType(AssetsDatasourceById.getDatasourceType());
@@ -118,7 +118,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         return pageResult;
     }
 
-    private AssetsDatasourceDO getDaDatasourceById(Long datasourceId, List<AssetsDatasourceDO> AssetsDatasourceList) {
+    private AssetsDatasourceDO getDatasourceById(Long datasourceId, List<AssetsDatasourceDO> AssetsDatasourceList) {
         if (CollectionUtils.isEmpty(AssetsDatasourceList)) {
             return new AssetsDatasourceDO();
         }
@@ -299,7 +299,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
 
         AssetsDiscoveryTaskRespVO bean = BeanUtils.toBean(AssetsDiscoveryTaskDO, AssetsDiscoveryTaskRespVO.class);
 
-        AssetsDatasourceDO AssetsDatasourceById = IAssetsDatasourceService.getDaDatasourceById(bean.getDatasourceId());
+        AssetsDatasourceDO AssetsDatasourceById = IAssetsDatasourceService.getDatasourceDOById(bean.getDatasourceId());
         AssetsDatasourceById = AssetsDatasourceById == null ? new AssetsDatasourceDO() : AssetsDatasourceById;
         bean.setDatasourceName(AssetsDatasourceById.getDatasourceName());
         bean.setDatasourceType(AssetsDatasourceById.getDatasourceType());

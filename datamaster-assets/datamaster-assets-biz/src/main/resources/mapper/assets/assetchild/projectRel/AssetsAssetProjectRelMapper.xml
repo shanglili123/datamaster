@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -20,12 +20,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetProjectRelVo">
+    <sql id="selectAssetProjectRelVo">
         select ID, ASSET_ID, PROJECT_ID, PROJECT_CODE, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_PROJECT_REL
     </sql>
 
-    <select id="selectDaAssetProjectRelList" parameterType="AssetsAssetProjectRelDO" resultMap="AssetsAssetProjectRelResult">
-        <include refid="selectDaAssetProjectRelVo"/>
+    <select id="selectAssetProjectRelList" parameterType="AssetsAssetProjectRelDO" resultMap="AssetsAssetProjectRelResult">
+        <include refid="selectAssetProjectRelVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="projectId != null "> and PROJECT_ID = #{projectId}</if>
@@ -34,12 +34,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetProjectRelById" parameterType="Long" resultMap="AssetsAssetProjectRelResult">
-        <include refid="selectDaAssetProjectRelVo"/>
+    <select id="selectAssetProjectRelById" parameterType="Long" resultMap="AssetsAssetProjectRelResult">
+        <include refid="selectAssetProjectRelVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetProjectRel" parameterType="AssetsAssetProjectRelDO">
+    <insert id="insertAssetProjectRel" parameterType="AssetsAssetProjectRelDO">
         insert into AST_ASSET_PROJECT_REL
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -73,7 +73,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetProjectRel" parameterType="AssetsAssetProjectRelDO">
+    <update id="updateAssetProjectRel" parameterType="AssetsAssetProjectRelDO">
         update AST_ASSET_PROJECT_REL
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -92,11 +92,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetProjectRelById" parameterType="Long">
+    <delete id="deleteAssetProjectRelById" parameterType="Long">
         delete from AST_ASSET_PROJECT_REL where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetProjectRelByIds" parameterType="String">
+    <delete id="deleteAssetProjectRelByIds" parameterType="String">
         delete from AST_ASSET_PROJECT_REL where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

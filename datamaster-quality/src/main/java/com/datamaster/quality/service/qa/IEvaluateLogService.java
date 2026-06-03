@@ -4,10 +4,10 @@ package com.datamaster.quality.service.qa;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.datamaster.common.core.page.PageResult;
-import com.datamaster.quality.controller.qa.vo.DppEvaluateLogPageReqVO;
-import com.datamaster.quality.controller.qa.vo.DppEvaluateLogRespVO;
-import com.datamaster.quality.controller.qa.vo.DppEvaluateLogSaveReqVO;
-import com.datamaster.quality.dal.dataobject.qa.DppEvaluateLogDO;
+import com.datamaster.quality.controller.qa.vo.EvaluateLogPageReqVO;
+import com.datamaster.quality.controller.qa.vo.EvaluateLogRespVO;
+import com.datamaster.quality.controller.qa.vo.EvaluateLogSaveReqVO;
+import com.datamaster.quality.dal.dataobject.qa.EvaluateLogDO;
 
 import java.util.Collection;
 import java.util.List;
@@ -15,10 +15,10 @@ import java.util.Map;
 /**
  * 评测规则结果Service接口
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-07-21
  */
-public interface IDppEvaluateLogService extends IService<DppEvaluateLogDO> {
+public interface IEvaluateLogService extends IService<EvaluateLogDO> {
 
     /**
      * 获得评测规则结果分页列表
@@ -26,7 +26,7 @@ public interface IDppEvaluateLogService extends IService<DppEvaluateLogDO> {
      * @param pageReqVO 分页请求
      * @return 评测规则结果分页列表
      */
-    PageResult<DppEvaluateLogDO> getDppEvaluateLogPage(DppEvaluateLogPageReqVO pageReqVO);
+    PageResult<EvaluateLogDO> getEvaluateLogPage(EvaluateLogPageReqVO pageReqVO);
 
     /**
      * 创建评测规则结果
@@ -34,21 +34,21 @@ public interface IDppEvaluateLogService extends IService<DppEvaluateLogDO> {
      * @param createReqVO 评测规则结果信息
      * @return 评测规则结果编号
      */
-    Long createDppEvaluateLog(DppEvaluateLogSaveReqVO createReqVO);
+    Long createEvaluateLog(EvaluateLogSaveReqVO createReqVO);
 
     /**
      * 更新评测规则结果
      *
      * @param updateReqVO 评测规则结果信息
      */
-    int updateDppEvaluateLog(DppEvaluateLogSaveReqVO updateReqVO);
+    int updateEvaluateLog(EvaluateLogSaveReqVO updateReqVO);
 
     /**
      * 删除评测规则结果
      *
      * @param idList 评测规则结果编号
      */
-    int removeDppEvaluateLog(Collection<Long> idList);
+    int removeEvaluateLog(Collection<Long> idList);
 
     /**
      * 获得评测规则结果详情
@@ -56,21 +56,21 @@ public interface IDppEvaluateLogService extends IService<DppEvaluateLogDO> {
      * @param id 评测规则结果编号
      * @return 评测规则结果
      */
-    DppEvaluateLogDO getDppEvaluateLogById(Long id);
+    EvaluateLogDO getEvaluateLogById(Long id);
 
     /**
      * 获得全部评测规则结果列表
      *
      * @return 评测规则结果列表
      */
-    List<DppEvaluateLogDO> getDppEvaluateLogList();
+    List<EvaluateLogDO> getEvaluateLogList();
 
     /**
      * 获得全部评测规则结果 Map
      *
      * @return 评测规则结果 Map
      */
-    Map<Long, DppEvaluateLogDO> getDppEvaluateLogMap();
+    Map<Long, EvaluateLogDO> getEvaluateLogMap();
 
 
     /**
@@ -81,6 +81,6 @@ public interface IDppEvaluateLogService extends IService<DppEvaluateLogDO> {
      * @param operName 操作用户
      * @return 结果
      */
-    String importDppEvaluateLog(List<DppEvaluateLogRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importEvaluateLog(List<EvaluateLogRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
 }

@@ -345,6 +345,23 @@ function reload() {
   });
 }
 
+function updateRowByKey(keyField, keyValue, patch) {
+  if (!keyField || keyValue === undefined || keyValue === null || !patch) {
+    return false;
+  }
+  const rowIndex = store.data.findIndex((item) => {
+    return String(item?.[keyField]) === String(keyValue);
+  });
+  if (rowIndex < 0) {
+    return false;
+  }
+  store.data[rowIndex] = {
+    ...store.data[rowIndex],
+    ...patch,
+  };
+  return true;
+}
+
 // 设置分页参数
 function setupDefaultPageParams() {
   const { notPagination, pagination } = config.value;
@@ -396,6 +413,7 @@ defineExpose({
   getList,
   resetQuery,
   reload,
+  updateRowByKey,
 });
 </script>
 

@@ -49,7 +49,7 @@ import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 /**
  * 评测规则结果Service业务层处理
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-07-21
  */
 @Slf4j

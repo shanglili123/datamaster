@@ -11,12 +11,12 @@ import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.exception.DataQueryException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import com.datamaster.common.httpClient.HttpTaskLogger;
-import com.datamaster.quality.controller.qa.vo.DppEvaluateLogSaveReqVO;
-import com.datamaster.quality.dal.dataobject.datasource.DaDatasourceDO;
+import com.datamaster.quality.controller.qa.vo.EvaluateLogSaveReqVO;
+import com.datamaster.quality.dal.dataobject.datasource.DatasourceDO;
 import com.datamaster.quality.dal.dataobject.quality.CheckErrorData;
 import com.datamaster.quality.dal.dataobject.quality.QualityCheckResult;
 import com.datamaster.quality.dal.dataobject.quality.QualityRuleEntity;
-import com.datamaster.quality.service.qa.IDppEvaluateLogService;
+import com.datamaster.quality.service.qa.IEvaluateLogService;
 import com.datamaster.quality.utils.quality.MongoUtil;
 import com.datamaster.quality.utils.quality.QualitySqlGenerateFactory;
 import com.datamaster.quality.utils.quality.QualitySqlGenerator;
@@ -40,27 +40,27 @@ public class RuleExecutorTask implements Callable<QualityCheckResult> {
     private final QualitySqlGenerateFactory sqlFactory;
     private final MongoTemplate mongoTemplate;
     private final HttpTaskLogger logger;
-    private final IDppEvaluateLogService iDppEvaluateLogService;
+    private final IEvaluateLogService iEvaluateLogService;
 
     public RuleExecutorTask(QualityRuleEntity rule, String batch,
                             DbQuery dbQuery,
                             QualitySqlGenerateFactory sqlFactory,
                             MongoTemplate mongoTemplate,
                             HttpTaskLogger logger,
-                            IDppEvaluateLogService iDppEvaluateLogService) {
+                            IEvaluateLogService iEvaluateLogService) {
         this.rule = rule;
         this.batch = batch;
         this.dbQuery = dbQuery;
         this.sqlFactory = sqlFactory;
         this.mongoTemplate = mongoTemplate;
         this.logger = logger;
-        this.iDppEvaluateLogService = iDppEvaluateLogService;
+        this.iEvaluateLogService = iEvaluateLogService;
     }
 
     @Override
     public QualityCheckResult call() {
         try {
-            DppEvaluateLogSaveReqVO createReqVO = new DppEvaluateLogSaveReqVO(rule);
+            EvaluateLogSaveReqVO createReqVO = new EvaluateLogSaveReqVO(rule);
             logger.log("质量任务-开始执行规则，规则ID：" + rule.getId() + "，规则类型：" + rule.getRuleType());
             // 1. 生成 SQL 脚本（策略模式）
             logger.log("质量任务-获取 SQL 生成器并生成 SQL 脚本。");
@@ -103,13 +103,13 @@ public class RuleExecutorTask implements Callable<QualityCheckResult> {
 
                 createReqVO.setTotal((long)totalCount);
                 createReqVO.setProblemTotal((long)errorCount);
-                Long dppEvaluateLog = iDppEvaluateLogService.createDppEvaluateLog(createReqVO);
+                Long EvaluateLog = iEvaluateLogService.createEvaluateLog(createReqVO);
 
                 // 保存 Mongo 错误
                 logger.log("质量任务-开始写入错误数据至 MongoDB。");
                 for (JSONObject obj : errorList) {
                     CheckErrorData doc = CheckErrorData.builder()
-                            .reportId(String.valueOf(dppEvaluateLog))
+                            .reportId(String.valueOf(EvaluateLog))
 //                            .reportId(rule.getId())
                             .dataJsonStr(obj.toJSONString())
                             .dataJsonStrOLd(obj.toJSONString())

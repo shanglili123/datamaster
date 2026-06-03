@@ -41,7 +41,7 @@ public interface CollectorEtlTaskMapper extends BaseMapperX<CollectorEtlTaskDO> 
                 .select("t2.NAME AS catName",
                         "t3.CRON_EXPRESSION AS cronExpression"
                         ,"t3.STATUS AS schedulerState"
-                        , "(SELECT MAX(ti.CREATE_TIME) FROM COL_ETL_TASK_INSTANCE ti WHERE ti.TASK_CODE = t.CODE AND ti.DEL_FLAG = '0') AS lastExecuteTime")
+                        , "(SELECT MAX(CASE WHEN ti.END_TIME IS NOT NULL THEN ti.END_TIME WHEN ti.START_TIME IS NOT NULL THEN ti.START_TIME ELSE ti.CREATE_TIME END) FROM COL_ETL_TASK_INSTANCE ti WHERE ti.TASK_ID = t.ID AND ti.DEL_FLAG = '0') AS lastExecuteTime")
                 .leftJoin(leftJoin)
                 .leftJoin("COL_ETL_SCHEDULER t3 ON t.id = t3.task_id AND t3.DEL_FLAG = '0'")
                 .eq(StringUtils.isNotBlank(reqVO.getType()), CollectorEtlTaskDO::getType, reqVO.getType())

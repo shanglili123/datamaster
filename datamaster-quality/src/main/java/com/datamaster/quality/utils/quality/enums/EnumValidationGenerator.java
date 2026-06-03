@@ -12,21 +12,21 @@ public class EnumValidationGenerator implements QualitySqlGenerator {
     @Override
     public String generateSql(QualityRuleEntity rule) {
         ComponentRegistry registry = new ComponentRegistry();
-        ComponentItem componentItem = registry.getComponentItem(rule.getDaDatasourceById().getDatasourceType());
+        ComponentItem componentItem = registry.getComponentItem(rule.getDatasourceById().getDatasourceType());
         return componentItem.generateEnumValidationSql(rule);
     }
 
     @Override
     public String generateErrorSql(QualityRuleEntity rule) {
         ComponentRegistry registry = new ComponentRegistry();
-        ComponentItem componentItem = registry.getComponentItem(rule.getDaDatasourceById().getDatasourceType());
+        ComponentItem componentItem = registry.getComponentItem(rule.getDatasourceById().getDatasourceType());
         return componentItem.generateEnumValidationErrorSql(rule);
     }
 
     @Override
     public String generateValidDataSql(QualityRuleEntity rule, int limit, int offset) {
         ComponentRegistry registry = new ComponentRegistry();
-        ComponentItem componentItem = registry.getComponentItem(rule.getDaDatasourceById().getDatasourceType());
+        ComponentItem componentItem = registry.getComponentItem(rule.getDatasourceById().getDatasourceType());
         return componentItem.generateEnumValidationValidDataSql(rule,limit,offset);
     }
 }

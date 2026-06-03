@@ -40,12 +40,12 @@ public class AssetsAssetThemeRelServiceImpl extends ServiceImpl<AssetsAssetTheme
     private AssetsAssetThemeRelMapper AssetsAssetThemeRelMapper;
 
     @Override
-    public PageResult<AssetsAssetThemeRelDO> getDaAssetThemeRelPage(AssetsAssetThemeRelPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetThemeRelDO> getAssetThemeRelPage(AssetsAssetThemeRelPageReqVO pageReqVO) {
         return AssetsAssetThemeRelMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public List<AssetsAssetThemeRelRespVO> getDaAssetThemeRelList(AssetsAssetThemeRelPageReqVO pageReqVO) {
+    public List<AssetsAssetThemeRelRespVO> getAssetThemeRelList(AssetsAssetThemeRelPageReqVO pageReqVO) {
         MPJLambdaWrapper<AssetsAssetThemeRelDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.selectAll(AssetsAssetThemeRelDO.class)
                 .select("t2.NAME as themeName")
@@ -59,30 +59,30 @@ public class AssetsAssetThemeRelServiceImpl extends ServiceImpl<AssetsAssetTheme
     }
 
     @Override
-    public List<Long> getDaAssetIdList(List<Long> themeIdList) {
-        return AssetsAssetThemeRelMapper.getDaAssetIdList(themeIdList);
+    public List<Long> getAssetIdList(List<Long> themeIdList) {
+        return AssetsAssetThemeRelMapper.getAssetIdList(themeIdList);
     }
 
     @Override
-    public Long createDaAssetThemeRel(AssetsAssetThemeRelSaveReqVO createReqVO) {
+    public Long createAssetThemeRel(AssetsAssetThemeRelSaveReqVO createReqVO) {
         AssetsAssetThemeRelDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetThemeRelDO.class);
         AssetsAssetThemeRelMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public void createDaAssetThemeRelList(List<String> themeIdList, Long assetId) {
+    public void createAssetThemeRelList(List<String> themeIdList, Long assetId) {
         this.removeThemeRelByAssetId(assetId);
         for (String themeId : themeIdList) {
             AssetsAssetThemeRelSaveReqVO createReqVO = new AssetsAssetThemeRelSaveReqVO();
             createReqVO.setThemeId(JSONUtils.convertToLong(themeId));
             createReqVO.setAssetId(assetId);
-            this.createDaAssetThemeRel(createReqVO);
+            this.createAssetThemeRel(createReqVO);
         }
     }
 
     @Override
-    public int updateDaAssetThemeRel(AssetsAssetThemeRelSaveReqVO updateReqVO) {
+    public int updateAssetThemeRel(AssetsAssetThemeRelSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产-主题关联关系
@@ -91,29 +91,29 @@ public class AssetsAssetThemeRelServiceImpl extends ServiceImpl<AssetsAssetTheme
     }
 
     @Override
-    public int removeDaAssetThemeRel(Collection<Long> idList) {
+    public int removeAssetThemeRel(Collection<Long> idList) {
         // 批量删除数据资产-主题关联关系
         return AssetsAssetThemeRelMapper.deleteBatchIds(idList);
     }
 
     @Override
     public int removeThemeRelByAssetId(Long assetId) {
-        AssetsAssetThemeRelMapper.deleteDaAssetThemeRelByAssetId(assetId);
+        AssetsAssetThemeRelMapper.deleteAssetThemeRelByAssetId(assetId);
         return 1;
     }
 
     @Override
-    public AssetsAssetThemeRelDO getDaAssetThemeRelById(Long id) {
+    public AssetsAssetThemeRelDO getAssetThemeRelById(Long id) {
         return AssetsAssetThemeRelMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetThemeRelDO> getDaAssetThemeRelList() {
+    public List<AssetsAssetThemeRelDO> getAssetThemeRelList() {
         return AssetsAssetThemeRelMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetThemeRelDO> getDaAssetThemeRelMap() {
+    public Map<Long, AssetsAssetThemeRelDO> getAssetThemeRelMap() {
         List<AssetsAssetThemeRelDO> AssetsAssetThemeRelList = AssetsAssetThemeRelMapper.selectList();
         return AssetsAssetThemeRelList.stream()
                 .collect(Collectors.toMap(
@@ -133,7 +133,7 @@ public class AssetsAssetThemeRelServiceImpl extends ServiceImpl<AssetsAssetTheme
      * @return
      */
     @Override
-    public String importDaAssetThemeRel(List<AssetsAssetThemeRelRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAssetThemeRel(List<AssetsAssetThemeRelRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -149,8 +149,8 @@ public class AssetsAssetThemeRelServiceImpl extends ServiceImpl<AssetsAssetTheme
                 Long AssetsAssetThemeRelId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetThemeRelId != null) {
-                        AssetsAssetThemeRelDO existingDaAssetThemeRel = AssetsAssetThemeRelMapper.selectById(AssetsAssetThemeRelId);
-                        if (existingDaAssetThemeRel != null) {
+                        AssetsAssetThemeRelDO existingAssetThemeRel = AssetsAssetThemeRelMapper.selectById(AssetsAssetThemeRelId);
+                        if (existingAssetThemeRel != null) {
                             AssetsAssetThemeRelMapper.updateById(AssetsAssetThemeRelDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetThemeRelId + " -");
@@ -165,8 +165,8 @@ public class AssetsAssetThemeRelServiceImpl extends ServiceImpl<AssetsAssetTheme
                 } else {
                     QueryWrapper<AssetsAssetThemeRelDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetThemeRelId);
-                    AssetsAssetThemeRelDO existingDaAssetThemeRel = AssetsAssetThemeRelMapper.selectOne(queryWrapper);
-                    if (existingDaAssetThemeRel == null) {
+                    AssetsAssetThemeRelDO existingAssetThemeRel = AssetsAssetThemeRelMapper.selectOne(queryWrapper);
+                    if (existingAssetThemeRel == null) {
                         AssetsAssetThemeRelMapper.insert(AssetsAssetThemeRelDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetThemeRelId + " -");

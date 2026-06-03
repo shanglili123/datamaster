@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 /**
  * Service
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-05-09
  */
 @Slf4j
@@ -71,12 +71,12 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
     private IAssetsDatasourceService IAssetsDatasourceService;
 
     @Override
-    public PageResult<AssetsAssetOperateLogDO> getDaAssetOperateLogPage(AssetsAssetOperateLogPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetOperateLogDO> getAssetOperateLogPage(AssetsAssetOperateLogPageReqVO pageReqVO) {
         return AssetsAssetOperateLogMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public PageResult<AssetsAssetOperateLogDO> queryDaAssetOperateLogPage(AssetsAssetOperateLogPageReqVO AssetsAssetOperateLog) {
+    public PageResult<AssetsAssetOperateLogDO> queryAssetOperateLogPage(AssetsAssetOperateLogPageReqVO AssetsAssetOperateLog) {
 
         Map<String, Object> after = JSONUtils.convertTaskDefinitionJsonMap(AssetsAssetOperateLog.getUpdateBefore());
         Map<String, Object> keys = JSONUtils.convertTaskDefinitionJsonMap(AssetsAssetOperateLog.getFieldNames());
@@ -90,23 +90,23 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
     }
 
     @Override
-    public int removeDaAssetOperateLog(Collection<Long> idList) {
+    public int removeAssetOperateLog(Collection<Long> idList) {
         // 批量删除数据资产操作记录
         return AssetsAssetOperateLogMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetOperateLogDO getDaAssetOperateLogById(Long id) {
+    public AssetsAssetOperateLogDO getAssetOperateLogById(Long id) {
         return AssetsAssetOperateLogMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetOperateLogDO> getDaAssetOperateLogList() {
+    public List<AssetsAssetOperateLogDO> getAssetOperateLogList() {
         return AssetsAssetOperateLogMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetOperateLogDO> getDaAssetOperateLogMap() {
+    public Map<Long, AssetsAssetOperateLogDO> getAssetOperateLogMap() {
         List<AssetsAssetOperateLogDO> AssetsAssetOperateLogList = AssetsAssetOperateLogMapper.selectList();
         return AssetsAssetOperateLogList.stream()
                 .collect(Collectors.toMap(
@@ -126,7 +126,7 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
      * @return
      */
     @Override
-    public String importDaAssetOperateLog(List<AssetsAssetOperateLogRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAssetOperateLog(List<AssetsAssetOperateLogRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -142,8 +142,8 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
                 Long AssetsAssetOperateLogId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetOperateLogId != null) {
-                        AssetsAssetOperateLogDO existingDaAssetOperateLog = AssetsAssetOperateLogMapper.selectById(AssetsAssetOperateLogId);
-                        if (existingDaAssetOperateLog != null) {
+                        AssetsAssetOperateLogDO existingAssetOperateLog = AssetsAssetOperateLogMapper.selectById(AssetsAssetOperateLogId);
+                        if (existingAssetOperateLog != null) {
                             AssetsAssetOperateLogMapper.updateById(AssetsAssetOperateLogDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetOperateLogId + " ");
@@ -158,8 +158,8 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
                 } else {
                     QueryWrapper<AssetsAssetOperateLogDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetOperateLogId);
-                    AssetsAssetOperateLogDO existingDaAssetOperateLog = AssetsAssetOperateLogMapper.selectOne(queryWrapper);
-                    if (existingDaAssetOperateLog == null) {
+                    AssetsAssetOperateLogDO existingAssetOperateLog = AssetsAssetOperateLogMapper.selectOne(queryWrapper);
+                    if (existingAssetOperateLog == null) {
                         AssetsAssetOperateLogMapper.insert(AssetsAssetOperateLogDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetOperateLogId + " ");
@@ -188,7 +188,7 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
 
     @Override
     public void rollBack(Long id) {
-        AssetsAssetOperateLogDO AssetsAssetOperateLogById = this.getDaAssetOperateLogById(id);
+        AssetsAssetOperateLogDO AssetsAssetOperateLogById = this.getAssetOperateLogById(id);
         if (AssetsAssetOperateLogById == null || AssetsAssetOperateLogById.getDelFlag()) {
             throw new AssetOperateException("");
         }
@@ -202,7 +202,7 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
         String operateType = AssetsAssetOperateLogById.getOperateType();
         AssetsAssetOperateLogSaveReqVO bean = BeanUtils.toBean(AssetsAssetOperateLogById, AssetsAssetOperateLogSaveReqVO.class);
         this.applyOperateTypeLogic(bean, operateType);
-        this.updateDaAssetOperateLog(bean);
+        this.updateAssetOperateLog(bean);
     }
 
     /**
@@ -251,14 +251,14 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int updateDaAssetOperateLog(AssetsAssetOperateLogSaveReqVO updateReqVO) {
+    public int updateAssetOperateLog(AssetsAssetOperateLogSaveReqVO updateReqVO) {
         // 相关校验
         // 1. 校验资产和数据源
-        AssetsAssetRespVO asset = IAssetsAssetService.getDaAssetByIdSimple(updateReqVO.getAssetId());
+        AssetsAssetRespVO asset = IAssetsAssetService.getAssetByIdSimple(updateReqVO.getAssetId());
         if (asset == null || asset.getDelFlag()) {
             throw new AssetOperateException("");
         }
-        AssetsDatasourceRespVO ds = IAssetsDatasourceService.getDaDatasourceByIdSimple(updateReqVO.getDatasourceId());
+        AssetsDatasourceRespVO ds = IAssetsDatasourceService.getDatasourceByIdSimple(updateReqVO.getDatasourceId());
         if (ds == null) {
             throw new AssetOperateException("");
         }
@@ -283,13 +283,13 @@ public class AssetsAssetOperateLogServiceImpl extends ServiceImpl<AssetsAssetOpe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long createDaAssetOperateLog(AssetsAssetOperateLogSaveReqVO reqVO) {
+    public Long createAssetOperateLog(AssetsAssetOperateLogSaveReqVO reqVO) {
         // 1. 校验资产和数据源
-        AssetsAssetRespVO asset = IAssetsAssetService.getDaAssetByIdSimple(reqVO.getAssetId());
+        AssetsAssetRespVO asset = IAssetsAssetService.getAssetByIdSimple(reqVO.getAssetId());
         if (asset == null || asset.getDelFlag()) {
             throw new AssetOperateException("");
         }
-        AssetsDatasourceRespVO ds = IAssetsDatasourceService.getDaDatasourceByIdSimple(reqVO.getDatasourceId());
+        AssetsDatasourceRespVO ds = IAssetsDatasourceService.getDatasourceByIdSimple(reqVO.getDatasourceId());
         if (ds == null) {
             throw new AssetOperateException("");
         }

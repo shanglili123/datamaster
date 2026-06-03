@@ -35,12 +35,12 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
     private AssetsAssetApiParamMapper AssetsAssetApiParamMapper;
 
     @Override
-    public PageResult<AssetsAssetApiParamDO> getDaAssetApiParamPage(AssetsAssetApiParamPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetApiParamDO> getAssetApiParamPage(AssetsAssetApiParamPageReqVO pageReqVO) {
         return AssetsAssetApiParamMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public Long createDaAssetApiParam(AssetsAssetApiParamSaveReqVO createReqVO) {
+    public Long createAssetApiParam(AssetsAssetApiParamSaveReqVO createReqVO) {
         AssetsAssetApiParamDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetApiParamDO.class);
         AssetsAssetApiParamMapper.insert(dictType);
         return dictType.getId();
@@ -48,7 +48,7 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void createDaAssetApiParamDeep(List<AssetsAssetApiParamSaveReqVO> paramList, Long AssetsAssetApiId) {
+    public void createAssetApiParamDeep(List<AssetsAssetApiParamSaveReqVO> paramList, Long AssetsAssetApiId) {
         this.removeThemeRelByAssetApiId(AssetsAssetApiId);
         if (paramList == null || paramList.isEmpty()) {
             return;
@@ -67,7 +67,7 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
         vo.setApiId(AssetsAssetApiId);
         vo.setId(null);
         // 插入当前节点，获取生成的主键
-        Long newId = createDaAssetApiParam(vo);
+        Long newId = createAssetApiParam(vo);
         // 处理子节点
         List<AssetsAssetApiParamSaveReqVO> children = vo.getAssetsAssetApiParamList();
         if (children != null && !children.isEmpty()) {
@@ -76,7 +76,7 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
     }
 
     @Override
-    public int updateDaAssetApiParam(AssetsAssetApiParamSaveReqVO updateReqVO) {
+    public int updateAssetApiParam(AssetsAssetApiParamSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产-外部API-参数
@@ -84,7 +84,7 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
         return AssetsAssetApiParamMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetApiParam(Collection<Long> idList) {
+    public int removeAssetApiParam(Collection<Long> idList) {
         // 批量删除数据资产-外部API-参数
         return AssetsAssetApiParamMapper.deleteBatchIds(idList);
     }
@@ -96,16 +96,16 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
     }
 
     @Override
-    public AssetsAssetApiParamDO getDaAssetApiParamById(Long id) {
+    public AssetsAssetApiParamDO getAssetApiParamById(Long id) {
         return AssetsAssetApiParamMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetApiParamDO> getDaAssetApiParamList() {
+    public List<AssetsAssetApiParamDO> getAssetApiParamList() {
         return AssetsAssetApiParamMapper.selectList();
     }
     @Override
-    public List<AssetsAssetApiParamRespVO> getDaAssetApiParamList(Long id) {
+    public List<AssetsAssetApiParamRespVO> getAssetApiParamList(Long id) {
         MPJLambdaWrapper<AssetsAssetApiParamDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.eq(id != null, AssetsAssetApiParamDO::getApiId, id);
         List<AssetsAssetApiParamDO> AssetsAssetApiParamDOS = AssetsAssetApiParamMapper.selectList(lambdaWrapper);
@@ -150,7 +150,7 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
     }
 
     @Override
-    public Map<Long, AssetsAssetApiParamDO> getDaAssetApiParamMap() {
+    public Map<Long, AssetsAssetApiParamDO> getAssetApiParamMap() {
         List<AssetsAssetApiParamDO> AssetsAssetApiParamList = AssetsAssetApiParamMapper.selectList();
         return AssetsAssetApiParamList.stream()
                 .collect(Collectors.toMap(
@@ -170,7 +170,7 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
      * @return
      */
     @Override
-    public String importDaAssetApiParam(List<AssetsAssetApiParamRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAssetApiParam(List<AssetsAssetApiParamRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -186,8 +186,8 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
                 Long AssetsAssetApiParamId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetApiParamId != null) {
-                        AssetsAssetApiParamDO existingDaAssetApiParam = AssetsAssetApiParamMapper.selectById(AssetsAssetApiParamId);
-                        if (existingDaAssetApiParam != null) {
+                        AssetsAssetApiParamDO existingAssetApiParam = AssetsAssetApiParamMapper.selectById(AssetsAssetApiParamId);
+                        if (existingAssetApiParam != null) {
                             AssetsAssetApiParamMapper.updateById(AssetsAssetApiParamDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetApiParamId + " -API-");
@@ -202,8 +202,8 @@ public class AssetsAssetApiParamServiceImpl  extends ServiceImpl<AssetsAssetApiP
                 } else {
                     QueryWrapper<AssetsAssetApiParamDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetApiParamId);
-                    AssetsAssetApiParamDO existingDaAssetApiParam = AssetsAssetApiParamMapper.selectOne(queryWrapper);
-                    if (existingDaAssetApiParam == null) {
+                    AssetsAssetApiParamDO existingAssetApiParam = AssetsAssetApiParamMapper.selectOne(queryWrapper);
+                    if (existingAssetApiParam == null) {
                         AssetsAssetApiParamMapper.insert(AssetsAssetApiParamDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetApiParamId + " -API-");

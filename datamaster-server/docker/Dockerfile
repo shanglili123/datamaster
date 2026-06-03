@@ -11,9 +11,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
 WORKDIR $APP_HOME
 
 # 拷贝产物
-COPY ./target/*.jar ./qdata.jar
+COPY ./target/*.jar ./datamaster.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-Xms512m", "-Xmx2g", "-Dspring.profiles.active=prod","-jar","qdata.jar"]
+ENTRYPOINT ["java", "-Xms512m", "-Xmx2g", "-Dspring.profiles.active=prod","-jar","datamaster.jar"]
 CMD ["--server.port=8080"]

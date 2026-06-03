@@ -16,7 +16,7 @@ import javax.annotation.Resource;
 /**
  * 数据集成任务实例-日志Service业务层处理
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-08-05
  */
 @Slf4j

@@ -24,15 +24,15 @@ public interface IAssetsAssetThemeRelService extends IService<AssetsAssetThemeRe
      * @param pageReqVO
      * @return -
      */
-    PageResult<AssetsAssetThemeRelDO> getDaAssetThemeRelPage(AssetsAssetThemeRelPageReqVO pageReqVO);
+    PageResult<AssetsAssetThemeRelDO> getAssetThemeRelPage(AssetsAssetThemeRelPageReqVO pageReqVO);
 
     /**
      * -
      *
      * @return -
      */
-    List<AssetsAssetThemeRelRespVO> getDaAssetThemeRelList(AssetsAssetThemeRelPageReqVO pageReqVO);
-    List<Long> getDaAssetIdList(List<Long> themeIdList);
+    List<AssetsAssetThemeRelRespVO> getAssetThemeRelList(AssetsAssetThemeRelPageReqVO pageReqVO);
+    List<Long> getAssetIdList(List<Long> themeIdList);
 
     /**
      * -
@@ -40,23 +40,23 @@ public interface IAssetsAssetThemeRelService extends IService<AssetsAssetThemeRe
      * @param createReqVO -
      * @return -
      */
-    Long createDaAssetThemeRel(AssetsAssetThemeRelSaveReqVO createReqVO);
+    Long createAssetThemeRel(AssetsAssetThemeRelSaveReqVO createReqVO);
 
-    void createDaAssetThemeRelList(List<String> themeIdList, Long id);
+    void createAssetThemeRelList(List<String> themeIdList, Long id);
 
     /**
      * -
      *
      * @param updateReqVO -
      */
-    int updateDaAssetThemeRel(AssetsAssetThemeRelSaveReqVO updateReqVO);
+    int updateAssetThemeRel(AssetsAssetThemeRelSaveReqVO updateReqVO);
 
     /**
      * -
      *
      * @param idList -
      */
-    int removeDaAssetThemeRel(Collection<Long> idList);
+    int removeAssetThemeRel(Collection<Long> idList);
     int removeThemeRelByAssetId( Long assetId);
 
     /**
@@ -65,21 +65,21 @@ public interface IAssetsAssetThemeRelService extends IService<AssetsAssetThemeRe
      * @param id -
      * @return -
      */
-    AssetsAssetThemeRelDO getDaAssetThemeRelById(Long id);
+    AssetsAssetThemeRelDO getAssetThemeRelById(Long id);
 
     /**
      * -
      *
      * @return -
      */
-    List<AssetsAssetThemeRelDO> getDaAssetThemeRelList();
+    List<AssetsAssetThemeRelDO> getAssetThemeRelList();
 
     /**
      * - Map
      *
      * @return - Map
      */
-    Map<Long, AssetsAssetThemeRelDO> getDaAssetThemeRelMap();
+    Map<Long, AssetsAssetThemeRelDO> getAssetThemeRelMap();
 
     /**
      * -
@@ -89,5 +89,5 @@ public interface IAssetsAssetThemeRelService extends IService<AssetsAssetThemeRe
      * @param operName
      * @return
      */
-    String importDaAssetThemeRel(List<AssetsAssetThemeRelRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetThemeRel(List<AssetsAssetThemeRelRespVO> importExcelList, boolean isUpdateSupport, String operName);
 }

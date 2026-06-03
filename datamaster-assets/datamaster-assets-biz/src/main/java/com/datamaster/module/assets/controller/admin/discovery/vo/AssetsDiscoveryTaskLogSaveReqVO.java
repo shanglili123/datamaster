@@ -11,7 +11,7 @@ import com.datamaster.common.core.domain.BaseEntity;
 import javax.validation.constraints.Size;
 
 import java.util.Date;
-/** *  / Request VO DA_DISCOVERY_TASK_LOG * * @author qdata * @date 2025-02-17 */
+/** *  / Request VO DA_DISCOVERY_TASK_LOG * * @author lili.shang * @date 2025-02-17 */
 
 @Schema(description = " Response VO")
 @Data

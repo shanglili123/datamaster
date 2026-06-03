@@ -24,7 +24,7 @@ public interface IAssetsAssetAuditRuleService extends IService<AssetsAssetAuditR
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsAssetAuditRuleDO> getDaAssetAuditRulePage(AssetsAssetAuditRulePageReqVO pageReqVO);
+    PageResult<AssetsAssetAuditRuleDO> getAssetAuditRulePage(AssetsAssetAuditRulePageReqVO pageReqVO);
 
     /**
      *
@@ -32,21 +32,21 @@ public interface IAssetsAssetAuditRuleService extends IService<AssetsAssetAuditR
      * @param createReqVO
      * @return
      */
-    Long createDaAssetAuditRule(AssetsAssetAuditRuleSaveReqVO createReqVO);
+    Long createAssetAuditRule(AssetsAssetAuditRuleSaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaAssetAuditRule(AssetsAssetAuditRuleSaveReqVO updateReqVO);
+    int updateAssetAuditRule(AssetsAssetAuditRuleSaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaAssetAuditRule(Collection<Long> idList);
+    int removeAssetAuditRule(Collection<Long> idList);
 
     /**
      *
@@ -54,21 +54,21 @@ public interface IAssetsAssetAuditRuleService extends IService<AssetsAssetAuditR
      * @param id
      * @return
      */
-    AssetsAssetAuditRuleDO getDaAssetAuditRuleById(Long id);
+    AssetsAssetAuditRuleDO getAssetAuditRuleById(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsAssetAuditRuleDO> getDaAssetAuditRuleList();
+    List<AssetsAssetAuditRuleDO> getAssetAuditRuleList();
 
     /**
      *  Map
      *
      * @return  Map
      */
-    Map<Long, AssetsAssetAuditRuleDO> getDaAssetAuditRuleMap();
+    Map<Long, AssetsAssetAuditRuleDO> getAssetAuditRuleMap();
 
     /**
      *
@@ -78,6 +78,6 @@ public interface IAssetsAssetAuditRuleService extends IService<AssetsAssetAuditR
      * @param operName
      * @return
      */
-    String importDaAssetAuditRule(List<AssetsAssetAuditRuleRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetAuditRule(List<AssetsAssetAuditRuleRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
 }

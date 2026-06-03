@@ -7,8 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.datamaster.common.utils.JSONUtils;
 import com.datamaster.quality.controller.quality.vo.QualityRuleQueryReqDTO;
-import com.datamaster.quality.dal.dataobject.datasource.DaDatasourceDO;
-import com.datamaster.quality.dal.dataobject.qa.DppQualityTaskEvaluateDO;
+import com.datamaster.quality.dal.dataobject.datasource.DatasourceDO;
+import com.datamaster.quality.dal.dataobject.qa.QualityTaskEvaluateDO;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +41,7 @@ public class QualityRuleEntity {
     private String ruleColumn;
 
     private String dataId;
-    private DaDatasourceDO daDatasourceById;
+    private DatasourceDO datasourceById;
 
     private String ruleType;
 
@@ -116,33 +116,33 @@ public class QualityRuleEntity {
         }
     }
 
-    public QualityRuleEntity(DppQualityTaskEvaluateDO dppQualityTaskEvaluateDO) {
-        this.ruleCode = dppQualityTaskEvaluateDO.getRuleCode();
-        this.ruleName = dppQualityTaskEvaluateDO.getRuleName();
-        this.dimensionType = dppQualityTaskEvaluateDO.getDimensionType();
-        this.ruleDescription = dppQualityTaskEvaluateDO.getRuleDescription();
-        this.evaluateId = dppQualityTaskEvaluateDO.getId();
-        this.taskId = dppQualityTaskEvaluateDO.getTaskId();
+    public QualityRuleEntity(QualityTaskEvaluateDO QualityTaskEvaluateDO) {
+        this.ruleCode = QualityTaskEvaluateDO.getRuleCode();
+        this.ruleName = QualityTaskEvaluateDO.getRuleName();
+        this.dimensionType = QualityTaskEvaluateDO.getDimensionType();
+        this.ruleDescription = QualityTaskEvaluateDO.getRuleDescription();
+        this.evaluateId = QualityTaskEvaluateDO.getId();
+        this.taskId = QualityTaskEvaluateDO.getTaskId();
 
-        this.id = String.valueOf(dppQualityTaskEvaluateDO.getId());
+        this.id = String.valueOf(QualityTaskEvaluateDO.getId());
 
-        this.ruleType = dppQualityTaskEvaluateDO.getRuleType();
-        this.tableName = dppQualityTaskEvaluateDO.getTableName();
-        this.whereClause = dppQualityTaskEvaluateDO.getWhereClause();
-        this.ruleColumn = dppQualityTaskEvaluateDO.getEvaColumn(); // 若是单字段规则，取 evaColumn
+        this.ruleType = QualityTaskEvaluateDO.getRuleType();
+        this.tableName = QualityTaskEvaluateDO.getTableName();
+        this.whereClause = QualityTaskEvaluateDO.getWhereClause();
+        this.ruleColumn = QualityTaskEvaluateDO.getEvaColumn(); // 若是单字段规则，取 evaColumn
 
-        Map<String, Object> map = JSONUtils.convertTaskDefinitionJsonMap(dppQualityTaskEvaluateDO.getRule());
+        Map<String, Object> map = JSONUtils.convertTaskDefinitionJsonMap(QualityTaskEvaluateDO.getRule());
 
-        map.put("errDescription",dppQualityTaskEvaluateDO.getErrDescription());
-        map.put("suggestion",dppQualityTaskEvaluateDO.getSuggestion());
-        map.put("warningLevel",dppQualityTaskEvaluateDO.getWarningLevel());
-        map.put("evaluateName",dppQualityTaskEvaluateDO.getName());
+        map.put("errDescription",QualityTaskEvaluateDO.getErrDescription());
+        map.put("suggestion",QualityTaskEvaluateDO.getSuggestion());
+        map.put("warningLevel",QualityTaskEvaluateDO.getWarningLevel());
+        map.put("evaluateName",QualityTaskEvaluateDO.getName());
 
         this.config = map;
 
          ruleColumns = new ArrayList<>();
-        if (dppQualityTaskEvaluateDO.getEvaColumn() != null && !dppQualityTaskEvaluateDO.getEvaColumn().trim().isEmpty()) {
-            String[] columns = dppQualityTaskEvaluateDO.getEvaColumn().split(",");
+        if (QualityTaskEvaluateDO.getEvaColumn() != null && !QualityTaskEvaluateDO.getEvaColumn().trim().isEmpty()) {
+            String[] columns = QualityTaskEvaluateDO.getEvaColumn().split(",");
             for (String col : columns) {
                 if (col != null && !col.trim().isEmpty()) {
                     this.ruleColumns.add(col.trim());

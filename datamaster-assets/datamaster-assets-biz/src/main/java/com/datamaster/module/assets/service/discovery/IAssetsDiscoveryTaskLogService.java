@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * Service
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-02-17
  */
 public interface IAssetsDiscoveryTaskLogService extends IService<AssetsDiscoveryTaskLogDO> {

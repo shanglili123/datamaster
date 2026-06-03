@@ -24,7 +24,7 @@ public interface IAssetsAssetAuditAlertService extends IService<AssetsAssetAudit
      * @param pageReqVO
      * @return -
      */
-    PageResult<AssetsAssetAuditAlertDO> getDaAssetAuditAlertPage(AssetsAssetAuditAlertPageReqVO pageReqVO);
+    PageResult<AssetsAssetAuditAlertDO> getAssetAuditAlertPage(AssetsAssetAuditAlertPageReqVO pageReqVO);
 
     /**
      * -
@@ -32,21 +32,21 @@ public interface IAssetsAssetAuditAlertService extends IService<AssetsAssetAudit
      * @param createReqVO -
      * @return -
      */
-    Long createDaAssetAuditAlert(AssetsAssetAuditAlertSaveReqVO createReqVO);
+    Long createAssetAuditAlert(AssetsAssetAuditAlertSaveReqVO createReqVO);
 
     /**
      * -
      *
      * @param updateReqVO -
      */
-    int updateDaAssetAuditAlert(AssetsAssetAuditAlertSaveReqVO updateReqVO);
+    int updateAssetAuditAlert(AssetsAssetAuditAlertSaveReqVO updateReqVO);
 
     /**
      * -
      *
      * @param idList -
      */
-    int removeDaAssetAuditAlert(Collection<Long> idList);
+    int removeAssetAuditAlert(Collection<Long> idList);
 
     /**
      * -
@@ -54,21 +54,21 @@ public interface IAssetsAssetAuditAlertService extends IService<AssetsAssetAudit
      * @param id -
      * @return -
      */
-    AssetsAssetAuditAlertDO getDaAssetAuditAlertById(Long id);
+    AssetsAssetAuditAlertDO getAssetAuditAlertById(Long id);
 
     /**
      * -
      *
      * @return -
      */
-    List<AssetsAssetAuditAlertDO> getDaAssetAuditAlertList();
+    List<AssetsAssetAuditAlertDO> getAssetAuditAlertList();
 
     /**
      * - Map
      *
      * @return - Map
      */
-    Map<Long, AssetsAssetAuditAlertDO> getDaAssetAuditAlertMap();
+    Map<Long, AssetsAssetAuditAlertDO> getAssetAuditAlertMap();
 
     /**
      * -
@@ -78,6 +78,6 @@ public interface IAssetsAssetAuditAlertService extends IService<AssetsAssetAudit
      * @param operName
      * @return
      */
-    String importDaAssetAuditAlert(List<AssetsAssetAuditAlertRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetAuditAlert(List<AssetsAssetAuditAlertRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
 }

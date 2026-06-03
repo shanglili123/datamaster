@@ -38,7 +38,7 @@ import static com.datamaster.common.utils.DateUtils.YYYY_MM_DD_HH_MM_SS;
 /**
  * 数据质量日志Service业务层处理
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-07-19
  */
 @Slf4j

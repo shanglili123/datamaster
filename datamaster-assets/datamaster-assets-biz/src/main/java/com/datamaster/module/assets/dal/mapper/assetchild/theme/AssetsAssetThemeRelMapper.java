@@ -35,7 +35,7 @@ public interface AssetsAssetThemeRelMapper extends BaseMapperX<AssetsAssetThemeR
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
     }
 
-    void deleteDaAssetThemeRelByAssetId(Long id);
+    void deleteAssetThemeRelByAssetId(Long id);
 
-    List<Long> getDaAssetIdList(@Param("themeIdList") List<Long> themeIdList);
+    List<Long> getAssetIdList(@Param("themeIdList") List<Long> themeIdList);
 }

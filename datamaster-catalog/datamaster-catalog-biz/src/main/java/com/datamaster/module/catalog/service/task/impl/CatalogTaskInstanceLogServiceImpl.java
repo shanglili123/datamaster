@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * 采集任务实例-日志Service业务层处理
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-12-16
  */
 @Slf4j

@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * Service
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-05-09
  */
 public interface IAssetsAssetOperateLogService extends IService<AssetsAssetOperateLogDO> {
@@ -24,7 +24,7 @@ public interface IAssetsAssetOperateLogService extends IService<AssetsAssetOpera
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsAssetOperateLogDO> getDaAssetOperateLogPage(AssetsAssetOperateLogPageReqVO pageReqVO);
+    PageResult<AssetsAssetOperateLogDO> getAssetOperateLogPage(AssetsAssetOperateLogPageReqVO pageReqVO);
 
     /**
      *
@@ -32,21 +32,21 @@ public interface IAssetsAssetOperateLogService extends IService<AssetsAssetOpera
      * @param createReqVO
      * @return
      */
-    Long createDaAssetOperateLog(AssetsAssetOperateLogSaveReqVO createReqVO);
+    Long createAssetOperateLog(AssetsAssetOperateLogSaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaAssetOperateLog(AssetsAssetOperateLogSaveReqVO updateReqVO);
+    int updateAssetOperateLog(AssetsAssetOperateLogSaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaAssetOperateLog(Collection<Long> idList);
+    int removeAssetOperateLog(Collection<Long> idList);
 
     /**
      *
@@ -54,21 +54,21 @@ public interface IAssetsAssetOperateLogService extends IService<AssetsAssetOpera
      * @param id
      * @return
      */
-    AssetsAssetOperateLogDO getDaAssetOperateLogById(Long id);
+    AssetsAssetOperateLogDO getAssetOperateLogById(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsAssetOperateLogDO> getDaAssetOperateLogList();
+    List<AssetsAssetOperateLogDO> getAssetOperateLogList();
 
     /**
      *  Map
      *
      * @return  Map
      */
-    Map<Long, AssetsAssetOperateLogDO> getDaAssetOperateLogMap();
+    Map<Long, AssetsAssetOperateLogDO> getAssetOperateLogMap();
 
     /**
      *
@@ -78,9 +78,9 @@ public interface IAssetsAssetOperateLogService extends IService<AssetsAssetOpera
      * @param operName
      * @return
      */
-    String importDaAssetOperateLog(List<AssetsAssetOperateLogRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetOperateLog(List<AssetsAssetOperateLogRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     void rollBack(Long id);
 
-    PageResult<AssetsAssetOperateLogDO> queryDaAssetOperateLogPage(AssetsAssetOperateLogPageReqVO AssetsAssetOperateLog);
+    PageResult<AssetsAssetOperateLogDO> queryAssetOperateLogPage(AssetsAssetOperateLogPageReqVO AssetsAssetOperateLog);
 }

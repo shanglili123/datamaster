@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -25,12 +25,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetAuditScheduleVo">
+    <sql id="selectAssetAuditScheduleVo">
         select ID, ASSET_ID, SCHEDULE_FLAG, CRON_EXPRESSION, NODE_ID, NODE_CODE, TASK_ID, TASK_CODE, SYSTEM_JOB_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_AUDIT_SCHEDULE
     </sql>
 
-    <select id="selectDaAssetAuditScheduleList" parameterType="AssetsAssetAuditScheduleDO" resultMap="AssetsAssetAuditScheduleResult">
-        <include refid="selectDaAssetAuditScheduleVo"/>
+    <select id="selectAssetAuditScheduleList" parameterType="AssetsAssetAuditScheduleDO" resultMap="AssetsAssetAuditScheduleResult">
+        <include refid="selectAssetAuditScheduleVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="scheduleFlag != null  and scheduleFlag != ''"> and SCHEDULE_FLAG = #{scheduleFlag}</if>
@@ -44,12 +44,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetAuditScheduleById" parameterType="Long" resultMap="AssetsAssetAuditScheduleResult">
-        <include refid="selectDaAssetAuditScheduleVo"/>
+    <select id="selectAssetAuditScheduleById" parameterType="Long" resultMap="AssetsAssetAuditScheduleResult">
+        <include refid="selectAssetAuditScheduleVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetAuditSchedule" parameterType="AssetsAssetAuditScheduleDO">
+    <insert id="insertAssetAuditSchedule" parameterType="AssetsAssetAuditScheduleDO">
         insert into AST_ASSET_AUDIT_SCHEDULE
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -93,7 +93,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetAuditSchedule" parameterType="AssetsAssetAuditScheduleDO">
+    <update id="updateAssetAuditSchedule" parameterType="AssetsAssetAuditScheduleDO">
         update AST_ASSET_AUDIT_SCHEDULE
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -117,11 +117,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetAuditScheduleById" parameterType="Long">
+    <delete id="deleteAssetAuditScheduleById" parameterType="Long">
         delete from AST_ASSET_AUDIT_SCHEDULE where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetAuditScheduleByIds" parameterType="String">
+    <delete id="deleteAssetAuditScheduleByIds" parameterType="String">
         delete from AST_ASSET_AUDIT_SCHEDULE where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

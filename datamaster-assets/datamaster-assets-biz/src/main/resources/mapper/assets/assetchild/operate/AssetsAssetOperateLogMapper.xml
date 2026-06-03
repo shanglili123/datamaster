@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -31,12 +31,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetOperateLogVo">
+    <sql id="selectAssetOperateLogVo">
         select ID, ASSET_ID, DATASOURCE_ID, TABLE_NAME,UPDATE_WHERE_MD5, TABLE_COMMENT, OPERATE_TYPE, OPERATE_TIME, EXECUTE_TIME, UPDATE_BEFORE, UPDATE_AFTER, FIELD_NAMES, FILE_URL, FILE_NAME, STATUS, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_OPERATE_LOG
     </sql>
 
-    <select id="selectDaAssetOperateLogList" parameterType="AssetsAssetOperateLogDO" resultMap="AssetsAssetOperateLogResult">
-        <include refid="selectDaAssetOperateLogVo"/>
+    <select id="selectAssetOperateLogList" parameterType="AssetsAssetOperateLogDO" resultMap="AssetsAssetOperateLogResult">
+        <include refid="selectAssetOperateLogVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="datasourceId != null "> and DATASOURCE_ID = #{datasourceId}</if>
@@ -56,12 +56,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetOperateLogById" parameterType="Long" resultMap="AssetsAssetOperateLogResult">
-        <include refid="selectDaAssetOperateLogVo"/>
+    <select id="selectAssetOperateLogById" parameterType="Long" resultMap="AssetsAssetOperateLogResult">
+        <include refid="selectAssetOperateLogVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetOperateLog" parameterType="AssetsAssetOperateLogDO">
+    <insert id="insertAssetOperateLog" parameterType="AssetsAssetOperateLogDO">
         insert into AST_ASSET_OPERATE_LOG
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -117,7 +117,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetOperateLog" parameterType="AssetsAssetOperateLogDO">
+    <update id="updateAssetOperateLog" parameterType="AssetsAssetOperateLogDO">
         update AST_ASSET_OPERATE_LOG
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -147,11 +147,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetOperateLogById" parameterType="Long">
+    <delete id="deleteAssetOperateLogById" parameterType="Long">
         delete from AST_ASSET_OPERATE_LOG where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetOperateLogByIds" parameterType="String">
+    <delete id="deleteAssetOperateLogByIds" parameterType="String">
         delete from AST_ASSET_OPERATE_LOG where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * 元数据字段信息 - 日志Service接口
  *
- * @author qdata
+ * @author lili.shang
  * @date 2026-03-10
  */
 public interface ICatalogColumnLogService extends IService<CatalogColumnLogDO> {

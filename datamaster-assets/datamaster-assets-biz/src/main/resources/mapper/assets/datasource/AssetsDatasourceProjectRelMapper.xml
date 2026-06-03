@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -21,12 +21,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="dppAssigned"    column="DPP_ASSIGNED"    />
     </resultMap>
 
-    <sql id="selectDaDatasourceProjectRelVo">
+    <sql id="selectDatasourceProjectRelVo">
         select ID, PROJECT_ID, PROJECT_CODE, DATASOURCE_ID,DPP_ASSIGNED ,DESCRIPTION, VALID_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_DATASOURCE_PROJECT_REL
     </sql>
 
-    <select id="selectDaDatasourceProjectRelList" parameterType="AssetsDatasourceProjectRelDO" resultMap="AssetsDatasourceProjectRelResult">
-        <include refid="selectDaDatasourceProjectRelVo"/>
+    <select id="selectDatasourceProjectRelList" parameterType="AssetsDatasourceProjectRelDO" resultMap="AssetsDatasourceProjectRelResult">
+        <include refid="selectDatasourceProjectRelVo"/>
         <where>
             <if test="projectId != null "> and PROJECT_ID = #{projectId}</if>
             <if test="projectCode != null  and projectCode != ''"> and PROJECT_CODE = #{projectCode}</if>
@@ -37,12 +37,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaDatasourceProjectRelById" parameterType="Long" resultMap="AssetsDatasourceProjectRelResult">
-        <include refid="selectDaDatasourceProjectRelVo"/>
+    <select id="selectDatasourceProjectRelById" parameterType="Long" resultMap="AssetsDatasourceProjectRelResult">
+        <include refid="selectDatasourceProjectRelVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaDatasourceProjectRel" parameterType="AssetsDatasourceProjectRelDO">
+    <insert id="insertDatasourceProjectRel" parameterType="AssetsDatasourceProjectRelDO">
         insert into AST_DATASOURCE_PROJECT_REL
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -78,7 +78,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaDatasourceProjectRel" parameterType="AssetsDatasourceProjectRelDO">
+    <update id="updateDatasourceProjectRel" parameterType="AssetsDatasourceProjectRelDO">
         update AST_DATASOURCE_PROJECT_REL
         <trim prefix="SET" suffixOverrides=",">
             <if test="projectId != null">PROJECT_ID = #{projectId},</if>
@@ -98,11 +98,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaDatasourceProjectRelById" parameterType="Long">
+    <delete id="deleteDatasourceProjectRelById" parameterType="Long">
         delete from AST_DATASOURCE_PROJECT_REL where ID = #{id}
     </delete>
 
-    <delete id="deleteDaDatasourceProjectRelByIds" parameterType="String">
+    <delete id="deleteDatasourceProjectRelByIds" parameterType="String">
         delete from AST_DATASOURCE_PROJECT_REL where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -25,12 +25,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaDatasourceVo">
+    <sql id="selectDatasourceVo">
         select ID, DATASOURCE_NAME, DATASOURCE_TYPE, DATASOURCE_CONFIG, IP, PORT, LIST_COUNT, SYNC_COUNT, DATA_SIZE, DESCRIPTION, VALID_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_DATASOURCE
     </sql>
 
-    <select id="selectDaDatasourceList" parameterType="AssetsDatasourceDO" resultMap="AssetsDatasourceResult">
-        <include refid="selectDaDatasourceVo"/>
+    <select id="selectDatasourceList" parameterType="AssetsDatasourceDO" resultMap="AssetsDatasourceResult">
+        <include refid="selectDatasourceVo"/>
         <where>
             <if test="datasourceName != null  and datasourceName != ''"> and DATASOURCE_NAME like concat('%', #{datasourceName}, '%')</if>
             <if test="datasourceType != null  and datasourceType != ''"> and DATASOURCE_TYPE = #{datasourceType}</if>
@@ -45,12 +45,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaDatasourceById" parameterType="Long" resultMap="AssetsDatasourceResult">
-        <include refid="selectDaDatasourceVo"/>
+    <select id="selectDatasourceById" parameterType="Long" resultMap="AssetsDatasourceResult">
+        <include refid="selectDatasourceVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaDatasource" parameterType="AssetsDatasourceDO">
+    <insert id="insertDatasource" parameterType="AssetsDatasourceDO">
         insert into AST_DATASOURCE
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -94,7 +94,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaDatasource" parameterType="AssetsDatasourceDO">
+    <update id="updateDatasource" parameterType="AssetsDatasourceDO">
         update AST_DATASOURCE
         <trim prefix="SET" suffixOverrides=",">
             <if test="datasourceName != null">DATASOURCE_NAME = #{datasourceName},</if>
@@ -118,11 +118,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaDatasourceById" parameterType="Long">
+    <delete id="deleteDatasourceById" parameterType="Long">
         delete from AST_DATASOURCE where ID = #{id}
     </delete>
 
-    <delete id="deleteDaDatasourceByIds" parameterType="String">
+    <delete id="deleteDatasourceByIds" parameterType="String">
         delete from AST_DATASOURCE where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

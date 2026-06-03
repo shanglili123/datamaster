@@ -12,7 +12,7 @@ import java.util.Date;
 /**
  * 数据质量日志 创建/修改 Request VO COL_QUALITY_LOG
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-07-19
  */
 @Schema(description = "数据质量日志 Response VO")

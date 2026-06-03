@@ -19,7 +19,7 @@
           <div class="h2"><img class="icon" src="@/assets/da/asset/h2 (1).svg" alt="" />基础配置</div>
           <el-form-item label="任务优先级:" prop="taskPriority">
             <el-select v-model="form.taskPriority" placeholder="请选择任务优先级">
-              <el-option v-for="(item, index) in dpp_etl_task_priority" :key="index" :label="item.label"
+              <el-option v-for="(item, index) in col_etl_task_priority" :key="index" :label="item.label"
                 :value="item.value" />
             </el-select>
           </el-form-item>
@@ -134,7 +134,7 @@
 import { treeData } from "@/views/col/task/developTask/data";
 import { listDaDatasourceNoKafkaByProjectCode } from "@/api/ast/dataSource/dataSource";
 const { proxy } = getCurrentInstance();
-const { dpp_etl_task_priority } = proxy.useDict("dpp_etl_task_priority");
+const { col_etl_task_priority } = proxy.useDict("col_etl_task_priority");
 import useUserStore from "@/store/system/user";
 const userStore = useUserStore();
 const emits = defineEmits(["close"]);

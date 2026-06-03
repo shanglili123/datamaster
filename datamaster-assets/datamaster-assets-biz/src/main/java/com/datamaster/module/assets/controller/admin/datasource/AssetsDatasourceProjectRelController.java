@@ -1,2 +1,114 @@
-package com.datamaster.module.assets.controller.admin.datasource;import javax.annotation.Resource;import javax.servlet.http.HttpServletResponse;import javax.validation.Valid;import java.util.Arrays;import cn.hutool.core.date.DateUtil;import java.util.List;import io.swagger.v3.oas.annotations.Operation;import io.swagger.v3.oas.annotations.tags.Tag;import org.springframework.security.access.prepost.PreAuthorize;import org.springframework.validation.annotation.Validated;import org.springframework.web.bind.annotation.*;import org.springframework.web.multipart.MultipartFile;import com.datamaster.common.core.domain.AjaxResult;import com.datamaster.common.core.page.PageParam;import com.datamaster.common.annotation.Log;import com.datamaster.common.core.controller.BaseController;import com.datamaster.common.core.domain.CommonResult;import com.datamaster.common.core.page.PageResult;import com.datamaster.common.enums.BusinessType;import com.datamaster.common.utils.object.BeanUtils;import com.datamaster.common.utils.poi.ExcelUtil;import com.datamaster.common.exception.enums.GlobalErrorCodeConstants;import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceProjectRelPageReqVO;import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceProjectRelRespVO;import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceProjectRelSaveReqVO;import com.datamaster.module.assets.convert.datasource.AssetsDatasourceProjectRelConvert;import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceProjectRelDO;import com.datamaster.module.assets.service.datasource.IAssetsDatasourceProjectRelService;/** * 数据源与项目关联关系Controller * * @author DATAMASTER * @date 2025-03-13 */@Tag(name = "数据源与项目关联关系")@RestController@RequestMapping("/ast/dataSourceProjectRel")@Validated
-public class AssetsDatasourceProjectRelController extends BaseController {    @Resource    private IAssetsDatasourceProjectRelService AssetsDatasourceProjectRelService;    @Operation(summary = "查询数据源与项目关联关系列表")    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::list')")    @GetMapping("/list")    public CommonResult<PageResult<AssetsDatasourceProjectRelRespVO>> list(AssetsDatasourceProjectRelPageReqVO AssetsDatasourceProjectRel) {        PageResult<AssetsDatasourceProjectRelDO> page = AssetsDatasourceProjectRelService.getDaDatasourceProjectRelPage(AssetsDatasourceProjectRel);        return CommonResult.success(BeanUtils.toBean(page, AssetsDatasourceProjectRelRespVO.class));    }    @Operation(summary = "导出数据源与项目关联关系列表")    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::export')")    @Log(title = "数据源与项目关联关系", businessType = BusinessType.EXPORT)    @PostMapping("/export")    public void export(HttpServletResponse response, AssetsDatasourceProjectRelPageReqVO exportReqVO) {        exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);        List<AssetsDatasourceProjectRelDO> list = (List<AssetsDatasourceProjectRelDO>) AssetsDatasourceProjectRelService.getDaDatasourceProjectRelPage(exportReqVO).getRows();        ExcelUtil<AssetsDatasourceProjectRelRespVO> util = new ExcelUtil<>(AssetsDatasourceProjectRelRespVO.class);        util.exportExcel(response, AssetsDatasourceProjectRelConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");    }    @Operation(summary = "导入数据源与项目关联关系列表")    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::import')")    @Log(title = "数据源与项目关联关系", businessType = BusinessType.IMPORT)    @PostMapping("/importData")    public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {        ExcelUtil<AssetsDatasourceProjectRelRespVO> util = new ExcelUtil<>(AssetsDatasourceProjectRelRespVO.class);        List<AssetsDatasourceProjectRelRespVO> importExcelList = util.importExcel(file.getInputStream());        String operName = getUsername();        String message = AssetsDatasourceProjectRelService.importDaDatasourceProjectRel(importExcelList, updateSupport, operName);        return success(message);    }    @Operation(summary = "获取数据源与项目关联关系详细信息")    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::query')")    @GetMapping(value = "/{id}")    public CommonResult<AssetsDatasourceProjectRelRespVO> getInfo(@PathVariable("id") Long id) {        AssetsDatasourceProjectRelDO AssetsDatasourceProjectRelDO = AssetsDatasourceProjectRelService.getDaDatasourceProjectRelById(id);        return CommonResult.success(BeanUtils.toBean(AssetsDatasourceProjectRelDO, AssetsDatasourceProjectRelRespVO.class));    }    @Operation(summary = "新增数据源与项目关联关系")    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::add')")    @Log(title = "数据源与项目关联关系", businessType = BusinessType.INSERT)    @PostMapping    public CommonResult<Long> add(@Valid @RequestBody AssetsDatasourceProjectRelSaveReqVO AssetsDatasourceProjectRel) {        AssetsDatasourceProjectRel.setCreatorId(getUserId());        AssetsDatasourceProjectRel.setCreateBy(getNickName());        AssetsDatasourceProjectRel.setCreateTime(DateUtil.date());        return CommonResult.toAjax(AssetsDatasourceProjectRelService.createDaDatasourceProjectRel(AssetsDatasourceProjectRel));    }    @Operation(summary = "修改数据源与项目关联关系")    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::edit')")    @Log(title = "数据源与项目关联关系", businessType = BusinessType.UPDATE)    @PutMapping    public CommonResult<Integer> edit(@Valid @RequestBody AssetsDatasourceProjectRelSaveReqVO AssetsDatasourceProjectRel) {        AssetsDatasourceProjectRel.setUpdatorId(getUserId());        AssetsDatasourceProjectRel.setUpdateBy(getNickName());        AssetsDatasourceProjectRel.setUpdateTime(DateUtil.date());        return CommonResult.toAjax(AssetsDatasourceProjectRelService.updateDaDatasourceProjectRel(AssetsDatasourceProjectRel));    }    @Operation(summary = "删除数据源与项目关联关系")    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::remove')")    @Log(title = "数据源与项目关联关系", businessType = BusinessType.DELETE)    @DeleteMapping("/{ids}")    public CommonResult<Integer> remove(@PathVariable Long[] ids) {        return CommonResult.toAjax(AssetsDatasourceProjectRelService.removeDaDatasourceProjectRel(Arrays.asList(ids)));    }}
+package com.datamaster.module.assets.controller.admin.datasource;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import java.util.Arrays;
+
+import cn.hutool.core.date.DateUtil;
+
+import java.util.List;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import com.datamaster.common.core.domain.AjaxResult;
+import com.datamaster.common.core.page.PageParam;
+import com.datamaster.common.annotation.Log;
+import com.datamaster.common.core.controller.BaseController;
+import com.datamaster.common.core.domain.CommonResult;
+import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.enums.BusinessType;
+import com.datamaster.common.utils.object.BeanUtils;
+import com.datamaster.common.utils.poi.ExcelUtil;
+import com.datamaster.common.exception.enums.GlobalErrorCodeConstants;
+import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceProjectRelPageReqVO;
+import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceProjectRelRespVO;
+import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceProjectRelSaveReqVO;
+import com.datamaster.module.assets.convert.datasource.AssetsDatasourceProjectRelConvert;
+import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceProjectRelDO;
+import com.datamaster.module.assets.service.datasource.IAssetsDatasourceProjectRelService;
+
+/**
+ * 数据源与项目关联关系Controller * * @author DATAMASTER * @date 2025-03-13
+ */
+@Tag(name = "数据源与项目关联关系")
+@RestController
+@RequestMapping("/ast/dataSourceProjectRel")
+@Validated
+public class AssetsDatasourceProjectRelController extends BaseController {
+    @Resource
+    private IAssetsDatasourceProjectRelService AssetsDatasourceProjectRelService;
+
+    @Operation(summary = "查询数据源与项目关联关系列表")
+    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::list')")
+    @GetMapping("/list")
+    public CommonResult<PageResult<AssetsDatasourceProjectRelRespVO>> list(AssetsDatasourceProjectRelPageReqVO AssetsDatasourceProjectRel) {
+        PageResult<AssetsDatasourceProjectRelDO> page = AssetsDatasourceProjectRelService.getDatasourceProjectRelPage(AssetsDatasourceProjectRel);
+        return CommonResult.success(BeanUtils.toBean(page, AssetsDatasourceProjectRelRespVO.class));
+    }
+
+    @Operation(summary = "导出数据源与项目关联关系列表")
+    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::export')")
+    @Log(title = "数据源与项目关联关系", businessType = BusinessType.EXPORT)
+    @PostMapping("/export")
+    public void export(HttpServletResponse response, AssetsDatasourceProjectRelPageReqVO exportReqVO) {
+        exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
+        List<AssetsDatasourceProjectRelDO> list = (List<AssetsDatasourceProjectRelDO>) AssetsDatasourceProjectRelService.getDatasourceProjectRelPage(exportReqVO).getRows();
+        ExcelUtil<AssetsDatasourceProjectRelRespVO> util = new ExcelUtil<>(AssetsDatasourceProjectRelRespVO.class);
+        util.exportExcel(response, AssetsDatasourceProjectRelConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");
+    }
+
+    @Operation(summary = "导入数据源与项目关联关系列表")
+    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::import')")
+    @Log(title = "数据源与项目关联关系", businessType = BusinessType.IMPORT)
+    @PostMapping("/importData")
+    public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
+        ExcelUtil<AssetsDatasourceProjectRelRespVO> util = new ExcelUtil<>(AssetsDatasourceProjectRelRespVO.class);
+        List<AssetsDatasourceProjectRelRespVO> importExcelList = util.importExcel(file.getInputStream());
+        String operName = getUsername();
+        String message = AssetsDatasourceProjectRelService.importDatasourceProjectRel(importExcelList, updateSupport, operName);
+        return success(message);
+    }
+
+    @Operation(summary = "获取数据源与项目关联关系详细信息")
+    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::query')")
+    @GetMapping(value = "/{id}")
+    public CommonResult<AssetsDatasourceProjectRelRespVO> getInfo(@PathVariable("id") Long id) {
+        AssetsDatasourceProjectRelDO AssetsDatasourceProjectRelDO = AssetsDatasourceProjectRelService.getDatasourceProjectRelById(id);
+        return CommonResult.success(BeanUtils.toBean(AssetsDatasourceProjectRelDO, AssetsDatasourceProjectRelRespVO.class));
+    }
+
+    @Operation(summary = "新增数据源与项目关联关系")
+    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::add')")
+    @Log(title = "数据源与项目关联关系", businessType = BusinessType.INSERT)
+    @PostMapping
+    public CommonResult<Long> add(@Valid @RequestBody AssetsDatasourceProjectRelSaveReqVO AssetsDatasourceProjectRel) {
+        AssetsDatasourceProjectRel.setCreatorId(getUserId());
+        AssetsDatasourceProjectRel.setCreateBy(getNickName());
+        AssetsDatasourceProjectRel.setCreateTime(DateUtil.date());
+        return CommonResult.toAjax(AssetsDatasourceProjectRelService.createDatasourceProjectRel(AssetsDatasourceProjectRel));
+    }
+
+    @Operation(summary = "修改数据源与项目关联关系")
+    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::edit')")
+    @Log(title = "数据源与项目关联关系", businessType = BusinessType.UPDATE)
+    @PutMapping
+    public CommonResult<Integer> edit(@Valid @RequestBody AssetsDatasourceProjectRelSaveReqVO AssetsDatasourceProjectRel) {
+        AssetsDatasourceProjectRel.setUpdatorId(getUserId());
+        AssetsDatasourceProjectRel.setUpdateBy(getNickName());
+        AssetsDatasourceProjectRel.setUpdateTime(DateUtil.date());
+        return CommonResult.toAjax(AssetsDatasourceProjectRelService.updateDatasourceProjectRel(AssetsDatasourceProjectRel));
+    }
+
+    @Operation(summary = "删除数据源与项目关联关系")
+    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::remove')")
+    @Log(title = "数据源与项目关联关系", businessType = BusinessType.DELETE)
+    @DeleteMapping("/{ids}")
+    public CommonResult<Integer> remove(@PathVariable Long[] ids) {
+        return CommonResult.toAjax(AssetsDatasourceProjectRelService.removeDatasourceProjectRel(Arrays.asList(ids)));
+    }
+}

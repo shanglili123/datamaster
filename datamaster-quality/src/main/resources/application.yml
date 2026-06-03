@@ -197,7 +197,7 @@ knife4j:
     enable-search: false
     enable-footer: false
     enable-footer-custom: true
-    footer-custom-content: Apache License 2.0 | Copyright  2025-[江苏千桐科技有限公司])
+    footer-custom-content: Apache License 2.0
     enable-dynamic-parameter: false
     enable-debug: true
     enable-open-api: true

@@ -84,138 +84,7 @@
             </el-form-item>
           </el-form>
         </div>
-        <!-- ---------------------------- 报工 --------------------------------- -->
-        <el-popover
-          trigger="hover"
-          popper-style="
-                        width: 336px;
-                        height: 360px;
-                        background: #FFFFFF;
-                        box-shadow: 0px 2px 8px 0px rgba(0,0,0,0.15);
-                        padding:0;
-                    "
-        >
-          <template #reference>
-            <el-badge
-              :value="msgCount"
-              :max="99"
-              class="badge"
-              :class="msgCount > 0 ? 'flash' : ''"
-              :offset="[0, 0]"
-              :hidden="msgCount == 0"
-            >
-              <!-- <i class="iconfont right-menu-item hover-effect" style="font-size: 22px">&#xebe7;</i> -->
-              <i
-                class="iconfont icon-a-dingbulingdangxianxing right-menu-item hover-effect"
-                style="font-size: 20px"
-              ></i>
-            </el-badge>
-          </template>
-          <template #default>
-            <el-tabs
-              v-model="activeMsg"
-              stretch
-              class="mag-tabs"
-              @tab-click="handleClick"
-            >
-              <el-tab-pane label="消息提醒" name="first">
-                <div class="message-list">
-                  <div
-                    class="msg-item"
-                    v-for="(msg, index) in messages"
-                    :key="index"
-                    v-show="messages.length > 0"
-                  >
-                    <img
-                      class="icon"
-                      src="@/assets/system/images/layout/msg/icon1.png"
-                      alt=""
-                    />
-                    <div class="content">
-                      <div class="title">{{ msg.title }}</div>
-                      <div class="time">{{ msg.time }}</div>
-                    </div>
-                  </div>
-                  <el-empty
-                    v-show="
-                      messages.length == 0 ||
-                      messages == null ||
-                      messages == 'undefined'
-                    "
-                    :image-size="100"
-                    description="暂无消息"
-                    class="empty-block"
-                  />
-                </div>
-              </el-tab-pane>
-              <el-tab-pane label="通知" name="second">
-                <!--                <message-list :msg-category="'first'"></message-list>-->
-                <div class="message-list">
-                  <div
-                    class="msg-item"
-                    v-for="(msg, index) in noticeList"
-                    :key="index"
-                    v-show="msg.entityType == 1"
-                    @click="handleMessage(msg)"
-                  >
-                    <img
-                      class="icon"
-                      src="@/assets/system/images/layout/msg/icon1.png"
-                      alt=""
-                    />
-                    <div class="content">
-                      <div class="title">{{ msg.title }}</div>
-                      <div class="time">{{ msg.time }}</div>
-                    </div>
-                  </div>
-                </div>
-              </el-tab-pane>
-              <el-tab-pane label="公告" name="third">
-                <!--                <message-list :msg-category="'second'"></message-list>-->
-                <div class="message-list">
-                  <div
-                    class="msg-item"
-                    v-for="(msg, index) in noticeList"
-                    :key="index"
-                    v-show="msg.entityType == 2"
-                    @click="handleMessage(msg)"
-                  >
-                    <img
-                      class="icon"
-                      src="@/assets/system/images/layout/msg/icon1.png"
-                      alt=""
-                    />
-                    <div class="content">
-                      <div class="title">{{ msg.title }}</div>
-                      <div class="time">{{ msg.time }}</div>
-                    </div>
-                  </div>
-                </div>
-              </el-tab-pane>
-            </el-tabs>
-            <div class="msg-btns">
-              <div class="btn-item" @click="clearNotification">全部已读</div>
-              <div class="btn-item" @click="messageDetail">查看更多</div>
-            </div>
-          </template>
-        </el-popover>
-        <div class="right-menu-item hover-effect" @click="handleRefreshClick">
-          <!-- <el-icon size="22">
-                        <Refresh />
-                    </el-icon> -->
-          <i
-            class="iconfont icon-a-shuaxinxianxing"
-            style="font-size: 20px"
-          ></i>
-        </div>
 
-        <header-search id="header-search" class="right-menu-item" />
-
-        <screenfull id="screenfull" class="right-menu-item hover-effect" />
-
-        <!-- <el-tooltip content="布局大小" effect="dark" placement="bottom">
-                  <size-select id="size-select" class="right-menu-item hover-effect" />
-                </el-tooltip> -->
       </template>
       <div class="avatar-container">
         <el-dropdown
@@ -296,9 +165,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import TopNav from "@/components/TopNav";
 import Hamburger from "@/components/Hamburger";
 import Logo from "./Sidebar/Logo";
-import Screenfull from "@/components/Screenfull";
 import SizeSelect from "@/components/SizeSelect";
-import HeaderSearch from "@/components/HeaderSearch";
 import useAppStore from "@/store/system/app";
 import useUserStore from "@/store/system/user";
 import useSettingsStore from "@/store/system/settings";
@@ -535,7 +402,6 @@ function reportingForWork() {
 }
 
 function projectIdChange() {
-  // 从projectOptions中获取项目code
   const project = projectOptions.value.find(
     (item) => item.id === userStore.projectId
   );
@@ -543,7 +409,8 @@ function projectIdChange() {
     userStore.projectCode = project.code;
   }
   if (userStore.projectId) {
-    loadProjectMenus(userStore.projectId);
+    localStorage.setItem("dataMasterProjectId", userStore.projectId);
+    location.reload();
   } else {
     userStore.projectCode = "";
     localStorage.removeItem("dataMasterProjectId");

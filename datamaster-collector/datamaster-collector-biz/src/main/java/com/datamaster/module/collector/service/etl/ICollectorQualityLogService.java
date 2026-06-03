@@ -15,7 +15,7 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorQualityLogDO;
 /**
  * 数据质量日志Service接口
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-07-19
  */
 public interface ICollectorQualityLogService extends IService<CollectorQualityLogDO> {

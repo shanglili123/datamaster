@@ -36,19 +36,19 @@ public class AssetsAssetOperateApplyServiceImpl  extends ServiceImpl<AssetsAsset
     private AssetsAssetOperateApplyMapper AssetsAssetOperateApplyMapper;
 
     @Override
-    public PageResult<AssetsAssetOperateApplyDO> getDaAssetOperateApplyPage(AssetsAssetOperateApplyPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetOperateApplyDO> getAssetOperateApplyPage(AssetsAssetOperateApplyPageReqVO pageReqVO) {
         return AssetsAssetOperateApplyMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public Long createDaAssetOperateApply(AssetsAssetOperateApplySaveReqVO createReqVO) {
+    public Long createAssetOperateApply(AssetsAssetOperateApplySaveReqVO createReqVO) {
         AssetsAssetOperateApplyDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetOperateApplyDO.class);
         AssetsAssetOperateApplyMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetOperateApply(AssetsAssetOperateApplySaveReqVO updateReqVO) {
+    public int updateAssetOperateApply(AssetsAssetOperateApplySaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产操作申请
@@ -56,23 +56,23 @@ public class AssetsAssetOperateApplyServiceImpl  extends ServiceImpl<AssetsAsset
         return AssetsAssetOperateApplyMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetOperateApply(Collection<Long> idList) {
+    public int removeAssetOperateApply(Collection<Long> idList) {
         // 批量删除数据资产操作申请
         return AssetsAssetOperateApplyMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetOperateApplyDO getDaAssetOperateApplyById(Long id) {
+    public AssetsAssetOperateApplyDO getAssetOperateApplyById(Long id) {
         return AssetsAssetOperateApplyMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetOperateApplyDO> getDaAssetOperateApplyList() {
+    public List<AssetsAssetOperateApplyDO> getAssetOperateApplyList() {
         return AssetsAssetOperateApplyMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetOperateApplyDO> getDaAssetOperateApplyMap() {
+    public Map<Long, AssetsAssetOperateApplyDO> getAssetOperateApplyMap() {
         List<AssetsAssetOperateApplyDO> AssetsAssetOperateApplyList = AssetsAssetOperateApplyMapper.selectList();
         return AssetsAssetOperateApplyList.stream()
                 .collect(Collectors.toMap(
@@ -92,7 +92,7 @@ public class AssetsAssetOperateApplyServiceImpl  extends ServiceImpl<AssetsAsset
          * @return
          */
         @Override
-        public String importDaAssetOperateApply(List<AssetsAssetOperateApplyRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+        public String importAssetOperateApply(List<AssetsAssetOperateApplyRespVO> importExcelList, boolean isUpdateSupport, String operName) {
             if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
                 throw new ServiceException("");
             }
@@ -108,8 +108,8 @@ public class AssetsAssetOperateApplyServiceImpl  extends ServiceImpl<AssetsAsset
                     Long AssetsAssetOperateApplyId = respVO.getId();
                     if (isUpdateSupport) {
                         if (AssetsAssetOperateApplyId != null) {
-                            AssetsAssetOperateApplyDO existingDaAssetOperateApply = AssetsAssetOperateApplyMapper.selectById(AssetsAssetOperateApplyId);
-                            if (existingDaAssetOperateApply != null) {
+                            AssetsAssetOperateApplyDO existingAssetOperateApply = AssetsAssetOperateApplyMapper.selectById(AssetsAssetOperateApplyId);
+                            if (existingAssetOperateApply != null) {
                                 AssetsAssetOperateApplyMapper.updateById(AssetsAssetOperateApplyDO);
                                 successNum++;
                                 successMessages.add("ID " + AssetsAssetOperateApplyId + " ");
@@ -124,8 +124,8 @@ public class AssetsAssetOperateApplyServiceImpl  extends ServiceImpl<AssetsAsset
                     } else {
                         QueryWrapper<AssetsAssetOperateApplyDO> queryWrapper = new QueryWrapper<>();
                         queryWrapper.eq("id", AssetsAssetOperateApplyId);
-                        AssetsAssetOperateApplyDO existingDaAssetOperateApply = AssetsAssetOperateApplyMapper.selectOne(queryWrapper);
-                        if (existingDaAssetOperateApply == null) {
+                        AssetsAssetOperateApplyDO existingAssetOperateApply = AssetsAssetOperateApplyMapper.selectOne(queryWrapper);
+                        if (existingAssetOperateApply == null) {
                             AssetsAssetOperateApplyMapper.insert(AssetsAssetOperateApplyDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetOperateApplyId + " ");

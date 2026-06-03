@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.enums.ExecuteType;
-import com.datamaster.quality.dal.dataobject.asset.DaAssetDO;
-import com.datamaster.quality.service.asset.IDaAssetService;
+import com.datamaster.quality.dal.dataobject.asset.AssetDO;
+import com.datamaster.quality.service.asset.IAssetService;
 import com.datamaster.redis.service.IRedisService;
 
 import javax.annotation.Resource;
@@ -33,7 +33,7 @@ public class TestController {
     private IRedisService redisService;
 
     @Resource
-    private IDaAssetService daAssetService;
+    private IAssetService assetService;
 
     @PostMapping("/test2")
     public AjaxResult test2() {
@@ -43,8 +43,8 @@ public class TestController {
 
     @PostMapping("/test3")
     public AjaxResult test3() {
-        List<DaAssetDO> list = daAssetService.list(Wrappers.lambdaQuery(DaAssetDO.class)
-                .eq(DaAssetDO::getId, "198"));
+        List<AssetDO> list = assetService.list(Wrappers.lambdaQuery(AssetDO.class)
+                .eq(AssetDO::getId, "198"));
         return AjaxResult.success(list);
     }
 }

@@ -1,4 +1,4 @@
--- =====================================================
+﻿-- =====================================================
 -- PostgreSQL Dump - datamaster
 -- Generated: Mon May 25 23:17:06 CST 2026
 -- =====================================================
@@ -3921,11 +3921,11 @@ INSERT INTO public.dp_model_materialized (id, model_name, model_alias, model_id,
 (7, 'ST_RVFCCH_B', '河道站防洪指标表', 3, '4', '建表失败：StatementCallback; SQL [CREATE TABLE WATER_TP.ST_RVFCCH_B (\n  STCD VARCHAR2(1024),\n  STCD VARCHAR2(1024),\n  LDKEL VARCHAR2(1024),\n  RDKEL VARCHAR2(1024),\n  WRZ VARCHAR2(1024),\n  WRQ VARCHAR2(1024),\n  GRZ VARCHAR2(1024),\n  GRQ VARCHAR2(1024),\n  GRQ VARCHAR2(1024),\n  OBHTZ VARCHAR2(1024),\n  IVHZ VARCHAR2(1024)\n)]; Error in line: 13\nColumn [STCD] already exists; nested exception is dm.jdbc.driver.DMException: Error in line: 13\nColumn [STCD] already exists', '[CREATE TABLE WATER_TP.ST_RVFCCH_B (\n  STCD VARCHAR2(1024),\n  STCD VARCHAR2(1024),\n  LDKEL VARCHAR2(1024),\n  RDKEL VARCHAR2(1024),\n  WRZ VARCHAR2(1024),\n  WRQ VARCHAR2(1024),\n  GRZ VARCHAR2(1024),\n  GRQ VARCHAR2(1024),\n  GRQ VARCHAR2(1024),\n  OBHTZ VARCHAR2(1024),\n  IVHZ VARCHAR2(1024)\n), COMMENT ON TABLE WATER_TP.ST_RVFCCH_B IS ''河道站防洪指标表'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.STCD IS ''测站编码'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.STCD IS ''测站编码'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.LDKEL IS ''左堤高程'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.RDKEL IS ''右堤高程'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.WRZ IS ''警戒水位'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.WRQ IS ''警戒流量'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.GRZ IS ''保证水位'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.GRQ IS ''保证流量'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.GRQ IS ''保证流量'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.OBHTZ IS ''实测最高水位'', COMMENT ON COLUMN WATER_TP.ST_RVFCCH_B.IVHZ IS ''调查最高水'']', 12, 'DM8', '水资源管理系统（第三方库）', NULL, '1', '0', '吴同', 2, TIMESTAMP '2025-09-22 19:29:42.0', '吴同', 2, TIMESTAMP '2025-09-22 19:29:42.0', NULL);
 
 -- =====================================================
--- Table: dpp_etl_node
+-- Table: col_etl_node
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_node;
+DROP TABLE IF EXISTS public.col_etl_node;
 
-CREATE TABLE public.dpp_etl_node (
+CREATE TABLE public.col_etl_node (
   id BIGINT NOT NULL,
   task_type varchar NOT NULL DEFAULT '1',
   type varchar NOT NULL,
@@ -3956,9 +3956,9 @@ CREATE TABLE public.dpp_etl_node (
   component_type varchar NOT NULL DEFAULT '1'
 );
 
-COMMENT ON TABLE public.dpp_etl_node IS 'dpp_etl_node';
+COMMENT ON TABLE public.col_etl_node IS 'col_etl_node';
 
-INSERT INTO public.dpp_etl_node (id, task_type, type, name, code, version, project_id, project_code, parameters, priority, fail_retry_times, fail_retry_interval, timeout, delay_time, cpu_quota, memory_max, description, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, component_type) VALUES
+INSERT INTO public.col_etl_node (id, task_type, type, name, code, version, project_id, project_code, parameters, priority, fail_retry_times, fail_retry_interval, timeout, delay_time, cpu_quota, memory_max, description, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, component_type) VALUES
 (1, '1', 'DATAX', '表输入组件', '152438957987136', 2, 1, '152317790975712', '{\"tableFields\":[{\"columnName\":\"STATION_ID\",\"columnComment\":\"测站ID\",\"columnType\":\"NUMBER\",\"columnLength\":22,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\"},{\"columnName\":\"STATION_NAME\",\"columnComment\":\"测站名称\",\"columnType\":\"VARCHAR2\",\"columnLength\":200,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\"},{\"columnName\":\"AVG_WATER_LEVEL\",\"columnComment\":\"月平均水位\",\"columnType\":\"VARCHAR2\",\"columnLength\":200,\"columnScale\":0,\"nullableFlag\":\"0\",\"pkFlag\":\"0\"},{\"columnName\":\"STAT_MONTH\",\"columnComment\":\"统计时间（YYYY-MM，例如：2025-01）\",\"columnType\":\"VARCHAR2\",\"columnLength\":7,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\"}],\"csvFile\":\"\",\"columns\":[\"STATION_ID\",\"STATION_NAME\",\"AVG_WATER_LEVEL\",\"STAT_MONTH\"],\"typeName\":\"表输入组件\",\"icon\":\"data:image/svg+xml,%3csvg%20xmlns=''http://www.w3.org/2000/svg''%20width=''17.623''%20height=''17.617''%20viewBox=''0%200%2017.623%2017.617''%3e%3cg%20id=''%E7%BB...', 'MEDIUM', 0, 1, 0, 0, -1, -1, NULL, NULL, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-30 14:34:20.0', NULL, '1'),
 (2, '1', 'VALUE_RANGE', '数值范围', '152438963735872', 1, 1, '152317790975712', '{\"mainArgs\":{\"cleanRuleList\":[]},\"tableFields\":[{\"max\":50,\"label\":\"蓝色预警\"},{\"min\":50,\"max\":60,\"label\":\"黄色预警\"},{\"min\":60,\"label\":\"红色预警\"}],\"defaultValue\":\"0.00\",\"unKnown\":\"\",\"typeName\":\"数值范围\",\"icon\":\"data:image/svg+xml,%3csvg%20xmlns=''http://www.w3.org/2000/svg''%20width=''17.711''%20height=''16.584''%20viewBox=''0%200%2017.711%2016.584''%3e%3cpath%20id=''%E8%B7%AF%E5%BE%84_22960''%20data-name=''%E8%B7%AF%E5%BE%84%2022960''%20d=''M14.333,93.933,17.2,97.516,14.333,101.1V98.233H2.867V101.1L0,97.516l2.867-3.583V96.8H14.333V93.933Zm-10.014-8.6v6H5.733V92.5H1.473V91.332H2.9V86.824l-1.462.343V85.961Zm10.033,0v6h1.415V92.5h-4.26V91.332h1.422V86.824l-1.462.343V85.961l2.885-.628ZM10.033,88.2v1.433H7.166V88.2h2.867Z''%20transform=''translate(0.256%20-85.086)''%20fill=''%232565fb''%20stroke=''%232666fb''%20stroke-width=''0.4''/%3e%3c/svg%3e\",\"type\":49,\"parentId\":\"\",\"outputField\":\"预警等级\",\"output\":\"\",\"inputFields\":[{\"columnName\":\"STATION_ID\...', 'MEDIUM', 0, 1, 0, 0, -1, -1, NULL, NULL, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL, '49'),
 (3, '1', 'DATAX', '表输出组件', '152438966134080', 6, 1, '152317790975712', '{\"postSql\":\"\",\"tableFields\":[{\"columnName\":\"STATION_ID\",\"columnComment\":\"测站ID\",\"columnType\":\"NUMBER\",\"columnLength\":22,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"STATION_NAME\",\"columnComment\":\"测站名称\",\"columnType\":\"VARCHAR2\",\"columnLength\":200,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"AVG_WATER_LEVEL\",\"columnComment\":\"月平均水位\",\"columnType\":\"VARCHAR2\",\"columnLength\":200,\"columnScale\":0,\"nullableFlag\":\"0\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"STAT_MONTH\",\"columnComment\":\"统计时间（YYYY-MM，例如：2025-01）\",\"columnType\":\"VARCHAR2\",\"columnLength\":7,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true}],\"selectedColumn\":\"\",\"target_columns\":[\"STATION_ID\",\"STATION_NAME\",\"AVG_WATER_LEVEL\",\"STAT_MONTH\"],\"tar...', 'MEDIUM', 0, 1, 0, 0, -1, -1, NULL, NULL, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-30 14:34:20.0', NULL, '91'),
@@ -4017,11 +4017,11 @@ INSERT INTO public.dpp_etl_node (id, task_type, type, name, code, version, proje
 (123, '3', 'SQL', 'Kingbase_水位日统计', '153383838261792', 2, 1, '152317790975712', '{\"taskPriority\":\"MEDIUM\",\"workerGroup\":\"default\",\"failRetryTimes\":0,\"failRetryInterval\":1,\"delayTime\":1,\"jobManagerMemory\":\"1G\",\"taskManagerMemory\":\"2G\",\"slot\":1,\"taskManager\":2,\"parallelism\":1,\"yarnQueue\":\"\",\"driverCores\":1,\"driverMemory\":\"512M\",\"numExecutors\":1,\"executorMemory\":\"1G\",\"executorCores\":1,\"typaCode\":\"Kingbase\",\"datasourceId\":5,\"sqlType\":\"0\",\"taskType\":\"SQL\",\"segm\":\"\",\"componentType\":\"51\",\"localParams\":[],\"sql\":\"/* ===========================================================\\r\\n   环境准备（按需修改库名）\\r\\n   =========================================================== */\\r\\n-- 可选：使用你的业务库\\r\\nCREATE DATABASE IF NOT EXISTS hydrology DEFAULT CHARACTER SET utf8mb4;\\r\\nUSE hydrology;\\r\\n\\r\\n/* ===========================================================\\r\\n   1) 报表表（日平均水位）\\r\\n   - 以 (station_code, stat_date) 做唯一键，兼容无维表场景\\r\\n   - 如存在维表，会同步写入 station_id / station_name\\r\\n   =========================...', 'MEDIUM', 0, 1, 0, 1, -1, -1, '【Kingbase 存储过程】查询水位实时数据，生成每日统计报表  ', 108, '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 16:09:14.0', '吴同', 2, TIMESTAMP '2025-09-30 16:09:14.0', NULL, '51');
 
 -- =====================================================
--- Table: dpp_etl_node_instance
+-- Table: col_etl_node_instance
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_node_instance;
+DROP TABLE IF EXISTS public.col_etl_node_instance;
 
-CREATE TABLE public.dpp_etl_node_instance (
+CREATE TABLE public.col_etl_node_instance (
   id BIGINT NOT NULL,
   task_type varchar NOT NULL DEFAULT '1',
   name varchar NOT NULL,
@@ -4060,9 +4060,9 @@ CREATE TABLE public.dpp_etl_node_instance (
   component_type varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_node_instance IS 'dpp_etl_node_instance';
+COMMENT ON TABLE public.col_etl_node_instance IS 'col_etl_node_instance';
 
-INSERT INTO public.dpp_etl_node_instance (id, task_type, name, node_type, node_id, node_code, node_version, task_instance_id, task_instance_name, project_id, project_code, submit_time, start_time, end_time, execute_path, log_path, parameters, priority, retry_times, fretry_interval, delay_time, cpu_quota, memory_max, status, ds_id, ds_task_instance_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, component_type) VALUES
+INSERT INTO public.col_etl_node_instance (id, task_type, name, node_type, node_id, node_code, node_version, task_instance_id, task_instance_name, project_id, project_code, submit_time, start_time, end_time, execute_path, log_path, parameters, priority, retry_times, fretry_interval, delay_time, cpu_quota, memory_max, status, ds_id, ds_task_instance_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, component_type) VALUES
 (61, '3', 'Flink流_水位信息采集', 'FLINK', 42, '152659477902656', 1, 61, 'Flink流_水位信息采集-1-20250922143548086', 1, '152317790975712', TIMESTAMP '2025-09-22 14:35:48.0', TIMESTAMP '2025-09-22 14:35:48.0', TIMESTAMP '2025-09-22 14:35:55.0', '/tmp/dolphinscheduler/exec/process/root/152317790975712/152659477902656_1/61/61', '/opt/dolphinscheduler/logs/20250922/152659477902656/1/61/61.log', '{\"taskPriority\":\"MEDIUM\",\"workerGroup\":\"default\",\"failRetryTimes\":0,\"failRetryInterval\":1,\"delayTime\":0,\"jobManagerMemory\":\"1G\",\"taskManagerMemory\":\"2G\",\"slot\":1,\"taskManager\":2,\"parallelism\":1,\"yarnQueue\":\"\",\"driverCores\":1,\"driverMemory\":\"512M\",\"numExecutors\":1,\"executorMemory\":\"1G\",\"executorCores\":1,\"typaCode\":\"FlinkStream\",\"datasourceId\":\"\",\"sqlType\":\"0\",\"taskType\":\"FLINK\",\"segm\":\"\",\"componentType\":\"55\",\"localParams\":[],\"executeMode\":\"STREAM\",\"sql\":\"-- ========= 1) 源表：MySQL (hyd.hyd_water_level)  =========\\r\\nCREATE TABLE src_hyd_water_level (\\r\\n  id              BIGINT,              -- MySQL: bigint(20)  GENERATED BY DEFAULT AS IDENTITY\\r\\n  station_code    STRING,\\r\\n  sensor_id       BIGINT,\\r\\n  obs_time        TIMESTAMP(3),        -- MySQL: timestamp(6)\\r\\n  obs_date        DATE,                -- MySQL: date\\r\\n  water_level_m   DECIMAL(10,3),\\r\\n  quality_code    STRING,\\r\\n  so...', '2', 0, 1, 0, -1, -1, '7', 61, 61, '1', '0', NULL, NULL, TIMESTAMP '2025-09-22 14:35:48.0', NULL, NULL, TIMESTAMP '2025-09-22 14:35:57.0', NULL, '55'),
 (62, '3', 'Flink流_水位信息采集', 'FLINK', 43, '152659477902656', 2, 62, 'Flink流_水位信息采集-2-20250922144400085', 1, '152317790975712', TIMESTAMP '2025-09-22 14:44:00.0', TIMESTAMP '2025-09-22 14:44:00.0', TIMESTAMP '2025-09-22 14:44:06.0', '/tmp/dolphinscheduler/exec/process/root/152317790975712/152659477902656_2/62/62', '/opt/dolphinscheduler/logs/20250922/152659477902656/2/62/62.log', '{\"taskPriority\":\"MEDIUM\",\"workerGroup\":\"default\",\"failRetryTimes\":0,\"failRetryInterval\":1,\"delayTime\":0,\"jobManagerMemory\":\"1G\",\"taskManagerMemory\":\"2G\",\"slot\":1,\"taskManager\":2,\"parallelism\":1,\"yarnQueue\":\"\",\"driverCores\":1,\"driverMemory\":\"512M\",\"numExecutors\":1,\"executorMemory\":\"1G\",\"executorCores\":1,\"typaCode\":\"FlinkStream\",\"datasourceId\":\"\",\"sqlType\":\"0\",\"taskType\":\"FLINK\",\"segm\":\"\",\"componentType\":\"55\",\"localParams\":[],\"sql\":\"-- ========= 1) 源表：MySQL (hyd.hyd_water_level)  =========\\r\\nCREATE TABLE src_hyd_water_level (\\r\\n  id              BIGINT,              -- MySQL: bigint(20)  GENERATED BY DEFAULT AS IDENTITY\\r\\n  station_code    STRING,\\r\\n  sensor_id       BIGINT,\\r\\n  obs_time        TIMESTAMP(3),        -- MySQL: timestamp(6)\\r\\n  obs_date        DATE,                -- MySQL: date\\r\\n  water_level_m   DECIMAL(10,3),\\r\\n  quality_code    STRING,\\r\\n  source          STRING,\\r\\n...', '2', 0, 1, 0, -1, -1, '7', 62, 62, '1', '0', NULL, NULL, TIMESTAMP '2025-09-22 14:44:00.0', NULL, NULL, TIMESTAMP '2025-09-22 14:44:07.0', NULL, '55'),
 (63, '3', 'Flink流_水位信息采集', 'FLINK', 43, '152659477902656', 2, 63, 'Flink流_水位信息采集-2-20250922144537365', 1, '152317790975712', TIMESTAMP '2025-09-22 14:45:37.0', TIMESTAMP '2025-09-22 14:45:37.0', TIMESTAMP '2025-09-22 14:45:44.0', '/tmp/dolphinscheduler/exec/process/root/152317790975712/152659477902656_2/63/63', '/opt/dolphinscheduler/logs/20250922/152659477902656/2/63/63.log', '{\"taskPriority\":\"MEDIUM\",\"workerGroup\":\"default\",\"failRetryTimes\":0,\"failRetryInterval\":1,\"delayTime\":0,\"jobManagerMemory\":\"1G\",\"taskManagerMemory\":\"2G\",\"slot\":1,\"taskManager\":2,\"parallelism\":1,\"yarnQueue\":\"\",\"driverCores\":1,\"driverMemory\":\"512M\",\"numExecutors\":1,\"executorMemory\":\"1G\",\"executorCores\":1,\"typaCode\":\"FlinkStream\",\"datasourceId\":\"\",\"sqlType\":\"0\",\"taskType\":\"FLINK\",\"segm\":\"\",\"componentType\":\"55\",\"localParams\":[],\"sql\":\"-- ========= 1) 源表：MySQL (hyd.hyd_water_level)  =========\\r\\nCREATE TABLE src_hyd_water_level (\\r\\n  id              BIGINT,              -- MySQL: bigint(20)  GENERATED BY DEFAULT AS IDENTITY\\r\\n  station_code    STRING,\\r\\n  sensor_id       BIGINT,\\r\\n  obs_time        TIMESTAMP(3),        -- MySQL: timestamp(6)\\r\\n  obs_date        DATE,                -- MySQL: date\\r\\n  water_level_m   DECIMAL(10,3),\\r\\n  quality_code    STRING,\\r\\n  source          STRING,\\r\\n...', '2', 0, 1, 0, -1, -1, '7', 63, 63, '1', '0', NULL, NULL, TIMESTAMP '2025-09-22 14:45:37.0', NULL, NULL, TIMESTAMP '2025-09-22 14:45:45.0', NULL, '55'),
@@ -4225,11 +4225,11 @@ INSERT INTO public.dpp_etl_node_instance (id, task_type, name, node_type, node_i
 (153384120108928, '1', '表输出组件', 'SPARK', 161, '152658593252672', 2, 153384102058880, '清洗_水位异常值处理-2-20250930160602166', 1, '152317790975712', TIMESTAMP '2025-09-30 16:06:23.0', TIMESTAMP '2025-09-30 16:06:00.0', TIMESTAMP '2025-09-30 16:06:25.0', NULL, NULL, '{\"postSql\":\"\",\"tableFields\":[{\"columnName\":\"ID\",\"columnComment\":\"记录主键（源）\",\"columnType\":\"NUMBER\",\"columnLength\":19,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"1\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"STATION_CODE\",\"columnComment\":\"站点编码\",\"columnType\":\"VARCHAR2\",\"columnLength\":64,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"OBS_TIME\",\"columnComment\":\"观测时间\",\"columnType\":\"TIMESTAMP\",\"columnLength\":8,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"WATER_LEVEL\",\"columnComment\":\"水位（米）\",\"columnType\":\"DECIMAL\",\"columnLength\":10,\"columnScale\":3,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"QUALITY_FLAG\",\"columnComment\":\"源端质控标识\",\"columnType\":\"VARCHAR2\",\"columnLength\":16,\"columnScale\":0,\"nullableFlag\":\"0\",...', '2', 0, 1, 0, -1, -1, '7', 153384120108928, 153384102058880, '1', '0', NULL, NULL, TIMESTAMP '2025-09-30 16:06:23.0', NULL, NULL, TIMESTAMP '2025-09-30 16:06:25.0', NULL, '91');
 
 -- =====================================================
--- Table: dpp_etl_node_instance_log
+-- Table: col_etl_node_instance_log
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_node_instance_log;
+DROP TABLE IF EXISTS public.col_etl_node_instance_log;
 
-CREATE TABLE public.dpp_etl_node_instance_log (
+CREATE TABLE public.col_etl_node_instance_log (
   node_instance_id BIGINT NOT NULL,
   tm timestamp NOT NULL,
   task_type varchar NOT NULL DEFAULT '1',
@@ -4248,15 +4248,15 @@ CREATE TABLE public.dpp_etl_node_instance_log (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_node_instance_log IS 'dpp_etl_node_instance_log';
+COMMENT ON TABLE public.col_etl_node_instance_log IS 'col_etl_node_instance_log';
 
 
 -- =====================================================
--- Table: dpp_etl_node_log
+-- Table: col_etl_node_log
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_node_log;
+DROP TABLE IF EXISTS public.col_etl_node_log;
 
-CREATE TABLE public.dpp_etl_node_log (
+CREATE TABLE public.col_etl_node_log (
   id BIGINT NOT NULL,
   task_type varchar NOT NULL DEFAULT '1',
   type varchar NOT NULL,
@@ -4287,9 +4287,9 @@ CREATE TABLE public.dpp_etl_node_log (
   component_type varchar NOT NULL DEFAULT '1'
 );
 
-COMMENT ON TABLE public.dpp_etl_node_log IS 'dpp_etl_node_log';
+COMMENT ON TABLE public.col_etl_node_log IS 'col_etl_node_log';
 
-INSERT INTO public.dpp_etl_node_log (id, task_type, type, name, code, version, project_id, project_code, parameters, priority, fail_retry_times, fail_retry_interval, timeout, delay_time, cpu_quota, memory_max, description, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, component_type) VALUES
+INSERT INTO public.col_etl_node_log (id, task_type, type, name, code, version, project_id, project_code, parameters, priority, fail_retry_times, fail_retry_interval, timeout, delay_time, cpu_quota, memory_max, description, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, component_type) VALUES
 (1, '1', 'DATAX', '表输入组件', '152438957987136', 1, 1, '152317790975712', '{\"tableFields\":[{\"columnName\":\"STATION_ID\",\"columnComment\":\"测站ID\",\"columnType\":\"NUMBER\",\"columnLength\":19,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\"},{\"columnName\":\"STATION_NAME\",\"columnComment\":\"测站名称\",\"columnType\":\"VARCHAR2\",\"columnLength\":200,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\"},{\"columnName\":\"AVG_WATER_LEVEL\",\"columnComment\":\"月平均水位\",\"columnType\":\"VARCHAR2\",\"columnLength\":200,\"columnScale\":0,\"nullableFlag\":\"0\",\"pkFlag\":\"0\"},{\"columnName\":\"STAT_MONTH\",\"columnComment\":\"统计时间（YYYY-MM，例如：2025-01）\",\"columnType\":\"VARCHAR2\",\"columnLength\":7,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\"}],\"csvFile\":\"\",\"columns\":[\"STATION_ID\",\"STATION_NAME\",\"AVG_WATER_LEVEL\",\"STAT_MONTH\"],\"typeName\":\"表输入组件\",\"icon\":\"data:image/svg+xml,%3csvg%20xmlns=''http://www.w3.org/2000/svg''%20width=''17.623''%20height=''17.617''%20viewBox=''0%200%2017.623%2017.617''%3e%3cg%20id=''%E7%BB...', 'MEDIUM', 0, 1, 0, 0, -1, -1, NULL, NULL, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL, '1'),
 (2, '1', 'VALUE_RANGE', '数值范围', '152438963735872', 1, 1, '152317790975712', '{\"mainArgs\":{\"cleanRuleList\":[]},\"tableFields\":[{\"max\":50,\"label\":\"蓝色预警\"},{\"min\":50,\"max\":60,\"label\":\"黄色预警\"},{\"min\":60,\"label\":\"红色预警\"}],\"defaultValue\":\"0.00\",\"unKnown\":\"\",\"typeName\":\"数值范围\",\"icon\":\"data:image/svg+xml,%3csvg%20xmlns=''http://www.w3.org/2000/svg''%20width=''17.711''%20height=''16.584''%20viewBox=''0%200%2017.711%2016.584''%3e%3cpath%20id=''%E8%B7%AF%E5%BE%84_22960''%20data-name=''%E8%B7%AF%E5%BE%84%2022960''%20d=''M14.333,93.933,17.2,97.516,14.333,101.1V98.233H2.867V101.1L0,97.516l2.867-3.583V96.8H14.333V93.933Zm-10.014-8.6v6H5.733V92.5H1.473V91.332H2.9V86.824l-1.462.343V85.961Zm10.033,0v6h1.415V92.5h-4.26V91.332h1.422V86.824l-1.462.343V85.961l2.885-.628ZM10.033,88.2v1.433H7.166V88.2h2.867Z''%20transform=''translate(0.256%20-85.086)''%20fill=''%232565fb''%20stroke=''%232666fb''%20stroke-width=''0.4''/%3e%3c/svg%3e\",\"type\":49,\"parentId\":\"\",\"outputField\":\"预警等级\",\"output\":\"\",\"inputFields\":[{\"columnName\":\"STATION_ID\...', 'MEDIUM', 0, 1, 0, 0, -1, -1, NULL, NULL, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL, '49'),
 (3, '1', 'DATAX', '表输出组件', '152438966134080', 1, 1, '152317790975712', '{\"postSql\":\"\",\"tableFields\":[{\"columnName\":\"STATION_ID\",\"columnComment\":\"测站ID\",\"columnType\":\"NUMBER\",\"columnLength\":19,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"STATION_NAME\",\"columnComment\":\"测站名称\",\"columnType\":\"VARCHAR2\",\"columnLength\":200,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"AVG_WATER_LEVEL\",\"columnComment\":\"月平均水位\",\"columnType\":\"VARCHAR2\",\"columnLength\":200,\"columnScale\":0,\"nullableFlag\":\"0\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"STAT_MONTH\",\"columnComment\":\"统计时间（YYYY-MM，例如：2025-01）\",\"columnType\":\"VARCHAR2\",\"columnLength\":7,\"columnScale\":0,\"nullableFlag\":\"1\",\"pkFlag\":\"0\",\"source\":\"表输入组件\",\"isChecked\":true},{\"columnName\":\"预警等级\",\"source\":\"数值范围\",\"isChecked\":true}],\"selectedColumn\":\"\",\"target_columns\":[\"statio...', 'MEDIUM', 0, 1, 0, 0, -1, -1, NULL, NULL, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL, '91'),
@@ -4452,11 +4452,11 @@ INSERT INTO public.dpp_etl_node_log (id, task_type, type, name, code, version, p
 (163, '3', 'SQL', 'Kingbase_水位日统计', '153383838261792', 2, 1, '152317790975712', '{\"taskPriority\":\"MEDIUM\",\"workerGroup\":\"default\",\"failRetryTimes\":0,\"failRetryInterval\":1,\"delayTime\":1,\"jobManagerMemory\":\"1G\",\"taskManagerMemory\":\"2G\",\"slot\":1,\"taskManager\":2,\"parallelism\":1,\"yarnQueue\":\"\",\"driverCores\":1,\"driverMemory\":\"512M\",\"numExecutors\":1,\"executorMemory\":\"1G\",\"executorCores\":1,\"typaCode\":\"Kingbase\",\"datasourceId\":5,\"sqlType\":\"0\",\"taskType\":\"SQL\",\"segm\":\"\",\"componentType\":\"51\",\"localParams\":[],\"sql\":\"/* ===========================================================\\r\\n   环境准备（按需修改库名）\\r\\n   =========================================================== */\\r\\n-- 可选：使用你的业务库\\r\\nCREATE DATABASE IF NOT EXISTS hydrology DEFAULT CHARACTER SET utf8mb4;\\r\\nUSE hydrology;\\r\\n\\r\\n/* ===========================================================\\r\\n   1) 报表表（日平均水位）\\r\\n   - 以 (station_code, stat_date) 做唯一键，兼容无维表场景\\r\\n   - 如存在维表，会同步写入 station_id / station_name\\r\\n   =========================...', 'MEDIUM', 0, 1, 0, 1, -1, -1, '【Kingbase 存储过程】查询水位实时数据，生成每日统计报表  ', 108, '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 16:09:15.0', '吴同', 2, TIMESTAMP '2025-09-30 16:09:15.0', NULL, '51');
 
 -- =====================================================
--- Table: dpp_etl_scheduler
+-- Table: col_etl_scheduler
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_scheduler;
+DROP TABLE IF EXISTS public.col_etl_scheduler;
 
-CREATE TABLE public.dpp_etl_scheduler (
+CREATE TABLE public.col_etl_scheduler (
   id BIGINT NOT NULL,
   task_id BIGINT NOT NULL,
   task_code varchar NOT NULL,
@@ -4478,9 +4478,9 @@ CREATE TABLE public.dpp_etl_scheduler (
   status varchar NOT NULL DEFAULT '-1'
 );
 
-COMMENT ON TABLE public.dpp_etl_scheduler IS 'dpp_etl_scheduler';
+COMMENT ON TABLE public.col_etl_scheduler IS 'col_etl_scheduler';
 
-INSERT INTO public.dpp_etl_scheduler (id, task_id, task_code, start_time, end_time, timezone_id, cron_expression, failure_strategy, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, status) VALUES
+INSERT INTO public.col_etl_scheduler (id, task_id, task_code, start_time, end_time, timezone_id, cron_expression, failure_strategy, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, status) VALUES
 (1, 1, '152416145463616', TIMESTAMP '2025-09-20 00:09:32.0', TIMESTAMP '2125-08-27 00:09:32.0', 'Asia/Shanghai', '0 0 0 1 * ?', '1', -1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:34:47.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL, '0'),
 (2, 2, '152641133215040', TIMESTAMP '2025-09-22 09:25:52.0', TIMESTAMP '2125-08-29 09:25:52.0', 'Asia/Shanghai', '0 0 0 1 * ?', '1', -1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-22 09:03:40.0', '吴同', 2, TIMESTAMP '2025-09-22 09:25:52.0', NULL, '0'),
 (3, 3, '152642780310848', TIMESTAMP '2025-09-22 11:19:31.0', TIMESTAMP '2125-08-29 11:19:31.0', 'Asia/Shanghai', '0 0 0 1 * ?', '1', -1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-22 09:32:35.0', '吴同', 2, TIMESTAMP '2025-09-22 11:19:31.0', NULL, '0'),
@@ -4506,11 +4506,11 @@ INSERT INTO public.dpp_etl_scheduler (id, task_id, task_code, start_time, end_ti
 (27, 23, '153383838261792', TIMESTAMP '2025-09-30 16:08:34.0', TIMESTAMP '2125-09-06 16:08:34.0', 'Asia/Shanghai', '0 * * * * ?', '1', -1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 16:07:58.0', '吴同', 2, TIMESTAMP '2025-09-30 16:08:34.0', NULL, '0');
 
 -- =====================================================
--- Table: dpp_etl_sql_temp
+-- Table: col_etl_sql_temp
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_sql_temp;
+DROP TABLE IF EXISTS public.col_etl_sql_temp;
 
-CREATE TABLE public.dpp_etl_sql_temp (
+CREATE TABLE public.col_etl_sql_temp (
   id BIGINT NOT NULL,
   name varchar NOT NULL,
   type varchar NOT NULL,
@@ -4527,9 +4527,9 @@ CREATE TABLE public.dpp_etl_sql_temp (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_sql_temp IS 'dpp_etl_sql_temp';
+COMMENT ON TABLE public.col_etl_sql_temp IS 'col_etl_sql_temp';
 
-INSERT INTO public.dpp_etl_sql_temp (id, name, type, content, description, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
+INSERT INTO public.col_etl_sql_temp (id, name, type, content, description, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
 (1, 'create.table.kafka', '10', 'CREATE TABLE Kafka_Table (\n  event_time TIMESTAMP(3) METADATA FROM ''timestamp'',\n  partition BIGINT METADATA VIRTUAL,\n  offset BIGINT METADATA VIRTUAL,\n  user_id BIGINT,\n  item_id BIGINT,\n  behavior STRING\n) WITH (\n  ''connector'' = ''kafka'',\n  ''topic'' = ''user_behavior'',\n  ''properties.bootstrap.servers'' = ''localhost:9092'',\n  ''properties.group.id'' = ''testGroup'',\n  ''scan.startup.mode'' = ''earliest-offset'',\n  ''format'' = ''csv''\n);\n--可选: ''value.fields-include'' = ''ALL'',\n--可选: ''json.ignore-parse-errors'' = ''true'',\n--可选: ''key.fields-prefix'' = ''k_'',', 'kafka快速建表格式', '1', '0', NULL, NULL, TIMESTAMP '2025-06-25 14:19:31.0', NULL, NULL, TIMESTAMP '2025-06-25 14:19:31.0', NULL),
 (2, 'create.table.doris', '10', 'CREATE TABLE doris_table (\n    cid INT,\n    sid INT,\n    name STRING,\n    cls STRING,\n    score INT,\n    PRIMARY KEY (cid) NOT ENFORCED\n) WITH (\n''connector'' = ''doris'',\n''fenodes'' = ''127.0.0.1:8030'' ,\n''table.identifier'' = ''test.scoreinfo'',\n''username'' = ''root'',\n''password''=''''\n);', 'Doris快速建表', '1', '0', NULL, NULL, TIMESTAMP '2025-06-25 14:19:31.0', NULL, NULL, TIMESTAMP '2025-06-25 14:19:31.0', NULL),
 (3, 'create.table.jdbc', '10', 'CREATE TABLE JDBC_table (\n  id BIGINT,\n  name STRING,\n  age INT,\n  status BOOLEAN,\n  PRIMARY KEY (id) NOT ENFORCED\n) WITH (\n   ''connector'' = ''jdbc'',\n   ''url'' = ''jdbc:mysql://localhost:3306/mydatabase'',\n   ''table-name'' = ''users'',\n   ''username'' = ''root'',\n   ''password'' = ''123456''\n);\n--可选: ''sink.parallelism''=''1'',\n--可选: ''lookup.cache.ttl''=''1000s'',', 'JDBC建表语句', '1', '0', NULL, NULL, TIMESTAMP '2025-06-25 14:19:32.0', NULL, NULL, TIMESTAMP '2025-06-25 14:19:32.0', NULL),
@@ -4576,11 +4576,11 @@ INSERT INTO public.dpp_etl_sql_temp (id, name, type, content, description, valid
 (46, 'spark sql', '9', '-- 注册 MySQL 表为临时视图\nCREATE OR REPLACE TEMPORARY VIEW v_user\nUSING JDBC\nOPTIONS (\n  url \"jdbc:mysql://localhost:3306/demo?useSSL=false&serverTimezone=UTC\",\n  dbtable \"t_user\",\n  user \"账号\",\n  password \"密码\",\n  driver \"com.mysql.cj.jdbc.Driver\"\n);', 'spark sql', '1', '0', NULL, NULL, TIMESTAMP '2025-07-21 10:43:15.0', NULL, NULL, TIMESTAMP '2025-07-21 10:43:15.0', NULL);
 
 -- =====================================================
--- Table: dpp_etl_task
+-- Table: col_etl_task
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_task;
+DROP TABLE IF EXISTS public.col_etl_task;
 
-CREATE TABLE public.dpp_etl_task (
+CREATE TABLE public.col_etl_task (
   id BIGINT NOT NULL,
   cat_id BIGINT,
   cat_code varchar,
@@ -4613,9 +4613,9 @@ CREATE TABLE public.dpp_etl_task (
   draft_json text
 );
 
-COMMENT ON TABLE public.dpp_etl_task IS 'dpp_etl_task';
+COMMENT ON TABLE public.col_etl_task IS 'col_etl_task';
 
-INSERT INTO public.dpp_etl_task (id, cat_id, cat_code, type, name, code, version, project_id, project_code, person_charge, contact_number, locations, description, timeout, extraction_count, write_count, execution_type, status, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, etl_node_code, draft_json) VALUES
+INSERT INTO public.col_etl_task (id, cat_id, cat_code, type, name, code, version, project_id, project_code, person_charge, contact_number, locations, description, timeout, extraction_count, write_count, execution_type, status, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, etl_node_code, draft_json) VALUES
 (1, 5, 'A03A02', '1', '转化_水位预警等级校验', '152416145463616', 10, 1, '152317790975712', '2', '15365128327', '[{\"taskCode\":\"152438957987136\",\"x\":280,\"y\":70},{\"taskCode\":\"152438966134080\",\"x\":280,\"y\":320}]', '【达梦 → 应用层】据水位阈值划分红/黄/蓝三级预警', 0, NULL, NULL, 'PARALLEL', '1', 61, '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:34:47.0', '吴同', 2, TIMESTAMP '2025-09-30 15:26:36.0', NULL, NULL, '{\"name\":\"转化_水位预警等级校验\",\"catId\":5,\"catCode\":\"A03A02\",\"executionType\":\"PARALLEL\",\"crontab\":\"0 0 0 1 * ?\",\"releaseState\":\"0\",\"description\":\"【达梦 → Doris】据水位阈值划分红/黄/蓝三级预警\",\"contactNumber\":\"15365128327\",\"personCharge\":2,\"taskPriority\":\"\",\"workerGroup\":\"default\",\"failRetryTimes\":\"\",\"failRetryInterval\":\"\",\"delayTime\":\"\",\"taskType\":\"SPARK\",\"jobManagerMemory\":\"1G\",\"taskManagerMemory\":\"2G\",\"slot\":1,\"taskManager\":2,\"parallelism\":1,\"driverCores\":1,\"driverMemory\":\"512m\",\"numExecutors\":1,\"executorMemory\":\"512m\",\"executorCores\":1,\"yarnQueue\":\"\"}'),
 (2, 5, 'A03A02', '1', '转化_水位列转行', '152641133215040', 8, 1, '152317790975712', '2', '15365128327', '[{\"taskCode\":\"152641417179456\",\"x\":370,\"y\":90},{\"taskCode\":\"152641997202752\",\"x\":370,\"y\":260},{\"taskCode\":\"152641423539520\",\"x\":370,\"y\":400}]', '【达梦 →  明细层】将多字段水位统计表排序输出', 0, NULL, NULL, 'PARALLEL', '1', 67, '1', '0', '吴同', 2, TIMESTAMP '2025-09-22 09:03:40.0', '吴同', 2, TIMESTAMP '2025-09-30 15:39:27.0', NULL, NULL, '{\"catId\":5,\"name\":\"转化_水位列转行\",\"catCode\":\"A03A02\",\"executionType\":\"PARALLEL\",\"crontab\":\"0 0 0 1 * ?\",\"releaseState\":\"0\",\"description\":\"\",\"contactNumber\":\"15365128327\",\"personCharge\":2,\"taskPriority\":\"\",\"workerGroup\":\"default\",\"failRetryTimes\":\"\",\"failRetryInterval\":\"\",\"delayTime\":\"\",\"taskType\":\"SPARK\",\"jobManagerMemory\":\"1G\",\"taskManagerMemory\":\"2G\",\"slot\":1,\"taskManager\":2,\"parallelism\":1,\"driverCores\":1,\"driverMemory\":\"512m\",\"numExecutors\":1,\"executorMemory\":\"512m\",\"executorCores\":1,\"yarnQueue\":\"\"}'),
 (3, 5, 'A03A02', '1', '转化_水位行转列', '152642780310848', 3, 1, '152317790975712', '2', '15365128327', '[{\"taskCode\":\"152647305269568\",\"x\":320,\"y\":150},{\"taskCode\":\"152648763212096\",\"x\":310,\"y\":290}]', '【达梦 → 明细层】将逐时水位记录转为列式存储', 0, NULL, NULL, 'PARALLEL', '1', 73, '1', '0', '吴同', 2, TIMESTAMP '2025-09-22 09:32:35.0', '吴同', 2, TIMESTAMP '2025-09-30 15:39:26.0', NULL, NULL, '{\"name\":\"转化_水位行转列\",\"catId\":5,\"catCode\":\"A03A02\",\"executionType\":\"PARALLEL\",\"crontab\":\"0 0 0 1 * ?\",\"releaseState\":\"0\",\"description\":\"【达梦 → Doris】将逐时水位记录转为列式存储\",\"contactNumber\":\"15365128327\",\"personCharge\":2,\"taskPriority\":\"\",\"workerGroup\":\"default\",\"failRetryTimes\":\"\",\"failRetryInterval\":\"\",\"delayTime\":\"\",\"taskType\":\"SPARK\",\"jobManagerMemory\":\"1G\",\"taskManagerMemory\":\"2G\",\"slot\":1,\"taskManager\":2,\"parallelism\":1,\"driverCores\":1,\"driverMemory\":\"512m\",\"numExecutors\":1,\"executorMemory\":\"512m\",\"executorCores\":1,\"yarnQueue\":\"\"}'),
@@ -4641,11 +4641,11 @@ INSERT INTO public.dpp_etl_task (id, cat_id, cat_code, type, name, code, version
 (23, 4, 'A03A01', '3', 'Kingbase_水位日统计', '153383838261792', 1, 1, '152317790975712', '2', '15365128327', '[{\"taskCode\":153383838261792,\"x\":0,\"y\":0}]', '【Kingbase 存储过程】查询水位实时数据，生成每日统计报表  ', 0, NULL, NULL, 'PARALLEL', '1', 193, '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 16:07:57.0', '吴同', 2, TIMESTAMP '2025-09-30 16:09:22.0', NULL, NULL, '{\"id\":\"\",\"sqlData\":{\"content\":\"\"},\"queryParams\":{\"pageNum\":1,\"pageSize\":6},\"typaCode\":\"Kingbase\"}');
 
 -- =====================================================
--- Table: dpp_etl_task_ext
+-- Table: col_etl_task_ext
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_task_ext;
+DROP TABLE IF EXISTS public.col_etl_task_ext;
 
-CREATE TABLE public.dpp_etl_task_ext (
+CREATE TABLE public.col_etl_task_ext (
   id BIGINT NOT NULL,
   task_id BIGINT NOT NULL,
   etl_node_id BIGINT,
@@ -4666,9 +4666,9 @@ CREATE TABLE public.dpp_etl_task_ext (
   etl_task_version varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_task_ext IS 'dpp_etl_task_ext';
+COMMENT ON TABLE public.col_etl_task_ext IS 'col_etl_task_ext';
 
-INSERT INTO public.dpp_etl_task_ext (id, task_id, etl_node_id, etl_node_name, etl_node_code, etl_node_version, etl_relation_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, etl_task_code, etl_task_version) VALUES
+INSERT INTO public.col_etl_task_ext (id, task_id, etl_node_id, etl_node_name, etl_node_code, etl_node_version, etl_relation_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, etl_task_code, etl_task_version) VALUES
 (1, 1, 58, '转化_水位预警等级校验-2025-09-20', '152439162287424', 10, 196, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-30 15:22:38.0', NULL, '152439162752320', '9'),
 (2, 2, 59, '转化_水位列转行-2025-09-22', '152642396352832', 8, 203, '1', '0', '吴同', 2, TIMESTAMP '2025-09-22 09:25:52.0', '吴同', 2, TIMESTAMP '2025-09-30 15:38:30.0', NULL, '152642396472640', '7'),
 (3, 3, 62, '转化_水位行转列-2025-09-22', '152648927077696', 3, 204, '1', '0', '吴同', 2, TIMESTAMP '2025-09-22 11:19:31.0', '吴同', 2, TIMESTAMP '2025-09-30 15:39:24.0', NULL, '152648927087936', '2'),
@@ -4685,11 +4685,11 @@ INSERT INTO public.dpp_etl_task_ext (id, task_id, etl_node_id, etl_node_name, et
 (14, 14, 80, '清洗_水位异常值处理-2025-09-22', '152658885655872', 2, 221, '1', '0', '吴同', 2, TIMESTAMP '2025-09-22 14:13:36.0', '吴同', 2, TIMESTAMP '2025-09-30 16:05:39.0', NULL, '152658885689664', '1');
 
 -- =====================================================
--- Table: dpp_etl_task_instance
+-- Table: col_etl_task_instance
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_task_instance;
+DROP TABLE IF EXISTS public.col_etl_task_instance;
 
-CREATE TABLE public.dpp_etl_task_instance (
+CREATE TABLE public.col_etl_task_instance (
   id BIGINT NOT NULL,
   cat_id BIGINT NOT NULL,
   cat_code varchar NOT NULL,
@@ -4726,9 +4726,9 @@ CREATE TABLE public.dpp_etl_task_instance (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_task_instance IS 'dpp_etl_task_instance';
+COMMENT ON TABLE public.col_etl_task_instance IS 'col_etl_task_instance';
 
-INSERT INTO public.dpp_etl_task_instance (id, cat_id, cat_code, task_type, name, task_id, task_code, task_version, status_history, person_charge, contact_number, project_id, project_code, schedule_time, start_time, end_time, run_times, command_type, max_try_times, failure_strategy, sub_task_flag, status, parent_task_instance_id, parent_node_instance_id, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
+INSERT INTO public.col_etl_task_instance (id, cat_id, cat_code, task_type, name, task_id, task_code, task_version, status_history, person_charge, contact_number, project_id, project_code, schedule_time, start_time, end_time, run_times, command_type, max_try_times, failure_strategy, sub_task_flag, status, parent_task_instance_id, parent_node_instance_id, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
 (61, 7, 'A03A04', '3', 'Flink流_水位信息采集-1-20250922143548086', 15, '152659477902656', 1, '[{\"time\":\"2025-09-22 14:35:48\",\"state\":\"RUNNING_EXECUTION\",\"desc\":\"init running\"},{\"time\":\"2025-09-22 14:35:48\",\"state\":\"RUNNING_EXECUTION\",\"desc\":\"start a new process\"},{\"time\":\"2025-09-22 14:35:56\",\"state\":\"SUCCESS\",\"desc\":\"update by workflow executor\"}]', '2', '15365128327', 1, '152317790975712', TIMESTAMP '2025-09-22 14:35:47.0', TIMESTAMP '2025-09-22 14:35:48.0', TIMESTAMP '2025-09-22 14:35:56.0', 1, '0', 0, '1', '0', '7', NULL, NULL, 61, '1', '0', NULL, NULL, TIMESTAMP '2025-09-22 14:35:48.0', NULL, NULL, TIMESTAMP '2025-09-22 14:35:57.0', NULL),
 (62, 7, 'A03A04', '3', 'Flink流_水位信息采集-2-20250922144400085', 15, '152659477902656', 2, '[{\"time\":\"2025-09-22 14:44:00\",\"state\":\"RUNNING_EXECUTION\",\"desc\":\"init running\"},{\"time\":\"2025-09-22 14:44:00\",\"state\":\"RUNNING_EXECUTION\",\"desc\":\"start a new process\"},{\"time\":\"2025-09-22 14:44:06\",\"state\":\"SUCCESS\",\"desc\":\"update by workflow executor\"}]', '2', '15365128327', 1, '152317790975712', TIMESTAMP '2025-09-22 14:43:59.0', TIMESTAMP '2025-09-22 14:44:00.0', TIMESTAMP '2025-09-22 14:44:06.0', 1, '0', 0, '1', '0', '7', NULL, NULL, 62, '1', '0', NULL, NULL, TIMESTAMP '2025-09-22 14:44:00.0', NULL, NULL, TIMESTAMP '2025-09-22 14:44:07.0', NULL),
 (63, 7, 'A03A04', '3', 'Flink流_水位信息采集-2-20250922144537365', 15, '152659477902656', 2, '[{\"time\":\"2025-09-22 14:45:37\",\"state\":\"RUNNING_EXECUTION\",\"desc\":\"init running\"},{\"time\":\"2025-09-22 14:45:37\",\"state\":\"RUNNING_EXECUTION\",\"desc\":\"start a new process\"},{\"time\":\"2025-09-22 14:45:45\",\"state\":\"SUCCESS\",\"desc\":\"update by workflow executor\"}]', '2', '15365128327', 1, '152317790975712', TIMESTAMP '2025-09-22 14:45:36.0', TIMESTAMP '2025-09-22 14:45:37.0', TIMESTAMP '2025-09-22 14:45:45.0', 1, '0', 0, '1', '0', '7', NULL, NULL, 63, '1', '0', NULL, NULL, TIMESTAMP '2025-09-22 14:45:37.0', NULL, NULL, TIMESTAMP '2025-09-22 14:45:45.0', NULL),
@@ -4808,11 +4808,11 @@ INSERT INTO public.dpp_etl_task_instance (id, cat_id, cat_code, task_type, name,
 (153384102058880, 51, 'A03A09', '1', '清洗_水位异常值处理-2-20250930160602166', 14, '152658490054976', 2, NULL, '2', '15365128327', 1, '152317790975712', TIMESTAMP '2025-09-30 16:06:01.0', TIMESTAMP '2025-09-30 16:06:00.0', TIMESTAMP '2025-09-30 16:06:25.0', 1, '0', 0, '1', '0', '7', NULL, NULL, 153384102058880, '1', '0', NULL, NULL, TIMESTAMP '2025-09-30 16:06:03.0', NULL, NULL, TIMESTAMP '2025-09-30 16:06:25.0', NULL);
 
 -- =====================================================
--- Table: dpp_etl_task_instance_log
+-- Table: col_etl_task_instance_log
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_task_instance_log;
+DROP TABLE IF EXISTS public.col_etl_task_instance_log;
 
-CREATE TABLE public.dpp_etl_task_instance_log (
+CREATE TABLE public.col_etl_task_instance_log (
   task_instance_id BIGINT NOT NULL,
   tm timestamp NOT NULL,
   task_type varchar NOT NULL DEFAULT '1',
@@ -4830,15 +4830,15 @@ CREATE TABLE public.dpp_etl_task_instance_log (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_task_instance_log IS 'dpp_etl_task_instance_log';
+COMMENT ON TABLE public.col_etl_task_instance_log IS 'col_etl_task_instance_log';
 
 
 -- =====================================================
--- Table: dpp_etl_task_log
+-- Table: col_etl_task_log
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_task_log;
+DROP TABLE IF EXISTS public.col_etl_task_log;
 
-CREATE TABLE public.dpp_etl_task_log (
+CREATE TABLE public.col_etl_task_log (
   id BIGINT NOT NULL,
   type varchar NOT NULL DEFAULT '1',
   name varchar NOT NULL,
@@ -4867,9 +4867,9 @@ CREATE TABLE public.dpp_etl_task_log (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_task_log IS 'dpp_etl_task_log';
+COMMENT ON TABLE public.col_etl_task_log IS 'col_etl_task_log';
 
-INSERT INTO public.dpp_etl_task_log (id, type, name, code, version, project_id, project_code, person_charge, contact_number, locations, description, timeout, extraction_count, write_count, execution_type, status, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
+INSERT INTO public.col_etl_task_log (id, type, name, code, version, project_id, project_code, person_charge, contact_number, locations, description, timeout, extraction_count, write_count, execution_type, status, ds_id, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
 (1, '1', '转化_水位预警等级校验', '152416145463616', 1, 1, '152317790975712', '2', NULL, '[{\"taskCode\":152438957987136,\"x\":260,\"y\":140},{\"taskCode\":152438963735872,\"x\":280,\"y\":230},{\"taskCode\":152438966134080,\"x\":280,\"y\":320}]', '【达梦 → Doris】据水位阈值划分红/黄/蓝三级预警', 0, NULL, NULL, 'PARALLEL', '0', 61, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL),
 (2, '1', '转化_水位预警等级校验', '152416145463616', 2, 1, '152317790975712', '2', NULL, '[{\"taskCode\":\"152438957987136\",\"x\":260,\"y\":140},{\"taskCode\":\"152438963735872\",\"x\":280,\"y\":230},{\"taskCode\":\"152438966134080\",\"x\":280,\"y\":320}]', '【达梦 → Doris】据水位阈值划分红/黄/蓝三级预警', 0, NULL, NULL, 'PARALLEL', '0', 1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:13:15.0', '吴同', 2, TIMESTAMP '2025-09-20 00:13:15.0', NULL),
 (3, '1', '转化_水位预警等级校验', '152416145463616', 3, 1, '152317790975712', '2', NULL, '[{\"taskCode\":\"152438957987136\",\"x\":260,\"y\":140},{\"taskCode\":\"152438963735872\",\"x\":280,\"y\":230},{\"taskCode\":\"152438966134080\",\"x\":280,\"y\":320}]', '【达梦 → Doris】据水位阈值划分红/黄/蓝三级预警', 0, NULL, NULL, 'PARALLEL', '0', 1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:21:50.0', '吴同', 2, TIMESTAMP '2025-09-20 00:21:50.0', NULL),
@@ -4976,11 +4976,11 @@ INSERT INTO public.dpp_etl_task_log (id, type, name, code, version, project_id, 
 (104, '3', 'Kingbase_水位日统计', '153383838261792', 1, 1, '152317790975712', '2', NULL, '[{\"taskCode\":153383838261792,\"x\":0,\"y\":0}]', '【Kingbase 存储过程】查询水位实时数据，生成每日统计报表  ', 0, NULL, NULL, 'PARALLEL', '0', 193, '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 16:07:57.0', '吴同', 2, TIMESTAMP '2025-09-30 16:09:14.0', NULL);
 
 -- =====================================================
--- Table: dpp_etl_task_node_rel
+-- Table: col_etl_task_node_rel
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_task_node_rel;
+DROP TABLE IF EXISTS public.col_etl_task_node_rel;
 
-CREATE TABLE public.dpp_etl_task_node_rel (
+CREATE TABLE public.col_etl_task_node_rel (
   id BIGINT NOT NULL,
   project_id BIGINT NOT NULL,
   project_code varchar NOT NULL,
@@ -5004,9 +5004,9 @@ CREATE TABLE public.dpp_etl_task_node_rel (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_task_node_rel IS 'dpp_etl_task_node_rel';
+COMMENT ON TABLE public.col_etl_task_node_rel IS 'col_etl_task_node_rel';
 
-INSERT INTO public.dpp_etl_task_node_rel (id, project_id, project_code, task_id, task_code, task_version, pre_node_id, pre_node_code, pre_node_version, post_node_id, post_node_code, post_node_version, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
+INSERT INTO public.col_etl_task_node_rel (id, project_id, project_code, task_id, task_code, task_version, pre_node_id, pre_node_code, pre_node_version, post_node_id, post_node_code, post_node_version, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
 (1, 1, '152317790975712', 1, '152416145463616', 1, -1, '0', 1, 1, '152438957987136', 1, '1', '1', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL),
 (2, 1, '152317790975712', 1, '152416145463616', 1, 2, '152438963735872', 1, 3, '152438966134080', 1, '1', '1', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL),
 (3, 1, '152317790975712', 1, '152416145463616', 1, 1, '152438957987136', 1, 2, '152438963735872', 1, '1', '1', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL),
@@ -5237,11 +5237,11 @@ INSERT INTO public.dpp_etl_task_node_rel (id, project_id, project_code, task_id,
 (228, 1, '152317790975712', 23, '153383838261792', 1, -1, '0', 0, -1, '153383838261792', 2, '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 16:09:14.0', '吴同', 2, TIMESTAMP '2025-09-30 16:09:14.0', NULL);
 
 -- =====================================================
--- Table: dpp_etl_task_node_rel_log
+-- Table: col_etl_task_node_rel_log
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_etl_task_node_rel_log;
+DROP TABLE IF EXISTS public.col_etl_task_node_rel_log;
 
-CREATE TABLE public.dpp_etl_task_node_rel_log (
+CREATE TABLE public.col_etl_task_node_rel_log (
   id BIGINT NOT NULL,
   project_id BIGINT NOT NULL,
   project_code varchar NOT NULL,
@@ -5265,9 +5265,9 @@ CREATE TABLE public.dpp_etl_task_node_rel_log (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_etl_task_node_rel_log IS 'dpp_etl_task_node_rel_log';
+COMMENT ON TABLE public.col_etl_task_node_rel_log IS 'col_etl_task_node_rel_log';
 
-INSERT INTO public.dpp_etl_task_node_rel_log (id, project_id, project_code, task_id, task_code, task_version, pre_node_id, pre_node_code, pre_node_version, post_node_id, post_node_code, post_node_version, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
+INSERT INTO public.col_etl_task_node_rel_log (id, project_id, project_code, task_id, task_code, task_version, pre_node_id, pre_node_code, pre_node_version, post_node_id, post_node_code, post_node_version, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
 (1, 1, '152317790975712', 1, '152416145463616', 1, -1, '0', 1, 1, '152438957987136', 1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL),
 (2, 1, '152317790975712', 1, '152416145463616', 1, 2, '152438963735872', 1, 3, '152438966134080', 1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL),
 (3, 1, '152317790975712', 1, '152416145463616', 1, 1, '152438957987136', 1, 2, '152438963735872', 1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', '吴同', 2, TIMESTAMP '2025-09-20 00:09:32.0', NULL),
@@ -5467,11 +5467,11 @@ INSERT INTO public.dpp_etl_task_node_rel_log (id, project_id, project_code, task
 (197, 1, '152317790975712', 104, '153383838261792', 1, -1, '0', 0, -1, '153383838261792', 1, '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 16:08:34.0', '吴同', 2, TIMESTAMP '2025-09-30 16:08:34.0', NULL);
 
 -- =====================================================
--- Table: dpp_evaluate_log
+-- Table: col_evaluate_log
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_evaluate_log;
+DROP TABLE IF EXISTS public.col_evaluate_log;
 
-CREATE TABLE public.dpp_evaluate_log (
+CREATE TABLE public.col_evaluate_log (
   id BIGINT NOT NULL,
   table_name varchar(128),
   column_name varchar(128),
@@ -5497,9 +5497,9 @@ CREATE TABLE public.dpp_evaluate_log (
   PRIMARY KEY (id)
 );
 
-COMMENT ON TABLE public.dpp_evaluate_log IS 'dpp_evaluate_log';
+COMMENT ON TABLE public.col_evaluate_log IS 'col_evaluate_log';
 
-INSERT INTO public.dpp_evaluate_log (id, table_name, column_name, rule_code, rule_name, dimension_type, rule_description, task_log_id, evaluate_id, total, problem_total, check_date, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, rule) VALUES
+INSERT INTO public.col_evaluate_log (id, table_name, column_name, rule_code, rule_name, dimension_type, rule_description, task_log_id, evaluate_id, total, problem_total, check_date, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, rule) VALUES
 (22, 'STATION', 'STATION_CODE', '107', '字段字符类型校验', '2', '【准确性：字段字符类型校验】检查station_code不为空，且必须符合统一格式（如^[A-Z0-9_-]{3,32}$），避免站点编码缺失或异常。', '1', '1', 504, 0, TIMESTAMP '2025-09-23 11:37:07.235', '1', '0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:07.242', NULL, NULL, TIMESTAMP '2025-09-23 11:37:07.242', NULL, '{"ignoreNullValue":"1","regex":"^[A-Z0-9_-]{3,32}$","errDescription":"","evaColumns":[{"name":"STATION_ID","label":"STATION_ID/站点主键（源）"},{"name":"STATION_CODE","label":"STATION_CODE/站点编码（跨源统一关联键）"},{"name":"STATION_NAME","label":"STATION_NAME/站点名称"},{"name":"BASIN_CODE","label":"BASIN_CODE/流域编码"},{"name":"RIVER_NAME","label":"RIVER_NAME/河流名称"},{"name":"LONGITUDE","label":"LONGITUDE/经度"},{"name":"LATITUDE","label":"LATITUDE/纬度"},{"name":"ADMIN_REGION_CODE","label":"ADMIN_REGION_CODE/行政区划码"},{"name":"STATUS","label":"STATUS/1启用/0停用"},{"name":"CREATED_AT","label":"CREATED_AT/创建时间"},{"name":"UPDATED_AT","label":"UPDATED_AT/修改时间"}],"suggestion":"","warningLevel":"2","evaluateName":"站点编码非空与格式稽查","useRegexFlag":1,"allowedChars":["1"]}'),
 (23, 'ods_wr_water_level', 'water_level', '306', '数值字段范围校验', '3', '【一致性：数值字段范围校验】校验water_level数值应在合理范围（如 -10~100 米），超界需标记异常。', '2', '2', 16000, 0, TIMESTAMP '2025-09-23 11:37:09.289', '1', '0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:09.349', NULL, NULL, TIMESTAMP '2025-09-23 11:37:09.349', NULL, '{"includeBoundary":"1","minValue":"-10","errDescription":"","maxValue":"96","evaColumns":[{"name":"id","label":"id/记录主键（源）"},{"name":"station_code","label":"station_code/站点编码"},{"name":"obs_time","label":"obs_time/观测时间"},{"name":"water_level","label":"water_level/水位（米）"},{"name":"quality_flag","label":"quality_flag/源端质控标识"},{"name":"ts","label":"ts/源端变更时间"}],"suggestion":"","warningLevel":"2","evaluateName":"水位数值范围稽查"}'),
 (24, 'ods_wr_station', 'longitude', '306', '数值字段范围校验', '3', '【一致性：数值字段范围校验】校验经纬度是否落在合理区间（经度 -180180，纬度 -9090），小数位不得超过 6 位。', '4', '7', 16000, 7980, TIMESTAMP '2025-09-23 11:37:13.303', '1', '0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:13.407', NULL, NULL, TIMESTAMP '2025-09-23 11:37:13.407', NULL, '{"includeBoundary":"1","minValue":"-180180","errDescription":"","maxValue":"115","evaColumns":[{"name":"station_id","label":"station_id/站点主键（源）"},{"name":"station_code","label":"station_code/站点编码（跨源统一关联键）"},{"name":"station_name","label":"station_name/站点名称"},{"name":"basin_code","label":"basin_code/流域编码"},{"name":"river_name","label":"river_name/河流名称"},{"name":"longitude","label":"longitude/经度"},{"name":"latitude","label":"latitude/纬度"},{"name":"admin_region_code","label":"admin_region_code/行政区划码"},{"name":"status","label":"status/1启用/0停用"},{"name":"created_at","label":"created_at/创建时间"},{"name":"updated_at","label":"updated_at/修改时间"}],"suggestion":"","warningLevel":"2","evaluateName":"站点经纬度范围与精度稽查"}'),
@@ -5510,11 +5510,11 @@ INSERT INTO public.dpp_evaluate_log (id, table_name, column_name, rule_code, rul
 (29, 'ODS_WR_WATER_LEVEL', 'STATION_CODE,OBS_TIME', '311', '多字段组合唯一性校验', '3', '【唯一性：多字段组合唯一性校验】校验(station_code, obs_time)组合唯一，不得出现重复记录。', '10', '13', 1000, 0, TIMESTAMP '2025-09-30 15:36:06.247', '1', '0', NULL, NULL, TIMESTAMP '2025-09-30 15:36:06.263', NULL, NULL, TIMESTAMP '2025-09-30 15:36:06.263', NULL, '{"errDescription":"","evaColumns":[{"name":"ID","label":"ID"},{"name":"STATION_CODE","label":"STATION_CODE"},{"name":"OBS_TIME","label":"OBS_TIME"},{"name":"WATER_LEVEL","label":"WATER_LEVEL"},{"name":"QUALITY_FLAG","label":"QUALITY_FLAG"},{"name":"TS","label":"TS"}],"suggestion":"","warningLevel":"2","evaluateName":"水位重复记录稽查"}');
 
 -- =====================================================
--- Table: dpp_onl_desform
+-- Table: col_onl_desform
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_onl_desform;
+DROP TABLE IF EXISTS public.col_onl_desform;
 
-CREATE TABLE public.dpp_onl_desform (
+CREATE TABLE public.col_onl_desform (
   id BIGINT NOT NULL,
   desform_name varchar NOT NULL,
   desform_code varchar NOT NULL,
@@ -5540,15 +5540,15 @@ CREATE TABLE public.dpp_onl_desform (
   cat_code varchar
 );
 
-COMMENT ON TABLE public.dpp_onl_desform IS 'dpp_onl_desform';
+COMMENT ON TABLE public.col_onl_desform IS 'col_onl_desform';
 
 
 -- =====================================================
--- Table: dpp_onl_desform_data
+-- Table: col_onl_desform_data
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_onl_desform_data;
+DROP TABLE IF EXISTS public.col_onl_desform_data;
 
-CREATE TABLE public.dpp_onl_desform_data (
+CREATE TABLE public.col_onl_desform_data (
   id BIGINT NOT NULL,
   desform_code varchar NOT NULL,
   desform_name varchar NOT NULL,
@@ -5565,15 +5565,15 @@ CREATE TABLE public.dpp_onl_desform_data (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_onl_desform_data IS 'dpp_onl_desform_data';
+COMMENT ON TABLE public.col_onl_desform_data IS 'col_onl_desform_data';
 
 
 -- =====================================================
--- Table: dpp_quality_log
+-- Table: col_quality_log
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_quality_log;
+DROP TABLE IF EXISTS public.col_quality_log;
 
-CREATE TABLE public.dpp_quality_log (
+CREATE TABLE public.col_quality_log (
   id BIGINT NOT NULL,
   name varchar,
   success_flag varchar NOT NULL,
@@ -5594,9 +5594,9 @@ CREATE TABLE public.dpp_quality_log (
   path varchar
 );
 
-COMMENT ON TABLE public.dpp_quality_log IS 'dpp_quality_log';
+COMMENT ON TABLE public.col_quality_log IS 'col_quality_log';
 
-INSERT INTO public.dpp_quality_log (id, name, success_flag, start_time, end_time, quality_id, score, problem_data, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, path) VALUES
+INSERT INTO public.col_quality_log (id, name, success_flag, start_time, end_time, quality_id, score, problem_data, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, path) VALUES
 (1, '站点编码非空与格式稽查', '0', TIMESTAMP '2025-09-23 11:37:07.0', TIMESTAMP '2025-09-23 11:37:07.0', 1, NULL, NULL, '1', '0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:07.0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:07.0', NULL, '/usr/app/jar/job-log/taskLog-bcfb5e8d603f4ae59a2dc91ca1648f3a.txt'),
 (2, '水位数值范围稽查', '0', TIMESTAMP '2025-09-23 11:37:09.0', TIMESTAMP '2025-09-23 11:37:09.0', 2, NULL, NULL, '1', '0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:09.0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:09.0', NULL, '/usr/app/jar/job-log/taskLog-46f13b975b064f279ed13b42c1be35a6.txt'),
 (3, '数据完整性稽查', '0', TIMESTAMP '2025-09-23 11:37:11.0', TIMESTAMP '2025-09-23 11:37:11.0', 4, NULL, NULL, '1', '0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:11.0', NULL, NULL, TIMESTAMP '2025-09-23 11:37:11.0', NULL, '/usr/app/jar/job-log/taskLog-b9865c4ea5e24b5f858553660722f921.txt'),
@@ -5609,11 +5609,11 @@ INSERT INTO public.dpp_quality_log (id, name, success_flag, start_time, end_time
 (10, '水位重复记录稽查', '0', TIMESTAMP '2025-09-30 15:36:06.0', TIMESTAMP '2025-09-30 15:36:06.0', 11, NULL, NULL, '1', '0', NULL, NULL, TIMESTAMP '2025-09-30 15:36:06.0', NULL, NULL, TIMESTAMP '2025-09-30 15:36:06.0', NULL, '/usr/app/jar/job-log/taskLog-531738ae33234bc3aad8f4fdc4adac44.txt');
 
 -- =====================================================
--- Table: dpp_quality_task
+-- Table: col_quality_task
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_quality_task;
+DROP TABLE IF EXISTS public.col_quality_task;
 
-CREATE TABLE public.dpp_quality_task (
+CREATE TABLE public.col_quality_task (
   id BIGINT NOT NULL,
   task_name varchar NOT NULL,
   cat_code varchar NOT NULL,
@@ -5647,9 +5647,9 @@ CREATE TABLE public.dpp_quality_task (
   asset_id BIGINT
 );
 
-COMMENT ON TABLE public.dpp_quality_task IS 'dpp_quality_task';
+COMMENT ON TABLE public.col_quality_task IS 'col_quality_task';
 
-INSERT INTO public.dpp_quality_task (id, task_name, cat_code, contact, contact_id, contact_number, status, description, priority, worker_group, retry_times, retry_interval, strategy, cycle, delay_time, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, system_job_id, node_id, node_code, task_id, task_code, asset_flag, asset_id) VALUES
+INSERT INTO public.col_quality_task (id, task_name, cat_code, contact, contact_id, contact_number, status, description, priority, worker_group, retry_times, retry_interval, strategy, cycle, delay_time, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, system_job_id, node_id, node_code, task_id, task_code, asset_flag, asset_id) VALUES
 (1, '站点编码非空与格式稽查', 'A01A04', NULL, 2, NULL, '1', '【准确性：字段字符类型校验】检查station_code不为空，且必须符合统一格式（如^[A-Z0-9_-]{3,32}$），避免站点编码缺失或异常。', 'high', 'default', 0, 0, 'PARALLEL', '0 0 0 1 * ?', 0, '1', '1', '吴同', 2, TIMESTAMP '2025-09-19 17:00:09.0', '吴同', 2, TIMESTAMP '2025-09-30 14:44:48.0', NULL, 8, 64, '152650257637696', 57, '152414754586944', '0', NULL),
 (2, '水位数值范围稽查', 'A01A04', NULL, NULL, NULL, '1', '【一致性：数值字段范围校验】校验water_level数值应在合理范围（如 -10~100 米），超界需标记异常。', 'high', 'default', 0, 0, 'PARALLEL', '0 0 0 1 * ?', 0, '1', '1', '吴同', 2, TIMESTAMP '2025-09-19 17:02:50.0', '吴同', 2, TIMESTAMP '2025-09-30 14:44:54.0', NULL, 9, 101, '152734930566464', 58, '152414792195392', '0', NULL),
 (3, '水资源水位数据（原始库）_ods_wr_water_level_20250919170433', '-1', NULL, 0, NULL, '1', NULL, 'medium', 'default', 0, 0, 'PARALLEL', '0 0 0 * * ?', 0, '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:05:04.0', '吴同', 2, TIMESTAMP '2025-09-22 13:59:57.0', NULL, 14, 78, '152657963461952', 92, '152657963472192', '1', 1),
@@ -5664,11 +5664,11 @@ INSERT INTO public.dpp_quality_task (id, task_name, cat_code, contact, contact_i
 (12, '水文监测水位数据（原始库）_ODS_HYD_WATER_LEVEL_20250930152908', '-1', NULL, NULL, NULL, '0', NULL, 'medium', 'default', 0, 0, 'PARALLEL', '0 0 0 * * ?', 0, '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 15:30:32.0', '吴同', 2, TIMESTAMP '2025-09-30 15:30:36.0', NULL, 18, 106, '153381689437728', 169, '153381689458208', '1', 35);
 
 -- =====================================================
--- Table: dpp_quality_task_evaluate
+-- Table: col_quality_task_evaluate
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_quality_task_evaluate;
+DROP TABLE IF EXISTS public.col_quality_task_evaluate;
 
-CREATE TABLE public.dpp_quality_task_evaluate (
+CREATE TABLE public.col_quality_task_evaluate (
   id BIGINT NOT NULL,
   task_id BIGINT NOT NULL,
   name varchar NOT NULL,
@@ -5698,9 +5698,9 @@ CREATE TABLE public.dpp_quality_task_evaluate (
   rule_type varchar
 );
 
-COMMENT ON TABLE public.dpp_quality_task_evaluate IS 'dpp_quality_task_evaluate';
+COMMENT ON TABLE public.col_quality_task_evaluate IS 'col_quality_task_evaluate';
 
-INSERT INTO public.dpp_quality_task_evaluate (id, task_id, name, rule_code, rule_name, warning_level, dimension_type, status, rule_description, err_description, suggestion, where_clause, obj_id, obj_name, table_name, eva_column, rule, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, rule_type) VALUES
+INSERT INTO public.col_quality_task_evaluate (id, task_id, name, rule_code, rule_name, warning_level, dimension_type, status, rule_description, err_description, suggestion, where_clause, obj_id, obj_name, table_name, eva_column, rule, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, rule_type) VALUES
 (1, 1, '站点编码非空与格式稽查', '107', '字段字符类型校验', '2', '2', '1', '【准确性：字段字符类型校验】检查station_code不为空，且必须符合统一格式（如^[A-Z0-9_-]{3,32}$），避免站点编码缺失或异常。', NULL, NULL, NULL, 1, '站点基础信息（读源）', 'STATION', 'STATION_CODE', '{\"useRegexFlag\":1,\"allowedChars\":[\"1\"],\"ignoreNullValue\":\"1\",\"regex\":\"^[A-Z0-9_-]{3,32}$\",\"evaColumns\":[{\"name\":\"STATION_ID\",\"label\":\"STATION_ID/站点主键（源）\"},{\"name\":\"STATION_CODE\",\"label\":\"STATION_CODE/站点编码（跨源统一关联键）\"},{\"name\":\"STATION_NAME\",\"label\":\"STATION_NAME/站点名称\"},{\"name\":\"BASIN_CODE\",\"label\":\"BASIN_CODE/流域编码\"},{\"name\":\"RIVER_NAME\",\"label\":\"RIVER_NAME/河流名称\"},{\"name\":\"LONGITUDE\",\"label\":\"LONGITUDE/经度\"},{\"name\":\"LATITUDE\",\"label\":\"LATITUDE/纬度\"},{\"name\":\"ADMIN_REGION_CODE\",\"label\":\"ADMIN_REGION_CODE/行政区划码\"},{\"name\":\"STATUS\",\"label\":\"STATUS/1启用/0停用\"},{\"name\":\"CREATED_AT\",\"label\":\"CREATED_AT/创建时间\"},{\"name\":\"UPDATED_AT\",\"label\":\"UPDATED_AT/修改时间\"}]}', '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:00:09.0', '吴同', 2, TIMESTAMP '2025-09-19 17:10:28.0', NULL, 'CHARACTER_VALIDATION'),
 (2, 2, '水位数值范围稽查', '306', '数值字段范围校验', '2', '3', '1', '【一致性：数值字段范围校验】校验water_level数值应在合理范围（如 -10~100 米），超界需标记异常。', NULL, NULL, NULL, 2, '水资源水位原始明细', 'ods_wr_water_level', 'water_level', '{\"minValue\":\"-10\",\"maxValue\":\"96\",\"includeBoundary\":\"1\",\"evaColumns\":[{\"name\":\"id\",\"label\":\"id/记录主键（源）\"},{\"name\":\"station_code\",\"label\":\"station_code/站点编码\"},{\"name\":\"obs_time\",\"label\":\"obs_time/观测时间\"},{\"name\":\"water_level\",\"label\":\"water_level/水位（米）\"},{\"name\":\"quality_flag\",\"label\":\"quality_flag/源端质控标识\"},{\"name\":\"ts\",\"label\":\"ts/源端变更时间\"}]}', '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:02:50.0', '吴同', 2, TIMESTAMP '2025-09-19 17:02:50.0', NULL, 'NUMERIC_RANGE_VALIDATION'),
 (3, 3, '水位数值范围稽查', '306', '数值字段范围校验', '2', '3', '1', '【准确性：字段字符类型校验】检查station_code不为空，且必须符合统一格式（如^[A-Z0-9_-]{3,32}$），避免站点编码缺失或异常。', NULL, NULL, NULL, 3, '水资源水位原始明细', 'ods_wr_water_level', 'water_level', '{\"minValue\":\"10\",\"maxValue\":\"99\",\"includeBoundary\":\"1\",\"evaColumns\":[{\"name\":\"id\",\"label\":\"id/记录主键（源）\"},{\"name\":\"station_code\",\"label\":\"station_code/站点编码\"},{\"name\":\"obs_time\",\"label\":\"obs_time/观测时间\"},{\"name\":\"water_level\",\"label\":\"water_level/水位（米）\"},{\"name\":\"quality_flag\",\"label\":\"quality_flag/源端质控标识\"},{\"name\":\"ts\",\"label\":\"ts/源端变更时间\"}]}', '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:05:04.0', '吴同', 2, TIMESTAMP '2025-09-22 13:57:15.0', NULL, 'NUMERIC_RANGE_VALIDATION'),
@@ -5716,11 +5716,11 @@ INSERT INTO public.dpp_quality_task_evaluate (id, task_id, name, rule_code, rule
 (14, 12, '水位重复记录稽查', '311', '多字段组合唯一性校验', '2', '3', '1', '【唯一性：多字段组合唯一性校验】校验(station_code, obs_time)组合唯一，不得出现重复记录。', NULL, NULL, NULL, 14, '水文监测水位时序数据', 'ODS_HYD_WATER_LEVEL', 'STATION_CODE,OBS_TIME', '{\"evaColumns\":[{\"name\":\"ID\",\"label\":\"ID\"},{\"name\":\"STATION_CODE\",\"label\":\"STATION_CODE\"},{\"name\":\"SENSOR_ID\",\"label\":\"SENSOR_ID\"},{\"name\":\"OBS_TIME\",\"label\":\"OBS_TIME\"},{\"name\":\"OBS_DATE\",\"label\":\"OBS_DATE\"},{\"name\":\"WATER_LEVEL_M\",\"label\":\"WATER_LEVEL_M\"},{\"name\":\"QUALITY_CODE\",\"label\":\"QUALITY_CODE\"},{\"name\":\"SOURCE\",\"label\":\"SOURCE\"},{\"name\":\"TRACE_ID\",\"label\":\"TRACE_ID\"},{\"name\":\"EXT_JSON\",\"label\":\"EXT_JSON\"},{\"name\":\"CREATED_AT\",\"label\":\"CREATED_AT\"}]}', '1', '0', '吴同', 2, TIMESTAMP '2025-09-30 15:30:32.0', '吴同', 2, TIMESTAMP '2025-09-30 15:30:32.0', NULL, 'COMPOSITE_UNIQUENESS_VALIDATION');
 
 -- =====================================================
--- Table: dpp_quality_task_obj
+-- Table: col_quality_task_obj
 -- =====================================================
-DROP TABLE IF EXISTS public.dpp_quality_task_obj;
+DROP TABLE IF EXISTS public.col_quality_task_obj;
 
-CREATE TABLE public.dpp_quality_task_obj (
+CREATE TABLE public.col_quality_task_obj (
   id BIGINT NOT NULL,
   task_id BIGINT NOT NULL,
   name varchar NOT NULL,
@@ -5737,9 +5737,9 @@ CREATE TABLE public.dpp_quality_task_obj (
   remark varchar
 );
 
-COMMENT ON TABLE public.dpp_quality_task_obj IS 'dpp_quality_task_obj';
+COMMENT ON TABLE public.col_quality_task_obj IS 'col_quality_task_obj';
 
-INSERT INTO public.dpp_quality_task_obj (id, task_id, name, datasource_id, table_name, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
+INSERT INTO public.col_quality_task_obj (id, task_id, name, datasource_id, table_name, valid_flag, del_flag, create_by, creator_id, create_time, update_by, updater_id, update_time, remark) VALUES
 (1, 1, '站点基础信息（读源）', 12, 'STATION', '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:00:09.0', '吴同', 2, TIMESTAMP '2025-09-19 17:10:28.0', NULL),
 (2, 2, '水资源水位原始明细', 1, 'ods_wr_water_level', '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:02:50.0', '吴同', 2, TIMESTAMP '2025-09-19 17:02:50.0', NULL),
 (3, 3, '水资源水位原始明细', 1, 'ods_wr_water_level', '1', '0', '吴同', 2, TIMESTAMP '2025-09-19 17:05:04.0', '吴同', 2, TIMESTAMP '2025-09-22 13:57:15.0', NULL),
@@ -5922,78 +5922,78 @@ INSERT INTO public.gen_table (table_id, table_name, table_comment, sub_table_nam
 (100, 'project_report_detail', '报工明细', NULL, NULL, 'ProjectReportDetail', 'crud', 'element-plus', 'tech.qiantong.anivia.module.project', 'reportDetail', 'reportDetail', '报工明细', 'anivia', '0', '/', '{\"parentMenuId\":2175}', '吴同', TIMESTAMP '2025-01-06 09:54:24.0', NULL, TIMESTAMP '2025-01-06 10:38:39.0', NULL),
 (101, 'project_report', '报工表', NULL, NULL, 'ProjectReport', 'crud', 'element-plus', 'tech.qiantong.anivia.module.project', 'report', 'report', '报工', 'anivia', '0', '/', '{\"parentMenuId\":\"2175\"}', '吴同', TIMESTAMP '2025-01-06 10:09:49.0', NULL, TIMESTAMP '2025-01-09 14:49:08.0', NULL),
 (102, 'project_apply', '报销管理', NULL, NULL, 'ProjectApply', 'crud', 'element-plus', 'tech.qiantong.anivia.module.project', 'apply', 'apply', '报销管理', 'anivia', '0', '/', '{\"parentMenuId\":\"2175\"}', '吴同', TIMESTAMP '2025-01-09 15:56:15.0', NULL, TIMESTAMP '2025-01-09 15:59:01.0', NULL),
-(103, 'ATT_CLEAN_RULE', '清洗规则表', NULL, NULL, 'AttCleanRule', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'rule', 'attCleanRule', '清洗规则', 'qdata', '0', 'E:\\qData', '{\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:17.0', NULL, TIMESTAMP '2025-01-22 18:43:37.0', NULL),
-(104, 'ATT_PROJECT', '项目表', NULL, NULL, 'AttProject', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'project', 'attProject', '项目', 'shu', '0', 'E:\\qData', '{\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:19.0', NULL, TIMESTAMP '2025-01-22 15:03:19.0', NULL),
-(105, 'ATT_THEME', '主题', NULL, NULL, 'AttTheme', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'theme', 'attTheme', '主题', 'qdata', '0', '/', '{\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:20.0', NULL, TIMESTAMP '2025-01-22 14:28:59.0', NULL),
-(106, 'ATT_MODEL_CAT', '逻辑模型类目管理', NULL, NULL, 'AttModelCat', 'tree', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'attModelCat', '逻辑模型类目管理', 'qdata', '0', '/', '{\"treeCode\":\"ID\",\"treeName\":\"NAME\",\"treeParentCode\":\"PARENT_ID\",\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:21.0', NULL, TIMESTAMP '2025-01-21 13:33:43.0', NULL),
-(107, 'ATT_DATA_ELEM_CAT', '数据元类目管理', NULL, NULL, 'AttDataElemCat', 'tree', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'attDataElemCat', '数据元类目管理', 'qdata', '0', '/', '{\"treeCode\":\"ID\",\"treeName\":\"NAME\",\"treeParentCode\":\"PARENT_ID\",\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:22.0', NULL, TIMESTAMP '2025-01-21 17:35:46.0', NULL),
-(108, 'ATT_ASSET_CAT', '数据资产类目管理', NULL, NULL, 'AttAssetCat', 'tree', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'attAssetCat', '数据资产类目管理', 'qdata', '0', '/', '{\"treeCode\":\"ID\",\"treeName\":\"NAME\",\"treeParentCode\":\"PARENT_ID\",\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:23.0', NULL, TIMESTAMP '2025-01-21 18:32:05.0', NULL),
-(109, 'ATT_DISCOVER_TASK_CAT', '数据发现任务类目管理', NULL, NULL, 'AttDiscoverTaskCat', 'tree', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'attDiscoverTaskCat', '数据发现任务类目管理', 'qdata', '0', '/', '{\"treeCode\":\"ID\",\"treeName\":\"NAME\",\"treeParentCode\":\"PARENT_ID\",\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:23.0', NULL, TIMESTAMP '2025-01-21 18:48:04.0', NULL),
-(110, 'ATT_AUDIT_RULE', '稽查规则表', NULL, NULL, 'AttAuditRule', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'rule', 'attAuditRule', '稽查规则', 'qdata', '0', '/', '{\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:43:01.0', NULL, TIMESTAMP '2025-01-22 18:35:53.0', NULL),
-(111, 'DP_MODEL', '逻辑模型表', NULL, NULL, 'DpModel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dp', 'model', 'dpModel', '逻辑模型', 'qdata', '0', '/', '{\"parentMenuId\":\"2306\"}', '吴同', TIMESTAMP '2025-01-21 09:36:41.0', NULL, TIMESTAMP '2025-01-21 11:51:43.0', NULL),
-(112, 'DP_MODEL_COLUMN', '逻辑模型属性信息表', NULL, NULL, 'DpModelColumn', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dp', 'model', 'dpModelColumn', '逻辑模型属性信息', 'qdata', '0', '/', '{\"parentMenuId\":\"2307\"}', '吴同', TIMESTAMP '2025-01-21 10:38:55.0', NULL, TIMESTAMP '2025-01-21 11:26:10.0', NULL),
-(113, 'DP_MODEL_MATERIALIZED', '物化模型记录表', NULL, NULL, 'DpModelMaterialized', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dp', 'model', 'dpModelMaterialized', '物化模型记录', 'qdata', '0', '/', '{\"parentMenuId\":2307}', '吴同', TIMESTAMP '2025-01-21 10:38:57.0', NULL, TIMESTAMP '2025-01-21 11:43:36.0', NULL),
-(114, 'DP_CODE_MAP', '数据元代码映射表', NULL, NULL, 'DpCodeMap', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dp', 'codeMap', 'dpCodeMap', '数据元代码映射', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-01-21 10:58:51.0', NULL, TIMESTAMP '2025-01-21 14:55:49.0', NULL),
-(115, 'DP_DATA_ELEM', '数据元表', NULL, NULL, 'DpDataElem', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dp', 'dataElem', 'dpDataElem', '数据元', 'qdata', '0', '/', '{\"parentMenuId\":\"2306\"}', '吴同', TIMESTAMP '2025-01-21 10:58:53.0', NULL, TIMESTAMP '2025-01-21 15:37:55.0', NULL),
-(116, 'DP_DATA_ELEM_RULE_REL', '数据元数据规则关联信息表', NULL, NULL, 'DpDataElemRuleRel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dp', 'dataElem', 'dpDataElemRuleRel', '数据元数据规则关联信息', 'qdata', '0', '/', '{\"parentMenuId\":\"2306\"}', '吴同', TIMESTAMP '2025-01-21 10:58:57.0', NULL, TIMESTAMP '2025-01-21 15:04:26.0', NULL),
-(117, 'DP_DATA_ELEM_ASSET_REL', '数据元数据资产关联信息表', NULL, NULL, 'DpDataElemAssetRel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dp', 'dataElemAssetRel', 'dpDataElemAssetRel', '数据元数据资产关联信息', 'qdata', '0', '/', '{\"parentMenuId\":2315}', '吴同', TIMESTAMP '2025-01-21 10:58:59.0', NULL, TIMESTAMP '2025-02-06 10:20:03.0', NULL),
-(118, 'DP_DATA_ELEM_CODE', '数据元代码表', NULL, NULL, 'DpDataElemCode', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dp', 'dataElemCode', 'dpDataElemCode', '数据元代码', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-01-21 10:59:00.0', NULL, TIMESTAMP '2025-01-22 10:59:17.0', NULL),
-(119, 'DA_ASSET', '数据资产表', NULL, NULL, 'DaAsset', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'asset', 'daAsset', '数据资产', 'lhs', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-01-21 11:39:26.0', NULL, TIMESTAMP '2025-01-22 14:37:31.0', NULL),
-(120, 'DA_ASSET_COLUMN', '数据资产字段表', NULL, NULL, 'DaAssetColumn', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetColumn', 'daAssetColumn', '数据资产字段', 'lhs', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-01-21 11:39:28.0', NULL, TIMESTAMP '2025-01-21 14:35:33.0', NULL),
-(121, 'DA_DATASOURCE', '数据源表', NULL, NULL, 'DaDatasource', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'datasource', 'daDatasource', '数据源', 'lhs', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-01-21 11:39:30.0', NULL, TIMESTAMP '2025-01-22 10:39:35.0', NULL),
-(122, 'DA_SENSITIVE_LEVEL', '敏感等级表', NULL, NULL, 'DaSensitiveLevel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'sensitiveLevel', 'daSensitiveLevel', '敏感等级', 'qdata', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-01-21 11:39:32.0', NULL, TIMESTAMP '2025-01-22 15:28:37.0', NULL),
-(123, 'ATT_PROJECT_USER_REL', '项目表与用户表关联关系表', NULL, NULL, 'AttProjectUserRel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'project', 'AttProjectUserRel', '项目与用户关联关系', 'qdata', '0', '/', '{\"parentMenuId\":\"2397\"}', 'shuyexin', TIMESTAMP '2025-02-11 09:45:25.0', NULL, TIMESTAMP '2025-02-11 14:20:14.0', NULL),
-(124, 'DA_DISCOVERY_TASK', '数据发现任务', NULL, NULL, 'DaDiscoveryTask', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'discovery', 'daDiscoveryTask', '数据发现任务', 'qdata', '0', '/', '{\"parentMenuId\":2314}', 'mengfanming', TIMESTAMP '2025-02-11 15:32:18.0', NULL, TIMESTAMP '2025-02-11 15:41:55.0', NULL),
-(125, 'DA_DISCOVERY_TABLE', '数据发现库表信息', NULL, NULL, 'DaDiscoveryTable', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'discovery', 'daDiscoveryTable', '数据发现库信息', 'qdata', '0', '/', '{\"parentMenuId\":\"2405\"}', 'mengfanming', TIMESTAMP '2025-02-11 15:32:20.0', NULL, TIMESTAMP '2025-02-11 16:58:14.0', NULL),
-(127, 'DS_API', 'API服务', NULL, NULL, 'DsApi', 'crud', 'element-plus', 'tech.qiantong.qdata.module.ds', 'api', 'dsApi', 'API服务', 'lhs', '0', '/', '{\"parentMenuId\":\"2427\"}', '吴同', TIMESTAMP '2025-02-12 14:28:17.0', NULL, TIMESTAMP '2025-02-12 16:11:01.0', NULL),
-(128, 'DS_API_LOG', 'API服务调用日志', NULL, NULL, 'DsApiLog', 'crud', 'element-plus', 'tech.qiantong.qdata.module.ds', 'apiLog', 'apiLog', 'API服务调用日志', 'lhs', '0', '/', '{\"parentMenuId\":2427}', '吴同', TIMESTAMP '2025-02-12 14:28:20.0', NULL, TIMESTAMP '2025-02-12 16:12:04.0', NULL),
-(130, 'DA_DISCOVERY_COLUMN', '数据发现字段表', NULL, NULL, 'DaDiscoveryColumn', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'discovery', 'daDiscoveryColumn', '数据发现字段', 'qdata', '0', '/', '{\"parentMenuId\":2405}', '吴同', TIMESTAMP '2025-02-12 15:38:51.0', NULL, TIMESTAMP '2025-02-12 15:40:03.0', NULL),
-(133, 'DPP_ETL_SCHEDULER', '数据集成调度信息', NULL, NULL, 'DppEtlScheduler', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlScheduler', '数据集成调度信息', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:45.0', NULL, TIMESTAMP '2025-02-13 15:54:07.0', NULL),
-(134, 'DPP_ETL_TASK_NODE_REL', '数据集成任务节点关系表', NULL, NULL, 'DppEtlTaskNodeRel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlTaskNodeRel', '数据集成任务节点关系', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:46.0', NULL, TIMESTAMP '2025-02-13 15:53:24.0', NULL),
-(135, 'DPP_ETL_TASK_NODE_REL_LOG', '数据集成任务节点关系表-日志', NULL, NULL, 'DppEtlTaskNodeRelLog', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlTaskNodeRelLog', '数据集成任务节点关系-日志', 'qdata', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:47.0', NULL, TIMESTAMP '2025-02-13 15:52:47.0', NULL),
-(136, 'DPP_ETL_TASK_INSTANCE', '数据集成任务实例', NULL, NULL, 'DppEtlTaskInstance', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlTaskInstance', '数据集成任务实例', 'qdata', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:49.0', NULL, TIMESTAMP '2025-02-21 21:07:54.0', NULL),
-(138, 'DPP_ETL_TASK', '数据集成任务', NULL, NULL, 'DppEtlTask', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlTask', '数据集成任务', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:52.0', NULL, TIMESTAMP '2025-02-13 15:37:51.0', NULL),
-(139, 'DPP_ETL_TASK_LOG', '数据集成任务-日志表', NULL, NULL, 'DppEtlTaskLog', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlTaskLog', '数据集成任务-日志', 'qdata', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:53.0', NULL, TIMESTAMP '2025-02-13 15:36:02.0', NULL),
-(141, 'DPP_ETL_NODE', '数据集成节点', NULL, NULL, 'DppEtlNode', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlNode', '数据集成节点', 'qdata', '0', '/', '{\"parentMenuId\":\"2397\"}', 'mengfanming', TIMESTAMP '2025-02-13 17:01:47.0', NULL, TIMESTAMP '2025-02-13 17:07:01.0', NULL),
-(142, 'DPP_ETL_NODE_LOG', '数据集成节点-日志表', NULL, NULL, 'DppEtlNodeLog', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlNodeLog', '数据集成节点-日志', 'qdata', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 17:01:50.0', NULL, TIMESTAMP '2025-02-13 17:05:19.0', NULL),
-(143, 'DPP_ETL_NODE_INSTANCE', '数据集成节点实例', NULL, NULL, 'DppEtlNodeInstance', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'dppEtlNodeInstance', '数据集成节点实例', 'qdata', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 17:01:51.0', NULL, TIMESTAMP '2025-02-13 17:03:44.0', NULL),
-(144, 'DA_DISCOVERY_TASK_LOG', '数据发现任务日志表', NULL, NULL, 'DaDiscoveryTaskLog', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'discovery', 'daDiscoveryTaskLog', '数据发现任务日志', 'qdata', '0', '/', '{\"parentMenuId\":2405}', '吴同', TIMESTAMP '2025-02-17 15:25:41.0', NULL, TIMESTAMP '2025-02-17 15:29:14.0', NULL),
-(147, 'ATT_CLIENT', '应用管理', NULL, NULL, 'AttClient', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'client', 'client', '应用管理', 'qdata', '0', '/', '{\"parentMenuId\":\"2375\"}', '吴同', TIMESTAMP '2025-02-18 11:37:41.0', NULL, TIMESTAMP '2025-02-18 14:49:02.0', NULL),
-(148, 'STBCJCXX', '水土保持监测信息表', NULL, NULL, 'STBCJCXX', 'crud', NULL, 'tech.qiantong.qdata.module.[moduleName]', '[moduleName]', 'STBCJCXX', '水土保持监测信息', 'qdata', '0', '/', NULL, '吴同', TIMESTAMP '2025-03-07 14:10:48.0', NULL, NULL, NULL),
-(149, 'ATT_JOB_CAT', '作业类目管理', NULL, NULL, 'AttJobCat', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'AttJobCat', '作业类目管理', 'qdata', '0', '/', '{\"parentMenuId\":2352}', '吴同', TIMESTAMP '2025-03-11 09:34:50.0', NULL, TIMESTAMP '2025-03-11 09:38:08.0', NULL),
-(150, 'ATT_DATA_DEV_CAT', '数据开发类目管理', NULL, NULL, 'AttDataDevCat', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'AttDataDevCat', '数据开发类目管理', 'qdata', '0', '/', '{\"parentMenuId\":2352}', '吴同', TIMESTAMP '2025-03-11 09:34:52.0', NULL, TIMESTAMP '2025-03-11 09:40:30.0', NULL),
-(151, 'ATT_API_CAT', '数据服务类目管理', NULL, NULL, 'AttApiCat', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'AttApiCat', '数据服务类目管理', 'qdata', '0', '/', '{\"parentMenuId\":\"2352\"}', '吴同', TIMESTAMP '2025-03-11 09:34:53.0', NULL, TIMESTAMP '2025-04-10 11:23:06.0', NULL),
-(152, 'ATT_TASK_CAT', '数据集成任务类目管理', NULL, NULL, 'AttTaskCat', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'AttTaskCat', '数据集成任务类目管理', 'qdata', '0', '/', '{\"parentMenuId\":2352}', '吴同', TIMESTAMP '2025-03-11 09:34:54.0', NULL, TIMESTAMP '2025-03-11 09:42:36.0', NULL),
-(153, 'DA_DATASOURCE_PROJECT_REL', '数据源与项目关联关系表', NULL, NULL, 'DaDatasourceProjectRel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'datasource', 'daDatasourceProjectRel', '数据源与项目关联关系', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-03-13 15:02:01.0', NULL, TIMESTAMP '2025-03-13 15:04:58.0', NULL),
-(154, 'DA_ASSET_PROJECT_REL', '数据资产与项目关联关系表', NULL, NULL, 'DaAssetProjectRel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.projectRel', 'daAssetProjectRel', '数据资产与项目关联关系', 'qdata', '0', '/', '{\"parentMenuId\":2329}', '吴同', TIMESTAMP '2025-03-19 10:17:41.0', NULL, TIMESTAMP '2025-04-18 10:49:03.0', NULL),
-(155, 'DA_ASSET_APPLY', '数据资产申请表', NULL, NULL, 'DaAssetApply', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'daAssetApply', 'daAssetApply', '数据资产申请', 'shu', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-03-19 10:17:43.0', NULL, TIMESTAMP '2025-03-19 11:04:14.0', NULL),
-(156, 'DPP_ONL_DESFORM', '在线表单设计器', NULL, NULL, 'DppOnlDesform', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'OnlDesform', 'DESFORM', '在线单设计器', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-09 15:35:49.0', NULL, TIMESTAMP '2025-04-09 15:58:08.0', NULL),
-(157, 'DPP_ONL_DESFORM_DATA', '在线表单数据', NULL, NULL, 'DppOnlDesformData', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'OnlDesformData', 'DATA', '在线单数据', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-09 15:35:51.0', NULL, TIMESTAMP '2025-04-09 15:58:28.0', NULL),
-(158, 'ATT_DOC_CAT', '数据资产文档类目管理', NULL, NULL, 'AttDocCat', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'cat', 'attDocCat', '数据资产文档类目管理', 'qdata', '0', '/', '{\"parentMenuId\":\"2352\"}', '吴同', TIMESTAMP '2025-04-10 10:29:38.0', NULL, TIMESTAMP '2025-04-10 15:23:31.0', NULL),
-(159, 'DA_DOC', '文档数据表', NULL, NULL, 'DaDoc', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'doc', 'daDoc', '文档数据管理', 'qdata', '0', '/', '{\"parentMenuId\":2314}', '吴同', TIMESTAMP '2025-04-10 14:27:59.0', NULL, TIMESTAMP '2025-04-10 14:36:57.0', NULL),
-(161, 'SYSTEM_DEPT_PERM_TIER_REL', '部门权限层级关联关系表', NULL, NULL, 'SystemDeptPermTierRel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.system', 'SystemDeptPermTierRel', 'systemDeptPermTierRel', '部门权限层级关联关系', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-04-14 14:12:37.0', NULL, TIMESTAMP '2025-04-14 17:28:00.0', NULL),
-(162, 'DA_ASSET_API', '数据资产-外部API表', NULL, NULL, 'DaAssetApi', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.api', 'api', '数据资产-外部API', 'qdata', '0', '/', '{\"parentMenuId\":2329}', '吴同', TIMESTAMP '2025-04-14 14:14:38.0', NULL, TIMESTAMP '2025-04-14 14:23:38.0', NULL),
-(163, 'DA_ASSET_API_PARAM', '数据资产-外部API-参数表', NULL, NULL, 'DaAssetApiParam', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.api', 'daAssetApiParam', '数据资产-外部API-参数', 'qdata', '0', '/', '{\"parentMenuId\":\"2329\"}', '吴同', TIMESTAMP '2025-04-14 14:14:38.0', NULL, TIMESTAMP '2025-04-14 14:26:15.0', NULL),
-(164, 'DA_ASSET_GIS', '数据资产-地理空间服务表', NULL, NULL, 'DaAssetGis', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.gis', 'daAssetGis', '数据资产-地理空间服务', 'qdata', '0', '/', '{\"parentMenuId\":2329}', '吴同', TIMESTAMP '2025-04-14 14:14:38.0', NULL, TIMESTAMP '2025-04-14 14:27:51.0', NULL),
-(165, 'DA_ASSET_GEO', '数据资产-矢量表', NULL, NULL, 'DaAssetGeo', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.geo', 'daAssetGeo', '数据资产-矢量', 'qdata', '0', '/', '{\"parentMenuId\":2329}', '吴同', TIMESTAMP '2025-04-14 14:14:38.0', NULL, TIMESTAMP '2025-04-14 14:30:51.0', NULL),
-(166, 'DA_ASSET_VIDEO', '数据资产-视频数据表', NULL, NULL, 'DaAssetVideo', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.video', 'daAssetVideo', '数据资产-视频数据', 'qdata', '0', '/', '{\"parentMenuId\":\"2329\"}', '吴同', TIMESTAMP '2025-04-14 14:14:39.0', NULL, TIMESTAMP '2025-04-14 14:36:15.0', NULL),
-(167, 'DA_ASSET_THEME_REL', '数据资产-主题关联关系表', NULL, NULL, 'DaAssetThemeRel', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.theme', 'daAssetThemeRel', '数据资产-主题关联关系', 'qdata', '0', '/', '{\"parentMenuId\":\"2329\"}', '吴同', TIMESTAMP '2025-04-14 14:14:39.0', NULL, TIMESTAMP '2025-04-14 14:37:35.0', NULL),
-(170, 'ATT_PERM_TIER', '权限层级', NULL, NULL, 'AttPermTier', 'crud', 'element-plus', 'tech.qiantong.qdata.module.att', 'AttPermTier', 'attPermTier', '权限层级', 'qdata', '0', '/', '{\"parentMenuId\":2375}', '吴同', TIMESTAMP '2025-04-14 15:45:49.0', NULL, TIMESTAMP '2025-04-14 15:47:07.0', NULL),
-(171, 'DPP_ETL_TASK_EXT', '数据集成任务-扩展数据', NULL, NULL, 'DppEtlTaskExt', 'crud', 'element-plus', 'tech.qiantong.qdata.module.dpp', 'etl', 'EXT', '数据集成任务-扩展数据', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-04-16 13:43:20.0', NULL, TIMESTAMP '2025-04-16 14:37:09.0', NULL),
-(172, 'DA_DASHBOARD_CONFIG', '数据可视化大屏配置表', NULL, NULL, 'DaDashboardConfig', 'crud', 'element-plus', 'tech.qiantong.qdata.module.report', 'report', 'report', '数据可视化大屏配置', 'qdata', '0', '/', '{\"parentMenuId\":2314}', '吴同', TIMESTAMP '2025-04-16 17:25:11.0', NULL, TIMESTAMP '2025-04-16 17:26:16.0', NULL),
-(174, 'RP_USER', '服务资源门户用户表', NULL, NULL, 'RpUser', 'crud', 'element-plus', 'tech.qiantong.qdata.module.rp', 'rp', 'rpUser', '服务资源门户用户', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-18 11:07:41.0', NULL, TIMESTAMP '2025-04-21 15:48:19.0', NULL),
-(175, 'RP_POST', '服务资源门户岗位表', NULL, NULL, 'RpPost', 'crud', 'element-plus', 'tech.qiantong.qdata.module.rp', 'rp', 'rpPost', '服务资源门户岗位', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-18 11:29:49.0', NULL, TIMESTAMP '2025-04-21 10:16:51.0', NULL),
-(176, 'RP_USER_POST', '服务资源门户用户与岗位关联表', NULL, NULL, 'RpUserPost', 'crud', 'element-plus', 'tech.qiantong.qdata.module.rp', 'rp', 'rpUserPost', '服务资源门户用户与岗位关联', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-18 11:29:51.0', NULL, TIMESTAMP '2025-04-18 14:20:37.0', NULL),
-(177, 'RP_DEPT', '服务资源门户部门表', NULL, NULL, 'RpDept', 'crud', 'element-plus', 'tech.qiantong.qdata.module.rp', 'rp', 'rpDept', '服务资源门户部门', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'liuhaosheng', TIMESTAMP '2025-04-18 16:07:45.0', NULL, TIMESTAMP '2025-04-18 16:17:10.0', NULL),
-(179, 'RP_AREA_DICT', '服务资源门户区域字典表', NULL, NULL, 'RpAreaDict', 'crud', 'element-plus', 'tech.qiantong.qdata.module.rp', 'rp', 'rpDict', '服务资源门户区域字典', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-21 16:26:11.0', NULL, TIMESTAMP '2025-04-21 16:58:07.0', NULL),
-(180, 'DS_API_APPLY', 'API服务-申请表', NULL, NULL, 'DsApiApply', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'apply', 'apply', 'API服务-申请', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', 'liuhaosheng', TIMESTAMP '2025-04-22 14:08:42.0', NULL, TIMESTAMP '2025-04-22 14:13:23.0', NULL),
-(181, 'SYSTEM_FLOW_MY_BUSINESS', '审批记录表', NULL, NULL, 'SystemFlowMyBusiness', 'crud', 'element-plus', 'tech.qiantong.qdata.module.system', 'flowMyBusiness', 'flowMyBusiness', '审批记录', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-04-25 09:55:09.0', NULL, TIMESTAMP '2025-04-25 10:01:06.0', NULL),
-(182, 'RP_DOC', '文档数据表', NULL, NULL, 'RpDoc', 'crud', 'element-plus', 'tech.qiantong.qdata.module.rp', 'rp', 'rpDoc', '文档数据', 'qdata', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-04-27 15:27:31.0', NULL, TIMESTAMP '2025-04-27 15:28:24.0', NULL),
-(183, 'DA_ASSET_AUDIT_RULE', '数据资产质量结果记录表', NULL, NULL, 'DaAssetAuditRule', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.audit', 'daAssetAuditRule', '数据资产质量结果记录', 'qdata', '0', '/', '{\"parentMenuId\":\"2537\"}', '吴同', TIMESTAMP '2025-05-09 11:53:12.0', NULL, TIMESTAMP '2025-05-09 11:59:25.0', NULL),
-(184, 'DA_ASSET_AUDIT_SCHEDULE', '资产稽查调度表', NULL, NULL, 'DaAssetAuditSchedule', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.audit', 'daAssetAuditSchedule', '资产稽查调度', 'qdata', '0', '/', '{\"parentMenuId\":2537}', '吴同', TIMESTAMP '2025-05-09 11:53:13.0', NULL, TIMESTAMP '2025-05-09 11:59:15.0', NULL),
-(185, 'DA_ASSET_OPERATE_APPLY', '数据资产操作申请表', NULL, NULL, 'DaAssetOperateApply', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.operate', 'daAssetOperateApply', '数据资产操作申请', 'qdata', '0', '/', '{\"parentMenuId\":2537}', '吴同', TIMESTAMP '2025-05-09 11:53:13.0', NULL, TIMESTAMP '2025-05-09 13:37:21.0', NULL),
-(186, 'DA_ASSET_AUDIT_ALERT', '数据资产-质量预警表', NULL, NULL, 'DaAssetAuditAlert', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.audit', 'daAssetAuditAlert', '数据资产-质量预警', 'qdata', '0', '/', '{\"parentMenuId\":2537}', '吴同', TIMESTAMP '2025-05-09 11:53:13.0', NULL, TIMESTAMP '2025-05-09 13:35:31.0', NULL),
-(187, 'DA_ASSET_OPERATE_LOG', '数据资产操作记录表', NULL, NULL, 'DaAssetOperateLog', 'crud', 'element-plus', 'tech.qiantong.qdata.module.da', 'assetchild.operate', 'daAssetOperateLog', '数据资产操作记录', 'qdata', '0', '/', '{\"parentMenuId\":2537}', '吴同', TIMESTAMP '2025-05-09 16:27:30.0', NULL, TIMESTAMP '2025-05-09 16:28:55.0', NULL);
+(103, 'ATT_CLEAN_RULE', '清洗规则表', NULL, NULL, 'TaxonomyCleanRule', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'rule', 'TaxonomyCleanRule', '清洗规则', 'datamaster', '0', 'D:\\\\dev\\\\dataMaster', '{\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:17.0', NULL, TIMESTAMP '2025-01-22 18:43:37.0', NULL),
+(104, 'ATT_PROJECT', '项目表', NULL, NULL, 'TaxonomyProject', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'project', 'TaxonomyProject', '项目', 'shu', '0', 'D:\\\\dev\\\\dataMaster', '{\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:19.0', NULL, TIMESTAMP '2025-01-22 15:03:19.0', NULL),
+(105, 'ATT_THEME', '主题', NULL, NULL, 'TaxonomyTheme', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'theme', 'TaxonomyTheme', '主题', 'datamaster', '0', '/', '{\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:20.0', NULL, TIMESTAMP '2025-01-22 14:28:59.0', NULL),
+(106, 'ATT_MODEL_CAT', '逻辑模型类目管理', NULL, NULL, 'TaxonomyModelCat', 'tree', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyModelCat', '逻辑模型类目管理', 'datamaster', '0', '/', '{\"treeCode\":\"ID\",\"treeName\":\"NAME\",\"treeParentCode\":\"PARENT_ID\",\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:21.0', NULL, TIMESTAMP '2025-01-21 13:33:43.0', NULL),
+(107, 'ATT_DATA_ELEM_CAT', '数据元类目管理', NULL, NULL, 'TaxonomyDataElemCat', 'tree', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyDataElemCat', '数据元类目管理', 'datamaster', '0', '/', '{\"treeCode\":\"ID\",\"treeName\":\"NAME\",\"treeParentCode\":\"PARENT_ID\",\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:22.0', NULL, TIMESTAMP '2025-01-21 17:35:46.0', NULL),
+(108, 'ATT_ASSET_CAT', '数据资产类目管理', NULL, NULL, 'TaxonomyAssetCat', 'tree', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyAssetCat', '数据资产类目管理', 'datamaster', '0', '/', '{\"treeCode\":\"ID\",\"treeName\":\"NAME\",\"treeParentCode\":\"PARENT_ID\",\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:23.0', NULL, TIMESTAMP '2025-01-21 18:32:05.0', NULL),
+(109, 'ATT_DISCOVER_TASK_CAT', '数据发现任务类目管理', NULL, NULL, 'TaxonomyDiscoverTaskCat', 'tree', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyDiscoverTaskCat', '数据发现任务类目管理', 'datamaster', '0', '/', '{\"treeCode\":\"ID\",\"treeName\":\"NAME\",\"treeParentCode\":\"PARENT_ID\",\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:41:23.0', NULL, TIMESTAMP '2025-01-21 18:48:04.0', NULL),
+(110, 'ATT_AUDIT_RULE', '稽查规则表', NULL, NULL, 'TaxonomyAuditRule', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'rule', 'TaxonomyAuditRule', '稽查规则', 'datamaster', '0', '/', '{\"parentMenuId\":\"1\"}', '吴同', TIMESTAMP '2025-01-20 18:43:01.0', NULL, TIMESTAMP '2025-01-22 18:35:53.0', NULL),
+(111, 'DP_MODEL', '逻辑模型表', NULL, NULL, 'StandardsModel', 'crud', 'element-plus', 'com.datamaster.module.standards', 'model', 'StandardsModel', '逻辑模型', 'datamaster', '0', '/', '{\"parentMenuId\":\"2306\"}', '吴同', TIMESTAMP '2025-01-21 09:36:41.0', NULL, TIMESTAMP '2025-01-21 11:51:43.0', NULL),
+(112, 'DP_MODEL_COLUMN', '逻辑模型属性信息表', NULL, NULL, 'StandardsModelColumn', 'crud', 'element-plus', 'com.datamaster.module.standards', 'model', 'StandardsModelColumn', '逻辑模型属性信息', 'datamaster', '0', '/', '{\"parentMenuId\":\"2307\"}', '吴同', TIMESTAMP '2025-01-21 10:38:55.0', NULL, TIMESTAMP '2025-01-21 11:26:10.0', NULL),
+(113, 'DP_MODEL_MATERIALIZED', '物化模型记录表', NULL, NULL, 'StandardsModelMaterialized', 'crud', 'element-plus', 'com.datamaster.module.standards', 'model', 'StandardsModelMaterialized', '物化模型记录', 'datamaster', '0', '/', '{\"parentMenuId\":2307}', '吴同', TIMESTAMP '2025-01-21 10:38:57.0', NULL, TIMESTAMP '2025-01-21 11:43:36.0', NULL),
+(114, 'DP_CODE_MAP', '数据元代码映射表', NULL, NULL, 'StandardsCodeMap', 'crud', 'element-plus', 'com.datamaster.module.standards', 'codeMap', 'StandardsCodeMap', '数据元代码映射', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-01-21 10:58:51.0', NULL, TIMESTAMP '2025-01-21 14:55:49.0', NULL),
+(115, 'DP_DATA_ELEM', '数据元表', NULL, NULL, 'StandardsDataElem', 'crud', 'element-plus', 'com.datamaster.module.standards', 'dataElem', 'StandardsDataElem', '数据元', 'datamaster', '0', '/', '{\"parentMenuId\":\"2306\"}', '吴同', TIMESTAMP '2025-01-21 10:58:53.0', NULL, TIMESTAMP '2025-01-21 15:37:55.0', NULL),
+(116, 'DP_DATA_ELEM_RULE_REL', '数据元数据规则关联信息表', NULL, NULL, 'StandardsDataElemRuleRel', 'crud', 'element-plus', 'com.datamaster.module.standards', 'dataElem', 'StandardsDataElemRuleRel', '数据元数据规则关联信息', 'datamaster', '0', '/', '{\"parentMenuId\":\"2306\"}', '吴同', TIMESTAMP '2025-01-21 10:58:57.0', NULL, TIMESTAMP '2025-01-21 15:04:26.0', NULL),
+(117, 'DP_DATA_ELEM_ASSET_REL', '数据元数据资产关联信息表', NULL, NULL, 'StandardsDataElemAssetRel', 'crud', 'element-plus', 'com.datamaster.module.standards', 'dataElemAssetRel', 'StandardsDataElemAssetRel', '数据元数据资产关联信息', 'datamaster', '0', '/', '{\"parentMenuId\":2315}', '吴同', TIMESTAMP '2025-01-21 10:58:59.0', NULL, TIMESTAMP '2025-02-06 10:20:03.0', NULL),
+(118, 'DP_DATA_ELEM_CODE', '数据元代码表', NULL, NULL, 'StandardsDataElemCode', 'crud', 'element-plus', 'com.datamaster.module.standards', 'dataElemCode', 'StandardsDataElemCode', '数据元代码', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-01-21 10:59:00.0', NULL, TIMESTAMP '2025-01-22 10:59:17.0', NULL),
+(119, 'DA_ASSET', '数据资产表', NULL, NULL, 'AssetsAsset', 'crud', 'element-plus', 'com.datamaster.module.assets', 'asset', 'AssetsAsset', '数据资产', 'lhs', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-01-21 11:39:26.0', NULL, TIMESTAMP '2025-01-22 14:37:31.0', NULL),
+(120, 'DA_ASSET_COLUMN', '数据资产字段表', NULL, NULL, 'AssetsAssetColumn', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetColumn', 'AssetsAssetColumn', '数据资产字段', 'lhs', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-01-21 11:39:28.0', NULL, TIMESTAMP '2025-01-21 14:35:33.0', NULL),
+(121, 'DA_DATASOURCE', '数据源表', NULL, NULL, 'AssetsDatasource', 'crud', 'element-plus', 'com.datamaster.module.assets', 'datasource', 'AssetsDatasource', '数据源', 'lhs', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-01-21 11:39:30.0', NULL, TIMESTAMP '2025-01-22 10:39:35.0', NULL),
+(122, 'DA_SENSITIVE_LEVEL', '敏感等级表', NULL, NULL, 'AssetsSensitiveLevel', 'crud', 'element-plus', 'com.datamaster.module.assets', 'sensitiveLevel', 'AssetsSensitiveLevel', '敏感等级', 'datamaster', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-01-21 11:39:32.0', NULL, TIMESTAMP '2025-01-22 15:28:37.0', NULL),
+(123, 'ATT_PROJECT_USER_REL', '项目表与用户表关联关系表', NULL, NULL, 'TaxonomyProjectUserRel', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'project', 'TaxonomyProjectUserRel', '项目与用户关联关系', 'datamaster', '0', '/', '{\"parentMenuId\":\"2397\"}', 'shuyexin', TIMESTAMP '2025-02-11 09:45:25.0', NULL, TIMESTAMP '2025-02-11 14:20:14.0', NULL),
+(124, 'DA_DISCOVERY_TASK', '数据发现任务', NULL, NULL, 'AssetsDiscoveryTask', 'crud', 'element-plus', 'com.datamaster.module.assets', 'discovery', 'AssetsDiscoveryTask', '数据发现任务', 'datamaster', '0', '/', '{\"parentMenuId\":2314}', 'mengfanming', TIMESTAMP '2025-02-11 15:32:18.0', NULL, TIMESTAMP '2025-02-11 15:41:55.0', NULL),
+(125, 'DA_DISCOVERY_TABLE', '数据发现库表信息', NULL, NULL, 'AssetsDiscoveryTable', 'crud', 'element-plus', 'com.datamaster.module.assets', 'discovery', 'AssetsDiscoveryTable', '数据发现库信息', 'datamaster', '0', '/', '{\"parentMenuId\":\"2405\"}', 'mengfanming', TIMESTAMP '2025-02-11 15:32:20.0', NULL, TIMESTAMP '2025-02-11 16:58:14.0', NULL),
+(127, 'DS_API', 'API服务', NULL, NULL, 'ServiceApi', 'crud', 'element-plus', 'com.datamaster.module.service', 'api', 'ServiceApi', 'API服务', 'lhs', '0', '/', '{\"parentMenuId\":\"2427\"}', '吴同', TIMESTAMP '2025-02-12 14:28:17.0', NULL, TIMESTAMP '2025-02-12 16:11:01.0', NULL),
+(128, 'DS_API_LOG', 'API服务调用日志', NULL, NULL, 'ServiceApiLog', 'crud', 'element-plus', 'com.datamaster.module.service', 'apiLog', 'apiLog', 'API服务调用日志', 'lhs', '0', '/', '{\"parentMenuId\":2427}', '吴同', TIMESTAMP '2025-02-12 14:28:20.0', NULL, TIMESTAMP '2025-02-12 16:12:04.0', NULL),
+(130, 'DA_DISCOVERY_COLUMN', '数据发现字段表', NULL, NULL, 'AssetsDiscoveryColumn', 'crud', 'element-plus', 'com.datamaster.module.assets', 'discovery', 'AssetsDiscoveryColumn', '数据发现字段', 'datamaster', '0', '/', '{\"parentMenuId\":2405}', '吴同', TIMESTAMP '2025-02-12 15:38:51.0', NULL, TIMESTAMP '2025-02-12 15:40:03.0', NULL),
+(133, 'col_etl_SCHEDULER', '数据集成调度信息', NULL, NULL, 'CollectorEtlScheduler', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlScheduler', '数据集成调度信息', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:45.0', NULL, TIMESTAMP '2025-02-13 15:54:07.0', NULL),
+(134, 'col_etl_TASK_NODE_REL', '数据集成任务节点关系表', NULL, NULL, 'CollectorEtlTaskNodeRel', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlTaskNodeRel', '数据集成任务节点关系', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:46.0', NULL, TIMESTAMP '2025-02-13 15:53:24.0', NULL),
+(135, 'col_etl_TASK_NODE_REL_LOG', '数据集成任务节点关系表-日志', NULL, NULL, 'CollectorEtlTaskNodeRelLog', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlTaskNodeRelLog', '数据集成任务节点关系-日志', 'datamaster', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:47.0', NULL, TIMESTAMP '2025-02-13 15:52:47.0', NULL),
+(136, 'col_etl_TASK_INSTANCE', '数据集成任务实例', NULL, NULL, 'CollectorEtlTaskInstance', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlTaskInstance', '数据集成任务实例', 'datamaster', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:49.0', NULL, TIMESTAMP '2025-02-21 21:07:54.0', NULL),
+(138, 'col_etl_TASK', '数据集成任务', NULL, NULL, 'CollectorEtlTask', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlTask', '数据集成任务', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:52.0', NULL, TIMESTAMP '2025-02-13 15:37:51.0', NULL),
+(139, 'col_etl_TASK_LOG', '数据集成任务-日志表', NULL, NULL, 'CollectorEtlTaskLog', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlTaskLog', '数据集成任务-日志', 'datamaster', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 15:25:53.0', NULL, TIMESTAMP '2025-02-13 15:36:02.0', NULL),
+(141, 'col_etl_NODE', '数据集成节点', NULL, NULL, 'CollectorEtlNode', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlNode', '数据集成节点', 'datamaster', '0', '/', '{\"parentMenuId\":\"2397\"}', 'mengfanming', TIMESTAMP '2025-02-13 17:01:47.0', NULL, TIMESTAMP '2025-02-13 17:07:01.0', NULL),
+(142, 'col_etl_NODE_LOG', '数据集成节点-日志表', NULL, NULL, 'CollectorEtlNodeLog', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlNodeLog', '数据集成节点-日志', 'datamaster', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 17:01:50.0', NULL, TIMESTAMP '2025-02-13 17:05:19.0', NULL),
+(143, 'col_etl_NODE_INSTANCE', '数据集成节点实例', NULL, NULL, 'CollectorEtlNodeInstance', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'CollectorEtlNodeInstance', '数据集成节点实例', 'datamaster', '0', '/', '{\"parentMenuId\":2397}', 'mengfanming', TIMESTAMP '2025-02-13 17:01:51.0', NULL, TIMESTAMP '2025-02-13 17:03:44.0', NULL),
+(144, 'DA_DISCOVERY_TASK_LOG', '数据发现任务日志表', NULL, NULL, 'AssetsDiscoveryTaskLog', 'crud', 'element-plus', 'com.datamaster.module.assets', 'discovery', 'AssetsDiscoveryTaskLog', '数据发现任务日志', 'datamaster', '0', '/', '{\"parentMenuId\":2405}', '吴同', TIMESTAMP '2025-02-17 15:25:41.0', NULL, TIMESTAMP '2025-02-17 15:29:14.0', NULL),
+(147, 'ATT_CLIENT', '应用管理', NULL, NULL, 'TaxonomyClient', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'client', 'client', '应用管理', 'datamaster', '0', '/', '{\"parentMenuId\":\"2375\"}', '吴同', TIMESTAMP '2025-02-18 11:37:41.0', NULL, TIMESTAMP '2025-02-18 14:49:02.0', NULL),
+(148, 'STBCJCXX', '水土保持监测信息表', NULL, NULL, 'STBCJCXX', 'crud', NULL, 'com.datamaster.module.unknown', '[moduleName]', 'STBCJCXX', '水土保持监测信息', 'datamaster', '0', '/', NULL, '吴同', TIMESTAMP '2025-03-07 14:10:48.0', NULL, NULL, NULL),
+(149, 'ATT_JOB_CAT', '作业类目管理', NULL, NULL, 'TaxonomyJobCat', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyJobCat', '作业类目管理', 'datamaster', '0', '/', '{\"parentMenuId\":2352}', '吴同', TIMESTAMP '2025-03-11 09:34:50.0', NULL, TIMESTAMP '2025-03-11 09:38:08.0', NULL),
+(150, 'ATT_DATA_DEV_CAT', '数据开发类目管理', NULL, NULL, 'TaxonomyDataDevCat', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyDataDevCat', '数据开发类目管理', 'datamaster', '0', '/', '{\"parentMenuId\":2352}', '吴同', TIMESTAMP '2025-03-11 09:34:52.0', NULL, TIMESTAMP '2025-03-11 09:40:30.0', NULL),
+(151, 'ATT_API_CAT', '数据服务类目管理', NULL, NULL, 'TaxonomyApiCat', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyApiCat', '数据服务类目管理', 'datamaster', '0', '/', '{\"parentMenuId\":\"2352\"}', '吴同', TIMESTAMP '2025-03-11 09:34:53.0', NULL, TIMESTAMP '2025-04-10 11:23:06.0', NULL),
+(152, 'ATT_TASK_CAT', '数据集成任务类目管理', NULL, NULL, 'TaxonomyTaskCat', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyTaskCat', '数据集成任务类目管理', 'datamaster', '0', '/', '{\"parentMenuId\":2352}', '吴同', TIMESTAMP '2025-03-11 09:34:54.0', NULL, TIMESTAMP '2025-03-11 09:42:36.0', NULL),
+(153, 'DA_DATASOURCE_PROJECT_REL', '数据源与项目关联关系表', NULL, NULL, 'AssetsDatasourceProjectRel', 'crud', 'element-plus', 'com.datamaster.module.assets', 'datasource', 'AssetsDatasourceProjectRel', '数据源与项目关联关系', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-03-13 15:02:01.0', NULL, TIMESTAMP '2025-03-13 15:04:58.0', NULL),
+(154, 'DA_ASSET_PROJECT_REL', '数据资产与项目关联关系表', NULL, NULL, 'AssetsAssetProjectRel', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.projectRel', 'AssetsAssetProjectRel', '数据资产与项目关联关系', 'datamaster', '0', '/', '{\"parentMenuId\":2329}', '吴同', TIMESTAMP '2025-03-19 10:17:41.0', NULL, TIMESTAMP '2025-04-18 10:49:03.0', NULL),
+(155, 'DA_ASSET_APPLY', '数据资产申请表', NULL, NULL, 'AssetsAssetApply', 'crud', 'element-plus', 'com.datamaster.module.assets', 'AssetsAssetApply', 'AssetsAssetApply', '数据资产申请', 'shu', '0', '/', '{\"parentMenuId\":\"2314\"}', '吴同', TIMESTAMP '2025-03-19 10:17:43.0', NULL, TIMESTAMP '2025-03-19 11:04:14.0', NULL),
+(156, 'col_onl_DESFORM', '在线表单设计器', NULL, NULL, 'CollectorOnlDesform', 'crud', 'element-plus', 'com.datamaster.module.collector', 'OnlDesform', 'DESFORM', '在线单设计器', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-09 15:35:49.0', NULL, TIMESTAMP '2025-04-09 15:58:08.0', NULL),
+(157, 'col_onl_DESFORM_DATA', '在线表单数据', NULL, NULL, 'CollectorOnlDesformData', 'crud', 'element-plus', 'com.datamaster.module.collector', 'OnlDesformData', 'DATA', '在线单数据', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-09 15:35:51.0', NULL, TIMESTAMP '2025-04-09 15:58:28.0', NULL),
+(158, 'ATT_DOC_CAT', '数据资产文档类目管理', NULL, NULL, 'TaxonomyDocCat', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'cat', 'TaxonomyDocCat', '数据资产文档类目管理', 'datamaster', '0', '/', '{\"parentMenuId\":\"2352\"}', '吴同', TIMESTAMP '2025-04-10 10:29:38.0', NULL, TIMESTAMP '2025-04-10 15:23:31.0', NULL),
+(159, 'DA_DOC', '文档数据表', NULL, NULL, 'AssetsDoc', 'crud', 'element-plus', 'com.datamaster.module.assets', 'doc', 'AssetsDoc', '文档数据管理', 'datamaster', '0', '/', '{\"parentMenuId\":2314}', '吴同', TIMESTAMP '2025-04-10 14:27:59.0', NULL, TIMESTAMP '2025-04-10 14:36:57.0', NULL),
+(161, 'SYSTEM_DEPT_PERM_TIER_REL', '部门权限层级关联关系表', NULL, NULL, 'SystemDeptPermTierRel', 'crud', 'element-plus', 'com.datamaster.module.system', 'SystemDeptPermTierRel', 'systemDeptPermTierRel', '部门权限层级关联关系', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-04-14 14:12:37.0', NULL, TIMESTAMP '2025-04-14 17:28:00.0', NULL),
+(162, 'DA_ASSET_API', '数据资产-外部API表', NULL, NULL, 'AssetsAssetApi', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.api', 'api', '数据资产-外部API', 'datamaster', '0', '/', '{\"parentMenuId\":2329}', '吴同', TIMESTAMP '2025-04-14 14:14:38.0', NULL, TIMESTAMP '2025-04-14 14:23:38.0', NULL),
+(163, 'DA_ASSET_API_PARAM', '数据资产-外部API-参数表', NULL, NULL, 'AssetsAssetApiParam', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.api', 'AssetsAssetApiParam', '数据资产-外部API-参数', 'datamaster', '0', '/', '{\"parentMenuId\":\"2329\"}', '吴同', TIMESTAMP '2025-04-14 14:14:38.0', NULL, TIMESTAMP '2025-04-14 14:26:15.0', NULL),
+(164, 'DA_ASSET_GIS', '数据资产-地理空间服务表', NULL, NULL, 'AssetsAssetGis', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.gis', 'AssetsAssetGis', '数据资产-地理空间服务', 'datamaster', '0', '/', '{\"parentMenuId\":2329}', '吴同', TIMESTAMP '2025-04-14 14:14:38.0', NULL, TIMESTAMP '2025-04-14 14:27:51.0', NULL),
+(165, 'DA_ASSET_GEO', '数据资产-矢量表', NULL, NULL, 'AssetsAssetGeo', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.geo', 'AssetsAssetGeo', '数据资产-矢量', 'datamaster', '0', '/', '{\"parentMenuId\":2329}', '吴同', TIMESTAMP '2025-04-14 14:14:38.0', NULL, TIMESTAMP '2025-04-14 14:30:51.0', NULL),
+(166, 'DA_ASSET_VIDEO', '数据资产-视频数据表', NULL, NULL, 'AssetsAssetVideo', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.video', 'AssetsAssetVideo', '数据资产-视频数据', 'datamaster', '0', '/', '{\"parentMenuId\":\"2329\"}', '吴同', TIMESTAMP '2025-04-14 14:14:39.0', NULL, TIMESTAMP '2025-04-14 14:36:15.0', NULL),
+(167, 'DA_ASSET_THEME_REL', '数据资产-主题关联关系表', NULL, NULL, 'AssetsAssetThemeRel', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.theme', 'AssetsAssetThemeRel', '数据资产-主题关联关系', 'datamaster', '0', '/', '{\"parentMenuId\":\"2329\"}', '吴同', TIMESTAMP '2025-04-14 14:14:39.0', NULL, TIMESTAMP '2025-04-14 14:37:35.0', NULL),
+(170, 'ATT_PERM_TIER', '权限层级', NULL, NULL, 'TaxonomyPermTier', 'crud', 'element-plus', 'com.datamaster.module.taxonomy', 'TaxonomyPermTier', 'TaxonomyPermTier', '权限层级', 'datamaster', '0', '/', '{\"parentMenuId\":2375}', '吴同', TIMESTAMP '2025-04-14 15:45:49.0', NULL, TIMESTAMP '2025-04-14 15:47:07.0', NULL),
+(171, 'col_etl_TASK_EXT', '数据集成任务-扩展数据', NULL, NULL, 'CollectorEtlTaskExt', 'crud', 'element-plus', 'com.datamaster.module.collector', 'etl', 'EXT', '数据集成任务-扩展数据', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-04-16 13:43:20.0', NULL, TIMESTAMP '2025-04-16 14:37:09.0', NULL),
+(172, 'DA_DASHBOARD_CONFIG', '数据可视化大屏配置表', NULL, NULL, 'AssetsDashboardConfig', 'crud', 'element-plus', 'com.datamaster.module.report', 'report', 'report', '数据可视化大屏配置', 'datamaster', '0', '/', '{\"parentMenuId\":2314}', '吴同', TIMESTAMP '2025-04-16 17:25:11.0', NULL, TIMESTAMP '2025-04-16 17:26:16.0', NULL),
+(174, 'RP_USER', '服务资源门户用户表', NULL, NULL, 'RpUser', 'crud', 'element-plus', 'com.datamaster.module.rp', 'rp', 'rpUser', '服务资源门户用户', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-18 11:07:41.0', NULL, TIMESTAMP '2025-04-21 15:48:19.0', NULL),
+(175, 'RP_POST', '服务资源门户岗位表', NULL, NULL, 'RpPost', 'crud', 'element-plus', 'com.datamaster.module.rp', 'rp', 'rpPost', '服务资源门户岗位', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-18 11:29:49.0', NULL, TIMESTAMP '2025-04-21 10:16:51.0', NULL),
+(176, 'RP_USER_POST', '服务资源门户用户与岗位关联表', NULL, NULL, 'RpUserPost', 'crud', 'element-plus', 'com.datamaster.module.rp', 'rp', 'rpUserPost', '服务资源门户用户与岗位关联', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-18 11:29:51.0', NULL, TIMESTAMP '2025-04-18 14:20:37.0', NULL),
+(177, 'RP_DEPT', '服务资源门户部门表', NULL, NULL, 'RpDept', 'crud', 'element-plus', 'com.datamaster.module.rp', 'rp', 'rpDept', '服务资源门户部门', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'liuhaosheng', TIMESTAMP '2025-04-18 16:07:45.0', NULL, TIMESTAMP '2025-04-18 16:17:10.0', NULL),
+(179, 'RP_AREA_DICT', '服务资源门户区域字典表', NULL, NULL, 'RpAreaDict', 'crud', 'element-plus', 'com.datamaster.module.rp', 'rp', 'rpDict', '服务资源门户区域字典', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'shuyexin', TIMESTAMP '2025-04-21 16:26:11.0', NULL, TIMESTAMP '2025-04-21 16:58:07.0', NULL),
+(180, 'DS_API_APPLY', 'API服务-申请表', NULL, NULL, 'ServiceApiApply', 'crud', 'element-plus', 'com.datamaster.module.assets', 'apply', 'apply', 'API服务-申请', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', 'liuhaosheng', TIMESTAMP '2025-04-22 14:08:42.0', NULL, TIMESTAMP '2025-04-22 14:13:23.0', NULL),
+(181, 'SYSTEM_FLOW_MY_BUSINESS', '审批记录表', NULL, NULL, 'SystemFlowMyBusiness', 'crud', 'element-plus', 'com.datamaster.module.system', 'flowMyBusiness', 'flowMyBusiness', '审批记录', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-04-25 09:55:09.0', NULL, TIMESTAMP '2025-04-25 10:01:06.0', NULL),
+(182, 'RP_DOC', '文档数据表', NULL, NULL, 'RpDoc', 'crud', 'element-plus', 'com.datamaster.module.rp', 'rp', 'rpDoc', '文档数据', 'datamaster', '0', '/', '{\"parentMenuId\":\"\"}', '吴同', TIMESTAMP '2025-04-27 15:27:31.0', NULL, TIMESTAMP '2025-04-27 15:28:24.0', NULL),
+(183, 'DA_ASSET_AUDIT_RULE', '数据资产质量结果记录表', NULL, NULL, 'AssetsAssetAuditRule', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.audit', 'AssetsAssetAuditRule', '数据资产质量结果记录', 'datamaster', '0', '/', '{\"parentMenuId\":\"2537\"}', '吴同', TIMESTAMP '2025-05-09 11:53:12.0', NULL, TIMESTAMP '2025-05-09 11:59:25.0', NULL),
+(184, 'DA_ASSET_AUDIT_SCHEDULE', '资产稽查调度表', NULL, NULL, 'AssetsAssetAuditSchedule', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.audit', 'AssetsAssetAuditSchedule', '资产稽查调度', 'datamaster', '0', '/', '{\"parentMenuId\":2537}', '吴同', TIMESTAMP '2025-05-09 11:53:13.0', NULL, TIMESTAMP '2025-05-09 11:59:15.0', NULL),
+(185, 'DA_ASSET_OPERATE_APPLY', '数据资产操作申请表', NULL, NULL, 'AssetsAssetOperateApply', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.operate', 'AssetsAssetOperateApply', '数据资产操作申请', 'datamaster', '0', '/', '{\"parentMenuId\":2537}', '吴同', TIMESTAMP '2025-05-09 11:53:13.0', NULL, TIMESTAMP '2025-05-09 13:37:21.0', NULL),
+(186, 'DA_ASSET_AUDIT_ALERT', '数据资产-质量预警表', NULL, NULL, 'AssetsAssetAuditAlert', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.audit', 'AssetsAssetAuditAlert', '数据资产-质量预警', 'datamaster', '0', '/', '{\"parentMenuId\":2537}', '吴同', TIMESTAMP '2025-05-09 11:53:13.0', NULL, TIMESTAMP '2025-05-09 13:35:31.0', NULL),
+(187, 'DA_ASSET_OPERATE_LOG', '数据资产操作记录表', NULL, NULL, 'AssetsAssetOperateLog', 'crud', 'element-plus', 'com.datamaster.module.assets', 'assetchild.operate', 'AssetsAssetOperateLog', '数据资产操作记录', 'datamaster', '0', '/', '{\"parentMenuId\":2537}', '吴同', TIMESTAMP '2025-05-09 16:27:30.0', NULL, TIMESTAMP '2025-05-09 16:28:55.0', NULL);
 
 -- =====================================================
 -- Table: gen_table_column
@@ -10127,11 +10127,11 @@ CREATE TABLE public.onl_drag_share (
 COMMENT ON TABLE public.onl_drag_share IS 'onl_drag_share';
 
 INSERT INTO public.onl_drag_share (id, drag_id, preview_url, preview_lock, last_update_time, term_of_validity, status, preview_lock_status, share_token) VALUES
-('1098104705842061312', '1097752296770936832', 'https://qdata-pro.qiantong.tech/drag/share/view/1097752296770936832?shareToken=DQvXVfClSZjAO4gzed1WvMkUKUlSWzLD', NULL, TIMESTAMP '2025-06-26 14:42:54.0', '0', '0', '0', 'DQvXVfClSZjAO4gzed1WvMkUKUlSWzLD'),
-('1110057340321046528', '1103476741691056128', 'https://qdata-pro.qiantong.tech/drag/share/view/1103476741691056128?shareToken=BzCNrDLD2sVG0eKVFaLfnqiqlQNKR7lV', NULL, TIMESTAMP '2025-07-29 14:18:24.0', '0', '0', '0', 'BzCNrDLD2sVG0eKVFaLfnqiqlQNKR7lV'),
-('1110087448675131392', '1110086782766456832', 'https://qdata-pro.qiantong.tech/drag/share/view/1110086782766456832?shareToken=tgvjaME9k2yR20jxiVWDLnUofNEUFkY3', NULL, TIMESTAMP '2025-07-29 16:18:02.0', '0', '0', '0', 'tgvjaME9k2yR20jxiVWDLnUofNEUFkY3'),
-('1110466585768140800', '925966805971279872', 'https://qdata-pro.qiantong.tech/drag/share/view/925966805971279872', NULL, TIMESTAMP '2025-07-30 17:24:36.0', '1', '0', '0', NULL),
-('1125999733394284544', '1125629013472485376', 'https://qdata-pro.qiantong.tech/drag/share/view/1125629013472485376?shareToken=ZqtJE9Bcgns76T9Q9diLyc25NfSXeRvm', NULL, TIMESTAMP '2025-09-11 14:07:47.0', '0', '0', '0', 'ZqtJE9Bcgns76T9Q9diLyc25NfSXeRvm');
+('1098104705842061312', '1097752296770936832', 'https://datamaster-pro.example.com/drag/share/view/1097752296770936832?shareToken=DQvXVfClSZjAO4gzed1WvMkUKUlSWzLD', NULL, TIMESTAMP '2025-06-26 14:42:54.0', '0', '0', '0', 'DQvXVfClSZjAO4gzed1WvMkUKUlSWzLD'),
+('1110057340321046528', '1103476741691056128', 'https://datamaster-pro.example.com/drag/share/view/1103476741691056128?shareToken=BzCNrDLD2sVG0eKVFaLfnqiqlQNKR7lV', NULL, TIMESTAMP '2025-07-29 14:18:24.0', '0', '0', '0', 'BzCNrDLD2sVG0eKVFaLfnqiqlQNKR7lV'),
+('1110087448675131392', '1110086782766456832', 'https://datamaster-pro.example.com/drag/share/view/1110086782766456832?shareToken=tgvjaME9k2yR20jxiVWDLnUofNEUFkY3', NULL, TIMESTAMP '2025-07-29 16:18:02.0', '0', '0', '0', 'tgvjaME9k2yR20jxiVWDLnUofNEUFkY3'),
+('1110466585768140800', '925966805971279872', 'https://datamaster-pro.example.com/drag/share/view/925966805971279872', NULL, TIMESTAMP '2025-07-30 17:24:36.0', '1', '0', '0', NULL),
+('1125999733394284544', '1125629013472485376', 'https://datamaster-pro.example.com/drag/share/view/1125629013472485376?shareToken=ZqtJE9Bcgns76T9Q9diLyc25NfSXeRvm', NULL, TIMESTAMP '2025-09-11 14:07:47.0', '0', '0', '0', 'ZqtJE9Bcgns76T9Q9diLyc25NfSXeRvm');
 
 -- =====================================================
 -- Table: onl_drag_table_relation
@@ -10705,7 +10705,7 @@ CREATE TABLE public.system_content (
 COMMENT ON TABLE public.system_content IS 'system_content';
 
 INSERT INTO public.system_content (id, sys_name, logo, login_logo, carousel_image, contact_number, email, copyright, record_number, del_flag, status, create_by, creator_id, create_time, update_by, updater_id, update_time, remark, config_json) VALUES
-(1, NULL, NULL, NULL, NULL, '400-660-8208', 'sales@qiantong.tech', 'Copyright ©2025 江苏千桐科技有限公司 版权所有', '苏ICP备2022008519号-1', 0, NULL, NULL, NULL, NULL, '吴大同', 1, TIMESTAMP '2025-09-16 17:00:27.0', NULL, '{\"copyrightHttp\":\"https://qiantong.tech\",\"systemMenuFullLogo\":\"\",\"systemMenuLogo\":\"\"}');
+(1, NULL, NULL, NULL, NULL, '400-660-8208', 'sales@qiantong.tech', 'Copyright ©2025', '苏ICP备2022008519号-1', 0, NULL, NULL, NULL, NULL, '吴大同', 1, TIMESTAMP '2025-09-16 17:00:27.0', NULL, '{\"copyrightHttp\":\"https://qiantong.tech\",\"systemMenuFullLogo\":\"\",\"systemMenuLogo\":\"\"}');
 
 -- =====================================================
 -- Table: system_dept
@@ -10732,7 +10732,7 @@ CREATE TABLE public.system_dept (
 COMMENT ON TABLE public.system_dept IS 'system_dept';
 
 INSERT INTO public.system_dept (dept_id, parent_id, ancestors, dept_name, order_num, leader, phone, email, status, del_flag, create_by, create_time, update_by, update_time) VALUES
-(852, 0, '0', '江苏千桐科技有限公司', 0, NULL, NULL, NULL, '0', '0', 'admin', TIMESTAMP '2025-09-18 14:09:24.0', NULL, NULL),
+(852, 0, '0', 'DataMaster Technologies', 0, NULL, NULL, NULL, '0', '0', 'admin', TIMESTAMP '2025-09-18 14:09:24.0', NULL, NULL),
 (853, 852, '0,852', '南京总公司', 1, NULL, NULL, NULL, '0', '0', 'admin', TIMESTAMP '2025-09-18 14:09:35.0', NULL, NULL),
 (854, 852, '0,852', '郑州分公司', 2, NULL, NULL, NULL, '0', '0', 'admin', TIMESTAMP '2025-09-18 14:09:43.0', 'admin', TIMESTAMP '2025-09-18 14:09:48.0'),
 (855, 852, '0,852', '新疆分公司', 3, NULL, NULL, NULL, '0', '0', 'admin', TIMESTAMP '2025-09-18 14:09:55.0', NULL, NULL),
@@ -10953,8 +10953,8 @@ INSERT INTO public.system_dict_data (dict_code, dict_sort, dict_label, dict_valu
 (183, 1, '上线', '1', 'ds_api_status', NULL, 'default', 'N', '0', '吴同', TIMESTAMP '2025-02-18 18:33:45.0', NULL, NULL, NULL),
 (184, 0, '否', '0', 'ds_api_limit_status', NULL, 'default', 'N', '0', '吴同', TIMESTAMP '2025-02-18 18:38:39.0', NULL, NULL, NULL),
 (185, 1, '是', '1', 'ds_api_limit_status', NULL, 'default', 'N', '0', '吴同', TIMESTAMP '2025-02-18 18:38:47.0', NULL, NULL, NULL),
-(187, 1, '未上线', '0', 'dpp_etl_task_status', NULL, 'primary', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 09:59:46.0', 'mengfanming', TIMESTAMP '2025-02-19 10:00:19.0', NULL),
-(188, 2, '已上线', '1', 'dpp_etl_task_status', NULL, 'success', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 10:00:11.0', NULL, NULL, NULL),
+(187, 1, '未上线', '0', 'col_etl_task_status', NULL, 'primary', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 09:59:46.0', 'mengfanming', TIMESTAMP '2025-02-19 10:00:19.0', NULL),
+(188, 2, '已上线', '1', 'col_etl_task_status', NULL, 'success', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 10:00:11.0', NULL, NULL, NULL),
 (189, 0, '字符串', '1', 'ds_api_param_type', NULL, 'default', 'N', '0', '吴同', TIMESTAMP '2025-02-19 10:22:28.0', NULL, NULL, NULL),
 (190, 1, '整数', '2', 'ds_api_param_type', NULL, 'default', 'N', '0', '吴同', TIMESTAMP '2025-02-19 10:22:36.0', '吴同', TIMESTAMP '2025-02-19 10:22:42.0', NULL),
 (191, 2, '浮点型', '3', 'ds_api_param_type', NULL, 'default', 'N', '0', '吴同', TIMESTAMP '2025-02-19 10:22:51.0', NULL, NULL, NULL),
@@ -10972,26 +10972,26 @@ INSERT INTO public.system_dict_data (dict_code, dict_sort, dict_label, dict_valu
 (203, 10, '是否为空', '10', 'da_api_param_operator', NULL, NULL, 'N', '0', '吴同', TIMESTAMP '2025-02-19 11:03:07.0', '吴同', TIMESTAMP '2025-02-19 11:03:07.0', '是否为空'),
 (204, 11, '是否不为空', '11', 'da_api_param_operator', NULL, NULL, 'N', '0', '吴同', TIMESTAMP '2025-02-19 11:03:07.0', '吴同', TIMESTAMP '2025-02-19 11:03:07.0', '是否不为空'),
 (205, 12, 'IN', '12', 'da_api_param_operator', NULL, NULL, 'N', '0', '吴同', TIMESTAMP '2025-02-19 11:03:07.0', '吴同', TIMESTAMP '2025-02-19 11:03:07.0', 'IN'),
-(206, 1, '并行', 'PARALLEL', 'dpp_etl_task_execution_type', NULL, 'default', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:11:15.0', NULL, NULL, NULL),
-(207, 2, '串行等待', 'SERIAL_WAIT', 'dpp_etl_task_execution_type', NULL, 'default', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:11:28.0', NULL, NULL, NULL),
-(208, 3, '串行抛弃', 'SERIAL_DISCARD', 'dpp_etl_task_execution_type', NULL, 'default', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:11:43.0', NULL, NULL, NULL),
-(209, 4, '串行优先', 'SERIAL_PRIORITY', 'dpp_etl_task_execution_type', NULL, 'default', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:12:07.0', NULL, NULL, NULL),
-(210, 0, '提交成功', '0', 'dpp_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:38:46.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:03.0', NULL),
-(211, 1, '正在运行', '1', 'dpp_etl_node_instance', NULL, 'primary', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-26 10:38:59.0', '吴同', TIMESTAMP '2025-03-10 10:21:24.0', NULL),
-(212, 3, '暂停', '3', 'dpp_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:39:21.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:13.0', NULL),
-(213, 5, '停止', '5', 'dpp_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:39:31.0', 'shuyexin', TIMESTAMP '2025-02-27 18:18:52.0', NULL),
-(214, 6, '失败', '6', 'dpp_etl_node_instance', NULL, 'danger', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-26 10:40:15.0', '吴同', TIMESTAMP '2025-03-10 10:21:06.0', NULL),
-(215, 7, '成功', '7', 'dpp_etl_node_instance', NULL, 'success', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-26 10:40:23.0', '吴同', TIMESTAMP '2025-03-10 10:21:00.0', NULL),
-(216, 8, '需要容错', '8', 'dpp_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:40:31.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:31.0', NULL),
-(217, 9, 'Kill', '9', 'dpp_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:40:40.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:42.0', NULL),
-(218, 12, '延时执行', '12', 'dpp_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:40:47.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:35.0', NULL),
-(219, 13, '强制成功', '13', 'dpp_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:40:55.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:38.0', NULL),
-(220, 17, '派发', '17', 'dpp_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:41:04.0', 'shuyexin', TIMESTAMP '2025-02-27 18:08:03.0', NULL),
-(221, 0, '集成', 'DATAX', 'dpp_etl_node_type', NULL, 'primary', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-27 18:31:08.0', '吴同', TIMESTAMP '2025-03-10 10:22:27.0', NULL),
-(222, 1, '转换', 'SPARK', 'dpp_etl_node_type', NULL, 'success', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-27 18:31:28.0', '吴同', TIMESTAMP '2025-03-10 10:22:34.0', NULL),
+(206, 1, '并行', 'PARALLEL', 'col_etl_task_execution_type', NULL, 'default', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:11:15.0', NULL, NULL, NULL),
+(207, 2, '串行等待', 'SERIAL_WAIT', 'col_etl_task_execution_type', NULL, 'default', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:11:28.0', NULL, NULL, NULL),
+(208, 3, '串行抛弃', 'SERIAL_DISCARD', 'col_etl_task_execution_type', NULL, 'default', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:11:43.0', NULL, NULL, NULL),
+(209, 4, '串行优先', 'SERIAL_PRIORITY', 'col_etl_task_execution_type', NULL, 'default', 'N', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:12:07.0', NULL, NULL, NULL),
+(210, 0, '提交成功', '0', 'col_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:38:46.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:03.0', NULL),
+(211, 1, '正在运行', '1', 'col_etl_node_instance', NULL, 'primary', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-26 10:38:59.0', '吴同', TIMESTAMP '2025-03-10 10:21:24.0', NULL),
+(212, 3, '暂停', '3', 'col_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:39:21.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:13.0', NULL),
+(213, 5, '停止', '5', 'col_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:39:31.0', 'shuyexin', TIMESTAMP '2025-02-27 18:18:52.0', NULL),
+(214, 6, '失败', '6', 'col_etl_node_instance', NULL, 'danger', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-26 10:40:15.0', '吴同', TIMESTAMP '2025-03-10 10:21:06.0', NULL),
+(215, 7, '成功', '7', 'col_etl_node_instance', NULL, 'success', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-26 10:40:23.0', '吴同', TIMESTAMP '2025-03-10 10:21:00.0', NULL),
+(216, 8, '需要容错', '8', 'col_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:40:31.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:31.0', NULL),
+(217, 9, 'Kill', '9', 'col_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:40:40.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:42.0', NULL),
+(218, 12, '延时执行', '12', 'col_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:40:47.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:35.0', NULL),
+(219, 13, '强制成功', '13', 'col_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:40:55.0', 'shuyexin', TIMESTAMP '2025-02-27 18:07:38.0', NULL),
+(220, 17, '派发', '17', 'col_etl_node_instance', NULL, 'default', 'N', '1', 'shuyexin', TIMESTAMP '2025-02-26 10:41:04.0', 'shuyexin', TIMESTAMP '2025-02-27 18:08:03.0', NULL),
+(221, 0, '集成', 'DATAX', 'col_etl_node_type', NULL, 'primary', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-27 18:31:08.0', '吴同', TIMESTAMP '2025-03-10 10:22:27.0', NULL),
+(222, 1, '转换', 'SPARK', 'col_etl_node_type', NULL, 'success', 'N', '0', 'shuyexin', TIMESTAMP '2025-02-27 18:31:28.0', '吴同', TIMESTAMP '2025-03-10 10:22:34.0', NULL),
 (223, 1, 'MySQL', 'MySql', 'datasource_type', NULL, 'primary', 'N', '0', 'mengfanming', TIMESTAMP '2025-03-10 09:55:58.0', '吴同', TIMESTAMP '2025-08-21 14:23:29.0', NULL),
-(224, 0, '数据开发任务', '3', 'dpp_etl_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(225, 0, '作业任务', '4', 'dpp_etl_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(224, 0, '数据开发任务', '3', 'col_etl_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(225, 0, '作业任务', '4', 'col_etl_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
 (226, 0, 'DATAX', 'DATAX', 'ddp_etl_node_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
 (227, 0, 'SPARK', 'SPARK', 'ddp_etl_node_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
 (228, 0, 'SUB_PROCESS', 'SUB_PROCESS', 'ddp_etl_node_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
@@ -11003,45 +11003,45 @@ INSERT INTO public.system_dict_data (dict_code, dict_sort, dict_label, dict_valu
 (234, 1, '驳回', '2', 'da_asset_apply_status', NULL, 'danger', 'N', '0', NULL, NULL, '吴同', TIMESTAMP '2025-03-31 11:41:29.0', NULL),
 (235, 2, '通过', '3', 'da_asset_apply_status', NULL, 'success', 'N', '0', NULL, NULL, '吴同', TIMESTAMP '2025-03-31 11:41:35.0', NULL),
 (236, 4, 'Oracle11', 'Oracle11', 'datasource_type', NULL, 'primary', 'N', '0', 'mengfanming', TIMESTAMP '2025-03-10 15:30:34.0', NULL, NULL, NULL),
-(237, 0, '数据库输入', '1', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(238, 0, 'EXCEL输入', '2', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(239, 0, 'Kafka输入', '3', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(240, 0, 'Spark清洗', '31', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(241, 0, 'SQL开发', '51', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(242, 0, '存储过程开发', '52', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(243, 0, 'SparkSql开发', '53', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(244, 0, '子任务', '71', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(245, 0, '数据库输出', '91', 'dpp_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(237, 0, '数据库输入', '1', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(238, 0, 'EXCEL输入', '2', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(239, 0, 'Kafka输入', '3', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(240, 0, 'Spark清洗', '31', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(241, 0, 'SQL开发', '51', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(242, 0, '存储过程开发', '52', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(243, 0, 'SparkSql开发', '53', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(244, 0, '子任务', '71', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(245, 0, '数据库输出', '91', 'col_etl_node_component_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
 (247, 0, '数据连接', '0', 'dpp_connection', NULL, 'primary', 'N', '0', 'shuyexin', TIMESTAMP '2025-03-24 13:43:11.0', NULL, NULL, NULL),
 (248, 0, '资产表', '1', 'dpp_connection', NULL, 'success', 'N', '0', 'shuyexin', TIMESTAMP '2025-03-24 13:43:23.0', NULL, NULL, NULL),
-(249, 0, '最高的', 'HIGHEST', 'dpp_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(250, 0, '高的', 'HIGH', 'dpp_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(251, 0, '中等的', 'MEDIUM', 'dpp_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(252, 0, '低的', 'LOW', 'dpp_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(253, 0, '最低的', 'LOWEST', 'dpp_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(254, 0, '启动任务流', '0', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 11:09:49.0', NULL),
-(255, 0, '从当前节点开始执行', '1', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(256, 0, '恢复被容错的工作流', '2', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(257, 0, '恢复暂停流程', '3', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(258, 0, '从失败节点开始执行', '4', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(259, 0, '补数', '5', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(260, 0, '调度', '6', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(261, 0, '重跑', '7', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(262, 0, '暂停', '8', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(263, 0, '停止', '9', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(264, 0, '恢复等待线程', '10', 'dpp_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(265, 0, '提交成功', '0', 'dpp_etl_task_instance', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(266, 0, '正在执行', '1', 'dpp_etl_task_instance', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
-(267, 0, '延时执行', '12', 'dpp_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:35.0', NULL),
-(268, 0, '串行等待', '14', 'dpp_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:40.0', NULL),
-(269, 0, '准备锁定', '15', 'dpp_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:44.0', NULL),
-(270, 0, '锁定', '16', 'dpp_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:48.0', NULL),
-(271, 0, '准备暂停', '2', 'dpp_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:52.0', NULL),
-(272, 0, '暂停', '3', 'dpp_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:55.0', NULL),
-(273, 0, '准备停止', '4', 'dpp_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:59.0', NULL),
-(274, 0, '停止', '5', 'dpp_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:08:02.0', NULL),
-(275, 0, '失败', '6', 'dpp_etl_task_instance', NULL, 'danger', 'N', '0', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:05:54.0', NULL),
-(276, 0, '成功', '7', 'dpp_etl_task_instance', NULL, 'success', 'N', '0', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:05:40.0', NULL),
+(249, 0, '最高的', 'HIGHEST', 'col_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(250, 0, '高的', 'HIGH', 'col_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(251, 0, '中等的', 'MEDIUM', 'col_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(252, 0, '低的', 'LOW', 'col_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(253, 0, '最低的', 'LOWEST', 'col_etl_node_priority', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(254, 0, '启动任务流', '0', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 11:09:49.0', NULL),
+(255, 0, '从当前节点开始执行', '1', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(256, 0, '恢复被容错的工作流', '2', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(257, 0, '恢复暂停流程', '3', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(258, 0, '从失败节点开始执行', '4', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(259, 0, '补数', '5', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(260, 0, '调度', '6', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(261, 0, '重跑', '7', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(262, 0, '暂停', '8', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(263, 0, '停止', '9', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(264, 0, '恢复等待线程', '10', 'col_etl_task_instance_command_type', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(265, 0, '提交成功', '0', 'col_etl_task_instance', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(266, 0, '正在执行', '1', 'col_etl_task_instance', NULL, NULL, 'N', '0', NULL, NULL, NULL, NULL, NULL),
+(267, 0, '延时执行', '12', 'col_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:35.0', NULL),
+(268, 0, '串行等待', '14', 'col_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:40.0', NULL),
+(269, 0, '准备锁定', '15', 'col_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:44.0', NULL),
+(270, 0, '锁定', '16', 'col_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:48.0', NULL),
+(271, 0, '准备暂停', '2', 'col_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:52.0', NULL),
+(272, 0, '暂停', '3', 'col_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:55.0', NULL),
+(273, 0, '准备停止', '4', 'col_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:07:59.0', NULL),
+(274, 0, '停止', '5', 'col_etl_task_instance', NULL, NULL, 'N', '1', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:08:02.0', NULL),
+(275, 0, '失败', '6', 'col_etl_task_instance', NULL, 'danger', 'N', '0', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:05:54.0', NULL),
+(276, 0, '成功', '7', 'col_etl_task_instance', NULL, 'success', 'N', '0', NULL, NULL, '吴同', TIMESTAMP '2025-03-27 14:05:40.0', NULL),
 (277, 0, '数据发现', '1', 'da_asset_source', NULL, 'primary', 'N', '0', 'shuyexin', TIMESTAMP '2025-03-27 17:43:45.0', NULL, NULL, NULL),
 (278, 0, '数据模型', '2', 'da_asset_source', NULL, 'success', 'N', '0', 'shuyexin', TIMESTAMP '2025-03-27 17:43:57.0', NULL, NULL, NULL),
 (288, 1, '数据库表', '1', 'da_asset_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-04-14 11:24:26.0', NULL, NULL, NULL),
@@ -11099,32 +11099,32 @@ INSERT INTO public.system_dict_data (dict_code, dict_sort, dict_label, dict_valu
 (342, 4, '回滚失败', '4', 'da_asset_operate_status', NULL, 'danger', 'N', '0', '吴同', TIMESTAMP '2025-05-20 11:02:42.0', '吴同', TIMESTAMP '2025-05-20 11:02:48.0', NULL),
 (343, 5, '回滚成功', '5', 'da_asset_operate_status', NULL, 'success', 'N', '0', '吴同', TIMESTAMP '2025-05-20 11:03:00.0', NULL, NULL, NULL),
 (344, 8, 'Doris', 'Doris', 'datasource_type', NULL, 'info', 'N', '0', '吴同', TIMESTAMP '2025-06-23 11:22:50.0', 'wutong', TIMESTAMP '2025-09-22 09:19:40.0', NULL),
-(346, 0, 'Flink', '0', 'dpp_etl_task_engine', NULL, 'success', 'N', '0', '吴同', TIMESTAMP '2025-06-23 16:40:39.0', 'wutong', TIMESTAMP '2025-09-23 09:36:02.0', NULL),
-(347, 1, 'Spark', '1', 'dpp_etl_task_engine', NULL, 'info', 'N', '0', '吴同', TIMESTAMP '2025-06-23 16:40:55.0', 'wutong', TIMESTAMP '2025-09-23 09:36:06.0', NULL),
-(348, 0, '批处理', '0', 'dpp_etl_task_process_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:47:57.0', '吴同', TIMESTAMP '2025-06-23 17:49:53.0', NULL),
-(349, 1, '流处理', '1', 'dpp_etl_task_process_type', NULL, 'success', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:48:06.0', '吴同', TIMESTAMP '2025-06-23 17:49:58.0', NULL),
-(350, 0, 'DM8', 'DM8', 'dpp_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:52:45.0', '吴同', TIMESTAMP '2025-06-23 17:53:20.0', NULL),
-(351, 1, 'Mysql', 'Mysql', 'dpp_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:53:15.0', '吴同', TIMESTAMP '2025-06-23 17:53:26.0', NULL),
-(352, 2, 'Oracle', 'Oracle', 'dpp_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:53:34.0', '吴同', TIMESTAMP '2025-06-23 17:53:59.0', NULL),
-(353, 3, 'Kingbase8', 'Kingbase8', 'dpp_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:53:47.0', '吴同', TIMESTAMP '2025-06-23 17:54:04.0', NULL),
-(354, 4, 'Hive', 'Hive', 'dpp_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:53:56.0', NULL, NULL, NULL),
-(355, 5, 'Fink', 'Fink', 'dpp_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:54:13.0', NULL, NULL, NULL),
-(356, 0, 'Spark', 'Spark', 'dpp_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:54:21.0', NULL, NULL, NULL),
-(359, 1, 'HIGHEST', 'HIGHEST', 'dpp_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:16:17.0', NULL, NULL, NULL),
-(360, 0, 'HIGH', 'HIGH', 'dpp_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:16:29.0', NULL, NULL, NULL),
-(361, 3, 'LOW', 'LOW', 'dpp_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:16:47.0', '吴同', TIMESTAMP '2025-06-24 16:17:12.0', NULL),
-(362, 2, 'MEDIUM', 'MEDIUM', 'dpp_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:17:07.0', NULL, NULL, NULL),
-(363, 5, 'LOWEST', 'LOWEST', 'dpp_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:17:24.0', NULL, NULL, NULL),
-(364, 0, 'FLINK流', '10', 'dpp_etl_sql_temp_type', NULL, 'success', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:25.0', NULL),
-(365, 0, 'FLINK批', '11', 'dpp_etl_sql_temp_type', NULL, 'success', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:22.0', NULL),
-(366, 0, 'DM', '2', 'dpp_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:08:44.0', NULL),
-(367, 0, 'ORACLE', '3', 'dpp_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:08:39.0', NULL),
-(368, 0, 'MYSQL', '4', 'dpp_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:03.0', NULL),
-(369, 0, 'KINGBASE', '5', 'dpp_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:00.0', NULL),
-(370, 0, 'Sqlerver', '6', 'dpp_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:08:49.0', NULL),
-(371, 0, 'PostgreSql', '7', 'dpp_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:08:53.0', NULL),
-(372, 0, 'Hive', '8', 'dpp_etl_sql_temp_type', NULL, 'warning', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:16.0', NULL),
-(373, 0, 'SparkSql', '9', 'dpp_etl_sql_temp_type', NULL, 'warning', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:13.0', NULL),
+(346, 0, 'Flink', '0', 'col_etl_task_engine', NULL, 'success', 'N', '0', '吴同', TIMESTAMP '2025-06-23 16:40:39.0', 'wutong', TIMESTAMP '2025-09-23 09:36:02.0', NULL),
+(347, 1, 'Spark', '1', 'col_etl_task_engine', NULL, 'info', 'N', '0', '吴同', TIMESTAMP '2025-06-23 16:40:55.0', 'wutong', TIMESTAMP '2025-09-23 09:36:06.0', NULL),
+(348, 0, '批处理', '0', 'col_etl_task_process_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:47:57.0', '吴同', TIMESTAMP '2025-06-23 17:49:53.0', NULL),
+(349, 1, '流处理', '1', 'col_etl_task_process_type', NULL, 'success', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:48:06.0', '吴同', TIMESTAMP '2025-06-23 17:49:58.0', NULL),
+(350, 0, 'DM8', 'DM8', 'col_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:52:45.0', '吴同', TIMESTAMP '2025-06-23 17:53:20.0', NULL),
+(351, 1, 'Mysql', 'Mysql', 'col_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:53:15.0', '吴同', TIMESTAMP '2025-06-23 17:53:26.0', NULL),
+(352, 2, 'Oracle', 'Oracle', 'col_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:53:34.0', '吴同', TIMESTAMP '2025-06-23 17:53:59.0', NULL),
+(353, 3, 'Kingbase8', 'Kingbase8', 'col_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:53:47.0', '吴同', TIMESTAMP '2025-06-23 17:54:04.0', NULL),
+(354, 4, 'Hive', 'Hive', 'col_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:53:56.0', NULL, NULL, NULL),
+(355, 5, 'Fink', 'Fink', 'col_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:54:13.0', NULL, NULL, NULL),
+(356, 0, 'Spark', 'Spark', 'col_etl_task_type', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-23 17:54:21.0', NULL, NULL, NULL),
+(359, 1, 'HIGHEST', 'HIGHEST', 'col_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:16:17.0', NULL, NULL, NULL),
+(360, 0, 'HIGH', 'HIGH', 'col_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:16:29.0', NULL, NULL, NULL),
+(361, 3, 'LOW', 'LOW', 'col_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:16:47.0', '吴同', TIMESTAMP '2025-06-24 16:17:12.0', NULL),
+(362, 2, 'MEDIUM', 'MEDIUM', 'col_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:17:07.0', NULL, NULL, NULL),
+(363, 5, 'LOWEST', 'LOWEST', 'col_etl_task_priority', NULL, 'primary', 'N', '0', '吴同', TIMESTAMP '2025-06-24 16:17:24.0', NULL, NULL, NULL),
+(364, 0, 'FLINK流', '10', 'col_etl_sql_temp_type', NULL, 'success', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:25.0', NULL),
+(365, 0, 'FLINK批', '11', 'col_etl_sql_temp_type', NULL, 'success', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:22.0', NULL),
+(366, 0, 'DM', '2', 'col_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:08:44.0', NULL),
+(367, 0, 'ORACLE', '3', 'col_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:08:39.0', NULL),
+(368, 0, 'MYSQL', '4', 'col_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:03.0', NULL),
+(369, 0, 'KINGBASE', '5', 'col_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:00.0', NULL),
+(370, 0, 'Sqlerver', '6', 'col_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:08:49.0', NULL),
+(371, 0, 'PostgreSql', '7', 'col_etl_sql_temp_type', NULL, 'info', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:08:53.0', NULL),
+(372, 0, 'Hive', '8', 'col_etl_sql_temp_type', NULL, 'warning', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:16.0', NULL),
+(373, 0, 'SparkSql', '9', 'col_etl_sql_temp_type', NULL, 'warning', 'N', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-23 10:09:13.0', NULL),
 (374, 6, '文件数据', '6', 'da_asset_type', NULL, 'primary', 'N', '1', '吴同', TIMESTAMP '2025-06-26 14:21:37.0', '吴同', TIMESTAMP '2025-07-16 08:58:42.0', NULL),
 (377, 7, '非结构化数据', '7', 'da_asset_type', NULL, 'primary', 'N', '1', '吴同', TIMESTAMP '2025-07-15 14:08:44.0', 'admin', TIMESTAMP '2025-09-30 10:02:29.0', NULL),
 (378, 0, '一般', '0', 'quality_warning_status', NULL, 'info', 'N', '0', '吴同', TIMESTAMP '2025-07-25 10:51:11.0', '吴同', TIMESTAMP '2025-07-25 10:51:43.0', NULL),
@@ -11270,20 +11270,20 @@ INSERT INTO public.system_dict_type (dict_id, dict_name, dict_type, status, crea
 (62, '数据发现任务日志表状态', 'da_discovery_task_log_status', '0', 'mengfanming', TIMESTAMP '2025-02-18 13:50:03.0', NULL, NULL, NULL),
 (63, 'API服务状态', 'ds_api_status', '0', '吴同', TIMESTAMP '2025-02-18 18:32:56.0', NULL, NULL, NULL),
 (64, 'API服务限流状态', 'ds_api_limit_status', '0', '吴同', TIMESTAMP '2025-02-18 18:37:26.0', NULL, NULL, NULL),
-(65, '数据集成任务-状态', 'dpp_etl_task_status', '0', 'mengfanming', TIMESTAMP '2025-02-19 09:58:50.0', NULL, NULL, '任务状态'),
+(65, '数据集成任务-状态', 'col_etl_task_status', '0', 'mengfanming', TIMESTAMP '2025-02-19 09:58:50.0', NULL, NULL, '任务状态'),
 (66, '参数类型', 'ds_api_param_type', '0', '吴同', TIMESTAMP '2025-02-19 10:21:34.0', NULL, NULL, 'api服务参数类型'),
 (67, 'API参数操作符', 'da_api_param_operator', '0', '吴同', TIMESTAMP '2025-02-19 10:27:57.0', NULL, NULL, 'API参数操作符'),
-(68, '数据集成任务-任务的执行策略', 'dpp_etl_task_execution_type', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:10:09.0', NULL, NULL, NULL),
-(69, '数据集成节点执行状态', 'dpp_etl_node_instance', '0', 'shuyexin', TIMESTAMP '2025-02-26 10:37:46.0', NULL, NULL, NULL),
-(70, '数据集成节点执行类型', 'dpp_etl_node_type', '0', 'shuyexin', TIMESTAMP '2025-02-27 18:30:55.0', NULL, NULL, NULL),
+(68, '数据集成任务-任务的执行策略', 'col_etl_task_execution_type', '0', 'mengfanming', TIMESTAMP '2025-02-19 11:10:09.0', NULL, NULL, NULL),
+(69, '数据集成节点执行状态', 'col_etl_node_instance', '0', 'shuyexin', TIMESTAMP '2025-02-26 10:37:46.0', NULL, NULL, NULL),
+(70, '数据集成节点执行类型', 'col_etl_node_type', '0', 'shuyexin', TIMESTAMP '2025-02-27 18:30:55.0', NULL, NULL, NULL),
 (71, '数据集成任务-节点类型', 'ddp_etl_node_type', '0', NULL, NULL, NULL, NULL, NULL),
 (72, '数据发现库表提交记录-状态', 'da_discovery_table_log_status', '0', NULL, NULL, NULL, NULL, NULL),
 (73, '资产申请表-状态', 'da_asset_apply_status', '0', NULL, NULL, NULL, NULL, NULL),
-(74, '数据集成-组件类型', 'dpp_etl_node_component_type', '0', NULL, NULL, NULL, NULL, NULL),
+(74, '数据集成-组件类型', 'col_etl_node_component_type', '0', NULL, NULL, NULL, NULL, NULL),
 (75, '数据研发的连接方式', 'dpp_connection', '0', 'shuyexin', TIMESTAMP '2025-03-24 13:42:43.0', NULL, NULL, NULL),
-(76, '数据集成节点-节点优先级', 'dpp_etl_node_priority', '0', NULL, NULL, NULL, NULL, NULL),
-(77, '数据集成任务实例-运行类型', 'dpp_etl_task_instance_command_type', '0', NULL, NULL, NULL, NULL, NULL),
-(78, '数据集成任务实例状态', 'dpp_etl_task_instance', '0', NULL, NULL, NULL, NULL, NULL),
+(76, '数据集成节点-节点优先级', 'col_etl_node_priority', '0', NULL, NULL, NULL, NULL, NULL),
+(77, '数据集成任务实例-运行类型', 'col_etl_task_instance_command_type', '0', NULL, NULL, NULL, NULL, NULL),
+(78, '数据集成任务实例状态', 'col_etl_task_instance', '0', NULL, NULL, NULL, NULL, NULL),
 (79, '资产地图数据来源', 'da_asset_source', '0', 'shuyexin', TIMESTAMP '2025-03-27 17:43:12.0', NULL, NULL, NULL),
 (81, '资产类型', 'da_asset_type', '0', '吴同', TIMESTAMP '2025-04-14 11:20:16.0', '吴同', TIMESTAMP '2025-04-14 13:53:42.0', NULL),
 (82, '权限层级-类型', 'att_perm_tier_type', '0', '吴同', TIMESTAMP '2025-04-14 14:06:54.0', NULL, NULL, NULL),
@@ -11299,11 +11299,11 @@ INSERT INTO public.system_dict_type (dict_id, dict_name, dict_type, status, crea
 (92, '部门类型', 'rp_dept_type', '0', 'liuhaosheng', TIMESTAMP '2025-04-30 17:48:56.0', NULL, NULL, NULL),
 (93, '数据资产-数据操作类型', 'da_asset_operate_type', '0', '吴同', TIMESTAMP '2025-05-09 15:09:56.0', NULL, NULL, NULL),
 (94, '数据资产操作记录状态', 'da_asset_operate_status', '0', '吴同', TIMESTAMP '2025-05-20 11:01:25.0', NULL, NULL, NULL),
-(95, '数据集成执行引擎', 'dpp_etl_task_engine', '0', '吴同', TIMESTAMP '2025-06-23 16:39:58.0', NULL, NULL, '新增弹框使用'),
-(96, '数据开发处理类型', 'dpp_etl_task_process_type', '0', '吴同', TIMESTAMP '2025-06-23 17:47:35.0', NULL, NULL, '列表用'),
-(97, '数据开发任务类型', 'dpp_etl_task_type', '0', '吴同', TIMESTAMP '2025-06-23 17:52:23.0', NULL, NULL, NULL),
-(98, '数据研发-任务优先级', 'dpp_etl_task_priority', '0', '吴同', TIMESTAMP '2025-06-24 16:15:25.0', NULL, NULL, NULL),
-(99, '数据集成SQL模-类型', 'dpp_etl_sql_temp_type', '0', NULL, NULL, NULL, NULL, NULL),
+(95, '数据集成执行引擎', 'col_etl_task_engine', '0', '吴同', TIMESTAMP '2025-06-23 16:39:58.0', NULL, NULL, '新增弹框使用'),
+(96, '数据开发处理类型', 'col_etl_task_process_type', '0', '吴同', TIMESTAMP '2025-06-23 17:47:35.0', NULL, NULL, '列表用'),
+(97, '数据开发任务类型', 'col_etl_task_type', '0', '吴同', TIMESTAMP '2025-06-23 17:52:23.0', NULL, NULL, NULL),
+(98, '数据研发-任务优先级', 'col_etl_task_priority', '0', '吴同', TIMESTAMP '2025-06-24 16:15:25.0', NULL, NULL, NULL),
+(99, '数据集成SQL模-类型', 'col_etl_sql_temp_type', '0', NULL, NULL, NULL, NULL, NULL),
 (100, '数据质量告警等级', 'quality_warning_status', '0', '吴同', TIMESTAMP '2025-07-25 10:50:44.0', NULL, NULL, NULL),
 (101, '数据质量执行日志状态', 'quality_log_success_flag', '0', '吴同', TIMESTAMP '2025-07-25 13:49:29.0', NULL, NULL, NULL),
 (102, '数据质量历史数据状态', 'quality_log_data_repair', '0', '吴同', TIMESTAMP '2025-08-04 14:22:43.0', NULL, NULL, NULL),
@@ -11444,18 +11444,18 @@ COMMENT ON TABLE public.system_logininfor IS 'system_logininfor';
 INSERT INTO public.system_logininfor (info_id, user_name, ipaddr, login_location, browser, os, status, msg, login_time) VALUES
 (1, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Windows 10', '1', '验证码错误', TIMESTAMP '2026-05-22 23:04:23.772932'),
 (2, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2026-05-22 23:04:44.73577'),
-(259, 'qData', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:34:10.0'),
-(260, 'qData', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:37:49.0'),
-(261, 'qData', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:37:55.0'),
-(262, 'qData', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:38:13.0'),
-(263, 'qData', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:38:16.0'),
-(264, 'qData', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:38:43.0'),
+(259, 'datamaster', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:34:10.0'),
+(260, 'datamaster', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:37:49.0'),
+(261, 'datamaster', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:37:55.0'),
+(262, 'datamaster', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:38:13.0'),
+(263, 'datamaster', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:38:16.0'),
+(264, 'datamaster', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:38:43.0'),
 (265, 'admin', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:38:48.0'),
 (266, 'admin', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:41:15.0'),
-(267, 'qData', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:41:18.0'),
-(268, 'qData', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:42:34.0'),
+(267, 'datamaster', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:41:18.0'),
+(268, 'datamaster', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '退出成功', TIMESTAMP '2025-10-09 10:42:34.0'),
 (269, 'admin', '172.28.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-09 10:42:39.0'),
-(270, 'qData', '127.0.0.1', '内网IP', 'Chrome 14', 'Windows 10', '1', '用户不存在/密码错误', TIMESTAMP '2025-10-27 15:41:07.0'),
+(270, 'datamaster', '127.0.0.1', '内网IP', 'Chrome 14', 'Windows 10', '1', '用户不存在/密码错误', TIMESTAMP '2025-10-27 15:41:07.0'),
 (271, 'admin', '127.0.0.1', '内网IP', 'Chrome 14', 'Windows 10', '0', '登录成功', TIMESTAMP '2025-10-27 15:41:11.0'),
 (272, 'admin', '192.168.65.1', '内网IP', 'Chrome 14', 'Mac OS X', '0', '登录成功', TIMESTAMP '2026-05-12 18:04:22.0');
 
@@ -11490,339 +11490,339 @@ CREATE TABLE public.system_menu (
 COMMENT ON TABLE public.system_menu IS 'system_menu';
 
 INSERT INTO public.system_menu (menu_id, menu_name, parent_id, order_num, path, component, query, is_frame, is_cache, route_name, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark) VALUES
-(1, '系统管理', 0, 998, 'sys', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'settings-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:01:16.0', '系统管理目录'),
-(2, '系统监控', 0, 999, 'monitor', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'slideshow-3-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-05-30 16:16:33.0', '系统监控目录'),
-(3, '系统工具', 0, 1000, 'tool', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'briefcase-2-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-05-30 16:17:04.0', '系统工具目录'),
-(100, '用户管理', 1, 1, 'user', 'sys/system/user/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:user:list', 'user-3-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:00.0', '用户管理菜单'),
-(101, '角色管理', 1, 2, 'role', 'sys/system/role/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:role:list', 'group-3-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:10.0', '角色管理菜单'),
-(102, '菜单管理', 1, 3, 'menu', 'sys/system/menu/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:menu:list', 'list-view', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-05-30 16:20:45.0', '菜单管理菜单'),
-(103, '部门管理', 1, 4, 'dept', 'sys/system/dept/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:dept:list', 'contacts-book-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:14.0', '部门管理菜单'),
-(104, '岗位管理', 1, 5, 'post', 'sys/system/post/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:post:list', 'node-tree', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:19.0', '岗位管理菜单'),
-(105, '字典管理', 1, 6, 'dict', 'sys/system/dict/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:dict:list', 'book-2-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:01:54.0', '字典管理菜单'),
-(106, '参数设置', 1, 7, 'config', 'sys/system/config/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:config:list', 'exchange-funds-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:23.0', '参数设置菜单'),
-(107, '通知公告', 1, 8, 'notice', 'sys/system/notice/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:notice:list', 'megaphone-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:28.0', '通知公告菜单'),
-(108, '日志管理', 1, 9, 'log', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'book-marked-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-05-30 16:24:05.0', '日志管理菜单'),
-(109, '在线用户', 2, 1, 'online', 'sys/monitor/online/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:online:list', 'user-3-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:50.0', '在线用户菜单'),
-(110, '定时任务', 2, 2, 'job', 'sys/monitor/job/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:job:list', 'calendar-schedule-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:54.0', '定时任务菜单'),
-(112, '服务监控', 2, 4, 'server', 'sys/monitor/server/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:server:list', 'slideshow-4-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:58.0', '服务监控菜单'),
-(113, '缓存监控', 2, 5, 'cache', 'sys/monitor/cache/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:cache:list', 'slideshow-2-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:04:03.0', '缓存监控菜单'),
-(114, '缓存列表', 2, 6, 'cacheList', 'sys/monitor/cache/list', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:cache:list', 'file-list-2-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:04:11.0', '缓存列表菜单'),
-(116, '代码生成', 3, 2, 'gen', 'sys/tool/gen/index', NULL, 1, 0, NULL, 'C', '0', '0', 'tool:gen:list', 'code-box-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:04:20.0', '代码生成菜单'),
-(117, '系统接口', 3, 3, 'swagger', 'sys/tool/swagger/index', NULL, 1, 0, NULL, 'C', '0', '0', 'tool:swagger:list', 'equalizer-line', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:04:24.0', '系统接口菜单'),
-(500, '操作日志', 108, 1, 'operlog', 'sys/monitor/operlog/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:operlog:list', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:38.0', '操作日志菜单'),
-(501, '登录日志', 108, 2, 'logininfor', 'sys/monitor/logininfor/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:logininfor:list', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:43.0', '登录日志菜单'),
-(1000, '用户查询', 100, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1001, '用户新增', 100, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1002, '用户修改', 100, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1003, '用户删除', 100, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1004, '用户导出', 100, 5, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:export', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1005, '用户导入', 100, 6, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:import', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1006, '重置密码', 100, 7, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:resetPwd', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1007, '角色查询', 101, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1008, '角色新增', 101, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1009, '角色修改', 101, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1010, '角色删除', 101, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1011, '角色导出', 101, 5, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:export', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1012, '菜单查询', 102, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:menu:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1013, '菜单新增', 102, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:menu:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1014, '菜单修改', 102, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:menu:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1015, '菜单删除', 102, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:menu:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1016, '部门查询', 103, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dept:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1017, '部门新增', 103, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dept:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1018, '部门修改', 103, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dept:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1019, '部门删除', 103, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dept:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1020, '岗位查询', 104, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1021, '岗位新增', 104, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1022, '岗位修改', 104, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1023, '岗位删除', 104, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1024, '岗位导出', 104, 5, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:export', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1025, '字典查询', 105, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1026, '字典新增', 105, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1027, '字典修改', 105, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1028, '字典删除', 105, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1029, '字典导出', 105, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:export', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1030, '参数查询', 106, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1031, '参数新增', 106, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1032, '参数修改', 106, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1033, '参数删除', 106, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1034, '参数导出', 106, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:export', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1035, '公告查询', 107, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:notice:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1036, '公告新增', 107, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:notice:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1037, '公告修改', 107, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:notice:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1038, '公告删除', 107, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:notice:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1039, '操作查询', 500, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:operlog:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1040, '操作删除', 500, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:operlog:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1041, '日志导出', 500, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:operlog:export', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1042, '登录查询', 501, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:logininfor:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1043, '登录删除', 501, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:logininfor:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1044, '日志导出', 501, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:logininfor:export', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1045, '账户解锁', 501, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:logininfor:unlock', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1046, '在线查询', 109, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1047, '批量强退', 109, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:batchLogout', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1048, '单条强退', 109, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:forceLogout', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1049, '任务查询', 110, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1050, '任务新增', 110, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:add', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1051, '任务修改', 110, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1052, '任务删除', 110, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1053, '状态修改', 110, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:changeStatus', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1054, '任务导出', 110, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:export', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1055, '生成查询', 116, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:query', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1056, '生成修改', 116, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:edit', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1057, '生成删除', 116, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:remove', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1058, '导入代码', 116, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:import', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1059, '预览代码', 116, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:preview', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(1060, '生成代码', 116, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:code', '#', 'qData', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
-(2026, '应用管理', 1, 1, 'client', 'sys/auth/client/index', NULL, 1, 0, NULL, 'C', '1', '1', 'auth:client:list', 'user-3-line', 'qData', TIMESTAMP '2024-08-31 14:33:05.0', 'admin', TIMESTAMP '2025-09-30 10:03:05.0', '应用管理菜单'),
-(2027, '应用管理查询', 2026, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:query', '#', 'qData', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
-(2028, '应用管理新增', 2026, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:add', '#', 'qData', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
-(2029, '应用管理修改', 2026, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:edit', '#', 'qData', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
-(2030, '应用管理删除', 2026, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:remove', '#', 'qData', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
-(2031, '应用管理导出', 2026, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:export', '#', 'qData', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
-(2062, '消息', 1, 1, 'message', 'sys/message/message/index', NULL, 1, 0, NULL, 'C', '0', '1', 'system:message:message:list', '#', 'qData', TIMESTAMP '2024-11-01 09:51:29.0', 'admin', TIMESTAMP '2025-09-30 10:02:51.0', '消息菜单'),
-(2063, '消息查询', 2062, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:query', '#', 'qData', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
-(2064, '消息新增', 2062, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:add', '#', 'qData', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
-(2065, '消息修改', 2062, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:edit', '#', 'qData', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
-(2066, '消息删除', 2062, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:remove', '#', 'qData', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
-(2067, '消息导出', 2062, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:export', '#', 'qData', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
-(2243, '项目管理', 2375, 1, 'project', 'att/project/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:project:list', 'article-line', 'qData', TIMESTAMP '2025-01-20 19:13:20.0', 'admin', TIMESTAMP '2025-09-30 09:44:51.0', '项目菜单'),
-(2244, '项目查询', 2243, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:query', '#', 'qData', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:44:57.0', NULL),
-(2245, '项目新增', 2243, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:add', '#', 'qData', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:00.0', NULL),
-(2246, '项目修改', 2243, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:edit', '#', 'qData', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:04.0', NULL),
-(2247, '项目删除', 2243, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:remove', '#', 'qData', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:07.0', NULL),
-(2248, '项目导出', 2243, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:export', '#', 'qData', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:11.0', NULL),
-(2249, '项目导入', 2243, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:import', '#', 'qData', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:20.0', NULL),
-(2257, '清洗规则', 2351, 2, 'cleanRule', 'att/rule/cleanRule/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:cleanRule:list', '#', 'qData', TIMESTAMP '2025-01-20 19:16:53.0', 'admin', TIMESTAMP '2025-09-30 09:43:13.0', '清洗规则菜单'),
-(2258, '清洗规则查询', 2257, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:query', '#', 'qData', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:24.0', NULL),
-(2259, '清洗规则新增', 2257, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:add', '#', 'qData', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:33.0', NULL),
-(2260, '清洗规则修改', 2257, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:edit', '#', 'qData', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:40.0', NULL),
-(2261, '清洗规则删除', 2257, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:remove', '#', 'qData', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:45.0', NULL),
-(2262, '清洗规则导出', 2257, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:export', '#', 'qData', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:51.0', NULL),
-(2263, '清洗规则导入', 2257, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:import', '#', 'qData', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:58.0', NULL),
-(2264, '主题管理', 2375, 3, 'theme', 'att/theme/index', NULL, 1, 0, NULL, 'C', '0', '1', 'att:theme:list', 'archive-2-line', 'qData', TIMESTAMP '2025-01-20 19:20:23.0', 'admin', TIMESTAMP '2025-09-30 09:46:04.0', '主题菜单'),
-(2265, '主题查询', 2264, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:query', '#', 'qData', TIMESTAMP '2025-01-20 19:20:35.0', 'admin', TIMESTAMP '2025-09-30 09:45:37.0', NULL),
-(2266, '主题新增', 2264, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:add', '#', 'qData', TIMESTAMP '2025-01-20 19:20:35.0', NULL, NULL, NULL),
-(2267, '主题修改', 2264, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:edit', '#', 'qData', TIMESTAMP '2025-01-20 19:20:36.0', NULL, NULL, NULL),
-(2268, '主题删除', 2264, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:remove', '#', 'qData', TIMESTAMP '2025-01-20 19:20:36.0', NULL, NULL, NULL),
-(2269, '主题导出', 2264, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:export', '#', 'qData', TIMESTAMP '2025-01-20 19:20:36.0', NULL, NULL, NULL),
-(2270, '主题导入', 2264, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:import', '#', 'qData', TIMESTAMP '2025-01-20 19:20:36.0', NULL, NULL, NULL),
-(2271, '逻辑模型类目', 2352, 3, 'modelCat', 'att/cat/modelCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:modelCat:list', '#', 'qData', TIMESTAMP '2025-01-20 19:24:52.0', 'admin', TIMESTAMP '2025-09-30 11:01:00.0', '逻辑模型类目管理菜单'),
-(2272, '逻辑模型类目管理查询', 2271, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:query', '#', 'qData', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:19.0', NULL),
-(2273, '逻辑模型类目管理新增', 2271, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:add', '#', 'qData', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:26.0', NULL),
-(2274, '逻辑模型类目管理修改', 2271, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:edit', '#', 'qData', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:32.0', NULL),
-(2275, '逻辑模型类目管理删除', 2271, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:remove', '#', 'qData', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:37.0', NULL),
-(2276, '逻辑模型类目管理导出', 2271, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:export', '#', 'qData', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:46.0', NULL),
-(2277, '逻辑模型类目管理导入', 2271, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:import', '#', 'qData', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:51.0', NULL),
-(2278, '标准数据元类目', 2352, 4, 'dataElemCat', 'att/cat/dataElemCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:dataElemCat:list', '#', 'qData', TIMESTAMP '2025-01-20 19:31:14.0', 'admin', TIMESTAMP '2025-09-30 11:00:32.0', '数据元类目管理菜单'),
-(2279, '数据元类目管理查询', 2278, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:query', '#', 'qData', TIMESTAMP '2025-01-20 19:31:25.0', 'admin', TIMESTAMP '2025-09-30 09:50:42.0', NULL),
-(2280, '数据元类目管理新增', 2278, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:add', '#', 'qData', TIMESTAMP '2025-01-20 19:31:25.0', 'admin', TIMESTAMP '2025-09-30 09:50:48.0', NULL),
-(2281, '数据元类目管理修改', 2278, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:edit', '#', 'qData', TIMESTAMP '2025-01-20 19:31:26.0', 'admin', TIMESTAMP '2025-09-30 09:50:55.0', NULL),
-(2282, '数据元类目管理删除', 2278, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:remove', '#', 'qData', TIMESTAMP '2025-01-20 19:31:26.0', 'admin', TIMESTAMP '2025-09-30 09:51:05.0', NULL),
-(2283, '数据元类目管理导出', 2278, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:export', '#', 'qData', TIMESTAMP '2025-01-20 19:31:26.0', 'admin', TIMESTAMP '2025-09-30 09:51:14.0', NULL),
-(2284, '数据元类目管理导入', 2278, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:import', '#', 'qData', TIMESTAMP '2025-01-20 19:31:26.0', 'admin', TIMESTAMP '2025-09-30 09:51:22.0', NULL),
-(2292, '稽查规则', 2351, 1, 'auditRule', 'att/rule/auditRule/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:auditRule:list', '#', 'qData', TIMESTAMP '2025-01-20 19:39:59.0', 'admin', TIMESTAMP '2025-09-30 09:42:17.0', '稽查规则菜单'),
-(2293, '稽查规则查询', 2292, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:query', '#', 'qData', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:32.0', NULL),
-(2294, '稽查规则新增', 2292, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:add', '#', 'qData', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:37.0', NULL),
-(2295, '稽查规则修改', 2292, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:edit', '#', 'qData', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:43.0', NULL),
-(2296, '稽查规则删除', 2292, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:remove', '#', 'qData', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:48.0', NULL),
-(2297, '稽查规则导出', 2292, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:export', '#', 'qData', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:54.0', NULL),
-(2298, '稽查规则导入', 2292, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:rule:auditrule:import', '#', 'qData', TIMESTAMP '2025-01-20 19:40:21.0', NULL, NULL, NULL),
-(2299, '数据资产类目', 2352, 4, 'assetCat', 'att/cat/assetCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:assetCat:list', '#', 'qData', TIMESTAMP '2025-01-20 19:40:58.0', 'admin', TIMESTAMP '2025-09-30 09:55:12.0', '数据资产类目管理菜单'),
-(2300, '数据资产类目管理查询', 2299, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:query', '#', 'qData', TIMESTAMP '2025-01-20 19:41:09.0', 'admin', TIMESTAMP '2025-09-30 11:34:34.0', NULL),
-(2301, '数据资产类目管理新增', 2299, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:add', '#', 'qData', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:38.0', NULL),
-(2302, '数据资产类目管理修改', 2299, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:edit', '#', 'qData', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:42.0', NULL),
-(2303, '数据资产类目管理删除', 2299, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:remove', '#', 'qData', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:46.0', NULL),
-(2304, '数据资产类目管理导出', 2299, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:export', '#', 'qData', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:52.0', NULL),
-(2305, '数据资产类目管理导入', 2299, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:import', '#', 'qData', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:59.0', NULL),
-(2307, '创建模型', 2730, 1, 'create', 'dp/model/index', NULL, 1, 0, NULL, 'C', '0', '0', 'dp:model:list', NULL, 'qData', TIMESTAMP '2025-01-21 11:03:26.0', 'admin', TIMESTAMP '2026-03-27 16:56:53.0', '逻辑模型菜单'),
-(2308, '逻辑模型查询', 2307, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:query', '#', 'qData', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:09:35.0', NULL),
-(2309, '逻辑模型新增', 2307, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:add', '#', 'qData', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:15.0', NULL),
-(2310, '逻辑模型修改', 2307, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:edit', '#', 'qData', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:21.0', NULL),
-(2311, '逻辑模型删除', 2307, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:remove', '#', 'qData', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:26.0', NULL),
-(2312, '逻辑模型导出', 2307, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:export', '#', 'qData', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:31.0', NULL),
-(2313, '逻辑模型导入', 2307, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:import', '#', 'qData', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:41.0', NULL),
-(2314, '数据资产', 0, 3, 'da', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'newspaper-line', 'qData', TIMESTAMP '2025-01-21 14:01:11.0', 'admin', TIMESTAMP '2025-05-30 15:36:20.0', NULL),
-(2315, '标准数据元', 2694, 9, 'dataElem', 'dp/dataElem/index', NULL, 1, 0, NULL, 'C', '0', '0', 'dp:dataElem:list', 'hard-drive-3-line', 'qData', TIMESTAMP '2025-01-21 14:53:06.0', 'admin', TIMESTAMP '2026-03-27 16:52:05.0', '数据元菜单'),
-(2316, '数据元查询', 2315, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:query', '#', 'qData', TIMESTAMP '2025-01-21 14:54:20.0', 'admin', TIMESTAMP '2025-09-30 10:11:16.0', NULL),
-(2317, '数据元新增', 2315, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:add', '#', 'qData', TIMESTAMP '2025-01-21 14:54:20.0', 'admin', TIMESTAMP '2025-09-30 10:11:34.0', NULL),
-(2318, '数据元修改', 2315, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:edit', '#', 'qData', TIMESTAMP '2025-01-21 14:54:21.0', 'admin', TIMESTAMP '2025-09-30 10:11:39.0', NULL),
-(2319, '数据元删除', 2315, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:remove', '#', 'qData', TIMESTAMP '2025-01-21 14:54:21.0', 'admin', TIMESTAMP '2025-09-30 10:11:43.0', NULL),
-(2320, '数据元导出', 2315, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:export', '#', 'qData', TIMESTAMP '2025-01-21 14:54:21.0', 'admin', TIMESTAMP '2025-09-30 10:11:52.0', NULL),
-(2321, '数据元导入', 2315, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:import', '#', 'qData', TIMESTAMP '2025-01-21 14:54:21.0', 'admin', TIMESTAMP '2025-09-30 10:11:57.0', NULL),
-(2322, '数据资产字段', 2329, 100, 'daAssetColumn', 'da/assetColumn/index', NULL, 1, 0, NULL, 'C', '1', '0', 'da:assetColumn:list', '#', 'qData', TIMESTAMP '2025-01-21 15:02:49.0', 'admin', TIMESTAMP '2025-09-30 10:48:48.0', '数据资产字段菜单'),
-(2323, '数据资产字段查询', 2322, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:query', '#', 'qData', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:01.0', NULL),
-(2324, '数据资产字段新增', 2322, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:add', '#', 'qData', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:16.0', NULL),
-(2325, '数据资产字段修改', 2322, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:edit', '#', 'qData', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:21.0', NULL),
-(2326, '数据资产字段删除', 2322, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:assetcolumn:remove', '#', 'qData', TIMESTAMP '2025-01-21 15:08:48.0', NULL, NULL, NULL),
-(2327, '数据资产字段导出', 2322, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:export', '#', 'qData', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:25.0', NULL),
-(2328, '数据资产字段导入', 2322, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:import', '#', 'qData', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:32.0', NULL),
-(2329, '资产地图', 2314, 0, 'asset', 'da/asset/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:asset:list', 'money-dollar-box-line', 'qData', TIMESTAMP '2025-01-21 15:10:11.0', 'qData', TIMESTAMP '2025-09-30 16:21:09.0', '数据资产菜单'),
-(2330, '数据资产查询', 2329, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:query', '#', 'qData', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:31.0', NULL),
-(2331, '数据资产新增', 2329, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:add', '#', 'qData', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 15:10:33.0', NULL),
-(2332, '数据资产修改', 2329, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:edit', '#', 'qData', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:37.0', NULL),
-(2333, '数据资产删除', 2329, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:remove', '#', 'qData', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:44.0', NULL),
-(2334, '数据资产导出', 2329, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:export', '#', 'qData', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:47.0', NULL),
-(2335, '数据资产导入', 2329, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:import', '#', 'qData', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:50.0', NULL),
-(2336, '数据连接', 2314, 1, 'datasource', 'da/datasource/index', '{\"type\":0}', 1, 0, 'dpDataSource', 'C', '0', '0', 'da:dataSource:list', 'copper-coin-line', 'qData', TIMESTAMP '2025-01-21 15:11:31.0', 'admin', TIMESTAMP '2025-09-30 10:45:51.0', '数据源菜单'),
-(2337, '数据源查询', 2336, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:query', '#', 'qData', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:11.0', NULL),
-(2338, '数据源新增', 2336, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:add', '#', 'qData', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:14.0', NULL),
-(2339, '数据源修改', 2336, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:edit', '#', 'qData', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:17.0', NULL),
-(2340, '数据源删除', 2336, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:remove', '#', 'qData', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:21.0', NULL),
-(2341, '数据源导出', 2336, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:export', '#', 'qData', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:27.0', NULL),
-(2342, '数据源导入', 2336, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:import', '#', 'qData', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:33.0', NULL),
-(2343, '敏感等级', 2350, 1, 'sensitiveLevel', 'da/security/sensitiveLevel/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:sensitiveLevel:list', '#', 'qData', TIMESTAMP '2025-01-21 15:12:20.0', 'admin', TIMESTAMP '2025-09-30 10:54:40.0', '敏感等级菜单'),
-(2344, '敏感等级查询', 2343, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:query', '#', 'qData', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:09.0', NULL),
-(2345, '敏感等级新增', 2343, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:add', '#', 'qData', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:14.0', NULL),
-(2346, '敏感等级修改', 2343, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:edit', '#', 'qData', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:19.0', NULL),
-(2347, '敏感等级删除', 2343, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:remove', '#', 'qData', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:27.0', NULL),
-(2348, '敏感等级导出', 2343, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:export', '#', 'qData', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:35.0', NULL),
-(2349, '敏感等级导入', 2343, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:import', '#', 'qData', TIMESTAMP '2025-01-21 15:13:22.0', 'admin', TIMESTAMP '2025-09-30 10:55:40.0', NULL),
-(2350, '数据安全', 2314, 30, 'security', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'shield-check-line', 'qData', TIMESTAMP '2025-01-21 16:25:22.0', 'admin', TIMESTAMP '2025-09-30 10:54:22.0', NULL),
-(2351, '规则管理', 2375, 0, 'rule', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'microsoft-line', 'qData', TIMESTAMP '2025-01-23 15:40:00.0', 'admin', TIMESTAMP '2025-05-30 15:39:22.0', NULL),
-(2352, '类目管理', 2375, 4, 'cat', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'briefcase-2-line', 'qData', TIMESTAMP '2025-01-23 15:40:38.0', 'admin', TIMESTAMP '2025-05-30 15:41:31.0', NULL),
-(2354, '逻辑模型属性信息', 2307, 1, 'dpModelColumn', 'dp/model/index', NULL, 1, 0, NULL, 'C', '0', '1', 'dp:model:modelcolumn:list', '#', 'qData', TIMESTAMP '2025-02-06 09:56:17.0', 'admin', TIMESTAMP '2025-09-30 10:09:53.0', '逻辑模型属性信息菜单'),
-(2355, '逻辑模型属性信息查询', 2354, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:query', '#', 'qData', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
-(2356, '逻辑模型属性信息新增', 2354, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:add', '#', 'qData', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
-(2357, '逻辑模型属性信息修改', 2354, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:edit', '#', 'qData', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
-(2358, '逻辑模型属性信息删除', 2354, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:remove', '#', 'qData', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
-(2359, '逻辑模型属性信息导出', 2354, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:export', '#', 'qData', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
-(2360, '逻辑模型属性信息导入', 2354, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:import', '#', 'qData', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
-(2368, '数据元数据资产关联信息', 2315, 1, 'dpDataElemAssetRel', 'dp/dataElemAssetRel/index', NULL, 1, 0, NULL, 'C', '0', '1', 'dp:dataElemAssetRel:dataelemassetrel:list', '#', 'qData', TIMESTAMP '2025-02-06 10:21:35.0', 'admin', TIMESTAMP '2025-09-30 10:11:27.0', '数据元数据资产关联信息菜单'),
-(2369, '数据元数据资产关联信息查询', 2368, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:query', '#', 'qData', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:38:53.0', NULL),
-(2370, '数据元数据资产关联信息新增', 2368, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:add', '#', 'qData', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:38:57.0', NULL),
-(2371, '数据元数据资产关联信息修改', 2368, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:edit', '#', 'qData', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:39:01.0', NULL),
-(2372, '数据元数据资产关联信息删除', 2368, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:remove', '#', 'qData', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:39:05.0', NULL),
-(2373, '数据元数据资产关联信息导出', 2368, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:export', '#', 'qData', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:39:11.0', NULL),
-(2374, '数据元数据资产关联信息导入', 2368, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:import', '#', 'qData', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:39:16.0', NULL),
+(1, '系统管理', 0, 998, 'sys', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'settings-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:01:16.0', '系统管理目录'),
+(2, '系统监控', 0, 999, 'monitor', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'slideshow-3-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-05-30 16:16:33.0', '系统监控目录'),
+(3, '系统工具', 0, 1000, 'tool', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'briefcase-2-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-05-30 16:17:04.0', '系统工具目录'),
+(100, '用户管理', 1, 1, 'user', 'sys/system/user/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:user:list', 'user-3-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:00.0', '用户管理菜单'),
+(101, '角色管理', 1, 2, 'role', 'sys/system/role/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:role:list', 'group-3-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:10.0', '角色管理菜单'),
+(102, '菜单管理', 1, 3, 'menu', 'sys/system/menu/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:menu:list', 'list-view', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-05-30 16:20:45.0', '菜单管理菜单'),
+(103, '部门管理', 1, 4, 'dept', 'sys/system/dept/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:dept:list', 'contacts-book-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:14.0', '部门管理菜单'),
+(104, '岗位管理', 1, 5, 'post', 'sys/system/post/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:post:list', 'node-tree', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:19.0', '岗位管理菜单'),
+(105, '字典管理', 1, 6, 'dict', 'sys/system/dict/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:dict:list', 'book-2-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:01:54.0', '字典管理菜单'),
+(106, '参数设置', 1, 7, 'config', 'sys/system/config/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:config:list', 'exchange-funds-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:23.0', '参数设置菜单'),
+(107, '通知公告', 1, 8, 'notice', 'sys/system/notice/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:notice:list', 'megaphone-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:28.0', '通知公告菜单'),
+(108, '日志管理', 1, 9, 'log', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'book-marked-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-05-30 16:24:05.0', '日志管理菜单'),
+(109, '在线用户', 2, 1, 'online', 'sys/monitor/online/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:online:list', 'user-3-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:50.0', '在线用户菜单'),
+(110, '定时任务', 2, 2, 'job', 'sys/monitor/job/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:job:list', 'calendar-schedule-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:54.0', '定时任务菜单'),
+(112, '服务监控', 2, 4, 'server', 'sys/monitor/server/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:server:list', 'slideshow-4-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:58.0', '服务监控菜单'),
+(113, '缓存监控', 2, 5, 'cache', 'sys/monitor/cache/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:cache:list', 'slideshow-2-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:04:03.0', '缓存监控菜单'),
+(114, '缓存列表', 2, 6, 'cacheList', 'sys/monitor/cache/list', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:cache:list', 'file-list-2-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:04:11.0', '缓存列表菜单'),
+(116, '代码生成', 3, 2, 'gen', 'sys/tool/gen/index', NULL, 1, 0, NULL, 'C', '0', '0', 'tool:gen:list', 'code-box-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:04:20.0', '代码生成菜单'),
+(117, '系统接口', 3, 3, 'swagger', 'sys/tool/swagger/index', NULL, 1, 0, NULL, 'C', '0', '0', 'tool:swagger:list', 'equalizer-line', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:04:24.0', '系统接口菜单'),
+(500, '操作日志', 108, 1, 'operlog', 'sys/monitor/operlog/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:operlog:list', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:38.0', '操作日志菜单'),
+(501, '登录日志', 108, 2, 'logininfor', 'sys/monitor/logininfor/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:logininfor:list', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', 'admin', TIMESTAMP '2025-09-30 10:03:43.0', '登录日志菜单'),
+(1000, '用户查询', 100, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1001, '用户新增', 100, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1002, '用户修改', 100, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1003, '用户删除', 100, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1004, '用户导出', 100, 5, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:export', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1005, '用户导入', 100, 6, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:import', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1006, '重置密码', 100, 7, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:user:resetPwd', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1007, '角色查询', 101, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1008, '角色新增', 101, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1009, '角色修改', 101, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1010, '角色删除', 101, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1011, '角色导出', 101, 5, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:role:export', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1012, '菜单查询', 102, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:menu:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1013, '菜单新增', 102, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:menu:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1014, '菜单修改', 102, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:menu:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1015, '菜单删除', 102, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:menu:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1016, '部门查询', 103, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dept:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1017, '部门新增', 103, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dept:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1018, '部门修改', 103, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dept:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1019, '部门删除', 103, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dept:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1020, '岗位查询', 104, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1021, '岗位新增', 104, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1022, '岗位修改', 104, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1023, '岗位删除', 104, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1024, '岗位导出', 104, 5, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:post:export', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1025, '字典查询', 105, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1026, '字典新增', 105, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1027, '字典修改', 105, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1028, '字典删除', 105, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1029, '字典导出', 105, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:dict:export', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1030, '参数查询', 106, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1031, '参数新增', 106, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1032, '参数修改', 106, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1033, '参数删除', 106, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1034, '参数导出', 106, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:config:export', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1035, '公告查询', 107, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:notice:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1036, '公告新增', 107, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:notice:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1037, '公告修改', 107, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:notice:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1038, '公告删除', 107, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:notice:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1039, '操作查询', 500, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:operlog:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1040, '操作删除', 500, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:operlog:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1041, '日志导出', 500, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:operlog:export', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1042, '登录查询', 501, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:logininfor:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1043, '登录删除', 501, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:logininfor:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1044, '日志导出', 501, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:logininfor:export', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1045, '账户解锁', 501, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:logininfor:unlock', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1046, '在线查询', 109, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1047, '批量强退', 109, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:batchLogout', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1048, '单条强退', 109, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:forceLogout', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1049, '任务查询', 110, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1050, '任务新增', 110, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:add', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1051, '任务修改', 110, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1052, '任务删除', 110, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1053, '状态修改', 110, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:changeStatus', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1054, '任务导出', 110, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:export', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1055, '生成查询', 116, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:query', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1056, '生成修改', 116, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:edit', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1057, '生成删除', 116, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:remove', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1058, '导入代码', 116, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:import', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1059, '预览代码', 116, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:preview', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(1060, '生成代码', 116, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'tool:gen:code', '#', 'datamaster', TIMESTAMP '2024-05-06 06:12:17.0', NULL, NULL, NULL),
+(2026, '应用管理', 1, 1, 'client', 'sys/auth/client/index', NULL, 1, 0, NULL, 'C', '1', '1', 'auth:client:list', 'user-3-line', 'datamaster', TIMESTAMP '2024-08-31 14:33:05.0', 'admin', TIMESTAMP '2025-09-30 10:03:05.0', '应用管理菜单'),
+(2027, '应用管理查询', 2026, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:query', '#', 'datamaster', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
+(2028, '应用管理新增', 2026, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:add', '#', 'datamaster', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
+(2029, '应用管理修改', 2026, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:edit', '#', 'datamaster', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
+(2030, '应用管理删除', 2026, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:remove', '#', 'datamaster', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
+(2031, '应用管理导出', 2026, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:export', '#', 'datamaster', TIMESTAMP '2024-08-31 14:33:05.0', NULL, NULL, NULL),
+(2062, '消息', 1, 1, 'message', 'sys/message/message/index', NULL, 1, 0, NULL, 'C', '0', '1', 'system:message:message:list', '#', 'datamaster', TIMESTAMP '2024-11-01 09:51:29.0', 'admin', TIMESTAMP '2025-09-30 10:02:51.0', '消息菜单'),
+(2063, '消息查询', 2062, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:query', '#', 'datamaster', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
+(2064, '消息新增', 2062, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:add', '#', 'datamaster', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
+(2065, '消息修改', 2062, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:edit', '#', 'datamaster', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
+(2066, '消息删除', 2062, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:remove', '#', 'datamaster', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
+(2067, '消息导出', 2062, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'system:message:message:export', '#', 'datamaster', TIMESTAMP '2024-11-01 09:51:29.0', NULL, NULL, NULL),
+(2243, '项目管理', 2375, 1, 'project', 'att/project/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:project:list', 'article-line', 'datamaster', TIMESTAMP '2025-01-20 19:13:20.0', 'admin', TIMESTAMP '2025-09-30 09:44:51.0', '项目菜单'),
+(2244, '项目查询', 2243, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:query', '#', 'datamaster', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:44:57.0', NULL),
+(2245, '项目新增', 2243, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:add', '#', 'datamaster', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:00.0', NULL),
+(2246, '项目修改', 2243, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:edit', '#', 'datamaster', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:04.0', NULL),
+(2247, '项目删除', 2243, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:remove', '#', 'datamaster', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:07.0', NULL),
+(2248, '项目导出', 2243, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:export', '#', 'datamaster', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:11.0', NULL),
+(2249, '项目导入', 2243, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:import', '#', 'datamaster', TIMESTAMP '2025-01-20 19:14:21.0', 'admin', TIMESTAMP '2025-09-30 09:45:20.0', NULL),
+(2257, '清洗规则', 2351, 2, 'cleanRule', 'att/rule/cleanRule/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:cleanRule:list', '#', 'datamaster', TIMESTAMP '2025-01-20 19:16:53.0', 'admin', TIMESTAMP '2025-09-30 09:43:13.0', '清洗规则菜单'),
+(2258, '清洗规则查询', 2257, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:query', '#', 'datamaster', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:24.0', NULL),
+(2259, '清洗规则新增', 2257, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:add', '#', 'datamaster', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:33.0', NULL),
+(2260, '清洗规则修改', 2257, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:edit', '#', 'datamaster', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:40.0', NULL),
+(2261, '清洗规则删除', 2257, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:remove', '#', 'datamaster', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:45.0', NULL),
+(2262, '清洗规则导出', 2257, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:export', '#', 'datamaster', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:51.0', NULL),
+(2263, '清洗规则导入', 2257, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:cleanRule:import', '#', 'datamaster', TIMESTAMP '2025-01-20 19:17:25.0', 'admin', TIMESTAMP '2025-09-30 09:43:58.0', NULL),
+(2264, '主题管理', 2375, 3, 'theme', 'att/theme/index', NULL, 1, 0, NULL, 'C', '0', '1', 'att:theme:list', 'archive-2-line', 'datamaster', TIMESTAMP '2025-01-20 19:20:23.0', 'admin', TIMESTAMP '2025-09-30 09:46:04.0', '主题菜单'),
+(2265, '主题查询', 2264, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:query', '#', 'datamaster', TIMESTAMP '2025-01-20 19:20:35.0', 'admin', TIMESTAMP '2025-09-30 09:45:37.0', NULL),
+(2266, '主题新增', 2264, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:add', '#', 'datamaster', TIMESTAMP '2025-01-20 19:20:35.0', NULL, NULL, NULL),
+(2267, '主题修改', 2264, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:edit', '#', 'datamaster', TIMESTAMP '2025-01-20 19:20:36.0', NULL, NULL, NULL),
+(2268, '主题删除', 2264, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:remove', '#', 'datamaster', TIMESTAMP '2025-01-20 19:20:36.0', NULL, NULL, NULL),
+(2269, '主题导出', 2264, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:export', '#', 'datamaster', TIMESTAMP '2025-01-20 19:20:36.0', NULL, NULL, NULL),
+(2270, '主题导入', 2264, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:theme:theme:import', '#', 'datamaster', TIMESTAMP '2025-01-20 19:20:36.0', NULL, NULL, NULL),
+(2271, '逻辑模型类目', 2352, 3, 'modelCat', 'att/cat/modelCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:modelCat:list', '#', 'datamaster', TIMESTAMP '2025-01-20 19:24:52.0', 'admin', TIMESTAMP '2025-09-30 11:01:00.0', '逻辑模型类目管理菜单'),
+(2272, '逻辑模型类目管理查询', 2271, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:query', '#', 'datamaster', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:19.0', NULL),
+(2273, '逻辑模型类目管理新增', 2271, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:add', '#', 'datamaster', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:26.0', NULL),
+(2274, '逻辑模型类目管理修改', 2271, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:edit', '#', 'datamaster', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:32.0', NULL),
+(2275, '逻辑模型类目管理删除', 2271, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:remove', '#', 'datamaster', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:37.0', NULL),
+(2276, '逻辑模型类目管理导出', 2271, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:export', '#', 'datamaster', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:46.0', NULL),
+(2277, '逻辑模型类目管理导入', 2271, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:modelCat:import', '#', 'datamaster', TIMESTAMP '2025-01-20 19:25:12.0', 'admin', TIMESTAMP '2025-09-30 09:54:51.0', NULL),
+(2278, '标准数据元类目', 2352, 4, 'dataElemCat', 'att/cat/dataElemCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:dataElemCat:list', '#', 'datamaster', TIMESTAMP '2025-01-20 19:31:14.0', 'admin', TIMESTAMP '2025-09-30 11:00:32.0', '数据元类目管理菜单'),
+(2279, '数据元类目管理查询', 2278, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:query', '#', 'datamaster', TIMESTAMP '2025-01-20 19:31:25.0', 'admin', TIMESTAMP '2025-09-30 09:50:42.0', NULL),
+(2280, '数据元类目管理新增', 2278, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:add', '#', 'datamaster', TIMESTAMP '2025-01-20 19:31:25.0', 'admin', TIMESTAMP '2025-09-30 09:50:48.0', NULL),
+(2281, '数据元类目管理修改', 2278, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:edit', '#', 'datamaster', TIMESTAMP '2025-01-20 19:31:26.0', 'admin', TIMESTAMP '2025-09-30 09:50:55.0', NULL),
+(2282, '数据元类目管理删除', 2278, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:remove', '#', 'datamaster', TIMESTAMP '2025-01-20 19:31:26.0', 'admin', TIMESTAMP '2025-09-30 09:51:05.0', NULL),
+(2283, '数据元类目管理导出', 2278, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:export', '#', 'datamaster', TIMESTAMP '2025-01-20 19:31:26.0', 'admin', TIMESTAMP '2025-09-30 09:51:14.0', NULL),
+(2284, '数据元类目管理导入', 2278, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataElemCat:import', '#', 'datamaster', TIMESTAMP '2025-01-20 19:31:26.0', 'admin', TIMESTAMP '2025-09-30 09:51:22.0', NULL),
+(2292, '稽查规则', 2351, 1, 'auditRule', 'att/rule/auditRule/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:auditRule:list', '#', 'datamaster', TIMESTAMP '2025-01-20 19:39:59.0', 'admin', TIMESTAMP '2025-09-30 09:42:17.0', '稽查规则菜单'),
+(2293, '稽查规则查询', 2292, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:query', '#', 'datamaster', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:32.0', NULL),
+(2294, '稽查规则新增', 2292, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:add', '#', 'datamaster', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:37.0', NULL),
+(2295, '稽查规则修改', 2292, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:edit', '#', 'datamaster', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:43.0', NULL),
+(2296, '稽查规则删除', 2292, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:remove', '#', 'datamaster', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:48.0', NULL),
+(2297, '稽查规则导出', 2292, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:auditRule:export', '#', 'datamaster', TIMESTAMP '2025-01-20 19:40:21.0', 'admin', TIMESTAMP '2025-09-30 09:42:54.0', NULL),
+(2298, '稽查规则导入', 2292, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:rule:auditrule:import', '#', 'datamaster', TIMESTAMP '2025-01-20 19:40:21.0', NULL, NULL, NULL),
+(2299, '数据资产类目', 2352, 4, 'assetCat', 'att/cat/assetCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:assetCat:list', '#', 'datamaster', TIMESTAMP '2025-01-20 19:40:58.0', 'admin', TIMESTAMP '2025-09-30 09:55:12.0', '数据资产类目管理菜单'),
+(2300, '数据资产类目管理查询', 2299, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:query', '#', 'datamaster', TIMESTAMP '2025-01-20 19:41:09.0', 'admin', TIMESTAMP '2025-09-30 11:34:34.0', NULL),
+(2301, '数据资产类目管理新增', 2299, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:add', '#', 'datamaster', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:38.0', NULL),
+(2302, '数据资产类目管理修改', 2299, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:edit', '#', 'datamaster', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:42.0', NULL),
+(2303, '数据资产类目管理删除', 2299, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:remove', '#', 'datamaster', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:46.0', NULL),
+(2304, '数据资产类目管理导出', 2299, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:export', '#', 'datamaster', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:52.0', NULL),
+(2305, '数据资产类目管理导入', 2299, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:assetCat:import', '#', 'datamaster', TIMESTAMP '2025-01-20 19:41:10.0', 'admin', TIMESTAMP '2025-09-30 11:34:59.0', NULL),
+(2307, '创建模型', 2730, 1, 'create', 'dp/model/index', NULL, 1, 0, NULL, 'C', '0', '0', 'dp:model:list', NULL, 'datamaster', TIMESTAMP '2025-01-21 11:03:26.0', 'admin', TIMESTAMP '2026-03-27 16:56:53.0', '逻辑模型菜单'),
+(2308, '逻辑模型查询', 2307, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:query', '#', 'datamaster', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:09:35.0', NULL),
+(2309, '逻辑模型新增', 2307, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:add', '#', 'datamaster', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:15.0', NULL),
+(2310, '逻辑模型修改', 2307, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:edit', '#', 'datamaster', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:21.0', NULL),
+(2311, '逻辑模型删除', 2307, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:remove', '#', 'datamaster', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:26.0', NULL),
+(2312, '逻辑模型导出', 2307, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:export', '#', 'datamaster', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:31.0', NULL),
+(2313, '逻辑模型导入', 2307, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:import', '#', 'datamaster', TIMESTAMP '2025-01-21 11:09:26.0', 'admin', TIMESTAMP '2025-09-30 10:10:41.0', NULL),
+(2314, '数据资产', 0, 3, 'da', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'newspaper-line', 'datamaster', TIMESTAMP '2025-01-21 14:01:11.0', 'admin', TIMESTAMP '2025-05-30 15:36:20.0', NULL),
+(2315, '标准数据元', 2694, 9, 'dataElem', 'dp/dataElem/index', NULL, 1, 0, NULL, 'C', '0', '0', 'dp:dataElem:list', 'hard-drive-3-line', 'datamaster', TIMESTAMP '2025-01-21 14:53:06.0', 'admin', TIMESTAMP '2026-03-27 16:52:05.0', '数据元菜单'),
+(2316, '数据元查询', 2315, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:query', '#', 'datamaster', TIMESTAMP '2025-01-21 14:54:20.0', 'admin', TIMESTAMP '2025-09-30 10:11:16.0', NULL),
+(2317, '数据元新增', 2315, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:add', '#', 'datamaster', TIMESTAMP '2025-01-21 14:54:20.0', 'admin', TIMESTAMP '2025-09-30 10:11:34.0', NULL),
+(2318, '数据元修改', 2315, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:edit', '#', 'datamaster', TIMESTAMP '2025-01-21 14:54:21.0', 'admin', TIMESTAMP '2025-09-30 10:11:39.0', NULL),
+(2319, '数据元删除', 2315, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:remove', '#', 'datamaster', TIMESTAMP '2025-01-21 14:54:21.0', 'admin', TIMESTAMP '2025-09-30 10:11:43.0', NULL),
+(2320, '数据元导出', 2315, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:export', '#', 'datamaster', TIMESTAMP '2025-01-21 14:54:21.0', 'admin', TIMESTAMP '2025-09-30 10:11:52.0', NULL),
+(2321, '数据元导入', 2315, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElem:import', '#', 'datamaster', TIMESTAMP '2025-01-21 14:54:21.0', 'admin', TIMESTAMP '2025-09-30 10:11:57.0', NULL),
+(2322, '数据资产字段', 2329, 100, 'AssetsAssetColumn', 'da/assetColumn/index', NULL, 1, 0, NULL, 'C', '1', '0', 'da:assetColumn:list', '#', 'datamaster', TIMESTAMP '2025-01-21 15:02:49.0', 'admin', TIMESTAMP '2025-09-30 10:48:48.0', '数据资产字段菜单'),
+(2323, '数据资产字段查询', 2322, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:query', '#', 'datamaster', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:01.0', NULL),
+(2324, '数据资产字段新增', 2322, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:add', '#', 'datamaster', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:16.0', NULL),
+(2325, '数据资产字段修改', 2322, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:edit', '#', 'datamaster', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:21.0', NULL),
+(2326, '数据资产字段删除', 2322, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:assetcolumn:remove', '#', 'datamaster', TIMESTAMP '2025-01-21 15:08:48.0', NULL, NULL, NULL),
+(2327, '数据资产字段导出', 2322, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:export', '#', 'datamaster', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:25.0', NULL),
+(2328, '数据资产字段导入', 2322, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetColumn:import', '#', 'datamaster', TIMESTAMP '2025-01-21 15:08:48.0', 'admin', TIMESTAMP '2025-09-30 10:49:32.0', NULL),
+(2329, '资产地图', 2314, 0, 'asset', 'da/asset/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:asset:list', 'money-dollar-box-line', 'datamaster', TIMESTAMP '2025-01-21 15:10:11.0', 'datamaster', TIMESTAMP '2025-09-30 16:21:09.0', '数据资产菜单'),
+(2330, '数据资产查询', 2329, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:query', '#', 'datamaster', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:31.0', NULL),
+(2331, '数据资产新增', 2329, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:add', '#', 'datamaster', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 15:10:33.0', NULL),
+(2332, '数据资产修改', 2329, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:edit', '#', 'datamaster', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:37.0', NULL),
+(2333, '数据资产删除', 2329, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:remove', '#', 'datamaster', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:44.0', NULL),
+(2334, '数据资产导出', 2329, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:export', '#', 'datamaster', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:47.0', NULL),
+(2335, '数据资产导入', 2329, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:import', '#', 'datamaster', TIMESTAMP '2025-01-21 15:10:54.0', 'admin', TIMESTAMP '2025-09-30 10:47:50.0', NULL),
+(2336, '数据连接', 2314, 1, 'datasource', 'da/datasource/index', '{\"type\":0}', 1, 0, 'dpDataSource', 'C', '0', '0', 'da:dataSource:list', 'copper-coin-line', 'datamaster', TIMESTAMP '2025-01-21 15:11:31.0', 'admin', TIMESTAMP '2025-09-30 10:45:51.0', '数据源菜单'),
+(2337, '数据源查询', 2336, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:query', '#', 'datamaster', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:11.0', NULL),
+(2338, '数据源新增', 2336, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:add', '#', 'datamaster', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:14.0', NULL),
+(2339, '数据源修改', 2336, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:edit', '#', 'datamaster', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:17.0', NULL),
+(2340, '数据源删除', 2336, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:remove', '#', 'datamaster', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:21.0', NULL),
+(2341, '数据源导出', 2336, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:export', '#', 'datamaster', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:27.0', NULL),
+(2342, '数据源导入', 2336, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:datasource:import', '#', 'datamaster', TIMESTAMP '2025-01-21 15:12:00.0', 'admin', TIMESTAMP '2025-09-30 10:46:33.0', NULL),
+(2343, '敏感等级', 2350, 1, 'sensitiveLevel', 'da/security/sensitiveLevel/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:sensitiveLevel:list', '#', 'datamaster', TIMESTAMP '2025-01-21 15:12:20.0', 'admin', TIMESTAMP '2025-09-30 10:54:40.0', '敏感等级菜单'),
+(2344, '敏感等级查询', 2343, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:query', '#', 'datamaster', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:09.0', NULL),
+(2345, '敏感等级新增', 2343, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:add', '#', 'datamaster', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:14.0', NULL),
+(2346, '敏感等级修改', 2343, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:edit', '#', 'datamaster', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:19.0', NULL),
+(2347, '敏感等级删除', 2343, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:remove', '#', 'datamaster', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:27.0', NULL),
+(2348, '敏感等级导出', 2343, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:export', '#', 'datamaster', TIMESTAMP '2025-01-21 15:13:21.0', 'admin', TIMESTAMP '2025-09-30 10:55:35.0', NULL),
+(2349, '敏感等级导入', 2343, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:sensitiveLevel:import', '#', 'datamaster', TIMESTAMP '2025-01-21 15:13:22.0', 'admin', TIMESTAMP '2025-09-30 10:55:40.0', NULL),
+(2350, '数据安全', 2314, 30, 'security', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'shield-check-line', 'datamaster', TIMESTAMP '2025-01-21 16:25:22.0', 'admin', TIMESTAMP '2025-09-30 10:54:22.0', NULL),
+(2351, '规则管理', 2375, 0, 'rule', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'microsoft-line', 'datamaster', TIMESTAMP '2025-01-23 15:40:00.0', 'admin', TIMESTAMP '2025-05-30 15:39:22.0', NULL),
+(2352, '类目管理', 2375, 4, 'cat', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'briefcase-2-line', 'datamaster', TIMESTAMP '2025-01-23 15:40:38.0', 'admin', TIMESTAMP '2025-05-30 15:41:31.0', NULL),
+(2354, '逻辑模型属性信息', 2307, 1, 'StandardsModelColumn', 'dp/model/index', NULL, 1, 0, NULL, 'C', '0', '1', 'dp:model:modelcolumn:list', '#', 'datamaster', TIMESTAMP '2025-02-06 09:56:17.0', 'admin', TIMESTAMP '2025-09-30 10:09:53.0', '逻辑模型属性信息菜单'),
+(2355, '逻辑模型属性信息查询', 2354, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:query', '#', 'datamaster', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
+(2356, '逻辑模型属性信息新增', 2354, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:add', '#', 'datamaster', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
+(2357, '逻辑模型属性信息修改', 2354, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:edit', '#', 'datamaster', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
+(2358, '逻辑模型属性信息删除', 2354, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:remove', '#', 'datamaster', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
+(2359, '逻辑模型属性信息导出', 2354, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:export', '#', 'datamaster', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
+(2360, '逻辑模型属性信息导入', 2354, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:model:modelcolumn:import', '#', 'datamaster', TIMESTAMP '2025-02-06 09:56:43.0', NULL, NULL, NULL),
+(2368, '数据元数据资产关联信息', 2315, 1, 'StandardsDataElemAssetRel', 'dp/dataElemAssetRel/index', NULL, 1, 0, NULL, 'C', '0', '1', 'dp:dataElemAssetRel:dataelemassetrel:list', '#', 'datamaster', TIMESTAMP '2025-02-06 10:21:35.0', 'admin', TIMESTAMP '2025-09-30 10:11:27.0', '数据元数据资产关联信息菜单'),
+(2369, '数据元数据资产关联信息查询', 2368, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:query', '#', 'datamaster', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:38:53.0', NULL),
+(2370, '数据元数据资产关联信息新增', 2368, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:add', '#', 'datamaster', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:38:57.0', NULL),
+(2371, '数据元数据资产关联信息修改', 2368, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:edit', '#', 'datamaster', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:39:01.0', NULL),
+(2372, '数据元数据资产关联信息删除', 2368, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:remove', '#', 'datamaster', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:39:05.0', NULL),
+(2373, '数据元数据资产关联信息导出', 2368, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:export', '#', 'datamaster', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:39:11.0', NULL),
+(2374, '数据元数据资产关联信息导入', 2368, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemAssetRel:dataelemassetrel:import', '#', 'datamaster', TIMESTAMP '2025-02-06 10:21:59.0', 'shuyexin', TIMESTAMP '2025-02-06 10:39:16.0', NULL),
 (2375, '基础管理', 0, 1, 'att', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'archive-drawer-line', 'mengfanming', TIMESTAMP '2025-02-06 10:24:51.0', 'admin', TIMESTAMP '2025-05-30 15:29:19.0', NULL),
-(2376, '数据元数据规则关联信息', 2306, 2, 'dpDataElemRuleRel', 'dp/dataElem/index', NULL, 1, 0, NULL, 'C', '1', '0', 'dp:dataElemRuleRel:list', '#', 'qData', TIMESTAMP '2025-02-06 10:40:15.0', 'admin', TIMESTAMP '2025-09-30 10:13:58.0', '数据元数据规则关联信息菜单'),
-(2377, '数据元数据规则关联信息查询', 2376, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:query', '#', 'qData', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:19.0', NULL),
-(2378, '数据元数据规则关联信息新增', 2376, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:add', '#', 'qData', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:26.0', NULL),
-(2379, '数据元数据规则关联信息修改', 2376, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:edit', '#', 'qData', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:31.0', NULL),
-(2380, '数据元数据规则关联信息删除', 2376, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', '4 dp:dataElemRuleRel:remove', '#', 'qData', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:37.0', NULL),
-(2381, '数据元数据规则关联信息导出', 2376, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:export', '#', 'qData', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:46.0', NULL),
-(2382, '数据元数据规则关联信息导入', 2376, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:import', '#', 'qData', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:55.0', NULL),
-(2383, '数据元代码映射', 2306, 2, 'dpCodeMap', 'dp/codeMap/index', NULL, 1, 0, NULL, 'C', '1', '0', 'dp:codeMap:list', '#', 'qData', TIMESTAMP '2025-02-06 10:44:19.0', 'admin', TIMESTAMP '2025-09-30 10:15:25.0', '数据元代码映射菜单'),
-(2384, '数据元代码映射查询', 2383, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:query', '#', 'qData', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:16:58.0', NULL),
-(2385, '数据元代码映射新增', 2383, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:add', '#', 'qData', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:06.0', NULL),
-(2386, '数据元代码映射修改', 2383, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:edit', '#', 'qData', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:10.0', NULL),
-(2387, '数据元代码映射删除', 2383, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:remove', '#', 'qData', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:16.0', NULL),
-(2388, '数据元代码映射导出', 2383, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:export', '#', 'qData', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:21.0', NULL),
-(2389, '数据元代码映射导入', 2383, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:import', '#', 'qData', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:31.0', NULL),
-(2390, '数据元代码', 2306, 2, 'dpDataElemCode', 'dp/dataElemCode/index', NULL, 1, 0, NULL, 'C', '1', '0', 'dp:dataElemCode:list', '#', 'qData', TIMESTAMP '2025-02-06 10:45:00.0', 'admin', TIMESTAMP '2025-09-30 10:21:11.0', '数据元代码菜单'),
-(2391, '数据元代码查询', 2390, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:query', '#', 'qData', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:25.0', NULL),
-(2392, '数据元代码新增', 2390, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:add', '#', 'qData', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:35.0', NULL),
-(2393, '数据元代码修改', 2390, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:edit', '#', 'qData', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:41.0', NULL),
-(2394, '数据元代码删除', 2390, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:remove', '#', 'qData', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:47.0', NULL),
-(2395, '数据元代码导出', 2390, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:export', '#', 'qData', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:53.0', NULL),
-(2396, '数据元代码导入', 2390, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:import', '#', 'qData', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:20:01.0', NULL),
+(2376, '数据元数据规则关联信息', 2306, 2, 'StandardsDataElemRuleRel', 'dp/dataElem/index', NULL, 1, 0, NULL, 'C', '1', '0', 'dp:dataElemRuleRel:list', '#', 'datamaster', TIMESTAMP '2025-02-06 10:40:15.0', 'admin', TIMESTAMP '2025-09-30 10:13:58.0', '数据元数据规则关联信息菜单'),
+(2377, '数据元数据规则关联信息查询', 2376, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:query', '#', 'datamaster', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:19.0', NULL),
+(2378, '数据元数据规则关联信息新增', 2376, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:add', '#', 'datamaster', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:26.0', NULL),
+(2379, '数据元数据规则关联信息修改', 2376, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:edit', '#', 'datamaster', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:31.0', NULL),
+(2380, '数据元数据规则关联信息删除', 2376, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', '4 dp:dataElemRuleRel:remove', '#', 'datamaster', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:37.0', NULL),
+(2381, '数据元数据规则关联信息导出', 2376, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:export', '#', 'datamaster', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:46.0', NULL),
+(2382, '数据元数据规则关联信息导入', 2376, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemRuleRel:import', '#', 'datamaster', TIMESTAMP '2025-02-06 10:40:55.0', 'admin', TIMESTAMP '2025-09-30 10:14:55.0', NULL),
+(2383, '数据元代码映射', 2306, 2, 'StandardsCodeMap', 'dp/codeMap/index', NULL, 1, 0, NULL, 'C', '1', '0', 'dp:codeMap:list', '#', 'datamaster', TIMESTAMP '2025-02-06 10:44:19.0', 'admin', TIMESTAMP '2025-09-30 10:15:25.0', '数据元代码映射菜单'),
+(2384, '数据元代码映射查询', 2383, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:query', '#', 'datamaster', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:16:58.0', NULL),
+(2385, '数据元代码映射新增', 2383, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:add', '#', 'datamaster', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:06.0', NULL),
+(2386, '数据元代码映射修改', 2383, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:edit', '#', 'datamaster', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:10.0', NULL),
+(2387, '数据元代码映射删除', 2383, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:remove', '#', 'datamaster', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:16.0', NULL),
+(2388, '数据元代码映射导出', 2383, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:export', '#', 'datamaster', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:21.0', NULL),
+(2389, '数据元代码映射导入', 2383, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:codeMap:import', '#', 'datamaster', TIMESTAMP '2025-02-06 10:44:36.0', 'admin', TIMESTAMP '2025-09-30 10:17:31.0', NULL),
+(2390, '数据元代码', 2306, 2, 'StandardsDataElemCode', 'dp/dataElemCode/index', NULL, 1, 0, NULL, 'C', '1', '0', 'dp:dataElemCode:list', '#', 'datamaster', TIMESTAMP '2025-02-06 10:45:00.0', 'admin', TIMESTAMP '2025-09-30 10:21:11.0', '数据元代码菜单'),
+(2391, '数据元代码查询', 2390, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:query', '#', 'datamaster', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:25.0', NULL),
+(2392, '数据元代码新增', 2390, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:add', '#', 'datamaster', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:35.0', NULL),
+(2393, '数据元代码修改', 2390, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:edit', '#', 'datamaster', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:41.0', NULL),
+(2394, '数据元代码删除', 2390, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:remove', '#', 'datamaster', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:47.0', NULL),
+(2395, '数据元代码导出', 2390, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:export', '#', 'datamaster', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:19:53.0', NULL),
+(2396, '数据元代码导入', 2390, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:dataElemCode:import', '#', 'datamaster', TIMESTAMP '2025-02-06 10:45:16.0', 'admin', TIMESTAMP '2025-09-30 10:20:01.0', NULL),
 (2397, '数据研发', 0, 4, 'dpp', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'book-3-line', 'changmingyao', TIMESTAMP '2025-02-11 09:51:19.0', 'admin', TIMESTAMP '2025-05-30 15:37:17.0', NULL),
-(2398, '成员角色管理', 2552, 4, 'projectUserRel', 'dpp/setting/projectUserRel/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:projectUserRel:list', '#', 'qData', TIMESTAMP '2025-02-11 09:57:17.0', 'admin', TIMESTAMP '2025-09-30 10:39:13.0', '项目与用户关联关系菜单'),
-(2399, '项目与用户关联关系查询', 2398, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:query', '#', 'qData', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:39:37.0', NULL),
-(2400, '项目与用户关联关系新增', 2398, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:add', '#', 'qData', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:39:43.0', NULL),
-(2401, '项目与用户关联关系修改', 2398, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:edit', '#', 'qData', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:39:48.0', NULL),
-(2402, '项目与用户关联关系删除', 2398, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:remove', '#', 'qData', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:39:54.0', NULL),
-(2403, '项目与用户关联关系导出', 2398, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:export', '#', 'qData', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:40:18.0', NULL),
-(2404, '项目与用户关联关系导入', 2398, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:import', '#', 'qData', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:40:09.0', NULL),
-(2426, '数据集成', 2510, 1, 'integratioTask', 'dpp/task/integratioTask/index', NULL, 1, 0, 'dppIntegratioTask', 'C', '0', '0', 'dpp:integratioTask:list', '#', 'qData', TIMESTAMP '2025-02-12 11:56:06.0', 'admin', TIMESTAMP '2025-09-30 11:23:48.0', NULL),
-(2427, '数据服务', 0, 5, 'ds', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'hourglass-line', 'qData', TIMESTAMP '2025-02-12 16:08:29.0', 'admin', TIMESTAMP '2025-05-30 15:38:07.0', NULL),
-(2428, '调用日志', 2427, 1, 'apiLog', 'ds/apiLog/index', NULL, 1, 1, NULL, 'C', '0', '0', 'ds:apiLog:list', 'telegram-line', 'qData', TIMESTAMP '2025-02-12 16:13:42.0', 'admin', TIMESTAMP '2025-09-30 10:14:00.0', 'API服务调用日志菜单'),
-(2429, 'API服务调用日志查询', 2428, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apilog:query', '#', 'qData', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:13:52.0', NULL),
-(2430, 'API服务调用日志新增', 2428, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:apilog:add', '#', 'qData', TIMESTAMP '2025-02-12 16:14:14.0', NULL, NULL, NULL),
-(2431, 'API服务调用日志修改', 2428, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:edit', '#', 'qData', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:14:07.0', NULL),
-(2432, 'API服务调用日志删除', 2428, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:remove', '#', 'qData', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:14:14.0', NULL),
-(2433, 'API服务调用日志导出', 2428, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:export', '#', 'qData', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:14:11.0', NULL),
-(2434, 'API服务调用日志导入', 2428, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:import', '#', 'qData', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:14:20.0', NULL),
-(2436, 'API  管理', 2427, 0, 'api', 'ds/api/index', NULL, 1, 1, 'dsApi', 'C', '0', '0', 'ds:api:list', 'rainbow-line', 'qData', TIMESTAMP '2025-02-12 16:17:04.0', 'admin', TIMESTAMP '2025-09-30 10:12:04.0', 'API服务菜单'),
-(2437, 'API服务查询', 2436, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:query', '#', 'qData', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:12:24.0', NULL),
-(2438, 'API服务新增', 2436, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:add', '#', 'qData', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:12:38.0', NULL),
-(2439, 'API服务修改', 2436, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:edit', '#', 'qData', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:12:53.0', NULL),
-(2440, 'API服务删除', 2436, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:remove', '#', 'qData', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 15:01:51.0', NULL),
-(2441, 'API服务导出', 2436, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:export', '#', 'qData', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:13:02.0', NULL),
-(2442, 'API服务导入', 2436, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:import', '#', 'qData', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:13:09.0', NULL),
-(2444, '角色列表', 2398, 7, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:list', '#', 'shuyexin', TIMESTAMP '2025-02-13 14:54:22.0', 'qData', TIMESTAMP '2025-02-13 14:56:48.0', NULL),
+(2398, '成员角色管理', 2552, 4, 'projectUserRel', 'dpp/setting/projectUserRel/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:projectUserRel:list', '#', 'datamaster', TIMESTAMP '2025-02-11 09:57:17.0', 'admin', TIMESTAMP '2025-09-30 10:39:13.0', '项目与用户关联关系菜单'),
+(2399, '项目与用户关联关系查询', 2398, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:query', '#', 'datamaster', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:39:37.0', NULL),
+(2400, '项目与用户关联关系新增', 2398, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:add', '#', 'datamaster', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:39:43.0', NULL),
+(2401, '项目与用户关联关系修改', 2398, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:edit', '#', 'datamaster', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:39:48.0', NULL),
+(2402, '项目与用户关联关系删除', 2398, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:remove', '#', 'datamaster', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:39:54.0', NULL),
+(2403, '项目与用户关联关系导出', 2398, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:export', '#', 'datamaster', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:40:18.0', NULL),
+(2404, '项目与用户关联关系导入', 2398, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:projectUserRel:import', '#', 'datamaster', TIMESTAMP '2025-02-11 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:40:09.0', NULL),
+(2426, '数据集成', 2510, 1, 'integratioTask', 'dpp/task/integratioTask/index', NULL, 1, 0, 'dppIntegratioTask', 'C', '0', '0', 'dpp:integratioTask:list', '#', 'datamaster', TIMESTAMP '2025-02-12 11:56:06.0', 'admin', TIMESTAMP '2025-09-30 11:23:48.0', NULL),
+(2427, '数据服务', 0, 5, 'ds', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'hourglass-line', 'datamaster', TIMESTAMP '2025-02-12 16:08:29.0', 'admin', TIMESTAMP '2025-05-30 15:38:07.0', NULL),
+(2428, '调用日志', 2427, 1, 'apiLog', 'ds/apiLog/index', NULL, 1, 1, NULL, 'C', '0', '0', 'ds:apiLog:list', 'telegram-line', 'datamaster', TIMESTAMP '2025-02-12 16:13:42.0', 'admin', TIMESTAMP '2025-09-30 10:14:00.0', 'API服务调用日志菜单'),
+(2429, 'API服务调用日志查询', 2428, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apilog:query', '#', 'datamaster', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:13:52.0', NULL),
+(2430, 'API服务调用日志新增', 2428, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:apilog:add', '#', 'datamaster', TIMESTAMP '2025-02-12 16:14:14.0', NULL, NULL, NULL),
+(2431, 'API服务调用日志修改', 2428, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:edit', '#', 'datamaster', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:14:07.0', NULL),
+(2432, 'API服务调用日志删除', 2428, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:remove', '#', 'datamaster', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:14:14.0', NULL),
+(2433, 'API服务调用日志导出', 2428, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:export', '#', 'datamaster', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:14:11.0', NULL),
+(2434, 'API服务调用日志导入', 2428, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:apiLog:import', '#', 'datamaster', TIMESTAMP '2025-02-12 16:14:14.0', 'admin', TIMESTAMP '2025-09-30 10:14:20.0', NULL),
+(2436, 'API  管理', 2427, 0, 'api', 'ds/api/index', NULL, 1, 1, 'ServiceApi', 'C', '0', '0', 'ds:api:list', 'rainbow-line', 'datamaster', TIMESTAMP '2025-02-12 16:17:04.0', 'admin', TIMESTAMP '2025-09-30 10:12:04.0', 'API服务菜单'),
+(2437, 'API服务查询', 2436, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:query', '#', 'datamaster', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:12:24.0', NULL),
+(2438, 'API服务新增', 2436, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:add', '#', 'datamaster', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:12:38.0', NULL),
+(2439, 'API服务修改', 2436, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:edit', '#', 'datamaster', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:12:53.0', NULL),
+(2440, 'API服务删除', 2436, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:remove', '#', 'datamaster', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 15:01:51.0', NULL),
+(2441, 'API服务导出', 2436, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:export', '#', 'datamaster', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:13:02.0', NULL),
+(2442, 'API服务导入', 2436, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ds:api:import', '#', 'datamaster', TIMESTAMP '2025-02-12 16:17:32.0', 'admin', TIMESTAMP '2025-09-30 10:13:09.0', NULL),
+(2444, '角色列表', 2398, 7, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:list', '#', 'shuyexin', TIMESTAMP '2025-02-13 14:54:22.0', 'datamaster', TIMESTAMP '2025-02-13 14:56:48.0', NULL),
 (2445, '角色导出', 2398, 8, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:export', '#', 'shuyexin', TIMESTAMP '2025-02-13 14:54:46.0', NULL, NULL, NULL),
 (2446, '角色修改', 2398, 7, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:edit', '#', 'shuyexin', TIMESTAMP '2025-02-13 14:55:14.0', NULL, NULL, NULL),
-(2447, '角色添加', 2398, 10, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:add', '#', 'qData', TIMESTAMP '2025-02-13 14:56:39.0', NULL, NULL, NULL),
-(2448, '角色查询', 2398, 11, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:query', '#', 'qData', TIMESTAMP '2025-02-13 14:57:06.0', 'qData', TIMESTAMP '2025-02-13 14:57:13.0', NULL),
-(2449, '角色删除', 2398, 12, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:remove', '#', 'qData', TIMESTAMP '2025-02-13 14:57:38.0', NULL, NULL, NULL),
-(2457, '应用管理', 2427, 2, 'client', 'ds/client/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:client:list', 'color-filter-line', 'qData', TIMESTAMP '2025-02-18 10:57:53.0', 'admin', TIMESTAMP '2025-10-09 10:42:49.0', '应用管理菜单'),
-(2458, '应用管理查询', 2457, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:query', '#', 'qData', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:31.0', NULL),
-(2459, '应用管理新增', 2457, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:add', '#', 'qData', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:34.0', NULL),
-(2460, '应用管理修改', 2457, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:edit', '#', 'qData', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:41.0', NULL),
-(2461, '应用管理删除', 2457, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:remove', '#', 'qData', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:46.0', NULL),
-(2462, '应用管理导出', 2457, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:export', '#', 'qData', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:49.0', NULL),
-(2463, '应用管理导入', 2457, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:import', '#', 'qData', TIMESTAMP '2025-02-18 10:58:57.0', 'admin', TIMESTAMP '2025-09-30 09:57:52.0', NULL),
-(2464, '数据集成任务查询', 2426, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:query', '#', 'qData', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:28:35.0', NULL),
-(2465, '数据集成任务新增', 2426, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:add', '#', 'qData', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:20:05.0', NULL),
-(2466, '数据集成任务修改', 2426, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:edit', '#', 'qData', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:20:14.0', NULL),
-(2467, '数据集成任务删除', 2426, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:remove', '#', 'qData', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:21:06.0', NULL),
-(2468, '数据集成任务导出', 2426, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:export', '#', 'qData', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:20:20.0', NULL),
-(2469, '数据集成任务导入', 2426, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:import', '#', 'qData', TIMESTAMP '2025-02-19 11:32:11.0', 'admin', TIMESTAMP '2025-09-30 10:20:30.0', NULL),
-(2470, '任务实例', 2477, 1, 'dppEtlTaskInstance', 'dpp/etltaskinstance/index', NULL, 1, 0, NULL, 'C', '1', '1', 'dpp:etl:etltaskinstance:list', '#', 'qData', TIMESTAMP '2025-02-21 21:08:31.0', 'admin', TIMESTAMP '2025-09-30 10:32:29.0', '数据集成任务实例菜单'),
-(2471, '数据集成任务实例查询', 2470, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:query', '#', 'qData', TIMESTAMP '2025-02-21 21:09:17.0', 'qData', TIMESTAMP '2025-02-27 10:20:40.0', NULL),
-(2472, '数据集成任务实例新增', 2470, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:add', '#', 'qData', TIMESTAMP '2025-02-21 21:09:17.0', 'qData', TIMESTAMP '2025-02-27 10:20:48.0', NULL),
-(2473, '数据集成任务实例修改', 2470, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:edit', '#', 'qData', TIMESTAMP '2025-02-21 21:09:17.0', 'qData', TIMESTAMP '2025-02-27 10:20:53.0', NULL),
-(2474, '数据集成任务实例删除', 2470, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:remove', '#', 'qData', TIMESTAMP '2025-02-21 21:09:17.0', 'qData', TIMESTAMP '2025-02-27 10:20:58.0', NULL),
-(2475, '数据集成任务实例导出', 2470, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:export', '#', 'qData', TIMESTAMP '2025-02-21 21:09:17.0', 'qData', TIMESTAMP '2025-02-27 10:21:03.0', NULL),
-(2476, '数据集成任务实例导入', 2470, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:import', '#', 'qData', TIMESTAMP '2025-02-21 21:09:17.0', 'qData', TIMESTAMP '2025-02-27 10:21:11.0', NULL),
-(2477, '运维管理', 2397, 7, 'instance', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'box-3-line', 'qData', TIMESTAMP '2025-02-27 14:00:09.0', 'admin', TIMESTAMP '2025-09-30 10:32:14.0', NULL),
-(2487, '数据开发类目', 2552, 3, 'dataDevCat', 'dpp/setting/dataDevCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:dataDevCat:list', '#', 'qData', TIMESTAMP '2025-03-11 11:18:56.0', 'admin', TIMESTAMP '2025-09-30 10:37:46.0', '数据开发类目管理菜单'),
-(2488, '数据开发类目管理查询', 2487, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:query', '#', 'qData', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:06.0', NULL),
-(2489, '数据开发类目管理新增', 2487, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:add', '#', 'qData', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:17.0', NULL),
-(2490, '数据开发类目管理修改', 2487, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:edit', '#', 'qData', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:22.0', NULL),
-(2491, '数据开发类目管理删除', 2487, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:remove', '#', 'qData', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:26.0', NULL),
-(2492, '数据开发类目管理导出', 2487, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:export', '#', 'qData', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:33.0', NULL),
-(2493, '数据开发类目管理导入', 2487, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:import', '#', 'qData', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:38.0', NULL),
-(2494, '数据服务类目', 2427, 3, 'apiCat', 'ds/apiCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:apiCat:list', 'briefcase-2-line', 'qData', TIMESTAMP '2025-03-11 14:09:22.0', 'wutong', TIMESTAMP '2025-09-30 11:21:08.0', '数据服务类目管理菜单'),
-(2495, '数据服务类目管理查询', 2494, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:query', '#', 'qData', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:36.0', NULL),
-(2496, '数据服务类目管理新增', 2494, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:add', '#', 'qData', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:41.0', NULL),
-(2497, '数据服务类目管理修改', 2494, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:edit', '#', 'qData', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:47.0', NULL),
-(2498, '数据服务类目管理删除', 2494, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:remove', '#', 'qData', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:52.0', NULL),
-(2499, '数据服务类目管理导出', 2494, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:export', '#', 'qData', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:58.0', NULL),
-(2500, '数据服务类目管理导入', 2494, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:import', '#', 'qData', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:57:08.0', NULL),
-(2501, '数据集成类目', 2552, 1, 'taskCat', 'dpp/setting/taskCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:taskCat:list', '#', 'qData', TIMESTAMP '2025-03-11 14:32:20.0', 'admin', TIMESTAMP '2025-09-30 10:36:03.0', '数据集成任务类目管理菜单'),
-(2502, '数据集成任务类目管理查询', 2501, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:query', '#', 'qData', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:25.0', NULL),
-(2503, '数据集成任务类目管理新增', 2501, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:add', '#', 'qData', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:34.0', NULL),
-(2504, '数据集成任务类目管理修改', 2501, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:edit', '#', 'qData', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:41.0', NULL),
-(2505, '数据集成任务类目管理删除', 2501, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:remove', '#', 'qData', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:37:17.0', NULL),
-(2506, '数据集成任务类目管理导出', 2501, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:export', '#', 'qData', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:46.0', NULL),
-(2507, '数据集成任务类目管理导入', 2501, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:import', '#', 'qData', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:52.0', NULL),
-(2510, '任务管理', 2397, 3, 'task', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'file-list-line', 'qData', TIMESTAMP '2025-03-12 17:47:13.0', 'admin', TIMESTAMP '2025-09-30 10:18:39.0', NULL),
-(2511, '数据开发', 2510, 2, 'developTask', 'dpp/task/developTask/index', NULL, 1, 0, 'dppDevelopTask', 'C', '0', '0', 'dpp:developTask:list', '#', 'qData', TIMESTAMP '2025-03-12 17:55:40.0', 'admin', TIMESTAMP '2025-09-30 10:21:56.0', NULL),
-(2513, '数据连接', 2397, 1, 'dataSource', 'dpp/datasource/index', '{\"type\":1}', 1, 0, 'dppDataSource', 'C', '0', '0', 'da:dataSource:list', 'shuffle-line', 'qData', TIMESTAMP '2025-03-12 18:19:41.0', 'admin', TIMESTAMP '2025-09-30 11:19:42.0', NULL),
-(2519, '数据开发新增', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:add', '#', 'qData', TIMESTAMP '2025-03-13 09:38:04.0', 'admin', TIMESTAMP '2025-09-30 10:31:02.0', NULL),
-(2520, '数据开发修改', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:edit', '#', 'qData', TIMESTAMP '2025-03-13 09:38:28.0', 'admin', TIMESTAMP '2025-09-30 10:30:56.0', NULL),
-(2521, '数据开发删除', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:remove', '#', 'qData', TIMESTAMP '2025-03-13 09:38:59.0', 'admin', TIMESTAMP '2025-09-30 10:30:47.0', NULL),
-(2522, '数据开发调度周期', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:query', '#', 'qData', TIMESTAMP '2025-03-13 09:39:24.0', 'admin', TIMESTAMP '2025-09-30 10:30:42.0', NULL),
-(2523, '数据开发运行实例', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:instance:list', '#', 'qData', TIMESTAMP '2025-03-13 09:39:53.0', 'admin', TIMESTAMP '2025-09-30 10:30:28.0', NULL),
-(2524, '数据源查询', 2513, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:query', '#', 'qData', TIMESTAMP '2025-03-13 11:55:35.0', 'admin', TIMESTAMP '2025-09-30 11:21:07.0', NULL),
-(2525, '数据源新增', 2513, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:add', '#', 'qData', TIMESTAMP '2025-03-13 11:55:54.0', 'admin', TIMESTAMP '2025-09-30 11:21:20.0', NULL),
-(2526, '数据源修改', 2513, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:edit', '#', 'qData', TIMESTAMP '2025-03-13 11:56:16.0', 'admin', TIMESTAMP '2025-09-30 11:22:12.0', NULL),
-(2527, '数据源删除', 2513, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:remove', '#', 'qData', TIMESTAMP '2025-03-13 11:56:40.0', 'admin', TIMESTAMP '2025-09-30 11:21:28.0', NULL),
-(2528, '数据源导出', 2513, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:export', '#', 'qData', TIMESTAMP '2025-03-13 11:57:04.0', 'admin', TIMESTAMP '2025-09-30 11:21:34.0', NULL),
-(2529, '数据源导入', 2513, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:import', '#', 'qData', TIMESTAMP '2025-03-13 11:57:22.0', 'admin', TIMESTAMP '2025-09-30 11:20:56.0', NULL),
-(2530, '资产审核', 2314, 4, 'assetApply', 'da/assetApply/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:assetApply:list', 'currency-line', 'qData', TIMESTAMP '2025-03-19 11:00:10.0', 'admin', TIMESTAMP '2025-09-30 10:50:05.0', '数据资产申请菜单'),
-(2531, '数据资产申请查询', 2530, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:query', '#', 'qData', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:16.0', NULL),
-(2532, '数据资产申请新增', 2530, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:add', '#', 'qData', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:23.0', NULL),
-(2533, '数据资产申请修改', 2530, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:edit', '#', 'qData', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:32.0', NULL),
-(2534, '数据资产申请删除', 2530, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:daAssetApply:daassetapply:remove', '#', 'qData', TIMESTAMP '2025-03-19 11:00:56.0', NULL, NULL, NULL),
-(2535, '数据资产申请导出', 2530, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:export', '#', 'qData', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:40.0', NULL),
-(2536, '数据资产申请导入', 2530, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:import', '#', 'qData', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:47.0', NULL),
-(2537, '项目资产', 2397, 2, 'asset', 'dpp/asset/index', '{\"type\":1}', 1, 0, 'dppAsset', 'C', '0', '0', 'dpp:asset:list', 'exchange-dollar-line', 'qData', TIMESTAMP '2025-03-19 19:21:11.0', 'admin', TIMESTAMP '2025-09-30 11:05:33.0', NULL),
-(2538, '资产地图查询', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:asset:query', '#', 'qData', TIMESTAMP '2025-03-21 09:56:13.0', 'admin', TIMESTAMP '2025-09-30 10:18:14.0', NULL),
-(2539, '添加', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:asset:add', '#', 'qData', TIMESTAMP '2025-03-21 09:57:39.0', 'admin', TIMESTAMP '2025-09-30 10:17:59.0', NULL),
-(2540, '修改', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:asset:edit', '#', 'qData', TIMESTAMP '2025-03-21 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:17:56.0', NULL),
-(2541, '删除', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:asset:remove', '#', 'qData', TIMESTAMP '2025-03-21 09:58:53.0', 'admin', TIMESTAMP '2025-09-30 10:17:52.0', NULL),
-(2542, '导入', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:export', '#', 'qData', TIMESTAMP '2025-03-21 09:59:14.0', 'admin', TIMESTAMP '2025-09-30 10:17:49.0', NULL),
-(2543, '导出', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:import', '#', 'qData', TIMESTAMP '2025-03-21 09:59:30.0', 'admin', TIMESTAMP '2025-09-30 10:18:05.0', NULL),
-(2544, '任务分类管理', 2552, 6, 'cat', NULL, NULL, 1, 0, NULL, 'M', '1', '1', NULL, '#', 'qData', TIMESTAMP '2025-03-27 15:30:38.0', 'qData', TIMESTAMP '2025-04-27 14:05:00.0', NULL),
-(2545, '数据集成任务详情', 2426, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:info', '#', 'qData', TIMESTAMP '2025-03-28 14:43:45.0', 'admin', TIMESTAMP '2025-09-30 10:28:16.0', NULL),
-(2546, '数据集成任务调度周期', 2426, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:query', '#', 'qData', TIMESTAMP '2025-03-28 14:45:11.0', 'admin', TIMESTAMP '2025-09-30 10:19:44.0', NULL),
-(2547, '数据集成任务执行一次', 2426, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp: integratioTask:once', '#', 'qData', TIMESTAMP '2025-03-28 14:45:55.0', 'admin', TIMESTAMP '2025-09-30 10:28:25.0', NULL),
-(2548, '数据开发详情', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:info', '#', 'qData', TIMESTAMP '2025-03-28 14:48:28.0', 'admin', TIMESTAMP '2025-09-30 10:22:33.0', NULL),
-(2549, '数据开发执行一次', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:once', '#', 'qData', TIMESTAMP '2025-03-28 14:49:11.0', 'admin', TIMESTAMP '2025-09-30 10:31:16.0', NULL),
-(2552, '项目基础管理', 2397, 9, 'setting', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'lifebuoy-line', 'qData', TIMESTAMP '2025-03-31 09:29:41.0', 'admin', TIMESTAMP '2025-09-30 10:34:23.0', NULL),
-(2554, '数据查询', 2314, 5, 'dataQuery', 'da/dataQuery/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:dataQuery:list', 'search', 'qData', TIMESTAMP '2025-04-09 15:56:05.0', 'admin', TIMESTAMP '2025-09-30 10:51:16.0', NULL),
+(2447, '角色添加', 2398, 10, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:add', '#', 'datamaster', TIMESTAMP '2025-02-13 14:56:39.0', NULL, NULL, NULL),
+(2448, '角色查询', 2398, 11, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:query', '#', 'datamaster', TIMESTAMP '2025-02-13 14:57:06.0', 'datamaster', TIMESTAMP '2025-02-13 14:57:13.0', NULL),
+(2449, '角色删除', 2398, 12, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:project:role:remove', '#', 'datamaster', TIMESTAMP '2025-02-13 14:57:38.0', NULL, NULL, NULL),
+(2457, '应用管理', 2427, 2, 'client', 'ds/client/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:client:list', 'color-filter-line', 'datamaster', TIMESTAMP '2025-02-18 10:57:53.0', 'admin', TIMESTAMP '2025-10-09 10:42:49.0', '应用管理菜单'),
+(2458, '应用管理查询', 2457, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:query', '#', 'datamaster', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:31.0', NULL),
+(2459, '应用管理新增', 2457, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:add', '#', 'datamaster', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:34.0', NULL),
+(2460, '应用管理修改', 2457, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:edit', '#', 'datamaster', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:41.0', NULL),
+(2461, '应用管理删除', 2457, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:remove', '#', 'datamaster', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:46.0', NULL),
+(2462, '应用管理导出', 2457, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:export', '#', 'datamaster', TIMESTAMP '2025-02-18 10:58:56.0', 'admin', TIMESTAMP '2025-09-30 09:57:49.0', NULL),
+(2463, '应用管理导入', 2457, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:client:import', '#', 'datamaster', TIMESTAMP '2025-02-18 10:58:57.0', 'admin', TIMESTAMP '2025-09-30 09:57:52.0', NULL),
+(2464, '数据集成任务查询', 2426, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:query', '#', 'datamaster', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:28:35.0', NULL),
+(2465, '数据集成任务新增', 2426, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:add', '#', 'datamaster', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:20:05.0', NULL),
+(2466, '数据集成任务修改', 2426, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:edit', '#', 'datamaster', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:20:14.0', NULL),
+(2467, '数据集成任务删除', 2426, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:remove', '#', 'datamaster', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:21:06.0', NULL),
+(2468, '数据集成任务导出', 2426, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:export', '#', 'datamaster', TIMESTAMP '2025-02-19 11:32:10.0', 'admin', TIMESTAMP '2025-09-30 10:20:20.0', NULL),
+(2469, '数据集成任务导入', 2426, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:import', '#', 'datamaster', TIMESTAMP '2025-02-19 11:32:11.0', 'admin', TIMESTAMP '2025-09-30 10:20:30.0', NULL),
+(2470, '任务实例', 2477, 1, 'CollectorEtlTaskInstance', 'dpp/etltaskinstance/index', NULL, 1, 0, NULL, 'C', '1', '1', 'dpp:etl:etltaskinstance:list', '#', 'datamaster', TIMESTAMP '2025-02-21 21:08:31.0', 'admin', TIMESTAMP '2025-09-30 10:32:29.0', '数据集成任务实例菜单'),
+(2471, '数据集成任务实例查询', 2470, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:query', '#', 'datamaster', TIMESTAMP '2025-02-21 21:09:17.0', 'datamaster', TIMESTAMP '2025-02-27 10:20:40.0', NULL),
+(2472, '数据集成任务实例新增', 2470, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:add', '#', 'datamaster', TIMESTAMP '2025-02-21 21:09:17.0', 'datamaster', TIMESTAMP '2025-02-27 10:20:48.0', NULL),
+(2473, '数据集成任务实例修改', 2470, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:edit', '#', 'datamaster', TIMESTAMP '2025-02-21 21:09:17.0', 'datamaster', TIMESTAMP '2025-02-27 10:20:53.0', NULL),
+(2474, '数据集成任务实例删除', 2470, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:remove', '#', 'datamaster', TIMESTAMP '2025-02-21 21:09:17.0', 'datamaster', TIMESTAMP '2025-02-27 10:20:58.0', NULL),
+(2475, '数据集成任务实例导出', 2470, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:export', '#', 'datamaster', TIMESTAMP '2025-02-21 21:09:17.0', 'datamaster', TIMESTAMP '2025-02-27 10:21:03.0', NULL),
+(2476, '数据集成任务实例导入', 2470, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:etl:etlnodeinstance:import', '#', 'datamaster', TIMESTAMP '2025-02-21 21:09:17.0', 'datamaster', TIMESTAMP '2025-02-27 10:21:11.0', NULL),
+(2477, '运维管理', 2397, 7, 'instance', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'box-3-line', 'datamaster', TIMESTAMP '2025-02-27 14:00:09.0', 'admin', TIMESTAMP '2025-09-30 10:32:14.0', NULL),
+(2487, '数据开发类目', 2552, 3, 'dataDevCat', 'dpp/setting/dataDevCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:dataDevCat:list', '#', 'datamaster', TIMESTAMP '2025-03-11 11:18:56.0', 'admin', TIMESTAMP '2025-09-30 10:37:46.0', '数据开发类目管理菜单'),
+(2488, '数据开发类目管理查询', 2487, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:query', '#', 'datamaster', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:06.0', NULL),
+(2489, '数据开发类目管理新增', 2487, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:add', '#', 'datamaster', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:17.0', NULL),
+(2490, '数据开发类目管理修改', 2487, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:edit', '#', 'datamaster', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:22.0', NULL),
+(2491, '数据开发类目管理删除', 2487, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:remove', '#', 'datamaster', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:26.0', NULL),
+(2492, '数据开发类目管理导出', 2487, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:export', '#', 'datamaster', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:33.0', NULL),
+(2493, '数据开发类目管理导入', 2487, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:dataDevCat:import', '#', 'datamaster', TIMESTAMP '2025-03-11 11:19:16.0', 'admin', TIMESTAMP '2025-09-30 10:38:38.0', NULL),
+(2494, '数据服务类目', 2427, 3, 'apiCat', 'ds/apiCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:apiCat:list', 'briefcase-2-line', 'datamaster', TIMESTAMP '2025-03-11 14:09:22.0', 'wutong', TIMESTAMP '2025-09-30 11:21:08.0', '数据服务类目管理菜单'),
+(2495, '数据服务类目管理查询', 2494, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:query', '#', 'datamaster', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:36.0', NULL),
+(2496, '数据服务类目管理新增', 2494, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:add', '#', 'datamaster', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:41.0', NULL),
+(2497, '数据服务类目管理修改', 2494, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:edit', '#', 'datamaster', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:47.0', NULL),
+(2498, '数据服务类目管理删除', 2494, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:remove', '#', 'datamaster', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:52.0', NULL),
+(2499, '数据服务类目管理导出', 2494, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:export', '#', 'datamaster', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:56:58.0', NULL),
+(2500, '数据服务类目管理导入', 2494, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:apiCat:import', '#', 'datamaster', TIMESTAMP '2025-03-11 14:09:50.0', 'admin', TIMESTAMP '2025-09-30 09:57:08.0', NULL),
+(2501, '数据集成类目', 2552, 1, 'taskCat', 'dpp/setting/taskCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:taskCat:list', '#', 'datamaster', TIMESTAMP '2025-03-11 14:32:20.0', 'admin', TIMESTAMP '2025-09-30 10:36:03.0', '数据集成任务类目管理菜单'),
+(2502, '数据集成任务类目管理查询', 2501, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:query', '#', 'datamaster', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:25.0', NULL),
+(2503, '数据集成任务类目管理新增', 2501, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:add', '#', 'datamaster', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:34.0', NULL),
+(2504, '数据集成任务类目管理修改', 2501, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:edit', '#', 'datamaster', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:41.0', NULL),
+(2505, '数据集成任务类目管理删除', 2501, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:remove', '#', 'datamaster', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:37:17.0', NULL),
+(2506, '数据集成任务类目管理导出', 2501, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:export', '#', 'datamaster', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:46.0', NULL),
+(2507, '数据集成任务类目管理导入', 2501, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:taskCat:import', '#', 'datamaster', TIMESTAMP '2025-03-11 14:32:35.0', 'admin', TIMESTAMP '2025-09-30 10:36:52.0', NULL),
+(2510, '任务管理', 2397, 3, 'task', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'file-list-line', 'datamaster', TIMESTAMP '2025-03-12 17:47:13.0', 'admin', TIMESTAMP '2025-09-30 10:18:39.0', NULL),
+(2511, '数据开发', 2510, 2, 'developTask', 'dpp/task/developTask/index', NULL, 1, 0, 'dppDevelopTask', 'C', '0', '0', 'dpp:developTask:list', '#', 'datamaster', TIMESTAMP '2025-03-12 17:55:40.0', 'admin', TIMESTAMP '2025-09-30 10:21:56.0', NULL),
+(2513, '数据连接', 2397, 1, 'dataSource', 'dpp/datasource/index', '{\"type\":1}', 1, 0, 'dppDataSource', 'C', '0', '0', 'da:dataSource:list', 'shuffle-line', 'datamaster', TIMESTAMP '2025-03-12 18:19:41.0', 'admin', TIMESTAMP '2025-09-30 11:19:42.0', NULL),
+(2519, '数据开发新增', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:add', '#', 'datamaster', TIMESTAMP '2025-03-13 09:38:04.0', 'admin', TIMESTAMP '2025-09-30 10:31:02.0', NULL),
+(2520, '数据开发修改', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:edit', '#', 'datamaster', TIMESTAMP '2025-03-13 09:38:28.0', 'admin', TIMESTAMP '2025-09-30 10:30:56.0', NULL),
+(2521, '数据开发删除', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:remove', '#', 'datamaster', TIMESTAMP '2025-03-13 09:38:59.0', 'admin', TIMESTAMP '2025-09-30 10:30:47.0', NULL),
+(2522, '数据开发调度周期', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:query', '#', 'datamaster', TIMESTAMP '2025-03-13 09:39:24.0', 'admin', TIMESTAMP '2025-09-30 10:30:42.0', NULL),
+(2523, '数据开发运行实例', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:instance:list', '#', 'datamaster', TIMESTAMP '2025-03-13 09:39:53.0', 'admin', TIMESTAMP '2025-09-30 10:30:28.0', NULL),
+(2524, '数据源查询', 2513, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:query', '#', 'datamaster', TIMESTAMP '2025-03-13 11:55:35.0', 'admin', TIMESTAMP '2025-09-30 11:21:07.0', NULL),
+(2525, '数据源新增', 2513, 1, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:add', '#', 'datamaster', TIMESTAMP '2025-03-13 11:55:54.0', 'admin', TIMESTAMP '2025-09-30 11:21:20.0', NULL),
+(2526, '数据源修改', 2513, 2, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:edit', '#', 'datamaster', TIMESTAMP '2025-03-13 11:56:16.0', 'admin', TIMESTAMP '2025-09-30 11:22:12.0', NULL),
+(2527, '数据源删除', 2513, 3, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:remove', '#', 'datamaster', TIMESTAMP '2025-03-13 11:56:40.0', 'admin', TIMESTAMP '2025-09-30 11:21:28.0', NULL),
+(2528, '数据源导出', 2513, 4, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:export', '#', 'datamaster', TIMESTAMP '2025-03-13 11:57:04.0', 'admin', TIMESTAMP '2025-09-30 11:21:34.0', NULL),
+(2529, '数据源导入', 2513, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:dataSource:import', '#', 'datamaster', TIMESTAMP '2025-03-13 11:57:22.0', 'admin', TIMESTAMP '2025-09-30 11:20:56.0', NULL),
+(2530, '资产审核', 2314, 4, 'assetApply', 'da/assetApply/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:assetApply:list', 'currency-line', 'datamaster', TIMESTAMP '2025-03-19 11:00:10.0', 'admin', TIMESTAMP '2025-09-30 10:50:05.0', '数据资产申请菜单'),
+(2531, '数据资产申请查询', 2530, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:query', '#', 'datamaster', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:16.0', NULL),
+(2532, '数据资产申请新增', 2530, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:add', '#', 'datamaster', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:23.0', NULL),
+(2533, '数据资产申请修改', 2530, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:edit', '#', 'datamaster', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:32.0', NULL),
+(2534, '数据资产申请删除', 2530, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ast:assetApply:assetapply:remove', '#', 'datamaster', TIMESTAMP '2025-03-19 11:00:56.0', NULL, NULL, NULL),
+(2535, '数据资产申请导出', 2530, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:export', '#', 'datamaster', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:40.0', NULL),
+(2536, '数据资产申请导入', 2530, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:assetApply:import', '#', 'datamaster', TIMESTAMP '2025-03-19 11:00:56.0', 'admin', TIMESTAMP '2025-09-30 10:50:47.0', NULL),
+(2537, '项目资产', 2397, 2, 'asset', 'dpp/asset/index', '{\"type\":1}', 1, 0, 'dppAsset', 'C', '0', '0', 'dpp:asset:list', 'exchange-dollar-line', 'datamaster', TIMESTAMP '2025-03-19 19:21:11.0', 'admin', TIMESTAMP '2025-09-30 11:05:33.0', NULL),
+(2538, '资产地图查询', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:asset:query', '#', 'datamaster', TIMESTAMP '2025-03-21 09:56:13.0', 'admin', TIMESTAMP '2025-09-30 10:18:14.0', NULL),
+(2539, '添加', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:asset:add', '#', 'datamaster', TIMESTAMP '2025-03-21 09:57:39.0', 'admin', TIMESTAMP '2025-09-30 10:17:59.0', NULL),
+(2540, '修改', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:asset:edit', '#', 'datamaster', TIMESTAMP '2025-03-21 09:58:01.0', 'admin', TIMESTAMP '2025-09-30 10:17:56.0', NULL),
+(2541, '删除', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:asset:remove', '#', 'datamaster', TIMESTAMP '2025-03-21 09:58:53.0', 'admin', TIMESTAMP '2025-09-30 10:17:52.0', NULL),
+(2542, '导入', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:export', '#', 'datamaster', TIMESTAMP '2025-03-21 09:59:14.0', 'admin', TIMESTAMP '2025-09-30 10:17:49.0', NULL),
+(2543, '导出', 2537, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:asset:import', '#', 'datamaster', TIMESTAMP '2025-03-21 09:59:30.0', 'admin', TIMESTAMP '2025-09-30 10:18:05.0', NULL),
+(2544, '任务分类管理', 2552, 6, 'cat', NULL, NULL, 1, 0, NULL, 'M', '1', '1', NULL, '#', 'datamaster', TIMESTAMP '2025-03-27 15:30:38.0', 'datamaster', TIMESTAMP '2025-04-27 14:05:00.0', NULL),
+(2545, '数据集成任务详情', 2426, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:info', '#', 'datamaster', TIMESTAMP '2025-03-28 14:43:45.0', 'admin', TIMESTAMP '2025-09-30 10:28:16.0', NULL),
+(2546, '数据集成任务调度周期', 2426, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:integratioTask:query', '#', 'datamaster', TIMESTAMP '2025-03-28 14:45:11.0', 'admin', TIMESTAMP '2025-09-30 10:19:44.0', NULL),
+(2547, '数据集成任务执行一次', 2426, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp: integratioTask:once', '#', 'datamaster', TIMESTAMP '2025-03-28 14:45:55.0', 'admin', TIMESTAMP '2025-09-30 10:28:25.0', NULL),
+(2548, '数据开发详情', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:info', '#', 'datamaster', TIMESTAMP '2025-03-28 14:48:28.0', 'admin', TIMESTAMP '2025-09-30 10:22:33.0', NULL),
+(2549, '数据开发执行一次', 2511, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dpp:developTask:once', '#', 'datamaster', TIMESTAMP '2025-03-28 14:49:11.0', 'admin', TIMESTAMP '2025-09-30 10:31:16.0', NULL),
+(2552, '项目基础管理', 2397, 9, 'setting', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'lifebuoy-line', 'datamaster', TIMESTAMP '2025-03-31 09:29:41.0', 'admin', TIMESTAMP '2025-09-30 10:34:23.0', NULL),
+(2554, '数据查询', 2314, 5, 'dataQuery', 'da/dataQuery/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:dataQuery:list', 'search', 'datamaster', TIMESTAMP '2025-04-09 15:56:05.0', 'admin', TIMESTAMP '2025-09-30 10:51:16.0', NULL),
 (2555, '数据质量', 2314, 8, 'quality', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'skill', 'admin', TIMESTAMP '2025-07-18 11:24:17.0', 'admin', TIMESTAMP '2025-09-30 10:51:26.0', NULL),
 (2556, '数据质量类目', 2352, 7, 'qualityCat', 'att/cat/qualityCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:qualityCat:list', '#', 'admin', TIMESTAMP '2025-07-19 17:10:44.0', 'admin', TIMESTAMP '2025-09-30 11:01:37.0', '数据质量类目菜单'),
 (2557, '数据质量类目导入', 2556, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:qualityCat:import', '#', 'admin', TIMESTAMP '2025-07-19 17:11:51.0', 'admin', TIMESTAMP '2025-09-30 09:53:45.0', NULL),
@@ -11971,7 +11971,7 @@ CREATE TABLE public.system_oper_log (
 COMMENT ON TABLE public.system_oper_log IS 'system_oper_log';
 
 INSERT INTO public.system_oper_log (oper_id, title, business_type, method, request_method, operator_type, oper_name, dept_name, oper_url, oper_ip, oper_location, oper_param, json_result, status, error_msg, oper_time, cost_time) VALUES
-(922, '角色管理', 2, 'tech.qiantong.qdata.module.system.controller.admin.system.SysRoleController.edit()', 'PUT', 1, 'admin', NULL, '/system/role', '192.168.65.1', '内网IP', '{\"admin\":false,\"createTime\":\"2025-09-18 14:04:23\",\"dataScope\":\"1\",\"delFlag\":\"0\",\"deptCheckStrictly\":true,\"flag\":false,\"menuCheckStrictly\":true,\"menuIds\":[2375,1,2062,107,2351,2292,2293,2294,2295,2296,2297,2298,2257,2258,2259,2260,2261,2262,2263,2243,2244,2245,2246,2247,2248,2249,2264,2265,2266,2267,2268,2269,2270,2352,2572,2578,2577,2576,2575,2574,2573,2271,2272,2273,2274,2275,2276,2277,2278,2279,2280,2281,2282,2283,2284,2299,2300,2301,2302,2303,2304,2305,2556,2562,2561,2560,2559,2558,2557,2694,2674,2675,2676,2677,2678,2679,2702,2703,2704,2705,2706,2707,2708,2709,2695,2696,2697,2698,2699,2700,2701,2716,2717,2718,2719,2720,2721,2722,2730,2307,2308,2354,2355,2356,2357,2358,2359,2360,2309,2310,2311,2312,2313,2731,2315,2316,2368,2369,2370,2371,2372,2373,2374,2317,2318,2319,2320,2321,2314,2329,2330,2331,2332,2333,2334,2335,2322,2323,2324,2325,2326,2327,2328,2336,2337,2338,2339,2340,2341,2342,2530,2531,2532,2533,2534,2535,2536,2554,2555,2565,2566,2567,2568,2569,2570,257...', '{\"msg\":\"操作成功\",\"code\":200}', 0, NULL, TIMESTAMP '2026-05-12 18:04:44.0', 162);
+(922, '角色管理', 2, 'com.datamaster.module.system.controller.admin.system.SysRoleController.edit()', 'PUT', 1, 'admin', NULL, '/system/role', '192.168.65.1', '内网IP', '{\"admin\":false,\"createTime\":\"2025-09-18 14:04:23\",\"dataScope\":\"1\",\"delFlag\":\"0\",\"deptCheckStrictly\":true,\"flag\":false,\"menuCheckStrictly\":true,\"menuIds\":[2375,1,2062,107,2351,2292,2293,2294,2295,2296,2297,2298,2257,2258,2259,2260,2261,2262,2263,2243,2244,2245,2246,2247,2248,2249,2264,2265,2266,2267,2268,2269,2270,2352,2572,2578,2577,2576,2575,2574,2573,2271,2272,2273,2274,2275,2276,2277,2278,2279,2280,2281,2282,2283,2284,2299,2300,2301,2302,2303,2304,2305,2556,2562,2561,2560,2559,2558,2557,2694,2674,2675,2676,2677,2678,2679,2702,2703,2704,2705,2706,2707,2708,2709,2695,2696,2697,2698,2699,2700,2701,2716,2717,2718,2719,2720,2721,2722,2730,2307,2308,2354,2355,2356,2357,2358,2359,2360,2309,2310,2311,2312,2313,2731,2315,2316,2368,2369,2370,2371,2372,2373,2374,2317,2318,2319,2320,2321,2314,2329,2330,2331,2332,2333,2334,2335,2322,2323,2324,2325,2326,2327,2328,2336,2337,2338,2339,2340,2341,2342,2530,2531,2532,2533,2534,2535,2536,2554,2555,2565,2566,2567,2568,2569,2570,257...', '{\"msg\":\"操作成功\",\"code\":200}', 0, NULL, TIMESTAMP '2026-05-12 18:04:44.0', 162);
 
 -- =====================================================
 -- Table: system_post
@@ -14477,15 +14477,15 @@ COMMENT ON TABLE public.system_user IS 'system_user';
 
 INSERT INTO public.system_user (user_id, dept_id, user_name, nick_name, user_type, email, phonenumber, sex, avatar, password, status, del_flag, login_ip, login_date, create_by, create_time, update_by, update_time, remark, auth_id) VALUES
 (1, NULL, 'admin', '超级管理员', '00', 'support@qiantong.tech', '15888888888', '1', '/profile/avatar/2025/09/18/68cb6865e4b0b6ef59810506.png', '$2a$10$PyHQQEm45qO7/91a0jX0e.4MqFj2oGRnnR/mAQwT4MlFEjpzZwZO2', '0', '0', '127.0.0.1', TIMESTAMP '2026-05-25 17:04:51.184', NULL, TIMESTAMP '2025-09-18 09:55:44.0', NULL, TIMESTAMP '2026-05-25 17:03:53.438172', '管理员', NULL),
-(2, 857, 'qData', '吴同', '00', NULL, '15365128327', '0', '/profile/avatar/2025/09/26/68d62ea8e4b02460a489adef.png', '$2a$10$yzCKAV8QlDNMCdYe6fElbOIpwRA8vyQ7hdFuw4bzD4bq749gruVzO', '0', '0', '172.28.0.1', TIMESTAMP '2025-10-09 10:41:18.0', 'admin', TIMESTAMP '2025-09-18 14:33:40.0', 'qData', TIMESTAMP '2025-10-09 10:41:18.0', NULL, NULL),
+(2, 857, 'datamaster', '吴同', '00', NULL, '15365128327', '0', '/profile/avatar/2025/09/26/68d62ea8e4b02460a489adef.png', '$2a$10$yzCKAV8QlDNMCdYe6fElbOIpwRA8vyQ7hdFuw4bzD4bq749gruVzO', '0', '0', '172.28.0.1', TIMESTAMP '2025-10-09 10:41:18.0', 'admin', TIMESTAMP '2025-09-18 14:33:40.0', 'datamaster', TIMESTAMP '2025-10-09 10:41:18.0', NULL, NULL),
 (3, 858, 'qiutonghui', '邱同辉', '00', NULL, '17720259142', '0', NULL, '$2a$10$0LxoCTkdoDNrW1kikuxmzeO0l7os8lOi.bVapKdHgMsSouDgJaLOm', '0', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-18 14:39:27.0', NULL, NULL, NULL, NULL),
 (4, 857, 'wangming', '王明', '00', NULL, '19951942682', '0', NULL, '$2a$10$Q2wIQyKJBWLS.nBuUmNf5.RvxUoJJZp7mqOYINIVligFfqyNLL3AO', '0', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-18 14:40:12.0', NULL, NULL, NULL, NULL),
 (5, 857, 'pengxinglang', '彭星浪', '00', NULL, '18944002920', '0', NULL, '$2a$10$imCUc6P1NxLP6nWv1cNyMOjVauZPVqn1j74Qvwu07bNnJGf3PKTUO', '0', '0', '172.28.0.1', TIMESTAMP '2025-09-22 16:29:20.0', 'wutong', TIMESTAMP '2025-09-18 14:40:50.0', NULL, TIMESTAMP '2025-09-22 16:29:20.0', NULL, NULL),
 (6, 858, 'liruisa', '李瑞洒', '00', NULL, '13811581064', '1', NULL, '$2a$10$7rkp3G9I.rNW./bVdQ9Hl.HsaxOzM/oyIH5B88vA9bNeigY2I15VK', '0', '0', '192.168.0.155', TIMESTAMP '2025-09-23 20:24:59.0', 'wutong', TIMESTAMP '2025-09-18 14:41:47.0', 'wutong', TIMESTAMP '2025-09-23 20:24:58.0', NULL, NULL),
 (7, 858, 'zhengmengke', '郑梦可', '00', NULL, '19517228692', '1', NULL, '$2a$10$S4LT8I8jD2NmBoc6nFwBO.xE6Gh/cIfJUiLY7z2ObHSjtKW2gDrky', '0', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-18 14:42:23.0', 'wutong', TIMESTAMP '2025-09-23 17:35:40.0', NULL, NULL),
-(8, 864, 'huge', '胡歌', '00', NULL, '17766550633', '0', NULL, '$2a$10$dU8Vnlt7rnvlEu6iJxMpmemRR7aiDmbh9V8Sz8SDpSuAkhdiMa1WS', '0', '0', '172.28.0.1', TIMESTAMP '2025-09-30 16:00:53.0', 'wutong', TIMESTAMP '2025-09-18 14:43:16.0', 'qData', TIMESTAMP '2025-10-09 10:34:53.0', NULL, NULL),
+(8, 864, 'huge', '胡歌', '00', NULL, '17766550633', '0', NULL, '$2a$10$dU8Vnlt7rnvlEu6iJxMpmemRR7aiDmbh9V8Sz8SDpSuAkhdiMa1WS', '0', '0', '172.28.0.1', TIMESTAMP '2025-09-30 16:00:53.0', 'wutong', TIMESTAMP '2025-09-18 14:43:16.0', 'datamaster', TIMESTAMP '2025-10-09 10:34:53.0', NULL, NULL),
 (9, 871, 'xiarui', '夏芮', '00', NULL, '15105175865', '1', NULL, '$2a$10$Cs9zISmlsK2ujf2sK1fmXutnvEX6MKggBIKq90ipeKkmvKtFPw1S.', '0', '0', NULL, NULL, 'wutong', TIMESTAMP '2025-09-18 14:44:30.0', NULL, NULL, NULL, NULL),
-(10, 862, 'wangdawei', '王大伟', '00', NULL, '18210566666', '0', NULL, '$2a$10$3/UuZeHV8G90IUOpo1NjeucOR20EeenK1Q5VlALqI35M9KmWqeXVK', '0', '0', '192.168.0.112', TIMESTAMP '2025-09-23 18:05:34.0', 'wutong', TIMESTAMP '2025-09-18 14:45:19.0', 'qData', TIMESTAMP '2025-10-09 10:34:38.0', NULL, NULL);
+(10, 862, 'wangdawei', '王大伟', '00', NULL, '18210566666', '0', NULL, '$2a$10$3/UuZeHV8G90IUOpo1NjeucOR20EeenK1Q5VlALqI35M9KmWqeXVK', '0', '0', '192.168.0.112', TIMESTAMP '2025-09-23 18:05:34.0', 'wutong', TIMESTAMP '2025-09-18 14:45:19.0', 'datamaster', TIMESTAMP '2025-10-09 10:34:38.0', NULL, NULL);
 
 -- =====================================================
 -- Table: system_user_post

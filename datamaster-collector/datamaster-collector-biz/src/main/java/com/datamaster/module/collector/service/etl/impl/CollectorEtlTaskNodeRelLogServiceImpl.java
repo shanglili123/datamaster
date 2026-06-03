@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 /**
  * 数据集成任务节点关系-日志Service业务层处理
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-02-13
  */
 @Slf4j

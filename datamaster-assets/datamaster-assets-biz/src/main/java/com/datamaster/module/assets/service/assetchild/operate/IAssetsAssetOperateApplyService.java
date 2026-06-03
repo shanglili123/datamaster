@@ -24,7 +24,7 @@ public interface IAssetsAssetOperateApplyService extends IService<AssetsAssetOpe
      * @param pageReqVO
      * @return
      */
-    PageResult<AssetsAssetOperateApplyDO> getDaAssetOperateApplyPage(AssetsAssetOperateApplyPageReqVO pageReqVO);
+    PageResult<AssetsAssetOperateApplyDO> getAssetOperateApplyPage(AssetsAssetOperateApplyPageReqVO pageReqVO);
 
     /**
      *
@@ -32,21 +32,21 @@ public interface IAssetsAssetOperateApplyService extends IService<AssetsAssetOpe
      * @param createReqVO
      * @return
      */
-    Long createDaAssetOperateApply(AssetsAssetOperateApplySaveReqVO createReqVO);
+    Long createAssetOperateApply(AssetsAssetOperateApplySaveReqVO createReqVO);
 
     /**
      *
      *
      * @param updateReqVO
      */
-    int updateDaAssetOperateApply(AssetsAssetOperateApplySaveReqVO updateReqVO);
+    int updateAssetOperateApply(AssetsAssetOperateApplySaveReqVO updateReqVO);
 
     /**
      *
      *
      * @param idList
      */
-    int removeDaAssetOperateApply(Collection<Long> idList);
+    int removeAssetOperateApply(Collection<Long> idList);
 
     /**
      *
@@ -54,21 +54,21 @@ public interface IAssetsAssetOperateApplyService extends IService<AssetsAssetOpe
      * @param id
      * @return
      */
-    AssetsAssetOperateApplyDO getDaAssetOperateApplyById(Long id);
+    AssetsAssetOperateApplyDO getAssetOperateApplyById(Long id);
 
     /**
      *
      *
      * @return
      */
-    List<AssetsAssetOperateApplyDO> getDaAssetOperateApplyList();
+    List<AssetsAssetOperateApplyDO> getAssetOperateApplyList();
 
     /**
      *  Map
      *
      * @return  Map
      */
-    Map<Long, AssetsAssetOperateApplyDO> getDaAssetOperateApplyMap();
+    Map<Long, AssetsAssetOperateApplyDO> getAssetOperateApplyMap();
 
     /**
      *
@@ -78,6 +78,6 @@ public interface IAssetsAssetOperateApplyService extends IService<AssetsAssetOpe
      * @param operName
      * @return
      */
-    String importDaAssetOperateApply(List<AssetsAssetOperateApplyRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetOperateApply(List<AssetsAssetOperateApplyRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
 }

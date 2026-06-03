@@ -40,12 +40,12 @@ public class AssetsAssetVideoServiceImpl  extends ServiceImpl<AssetsAssetVideoMa
     private AssetsAssetVideoMapper AssetsAssetVideoMapper;
 
     @Override
-    public PageResult<AssetsAssetVideoDO> getDaAssetVideoPage(AssetsAssetVideoPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetVideoDO> getAssetVideoPage(AssetsAssetVideoPageReqVO pageReqVO) {
         return AssetsAssetVideoMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public AssetsAssetVideoRespVO getDaAssetVideoByAssetId(Long assetId) {
+    public AssetsAssetVideoRespVO getAssetVideoByAssetId(Long assetId) {
         LambdaQueryWrapperX<AssetsAssetVideoDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.eqIfPresent(AssetsAssetVideoDO::getAssetId,assetId);
         AssetsAssetVideoDO AssetsAssetApiDO = AssetsAssetVideoMapper.selectOne(queryWrapperX);
@@ -53,14 +53,14 @@ public class AssetsAssetVideoServiceImpl  extends ServiceImpl<AssetsAssetVideoMa
     }
 
     @Override
-    public Long createDaAssetVideo(AssetsAssetVideoSaveReqVO createReqVO) {
+    public Long createAssetVideo(AssetsAssetVideoSaveReqVO createReqVO) {
         AssetsAssetVideoDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetVideoDO.class);
         AssetsAssetVideoMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetVideo(AssetsAssetVideoSaveReqVO updateReqVO) {
+    public int updateAssetVideo(AssetsAssetVideoSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产-视频数据
@@ -68,23 +68,23 @@ public class AssetsAssetVideoServiceImpl  extends ServiceImpl<AssetsAssetVideoMa
         return AssetsAssetVideoMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetVideo(Collection<Long> idList) {
+    public int removeAssetVideo(Collection<Long> idList) {
         // 批量删除数据资产-视频数据
         return AssetsAssetVideoMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetVideoDO getDaAssetVideoById(Long id) {
+    public AssetsAssetVideoDO getAssetVideoById(Long id) {
         return AssetsAssetVideoMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetVideoDO> getDaAssetVideoList() {
+    public List<AssetsAssetVideoDO> getAssetVideoList() {
         return AssetsAssetVideoMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetVideoDO> getDaAssetVideoMap() {
+    public Map<Long, AssetsAssetVideoDO> getAssetVideoMap() {
         List<AssetsAssetVideoDO> AssetsAssetVideoList = AssetsAssetVideoMapper.selectList();
         return AssetsAssetVideoList.stream()
                 .collect(Collectors.toMap(
@@ -104,7 +104,7 @@ public class AssetsAssetVideoServiceImpl  extends ServiceImpl<AssetsAssetVideoMa
          * @return
          */
         @Override
-        public String importDaAssetVideo(List<AssetsAssetVideoRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+        public String importAssetVideo(List<AssetsAssetVideoRespVO> importExcelList, boolean isUpdateSupport, String operName) {
             if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
                 throw new ServiceException("");
             }
@@ -120,8 +120,8 @@ public class AssetsAssetVideoServiceImpl  extends ServiceImpl<AssetsAssetVideoMa
                     Long AssetsAssetVideoId = respVO.getId();
                     if (isUpdateSupport) {
                         if (AssetsAssetVideoId != null) {
-                            AssetsAssetVideoDO existingDaAssetVideo = AssetsAssetVideoMapper.selectById(AssetsAssetVideoId);
-                            if (existingDaAssetVideo != null) {
+                            AssetsAssetVideoDO existingAssetVideo = AssetsAssetVideoMapper.selectById(AssetsAssetVideoId);
+                            if (existingAssetVideo != null) {
                                 AssetsAssetVideoMapper.updateById(AssetsAssetVideoDO);
                                 successNum++;
                                 successMessages.add("ID " + AssetsAssetVideoId + " -");
@@ -136,8 +136,8 @@ public class AssetsAssetVideoServiceImpl  extends ServiceImpl<AssetsAssetVideoMa
                     } else {
                         QueryWrapper<AssetsAssetVideoDO> queryWrapper = new QueryWrapper<>();
                         queryWrapper.eq("id", AssetsAssetVideoId);
-                        AssetsAssetVideoDO existingDaAssetVideo = AssetsAssetVideoMapper.selectOne(queryWrapper);
-                        if (existingDaAssetVideo == null) {
+                        AssetsAssetVideoDO existingAssetVideo = AssetsAssetVideoMapper.selectOne(queryWrapper);
+                        if (existingAssetVideo == null) {
                             AssetsAssetVideoMapper.insert(AssetsAssetVideoDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetVideoId + " -");

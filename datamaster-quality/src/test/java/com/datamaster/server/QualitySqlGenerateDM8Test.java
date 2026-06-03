@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import com.datamaster.common.database.constants.DbType;
-import com.datamaster.quality.dal.dataobject.datasource.DaDatasourceDO;
+import com.datamaster.quality.dal.dataobject.datasource.DatasourceDO;
 import com.datamaster.quality.dal.dataobject.quality.QualityRuleEntity;
 import com.datamaster.quality.utils.quality.enums.*;
 
@@ -30,9 +30,9 @@ public class QualitySqlGenerateDM8Test {
         map.put("regex", "Ma");
         map.put("ignoreNullValue", true);
         qualityRule.setConfig(map);
-        DaDatasourceDO daDatasourceDO = new DaDatasourceDO();
-        daDatasourceDO.setDatasourceType(DbType.DM8.getDb());
-        qualityRule.setDaDatasourceById(daDatasourceDO);
+        DatasourceDO DatasourceDO = new DatasourceDO();
+        DatasourceDO.setDatasourceType(DbType.DM8.getDb());
+        qualityRule.setDaDatasourceById(DatasourceDO);
 
         CharacterValidationGenerator generator = new CharacterValidationGenerator();
         String sql = generator.generateSql(qualityRule);
@@ -58,9 +58,9 @@ public class QualitySqlGenerateDM8Test {
         map.put("ignoreNullValue", false);
         map.put("skipInteger", true);
         qualityRule.setConfig(map);
-        DaDatasourceDO daDatasourceDO = new DaDatasourceDO();
-        daDatasourceDO.setDatasourceType(DbType.DM8.getDb());
-        qualityRule.setDaDatasourceById(daDatasourceDO);
+        DatasourceDO DatasourceDO = new DatasourceDO();
+        DatasourceDO.setDatasourceType(DbType.DM8.getDb());
+        qualityRule.setDaDatasourceById(DatasourceDO);
 
         DecimalPrecisionGenerator generator = new DecimalPrecisionGenerator();
         String sql = generator.generateSql(qualityRule);
@@ -84,9 +84,9 @@ public class QualitySqlGenerateDM8Test {
         Map<String, Object> map = new HashMap<>();
         qualityRule.setRuleColumns(Lists.newArrayList("age", "name"));
         qualityRule.setConfig(map);
-        DaDatasourceDO daDatasourceDO = new DaDatasourceDO();
-        daDatasourceDO.setDatasourceType(DbType.DM8.getDb());
-        qualityRule.setDaDatasourceById(daDatasourceDO);
+        DatasourceDO DatasourceDO = new DatasourceDO();
+        DatasourceDO.setDatasourceType(DbType.DM8.getDb());
+        qualityRule.setDaDatasourceById(DatasourceDO);
 
         CompositeUniquenessGenerator generator = new CompositeUniquenessGenerator();
         String sql = generator.generateSql(qualityRule);

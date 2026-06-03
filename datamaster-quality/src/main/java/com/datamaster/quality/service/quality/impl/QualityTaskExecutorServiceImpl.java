@@ -32,19 +32,19 @@ import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.httpClient.HttpTaskLogger;
 import com.datamaster.common.utils.JSONUtils;
 import com.datamaster.common.utils.StringUtils;
-import com.datamaster.quality.controller.qa.vo.DppQualityLogSaveReqVO;
-import com.datamaster.quality.controller.qa.vo.DppQualityTaskRespVO;
+import com.datamaster.quality.controller.qa.vo.QualityLogSaveReqVO;
+import com.datamaster.quality.controller.qa.vo.QualityTaskRespVO;
 import com.datamaster.quality.controller.quality.vo.CheckErrorDataReqDTO;
 import com.datamaster.quality.controller.quality.vo.QualityRuleQueryReqDTO;
 import com.datamaster.quality.controller.quality.vo.ValidationSqlResult;
-import com.datamaster.quality.dal.dataobject.datasource.DaDatasourceDO;
-import com.datamaster.quality.dal.dataobject.qa.DppQualityTaskEvaluateDO;
-import com.datamaster.quality.dal.dataobject.qa.DppQualityTaskObjDO;
+import com.datamaster.quality.dal.dataobject.datasource.DatasourceDO;
+import com.datamaster.quality.dal.dataobject.qa.QualityTaskEvaluateDO;
+import com.datamaster.quality.dal.dataobject.qa.QualityTaskObjDO;
 import com.datamaster.quality.dal.dataobject.quality.CheckErrorData;
 import com.datamaster.quality.dal.dataobject.quality.QualityCheckResult;
 import com.datamaster.quality.dal.dataobject.quality.QualityRuleEntity;
 import com.datamaster.quality.repository.CheckErrorDataRepository;
-import com.datamaster.quality.service.datasource.IDaDatasourceQualityService;
+import com.datamaster.quality.service.datasource.IDatasourceQualityService;
 import com.datamaster.quality.service.qa.*;
 import com.datamaster.quality.service.quality.QualityTaskExecutorService;
 import com.datamaster.quality.utils.quality.QualitySqlGenerateFactory;
@@ -90,23 +90,23 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
     private CheckErrorDataRepository checkErrorDataRepository;
 
     @Autowired
-    private IDppQualityTaskService iDppQualityTaskService;
+    private IQualityTaskService iQualityTaskService;
 
     @Autowired
-    private IDppQualityTaskObjService iDppQualityTaskObjService;
+    private IQualityTaskObjService iQualityTaskObjService;
 
     @Autowired
-    private IDppQualityTaskEvaluateService iDppQualityTaskEvaluateService;
+    private IQualityTaskEvaluateService iQualityTaskEvaluateService;
 
     @Autowired
-    private IDppQualityLogService iDppQualityLogService;
+    private IQualityLogService iQualityLogService;
 
     @Autowired
-    private IDppEvaluateLogService iDppEvaluateLogService;
+    private IEvaluateLogService iEvaluateLogService;
 
     @Resource
     @Lazy
-    private IDaDatasourceQualityService iDaDatasourceQualityService;
+    private IDatasourceQualityService IDatasourceQualityService;
 
     @Autowired
     @Qualifier("threadPoolTaskExecutor")
@@ -143,8 +143,8 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         logger.log("任务开始执行");
 
         //1、查询任务基本信息
-        DppQualityTaskRespVO dppQualityTaskById = iDppQualityTaskService.getDppQualityTaskById(JSONUtils.convertToLong(taskId));
-        if(dppQualityTaskById == null){
+        QualityTaskRespVO QualityTaskById = iQualityTaskService.getQualityTaskById(JSONUtils.convertToLong(taskId));
+        if(QualityTaskById == null){
             logger.log("质量任务-查询本次任务所需执行任务信息:查询为空，未获取到！");
             logger.log("任务结束");
             // 任务完成后，关闭logger，释放资源
@@ -153,7 +153,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
             return;
         }
 
-        logger.log("质量任务-查询本次触发执行的质量任务信息："+dppQualityTaskById.toString());
+        logger.log("质量任务-查询本次触发执行的质量任务信息："+QualityTaskById.toString());
         //2、生成本次批次号
         String batch = DateUtil.format(new Date(), "yyyyMMddHHmmss");
         logger.log("质量任务-生成本次批次号："+batch);
@@ -161,14 +161,14 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         //获取文件地址路径
         String filePath = logger.getFilePath();
         //创建本次任务日志，先创建日志，再执行
-        DppQualityLogSaveReqVO dppQualityLogSaveReqVO = new DppQualityLogSaveReqVO(dppQualityTaskById);
-        dppQualityLogSaveReqVO.setPath(filePath);
-        Long taskLogId = iDppQualityLogService.createDppQualityLog(dppQualityLogSaveReqVO);
+        QualityLogSaveReqVO QualityLogSaveReqVO = new QualityLogSaveReqVO(QualityTaskById);
+        QualityLogSaveReqVO.setPath(filePath);
+        Long taskLogId = iQualityLogService.createQualityLog(QualityLogSaveReqVO);
         logger.log("质量任务-生成本次任务日志，先创建日志，再执行："+taskLogId);
 
         // 3. 查询本次任务所需执行的数据源列表
         logger.log("质量任务-查询本次任务所需执行的数据源列表开始");
-        List<DppQualityTaskObjDO> qualityTaskObjDOList = iDppQualityTaskObjService.getDppQualityTaskObjList(taskId);
+        List<QualityTaskObjDO> qualityTaskObjDOList = iQualityTaskObjService.getQualityTaskObjList(taskId);
         if (CollectionUtils.isEmpty(qualityTaskObjDOList)) {
             logger.log("质量任务-查询本次任务所需执行的数据源列表:查询为空，未获取到列表！");
             logger.log("任务结束");
@@ -185,50 +185,50 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         Map<Long, List<Long>> groupIdsByDatasourceId = groupIdsByDatasourceId(qualityTaskObjDOList);
         logger.log("质量任务-归纳本次质量任务，同数据源归纳整理结束，总计："+groupIdsByDatasourceId.size()+" 个");
         for (Map.Entry<Long, List<Long>> entry : groupIdsByDatasourceId.entrySet()) {
-            Long datasourceId = entry.getKey();          // 即 daDatasourceById
+            Long datasourceId = entry.getKey();          // 即 datasourceById
             List<Long> idList = entry.getValue();        // id集合
 
             logger.log("质量任务-开始获取数据源链接信息。");
             //5、获取数据源基本信息
-            DaDatasourceDO daDatasourceById = iDaDatasourceQualityService.getDaDatasourceById(datasourceId);
-            if (daDatasourceById == null){
+            DatasourceDO datasourceById = IDatasourceQualityService.getDatasourceDOById(datasourceId);
+            if (datasourceById == null){
                 logger.log("质量任务-数据源信息获取失败，跳过该数据源。跳过的数据源id："+datasourceId);
                 logger.log("质量任务-数据源信息获取失败，数据源id为："+datasourceId+" 的规则无法执行，跳过。");
                 continue;
             }
-            logger.log("质量任务-数据源信息获取成功，准备建立数据库连接。数据源名称为："+daDatasourceById.getDatasourceName()+" ,数据源ID为："+daDatasourceById.getId());
+            logger.log("质量任务-数据源信息获取成功，准备建立数据库连接。数据源名称为："+datasourceById.getDatasourceName()+" ,数据源ID为："+datasourceById.getId());
             //6、测试数据源是否正常，不正常则结束进行下一个
             DbQueryProperty dbQueryProperty = new DbQueryProperty(
-                    daDatasourceById.getDatasourceType(),
-                    daDatasourceById.getIp(),
-                    daDatasourceById.getPort(),
-                    daDatasourceById.getDatasourceConfig()
+                    datasourceById.getDatasourceType(),
+                    datasourceById.getIp(),
+                    datasourceById.getPort(),
+                    datasourceById.getDatasourceConfig()
             );
             DbQuery dbQuery;
             try {
                 dbQuery = dataSourceFactory.createDbQuery(dbQueryProperty);
                 if (!dbQuery.valid()) {
                     logger.log("质量任务-数据源连接测试失败，跳过该数据源。");
-                    logger.log("质量任务-数据源信息获取失败，数据源名称为："+daDatasourceById.getDatasourceName()+" ,数据源id为："+daDatasourceById.getId()+" 的规则无法执行，跳过。");
+                    logger.log("质量任务-数据源信息获取失败，数据源名称为："+datasourceById.getDatasourceName()+" ,数据源id为："+datasourceById.getId()+" 的规则无法执行，跳过。");
                     continue;
                 }
             }catch (Exception e){
                 logger.log("质量任务-数据源连接异常：" + e.getMessage());
                 logger.log("质量任务-数据源连接异常，跳过该数据源。");
-                logger.log("质量任务-数据源信息获取失败，数据源名称为："+daDatasourceById.getDatasourceName()+" ,数据源id为："+daDatasourceById.getId()+" 的规则无法执行，跳过。");
+                logger.log("质量任务-数据源信息获取失败，数据源名称为："+datasourceById.getDatasourceName()+" ,数据源id为："+datasourceById.getId()+" 的规则无法执行，跳过。");
                 continue;
             }
             logger.log("质量任务-数据源信息获取成功，建立数据库连接成功。");
 
             logger.log("质量任务-开始获取该数据源下的质量规则。");
             //7、从数据源取出规则进行规则查询
-            List<DppQualityTaskEvaluateDO> dppQualityTaskEvaluateList = iDppQualityTaskEvaluateService.getDppQualityTaskEvaluateList(idList);
+            List<QualityTaskEvaluateDO> QualityTaskEvaluateList = iQualityTaskEvaluateService.getQualityTaskEvaluateList(idList);
 
             logger.log("质量任务-准备逐个处理该数据源下每个质量规则。");
             //循环规则
-            for (DppQualityTaskEvaluateDO dppQualityTaskEvaluateDO : dppQualityTaskEvaluateList) {
+            for (QualityTaskEvaluateDO QualityTaskEvaluateDO : QualityTaskEvaluateList) {
                 //8、封装规则进行调取方法
-                QualityRuleEntity qualityRuleEntity = new QualityRuleEntity(dppQualityTaskEvaluateDO);
+                QualityRuleEntity qualityRuleEntity = new QualityRuleEntity(QualityTaskEvaluateDO);
                 logger.log("质量任务-规则封装完成，准备获取字段信息。");
                 qualityRuleEntity.setTaskLogId(taskLogId);
                 List<DbColumn> tableColumns = dbQuery.getTableColumns(dbQueryProperty, qualityRuleEntity.getTableName());
@@ -242,10 +242,10 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
                 //存储参数
                 qualityRuleEntity.setShowErrorColumns(showErrorColumns);
                 qualityRuleEntity.setTaskLogId(taskLogId);
-                qualityRuleEntity.setDaDatasourceById(daDatasourceById);
+                qualityRuleEntity.setDatasourceById(datasourceById);
                 logger.log("质量任务-字段信息设置完成，准备执行规则。");
                 try {
-                    RuleExecutorTask ruleExecutorTask = new RuleExecutorTask(qualityRuleEntity, batch,dbQuery, qualitySqlGenerateFactory, mongoTemplate,logger, iDppEvaluateLogService);
+                    RuleExecutorTask ruleExecutorTask = new RuleExecutorTask(qualityRuleEntity, batch,dbQuery, qualitySqlGenerateFactory, mongoTemplate,logger, iEvaluateLogService);
                     logger.log("质量任务-开始执行规则任务。");
                     ruleExecutorTask.call();
                 }catch (Exception e){
@@ -264,7 +264,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         redisService.set(key, "2", 300);
     }
 
-    public static Map<Long, List<Long>> groupIdsByDatasourceId(List<DppQualityTaskObjDO> list) {
+    public static Map<Long, List<Long>> groupIdsByDatasourceId(List<QualityTaskObjDO> list) {
         if (list == null || list.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -272,8 +272,8 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         return list.stream()
                 .filter(obj -> obj.getDatasourceId() != null && obj.getId() != null)
                 .collect(Collectors.groupingBy(
-                        DppQualityTaskObjDO::getDatasourceId,
-                        Collectors.mapping(DppQualityTaskObjDO::getId, Collectors.toList())
+                        QualityTaskObjDO::getDatasourceId,
+                        Collectors.mapping(QualityTaskObjDO::getId, Collectors.toList())
                 ));
     }
 
@@ -284,12 +284,12 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
      * @param successFlag 状态标志（1：成功，2：失败）
      */
     public void updateQualityLog(Long id, String successFlag) {
-        DppQualityLogSaveReqVO vo = new DppQualityLogSaveReqVO();
+        QualityLogSaveReqVO vo = new QualityLogSaveReqVO();
         vo.setId(id);
         vo.setSuccessFlag(successFlag);
         vo.setEndTime(DateUtil.date());
 
-        iDppQualityLogService.updateDppQualityLog(vo);
+        iQualityLogService.updateQualityLog(vo);
     }
 
 //
@@ -310,8 +310,8 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
 //
 //        List<Future<QualityCheckResult>> futures = new ArrayList<>();
 //        for (QualityRuleEntity rule : rules) {
-//            DaDatasourceDO daDatasourceById = iDaDatasourceQualityService.getDaDatasourceById(JSONUtils.convertToLong(rule.getDataId()));
-//            rule.setDaDatasourceById(daDatasourceById);
+//            DatasourceDO datasourceById = IDatasourceQualityService.getDatasourceDOById(JSONUtils.convertToLong(rule.getDataId()));
+//            rule.setDatasourceById(datasourceById);
 //            futures.add(executor.submit(new RuleExecutorTask(rule, batch, qualitySqlGenerateFactory, mongoTemplate,dataSourceFactory)));
 //        }
 //
@@ -332,15 +332,15 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
 
     @Override
     public ValidationSqlResult generateValidationValidDataSql(QualityRuleQueryReqDTO queryReqDTO) {
-        DaDatasourceDO daDatasourceById = iDaDatasourceQualityService.getDaDatasourceById(JSONUtils.convertToLong(queryReqDTO.getDataId()));
-        if (daDatasourceById == null){
+        DatasourceDO datasourceById = IDatasourceQualityService.getDatasourceDOById(JSONUtils.convertToLong(queryReqDTO.getDataId()));
+        if (datasourceById == null){
             throw new ServiceException("建立实时数据源链接失败！");
         }
         DbQueryProperty dbQueryProperty = new DbQueryProperty(
-                daDatasourceById.getDatasourceType(),
-                daDatasourceById.getIp(),
-                daDatasourceById.getPort(),
-                daDatasourceById.getDatasourceConfig()
+                datasourceById.getDatasourceType(),
+                datasourceById.getIp(),
+                datasourceById.getPort(),
+                datasourceById.getDatasourceConfig()
         );
         DbQuery dbQuery;
         try {
@@ -361,7 +361,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         QualitySqlGenerator generator = qualitySqlGenerateFactory.getGenerator(queryReqDTO.getRuleType());
         QualityRuleEntity rule = new QualityRuleEntity(queryReqDTO);
         rule.setShowErrorColumns(showErrorColumns);
-        rule.setDaDatasourceById(daDatasourceById);
+        rule.setDatasourceById(datasourceById);
         String checkSql = generator.generateValidDataSql(rule,queryReqDTO.getLimit(),queryReqDTO.getOffset());
         // 2. 执行 SQL
         try (Connection conn = dbQuery.getConnection();
@@ -390,15 +390,15 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
 
     @Override
     public ValidationSqlResult generateValidationErrorDataSql(QualityRuleQueryReqDTO queryReqDTO) {
-        DaDatasourceDO daDatasourceById = iDaDatasourceQualityService.getDaDatasourceById(JSONUtils.convertToLong(queryReqDTO.getDataId()));
-        if (daDatasourceById == null){
+        DatasourceDO datasourceById = IDatasourceQualityService.getDatasourceDOById(JSONUtils.convertToLong(queryReqDTO.getDataId()));
+        if (datasourceById == null){
             throw new ServiceException("建立实时数据源链接失败！");
         }
         DbQueryProperty dbQueryProperty = new DbQueryProperty(
-                daDatasourceById.getDatasourceType(),
-                daDatasourceById.getIp(),
-                daDatasourceById.getPort(),
-                daDatasourceById.getDatasourceConfig()
+                datasourceById.getDatasourceType(),
+                datasourceById.getIp(),
+                datasourceById.getPort(),
+                datasourceById.getDatasourceConfig()
         );
         DbQuery dbQuery;
         try {
@@ -419,7 +419,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         QualityRuleEntity rule = new QualityRuleEntity(queryReqDTO);
         //存储参数
         rule.setShowErrorColumns(showErrorColumns);
-        rule.setDaDatasourceById(daDatasourceById);
+        rule.setDatasourceById(datasourceById);
         String checkSql = generator.generateErrorSql(rule);
         // 2. 执行 SQL
         try (Connection conn = dbQuery.getConnection();
@@ -562,7 +562,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
     }
 
     private boolean updatePhysicalTable(CheckErrorDataReqDTO dto) {
-        DaDatasourceDO datasource = iDaDatasourceQualityService.getDaDatasourceById(dto.getDatasourceId());
+        DatasourceDO datasource = IDatasourceQualityService.getDatasourceDOById(dto.getDatasourceId());
         if (datasource == null) {
             return false;
         }
@@ -790,15 +790,15 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
 
     @Override
     public String generateDataCheck(QualityRuleQueryReqDTO queryReqDTO) {
-        DaDatasourceDO daDatasourceById = iDaDatasourceQualityService.getDaDatasourceById(JSONUtils.convertToLong(queryReqDTO.getDataId()));
-        if (daDatasourceById == null) {
+        DatasourceDO datasourceById = IDatasourceQualityService.getDatasourceDOById(JSONUtils.convertToLong(queryReqDTO.getDataId()));
+        if (datasourceById == null) {
             throw new ServiceException("建立实时数据源链接失败！");
         }
         DbQueryProperty dbQueryProperty = new DbQueryProperty(
-                daDatasourceById.getDatasourceType(),
-                daDatasourceById.getIp(),
-                daDatasourceById.getPort(),
-                daDatasourceById.getDatasourceConfig()
+                datasourceById.getDatasourceType(),
+                datasourceById.getIp(),
+                datasourceById.getPort(),
+                datasourceById.getDatasourceConfig()
         );
         DbQuery dbQuery;
         try {
@@ -814,7 +814,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
 
 
         QualityRuleEntity rule = new QualityRuleEntity(queryReqDTO);
-        rule.setDaDatasourceById(daDatasourceById);
+        rule.setDatasourceById(datasourceById);
         String checkSql = characterValidationGenerator.generateDataCheckSql(rule, queryReqDTO.getInputValue());
 
         // 执行 SQL，取第一行第一列（0/1）

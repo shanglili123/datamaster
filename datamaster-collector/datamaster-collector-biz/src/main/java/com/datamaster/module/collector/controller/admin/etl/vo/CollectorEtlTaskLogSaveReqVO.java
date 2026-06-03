@@ -11,7 +11,7 @@ import javax.validation.constraints.Size;
 /**
  * 数据集成任务-日志 创建/修改 Request VO COL_ETL_TASK_LOG
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-02-13
  */
 @Schema(description = "数据集成任务-日志 Response VO")

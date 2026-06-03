@@ -54,6 +54,9 @@ public class CollectorEtlTaskExtReqDTO {
     /** 首次增量同步初始游标 */
     private String incrementalInitialValue;
 
+    /** 时间增量边界格式 */
+    private String incrementalTimeFormat;
+
     /** 本次增量同步起始值 */
     private String incrementalStartValue;
 

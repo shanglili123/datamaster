@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -28,12 +28,12 @@
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetVo">
+    <sql id="selectAssetVo">
         select ID, NAME, CAT_CODE,  DATASOURCE_ID, TABLE_NAME, TYPE, TABLE_COMMENT, DATA_COUNT, FIELD_COUNT, SOURCE,STATUS, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET
     </sql>
 
-    <select id="selectDaAssetList" parameterType="AssetsAssetDO" resultMap="AssetsAssetResult">
-        <include refid="selectDaAssetVo"/>
+    <select id="selectAssetList" parameterType="AssetsAssetDO" resultMap="AssetsAssetResult">
+        <include refid="selectAssetVo"/>
         <where>
             <if test="name != null  and name != ''"> and NAME like concat('%', #{name}, '%')</if>
             <if test="catCode != null  and catCode != ''"> and CAT_CODE = #{catCode}</if>
@@ -50,12 +50,12 @@
         </where>
     </select>
 
-    <select id="selectDaAssetById" parameterType="Long" resultMap="AssetsAssetResult">
-        <include refid="selectDaAssetVo"/>
+    <select id="selectAssetById" parameterType="Long" resultMap="AssetsAssetResult">
+        <include refid="selectAssetVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAsset" parameterType="AssetsAssetDO">
+    <insert id="insertAsset" parameterType="AssetsAssetDO">
         insert into AST_ASSET
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -105,7 +105,7 @@
         </trim>
     </insert>
 
-    <update id="updateDaAsset" parameterType="AssetsAssetDO">
+    <update id="updateAsset" parameterType="AssetsAssetDO">
         update AST_ASSET
         <trim prefix="SET" suffixOverrides=",">
             <if test="name != null">NAME = #{name},</if>
@@ -132,11 +132,11 @@
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetById" parameterType="Long">
+    <delete id="deleteAssetById" parameterType="Long">
         delete from AST_ASSET where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetByIds" parameterType="String">
+    <delete id="deleteAssetByIds" parameterType="String">
         delete from AST_ASSET where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

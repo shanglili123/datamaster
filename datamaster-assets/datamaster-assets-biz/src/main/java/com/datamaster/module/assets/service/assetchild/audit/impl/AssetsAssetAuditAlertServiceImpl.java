@@ -36,19 +36,19 @@ public class AssetsAssetAuditAlertServiceImpl  extends ServiceImpl<AssetsAssetAu
     private AssetsAssetAuditAlertMapper AssetsAssetAuditAlertMapper;
 
     @Override
-    public PageResult<AssetsAssetAuditAlertDO> getDaAssetAuditAlertPage(AssetsAssetAuditAlertPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetAuditAlertDO> getAssetAuditAlertPage(AssetsAssetAuditAlertPageReqVO pageReqVO) {
         return AssetsAssetAuditAlertMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public Long createDaAssetAuditAlert(AssetsAssetAuditAlertSaveReqVO createReqVO) {
+    public Long createAssetAuditAlert(AssetsAssetAuditAlertSaveReqVO createReqVO) {
         AssetsAssetAuditAlertDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetAuditAlertDO.class);
         AssetsAssetAuditAlertMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetAuditAlert(AssetsAssetAuditAlertSaveReqVO updateReqVO) {
+    public int updateAssetAuditAlert(AssetsAssetAuditAlertSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产-质量预警
@@ -56,23 +56,23 @@ public class AssetsAssetAuditAlertServiceImpl  extends ServiceImpl<AssetsAssetAu
         return AssetsAssetAuditAlertMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetAuditAlert(Collection<Long> idList) {
+    public int removeAssetAuditAlert(Collection<Long> idList) {
         // 批量删除数据资产-质量预警
         return AssetsAssetAuditAlertMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetAuditAlertDO getDaAssetAuditAlertById(Long id) {
+    public AssetsAssetAuditAlertDO getAssetAuditAlertById(Long id) {
         return AssetsAssetAuditAlertMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetAuditAlertDO> getDaAssetAuditAlertList() {
+    public List<AssetsAssetAuditAlertDO> getAssetAuditAlertList() {
         return AssetsAssetAuditAlertMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetAuditAlertDO> getDaAssetAuditAlertMap() {
+    public Map<Long, AssetsAssetAuditAlertDO> getAssetAuditAlertMap() {
         List<AssetsAssetAuditAlertDO> AssetsAssetAuditAlertList = AssetsAssetAuditAlertMapper.selectList();
         return AssetsAssetAuditAlertList.stream()
                 .collect(Collectors.toMap(
@@ -92,7 +92,7 @@ public class AssetsAssetAuditAlertServiceImpl  extends ServiceImpl<AssetsAssetAu
      * @return
      */
     @Override
-    public String importDaAssetAuditAlert(List<AssetsAssetAuditAlertRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAssetAuditAlert(List<AssetsAssetAuditAlertRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -108,8 +108,8 @@ public class AssetsAssetAuditAlertServiceImpl  extends ServiceImpl<AssetsAssetAu
                 Long AssetsAssetAuditAlertId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetAuditAlertId != null) {
-                        AssetsAssetAuditAlertDO existingDaAssetAuditAlert = AssetsAssetAuditAlertMapper.selectById(AssetsAssetAuditAlertId);
-                        if (existingDaAssetAuditAlert != null) {
+                        AssetsAssetAuditAlertDO existingAssetAuditAlert = AssetsAssetAuditAlertMapper.selectById(AssetsAssetAuditAlertId);
+                        if (existingAssetAuditAlert != null) {
                             AssetsAssetAuditAlertMapper.updateById(AssetsAssetAuditAlertDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetAuditAlertId + " -");
@@ -124,8 +124,8 @@ public class AssetsAssetAuditAlertServiceImpl  extends ServiceImpl<AssetsAssetAu
                 } else {
                     QueryWrapper<AssetsAssetAuditAlertDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetAuditAlertId);
-                    AssetsAssetAuditAlertDO existingDaAssetAuditAlert = AssetsAssetAuditAlertMapper.selectOne(queryWrapper);
-                    if (existingDaAssetAuditAlert == null) {
+                    AssetsAssetAuditAlertDO existingAssetAuditAlert = AssetsAssetAuditAlertMapper.selectOne(queryWrapper);
+                    if (existingAssetAuditAlert == null) {
                         AssetsAssetAuditAlertMapper.insert(AssetsAssetAuditAlertDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetAuditAlertId + " -");

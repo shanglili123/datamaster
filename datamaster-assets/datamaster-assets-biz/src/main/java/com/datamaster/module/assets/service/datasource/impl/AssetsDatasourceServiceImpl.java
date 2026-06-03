@@ -91,13 +91,13 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     @Autowired
     private DataSourceFactory DataSourceFactory;
     @Resource
-    private IStandardsModelApiService dpModelApiService;
+    private IStandardsModelApiService standardsModelApiService;
     @Resource
     private IAssetsDatasourceProjectRelService AssetsDatasourceProjectRelService;
     @Resource
     private ITaxonomyProjectApi attProjectApi;
     @Resource
-    private CollectorEtlTaskService dppEtlTaskService;
+    private CollectorEtlTaskService collectorEtlTaskService;
     @Autowired
     private IRedisService redisService;
     @Autowired
@@ -175,12 +175,12 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     @Override
-    public PageResult<AssetsDatasourceDO> getDaDatasourcePage(AssetsDatasourcePageReqVO pageReqVO) {
+    public PageResult<AssetsDatasourceDO> getDatasourcePage(AssetsDatasourcePageReqVO pageReqVO) {
         return AssetsDatasourceMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public PageResult<AssetsDatasourceDO> getDaDatasourceDppPage(AssetsDatasourcePageReqVO pageReqVO) {
+    public PageResult<AssetsDatasourceDO> getDatasourceDppPage(AssetsDatasourcePageReqVO pageReqVO) {
         if (StringUtils.isEmpty(pageReqVO.getProjectCode())) {
             return new PageResult<AssetsDatasourceDO>();
         }
@@ -206,34 +206,34 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     @Override
-    public List<AssetsDatasourceDO> getDaDatasourceList(AssetsDatasourcePageReqVO reqVO) {
+    public List<AssetsDatasourceDO> getDatasourceList(AssetsDatasourcePageReqVO reqVO) {
         LambdaQueryWrapperX<AssetsDatasourceDO> AssetsDatasourceDOLambdaQueryWrapperX = new LambdaQueryWrapperX<>();
         AssetsDatasourceDOLambdaQueryWrapperX.likeIfPresent(AssetsDatasourceDO::getDatasourceName, reqVO.getDatasourceName()).like(StringUtils.isNotEmpty(reqVO.getDatasourceType()), AssetsDatasourceDO::getDatasourceType, reqVO.getDatasourceType()).eq(StringUtils.isNotEmpty(reqVO.getDatasourceConfig()), AssetsDatasourceDO::getDatasourceConfig, reqVO.getDatasourceConfig()).eq(StringUtils.isNotEmpty(reqVO.getIp()), AssetsDatasourceDO::getIp, reqVO.getIp());
         return AssetsDatasourceMapper.selectList(AssetsDatasourceDOLambdaQueryWrapperX);
     }
 
     @Override
-    public Long createDaDatasource(AssetsDatasourceSaveReqVO createReqVO) {
+    public Long createDatasource(AssetsDatasourceSaveReqVO createReqVO) {
         AssetsDatasourceDO dictType = BeanUtils.toBean(createReqVO, AssetsDatasourceDO.class);
         AssetsDatasourceMapper.insert(dictType);
-        delAndSaveDaDataSourceProject(dictType);
-        redisService.hashPut("datasource", dictType.getId().toString(), com.alibaba.fastjson2.JSONObject.toJSONString(this.getDaDatasourceById(dictType.getId()).simplify()));
+        delAndSaveDatasourceProject(dictType);
+        redisService.hashPut("datasource", dictType.getId().toString(), com.alibaba.fastjson2.JSONObject.toJSONString(this.getDatasourceDOById(dictType.getId()).simplify()));
         return dictType.getId();
     }
 
     @Override
-    public int updateDaDatasource(AssetsDatasourceSaveReqVO updateReqVO) {
+    public int updateDatasource(AssetsDatasourceSaveReqVO updateReqVO) {
         Long datasourceId = updateReqVO.getId();
 
 // 更新数据源
         AssetsDatasourceDO updateObj = BeanUtils.toBean(updateReqVO, AssetsDatasourceDO.class);
-        delAndSaveDaDataSourceProject(updateObj);
+        delAndSaveDatasourceProject(updateObj);
         int i = AssetsDatasourceMapper.updateById(updateObj);
-        redisService.hashPut("datasource", datasourceId.toString(), com.alibaba.fastjson2.JSONObject.toJSONString(this.getDaDatasourceById(datasourceId).simplify()));
+        redisService.hashPut("datasource", datasourceId.toString(), com.alibaba.fastjson2.JSONObject.toJSONString(this.getDatasourceDOById(datasourceId).simplify()));
         return i;
     }
 
-    private void delAndSaveDaDataSourceProject(AssetsDatasourceDO AssetsDatasourceDO) {
+    private void delAndSaveDatasourceProject(AssetsDatasourceDO AssetsDatasourceDO) {
         QueryWrapper<AssetsDatasourceProjectRelDO> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("DATASOURCE_ID", AssetsDatasourceDO.getId());
         AssetsDatasourceProjectRelService.remove(queryWrapper);
@@ -247,14 +247,14 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     @Override
-    public int removeDaDatasource(Collection<Long> idList) {
+    public int removeDatasource(Collection<Long> idList) {
 // 批量删除数据源
         return AssetsDatasourceMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public int removeDaDatasourceDppOrDa(List<Long> idList, Long type) {
-        int datasource = dppEtlTaskService.checkTaskIdInDatasource(idList, null);
+    public int removeDatasourceDppOrDa(List<Long> idList, Long type) {
+        int datasource = collectorEtlTaskService.checkTaskIdInDatasource(idList, null);
         if (datasource > 0) {
             throw new ServiceException(",!");
         }
@@ -276,7 +276,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     @Override
-    public AssetsDatasourceDO getDaDatasourceById(Long id) {
+    public AssetsDatasourceDO getDatasourceDOById(Long id) {
         AssetsDatasourceDO AssetsDatasourceDO = AssetsDatasourceMapper.selectById(id);
         if (AssetsDatasourceDO == null) {
             return null;
@@ -289,17 +289,17 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     @Override
-    public AssetsDatasourceRespVO getDaDatasourceByIdSimple(Long id) {
+    public AssetsDatasourceRespVO getDatasourceByIdSimple(Long id) {
         return BeanUtils.toBean(AssetsDatasourceMapper.selectById(id), AssetsDatasourceRespVO.class);
     }
 
     @Override
-    public List<AssetsDatasourceDO> getDaDatasourceList() {
+    public List<AssetsDatasourceDO> getDatasourceList() {
         return AssetsDatasourceMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsDatasourceDO> getDaDatasourceMap() {
+    public Map<Long, AssetsDatasourceDO> getDatasourceMap() {
         List<AssetsDatasourceDO> AssetsDatasourceList = AssetsDatasourceMapper.selectList();
         return AssetsDatasourceList.stream().collect(Collectors.toMap(AssetsDatasourceDO::getId, AssetsDatasourceDO -> AssetsDatasourceDO,
 // 保留已存在的值
@@ -309,7 +309,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     /***     * 导入数据源数据     *     * @param importExcelList 数据源数据列表     * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据     * @param operName        操作用户     * @return 结果     */
 
     @Override
-    public String importDaDatasource(List<AssetsDatasourceRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importDatasource(List<AssetsDatasourceRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -323,8 +323,8 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
                 Long AssetsDatasourceId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsDatasourceId != null) {
-                        AssetsDatasourceDO existingDaDatasource = AssetsDatasourceMapper.selectById(AssetsDatasourceId);
-                        if (existingDaDatasource != null) {
+                        AssetsDatasourceDO existingDatasource = AssetsDatasourceMapper.selectById(AssetsDatasourceId);
+                        if (existingDatasource != null) {
                             AssetsDatasourceMapper.updateById(AssetsDatasourceDO);
                             successNum++;
                             successMessages.add("ID " + AssetsDatasourceId + " ");
@@ -339,8 +339,8 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
                 } else {
                     QueryWrapper<AssetsDatasourceDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsDatasourceId);
-                    AssetsDatasourceDO existingDaDatasource = AssetsDatasourceMapper.selectOne(queryWrapper);
-                    if (existingDaDatasource == null) {
+                    AssetsDatasourceDO existingDatasource = AssetsDatasourceMapper.selectOne(queryWrapper);
+                    if (existingDatasource == null) {
                         AssetsDatasourceMapper.insert(AssetsDatasourceDO);
                         successNum++;
                         successMessages.add("ID " + AssetsDatasourceId + " ");
@@ -379,7 +379,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     public DbQuery buildDbQuery(Long id) {
-        AssetsDatasourceDO AssetsDatasourceBy = this.getDaDatasourceById(id);
+        AssetsDatasourceDO AssetsDatasourceBy = this.getDatasourceDOById(id);
         if (AssetsDatasourceBy == null) {
             throw new DataQueryException("");
         }
@@ -393,7 +393,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     @Override
     public List<DbTable> getDbTables(Long id) {
-        AssetsDatasourceDO AssetsDatasourceBy = this.getDaDatasourceById(id);
+        AssetsDatasourceDO AssetsDatasourceBy = this.getDatasourceDOById(id);
         if (AssetsDatasourceBy == null) {
             throw new DataQueryException("");
         }
@@ -416,7 +416,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         List<StandardsModelColumnRespDTO> modelIdColumnList = new ArrayList<>();
         Boolean isOld = jsonObject.getStr("isOld") == null ? null : Boolean.valueOf(jsonObject.getStr("isOld"));
         if (isOld != null && !isOld && jsonObject.getStr("modelId") != null) {
-            modelIdColumnList = dpModelApiService.getModelIdColumnList(Long.valueOf(jsonObject.getStr("modelId")));
+            modelIdColumnList = standardsModelApiService.getModelIdColumnList(Long.valueOf(jsonObject.getStr("modelId")));
         }
         if (modelIdColumnList.size() > 0) {
             List<StandardsModelColumnReqDTO> columnReqDTOList = BeanUtils.toBean(modelIdColumnList, StandardsModelColumnReqDTO.class);
@@ -543,7 +543,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         if (pageReqVO.getDatasourceId() != null) {
             AssetsDatasourceProjectRelDO assetsDatasourceProjectRelDO = new AssetsDatasourceProjectRelDO();
             assetsDatasourceProjectRelDO.setDatasourceId(pageReqVO.getDatasourceId());
-            List<AssetsDatasourceProjectRelDO> AssetsDatasourceProjectRelList = AssetsDatasourceProjectRelService.getDaDatasourceProjectRelList(assetsDatasourceProjectRelDO);
+            List<AssetsDatasourceProjectRelDO> AssetsDatasourceProjectRelList = AssetsDatasourceProjectRelService.getDatasourceProjectRelList(assetsDatasourceProjectRelDO);
             datasourceProjectRelDOMap = AssetsDatasourceProjectRelList.stream().collect(Collectors.toMap(AssetsDatasourceProjectRelDO::getProjectId, AssetsDatasourceProjectRelDO1 -> AssetsDatasourceProjectRelDO1));
         }
         for (Object row : attProjectPage.getRows()) {
@@ -555,7 +555,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     @Override
-    public List<AssetsDatasourceDO> getDaDatasourceDppNoKafka(AssetsDatasourcePageReqVO AssetsDatasource) {
+    public List<AssetsDatasourceDO> getDatasourceDppNoKafka(AssetsDatasourcePageReqVO AssetsDatasource) {
         List<Long> idList = new ArrayList<>();
         Map<Long, AssetsDatasourceProjectRelDO> datasourceProjectRelDOMap = new HashMap<>();
         if (StringUtils.isNotEmpty(AssetsDatasource.getProjectCode())) {
@@ -685,7 +685,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     /***     * 根据请求中的数据源 ID 获取 DbQuery 对象     */
     private DbQuery getDbQuery(AssetsDatasourcePageReqVO AssetsDatasource) {
-        AssetsDatasourceDO datasource = this.getDaDatasourceById(AssetsDatasource.getId());
+        AssetsDatasourceDO datasource = this.getDatasourceDOById(AssetsDatasource.getId());
         if (datasource == null) {
             throw new DataQueryException("");
         }
@@ -850,7 +850,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         if (StringUtils.isEmpty(tableName)) {
             throw new DataQueryException("");
         }
-        AssetsDatasourceDO AssetsDatasourceBy = this.getDaDatasourceById(id);
+        AssetsDatasourceDO AssetsDatasourceBy = this.getDatasourceDOById(id);
         if (AssetsDatasourceBy == null) {
             throw new DataQueryException("");
         }
@@ -866,7 +866,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     @Override
     public DbTable getDbTable(Long datasourceId, String tableName) {
-        AssetsDatasourceDO AssetsDatasourceBy = this.getDaDatasourceById(datasourceId);
+        AssetsDatasourceDO AssetsDatasourceBy = this.getDatasourceDOById(datasourceId);
         if (AssetsDatasourceBy == null) {
             throw new DataQueryException("");
         }
@@ -1168,7 +1168,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     private Map<String, Object> runJobTableSchemaUpdates(AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, Long AssetsDiscoveryTaskLog) {
         IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据数据源编号，获取发现任务的 数据源详细信息");
-        AssetsDatasourceDO AssetsDatasourceBy = this.getDaDatasourceById(AssetsDiscoveryTaskById.getDatasourceId());
+        AssetsDatasourceDO AssetsDatasourceBy = this.getDatasourceDOById(AssetsDiscoveryTaskById.getDatasourceId());
         if (AssetsDatasourceBy == null) {
             throw new DataQueryException("任务执行-根据数据源编号，获取发现任务的 数据源详情信息查询失败！");
         }

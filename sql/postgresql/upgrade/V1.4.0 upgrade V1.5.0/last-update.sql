@@ -14,6 +14,7 @@ ALTER TABLE public.col_etl_task_ext
     ADD COLUMN IF NOT EXISTS source_increment_column varchar(256),
     ADD COLUMN IF NOT EXISTS target_increment_column varchar(256),
     ADD COLUMN IF NOT EXISTS incremental_initial_value varchar(256),
+    ADD COLUMN IF NOT EXISTS incremental_time_format varchar(64),
     ADD COLUMN IF NOT EXISTS incremental_start_value varchar(256),
     ADD COLUMN IF NOT EXISTS incremental_end_value varchar(256),
     ADD COLUMN IF NOT EXISTS prepare_node_id bigint,
@@ -30,6 +31,7 @@ ALTER TABLE public.col_etl_task_ext
 COMMENT ON COLUMN public.col_etl_task_ext.flinkx_job_template_json IS 'FlinkX基础任务JSON模板';
 COMMENT ON COLUMN public.col_etl_task_ext.incremental_type IS '增量类型：ID、TIME';
 COMMENT ON COLUMN public.col_etl_task_ext.incremental_initial_value IS '首次增量同步初始游标';
+COMMENT ON COLUMN public.col_etl_task_ext.incremental_time_format IS '时间增量边界格式';
 COMMENT ON COLUMN public.col_etl_task_ext.incremental_start_value IS '本次增量同步起始值';
 COMMENT ON COLUMN public.col_etl_task_ext.incremental_end_value IS '本次增量同步结束值';
 

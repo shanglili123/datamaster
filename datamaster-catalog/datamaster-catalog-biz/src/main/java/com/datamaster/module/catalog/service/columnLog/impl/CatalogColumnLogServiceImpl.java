@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 /**
  * 元数据字段信息 - 日志Service业务层处理
  *
- * @author qdata
+ * @author lili.shang
  * @date 2026-03-10
  */
 @Slf4j

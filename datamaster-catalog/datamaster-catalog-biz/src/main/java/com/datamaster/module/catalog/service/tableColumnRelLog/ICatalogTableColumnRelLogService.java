@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * 元数据数据库与信息及字段信息关系-日志Service接口
  *
- * @author qdata
+ * @author lili.shang
  * @date 2026-03-10
  */
 public interface ICatalogTableColumnRelLogService extends IService<CatalogTableColumnRelLogDO> {

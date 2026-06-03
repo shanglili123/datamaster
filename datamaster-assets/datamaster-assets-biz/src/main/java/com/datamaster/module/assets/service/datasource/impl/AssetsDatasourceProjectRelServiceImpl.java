@@ -39,19 +39,19 @@ public class AssetsDatasourceProjectRelServiceImpl extends ServiceImpl<AssetsDat
     private AssetsDatasourceProjectRelMapper AssetsDatasourceProjectRelMapper;
 
     @Override
-    public PageResult<AssetsDatasourceProjectRelDO> getDaDatasourceProjectRelPage(AssetsDatasourceProjectRelPageReqVO pageReqVO) {
+    public PageResult<AssetsDatasourceProjectRelDO> getDatasourceProjectRelPage(AssetsDatasourceProjectRelPageReqVO pageReqVO) {
         return AssetsDatasourceProjectRelMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public Long createDaDatasourceProjectRel(AssetsDatasourceProjectRelSaveReqVO createReqVO) {
+    public Long createDatasourceProjectRel(AssetsDatasourceProjectRelSaveReqVO createReqVO) {
         AssetsDatasourceProjectRelDO dictType = BeanUtils.toBean(createReqVO, AssetsDatasourceProjectRelDO.class);
         AssetsDatasourceProjectRelMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaDatasourceProjectRel(AssetsDatasourceProjectRelSaveReqVO updateReqVO) {
+    public int updateDatasourceProjectRel(AssetsDatasourceProjectRelSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据源与项目关联关系
@@ -60,23 +60,23 @@ public class AssetsDatasourceProjectRelServiceImpl extends ServiceImpl<AssetsDat
     }
 
     @Override
-    public int removeDaDatasourceProjectRel(Collection<Long> idList) {
+    public int removeDatasourceProjectRel(Collection<Long> idList) {
         // 批量删除数据源与项目关联关系
         return AssetsDatasourceProjectRelMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsDatasourceProjectRelDO getDaDatasourceProjectRelById(Long id) {
+    public AssetsDatasourceProjectRelDO getDatasourceProjectRelById(Long id) {
         return AssetsDatasourceProjectRelMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsDatasourceProjectRelDO> getDaDatasourceProjectRelList() {
+    public List<AssetsDatasourceProjectRelDO> getDatasourceProjectRelList() {
         return AssetsDatasourceProjectRelMapper.selectList();
     }
 
     @Override
-    public List<AssetsDatasourceProjectRelDO> getDaDatasourceProjectRelList(AssetsDatasourceProjectRelDO assetsDatasourceProjectRelDO) {
+    public List<AssetsDatasourceProjectRelDO> getDatasourceProjectRelList(AssetsDatasourceProjectRelDO assetsDatasourceProjectRelDO) {
         LambdaQueryWrapper<AssetsDatasourceProjectRelDO> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(assetsDatasourceProjectRelDO.getDatasourceId() != null, AssetsDatasourceProjectRelDO::getDatasourceId, assetsDatasourceProjectRelDO.getDatasourceId());
         queryWrapper.eq(assetsDatasourceProjectRelDO.getProjectId() != null, AssetsDatasourceProjectRelDO::getProjectId, assetsDatasourceProjectRelDO.getProjectId());
@@ -100,7 +100,7 @@ public class AssetsDatasourceProjectRelServiceImpl extends ServiceImpl<AssetsDat
     }
 
     @Override
-    public Map<Long, AssetsDatasourceProjectRelDO> getDaDatasourceProjectRelMap() {
+    public Map<Long, AssetsDatasourceProjectRelDO> getDatasourceProjectRelMap() {
         List<AssetsDatasourceProjectRelDO> AssetsDatasourceProjectRelList = AssetsDatasourceProjectRelMapper.selectList();
         return AssetsDatasourceProjectRelList.stream()
                 .collect(Collectors.toMap(
@@ -120,7 +120,7 @@ public class AssetsDatasourceProjectRelServiceImpl extends ServiceImpl<AssetsDat
      * @return
      */
     @Override
-    public String importDaDatasourceProjectRel(List<AssetsDatasourceProjectRelRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importDatasourceProjectRel(List<AssetsDatasourceProjectRelRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -136,8 +136,8 @@ public class AssetsDatasourceProjectRelServiceImpl extends ServiceImpl<AssetsDat
                 Long AssetsDatasourceProjectRelId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsDatasourceProjectRelId != null) {
-                        AssetsDatasourceProjectRelDO existingDaDatasourceProjectRel = AssetsDatasourceProjectRelMapper.selectById(AssetsDatasourceProjectRelId);
-                        if (existingDaDatasourceProjectRel != null) {
+                        AssetsDatasourceProjectRelDO existingDatasourceProjectRel = AssetsDatasourceProjectRelMapper.selectById(AssetsDatasourceProjectRelId);
+                        if (existingDatasourceProjectRel != null) {
                             AssetsDatasourceProjectRelMapper.updateById(AssetsDatasourceProjectRelDO);
                             successNum++;
                             successMessages.add("ID " + AssetsDatasourceProjectRelId + " ");
@@ -152,8 +152,8 @@ public class AssetsDatasourceProjectRelServiceImpl extends ServiceImpl<AssetsDat
                 } else {
                     QueryWrapper<AssetsDatasourceProjectRelDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsDatasourceProjectRelId);
-                    AssetsDatasourceProjectRelDO existingDaDatasourceProjectRel = AssetsDatasourceProjectRelMapper.selectOne(queryWrapper);
-                    if (existingDaDatasourceProjectRel == null) {
+                    AssetsDatasourceProjectRelDO existingDatasourceProjectRel = AssetsDatasourceProjectRelMapper.selectOne(queryWrapper);
+                    if (existingDatasourceProjectRel == null) {
                         AssetsDatasourceProjectRelMapper.insert(AssetsDatasourceProjectRelDO);
                         successNum++;
                         successMessages.add("ID " + AssetsDatasourceProjectRelId + " ");

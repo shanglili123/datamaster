@@ -35,7 +35,7 @@ public interface AssetsAssetColumnMapper extends BaseMapperX<AssetsAssetColumnDO
         return selectJoinPage(reqVO, AssetsAssetColumnDO.class, lambdaQueryWrapper);
     }
 
-    int updateDaAssetColumn(AssetsAssetColumnDO AssetsAssetColumnDO);
+    int updateAssetColumn(AssetsAssetColumnDO AssetsAssetColumnDO);
 
     void deleteAssetColumnByAssetId(Long assetId);
 

@@ -25,7 +25,7 @@ public interface IAssetsAssetFilesService extends IService<AssetsAssetFilesDO> {
      * @param pageReqVO
      * @return -
      */
-    PageResult<AssetsAssetFilesDO> getDaAssetFilesPage(AssetsAssetFilesPageReqVO pageReqVO);
+    PageResult<AssetsAssetFilesDO> getAssetFilesPage(AssetsAssetFilesPageReqVO pageReqVO);
 
     /**
      * -
@@ -33,21 +33,21 @@ public interface IAssetsAssetFilesService extends IService<AssetsAssetFilesDO> {
      * @param createReqVO -
      * @return -
      */
-    Long createDaAssetFiles(AssetsAssetFilesSaveReqVO createReqVO);
+    Long createAssetFiles(AssetsAssetFilesSaveReqVO createReqVO);
 
     /**
      * -
      *
      * @param updateReqVO -
      */
-    int updateDaAssetFiles(AssetsAssetFilesSaveReqVO updateReqVO);
+    int updateAssetFiles(AssetsAssetFilesSaveReqVO updateReqVO);
 
     /**
      * -
      *
      * @param idList -
      */
-    int removeDaAssetFiles(Collection<Long> idList);
+    int removeAssetFiles(Collection<Long> idList);
 
     /**
      * -
@@ -55,21 +55,21 @@ public interface IAssetsAssetFilesService extends IService<AssetsAssetFilesDO> {
      * @param id -
      * @return -
      */
-    AssetsAssetFilesDO getDaAssetFilesById(Long id);
+    AssetsAssetFilesDO getAssetFilesById(Long id);
 
     /**
      * -
      *
      * @return -
      */
-    List<AssetsAssetFilesDO> getDaAssetFilesList();
+    List<AssetsAssetFilesDO> getAssetFilesList();
 
     /**
      * - Map
      *
      * @return - Map
      */
-    Map<Long, AssetsAssetFilesDO> getDaAssetFilesMap();
+    Map<Long, AssetsAssetFilesDO> getAssetFilesMap();
 
     /**
      * -
@@ -79,6 +79,6 @@ public interface IAssetsAssetFilesService extends IService<AssetsAssetFilesDO> {
      * @param operName
      * @return
      */
-    String importDaAssetFiles(List<AssetsAssetFilesRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetFiles(List<AssetsAssetFilesRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
 }

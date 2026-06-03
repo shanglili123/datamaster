@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * 数据集成节点-日志Service接口
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-02-13
  */
 public interface ICollectorEtlNodeLogService extends IService<CollectorEtlNodeLogDO> {

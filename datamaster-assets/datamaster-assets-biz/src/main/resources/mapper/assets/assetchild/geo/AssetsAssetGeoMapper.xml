@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -23,12 +23,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetGeoVo">
+    <sql id="selectAssetGeoVo">
         select ID, ASSET_ID, FILE_NAME, FILE_URL, ELEMENT_TYPE,FILE_TYPE, COORDINATE_SYSTEM, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_GEO
     </sql>
 
-    <select id="selectDaAssetGeoList" parameterType="AssetsAssetGeoDO" resultMap="AssetsAssetGeoResult">
-        <include refid="selectDaAssetGeoVo"/>
+    <select id="selectAssetGeoList" parameterType="AssetsAssetGeoDO" resultMap="AssetsAssetGeoResult">
+        <include refid="selectAssetGeoVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="fileName != null  and fileName != ''"> and FILE_NAME like concat('%', #{fileName}, '%')</if>
@@ -40,12 +40,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetGeoById" parameterType="Long" resultMap="AssetsAssetGeoResult">
-        <include refid="selectDaAssetGeoVo"/>
+    <select id="selectAssetGeoById" parameterType="Long" resultMap="AssetsAssetGeoResult">
+        <include refid="selectAssetGeoVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetGeo" parameterType="AssetsAssetGeoDO">
+    <insert id="insertAssetGeo" parameterType="AssetsAssetGeoDO">
         insert into AST_ASSET_GEO
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -85,7 +85,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetGeo" parameterType="AssetsAssetGeoDO">
+    <update id="updateAssetGeo" parameterType="AssetsAssetGeoDO">
         update AST_ASSET_GEO
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -107,11 +107,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetGeoById" parameterType="Long">
+    <delete id="deleteAssetGeoById" parameterType="Long">
         delete from AST_ASSET_GEO where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetGeoByIds" parameterType="String">
+    <delete id="deleteAssetGeoByIds" parameterType="String">
         delete from AST_ASSET_GEO where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

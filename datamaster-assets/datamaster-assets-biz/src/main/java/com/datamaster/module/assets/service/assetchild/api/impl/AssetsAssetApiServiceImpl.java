@@ -43,12 +43,12 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
     private AssetsAssetApiMapper AssetsAssetApiMapper;
 
     @Override
-    public PageResult<AssetsAssetApiDO> getDaAssetApiPage(AssetsAssetApiPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetApiDO> getAssetApiPage(AssetsAssetApiPageReqVO pageReqVO) {
         return AssetsAssetApiMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public AssetsAssetApiRespVO getDaAssetApiByAssetId(Long assetId) {
+    public AssetsAssetApiRespVO getAssetApiByAssetId(Long assetId) {
         LambdaQueryWrapperX<AssetsAssetApiDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.eqIfPresent(AssetsAssetApiDO::getAssetId,assetId);
         AssetsAssetApiDO AssetsAssetApiDO = AssetsAssetApiMapper.selectOne(queryWrapperX);
@@ -56,14 +56,14 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
     }
 
     @Override
-    public Long createDaAssetApi(AssetsAssetApiSaveReqVO createReqVO) {
+    public Long createAssetApi(AssetsAssetApiSaveReqVO createReqVO) {
         AssetsAssetApiDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetApiDO.class);
         AssetsAssetApiMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetApi(AssetsAssetApiSaveReqVO updateReqVO) {
+    public int updateAssetApi(AssetsAssetApiSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产-外部API
@@ -71,23 +71,23 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
         return AssetsAssetApiMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetApi(Collection<Long> idList) {
+    public int removeAssetApi(Collection<Long> idList) {
         // 批量删除数据资产-外部API
         return AssetsAssetApiMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetApiDO getDaAssetApiById(Long id) {
+    public AssetsAssetApiDO getAssetApiById(Long id) {
         return AssetsAssetApiMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetApiDO> getDaAssetApiList() {
+    public List<AssetsAssetApiDO> getAssetApiList() {
         return AssetsAssetApiMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetApiDO> getDaAssetApiMap() {
+    public Map<Long, AssetsAssetApiDO> getAssetApiMap() {
         List<AssetsAssetApiDO> AssetsAssetApiList = AssetsAssetApiMapper.selectList();
         return AssetsAssetApiList.stream()
                 .collect(Collectors.toMap(
@@ -107,7 +107,7 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
      * @return
      */
     @Override
-    public String importDaAssetApi(List<AssetsAssetApiRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAssetApi(List<AssetsAssetApiRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -123,8 +123,8 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
                 Long AssetsAssetApiId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetApiId != null) {
-                        AssetsAssetApiDO existingDaAssetApi = AssetsAssetApiMapper.selectById(AssetsAssetApiId);
-                        if (existingDaAssetApi != null) {
+                        AssetsAssetApiDO existingAssetApi = AssetsAssetApiMapper.selectById(AssetsAssetApiId);
+                        if (existingAssetApi != null) {
                             AssetsAssetApiMapper.updateById(AssetsAssetApiDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetApiId + " -API");
@@ -139,8 +139,8 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
                 } else {
                     QueryWrapper<AssetsAssetApiDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetApiId);
-                    AssetsAssetApiDO existingDaAssetApi = AssetsAssetApiMapper.selectOne(queryWrapper);
-                    if (existingDaAssetApi == null) {
+                    AssetsAssetApiDO existingAssetApi = AssetsAssetApiMapper.selectOne(queryWrapper);
+                    if (existingAssetApi == null) {
                         AssetsAssetApiMapper.insert(AssetsAssetApiDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetApiId + " -API");
@@ -175,7 +175,7 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
     @Override
     public void executeServiceForwarding(HttpServletResponse response, Long apiId, Map<String, Object> queryParams) {
         //很具id 获取三方api配置
-        AssetsAssetApiDO AssetsAssetApiById = this.getDaAssetApiById(apiId);
+        AssetsAssetApiDO AssetsAssetApiById = this.getAssetApiById(apiId);
 
         //判断api信息，例如是否启用等
         chackYapiConfig(AssetsAssetApiById);

@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 采集任务实例-日志Service接口
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-12-16
  */
 public interface ICatalogTaskInstanceLogService extends IService<CatalogTaskInstanceLogDO> {

@@ -4,8 +4,8 @@ const path = require('path');
 
 const PG_HOST = '127.0.0.1';
 const PG_PORT = 5432;
-const PG_SUPERUSER = 'qdata';
-const PG_SUPERPASSWORD = 'qdata';
+const PG_SUPERUSER = 'datamaster';
+const PG_SUPERPASSWORD = 'datamaster';
 const PG_USER = 'datamaster';
 const PG_PASSWORD = 'datamaster';
 const NEW_DB = 'data_master';

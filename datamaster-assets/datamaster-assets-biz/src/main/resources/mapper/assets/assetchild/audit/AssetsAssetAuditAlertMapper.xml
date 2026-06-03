@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.datamaster.module.assets.dal.mapper.assetchild.audit.AssetsAssetAuditAlertMapper">
 
-    <resultMap type="AssetsAssetAuditAlertDO" id="DaAssetAuditAlertResult">
+    <resultMap type="AssetsAssetAuditAlertDO" id="AssetAuditAlertResult">
         <result property="id"    column="ID"    />
         <result property="assetId"    column="ASSET_ID"    />
         <result property="batchNo"    column="BATCH_NO"    />
@@ -24,12 +24,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetAuditAlertVo">
+    <sql id="selectAssetAuditAlertVo">
         select ID, ASSET_ID, BATCH_NO, AUDIT_TIME, ALERT_TIME, ALERT_MESSAGE, ALERT_CHANNELS, ALERT_CHANNEL_RESULT, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_AUDIT_ALERT
     </sql>
 
-    <select id="selectDaAssetAuditAlertList" parameterType="AssetsAssetAuditAlertDO" resultMap="DaAssetAuditAlertResult">
-        <include refid="selectDaAssetAuditAlertVo"/>
+    <select id="selectAssetAuditAlertList" parameterType="AssetsAssetAuditAlertDO" resultMap="AssetAuditAlertResult">
+        <include refid="selectAssetAuditAlertVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="batchNo != null  and batchNo != ''"> and BATCH_NO = #{batchNo}</if>
@@ -42,12 +42,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetAuditAlertById" parameterType="Long" resultMap="DaAssetAuditAlertResult">
-        <include refid="selectDaAssetAuditAlertVo"/>
+    <select id="selectAssetAuditAlertById" parameterType="Long" resultMap="AssetAuditAlertResult">
+        <include refid="selectAssetAuditAlertVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetAuditAlert" parameterType="AssetsAssetAuditAlertDO">
+    <insert id="insertAssetAuditAlert" parameterType="AssetsAssetAuditAlertDO">
         insert into AST_ASSET_AUDIT_ALERT
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -89,7 +89,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetAuditAlert" parameterType="AssetsAssetAuditAlertDO">
+    <update id="updateAssetAuditAlert" parameterType="AssetsAssetAuditAlertDO">
         update AST_ASSET_AUDIT_ALERT
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -112,11 +112,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetAuditAlertById" parameterType="Long">
+    <delete id="deleteAssetAuditAlertById" parameterType="Long">
         delete from AST_ASSET_AUDIT_ALERT where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetAuditAlertByIds" parameterType="String">
+    <delete id="deleteAssetAuditAlertByIds" parameterType="String">
         delete from AST_ASSET_AUDIT_ALERT where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

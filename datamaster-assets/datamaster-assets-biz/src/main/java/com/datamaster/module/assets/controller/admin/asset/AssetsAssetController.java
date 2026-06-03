@@ -58,15 +58,15 @@ public class AssetsAssetController extends BaseController {
     @Resource
     private IAssetsAssetService AssetsAssetService;
     @Resource
-    private ITaxonomyTagAssetRelApiService attTagAssetRelApiService;
+    private ITaxonomyTagAssetRelApiService taxonomyTagAssetRelApiService;
     @Resource
-    private ITaxonomyTagApiService attTagApiService;
+    private ITaxonomyTagApiService taxonomyTagApiService;
 
     @Operation(summary = "")
     @PreAuthorize("@ss.hasPermi('da:asset:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetRespVO>> list(AssetsAssetPageReqVO AssetsAsset) {
-        PageResult<AssetsAssetDO> page = AssetsAssetService.getDaAssetPage(AssetsAsset, "1");
+        PageResult<AssetsAssetDO> page = AssetsAssetService.getAssetPage(AssetsAsset, "1");
         PageResult<AssetsAssetRespVO> result = BeanUtils.toBean(page, AssetsAssetRespVO.class);
         if (result.getRows().size() > 0) {
             for (AssetsAssetRespVO item : result.getRows()) {
@@ -84,7 +84,7 @@ public class AssetsAssetController extends BaseController {
     @PreAuthorize("@ss.hasPermi('da:asset:list')")
     @GetMapping("/listAll")
     public CommonResult<List<AssetsAssetRespVO>> listAll(AssetsAssetPageReqVO AssetsAsset) {
-        List<AssetsAssetDO> page = AssetsAssetService.getDaAssetListAll(AssetsAsset, "1");
+        List<AssetsAssetDO> page = AssetsAssetService.getAssetListAll(AssetsAsset, "1");
         return CommonResult.success(BeanUtils.toBean(page, AssetsAssetRespVO.class));
     }
 
@@ -99,8 +99,8 @@ public class AssetsAssetController extends BaseController {
         if (CollectionUtils.isEmpty(rows)) {
             return bean;
         }
-        List<TaxonomyTagAssetRelRespDTO> apiList = attTagAssetRelApiService.getApiList(new TaxonomyTagAssetRelReqDTO());
-        Map<Long, String> collect1 = attTagApiService.getApiList().stream().collect(Collectors.toMap(s -> s.getId(), s -> s.getName()));
+        List<TaxonomyTagAssetRelRespDTO> apiList = taxonomyTagAssetRelApiService.getApiList(new TaxonomyTagAssetRelReqDTO());
+        Map<Long, String> collect1 = taxonomyTagApiService.getApiList().stream().collect(Collectors.toMap(s -> s.getId(), s -> s.getName()));
         Map<String, List<TaxonomyTagAssetRelRespDTO>> collect = apiList.stream().collect(Collectors.groupingBy(s -> s.getAssetId()));
         for (AssetsAssetRespVO row : rows) {
             List<TaxonomyTagAssetRelRespDTO> attTagAssetRelRespDTOS = collect.get(Convert.toStr(row.getId()));
@@ -129,7 +129,7 @@ public class AssetsAssetController extends BaseController {
         if (CollectionUtils.isEmpty(AssetsAsset.getTagIdList())) {
             return CommonResult.success(null);
         }
-        PageResult<AssetsAssetDO> page = AssetsAssetService.getDaAssetPage(AssetsAsset, "1");
+        PageResult<AssetsAssetDO> page = AssetsAssetService.getAssetPage(AssetsAsset, "1");
         PageResult<AssetsAssetRespVO> bean = BeanUtils.toBean(page, AssetsAssetRespVO.class);
         return CommonResult.success(bean);
     }
@@ -139,7 +139,7 @@ public class AssetsAssetController extends BaseController {
     @PreAuthorize("@ss.hasPermi('da:asset:list')")
     @GetMapping("/dpp/list")
     public CommonResult<PageResult<AssetsAssetRespVO>> dppList(AssetsAssetPageReqVO AssetsAsset) {
-        PageResult<AssetsAssetDO> page = AssetsAssetService.getDppAssetPage(AssetsAsset);
+        PageResult<AssetsAssetDO> page = AssetsAssetService.getCollectorAssetPage(AssetsAsset);
         return CommonResult.success(this.fillAssetTags(BeanUtils.toBean(page, AssetsAssetRespVO.class)));
     }
 
@@ -151,7 +151,7 @@ public class AssetsAssetController extends BaseController {
     @PreAuthorize("@ss.hasPermi('da:asset:list')")
     @GetMapping("/listByIds/{ids}")
     public CommonResult<PageResult<AssetsAssetRespVO>> list(@PathVariable("ids") List<Long> ids) {
-        PageResult<AssetsAssetDO> page = AssetsAssetService.getDaAssetByIds(ids);
+        PageResult<AssetsAssetDO> page = AssetsAssetService.getAssetByIds(ids);
         return CommonResult.success(BeanUtils.toBean(page, AssetsAssetRespVO.class));
     }
 
@@ -159,7 +159,7 @@ public class AssetsAssetController extends BaseController {
     @PreAuthorize("@ss.hasPermi('da:asset:list')")
     @GetMapping("/dpp/noPage/list")
     public AjaxResult dppNoPageList(AssetsAssetPageReqVO AssetsAsset) {
-        List<AssetsAssetDO> AssetsAssetDOList = AssetsAssetService.getDppAssetNoPageList(AssetsAsset);
+        List<AssetsAssetDO> AssetsAssetDOList = AssetsAssetService.getCollectorAssetNoPageList(AssetsAsset);
         return AjaxResult.success(AssetsAssetDOList);
     }
 
@@ -173,9 +173,9 @@ public class AssetsAssetController extends BaseController {
 
     @Operation(summary = "")
     @PreAuthorize("@ss.hasPermi('da:asset:list')")
-    @GetMapping("/getDaAssetRespList")
-    public CommonResult<List<AssetsAssetRespVO>> getDaAssetRespList(AssetsAssetPageReqVO AssetsAsset) {
-        List<AssetsAssetDO> tablesByDataSourceId = AssetsAssetService.getDaAssetList(AssetsAsset);
+    @GetMapping("/getAssetRespList")
+    public CommonResult<List<AssetsAssetRespVO>> getAssetRespList(AssetsAssetPageReqVO AssetsAsset) {
+        List<AssetsAssetDO> tablesByDataSourceId = AssetsAssetService.getAssetList(AssetsAsset);
         return CommonResult.success(BeanUtils.toBean(tablesByDataSourceId, AssetsAssetRespVO.class));
     }
 
@@ -185,7 +185,7 @@ public class AssetsAssetController extends BaseController {
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetPageReqVO exportReqVO) {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
-        List<AssetsAssetDO> list = (List<AssetsAssetDO>) AssetsAssetService.getDaAssetPage(exportReqVO, "1").getRows();
+        List<AssetsAssetDO> list = (List<AssetsAssetDO>) AssetsAssetService.getAssetPage(exportReqVO, "1").getRows();
         ExcelUtil<AssetsAssetRespVO> util = new ExcelUtil<>(AssetsAssetRespVO.class);
         util.exportExcel(response, AssetsAssetConvert.INSTANCE.convertToRespVOList(list), "");
     }
@@ -198,7 +198,7 @@ public class AssetsAssetController extends BaseController {
         ExcelUtil<AssetsAssetRespVO> util = new ExcelUtil<>(AssetsAssetRespVO.class);
         List<AssetsAssetRespVO> importExcelList = util.importExcel(file.getInputStream());
         String operName = getUsername();
-        String message = AssetsAssetService.importDaAsset(importExcelList, updateSupport, operName);
+        String message = AssetsAssetService.importAsset(importExcelList, updateSupport, operName);
         return success(message);
     }
 
@@ -206,7 +206,7 @@ public class AssetsAssetController extends BaseController {
     @PreAuthorize("@ss.hasPermi('da:asset:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetRespVO> getInfo(@PathVariable("id") Long id) {
-        return CommonResult.success(AssetsAssetService.getDaAssetById(id));
+        return CommonResult.success(AssetsAssetService.getAssetById(id));
     }
 
     @Operation(summary = "")
@@ -242,7 +242,7 @@ public class AssetsAssetController extends BaseController {
         AssetsAsset.setUpdatorId(getUserId());
         AssetsAsset.setUpdateBy(getNickName());
         AssetsAsset.setUpdateTime(DateUtil.date());
-        return CommonResult.toAjax(AssetsAssetService.createDaAssetBindResources(AssetsAsset));
+        return CommonResult.toAjax(AssetsAssetService.createAssetBindResources(AssetsAsset));
     }
 
     @Operation(summary = "")
@@ -254,7 +254,7 @@ public class AssetsAssetController extends BaseController {
         AssetsAsset.setCreatorId(getUserId());
         AssetsAsset.setCreateBy(getNickName());
         AssetsAsset.setCreateTime(DateUtil.date());
-        return CommonResult.toAjax(AssetsAssetService.createDaAssetNew(AssetsAsset));
+        return CommonResult.toAjax(AssetsAssetService.createAssetNew(AssetsAsset));
     }
 
     @Operation(summary = "")
@@ -272,7 +272,7 @@ public class AssetsAssetController extends BaseController {
             AssetsAsset.setCreateBy(nickName);
             AssetsAsset.setCreateTime(now);
         }
-        return CommonResult.success(AssetsAssetService.createDaAssetBatchNew(AssetsAssetList));
+        return CommonResult.success(AssetsAssetService.createAssetBatchNew(AssetsAssetList));
     }
 
     @Operation(summary = "")
@@ -284,7 +284,7 @@ public class AssetsAssetController extends BaseController {
         AssetsAsset.setUpdatorId(getUserId());
         AssetsAsset.setUpdateBy(getNickName());
         AssetsAsset.setUpdateTime(DateUtil.date());
-        return CommonResult.toAjax(AssetsAssetService.updateDaAssetNew(AssetsAsset));
+        return CommonResult.toAjax(AssetsAssetService.updateAssetNew(AssetsAsset));
     }
 
     @Operation(summary = "")
@@ -292,14 +292,14 @@ public class AssetsAssetController extends BaseController {
     @Log(title = "", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ID}")
     public CommonResult<Integer> remove(@PathVariable Long ID) {
-        return CommonResult.toAjax(AssetsAssetService.removeDaAsset(ID));
+        return CommonResult.toAjax(AssetsAssetService.removeAsset(ID));
     }
 
     @Log(title = "", businessType = BusinessType.UPDATE)
     @PutMapping("/startDaDiscoveryTask")
     public AjaxResult startDaDiscoveryTask(@Valid
                                            @RequestBody AssetsAssetSaveReqVO AssetsAsset) {
-        return AssetsAssetService.startDaAssetDatasourceTask(AssetsAsset.getId());
+        return AssetsAssetService.startAssetDatasourceTask(AssetsAsset.getId());
     }
 
     @GetMapping("/listRelRule")

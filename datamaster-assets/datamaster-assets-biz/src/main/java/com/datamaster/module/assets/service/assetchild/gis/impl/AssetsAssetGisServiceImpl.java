@@ -43,12 +43,12 @@ public class AssetsAssetGisServiceImpl  extends ServiceImpl<AssetsAssetGisMapper
     private AssetsAssetGisMapper AssetsAssetGisMapper;
 
     @Override
-    public PageResult<AssetsAssetGisDO> getDaAssetGisPage(AssetsAssetGisPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetGisDO> getAssetGisPage(AssetsAssetGisPageReqVO pageReqVO) {
         return AssetsAssetGisMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public AssetsAssetGisRespVO getDaAssetGisByAssetId(Long assetId) {
+    public AssetsAssetGisRespVO getAssetGisByAssetId(Long assetId) {
         LambdaQueryWrapperX<AssetsAssetGisDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.eqIfPresent(AssetsAssetGisDO::getAssetId,assetId);
         AssetsAssetGisDO AssetsAssetApiDO = AssetsAssetGisMapper.selectOne(queryWrapperX);
@@ -56,14 +56,14 @@ public class AssetsAssetGisServiceImpl  extends ServiceImpl<AssetsAssetGisMapper
     }
 
     @Override
-    public Long createDaAssetGis(AssetsAssetGisSaveReqVO createReqVO) {
+    public Long createAssetGis(AssetsAssetGisSaveReqVO createReqVO) {
         AssetsAssetGisDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetGisDO.class);
         AssetsAssetGisMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetGis(AssetsAssetGisSaveReqVO updateReqVO) {
+    public int updateAssetGis(AssetsAssetGisSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产-地理空间服务
@@ -71,23 +71,23 @@ public class AssetsAssetGisServiceImpl  extends ServiceImpl<AssetsAssetGisMapper
         return AssetsAssetGisMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetGis(Collection<Long> idList) {
+    public int removeAssetGis(Collection<Long> idList) {
         // 批量删除数据资产-地理空间服务
         return AssetsAssetGisMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetGisDO getDaAssetGisById(Long id) {
+    public AssetsAssetGisDO getAssetGisById(Long id) {
         return AssetsAssetGisMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetGisDO> getDaAssetGisList() {
+    public List<AssetsAssetGisDO> getAssetGisList() {
         return AssetsAssetGisMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetGisDO> getDaAssetGisMap() {
+    public Map<Long, AssetsAssetGisDO> getAssetGisMap() {
         List<AssetsAssetGisDO> AssetsAssetGisList = AssetsAssetGisMapper.selectList();
         return AssetsAssetGisList.stream()
                 .collect(Collectors.toMap(
@@ -107,7 +107,7 @@ public class AssetsAssetGisServiceImpl  extends ServiceImpl<AssetsAssetGisMapper
          * @return
          */
         @Override
-        public String importDaAssetGis(List<AssetsAssetGisRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+        public String importAssetGis(List<AssetsAssetGisRespVO> importExcelList, boolean isUpdateSupport, String operName) {
             if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
                 throw new ServiceException("");
             }
@@ -123,8 +123,8 @@ public class AssetsAssetGisServiceImpl  extends ServiceImpl<AssetsAssetGisMapper
                     Long AssetsAssetGisId = respVO.getId();
                     if (isUpdateSupport) {
                         if (AssetsAssetGisId != null) {
-                            AssetsAssetGisDO existingDaAssetGis = AssetsAssetGisMapper.selectById(AssetsAssetGisId);
-                            if (existingDaAssetGis != null) {
+                            AssetsAssetGisDO existingAssetGis = AssetsAssetGisMapper.selectById(AssetsAssetGisId);
+                            if (existingAssetGis != null) {
                                 AssetsAssetGisMapper.updateById(AssetsAssetGisDO);
                                 successNum++;
                                 successMessages.add("ID " + AssetsAssetGisId + " -");
@@ -139,8 +139,8 @@ public class AssetsAssetGisServiceImpl  extends ServiceImpl<AssetsAssetGisMapper
                     } else {
                         QueryWrapper<AssetsAssetGisDO> queryWrapper = new QueryWrapper<>();
                         queryWrapper.eq("id", AssetsAssetGisId);
-                        AssetsAssetGisDO existingDaAssetGis = AssetsAssetGisMapper.selectOne(queryWrapper);
-                        if (existingDaAssetGis == null) {
+                        AssetsAssetGisDO existingAssetGis = AssetsAssetGisMapper.selectOne(queryWrapper);
+                        if (existingAssetGis == null) {
                             AssetsAssetGisMapper.insert(AssetsAssetGisDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetGisId + " -");
@@ -175,7 +175,7 @@ public class AssetsAssetGisServiceImpl  extends ServiceImpl<AssetsAssetGisMapper
     @Override
     public void executeServiceForwarding(HttpServletResponse response, Long gisId, Map<String, Object> queryParams) {
         //很具id 获取三方api配置
-        AssetsAssetGisDO AssetsAssetGisDO = this.getDaAssetGisById(gisId);
+        AssetsAssetGisDO AssetsAssetGisDO = this.getAssetGisById(gisId);
 
         //判断api信息，例如是否启用等
         chackYapiConfig(AssetsAssetGisDO);

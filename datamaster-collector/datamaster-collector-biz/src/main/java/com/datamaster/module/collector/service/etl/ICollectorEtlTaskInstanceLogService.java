@@ -8,7 +8,7 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskInstan
 /**
  * 数据集成任务实例-日志Service接口
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-08-05
  */
 public interface ICollectorEtlTaskInstanceLogService extends IService<CollectorEtlTaskInstanceLogDO> {

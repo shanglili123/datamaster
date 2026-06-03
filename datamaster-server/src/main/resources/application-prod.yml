@@ -93,7 +93,7 @@ ds:
   spark:
     master_url: spark://127.0.0.1:7077
     main_jar: file:/dolphinscheduler/default/resources/spark-jar/DATAMASTER-etl-3.8.8.jar
-    main_class: com.data.matser.spark.etl.EtlApplication
+    main_class: com.datamaster.spark.etl.EtlApplication
   hdfs:
     url: hdfs://127.0.0.1:8020
   redis:

@@ -27,9 +27,9 @@ public interface IAssetsAssetApiService extends IService<AssetsAssetApiDO> {
      * @param pageReqVO
      * @return -API
      */
-    PageResult<AssetsAssetApiDO> getDaAssetApiPage(AssetsAssetApiPageReqVO pageReqVO);
+    PageResult<AssetsAssetApiDO> getAssetApiPage(AssetsAssetApiPageReqVO pageReqVO);
 
-    AssetsAssetApiRespVO getDaAssetApiByAssetId(Long assetId);
+    AssetsAssetApiRespVO getAssetApiByAssetId(Long assetId);
 
     /**
      * -API
@@ -37,21 +37,21 @@ public interface IAssetsAssetApiService extends IService<AssetsAssetApiDO> {
      * @param createReqVO -API
      * @return -API
      */
-    Long createDaAssetApi(AssetsAssetApiSaveReqVO createReqVO);
+    Long createAssetApi(AssetsAssetApiSaveReqVO createReqVO);
 
     /**
      * -API
      *
      * @param updateReqVO -API
      */
-    int updateDaAssetApi(AssetsAssetApiSaveReqVO updateReqVO);
+    int updateAssetApi(AssetsAssetApiSaveReqVO updateReqVO);
 
     /**
      * -API
      *
      * @param idList -API
      */
-    int removeDaAssetApi(Collection<Long> idList);
+    int removeAssetApi(Collection<Long> idList);
 
     /**
      * -API
@@ -59,21 +59,21 @@ public interface IAssetsAssetApiService extends IService<AssetsAssetApiDO> {
      * @param id -API
      * @return -API
      */
-    AssetsAssetApiDO getDaAssetApiById(Long id);
+    AssetsAssetApiDO getAssetApiById(Long id);
 
     /**
      * -API
      *
      * @return -API
      */
-    List<AssetsAssetApiDO> getDaAssetApiList();
+    List<AssetsAssetApiDO> getAssetApiList();
 
     /**
      * -API Map
      *
      * @return -API Map
      */
-    Map<Long, AssetsAssetApiDO> getDaAssetApiMap();
+    Map<Long, AssetsAssetApiDO> getAssetApiMap();
 
     /**
      * -API
@@ -83,7 +83,7 @@ public interface IAssetsAssetApiService extends IService<AssetsAssetApiDO> {
      * @param operName
      * @return
      */
-    String importDaAssetApi(List<AssetsAssetApiRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetApi(List<AssetsAssetApiRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     void queryServiceForwarding(HttpServletResponse response, AssetsAssetApiReqVO AssetsAssetApi);
 }

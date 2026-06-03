@@ -38,12 +38,12 @@ public class AssetsAssetGeoServiceImpl  extends ServiceImpl<AssetsAssetGeoMapper
     private AssetsAssetGeoMapper AssetsAssetGeoMapper;
 
     @Override
-    public PageResult<AssetsAssetGeoDO> getDaAssetGeoPage(AssetsAssetGeoPageReqVO pageReqVO) {
+    public PageResult<AssetsAssetGeoDO> getAssetGeoPage(AssetsAssetGeoPageReqVO pageReqVO) {
         return AssetsAssetGeoMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public AssetsAssetGeoRespVO getDaAssetGeoByAssetId(Long assetId) {
+    public AssetsAssetGeoRespVO getAssetGeoByAssetId(Long assetId) {
         LambdaQueryWrapperX<AssetsAssetGeoDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.eqIfPresent(AssetsAssetGeoDO::getAssetId,assetId);
         AssetsAssetGeoDO AssetsAssetApiDO = AssetsAssetGeoMapper.selectOne(queryWrapperX);
@@ -51,14 +51,14 @@ public class AssetsAssetGeoServiceImpl  extends ServiceImpl<AssetsAssetGeoMapper
     }
 
     @Override
-    public Long createDaAssetGeo(AssetsAssetGeoSaveReqVO createReqVO) {
+    public Long createAssetGeo(AssetsAssetGeoSaveReqVO createReqVO) {
         AssetsAssetGeoDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetGeoDO.class);
         AssetsAssetGeoMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetGeo(AssetsAssetGeoSaveReqVO updateReqVO) {
+    public int updateAssetGeo(AssetsAssetGeoSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产-矢量
@@ -66,23 +66,23 @@ public class AssetsAssetGeoServiceImpl  extends ServiceImpl<AssetsAssetGeoMapper
         return AssetsAssetGeoMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetGeo(Collection<Long> idList) {
+    public int removeAssetGeo(Collection<Long> idList) {
         // 批量删除数据资产-矢量
         return AssetsAssetGeoMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetGeoDO getDaAssetGeoById(Long id) {
+    public AssetsAssetGeoDO getAssetGeoById(Long id) {
         return AssetsAssetGeoMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetGeoDO> getDaAssetGeoList() {
+    public List<AssetsAssetGeoDO> getAssetGeoList() {
         return AssetsAssetGeoMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetGeoDO> getDaAssetGeoMap() {
+    public Map<Long, AssetsAssetGeoDO> getAssetGeoMap() {
         List<AssetsAssetGeoDO> AssetsAssetGeoList = AssetsAssetGeoMapper.selectList();
         return AssetsAssetGeoList.stream()
                 .collect(Collectors.toMap(
@@ -102,7 +102,7 @@ public class AssetsAssetGeoServiceImpl  extends ServiceImpl<AssetsAssetGeoMapper
          * @return
          */
         @Override
-        public String importDaAssetGeo(List<AssetsAssetGeoRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+        public String importAssetGeo(List<AssetsAssetGeoRespVO> importExcelList, boolean isUpdateSupport, String operName) {
             if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
                 throw new ServiceException("");
             }
@@ -118,8 +118,8 @@ public class AssetsAssetGeoServiceImpl  extends ServiceImpl<AssetsAssetGeoMapper
                     Long AssetsAssetGeoId = respVO.getId();
                     if (isUpdateSupport) {
                         if (AssetsAssetGeoId != null) {
-                            AssetsAssetGeoDO existingDaAssetGeo = AssetsAssetGeoMapper.selectById(AssetsAssetGeoId);
-                            if (existingDaAssetGeo != null) {
+                            AssetsAssetGeoDO existingAssetGeo = AssetsAssetGeoMapper.selectById(AssetsAssetGeoId);
+                            if (existingAssetGeo != null) {
                                 AssetsAssetGeoMapper.updateById(AssetsAssetGeoDO);
                                 successNum++;
                                 successMessages.add("ID " + AssetsAssetGeoId + " -");
@@ -134,8 +134,8 @@ public class AssetsAssetGeoServiceImpl  extends ServiceImpl<AssetsAssetGeoMapper
                     } else {
                         QueryWrapper<AssetsAssetGeoDO> queryWrapper = new QueryWrapper<>();
                         queryWrapper.eq("id", AssetsAssetGeoId);
-                        AssetsAssetGeoDO existingDaAssetGeo = AssetsAssetGeoMapper.selectOne(queryWrapper);
-                        if (existingDaAssetGeo == null) {
+                        AssetsAssetGeoDO existingAssetGeo = AssetsAssetGeoMapper.selectOne(queryWrapper);
+                        if (existingAssetGeo == null) {
                             AssetsAssetGeoMapper.insert(AssetsAssetGeoDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetGeoId + " -");

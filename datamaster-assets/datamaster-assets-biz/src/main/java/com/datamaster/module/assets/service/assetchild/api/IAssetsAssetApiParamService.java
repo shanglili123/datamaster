@@ -24,7 +24,7 @@ public interface IAssetsAssetApiParamService extends IService<AssetsAssetApiPara
      * @param pageReqVO
      * @return -API-
      */
-    PageResult<AssetsAssetApiParamDO> getDaAssetApiParamPage(AssetsAssetApiParamPageReqVO pageReqVO);
+    PageResult<AssetsAssetApiParamDO> getAssetApiParamPage(AssetsAssetApiParamPageReqVO pageReqVO);
 
     /**
      * -API-
@@ -32,23 +32,23 @@ public interface IAssetsAssetApiParamService extends IService<AssetsAssetApiPara
      * @param createReqVO -API-
      * @return -API-
      */
-    Long createDaAssetApiParam(AssetsAssetApiParamSaveReqVO createReqVO);
+    Long createAssetApiParam(AssetsAssetApiParamSaveReqVO createReqVO);
 
-    void createDaAssetApiParamDeep(List<AssetsAssetApiParamSaveReqVO> AssetsAssetApiParamList, Long AssetsAssetApiId);
+    void createAssetApiParamDeep(List<AssetsAssetApiParamSaveReqVO> AssetsAssetApiParamList, Long AssetsAssetApiId);
 
     /**
      * -API-
      *
      * @param updateReqVO -API-
      */
-    int updateDaAssetApiParam(AssetsAssetApiParamSaveReqVO updateReqVO);
+    int updateAssetApiParam(AssetsAssetApiParamSaveReqVO updateReqVO);
 
     /**
      * -API-
      *
      * @param idList -API-
      */
-    int removeDaAssetApiParam(Collection<Long> idList);
+    int removeAssetApiParam(Collection<Long> idList);
     int removeThemeRelByAssetApiId( Long assetApiId);
 
     /**
@@ -57,22 +57,22 @@ public interface IAssetsAssetApiParamService extends IService<AssetsAssetApiPara
      * @param id -API-
      * @return -API-
      */
-    AssetsAssetApiParamDO getDaAssetApiParamById(Long id);
+    AssetsAssetApiParamDO getAssetApiParamById(Long id);
 
     /**
      * -API-
      *
      * @return -API-
      */
-    List<AssetsAssetApiParamDO> getDaAssetApiParamList();
-    List<AssetsAssetApiParamRespVO> getDaAssetApiParamList(Long AssetsAssetApiId);
+    List<AssetsAssetApiParamDO> getAssetApiParamList();
+    List<AssetsAssetApiParamRespVO> getAssetApiParamList(Long AssetsAssetApiId);
 
     /**
      * -API- Map
      *
      * @return -API- Map
      */
-    Map<Long, AssetsAssetApiParamDO> getDaAssetApiParamMap();
+    Map<Long, AssetsAssetApiParamDO> getAssetApiParamMap();
 
     /**
      * -API-
@@ -82,5 +82,5 @@ public interface IAssetsAssetApiParamService extends IService<AssetsAssetApiPara
      * @param operName
      * @return
      */
-    String importDaAssetApiParam(List<AssetsAssetApiParamRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetApiParam(List<AssetsAssetApiParamRespVO> importExcelList, boolean isUpdateSupport, String operName);
 }

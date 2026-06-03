@@ -27,6 +27,7 @@ import com.datamaster.api.ds.api.service.etl.IDsEtlSchedulerService;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.enums.ExecuteType;
 import com.datamaster.common.enums.TaskCatEnum;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
 import com.datamaster.common.exception.ServiceException;
@@ -102,6 +103,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     private ICollectorEtlTaskNodeRelLogService iCollectorEtlTaskNodeRelLogService;
     @Resource
     private ICollectorEtlTaskInstanceService CollectorEtlTaskInstanceService;
+    @Resource
+    private ICollectorEtlIncrementalService collectorEtlIncrementalService;
     @Resource
     private ITaxonomyCatService attCatService;
     @Resource
@@ -870,6 +873,12 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (collectorEtlTaskDO != null) {
             return collectorEtlTaskDO.getId();
         }
+        CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getOne(Wrappers.lambdaQuery(CollectorEtlTaskExtDO.class)
+                .eq(CollectorEtlTaskExtDO::getEtlTaskCode, taskCode)
+                .select(CollectorEtlTaskExtDO::getTaskId), false);
+        if (taskExt != null) {
+            return taskExt.getTaskId();
+        }
         return null;
     }
 
@@ -880,7 +889,14 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (collectorEtlTaskDO != null) {
             return BeanUtils.toBean(collectorEtlTaskDO, CollectorEtlTaskRespDTO.class);
         }
-        return null;
+        CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getOne(Wrappers.lambdaQuery(CollectorEtlTaskExtDO.class)
+                .eq(CollectorEtlTaskExtDO::getEtlTaskCode, taskCode)
+                .select(CollectorEtlTaskExtDO::getTaskId), false);
+        if (taskExt == null || taskExt.getTaskId() == null) {
+            return null;
+        }
+        CollectorEtlTaskDO taskByExtCode = baseMapper.selectById(taskExt.getTaskId());
+        return taskByExtCode == null ? null : BeanUtils.toBean(taskByExtCode, CollectorEtlTaskRespDTO.class);
     }
 
     /**
@@ -1743,6 +1759,9 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             dsCode = taskDO.getCode();
         }
 
+        stopRunningProcessInstance(taskDO.getId());
+        collectorEtlIncrementalService.forceReleaseIncrementalTask(taskDO.getId());
+
         //下线DS任务
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(taskDO.getProjectCode()), dsCode);
         boolean processDefinitionMissing = isProcessDefinitionMissing(dsStatusRespDTO);
@@ -1779,6 +1798,24 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         //更新任务状态为已下线
         updateTaskStatus(taskDO.getId(), "0");
+    }
+
+    private void stopRunningProcessInstance(Long taskId) {
+        Long runningTaskInstanceId = CollectorEtlTaskInstanceService.getRunTaskInstance(taskId);
+        if (runningTaskInstanceId == null) {
+            return;
+        }
+        try {
+            AjaxResult stopResult = CollectorEtlTaskInstanceService.execute(runningTaskInstanceId, ExecuteType.STOP);
+            if (stopResult == null || !stopResult.isSuccess()) {
+                log.warn("卸载任务时停止运行中的流程实例失败，taskId={}，taskInstanceId={}，msg={}",
+                        taskId, runningTaskInstanceId,
+                        stopResult == null ? "无响应" : stopResult.get(AjaxResult.MSG_TAG));
+            }
+        } catch (Exception e) {
+            log.warn("卸载任务时停止运行中的流程实例异常，taskId={}，taskInstanceId={}",
+                    taskId, runningTaskInstanceId, e);
+        }
     }
 
     private boolean isProcessDefinitionMissing(DsStatusRespDTO response) {
@@ -1999,6 +2036,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             extSaveReqVO.setSourceIncrementColumn(origExt.getSourceIncrementColumn());
             extSaveReqVO.setTargetIncrementColumn(origExt.getTargetIncrementColumn());
             extSaveReqVO.setIncrementalInitialValue(resolveCopiedIncrementalInitialValue(src, origExt));
+            extSaveReqVO.setIncrementalTimeFormat(origExt.getIncrementalTimeFormat());
             extSaveReqVO.setPrepareNodeId(copiedPrepareNode.getId());
             extSaveReqVO.setPrepareNodeName(copiedPrepareNode.getName());
             extSaveReqVO.setPrepareNodeCode(copiedPrepareNode.getCode());
@@ -2270,6 +2308,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         taskExt.setSourceIncrementColumn(config.getSourceIncrementColumn());
         taskExt.setTargetIncrementColumn(config.getTargetIncrementColumn());
         taskExt.setIncrementalInitialValue(config.getIncrementalInitialValue());
+        taskExt.setIncrementalTimeFormat(config.getIncrementalTimeFormat());
         taskExt.setPrepareNodeId(prepareNode.getId());
         taskExt.setPrepareNodeName(prepareNodeName);
         taskExt.setPrepareNodeCode(prepareNodeCode);
@@ -2303,6 +2342,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         taskExt.setSourceIncrementColumn(config.getSourceIncrementColumn());
         taskExt.setTargetIncrementColumn(config.getTargetIncrementColumn());
         taskExt.setIncrementalInitialValue(config.getIncrementalInitialValue());
+        taskExt.setIncrementalTimeFormat(config.getIncrementalTimeFormat());
         taskExt.setPrepareNodeId(prepareNode.getId());
         taskExt.setPrepareNodeName(prepareNodeName);
         taskExt.setPrepareNodeCode(prepareNodeCode);
@@ -2333,6 +2373,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         target.setSourceIncrementColumn(source.getSourceIncrementColumn());
         target.setTargetIncrementColumn(source.getTargetIncrementColumn());
         target.setIncrementalInitialValue(source.getIncrementalInitialValue());
+        target.setIncrementalTimeFormat(source.getIncrementalTimeFormat());
         target.setPrepareNodeId(source.getPrepareNodeId());
         target.setPrepareNodeName(source.getPrepareNodeName());
         target.setPrepareNodeCode(source.getPrepareNodeCode());
@@ -2357,6 +2398,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 .set(CollectorEtlTaskExtDO::getSourceIncrementColumn, null)
                 .set(CollectorEtlTaskExtDO::getTargetIncrementColumn, null)
                 .set(CollectorEtlTaskExtDO::getIncrementalInitialValue, null)
+                .set(CollectorEtlTaskExtDO::getIncrementalTimeFormat, null)
                 .set(CollectorEtlTaskExtDO::getIncrementalStartValue, null)
                 .set(CollectorEtlTaskExtDO::getIncrementalEndValue, null)
                 .set(CollectorEtlTaskExtDO::getPrepareNodeId, null)
@@ -2379,6 +2421,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         taskExt.setSourceIncrementColumn(null);
         taskExt.setTargetIncrementColumn(null);
         taskExt.setIncrementalInitialValue(null);
+        taskExt.setIncrementalTimeFormat(null);
         taskExt.setIncrementalStartValue(null);
         taskExt.setIncrementalEndValue(null);
         taskExt.setPrepareNodeId(null);

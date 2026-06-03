@@ -68,7 +68,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.data.matser.qMes" level="info" />
+    <logger name="com.datamaster.qMes" level="info" />
     <logger name="org.springframework" level="warn" />
 
     <root level="info">

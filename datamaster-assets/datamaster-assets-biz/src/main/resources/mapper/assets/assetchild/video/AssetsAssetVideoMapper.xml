@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -23,12 +23,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetVideoVo">
+    <sql id="selectAssetVideoVo">
         select ID, ASSET_ID, IP, PORT, PROTOCOL, PLATFORM, CONFIG, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_VIDEO
     </sql>
 
-    <select id="selectDaAssetVideoList" parameterType="AssetsAssetVideoDO" resultMap="AssetsAssetVideoResult">
-        <include refid="selectDaAssetVideoVo"/>
+    <select id="selectAssetVideoList" parameterType="AssetsAssetVideoDO" resultMap="AssetsAssetVideoResult">
+        <include refid="selectAssetVideoVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="ip != null  and ip != ''"> and IP = #{ip}</if>
@@ -40,12 +40,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetVideoById" parameterType="Long" resultMap="AssetsAssetVideoResult">
-        <include refid="selectDaAssetVideoVo"/>
+    <select id="selectAssetVideoById" parameterType="Long" resultMap="AssetsAssetVideoResult">
+        <include refid="selectAssetVideoVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetVideo" parameterType="AssetsAssetVideoDO">
+    <insert id="insertAssetVideo" parameterType="AssetsAssetVideoDO">
         insert into AST_ASSET_VIDEO
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -85,7 +85,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetVideo" parameterType="AssetsAssetVideoDO">
+    <update id="updateAssetVideo" parameterType="AssetsAssetVideoDO">
         update AST_ASSET_VIDEO
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -107,11 +107,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetVideoById" parameterType="Long">
+    <delete id="deleteAssetVideoById" parameterType="Long">
         delete from AST_ASSET_VIDEO where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetVideoByIds" parameterType="String">
+    <delete id="deleteAssetVideoByIds" parameterType="String">
         delete from AST_ASSET_VIDEO where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}

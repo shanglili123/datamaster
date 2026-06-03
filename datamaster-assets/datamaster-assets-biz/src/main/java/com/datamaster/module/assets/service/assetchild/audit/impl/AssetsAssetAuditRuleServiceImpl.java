@@ -36,19 +36,19 @@ public class AssetsAssetAuditRuleServiceImpl  extends ServiceImpl<AssetsAssetAud
     private AssetsAssetAuditRuleMapper AssetsAssetAuditRuleMapper;
 
     @Override
-    public PageResult<AssetsAssetAuditRuleDO> getDaAssetAuditRulePage(AssetsAssetAuditRulePageReqVO pageReqVO) {
+    public PageResult<AssetsAssetAuditRuleDO> getAssetAuditRulePage(AssetsAssetAuditRulePageReqVO pageReqVO) {
         return AssetsAssetAuditRuleMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public Long createDaAssetAuditRule(AssetsAssetAuditRuleSaveReqVO createReqVO) {
+    public Long createAssetAuditRule(AssetsAssetAuditRuleSaveReqVO createReqVO) {
         AssetsAssetAuditRuleDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetAuditRuleDO.class);
         AssetsAssetAuditRuleMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
-    public int updateDaAssetAuditRule(AssetsAssetAuditRuleSaveReqVO updateReqVO) {
+    public int updateAssetAuditRule(AssetsAssetAuditRuleSaveReqVO updateReqVO) {
         // 相关校验
 
         // 更新数据资产质量结果记录
@@ -56,23 +56,23 @@ public class AssetsAssetAuditRuleServiceImpl  extends ServiceImpl<AssetsAssetAud
         return AssetsAssetAuditRuleMapper.updateById(updateObj);
     }
     @Override
-    public int removeDaAssetAuditRule(Collection<Long> idList) {
+    public int removeAssetAuditRule(Collection<Long> idList) {
         // 批量删除数据资产质量结果记录
         return AssetsAssetAuditRuleMapper.deleteBatchIds(idList);
     }
 
     @Override
-    public AssetsAssetAuditRuleDO getDaAssetAuditRuleById(Long id) {
+    public AssetsAssetAuditRuleDO getAssetAuditRuleById(Long id) {
         return AssetsAssetAuditRuleMapper.selectById(id);
     }
 
     @Override
-    public List<AssetsAssetAuditRuleDO> getDaAssetAuditRuleList() {
+    public List<AssetsAssetAuditRuleDO> getAssetAuditRuleList() {
         return AssetsAssetAuditRuleMapper.selectList();
     }
 
     @Override
-    public Map<Long, AssetsAssetAuditRuleDO> getDaAssetAuditRuleMap() {
+    public Map<Long, AssetsAssetAuditRuleDO> getAssetAuditRuleMap() {
         List<AssetsAssetAuditRuleDO> AssetsAssetAuditRuleList = AssetsAssetAuditRuleMapper.selectList();
         return AssetsAssetAuditRuleList.stream()
                 .collect(Collectors.toMap(
@@ -92,7 +92,7 @@ public class AssetsAssetAuditRuleServiceImpl  extends ServiceImpl<AssetsAssetAud
      * @return
      */
     @Override
-    public String importDaAssetAuditRule(List<AssetsAssetAuditRuleRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+    public String importAssetAuditRule(List<AssetsAssetAuditRuleRespVO> importExcelList, boolean isUpdateSupport, String operName) {
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("");
         }
@@ -108,8 +108,8 @@ public class AssetsAssetAuditRuleServiceImpl  extends ServiceImpl<AssetsAssetAud
                 Long AssetsAssetAuditRuleId = respVO.getId();
                 if (isUpdateSupport) {
                     if (AssetsAssetAuditRuleId != null) {
-                        AssetsAssetAuditRuleDO existingDaAssetAuditRule = AssetsAssetAuditRuleMapper.selectById(AssetsAssetAuditRuleId);
-                        if (existingDaAssetAuditRule != null) {
+                        AssetsAssetAuditRuleDO existingAssetAuditRule = AssetsAssetAuditRuleMapper.selectById(AssetsAssetAuditRuleId);
+                        if (existingAssetAuditRule != null) {
                             AssetsAssetAuditRuleMapper.updateById(AssetsAssetAuditRuleDO);
                             successNum++;
                             successMessages.add("ID " + AssetsAssetAuditRuleId + " ");
@@ -124,8 +124,8 @@ public class AssetsAssetAuditRuleServiceImpl  extends ServiceImpl<AssetsAssetAud
                 } else {
                     QueryWrapper<AssetsAssetAuditRuleDO> queryWrapper = new QueryWrapper<>();
                     queryWrapper.eq("id", AssetsAssetAuditRuleId);
-                    AssetsAssetAuditRuleDO existingDaAssetAuditRule = AssetsAssetAuditRuleMapper.selectOne(queryWrapper);
-                    if (existingDaAssetAuditRule == null) {
+                    AssetsAssetAuditRuleDO existingAssetAuditRule = AssetsAssetAuditRuleMapper.selectOne(queryWrapper);
+                    if (existingAssetAuditRule == null) {
                         AssetsAssetAuditRuleMapper.insert(AssetsAssetAuditRuleDO);
                         successNum++;
                         successMessages.add("ID " + AssetsAssetAuditRuleId + " ");

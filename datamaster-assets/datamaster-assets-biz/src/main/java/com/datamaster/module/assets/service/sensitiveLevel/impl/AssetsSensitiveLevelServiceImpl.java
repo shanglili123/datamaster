@@ -164,7 +164,7 @@ public class AssetsSensitiveLevelServiceImpl extends ServiceImpl<AssetsSensitive
     public Boolean updateStatus(Long id, Long status) {
         AssetsAssetColumnPageReqVO AssetsAssetColumnPageReqVO = new AssetsAssetColumnPageReqVO();
         AssetsAssetColumnPageReqVO.setSensitiveLevelId(id.toString());
-        List<AssetsAssetColumnDO> AssetsAssetColumnList = AssetsAssetColumnService.getDaAssetColumnList(AssetsAssetColumnPageReqVO);
+        List<AssetsAssetColumnDO> AssetsAssetColumnList = AssetsAssetColumnService.getAssetColumnList(AssetsAssetColumnPageReqVO);
         if (!AssetsAssetColumnList.isEmpty()) {
             return false;
         }

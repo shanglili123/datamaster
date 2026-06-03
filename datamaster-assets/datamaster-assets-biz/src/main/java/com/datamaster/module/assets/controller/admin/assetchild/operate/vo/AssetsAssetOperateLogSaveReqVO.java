@@ -3,7 +3,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import com.datamaster.common.core.domain.BaseEntity;
 import javax.validation.constraints.Size;
-import java.util.Date;/** *  / Request VO DA_ASSET_OPERATE_LOG * * @author qdata * @date 2025-05-09 */
+import java.util.Date;/** *  / Request VO DA_ASSET_OPERATE_LOG * * @author lili.shang * @date 2025-05-09 */
 @Schema(description = " Response VO")
 @Data
 public class AssetsAssetOperateLogSaveReqVO extends BaseEntity {

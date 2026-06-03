@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -19,12 +19,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="remark"    column="REMARK"    />
     </resultMap>
 
-    <sql id="selectDaAssetThemeRelVo">
+    <sql id="selectAssetThemeRelVo">
         select ID, ASSET_ID, THEME_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_THEME_REL
     </sql>
 
-    <select id="selectDaAssetThemeRelList" parameterType="AssetsAssetThemeRelDO" resultMap="AssetsAssetThemeRelResult">
-        <include refid="selectDaAssetThemeRelVo"/>
+    <select id="selectAssetThemeRelList" parameterType="AssetsAssetThemeRelDO" resultMap="AssetsAssetThemeRelResult">
+        <include refid="selectAssetThemeRelVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
             <if test="themeId != null "> and THEME_ID = #{themeId}</if>
@@ -32,12 +32,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </where>
     </select>
 
-    <select id="selectDaAssetThemeRelById" parameterType="Long" resultMap="AssetsAssetThemeRelResult">
-        <include refid="selectDaAssetThemeRelVo"/>
+    <select id="selectAssetThemeRelById" parameterType="Long" resultMap="AssetsAssetThemeRelResult">
+        <include refid="selectAssetThemeRelVo"/>
         where ID = #{id}
     </select>
 
-    <insert id="insertDaAssetThemeRel" parameterType="AssetsAssetThemeRelDO">
+    <insert id="insertAssetThemeRel" parameterType="AssetsAssetThemeRelDO">
         insert into AST_ASSET_THEME_REL
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
@@ -69,7 +69,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
     </insert>
 
-    <update id="updateDaAssetThemeRel" parameterType="AssetsAssetThemeRelDO">
+    <update id="updateAssetThemeRel" parameterType="AssetsAssetThemeRelDO">
         update AST_ASSET_THEME_REL
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
@@ -87,11 +87,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ID = #{id}
     </update>
 
-    <delete id="deleteDaAssetThemeRelById" parameterType="Long">
+    <delete id="deleteAssetThemeRelById" parameterType="Long">
         delete from AST_ASSET_THEME_REL where ID = #{id}
     </delete>
 
-    <delete id="deleteDaAssetThemeRelByIds" parameterType="String">
+    <delete id="deleteAssetThemeRelByIds" parameterType="String">
         delete from AST_ASSET_THEME_REL where ID in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
@@ -99,13 +99,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
 
-    <delete id="deleteDaAssetThemeRelByAssetId" parameterType="Long">
+    <delete id="deleteAssetThemeRelByAssetId" parameterType="Long">
         update AST_ASSET_THEME_REL
         set DEL_FLAG = '1'
         where ASSET_ID = #{id}
     </delete>
 
-    <select id="getDaAssetIdList" resultType="java.lang.Long">
+    <select id="getAssetIdList" resultType="java.lang.Long">
         SELECT ASSET_ID
         FROM AST_ASSET_THEME_REL
         WHERE THEME_ID IN

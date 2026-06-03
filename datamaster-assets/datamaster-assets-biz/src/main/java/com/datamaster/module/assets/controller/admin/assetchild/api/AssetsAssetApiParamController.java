@@ -1,2 +1,121 @@
-package com.datamaster.module.assets.controller.admin.assetchild.api;import javax.annotation.Resource;import javax.servlet.http.HttpServletResponse;import javax.validation.Valid;import java.util.Arrays;import cn.hutool.core.date.DateUtil;import java.util.List;import io.swagger.v3.oas.annotations.Operation;import io.swagger.v3.oas.annotations.tags.Tag;import org.springframework.security.access.prepost.PreAuthorize;import org.springframework.validation.annotation.Validated;import org.springframework.web.bind.annotation.*;import org.springframework.web.multipart.MultipartFile;import com.datamaster.common.core.domain.AjaxResult;import com.datamaster.common.core.page.PageParam;import com.datamaster.common.annotation.Log;import com.datamaster.common.core.controller.BaseController;import com.datamaster.common.core.domain.CommonResult;import com.datamaster.common.core.page.PageResult;import com.datamaster.common.enums.BusinessType;import com.datamaster.common.utils.object.BeanUtils;import com.datamaster.common.utils.poi.ExcelUtil;import com.datamaster.common.exception.enums.GlobalErrorCodeConstants;import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamPageReqVO;import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamRespVO;import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamSaveReqVO;import com.datamaster.module.assets.convert.assetchild.api.AssetsAssetApiParamConvert;import com.datamaster.module.assets.dal.dataobject.assetchild.api.AssetsAssetApiParamDO;import com.datamaster.module.assets.service.assetchild.api.IAssetsAssetApiParamService;/** * 数据资产-外部API-参数Controller * * @author DATAMASTER * @date 2025-04-14 */@Tag(name = "数据资产-外部API-参数")@RestController@RequestMapping("/ast/assetApiParam")@Validated
-public class AssetsAssetApiParamController extends BaseController {    @Resource    private IAssetsAssetApiParamService AssetsAssetApiParamService;    @Operation(summary = "查询数据资产-外部API-参数列表")    @PreAuthorize("@ss.hasPermi('da:assetApiParam:list')")    @GetMapping("/list")    public CommonResult<PageResult<AssetsAssetApiParamRespVO>> list(AssetsAssetApiParamPageReqVO AssetsAssetApiParam) {        PageResult<AssetsAssetApiParamDO> page = AssetsAssetApiParamService.getDaAssetApiParamPage(AssetsAssetApiParam);        return CommonResult.success(BeanUtils.toBean(page, AssetsAssetApiParamRespVO.class));    }    @Operation(summary = "查询数据资产-外部API-参数列表")    @PreAuthorize("@ss.hasPermi('da:assetApiParam:list')")    @GetMapping("/getDaAssetApiParamList")    public CommonResult<List<AssetsAssetApiParamRespVO>> getDaAssetApiParamList(AssetsAssetApiParamPageReqVO AssetsAssetApiParam) {        return CommonResult.success(BeanUtils.toBean(AssetsAssetApiParamService.getDaAssetApiParamList(AssetsAssetApiParam.getApiId()), AssetsAssetApiParamRespVO.class));    }    @Operation(summary = "导出数据资产-外部API-参数列表")    @PreAuthorize("@ss.hasPermi('da:assetApiParam:export')")    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.EXPORT)    @PostMapping("/export")    public void export(HttpServletResponse response, AssetsAssetApiParamPageReqVO exportReqVO) {        exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);        List<AssetsAssetApiParamDO> list = (List<AssetsAssetApiParamDO>) AssetsAssetApiParamService.getDaAssetApiParamPage(exportReqVO).getRows();        ExcelUtil<AssetsAssetApiParamRespVO> util = new ExcelUtil<>(AssetsAssetApiParamRespVO.class);        util.exportExcel(response, AssetsAssetApiParamConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");    }    @Operation(summary = "导入数据资产-外部API-参数列表")    @PreAuthorize("@ss.hasPermi('da:assetApiParam:import')")    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.IMPORT)    @PostMapping("/importData")    public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {        ExcelUtil<AssetsAssetApiParamRespVO> util = new ExcelUtil<>(AssetsAssetApiParamRespVO.class);        List<AssetsAssetApiParamRespVO> importExcelList = util.importExcel(file.getInputStream());        String operName = getUsername();        String message = AssetsAssetApiParamService.importDaAssetApiParam(importExcelList, updateSupport, operName);        return success(message);    }    @Operation(summary = "获取数据资产-外部API-参数详细信息")    @PreAuthorize("@ss.hasPermi('da:assetApiParam:query')")    @GetMapping(value = "/{id}")    public CommonResult<AssetsAssetApiParamRespVO> getInfo(@PathVariable("id") Long id) {        AssetsAssetApiParamDO AssetsAssetApiParamDO = AssetsAssetApiParamService.getDaAssetApiParamById(id);        return CommonResult.success(BeanUtils.toBean(AssetsAssetApiParamDO, AssetsAssetApiParamRespVO.class));    }    @Operation(summary = "新增数据资产-外部API-参数")    @PreAuthorize("@ss.hasPermi('da:assetApiParam:add')")    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.INSERT)    @PostMapping    public CommonResult<Long> add(@Valid @RequestBody AssetsAssetApiParamSaveReqVO AssetsAssetApiParam) {        AssetsAssetApiParam.setCreatorId(getUserId());        AssetsAssetApiParam.setCreateBy(getNickName());        AssetsAssetApiParam.setCreateTime(DateUtil.date());        return CommonResult.toAjax(AssetsAssetApiParamService.createDaAssetApiParam(AssetsAssetApiParam));    }    @Operation(summary = "修改数据资产-外部API-参数")    @PreAuthorize("@ss.hasPermi('da:assetApiParam:edit')")    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.UPDATE)    @PutMapping    public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetApiParamSaveReqVO AssetsAssetApiParam) {        AssetsAssetApiParam.setUpdatorId(getUserId());        AssetsAssetApiParam.setUpdateBy(getNickName());        AssetsAssetApiParam.setUpdateTime(DateUtil.date());        return CommonResult.toAjax(AssetsAssetApiParamService.updateDaAssetApiParam(AssetsAssetApiParam));    }    @Operation(summary = "删除数据资产-外部API-参数")    @PreAuthorize("@ss.hasPermi('da:assetApiParam:remove')")    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.DELETE)    @DeleteMapping("/{ids}")    public CommonResult<Integer> remove(@PathVariable Long[] ids) {        return CommonResult.toAjax(AssetsAssetApiParamService.removeDaAssetApiParam(Arrays.asList(ids)));    }}
+package com.datamaster.module.assets.controller.admin.assetchild.api;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import java.util.Arrays;
+
+import cn.hutool.core.date.DateUtil;
+
+import java.util.List;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import com.datamaster.common.core.domain.AjaxResult;
+import com.datamaster.common.core.page.PageParam;
+import com.datamaster.common.annotation.Log;
+import com.datamaster.common.core.controller.BaseController;
+import com.datamaster.common.core.domain.CommonResult;
+import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.enums.BusinessType;
+import com.datamaster.common.utils.object.BeanUtils;
+import com.datamaster.common.utils.poi.ExcelUtil;
+import com.datamaster.common.exception.enums.GlobalErrorCodeConstants;
+import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamPageReqVO;
+import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamRespVO;
+import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamSaveReqVO;
+import com.datamaster.module.assets.convert.assetchild.api.AssetsAssetApiParamConvert;
+import com.datamaster.module.assets.dal.dataobject.assetchild.api.AssetsAssetApiParamDO;
+import com.datamaster.module.assets.service.assetchild.api.IAssetsAssetApiParamService;
+
+/**
+ * 数据资产-外部API-参数Controller * * @author DATAMASTER * @date 2025-04-14
+ */
+@Tag(name = "数据资产-外部API-参数")
+@RestController
+@RequestMapping("/ast/assetApiParam")
+@Validated
+public class AssetsAssetApiParamController extends BaseController {
+    @Resource
+    private IAssetsAssetApiParamService AssetsAssetApiParamService;
+
+    @Operation(summary = "查询数据资产-外部API-参数列表")
+    @PreAuthorize("@ss.hasPermi('da:assetApiParam:list')")
+    @GetMapping("/list")
+    public CommonResult<PageResult<AssetsAssetApiParamRespVO>> list(AssetsAssetApiParamPageReqVO AssetsAssetApiParam) {
+        PageResult<AssetsAssetApiParamDO> page = AssetsAssetApiParamService.getAssetApiParamPage(AssetsAssetApiParam);
+        return CommonResult.success(BeanUtils.toBean(page, AssetsAssetApiParamRespVO.class));
+    }
+
+    @Operation(summary = "查询数据资产-外部API-参数列表")
+    @PreAuthorize("@ss.hasPermi('da:assetApiParam:list')")
+    @GetMapping("/getAssetApiParamList")
+    public CommonResult<List<AssetsAssetApiParamRespVO>> getAssetApiParamList(AssetsAssetApiParamPageReqVO AssetsAssetApiParam) {
+        return CommonResult.success(BeanUtils.toBean(AssetsAssetApiParamService.getAssetApiParamList(AssetsAssetApiParam.getApiId()), AssetsAssetApiParamRespVO.class));
+    }
+
+    @Operation(summary = "导出数据资产-外部API-参数列表")
+    @PreAuthorize("@ss.hasPermi('da:assetApiParam:export')")
+    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.EXPORT)
+    @PostMapping("/export")
+    public void export(HttpServletResponse response, AssetsAssetApiParamPageReqVO exportReqVO) {
+        exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
+        List<AssetsAssetApiParamDO> list = (List<AssetsAssetApiParamDO>) AssetsAssetApiParamService.getAssetApiParamPage(exportReqVO).getRows();
+        ExcelUtil<AssetsAssetApiParamRespVO> util = new ExcelUtil<>(AssetsAssetApiParamRespVO.class);
+        util.exportExcel(response, AssetsAssetApiParamConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");
+    }
+
+    @Operation(summary = "导入数据资产-外部API-参数列表")
+    @PreAuthorize("@ss.hasPermi('da:assetApiParam:import')")
+    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.IMPORT)
+    @PostMapping("/importData")
+    public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
+        ExcelUtil<AssetsAssetApiParamRespVO> util = new ExcelUtil<>(AssetsAssetApiParamRespVO.class);
+        List<AssetsAssetApiParamRespVO> importExcelList = util.importExcel(file.getInputStream());
+        String operName = getUsername();
+        String message = AssetsAssetApiParamService.importAssetApiParam(importExcelList, updateSupport, operName);
+        return success(message);
+    }
+
+    @Operation(summary = "获取数据资产-外部API-参数详细信息")
+    @PreAuthorize("@ss.hasPermi('da:assetApiParam:query')")
+    @GetMapping(value = "/{id}")
+    public CommonResult<AssetsAssetApiParamRespVO> getInfo(@PathVariable("id") Long id) {
+        AssetsAssetApiParamDO AssetsAssetApiParamDO = AssetsAssetApiParamService.getAssetApiParamById(id);
+        return CommonResult.success(BeanUtils.toBean(AssetsAssetApiParamDO, AssetsAssetApiParamRespVO.class));
+    }
+
+    @Operation(summary = "新增数据资产-外部API-参数")
+    @PreAuthorize("@ss.hasPermi('da:assetApiParam:add')")
+    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.INSERT)
+    @PostMapping
+    public CommonResult<Long> add(@Valid @RequestBody AssetsAssetApiParamSaveReqVO AssetsAssetApiParam) {
+        AssetsAssetApiParam.setCreatorId(getUserId());
+        AssetsAssetApiParam.setCreateBy(getNickName());
+        AssetsAssetApiParam.setCreateTime(DateUtil.date());
+        return CommonResult.toAjax(AssetsAssetApiParamService.createAssetApiParam(AssetsAssetApiParam));
+    }
+
+    @Operation(summary = "修改数据资产-外部API-参数")
+    @PreAuthorize("@ss.hasPermi('da:assetApiParam:edit')")
+    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.UPDATE)
+    @PutMapping
+    public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetApiParamSaveReqVO AssetsAssetApiParam) {
+        AssetsAssetApiParam.setUpdatorId(getUserId());
+        AssetsAssetApiParam.setUpdateBy(getNickName());
+        AssetsAssetApiParam.setUpdateTime(DateUtil.date());
+        return CommonResult.toAjax(AssetsAssetApiParamService.updateAssetApiParam(AssetsAssetApiParam));
+    }
+
+    @Operation(summary = "删除数据资产-外部API-参数")
+    @PreAuthorize("@ss.hasPermi('da:assetApiParam:remove')")
+    @Log(title = "数据资产-外部API-参数", businessType = BusinessType.DELETE)
+    @DeleteMapping("/{ids}")
+    public CommonResult<Integer> remove(@PathVariable Long[] ids) {
+        return CommonResult.toAjax(AssetsAssetApiParamService.removeAssetApiParam(Arrays.asList(ids)));
+    }
+}

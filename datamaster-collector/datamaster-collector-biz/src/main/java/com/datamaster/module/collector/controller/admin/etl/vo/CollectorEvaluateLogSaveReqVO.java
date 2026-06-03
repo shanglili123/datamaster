@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * 评测规则结果 创建/修改 Request VO COL_EVALUATE_LOG
  *
- * @author qdata
+ * @author lili.shang
  * @date 2025-07-21
  */
 @Schema(description = "评测规则结果 Response VO")
