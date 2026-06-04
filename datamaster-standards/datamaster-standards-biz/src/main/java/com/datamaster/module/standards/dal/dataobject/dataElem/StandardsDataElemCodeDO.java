@@ -32,6 +32,12 @@ public class StandardsDataElemCodeDO extends BaseEntity {
     /** 代码名称 */
     private String codeName;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /** 是否有效 */
     private Boolean validFlag;
 

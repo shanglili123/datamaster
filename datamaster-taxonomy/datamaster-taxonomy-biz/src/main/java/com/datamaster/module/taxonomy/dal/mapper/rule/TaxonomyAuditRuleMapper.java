@@ -40,6 +40,7 @@ public interface TaxonomyAuditRuleMapper extends BaseMapperX<TaxonomyAuditRuleDO
                 // .likeIfPresent(TaxonomyAuditRuleDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
 //                .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
+                .eq(reqVO.getProjectId() != null, TaxonomyAuditRuleDO::getProjectId, reqVO.getProjectId())
          .orderByDesc(TaxonomyAuditRuleDO::getCreateTime));
 
     }

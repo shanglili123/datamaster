@@ -2,6 +2,7 @@ package com.datamaster.flinkx.core;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.datamaster.common.database.exception.DataQueryException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -1124,10 +1125,15 @@ public class FlinkxEtlTaskConverter {
     }
 
     private static String resolveReaderName(String dbType) {
-        if (StringUtils.isBlank(dbType)) return "defaultreader";
+        if (StringUtils.isBlank(dbType)) {
+            throw new DataQueryException("FlinkX reader 缺少数据库类型");
+        }
         switch (dbType.toUpperCase()) {
-            case "MYSQL":    return "mysqlreader";
+            case "MYSQL":
+            case "MARIADB":
+            case "2": return "mysqlreader";
             case "ORACLE":
+            case "ORACLE11":
             case "ORACLE_12C": return "oraclereader";
             case "POSTGRE_SQL":
             case "POSTGRESQL": return "postgresqlreader";
@@ -1137,20 +1143,33 @@ public class FlinkxEtlTaskConverter {
             case "HIVE": return "hivereader";
             case "MONGODB": return "mongodbreader";
             case "ELASTICSEARCH":
-            case "ES": return "elasticsearchreader";
+            case "ES": return "elasticsearch7reader";
             case "SQL_SERVER":
             case "SQL_SERVER2008": return "sqlserverreader";
-            case "DM8":       return "rdbmsreader";
-            case "KINGBASE8": return "kingbaseesreader";
-            default:          return dbType.toLowerCase() + "reader";
+            case "DM8": return "dmreader";
+            case "KINGBASE8": return "kingbasereader";
+            case "DB2": return "db2reader";
+            case "KAFKA": return "kafkareader";
+            case "RABBITMQ": return "rabbitmqreader";
+            case "REDIS": return "redisreader";
+            case "HDFS": return "hdfsreader";
+            case "FTP": return "ftpreader";
+            case "OSS-ALIYUN":
+            case "OSS_ALIYUN": return "s3reader";
+            default: throw new DataQueryException("FlinkX 不支持的 reader 数据库类型: " + dbType);
         }
     }
 
     private static String resolveWriterName(String dbType) {
-        if (StringUtils.isBlank(dbType)) return "defaultwriter";
+        if (StringUtils.isBlank(dbType)) {
+            throw new DataQueryException("FlinkX writer 缺少数据库类型");
+        }
         switch (dbType.toUpperCase()) {
-            case "MYSQL":    return "mysqlwriter";
+            case "MYSQL":
+            case "MARIADB":
+            case "2": return "mysqlwriter";
             case "ORACLE":
+            case "ORACLE11":
             case "ORACLE_12C": return "oraclewriter";
             case "POSTGRE_SQL":
             case "POSTGRESQL": return "postgresqlwriter";
@@ -1160,12 +1179,20 @@ public class FlinkxEtlTaskConverter {
             case "HIVE": return "hivewriter";
             case "MONGODB": return "mongodbwriter";
             case "ELASTICSEARCH":
-            case "ES": return "elasticsearchwriter";
+            case "ES": return "elasticsearch7writer";
             case "SQL_SERVER":
             case "SQL_SERVER2008": return "sqlserverwriter";
-            case "DM8":       return "rdbmswriter";
-            case "KINGBASE8": return "kingbaseeswriter";
-            default:          return dbType.toLowerCase() + "writer";
+            case "DM8": return "dmwriter";
+            case "KINGBASE8": return "kingbasewriter";
+            case "DB2": return "db2writer";
+            case "KAFKA": return "kafkawriter";
+            case "RABBITMQ": return "rabbitmqwriter";
+            case "REDIS": return "rediswriter";
+            case "HDFS": return "hdfswriter";
+            case "FTP": return "ftpwriter";
+            case "OSS-ALIYUN":
+            case "OSS_ALIYUN": return "s3writer";
+            default: throw new DataQueryException("FlinkX 不支持的 writer 数据库类型: " + dbType);
         }
     }
 

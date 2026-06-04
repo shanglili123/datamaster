@@ -54,4 +54,10 @@ public class StandardsDataCategoryPageReqVO extends PageParam {
     @Schema(description = "脱敏规则id")
     private Long desensitizationRulesId;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
+
+    @Schema(description = "项目编码")
+    private String projectCode;
+
 }

@@ -1,0 +1,9 @@
+bind 0.0.0.0
+port 6379
+protected-mode yes
+appendonly yes
+dir /data
+logfile /logs/redis.log
+{% if redis_password | length > 0 %}
+requirepass {{ redis_password }}
+{% endif %}

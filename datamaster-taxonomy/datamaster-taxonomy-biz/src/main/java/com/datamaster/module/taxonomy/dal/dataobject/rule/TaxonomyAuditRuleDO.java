@@ -75,6 +75,12 @@ public class TaxonomyAuditRuleDO extends BaseEntity {
     @Schema(description = "图标地址", example = "/images/icon.png")
     private String iconPath;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     @Schema(description = "策略标识", example = "NOT_NULL_ID_CHECK")
     private String strategyKey;
 }

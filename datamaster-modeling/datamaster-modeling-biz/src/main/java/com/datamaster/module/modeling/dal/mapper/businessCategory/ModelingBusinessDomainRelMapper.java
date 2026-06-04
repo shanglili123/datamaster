@@ -34,6 +34,7 @@ public interface ModelingBusinessDomainRelMapper extends BaseMapperX<ModelingBus
                 .eqIfPresent(ModelingBusinessDomainRelDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(ModelingBusinessDomainRelDO::getValidFlag, reqVO.getValidFlag())
                 .eqIfPresent(ModelingBusinessDomainRelDO::getCreateTime, reqVO.getCreateTime())
+                .eqIfPresent(ModelingBusinessDomainRelDO::getProjectId, reqVO.getProjectId())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(ModelingBusinessDomainRelDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

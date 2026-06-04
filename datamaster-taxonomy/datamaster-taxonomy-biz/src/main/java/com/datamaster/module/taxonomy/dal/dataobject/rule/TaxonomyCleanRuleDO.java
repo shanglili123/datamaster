@@ -78,6 +78,12 @@ public class TaxonomyCleanRuleDO extends BaseEntity {
     @TableField(exist = false)
     private String catID;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     @TableField(exist = false)
     private String catName;
 }

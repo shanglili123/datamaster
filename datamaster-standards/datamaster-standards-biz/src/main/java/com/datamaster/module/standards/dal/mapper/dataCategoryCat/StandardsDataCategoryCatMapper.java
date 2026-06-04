@@ -32,6 +32,7 @@ public interface StandardsDataCategoryCatMapper extends BaseMapperX<StandardsDat
                 .eqIfPresent(StandardsDataCategoryCatDO::getCode, reqVO.getCode())
                 .eqIfPresent(StandardsDataCategoryCatDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(StandardsDataCategoryCatDO::getCreateTime, reqVO.getCreateTime())
+                .eq(reqVO.getProjectId() != null, StandardsDataCategoryCatDO::getProjectId, reqVO.getProjectId())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(StandardsDataCategoryCatDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

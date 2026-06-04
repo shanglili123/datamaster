@@ -33,6 +33,7 @@ public interface StandardsDataLevelMapper extends BaseMapperX<StandardsDataLevel
                 .eqIfPresent(StandardsDataLevelDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(StandardsDataLevelDO::getValidFlag, reqVO.getValidFlag())
                 .eqIfPresent(StandardsDataLevelDO::getCreateTime, reqVO.getCreateTime())
+                .eq(reqVO.getProjectId() != null, StandardsDataLevelDO::getProjectId, reqVO.getProjectId())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(StandardsDataLevelDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

@@ -26,7 +26,10 @@ public class StandardsDataElemCodePageReqVO extends PageParam {
     @Schema(description = "代码名称", example = "")
     private String codeName;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
-
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

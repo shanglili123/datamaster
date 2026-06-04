@@ -23,9 +23,10 @@ public class TaxonomyProjectPageReqVO extends PageParam {
     @Schema(description = "负责人", example = "")
     private Long managerId;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
-
-
-
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

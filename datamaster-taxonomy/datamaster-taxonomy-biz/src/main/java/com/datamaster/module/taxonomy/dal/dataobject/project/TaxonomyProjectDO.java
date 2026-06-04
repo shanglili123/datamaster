@@ -49,6 +49,14 @@ public class TaxonomyProjectDO extends BaseEntity {
     /** 项目描述 */
     private String description;
 
+    /** 项目ID */
+    @TableField(exist = false)
+    private Long projectId;
+
+    /** 项目编码 */
+    @TableField(exist = false)
+    private String projectCode;
+
     /** 是否有效 */
     private Boolean validFlag;
 

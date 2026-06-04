@@ -64,6 +64,10 @@ public class StandardsDocumentPageReqVO extends PageParam {
     /** 描述 */
     private String description;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

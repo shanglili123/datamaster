@@ -1,0 +1,31 @@
+datasource:
+  type: PostgreSQL
+
+custom:
+  mongo:
+    enabled: true
+
+spring:
+  redis:
+    host: {{ redis_ip }}
+    port: {{ redis_port }}
+    database: 0
+    password: {{ redis_password }}
+    timeout: 10s
+  data:
+    mongodb:
+      uri: mongodb://{{ mongodb_app_user }}:{{ mongodb_app_password }}@{{ mongodb_ip }}:{{ mongodb_port }}/{{ mongodb_database }}?authSource={{ mongodb_database }}
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ postgresql_database }}?stringtype=unspecified
+          username: {{ postgresql_user }}
+          password: {{ postgresql_password }}
+
+PostgreSQL:
+  driver-class-name: org.postgresql.Driver
+  url: jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ postgresql_database }}?stringtype=unspecified
+  username: {{ postgresql_user }}
+  password: {{ postgresql_password }}

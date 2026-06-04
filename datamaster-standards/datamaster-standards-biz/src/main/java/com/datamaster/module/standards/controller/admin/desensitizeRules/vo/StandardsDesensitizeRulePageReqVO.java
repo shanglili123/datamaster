@@ -46,6 +46,10 @@ public class StandardsDesensitizeRulePageReqVO extends PageParam {
     @Schema(description = "是否有效;0：无效，1：有效", example = "")
     private Boolean validFlag;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

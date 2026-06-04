@@ -37,7 +37,8 @@ public interface StandardsDataMetaMapper extends BaseMapperX<StandardsDataMetaDO
                 .eq(StringUtils.isNotBlank(reqVO.getType()), StandardsDataMetaDO::getType, reqVO.getType())
                 .eq(StringUtils.isNotBlank(reqVO.getColumnType()), StandardsDataMetaDO::getColumnType, reqVO.getColumnType())
                 .eq(StringUtils.isNotBlank(reqVO.getStatus()), StandardsDataMetaDO::getStatus, reqVO.getStatus())
-                .eq(reqVO.getDocumentId() != null, StandardsDataMetaDO::getDocumentId, reqVO.getDocumentId());
+                .eq(reqVO.getDocumentId() != null, StandardsDataMetaDO::getDocumentId, reqVO.getDocumentId())
+                .eq(reqVO.getProjectId() != null, StandardsDataMetaDO::getProjectId, reqVO.getProjectId());
         lambdaWrapper.orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns);
         return selectJoinPage(reqVO, StandardsDataMetaDO.class, lambdaWrapper);
     }

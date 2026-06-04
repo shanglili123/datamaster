@@ -50,6 +50,12 @@ public class TaxonomyClientDO extends BaseEntity {
     /** 是否公开 */
     private String publicFlag;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /** 是否有效 */
     private Boolean validFlag;
 

@@ -96,4 +96,10 @@ public class CatalogTaskInstancePageReqVO extends PageParam {
     private Date createTimeEnd;
 
     private Long datasourceId;
+    @Schema(description = "项目ID")
+    private Long projectId;
+
+    @Schema(description = "项目编码")
+    private String projectCode;
+
 }

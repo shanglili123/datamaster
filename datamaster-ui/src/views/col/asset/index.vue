@@ -116,7 +116,7 @@
                     class="item-title-name ellipsis"
                     @click="
                       routeTo(
-                        type == 1 ? '/col/asset/detail' : '/ast/asset/detail',
+                        '/col/asset/detail',
                         item
                       )
                     "
@@ -290,7 +290,7 @@
                               </el-text>
                             </el-dropdown-item>
                             <el-dropdown-item
-                              v-if="unregistered(item) && type != 1"
+                              v-if="unregistered(item) && false"
                             >
                               <el-text
                                 type="primary"
@@ -302,7 +302,7 @@
                               </el-text>
                             </el-dropdown-item>
                             <el-dropdown-item
-                              v-if="type != 1 || item.sourceType == 1"
+                              v-if="item.sourceType == 1"
                             >
                               <el-text
                                 type="danger"
@@ -698,8 +698,6 @@ const projectOptions = ref([]);
 const defaultSort = ref({ prop: "create_time", order: "desc" });
 const router = useRouter();
 const userStore = useUserStore();
-const route = useRoute();
-let type = route.query.type || null;
 // 图标
 const getDatasourceIcon = (type) => {
   switch (type) {
@@ -861,23 +859,13 @@ function getList() {
     queryParams.value.isAsc = defaultSort.value.order;
   }
   loading.value = true;
-  console.log(type);
-
-  if (type == 1) {
-    queryParams.value.projectCode = userStore.projectCode;
-    queryParams.value.projectId = userStore.projectId;
-    listDppAsset(queryParams.value).then((response) => {
-      daAssetList.value = response.data.rows;
-      total.value = response.data.total;
-      loading.value = false;
-    });
-  } else {
-    listDaAsset(queryParams.value).then((response) => {
-      daAssetList.value = response.data.rows;
-      total.value = response.data.total;
-      loading.value = false;
-    });
-  }
+  queryParams.value.projectCode = userStore.projectCode;
+  queryParams.value.projectId = userStore.projectId;
+  listDppAsset(queryParams.value).then((response) => {
+    daAssetList.value = response.data.rows;
+    total.value = response.data.total;
+    loading.value = false;
+  });
 }
 
 // 取消按钮

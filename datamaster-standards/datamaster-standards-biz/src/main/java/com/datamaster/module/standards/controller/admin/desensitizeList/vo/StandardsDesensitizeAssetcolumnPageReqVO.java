@@ -43,4 +43,10 @@ public class StandardsDesensitizeAssetcolumnPageReqVO extends PageParam {
     @Schema(description = "脱敏规则ID", example = "")
     private Long ruleId;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
+
+    @Schema(description = "项目编码")
+    private String projectCode;
+
 }

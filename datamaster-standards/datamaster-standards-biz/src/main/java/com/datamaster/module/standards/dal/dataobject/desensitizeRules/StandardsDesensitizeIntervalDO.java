@@ -39,6 +39,12 @@ public class StandardsDesensitizeIntervalDO extends BaseEntity {
     /** 末尾值 */
     private Long endNum;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /** 是否有效;0：无效，1：有效 */
     private Boolean validFlag;
 

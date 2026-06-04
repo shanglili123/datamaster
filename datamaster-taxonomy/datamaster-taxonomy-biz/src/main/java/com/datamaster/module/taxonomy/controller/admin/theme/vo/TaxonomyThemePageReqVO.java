@@ -30,7 +30,10 @@ public class TaxonomyThemePageReqVO extends PageParam {
     @Schema(description = "描述", example = "")
     private String description;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
-
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

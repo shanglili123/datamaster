@@ -32,7 +32,7 @@ public class QualitySqlGenerateDM8Test {
         qualityRule.setConfig(map);
         DatasourceDO DatasourceDO = new DatasourceDO();
         DatasourceDO.setDatasourceType(DbType.DM8.getDb());
-        qualityRule.setDaDatasourceById(DatasourceDO);
+        qualityRule.setDatasourceById(DatasourceDO);
 
         CharacterValidationGenerator generator = new CharacterValidationGenerator();
         String sql = generator.generateSql(qualityRule);
@@ -60,7 +60,7 @@ public class QualitySqlGenerateDM8Test {
         qualityRule.setConfig(map);
         DatasourceDO DatasourceDO = new DatasourceDO();
         DatasourceDO.setDatasourceType(DbType.DM8.getDb());
-        qualityRule.setDaDatasourceById(DatasourceDO);
+        qualityRule.setDatasourceById(DatasourceDO);
 
         DecimalPrecisionGenerator generator = new DecimalPrecisionGenerator();
         String sql = generator.generateSql(qualityRule);
@@ -86,7 +86,7 @@ public class QualitySqlGenerateDM8Test {
         qualityRule.setConfig(map);
         DatasourceDO DatasourceDO = new DatasourceDO();
         DatasourceDO.setDatasourceType(DbType.DM8.getDb());
-        qualityRule.setDaDatasourceById(DatasourceDO);
+        qualityRule.setDatasourceById(DatasourceDO);
 
         CompositeUniquenessGenerator generator = new CompositeUniquenessGenerator();
         String sql = generator.generateSql(qualityRule);

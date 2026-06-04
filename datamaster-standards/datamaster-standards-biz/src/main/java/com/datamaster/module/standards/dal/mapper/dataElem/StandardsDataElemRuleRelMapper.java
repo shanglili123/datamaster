@@ -28,6 +28,7 @@ public interface StandardsDataElemRuleRelMapper extends BaseMapperX<StandardsDat
         lambdaWrapper.eq(StringUtils.isNotBlank(reqVO.getType()), StandardsDataElemRuleRelDO::getType, reqVO.getType())
                 .eq(reqVO.getDataElemId() != null, StandardsDataElemRuleRelDO::getDataElemId, reqVO.getDataElemId())
                 .eq(reqVO.getRuleId() != null, StandardsDataElemRuleRelDO::getRuleId, reqVO.getRuleId())
+                .eq(reqVO.getProjectId() != null, StandardsDataElemRuleRelDO::getProjectId, reqVO.getProjectId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, StandardsDataElemRuleRelDO.class, lambdaWrapper);
     }

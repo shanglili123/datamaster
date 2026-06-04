@@ -89,6 +89,12 @@ public class CatalogTableLogDO extends BaseEntity {
     /** 变更说明 */
     private String updateMsg;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /** 是否有效;0：无效，1：有效 */
     private Boolean validFlag;
 

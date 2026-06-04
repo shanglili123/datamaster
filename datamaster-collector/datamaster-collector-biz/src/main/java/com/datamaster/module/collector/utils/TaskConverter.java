@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 import com.datamaster.api.ds.api.etl.*;
 import com.datamaster.api.ds.api.etl.ds.*;
 import com.datamaster.common.config.DsRedisConfig;
-import com.datamaster.common.config.RabbitmqConfig;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.JSONUtils;
@@ -39,7 +38,6 @@ public class TaskConverter {
     private static String defaultMainClass;
     private static String defaultMaster;
     private static String resourceUrl;
-    private static RabbitmqConfig rabbitmqConfig;
     private static DsRedisConfig dsRedisConfig;
 
     @Value("${ds.spark.main_jar}")
@@ -60,11 +58,6 @@ public class TaskConverter {
     @Value("${ds.resource_url}")
     private void setResourceUrl(String resourceUrl) {
         this.resourceUrl = resourceUrl;
-    }
-
-    @Resource
-    private void setRabbitmqConfig(RabbitmqConfig rabbitmqConfig) {
-        this.rabbitmqConfig = rabbitmqConfig;
     }
 
     @Resource
@@ -1485,9 +1478,8 @@ public class TaskConverter {
         //配置config
         Map<String, Object> config = new HashMap<>();
         config.put("taskInfo", taskInfo);
-        // EtlApplication.java 连接的 Redis 配置信息（用于获取最新数据源信息，保障任务执行）
+        // EtlApplication.java 连接的 Redis 配置信息
         config.put("redis", dsRedisConfig);
-        config.put("rabbitmq", rabbitmqConfig);
         config.put("resourceUrl", resourceUrl);
         result.put("transition", transitionList);
         result.put("config", config);

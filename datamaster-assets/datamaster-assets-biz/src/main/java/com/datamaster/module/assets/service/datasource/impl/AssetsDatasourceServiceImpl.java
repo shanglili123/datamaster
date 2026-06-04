@@ -487,6 +487,18 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         if (!dbQuery.valid()) {
             throw new DataQueryException("");
         }
+        if (isSchemaCollectionDataSource(dbQueryProperty)) {
+            boolean exists = dbQuery.getTables(dbQueryProperty).stream()
+                    .anyMatch(table -> datasourceCreaTeTableReqDTO.getTableName().equals(table.getTableName()));
+            if (exists) {
+                dbQuery.close();
+                return false;
+            }
+            dbQuery.createCollectionWithSchema(dbQueryProperty, datasourceCreaTeTableReqDTO.getTableName(),
+                    datasourceCreaTeTableReqDTO.getTableComment(), datasourceCreaTeTableReqDTO.getColumnsList());
+            dbQuery.close();
+            return true;
+        }
         int tableStatus = dbQuery.generateCheckTableExistsSQL(dbQueryProperty, datasourceCreaTeTableReqDTO.getTableName());
         if (tableStatus > 0) {
             dbQuery.close();
@@ -502,6 +514,16 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     @Override
     public boolean creaDatasourceTeTable(DbQuery dbQuery, DbQueryProperty dbQueryProperty, DatasourceCreaTeTableReqDTO datasourceCreaTeTableReqDTO) {
+        if (isSchemaCollectionDataSource(dbQueryProperty)) {
+            boolean exists = dbQuery.getTables(dbQueryProperty).stream()
+                    .anyMatch(table -> datasourceCreaTeTableReqDTO.getTableName().equals(table.getTableName()));
+            if (exists) {
+                return false;
+            }
+            dbQuery.createCollectionWithSchema(dbQueryProperty, datasourceCreaTeTableReqDTO.getTableName(),
+                    datasourceCreaTeTableReqDTO.getTableComment(), datasourceCreaTeTableReqDTO.getColumnsList());
+            return true;
+        }
         int tableStatus = dbQuery.generateCheckTableExistsSQL(dbQueryProperty, datasourceCreaTeTableReqDTO.getTableName());
         if (tableStatus > 0) {
             return false;
@@ -511,6 +533,11 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
             dbQuery.execute(sql);
         }
         return true;
+    }
+
+    private boolean isSchemaCollectionDataSource(DbQueryProperty dbQueryProperty) {
+        return DbType.MONGODB.getDb().equals(dbQueryProperty.getDbType())
+                || DbType.ELASTICSEARCH.getDb().equals(dbQueryProperty.getDbType());
     }
 
     @Override

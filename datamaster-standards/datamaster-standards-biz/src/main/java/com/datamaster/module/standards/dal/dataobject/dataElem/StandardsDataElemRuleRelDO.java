@@ -81,6 +81,12 @@ private String name;
      */
     private String ruleType;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /**
      * 是否有效
      */

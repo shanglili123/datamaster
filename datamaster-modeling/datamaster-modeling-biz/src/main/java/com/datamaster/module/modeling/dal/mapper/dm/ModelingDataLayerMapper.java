@@ -32,6 +32,7 @@ public interface ModelingDataLayerMapper extends BaseMapperX<ModelingDataLayerDO
                 .eqIfPresent(ModelingDataLayerDO::getCategory, reqVO.getCategory())
                 .likeIfPresent(ModelingDataLayerDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(ModelingDataLayerDO::getCreateTime, reqVO.getCreateTime())
+                .eqIfPresent(ModelingDataLayerDO::getProjectId, reqVO.getProjectId())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(ModelingDataLayerDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

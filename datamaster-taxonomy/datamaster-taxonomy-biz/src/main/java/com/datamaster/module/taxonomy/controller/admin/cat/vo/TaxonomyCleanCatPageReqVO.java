@@ -36,6 +36,10 @@ public class TaxonomyCleanCatPageReqVO extends PageParam {
 
     private Boolean validFlag;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

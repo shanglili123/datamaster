@@ -53,6 +53,12 @@ public class StandardsDataElemAssetRelDO extends BaseEntity {
     /** 关联字段 */
     private String columnName;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /** 是否有效 */
     private Boolean validFlag;
 

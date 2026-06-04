@@ -170,11 +170,13 @@ public class ModelingDataLayerServiceImpl extends ServiceImpl<ModelingDataLayerM
         List<ModelingDataLayerDO> list = this.list();
 
         List<SysDictData> sysDictDataList = sysDictDataService.selectDictDataList(SysDictData.builder()
-                .dictType("Modeling_data_layer_category")
+                .dictType("mdl_data_layer_category")
                 .status("0")
                 .build());
 
-        sysDictDataList.stream().sorted(Comparator.comparingLong(SysDictData::getDictSort));
+        sysDictDataList = sysDictDataList.stream()
+                .sorted(Comparator.comparingLong(SysDictData::getDictSort))
+                .collect(Collectors.toList());
 
         List<ModelingDataLayerTreeRespVO> tree = sysDictDataList.stream()
                 .map(sysDictData -> ModelingDataLayerTreeRespVO.builder()
@@ -223,11 +225,13 @@ public class ModelingDataLayerServiceImpl extends ServiceImpl<ModelingDataLayerM
         List<ModelingDataLayerDO> list = this.list(lambdaWrapper);
 
         List<SysDictData> sysDictDataList = sysDictDataService.selectDictDataList(SysDictData.builder()
-                .dictType("Modeling_data_layer_category")
+                .dictType("mdl_data_layer_category")
                 .status("0")
                 .build());
 
-        sysDictDataList.stream().sorted(Comparator.comparingLong(SysDictData::getDictSort));
+        sysDictDataList = sysDictDataList.stream()
+                .sorted(Comparator.comparingLong(SysDictData::getDictSort))
+                .collect(Collectors.toList());
 
         List<TreeData> tree = sysDictDataList.stream()
                 .map(sysDictData -> TreeData.builder()

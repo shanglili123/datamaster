@@ -1,0 +1,46 @@
+datasource:
+  type: PostgreSQL
+
+spring:
+  redis:
+    host: {{ redis_ip }}
+    port: {{ redis_port }}
+    database: 0
+    password: {{ redis_password }}
+    timeout: 10s
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ postgresql_database }}?stringtype=unspecified
+          username: {{ postgresql_user }}
+          password: {{ postgresql_password }}
+
+PostgreSQL:
+  driver-class-name: org.postgresql.Driver
+  url: jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ postgresql_database }}?stringtype=unspecified
+  username: {{ postgresql_user }}
+  password: {{ postgresql_password }}
+
+ds:
+  base_url: http://{{ dolphinscheduler_ip }}:{{ dolphinscheduler_api_port }}/dolphinscheduler
+  quality_url: http://{{ datamaster_quality_ip }}:{{ datamaster_quality_port }}/quality/qualityTaskExecutor/runExecuteTask
+  incremental_prepare_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/col/etlTask/incremental/prepare
+  incremental_complete_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/col/etlTask/incremental/complete
+  mc_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/mc/taskExecutor/runExecuteTask
+  token: {{ dolphinscheduler_token }}
+  resource_url: {{ dolphinscheduler_resource_dir }}/
+  spark:
+    master_url: spark://{{ dolphinscheduler_ip }}:7077
+    main_jar: file:{{ dolphinscheduler_resource_dir }}/default/resources/spark-jar/DATAMASTER-etl-3.8.8.jar
+    main_class: com.datamaster.spark.etl.EtlApplication
+  redis:
+    host: {{ redis_ip }}
+    port: {{ redis_port }}
+    database: 0
+    password: {{ redis_password }}
+
+path:
+  quality_url: http://{{ datamaster_quality_ip }}:{{ datamaster_quality_port }}/quality/qualityTaskExecutor
+  mc_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/mc/taskExecutor

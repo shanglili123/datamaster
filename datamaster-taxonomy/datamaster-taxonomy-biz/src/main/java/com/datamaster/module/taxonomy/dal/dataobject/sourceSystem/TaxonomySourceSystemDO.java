@@ -52,6 +52,12 @@ public class TaxonomySourceSystemDO extends BaseEntity {
     private String contactPersonName;
 
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /** 删除标志;1：已删除，0：未删除 */
     @TableLogic
     private Boolean delFlag;

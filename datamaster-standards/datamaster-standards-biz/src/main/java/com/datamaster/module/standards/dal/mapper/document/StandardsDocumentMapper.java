@@ -43,7 +43,8 @@ public interface StandardsDocumentMapper extends BaseMapperX<StandardsDocumentDO
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), StandardsDocumentDO::getCatCode, reqVO.getCatCode())
                 .eq(StringUtils.isNotBlank(reqVO.getType()),StandardsDocumentDO::getType, reqVO.getType())
                 .eq(StringUtils.isNotBlank(reqVO.getStatus()),StandardsDocumentDO::getStatus, reqVO.getStatus())
-                .eq(StringUtils.isNotBlank(reqVO.getVersion()),StandardsDocumentDO::getVersion, reqVO.getVersion());
+                .eq(StringUtils.isNotBlank(reqVO.getVersion()),StandardsDocumentDO::getVersion, reqVO.getVersion())
+                .eq(reqVO.getProjectId() != null, StandardsDocumentDO::getProjectId, reqVO.getProjectId());
         if ("1".equals(reqVO.getExistStandardUrl())) {
             lambdaWrapper.isNotNull(StandardsDocumentDO::getFileUrl)
                     .ne(StandardsDocumentDO::getFileUrl, "");

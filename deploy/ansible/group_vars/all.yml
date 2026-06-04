@@ -1,0 +1,69 @@
+---
+# Global deployment root on every target server.
+deploy_root: /opt/datamaster
+timezone: Asia/Shanghai
+
+# Component IPs. Fill these after copying inventory.example.ini to inventory.ini.
+postgresql_ip: "<POSTGRESQL_IP>"
+redis_ip: "<REDIS_IP>"
+mongodb_ip: "<MONGODB_IP>"
+zookeeper_ip: "<ZOOKEEPER_IP>"
+dolphinscheduler_ip: "<DOLPHINSCHEDULER_IP>"
+datamaster_app_ip: "<DATAMASTER_APP_IP>"
+datamaster_quality_ip: "<DATAMASTER_QUALITY_IP>"
+
+# Container images.
+postgresql_image: postgres:15
+redis_image: redis:7.2
+mongodb_image: mongo:6.0
+datamaster_server_image: "crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-server-ce:1.4.0"
+datamaster_quality_image: "crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-quality-ce:1.4.0"
+
+# PostgreSQL.
+postgresql_port: 5432
+postgresql_database: DATAMASTER
+postgresql_user: DATAMASTER
+postgresql_password: "DATAMASTER"
+postgresql_init_sql_src: "../../sql/postgresql/initialization/V1.5.0_PG.sql"
+
+# Redis.
+redis_port: 6379
+redis_password: ""
+
+# MongoDB.
+mongodb_port: 27017
+mongodb_root_user: root
+mongodb_root_password: "ChangeMe_MongoRoot_123"
+mongodb_database: data
+mongodb_app_user: sjzt
+mongodb_app_password: "ChangeMe_MongoApp_123"
+
+# DolphinScheduler and ZooKeeper physical-machine deployment.
+# Put tarballs under deploy/ansible/packages/ before running if the servers cannot download them.
+zookeeper_version: "3.8.4"
+zookeeper_install_tgz: "apache-zookeeper-{{ zookeeper_version }}-bin.tar.gz"
+zookeeper_client_port: 2181
+
+dolphinscheduler_version: "3.2.2"
+dolphinscheduler_install_tgz: "apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin.tar.gz"
+dolphinscheduler_api_port: 12345
+dolphinscheduler_resource_dir: /dolphinscheduler
+dolphinscheduler_worker_group: default
+dolphinscheduler_token: "<DOLPHINSCHEDULER_TOKEN>"
+
+# Chunjun/Flink are intentionally physical files under DS host for plugin and config maintenance.
+chunjun_home: /opt/soft/chunjun
+flink_home: /opt/soft/flink
+
+# DataMaster service ports.
+datamaster_server_port: 8080
+datamaster_quality_port: 8083
+
+# Host mount layout under deploy_root.
+postgresql_dir: "{{ deploy_root }}/postgresql"
+redis_dir: "{{ deploy_root }}/redis"
+mongodb_dir: "{{ deploy_root }}/mongodb"
+app_dir: "{{ deploy_root }}/app"
+quality_dir: "{{ deploy_root }}/quality"
+zookeeper_dir: "{{ deploy_root }}/zookeeper"
+dolphinscheduler_dir: "{{ deploy_root }}/dolphinscheduler"

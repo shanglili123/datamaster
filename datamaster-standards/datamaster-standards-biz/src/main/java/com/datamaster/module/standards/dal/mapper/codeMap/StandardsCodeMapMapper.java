@@ -29,6 +29,7 @@ public interface StandardsCodeMapMapper extends BaseMapperX<StandardsCodeMapDO> 
                 .likeIfPresent(StandardsCodeMapDO::getCodeName, reqVO.getCodeName())
                 .eqIfPresent(StandardsCodeMapDO::getCodeValue, reqVO.getCodeValue())
                 .eqIfPresent(StandardsCodeMapDO::getCreateTime, reqVO.getCreateTime())
+                .eq(reqVO.getProjectId() != null, StandardsCodeMapDO::getProjectId, reqVO.getProjectId())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(StandardsCodeMapDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

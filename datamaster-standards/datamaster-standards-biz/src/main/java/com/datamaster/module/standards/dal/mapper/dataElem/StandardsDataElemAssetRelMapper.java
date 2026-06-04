@@ -31,6 +31,7 @@ public interface StandardsDataElemAssetRelMapper extends BaseMapperX<StandardsDa
                 .eq(reqVO.getAssetId() != null, StandardsDataElemAssetRelDO::getAssetId, reqVO.getAssetId())
                 .eq(reqVO.getColumnId() != null, StandardsDataElemAssetRelDO::getColumnId, reqVO.getColumnId())
                 .eq(reqVO.getCreateTime() != null, StandardsDataElemAssetRelDO::getCreateTime, reqVO.getCreateTime())
+                .eq(reqVO.getProjectId() != null, StandardsDataElemAssetRelDO::getProjectId, reqVO.getProjectId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()),
                         StringUtils.equals("asc", reqVO.getIsAsc()),
                         StringUtils.isNotBlank(reqVO.getOrderByColumn())

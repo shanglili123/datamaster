@@ -635,9 +635,15 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
             executeConfig.setSid(dataSourceConfig.getString("sid"));
         }
         if (org.apache.commons.lang3.StringUtils.equals(DbType.KINGBASE8.getDb(), executeConfig.getDbType())
-                || org.apache.commons.lang3.StringUtils.equals(DbType.POSTGRE_SQL.getDb(), executeConfig.getDbType())
-                || org.apache.commons.lang3.StringUtils.equals(DbType.SQL_SERVER.getDb(), executeConfig.getDbType())) {
-            tableName = org.apache.commons.lang3.StringUtils.isNotBlank(executeConfig.getDbName()) ? executeConfig.getDbName() + "." + executeConfig.getSid() + "." + tableName : tableName;
+                || org.apache.commons.lang3.StringUtils.equals(DbType.POSTGRE_SQL.getDb(), executeConfig.getDbType())) {
+            tableName = org.apache.commons.lang3.StringUtils.isNotBlank(executeConfig.getSid()) ? executeConfig.getSid() + "." + tableName : tableName;
+        } else if (org.apache.commons.lang3.StringUtils.equals(DbType.SQL_SERVER.getDb(), executeConfig.getDbType())) {
+            if (org.apache.commons.lang3.StringUtils.isNotBlank(executeConfig.getDbName())
+                    && org.apache.commons.lang3.StringUtils.isNotBlank(executeConfig.getSid())) {
+                tableName = executeConfig.getDbName() + "." + executeConfig.getSid() + "." + tableName;
+            } else if (org.apache.commons.lang3.StringUtils.isNotBlank(executeConfig.getDbName())) {
+                tableName = executeConfig.getDbName() + "." + tableName;
+            }
         }  else {
             tableName = org.apache.commons.lang3.StringUtils.isNotBlank(executeConfig.getDbName()) ? executeConfig.getDbName() + "." + tableName : tableName;
         }

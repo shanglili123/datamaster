@@ -19,10 +19,17 @@ public class DatabaseDialectFactory {
         dialectMap.put("mysql", new MySqlDialect());
         dialectMap.put("hive", new HiveDialect());
         dialectMap.put("dm8", new DamengDialect());
-        // 其他数据库类型做伪代码占位
-        dialectMap.put("oracle", new AbstractDialect());
-        dialectMap.put("postgresql", new AbstractDialect());
-        dialectMap.put("sqlserver", new AbstractDialect());
+        dialectMap.put("oracle", new OracleDialect());
+        dialectMap.put("oracle11", new OracleDialect());
+        dialectMap.put("postgresql", new PostgreSqlDialect());
+        dialectMap.put("kingbase8", new KingbaseCatalogDialect());
+        dialectMap.put("kingbase", new KingbaseCatalogDialect());
+        dialectMap.put("sql_server", new SqlServerDialect());
+        dialectMap.put("sql_server2008", new SqlServerDialect());
+        dialectMap.put("sqlserver", new SqlServerDialect());
+        dialectMap.put("clickhouse", new ClickHouseCatalogDialect());
+        dialectMap.put("click_house", new ClickHouseCatalogDialect());
+        dialectMap.put("doris", new DorisCatalogDialect());
     }
 
     /**

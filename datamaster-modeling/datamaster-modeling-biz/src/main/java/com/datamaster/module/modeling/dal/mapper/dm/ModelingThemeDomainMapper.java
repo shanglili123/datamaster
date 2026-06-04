@@ -45,6 +45,7 @@ public interface ModelingThemeDomainMapper extends BaseMapperX<ModelingThemeDoma
                 .eqIfPresent(ModelingThemeDomainDO::getDataLayerId, reqVO.getDataLayerId())
                 .likeIfPresent(ModelingThemeDomainDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(ModelingThemeDomainDO::getCreateTime, reqVO.getCreateTime())
+                .eqIfPresent(ModelingThemeDomainDO::getProjectId, reqVO.getProjectId())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(ModelingThemeDomainDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

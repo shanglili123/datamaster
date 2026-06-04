@@ -32,6 +32,7 @@ public interface StandardsDesensitizeIntervalMapper extends BaseMapperX<Standard
                 .eqIfPresent(StandardsDesensitizeIntervalDO::getEndNum, reqVO.getEndNum())
                 .eqIfPresent(StandardsDesensitizeIntervalDO::getValidFlag, reqVO.getValidFlag())
                 .eqIfPresent(StandardsDesensitizeIntervalDO::getCreateTime, reqVO.getCreateTime())
+                .eq(reqVO.getProjectId() != null, StandardsDesensitizeIntervalDO::getProjectId, reqVO.getProjectId())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(StandardsDesensitizeIntervalDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

@@ -49,7 +49,10 @@ public class TaxonomyTagPageReqVO extends PageParam {
     @Schema(description = "同义词", example = "")
     private String synonyms;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
-
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

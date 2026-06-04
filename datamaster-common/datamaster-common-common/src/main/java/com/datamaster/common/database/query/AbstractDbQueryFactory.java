@@ -39,6 +39,7 @@ import javax.sql.DataSource;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -48,6 +49,7 @@ import java.util.Base64;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import com.mongodb.client.model.IndexOptions;
 
 @Setter
 public abstract class AbstractDbQueryFactory implements DbQuery {
@@ -395,6 +397,12 @@ public abstract class AbstractDbQueryFactory implements DbQuery {
     @Override
     public int createCollectionWithSchema(DbQueryProperty dbQueryProperty, String tableName, String tableComment,
                                           List<DbColumn> dbColumnList) {
+        if (DbType.MONGODB.getDb().equals(dbQueryProperty.getDbType())) {
+            return createMongoCollectionWithSchema(dbQueryProperty, tableName, dbColumnList);
+        }
+        if (DbType.ELASTICSEARCH.getDb().equals(dbQueryProperty.getDbType())) {
+            return createElasticsearchIndexWithSchema(dbQueryProperty, tableName, dbColumnList);
+        }
 
         List<String> sql = dbDialect.someInternalSqlGenerator(dbQueryProperty, tableName, tableComment, dbColumnList);
 
@@ -402,6 +410,84 @@ public abstract class AbstractDbQueryFactory implements DbQuery {
             this.execute(string);
         }
         return 1;
+    }
+
+    private int createMongoCollectionWithSchema(DbQueryProperty property, String collectionName, List<DbColumn> columns) {
+        try (MongoClient client = createMongoClient(property)) {
+            MongoDatabase database = client.getDatabase(property.getDbName());
+            boolean exists = false;
+            for (String name : database.listCollectionNames()) {
+                if (collectionName.equals(name)) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                database.createCollection(collectionName);
+            }
+            MongoCollection<Document> collection = database.getCollection(collectionName);
+            if (CollectionUtils.isNotEmpty(columns)) {
+                for (DbColumn column : columns) {
+                    if (Boolean.TRUE.equals(column.getColKey()) && !"_id".equals(column.getColName())) {
+                        collection.createIndex(new Document(column.getColName(), 1), new IndexOptions().unique(true));
+                    }
+                }
+            }
+        }
+        return 1;
+    }
+
+    private int createElasticsearchIndexWithSchema(DbQueryProperty property, String indexName, List<DbColumn> columns) {
+        JSONObject body = new JSONObject();
+        JSONObject mappings = new JSONObject();
+        JSONObject properties = new JSONObject();
+        if (CollectionUtils.isNotEmpty(columns)) {
+            for (DbColumn column : columns) {
+                JSONObject field = new JSONObject();
+                field.put("type", elasticsearchType(column.getDataType()));
+                properties.put(column.getColName(), field);
+            }
+        }
+        mappings.put("properties", properties);
+        body.put("mappings", mappings);
+        esRequest(property, "/" + indexName, "PUT", body.toJSONString());
+        return 1;
+    }
+
+    private String elasticsearchType(String dataType) {
+        if (dataType == null) {
+            return "keyword";
+        }
+        switch (dataType.toUpperCase()) {
+            case "TEXT":
+                return "text";
+            case "VARCHAR":
+            case "VARCHAR2":
+            case "CHAR":
+            case "STRING":
+                return "keyword";
+            case "INT":
+            case "INTEGER":
+                return "integer";
+            case "BIGINT":
+                return "long";
+            case "FLOAT":
+                return "float";
+            case "DOUBLE":
+            case "DECIMAL":
+            case "NUMERIC":
+            case "NUMBER":
+                return "double";
+            case "BOOLEAN":
+            case "BOOL":
+                return "boolean";
+            case "DATE":
+            case "DATETIME":
+            case "TIMESTAMP":
+                return "date";
+            default:
+                return "keyword";
+        }
     }
 
     @Override
@@ -1129,28 +1215,39 @@ public abstract class AbstractDbQueryFactory implements DbQuery {
     }
 
     private String esRequest(DbQueryProperty property, String path) {
+        return esRequest(property, path, "GET", null);
+    }
+
+    private String esRequest(DbQueryProperty property, String path, String method, String body) {
         try {
             URL url = new URL(property.trainToJdbcUrl() + path);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
+            conn.setRequestMethod(method);
             if (org.apache.commons.lang3.StringUtils.isNotBlank(property.getUsername())
                     && org.apache.commons.lang3.StringUtils.isNotBlank(property.getPassword())) {
                 String token = property.getUsername() + ":" + property.getPassword();
                 conn.setRequestProperty("Authorization", "Basic " + Base64.getEncoder().encodeToString(token.getBytes("UTF-8")));
             }
+            if (body != null) {
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+                try (OutputStream output = conn.getOutputStream()) {
+                    output.write(body.getBytes("UTF-8"));
+                }
+            }
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(10000);
             InputStream input = conn.getResponseCode() < 400 ? conn.getInputStream() : conn.getErrorStream();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, "UTF-8"))) {
-                StringBuilder body = new StringBuilder();
+                StringBuilder body1 = new StringBuilder();
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    body.append(line);
+                    body1.append(line);
                 }
                 if (conn.getResponseCode() >= 400) {
                     throw new DataQueryException("Elasticsearch元数据请求失败: " + body);
                 }
-                return body.toString();
+                return body1.toString();
             }
         } catch (Exception e) {
             if (e instanceof DataQueryException) {

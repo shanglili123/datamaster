@@ -36,5 +36,10 @@ public class StandardsDesensitizeUserRelPageReqVO extends PageParam {
     @Schema(description = "生效分类;1：用户 2：角色 3：部门", example = "")
     private String effectiveCategory;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
+
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

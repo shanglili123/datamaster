@@ -241,39 +241,59 @@ public class DbQueryProperty implements Serializable {
 
     @Deprecated
     public String trainToJdbcWriterName() {
-        if (DbType.ORACLE.getDb().equals(this.getDbType())) {
-            return "oraclewriter"; // Oracle 类型返回 "oraclewriter"
-        } else if (DbType.MYSQL.getDb().equals(this.getDbType())) {
-            return "mysqlwriter"; // MySQL 类型返回 "mysqlwriter"
-        } else if (DbType.POSTGRE_SQL.getDb().equals(this.getDbType())) {
-            return "postgresqlwriter"; // PostgreSQL 类型返回 "postgresqlwriter"
-        } else if (DbType.SQL_SERVER.getDb().equals(this.getDbType())) {
-            return "sqlserverwriter"; // SQLServer 类型返回 "sqlserverwriter"
-        } else if (DbType.DM8.getDb().equals(this.getDbType())) {
-            return "rdbmswriter"; // 达梦8 类型返回 "rdbmswriter"
-        } else if (DbType.KINGBASE8.getDb().equals(this.getDbType())) {
-            return "kingbaseeswriter"; // 人大金仓 类型返回 "rdbmswriter"
-        } else {
-            return "defaultwriter"; // 默认返回 "defaultwriter"
-        }
+        return trainToChunjunPluginName(false);
     }
 
     @Deprecated
     public String trainToJdbcReaderName() {
-        if (DbType.ORACLE.getDb().equals(this.getDbType())) {
-            return "oraclereader"; // Oracle 类型返回 "oraclewriter"
-        } else if (DbType.MYSQL.getDb().equals(this.getDbType())) {
-            return "mysqlreader"; // MySQL 类型返回 "mysqlwriter"
-        } else if (DbType.POSTGRE_SQL.getDb().equals(this.getDbType())) {
-            return "postgresqlreader"; // PostgreSQL 类型返回 "postgresqlwriter"
-        } else if (DbType.SQL_SERVER.getDb().equals(this.getDbType())) {
-            return "sqlserverreader"; // SQLServer 类型返回 "sqlserverwriter"
-        } else if (DbType.DM8.getDb().equals(this.getDbType())) {
-            return "rdbmsreader"; // 达梦8 类型返回 "rdbmswriter"
-        } else if (DbType.KINGBASE8.getDb().equals(this.getDbType())) {
-            return "kingbaseesreader"; // 人大金仓 类型返回 "rdbmswriter"
-        } else {
-            return "defaultreader"; // 默认返回 "defaultwriter"
+        return trainToChunjunPluginName(true);
+    }
+
+    private String trainToChunjunPluginName(boolean reader) {
+        DbType type = DbType.getDbType(this.getDbType());
+        String suffix = reader ? "reader" : "writer";
+        switch (type) {
+            case MYSQL:
+            case MARIADB:
+                return "mysql" + suffix;
+            case ORACLE:
+            case ORACLE_12C:
+                return "oracle" + suffix;
+            case POSTGRE_SQL:
+                return "postgresql" + suffix;
+            case SQL_SERVER:
+            case SQL_SERVER2008:
+                return "sqlserver" + suffix;
+            case DM8:
+                return "dm" + suffix;
+            case KINGBASE8:
+                return "kingbase" + suffix;
+            case DORIS:
+                return "doris" + suffix;
+            case CLICK_HOUSE:
+                return "clickhouse" + suffix;
+            case HIVE:
+                return "hive" + suffix;
+            case MONGODB:
+                return "mongodb" + suffix;
+            case ELASTICSEARCH:
+                return "elasticsearch7" + suffix;
+            case DB2:
+                return "db2" + suffix;
+            case KAFKA:
+                return "kafka" + suffix;
+            case RABBITMQ:
+                return "rabbitmq" + suffix;
+            case REDIS:
+                return "redis" + suffix;
+            case HDFS:
+                return "hdfs" + suffix;
+            case FTP:
+                return "ftp" + suffix;
+            case OSS_ALIYUN:
+                return "s3" + suffix;
+            default:
+                throw new DataQueryException("FlinkX 不支持的数据库类型: " + this.getDbType());
         }
     }
 

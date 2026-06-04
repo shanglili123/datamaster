@@ -2,56 +2,37 @@
 
 package com.datamaster.module.collector.listener;
 
-import com.rabbitmq.client.Channel;
+import com.alibaba.fastjson2.JSON;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.data.redis.connection.Message;
+import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.stereotype.Component;
 import com.datamaster.module.collector.service.etl.ICollectorEtlNodeInstanceService;
 
 import javax.annotation.Resource;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-/**
- * <P>
- * 用途:
- * </p>
- *
- * @author: FXB
- * @create: 2025-02-24 14:26
- **/
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TaskLogListener {
+public class TaskLogListener implements MessageListener {
 
     @Resource
     private ICollectorEtlNodeInstanceService CollectorEtlNodeInstanceService;
 
-    @SneakyThrows
-    @RabbitListener(bindings = @QueueBinding(exchange = @Exchange(name = "ds.exchange.taskInstance.log", type = "direct", durable = "true", autoDelete = "false"),
-            key = {"ds.queue.taskInstance.log"},
-            value = @Queue(value = "ds.queue.taskInstance.log", durable = "true", exclusive = "false", autoDelete = "false")))
-    public void taskInstanceLogInsert(Map map, Channel channel, Message message) {
-        //任务实例id
+    @Override
+    public void onMessage(Message message, byte[] pattern) {
+        String body = new String(message.getBody(), StandardCharsets.UTF_8);
+        Map map = JSON.parseObject(body, Map.class);
         String taskInstanceId = String.valueOf(map.get("taskInstanceId"));
-        //工作流实例id
         String processInstanceId = String.valueOf(map.get("workflowInstanceId"));
-        //日志
         String logStr = String.valueOf(map.get("log"));
-        //处理日志
         try {
             CollectorEtlNodeInstanceService.taskInstanceLogInsert(taskInstanceId, processInstanceId, logStr);
         } catch (Exception e) {
             log.error("任务实例日志插入异常:{}", e.getMessage());
         }
-
-        // 手动确认
-        channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
     }
 }

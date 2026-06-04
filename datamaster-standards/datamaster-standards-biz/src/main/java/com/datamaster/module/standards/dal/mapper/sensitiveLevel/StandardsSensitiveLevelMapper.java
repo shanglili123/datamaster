@@ -32,6 +32,7 @@ public interface StandardsSensitiveLevelMapper extends BaseMapperX<StandardsSens
                 .eqIfPresent(StandardsSensitiveLevelDO::getOnlineFlag, reqVO.getOnlineFlag())
                 .eqIfPresent(StandardsSensitiveLevelDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(StandardsSensitiveLevelDO::getCreateTime, reqVO.getCreateTime())
+                .eq(reqVO.getProjectId() != null, StandardsSensitiveLevelDO::getProjectId, reqVO.getProjectId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
     }
 

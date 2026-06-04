@@ -32,6 +32,7 @@ public interface ServiceApiLogMapper extends BaseMapperX<ServiceApiLogDO> {
                 .eq(reqVO.getApiId() != null, ServiceApiLogDO::getApiId, reqVO.getApiId())
                 .eq(reqVO.getCallerId() != null, ServiceApiLogDO::getCallerId, reqVO.getCallerId())
                 .eq(reqVO.getStatus() != null, ServiceApiLogDO::getStatus, reqVO.getStatus())
+                .eq(reqVO.getProjectId() != null, ServiceApiLogDO::getProjectId, reqVO.getProjectId())
                 .between(com.datamaster.common.utils.StringUtils.isNotNull(reqVO.getParamByKey("beginCreateTime"))
                         &&com.datamaster.common.utils.StringUtils.isNotNull(reqVO.getParamByKey("endCreateTime")),
                         ServiceApiDO::getCreateTime, reqVO.getParamByKey("beginCreateTime"), reqVO.getParamByKey("endCreateTime"))

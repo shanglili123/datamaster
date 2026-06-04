@@ -46,6 +46,7 @@ public interface StandardsDataCategoryMapper extends BaseMapperX<StandardsDataCa
                 .eqIfPresent(StandardsDataCategoryDO::getDataLevelId, reqVO.getDataLevelId())
                 .eqIfPresent(StandardsDataCategoryDO::getPriority, reqVO.getPriority())
                 .eqIfPresent(StandardsDataCategoryDO::getValidFlag, reqVO.getValidFlag())
+                .eq(reqVO.getProjectId() != null, StandardsDataCategoryDO::getProjectId, reqVO.getProjectId())
                 // 按照 createTime 字段降序排序
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()),
                         StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);

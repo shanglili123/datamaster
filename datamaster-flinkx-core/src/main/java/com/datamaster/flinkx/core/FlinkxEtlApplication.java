@@ -16,7 +16,6 @@ import com.datamaster.flinkx.core.model.FlinkxJobBundle;
 import com.datamaster.flinkx.core.model.FlinkxJobConfig;
 import com.datamaster.flinkx.core.service.DolphinSchedulerTaskPublisher;
 import com.datamaster.flinkx.core.service.FlinkxTaskConfigConverter;
-import com.datamaster.flinkx.core.service.RabbitmqProcessPublisher;
 import com.datamaster.flinkx.core.service.TaskLifecyclePublisher;
 import com.datamaster.flinkx.core.util.EtlIdGenerator;
 import com.datamaster.flinkx.core.util.EtlLog;
@@ -113,7 +112,6 @@ public class FlinkxEtlApplication {
         Map<String, Object> processInstanceMap = new HashMap<>();
         processInstanceMap.put("type", 1);
         processInstanceMap.put("instance", processInstance);
-        RabbitmqProcessPublisher.publish(rabbitmq, processInstanceMap);
         return processInstance;
     }
 
@@ -123,7 +121,6 @@ public class FlinkxEtlApplication {
         Map<String, Object> processInstanceMap = new HashMap<>();
         processInstanceMap.put("type", 2);
         processInstanceMap.put("instance", processInstance);
-        RabbitmqProcessPublisher.publish(rabbitmq, processInstanceMap);
     }
 
     public static TaskInstance createTask(ProcessInstance processInstance, JSONObject config, Date now, JSONObject rabbitmq) {

@@ -53,7 +53,10 @@ public class StandardsModelColumnPageReqVO extends PageParam {
     @Schema(description = "数据元id", example = "")
     private Long dataElemId;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
-
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

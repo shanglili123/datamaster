@@ -75,6 +75,7 @@ public interface CatalogTaskInstanceMapper extends BaseMapperX<CatalogTaskInstan
                         CatalogTaskInstanceDO::getCreateTime, reqVO.getCreateTimeStart())
                 .le(reqVO.getCreateTimeEnd() != null,
                         CatalogTaskInstanceDO::getCreateTime, reqVO.getCreateTimeEnd())
+                .eq(reqVO.getProjectId() != null, CatalogTaskInstanceDO::getProjectId, reqVO.getProjectId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, CatalogTaskInstanceDO.class, lambdaWrapper);
 

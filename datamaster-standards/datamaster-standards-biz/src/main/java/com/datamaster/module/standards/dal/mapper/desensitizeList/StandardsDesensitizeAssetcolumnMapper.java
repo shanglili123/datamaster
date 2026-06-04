@@ -52,6 +52,7 @@ public interface StandardsDesensitizeAssetcolumnMapper extends BaseMapperX<Stand
         lambdaWrapper
                 //根据ValidFlag查询
                 .eqIfPresent(StandardsDesensitizeAssetcolumnDO::getValidFlag, reqVO.getValidFlag())
+                .eq(reqVO.getProjectId() != null, StandardsDesensitizeAssetcolumnDO::getProjectId, reqVO.getProjectId())
                 // 按照 createTime 字段降序排序
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()),
                         StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
@@ -80,6 +81,7 @@ public interface StandardsDesensitizeAssetcolumnMapper extends BaseMapperX<Stand
                 .leftJoin("STD_DESENSITIZE_RULE t6 ON t6.DATA_CATEGORY_ID =t4.ID  AND t6.DEL_FLAG = '0'")
                 .like(StringUtils.isNotBlank(reqVO.getAssetName()), StandardsDesensitizeAssetcolumnDO::getAssetName, reqVO.getAssetName())
                 .eq(reqVO.getRuleId() != null, "t6.ID", reqVO.getRuleId())
+                .eq(reqVO.getProjectId() != null, StandardsDesensitizeAssetcolumnDO::getProjectId, reqVO.getProjectId())
                 // 按照 createTime 字段降序排序
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()),
                         StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);

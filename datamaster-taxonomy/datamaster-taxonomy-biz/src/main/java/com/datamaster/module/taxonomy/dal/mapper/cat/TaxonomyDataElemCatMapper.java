@@ -36,6 +36,7 @@ public interface TaxonomyDataElemCatMapper extends BaseMapperX<TaxonomyDataElemC
                 // .likeIfPresent(TaxonomyDataElemCatDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
 //                .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
+                .eq(reqVO.getProjectId() != null, TaxonomyDataElemCatDO::getProjectId, reqVO.getProjectId())
                 .orderByAsc(TaxonomyDataElemCatDO::getSortOrder));
     }
 

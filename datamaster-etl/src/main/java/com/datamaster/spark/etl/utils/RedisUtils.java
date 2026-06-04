@@ -307,6 +307,17 @@ public final class RedisUtils {
         try { return cfg.getIntValue(k); } catch (Exception ignore) { return defVal; }
     }
 
+    // ======= Pub/Sub =======
+
+    public static void publish(String channel, Object message) {
+        try {
+            String json = com.alibaba.fastjson2.JSONObject.toJSONString(message);
+            cmd().publish(channel, json);
+        } catch (Exception e) {
+            throw wrap("PUBLISH channel=" + channel, e);
+        }
+    }
+
     // ======= 自测 =======
 
     public static void main(String[] args) throws Exception {

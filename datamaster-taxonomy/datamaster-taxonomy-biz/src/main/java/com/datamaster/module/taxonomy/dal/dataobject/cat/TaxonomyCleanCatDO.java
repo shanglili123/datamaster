@@ -42,6 +42,12 @@ public class TaxonomyCleanCatDO extends BaseEntity {
     /** 层级编码 */
     private String code;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /** 是否有效 */
     private Boolean validFlag;
 

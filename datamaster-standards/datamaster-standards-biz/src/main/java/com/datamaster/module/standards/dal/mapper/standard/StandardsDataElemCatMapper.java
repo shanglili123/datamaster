@@ -36,6 +36,7 @@ public interface StandardsDataElemCatMapper extends BaseMapperX<StandardsDataEle
                 .eqIfPresent(StandardsDataElemCatDO::getDescription, reqVO.getDescription())
                 .likeRightIfPresent(StandardsDataElemCatDO::getCode, reqVO.getCode())
                 .eqIfPresent(StandardsDataElemCatDO::getCreateTime, reqVO.getCreateTime())
+                .eq(reqVO.getProjectId() != null, StandardsDataElemCatDO::getProjectId, reqVO.getProjectId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns)
                 .orderBy(!reqVO.getOrderByColumn().contains("create_time") && !reqVO.getOrderByColumn().contains("createTime"),
                         false, BaseEntity::getCreateTime);

@@ -36,6 +36,7 @@ public interface TaxonomyCleanRuleMapper extends BaseMapperX<TaxonomyCleanRuleDO
                 .eq(StringUtils.isNotBlank(reqVO.getType()), TaxonomyCleanRuleDO::getType, reqVO.getType())
                 .eq(StringUtils.isNotBlank(reqVO.getCode()), TaxonomyCleanRuleDO::getCode, reqVO.getCode())
                 .eq(StringUtils.isNotBlank(reqVO.getLevel()), TaxonomyCleanRuleDO::getLevel, reqVO.getLevel())
+                .eq(reqVO.getProjectId() != null, TaxonomyCleanRuleDO::getProjectId, reqVO.getProjectId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
 
         return selectJoinPage(reqVO, TaxonomyCleanRuleDO.class, lambdaWrapper);

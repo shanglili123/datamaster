@@ -96,6 +96,12 @@ public class CatalogDbDO extends BaseEntity {
     /** 状态;0：未发布，1：已发布 */
     private String status;
 
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
+
     /** 是否有效;0：无效，1：有效 */
     private Boolean validFlag;
 

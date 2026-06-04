@@ -37,8 +37,16 @@ public class SysHomeServiceImpl implements ISysHomeService {
         long integrationTaskFailed = sysHomeMapper.countIntegrationTaskFailed(projectId);
         long developTaskTotal = sysHomeMapper.countDevelopTaskTotal(projectId);
         long developTaskFailed = sysHomeMapper.countDevelopTaskFailed(projectId);
-        long apiCallTotal = sysHomeMapper.countApiCallTotal();
-        long apiCallFailed = sysHomeMapper.countApiCallFailed();
+        long apiCallTotal = sysHomeMapper.countApiCallTotal(projectId);
+        long apiCallFailed = sysHomeMapper.countApiCallFailed(projectId);
+        long datasourceTotal = sysHomeMapper.countDatasourceTotal(projectId);
+        long catalogTableTotal = sysHomeMapper.countCatalogTableTotal(projectId);
+        long apiTotal = sysHomeMapper.countApiTotal(projectId);
+        long dataElemTotal = sysHomeMapper.countDataElemTotal(projectId);
+        long modelTotal = sysHomeMapper.countModelTotal(projectId);
+        long tagTotal = sysHomeMapper.countTagTotal(projectId);
+        long collectTaskTotal = sysHomeMapper.countCollectTaskTotal(projectId);
+        long documentTotal = sysHomeMapper.countDocumentTotal(projectId);
         List<Map<String, Object>> tableRows = sysHomeMapper.selectTableRows(projectId);
 
         data.put("integrationTaskTotal", integrationTaskTotal);
@@ -47,6 +55,14 @@ public class SysHomeServiceImpl implements ISysHomeService {
         data.put("developTaskFailed", developTaskFailed);
         data.put("apiCallTotal", apiCallTotal);
         data.put("apiCallFailed", apiCallFailed);
+        data.put("datasourceTotal", datasourceTotal);
+        data.put("catalogTableTotal", catalogTableTotal);
+        data.put("apiTotal", apiTotal);
+        data.put("dataElemTotal", dataElemTotal);
+        data.put("modelTotal", modelTotal);
+        data.put("tagTotal", tagTotal);
+        data.put("collectTaskTotal", collectTaskTotal);
+        data.put("documentTotal", documentTotal);
         data.put("tableRows", tableRows != null ? tableRows : Collections.emptyList());
         return data;
     }

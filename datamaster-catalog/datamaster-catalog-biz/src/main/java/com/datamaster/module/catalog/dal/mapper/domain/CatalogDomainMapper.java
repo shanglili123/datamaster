@@ -38,6 +38,7 @@ public interface CatalogDomainMapper extends BaseMapperX<CatalogDomainDO> {
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(CatalogDomainDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
+                .eq(reqVO.getProjectId() != null, CatalogDomainDO::getProjectId, reqVO.getProjectId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
     }
 
@@ -55,6 +56,7 @@ public interface CatalogDomainMapper extends BaseMapperX<CatalogDomainDO> {
                 .eqIfPresent(CatalogDomainDO::getDescription, reqVO.getDescription())
                 .likeRightIfPresent(CatalogDomainDO::getCode, reqVO.getCode())
                 .eqIfPresent(CatalogDomainDO::getCreateTime, reqVO.getCreateTime())
+                .eq(reqVO.getProjectId() != null, CatalogDomainDO::getProjectId, reqVO.getProjectId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns);
         // FIXME 迁移时候存在问题
         //queryWrapperX.orderBy(!reqVO.getOrderByColumn().contains("create_time") && !reqVO.getOrderByColumn().contains("createTime"),

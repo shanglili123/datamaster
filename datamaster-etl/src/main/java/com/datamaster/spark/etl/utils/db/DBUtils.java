@@ -75,6 +75,18 @@ public class DBUtils {
                     Class.forName("com.kingbase8.Driver");
                     options.put("driver", "com.kingbase8.Driver");
                     break;
+                case POSTGRE_SQL:
+                    Class.forName("org.postgresql.Driver");
+                    options.put("driver", "org.postgresql.Driver");
+                    break;
+                case CLICK_HOUSE:
+                    Class.forName("com.clickhouse.jdbc.ClickHouseDriver");
+                    options.put("driver", "com.clickhouse.jdbc.ClickHouseDriver");
+                    break;
+                case HIVE:
+                    Class.forName("org.apache.hive.jdbc.HiveDriver");
+                    options.put("driver", "org.apache.hive.jdbc.HiveDriver");
+                    break;
                 case SQL_SERVER2008:
                     if (StringUtils.startsWith(jdbcUrl, "jdbc:jtds:sqlserver")) {
                         Class.forName("net.sourceforge.jtds.jdbc.Driver");

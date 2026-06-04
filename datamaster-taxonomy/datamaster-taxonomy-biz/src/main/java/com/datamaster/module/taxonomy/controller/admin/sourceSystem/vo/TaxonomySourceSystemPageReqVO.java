@@ -40,6 +40,10 @@ public class TaxonomySourceSystemPageReqVO extends PageParam {
     @Schema(description = "对接人", example = "")
     private String contactPerson;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

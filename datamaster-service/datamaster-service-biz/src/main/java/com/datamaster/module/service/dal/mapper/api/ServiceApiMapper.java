@@ -34,6 +34,7 @@ public interface ServiceApiMapper extends BaseMapperX<ServiceApiDO> {
                 .in(reqVO.getCatIds() != null && !reqVO.getCatIds().isEmpty(),ServiceApiDO::getCatId,reqVO.getCatIds())
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), ServiceApiDO::getCatCode, reqVO.getCatCode())
                 .eq(StringUtils.isNotBlank(reqVO.getStatus()),ServiceApiDO::getStatus, reqVO.getStatus())
+                .eq(reqVO.getProjectId() != null, ServiceApiDO::getProjectId, reqVO.getProjectId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, ServiceApiDO.class, lambdaWrapper);
     }

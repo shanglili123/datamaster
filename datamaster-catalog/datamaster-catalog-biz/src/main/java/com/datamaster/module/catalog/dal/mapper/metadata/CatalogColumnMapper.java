@@ -66,6 +66,7 @@ public interface CatalogColumnMapper extends BaseMapperX<CatalogColumnDO> {
                 .eqIfPresent(CatalogColumnDO::getStatus, reqVO.getStatus())
                 .eqIfPresent(CatalogColumnDO::getCreateTime, reqVO.getCreateTime())
                 .eqIfPresent(CatalogColumnDO::getDescription, reqVO.getDescription())
+                .eq(reqVO.getProjectId() != null, CatalogColumnDO::getProjectId, reqVO.getProjectId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns);
         lambdaWrapperX.apply(selfScopeWithUnassigned, "(t.BUSINESS_LEADER = {0} OR (t.BUSINESS_LEADER IS NULL AND t.RESPONSIBLE_DEPT IS NULL))", reqVO.getBusinessLeader());
         lambdaWrapperX.eq(!selfScopeWithUnassigned && reqVO.getBusinessLeader() != null, CatalogColumnDO::getBusinessLeader, reqVO.getBusinessLeader());

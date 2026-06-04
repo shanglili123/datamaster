@@ -30,15 +30,6 @@ public class EtlApplicationTest {
         // 配置对象
         JSONObject config = new JSONObject();
         
-        // RabbitMQ配置
-        JSONObject rabbitmq = new JSONObject();
-        rabbitmq.put("host", "localhost");
-        rabbitmq.put("port", 5672);
-        rabbitmq.put("username", "guest");
-        rabbitmq.put("password", "guest");
-        rabbitmq.put("virtualHost", "/");
-        config.put("rabbitmq", rabbitmq);
-        
         // Redis配置
         JSONObject redis = new JSONObject();
         redis.put("host", "localhost");
@@ -93,17 +84,12 @@ public class EtlApplicationTest {
         JSONObject parsedConfig = parsedTaskParams.getJSONObject("config");
         assertNotNull(parsedConfig, "Config should not be null");
         
-        JSONObject parsedRabbitmq = parsedConfig.getJSONObject("rabbitmq");
-        assertNotNull(parsedRabbitmq, "RabbitMQ config should not be null");
-        
         JSONObject parsedRedis = parsedConfig.getJSONObject("redis");
         assertNotNull(parsedRedis, "Redis config should not be null");
         
         JSONObject parsedTaskInfo = parsedConfig.getJSONObject("taskInfo");
         assertNotNull(parsedTaskInfo, "TaskInfo config should not be null");
         
-        // 验证一些值
-        assertTrue(parsedRabbitmq.getString("host").equals("localhost"), "RabbitMQ host should be localhost");
         assertTrue(parsedRedis.getString("host").equals("localhost"), "Redis host should be localhost");
         assertTrue(parsedTaskInfo.getString("name").equals("test_task"), "Task name should be test_task");
         

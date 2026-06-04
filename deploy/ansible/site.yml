@@ -1,0 +1,203 @@
+---
+- name: Prepare common directories
+  hosts: all
+  tasks:
+    - name: Create global deployment directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ deploy_root }}"
+        - "{{ deploy_root }}/packages"
+
+- name: Deploy PostgreSQL container
+  hosts: postgresql_servers
+  tasks:
+    - name: Create PostgreSQL mount directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ postgresql_dir }}/data"
+        - "{{ postgresql_dir }}/conf"
+        - "{{ postgresql_dir }}/logs"
+        - "{{ postgresql_dir }}/init"
+    - name: Upload PostgreSQL init SQL
+      ansible.builtin.copy:
+        src: "{{ postgresql_init_sql_src }}"
+        dest: "{{ postgresql_dir }}/init/01-datamaster.sql"
+        mode: "0644"
+    - name: Render PostgreSQL compose
+      ansible.builtin.template:
+        src: templates/postgresql-compose.yml.j2
+        dest: "{{ postgresql_dir }}/docker-compose.yml"
+        mode: "0644"
+    - name: Start PostgreSQL
+      ansible.builtin.command: docker compose up -d
+      args:
+        chdir: "{{ postgresql_dir }}"
+
+- name: Deploy Redis container
+  hosts: redis_servers
+  tasks:
+    - name: Create Redis mount directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ redis_dir }}/data"
+        - "{{ redis_dir }}/conf"
+        - "{{ redis_dir }}/logs"
+    - name: Render Redis config
+      ansible.builtin.template:
+        src: templates/redis.conf.j2
+        dest: "{{ redis_dir }}/conf/redis.conf"
+        mode: "0644"
+    - name: Render Redis compose
+      ansible.builtin.template:
+        src: templates/redis-compose.yml.j2
+        dest: "{{ redis_dir }}/docker-compose.yml"
+        mode: "0644"
+    - name: Start Redis
+      ansible.builtin.command: docker compose up -d
+      args:
+        chdir: "{{ redis_dir }}"
+
+- name: Deploy MongoDB container
+  hosts: mongodb_servers
+  tasks:
+    - name: Create MongoDB mount directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ mongodb_dir }}/data"
+        - "{{ mongodb_dir }}/conf"
+        - "{{ mongodb_dir }}/logs"
+        - "{{ mongodb_dir }}/init"
+    - name: Render MongoDB init script
+      ansible.builtin.template:
+        src: templates/mongo-init.js.j2
+        dest: "{{ mongodb_dir }}/init/01-create-datamaster-user.js"
+        mode: "0644"
+    - name: Render MongoDB compose
+      ansible.builtin.template:
+        src: templates/mongodb-compose.yml.j2
+        dest: "{{ mongodb_dir }}/docker-compose.yml"
+        mode: "0644"
+    - name: Start MongoDB
+      ansible.builtin.command: docker compose up -d
+      args:
+        chdir: "{{ mongodb_dir }}"
+
+- name: Deploy ZooKeeper on physical machine
+  hosts: zookeeper_servers
+  tasks:
+    - name: Create ZooKeeper directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ zookeeper_dir }}/data"
+        - "{{ zookeeper_dir }}/logs"
+        - "{{ deploy_root }}/packages"
+    - name: Upload ZooKeeper package when present locally
+      ansible.builtin.copy:
+        src: "packages/{{ zookeeper_install_tgz }}"
+        dest: "{{ deploy_root }}/packages/{{ zookeeper_install_tgz }}"
+        mode: "0644"
+      ignore_errors: true
+    - name: Render ZooKeeper physical install script
+      ansible.builtin.template:
+        src: templates/install-zookeeper.sh.j2
+        dest: "{{ zookeeper_dir }}/install-zookeeper.sh"
+        mode: "0755"
+    - name: Install or refresh ZooKeeper service
+      ansible.builtin.command: "{{ zookeeper_dir }}/install-zookeeper.sh"
+
+- name: Deploy DolphinScheduler on physical machine
+  hosts: dolphinscheduler_servers
+  tasks:
+    - name: Create DolphinScheduler directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ dolphinscheduler_dir }}/logs"
+        - "{{ dolphinscheduler_dir }}/conf"
+        - "{{ dolphinscheduler_resource_dir }}"
+        - /opt/soft
+        - "{{ deploy_root }}/packages"
+    - name: Upload DolphinScheduler package when present locally
+      ansible.builtin.copy:
+        src: "packages/{{ dolphinscheduler_install_tgz }}"
+        dest: "{{ deploy_root }}/packages/{{ dolphinscheduler_install_tgz }}"
+        mode: "0644"
+      ignore_errors: true
+    - name: Render DolphinScheduler physical install script
+      ansible.builtin.template:
+        src: templates/install-dolphinscheduler.sh.j2
+        dest: "{{ dolphinscheduler_dir }}/install-dolphinscheduler.sh"
+        mode: "0755"
+    - name: Install or refresh DolphinScheduler service files
+      ansible.builtin.command: "{{ dolphinscheduler_dir }}/install-dolphinscheduler.sh"
+
+- name: Deploy DataMaster main service container
+  hosts: datamaster_app_servers
+  tasks:
+    - name: Create DataMaster app mount directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ app_dir }}/conf"
+        - "{{ app_dir }}/logs"
+        - "{{ app_dir }}/upload"
+    - name: Render DataMaster application-prod.yml
+      ansible.builtin.template:
+        src: templates/datamaster-server-application-prod.yml.j2
+        dest: "{{ app_dir }}/conf/application-prod.yml"
+        mode: "0644"
+    - name: Render DataMaster app compose
+      ansible.builtin.template:
+        src: templates/datamaster-server-compose.yml.j2
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+    - name: Start DataMaster app
+      ansible.builtin.command: docker compose up -d
+      args:
+        chdir: "{{ app_dir }}"
+
+- name: Deploy DataMaster quality service container
+  hosts: datamaster_quality_servers
+  tasks:
+    - name: Create DataMaster quality mount directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ quality_dir }}/conf"
+        - "{{ quality_dir }}/logs"
+        - "{{ quality_dir }}/job-log"
+    - name: Render DataMaster quality application-prod.yml
+      ansible.builtin.template:
+        src: templates/datamaster-quality-application-prod.yml.j2
+        dest: "{{ quality_dir }}/conf/application-prod.yml"
+        mode: "0644"
+    - name: Render DataMaster quality compose
+      ansible.builtin.template:
+        src: templates/datamaster-quality-compose.yml.j2
+        dest: "{{ quality_dir }}/docker-compose.yml"
+        mode: "0644"
+    - name: Start DataMaster quality service
+      ansible.builtin.command: docker compose up -d
+      args:
+        chdir: "{{ quality_dir }}"

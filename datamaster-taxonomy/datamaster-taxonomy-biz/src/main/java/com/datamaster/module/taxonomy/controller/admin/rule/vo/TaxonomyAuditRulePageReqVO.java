@@ -48,7 +48,10 @@ public class TaxonomyAuditRulePageReqVO extends PageParam {
     /** 是否有效 */
     private String validFlag;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
-
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

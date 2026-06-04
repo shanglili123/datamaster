@@ -20,31 +20,22 @@
       </div>
     </div>
 
-    <div class="dm-card workspace-home__toolbar">
-      <div class="dm-action-bar">
-        <div class="dm-action-bar__left">
-          <el-icon class="workspace-home__toolbar-icon"><FolderOpened /></el-icon>
-          <span>我的项目</span>
-          <el-tag size="small" type="info">{{ projectList.length }} 个</el-tag>
-        </div>
-        <div class="dm-action-bar__right">
-          <el-input
-            v-model="keyword"
-            clearable
-            :prefix-icon="Search"
-            placeholder="搜索项目名称或编码"
-            class="workspace-home__search"
-          />
-        </div>
-      </div>
-    </div>
-
     <el-row :gutter="16" class="workspace-home__main">
       <el-col :xs="24" :lg="15">
         <div class="dm-card workspace-home__projects">
           <div class="dm-card__header">
-            <span class="dm-card__title">项目列表</span>
-            <span class="workspace-home__hint">仅展示当前登录人有权限的项目</span>
+            <div class="workspace-home__card-title">
+              <span class="dm-card__title">项目列表</span>
+              <el-tag size="small" type="info">{{ projectList.length }} 个</el-tag>
+              <span class="workspace-home__hint">仅展示当前登录人有权限的项目</span>
+            </div>
+            <el-input
+              v-model="keyword"
+              clearable
+              :prefix-icon="Search"
+              placeholder="搜索项目名称或编码"
+              class="workspace-home__search"
+            />
           </div>
           <div class="dm-card__body">
             <el-skeleton v-if="loading" :rows="6" animated />
@@ -91,68 +82,81 @@
       </el-col>
 
       <el-col :xs="24" :lg="9">
-        <div class="dm-card workspace-home__summary">
-          <div class="dm-card__header">
-            <span class="dm-card__title">
-              {{ activeProject?.name || "项目统计" }}
-            </span>
-            <el-tag v-if="activeProject" size="small" type="success">已选择</el-tag>
-          </div>
-          <div class="dm-card__body">
-            <el-empty
-              v-if="!activeProject"
-              description="请选择项目查看统计"
-              :image-size="96"
-            />
+        <div class="workspace-home__side">
+          <template v-if="!activeProject">
+            <div class="dm-card workspace-home__summary workspace-home__summary--empty">
+              <div class="dm-card__body">
+                <el-empty description="请选择项目查看统计" :image-size="72" />
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <el-skeleton v-if="statsLoading" :rows="8" animated />
             <template v-else>
-              <el-skeleton v-if="statsLoading" :rows="4" animated />
-              <div v-else class="dm-metric-grid workspace-home__metrics">
-                <div
-                  v-for="item in metricCards"
-                  :key="item.label"
-                  class="dm-metric-card"
-                >
-                  <div class="dm-metric-card__label">
-                    <el-icon><component :is="item.icon" /></el-icon>
-                    <span>{{ item.label }}</span>
+              <div class="dm-card workspace-home__summary">
+                <div class="dm-card__header">
+                  <span class="dm-card__title">资源概览</span>
+                  <el-tag size="small" type="success">{{ activeProject?.name }}</el-tag>
+                </div>
+                <div class="dm-card__body">
+                  <div class="dm-metric-grid workspace-home__metrics-resource">
+                    <div v-for="item in resourceCards" :key="item.label" class="dm-metric-card dm-metric-card--sm">
+                      <div class="dm-metric-card__label">
+                        <el-icon><component :is="item.icon" /></el-icon>
+                        <span>{{ item.label }}</span>
+                      </div>
+                      <div class="dm-metric-card__value">{{ item.value }}</div>
+                    </div>
                   </div>
-                  <div class="dm-metric-card__value">{{ item.value }}</div>
-                  <div class="dm-metric-card__sub">{{ item.sub }}</div>
+                </div>
+              </div>
+              <div class="dm-card workspace-home__summary">
+                <div class="dm-card__header">
+                  <span class="dm-card__title">任务状态</span>
+                </div>
+                <div class="dm-card__body">
+                  <div class="dm-metric-grid workspace-home__metrics-task">
+                    <div v-for="item in taskCards" :key="item.label" class="dm-metric-card">
+                      <div class="dm-metric-card__label">
+                        <el-icon><component :is="item.icon" /></el-icon>
+                        <span>{{ item.label }}</span>
+                      </div>
+                      <div class="dm-metric-card__value">{{ item.value }}</div>
+                      <div class="dm-metric-card__sub">{{ item.sub }}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </template>
+          </template>
+
+          <div class="dm-card workspace-home__table-volume">
+            <div class="dm-card__header">
+              <span class="dm-card__title">数据库表数据量</span>
+              <span class="workspace-home__hint">当前项目各表行数</span>
+            </div>
+            <div class="dm-card__body">
+              <el-table
+                v-if="tableRows.length > 0"
+                :data="tableRows"
+                stripe
+                height="100%"
+              >
+                <el-table-column prop="datasourceName" label="数据源" min-width="140" />
+                <el-table-column prop="schemaName" label="库/Schema" min-width="120" />
+                <el-table-column prop="tableName" label="表名" min-width="150" />
+                <el-table-column prop="rowCount" label="数据量" width="100" align="right" />
+              </el-table>
+              <el-empty
+                v-else
+                description="暂无表数据量统计"
+                :image-size="72"
+              />
+            </div>
           </div>
         </div>
       </el-col>
     </el-row>
-
-    <div class="dm-card workspace-home__table-volume">
-      <div class="dm-card__header">
-        <span class="dm-card__title">数据库表数据量</span>
-        <span class="workspace-home__hint">
-          统计接口接入后展示当前项目下各表行数
-        </span>
-      </div>
-      <div class="dm-card__body">
-        <el-table
-          v-if="tableRows.length > 0"
-          :data="tableRows"
-          stripe
-          height="320"
-        >
-          <el-table-column prop="datasourceName" label="数据源" min-width="160" />
-          <el-table-column prop="schemaName" label="库/Schema" min-width="150" />
-          <el-table-column prop="tableName" label="表名" min-width="180" />
-          <el-table-column prop="rowCount" label="数据量" width="140" align="right" />
-          <el-table-column prop="updateTime" label="更新时间" width="180" />
-        </el-table>
-        <el-empty
-          v-else
-          description="暂无表数据量统计"
-          :image-size="96"
-        />
-      </div>
-    </div>
   </div>
 </template>
 
@@ -160,8 +164,13 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
+  Coin,
+  Collection,
   Connection,
+  DataAnalysis,
+  DataBoard,
   DataLine,
+  Document,
   FolderOpened,
   Plus,
   Refresh,
@@ -195,6 +204,14 @@ const stats = reactive({
   developFailed: "--",
   apiCalls: "--",
   apiErrors: "--",
+  datasourceTotal: "--",
+  catalogTableTotal: "--",
+  apiTotal: "--",
+  dataElemTotal: "--",
+  modelTotal: "--",
+  tagTotal: "--",
+  collectTaskTotal: "--",
+  documentTotal: "--",
 });
 
 const canCreateProject = computed(() => {
@@ -217,7 +234,16 @@ const filteredProjects = computed(() => {
   });
 });
 
-const metricCards = computed(() => [
+const resourceCards = computed(() => [
+  { label: "数据源", value: stats.datasourceTotal, icon: Coin },
+  { label: "采集表", value: stats.catalogTableTotal, icon: Collection },
+  { label: "API服务", value: stats.apiTotal, icon: Tickets },
+  { label: "数据标准", value: stats.dataElemTotal, icon: DataBoard },
+  { label: "数据模型", value: stats.modelTotal, icon: DataAnalysis },
+  { label: "标签", value: stats.tagTotal, icon: Document },
+]);
+
+const taskCards = computed(() => [
   {
     label: "数据集成任务",
     value: stats.integrationTotal,
@@ -259,6 +285,14 @@ function resetStats() {
   stats.developFailed = "--";
   stats.apiCalls = "--";
   stats.apiErrors = "--";
+  stats.datasourceTotal = "--";
+  stats.catalogTableTotal = "--";
+  stats.apiTotal = "--";
+  stats.dataElemTotal = "--";
+  stats.modelTotal = "--";
+  stats.tagTotal = "--";
+  stats.collectTaskTotal = "--";
+  stats.documentTotal = "--";
   tableRows.value = [];
 }
 
@@ -312,6 +346,14 @@ async function loadProjectStats(project) {
     stats.developFailed = data.developTaskFailed ?? "--";
     stats.apiCalls = data.apiCallTotal ?? "--";
     stats.apiErrors = data.apiCallFailed ?? "--";
+    stats.datasourceTotal = data.datasourceTotal ?? "--";
+    stats.catalogTableTotal = data.catalogTableTotal ?? "--";
+    stats.apiTotal = data.apiTotal ?? "--";
+    stats.dataElemTotal = data.dataElemTotal ?? "--";
+    stats.modelTotal = data.modelTotal ?? "--";
+    stats.tagTotal = data.tagTotal ?? "--";
+    stats.collectTaskTotal = data.collectTaskTotal ?? "--";
+    stats.documentTotal = data.documentTotal ?? "--";
     tableRows.value = data.tableRows || [];
   } catch {
     resetStats();
@@ -374,37 +416,77 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .workspace-home {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 96px);
+  min-height: 640px;
+  overflow: hidden;
+
   .workspace-home__actions {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-  .workspace-home__toolbar {
-    margin-bottom: 16px;
-  }
-
-  .workspace-home__toolbar-icon {
-    color: var(--dm-color-primary);
-    font-size: 18px;
-  }
-
   .workspace-home__search {
-    width: 260px;
+    width: 240px;
   }
 
   .workspace-home__main {
+    flex: 1;
+    min-height: 0;
     row-gap: 16px;
+
+    :deep(.el-col) {
+      display: flex;
+      min-height: 0;
+    }
   }
 
   .workspace-home__projects,
-  .workspace-home__summary,
-  .workspace-home__table-volume {
-    min-height: 100%;
+  .workspace-home__side {
+    width: 100%;
+    min-height: 0;
+  }
+
+  .workspace-home__projects {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .dm-card__body {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+  }
+
+  .workspace-home__side {
+    display: grid;
+    grid-template-rows: auto auto minmax(120px, 1fr);
+    gap: 10px;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .workspace-home__summary {
+    overflow: hidden;
+  }
+
+  .workspace-home__summary--empty {
+    min-height: 160px;
   }
 
   .workspace-home__table-volume {
-    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+
+    .dm-card__body {
+      flex: 1;
+      min-height: 0;
+      padding: 8px 12px 12px;
+    }
   }
 
   .workspace-home__hint {
@@ -412,8 +494,27 @@ onMounted(() => {
     font-size: 12px;
   }
 
-  .workspace-home__metrics {
+  .workspace-home__metrics-resource {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .workspace-home__metrics-task {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .workspace-home__card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .dm-metric-card--sm {
+    .dm-metric-card__value {
+      font-size: 20px;
+    }
   }
 
   .dm-metric-card__label {
@@ -421,17 +522,41 @@ onMounted(() => {
     align-items: center;
     gap: 6px;
   }
+
+  :deep(.dm-card__header) {
+    min-height: 42px;
+    padding: 0 12px;
+  }
+
+  :deep(.dm-card__body) {
+    padding: 12px;
+  }
+
+  :deep(.dm-metric-card) {
+    min-height: 74px;
+    padding: 10px 12px;
+  }
+
+  :deep(.dm-metric-card__value) {
+    margin-top: 4px;
+    font-size: 22px;
+    line-height: 28px;
+  }
+
+  :deep(.dm-metric-card__sub) {
+    margin-top: 2px;
+  }
 }
 
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
 }
 
 .project-card {
   min-width: 0;
-  padding: 16px;
+  padding: 12px;
   text-align: left;
   cursor: pointer;
   background: #fff;
@@ -457,7 +582,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
 
   .project-card__icon {
@@ -465,7 +590,7 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     width: 34px;
-    height: 34px;
+    height: 32px;
     color: var(--dm-color-primary);
     background: var(--dm-bg-soft);
     border-radius: var(--dm-radius-base);
@@ -496,7 +621,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 18px;
+    margin-top: 12px;
     color: var(--dm-text-secondary);
     font-size: 12px;
   }
@@ -504,17 +629,43 @@ onMounted(() => {
 
 @media screen and (max-width: 768px) {
   .workspace-home {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+
     .dm-page__header,
-    .dm-action-bar {
+    .dm-card__header {
       align-items: flex-start;
       flex-direction: column;
+    }
+
+    .workspace-home__main {
+      :deep(.el-col) {
+        display: block;
+      }
+    }
+
+    .workspace-home__projects {
+      .dm-card__body {
+        overflow: visible;
+      }
+    }
+
+    .workspace-home__side {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
     .workspace-home__search {
       width: 100%;
     }
 
-    .workspace-home__metrics {
+    .workspace-home__metrics-resource {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .workspace-home__metrics-task {
       grid-template-columns: 1fr;
     }
   }

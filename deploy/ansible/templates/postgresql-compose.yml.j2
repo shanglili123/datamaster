@@ -1,0 +1,21 @@
+services:
+  postgresql:
+    image: {{ postgresql_image }}
+    container_name: datamaster-postgresql
+    restart: always
+    environment:
+      TZ: {{ timezone }}
+      POSTGRES_DB: {{ postgresql_database }}
+      POSTGRES_USER: {{ postgresql_user }}
+      POSTGRES_PASSWORD: {{ postgresql_password }}
+    ports:
+      - "{{ postgresql_port }}:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - ./logs:/var/log/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgresql_user }} -d {{ postgresql_database }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10

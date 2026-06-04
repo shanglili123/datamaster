@@ -30,6 +30,11 @@ public class DialectRegistry {
         dialect_enum_map.put(DbType.HIVE, new HiveDialect());
         dialect_enum_map.put(DbType.MONGODB, new MongoDBDialect());
         dialect_enum_map.put(DbType.ELASTICSEARCH, new ElasticsearchDialect());
+        dialect_enum_map.put(DbType.REDIS, new EndpointDialect());
+        dialect_enum_map.put(DbType.RABBITMQ, new EndpointDialect());
+        dialect_enum_map.put(DbType.HDFS, new EndpointDialect());
+        dialect_enum_map.put(DbType.FTP, new EndpointDialect());
+        dialect_enum_map.put(DbType.OSS_ALIYUN, new ObjectStorageDialect());
     }
 
     public DbDialect getDialect(DbType dbType) {

@@ -29,7 +29,10 @@ public class StandardsCodeMapPageReqVO extends PageParam {
     @Schema(description = "代码值", example = "")
     private String codeValue;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
-
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

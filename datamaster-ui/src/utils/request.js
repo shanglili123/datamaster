@@ -25,6 +25,19 @@ let cancelTokens = [];
 
 // request拦截器
 service.interceptors.request.use(config => {
+  // 自动注入当前项目ID/编码
+  const userStore = useUserStore();
+  if (userStore.projectId) {
+    if (config.method === 'get' && config.params) {
+      config.params.projectId = userStore.projectId;
+      config.params.projectCode = userStore.projectCode;
+    } else if (config.method === 'get') {
+      config.params = { projectId: userStore.projectId, projectCode: userStore.projectCode };
+    } else if (config.data && !(config.data instanceof FormData)) {
+      config.data.projectId = userStore.projectId;
+      config.data.projectCode = userStore.projectCode;
+    }
+  }
   // 是否需要设置 token
   const isToken = (config.headers || {}).isToken === false
   // 是否需要防止数据重复提交

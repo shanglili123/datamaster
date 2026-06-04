@@ -36,6 +36,7 @@ public interface TaxonomyThemeMapper extends BaseMapperX<TaxonomyThemeDO> {
                 // 按照 createTime 字段降序排序
 //                .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
                 //按照 createTime 字段降序排序 sort_order升序
+                .eq(reqVO.getProjectId() != null, TaxonomyThemeDO::getProjectId, reqVO.getProjectId())
                 .orderByAsc(TaxonomyThemeDO::getSortOrder)
                 .orderByDesc(TaxonomyThemeDO::getCreateTime));
 

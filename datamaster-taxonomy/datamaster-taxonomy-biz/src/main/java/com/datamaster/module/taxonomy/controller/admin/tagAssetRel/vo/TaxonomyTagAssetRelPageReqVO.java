@@ -24,7 +24,10 @@ public class TaxonomyTagAssetRelPageReqVO extends PageParam {
     @Schema(description = "资产id", example = "")
     private String assetId;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
 
-
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

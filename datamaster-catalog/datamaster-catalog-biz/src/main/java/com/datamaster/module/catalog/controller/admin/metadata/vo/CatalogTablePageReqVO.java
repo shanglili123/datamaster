@@ -123,4 +123,10 @@ public class CatalogTablePageReqVO extends PageParam {
     @Schema(description = "不展示的数据，多个一逗号拼接", example = "0")
     private String hideTableIds;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
+
+    @Schema(description = "项目编码")
+    private String projectCode;
+
 }

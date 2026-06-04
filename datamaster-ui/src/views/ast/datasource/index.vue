@@ -519,7 +519,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20" v-if="type == 0">
+        <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="所属项目" prop="projectNameList">
               <el-input
@@ -761,7 +761,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20" v-if="type == 0">
+        <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="所属项目">
               <div class="form-readonly">
@@ -971,8 +971,6 @@ const totalProject = ref(0);
 const projectTableRef = ref(null);
 const loadingProject = ref(false);
 const projectIdAndCodeList = ref([]);
-const route = useRoute();
-let type = route.query.type || null;
 
 /*** 用户导入参数 */
 const upload = reactive({
@@ -1179,21 +1177,13 @@ function resetQueryProject() {
 /** 查询数据源列表 */
 function getList() {
   loading.value = true;
-  if (type == 1) {
-    queryParams.value.projectId = userStore.projectId;
-    queryParams.value.projectCode = userStore.projectCode;
-    listDaDatasourceByProjectCode(queryParams.value).then((response) => {
-      daDatasourceList.value = response.data.rows;
-      total.value = response.data.total;
-      loading.value = false;
-    });
-  } else {
-    listDaDatasource(queryParams.value).then((response) => {
-      daDatasourceList.value = response.data.rows;
-      total.value = response.data.total;
-      loading.value = false;
-    });
-  }
+  queryParams.value.projectId = userStore.projectId;
+  queryParams.value.projectCode = userStore.projectCode;
+  listDaDatasourceByProjectCode(queryParams.value).then((response) => {
+    daDatasourceList.value = response.data.rows;
+    total.value = response.data.total;
+    loading.value = false;
+  });
 }
 
 // 取消按钮
@@ -1260,19 +1250,14 @@ function handleSortChange(column, prop, order) {
 /** 新增按钮操作 */
 function handleAdd() {
   reset();
-  if (type == 1) {
-    form.value.isDaOrDpp = true;
-    form.value.projectList = [
-      {
-        projectId: userStore.projectId,
-        projectCode: userStore.projectCode,
-        dppAssigned: true,
-      },
-    ];
-  } else {
-    form.value.isDaOrDpp = false;
-    form.value.projectList = [];
-  }
+  form.value.isDaOrDpp = true;
+  form.value.projectList = [
+    {
+      projectId: userStore.projectId,
+      projectCode: userStore.projectCode,
+      dppAssigned: true,
+    },
+  ];
   open.value = true;
   title.value = "新增数据源";
 }
@@ -1447,7 +1432,7 @@ function handleDelete(row) {
   proxy.$modal
     .confirm('是否确认删除数据源编号为"' + _ids + '"的数据项？')
     .then(function () {
-      return removeDppOrDa(_ids, type);
+        return removeDppOrDa(_ids, 1);
     })
     .then(() => {
       getList();

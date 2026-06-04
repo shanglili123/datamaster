@@ -5,7 +5,6 @@ package com.datamaster.spark.etl.utils;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import com.alibaba.fastjson2.JSONObject;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,23 +50,17 @@ public class LogUtils {
         }
     }
 
-    public static void writeLog(Params params, String meesage) {
+    public static void writeLog(Params params, String message) {
         synchronized (params) {
             String time = DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss.SSS");
-            meesage = time + " - " + meesage+ "\n";
-            params.setLog(meesage);
-            RabbitmqUtils.convertAndSend(params.getRabbitmq(), "ds.exchange.taskInstance.log", "ds.queue.taskInstance.log", params);
+            message = time + " - " + message + "\n";
+            params.setLog(message);
+            RedisUtils.publish("ds:channel:taskInstance:log", params);
         }
     }
 
     @Data
     public static class Params {
-
-        /**
-         * rabbitmq连接信息
-         */
-        @JsonIgnore
-        private JSONObject rabbitmq;
 
         /**
          * 流程实例ID
@@ -83,8 +76,7 @@ public class LogUtils {
          */
         private String log;
 
-        public Params(JSONObject rabbitmq, Long workflowInstanceId, Long taskInstanceId) {
-            this.rabbitmq = rabbitmq;
+        public Params(Long workflowInstanceId, Long taskInstanceId) {
             this.workflowInstanceId = String.valueOf(workflowInstanceId);
             this.taskInstanceId = String.valueOf(taskInstanceId);
         }

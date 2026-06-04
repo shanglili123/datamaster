@@ -39,6 +39,7 @@ public interface TaxonomyClientApiRelMapper extends BaseMapperX<TaxonomyClientAp
 //                .eq(TaxonomyClientApiRelDO::getStartTime, reqVO.getStartTime())
 //                .eq(TaxonomyClientApiRelDO::getEndTime, reqVO.getEndTime())
                 .eq(StringUtils.isNotBlank(reqVO.getStatus()), TaxonomyClientApiRelDO::getStatus, reqVO.getStatus())
+                .eq(reqVO.getProjectId() != null, TaxonomyClientApiRelDO::getProjectId, reqVO.getProjectId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
 
         // 构造动态查询条件

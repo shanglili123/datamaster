@@ -62,6 +62,7 @@ public interface CatalogDbMapper extends BaseMapperX<CatalogDbDO> {
                 .eqIfPresent(CatalogDbDO::getStatus, reqVO.getStatus())
                 .eqIfPresent(CatalogDbDO::getCreateTime, reqVO.getCreateTime())
                 .eqIfPresent(CatalogDbDO::getDescription, reqVO.getDescription())
+                .eq(reqVO.getProjectId() != null, CatalogDbDO::getProjectId, reqVO.getProjectId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns);
         lambdaWrapperX.apply(selfScopeWithUnassigned, "(t.BUSINESS_LEADER = {0} OR (t.BUSINESS_LEADER IS NULL AND t.RESPONSIBLE_DEPT IS NULL))", reqVO.getBusinessLeader());
         lambdaWrapperX.eq(!selfScopeWithUnassigned && reqVO.getBusinessLeader() != null, CatalogDbDO::getBusinessLeader, reqVO.getBusinessLeader());

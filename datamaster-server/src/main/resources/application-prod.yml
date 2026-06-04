@@ -14,16 +14,6 @@ spring:
         max-idle: 8
         max-active: 8
         max-wait: -1ms
-  rabbitmq:
-    host: 127.0.0.1
-    port: 5672
-    username: 账号
-    password: 密码
-    listener:
-      simple:
-        acknowledge-mode: manual
-        concurrency: 1
-        max-concurrency: 10
   datasource:
     druid:
       stat-view-servlet:

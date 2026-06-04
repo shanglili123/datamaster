@@ -32,6 +32,7 @@ public interface TaxonomyTagAssetRelMapper extends BaseMapperX<TaxonomyTagAssetR
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(TaxonomyTagAssetRelDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
+                .eq(reqVO.getProjectId() != null, TaxonomyTagAssetRelDO::getProjectId, reqVO.getProjectId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
     }
 }

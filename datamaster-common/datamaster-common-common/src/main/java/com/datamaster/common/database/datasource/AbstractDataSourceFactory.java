@@ -50,6 +50,11 @@ public abstract class AbstractDataSourceFactory implements DataSourceFactory {
 
     private boolean isJdbcDataSource(DbType dbType) {
         return !dbType.getDb().equals(DbType.KAFKA.getDb())
+                && !dbType.getDb().equals(DbType.HDFS.getDb())
+                && !dbType.getDb().equals(DbType.REDIS.getDb())
+                && !dbType.getDb().equals(DbType.RABBITMQ.getDb())
+                && !dbType.getDb().equals(DbType.FTP.getDb())
+                && !dbType.getDb().equals(DbType.OSS_ALIYUN.getDb())
                 && !dbType.getDb().equals(DbType.MONGODB.getDb())
                 && !dbType.getDb().equals(DbType.ELASTICSEARCH.getDb());
     }
