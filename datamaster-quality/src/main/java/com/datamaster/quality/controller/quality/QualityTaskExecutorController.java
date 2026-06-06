@@ -14,6 +14,7 @@ import com.datamaster.common.enums.BusinessType;
 import com.datamaster.quality.controller.quality.vo.CheckErrorDataReqDTO;
 import com.datamaster.quality.controller.quality.vo.QualityRuleQueryReqDTO;
 import com.datamaster.quality.service.quality.QualityTaskExecutorService;
+import com.datamaster.quality.storage.ErrorDataStorageFactory;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -32,6 +33,8 @@ public class QualityTaskExecutorController extends BaseController {
     @Resource
     private QualityTaskExecutorService qualityTaskExecutorService;
 
+    @Resource
+    private ErrorDataStorageFactory errorDataStorageFactory;
 
     /**
      * 错误数据分页查询
@@ -95,11 +98,12 @@ public class QualityTaskExecutorController extends BaseController {
 
 
 
-    /**
-     * 用户输入数据校验
-     *
-     * @return
-     */
+    @PostMapping("/refreshErrorStorage")
+    public AjaxResult refreshErrorStorage() {
+        errorDataStorageFactory.refreshStorage();
+        return AjaxResult.success();
+    }
+
     @PostMapping("/generateDataCheck")
     public AjaxResult generateDataCheck(@RequestBody QualityRuleQueryReqDTO queryReqDTO) {
         Object string = qualityTaskExecutorService.generateDataCheck(queryReqDTO);

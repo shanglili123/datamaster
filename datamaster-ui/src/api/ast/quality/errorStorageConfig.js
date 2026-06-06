@@ -2,23 +2,16 @@ import request from '@/utils/request'
 
 export function getErrorStorageConfig() {
   return request({
-    url: '/quality/errorStorageConfig/getConfig',
+    url: '/col/errorStorageConfig/getConfig',
     method: 'get'
   })
 }
 
 export function setErrorStorageConfig(datasourceId, tableName) {
   return request({
-    url: '/quality/errorStorageConfig/setConfig',
+    url: '/col/errorStorageConfig/setConfig',
     method: 'post',
     params: { datasourceId, tableName }
-  })
-}
-
-export function initErrorStorageTable() {
-  return request({
-    url: '/quality/errorStorageConfig/initTable',
-    method: 'post'
   })
 }
 

@@ -16,8 +16,8 @@ public class QualityErrorStorageConfigServiceImpl
     @Override
     public QualityErrorStorageConfigDO getEnabledConfig() {
         List<QualityErrorStorageConfigDO> list = lambdaQuery()
-                .eq(QualityErrorStorageConfigDO::getEnabled, "1")
                 .orderByDesc(QualityErrorStorageConfigDO::getCreateTime)
+                .last("LIMIT 1")
                 .list();
         return list.isEmpty() ? null : list.get(0);
     }
