@@ -73,11 +73,6 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Maven依赖 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
         <!-- hadoop-common -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>

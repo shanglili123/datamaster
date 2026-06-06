@@ -29,10 +29,7 @@ import com.datamaster.common.httpClient.DsRequestUtils;
 })
 @ServletComponentScan(basePackages = {"com.datamaster"})
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class, SecurityAutoConfiguration.class,
-        //临时加入，如遇到Mongo报错可以开启进行忽略
-//        MongoAutoConfiguration.class,
-//        MongoDataAutoConfiguration.class
-})
+        MongoAutoConfiguration.class, MongoDataAutoConfiguration.class})
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 public class QualityApplication {
     public static void main(String[] args) {

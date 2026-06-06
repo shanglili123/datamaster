@@ -743,6 +743,18 @@ export const createDataNode = (graph, data) => {
             dateFormat: "yyyy-MM-dd", // 时间格式：yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss（手动输入）
             column: [],
           },
+          cdcConfig: {
+            serverId: "",
+            timestampFormat: "yyyy-MM-dd HH:mm:ss",
+          },
+          cdcConfigJson: "",
+          kafkaConfig: {
+            groupId: "datamaster-chunjun",
+            mode: "LATEST",
+            codec: "json",
+          },
+          kafkaFieldsJson: "",
+          kafkaConfigJson: "",
           ...(data.componentType == 34 && {
             sortFields: [], //排序字段
           }),
@@ -989,6 +1001,18 @@ export const getDefaultTaskParams = (data) => {
         dateFormat: "yyyy-MM-dd",
         column: [],
       },
+      cdcConfig: {
+        serverId: "",
+        timestampFormat: "yyyy-MM-dd HH:mm:ss",
+      },
+      cdcConfigJson: "",
+      kafkaConfig: {
+        groupId: "datamaster-chunjun",
+        mode: "LATEST",
+        codec: "json",
+      },
+      kafkaFieldsJson: "",
+      kafkaConfigJson: "",
     };
 
     if (data.componentType == 6) {

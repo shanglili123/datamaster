@@ -2,10 +2,8 @@
 
 package com.datamaster.common.database.dialect;
 
-import cn.hutool.core.lang.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.jdbc.core.RowMapper;
 import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.core.DbColumn;
@@ -14,7 +12,6 @@ import com.datamaster.common.database.core.DbTable;
 import com.datamaster.common.database.exception.DataQueryException;
 
 import javax.sql.DataSource;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -28,8 +25,6 @@ import java.util.Properties;
  **/
 @Slf4j
 public class KafkaDialect extends AbstractDbDialect {
-
-    private static final String TEST_TOPIC = "test-connection-topic";
 
     @Override
     public RowMapper<DbTable> tableMapper() {
@@ -96,22 +91,18 @@ public class KafkaDialect extends AbstractDbDialect {
         if (dbQueryProperty.getConfig() != null && !dbQueryProperty.getConfig().isEmpty()) {
             dbQueryProperty.getConfig().forEach((k, v) -> props.put(k, v));
         }
-        String topic = TEST_TOPIC + "-" + UUID.randomUUID().toString();
         AdminClient admin = AdminClient.create(props);
         try {
-            NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
-            //创建主题
-            admin.createTopics(Collections.singleton(newTopic)).all().get();
-            //删除主题
-            admin.deleteTopics(Collections.singleton(topic)).all().get();
+            admin.describeCluster().nodes().get();
             return true;
         } catch (Exception e) {
+            log.error("Kafka connection test failed", e);
             throw new DataQueryException("数据库连接失败,稍后重试");
         } finally {
             try {
                 admin.close();
             } catch (Exception e) {
-                throw new DataQueryException("关闭kafka连接出错");
+                log.warn("关闭Kafka连接出错", e);
             }
         }
     }

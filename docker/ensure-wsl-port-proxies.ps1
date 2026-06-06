@@ -62,10 +62,6 @@ if (-not $nodeCommand) {
 $targetHost = Get-WslPrimaryIp -Distro $Distribution
 $proxyScript = Join-Path $PSScriptRoot "wsl-port-proxy.js"
 $proxySpecs = @(
-    @{ Name = "mongodb"; ListenPort = 27017; TargetPort = 27017 },
-    @{ Name = "rabbitmq-amqp"; ListenPort = 5673; TargetPort = 5673 },
-    @{ Name = "rabbitmq-ui"; ListenPort = 15673; TargetPort = 15673 },
-    @{ Name = "zookeeper"; ListenPort = 2181; TargetPort = 2181 },
     @{ Name = "dolphinscheduler-api"; ListenPort = 12345; TargetPort = 12345 }
 )
 

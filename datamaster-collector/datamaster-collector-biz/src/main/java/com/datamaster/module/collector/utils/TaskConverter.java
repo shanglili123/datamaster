@@ -1070,7 +1070,7 @@ public class TaskConverter {
         taskMap.put("isCache", DEFAULT_IS_CACHE);
         taskMap.put("taskPriority", MapUtils.getObject(definitionJsonMap, "taskPriority", DEFAULT_TASK_PRIORITY));
         taskMap.put("taskType", "CHUNJUN");
-        taskMap.put("taskExecuteType", "BATCH");
+        taskMap.put("taskExecuteType", isStreamingFlinkxJob(flinkxJobJson) ? "STREAM" : "BATCH");
         taskMap.put("failRetryTimes", MapUtils.getObject(definitionJsonMap, "failRetryTimes", DEFAULT_TASK_failRetryTimes));
         taskMap.put("delayTime", MapUtils.getObject(definitionJsonMap, "delayTime", DEFAULT_TASK_delayTime));
         taskMap.put("failRetryInterval", MapUtils.getObject(definitionJsonMap, "failRetryInterval", DEFAULT_TASK_failRetryInterval));
@@ -1086,6 +1086,41 @@ public class TaskConverter {
 
         result.add(taskMap);
         return JSON.toJSONString(result);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean isStreamingFlinkxJob(String flinkxJobJson) {
+        if (StringUtils.isBlank(flinkxJobJson)) {
+            return false;
+        }
+        try {
+            Map<String, Object> root = JSON.parseObject(flinkxJobJson, Map.class);
+            Map<String, Object> job = (Map<String, Object>) root.get("job");
+            if (job == null) {
+                return false;
+            }
+            List<Map<String, Object>> content = (List<Map<String, Object>>) job.get("content");
+            if (content == null || content.isEmpty()) {
+                return false;
+            }
+            Map<String, Object> reader = (Map<String, Object>) content.get(0).get("reader");
+            String readerName = reader == null ? null : String.valueOf(reader.get("name"));
+            if (StringUtils.isBlank(readerName)) {
+                return false;
+            }
+            String normalized = readerName.toLowerCase();
+            return normalized.contains("cdc")
+                    || normalized.contains("logminer")
+                    || normalized.contains("binlog")
+                    || normalized.equals("kafkareader")
+                    || normalized.equals("rabbitmqreader")
+                    || normalized.equals("redisreader")
+                    || normalized.equals("rocketmqreader")
+                    || normalized.equals("socketreader")
+                    || normalized.equals("streamreader");
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     public static String buildIncrementalFlinkxTaskDefinitionJson(Long prepareId, String prepareName,

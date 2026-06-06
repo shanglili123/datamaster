@@ -12,7 +12,6 @@ import com.datamaster.module.collector.utils.datax.FlinkxJson;
 import com.datamaster.module.collector.utils.model.DsResource;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * <P>
@@ -114,6 +113,7 @@ public class DBReaderComponent implements ComponentItem {
         parameter.put("host", readerProperty.getHost());
         parameter.put("port", readerProperty.getPort());
         parameter.put("datasourceConfig", readerProperty.getDatasourceConfig());
+        parameter.put("config", readerProperty.getConfig());
         if (StringUtils.isNotBlank(readerProperty.getDbName())) {
             parameter.put("dbName", readerProperty.getDbName());
         }
@@ -121,22 +121,39 @@ public class DBReaderComponent implements ComponentItem {
             parameter.put("sid", readerProperty.getSid());
         }
         parameter.put("column", taskParams.get("columns"));
+        parameter.put("tableFields", taskParams.get("tableFields"));
 
         parameter.put("where", taskParams.get("where"));
         parameter.put("readModeType", taskParams.get("readModeType"));
         parameter.put("idIncrementConfig", taskParams.get("idIncrementConfig"));
         parameter.put("dateIncrementConfig", taskParams.get("dateIncrementConfig"));
+        parameter.put("cdcConfig", taskParams.get("cdcConfig"));
+        parameter.put("kafkaConfig", taskParams.get("kafkaConfig"));
 
         Map<String, Object> connection = new HashMap<>();
-        if (taskParams.containsKey("querySql") && StringUtils.isNotBlank(taskParams.get("querySql").toString())) {
-            connection.put("querySql", taskParams.get("querySql"));
+        Object querySql = taskParams.get("querySql");
+        if (querySql != null && StringUtils.isNotBlank(String.valueOf(querySql))) {
+            connection.put("querySql", querySql);
+        } else if (isStreamingNoTableDatasource(readerProperty.getDbType())) {
+            connection.put("topic", taskParams.get("topic"));
         } else {
             connection.put("table", taskParams.get("table_name"));
         }
 
-        connection.put("jdbcUrl", readerProperty.trainToJdbcUrl());
+        if (!isStreamingNoTableDatasource(readerProperty.getDbType())) {
+            connection.put("jdbcUrl", readerProperty.trainToJdbcUrl());
+        }
         parameter.put("connection", connection);
         parameter.put("readerProperty", readerProperty);
         return reader;
+    }
+
+    private static boolean isStreamingNoTableDatasource(String dbType) {
+        return DbType.KAFKA.getDb().equals(dbType)
+                || DbType.RABBITMQ.getDb().equals(dbType)
+                || "REDIS".equalsIgnoreCase(dbType)
+                || "ROCKETMQ".equalsIgnoreCase(dbType)
+                || "SOCKET".equalsIgnoreCase(dbType)
+                || "STREAM".equalsIgnoreCase(dbType);
     }
 }

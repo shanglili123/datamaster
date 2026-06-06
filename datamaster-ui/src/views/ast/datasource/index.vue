@@ -28,7 +28,7 @@
             clearable
           >
             <el-option
-              v-for="dict in datasource_type"
+              v-for="dict in datasourceTypeOptions"
               :key="dict.value"
               :label="dict.label"
               :value="dict.value"
@@ -141,7 +141,7 @@
         >
           <template #default="scope">
             <dict-tag
-              :options="datasource_type"
+              :options="datasourceTypeOptions"
               :value="scope.row.datasourceType"
             />
           </template>
@@ -340,7 +340,7 @@
                 :disabled="form.id"
               >
                 <el-option
-                  v-for="dict in datasource_type"
+                  v-for="dict in datasourceTypeOptions"
                   :key="dict.value"
                   :label="dict.label"
                   :value="dict.value"
@@ -364,18 +364,16 @@
         <el-row
           :gutter="20"
           v-if="
-            form.datasourceType !== 'Kafka' &&
-            form.datasourceType !== 'HDFS' &&
-            form.datasourceType !== 'OSS-ALIYUN'
+            showCredentialFields(form.datasourceType)
           "
         >
           <el-col :span="12">
-            <el-form-item label="账号" prop="username">
+            <el-form-item label="账号" :prop="isCredentialRequired(form.datasourceType) ? 'username' : ''">
               <el-input v-model="form.username" placeholder="请输入账号" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="密码" prop="password">
+            <el-form-item label="密码" :prop="isCredentialRequired(form.datasourceType) ? 'password' : ''">
               <el-input
                 type="password"
                 v-model="form.password"
@@ -447,14 +445,11 @@
         <el-row
           :gutter="20"
           v-if="
-            form.datasourceType !== 'Kafka' &&
-            form.datasourceType !== 'HDFS' &&
-            form.datasourceType !== 'FTP' &&
-            form.datasourceType !== 'OSS-ALIYUN'
+            showDbNameField(form.datasourceType)
           "
         >
           <el-col :span="12" v-if="form.datasourceType !== null">
-            <el-form-item label="数据库名称" prop="dbname">
+            <el-form-item label="数据库名称" :prop="isDbNameRequired(form.datasourceType) ? 'dbname' : ''">
               <el-input
                 v-model="form.dbname"
                 placeholder="请输入数据库名称"
@@ -469,7 +464,6 @@
               (form.datasourceType == 'Oracle' ||
                 form.datasourceType == 'Oracle11' ||
                 form.datasourceType == 'Kingbase8' ||
-                form.datasourceType == 'MongoDB' ||
                 form.datasourceType == 'SQL_Server' ||
                 form.datasourceType == 'SQL_Server2008' ||
                 form.datasourceType == 'PostgreSQL')
@@ -612,7 +606,7 @@
             <el-form-item label="数据连接类型">
               <div>
                 <dict-tag
-                  :options="datasource_type"
+                  :options="datasourceTypeOptions"
                   :value="form.datasourceType"
                 />
               </div>
@@ -638,9 +632,7 @@
         <el-row
           :gutter="20"
           v-if="
-            form.datasourceType !== 'Kafka' &&
-            form.datasourceType !== 'HDFS' &&
-            form.datasourceType !== 'OSS-ALIYUN'
+            showCredentialFields(form.datasourceType)
           "
         >
           <el-col :span="12">
@@ -703,10 +695,7 @@
         <el-row
           :gutter="20"
           v-if="
-            form.datasourceType !== 'Kafka' &&
-            form.datasourceType !== 'HDFS' &&
-            form.datasourceType !== 'FTP' &&
-            form.datasourceType !== 'OSS-ALIYUN'
+            showDbNameField(form.datasourceType)
           "
         >
           <el-col :span="12" v-if="form.datasourceType !== null">
@@ -723,7 +712,6 @@
               (form.datasourceType == 'Oracle' ||
                 form.datasourceType == 'Oracle11' ||
                 form.datasourceType == 'Kingbase8' ||
-                form.datasourceType == 'MongoDB' ||
                 form.datasourceType == 'SQL_Server' ||
                 form.datasourceType == 'SQL_Server2008' ||
                 form.datasourceType == 'PostgreSQL')
@@ -923,14 +911,12 @@ import { encrypt, isDecrypted } from "@/utils/aesEncrypt";
 import { deptUserTree } from "@/api/system/system/user.js";
 import { getToken } from "@/utils/auth.js";
 import useUserStore from "@/store/system/user";
-import { config } from "ace-builds";
+import { getDatasourceTypes } from "@/components/Datasource/utils";
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
-const { datasource_type, sys_disable } = proxy.useDict(
-  "datasource_type",
-  "sys_disable"
-);
+const { sys_disable } = proxy.useDict("sys_disable");
 const daDatasourceList = ref([]);
+const datasourceTypeOptions = computed(() => getDatasourceTypes("datasource"));
 
 // 列显隐信息
 const columns = ref([
@@ -1008,6 +994,7 @@ const data = reactive({
     datasourceName: null,
     datasourceType: null,
     datasourceConfig: null,
+    config: null,
     ip: null,
     port: null,
     listCount: null,
@@ -1113,12 +1100,40 @@ function getProjectOptions() {
 
 //数据连接类型change事件
 function handleDatasourceChange(type) {
-  if (type == "Hive") {
-    rules.value.password[0].required = false;
+  rules.value.username[0].required = isCredentialRequired(type);
+  rules.value.password[0].required = isCredentialRequired(type);
+  rules.value.dbname[0].required = isDbNameRequired(type);
+  if (!showCredentialFields(type)) {
+    form.value.username = null;
+    form.value.password = null;
   }
-  if (type != "Hive") {
-    rules.value.password[0].required = true;
+  if (!showDbNameField(type)) {
+    form.value.dbname = null;
   }
+  nextTick(() => proxy.$refs.daDatasourceRef?.clearValidate(["username", "password", "dbname"]));
+}
+
+function showCredentialFields(type) {
+  return !!type && !["Kafka", "HDFS", "OSS-ALIYUN", "Redis", "RabbitMQ"].includes(type);
+}
+
+function isCredentialRequired(type) {
+  return showCredentialFields(type) && !["Hive", "MongoDB", "Elasticsearch"].includes(type);
+}
+
+function showDbNameField(type) {
+  return !!type && !["Kafka", "HDFS", "FTP", "OSS-ALIYUN", "Redis", "RabbitMQ", "Elasticsearch"].includes(type);
+}
+
+function isDbNameRequired(type) {
+  return showDbNameField(type) && type !== "MongoDB";
+}
+
+function normalizeConfigText(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  return typeof value === "string" ? value : JSON.stringify(value);
 }
 
 function getListProject() {
@@ -1291,7 +1306,7 @@ function handleUpdate(row, type) {
         if (config.bucket) form.value.bucket = config.bucket;
         if (config.endpoint) form.value.endpoint = config.endpoint;
         if (config.domain) form.value.domain = config.domain;
-        if (config.config) form.value.config = config.config;
+        form.value.config = normalizeConfigText(config.config);
       }
       form.value.projectListOld = form.value.projectIdList;
       queryParamsProject.value.datasourceId = form.value.id;
@@ -1338,6 +1353,7 @@ function handleDetail(row) {
       if (config.domain) {
         form.value.domain = config.domain;
       }
+      form.value.config = normalizeConfigText(config.config);
     }
     openDetail.value = true;
     title.value = "数据源详情";
@@ -1364,10 +1380,17 @@ function submitForm() {
   proxy.$refs["daDatasourceRef"].validate((valid) => {
     if (valid) {
       btnLoading.value = true;
+      if (!showCredentialFields(form.value.datasourceType)) {
+        form.value.username = null;
+        form.value.password = null;
+      }
+      if (!showDbNameField(form.value.datasourceType)) {
+        form.value.dbname = null;
+      }
       if (form.value.id != null) {
         if (
-          old_password !== form.value.password ||
-          !isDecrypted(form.value.password)
+          form.value.password &&
+          (old_password !== form.value.password || !isDecrypted(form.value.password))
         ) {
           form.value.password = encrypt(form.value.password);
         }
@@ -1403,7 +1426,7 @@ function submitForm() {
       } else {
         form.value.datasourceConfig = JSON.stringify({
           username: form.value.username,
-          password: encrypt(form.value.password),
+          password: form.value.password ? encrypt(form.value.password) : form.value.password,
           dbname: form.value.dbname,
           sid: form.value.sid,
           keyId: form.value.keyId,
@@ -1411,6 +1434,7 @@ function submitForm() {
           bucket: form.value.bucket,
           endpoint: form.value.endpoint,
           domain: form.value.domain,
+          config: form.value.config,
         });
         addDaDatasource(form.value)
           .then((response) => {

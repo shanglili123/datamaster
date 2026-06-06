@@ -124,7 +124,7 @@ public enum DbType {
      * Kafka
      */
     KAFKA("Kafka",
-            "人大金仓数据库",
+            "Kafka消息队列",
             "${host}:${port}",
             "LENGTH",
             "SELECT COUNT(1) FROM {tableName}",
@@ -213,7 +213,22 @@ public enum DbType {
     /**
      * FTP
      */
-    OSS_ALIYUN("OSS-ALIYUN", "OSS(阿里云)", "", "", "", "");
+    OSS_ALIYUN("OSS-ALIYUN", "OSS(阿里云)", "", "", "", ""),
+
+    /**
+     * RocketMQ
+     */
+    ROCKETMQ("RocketMQ", "RocketMQ消息队列", "", "", "", ""),
+
+    /**
+     * Socket
+     */
+    SOCKET("Socket", "Socket 服务", "", "", "", ""),
+
+    /**
+     * Stream (mock data stream)
+     */
+    STREAM("Stream", "Stream 流", "", "", "", "");
 
 
     /**

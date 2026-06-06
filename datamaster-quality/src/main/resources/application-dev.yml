@@ -1,10 +1,6 @@
 datasource:
   type: dm8
 
-custom:
-  mongo:
-    enabled: true
-
 # Spring配置
 spring:
   # redis 配置
@@ -29,13 +25,6 @@ spring:
         max-active: 8
         # #连接池最大阻塞等待时间（使用负值表示没有限制）
         max-wait: -1ms
-  data:
-    mongodb:
-      uri: mongodb://sjzt:Desl9Y4eIQP1BHh7@127.0.0.1:27017/data?authSource=admin
-      field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy # 自动转驼峰
-      print: true
-      slowQuery: true
-      slowTime: 1000
   datasource:
     druid:
       stat-view-servlet:

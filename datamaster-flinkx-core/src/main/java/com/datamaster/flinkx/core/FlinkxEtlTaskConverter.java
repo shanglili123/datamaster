@@ -2,10 +2,12 @@ package com.datamaster.flinkx.core;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.datamaster.common.database.constants.DbType;
 import com.datamaster.common.database.exception.DataQueryException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +20,7 @@ public class FlinkxEtlTaskConverter {
         Map<String, Object> writerMap = (Map<String, Object>) mainArgs.get("writer");
         List<Map<String, Object>> transitionList = (List<Map<String, Object>>) mainArgs.get("transition");
         JSONObject config = mainArgs.get("config") instanceof Map
-                ? new JSONObject((Map<String, Object>) mainArgs.get("config"))
+                ? jsonObjectFromMap((Map<String, Object>) mainArgs.get("config"))
                 : new JSONObject();
         Object taskInfo = config.get("taskInfo");
         String name = taskInfo instanceof Map
@@ -66,13 +68,28 @@ public class FlinkxEtlTaskConverter {
     @SuppressWarnings("unchecked")
     private static JSONObject buildReader(Map<String, Object> readerMap) {
         Map<String, Object> param = (Map<String, Object>) readerMap.get("parameter");
-        String dbType = param != null ? (String) param.get("dbType") : null;
+        DbType dbType = parseDbType(param);
 
         JSONObject reader = new JSONObject();
-        reader.put("name", resolveReaderName(dbType));
+        boolean kafkaReader = isKafka(dbType);
+        boolean streamingMqReader = !kafkaReader && isStreamingMqReader(dbType);
+        boolean cdcReader = param != null && !kafkaReader && !streamingMqReader && isCdcReadMode(param);
+        reader.put("name", resolveReaderName(dbType, cdcReader));
 
         JSONObject rp = new JSONObject();
         if (param != null) {
+            if (kafkaReader) {
+                reader.put("parameter", buildKafkaParameter(param));
+                return reader;
+            }
+            if (streamingMqReader) {
+                reader.put("parameter", buildStreamingMqParameter(param, dbType));
+                return reader;
+            }
+            if (cdcReader) {
+                reader.put("parameter", buildCdcParameter(param, dbType));
+                return reader;
+            }
             if (isMongo(dbType)) {
                 reader.put("parameter", buildMongoParameter(param, true));
                 return reader;
@@ -114,7 +131,7 @@ public class FlinkxEtlTaskConverter {
     @SuppressWarnings("unchecked")
     private static JSONObject buildWriter(Map<String, Object> writerMap) {
         Map<String, Object> param = (Map<String, Object>) writerMap.get("parameter");
-        String dbType = param != null ? (String) param.get("dbType") : null;
+        DbType dbType = parseDbType(param);
 
         JSONObject writer = new JSONObject();
         writer.put("name", resolveWriterName(dbType));
@@ -182,7 +199,7 @@ public class FlinkxEtlTaskConverter {
         mp.put("batchSize", param.getOrDefault("batchSize", 1024));
         if (!reader) {
             String writeModeType = param.get("writeModeType") == null ? null : String.valueOf(param.get("writeModeType"));
-            mp.put("writeMode", resolveWriteMode(writeModeType, param.get("selectedColumns"), (String) param.get("dbType")));
+            mp.put("writeMode", resolveWriteMode(writeModeType, param.get("selectedColumns"), parseDbType(param)));
         }
         putIfPresent(mp, "query", connectionQuery(param));
         return mp;
@@ -200,19 +217,266 @@ public class FlinkxEtlTaskConverter {
         ep.put("batchSize", param.getOrDefault("batchSize", 1024));
         if (!reader) {
             String writeModeType = param.get("writeModeType") == null ? null : String.valueOf(param.get("writeModeType"));
-            ep.put("writeMode", resolveWriteMode(writeModeType, param.get("selectedColumns"), (String) param.get("dbType")));
+            ep.put("writeMode", resolveWriteMode(writeModeType, param.get("selectedColumns"), parseDbType(param)));
         }
         putIfPresent(ep, "query", connectionQuery(param));
         return ep;
     }
 
-    @SuppressWarnings("unchecked")
+    private static JSONObject buildCdcParameter(Map<String, Object> param, DbType dbType) {
+        JSONObject cdcConfig = nestedConfig(param, "cdcConfig");
+        JSONObject cp = new JSONObject();
+        putIfPresent(cp, "username", param.get("username"));
+        putIfPresent(cp, "password", param.get("password"));
+        putIfPresent(cp, "column", normalizeFieldColumns(firstPresent(param.get("tableFields"), param.get("column"))));
+        Object tableName = firstPresent(connectionTable(param), cdcConfig.get("table"), cdcConfig.get("tableName"));
+        Object dbName = firstPresent(param.get("dbName"), cdcConfig.get("database"), cdcConfig.get("databaseName"));
+
+        if (isMysqlLike(dbType)) {
+            putIfPresent(cp, "host", firstPresent(cdcConfig.get("host"), param.get("host")));
+            cp.put("port", toInt(firstPresent(cdcConfig.get("port"), param.get("port")), 3306));
+            putListIfPresent(cp, "databaseList", firstPresent(cdcConfig.get("databaseList"), cdcConfig.get("database"), dbName));
+            putListIfPresent(cp, "tableList", firstPresent(cdcConfig.get("tableList"), cdcConfig.get("table"), qualifyMySqlCdcTable(dbName, tableName)));
+            cp.put("serverId", toInt(firstPresent(cdcConfig.get("serverId"), cdcConfig.get("server-id")), defaultServerId(param)));
+            requireCdcParameter(cp, dbType, "host", "databaseList", "tableList", "username", "password");
+        } else if (isSqlServer(dbType)) {
+            putIfPresent(cp, "url", firstPresent(cdcConfig.get("url"), connectionJdbcUrl(param)));
+            putIfPresent(cp, "databaseName", firstPresent(cdcConfig.get("databaseName"), cdcConfig.get("database"), dbName));
+            putListIfPresent(cp, "tableList", firstPresent(cdcConfig.get("tableList"), cdcConfig.get("table"), tableName));
+            cp.put("pavingData", toBoolean(firstPresent(cdcConfig.get("pavingData"), true)));
+            cp.put("splitUpdate", toBoolean(firstPresent(cdcConfig.get("splitUpdate"), false)));
+            cp.put("timestampFormat", firstPresent(cdcConfig.get("timestampFormat"), "yyyy-MM-dd HH:mm:ss"));
+            putIfPresent(cp, "pollInterval", cdcConfig.get("pollInterval"));
+            putIfPresent(cp, "lsn", cdcConfig.get("lsn"));
+            requireCdcParameter(cp, dbType, "url", "databaseName", "tableList", "username", "password");
+        } else if (isOracle(dbType)) {
+            Object oracleTables = firstPresent(cdcConfig.get("table"), cdcConfig.get("tableList"), tableName);
+            putIfPresent(cp, "jdbcUrl", firstPresent(cdcConfig.get("jdbcUrl"), connectionJdbcUrl(param)));
+            putIfPresent(cp, "username", firstPresent(cdcConfig.get("username"), param.get("username")));
+            putIfPresent(cp, "password", firstPresent(cdcConfig.get("password"), param.get("password")));
+            putListIfPresent(cp, "table", oracleTables);
+            putIfPresent(cp, "listenerTables", joinListValue(firstPresent(cdcConfig.get("listenerTables"), oracleTables)));
+            cp.put("readPosition", firstPresent(cdcConfig.get("readPosition"), "current"));
+            cp.put("timestampFormat", firstPresent(cdcConfig.get("timestampFormat"), "yyyy-MM-dd HH:mm:ss"));
+            cp.put("pavingData", toBoolean(firstPresent(cdcConfig.get("pavingData"), true)));
+            cp.put("split", toBoolean(firstPresent(cdcConfig.get("split"), false)));
+            putIfPresent(cp, "startScn", cdcConfig.get("startScn"));
+            putIfPresent(cp, "startTime", cdcConfig.get("startTime"));
+            requireCdcParameter(cp, dbType, "jdbcUrl", "table", "listenerTables", "username", "password");
+        } else {
+            throw new DataQueryException("FlinkX CDC 暂不支持的 reader 数据库类型: " + dbType.getDb());
+        }
+        mergeExtraConfig(cp, cdcConfig);
+        return cp;
+    }
+
+    private static JSONObject buildKafkaParameter(Map<String, Object> param) {
+        JSONObject kafkaConfig = nestedConfig(param, "kafkaConfig");
+        JSONObject kp = new JSONObject();
+        Object configuredTopics = kafkaConfig.get("topics");
+        Object rawTopic = firstPresent(
+                connectionTopic(param), param.get("topic"), kafkaConfig.get("topic"), firstTopic(configuredTopics));
+        Object topics = firstPresent(configuredTopics, rawTopic);
+        Object topic = firstTopic(topics);
+        putIfPresent(kp, "topic", topic);
+        putListIfPresent(kp, "topics", topics);
+        kp.put("groupId", firstPresent(kafkaConfig.get("groupId"), kafkaConfig.get("group-id"), "datamaster-chunjun"));
+        kp.put("mode", firstPresent(kafkaConfig.get("mode"), kafkaConfig.get("startupMode"), "LATEST"));
+        kp.put("codec", firstPresent(kafkaConfig.get("codec"), "json"));
+        Object tableFields = firstPresent(kafkaConfig.get("tableFields"), param.get("tableFields"));
+        Object columns = firstPresent(kafkaConfig.get("column"), param.get("column"), tableFields);
+        Object normalizedColumns = normalizeFieldColumns(columns);
+        putIfPresent(kp, "column", normalizedColumns);
+        putListIfPresent(kp, "tableFields", normalizeKafkaFieldNames(columns));
+        putIfPresent(kp, "tableSchema", firstPresent(
+                normalizeKafkaTableSchema(kafkaConfig.get("tableSchema")),
+                buildKafkaTableSchema(firstPresent(topic, firstTopic(topics)), normalizedColumns)));
+        kp.put("pavingData", toBoolean(firstPresent(kafkaConfig.get("pavingData"), true)));
+        kp.put("split", toBoolean(firstPresent(kafkaConfig.get("split"), false)));
+        JSONObject datasourceConfig = datasourceConfig(param);
+        JSONObject consumerSettings = new JSONObject();
+        mergeConsumerSettings(consumerSettings, datasourceConfig.get("config"));
+        mergeConsumerSettings(consumerSettings, param.get("config"));
+        mergeKafkaClientProperties(consumerSettings, kafkaConfig);
+        mergeConsumerSettings(consumerSettings, kafkaConfig.get("consumerSettings"));
+        normalizeBootstrapServers(consumerSettings, param);
+        kp.put("consumerSettings", stringifyJsonValues(consumerSettings));
+        if (!hasValue(kp.get("topic")) && !hasValue(kp.get("topics"))) {
+            throw new DataQueryException("Kafka reader 缺少 Topic");
+        }
+        if (!hasValue(consumerSettings.get("bootstrap.servers"))) {
+            throw new DataQueryException("Kafka reader 缺少 bootstrap.servers");
+        }
+        putIfPresent(kp, "timestamp", kafkaConfig.get("timestamp"));
+        putIfPresent(kp, "offset", kafkaConfig.get("offset"));
+        putIfPresent(kp, "deserialization", kafkaConfig.get("deserialization"));
+        putIfPresent(kp, "deserializationProperties", kafkaConfig.get("deserializationProperties"));
+        mergeKafkaExtraConfig(kp, kafkaConfig,
+                "topic", "topics", "groupId", "group-id", "mode", "startupMode", "codec",
+                "column", "columns", "fields", "tableFields", "tableSchema",
+                "pavingData", "split", "consumerSettings",
+                "timestamp", "offset", "deserialization", "deserializationProperties");
+        return kp;
+    }
+
+    private static JSONObject buildStreamingMqParameter(Map<String, Object> param, DbType dbType) {
+        switch (dbType) {
+            case RABBITMQ: return buildRabbitmqParameter(param);
+            case REDIS: return buildRedisParameter(param);
+            case ROCKETMQ: return buildRocketmqParameter(param);
+            case SOCKET: return buildSocketParameter(param);
+            case STREAM: return buildStreamParameter(param);
+            default: throw new DataQueryException("不支持的流式消息中间件: " + dbType.getDb());
+        }
+    }
+
+    private static JSONObject buildRabbitmqParameter(Map<String, Object> param) {
+        JSONObject rabbitConfig = nestedConfig(param, "rabbitmqConfig");
+        JSONObject rp = new JSONObject();
+        putIfPresent(rp, "host", firstPresent(rabbitConfig.get("host"), param.get("host")));
+        rp.put("port", toInt(firstPresent(rabbitConfig.get("port"), param.get("port")), 5672));
+        putIfPresent(rp, "username", firstPresent(rabbitConfig.get("username"), param.get("username")));
+        putIfPresent(rp, "password", firstPresent(rabbitConfig.get("password"), param.get("password")));
+        putIfPresent(rp, "virtualHost", firstPresent(rabbitConfig.get("virtualHost"), rabbitConfig.get("vhost"), "/"));
+        putIfPresent(rp, "queue", firstPresent(
+                connectionTopic(param), rabbitConfig.get("queue"), rabbitConfig.get("queueName"),
+                param.get("topic"), param.get("queue")));
+        putIfPresent(rp, "exchange", rabbitConfig.get("exchange"));
+        putIfPresent(rp, "routingKey", firstPresent(rabbitConfig.get("routingKey"), param.get("routingKey")));
+        putIfPresent(rp, "tableFields", firstPresent(param.get("tableFields"), normalizeFieldColumns(param.get("column"))));
+        mergeExtraConfig(rp, rabbitConfig,
+                "host", "port", "username", "password", "virtualHost", "vhost",
+                "queue", "queueName", "exchange", "routingKey", "tableFields");
+        return rp;
+    }
+
+    private static JSONObject buildRedisParameter(Map<String, Object> param) {
+        JSONObject redisConfig = nestedConfig(param, "redisConfig");
+        JSONObject rp = new JSONObject();
+        putIfPresent(rp, "host", firstPresent(redisConfig.get("host"), param.get("host")));
+        rp.put("port", toInt(firstPresent(redisConfig.get("port"), param.get("port")), 6379));
+        putIfPresent(rp, "username", firstPresent(redisConfig.get("username"), param.get("username")));
+        putIfPresent(rp, "password", firstPresent(redisConfig.get("password"), param.get("password")));
+        putIfPresent(rp, "database", firstPresent(redisConfig.get("database"), redisConfig.get("db"), 0));
+        putIfPresent(rp, "key", firstPresent(redisConfig.get("key"), param.get("key"), param.get("topic")));
+        putIfPresent(rp, "keyPattern", redisConfig.get("keyPattern"));
+        putListIfPresent(rp, "keys", firstPresent(redisConfig.get("keys"), param.get("keys")));
+        putIfPresent(rp, "tableFields", firstPresent(param.get("tableFields"), normalizeFieldColumns(param.get("column"))));
+        mergeExtraConfig(rp, redisConfig,
+                "host", "port", "username", "password", "database", "db",
+                "key", "keyPattern", "keys", "tableFields");
+        return rp;
+    }
+
+    private static JSONObject buildRocketmqParameter(Map<String, Object> param) {
+        JSONObject rocketConfig = nestedConfig(param, "rocketmqConfig");
+        JSONObject rp = new JSONObject();
+        putIfPresent(rp, "nameserver", firstPresent(
+                rocketConfig.get("nameserver"), rocketConfig.get("nameServer"),
+                param.get("host") + ":" + firstPresent(rocketConfig.get("port"), param.get("port"), 9876)));
+        putIfPresent(rp, "topic", firstPresent(
+                connectionTopic(param), rocketConfig.get("topic"), param.get("topic")));
+        putIfPresent(rp, "consumerGroup", firstPresent(
+                rocketConfig.get("consumerGroup"), rocketConfig.get("consumer-group"), "ChunjunConsumer"));
+        putIfPresent(rp, "tag", firstPresent(rocketConfig.get("tag"), "*"));
+        putIfPresent(rp, "codec", firstPresent(rocketConfig.get("codec"), "json"));
+        putIfPresent(rp, "tableFields", firstPresent(param.get("tableFields"), normalizeFieldColumns(param.get("column"))));
+        mergeExtraConfig(rp, rocketConfig,
+                "nameserver", "nameServer", "topic", "consumerGroup", "consumer-group",
+                "tag", "codec", "tableFields");
+        return rp;
+    }
+
+    private static JSONObject buildSocketParameter(Map<String, Object> param) {
+        JSONObject socketConfig = nestedConfig(param, "socketConfig");
+        JSONObject rp = new JSONObject();
+        rp.put("host", firstPresent(socketConfig.get("host"), param.get("host"), "0.0.0.0"));
+        rp.put("port", toInt(firstPresent(socketConfig.get("port"), param.get("port")), 8888));
+        putIfPresent(rp, "tableFields", firstPresent(param.get("tableFields"), normalizeFieldColumns(param.get("column"))));
+        mergeExtraConfig(rp, socketConfig, "host", "port", "tableFields");
+        return rp;
+    }
+
+    private static JSONObject buildStreamParameter(Map<String, Object> param) {
+        JSONObject streamConfig = nestedConfig(param, "streamConfig");
+        JSONObject rp = new JSONObject();
+        putIfPresent(rp, "content", streamConfig.get("content"));
+        putIfPresent(rp, "tableFields", firstPresent(param.get("tableFields"), normalizeFieldColumns(param.get("column"))));
+        mergeExtraConfig(rp, streamConfig, "content", "tableFields");
+        return rp;
+    }
+
+    private static void mergeConsumerSettings(JSONObject target, Object raw) {
+        JSONObject settings = toJsonObject(raw);
+        for (Map.Entry<String, Object> entry : settings.entrySet()) {
+            target.put(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private static void mergeKafkaClientProperties(JSONObject target, JSONObject kafkaConfig) {
+        for (Map.Entry<String, Object> entry : kafkaConfig.entrySet()) {
+            if (isKafkaClientPropertyKey(entry.getKey())) {
+                target.put(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    private static void normalizeBootstrapServers(JSONObject consumerSettings, Map<String, Object> param) {
+        Object bootstrapServers = firstPresent(
+                consumerSettings.get("bootstrap.servers"),
+                consumerSettings.get("bootstrapServers"),
+                consumerSettings.get("bootstrap_servers"));
+        if (!hasValue(bootstrapServers)) {
+            Object host = param.get("host");
+            Object port = param.get("port");
+            if (hasValue(host) && hasValue(port)) {
+                bootstrapServers = host + ":" + port;
+            }
+        }
+        if (hasValue(bootstrapServers)) {
+            consumerSettings.put("bootstrap.servers", bootstrapServers);
+            consumerSettings.remove("bootstrapServers");
+            consumerSettings.remove("bootstrap_servers");
+        }
+    }
+
     private static JSONObject datasourceConfig(Map<String, Object> param) {
-        Object raw = param.get("datasourceConfig");
+        return toJsonObject(param.get("datasourceConfig"));
+    }
+
+    private static JSONObject nestedConfig(Map<String, Object> param, String key) {
+        Object raw = param.get(key);
+        return toJsonObject(raw);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static JSONObject toJsonObject(Object raw) {
         if (raw instanceof Map) {
-            return new JSONObject((Map<String, Object>) raw);
+            return jsonObjectFromMap((Map<String, Object>) raw);
+        }
+        if (raw instanceof String && StringUtils.isNotBlank((String) raw)) {
+            try {
+                return JSONObject.parseObject((String) raw);
+            } catch (Exception ignored) {
+            }
         }
         return new JSONObject();
+    }
+
+    private static JSONObject jsonObjectFromMap(Map<String, Object> raw) {
+        JSONObject object = new JSONObject();
+        object.putAll(raw);
+        return object;
+    }
+
+    private static JSONObject stringifyJsonValues(JSONObject raw) {
+        JSONObject result = new JSONObject();
+        for (Map.Entry<String, Object> entry : raw.entrySet()) {
+            if (entry.getValue() != null) {
+                result.put(entry.getKey(), String.valueOf(entry.getValue()));
+            }
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")
@@ -233,19 +497,297 @@ public class FlinkxEtlTaskConverter {
         return ((Map<String, Object>) rawConn).get("querySql");
     }
 
+    @SuppressWarnings("unchecked")
+    private static Object connectionJdbcUrl(Map<String, Object> param) {
+        Object rawConn = param.get("connection");
+        if (!(rawConn instanceof Map)) {
+            return null;
+        }
+        return ((Map<String, Object>) rawConn).get("jdbcUrl");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object connectionTopic(Map<String, Object> param) {
+        Object rawConn = param.get("connection");
+        if (!(rawConn instanceof Map)) {
+            return null;
+        }
+        return ((Map<String, Object>) rawConn).get("topic");
+    }
+
     private static Object firstPresent(Object... values) {
         for (Object value : values) {
-            if (value != null && StringUtils.isNotBlank(String.valueOf(value))) {
+            if (hasValue(value)) {
                 return value;
             }
         }
-        return "";
+        return null;
     }
 
     private static void putIfPresent(JSONObject object, String key, Object value) {
-        if (value != null && StringUtils.isNotBlank(String.valueOf(value))) {
+        if (hasValue(value)) {
             object.put(key, value);
         }
+    }
+
+    private static boolean hasValue(Object value) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Map) {
+            return !((Map<?, ?>) value).isEmpty();
+        }
+        if (value instanceof Collection) {
+            return !((Collection<?>) value).isEmpty();
+        }
+        String text = String.valueOf(value);
+        return StringUtils.isNotBlank(text) && !"null".equalsIgnoreCase(text);
+    }
+
+    private static void requireCdcParameter(JSONObject config, DbType dbType, String... keys) {
+        for (String key : keys) {
+            if (!hasValue(config.get(key))) {
+                throw new DataQueryException("FlinkX CDC " + dbType.getDb() + " 缺少参数: " + key);
+            }
+        }
+    }
+
+    private static boolean isCdcReadMode(Map<String, Object> param) {
+        Object mode = param.get("readModeType");
+        return "4".equals(String.valueOf(mode)) || "CDC".equalsIgnoreCase(String.valueOf(mode));
+    }
+
+    private static void mergeExtraConfig(JSONObject target, JSONObject extra) {
+        mergeExtraConfig(target, extra, new String[0]);
+    }
+
+    private static void mergeExtraConfig(JSONObject target, JSONObject extra, String... ignoredKeys) {
+        for (Map.Entry<String, Object> entry : extra.entrySet()) {
+            if (containsIgnoreCase(ignoredKeys, entry.getKey())) {
+                continue;
+            }
+            if (!target.containsKey(entry.getKey())) {
+                target.put(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    private static void mergeKafkaExtraConfig(JSONObject target, JSONObject extra, String... ignoredKeys) {
+        for (Map.Entry<String, Object> entry : extra.entrySet()) {
+            String key = entry.getKey();
+            if (containsIgnoreCase(ignoredKeys, key) || isKafkaClientPropertyKey(key)) {
+                continue;
+            }
+            if (!target.containsKey(key)) {
+                target.put(key, entry.getValue());
+            }
+        }
+    }
+
+    private static boolean isKafkaClientPropertyKey(String key) {
+        return key != null && key.contains(".");
+    }
+
+    private static boolean containsIgnoreCase(String[] values, String target) {
+        if (values == null || target == null) {
+            return false;
+        }
+        for (String value : values) {
+            if (StringUtils.equalsIgnoreCase(value, target)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void putListIfPresent(JSONObject target, String key, Object value) {
+        List<String> values = toStringList(value);
+        if (!values.isEmpty()) {
+            target.put(key, values);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object normalizeFieldColumns(Object value) {
+        if (!(value instanceof List)) {
+            return value;
+        }
+        List<JSONObject> columns = new ArrayList<>();
+        for (Object item : (List<?>) value) {
+            if (item instanceof Map) {
+                Map<String, Object> field = (Map<String, Object>) item;
+                Object name = firstPresent(field.get("name"), field.get("columnName"), field.get("key"));
+                String nameText = name == null ? null : String.valueOf(name).trim();
+                if (StringUtils.isBlank(nameText)) {
+                    continue;
+                }
+                JSONObject column = new JSONObject();
+                column.put("name", nameText);
+                column.put("type", firstPresent(field.get("type"), field.get("columnType"), "STRING"));
+                putIfPresent(column, "index", toInteger(field.get("index")));
+                putIfPresent(column, "value", field.get("value"));
+                putIfPresent(column, "format", field.get("format"));
+                putIfPresent(column, "parseFormat", field.get("parseFormat"));
+                putIfPresent(column, "splitter", field.get("splitter"));
+                putIfPresent(column, "isPart", toBooleanObject(field.get("isPart")));
+                putIfPresent(column, "notNull", toBooleanObject(field.get("notNull")));
+                columns.add(column);
+            } else if (item != null && StringUtils.isNotBlank(String.valueOf(item).trim())) {
+                JSONObject column = new JSONObject();
+                column.put("name", String.valueOf(item).trim());
+                column.put("type", "STRING");
+                columns.add(column);
+            }
+        }
+        return columns;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> normalizeKafkaFieldNames(Object value) {
+        List<String> names = new ArrayList<>();
+        if (!(value instanceof List)) {
+            return names;
+        }
+        for (Object item : (List<?>) value) {
+            Object name = null;
+            if (item instanceof Map) {
+                Map<String, Object> field = (Map<String, Object>) item;
+                name = firstPresent(field.get("name"), field.get("columnName"), field.get("key"));
+            } else if (item != null) {
+                name = item;
+            }
+            String nameText = name == null ? null : String.valueOf(name).trim();
+            if (StringUtils.isNotBlank(nameText)) {
+                names.add(nameText);
+            }
+        }
+        return names;
+    }
+
+    private static JSONObject buildKafkaTableSchema(Object topic, Object columns) {
+        if (topic == null || StringUtils.isBlank(String.valueOf(topic)) || !(columns instanceof List) || ((List<?>) columns).isEmpty()) {
+            return new JSONObject();
+        }
+        JSONObject tableSchema = new JSONObject();
+        tableSchema.put(String.valueOf(topic), columns);
+        return tableSchema;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static JSONObject normalizeKafkaTableSchema(Object rawSchema) {
+        JSONObject tableSchema = new JSONObject();
+        if (!(rawSchema instanceof Map)) {
+            return tableSchema;
+        }
+        Map<String, Object> schemaMap = (Map<String, Object>) rawSchema;
+        for (Map.Entry<String, Object> entry : schemaMap.entrySet()) {
+            String topic = entry.getKey() == null ? null : entry.getKey().trim();
+            if (StringUtils.isBlank(topic)) {
+                continue;
+            }
+            Object normalizedColumns = normalizeFieldColumns(entry.getValue());
+            if (normalizedColumns instanceof List && !((List<?>) normalizedColumns).isEmpty()) {
+                tableSchema.put(topic, normalizedColumns);
+            }
+        }
+        return tableSchema;
+    }
+
+    private static Object firstTopic(Object topics) {
+        List<String> values = toStringList(topics);
+        return values.isEmpty() ? null : values.get(0);
+    }
+
+    private static Object joinListValue(Object value) {
+        List<String> values = toStringList(value);
+        return values.isEmpty() ? value : String.join(",", values);
+    }
+
+    private static Object qualifyMySqlCdcTable(Object database, Object table) {
+        if (!hasValue(database) || !hasValue(table)) {
+            return table;
+        }
+        List<String> databases = toStringList(database);
+        if (databases.isEmpty()) {
+            return table;
+        }
+        String dbName = databases.get(0);
+        List<String> tables = toStringList(table);
+        if (tables.isEmpty()) {
+            return table;
+        }
+        List<String> qualified = new ArrayList<>();
+        for (String tableName : tables) {
+            qualified.add(tableName.contains(".") ? tableName : dbName + "." + tableName);
+        }
+        return qualified;
+    }
+
+    private static List<String> toStringList(Object value) {
+        List<String> result = new ArrayList<>();
+        if (value instanceof List) {
+            for (Object item : (List<?>) value) {
+                String text = item == null ? null : String.valueOf(item).trim();
+                if (StringUtils.isNotBlank(text)) {
+                    result.add(text);
+                }
+            }
+        } else if (value != null && StringUtils.isNotBlank(String.valueOf(value))) {
+            String raw = String.valueOf(value);
+            for (String item : raw.split(",")) {
+                if (StringUtils.isNotBlank(item)) {
+                    result.add(item.trim());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static Integer toInteger(Object value) {
+        if (!hasValue(value)) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.valueOf(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            throw new DataQueryException("FlinkX 字段 index 必须是整数: " + value);
+        }
+    }
+
+    private static int toInt(Object value, int defaultValue) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private static boolean toBoolean(Object value) {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    private static Boolean toBooleanObject(Object value) {
+        if (!hasValue(value)) {
+            return null;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return Boolean.valueOf(String.valueOf(value));
+    }
+
+    private static int defaultServerId(Map<String, Object> param) {
+        Object datasourceId = param.get("datasourceId");
+        return 5400 + Math.abs(String.valueOf(datasourceId == null ? "0" : datasourceId).hashCode() % 1000);
     }
 
     @SuppressWarnings("unchecked")
@@ -1124,91 +1666,136 @@ public class FlinkxEtlTaskConverter {
         return setting;
     }
 
-    private static String resolveReaderName(String dbType) {
-        if (StringUtils.isBlank(dbType)) {
+    private static String resolveReaderName(DbType dbType) {
+        return resolveReaderName(dbType, false);
+    }
+
+    private static String resolveReaderName(DbType dbType, boolean cdcReader) {
+        if (dbType == null) {
             throw new DataQueryException("FlinkX reader 缺少数据库类型");
         }
-        switch (dbType.toUpperCase()) {
-            case "MYSQL":
-            case "MARIADB":
-            case "2": return "mysqlreader";
-            case "ORACLE":
-            case "ORACLE11":
-            case "ORACLE_12C": return "oraclereader";
-            case "POSTGRE_SQL":
-            case "POSTGRESQL": return "postgresqlreader";
-            case "DORIS": return "dorisreader";
-            case "CLICK_HOUSE":
-            case "CLICKHOUSE": return "clickhousereader";
-            case "HIVE": return "hivereader";
-            case "MONGODB": return "mongodbreader";
-            case "ELASTICSEARCH":
-            case "ES": return "elasticsearch7reader";
-            case "SQL_SERVER":
-            case "SQL_SERVER2008": return "sqlserverreader";
-            case "DM8": return "dmreader";
-            case "KINGBASE8": return "kingbasereader";
-            case "DB2": return "db2reader";
-            case "KAFKA": return "kafkareader";
-            case "RABBITMQ": return "rabbitmqreader";
-            case "REDIS": return "redisreader";
-            case "HDFS": return "hdfsreader";
-            case "FTP": return "ftpreader";
-            case "OSS-ALIYUN":
-            case "OSS_ALIYUN": return "s3reader";
-            default: throw new DataQueryException("FlinkX 不支持的 reader 数据库类型: " + dbType);
+        if (cdcReader) {
+            switch (dbType) {
+                case MYSQL:
+                case MARIADB: return "mysqlcdcreader";
+                case ORACLE:
+                case ORACLE_12C: return "oraclelogminerreader";
+                case SQL_SERVER:
+                case SQL_SERVER2008: return "sqlservercdcreader";
+                default: throw new DataQueryException("FlinkX CDC 暂不支持的 reader 数据库类型: " + dbType.getDb());
+            }
+        }
+        switch (dbType) {
+            case MYSQL:
+            case MARIADB: return "mysqlreader";
+            case ORACLE:
+            case ORACLE_12C: return "oraclereader";
+            case POSTGRE_SQL: return "postgresqlreader";
+            case DORIS: return "dorisreader";
+            case CLICK_HOUSE: return "clickhousereader";
+            case HIVE: return "hivereader";
+            case MONGODB: return "mongodbreader";
+            case ELASTICSEARCH: return "elasticsearch7reader";
+            case SQL_SERVER:
+            case SQL_SERVER2008: return "sqlserverreader";
+            case DM8: return "dmreader";
+            case KINGBASE8: return "kingbasereader";
+            case DB2: return "db2reader";
+            case KAFKA: return "kafkareader";
+            case RABBITMQ: return "rabbitmqreader";
+            case REDIS: return "redisreader";
+            case ROCKETMQ: return "rocketmqreader";
+            case SOCKET: return "socketreader";
+            case STREAM: return "streamreader";
+            case HDFS: return "hdfsreader";
+            case FTP: return "ftpreader";
+            case OSS_ALIYUN: return "s3reader";
+            default: throw new DataQueryException("FlinkX 不支持的 reader 数据库类型: " + dbType.getDb());
         }
     }
 
-    private static String resolveWriterName(String dbType) {
-        if (StringUtils.isBlank(dbType)) {
+    private static String resolveWriterName(DbType dbType) {
+        if (dbType == null) {
             throw new DataQueryException("FlinkX writer 缺少数据库类型");
         }
-        switch (dbType.toUpperCase()) {
-            case "MYSQL":
-            case "MARIADB":
-            case "2": return "mysqlwriter";
-            case "ORACLE":
-            case "ORACLE11":
-            case "ORACLE_12C": return "oraclewriter";
-            case "POSTGRE_SQL":
-            case "POSTGRESQL": return "postgresqlwriter";
-            case "DORIS": return "doriswriter";
-            case "CLICK_HOUSE":
-            case "CLICKHOUSE": return "clickhousewriter";
-            case "HIVE": return "hivewriter";
-            case "MONGODB": return "mongodbwriter";
-            case "ELASTICSEARCH":
-            case "ES": return "elasticsearch7writer";
-            case "SQL_SERVER":
-            case "SQL_SERVER2008": return "sqlserverwriter";
-            case "DM8": return "dmwriter";
-            case "KINGBASE8": return "kingbasewriter";
-            case "DB2": return "db2writer";
-            case "KAFKA": return "kafkawriter";
-            case "RABBITMQ": return "rabbitmqwriter";
-            case "REDIS": return "rediswriter";
-            case "HDFS": return "hdfswriter";
-            case "FTP": return "ftpwriter";
-            case "OSS-ALIYUN":
-            case "OSS_ALIYUN": return "s3writer";
-            default: throw new DataQueryException("FlinkX 不支持的 writer 数据库类型: " + dbType);
+        switch (dbType) {
+            case MYSQL:
+            case MARIADB: return "mysqlwriter";
+            case ORACLE:
+            case ORACLE_12C: return "oraclewriter";
+            case POSTGRE_SQL: return "postgresqlwriter";
+            case DORIS: return "doriswriter";
+            case CLICK_HOUSE: return "clickhousewriter";
+            case HIVE: return "hivewriter";
+            case MONGODB: return "mongodbwriter";
+            case ELASTICSEARCH: return "elasticsearch7writer";
+            case SQL_SERVER:
+            case SQL_SERVER2008: return "sqlserverwriter";
+            case DM8: return "dmwriter";
+            case KINGBASE8: return "kingbasewriter";
+            case DB2: return "db2writer";
+            case KAFKA: return "kafkawriter";
+            case RABBITMQ: return "rabbitmqwriter";
+            case REDIS: return "rediswriter";
+            case ROCKETMQ: return "rocketmqwriter";
+            case SOCKET: return "socketwriter";
+            case STREAM: return "streamwriter";
+            case HDFS: return "hdfswriter";
+            case FTP: return "ftpwriter";
+            case OSS_ALIYUN: return "s3writer";
+            default: throw new DataQueryException("FlinkX 不支持的 writer 数据库类型: " + dbType.getDb());
         }
     }
 
-    private static boolean isMongo(String dbType) {
-        return "MONGODB".equalsIgnoreCase(dbType);
+    private static DbType parseDbType(Map<String, Object> param) {
+        String dbTypeStr = param != null ? (String) param.get("dbType") : null;
+        if (dbTypeStr == null) {
+            return null;
+        }
+        try {
+            return DbType.getDbType(dbTypeStr);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
-    private static boolean isElasticsearch(String dbType) {
-        return "ELASTICSEARCH".equalsIgnoreCase(dbType) || "ES".equalsIgnoreCase(dbType);
+    private static boolean isMongo(DbType dbType) {
+        return dbType == DbType.MONGODB;
     }
 
-    private static String resolveWriteMode(String writeModeType, Object selectedColumns, String dbType) {
+    private static boolean isElasticsearch(DbType dbType) {
+        return dbType == DbType.ELASTICSEARCH;
+    }
+
+    private static boolean isKafka(DbType dbType) {
+        return dbType == DbType.KAFKA;
+    }
+
+    private static boolean isMysqlLike(DbType dbType) {
+        return dbType == DbType.MYSQL || dbType == DbType.MARIADB;
+    }
+
+    private static boolean isOracle(DbType dbType) {
+        return dbType == DbType.ORACLE || dbType == DbType.ORACLE_12C;
+    }
+
+    private static boolean isSqlServer(DbType dbType) {
+        return dbType == DbType.SQL_SERVER || dbType == DbType.SQL_SERVER2008;
+    }
+
+    private static boolean isStreamingMqReader(DbType dbType) {
+        return dbType == DbType.RABBITMQ
+                || dbType == DbType.REDIS
+                || dbType == DbType.ROCKETMQ
+                || dbType == DbType.SOCKET
+                || dbType == DbType.STREAM;
+    }
+
+    private static String resolveWriteMode(String writeModeType, Object selectedColumns, DbType dbType) {
         if ("3".equals(writeModeType)) {
             if (selectedColumns instanceof List && !((List<?>) selectedColumns).isEmpty()) {
                 String cols = String.join(",", (List<CharSequence>) (List<?>) selectedColumns);
-                if ("DM8".equalsIgnoreCase(dbType)) {
+                if (dbType == DbType.DM8) {
                     return "update-dm (" + cols + ")";
                 }
                 return "update (" + cols + ")";

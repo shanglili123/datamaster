@@ -57,5 +57,19 @@ export default [
                 meta: { title: '质量任务日志详情', activeMenu: '/ast/quality/qualityTaskLog' }
             }
         ]
-    },]
+    },
+    {
+        path: '/ast/quality/errorStorageConfig',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: '',
+                component: () => import('@/views/ast/quality/errorStorageConfig/index.vue'),
+                name: 'errorStorageConfig',
+                meta: { title: '错误明细存储配置', activeMenu: '/ast/quality/qualityTask' }
+            }
+        ]
+    },
+]
 

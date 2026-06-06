@@ -1,15 +1,14 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$Distribution = "Ubuntu"
+    [string]$Distribution = "Ubuntu",
+    [switch]$EnsureDolphinSchedulerLocalhost
 )
 
 $ErrorActionPreference = "Stop"
 
 $containerAliases = @(
     "postgresql",
-    "docker_mongodb_1",
     "docker_redis_1",
-    "docker_rabbitmq_1",
     "dolphinscheduler-zookeeper",
     "dolphinscheduler-master",
     "dolphinscheduler-worker",
@@ -83,9 +82,11 @@ Write-Host ""
 Write-Host "Container status:"
 Invoke-WslDocker -DockerArguments (@("inspect", "--format", "{{.Name}}  {{.State.Status}}") + $containers)
 
-Write-Host ""
-Write-Host "Ensuring Windows localhost access to WSL services..."
-& powershell.exe -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "ensure-wsl-port-proxies.ps1") -Distribution $Distribution
-if ($LASTEXITCODE -ne 0) {
-    throw "Failed to ensure Windows localhost access to WSL services."
+if ($EnsureDolphinSchedulerLocalhost) {
+    Write-Host ""
+    Write-Host "Ensuring Windows localhost access to DolphinScheduler API..."
+    & powershell.exe -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "ensure-wsl-port-proxies.ps1") -Distribution $Distribution
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to ensure Windows localhost access to DolphinScheduler API."
+    }
 }

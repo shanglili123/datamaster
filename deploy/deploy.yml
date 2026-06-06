@@ -1,0 +1,196 @@
+---
+# * Must confirm before deployment: every item marked with "*" affects target hosts, data paths, ports, credentials, or package loading.
+# * 部署前必须确认：所有带 "*" 的配置都会影响目标机器、数据目录、端口、账号密码或离线包加载。
+
+# * Must confirm: SSH connection targets. These decide where files are copied and where commands are executed.
+# * 必须确认：SSH 连接目标。这里决定文件 scp 到哪台机器、命令在哪台机器执行。
+# Keep passwords out of this file; use SSH keys or OpenSSH password prompt.
+# 不要把 SSH 密码写进这个文件；使用 SSH key 或 OpenSSH 密码提示。
+postgresql_ssh_host: "<POSTGRESQL_IP>"
+postgresql_ssh_user: "<SSH_USER>"
+postgresql_ssh_port: 22
+
+redis_ssh_host: "<REDIS_IP>"
+redis_ssh_user: "<SSH_USER>"
+redis_ssh_port: 22
+
+zookeeper_ssh_host: "<ZOOKEEPER_IP>"
+zookeeper_ssh_user: "<SSH_USER>"
+zookeeper_ssh_port: 22
+
+dolphinscheduler_ssh_host: "<DOLPHINSCHEDULER_IP>"
+dolphinscheduler_ssh_user: "<SSH_USER>"
+dolphinscheduler_ssh_port: 22
+
+datamaster_app_ssh_host: "<DATAMASTER_APP_IP>"
+datamaster_app_ssh_user: "<SSH_USER>"
+datamaster_app_ssh_port: 22
+
+datamaster_quality_ssh_host: "<DATAMASTER_QUALITY_IP>"
+datamaster_quality_ssh_user: "<SSH_USER>"
+datamaster_quality_ssh_port: 22
+
+# * Must confirm: global deployment root. All remote component directories are created under this path.
+# * 必须确认：远程统一部署根目录。所有组件目录都会在这个路径下面创建。
+# * If you want /data/datamaster as the final deployment root, keep this value unchanged.
+# * 如果最终部署根目录就是 /data/datamaster，这里保持不变。
+base_dir: /data/datamaster
+
+# Time zone. OPTIONAL: change it only if the target environment uses another time zone.
+# 时区。按需修改：目标环境不是 Asia/Shanghai 时再改。
+timezone: Asia/Shanghai
+
+# * Must confirm: component service IPs. These addresses are written into app config and container host mappings.
+# * 必须确认：组件服务 IP。这些地址会写入应用配置和容器 host 映射。
+# * Use IPs reachable by other services, not necessarily 127.0.0.1.
+# * 要填写其他服务能访问到的 IP，不一定是 127.0.0.1。
+postgresql_ip: "<POSTGRESQL_IP>"
+redis_ip: "<REDIS_IP>"
+zookeeper_ip: "<ZOOKEEPER_IP>"
+dolphinscheduler_ip: "<DOLPHINSCHEDULER_IP>"
+datamaster_app_ip: "<DATAMASTER_APP_IP>"
+datamaster_quality_ip: "<DATAMASTER_QUALITY_IP>"
+
+# * Must confirm: container image names and local image tar files.
+# * 必须确认：容器镜像名和本地镜像 tar 包名称。
+# * Offline deploy requires the tar files under deploy/packages/components, or you must change *_image_tar_src.
+# * 离线部署时 tar 包必须放到 deploy/packages/components，或者修改 *_image_tar_src。
+# * Image names must match what docker load imports, otherwise docker run cannot find the image.
+# * 镜像名必须和 docker load 导入后的镜像一致，否则 docker run 找不到镜像。
+postgresql_image: postgres:15
+postgresql_image_tar: "postgres-15.tar"
+postgresql_image_tar_src: "packages/components/{{ postgresql_image_tar }}"
+redis_image: redis:7.2
+redis_image_tar: "redis-7.2.tar"
+redis_image_tar_src: "packages/components/{{ redis_image_tar }}"
+datamaster_server_image: "crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-server-ce:1.4.0"
+datamaster_server_image_tar: "datamaster-server-ce-1.4.0.tar"
+datamaster_server_image_tar_src: "packages/components/{{ datamaster_server_image_tar }}"
+datamaster_quality_image: "crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-quality-ce:1.4.0"
+datamaster_quality_image_tar: "datamaster-quality-ce-1.4.0.tar"
+datamaster_quality_image_tar_src: "packages/components/{{ datamaster_quality_image_tar }}"
+
+# * Must confirm: PostgreSQL port, admin account, business database, and business user.
+# * 必须确认：PostgreSQL 端口、管理员账号、业务库名、业务用户名。
+# * The init jar uses these values to create databases/users and import SQL.
+# * 初始化 jar 会用这些值创建数据库/用户并导入 SQL。
+postgresql_port: 5432
+postgresql_admin_database: postgres
+postgresql_admin_user: postgres
+postgresql_admin_password: "postgres"
+postgresql_database: datamaster
+postgresql_user: datamaster
+postgresql_password: "datamaster"
+postgresql_init_sql_src: "packages/sql/datamaster.sql"
+
+# * Must confirm: database initialization jar and SQL files.
+# * 必须确认：数据库初始化 jar 和 SQL 文件。
+# * These paths are local paths relative to deploy/. The script uploads them before initialization.
+# * 这些是相对于 deploy/ 的本地路径，脚本会在初始化前上传到远程。
+database_init_jar_src: "packages/components/datamaster-db-init.jar"
+dolphinscheduler_database: dolphinscheduler
+dolphinscheduler_init_sql_src: "packages/sql/dolphinscheduler.sql"
+
+# * Must confirm: Redis port and password.
+# * 必须确认：Redis 端口和密码。
+# * Empty password means Redis auth is disabled; app config and Redis config must stay consistent.
+# * 密码为空表示不启用 Redis 认证；应用配置和 Redis 配置必须保持一致。
+redis_port: 6379
+redis_password: ""
+
+# * Must confirm: ZooKeeper version, package name, package path, and client port.
+# * 必须确认：ZooKeeper 版本、包名、包路径和客户端端口。
+# * The script uploads this package and runs the generated install script on the target host.
+# * 脚本会上传这个包，并在目标机器执行生成后的安装脚本。
+zookeeper_version: "3.8.4"
+zookeeper_install_tgz: "apache-zookeeper-{{ zookeeper_version }}-bin.tar.gz"
+zookeeper_package_src: "packages/components/{{ zookeeper_install_tgz }}"
+zookeeper_client_port: 2181
+
+# * Must confirm: DolphinScheduler package, API port, worker group, and token.
+# * 必须确认：DolphinScheduler 包、API 端口、worker group 和 token。
+# * The token is used by DataMaster when calling DolphinScheduler APIs.
+# * token 会被 DataMaster 调用 DolphinScheduler API 时使用。
+dolphinscheduler_version: "3.2.2"
+dolphinscheduler_install_tgz: "apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin.tar.gz"
+dolphinscheduler_package_src: "packages/components/{{ dolphinscheduler_install_tgz }}"
+dolphinscheduler_api_port: 12345
+dolphinscheduler_worker_group: default
+dolphinscheduler_token: "<DOLPHINSCHEDULER_TOKEN>"
+
+# * Must confirm: Chunjun/Flink local source directory.
+# * 必须确认：Chunjun/Flink 本地包目录。
+# * Put Chunjun under deploy/packages/soft/chunjun and Flink under deploy/packages/soft/flink, or change this path.
+# * 把 Chunjun 放到 deploy/packages/soft/chunjun，把 Flink 放到 deploy/packages/soft/flink，或者修改这个路径。
+soft_package_src: "packages/soft"
+
+# * Must confirm: DataMaster service ports.
+# * 必须确认：DataMaster 服务端口。
+# * Change these if the target host already uses 8080 or 8083.
+# * 如果目标机器已经占用 8080 或 8083，就修改这里。
+datamaster_server_port: 8080
+datamaster_quality_port: 8083
+
+# * Must confirm if customizing layout: remote common directories.
+# * 如果自定义目录结构则必须确认：远程通用目录。
+# * Normally keep these derived from base_dir.
+# * 通常保持由 base_dir 派生即可。
+remote_package_dir: "{{ base_dir }}/packages"
+remote_init_sql_dir: "{{ base_dir }}/init-sql"
+remote_soft_dir: "{{ base_dir }}/soft"
+
+# * Must confirm before preserving data: PostgreSQL directories.
+# * 涉及数据保留时必须确认：PostgreSQL 目录。
+# * postgresql_data_dir is the persistent database data directory. Do not change it casually after data exists.
+# * postgresql_data_dir 是持久化数据库数据目录；已有数据后不要随便修改。
+postgresql_dir: "{{ base_dir }}/postgresql"
+postgresql_data_dir: "{{ postgresql_dir }}/data"
+postgresql_conf_dir: "{{ postgresql_dir }}/conf"
+postgresql_log_dir: "{{ postgresql_dir }}/logs"
+
+# * Must confirm before preserving data: Redis directories.
+# * 涉及数据保留时必须确认：Redis 目录。
+# * redis_data_dir is the persistent Redis data directory. Do not change it casually after data exists.
+# * redis_data_dir 是持久化 Redis 数据目录；已有数据后不要随便修改。
+redis_dir: "{{ base_dir }}/redis"
+redis_data_dir: "{{ redis_dir }}/data"
+redis_conf_dir: "{{ redis_dir }}/conf"
+redis_log_dir: "{{ redis_dir }}/logs"
+
+# * Must confirm if customizing layout: ZooKeeper directories.
+# * 如果自定义目录结构则必须确认：ZooKeeper 目录。
+zookeeper_dir: "{{ base_dir }}/zookeeper"
+zookeeper_data_dir: "{{ zookeeper_dir }}/data"
+zookeeper_log_dir: "{{ zookeeper_dir }}/logs"
+
+# * Must confirm: DolphinScheduler directories and task runtime homes.
+# * 必须确认：DolphinScheduler 目录和任务运行环境目录。
+# * chunjun_home/flink_home must match the paths used by DolphinScheduler tasks.
+# * chunjun_home/flink_home 必须和 DolphinScheduler 任务使用的路径一致。
+dolphinscheduler_dir: "{{ base_dir }}/dolphinscheduler"
+dolphinscheduler_conf_dir: "{{ dolphinscheduler_dir }}/conf"
+dolphinscheduler_log_dir: "{{ dolphinscheduler_dir }}/logs"
+dolphinscheduler_resource_dir: "{{ base_dir }}/dolphinscheduler-resource"
+chunjun_home: "{{ remote_soft_dir }}/chunjun"
+flink_home: "{{ remote_soft_dir }}/flink"
+hadoop_home: "{{ remote_soft_dir }}/hadoop"
+spark_home: "{{ remote_soft_dir }}/spark"
+datax_home: "{{ remote_soft_dir }}/datax"
+
+# * Must confirm if customizing layout: DataMaster main service directories.
+# * 如果自定义目录结构则必须确认：DataMaster 主服务目录。
+# * app_upload_dir stores runtime upload files.
+# * app_upload_dir 保存运行时上传文件。
+app_dir: "{{ base_dir }}/app"
+app_conf_dir: "{{ app_dir }}/conf"
+app_log_dir: "{{ app_dir }}/logs"
+app_upload_dir: "{{ app_dir }}/upload"
+
+# * Must confirm if customizing layout: DataMaster quality service directories.
+# * 如果自定义目录结构则必须确认：DataMaster 质量服务目录。
+# * quality_job_log_dir stores quality job runtime logs.
+# * quality_job_log_dir 保存质量任务运行日志。
+quality_dir: "{{ base_dir }}/quality"
+quality_conf_dir: "{{ quality_dir }}/conf"
+quality_log_dir: "{{ quality_dir }}/logs"
+quality_job_log_dir: "{{ quality_dir }}/job-log"

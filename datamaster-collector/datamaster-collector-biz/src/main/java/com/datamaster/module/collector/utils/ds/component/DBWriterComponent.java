@@ -12,7 +12,6 @@ import com.datamaster.module.collector.utils.datax.FlinkxJson;
 import com.datamaster.module.collector.utils.model.DsResource;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * <P>

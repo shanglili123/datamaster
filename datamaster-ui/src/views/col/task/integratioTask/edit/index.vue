@@ -1042,7 +1042,7 @@ function updateTargetNodeData(source, target, edge) {
         source.data.taskParams.outputFields;
       childNode.data.taskParams.tableFields = [];
       childNode.data.taskParams.outputFields =
-        source.data.taskParams.inputFields;
+        source.data.taskParams.outputFields;
       childNode.data = { ...childNode.data };
     }
   });

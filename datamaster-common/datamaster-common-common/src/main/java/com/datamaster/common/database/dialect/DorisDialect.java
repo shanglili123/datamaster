@@ -547,34 +547,14 @@ public class DorisDialect extends AbstractDbDialect {
 
     @Override
     public String getFlinkCDCSQL(DbQueryProperty property, String flinkTableName, String tableName, String tableFieldName) {
-        String sql = "CREATE TABLE ${flinkTableName} (${tableFieldName}) " +
-                "WITH ( 'connector' = 'dm-cdc'," +
-                " 'hostname' = '${host}' ," +
-                "'port' = '${port}' ," +
-                "'username' = '${username}' ," +
-                "'password' = '${password}'," +
-                "'database-name' = '${tableName}' ," +
-                "'table-name' = '${dbName}' ," +
-                "'server-time-zone' = 'Asia/Shanghai'," +
-                "'scan.incremental.snapshot.enabled' = 'true'," +
-                "'debezium.snapshot.mode'='latest-offset')";
-        sql = StringUtils
-                .replace(sql, "${flinkTableName}", flinkTableName)
-                .replace("${tableName}", tableName)
-                .replace("${host}", property.getHost())
-                .replace("${tableFieldName}", tableFieldName)
-                .replace("${port}", String.valueOf(property.getPort()))
-                .replace("${dbName}", property.getDbName())
-                .replace("${username}", property.getUsername())
-                .replace("${password}", property.getPassword());
-        return sql;
+        return null;
     }
 
     @Override
     public String getFlinkSQL(DbQueryProperty property, String flinkTableName, String tableName, String tableFieldName) {
         String sql = "CREATE TABLE ${flinkTableName} (${tableFieldName}) " +
                 "WITH ( 'connector' = 'jdbc'," +
-                "'url' = 'jdbc:dm://${host}:${port}/${dbName}?STU&zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf-8&schema=${dbName}&serverTimezone=Asia/Shanghai'," +
+                "'url' = 'jdbc:mysql://${host}:${port}/${dbName}?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai'," +
                 "'table-name' = '${tableName}'," +
                 "'username' = '${username}'," +
                 "'password' = '${password}')";

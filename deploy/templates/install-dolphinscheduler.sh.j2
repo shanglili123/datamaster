@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BASE="{{ dolphinscheduler_dir }}"
+PKG="{{ remote_package_dir }}/{{ dolphinscheduler_install_tgz }}"
+INSTALL_DIR="$BASE/apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin"
+
+if [ ! -d "$INSTALL_DIR" ]; then
+  if [ ! -f "$PKG" ]; then
+    echo "Missing $PKG. Put apache-dolphinscheduler package under deploy/packages/components/ and run deploy/start-all.sh again." >&2
+    exit 1
+  fi
+  tar -xzf "$PKG" -C "$BASE"
+fi
+
+mkdir -p "{{ dolphinscheduler_resource_dir }}" "{{ dolphinscheduler_log_dir }}" "{{ dolphinscheduler_conf_dir }}" "{{ remote_soft_dir }}"
+
+cat > "$BASE/datamaster-ds-env.sh" <<EOF
+JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ZOOKEEPER_QUORUM={{ zookeeper_ip }}:{{ zookeeper_client_port }}
+DATABASE_TYPE=postgresql
+SPRING_DATASOURCE_URL=jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ dolphinscheduler_database }}?stringtype=unspecified
+SPRING_DATASOURCE_USERNAME={{ postgresql_user }}
+SPRING_DATASOURCE_PASSWORD={{ postgresql_password }}
+REGISTRY_ZOOKEEPER_CONNECT_STRING={{ zookeeper_ip }}:{{ zookeeper_client_port }}
+RESOURCE_STORAGE_TYPE=LOCAL
+RESOURCE_LOCAL_BASE_PATH={{ dolphinscheduler_resource_dir }}
+HADOOP_HOME={{ hadoop_home }}
+FLINK_HOME={{ flink_home }}
+CHUNJUN_HOME={{ chunjun_home }}
+FLINK_LOG_DIR={{ dolphinscheduler_log_dir }}
+EOF
+
+if [ -f "$INSTALL_DIR/conf/common.properties" ]; then
+  sed -ri \
+    -e 's#^(resource.storage.type=).*#\1LOCAL#' \
+    -e 's#^(resource.local.base.path=).*#\1{{ dolphinscheduler_resource_dir }}#' \
+    -e 's#^(registry.zookeeper.connect-string=).*#\1{{ zookeeper_ip }}:{{ zookeeper_client_port }}#' \
+    "$INSTALL_DIR/conf/common.properties"
+fi
+
+if [ -f "$INSTALL_DIR/conf/dolphinscheduler_env.sh" ]; then
+  sed -ri \
+    -e 's#^(export[[:space:]]+JAVA_HOME=).*#\1/usr/lib/jvm/java-8-openjdk-amd64#' \
+    -e 's#^(export[[:space:]]+FLINK_HOME=).*#\1{{ flink_home }}#' \
+    -e 's#^(export[[:space:]]+CHUNJUN_HOME=).*#\1{{ chunjun_home }}#' \
+    -e 's#^(export[[:space:]]+HADOOP_HOME=).*#\1{{ hadoop_home }}#' \
+    "$INSTALL_DIR/conf/dolphinscheduler_env.sh"
+fi
+
+find "$INSTALL_DIR" -path '*/conf/application.yaml' -print0 | while IFS= read -r -d '' app_yaml; do
+  sed -ri \
+    -e 's#jdbc:postgresql://[^/]+/[^?"]+#jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ dolphinscheduler_database }}#g' \
+    -e 's#(username:[[:space:]]*).*$#\1{{ postgresql_user }}#' \
+    -e 's#(password:[[:space:]]*).*$#\1{{ postgresql_password }}#' \
+    "$app_yaml" || true
+done
+
+cat > /etc/systemd/system/datamaster-dolphinscheduler-api.service <<EOF
+[Unit]
+Description=DataMaster DolphinScheduler API
+After=network.target
+
+[Service]
+Type=forking
+EnvironmentFile=$BASE/datamaster-ds-env.sh
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/bin/dolphinscheduler-daemon.sh start api-server
+ExecStop=$INSTALL_DIR/bin/dolphinscheduler-daemon.sh stop api-server
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /etc/systemd/system/datamaster-dolphinscheduler-master.service <<EOF
+[Unit]
+Description=DataMaster DolphinScheduler Master
+After=network.target
+
+[Service]
+Type=forking
+EnvironmentFile=$BASE/datamaster-ds-env.sh
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/bin/dolphinscheduler-daemon.sh start master-server
+ExecStop=$INSTALL_DIR/bin/dolphinscheduler-daemon.sh stop master-server
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /etc/systemd/system/datamaster-dolphinscheduler-worker.service <<EOF
+[Unit]
+Description=DataMaster DolphinScheduler Worker
+After=network.target
+
+[Service]
+Type=forking
+EnvironmentFile=$BASE/datamaster-ds-env.sh
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/bin/dolphinscheduler-daemon.sh start worker-server
+ExecStop=$INSTALL_DIR/bin/dolphinscheduler-daemon.sh stop worker-server
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /etc/systemd/system/datamaster-dolphinscheduler-alert.service <<EOF
+[Unit]
+Description=DataMaster DolphinScheduler Alert
+After=network.target
+
+[Service]
+Type=forking
+EnvironmentFile=$BASE/datamaster-ds-env.sh
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/bin/dolphinscheduler-daemon.sh start alert-server
+ExecStop=$INSTALL_DIR/bin/dolphinscheduler-daemon.sh stop alert-server
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now datamaster-dolphinscheduler-api.service
+systemctl enable --now datamaster-dolphinscheduler-master.service
+systemctl enable --now datamaster-dolphinscheduler-worker.service
+systemctl enable --now datamaster-dolphinscheduler-alert.service
+
+echo "DolphinScheduler service files installed and started."

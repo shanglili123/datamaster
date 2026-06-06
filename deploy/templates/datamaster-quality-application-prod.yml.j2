@@ -1,0 +1,24 @@
+datasource:
+  type: PostgreSQL
+
+spring:
+  redis:
+    host: {{ redis_ip }}
+    port: {{ redis_port }}
+    database: 0
+    password: {{ redis_password }}
+    timeout: 10s
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ postgresql_database }}?stringtype=unspecified
+          username: {{ postgresql_user }}
+          password: {{ postgresql_password }}
+
+PostgreSQL:
+  driver-class-name: org.postgresql.Driver
+  url: jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ postgresql_database }}?stringtype=unspecified
+  username: {{ postgresql_user }}
+  password: {{ postgresql_password }}

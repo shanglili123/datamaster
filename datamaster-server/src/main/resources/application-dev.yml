@@ -3,7 +3,7 @@ datasource:
 
 spring:
   redis:
-    host: 127.0.0.1
+    host: 172.21.163.204
     port: 6379
     database: 0
     password: "J98%FHF#9h@e88h9fre9"
@@ -53,7 +53,7 @@ MySQL:
 
 PostgreSQL:
   driver-class-name: org.postgresql.Driver
-  url: jdbc:postgresql://127.0.0.1:5432/data_master?currentSchema=public
+  url: jdbc:postgresql://172.21.163.204:5432/data_master?currentSchema=public&sslmode=disable
   username: datamaster
   password: datamaster
 

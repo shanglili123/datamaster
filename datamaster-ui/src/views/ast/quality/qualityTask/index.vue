@@ -37,6 +37,12 @@
                   <i class="iconfont-mini icon-xinzeng mr5"></i>新增
                 </el-button>
               </el-col>
+              <el-col :span="1.5">
+                <el-button plain @click="routeTo('/ast/quality/errorStorageConfig', {})"
+                  @mousedown="(e) => e.preventDefault()">
+                  <i class="iconfont-mini icon-shezhi mr5"></i>存储配置
+                </el-button>
+              </el-col>
             </el-row>
             <div class="justify-end top-right-btn">
               <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>

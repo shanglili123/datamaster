@@ -184,7 +184,7 @@ public class TaskNode {
 
     public boolean isForbidden() {
         // skip stream task when run DAG
-        if (taskExecuteType == "stream") {
+        if (StringUtils.equalsIgnoreCase(taskExecuteType, "stream")) {
             return true;
         }
         return StringUtils.isNotEmpty(this.runFlag) && this.runFlag.equals("FORBIDDEN");

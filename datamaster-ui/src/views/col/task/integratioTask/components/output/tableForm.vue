@@ -237,7 +237,6 @@ function handleRule(data) {
 const submitForm = (value) => {
   tableFields.value.forEach((column) => {
     if (row.value.id == column.id) {
-      console.log("column", column);
       if (value.length > 0) {
         column.cleanRuleList = value;
         column.elementId = value.map((item) => item.ruleId);
@@ -381,18 +380,15 @@ const saveData = async () => {
     const { fromColumns = [], toColumns = [] } = getColumns() || {};
 
     taskParams.tableFields = fromColumns.length ? fromColumns : taskParams.tableFields;
-    console.log("🚀 ~ saveData ~ fromColumns:", fromColumns)
     taskParams.toColumnsList = toColumns.length ? toColumns : ColumnByAssettab.value;
     const { target_columns, columns } = handleType2TaskParams(taskParams.tableFields, taskParams.toColumnsList);
     taskParams.target_columns = target_columns;
     taskParams.columns = columns;
-    console.log("🚀 ~ saveData ~ taskParams.tableFields :", taskParams.tableFields)
 
     taskParams.outputFields = ColumnByAssettab.value;
     if (!taskParams.target_table_name && taskParams.target_asset_id) {
       taskParams.target_table_name = taskParams.target_asset_id;
     }
-    console.log("🚀 ~ saveData ~ form.value:", form.value)
     form.value.taskParams = { ...form.value.taskParams, ...taskParams }
     emit("confirm", form.value);
 
@@ -487,17 +483,17 @@ watchEffect(() => {
   getDatasourceList();
 
   form.value = deepCopy(props.currentNode?.data || {});
-  console.log("🚀 ~ watchEffect ~ form.value :", form.value)
 
   const taskParams = form.value?.taskParams || {};
-  tableFields.value = taskParams.tableFields?.length
+  const savedTableFields = taskParams.tableFields?.length
     ? deepCopy(taskParams.tableFields)
     : deepCopy(taskParams.inputFields);
+  tableFields.value = Array.isArray(savedTableFields) ? savedTableFields : [];
   // 尝试从上游输入节点获取源表名
   const parentNode = getParentNode(props.currentNode, props.graph);
   const sourceTableName = parentNode?.data?.taskParams?.asset_id || '';
   newTableName.value = sourceTableName;
-  ColumnByAssettab.value = taskParams.toColumnsList || [];
+  ColumnByAssettab.value = Array.isArray(taskParams.toColumnsList) ? taskParams.toColumnsList : [];
 });
 handleDatasource(form.value?.taskParams.writerDatasource || "");
 </script>

@@ -6,21 +6,14 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.mongodb.client.result.UpdateResult;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import com.datamaster.common.database.DataSourceFactory;
 import com.datamaster.common.database.DbQuery;
@@ -43,16 +36,21 @@ import com.datamaster.quality.dal.dataobject.qa.QualityTaskObjDO;
 import com.datamaster.quality.dal.dataobject.quality.CheckErrorData;
 import com.datamaster.quality.dal.dataobject.quality.QualityCheckResult;
 import com.datamaster.quality.dal.dataobject.quality.QualityRuleEntity;
-import com.datamaster.quality.repository.CheckErrorDataRepository;
 import com.datamaster.quality.service.datasource.IDatasourceQualityService;
 import com.datamaster.quality.service.qa.*;
 import com.datamaster.quality.service.quality.QualityTaskExecutorService;
+import com.datamaster.quality.storage.ErrorDataStorage;
+import com.datamaster.quality.storage.ErrorDataStorageFactory;
 import com.datamaster.quality.utils.quality.QualitySqlGenerateFactory;
 import com.datamaster.quality.utils.quality.QualitySqlGenerator;
 import com.datamaster.quality.utils.quality.enums.CharacterValidationGenerator;
 import com.datamaster.redis.service.IRedisService;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -60,13 +58,6 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-
-import javax.annotation.Resource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -79,15 +70,11 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
     @Autowired
     private QualitySqlGenerateFactory qualitySqlGenerateFactory;
 
-    @Autowired(required = false)
-    @Lazy
-    private MongoTemplate mongoTemplate;
+    @Autowired
+    private ErrorDataStorageFactory errorDataStorageFactory;
 
     @Autowired
     private DataSourceFactory dataSourceFactory;
-
-    @Autowired
-    private CheckErrorDataRepository checkErrorDataRepository;
 
     @Autowired
     private IQualityTaskService iQualityTaskService;
@@ -245,7 +232,8 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
                 qualityRuleEntity.setDatasourceById(datasourceById);
                 logger.log("质量任务-字段信息设置完成，准备执行规则。");
                 try {
-                    RuleExecutorTask ruleExecutorTask = new RuleExecutorTask(qualityRuleEntity, batch,dbQuery, qualitySqlGenerateFactory, mongoTemplate,logger, iEvaluateLogService);
+                    ErrorDataStorage storage = errorDataStorageFactory.getStorage();
+                    RuleExecutorTask ruleExecutorTask = new RuleExecutorTask(qualityRuleEntity, batch, dbQuery, qualitySqlGenerateFactory, storage, logger, iEvaluateLogService);
                     logger.log("质量任务-开始执行规则任务。");
                     ruleExecutorTask.call();
                 }catch (Exception e){
@@ -292,41 +280,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         iQualityLogService.updateQualityLog(vo);
     }
 
-//
-//    public void executeTask2(QualityRuleEntity taskId) {
-//        // 1. 查询任务详情（模拟或从任务表）
-//        // 包含数据源信息、表名、任务批次等
-//        String batch = DateUtil.format(new Date(), "yyyyMMddHHmmss");
-//
-//        // 2. 查询质量规则（可执行的）
-////        List<QualityRuleEntity> rules = qualityRuleService.getRulesByTaskId(taskId);
-//        List<QualityRuleEntity> rules =new ArrayList<>();
-//        rules.add(taskId);
-//        if (CollectionUtils.isEmpty(rules)) {
-//            return;
-//        }
-//
-//        ExecutorService executor = Executors.newFixedThreadPool(5);
-//
-//        List<Future<QualityCheckResult>> futures = new ArrayList<>();
-//        for (QualityRuleEntity rule : rules) {
-//            DatasourceDO datasourceById = IDatasourceQualityService.getDatasourceDOById(JSONUtils.convertToLong(rule.getDataId()));
-//            rule.setDatasourceById(datasourceById);
-//            futures.add(executor.submit(new RuleExecutorTask(rule, batch, qualitySqlGenerateFactory, mongoTemplate,dataSourceFactory)));
-//        }
-//
-//        try {
-//            for (Future<QualityCheckResult> future : futures) {
-//                QualityCheckResult result = future.get();
-//                System.out.println(result.toString());
-//                // 保存结果 report，可扩展逻辑
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        } finally {
-//            executor.shutdown();
-//        }
-//    }
+
 
 
 
@@ -441,124 +395,22 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         return validationSqlResult;
     }
 
-//    @Override
-//    public Page<CheckErrorData> pageErrorData(PageRequest of,  CheckErrorDataReqDTO checkErrorDataReqDTO) {
-//        CheckErrorData person =  this.convertFrom(checkErrorDataReqDTO);
-//        Example<CheckErrorData> example = Example.of(person);
-//        Page<CheckErrorData> page = checkErrorDataRepository.findAll(example, of);
-//        System.out.println("总条数：" + page.getTotalElements());
-//        System.out.println("总页数：" + page.getTotalPages());
-//        page.getContent().forEach(s -> {
-//            s.setJsonData(JSONObject.parseObject(s.getDataJsonStr()));
-//        });
-//        return page;
-//    }
-//
-//    public static CheckErrorData convertFrom(CheckErrorDataReqDTO dto) {
-//        CheckErrorData data = new CheckErrorData();
-//        data.setReportId(dto.getReportId());
-//
-//        if (dto.getRepair() != null){
-//            data.setRepair(dto.getRepair());
-//        }
-//
-//
-//
-//        return data;
-//    }
+
 
     @Override
     public Page<CheckErrorData> pageErrorData(PageRequest pageRequest, CheckErrorDataReqDTO dto) {
-        Query query = new Query();
-
-        query.addCriteria(Criteria.where("reportId").is(dto.getReportId()));
-
-
-        // data_json 子字段条件
-        Map<String, Object> keyWordData = dto.getKeyWordData();
-        if (keyWordData != null && !keyWordData.isEmpty()) {
-            List<Criteria> orCriteriaList = new ArrayList<>();
-            for (Map.Entry<String, Object> entry : keyWordData.entrySet()) {
-                String key = entry.getKey();
-                Object value = entry.getValue();
-                if (value != null) {
-                    orCriteriaList.add(Criteria.where("json_data." + key)
-                            .regex(Pattern.compile(value.toString(), Pattern.CASE_INSENSITIVE)));
-                }
-            }
-            if (!orCriteriaList.isEmpty()) {
-                query.addCriteria(new Criteria().orOperator(orCriteriaList.toArray(new Criteria[0])));
-            }
-        }
-        // 分页信息
-        long total = mongoTemplate.count(query, CheckErrorData.class);
-        List<CheckErrorData> content = mongoTemplate.find(query.with(pageRequest), CheckErrorData.class);
-        content.forEach(s -> {
-            s.setJsonData(JSONObject.parseObject(s.getDataJsonStr()));
-        });
-
-        return new PageImpl<>(content, pageRequest, total);
+        return errorDataStorageFactory.getStorage().pageErrorData(pageRequest, dto);
     }
 
     @Override
     public boolean updateErrorData(CheckErrorDataReqDTO dto) {
-        if (dto.getReportId() == null ) {
+        if (dto.getReportId() == null || dto.getUpdateType() == null) {
             return false;
         }
-
-        String updateType = dto.getUpdateType();
-        if (updateType == null) {
+        if ("1".equals(dto.getUpdateType()) && !updatePhysicalTable(dto)) {
             return false;
         }
-
-        Query query = new Query();
-        query.addCriteria(Criteria.where("reportId").is(dto.getReportId()));
-
-        Update update = new Update();
-
-        switch (updateType) {
-            case "1": // 修改数据
-
-                if (dto.getUpdatedData() != null && !dto.getUpdatedData().isEmpty()) {
-                    boolean success = updatePhysicalTable(dto);
-                    if (!success) return false;
-
-                    //成功继续，不成功返回
-                    update.set("data_json",JSONObject.toJSONString(dto.getUpdatedData()));
-                    Map<String, Object> oldData = dto.getOldData();
-                    String dataJsonStr = MapUtils.getString(oldData, "dataJsonStr");
-                    Object jsonData = MapUtils.getObject(oldData, "jsonData");
-                    String id = MapUtils.getString(oldData, "id");
-                    query.addCriteria(Criteria.where("id").is(id)); // Mongo 主键
-                    // 同步修改旧数据字段
-                    update.set("data_json_old",dataJsonStr);
-                    update.set("json_data_old",jsonData);
-                    update.set("repair", "1");
-                }
-                break;
-
-            case "2": // 修改备注
-                if (dto.getId() == null) {
-                    return false;
-                }
-                query.addCriteria(Criteria.where("id").is(dto.getId())); // Mongo 主键
-                update.set("remark", dto.getRemark() == null ? "" : dto.getRemark());
-                break;
-
-            case "3": // 修改状态（repair 字段）
-                if (CollectionUtils.isEmpty(dto.getErrorDataId())) {
-                    return false;
-                }
-                query.addCriteria(Criteria.where("id").in(dto.getErrorDataId()));
-                update.set("repair", "2");
-                break;
-
-            default:
-                return false;
-        }
-
-        UpdateResult result = mongoTemplate.updateFirst(query, update, CheckErrorData.class);
-        return result.getModifiedCount() > 0;
+        return errorDataStorageFactory.getStorage().updateErrorData(dto);
     }
 
     private boolean updatePhysicalTable(CheckErrorDataReqDTO dto) {

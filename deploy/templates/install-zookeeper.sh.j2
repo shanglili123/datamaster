@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BASE="{{ zookeeper_dir }}"
+PKG="{{ remote_package_dir }}/{{ zookeeper_install_tgz }}"
+INSTALL_DIR="$BASE/apache-zookeeper-{{ zookeeper_version }}-bin"
+
+if [ ! -d "$INSTALL_DIR" ]; then
+  if [ ! -f "$PKG" ]; then
+    echo "Missing $PKG. Put apache-zookeeper package under deploy/packages/components/ and run deploy/start-all.sh again." >&2
+    exit 1
+  fi
+  tar -xzf "$PKG" -C "$BASE"
+fi
+
+cat > "$INSTALL_DIR/conf/zoo.cfg" <<EOF
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir={{ zookeeper_data_dir }}
+dataLogDir={{ zookeeper_log_dir }}
+clientPort={{ zookeeper_client_port }}
+admin.enableServer=false
+EOF
+
+cat > /etc/systemd/system/datamaster-zookeeper.service <<EOF
+[Unit]
+Description=DataMaster ZooKeeper
+After=network.target
+
+[Service]
+Type=forking
+Environment=JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ExecStart=$INSTALL_DIR/bin/zkServer.sh start
+ExecStop=$INSTALL_DIR/bin/zkServer.sh stop
+ExecReload=$INSTALL_DIR/bin/zkServer.sh restart
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now datamaster-zookeeper.service

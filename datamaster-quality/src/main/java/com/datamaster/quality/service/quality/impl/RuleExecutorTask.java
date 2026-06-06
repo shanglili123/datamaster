@@ -3,56 +3,44 @@
 package com.datamaster.quality.service.quality.impl;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.datamaster.common.database.DataSourceFactory;
 import com.datamaster.common.database.DbQuery;
-import com.datamaster.common.database.constants.DbQueryProperty;
-import com.datamaster.common.database.core.DbColumn;
-import com.datamaster.common.database.exception.DataQueryException;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import com.datamaster.common.httpClient.HttpTaskLogger;
 import com.datamaster.quality.controller.qa.vo.EvaluateLogSaveReqVO;
-import com.datamaster.quality.dal.dataobject.datasource.DatasourceDO;
-import com.datamaster.quality.dal.dataobject.quality.CheckErrorData;
 import com.datamaster.quality.dal.dataobject.quality.QualityCheckResult;
 import com.datamaster.quality.dal.dataobject.quality.QualityRuleEntity;
 import com.datamaster.quality.service.qa.IEvaluateLogService;
-import com.datamaster.quality.utils.quality.MongoUtil;
+import com.datamaster.quality.storage.ErrorDataStorage;
 import com.datamaster.quality.utils.quality.QualitySqlGenerateFactory;
 import com.datamaster.quality.utils.quality.QualitySqlGenerator;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.stream.Collectors;
 
 public class RuleExecutorTask implements Callable<QualityCheckResult> {
 
     private final QualityRuleEntity rule;
     private final String batch;
-    private final DbQuery dbQuery;;
+    private final DbQuery dbQuery;
     private final QualitySqlGenerateFactory sqlFactory;
-    private final MongoTemplate mongoTemplate;
+    private final ErrorDataStorage errorDataStorage;
     private final HttpTaskLogger logger;
     private final IEvaluateLogService iEvaluateLogService;
 
     public RuleExecutorTask(QualityRuleEntity rule, String batch,
                             DbQuery dbQuery,
                             QualitySqlGenerateFactory sqlFactory,
-                            MongoTemplate mongoTemplate,
+                            ErrorDataStorage errorDataStorage,
                             HttpTaskLogger logger,
                             IEvaluateLogService iEvaluateLogService) {
         this.rule = rule;
         this.batch = batch;
         this.dbQuery = dbQuery;
         this.sqlFactory = sqlFactory;
-        this.mongoTemplate = mongoTemplate;
+        this.errorDataStorage = errorDataStorage;
         this.logger = logger;
         this.iEvaluateLogService = iEvaluateLogService;
     }
@@ -70,7 +58,7 @@ public class RuleExecutorTask implements Callable<QualityCheckResult> {
             logger.log("质量任务-SQL 生成完成，CheckSQL：" + checkSql + "，ErrorSQL：" + errorSql);
 
             // 2. 执行 SQL
-            try (Connection conn = getConn(rule,dbQuery).getConnection();
+            try (Connection conn = dbQuery.getConnection();
                  Statement stmt = conn.createStatement()) {
 
                 logger.log("质量任务-开始执行校验 SQL。");
@@ -105,25 +93,9 @@ public class RuleExecutorTask implements Callable<QualityCheckResult> {
                 createReqVO.setProblemTotal((long)errorCount);
                 Long EvaluateLog = iEvaluateLogService.createEvaluateLog(createReqVO);
 
-                // 保存 Mongo 错误
-                logger.log("质量任务-开始写入错误数据至 MongoDB。");
-                for (JSONObject obj : errorList) {
-                    CheckErrorData doc = CheckErrorData.builder()
-                            .reportId(String.valueOf(EvaluateLog))
-//                            .reportId(rule.getId())
-                            .dataJsonStr(obj.toJSONString())
-                            .dataJsonStrOLd(obj.toJSONString())
-                            .jsonData(obj)
-                            .jsonDataOld(obj)
-                            .count(totalCount)
-                            .errorCount(errorCount)
-                            .time(new Date())
-                            .repair(0)
-                            .remark("")
-                            .build();
-                    MongoUtil.safeSave(mongoTemplate, doc, "quality_error_data");
-                }
-                logger.log("质量任务-MongoDB 写入完成。");
+                logger.log("质量任务-开始写入错误明细数据。");
+                errorDataStorage.saveErrorData(String.valueOf(EvaluateLog), totalCount, errorCount, errorList);
+                logger.log("质量任务-错误明细数据写入完成。");
                 // 构建返回
                 logger.log("质量任务-规则执行完成，构建结果对象返回。");
                 return new QualityCheckResult(rule.getId(), batch, errorCount, totalCount);
@@ -135,15 +107,5 @@ public class RuleExecutorTask implements Callable<QualityCheckResult> {
         }
     }
 
-    private DbQuery getConn(QualityRuleEntity rule, DbQuery dbQuery) {
-
-
-
-
-
-
-
-        return dbQuery;
-    }
 
 }

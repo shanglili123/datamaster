@@ -5,8 +5,10 @@ package com.datamaster.server;
 import org.dromara.x.file.storage.spring.EnableFileStorage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
@@ -20,7 +22,8 @@ import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
 @EnableFileStorage
 @ComponentScan(basePackages = {"com.datamaster"})
 @ServletComponentScan(basePackages = {"com.datamaster"})
-@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
+@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class,
+        MongoAutoConfiguration.class, MongoDataAutoConfiguration.class })
 @EnableNeo4jRepositories(basePackages = "com.datamaster.neo4j.repository")
 @EntityScan(basePackages = "com.datamaster.neo4j.node")   // 节点/关系实
 @EnableAspectJAutoProxy(proxyTargetClass = true)

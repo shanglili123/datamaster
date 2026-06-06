@@ -122,6 +122,9 @@ public class DbQueryProperty implements Serializable {
             case HDFS:
             case KAFKA:
             case RABBITMQ:
+            case ROCKETMQ:
+            case SOCKET:
+            case STREAM:
                 if (StringUtils.isBlank(host) || port == null) {
                     throw new DataQueryException("参数不完整");
                 }
@@ -205,6 +208,9 @@ public class DbQueryProperty implements Serializable {
                 && !StringUtils.equals(DbType.ELASTICSEARCH.getDb(), dbType)
                 && !StringUtils.equals(DbType.REDIS.getDb(), dbType)
                 && !StringUtils.equals(DbType.RABBITMQ.getDb(), dbType)
+                && !StringUtils.equals(DbType.ROCKETMQ.getDb(), dbType)
+                && !StringUtils.equals(DbType.SOCKET.getDb(), dbType)
+                && !StringUtils.equals(DbType.STREAM.getDb(), dbType)
                 && !StringUtils.equals(DbType.OSS_ALIYUN.getDb(), dbType)) {
             if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
                 throw new DataQueryException("数据源配置中必须包含 username、password");
@@ -284,6 +290,12 @@ public class DbQueryProperty implements Serializable {
                 return "kafka" + suffix;
             case RABBITMQ:
                 return "rabbitmq" + suffix;
+            case ROCKETMQ:
+                return "rocketmq" + suffix;
+            case SOCKET:
+                return "socket" + suffix;
+            case STREAM:
+                return "stream" + suffix;
             case REDIS:
                 return "redis" + suffix;
             case HDFS:
