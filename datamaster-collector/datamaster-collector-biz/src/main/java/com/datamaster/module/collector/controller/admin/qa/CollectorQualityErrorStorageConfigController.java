@@ -60,7 +60,7 @@ public class CollectorQualityErrorStorageConfigController extends BaseController
             header.setValue("application/json");
             headers.add(header);
             HttpUtils.ResponseObject resp = HttpUtils.sendPost(qualityUrl + "/refreshErrorStorage", null, headers);
-            if (resp.getCode() != 200) {
+            if (resp.getStatus() != 200) {
                 return AjaxResult.error("配置已保存，但通知 quality 服务失败");
             }
         } catch (Exception e) {

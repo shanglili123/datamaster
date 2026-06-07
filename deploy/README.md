@@ -426,3 +426,135 @@ redis -> {{ redis_ip }}
 ```yaml
 base_dir: /data/datamaster
 ```
+
+---
+
+# 开发环境搭建（基于 DEPLOY.md 更新）
+
+> 以下内容根据 DEPLOY.md 整理，已按当前项目现状修正。
+
+## 系统要求
+
+| 组件 | 版本 |
+|------|------|
+| JDK | 1.8 |
+| Node.js | 18+ |
+| yarn | v1.22.22+ |
+| Maven | 3.6+ |
+| PostgreSQL | 15（容器部署） |
+| Redis | 7.2（容器部署） |
+| Docker | 1.13.1+ |
+
+**移除组件：** RabbitMQ（已从业务流程中移除）、MongoDB（质量模块错误明细已改为 JDBC 存储）、DM8/MySQL（主数据库统一为 PostgreSQL）。
+
+## 项目模块结构
+
+```
+dataMaster/
+├── datamaster-common           # 公共模块（工具类、数据源注册）
+├── datamaster-system           # 系统管理
+├── datamaster-assets           # 数据资产
+├── datamaster-collector        # 数据汇聚/采集（含 collector-biz/sub）
+├── datamaster-service          # 数据服务
+├── datamaster-catalog          # 数据目录
+├── datamaster-quality          # 数据质量（独立服务，端口 8083）
+├── datamaster-etl              # ETL/Spark 任务
+├── datamaster-server           # 主服务入口（端口 8080）
+├── datamaster-view             # 前端（Vue 3 + Vite）
+├── sql/                        # 数据库脚本
+├── deploy/                     # 部署脚本和配置
+├── docker/                     # Docker 辅助脚本
+└── upload/                     # 运行时上传目录
+```
+
+## 服务架构
+
+- **主服务**（datamaster-server）：端口 8080，含系统管理、汇聚、资产、目录、服务等模块
+- **质量服务**（datamaster-quality）：独立进程，端口 8083，通过 HTTP 与主服务通信
+- **前端**（datamaster-view）：Vite 开发服务器，端口 81，代理 `/dev-api` 到主服务 8080
+- **数据库**：PostgreSQL（业务库 `datamaster`、DS 调度库 `dolphinscheduler`）
+- **调度器**：DolphinScheduler（容器部署，ZooKeeper + API + Master + Worker + Alert）
+
+## 本地开发环境启动
+
+### 1. 依赖服务
+
+使用 Docker 启动基础设施：
+
+```bash
+# PostgreSQL
+docker run -d --name datamaster-postgresql -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:15
+
+# Redis
+docker run -d --name datamaster-redis -p 6379:6379 redis:7.2
+
+# DolphinScheduler（本地开发可跳过，或使用 WSL 容器集群）
+```
+
+**WSL 本地 DolphinScheduler 集群**：通过 Docker 运行在 WSL Ubuntu 中，端口已映射到 Windows（PG 5432、Redis 6379）。
+
+### 2. 初始化数据库
+
+执行 SQL 脚本创建业务表：
+
+```bash
+# PostgreSQL
+psql -h 127.0.0.1 -U postgres -d datamaster -f sql/postgresql/datamaster.sql
+```
+
+升级脚本位于 `sql/postgresql/upgrade/`，按版本目录排列。
+
+### 3. 后端配置（application-dev.yml）
+
+```yaml
+# 主数据源
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/datamaster?stringtype=unspecified
+    username: postgres
+    password: postgres
+
+# Redis
+redis:
+  host: 127.0.0.1
+  port: 6379
+
+# 质量服务地址（主服务通过此地址调用 quality）
+path:
+  quality_url: http://127.0.0.1:8083/quality
+```
+
+### 4. 启动后端
+
+```bash
+mvn clean package -pl datamaster-server -am -DskipTests
+java -jar datamaster-server/target/datamaster-server-*.jar
+```
+
+质量服务单独启动：
+
+```bash
+mvn clean package -pl datamaster-quality -am -DskipTests
+java -jar datamaster-quality/target/datamaster-quality-*.jar
+```
+
+### 5. 启动前端
+
+```bash
+cd datamaster-view
+yarn install
+yarn run dev
+```
+
+访问 `http://localhost:81`。
+
+## 质量模块错误明细存储配置
+
+质量模块将校验错误明细写入业务库 JDBC 表而非 MongoDB。配置方式：
+
+1. 登录系统 → 质量 → 存储配置
+2. 选择一个 JDBC 类型的数据源（MySQL/PostgreSQL/DM8/Oracle/Kingbase8/SQL_Server/DB2/ClickHouse/Doris/Hive/MariaDB/OSCAR）
+3. 填写表名（默认 `quality_error_data`）
+4. 保存后主服务自动通知 quality 刷新缓存
+
+quality 启动时自动检查 `quality_error_storage_config` 表，有配置则使用 JDBC 写入，无配置则跳过错误明细写入。

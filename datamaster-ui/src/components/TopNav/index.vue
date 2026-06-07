@@ -47,6 +47,7 @@
 <script setup>
 import { constantRoutes } from "@/router";
 import { isHttp } from "@/utils/validate";
+import { getNormalPath } from "@/utils/anivia";
 import useAppStore from "@/store/system/app";
 import useSettingsStore from "@/store/system/settings";
 import usePermissionStore from "@/store/system/permission";
@@ -123,6 +124,39 @@ const childrenMenus = computed(() => {
   return constantRoutes.concat(childrenMenus);
 });
 
+// 在重组后的路由树中搜索与 meta.activeMenu 匹配的顶级菜单路径
+function findTopLevelParentForActiveMenu(routers, activeMenuPath) {
+  const parts = activeMenuPath.split('/').filter(Boolean);
+  if (parts.length < 2) return null;
+  const trailingSegments = parts.slice(1);
+  for (const topRoute of routers) {
+    if (topRoute.hidden) continue;
+    if (routeHasTrailingSegments(topRoute, '', trailingSegments)) {
+      return normalizeMenuPath(topRoute.path);
+    }
+  }
+  return null;
+}
+
+function routeHasTrailingSegments(route, parentResolvedPath, targetSegments) {
+  const routePath = route.path || '';
+  if (isHttp(routePath)) return false;
+  const resolved = parentResolvedPath
+    ? (routePath.startsWith('/') ? routePath : getNormalPath(parentResolvedPath + '/' + routePath))
+    : (routePath.startsWith('/') ? routePath : routePath);
+  const resolvedParts = resolved.split('/').filter(Boolean);
+  if (resolvedParts.length >= targetSegments.length) {
+    const trailing = resolvedParts.slice(-targetSegments.length);
+    if (trailing.every((p, i) => p === targetSegments[i])) return true;
+  }
+  if (route.children) {
+    for (const child of route.children) {
+      if (routeHasTrailingSegments(child, resolved, targetSegments)) return true;
+    }
+  }
+  return false;
+}
+
 // 默认激活的菜单
 const activeMenu = computed(() => {
   const path = route.path;
@@ -141,8 +175,19 @@ const activeMenu = computed(() => {
     path.lastIndexOf("/") > 0 &&
     hideList.indexOf(path) === -1
   ) {
-    const tmpPath = path.substring(1, path.length);
-    activePath = "/" + tmpPath.substring(0, tmpPath.indexOf("/"));
+    const activeMenuMeta = route.meta && route.meta.activeMenu;
+    if (activeMenuMeta) {
+      const topLevelPath = findTopLevelParentForActiveMenu(routers.value, activeMenuMeta);
+      if (topLevelPath) {
+        activePath = topLevelPath;
+      } else {
+        const tmpPath = path.substring(1, path.length);
+        activePath = "/" + tmpPath.substring(0, tmpPath.indexOf("/"));
+      }
+    } else {
+      const tmpPath = path.substring(1, path.length);
+      activePath = "/" + tmpPath.substring(0, tmpPath.indexOf("/"));
+    }
   } else if (!route.children) {
     activePath = path;
   }

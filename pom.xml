@@ -8,7 +8,7 @@
     <version>${dataMaster.version}</version>
     <name>dataMaster</name>
     <url>https://com.datamaster</url>
-    <description>DataMaster数据中台（开源版）</description>
+    <description>DataMaster</description>
     <properties>
         <dataMaster.version>1.4.0</dataMaster.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

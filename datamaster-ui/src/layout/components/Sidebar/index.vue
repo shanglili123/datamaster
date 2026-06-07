@@ -31,6 +31,7 @@ import variables from '@/assets/system/styles/variables.module.scss'
 import useAppStore from '@/store/system/app'
 import useSettingsStore from '@/store/system/settings'
 import usePermissionStore from '@/store/system/permission'
+import { getNormalPath } from '@/utils/anivia'
 
 const route = useRoute();
 const appStore = useAppStore()
@@ -45,12 +46,45 @@ const isCollapse = computed(() => !appStore.sidebar.opened);
 
 const activeMenu = computed(() => {
   const { meta, path } = route;
-  // if set path, the sidebar will highlight the path you set
   if (meta.activeMenu) {
+    const sidebarPath = findSidebarActivePath(sidebarRouters.value, meta.activeMenu);
+    if (sidebarPath) return sidebarPath;
     return meta.activeMenu;
   }
   return path;
 })
+
+function findSidebarActivePath(routes, activeMenuPath) {
+  const parts = activeMenuPath.split('/').filter(Boolean);
+  if (parts.length < 2) return null;
+  const trailingSegments = parts.slice(1);
+  for (const route of routes) {
+    const result = traverseSidebarRoute(route, '', trailingSegments);
+    if (result) return result;
+  }
+  return null;
+}
+
+function traverseSidebarRoute(route, parentPath, targetSegments) {
+  const routePath = route.path || '';
+  const resolved = routePath.startsWith('/')
+    ? routePath
+    : parentPath ? getNormalPath(parentPath + '/' + routePath) : routePath;
+  const resolvedParts = resolved.split('/').filter(Boolean);
+  if (resolvedParts.length >= targetSegments.length) {
+    const trailing = resolvedParts.slice(-targetSegments.length);
+    if (trailing.every((p, i) => p === targetSegments[i])) {
+      return resolved;
+    }
+  }
+  if (route.children) {
+    for (const child of route.children) {
+      const result = traverseSidebarRoute(child, resolved, targetSegments);
+      if (result) return result;
+    }
+  }
+  return null;
+}
 
 </script>
 
