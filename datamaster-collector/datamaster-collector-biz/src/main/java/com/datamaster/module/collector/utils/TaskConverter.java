@@ -38,6 +38,7 @@ public class TaskConverter {
     private static String defaultMainClass;
     private static String defaultMaster;
     private static String resourceUrl;
+    private static String defaultTenantCode;
     private static DsRedisConfig dsRedisConfig;
 
     @Value("${ds.spark.main_jar}")
@@ -58,6 +59,11 @@ public class TaskConverter {
     @Value("${ds.resource_url}")
     private void setResourceUrl(String resourceUrl) {
         this.resourceUrl = resourceUrl;
+    }
+
+    @Value("${ds.tenant_code:default}")
+    private void setDefaultTenantCode(String defaultTenantCode) {
+        TaskConverter.defaultTenantCode = defaultTenantCode;
     }
 
     @Resource
@@ -705,7 +711,7 @@ public class TaskConverter {
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
         dto.setWorkerGroup(resolveWorkerGroup(projectWorkerGroup, null));
-        dto.setTenantCode("default");
+        dto.setTenantCode(resolveTenantCode());
 
         return dto;
     }
@@ -767,7 +773,7 @@ public class TaskConverter {
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
         dto.setWorkerGroup(resolveWorkerGroup(projectWorkerGroup, null));
-        dto.setTenantCode("default");
+        dto.setTenantCode(resolveTenantCode());
 
         return dto;
     }
@@ -849,8 +855,13 @@ public class TaskConverter {
                 .warningType(DEFAULT_CONDITION_TYPE)
                 .processInstancePriority(DEFAULT_TASK_PRIORITY)
                 .workerGroup(resolveWorkerGroup(projectWorkerGroup, null))
+                .tenantCode(resolveTenantCode())
                 .scheduleTime(scheduleTime)
                 .build();
+    }
+
+    private static String resolveTenantCode() {
+        return StringUtils.isEmpty(defaultTenantCode) ? "default" : defaultTenantCode;
     }
 
 
@@ -1070,7 +1081,7 @@ public class TaskConverter {
         taskMap.put("isCache", DEFAULT_IS_CACHE);
         taskMap.put("taskPriority", MapUtils.getObject(definitionJsonMap, "taskPriority", DEFAULT_TASK_PRIORITY));
         taskMap.put("taskType", "CHUNJUN");
-        taskMap.put("taskExecuteType", isStreamingFlinkxJob(flinkxJobJson) ? "STREAM" : "BATCH");
+        taskMap.put("taskExecuteType", "BATCH");
         taskMap.put("failRetryTimes", MapUtils.getObject(definitionJsonMap, "failRetryTimes", DEFAULT_TASK_failRetryTimes));
         taskMap.put("delayTime", MapUtils.getObject(definitionJsonMap, "delayTime", DEFAULT_TASK_delayTime));
         taskMap.put("failRetryInterval", MapUtils.getObject(definitionJsonMap, "failRetryInterval", DEFAULT_TASK_failRetryInterval));
@@ -1089,7 +1100,7 @@ public class TaskConverter {
     }
 
     @SuppressWarnings("unchecked")
-    private static boolean isStreamingFlinkxJob(String flinkxJobJson) {
+    public static boolean isStreamingFlinkxJob(String flinkxJobJson) {
         if (StringUtils.isBlank(flinkxJobJson)) {
             return false;
         }

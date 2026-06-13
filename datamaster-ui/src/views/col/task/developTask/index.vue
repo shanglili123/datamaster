@@ -128,7 +128,7 @@
                 </template>
                 <template v-else>
                   <div class="mb5">
-                    <el-tag type="infos">未执行</el-tag>
+                    <el-tag type="info">未执行</el-tag>
                   </div>
                   <span>-</span>
                 </template>

@@ -11,7 +11,7 @@ import java.util.List;/** *  Response VO  DA_DATASOURCE * * @author lhs * @date 
 @Data
 public class AssetsDatasourceRespVO implements Serializable {
     private static final long serialVersionUID = 1L;
-@Excel(name = "ID")    @Schema(description = "ID")    private Long id;
+@Excel(name = "ID")    @Schema(description = "ID")    @com.fasterxml.jackson.databind.annotation.JsonSerialize(using = com.fasterxml.jackson.databind.ser.std.ToStringSerializer.class)    private Long id;
 @Excel(name = "")    @Schema(description = "", example = "")    private String datasourceName;
 @Excel(name = "")    @Schema(description = "", example = "")    private String datasourceType;
 @Excel(name = "(json)")    @Schema(description = "(json)", example = "")    private String datasourceConfig;

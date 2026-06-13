@@ -9,11 +9,14 @@ import com.datamaster.api.ds.api.base.DsStatusRespDTO;
 import com.datamaster.api.ds.api.etl.DsStartTaskReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveRespDTO;
+import com.datamaster.api.ds.api.etl.ds.ProcessDefinition;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.httpClient.DsRequestUtils;
 import com.datamaster.common.httpClient.constants.DataMasterDSApiType;
+import com.datamaster.common.utils.StringUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,6 +46,37 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
                 apiType.getMethod(),
                 JSONObject.parseObject(JSONObject.toJSONString(dsTaskSaveReqDTO)),
                 DsTaskSaveRespDTO.class);
+    }
+
+    @Override
+    public ProcessDefinition getTaskByName(String projectCode, String name) {
+        if (StringUtils.isBlank(projectCode) || StringUtils.isBlank(name)) {
+            return null;
+        }
+        DataMasterDSApiType apiType = DataMasterDSApiType.GET_PROCESS_DEFINITION_LIST;
+        Map<String, Object> params = new HashMap<>();
+        params.put("pageNo", 1);
+        params.put("pageSize", 100);
+        params.put("searchVal", name);
+        JSONObject response = DsRequestUtils.request(DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode),
+                apiType.getMethod(),
+                null, params,
+                JSONObject.class);
+        if (response == null || !Boolean.TRUE.equals(response.getBoolean("success"))) {
+            return null;
+        }
+        JSONObject data = response.getJSONObject("data");
+        if (data == null) {
+            return null;
+        }
+        List<ProcessDefinition> definitions = data.getList("totalList", ProcessDefinition.class);
+        if (definitions == null) {
+            return null;
+        }
+        return definitions.stream()
+                .filter(definition -> StringUtils.equals(name, definition.getName()))
+                .findFirst()
+                .orElse(null);
     }
 
     @Override

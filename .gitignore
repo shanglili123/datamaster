@@ -30,6 +30,7 @@ dependency-reduced-pom.xml
 # Runtime files and local tooling
 **/logs/
 **/upload/
+deploy/.runtime/
 *.log
 .idea/
 .vscode/

@@ -55,7 +55,7 @@ public class FlinkxEtlTaskConverter {
         }
         job.put("content", content);
 
-        job.put("setting", buildSetting());
+        job.put("setting", buildSetting(config));
         root.put("job", job);
         return root.toJSONString();
     }
@@ -293,6 +293,11 @@ public class FlinkxEtlTaskConverter {
                 buildKafkaTableSchema(firstPresent(topic, firstTopic(topics)), normalizedColumns)));
         kp.put("pavingData", toBoolean(firstPresent(kafkaConfig.get("pavingData"), true)));
         kp.put("split", toBoolean(firstPresent(kafkaConfig.get("split"), false)));
+        List<String> keyFields = toStringList(firstPresent(kafkaConfig.get("keyFields"), param.get("keyFields")));
+        if (keyFields.isEmpty()) {
+            keyFields = extractKeyFields(columns);
+        }
+        putListIfPresent(kp, "keyFields", keyFields);
         JSONObject datasourceConfig = datasourceConfig(param);
         JSONObject consumerSettings = new JSONObject();
         mergeConsumerSettings(consumerSettings, datasourceConfig.get("config"));
@@ -314,7 +319,7 @@ public class FlinkxEtlTaskConverter {
         mergeKafkaExtraConfig(kp, kafkaConfig,
                 "topic", "topics", "groupId", "group-id", "mode", "startupMode", "codec",
                 "column", "columns", "fields", "tableFields", "tableSchema",
-                "pavingData", "split", "consumerSettings",
+                "pavingData", "split", "keyFields", "consumerSettings",
                 "timestamp", "offset", "deserialization", "deserializationProperties");
         return kp;
     }
@@ -624,6 +629,8 @@ public class FlinkxEtlTaskConverter {
                 JSONObject column = new JSONObject();
                 column.put("name", nameText);
                 column.put("type", firstPresent(field.get("type"), field.get("columnType"), "STRING"));
+                putIfPresent(column, "isKey", toBooleanObject(firstPresent(
+                        field.get("isKey"), field.get("keyFlag"), field.get("primaryKey"), "1".equals(String.valueOf(field.get("pkFlag"))))));
                 putIfPresent(column, "index", toInteger(field.get("index")));
                 putIfPresent(column, "value", field.get("value"));
                 putIfPresent(column, "format", field.get("format"));
@@ -640,6 +647,31 @@ public class FlinkxEtlTaskConverter {
             }
         }
         return columns;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> extractKeyFields(Object value) {
+        List<String> names = new ArrayList<>();
+        if (!(value instanceof List)) {
+            return names;
+        }
+        for (Object item : (List<?>) value) {
+            if (!(item instanceof Map)) {
+                continue;
+            }
+            Map<String, Object> field = (Map<String, Object>) item;
+            Boolean key = toBooleanObject(firstPresent(
+                    field.get("isKey"), field.get("keyFlag"), field.get("primaryKey"), "1".equals(String.valueOf(field.get("pkFlag")))));
+            if (!Boolean.TRUE.equals(key)) {
+                continue;
+            }
+            Object name = firstPresent(field.get("name"), field.get("columnName"));
+            String nameText = name == null ? null : String.valueOf(name).trim();
+            if (StringUtils.isNotBlank(nameText)) {
+                names.add(nameText);
+            }
+        }
+        return names;
     }
 
     @SuppressWarnings("unchecked")
@@ -768,11 +800,30 @@ public class FlinkxEtlTaskConverter {
         }
     }
 
+    private static double toDouble(Object value, double defaultValue) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) {
+            return defaultValue;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private static String stringValue(Object value, String defaultValue) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) {
+            return defaultValue;
+        }
+        return String.valueOf(value);
+    }
+
     private static boolean toBoolean(Object value) {
         if (value instanceof Boolean) {
             return (Boolean) value;
         }
-        return Boolean.parseBoolean(String.valueOf(value));
+        String text = String.valueOf(value).trim();
+        return "1".equals(text) || "yes".equalsIgnoreCase(text) || Boolean.parseBoolean(text);
     }
 
     private static Boolean toBooleanObject(Object value) {
@@ -782,7 +833,8 @@ public class FlinkxEtlTaskConverter {
         if (value instanceof Boolean) {
             return (Boolean) value;
         }
-        return Boolean.valueOf(String.valueOf(value));
+        String text = String.valueOf(value).trim();
+        return "1".equals(text) || "yes".equalsIgnoreCase(text) || Boolean.valueOf(text);
     }
 
     private static int defaultServerId(Map<String, Object> param) {
@@ -1636,7 +1688,12 @@ public class FlinkxEtlTaskConverter {
         return s.replace("\\", "\\\\").replace("'", "''");
     }
 
-    private static JSONObject buildSetting() {
+    private static JSONObject buildSetting(JSONObject config) {
+        JSONObject taskInfoConfig = toJsonObject(config.get("taskInfo"));
+        JSONObject settingConfig = toJsonObject(firstPresent(config.get("setting"), taskInfoConfig.get("setting")));
+        JSONObject errorLimitConfig = toJsonObject(settingConfig.get("errorLimit"));
+        JSONObject restoreConfig = toJsonObject(settingConfig.get("restore"));
+        JSONObject logConfig = toJsonObject(settingConfig.get("log"));
         JSONObject setting = new JSONObject();
 
         JSONObject speed = new JSONObject();
@@ -1645,22 +1702,22 @@ public class FlinkxEtlTaskConverter {
         setting.put("speed", speed);
 
         JSONObject errorLimit = new JSONObject();
-        errorLimit.put("record", 0);
-        errorLimit.put("percentage", 0.0);
+        errorLimit.put("record", toInt(firstPresent(errorLimitConfig.get("record"), config.get("errorLimitRecord"), taskInfoConfig.get("errorLimitRecord")), 100));
+        errorLimit.put("percentage", toDouble(firstPresent(errorLimitConfig.get("percentage"), config.get("errorLimitPercentage"), taskInfoConfig.get("errorLimitPercentage")), 0.1));
         setting.put("errorLimit", errorLimit);
 
         JSONObject restore = new JSONObject();
-        restore.put("maxRowNumForCheckpoint", 0);
-        restore.put("isRestore", false);
-        restore.put("restoreColumnName", "");
-        restore.put("restoreColumnIndex", 0);
+        restore.put("maxRowNumForCheckpoint", toInt(firstPresent(restoreConfig.get("maxRowNumForCheckpoint"), config.get("maxRowNumForCheckpoint"), taskInfoConfig.get("maxRowNumForCheckpoint")), 10000));
+        restore.put("isRestore", toBoolean(firstPresent(restoreConfig.get("isRestore"), config.get("isRestore"), taskInfoConfig.get("isRestore"), true)));
+        restore.put("restoreColumnName", stringValue(firstPresent(restoreConfig.get("restoreColumnName"), config.get("restoreColumnName"), taskInfoConfig.get("restoreColumnName")), ""));
+        restore.put("restoreColumnIndex", toInt(firstPresent(restoreConfig.get("restoreColumnIndex"), config.get("restoreColumnIndex"), taskInfoConfig.get("restoreColumnIndex")), 0));
         setting.put("restore", restore);
 
         JSONObject log = new JSONObject();
-        log.put("isLogger", false);
-        log.put("level", "debug");
-        log.put("path", "");
-        log.put("pattern", "");
+        log.put("isLogger", toBoolean(firstPresent(logConfig.get("isLogger"), config.get("isLogger"), taskInfoConfig.get("isLogger"), true)));
+        log.put("level", stringValue(firstPresent(logConfig.get("level"), config.get("logLevel"), taskInfoConfig.get("logLevel")), "info"));
+        log.put("path", stringValue(firstPresent(logConfig.get("path"), config.get("logPath"), taskInfoConfig.get("logPath")), ""));
+        log.put("pattern", stringValue(firstPresent(logConfig.get("pattern"), config.get("logPattern"), taskInfoConfig.get("logPattern")), ""));
         setting.put("log", log);
 
         return setting;

@@ -298,7 +298,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="getCollectorEtlTaskPage" resultType="com.datamaster.module.collector.controller.admin.etl.vo.CollectorEtlTaskRespVO">
-        SELECT
+        SELECT DISTINCT
             t.*,
             cu.NICK_NAME AS personChargeName,
             u.PHONENUMBER AS createUserContactNumber,

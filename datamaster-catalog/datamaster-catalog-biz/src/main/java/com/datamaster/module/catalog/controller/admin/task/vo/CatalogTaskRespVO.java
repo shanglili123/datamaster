@@ -194,4 +194,10 @@ public class CatalogTaskRespVO implements Serializable {
      * 负责部门
      */
     private Long responsibleDept;
+
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
 }

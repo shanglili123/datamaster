@@ -372,10 +372,10 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         DbQuery dbQuery = this.buildDbQuery(id);
         if (dbQuery.valid()) {
             dbQuery.close();
-            return AjaxResult.success("");
+            return AjaxResult.success("数据库连接成功");
         }
         dbQuery.close();
-        return AjaxResult.error("");
+        return AjaxResult.error("数据库连接失败");
     }
 
     public DbQuery buildDbQuery(Long id) {

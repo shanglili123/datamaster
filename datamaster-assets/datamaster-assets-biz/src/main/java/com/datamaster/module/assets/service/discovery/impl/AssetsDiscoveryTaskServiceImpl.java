@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +29,10 @@ import com.datamaster.module.assets.controller.admin.discovery.vo.AssetsDiscover
 import com.datamaster.module.assets.controller.admin.discovery.vo.AssetsDiscoveryTaskRespVO;
 import com.datamaster.module.assets.controller.admin.discovery.vo.AssetsDiscoveryTaskSaveReqVO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
+import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceProjectRelDO;
 import com.datamaster.module.assets.dal.dataobject.discovery.AssetsDiscoveryTableDO;
 import com.datamaster.module.assets.dal.dataobject.discovery.AssetsDiscoveryTaskDO;
+import com.datamaster.module.assets.service.datasource.IAssetsDatasourceProjectRelService;
 import com.datamaster.module.assets.dal.mapper.discovery.AssetsDiscoveryTaskMapper;
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceService;
 import com.datamaster.module.assets.service.discovery.IAssetsDiscoveryTableService;
@@ -64,12 +65,8 @@ import static com.datamaster.common.core.domain.AjaxResult.success;
 @Transactional(rollbackFor = Exception.class)
 public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryTaskMapper, AssetsDiscoveryTaskDO> implements IAssetsDiscoveryTaskService, IAssetsDiscoveryTaskApiService {
 
-    private static String projectCode;
-
-    @Value("${ds.http_projectCode:}")
-    private void setDefaultProjectCode(String projectCode) {
-        this.projectCode = projectCode;
-    }
+    @Resource
+    private IAssetsDatasourceProjectRelService assetsDatasourceProjectRelService;
 
     @Resource
     private IDsEtlSchedulerService iDsEtlSchedulerService;
@@ -279,7 +276,8 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
                 if (StringUtils.equals("0", AssetsDiscoveryTaskDO.getStatus())) {
                     throw new ServiceException("");
                 }
-                DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.deleteTask(projectCode, AssetsDiscoveryTaskDO.getTaskCode());
+                String pc = resolveProjectCode(AssetsDiscoveryTaskDO.getDatasourceId());
+                DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.deleteTask(pc, AssetsDiscoveryTaskDO.getTaskCode());
             }
         }
 
@@ -439,6 +437,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         String AssetsDiscoveryTaskStatus = AssetsDiscoveryTask.getStatus();
 
         validateTaskStatus(AssetsDiscoveryTaskById, AssetsDiscoveryTaskStatus);
+        String projectCode = resolveProjectCode(AssetsDiscoveryTaskById.getDatasourceId());
 
         AssetsDiscoveryTask.setCronExpression(AssetsDiscoveryTaskById.getCronExpression());
         Long systemJobId = AssetsDiscoveryTaskById.getSystemJobId();
@@ -447,13 +446,13 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         }
 
         if (StringUtils.equals("1", AssetsDiscoveryTaskStatus)) {
-            handleOfflineTask(AssetsDiscoveryTaskById, systemJobId, AssetsDiscoveryTask);
+            handleOfflineTask(projectCode, AssetsDiscoveryTaskById, systemJobId, AssetsDiscoveryTask);
             return true;
         }
 
-        handleOnlineTask(AssetsDiscoveryTaskById, systemJobId, AssetsDiscoveryTask);
+        handleOnlineTask(projectCode, AssetsDiscoveryTaskById, systemJobId, AssetsDiscoveryTask);
 
-        updateTaskStatusAndScheduler(AssetsDiscoveryTask, systemJobId);
+        updateTaskStatusAndScheduler(projectCode, AssetsDiscoveryTask, systemJobId);
 
         return true;
     }
@@ -464,9 +463,9 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         }
     }
 
-    private void handleOfflineTask(AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, Long systemJobId, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
+    private void handleOfflineTask(String projectCode, AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, Long systemJobId, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
         if (AssetsDiscoveryTaskById.getSystemJobId() != null && systemJobId > 0) {
-            DsStatusRespDTO respDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(projectCode), AssetsDiscoveryTaskById.getTaskCode());
+            DsStatusRespDTO respDTO = dsEtlTaskService.releaseTask("OFFLINE", projectCode, AssetsDiscoveryTaskById.getTaskCode());
             if (respDTO == null || !respDTO.getSuccess()) {
                 throw new ServiceException("");
             }
@@ -482,20 +481,20 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         AssetsDiscoveryTaskMapper.updateById(updateObj);
     }
 
-    private void handleOnlineTask(AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, Long systemJobId, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
+    private void handleOnlineTask(String projectCode, AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, Long systemJobId, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
         if (systemJobId == null || systemJobId < 1) {
-            createNewProcessDefinition(AssetsDiscoveryTaskById, AssetsDiscoveryTask);
+            createNewProcessDefinition(projectCode, AssetsDiscoveryTaskById, AssetsDiscoveryTask);
         } else if (AssetsDiscoveryTaskById.getTaskId() != null) {
-            updateExistingProcessDefinition(AssetsDiscoveryTaskById, AssetsDiscoveryTask);
+            updateExistingProcessDefinition(projectCode, AssetsDiscoveryTaskById, AssetsDiscoveryTask);
         }
     }
 
-    private void createNewProcessDefinition(AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
+    private void createNewProcessDefinition(String projectCode, AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(AssetsDiscoveryTaskById.getName() + StringUtils.generateRandomString());
         input.addHttpParam("id", "BODY", AssetsDiscoveryTaskById.getId());
         input.setId(AssetsDiscoveryTaskById.getId());
-        ProcessDefinition definition = this.createProcessDefinition(input);
+        ProcessDefinition definition = this.createProcessDefinition(projectCode, input);
         TaskDefinition firstTaskDefinition = AssetsTaskConverter.getFirstTaskDefinition(definition);
 
         AssetsDiscoveryTask.setTaskId(definition.getId());
@@ -504,7 +503,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         AssetsDiscoveryTask.setNodeCode(String.valueOf(firstTaskDefinition.getCode()));
     }
 
-    private void updateExistingProcessDefinition(AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
+    private void updateExistingProcessDefinition(String projectCode, AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(AssetsDiscoveryTaskById.getName() + StringUtils.generateRandomString());
         input.addHttpParam("id", "BODY", AssetsDiscoveryTaskById.getId());
@@ -515,7 +514,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         input.setNodeId(AssetsDiscoveryTaskById.getNodeId());
         input.setNodeCode(String.valueOf(AssetsDiscoveryTaskById.getNodeCode()));
 
-        ProcessDefinition definition = this.updateProcessDefinition(input);
+        ProcessDefinition definition = this.updateProcessDefinition(projectCode, input);
         TaskDefinition firstTaskDefinition = AssetsTaskConverter.getFirstTaskDefinition(definition);
 
         AssetsDiscoveryTask.setTaskId(definition.getId());
@@ -524,16 +523,16 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         AssetsDiscoveryTask.setNodeCode(String.valueOf(firstTaskDefinition.getCode()));
     }
 
-    private void updateTaskStatusAndScheduler(AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask, Long systemJobId) {
-        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(projectCode), AssetsDiscoveryTask.getTaskCode());
+    private void updateTaskStatusAndScheduler(String projectCode, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask, Long systemJobId) {
+        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", projectCode, AssetsDiscoveryTask.getTaskCode());
         if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
             throw new ServiceException("");
         }
 
         if (systemJobId != null && systemJobId > 0) {
-            updateExistingScheduler(AssetsDiscoveryTask, systemJobId);
+            updateExistingScheduler(projectCode, AssetsDiscoveryTask, systemJobId);
         } else {
-            createNewScheduler(AssetsDiscoveryTask);
+            createNewScheduler(projectCode, AssetsDiscoveryTask);
         }
 
         DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(projectCode, AssetsDiscoveryTask.getSystemJobId());
@@ -546,34 +545,34 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         AssetsDiscoveryTaskMapper.updateById(updateObj);
     }
 
-    private void updateExistingScheduler(AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask, Long systemJobId) {
+    private void updateExistingScheduler(String projectCode, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask, Long systemJobId) {
         DsSchedulerUpdateReqDTO schedulerUpdateRequest = AssetsTaskConverter.createSchedulerUpdateRequest(systemJobId, AssetsDiscoveryTask.getCronExpression(), AssetsDiscoveryTask.getTaskCode());
-        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(projectCode));
+        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, projectCode);
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
-            createSchedulerIfNeeded(AssetsDiscoveryTask);
+            createSchedulerIfNeeded(projectCode, AssetsDiscoveryTask);
         } else {
             Schedule schedule = dsSchedulerRespDTO.getData();
             AssetsDiscoveryTask.setSystemJobId(schedule.getId());
         }
     }
 
-    private void createNewScheduler(AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
+    private void createNewScheduler(String projectCode, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
         DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = AssetsTaskConverter.createSchedulerRequest(AssetsDiscoveryTask.getCronExpression(), AssetsDiscoveryTask.getTaskCode());
-        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, String.valueOf(projectCode));
+        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, projectCode);
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
-            createSchedulerIfNeeded(AssetsDiscoveryTask);
+            createSchedulerIfNeeded(projectCode, AssetsDiscoveryTask);
         } else {
             Schedule schedule = dsSchedulerRespDTO.getData();
             AssetsDiscoveryTask.setSystemJobId(schedule.getId());
         }
     }
 
-    private void createSchedulerIfNeeded(AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
-        DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(String.valueOf(projectCode), AssetsDiscoveryTask.getTaskCode());
+    private void createSchedulerIfNeeded(String projectCode, AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
+        DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(projectCode, AssetsDiscoveryTask.getTaskCode());
         if (byTaskCode == null || !byTaskCode.getSuccess()) {
             //     * 创建调度器 (只有任务发布了才能调用该接口)
             DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = AssetsTaskConverter.createSchedulerRequest(AssetsDiscoveryTask.getCronExpression(), AssetsDiscoveryTask.getTaskCode());
-            DsSchedulerRespDTO saveScheduler = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, String.valueOf(projectCode));
+            DsSchedulerRespDTO saveScheduler = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, projectCode);
             if (saveScheduler == null || !saveScheduler.getSuccess()) {
                 throw new ServiceException("");
             }
@@ -584,7 +583,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         Schedule schedule = byTaskCode.getData();
         AssetsDiscoveryTask.setSystemJobId(schedule.getId());
         DsSchedulerUpdateReqDTO schedulerUpdateRequest = AssetsTaskConverter.createSchedulerUpdateRequest(schedule.getId(), AssetsDiscoveryTask.getCronExpression(), AssetsDiscoveryTask.getTaskCode());
-        DsSchedulerRespDTO updated = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(projectCode));
+        DsSchedulerRespDTO updated = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, projectCode);
         if (updated == null || !updated.getSuccess()) {
             throw new ServiceException("");
         }
@@ -600,6 +599,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
             return error("");
         }
 
+        String projectCode = resolveProjectCode(AssetsDiscoveryTaskDO.getDatasourceId());
         DsStartTaskReqDTO dsStartTaskReqDTO = AssetsTaskConverter.createDsStartTaskReqDTO(AssetsDiscoveryTaskDO.getTaskCode());
 
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, projectCode);
@@ -610,18 +610,19 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
     @Override
     public boolean updateDaDiscoveryTaskCronExpression(AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTask) {
         AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById = this.getDaDiscoveryTaskById(AssetsDiscoveryTask.getId());
+        String projectCode = resolveProjectCode(AssetsDiscoveryTaskById.getDatasourceId());
         Long systemJobId = AssetsDiscoveryTaskById.getSystemJobId();
         if (systemJobId != null) {
             try {
                 //     * 创建调度器 (只有任务发布了才能调用该接口)
                 DsSchedulerUpdateReqDTO schedulerUpdateRequest = AssetsTaskConverter.createSchedulerUpdateRequest(systemJobId, AssetsDiscoveryTask.getCronExpression(), AssetsDiscoveryTaskById.getTaskCode());
-                DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(projectCode));
+                DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, projectCode);
                 if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
                     AssetsDiscoveryTask.setTaskId(AssetsDiscoveryTaskById.getTaskId());
                     AssetsDiscoveryTask.setTaskCode(String.valueOf(AssetsDiscoveryTaskById.getTaskCode()));
                     AssetsDiscoveryTask.setNodeId(AssetsDiscoveryTaskById.getNodeId());
                     AssetsDiscoveryTask.setNodeCode(String.valueOf(AssetsDiscoveryTaskById.getNodeCode()));
-                    createSchedulerIfNeeded(AssetsDiscoveryTask);
+                    createSchedulerIfNeeded(projectCode, AssetsDiscoveryTask);
                 } else {
                     Schedule schedule = dsSchedulerRespDTO.getData();
                     AssetsDiscoveryTask.setSystemJobId(schedule.getId());
@@ -640,7 +641,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         return true;
     }
 
-    public ProcessDefinition createProcessDefinition(TaskSaveReqInput input) {
+    public ProcessDefinition createProcessDefinition(String projectCode, TaskSaveReqInput input) {
         Long nodeUniqueKey = this.getNodeUniqueKey(AssetsTaskConverter.stringToLong(projectCode));
         input.setNodeCode(AssetsTaskConverter.longToString(nodeUniqueKey));
 
@@ -654,7 +655,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         return Data; // 返回创建结果
     }
 
-    public ProcessDefinition updateProcessDefinition(TaskSaveReqInput input) {
+    public ProcessDefinition updateProcessDefinition(String projectCode, TaskSaveReqInput input) {
         Long nodeUniqueKey = this.getNodeUniqueKey(AssetsTaskConverter.stringToLong(projectCode));
         input.setNodeCode(AssetsTaskConverter.longToString(nodeUniqueKey));
 
@@ -675,6 +676,16 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         } catch (Exception e) {
             throw new ServiceException("");// 抛出任务定义创建错误的异常
         }
+    }
+
+    private String resolveProjectCode(Long datasourceId) {
+        AssetsDatasourceProjectRelDO query = new AssetsDatasourceProjectRelDO();
+        query.setDatasourceId(datasourceId);
+        List<AssetsDatasourceProjectRelDO> relList = assetsDatasourceProjectRelService.getDatasourceProjectRelList(query);
+        if (relList.isEmpty()) {
+            throw new ServiceException("数据源未关联项目");
+        }
+        return relList.get(0).getProjectCode();
     }
 
     @Override

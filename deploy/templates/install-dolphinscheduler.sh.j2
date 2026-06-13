@@ -4,6 +4,7 @@ set -euo pipefail
 BASE="{{ dolphinscheduler_dir }}"
 PKG="{{ remote_package_dir }}/{{ dolphinscheduler_install_tgz }}"
 INSTALL_DIR="$BASE/apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin"
+DS_TENANT_CODE="{{ dolphinscheduler_tenant_code }}"
 
 if [ ! -d "$INSTALL_DIR" ]; then
   if [ ! -f "$PKG" ]; then
@@ -15,8 +16,16 @@ fi
 
 mkdir -p "{{ dolphinscheduler_resource_dir }}" "{{ dolphinscheduler_log_dir }}" "{{ dolphinscheduler_conf_dir }}" "{{ remote_soft_dir }}"
 
+if [ "$DS_TENANT_CODE" != "root" ] && ! id "$DS_TENANT_CODE" >/dev/null 2>&1; then
+  useradd -m -s /bin/bash "$DS_TENANT_CODE"
+fi
+
+chmod -R a+rX "{{ remote_soft_dir }}" "{{ dolphinscheduler_resource_dir }}" "$INSTALL_DIR"
+chmod -R a+rwX "{{ dolphinscheduler_log_dir }}" "{{ dolphinscheduler_resource_dir }}"
+
 cat > "$BASE/datamaster-ds-env.sh" <<EOF
 JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+DS_TENANT_CODE={{ dolphinscheduler_tenant_code }}
 ZOOKEEPER_QUORUM={{ zookeeper_ip }}:{{ zookeeper_client_port }}
 DATABASE_TYPE=postgresql
 SPRING_DATASOURCE_URL=jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ dolphinscheduler_database }}?stringtype=unspecified

@@ -159,6 +159,39 @@ sq() {
   printf "'%s'" "${1//\'/\'\\\'\'}"
 }
 
+sql_literal() {
+  local value="$1"
+  value="${value//\'/\'\'}"
+  printf "'%s'" "$value"
+}
+
+generate_token() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 16
+  elif command -v uuidgen >/dev/null 2>&1; then
+    uuidgen | tr -d '-' | tr '[:upper:]' '[:lower:]' | cut -c 1-32
+  else
+    date +%s%N | sha256sum | cut -c 1-32
+  fi
+}
+
+ensure_runtime_vars() {
+  local token_file token
+  token_file="$SCRIPT_DIR/.runtime/dolphinscheduler.token"
+  if [[ -z "${VARS[dolphinscheduler_token]:-}" || "${VARS[dolphinscheduler_token]}" == "<DOLPHINSCHEDULER_TOKEN>" ]]; then
+    if [[ -f "$token_file" ]]; then
+      token="$(tr -d '\r\n' < "$token_file")"
+    else
+      mkdir -p "$(dirname "$token_file")"
+      token="$(generate_token)"
+      printf '%s\n' "$token" > "$token_file"
+      chmod 600 "$token_file" 2>/dev/null || true
+    fi
+    VARS[dolphinscheduler_token]="$token"
+    echo "Using generated DolphinScheduler token from $token_file"
+  fi
+}
+
 remote_exec() {
   local host="$1" user="$2" port="$3" command="$4" target
   target="$(target_of "$host" "$user")"
@@ -261,6 +294,24 @@ deploy_database_init() {
   install_remote_file "$host" "$user" "$port" "$ds_sql" "$sql_dir/dolphinscheduler.sql"
   remote_exec "$host" "$user" "$port" "until $SUDO docker exec datamaster-postgresql pg_isready -U $(sq "${VARS[postgresql_admin_user]}") -d $(sq "${VARS[postgresql_admin_database]}"); do sleep 2; done"
   remote_exec "$host" "$user" "$port" "java -jar $(sq "$package_dir/datamaster-db-init.jar") --host=${VARS[postgresql_ip]} --port=${VARS[postgresql_port]} --admin-db=${VARS[postgresql_admin_database]} --admin-user=${VARS[postgresql_admin_user]} --admin-password=${VARS[postgresql_admin_password]} --app-db=${VARS[postgresql_database]} --ds-db=${VARS[dolphinscheduler_database]} --app-user=${VARS[postgresql_user]} --app-password=${VARS[postgresql_password]} --app-sql=$(sq "$sql_dir/datamaster.sql") --ds-sql=$(sq "$sql_dir/dolphinscheduler.sql")"
+  upsert_dolphinscheduler_tenant "$host" "$user" "$port"
+  upsert_dolphinscheduler_token "$host" "$user" "$port"
+}
+
+upsert_dolphinscheduler_tenant() {
+  local host="$1" user="$2" port="$3" tenant_sql sql
+  tenant_sql="$(sql_literal "${VARS[dolphinscheduler_tenant_code]}")"
+  sql="DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM public.t_ds_tenant WHERE tenant_code = $tenant_sql) THEN UPDATE public.t_ds_tenant SET description = 'DataMaster deployment tenant', queue_id = 1, update_time = now() WHERE tenant_code = $tenant_sql; ELSE INSERT INTO public.t_ds_tenant (tenant_code, description, queue_id, create_time, update_time) VALUES ($tenant_sql, 'DataMaster deployment tenant', 1, now(), now()); END IF; END \$\$;"
+  echo "Ensuring DolphinScheduler tenant ${VARS[dolphinscheduler_tenant_code]} in ${VARS[dolphinscheduler_database]}..."
+  remote_exec "$host" "$user" "$port" "$SUDO docker exec -e PGPASSWORD=$(sq "${VARS[postgresql_password]}") datamaster-postgresql psql -v ON_ERROR_STOP=1 -U $(sq "${VARS[postgresql_user]}") -d $(sq "${VARS[dolphinscheduler_database]}") -c $(sq "$sql")"
+}
+
+upsert_dolphinscheduler_token() {
+  local host="$1" user="$2" port="$3" token_sql sql
+  token_sql="$(sql_literal "${VARS[dolphinscheduler_token]}")"
+  sql="DO \$\$ DECLARE admin_id integer; BEGIN SELECT id INTO admin_id FROM public.t_ds_user WHERE user_name = 'admin' ORDER BY id LIMIT 1; IF admin_id IS NULL THEN RAISE EXCEPTION 'DolphinScheduler admin user not found'; END IF; IF EXISTS (SELECT 1 FROM public.t_ds_access_token WHERE user_id = admin_id) THEN UPDATE public.t_ds_access_token SET token = $token_sql, expire_time = timestamp '2099-12-31 23:59:59', update_time = now() WHERE user_id = admin_id; ELSE INSERT INTO public.t_ds_access_token (user_id, token, expire_time, create_time, update_time) VALUES (admin_id, $token_sql, timestamp '2099-12-31 23:59:59', now(), now()); END IF; END \$\$;"
+  echo "Writing DolphinScheduler API token into ${VARS[dolphinscheduler_database]}..."
+  remote_exec "$host" "$user" "$port" "$SUDO docker exec -e PGPASSWORD=$(sq "${VARS[postgresql_password]}") datamaster-postgresql psql -v ON_ERROR_STOP=1 -U $(sq "${VARS[postgresql_user]}") -d $(sq "${VARS[dolphinscheduler_database]}") -c $(sq "$sql")"
 }
 
 deploy_redis() {
@@ -343,6 +394,7 @@ deploy_quality() {
 }
 
 load_vars
+ensure_runtime_vars
 load_hosts
 
 for_each_host postgresql_servers deploy_postgresql

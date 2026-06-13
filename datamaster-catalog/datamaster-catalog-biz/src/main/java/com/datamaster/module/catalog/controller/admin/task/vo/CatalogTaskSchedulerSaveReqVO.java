@@ -65,6 +65,14 @@ public class CatalogTaskSchedulerSaveReqVO extends BaseEntity {
     @Size(max = 3000, message = "备注长度不能超过3000个字符")
     private String remark;
 
+    /** 项目ID */
+    @Schema(description = "项目ID")
+    private Long projectId;
+
+    /** 项目编码 */
+    @Schema(description = "项目编码")
+    private String projectCode;
+
 
     public CatalogTaskSchedulerSaveReqVO(CatalogTaskDO dictType) {
         this.taskId = dictType.getId();
@@ -82,5 +90,7 @@ public class CatalogTaskSchedulerSaveReqVO extends BaseEntity {
 
         this.failureStrategy = "0";
         this.status = "0";
+        this.projectId = dictType.getProjectId();
+        this.projectCode = dictType.getProjectCode();
     }
 }

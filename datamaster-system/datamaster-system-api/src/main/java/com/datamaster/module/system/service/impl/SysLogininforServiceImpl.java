@@ -4,6 +4,7 @@ package com.datamaster.module.system.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.datamaster.common.utils.uuid.IdUtils;
 import com.datamaster.module.system.domain.SysLogininfor;
 import com.datamaster.module.system.mapper.SysLogininforMapper;
 import com.datamaster.module.system.service.ISysLogininforService;
@@ -30,6 +31,10 @@ public class SysLogininforServiceImpl implements ISysLogininforService
     @Override
     public void insertLogininfor(SysLogininfor logininfor)
     {
+        if (logininfor.getInfoId() == null)
+        {
+            logininfor.setInfoId(IdUtils.generateArtificialId());
+        }
         logininforMapper.insertLogininfor(logininfor);
     }
 

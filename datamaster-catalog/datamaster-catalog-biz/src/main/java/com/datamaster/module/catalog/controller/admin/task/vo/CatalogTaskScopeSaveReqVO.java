@@ -40,5 +40,12 @@ public class CatalogTaskScopeSaveReqVO extends BaseEntity {
     @Size(max = 3000, message = "描述长度不能超过3000个字符")
     private String description;
 
+    /** 项目ID */
+    @Schema(description = "项目ID")
+    private Long projectId;
+
+    /** 项目编码 */
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 }

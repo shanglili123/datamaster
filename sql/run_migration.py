@@ -10,27 +10,31 @@ DB_CONFIG = {
     "password": "datamaster",
 }
 
-SQL_FILE = os.path.join(
+SQL_DIR = os.path.join(
     os.path.dirname(__file__),
     "postgresql",
     "upgrade",
     "V1.5.0 upgrade V1.6.0",
-    "add-project-id.sql",
 )
 
+SQL_FILES = [
+    "fix-mdl-business-category-schema.sql",
+    "add-project-id.sql",
+    "seed-data-project-association.sql",
+]
 
-def main():
-    if not os.path.exists(SQL_FILE):
-        print(f"Error: SQL file not found at {SQL_FILE}")
-        sys.exit(1)
 
-    with open(SQL_FILE, "r", encoding="utf-8") as f:
+def run_sql_file(conn, filepath):
+    if not os.path.exists(filepath):
+        print(f"Error: SQL file not found at {filepath}")
+        return False
+
+    print(f"\n=== Running: {os.path.basename(filepath)} ===")
+
+    with open(filepath, "r", encoding="utf-8") as f:
         sql_content = f.read()
 
-    conn = psycopg2.connect(**DB_CONFIG)
-    conn.autocommit = True
     cursor = conn.cursor()
-
     statements = []
     for stmt in sql_content.split(";"):
         stmt = stmt.strip()
@@ -39,22 +43,38 @@ def main():
         if stmt:
             statements.append(stmt)
 
-    success = 0
-    failed = 0
+    total_ok = 0
+    total_failed = 0
     for stmt in statements:
         try:
             cursor.execute(stmt + ";")
             print(f"  OK: {stmt[:80]}...")
-            success += 1
+            total_ok += 1
         except Exception as e:
             print(f"  FAIL: {stmt[:80]}...  -> {e}")
-            failed += 1
+            total_failed += 1
 
     cursor.close()
+    print(f"--- {total_ok} succeeded, {total_failed} failed ---")
+    return total_failed == 0
+
+
+def main():
+    conn = psycopg2.connect(**DB_CONFIG)
+    conn.autocommit = True
+
+    all_ok = True
+    for fname in SQL_FILES:
+        fpath = os.path.join(SQL_DIR, fname)
+        ok = run_sql_file(conn, fpath)
+        if not ok:
+            all_ok = False
+
     conn.close()
 
-    print(f"\nDone. {success} succeeded, {failed} failed.")
-    sys.exit(0 if failed == 0 else 1)
+    print(f"\n{'=' * 40}")
+    print("All done." if all_ok else "Some files had failures.")
+    sys.exit(0 if all_ok else 1)
 
 
 if __name__ == "__main__":

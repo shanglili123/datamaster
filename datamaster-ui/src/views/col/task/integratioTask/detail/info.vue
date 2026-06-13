@@ -69,6 +69,12 @@ const flinkFields = [
   { key: "slot", label: "Slot数量", value: "" },
   { key: "taskManager", label: "TaskManager数量", value: "" },
   { key: "parallelism", label: "并行度", value: "" },
+  { key: "errorLimitRecord", label: "错误记录容忍", value: "" },
+  { key: "errorLimitPercentage", label: "错误比例容忍", value: "" },
+  { key: "isRestore", label: "断点续传", value: "" },
+  { key: "maxRowNumForCheckpoint", label: "Checkpoint行数", value: "" },
+  { key: "isLogger", label: "任务日志", value: "" },
+  { key: "logLevel", label: "日志级别", value: "" },
 ];
 
 // 动态生成 fileDesc
@@ -89,6 +95,8 @@ const getDescValue = (row) => {
   const detail = props.dppEtlTaskDetail || {};
   if (row.type === "time") {
     row.value = detail[row.key] ? moment(detail[row.key]).format("YYYY-MM-DD HH:mm") : "-";
+  } else if (row.key === "isRestore" || row.key === "isLogger") {
+    row.value = detail[row.key] ? "开启" : "关闭";
   } else {
     row.value = detail[row.key];
   }

@@ -68,11 +68,12 @@
                                 trigger: 'change'
                             }
                         ]">
-                            <el-select v-if="!info" v-model="form.taskParams.readerDatasource.datasourceId"
-                                placeholder="请选择源数据库连接" @change="handleDatasourceChange" filterable>
-                                <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
-                                    :value="dict.id"></el-option>
-                            </el-select>
+<el-select v-if="!info" :key="'ds-' + createTypeList.length"
+    v-model="form.taskParams.readerDatasource.datasourceId" placeholder="请选择源数据库连接"
+    @change="handleDatasourceChange" filterable>
+    <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
+        :value="String(dict.id)"></el-option>
+</el-select>
                             <div class="form-readonly" v-else>{{createTypeList.find((item) => item.id ==
                                 form.taskParams.readerDatasource.datasourceId)?.datasourceName || '-'}}</div>
                         </el-form-item>
@@ -184,16 +185,6 @@
                 </el-row>
                 <el-row :gutter="20" v-if="isKafkaReader">
                     <el-col :span="24">
-                        <el-form-item label="字段配置" prop="taskParams.kafkaFieldsJson"
-                            :rules="[{ required: true, message: '请输入字段配置', trigger: 'blur' }]">
-                            <el-input v-if="!info" v-model="form.taskParams.kafkaFieldsJson" type="textarea"
-                                placeholder='例如 [{"columnName":"id","columnType":"STRING","key":"id"}]' />
-                            <div class="form-readonly" v-else>{{ form.taskParams.kafkaFieldsJson || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20" v-if="isKafkaReader">
-                    <el-col :span="24">
                         <el-form-item label="Kafka扩展配置" prop="taskParams.kafkaConfigJson">
                             <el-input v-if="!info" v-model="form.taskParams.kafkaConfigJson" type="textarea"
                                 placeholder='可选 JSON，例如 {"consumerSettings":{"security.protocol":"SASL_PLAINTEXT"}}' />
@@ -294,7 +285,11 @@
                 </el-col>
             </el-row>
             <template v-if="form.taskParams.clmt != '2'">
-                <div class="h2-title">属性字段</div>
+                <div class="h2-title stream-field-title">
+                    <span>属性字段</span>
+                    <el-button v-if="isStreamingFieldEditable && !info" size="small" type="primary"
+                        @click="addStreamField">添加一行</el-button>
+                </div>
                 <el-table stripe height="310px" v-loading="loadingList" :data="ColumnByAssettab">
                     <el-table-column label="序号" type="index" width="80" align="left">
                         <template #default="scope">
@@ -304,10 +299,12 @@
                     <el-table-column label="英文名称" align="left" prop="columnName"
                         :show-overflow-tooltip="{ effect: 'light' }">
                         <template #default="scope">
-                            {{ scope.row.columnName || '-' }}
+                            <el-input v-if="isStreamingFieldEditable && !info" v-model="scope.row.columnName"
+                                placeholder="字段名，如 id" />
+                            <span v-else>{{ scope.row.columnName || '-' }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="中文名称" align="left" prop="columnComment"
+                    <el-table-column label="中文名称" align="left" prop="columnComment" v-if="!isStreamingFieldEditable"
                         :show-overflow-tooltip="{ effect: 'light' }">
                         <template #default="scope">
                             {{ scope.row.columnComment || '-' }}
@@ -315,20 +312,34 @@
                     </el-table-column>
                     <el-table-column label="字段类型" align="left" prop="columnType">
                         <template #default="scope">
-                            {{ scope.row.columnType || '-' }}
+                            <el-select v-if="isStreamingFieldEditable && !info" v-model="scope.row.columnType"
+                                filterable placeholder="选择类型">
+                                <el-option v-for="item in streamFieldTypeOptions" :key="item" :label="item"
+                                    :value="item" />
+                            </el-select>
+                            <span v-else>{{ scope.row.columnType || '-' }}</span>
                         </template>
                     </el-table-column>
-                    <el-table-column label="是否主键" align="left" prop="pkFlag" v-if="form?.taskParams.type == '1'">
+                    <el-table-column label="是否Key" align="left" prop="isKey" v-if="isStreamingFieldEditable">
+                        <template #default="scope">
+                            <el-switch v-if="!info" v-model="scope.row.isKey" />
+                            <span v-else>{{ scope.row.isKey ? '是' : '否' }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="是否主键" align="left" prop="pkFlag"
+                        v-if="form?.taskParams.type == '1' && !isStreamingFieldEditable">
                         <template #default="scope">
                             <el-switch v-model="scope.row.pkFlag" :active-value="'1'" :inactive-value="'0'" disabled />
                         </template>
                     </el-table-column>
-                    <el-table-column label="字段长度" align="left" prop="columnLength" v-if="form?.taskParams.type == '1'">
+                    <el-table-column label="字段长度" align="left" prop="columnLength"
+                        v-if="form?.taskParams.type == '1' && !isStreamingFieldEditable">
                         <template #default="scope">
                             {{ scope.row.columnLength || '-' }}
                         </template>
                     </el-table-column>
-                    <el-table-column label="小数经度" align="left" prop="columnScale" v-if="form?.taskParams.type == '1'">
+                    <el-table-column label="小数经度" align="left" prop="columnScale"
+                        v-if="form?.taskParams.type == '1' && !isStreamingFieldEditable">
                         <template #default="scope">
                             {{ scope.row.columnScale || '-' }}
                         </template>
@@ -356,6 +367,12 @@
                                     {{ isTimeColumn(scope.row) ? '选择' : '非时间字段' }}
                                 </el-checkbox>
                             </template>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" align="center" fixed="right" width="90"
+                        v-if="isStreamingFieldEditable && !info">
+                        <template #default="scope">
+                            <el-button link type="danger" @click="removeStreamField(scope.$index)">删除</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -392,9 +409,18 @@ const props = defineProps({
     title: { type: String, default: '表单标题' },
     currentNode: { type: Object, default: () => ({}) },
     info: { type: Boolean, default: false },
+    // 新增回echo支持
+    savedDataSourceId: {
+        type: [String, Number],
+        default: ''
+    },
+    savedAssetTableId: {
+        type: [String, Number],
+        default: ''
+    }
 });
 
-const emit = defineEmits(['update', 'confirm']);
+const emit = defineEmits(['update', 'confirm', '回echo完成']);
 const visibleDialog = computed({
     get() {
         return props.visible;
@@ -413,12 +439,23 @@ let dpModelRefs = ref();
 let form = ref({});
 const tableFields = ref([]); // 来源表格
 const createTypeList = ref([]); // 数据源列表
+
 const dateFormatOptions = [
     { label: 'yyyy-MM-dd', value: 'yyyy-MM-dd' },
     { label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss' },
     { label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS' },
     { label: 'yyyy-MM-dd HH:mm:ss.SSSSSS', value: 'yyyy-MM-dd HH:mm:ss.SSSSSS' },
 ]
+const streamFieldTypeOptions = [
+    'STRING',
+    'INT',
+    'BIGINT',
+    'DOUBLE',
+    'DECIMAL',
+    'BOOLEAN',
+    'DATE',
+    'TIMESTAMP'
+];
 const dateIncrementCursorDraft = ref('');
 const dateIncrementConfig = computed(() => form.value?.taskParams?.dateIncrementConfig);
 const dateIncrementColumnConfig = computed(() => dateIncrementConfig.value?.column?.[0]);
@@ -443,18 +480,125 @@ const dateIncrementCursorTime = computed({
         }
     }
 });
-const isKafkaReader = computed(() => form.value?.taskParams?.readerDatasource?.datasourceType === 'Kafka');
-const cdcDatasourceTypes = ['MySql', 'Oracle', 'Oracle11', 'SQL_Server', 'SQL_Server2008'];
-const streamingMqDatasourceTypes = ['RabbitMQ', 'Redis', 'RocketMQ'];
+const getDatasourceId = (ds) => ds?.datasourceId ?? ds?.datasource_id ?? ds?.id ?? ds?.sourceId;
+const normalizeDatasourceType = (type) => String(type || '').replace(/[\s_-]/g, '').toLowerCase();
+const getCurrentReaderDatasource = () => {
+    const readerDatasource = form.value?.taskParams?.readerDatasource || {};
+    const datasourceId = getDatasourceId(readerDatasource);
+    const selectedDatasource = createTypeList.value.find(item => String(item.id) === String(datasourceId));
+    return {
+        ...selectedDatasource,
+        ...readerDatasource,
+        datasourceType: readerDatasource.datasourceType || selectedDatasource?.datasourceType || ''
+    };
+};
+const isKafkaReader = computed(() => normalizeDatasourceType(getCurrentReaderDatasource().datasourceType) === 'kafka');
+const cdcDatasourceTypes = ['mysql', 'oracle', 'oracle11', 'sqlserver', 'sqlserver2008', 'postgresql', 'postgres'];
+const streamingMqDatasourceTypes = ['rabbitmq', 'redis', 'rocketmq'];
 const isCdcReader = computed(() => {
-    const datasourceType = form.value?.taskParams?.readerDatasource?.datasourceType;
+    const datasourceType = normalizeDatasourceType(getCurrentReaderDatasource().datasourceType);
     return cdcDatasourceTypes.includes(datasourceType);
 });
 const isStreamingMqReader = computed(() => {
-    const datasourceType = form.value?.taskParams?.readerDatasource?.datasourceType;
+    const datasourceType = normalizeDatasourceType(getCurrentReaderDatasource().datasourceType);
     return streamingMqDatasourceTypes.includes(datasourceType);
 });
 const isStreamReader = computed(() => isKafkaReader.value || isStreamingMqReader.value || isCdcReader.value);
+const isStreamingFieldEditable = computed(() => form.value?.taskParams?.readModeType == '4' && isStreamReader.value);
+
+const getNodeData = () => props.currentNode?.getProp?.("data") || props.currentNode?.data || {};
+
+const normalizeReaderDatasource = (taskParams) => {
+    if (!taskParams) {
+        return;
+    }
+    if (!taskParams.readerDatasource || typeof taskParams.readerDatasource !== 'object') {
+        taskParams.readerDatasource = { datasourceId: '', datasourceType: '', dbname: '' };
+        return;
+    }
+
+    const datasourceId = getDatasourceId(taskParams.readerDatasource);
+    if (datasourceId !== undefined && datasourceId !== null && datasourceId !== '') {
+        taskParams.readerDatasource.datasourceId = String(datasourceId);
+        taskParams.readerDatasource.datasource_id = String(datasourceId);
+    }
+};
+
+const ensureSelectedDatasourceOption = () => {
+    const nodeData = getNodeData();
+    const ds = form.value?.taskParams?.readerDatasource || nodeData?.taskParams?.readerDatasource;
+    const savedId = getDatasourceId(ds);
+    if (savedId === undefined || savedId === null || savedId === '') {
+        return;
+    }
+
+    const datasourceId = String(savedId);
+    const exists = createTypeList.value.some(item => String(item.id) === datasourceId);
+    if (exists) {
+        return;
+    }
+
+    const originalDs = nodeData?.taskParams?.readerDatasource || {};
+    createTypeList.value.unshift({
+        id: datasourceId,
+        datasourceName: ds.datasourceName || originalDs.datasourceName || `数据源 ${datasourceId}`,
+        datasourceType: ds.datasourceType || originalDs.datasourceType || '',
+        ip: ds.ip || originalDs.ip || '',
+        port: ds.port || originalDs.port || '',
+        datasourceConfig: ds.datasourceConfig || originalDs.datasourceConfig || '{}'
+    });
+};
+
+// 回echo处理函数
+const handle回echo = () => {
+    // 处理数据源回echo
+    if (props.savedDataSourceId && props.savedDataSourceId !== '') {
+        const savedId = String(props.savedDataSourceId);
+        const existingDatasource = createTypeList.value.find(item => String(item.id) === savedId);
+        
+        if (!existingDatasource) {
+            // 构建回echo的数据源信息
+            const 回echo数据源信息 = {
+                id: savedId,
+                datasourceName: props.currentNode?.data?.taskParams?.readerDatasource?.datasourceName || '回echo数据源',
+                datasourceType: props.currentNode?.data?.taskParams?.readerDatasource?.datasourceType || '',
+                ip: props.currentNode?.data?.taskParams?.readerDatasource?.ip || '',
+                port: props.currentNode?.data?.taskParams?.readerDatasource?.port || '',
+                datasourceConfig: props.currentNode?.data?.taskParams?.readerDatasource?.datasourceConfig || '{}'
+            };
+            
+            // 添加到列表
+            createTypeList.value.unshift(回echo数据源信息);
+            console.log('回echo: tableForm回echo数据源，ID:', savedId, '名称:', 回echo数据源信息.datasourceName);
+        }
+    }
+
+    // 处理资产表回echo
+    if (props.savedAssetTableId && props.savedAssetTableId !== '') {
+        const savedAssetId = String(props.savedAssetTableId);
+        const existingAsset = dppNoPageListList.value.find(item => item.id === savedAssetId);
+        
+        if (!existingAsset) {
+            // 构建回echo的资产表信息
+            const 回echo资产表信息 = {
+                id: savedAssetId,
+                name: props.currentNode?.data?.taskParams?.asset_id_cpoy?.name || '回echo资产表',
+                datasourceId: props.currentNode?.data?.taskParams?.datasource_id_cpoy || '',
+                tableName: props.currentNode?.data?.taskParams?.asset_id_cpoy || savedAssetId
+            };
+            
+            // 添加到列表
+            dppNoPageListList.value.unshift(回echo资产表信息);
+            console.log('回echo: tableForm回echo资产表，ID:', savedAssetId, '名称:', 回echo资产表信息.name);
+        }
+    }
+
+    // 通知父组件回echo完成
+    emit('回echo完成', {
+        dataSourceId: props.savedDataSourceId,
+        assetTableId: props.savedAssetTableId
+    });
+};
 
 const handlereadModeTypeChange = (val) => {
     if (val == '4' && !isStreamReader.value) {
@@ -502,7 +646,8 @@ const getDatasourceList = async () => {
             projectId: userStore.projectId,
             datasourceType: "DM8,Oracle11,MySql,Oracle,Kingbase8,Doris,ClickHouse,Hive,MongoDB,Elasticsearch,SQL_Server,SQL_Server2008,PostgreSQL,Kafka",
         });
-        createTypeList.value = response.data.rows;
+        createTypeList.value = response.data.rows || [];
+        ensureSelectedDatasourceOption();
     } finally {
         loading.value = false;
     }
@@ -518,11 +663,13 @@ const getTablesByDatasourceId = async (id) => {
 };
 // 获取列数据
 const getColumnByAssetIdList = async (id, data) => {
+    const dsId = form.value?.taskParams?.readerDatasource?.datasourceId;
+    if (!dsId) return;
     ColumnByAssettab.value = await fetchData(
         getColumnByAssetId,
         {
             withRule: 2,
-            id: form.value.taskParams.readerDatasource.datasourceId,
+            id: dsId,
             tableName: form.value.taskParams.asset_id
         },
         loadingList
@@ -578,8 +725,9 @@ const resetAndFetchTables = async (selectedDatasource) => {
         ip,
         port,
         dbname: code.dbname,
-        datasource_id: id,
-        datasourceId: id
+        datasource_id: String(id),
+            datasourceId: String(id),
+            datasourceName: selectedDatasource.datasourceName
     };
     resetReaderSelection();
     ensureStreamConfigs();
@@ -587,14 +735,15 @@ const resetAndFetchTables = async (selectedDatasource) => {
     dateIncrementCursorDraft.value = '';
     form.value.taskParams.idIncrementConfig.incrementColumn = null;
 
-    if (datasourceType === 'Kafka' || streamingMqDatasourceTypes.includes(datasourceType)) {
+    const normalizedDatasourceType = normalizeDatasourceType(datasourceType);
+    if (normalizedDatasourceType === 'kafka' || streamingMqDatasourceTypes.includes(normalizedDatasourceType)) {
         if (form.value.taskParams.clmt == '2') {
             form.value.taskParams.clmt = '0';
         }
         form.value.taskParams.readModeType = '4';
         TablesByDataSource.value = [];
     } else {
-        if (form.value.taskParams.readModeType == '4' && !cdcDatasourceTypes.includes(datasourceType)) {
+        if (form.value.taskParams.readModeType == '4' && !cdcDatasourceTypes.includes(normalizedDatasourceType)) {
             form.value.taskParams.readModeType = '1';
         }
         await getTablesByDatasourceId(id);
@@ -668,21 +817,26 @@ const ensureStreamConfigs = () => {
         groupId: 'datamaster-chunjun',
         mode: 'LATEST',
         codec: 'json',
+        split: false,
         ...plainObject(taskParams.kafkaConfig),
     };
     taskParams.kafkaFieldsJson = taskParams.kafkaFieldsJson || '';
-    if (!taskParams.kafkaFieldsJson && taskParams.kafkaConfigJson) {
+    taskParams.streamFields = normalizeStreamFields(taskParams.streamFields);
+    if (!taskParams.streamFields.length && taskParams.kafkaFieldsJson) {
+        taskParams.streamFields = parseKafkaFieldsFromJson(taskParams.kafkaFieldsJson);
+    }
+    if (!taskParams.streamFields.length && taskParams.kafkaConfigJson) {
         const legacyFields = parseKafkaFieldsFromJson(taskParams.kafkaConfigJson);
         if (legacyFields.length) {
-            taskParams.kafkaFieldsJson = JSON.stringify(legacyFields);
+            taskParams.streamFields = legacyFields;
             taskParams.kafkaConfigJson = stripKafkaSchemaFromJson(taskParams.kafkaConfigJson);
         }
     }
     taskParams.kafkaConfigJson = taskParams.kafkaConfigJson || '';
-    if (!taskParams.kafkaFieldsJson) {
+    if (!taskParams.streamFields.length) {
         const fields = taskParams.kafkaConfig.tableFields || taskParams.tableFields;
         if (Array.isArray(fields) && fields.length) {
-            taskParams.kafkaFieldsJson = JSON.stringify(fields);
+            taskParams.streamFields = normalizeStreamFields(fields);
         }
     }
 };
@@ -702,7 +856,7 @@ const mergeCdcConfigJson = () => {
         return false;
     }
 };
-const normalizeKafkaFields = (fields) => {
+const normalizeStreamFields = (fields) => {
     if (!Array.isArray(fields)) return [];
     return fields
         .map((field, index) => {
@@ -711,18 +865,26 @@ const normalizeKafkaFields = (fields) => {
                     id: index + 1,
                     columnName: field,
                     columnType: 'STRING',
-                    key: field,
+                    isKey: false,
+                    key: '',
                     columnComment: '',
                 };
             }
             if (!field || typeof field !== 'object') return null;
             const columnName = field.columnName || field.name || field.key;
             if (!columnName) return null;
+            const isKey = field.isKey === true
+                || field.keyFlag === true
+                || field.primaryKey === true
+                || field.pkFlag === '1'
+                || field.pkFlag === 1;
             const normalizedField = {
                 id: field.id || index + 1,
                 columnName,
-                columnType: field.columnType || field.type || 'STRING',
-                key: field.key || columnName,
+                columnType: String(field.columnType || field.type || 'STRING').toUpperCase(),
+                isKey,
+                key: isKey ? columnName : '',
+                pkFlag: isKey ? '1' : '0',
                 columnComment: field.columnComment || '',
             };
             ['index', 'value', 'format', 'parseFormat', 'splitter', 'isPart', 'notNull'].forEach((key) => {
@@ -738,7 +900,7 @@ const parseKafkaFieldsFromJson = (raw) => {
     if (!raw) return [];
     try {
         const parsed = JSON.parse(raw);
-        return normalizeKafkaFields(Array.isArray(parsed) ? parsed : getKafkaFieldSource(parsed));
+        return normalizeStreamFields(Array.isArray(parsed) ? parsed : getKafkaFieldSource(parsed));
     } catch (error) {
         return [];
     }
@@ -801,50 +963,91 @@ const hasKafkaTopicConfig = () => {
     }
     return topics !== null && topics !== undefined && String(topics).split(',').some((value) => value.trim());
 };
-const mergeKafkaConfigJson = () => {
-    const raw = form.value.taskParams.kafkaFieldsJson;
-    if (!raw) {
-        proxy.$message.warning('请输入 Kafka 字段配置');
+const collectStreamFields = () => {
+    return normalizeStreamFields(ColumnByAssettab.value)
+        .map((field, index) => ({
+            ...field,
+            id: index + 1,
+            columnName: String(field.columnName || '').trim(),
+            columnType: String(field.columnType || 'STRING').trim().toUpperCase(),
+        }))
+        .filter((field) => field.columnName);
+};
+const validateStreamFields = () => {
+    const fields = collectStreamFields();
+    if (!fields.length) {
+        proxy.$message.warning('请添加至少一个流式读取字段');
         return false;
     }
-    try {
-        const parsed = JSON.parse(raw);
-        const fields = normalizeKafkaFields(Array.isArray(parsed) ? parsed : getKafkaFieldSource(parsed));
-        if (!fields.length) {
-            proxy.$message.warning('Kafka 字段配置至少包含一个字段');
-            return false;
-        }
-        if (!mergeKafkaExtraConfigJson()) {
-            return false;
-        }
-        ColumnByAssettab.value = fields;
-        form.value.taskParams.kafkaConfig = {
-            ...plainObject(form.value.taskParams.kafkaConfig),
-            tableFields: fields,
-            column: fields.map((field) => {
-                const column = {
-                    name: field.columnName,
-                    type: field.columnType,
-                };
-                ['index', 'value', 'format', 'parseFormat', 'splitter', 'isPart', 'notNull'].forEach((key) => {
-                    if (field[key] !== undefined && field[key] !== null && field[key] !== '') {
-                        column[key] = field[key];
-                    }
-                });
-                return column;
-            }),
+    const names = fields.map((field) => field.columnName);
+    if (new Set(names).size !== names.length) {
+        proxy.$message.warning('流式读取字段名不能重复');
+        return false;
+    }
+    ColumnByAssettab.value = fields;
+    return true;
+};
+const streamFieldsToColumns = (fields) => {
+    return fields.map((field) => {
+        const column = {
+            name: field.columnName,
+            type: field.columnType,
         };
-        return true;
-    } catch (error) {
-        proxy.$message.warning('Kafka 字段配置不是合法 JSON');
-        return false;
+        ['index', 'value', 'format', 'parseFormat', 'splitter', 'isPart', 'notNull'].forEach((key) => {
+            if (field[key] !== undefined && field[key] !== null && field[key] !== '') {
+                column[key] = field[key];
+            }
+        });
+        if (field.isKey) {
+            column.isKey = true;
+        }
+        return column;
+    });
+};
+const mergeKafkaConfigJson = () => {
+    if (!validateStreamFields()) return false;
+    if (!mergeKafkaExtraConfigJson()) return false;
+    const fields = ColumnByAssettab.value;
+    const columns = streamFieldsToColumns(fields);
+    const keyFields = fields.filter((field) => field.isKey).map((field) => field.columnName);
+    const kafkaConfig = {
+        ...plainObject(form.value.taskParams.kafkaConfig),
+        split: false,
+        tableFields: fields,
+        column: columns,
+    };
+    if (keyFields.length) {
+        kafkaConfig.keyFields = keyFields;
+    } else {
+        delete kafkaConfig.keyFields;
     }
+    form.value.taskParams.kafkaConfig = kafkaConfig;
+    return true;
+};
+const addStreamField = () => {
+    ColumnByAssettab.value.push({
+        id: ColumnByAssettab.value.length + 1,
+        columnName: '',
+        columnType: 'STRING',
+        isKey: false,
+        key: '',
+        pkFlag: '0',
+        columnComment: '',
+    });
+};
+const removeStreamField = (index) => {
+    ColumnByAssettab.value.splice(index, 1);
 };
 const handleChange = (value) => {
     const selectedDatasource = TablesByDataSource.value.find((item) => item.tableName == value);
     if (selectedDatasource) {
         setTableName(selectedDatasource);
         ColumnByAssettab.value = [];
+        const dsId = form.value?.taskParams?.readerDatasource?.datasourceId;
+        if (!dsId) {
+            proxy.$message.warning('请先选择源数据库连接');
+            return;
+        }
         getColumnByAssetIdList(selectedDatasource.id, selectedDatasource);
     }
 };
@@ -872,6 +1075,12 @@ const getdppNoPageListList = async (id) => {
 
 // 连接方式切换
 const handleReleaseStateChange = (value) => {
+    // 保存当前 datasourceId，当 clmt 未实际变化（异步字典加载的伪事件）时恢复
+    const nodeData = getNodeData();
+    const originalClmt = nodeData?.taskParams?.clmt;
+    const prevDsId = getDatasourceId(form.value?.taskParams?.readerDatasource) ||
+        getDatasourceId(nodeData?.taskParams?.readerDatasource);
+
     if (value == 1) {
         getdppNoPageListList();
         form.value.taskParams.asset_id_cpoy = '';
@@ -887,6 +1096,13 @@ const handleReleaseStateChange = (value) => {
     form.value.taskParams.idIncrementConfig.incrementColumn = null;
     form.value.taskParams.readModeType = '1';
     ensureStreamConfigs();
+
+    // clmt 未变化说明是异步字典加载触发的伪事件，恢复 datasourceId
+    if (String(value) === String(originalClmt) && prevDsId && String(prevDsId) !== '') {
+        form.value.taskParams.readerDatasource.datasourceId = String(prevDsId);
+        form.value.taskParams.readerDatasource.datasource_id = String(prevDsId);
+        ensureSelectedDatasourceOption();
+    }
 };
 const handleAssetTableChange = (value) => {
     // 找到对应的选中项
@@ -897,7 +1113,7 @@ const handleAssetTableChange = (value) => {
 
     // 调用 API 获取数据源信息
     getDaDatasource(selectedItem.datasourceId).then((response) => {
-        let { datasourceType, datasourceConfig, ip, port, id } = response.data;
+        let { datasourceType, datasourceConfig, ip, port, id, datasourceName } = response.data;
         let code = JSON.parse(datasourceConfig);
         // 更新 readerDatasource
         form.value.taskParams.readerDatasource = {
@@ -907,7 +1123,8 @@ const handleAssetTableChange = (value) => {
             port,
             dbname: code.dbname,
             datasource_id: id,
-            datasourceId: id
+            datasourceId: String(id),
+            datasourceName
         };
         ensureStreamConfigs();
         // setTableName(response.data);
@@ -938,7 +1155,7 @@ const saveData = async () => {
         if (
             form.value?.taskParams.type == '1' &&
             (!ColumnByAssettab.value || ColumnByAssettab.value.length == 0)
-            && !(form.value?.taskParams.readModeType == '4' && isKafkaReader.value)
+            && !(form.value?.taskParams.readModeType == '4' && isStreamReader.value)
         ) {
             return proxy.$message.warning('校验未通过，请选择属性字段');
         }
@@ -953,6 +1170,9 @@ const saveData = async () => {
         }
         if (form.value?.taskParams.clmt != '2' && form.value?.taskParams.readModeType == '4' && isKafkaReader.value && !hasKafkaTopicConfig()) {
             return proxy.$message.warning('请输入 Kafka Topic 或在扩展配置中配置 topics');
+        }
+        if (form.value?.taskParams.clmt != '2' && form.value?.taskParams.readModeType == '4' && !isKafkaReader.value && !validateStreamFields()) {
+            return;
         }
         if (form.value?.taskParams.clmt != '2' && form.value?.taskParams.readModeType == '4' && !isKafkaReader.value && !mergeCdcConfigJson()) {
             return;
@@ -978,6 +1198,12 @@ const saveData = async () => {
         }
         const taskParams = form.value?.taskParams;
         taskParams.tableFields = ColumnByAssettab.value;
+        if (taskParams.readModeType == '4' && isStreamReader.value) {
+            taskParams.streamFields = ColumnByAssettab.value;
+            taskParams.columns = ColumnByAssettab.value.map(({ columnName }) => columnName);
+            taskParams.column = streamFieldsToColumns(ColumnByAssettab.value);
+            taskParams.keyFields = ColumnByAssettab.value.filter((field) => field.isKey).map((field) => field.columnName);
+        }
         taskParams.columnsList = ColumnByAssettab.value.map(({ columnName, columnType }) => ({
             colName: columnName,
             dataType: columnType,
@@ -1025,33 +1251,200 @@ function changeTextarea(val) {
     form.value.taskParams.querySql = val;
 }
 // 监听属性变化
-watchEffect(() => {
-    if (props.visible) {
+watch(
+    () => [props.visible, props.currentNode?.id],
+    ([visible]) => {
+    if (visible) {
         // 数据源
-        if (props.currentNode.data.taskParams.clmt == 1) {
+        if (props.currentNode?.data?.taskParams?.clmt == 1) {
             getdppNoPageListList();
         } else {
             getDatasourceList();
         }
-        form.value = deepCopy(props.currentNode.data);
+        const nodeData = props.currentNode?.getProp?.("data") || props.currentNode?.data || {};
+        form.value = deepCopy(nodeData);
+        form.value.taskParams = form.value.taskParams || {};
+        normalizeReaderDatasource(form.value.taskParams);
         ensureStreamConfigs();
-        const savedTableFields = deepCopy(props.currentNode.data.taskParams.tableFields);
-        ColumnByAssettab.value = Array.isArray(savedTableFields) ? savedTableFields : [];
+        const savedTableFields = deepCopy(nodeData.taskParams?.tableFields);
+        const savedStreamFields = deepCopy(form.value.taskParams?.streamFields);
+        const restoredFields = Array.isArray(savedStreamFields) && savedStreamFields.length
+            ? savedStreamFields
+            : savedTableFields;
+        ColumnByAssettab.value = Array.isArray(restoredFields)
+            ? (form.value.taskParams?.readModeType == '4' ? normalizeStreamFields(restoredFields) : restoredFields)
+            : [];
 
+        const ds = form.value?.taskParams?.readerDatasource;
+        const dsId = getDatasourceId(ds);
+        const normalizedDatasourceType = normalizeDatasourceType(ds.datasourceType);
+        if (dsId && normalizedDatasourceType !== 'kafka'
+            && !streamingMqDatasourceTypes.includes(normalizedDatasourceType)) {
+            getTablesByDatasourceId(dsId);
+        }
+
+        // 修复：确保数据源列表包含已保存的选择
+        if (dsId && dsId !== '') {
+            const savedId = String(dsId);
+            ensureSelectedDatasourceOption();
+            const existingDatasource = createTypeList.value.find(item => String(item.id) === savedId);
+            if (!existingDatasource) {
+                // 从多个来源收集数据源信息
+                let datasourceName = '';
+                let datasourceType = '';
+                let datasourceIp = '';
+                let datasourcePort = '';
+                let datasourceConfig = '{}';
+                
+                // 优先从表单数据中获取
+                if (ds.datasourceName) {
+                    datasourceName = ds.datasourceName;
+                }
+                if (ds.datasourceType) {
+                    datasourceType = ds.datasourceType;
+                }
+                if (ds.ip) {
+                    datasourceIp = ds.ip;
+                }
+                if (ds.port) {
+                    datasourcePort = ds.port;
+                }
+                if (ds.datasourceConfig) {
+                    datasourceConfig = ds.datasourceConfig;
+                }
+                
+                // 其次从原始节点数据中获取
+                if (!datasourceName || !datasourceType) {
+                    const originalNodeData = getNodeData();
+                    const originalDs = originalNodeData?.taskParams?.readerDatasource;
+                    if (String(originalDs?.datasourceId ?? originalDs?.datasource_id ?? '') === savedId) {
+                        if (!datasourceName && originalDs.datasourceName) {
+                            datasourceName = originalDs.datasourceName;
+                        }
+                        if (!datasourceType && originalDs.datasourceType) {
+                            datasourceType = originalDs.datasourceType;
+                        }
+                        if (!datasourceIp && originalDs.ip) {
+                            datasourceIp = originalDs.ip;
+                        }
+                        if (!datasourcePort && originalDs.port) {
+                            datasourcePort = originalDs.port;
+                        }
+                        if (originalDs.datasourceConfig) {
+                            datasourceConfig = originalDs.datasourceConfig;
+                        }
+                    }
+                }
+                
+                // 使用兜底信息
+                if (!datasourceName) {
+                    datasourceName = '数据源 ' + savedId;
+                }
+                if (!datasourceType) {
+                    datasourceType = ds.datasourceType || '';
+                }
+                
+                // 创建数据源对象
+                const datasourceToAdd = {
+                    id: savedId,
+                    datasourceName: datasourceName,
+                    datasourceType: datasourceType,
+                    ip: datasourceIp,
+                    port: datasourcePort,
+                    datasourceConfig: datasourceConfig
+                };
+                
+                // 检查是否已经存在（再次确认）
+                const exists = createTypeList.value.some(item => String(item.id) === savedId);
+                if (!exists) {
+                    createTypeList.value.unshift(datasourceToAdd);
+                    console.log('回echo: 添加缺失的数据源到列表，ID:', savedId, '名称:', datasourceName);
+                }
+            }
+        }
+
+        // 修复：确保资产表列表包含已保存的选择 (当 clmt == 1 时)
+        if (props.currentNode?.data?.taskParams?.clmt == '1' &&
+            props.currentNode?.data?.taskParams?.asset_id_cpoy &&
+            props.currentNode?.data?.taskParams?.asset_id_cpoy !== '') {
+            
+            const savedAssetId = String(props.currentNode.data.taskParams.asset_id_cpoy);
+            const existingAsset = dppNoPageListList.value.find(item => item.id === savedAssetId);
+            if (!existingAsset) {
+                // 从多个来源收集资产表信息
+                let assetName = '';
+                let assetDatasourceId = '';
+                let assetTableName = '';
+                
+                // 优先从表单数据中获取
+                if (form.value?.taskParams?.asset_id_cpoy?.name) {
+                    assetName = form.value.taskParams.asset_id_cpoy.name;
+                }
+                if (form.value?.taskParams?.asset_id_cpoy?.datasourceId) {
+                    assetDatasourceId = String(form.value.taskParams.asset_id_cpoy.datasourceId);
+                }
+                if (form.value?.taskParams?.asset_id_cpoy?.tableName) {
+                    assetTableName = form.value.taskParams.asset_id_cpoy.tableName;
+                }
+                
+                // 其次从原始节点数据中获取
+                if (!assetName || !assetTableName) {
+                    const originalNodeData = props.currentNode?.getProp?.("data") || props.currentNode?.data || {};
+                    const originalAsset = originalNodeData?.taskParams?.asset_id_cpoy;
+                    if (originalAsset?.id === savedAssetId) {
+                        if (!assetName && originalAsset.name) {
+                            assetName = originalAsset.name;
+                        }
+                        if (!assetDatasourceId && originalAsset.datasourceId) {
+                            assetDatasourceId = String(originalAsset.datasourceId);
+                        }
+                        if (!assetTableName && originalAsset.tableName) {
+                            assetTableName = originalAsset.tableName;
+                        }
+                    }
+                }
+                
+                // 使用兜底信息
+                if (!assetName) {
+                    assetName = '资产 ' + savedAssetId;
+                }
+                if (!assetTableName) {
+                    assetTableName = savedAssetId;
+                }
+                
+                // 创建资产表对象
+                const assetToAdd = {
+                    id: savedAssetId,
+                    name: assetName,
+                    datasourceId: assetDatasourceId,
+                    tableName: assetTableName
+                };
+                
+                // 检查是否已经存在（再次确认）
+                const exists = dppNoPageListList.value.some(item => item.id === savedAssetId);
+                if (!exists) {
+                    dppNoPageListList.value.unshift(assetToAdd);
+                    console.log('回echo: 添加缺失的资产表到列表，ID:', savedAssetId, '名称:', assetName);
+                }
+            }
+        }
+
+        // 处理回echo - 确保数据源和资产表回echo
+        handle回echo();
     } else {
         off();
     }
-});
-const initialReaderDatasource = props.currentNode?.data?.taskParams?.readerDatasource;
-if (initialReaderDatasource?.datasourceId
-    && initialReaderDatasource.datasourceType !== 'Kafka'
-    && !streamingMqDatasourceTypes.includes(initialReaderDatasource.datasourceType)) {
-    getTablesByDatasourceId(initialReaderDatasource.datasourceId);
-}
+}, { immediate: true });
 </script>
 <style scoped lang="less">
 .blue-text {
     color: #2666fb;
+}
+
+.stream-field-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 </style>
 

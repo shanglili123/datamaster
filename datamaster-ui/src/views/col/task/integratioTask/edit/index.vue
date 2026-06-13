@@ -540,6 +540,7 @@ const handleFormSubmit = async (nodeData = {}) => {
     }
   }
 
+  node.setData(newData);
   node.setProp("data", newData);
 
   const newInputFields = outputFields;
@@ -549,14 +550,16 @@ const handleFormSubmit = async (nodeData = {}) => {
     childNodes.forEach((n) => {
       if (!n?.data?.taskParams || typeof n.setProp !== "function") return;
       const defaultParams = getDefaultTaskParams(n.data);
-      n.setProp("data", {
+      const mergedChildData = {
         ...n.data,
         taskParams: {
           ...n.data.taskParams,
           ...defaultParams,
           inputFields: newInputFields,
         },
-      });
+      };
+      n.setData(mergedChildData);
+      n.setProp("data", mergedChildData);
     });
   } else if (nameChanged) {
     // 仅名称变化，更新 inputFields 的 source，但不清空子节点 tableFields
@@ -573,10 +576,12 @@ const handleFormSubmit = async (nodeData = {}) => {
         })),
       };
 
-      n.setProp("data", {
+      const mergedChildData = {
         ...childData,
         taskParams: updatedTaskParams,
-      });
+      };
+      n.setData(mergedChildData);
+      n.setProp("data", mergedChildData);
     });
   }
 

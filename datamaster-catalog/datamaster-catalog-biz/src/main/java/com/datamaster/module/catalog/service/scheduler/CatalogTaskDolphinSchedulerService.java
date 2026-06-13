@@ -30,9 +30,6 @@ import javax.annotation.Resource;
 @Service
 public class CatalogTaskDolphinSchedulerService {
 
-    @Value("${ds.http_mc_projectCode}")
-    private Long projectCode;
-
     @Value("${path.collector_url}")
     private String url;
 
@@ -54,13 +51,13 @@ public class CatalogTaskDolphinSchedulerService {
      * @param taskId   任务ID
      * @return 任务编码
      */
-    public String createTaskDefinition(String taskName, Long taskId) {
+    public String createTaskDefinition(String projectCode, String taskName, Long taskId) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(taskName + StringUtils.generateRandomString());
         input.addHttpParam("id", "BODY", String.valueOf(taskId));
         input.setId(taskId);
 
-        ProcessDefinition definition = this.createProcessDefinition(input);
+        ProcessDefinition definition = this.createProcessDefinition(projectCode, input);
         TaskDefinition firstTaskDefinition = CatalogTaskConverter.getFirstTaskDefinition(definition);
 
         return String.valueOf(definition.getCode());
@@ -75,7 +72,7 @@ public class CatalogTaskDolphinSchedulerService {
      * @param nodeCode 节点编码
      * @return 任务编码
      */
-    public String updateTaskDefinition(String taskName, Long taskId, String taskCode, String nodeCode) {
+    public String updateTaskDefinition(String projectCode, String taskName, Long taskId, String taskCode, String nodeCode) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(taskName + StringUtils.generateRandomString());
         input.addHttpParam("id", "BODY", String.valueOf(taskId));
@@ -83,7 +80,7 @@ public class CatalogTaskDolphinSchedulerService {
         input.setTaskCode(taskCode);
         input.setNodeCode(nodeCode);
 
-        ProcessDefinition definition = this.updateProcessDefinition(input);
+        ProcessDefinition definition = this.updateProcessDefinition(projectCode, input);
         return String.valueOf(definition.getCode());
     }
 
@@ -94,11 +91,11 @@ public class CatalogTaskDolphinSchedulerService {
      * @param cronExpression cron表达式
      * @return 调度器ID
      */
-    public Long createScheduler(String taskCode, String cronExpression) {
+    public Long createScheduler(String projectCode, String taskCode, String cronExpression) {
         DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = CatalogTaskConverter.createSchedulerRequest(
                 cronExpression, taskCode);
         DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.saveScheduler(
-                dsSchedulerSaveReqDTO, String.valueOf(projectCode));
+                dsSchedulerSaveReqDTO, projectCode);
 
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
             throw new ServiceException("创建调度器失败！");
@@ -116,11 +113,11 @@ public class CatalogTaskDolphinSchedulerService {
      * @param cronExpression cron表达式
      * @return 调度器ID
      */
-    public Long updateScheduler(Long schedulerId, String taskCode, String cronExpression) {
+    public Long updateScheduler(String projectCode, Long schedulerId, String taskCode, String cronExpression) {
         DsSchedulerUpdateReqDTO schedulerUpdateRequest = CatalogTaskConverter.createSchedulerUpdateRequest(
                 schedulerId, cronExpression, taskCode);
         DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(
-                schedulerUpdateRequest, String.valueOf(projectCode));
+                schedulerUpdateRequest, projectCode);
 
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
             throw new ServiceException("更新调度器失败！");
@@ -135,9 +132,9 @@ public class CatalogTaskDolphinSchedulerService {
      *
      * @param taskCode 任务编码
      */
-    public void onlineTask(String taskCode) {
+    public void onlineTask(String projectCode, String taskCode) {
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE",
-                String.valueOf(projectCode), taskCode);
+                projectCode, taskCode);
         if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
             throw new ServiceException("发布任务失败！");
         }
@@ -148,9 +145,9 @@ public class CatalogTaskDolphinSchedulerService {
      *
      * @param schedulerId 调度器ID
      */
-    public void offlineScheduler(String schedulerId) {
+    public void offlineScheduler(String projectCode, String schedulerId) {
         DsStatusRespDTO offlined = iDsEtlSchedulerService.offlineScheduler(
-                String.valueOf(projectCode), Long.parseLong(schedulerId));
+                projectCode, Long.parseLong(schedulerId));
         if (!offlined.getData()) {
             throw new ServiceException("下线调度器失败！");
         }
@@ -161,9 +158,9 @@ public class CatalogTaskDolphinSchedulerService {
      *
      * @param schedulerId 调度器ID
      */
-    public void onlineSchedulerOnly(Long schedulerId) {
+    public void onlineSchedulerOnly(String projectCode, Long schedulerId) {
         DsStatusRespDTO dsStatusRespDTO = iDsEtlSchedulerService.onlineScheduler(
-                String.valueOf(projectCode), schedulerId);
+                projectCode, schedulerId);
         if (!dsStatusRespDTO.getData()) {
             throw new ServiceException("上线调度器失败！");
         }
@@ -174,9 +171,9 @@ public class CatalogTaskDolphinSchedulerService {
      *
      * @param schedulerId 调度器ID
      */
-    public void offlineSchedulerOnly(Long schedulerId) {
+    public void offlineSchedulerOnly(String projectCode, Long schedulerId) {
         DsStatusRespDTO offlined = iDsEtlSchedulerService.offlineScheduler(
-                String.valueOf(projectCode), schedulerId);
+                projectCode, schedulerId);
         if (!offlined.getData()) {
             throw new ServiceException("下线调度器失败！");
         }
@@ -188,17 +185,17 @@ public class CatalogTaskDolphinSchedulerService {
      * @param taskCode 任务编码
      * @param schedulerId 调度器ID
      */
-    public void onlineTaskAndScheduler(String taskCode, Long schedulerId) {
+    public void onlineTaskAndScheduler(String projectCode, String taskCode, Long schedulerId) {
         // 上线任务
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE",
-                String.valueOf(projectCode), taskCode);
+                projectCode, taskCode);
         if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
             throw new ServiceException("发布任务失败！");
         }
 
         // 上线调度器
         DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(
-                String.valueOf(projectCode), schedulerId);
+                projectCode, schedulerId);
         if (!dsStatusRespDTO1.getData()) {
             throw new ServiceException("上线调度器失败！");
         }
@@ -210,10 +207,10 @@ public class CatalogTaskDolphinSchedulerService {
      * @param taskCode 任务编码
      * @param schedulerId 调度器ID
      */
-    public void offlineTaskAndScheduler(String taskCode, Long schedulerId) {
+    public void offlineTaskAndScheduler(String projectCode, String taskCode, Long schedulerId) {
         // 下线任务（会自动处理调度器下线）
         DsStatusRespDTO respDTO = dsEtlTaskService.releaseTask("OFFLINE",
-                String.valueOf(projectCode), taskCode);
+                projectCode, taskCode);
         if (respDTO == null || !respDTO.getSuccess()) {
             if (respDTO == null) log.error("respDTO is null");
             else log.error("respDTO={}", JSONUtils.toJson(respDTO));
@@ -223,7 +220,7 @@ public class CatalogTaskDolphinSchedulerService {
         // 额外确保调度器也下线
         if (schedulerId != null && schedulerId > 0) {
             DsStatusRespDTO offlined = iDsEtlSchedulerService.offlineScheduler(
-                    String.valueOf(projectCode), schedulerId);
+                    projectCode, schedulerId);
             if (!offlined.getData()) {
                 throw new ServiceException("下线调度器失败！");
             }
@@ -235,9 +232,9 @@ public class CatalogTaskDolphinSchedulerService {
      *
      * @param taskCode 任务编码
      */
-    public void deleteTask(String taskCode) {
+    public void deleteTask(String projectCode, String taskCode) {
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.deleteTask(
-                String.valueOf(projectCode), taskCode);
+                projectCode, taskCode);
         if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
             throw new ServiceException("删除任务失败！");
         }
@@ -248,10 +245,10 @@ public class CatalogTaskDolphinSchedulerService {
      *
      * @param taskCode 任务编码
      */
-    public void startTask(String taskCode) {
+    public void startTask(String projectCode, String taskCode) {
         DsStartTaskReqDTO dsStartTaskReqDTO = CatalogTaskConverter.createDsStartTaskReqDTO(taskCode);
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(
-                dsStartTaskReqDTO, String.valueOf(projectCode));
+                dsStartTaskReqDTO, projectCode);
 
         if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
             throw new ServiceException("启动任务失败：" + (dsStatusRespDTO != null ? dsStatusRespDTO.getMsg() : "未知错误"));
@@ -263,13 +260,13 @@ public class CatalogTaskDolphinSchedulerService {
     /**
      * 创建流程定义
      */
-    private ProcessDefinition createProcessDefinition(TaskSaveReqInput input) {
-        Long nodeUniqueKey = this.getNodeUniqueKey(projectCode);
+    private ProcessDefinition createProcessDefinition(String projectCode, TaskSaveReqInput input) {
+        Long nodeUniqueKey = this.getNodeUniqueKey(CatalogTaskConverter.stringToLong(projectCode));
         input.setNodeCode(CatalogTaskConverter.longToString(nodeUniqueKey));
 
         DsTaskSaveReqDTO dsTaskSaveReqDTO = CatalogTaskConverter.buildDsTaskSaveReq(input);
         DsTaskSaveRespDTO task = dsEtlTaskService.createTask(dsTaskSaveReqDTO,
-                CatalogTaskConverter.stringToLong(String.valueOf(projectCode)));
+                CatalogTaskConverter.stringToLong(projectCode));
 
         if (!task.getSuccess()) {
             throw new ServiceException("创建任务定义失败，请联系系统管理员");
@@ -280,14 +277,14 @@ public class CatalogTaskDolphinSchedulerService {
     /**
      * 更新流程定义
      */
-    private ProcessDefinition updateProcessDefinition(TaskSaveReqInput input) {
+    private ProcessDefinition updateProcessDefinition(String projectCode, TaskSaveReqInput input) {
         Long nodeUniqueKey = this.getNodeUniqueKey(
-                CatalogTaskConverter.stringToLong(String.valueOf(projectCode)));
+                CatalogTaskConverter.stringToLong(projectCode));
         input.setNodeCode(CatalogTaskConverter.longToString(nodeUniqueKey));
 
         DsTaskSaveReqDTO dsTaskSaveReqDTO = CatalogTaskConverter.buildDsTaskSaveReq(input);
         DsTaskSaveRespDTO task = dsEtlTaskService.updateTask(dsTaskSaveReqDTO,
-                String.valueOf(projectCode), input.getTaskCode());
+                projectCode, input.getTaskCode());
 
         if (!task.getSuccess()) {
             throw new ServiceException("更新任务定义失败，请联系系统管理员");

@@ -107,16 +107,20 @@ zookeeper_install_tgz: "apache-zookeeper-{{ zookeeper_version }}-bin.tar.gz"
 zookeeper_package_src: "packages/components/{{ zookeeper_install_tgz }}"
 zookeeper_client_port: 2181
 
-# * Must confirm: DolphinScheduler package, API port, worker group, and token.
-# * 必须确认：DolphinScheduler 包、API 端口、worker group 和 token。
-# * The token is used by DataMaster when calling DolphinScheduler APIs.
-# * token 会被 DataMaster 调用 DolphinScheduler API 时使用。
-dolphinscheduler_version: "3.2.2"
+# * Must confirm: DolphinScheduler package and API port.
+# * 必须确认：DolphinScheduler 包和 API 端口。
+# * Leave dolphinscheduler_token empty to generate and reuse deploy/.runtime/dolphinscheduler.token automatically.
+# * dolphinscheduler_token 留空时，脚本会自动生成并复用 deploy/.runtime/dolphinscheduler.token。
+# * The script writes this token into the DS database and DataMaster server config.
+# * 脚本会把这个 token 同时写入 DS 数据库和 DataMaster server 配置。
+# * Must confirm: dolphinscheduler_tenant_code must match the Linux user used by DS worker task execution.
+# * 必须确认：dolphinscheduler_tenant_code 必须和 DS worker 执行任务使用的 Linux 用户一致。
+dolphinscheduler_version: "3.4.1"
 dolphinscheduler_install_tgz: "apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin.tar.gz"
 dolphinscheduler_package_src: "packages/components/{{ dolphinscheduler_install_tgz }}"
 dolphinscheduler_api_port: 12345
-dolphinscheduler_worker_group: default
-dolphinscheduler_token: "<DOLPHINSCHEDULER_TOKEN>"
+dolphinscheduler_tenant_code: root
+dolphinscheduler_token: ""
 
 # * Must confirm: Chunjun/Flink local source directory.
 # * 必须确认：Chunjun/Flink 本地包目录。

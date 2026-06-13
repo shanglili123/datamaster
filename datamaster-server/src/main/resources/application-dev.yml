@@ -53,7 +53,7 @@ MySQL:
 
 PostgreSQL:
   driver-class-name: org.postgresql.Driver
-  url: jdbc:postgresql://172.21.163.204:5432/data_master?currentSchema=public&sslmode=disable
+  url: jdbc:postgresql://127.0.0.1:5432/data_master?currentSchema=public&sslmode=disable
   username: datamaster
   password: datamaster
 
@@ -78,10 +78,8 @@ ds:
   incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://172.21.160.1:8080/col/etlTask/incremental/prepare}
   incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://172.21.160.1:8080/col/etlTask/incremental/complete}
   collector_url: http://localhost:8080/mc/taskExecutor/runExecuteTask
-  http_projectCode: 134799536571008
-  http_quality_projectCode: 134799536571008
-  http_mc_projectCode: 173091707675808
   token: b07f0e57c4818043a57ba05a28da291a
+  tenant_code: ${DS_TENANT_CODE:default}
   resource_url: /dolphinscheduler/
   spark:
     master_url: spark://127.0.0.1:7077

@@ -41,7 +41,7 @@
             <el-select v-if="!info" v-model="form.taskParams.writerDatasource.datasourceId" placeholder="请选择目标数据连接"
               @change="handleDatasourceChange" filterable>
               <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
-                :value="dict.id"></el-option>
+                :value="String(dict.id)"></el-option>
             </el-select>
             <div v-else class="form-readonly">{{createTypeList.find((item) => item.id ==
               form.taskParams.writerDatasource.datasourceId)?.datasourceName || '-'}}</div>
@@ -316,8 +316,8 @@ const resetAndFetchTables = async (selectedDatasource) => {
     ip,
     port,
     dbname: code.dbname,
-    target_asset_id: id,
-    datasourceId: id,
+    target_asset_id: String(id),
+    datasourceId: String(id),
   };
 
   await getTablesByDatasourceId(id);
@@ -482,7 +482,8 @@ watchEffect(() => {
   }
   getDatasourceList();
 
-  form.value = deepCopy(props.currentNode?.data || {});
+  const nodeData = props.currentNode?.getProp?.("data") || {};
+  form.value = deepCopy(nodeData);
 
   const taskParams = form.value?.taskParams || {};
   const savedTableFields = taskParams.tableFields?.length
@@ -491,7 +492,7 @@ watchEffect(() => {
   tableFields.value = Array.isArray(savedTableFields) ? savedTableFields : [];
   // 尝试从上游输入节点获取源表名
   const parentNode = getParentNode(props.currentNode, props.graph);
-  const sourceTableName = parentNode?.data?.taskParams?.asset_id || '';
+  const sourceTableName = parentNode?.getProp?.("data")?.taskParams?.asset_id || '';
   newTableName.value = sourceTableName;
   ColumnByAssettab.value = Array.isArray(taskParams.toColumnsList) ? taskParams.toColumnsList : [];
 });

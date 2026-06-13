@@ -102,6 +102,7 @@ public class TaxonomyQualityCatServiceImpl  extends ServiceImpl<TaxonomyQualityC
         LambdaQueryWrapperX<TaxonomyQualityCatDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.likeIfPresent(TaxonomyQualityCatDO::getName, reqVO.getName())
                 .likeRightIfPresent(TaxonomyQualityCatDO::getCode, reqVO.getCode())
+                .eqIfPresent(TaxonomyQualityCatDO::getProjectId, reqVO.getProjectId())
                 .eq(reqVO.getValidFlag() != null, TaxonomyQualityCatDO::getValidFlag, Boolean.TRUE.equals(reqVO.getValidFlag()) ? "1" : "0")
                 .orderByAsc(TaxonomyQualityCatDO::getSortOrder);
         return TaxonomyQualityCatMapper.selectList(queryWrapperX);

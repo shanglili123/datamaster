@@ -2,6 +2,8 @@
 
 package com.datamaster.module.collector.dal.mapper.qa;
 
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.commons.lang3.StringUtils;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.collector.controller.admin.qa.vo.CollectorQualityTaskPageReqVO;
@@ -18,6 +20,9 @@ import java.util.Arrays;
  * @date 2025-07-21
  */
 public interface CollectorQualityTaskMapper extends BaseMapperX<CollectorQualityTaskDO> {
+
+    @Select("select PROJECT_ID, PROJECT_CODE from TAX_QUALITY_CAT where CODE = #{catCode} and DEL_FLAG = '0'")
+    CollectorQualityTaskDO selectQualityCatProjectByCode(@Param("catCode") String catCode);
 
     default PageResult<CollectorQualityTaskDO> selectPage(CollectorQualityTaskPageReqVO reqVO) {
         String leftJoin = "TAX_QUALITY_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'";

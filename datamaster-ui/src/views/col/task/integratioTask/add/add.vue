@@ -347,6 +347,85 @@
             </el-form-item>
           </el-col>
         </template>
+        <template v-if="form.taskType == 'FLINK'">
+          <el-col :span="12">
+            <el-form-item label="JobManager内存" prop="jobManagerMemory">
+              <el-input v-if="title != '任务详情'" v-model="form.jobManagerMemory" placeholder="请输入JobManager内存，如 1G" />
+              <div class="form-readonly" v-else>{{ form.jobManagerMemory || "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="TaskManager内存" prop="taskManagerMemory">
+              <el-input v-if="title != '任务详情'" v-model="form.taskManagerMemory" placeholder="请输入TaskManager内存，如 2G" />
+              <div class="form-readonly" v-else>{{ form.taskManagerMemory || "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Slot数量" prop="slot">
+              <el-input-number v-if="title != '任务详情'" v-model="form.slot" controls-position="right" :min="1" style="width: 100%" />
+              <div class="form-readonly" v-else>{{ form.slot || "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="TaskManager数量" prop="taskManager">
+              <el-input-number v-if="title != '任务详情'" v-model="form.taskManager" controls-position="right" :min="1" style="width: 100%" />
+              <div class="form-readonly" v-else>{{ form.taskManager || "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="并行度" prop="parallelism">
+              <el-input-number v-if="title != '任务详情'" v-model="form.parallelism" controls-position="right" :min="1" style="width: 100%" />
+              <div class="form-readonly" v-else>{{ form.parallelism || "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Yarn队列" prop="yarnQueue">
+              <el-input v-if="title != '任务详情'" v-model="form.yarnQueue" placeholder="请输入Yarn队列(选填)" />
+              <div class="form-readonly" v-else>{{ form.yarnQueue || "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="错误记录容忍" prop="errorLimitRecord">
+              <el-input-number v-if="title != '任务详情'" v-model="form.errorLimitRecord" controls-position="right" :min="0" style="width: 100%" />
+              <div class="form-readonly" v-else>{{ form.errorLimitRecord ?? "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="错误比例容忍" prop="errorLimitPercentage">
+              <el-input-number v-if="title != '任务详情'" v-model="form.errorLimitPercentage" controls-position="right" :min="0" :max="1" :step="0.01" style="width: 100%" />
+              <div class="form-readonly" v-else>{{ form.errorLimitPercentage ?? "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="断点续传" prop="isRestore">
+              <el-switch v-if="title != '任务详情'" v-model="form.isRestore" />
+              <div class="form-readonly" v-else>{{ form.isRestore ? "开启" : "关闭" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="Checkpoint行数" prop="maxRowNumForCheckpoint">
+              <el-input-number v-if="title != '任务详情'" v-model="form.maxRowNumForCheckpoint" controls-position="right" :min="0" style="width: 100%" />
+              <div class="form-readonly" v-else>{{ form.maxRowNumForCheckpoint ?? "-" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="任务日志" prop="isLogger">
+              <el-switch v-if="title != '任务详情'" v-model="form.isLogger" />
+              <div class="form-readonly" v-else>{{ form.isLogger ? "开启" : "关闭" }}</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="日志级别" prop="logLevel">
+              <el-select v-if="title != '任务详情'" v-model="form.logLevel" style="width: 100%">
+                <el-option label="INFO" value="info" />
+                <el-option label="DEBUG" value="debug" />
+                <el-option label="WARN" value="warn" />
+                <el-option label="ERROR" value="error" />
+              </el-select>
+              <div class="form-readonly" v-else>{{ form.logLevel || "-" }}</div>
+            </el-form-item>
+          </el-col>
+        </template>
       </el-row>
       <!-- <el-row :gutter="20">
         <el-col :span="24">
@@ -365,8 +444,8 @@
           >
         </template>
         <template v-else>
-          <el-button @click="saveClose">仅保存</el-button>
-          <el-button type="primary" @click="saveData">保存并配置流程</el-button>
+          <el-button @click="saveClose" :disabled="saveLoading">仅保存</el-button>
+          <el-button type="primary" @click="saveData" :disabled="saveLoading">保存并配置流程</el-button>
         </template>
       </div>
     </template>
@@ -391,7 +470,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed, watch } from "vue";
+import { ref, computed, watch, getCurrentInstance } from "vue";
 import Crontab from "@/components/Crontab/index.vue";
 const { proxy } = getCurrentInstance();
 const {
@@ -414,9 +493,15 @@ const props = defineProps({
   userList: { type: Object, default: () => ({}) },
   info: { type: Boolean, default: false },
   catCode: { type: String, default: "" },
+  savedDataSourceId: { type: [String, Number], default: "" },
+  savedAssetTableId: { type: [String, Number], default: "" },
+  savedDataSourceName: { type: String, default: "" },
+  savedDataSourceType: { type: String, default: "" },
 });
 
-const emit = defineEmits(["update:visible", "confirm", "save"]);
+const emit = defineEmits(["update:visible", "confirm", "save", "回echo完成"]);
+
+const saveLoading = ref(false);
 
 // 定义表单验证规则
 const rules = {
@@ -425,7 +510,6 @@ const rules = {
   executionType: [
     { required: true, message: "执行策略不能为空", trigger: "change" },
   ],
-  crontab: [{ required: true, message: "调度周期不能为空", trigger: "change" }],
   // releaseState: [{ required: true, message: "任务状态不能为空", trigger: "change" }],
   engine: [{ required: true, message: "执行引擎不能为空", trigger: "change" }],
   personCharge: [
@@ -455,6 +539,12 @@ const form = ref({
   slot: 1,
   taskManager: 2,
   parallelism: 1,
+  errorLimitRecord: 100,
+  errorLimitPercentage: 0.1,
+  isRestore: true,
+  maxRowNumForCheckpoint: 10000,
+  isLogger: true,
+  logLevel: "info",
   // Spark配置
   driverCores: 1,
   driverMemory: "512m",
@@ -489,6 +579,12 @@ const reset = () => {
     slot: 1,
     taskManager: 2,
     parallelism: 1,
+    errorLimitRecord: 100,
+    errorLimitPercentage: 0.1,
+    isRestore: true,
+    maxRowNumForCheckpoint: 10000,
+    isLogger: true,
+    logLevel: "info",
     // Spark配置
     driverCores: 1,
     driverMemory: "512m",
@@ -507,13 +603,16 @@ watch(
         console.log("🚀 ~ props.data.taskConfig:", props.data.taskConfig);
         let draftJson = JSON.parse(data.draftJson);
         form.value = { ...data, ...draftJson };
+        applyFlinkSettingDefaults();
         form.value.personCharge = Number(form.value.personCharge) || "";
         form.value.crontab = props?.data.taskConfig?.crontab;
       } else {
         form.value.catCode = props?.catCode || "";
+        applyFlinkSettingDefaults();
       }
     } else {
       reset();
+      saveLoading.value = false;
     }
   }
 );
@@ -535,25 +634,80 @@ const closeDialog = () => {
   emit("update:visible", false);
 };
 const saveClose = () => {
+  if (saveLoading.value) return;
+  console.log("🚀 saveClose called, saveLoading:", saveLoading.value);
   daDiscoveryTaskRef.value.validate((valid) => {
+    console.log("🚀 validate callback, valid:", valid, "saveLoading:", saveLoading.value);
     if (valid) {
+      saveLoading.value = true;
+      console.log("🚀 emitting save event");
+      normalizeFlinkSetting();
       emit("save", form.value);
-      emit("update:visible", false);
-    } else {
-      console.log("表单校验未通过");
     }
   });
 };
 // 保存数据的方法
 const saveData = () => {
+  if (saveLoading.value) return;
   daDiscoveryTaskRef.value.validate((valid) => {
     if (valid) {
+      saveLoading.value = true;
+      normalizeFlinkSetting();
       emit("confirm", form.value);
-      emit("update:visible", false);
+      // 发送回echo完成事件
+      emit("回echo完成", {
+        dataSourceId: props.savedDataSourceId,
+        dataSourceName: props.savedDataSourceName,
+        dataSourceType: props.savedDataSourceType,
+        assetTableId: props.savedAssetTableId
+      });
     } else {
       console.log("表单校验未通过");
     }
   });
+};
+
+const applyFlinkSettingDefaults = () => {
+  const setting = form.value.setting || {};
+  const errorLimit = setting.errorLimit || {};
+  const restore = setting.restore || {};
+  const log = setting.log || {};
+  form.value.jobManagerMemory = form.value.jobManagerMemory || "1G";
+  form.value.taskManagerMemory = form.value.taskManagerMemory || "2G";
+  form.value.slot = Number(form.value.slot || 1);
+  form.value.taskManager = Number(form.value.taskManager || 2);
+  form.value.parallelism = Number(form.value.parallelism || 1);
+  form.value.errorLimitRecord = Number(form.value.errorLimitRecord ?? errorLimit.record ?? 100);
+  form.value.errorLimitPercentage = Number(form.value.errorLimitPercentage ?? errorLimit.percentage ?? 0.1);
+  form.value.isRestore = form.value.isRestore ?? restore.isRestore ?? true;
+  form.value.maxRowNumForCheckpoint = Number(form.value.maxRowNumForCheckpoint ?? restore.maxRowNumForCheckpoint ?? 10000);
+  form.value.isLogger = form.value.isLogger ?? log.isLogger ?? true;
+  form.value.logLevel = form.value.logLevel || log.level || "info";
+};
+
+const normalizeFlinkSetting = () => {
+  if (form.value.taskType !== "FLINK") {
+    return;
+  }
+  form.value.setting = {
+    ...(form.value.setting || {}),
+    errorLimit: {
+      record: Number(form.value.errorLimitRecord ?? 100),
+      percentage: Number(form.value.errorLimitPercentage ?? 0.1),
+    },
+    restore: {
+      maxRowNumForCheckpoint: Number(form.value.maxRowNumForCheckpoint ?? 10000),
+      isRestore: Boolean(form.value.isRestore),
+      restoreColumnName: form.value.restoreColumnName || "",
+      restoreColumnIndex: Number(form.value.restoreColumnIndex || 0),
+    },
+    log: {
+      isLogger: Boolean(form.value.isLogger),
+      level: form.value.logLevel || "info",
+      path: form.value.logPath || "",
+      pattern: form.value.logPattern || "",
+    },
+  };
 };
 
 let openCron = ref(false);

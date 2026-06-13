@@ -22,7 +22,8 @@ Windows 可以用包装入口：
 - 组件 IP：应用、DS、Redis、PG 之间实际可访问的地址。
 - `base_dir`：远程统一部署根目录，默认 `/data/datamaster`。
 - PG/Redis 端口和密码。
-- DolphinScheduler token、API 端口、worker group。
+- DolphinScheduler API 端口。token 可以留空，脚本会自动生成并写入 DS 库。
+- DolphinScheduler tenant code：必须和 DS worker 执行任务使用的 Linux 用户一致，默认 `root`。
 - 离线包文件名和目录是否与 `deploy/deploy.yml` 一致。
 - Chunjun/Flink 是否已经放到 `deploy/packages/soft/chunjun` 和 `deploy/packages/soft/flink`。
 
@@ -38,7 +39,7 @@ deploy/packages
 │   ├── datamaster-server-ce-1.4.0.tar
 │   ├── datamaster-quality-ce-1.4.0.tar
 │   ├── apache-zookeeper-3.8.4-bin.tar.gz
-│   ├── apache-dolphinscheduler-3.2.2-bin.tar.gz
+│   ├── apache-dolphinscheduler-<dolphinscheduler_version>-bin.tar.gz
 │   └── datamaster-db-init.jar
 ├── soft
 │   ├── chunjun/
@@ -56,7 +57,8 @@ redis_image_tar: redis-7.2.tar
 datamaster_server_image_tar: datamaster-server-ce-1.4.0.tar
 datamaster_quality_image_tar: datamaster-quality-ce-1.4.0.tar
 zookeeper_install_tgz: apache-zookeeper-3.8.4-bin.tar.gz
-dolphinscheduler_install_tgz: apache-dolphinscheduler-3.2.2-bin.tar.gz
+dolphinscheduler_version: "3.4.1"
+dolphinscheduler_install_tgz: apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin.tar.gz
 database_init_jar_src: packages/components/datamaster-db-init.jar
 postgresql_init_sql_src: packages/sql/datamaster.sql
 dolphinscheduler_init_sql_src: packages/sql/dolphinscheduler.sql
@@ -78,7 +80,7 @@ soft_package_src: packages/soft
 1. 读取 `deploy/deploy.yml`，把模板里的 `{{ variable }}` 替换成实际值。
 2. 通过 `ssh`/`scp` 连接每台目标机器，创建 `base_dir` 下的组件目录。
 3. 部署 PostgreSQL：上传镜像 tar 并 `docker load`，再用 `docker run` 启动 PG。
-4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL。
+4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL，再写入 DS tenant 和 DS API token。
 5. 部署 Redis：上传镜像 tar、生成 `redis.conf`，再用 `docker run` 启动 Redis。
 6. 部署 ZooKeeper：上传 tar 包，解压并生成 systemd 服务。
 7. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源和运行环境，再生成 systemd 服务。
@@ -99,6 +101,41 @@ jar 会初始化：
 - 业务用户：`datamaster/datamaster`
 
 PG 容器管理员账号默认是 `postgres/postgres`，只用于初始化。
+
+DS API token 不需要提前知道。`deploy.yml` 里的 `dolphinscheduler_token` 留空时，脚本会第一次运行时生成：
+
+```text
+deploy/.runtime/dolphinscheduler.token
+```
+
+之后会复用这个 token。数据库初始化后，脚本会把同一个 token 写入 DS 库：
+
+```text
+t_ds_access_token
+```
+
+DataMaster server 的 `application-prod.yml` 也会使用同一个 token。
+
+DS tenant 也由部署配置控制：
+
+```yaml
+dolphinscheduler_tenant_code: root
+```
+
+这个值必须和 DS worker 执行任务使用的 Linux 用户一致。默认 `root` 是因为当前 systemd 方式部署 DS 时服务由 root 启动；如果现场改成 `datamaster`、`dolphinscheduler` 等用户，就把这里改成对应 Linux 用户。
+
+初始化后，脚本会把它写入 DS 库：
+
+```text
+t_ds_tenant
+```
+
+DS 安装脚本也会检查这个 Linux 用户；如果不是 `root` 且用户不存在，会自动 `useradd`。DataMaster server 的 `application-prod.yml` 会写入：
+
+```yaml
+ds:
+  tenant_code: <dolphinscheduler_tenant_code>
+```
 
 ## PostgreSQL 执行流程
 
@@ -303,6 +340,14 @@ CHUNJUN_HOME=/data/datamaster/soft/chunjun
 FLINK_HOME=/data/datamaster/soft/flink
 ```
 
+DS API token 由部署脚本自动生成或复用：
+
+```yaml
+dolphinscheduler_token: ""
+```
+
+脚本会在 PG 初始化完成后写入 DS 库的 `t_ds_access_token`，同时把它渲染到 DataMaster server 配置里的 `ds.token`。
+
 最后会创建并启动这些 systemd 服务：
 
 ```text
@@ -343,7 +388,7 @@ datamaster_server_image_tar_src: packages/components/datamaster-server-ce-1.4.0.
 ```text
 PostgreSQL 地址、端口、库名、用户名、密码
 Redis 地址、端口、密码
-DolphinScheduler API 地址和 token
+DolphinScheduler API 地址和自动生成/复用的 token
 DataMaster quality 回调地址
 DS resource 路径
 ```

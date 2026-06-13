@@ -128,7 +128,7 @@
                 </template>
                 <template v-else>
                   <div class="mb5">
-                    <el-tag type="infos" class="not-executed-tag"
+                    <el-tag type="info" class="not-executed-tag"
                       >未执行</el-tag
                     >
                   </div>
@@ -168,7 +168,7 @@
                   link
                   type="primary"
                   icon="Edit"
-                  :disabled="row.status == 1"
+                  :disabled="isPublished(row)"
                   @click="routeTo('/col/task/integratioTask/edit', row)">配置任务</el-button
                 >
                 <el-button
@@ -186,14 +186,16 @@
                   link
                   type="success"
                   icon="Upload"
-                  :disabled="row.status == '1'"
+                  :disabled="isPublished(row)"
+                  :loading="publishingTaskId === row.id"
                   @click="handlePublish(row)">发布</el-button
                 >
                 <el-button
                   link
                   type="warning"
                   icon="Download"
-                  :disabled="row.status != '1'"
+                  :disabled="!isPublished(row)"
+                  :loading="unpublishingTaskId === row.id"
                   @click="handleUnpublish(row)">卸载</el-button
                 >
                 <el-popover placement="bottom" :width="150" trigger="click">
@@ -220,21 +222,21 @@
                       link
                       type="primary"
                       icon="VideoPlay"
-                      :disabled="row.status != 1"
+                      :disabled="!isPublished(row)"
                       @click="handleExecuteOnce(row)">执行一次</el-button
                     >
                     <el-button
                       link
                       type="danger"
                       icon="Delete"
-                      :disabled="row.status == 1"
+                      :disabled="isPublished(row)"
                       @click="handleDelete(row)">删除</el-button
                     >
                     <el-button
                       link
                       type="primary"
                       icon="CopyDocument"
-                      :disabled="row.status == 1"
+                      :disabled="isPublished(row)"
                       @click="handleClone(row)">克隆</el-button>
                   </div>
                 </el-popover>
@@ -274,11 +276,16 @@
       @update:visible="taskConfigDialogVisible = $event"
       @save="handleSave"
       @confirm="handleConfirm"
+      @回echo完成="handle回echo完成"
       :data="nodeData"
       :userList="userList"
       :info="route.query.info"
       :catCode="tableStore.params.catCode"
       :deptOptions="deptOptions"
+      :savedDataSourceId="回echo数据.dataSourceId"
+      :savedAssetTableId="回echo数据.assetTableId"
+      :savedDataSourceName="回echo数据.dataSourceName"
+      :savedDataSourceType="回echo数据.dataSourceType"
     />
   </div>
 </template>
@@ -510,14 +517,40 @@ function handleNodeClick(data) {
 }
 // 任务配置
 const taskConfigDialogVisible = ref(false);
+const publishingTaskId = ref(null);
+const unpublishingTaskId = ref(null);
 let nodeData = ref({ taskConfig: {}, name: null });
+let 回echo数据 = ref({});
 
 const openTaskConfigDialog = () => {
   nodeData.value = { taskConfig: {}, name: null };
   taskConfigDialogVisible.value = true;
+  
+  // 检查是否有回echo数据
+  if (回echo数据.value.dataSourceId || 回echo数据.value.assetTableId) {
+    // 从回echo数据中构建任务配置
+    nodeData.value.taskConfig = {
+      readerDatasource: {
+        datasourceId: 回echo数据.value.dataSourceId,
+        datasourceName: 回echo数据.value.dataSourceName,
+        datasourceType: 回echo数据.value.dataSourceType
+      }
+    };
+    
+    if (回echo数据.value.assetTableId) {
+      nodeData.value.taskConfig.asset_id_cpoy = 回echo数据.value.assetTableId;
+    }
+  }
+};
+
+// 监听子组件回echo完成
+const handle回echo完成 = (回echoData) => {
+  回echo数据.value = 回echoData;
+  console.log('父组件收到回echo完成:', 回echoData);
 };
 
 const handleSave = (form) => {
+  console.log("🚀 handleSave called once, form:", form.name);
   const parms = {
     ...form,
     projectId: userStore.projectId,
@@ -526,9 +559,13 @@ const handleSave = (form) => {
   };
   createEtlTaskFront(parms).then((res) => {
     if (res.code == 200) {
+      console.log("🚀 save success");
       proxy.$modal.msgSuccess("操作成功");
       handleQuery();
+      taskConfigDialogVisible.value = false;
     }
+  }).finally(() => {
+    taskConfigDialogVisible.value = false;
   });
 };
 
@@ -545,6 +582,8 @@ const handleConfirm = (form) => {
       handleQuery();
       routeTo("/col/task/integratioTask/edit", res.data);
     }
+  }).finally(() => {
+    taskConfigDialogVisible.value = false;
   });
 };
 
@@ -597,40 +636,64 @@ function handleschedulerState(id, row) {
     });
 }
 
-function handlePublish(row) {
+async function handlePublish(row) {
+  if (publishingTaskId.value) {
+    return;
+  }
   proxy.$modal
     .confirm(`确认发布【${row.name}】到 DolphinScheduler 吗？`)
-    .then(() =>
-      publishDppEtlTask({
+    .then(async () => {
+      publishingTaskId.value = row.id;
+      await publishDppEtlTask({
         id: row.id,
         type: row.type || "1",
         projectCode: userStore.projectCode,
         projectId: userStore.projectId,
-      })
-    )
+      });
+    })
     .then(() => {
       proxy.$modal.msgSuccess("发布成功");
       handleQuery();
     })
-    .catch(() => {});
+    .catch((error) => {
+      if (error === "cancel" || error === "close") {
+        return;
+      }
+      proxy.$modal.msgError(error?.message || error?.msg || "发布失败");
+    })
+    .finally(() => {
+      publishingTaskId.value = null;
+    });
 }
 
-function handleUnpublish(row) {
+async function handleUnpublish(row) {
+  if (unpublishingTaskId.value) {
+    return;
+  }
   proxy.$modal
     .confirm(`确认从 DolphinScheduler 卸载【${row.name}】吗？卸载后任务可编辑和删除。`)
-    .then(() =>
-      unpublishDppEtlTask({
+    .then(async () => {
+      unpublishingTaskId.value = row.id;
+      await unpublishDppEtlTask({
         id: row.id,
         type: row.type || "1",
         projectCode: userStore.projectCode,
         projectId: userStore.projectId,
-      })
-    )
+      });
+    })
     .then(() => {
       proxy.$modal.msgSuccess("卸载成功");
       handleQuery();
     })
-    .catch(() => {});
+    .catch((error) => {
+      if (error === "cancel" || error === "close") {
+        return;
+      }
+      proxy.$modal.msgError(error?.message || error?.msg || "卸载失败");
+    })
+    .finally(() => {
+      unpublishingTaskId.value = null;
+    });
 }
 
 function routeTo(link, row) {
@@ -759,6 +822,8 @@ const getStatus = (status) => {
     return "0";
   }
 };
+
+const isPublished = (row) => String(row?.status) === "1";
 
 const taskStatusWs = ref(null);
 let taskStatusReconnectTimer = null;

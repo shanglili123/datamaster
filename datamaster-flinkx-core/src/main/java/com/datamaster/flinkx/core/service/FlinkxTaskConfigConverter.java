@@ -844,11 +844,91 @@ public class FlinkxTaskConfigConverter {
         setting.put("speed", speed);
 
         Map<String, Object> errorLimit = new LinkedHashMap<>();
-        errorLimit.put("record", 0);
-        errorLimit.put("percentage", 0.0);
+        JSONObject settingConfig = nestedObject(taskParams, "setting");
+        JSONObject errorLimitConfig = nestedObject(settingConfig, "errorLimit");
+        JSONObject restoreConfig = nestedObject(settingConfig, "restore");
+        JSONObject logConfig = nestedObject(settingConfig, "log");
+
+        errorLimit.put("record", intValue(firstPresent(errorLimitConfig.get("record"), taskParams.get("errorLimitRecord")), 100));
+        errorLimit.put("percentage", doubleValue(firstPresent(errorLimitConfig.get("percentage"), taskParams.get("errorLimitPercentage")), 0.1));
         setting.put("errorLimit", errorLimit);
+
+        Map<String, Object> restore = new LinkedHashMap<>();
+        restore.put("maxRowNumForCheckpoint", intValue(firstPresent(restoreConfig.get("maxRowNumForCheckpoint"), taskParams.get("maxRowNumForCheckpoint")), 10000));
+        restore.put("isRestore", booleanValue(firstPresent(restoreConfig.get("isRestore"), taskParams.get("isRestore")), true));
+        restore.put("restoreColumnName", stringValue(firstPresent(restoreConfig.get("restoreColumnName"), taskParams.get("restoreColumnName")), ""));
+        restore.put("restoreColumnIndex", intValue(firstPresent(restoreConfig.get("restoreColumnIndex"), taskParams.get("restoreColumnIndex")), 0));
+        setting.put("restore", restore);
+
+        Map<String, Object> log = new LinkedHashMap<>();
+        log.put("isLogger", booleanValue(firstPresent(logConfig.get("isLogger"), taskParams.get("isLogger")), true));
+        log.put("level", stringValue(firstPresent(logConfig.get("level"), taskParams.get("logLevel")), "info"));
+        log.put("path", stringValue(firstPresent(logConfig.get("path"), taskParams.get("logPath")), ""));
+        log.put("pattern", stringValue(firstPresent(logConfig.get("pattern"), taskParams.get("logPattern")), ""));
+        setting.put("log", log);
 
         setting.put("resourceMode", taskParams.getString("resourceMode"));
         return setting;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static JSONObject nestedObject(JSONObject object, String key) {
+        if (object == null) {
+            return new JSONObject();
+        }
+        Object value = object.get(key);
+        if (value instanceof JSONObject) {
+            return (JSONObject) value;
+        }
+        if (value instanceof Map) {
+            return new JSONObject((Map<String, Object>) value);
+        }
+        return new JSONObject();
+    }
+
+    private static Object firstPresent(Object... values) {
+        for (Object value : values) {
+            if (value != null && !"".equals(String.valueOf(value).trim())) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private static int intValue(Object value, int defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private static double doubleValue(Object value, double defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private static boolean booleanValue(Object value, boolean defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        String text = String.valueOf(value);
+        return "1".equals(text) || "yes".equalsIgnoreCase(text) || Boolean.parseBoolean(text);
+    }
+
+    private static String stringValue(Object value, String defaultValue) {
+        return value == null ? defaultValue : String.valueOf(value);
     }
 }

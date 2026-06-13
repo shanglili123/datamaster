@@ -11,6 +11,7 @@ import com.datamaster.api.ds.api.etl.ds.ProcessDefinition;
 import com.datamaster.api.ds.api.etl.ds.TaskDefinition;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.JSONUtils;
+import com.datamaster.common.utils.StringUtils;
 import com.datamaster.module.catalog.utils.model.TaskSaveReqInput;
 
 import java.text.SimpleDateFormat;
@@ -29,6 +30,12 @@ public class CatalogTaskConverter {
         CatalogTaskConverter.defaultURL = defaultURL;
     }
 
+    private static String defaultTenantCode;
+
+    @Value("${ds.tenant_code:default}")
+    private void setDefaultTenantCode(String defaultTenantCode) {
+        CatalogTaskConverter.defaultTenantCode = defaultTenantCode;
+    }
 
     private static final String DEFAULT_CONDITION_TYPE = "NONE"; // 默认条件类型为 "NONE"
     private static final String DEFAULT_FLAG = "YES"; // 默认标志，表示节点启用
@@ -190,7 +197,7 @@ public class CatalogTaskConverter {
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
         dto.setWorkerGroup("default");
-        dto.setTenantCode("default");
+        dto.setTenantCode(resolveTenantCode());
 
         return dto;
     }
@@ -219,7 +226,7 @@ public class CatalogTaskConverter {
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
         dto.setWorkerGroup("default");
-        dto.setTenantCode("default");
+        dto.setTenantCode(resolveTenantCode());
 
         return dto;
     }
@@ -236,7 +243,12 @@ public class CatalogTaskConverter {
                 .failureStrategy("CONTINUE")
                 .warningType("NONE")
                 .processInstancePriority("MEDIUM")
+                .tenantCode(resolveTenantCode())
                 .scheduleTime(scheduleTime)
                 .build();
+    }
+
+    private static String resolveTenantCode() {
+        return StringUtils.isEmpty(defaultTenantCode) ? "default" : defaultTenantCode;
     }
 }

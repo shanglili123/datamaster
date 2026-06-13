@@ -3,6 +3,7 @@
 package com.datamaster.common.utils.uuid;
 
 import java.security.SecureRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * ID生成器工具类
@@ -12,6 +13,7 @@ import java.security.SecureRandom;
 public class IdUtils
 {
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final AtomicLong SEQ = new AtomicLong(0);
 
     /**
      * 获取随机UUID
@@ -61,11 +63,8 @@ public class IdUtils
      * @return long类型的人工ID
      */
     public static long generateArtificialId() {
-        // 获取当前时间戳（毫秒）
         long timestamp = System.currentTimeMillis();
-        // 随机生成一个 0-999 的数字，确保为三位数（不足3位则左侧补0，但在数值上直接相加即可）
-        int randomDigits = RANDOM.nextInt(1000);
-        // 将时间戳扩大 1000 倍后加上随机数，保证 ID 是一个长整型数字
-        return timestamp * 1000 + randomDigits;
+        long seq = Math.abs(SEQ.getAndIncrement() % 1000);
+        return timestamp * 1000 + seq;
     }
 }

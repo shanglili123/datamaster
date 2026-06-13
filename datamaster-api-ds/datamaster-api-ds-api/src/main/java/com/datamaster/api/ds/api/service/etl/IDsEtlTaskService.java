@@ -6,6 +6,7 @@ import com.datamaster.api.ds.api.base.DsStatusRespDTO;
 import com.datamaster.api.ds.api.etl.DsStartTaskReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveRespDTO;
+import com.datamaster.api.ds.api.etl.ds.ProcessDefinition;
 
 /**
  * <P>
@@ -34,6 +35,15 @@ public interface IDsEtlTaskService {
      * @return
      */
     DsTaskSaveRespDTO updateTask(DsTaskSaveReqDTO dsTaskSaveReqDTO, String projectCode, String taskCode);
+
+    /**
+     * 按名称查询流程定义。
+     *
+     * @param projectCode 项目编码
+     * @param name        流程定义名称
+     * @return 流程定义，不存在时返回 null
+     */
+    ProcessDefinition getTaskByName(String projectCode, String name);
 
     /**
      * 发布或下线任务

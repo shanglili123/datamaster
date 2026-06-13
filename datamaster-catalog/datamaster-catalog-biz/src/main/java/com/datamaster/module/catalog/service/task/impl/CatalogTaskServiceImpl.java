@@ -28,6 +28,7 @@ import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
+import com.datamaster.module.taxonomy.api.project.ITaxonomyProjectApi;
 import com.datamaster.module.taxonomy.api.sourceSystem.dto.TaxonomySourceSystemRespDTO;
 import com.datamaster.module.taxonomy.api.sourceSystem.service.ITaxonomySourceSystemApiService;
 import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
@@ -130,6 +131,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
     private ISysUserService sysUserService;
     @Resource
     private ITaxonomySourceSystemApiService attSourceSystemApiService;
+    @Resource
+    private ITaxonomyProjectApi taxonomyProjectApi;
 
 
     @Override
@@ -182,6 +185,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         validateDuplicateTask(createReqVO, null);
 
         CatalogTaskDO dictType = BeanUtils.toBean(createReqVO, CatalogTaskDO.class);
+        fillProjectRelation(dictType);
         if (StringUtils.isEmpty(dictType.getStatus())) {
             dictType.setStatus(SchedulerStatusEnum.DISABLED.getValue());
         }
@@ -189,13 +193,14 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         Long id = dictType.getId();
 
         // 创建 DolphinScheduler 任务定义
-        String taskCode = CatalogTaskDolphinSchedulerService.createTaskDefinition(dictType.getName(), id);
+        String projectCode = resolveProjectCode(dictType);
+        String taskCode = CatalogTaskDolphinSchedulerService.createTaskDefinition(projectCode, dictType.getName(), id);
 
         // 先上线任务（DolphinScheduler要求：只有上线的任务才能创建调度器）
-        CatalogTaskDolphinSchedulerService.onlineTask(taskCode);
+        CatalogTaskDolphinSchedulerService.onlineTask(projectCode, taskCode);
 
         // 创建调度器
-        Long schedulerId = CatalogTaskDolphinSchedulerService.createScheduler(taskCode, dictType.getCronExpression());
+        Long schedulerId = CatalogTaskDolphinSchedulerService.createScheduler(projectCode, taskCode, dictType.getCronExpression());
 
         //存储调度信息
         CatalogTaskSchedulerSaveReqVO schedulerSaveReqVO = new CatalogTaskSchedulerSaveReqVO(dictType);
@@ -208,6 +213,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             List<CatalogTaskScopeSaveReqVO> scopeSaveReqVOS = createReqVO.getScopeSaveReqVOS();
             for (CatalogTaskScopeSaveReqVO scopeSaveReqVO : scopeSaveReqVOS) {
                 scopeSaveReqVO.setTaskId(id);
+                scopeSaveReqVO.setProjectId(dictType.getProjectId());
+                scopeSaveReqVO.setProjectCode(dictType.getProjectCode());
                 CatalogTaskScopeService.createCatalogTaskScope(scopeSaveReqVO);
             }
         }
@@ -222,6 +229,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
         // 1. 更新采集任务
         CatalogTaskDO updateObj = BeanUtils.toBean(updateReqVO, CatalogTaskDO.class);
+        fillProjectRelation(updateObj);
         int rows = CatalogTaskMapper.updateById(updateObj);
 
         // 2. 查询调度信息
@@ -243,9 +251,12 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
                 if (StringUtils.isNotEmpty(taskCode)) {
                     // 更新 DolphinScheduler 调度器
+                    String projectCode = resolveProjectCode(updateObj, scheduler);
                     Long newSchedulerId = CatalogTaskDolphinSchedulerService.updateScheduler(
-                            Long.parseLong(scheduler.getJobId()), taskCode, cronExpression);
+                            projectCode, Long.parseLong(scheduler.getJobId()), taskCode, cronExpression);
                     schedulerSaveReqVO.setJobId(String.valueOf(newSchedulerId));
+                    schedulerSaveReqVO.setProjectId(updateObj.getProjectId());
+                    schedulerSaveReqVO.setProjectCode(projectCode);
                 }
                 needUpdate = true;
             }
@@ -272,6 +283,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             for (CatalogTaskScopeSaveReqVO scopeSaveReqVO : scopeSaveReqVOS) {
                 scopeSaveReqVO.setId(null);
                 scopeSaveReqVO.setTaskId(updateObj.getId());
+                scopeSaveReqVO.setProjectId(updateObj.getProjectId());
+                scopeSaveReqVO.setProjectCode(updateObj.getProjectCode());
                 CatalogTaskScopeService.createCatalogTaskScope(scopeSaveReqVO);
             }
         }
@@ -289,14 +302,16 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
                 try {
                     Long schedulerId = StringUtils.isNotEmpty(scheduler.getJobId()) ?
                             Long.parseLong(scheduler.getJobId()) : null;
-                    CatalogTaskDolphinSchedulerService.offlineTaskAndScheduler(scheduler.getTaskCode(), schedulerId);
+                    String projectCode = resolveProjectCode(task, scheduler);
+                    CatalogTaskDolphinSchedulerService.offlineTaskAndScheduler(projectCode, scheduler.getTaskCode(), schedulerId);
                 } catch (Exception e) {
                     log.warn("下线任务失败，taskId={}", id, e);
                 }
 
                 // 删除任务
                 try {
-                    CatalogTaskDolphinSchedulerService.deleteTask(scheduler.getTaskCode());
+                    String projectCode = resolveProjectCode(task, scheduler);
+                    CatalogTaskDolphinSchedulerService.deleteTask(projectCode, scheduler.getTaskCode());
                 } catch (Exception e) {
                     log.warn("删除DolphinScheduler任务失败，taskId={}", id, e);
                 }
@@ -511,12 +526,12 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
             // 下线调度器（禁用定时触发）
             if (SchedulerStatusEnum.isDisabled(CatalogTask.getStatus())) {
-                CatalogTaskDolphinSchedulerService.offlineSchedulerOnly(schedulerId);
+                CatalogTaskDolphinSchedulerService.offlineSchedulerOnly(resolveProjectCode(CatalogTaskByIdNew, scheduler), schedulerId);
             }
 
             // 上线调度器（启用定时触发）
             if (SchedulerStatusEnum.isEnabled(CatalogTask.getStatus())) {
-                CatalogTaskDolphinSchedulerService.onlineSchedulerOnly(schedulerId);
+                CatalogTaskDolphinSchedulerService.onlineSchedulerOnly(resolveProjectCode(CatalogTaskByIdNew, scheduler), schedulerId);
             }
         }
 
@@ -545,7 +560,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             // 从调度信息中获取 taskCode
             CatalogTaskSchedulerDO scheduler = CatalogTaskSchedulerService.getCatalogTaskSchedulerBytaskId(CatalogTask.getId());
             if (scheduler != null && StringUtils.isNotEmpty(scheduler.getTaskCode())) {
-                CatalogTaskDolphinSchedulerService.startTask(scheduler.getTaskCode());
+                CatalogTaskDolphinSchedulerService.startTask(resolveProjectCode(CatalogTaskByIdNew, scheduler), scheduler.getTaskCode());
             }
         }
 
@@ -1846,6 +1861,79 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         }
     }
 
+    private void fillProjectRelation(CatalogTaskDO taskDO) {
+        if (taskDO == null) {
+            return;
+        }
+
+        if ((taskDO.getProjectId() == null || StringUtils.isEmpty(taskDO.getProjectCode()))
+                && taskDO.getId() != null) {
+            CatalogTaskDO exists = CatalogTaskMapper.selectById(taskDO.getId());
+            if (exists != null) {
+                if (taskDO.getProjectId() == null) {
+                    taskDO.setProjectId(exists.getProjectId());
+                }
+                if (StringUtils.isEmpty(taskDO.getProjectCode())) {
+                    taskDO.setProjectCode(exists.getProjectCode());
+                }
+            }
+        }
+
+        if (taskDO.getProjectId() != null) {
+            String projectCode = taxonomyProjectApi.getProjectCodeByProjectId(taskDO.getProjectId());
+            if (StringUtils.isNotEmpty(projectCode)) {
+                taskDO.setProjectCode(projectCode);
+            }
+        } else if (StringUtils.isNotEmpty(taskDO.getProjectCode())) {
+            taskDO.setProjectId(taxonomyProjectApi.getProjectIdByProjectCode(taskDO.getProjectCode()));
+        }
+    }
+
+    private String resolveProjectCode(CatalogTaskDO taskDO) {
+        if (taskDO == null) {
+            throw new ServiceException("采集任务不存在");
+        }
+        fillProjectRelation(taskDO);
+        return resolveProjectCode(taskDO.getProjectId(), taskDO.getProjectCode());
+    }
+
+    private String resolveProjectCode(CatalogTaskDO taskDO, CatalogTaskSchedulerDO scheduler) {
+        if (taskDO != null) {
+            fillProjectRelation(taskDO);
+            if (taskDO.getProjectId() != null || StringUtils.isNotEmpty(taskDO.getProjectCode())) {
+                return resolveProjectCode(taskDO.getProjectId(), taskDO.getProjectCode());
+            }
+        }
+        return resolveProjectCode(scheduler);
+    }
+
+    private String resolveProjectCode(CatalogTaskRespVO task, CatalogTaskSchedulerDO scheduler) {
+        if (task != null && (task.getProjectId() != null || StringUtils.isNotEmpty(task.getProjectCode()))) {
+            return resolveProjectCode(task.getProjectId(), task.getProjectCode());
+        }
+        return resolveProjectCode(scheduler);
+    }
+
+    private String resolveProjectCode(CatalogTaskSchedulerDO scheduler) {
+        if (scheduler == null) {
+            throw new ServiceException("采集任务调度信息不存在");
+        }
+        return resolveProjectCode(scheduler.getProjectId(), scheduler.getProjectCode());
+    }
+
+    private String resolveProjectCode(Long projectId, String projectCode) {
+        if (projectId != null) {
+            String code = taxonomyProjectApi.getProjectCodeByProjectId(projectId);
+            if (StringUtils.isNotEmpty(code)) {
+                return code;
+            }
+        }
+        if (StringUtils.isNotEmpty(projectCode)) {
+            return projectCode;
+        }
+        throw new ServiceException("采集任务未关联项目或关联的项目编码不存在");
+    }
+
     /**
      * 校验任务是否重复
      *
@@ -2071,5 +2159,3 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         return dbNodes;
     }
 }
-
-

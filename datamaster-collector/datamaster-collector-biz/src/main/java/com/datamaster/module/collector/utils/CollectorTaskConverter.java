@@ -32,6 +32,12 @@ public class CollectorTaskConverter {
         this.defaultURL = defaultURL;
     }
 
+    private static String defaultTenantCode;
+
+    @Value("${ds.tenant_code:default}")
+    private void setDefaultTenantCode(String defaultTenantCode) {
+        CollectorTaskConverter.defaultTenantCode = defaultTenantCode;
+    }
 
     private static final String DEFAULT_CONDITION_TYPE = "NONE"; // 默认条件类型为 "NONE"
     private static final String DEFAULT_FLAG = "YES"; // 默认标志，表示节点启用
@@ -196,7 +202,7 @@ public class CollectorTaskConverter {
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
         dto.setWorkerGroup(resolveWorkerGroup(workerGroup));
-        dto.setTenantCode("default");
+        dto.setTenantCode(resolveTenantCode());
 
         return dto;
     }
@@ -229,7 +235,7 @@ public class CollectorTaskConverter {
         dto.setProcessDefinitionCode(processDefinitionCode);
         dto.setFailureStrategy("CONTINUE");
         dto.setWorkerGroup(resolveWorkerGroup(workerGroup));
-        dto.setTenantCode("default");
+        dto.setTenantCode(resolveTenantCode());
 
         return dto;
     }
@@ -251,11 +257,16 @@ public class CollectorTaskConverter {
                 .warningType("NONE")
                 .processInstancePriority("MEDIUM")
                 .workerGroup(resolveWorkerGroup(workerGroup))
+                .tenantCode(resolveTenantCode())
                 .scheduleTime(scheduleTime)
                 .build();
     }
 
     private static String resolveWorkerGroup(String workerGroup) {
         return StringUtils.isEmpty(workerGroup) ? DEFAULT_WORKER_GROUP : workerGroup;
+    }
+
+    private static String resolveTenantCode() {
+        return StringUtils.isEmpty(defaultTenantCode) ? "default" : defaultTenantCode;
     }
 }

@@ -42,6 +42,10 @@ public class DsStartTaskReqDTO {
      */
     private String workerGroup;
     /**
+     * DS 租户编码，对应 Worker 执行任务时使用的操作系统用户
+     */
+    private String tenantCode;
+    /**
      * 写死{"complementStartDate":"当前天 00:00:00","complementEndDate":"当前天 00:00:00"}
      * 例子{"complementStartDate":"2025-03-26 00:00:00","complementEndDate":"2025-03-26 00:00:00"}
      */

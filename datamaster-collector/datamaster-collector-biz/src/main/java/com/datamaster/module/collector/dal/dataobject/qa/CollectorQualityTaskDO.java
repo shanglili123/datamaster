@@ -103,4 +103,10 @@ public class CollectorQualityTaskDO extends BaseEntity {
 
     @Schema(description = "资产id")
     private Long assetId;
+
+    /** 项目ID */
+    private Long projectId;
+
+    /** 项目编码 */
+    private String projectCode;
 }

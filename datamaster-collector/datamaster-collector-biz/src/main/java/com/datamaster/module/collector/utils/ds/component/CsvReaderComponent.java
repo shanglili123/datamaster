@@ -57,21 +57,22 @@ public class CsvReaderComponent implements ComponentItem {
 
         // errorLimit 配置，默认值已直接赋予
         Map<String, Object> errorLimit = new HashMap<>();
-        errorLimit.put("record", 999999999);  // 默认值
+        errorLimit.put("record", 100);        // 默认值
+        errorLimit.put("percentage", 0.1);    // 默认值
         setting.put("errorLimit", errorLimit);
 
         // restore 配置，默认值已直接赋予
         Map<String, Object> restore = new HashMap<>();
-        restore.put("maxRowNumForCheckpoint", 0);   // 默认值
-        restore.put("isRestore", false);            // 默认值
+        restore.put("maxRowNumForCheckpoint", 10000); // 默认值
+        restore.put("isRestore", true);              // 默认值
         restore.put("restoreColumnName", "");       // 默认值
         restore.put("restoreColumnIndex", 0);       // 默认值
         setting.put("restore", restore);
 
         // log 配置，默认值已直接赋予
         Map<String, Object> log = new HashMap<>();
-        log.put("isLogger", false);  // 默认值
-        log.put("level", "debug");   // 默认值
+        log.put("isLogger", true);   // 默认值
+        log.put("level", "info");    // 默认值
         log.put("path", "");         // 默认值
         log.put("pattern", "");      // 默认值
         setting.put("log", log);

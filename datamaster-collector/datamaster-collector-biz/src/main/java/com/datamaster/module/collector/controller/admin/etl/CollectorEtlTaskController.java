@@ -155,6 +155,48 @@ public class CollectorEtlTaskController extends BaseController {
         return CollectorEtlTaskService.startCollectorEtlTask(id);
     }
 
+    @Log(title = "触发一次定时任务", businessType = BusinessType.UPDATE)
+    @PostMapping("/startCollectorEtlTask/{id}")
+    public AjaxResult startCollectorEtlTaskByPost(@PathVariable("id") Long id) {
+        return CollectorEtlTaskService.startCollectorEtlTask(id);
+    }
+
+    @Log(title = "触发一次定时任务", businessType = BusinessType.UPDATE)
+    @PutMapping("/startCollectorEtlTask")
+    public AjaxResult startCollectorEtlTaskByPutParam(@RequestParam("id") Long id) {
+        return CollectorEtlTaskService.startCollectorEtlTask(id);
+    }
+
+    @Log(title = "触发一次定时任务", businessType = BusinessType.UPDATE)
+    @PostMapping("/startCollectorEtlTask")
+    public AjaxResult startCollectorEtlTaskByPostParam(@RequestParam("id") Long id) {
+        return CollectorEtlTaskService.startCollectorEtlTask(id);
+    }
+
+    @Log(title = "触发一次定时任务", businessType = BusinessType.UPDATE)
+    @PutMapping("/startDppEtlTask/{id}")
+    public AjaxResult startDppEtlTask(@PathVariable("id") Long id) {
+        return CollectorEtlTaskService.startCollectorEtlTask(id);
+    }
+
+    @Log(title = "触发一次定时任务", businessType = BusinessType.UPDATE)
+    @PostMapping("/startDppEtlTask/{id}")
+    public AjaxResult startDppEtlTaskByPost(@PathVariable("id") Long id) {
+        return CollectorEtlTaskService.startCollectorEtlTask(id);
+    }
+
+    @Log(title = "触发一次定时任务", businessType = BusinessType.UPDATE)
+    @PutMapping("/startDppEtlTask")
+    public AjaxResult startDppEtlTaskByPutParam(@RequestParam("id") Long id) {
+        return CollectorEtlTaskService.startCollectorEtlTask(id);
+    }
+
+    @Log(title = "触发一次定时任务", businessType = BusinessType.UPDATE)
+    @PostMapping("/startDppEtlTask")
+    public AjaxResult startDppEtlTaskByPostParam(@RequestParam("id") Long id) {
+        return CollectorEtlTaskService.startCollectorEtlTask(id);
+    }
+
 
     @Operation(summary = "修改数据汇聚任务")
     @PostMapping("/updateEtlTask")

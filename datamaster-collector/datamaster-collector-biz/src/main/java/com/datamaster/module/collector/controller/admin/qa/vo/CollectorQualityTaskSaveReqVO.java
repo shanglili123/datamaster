@@ -113,7 +113,13 @@ public class CollectorQualityTaskSaveReqVO extends BaseEntity {
     @Schema(description = "资产id")
     private Long assetId;
 
+    /** 项目ID */
+    @Schema(description = "项目ID")
+    private Long projectId;
 
+    /** 项目编码 */
+    @Schema(description = "项目编码")
+    private String projectCode;
 
 
 

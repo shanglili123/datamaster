@@ -26,6 +26,7 @@ public class DsRequestUtils {
 
     private static String baseUrl;//ds请求接口前缀
     private static String token;//ds令牌
+    private static int timeout = 30000;//ds请求超时时间，避免前端发布按钮长时间无响应
 
     @Value("${ds.token}")
     public void setToken(String token) {
@@ -35,6 +36,11 @@ public class DsRequestUtils {
     @Value("${ds.base_url}")
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    @Value("${ds.timeout:30000}")
+    public void setTimeout(int timeout) {
+        DsRequestUtils.timeout = timeout;
     }
 
     /**
@@ -60,7 +66,8 @@ public class DsRequestUtils {
 
         //封装请求对象
         HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), baseUrl + url)
-                .header("token", token);
+                .header("token", token)
+                .timeout(timeout);
         if (body != null) {
             request.body(JSON.toJSONString(body));
         }
@@ -81,7 +88,8 @@ public class DsRequestUtils {
     public static <T> T requestForm(String url, String method, Map<String, Object> params, Class<T> resultClass) {
         //封装请求对象
         HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), baseUrl + url)
-                .header("token", token);
+                .header("token", token)
+                .timeout(timeout);
         if (params != null) {
             request.form(params);
         }

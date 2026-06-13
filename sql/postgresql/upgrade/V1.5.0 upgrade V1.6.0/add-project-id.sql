@@ -279,3 +279,16 @@ ALTER TABLE public.cat_task_instance_log ADD COLUMN IF NOT EXISTS project_id big
 COMMENT ON COLUMN public.cat_task_instance_log.project_id IS '项目ID';
 ALTER TABLE public.cat_task_instance_log ADD COLUMN IF NOT EXISTS project_code varchar;
 COMMENT ON COLUMN public.cat_task_instance_log.project_code IS '项目编码';
+
+-- ============================================================================
+-- 7. COLLECTOR 数据采集模块
+-- ============================================================================
+ALTER TABLE public.col_quality_task ADD COLUMN IF NOT EXISTS project_id bigint;
+COMMENT ON COLUMN public.col_quality_task.project_id IS '项目ID';
+ALTER TABLE public.col_quality_task ADD COLUMN IF NOT EXISTS project_code varchar;
+COMMENT ON COLUMN public.col_quality_task.project_code IS '项目编码';
+
+ALTER TABLE public.ast_discovery_task ADD COLUMN IF NOT EXISTS project_id bigint;
+COMMENT ON COLUMN public.ast_discovery_task.project_id IS '项目ID';
+ALTER TABLE public.ast_discovery_task ADD COLUMN IF NOT EXISTS project_code varchar;
+COMMENT ON COLUMN public.ast_discovery_task.project_code IS '项目编码';

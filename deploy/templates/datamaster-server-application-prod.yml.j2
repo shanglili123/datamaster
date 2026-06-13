@@ -30,6 +30,7 @@ ds:
   incremental_complete_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/col/etlTask/incremental/complete
   mc_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/mc/taskExecutor/runExecuteTask
   token: {{ dolphinscheduler_token }}
+  tenant_code: {{ dolphinscheduler_tenant_code }}
   resource_url: {{ dolphinscheduler_resource_dir }}/
   spark:
     master_url: spark://{{ dolphinscheduler_ip }}:7077

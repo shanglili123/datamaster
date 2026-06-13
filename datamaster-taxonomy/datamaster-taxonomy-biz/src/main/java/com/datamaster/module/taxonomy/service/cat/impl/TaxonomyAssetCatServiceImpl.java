@@ -115,6 +115,7 @@ public class TaxonomyAssetCatServiceImpl extends ServiceImpl<TaxonomyAssetCatMap
         LambdaQueryWrapperX<TaxonomyAssetCatDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.likeIfPresent(TaxonomyAssetCatDO::getName, reqVO.getName())
                 .likeRightIfPresent(TaxonomyAssetCatDO::getCode, reqVO.getCode())
+                .eqIfPresent(TaxonomyAssetCatDO::getProjectId, reqVO.getProjectId())
                 .eq(reqVO.getValidFlag() != null, TaxonomyAssetCatDO::getValidFlag, Boolean.TRUE.equals(reqVO.getValidFlag()) ? "1" : "0")
                 .orderByAsc(TaxonomyAssetCatDO::getSortOrder);
         return TaxonomyAssetCatMapper.selectList(queryWrapperX);

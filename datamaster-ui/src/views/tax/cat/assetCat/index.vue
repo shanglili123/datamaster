@@ -176,6 +176,8 @@ import {
     addAttAssetCat,
     updateAttAssetCat
 } from '@/api/tax/cat/assetCat/assetCat.js';
+import useUserStore from '@/store/system/user';
+const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
 
 const attAssetCatList = ref([]);
@@ -205,13 +207,21 @@ const { queryParams, form, rules } = toRefs(data);
 /** 查询数据资产类目管理列表 */
 function getList() {
     loading.value = true;
-
+    queryParams.value.projectId = userStore.projectId;
+    queryParams.value.projectCode = userStore.projectCode;
     listAttAssetCat(queryParams.value).then((response) => {
         attAssetCatList.value = proxy.handleTree(response.data, 'id');
         // total.value = response.data.total;
         loading.value = false;
     });
 }
+
+watch(
+    () => userStore.projectId,
+    () => {
+        getList();
+    }
+);
 
 /** 查询数据资产类目管理下拉树结构1 */
 
@@ -275,7 +285,7 @@ function resetQuery() {
 function handleAdd(row) {
     reset();
     // getTreeselect();
-    listAttAssetCat().then((response) => {
+    listAttAssetCat({ projectId: userStore.projectId, projectCode: userStore.projectCode }).then((response) => {
         attAssetCatOptions.value = [];
         const data = { id: 0, name: '顶级节点', children: [] };
         data.children = proxy.handleTree(response.data, 'id', 'parentId');
@@ -299,7 +309,7 @@ function toggleExpandAll() {
     });
 }
 function getDataTree() {
-    listAttAssetCat().then((response) => {
+    listAttAssetCat({ projectId: userStore.projectId, projectCode: userStore.projectCode }).then((response) => {
         attAssetCatOptions.value = [];
         const data = { id: 0, name: '顶级节点', children: [] };
         data.children = proxy.handleTree(response.data, 'id', 'parentId');
@@ -311,7 +321,7 @@ function getDataTree() {
 async function handleUpdate(row) {
     reset();
     // await getTreeselect();
-    const response = await listAttAssetCat();
+    const response = await listAttAssetCat({ projectId: userStore.projectId, projectCode: userStore.projectCode });
     attAssetCatOptions.value = [];
     // 过滤节点的计算属性
     const filteredDepts = response.data.filter((d) => {

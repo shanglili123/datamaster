@@ -47,7 +47,7 @@ public class DsSchedulerSaveReqDTO {
     private String workerGroup;
 
     /**
-     * 默认 default
+     * DS 租户编码，对应 Worker 执行任务时使用的操作系统用户
      */
     private String tenantCode;
 
