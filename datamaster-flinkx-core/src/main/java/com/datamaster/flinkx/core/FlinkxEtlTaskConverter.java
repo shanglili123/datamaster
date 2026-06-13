@@ -282,7 +282,8 @@ public class FlinkxEtlTaskConverter {
         putListIfPresent(kp, "topics", topics);
         kp.put("groupId", firstPresent(kafkaConfig.get("groupId"), kafkaConfig.get("group-id"), "datamaster-chunjun"));
         kp.put("mode", firstPresent(kafkaConfig.get("mode"), kafkaConfig.get("startupMode"), "LATEST"));
-        kp.put("codec", firstPresent(kafkaConfig.get("codec"), "json"));
+        Object codec = firstPresent(kafkaConfig.get("codec"), "json");
+        kp.put("codec", codec);
         Object tableFields = firstPresent(kafkaConfig.get("tableFields"), param.get("tableFields"));
         Object columns = firstPresent(kafkaConfig.get("column"), param.get("column"), tableFields);
         Object normalizedColumns = normalizeFieldColumns(columns);

@@ -23,6 +23,7 @@ import com.datamaster.api.ds.api.etl.ds.ProcessTaskRelation;
 import com.datamaster.api.ds.api.etl.ds.Schedule;
 import com.datamaster.api.ds.api.etl.ds.TaskDefinition;
 import com.datamaster.api.ds.api.service.etl.IDsEtlNodeService;
+import com.datamaster.api.ds.api.service.etl.IDsEtlExecutorService;
 import com.datamaster.api.ds.api.service.etl.IDsEtlSchedulerService;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.core.domain.AjaxResult;
@@ -90,6 +91,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     private IDsEtlNodeService dsEtlNodeService;
     @Resource
     private IDsEtlTaskService dsEtlTaskService;
+    @Resource
+    private IDsEtlExecutorService dsEtlExecutorService;
     @Resource
     private ICollectorEtlNodeService iCollectorEtlNodeService;
 
@@ -1856,7 +1859,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             dsCode = taskDO.getCode();
         }
 
-        stopRunningProcessInstance(taskDO.getId());
+        stopRunningProcessInstances(taskDO.getId(), String.valueOf(taskDO.getProjectCode()), dsCode);
         collectorEtlIncrementalService.forceReleaseIncrementalTask(taskDO.getId());
 
         //下线DS任务
@@ -1897,21 +1900,45 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         updateTaskStatus(taskDO.getId(), "0");
     }
 
-    private void stopRunningProcessInstance(Long taskId) {
+    private void stopRunningProcessInstances(Long taskId, String projectCode, String dsCode) {
+        Set<Long> processInstanceIds = new LinkedHashSet<>();
         Long runningTaskInstanceId = CollectorEtlTaskInstanceService.getRunTaskInstance(taskId);
-        if (runningTaskInstanceId == null) {
-            return;
+        if (runningTaskInstanceId != null) {
+            processInstanceIds.add(runningTaskInstanceId);
         }
+
         try {
-            AjaxResult stopResult = CollectorEtlTaskInstanceService.execute(runningTaskInstanceId, ExecuteType.STOP);
-            if (stopResult == null || !stopResult.isSuccess()) {
-                log.warn("卸载任务时停止运行中的流程实例失败，taskId={}，taskInstanceId={}，msg={}",
-                        taskId, runningTaskInstanceId,
-                        stopResult == null ? "无响应" : stopResult.get(AjaxResult.MSG_TAG));
+            List<com.datamaster.api.ds.api.etl.ds.ProcessInstance> dsInstances =
+                    dsEtlExecutorService.listProcessInstances(projectCode, dsCode);
+            if (CollectionUtils.isNotEmpty(dsInstances)) {
+                for (com.datamaster.api.ds.api.etl.ds.ProcessInstance instance : dsInstances) {
+                    if (instance == null || instance.getId() == null || instance.getState() == null
+                            || instance.getState().isFinished()
+                            || !StringUtils.equals(dsCode, instance.getProcessDefinitionCode())) {
+                        continue;
+                    }
+                    processInstanceIds.add(instance.getId());
+                }
             }
         } catch (Exception e) {
-            log.warn("卸载任务时停止运行中的流程实例异常，taskId={}，taskInstanceId={}",
-                    taskId, runningTaskInstanceId, e);
+            log.warn("卸载任务时查询DS运行中流程实例异常，taskId={}，projectCode={}，taskCode={}，原因：{}",
+                    taskId, projectCode, dsCode, e.getMessage(), e);
+        }
+
+        for (Long processInstanceId : processInstanceIds) {
+            try {
+                DsStatusRespDTO stopResult = dsEtlExecutorService.execute(DSExecuteDTO.builder()
+                        .processInstanceId(processInstanceId)
+                        .executeType(ExecuteType.STOP)
+                        .build(), projectCode);
+                if (stopResult == null || !Boolean.TRUE.equals(stopResult.getSuccess())) {
+                    log.warn("卸载任务时停止运行中的DS流程实例失败，taskId={}，processInstanceId={}，msg={}",
+                            taskId, processInstanceId, stopResult == null ? "无响应" : stopResult.getMsg());
+                }
+            } catch (Exception e) {
+                log.warn("卸载任务时停止运行中的DS流程实例异常，taskId={}，processInstanceId={}",
+                        taskId, processInstanceId, e);
+            }
         }
     }
 

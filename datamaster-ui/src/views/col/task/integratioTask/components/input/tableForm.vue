@@ -178,8 +178,21 @@
                     </el-col>
                     <el-col :span="12">
                         <el-form-item label="消息格式" prop="taskParams.kafkaConfig.codec">
-                            <el-input v-if="!info" v-model="form.taskParams.kafkaConfig.codec" placeholder="默认 json" />
+                            <el-select v-if="!info" v-model="form.taskParams.kafkaConfig.codec" placeholder="请选择消息格式">
+                                <el-option label="json - JSON 格式解析" value="json" />
+                                <el-option label="text - 纯文本格式" value="text" />
+                                <el-option label="csv - CSV 格式" value="csv" />
+                                <el-option label="protobuf - Protobuf 二进制格式" value="protobuf" />
+                            </el-select>
                             <div class="form-readonly" v-else>{{ form.taskParams.kafkaConfig.codec || '-' }}</div>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20" v-if="isKafkaReader">
+                    <el-col :span="12">
+                        <el-form-item label="是否平铺" prop="taskParams.kafkaConfig.pavingData">
+                            <el-switch v-if="!info" v-model="form.taskParams.kafkaConfig.pavingData" />
+                            <div class="form-readonly" v-else>{{ form.taskParams.kafkaConfig.pavingData === false ? '否' : '是' }}</div>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -205,6 +218,14 @@
                             <el-input v-if="!info" v-model="form.taskParams.cdcConfig.timestampFormat"
                                 placeholder="yyyy-MM-dd HH:mm:ss" />
                             <div class="form-readonly" v-else>{{ form.taskParams.cdcConfig.timestampFormat || '-' }}</div>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20" v-if="!isKafkaReader && !isStreamingMqReader">
+                    <el-col :span="12">
+                        <el-form-item label="是否平铺" prop="taskParams.cdcConfig.pavingData">
+                            <el-switch v-if="!info" v-model="form.taskParams.cdcConfig.pavingData" />
+                            <div class="form-readonly" v-else>{{ form.taskParams.cdcConfig.pavingData === false ? '否' : '是' }}</div>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -706,10 +727,12 @@ const resetReaderSelection = () => {
         groupId: 'datamaster-chunjun',
         mode: 'LATEST',
         codec: 'json',
+        pavingData: true,
     };
     form.value.taskParams.cdcConfig = {
         serverId: '',
         timestampFormat: 'yyyy-MM-dd HH:mm:ss',
+        pavingData: true,
     };
 };
 
@@ -811,12 +834,14 @@ const ensureStreamConfigs = () => {
     taskParams.cdcConfig = {
         serverId: '',
         timestampFormat: 'yyyy-MM-dd HH:mm:ss',
+        pavingData: true,
         ...plainObject(taskParams.cdcConfig),
     };
     taskParams.kafkaConfig = {
         groupId: 'datamaster-chunjun',
         mode: 'LATEST',
         codec: 'json',
+        pavingData: true,
         split: false,
         ...plainObject(taskParams.kafkaConfig),
     };
