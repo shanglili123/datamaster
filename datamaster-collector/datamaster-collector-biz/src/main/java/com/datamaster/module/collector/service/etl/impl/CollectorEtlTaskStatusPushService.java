@@ -21,7 +21,7 @@ public class CollectorEtlTaskStatusPushService {
         }
         CollectorEtlTaskStatusWebSocketServer.broadcast(CollectorEtlTaskStatusMessage.builder()
                 .type(MESSAGE_TYPE)
-                .taskId(instance.getTaskId())
+                .taskId(String.valueOf(instance.getTaskId()))
                 .taskInstanceId(instance.getId())
                 .projectId(instance.getProjectId())
                 .projectCode(instance.getProjectCode())

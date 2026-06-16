@@ -44,10 +44,7 @@ import com.datamaster.module.collector.utils.TaskConverter;
 import com.datamaster.redis.service.IRedisService;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.datamaster.common.core.domain.AjaxResult.error;
@@ -288,11 +285,15 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
         if (old == null) {
             return true;
         }
+        Date endTime = processInstance.getEndTime();
+        if (endTime == null && processInstance.getState() != null && processInstance.getState().isFinished()) {
+            endTime = new Date();
+        }
         CollectorEtlTaskInstanceDO collectorEtlTaskInstanceDO = CollectorEtlTaskInstanceDO.builder()
                 .id(old.getId())
                 .scheduleTime(processInstance.getCommandStartTime())
                 .startTime(processInstance.getStartTime())
-                .endTime(processInstance.getEndTime())
+                .endTime(endTime)
                 .status(String.valueOf(processInstance.getState().getCode()))
                 .statusHistory(processInstance.getStateHistory())
                 .subTaskFlag(String.valueOf(processInstance.getIsSubProcess().getCode()))

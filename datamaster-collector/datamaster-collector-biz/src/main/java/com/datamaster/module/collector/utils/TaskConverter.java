@@ -1157,6 +1157,47 @@ public class TaskConverter {
         return "${" + taskName + ".response}";
     }
 
+    /**
+     * 构建 FlinkX 任务定义 JSON（含状态回写节点），2 节点：CHUNJUN → Complete HTTP
+     */
+    public static String buildFlinkxTaskDefinitionJsonWithCompleteCallback(
+            Long flinkxId, String flinkxName, String flinkxCode, Integer flinkxVersion,
+            String flinkxJobJson,
+            Long completeId, String completeName, String completeCode, Integer completeVersion,
+            String completeCallbackUrl, String draftJson, String projectWorkerGroup) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        result.addAll(JSONUtils.convertTaskDefinitionJson(buildEtlTaskDefinitionJsonFlinkx(
+                flinkxId, flinkxName, flinkxCode, flinkxVersion, flinkxJobJson,
+                draftJson, projectWorkerGroup)));
+        result.add(buildIncrementalCompleteHttpTask(completeId, completeName, completeCode, completeVersion,
+                completeCallbackUrl, draftJson, projectWorkerGroup));
+        return JSON.toJSONString(result);
+    }
+
+    public static String buildFlinkxTaskRelationWithCompleteCallback(
+            Long flinkxRelationId, Long completeRelationId,
+            String flinkxCode, Integer flinkxVersion,
+            String completeCode, Integer completeVersion) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        result.add(buildRelation(flinkxRelationId, "0", 0, flinkxCode, defaultVersion(flinkxVersion)));
+        result.add(buildRelation(completeRelationId, flinkxCode, defaultVersion(flinkxVersion),
+                completeCode, defaultVersion(completeVersion)));
+        return JSON.toJSONString(result);
+    }
+
+    public static String buildFlinkxTaskLocationsWithCompleteCallback(
+            List<Map<String, Object>> locations,
+            String flinkxCode, String completeCode) {
+        Map<String, Object> sourceLocation = locations == null || locations.isEmpty()
+                ? new HashMap<>() : locations.get(0);
+        double x = MapUtils.getDoubleValue(sourceLocation, "x", 0D);
+        double y = MapUtils.getDoubleValue(sourceLocation, "y", 0D);
+        List<Map<String, Object>> result = new ArrayList<>();
+        result.add(buildLocation(flinkxCode, x, y));
+        result.add(buildLocation(completeCode, x + 220D, y));
+        return JSON.toJSONString(result);
+    }
+
     private static Map<String, Object> buildIncrementalPrepareHttpTask(Long id, String name, String code,
                                                                        Integer version, String callbackUrl,
                                                                        String draftJson, String projectWorkerGroup) {

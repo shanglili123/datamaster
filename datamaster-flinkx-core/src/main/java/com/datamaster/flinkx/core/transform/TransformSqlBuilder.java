@@ -82,6 +82,9 @@ public class TransformSqlBuilder {
             sql.append(String.join(", ", innerItems));
             sql.append(", ROW_NUMBER() OVER (PARTITION BY ");
             sql.append(String.join(", ", dedupPartitions));
+            if (!orderByClauses.isEmpty()) {
+                sql.append(" ORDER BY ").append(String.join(", ", orderByClauses));
+            }
             sql.append(") AS \"__rn\" FROM source");
             sql.append(whereSql);
             sql.append(") WHERE \"__rn\" = 1");
@@ -241,17 +244,19 @@ public class TransformSqlBuilder {
             StringBuilder expr = new StringBuilder();
             if ("2".equalsIgnoreCase(direction)) {
                 if (endIndex != null) {
+                    int subLen = Math.max(1, endIndex - startIndex);
                     expr.append("SUBSTRING(").append(quoteId(columnName))
                             .append(", LENGTH(").append(quoteId(columnName)).append(") - ").append(startIndex).append(" + 1, ")
-                            .append(endIndex - startIndex).append(")");
+                            .append(subLen).append(")");
                 } else {
                     expr.append("SUBSTRING(").append(quoteId(columnName))
                             .append(", LENGTH(").append(quoteId(columnName)).append(") - ").append(startIndex).append(" + 1)");
                 }
             } else {
                 if (endIndex != null) {
+                    int subLen = Math.max(1, endIndex - startIndex);
                     expr.append("SUBSTRING(").append(quoteId(columnName))
-                            .append(", ").append(startIndex + 1).append(", ").append(endIndex - startIndex).append(")");
+                            .append(", ").append(startIndex + 1).append(", ").append(subLen).append(")");
                 } else {
                     expr.append("SUBSTRING(").append(quoteId(columnName))
                             .append(", ").append(startIndex + 1).append(")");
@@ -278,8 +283,10 @@ public class TransformSqlBuilder {
             for (int i = 0; i < tableFields.size(); i++) {
                 JSONObject field = tableFields.getJSONObject(i);
                 String columnName = field.getString("columnName");
-                String ignoreCase = field.getString("ignoreCase");
                 if (columnName == null) continue;
+                boolean selected = field.getBooleanValue("selected");
+                if (!selected) continue;
+                String ignoreCase = field.getString("ignoreCase");
                 if ("2".equals(ignoreCase)) {
                     dedupPartitions.add("LOWER(" + quoteId(columnName) + ")");
                 } else {
@@ -324,7 +331,7 @@ public class TransformSqlBuilder {
                             case "integer":
                                 expr = "CAST(" + expr + " AS INTEGER)";
                                 if (length != null && length > 0) {
-                                    int maxVal = (int) Math.pow(10, length) - 1;
+                                    int maxVal = length > 9 ? Integer.MAX_VALUE : (int) Math.pow(10, length) - 1;
                                     expr = "CASE WHEN " + expr + " > " + maxVal + " THEN " + maxVal
                                             + " WHEN " + expr + " < " + (-maxVal) + " THEN " + (-maxVal)
                                             + " ELSE " + expr + " END";
@@ -333,7 +340,7 @@ public class TransformSqlBuilder {
                             case "long":
                                 expr = "CAST(" + expr + " AS BIGINT)";
                                 if (length != null && length > 0) {
-                                    long maxVal = (long) Math.pow(10, length) - 1;
+                                    long maxVal = length > 18 ? Long.MAX_VALUE : (long) Math.pow(10, length) - 1;
                                     expr = "CASE WHEN " + expr + " > " + maxVal + " THEN " + maxVal
                                             + " WHEN " + expr + " < " + (-maxVal) + " THEN " + (-maxVal)
                                             + " ELSE " + expr + " END";

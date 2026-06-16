@@ -108,22 +108,48 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
     public void completeIncrementalTask(Long taskId, Long processInstanceId) {
         validateProcessInstanceId(processInstanceId);
         CollectorEtlTaskInstanceDO instance = collectorEtlTaskInstanceService.getByDsId(processInstanceId);
+        Date now = new Date();
         if (instance == null) {
-            log.warn("FLINKX完成回调早于流程实例消息，等待RabbitMQ最终回写，taskId={}，processInstanceId={}",
-                    taskId, processInstanceId);
+            CollectorEtlTaskDO task = collectorEtlTaskMapper.selectById(taskId);
+            if (task == null) {
+                log.warn("FLINKX完成回调: 任务不存在, taskId={}", taskId);
+                return;
+            }
+            String taskType = task.getType();
+            if (taskType == null) {
+                taskType = "1";
+            }
+            instance = CollectorEtlTaskInstanceDO.builder()
+                    .id(processInstanceId)
+                    .catId(task.getCatId())
+                    .catCode(task.getCatCode())
+                    .taskId(task.getId())
+                    .taskCode(task.getCode())
+                    .taskType(taskType)
+                    .taskVersion(0)
+                    .name(task.getName())
+                    .personCharge(task.getPersonCharge())
+                    .contactNumber(task.getContactNumber())
+                    .projectId(task.getProjectId())
+                    .projectCode(task.getProjectCode())
+                    .status(String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()))
+                    .endTime(now)
+                    .startTime(now)
+                    .dsId(processInstanceId)
+                    .build();
+            collectorEtlTaskInstanceService.save(instance);
         } else {
             if (!taskId.equals(instance.getTaskId())) {
                 throw new ServiceException("DolphinScheduler流程实例不属于当前增量任务");
             }
-            Date now = new Date();
             instance.setStatus(String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()));
             instance.setEndTime(now);
             if (instance.getStartTime() == null) {
                 instance.setStartTime(now);
             }
             collectorEtlTaskInstanceService.updateById(instance);
-            collectorEtlTaskStatusPushService.pushTaskInstanceStatus(instance);
         }
+        collectorEtlTaskStatusPushService.pushTaskInstanceStatus(instance);
         releaseRunningSlot(taskId, processInstanceId);
     }
 

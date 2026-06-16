@@ -100,7 +100,7 @@ public class FlinkxEtlTaskConverter {
             rp.put("username", param.get("username"));
             rp.put("password", param.get("password"));
             rp.put("where", param.getOrDefault("where", ""));
-            rp.put("column", param.get("column"));
+            rp.put("column", normalizeFieldColumns(param.get("column")));
             rp.put("splitPk", param.getOrDefault("splitPk", ""));
 
             Map<String, Object> rawConn = (Map<String, Object>) param.get("connection");
@@ -149,8 +149,7 @@ public class FlinkxEtlTaskConverter {
             wp.put("password", param.get("password"));
             wp.put("batchSize", param.getOrDefault("batchSize", 1024));
 
-            Object targetColumns = param.get("target_column");
-            wp.put("column", targetColumns != null ? targetColumns : param.get("column"));
+            wp.put("column", normalizeFieldColumns(firstPresent(param.get("target_column"), param.get("column"))));
 
             String writeModeType = param.get("writeModeType") == null ? null : String.valueOf(param.get("writeModeType"));
             wp.put("writeMode", resolveWriteMode(writeModeType, param.get("selectedColumns"), dbType));
@@ -194,7 +193,7 @@ public class FlinkxEtlTaskConverter {
         putIfPresent(mp, "password", param.get("password"));
         mp.put("database", firstPresent(param.get("dbName"), config.get("database"), config.get("dbname"), config.get("dbName")));
         mp.put("collectionName", firstPresent(connectionTable(param), config.get("collection"), config.get("collectionName")));
-        mp.put("column", firstPresent(param.get("target_column"), param.get("column")));
+        mp.put("column", normalizeFieldColumns(firstPresent(param.get("target_column"), param.get("column"))));
         mp.put("batchSize", param.getOrDefault("batchSize", 1024));
         if (!reader) {
             String writeModeType = param.get("writeModeType") == null ? null : String.valueOf(param.get("writeModeType"));
@@ -212,7 +211,7 @@ public class FlinkxEtlTaskConverter {
         putIfPresent(ep, "password", param.get("password"));
         ep.put("index", firstPresent(connectionTable(param), config.get("index"), config.get("indexName")));
         putIfPresent(ep, "type", firstPresent(config.get("type"), config.get("docType"), "_doc"));
-        ep.put("column", firstPresent(param.get("target_column"), param.get("column")));
+        ep.put("column", normalizeFieldColumns(firstPresent(param.get("target_column"), param.get("column"))));
         ep.put("batchSize", param.getOrDefault("batchSize", 1024));
         if (!reader) {
             String writeModeType = param.get("writeModeType") == null ? null : String.valueOf(param.get("writeModeType"));
@@ -860,7 +859,7 @@ public class FlinkxEtlTaskConverter {
                 rp.put("path", new String[0]);
             }
             rp.put("encoding", "UTF-8");
-            rp.put("column", param.get("column"));
+            rp.put("column", normalizeFieldColumns(param.get("column")));
             rp.put("fieldDelimiter", ",");
         }
         reader.put("parameter", rp);

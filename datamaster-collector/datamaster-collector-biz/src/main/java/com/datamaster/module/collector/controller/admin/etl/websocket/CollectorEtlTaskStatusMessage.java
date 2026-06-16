@@ -12,7 +12,7 @@ public class CollectorEtlTaskStatusMessage {
 
     private String type;
 
-    private Long taskId;
+    private String taskId;
 
     private Long taskInstanceId;
 
