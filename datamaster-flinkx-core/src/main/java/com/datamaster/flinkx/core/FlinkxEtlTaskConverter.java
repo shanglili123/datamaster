@@ -123,6 +123,7 @@ public class FlinkxEtlTaskConverter {
 
             rp.put("batchSize", param.getOrDefault("batchSize", 1024));
         }
+        addTableField(reader, param);
         reader.put("parameter", rp);
         return reader;
     }
@@ -180,6 +181,7 @@ public class FlinkxEtlTaskConverter {
                 wp.put("connection", conns);
             }
         }
+        addTableField(writer, param);
         writer.put("parameter", wp);
         return writer;
     }
@@ -508,6 +510,31 @@ public class FlinkxEtlTaskConverter {
             return null;
         }
         return ((Map<String, Object>) rawConn).get("jdbcUrl");
+    }
+
+    private static void addTableField(JSONObject target, Map<String, Object> param) {
+        if (param == null) {
+            return;
+        }
+        Object rawConn = param.get("connection");
+        if (!(rawConn instanceof Map)) {
+            return;
+        }
+        Object table = ((Map<String, Object>) rawConn).get("table");
+        String tableName = null;
+        if (table instanceof String) {
+            tableName = (String) table;
+        } else if (table instanceof List && !((List<?>) table).isEmpty()) {
+            Object first = ((List<?>) table).get(0);
+            if (first != null) {
+                tableName = first.toString();
+            }
+        }
+        if (tableName != null && !tableName.isEmpty()) {
+            JSONObject tableObj = new JSONObject();
+            tableObj.put("tableName", tableName);
+            target.put("table", tableObj);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -879,7 +906,8 @@ public class FlinkxEtlTaskConverter {
             }
         }
         List<String> sourceColumns = extractColumns(readerMap);
-        return TransformSqlBuilder.build(transitions, sourceColumns);
+        String sourceTableName = extractSourceTableName(readerMap);
+        return TransformSqlBuilder.build(transitions, sourceColumns, sourceTableName);
     }
 
     @SuppressWarnings("unchecked")
@@ -904,6 +932,26 @@ public class FlinkxEtlTaskConverter {
             cols.add((String) column);
         }
         return cols;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String extractSourceTableName(Map<String, Object> readerMap) {
+        if (readerMap == null) return "source";
+        Map<String, Object> param = (Map<String, Object>) readerMap.get("parameter");
+        if (param == null) return "source";
+        Object rawConn = param.get("connection");
+        if (!(rawConn instanceof Map)) return "source";
+        Object table = ((Map<String, Object>) rawConn).get("table");
+        String tableName = null;
+        if (table instanceof String) {
+            tableName = (String) table;
+        } else if (table instanceof List && !((List<?>) table).isEmpty()) {
+            Object first = ((List<?>) table).get(0);
+            if (first != null) {
+                tableName = first.toString();
+            }
+        }
+        return tableName != null && !tableName.isEmpty() ? tableName : "source";
     }
 
     private static JSONObject buildSetting(JSONObject config) {

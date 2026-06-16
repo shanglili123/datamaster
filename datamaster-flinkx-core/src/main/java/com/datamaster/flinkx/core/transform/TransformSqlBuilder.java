@@ -2,6 +2,7 @@ package com.datamaster.flinkx.core.transform;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.datamaster.common.enums.TaskComponentTypeEnum;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,7 +29,7 @@ public class TransformSqlBuilder {
         HANDLERS.put(handler.componentType(), handler);
     }
 
-    public static String build(JSONArray transitions, List<String> sourceColumns) {
+    public static String build(JSONArray transitions, List<String> sourceColumns, String sourceTableName) {
         Map<String, String> colExprs = new LinkedHashMap<>();
         if (sourceColumns.isEmpty()) {
             colExprs.put("*", "*");
@@ -47,6 +48,12 @@ public class TransformSqlBuilder {
             for (int i = 0; i < transitions.size(); i++) {
                 JSONObject trans = transitions.getJSONObject(i);
                 String componentType = trans.getString("componentType");
+                if (componentType != null) {
+                    TaskComponentTypeEnum type = TaskComponentTypeEnum.findEnumByType(componentType);
+                    if (type != null) {
+                        componentType = type.name();
+                    }
+                }
                 JSONObject param = trans.getJSONObject("parameter");
                 if (param == null) continue;
 
@@ -85,9 +92,9 @@ public class TransformSqlBuilder {
             if (!orderByClauses.isEmpty()) {
                 sql.append(" ORDER BY ").append(String.join(", ", orderByClauses));
             }
-            sql.append(") AS \"__rn\" FROM source");
+            sql.append(") AS `__rn` FROM ").append(sourceTableName);
             sql.append(whereSql);
-            sql.append(") WHERE \"__rn\" = 1");
+            sql.append(") WHERE `__rn` = 1");
             if (!orderByClauses.isEmpty()) {
                 sql.append(" ORDER BY ").append(String.join(", ", orderByClauses));
             }
@@ -108,7 +115,7 @@ public class TransformSqlBuilder {
             }
         }
         sql.append(String.join(", ", selectItems));
-        sql.append(" FROM source");
+        sql.append(" FROM ").append(sourceTableName);
         sql.append(whereSql);
         if (!orderByClauses.isEmpty()) {
             sql.append(" ORDER BY ").append(String.join(", ", orderByClauses));
@@ -118,9 +125,8 @@ public class TransformSqlBuilder {
 
     private static String quoteId(String name) {
         if (name == null || name.isEmpty() || "*".equals(name)) return name;
-        if (name.startsWith("\"") && name.endsWith("\"")) return name;
         if (name.startsWith("`") && name.endsWith("`")) return name;
-        return "\"" + name.replace("\"", "\"\"") + "\"";
+        return "`" + name.replace("`", "``") + "`";
     }
 
     private static String escapeSql(String s) {
@@ -693,13 +699,13 @@ public class TransformSqlBuilder {
                 if (dataRangeType != null) {
                     switch (dataRangeType) {
                         case 1:
-                            condition = dateExpr + " < DATEADD(DAY, -" + (dataRangeValue != null ? dataRangeValue : 30) + ", CURRENT_DATE)";
+                            condition = dateExpr + " < CURRENT_DATE - INTERVAL '" + (dataRangeValue != null ? dataRangeValue : 30) + "' DAY";
                             break;
                         case 2:
-                            condition = dateExpr + " < DATEADD(MONTH, -" + (dataRangeValue != null ? dataRangeValue : 1) + ", CURRENT_DATE)";
+                            condition = dateExpr + " < CURRENT_DATE - INTERVAL '" + (dataRangeValue != null ? dataRangeValue : 1) + "' MONTH";
                             break;
                         case 3:
-                            condition = dateExpr + " < DATEADD(YEAR, -" + (dataRangeValue != null ? dataRangeValue : 1) + ", CURRENT_DATE)";
+                            condition = dateExpr + " < CURRENT_DATE - INTERVAL '" + (dataRangeValue != null ? dataRangeValue : 1) + "' YEAR";
                             break;
                         default: return;
                     }
