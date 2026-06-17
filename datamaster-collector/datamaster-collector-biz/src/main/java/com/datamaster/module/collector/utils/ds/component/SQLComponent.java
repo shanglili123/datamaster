@@ -26,6 +26,7 @@ public class SQLComponent implements ComponentItem {
      *     "datasource": 1,
      *     "sql":"",
      *     "sqlType":"0",
+     *     "segmentSeparator":";",
      *     "preStatements":[],
      *     "postStatements":[],
      *     "displayRows":10
@@ -46,6 +47,7 @@ public class SQLComponent implements ComponentItem {
         taskParams.put("datasource", dsId != null ? dsId.longValue() : null);
         taskParams.put("sql", params.getOrDefault("sql", ""));
         taskParams.put("sqlType", params.getOrDefault("sqlType", ""));
+        taskParams.put("segmentSeparator", params.getOrDefault("segm", ";"));
         taskParams.put("preStatements", params.getOrDefault("preStatements", new ArrayList<>()));
         taskParams.put("postStatements", params.getOrDefault("postStatements", new ArrayList<>()));
         taskParams.put("displayRows", params.getOrDefault("displayRows", 10));

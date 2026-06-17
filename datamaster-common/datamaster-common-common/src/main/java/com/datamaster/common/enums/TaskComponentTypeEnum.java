@@ -32,6 +32,7 @@ public enum TaskComponentTypeEnum {
     DATA_DEDUPLICATION("40", "数据去重"),
     VALUE_MAP("47", "值映射"),
     ADD_CONSTANT("48", "增加常量"),
+    TRANSFORM_SQL("32", "自定义SQL转换"),
 
     //开发
     SQL_DEV("51", "SQL开发"),

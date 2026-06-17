@@ -442,6 +442,13 @@ export const validateGraph = (graph, flag) => {
       }
       return;
     }
+    if (componentType == 32) {
+      if (!taskParams.sql) {
+        valid = false;
+        addErrorMessage(`${data.name} 自定义SQL不能为空`);
+      }
+      return;
+    }
     if (!Array.isArray(taskParams.tableFields) || taskParams.tableFields.length == 0) {
       valid = false;
       addErrorMessage(`${data.name} 节点信息不完善，请完善`);

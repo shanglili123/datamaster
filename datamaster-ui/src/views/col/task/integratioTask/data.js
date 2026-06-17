@@ -126,6 +126,17 @@ export const treeData = [
                 icon: new URL('@/assets/system/images/dpp/map.svg', import.meta.url).href, // 动态获取路径
                 form: 'transform/valueMapping.vue',
             },
+            {
+                label: '自定义SQL转换',
+                key: 'transform-sql',
+                type: 32,
+                level: 2,
+                taskType: 'SPARK',
+                componentType: '32',
+                engine: ['SPARK', 'FLINK'],
+                icon: new URL('@/assets/system/images/dpp/zh.svg', import.meta.url).href, // 动态获取路径
+                form: 'transform/transformSql.vue',
+            },
         ]
     },
     {
@@ -151,7 +162,7 @@ export const treeData = [
 
 // 返回知道数据
 export const getTreeData = (taskType) => {
-    var data = [...treeData];
+    let data = [...treeData];
     data.map(item => {
         if (item.children) {
             item.children.map(child => {

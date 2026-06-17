@@ -33,6 +33,7 @@ public class ComponentRegistry {
         this.componentItemMap.put(TaskComponentTypeEnum.VALUE_MAP.getCode(), new ValueMapTransitionComponent());
         this.componentItemMap.put(TaskComponentTypeEnum.ADD_CONSTANT.getCode(), new AddConstantTransitionComponent());
         this.componentItemMap.put(TaskComponentTypeEnum.SELECT_FIELDS.getCode(), new SelectFieldsTransitionComponent());
+        this.componentItemMap.put(TaskComponentTypeEnum.TRANSFORM_SQL.getCode(), new TransformSqlComponent());
 
 
         this.componentItemMap.put(TaskComponentTypeEnum.DB_WRITER.getCode(), new DBWriterComponent());

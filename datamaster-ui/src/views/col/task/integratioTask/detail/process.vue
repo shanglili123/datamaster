@@ -61,6 +61,8 @@ import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vu
 import TransformForm from "@/views/col/task/integratioTask/components/clean/cleanForm.vue";
 // 排序组件
 import OrderConfig from "@/views/col/task/integratioTask/components/transform/orderConfig.vue";
+// 自定义SQL转换
+import TransformSql from "@/views/col/task/integratioTask/components/transform/transformSql.vue";
 // 字段派生期
 import FieldBuilder from "@/views/col/task/integratioTask/components/transform/fieldBuilder.vue";
 // 输出表组件
@@ -106,6 +108,8 @@ const currentFormComponent = computed(() => {
       return ApiForm;
     case "31":
       return TransformForm;
+    case "32":
+      return TransformSql;
     case "33":
       return TransformForm;
     case "34":

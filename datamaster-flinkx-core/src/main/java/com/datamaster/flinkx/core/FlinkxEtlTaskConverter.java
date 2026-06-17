@@ -899,6 +899,20 @@ public class FlinkxEtlTaskConverter {
 
     private static String buildTransformSql(List<Map<String, Object>> transitionList,
                                             Map<String, Object> readerMap) {
+        if (transitionList != null) {
+            for (Map<String, Object> t : transitionList) {
+                String componentType = (String) t.get("componentType");
+                if ("32".equals(componentType)) {
+                    Map<String, Object> param = (Map<String, Object>) t.get("parameter");
+                    if (param != null) {
+                        String customSql = (String) param.get("sql");
+                        if (StringUtils.isNotBlank(customSql)) {
+                            return customSql;
+                        }
+                    }
+                }
+            }
+        }
         JSONArray transitions = new JSONArray();
         if (transitionList != null) {
             for (Map<String, Object> t : transitionList) {

@@ -217,6 +217,8 @@ import DedupFilter from "@/views/col/task/integratioTask/components/transform/de
 import AddConstants from "@/views/col/task/integratioTask/components/transform/addConstants.vue";
 import FieldSelectAndmodificat from "@/views/col/task/integratioTask/components/transform/fieldSelectAndmodificat.vue";
 import ValueMapping from "@/views/col/task/integratioTask/components/transform/valueMapping.vue";
+// 自定义SQL转换
+import TransformSql from "@/views/col/task/integratioTask/components/transform/transformSql.vue";
 
 // 清洗组件
 import TransformForm from "@/views/col/task/integratioTask/components/clean/cleanForm.vue";
@@ -341,6 +343,8 @@ const currentFormComponent = computed(() => {
       return ApiForm;
     case "31":
       return TransformForm;
+    case "32":
+      return TransformSql;
     case "33":
       return TransformForm;
     case "34":

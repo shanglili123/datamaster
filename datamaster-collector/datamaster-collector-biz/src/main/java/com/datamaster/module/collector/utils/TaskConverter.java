@@ -1604,6 +1604,7 @@ public class TaskConverter {
                 case VALUE_MAP:
                 case ADD_CONSTANT:
                 case SELECT_FIELDS:
+                case TRANSFORM_SQL:
                     transitionList.add(data);
                     break;
                 case DB_WRITER:
