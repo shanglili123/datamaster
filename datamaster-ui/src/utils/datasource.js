@@ -21,6 +21,8 @@ const DATASOURCE_CONFIG = {
   DB2: { icon: "datasource/db2.svg", tagType: "info" },
   OSCAR: { icon: "datasource/oscar.svg", tagType: "info" },
   CLICKHOUSE: { icon: "datasource/clickhouse.svg" },
+  SQL: { icon: "datasource/dm.png" },
+  PROCEDURE: { icon: "datasource/oracle.png" },
   FLINK: { icon: "flink.svg", tagType: "success" },
   SPARK: { icon: "spark.svg" },
   SPARKSQL: { icon: "spark.svg" },

@@ -112,6 +112,14 @@ export function removeDppOrDa(id, type) {
     });
 }
 
+// 同步数据源到调度平台
+export function syncDatasourceToDs(id) {
+    return request({
+        url: '/ast/dataSource/syncToDs/' + id,
+        method: 'get'
+    });
+}
+
 // 修改状态
 export function editDatasourceStatus(id, status) {
     return request({

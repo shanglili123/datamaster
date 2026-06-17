@@ -183,7 +183,7 @@ const form = ref({
   releaseState: "0",
   description: "",
   // json值
-  typaCode: "DM",
+  typaCode: "SQL",
   // 固定值
   executionType: "PARALLEL", // 初始化为空或默认值
   status: "0",
@@ -195,10 +195,16 @@ const queryParams = ref({
   pageSize: 6,
 });
 const tempLoading = ref(false);
+const TEMPLATE_TYPE_MAP = {
+  SQL: 2,
+  PROCEDURE: 3,
+  FLINK: 4,
+  SHELL: 5,
+};
 const getList = async () => {
   tempLoading.value = true;
   try {
-    let type = treeData.filter((item) => item.value == form.value.typaCode)[0].id;
+    let type = TEMPLATE_TYPE_MAP[form.value.typaCode] || 2;
     let params = {
       ...queryParams.value,
       type: type,
@@ -232,22 +238,25 @@ const handleTemplate = (item) => {
 let loading = ref(false);
 let createTypeList = ref([]);
 
-/** 查询数据开发任务列表 */
+/** 查询数据源列表（按引擎类型决定是否展示） */
 function getDaDatasource(flag) {
   templateAct.value.typaCode = form.value.typaCode;
   // 刷新模板列表
   getList();
+  var needDatasource = (form.value.typaCode == "SQL" || form.value.typaCode == "PROCEDURE");
+  if (!needDatasource) {
+    createTypeList.value = [];
+    return;
+  }
   loading.value = true;
   listDaDatasourceNoKafkaByProjectCode({
     projectCode: userStore.projectCode,
     projectId: userStore.projectId,
-    datasourceType: form.value.typaCode,
   }).then((response) => {
     createTypeList.value = response.data;
     if (flag) {
       form.value.datasources.datasourceId = "";
     }
-    // console.log("🚀 ~ getDaDatasourceList ~ response:", response);
     loading.value = false;
   });
 }

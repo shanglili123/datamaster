@@ -38,63 +38,21 @@
           </el-form-item>
           <el-form-item label="延迟执行时间:" prop="delayTime">
             <el-input-number style="width: 85%; margin-right: 5px" controls-position="right"
-              :min="isShowWithTypeName('DM,Oracle,MYSQL,Kingbase') ? 1 : 0" v-model="form.delayTime"
+              :min="isShowWithTypeName('SQL,存储过程') ? 1 : 0" v-model="form.delayTime"
               placeholder="请输入延迟执行时间">
             </el-input-number>
             <span>分</span>
           </el-form-item>
-          <template v-if="isShowWithTypeName('Flink批,Flink流')">
-            <el-form-item label="JobManager内存数" prop="jobManagerMemory">
-              <el-input v-model="form.jobManagerMemory" placeholder="请输入JobManager内存数"> </el-input>
-            </el-form-item>
-            <el-form-item label="TaskManager内存数" prop="taskManagerMemory">
-              <el-input v-model="form.taskManagerMemory" placeholder="请输入TaskManager内存数"> </el-input>
-            </el-form-item>
-            <el-form-item label="Slot数量" prop="slot">
-              <el-input-number placeholder="请输入Slot数量" v-model="form.slot" controls-position="right" :min="0" />
-            </el-form-item>
-            <el-form-item label="TaskManager数量" prop="taskManager">
-              <el-input v-model="form.taskManager" placeholder="请输入TaskManager数量"> </el-input>
-            </el-form-item>
-            <el-form-item label="并行度" prop="parallelism">
-              <el-input-number placeholder="请输入并行度" v-model="form.parallelism" controls-position="right" :min="0" />
-            </el-form-item>
-            <el-form-item label="Yarn队列" prop="yarnQueue">
-              <el-input v-model="form.yarnQueue" placeholder="请输入Yarn队列(选填)"> </el-input>
-            </el-form-item>
-          </template>
-          <template v-if="isShowWithTypeName('SparkSql')">
-            <el-form-item label="Driver核心数" prop="driverCores">
-              <el-input-number placeholder="请输入Driver核心数" v-model="form.driverCores" controls-position="right"
-                :min="0" />
-            </el-form-item>
-            <el-form-item label="Driver内存数" prop="driverMemory">
-              <el-input v-model="form.driverMemory" placeholder="请输入Driver内存数"> </el-input>
-            </el-form-item>
-            <el-form-item label="Executor数量" prop="numExecutors">
-              <el-input-number placeholder="请输入Executor数量" v-model="form.numExecutors" controls-position="right"
-                :min="0" />
-            </el-form-item>
-            <el-form-item label="Executor内存数" prop="executorMemory">
-              <el-input v-model="form.executorMemory" placeholder="请输入Executor内存数"> </el-input>
-            </el-form-item>
-            <el-form-item label="Executor核心数" prop="executorCores">
-              <el-input-number placeholder="请输入Executor核心数" v-model="form.executorCores" controls-position="right"
-                :min="0" />
-            </el-form-item>
-            <el-form-item label="Yarn队列" prop="yarnQueue">
-              <el-input v-model="form.yarnQueue" placeholder="请输入Yarn队列(选填)"> </el-input>
-            </el-form-item>
-          </template>
+
           <div class="h2"><img class="icon" src="@/assets/da/asset/h2 (1).svg" alt="" />其他配置</div>
           <el-form-item label="数据连接类型:" prop="typaCode"> {{ typaName }} </el-form-item>
-          <el-form-item label="数据源连接:" prop="datasourceId" v-if="isShowWithTypeName('SparkSql,Flink批,Flink流', false)">
+          <el-form-item label="数据源连接:" prop="datasourceId" v-if="isShowWithTypeName('SQL,存储过程')">
             <el-select v-model="form.datasourceId" placeholder="请选择数据源连接" @change="handleDatasourceChange" filterable>
               <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
                 :value="dict.id"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="SQL类型:" prop="sqlType" v-if="isShowWithTypeName('SparkSql,Flink批,Flink流', false)">
+          <el-form-item label="SQL类型:" prop="sqlType" v-if="typaName == 'SQL'">
             <el-radio-group v-model="form.sqlType" inline>
               <el-radio v-for="option in visibleRadioOptions" :key="option.id" :value="option.id">
                 {{ option.label }}
@@ -207,10 +165,14 @@ const typaName = computed(() => {
 const configRef = ref();
 const createTypeList = ref([]);
 function getDaDatasource() {
+  var needDatasource = (form.value.typaCode == "SQL" || form.value.typaCode == "PROCEDURE");
+  if (!needDatasource) {
+    createTypeList.value = [];
+    return;
+  }
   listDaDatasourceNoKafkaByProjectCode({
     projectCode: userStore.projectCode,
     projectId: userStore.projectId,
-    datasourceType: form.value.typaCode,
   }).then((response) => {
     createTypeList.value = response.data;
   });
@@ -245,20 +207,6 @@ const radioOptions = ref([
     taskType: "PROCEDURE",
     id: "2",
     show: true,
-  },
-  {
-    componentType: "53",
-    label: "SparkSql开发",
-    taskType: "SPARK",
-    id: "4",
-    show: false,
-  },
-  {
-    componentType: "55",
-    label: "FlinkSql开发",
-    taskType: "FLINK",
-    id: "5",
-    show: false,
   },
 ]);
 
@@ -309,19 +257,6 @@ const data = reactive({
     failRetryTimes: "0",
     failRetryInterval: "1",
     delayTime: "0",
-    // Fink配置
-    jobManagerMemory: "1G",
-    taskManagerMemory: "2G",
-    slot: 1,
-    taskManager: 2,
-    parallelism: 1,
-    yarnQueue: "",
-    // Spark配置
-    driverCores: 1,
-    driverMemory: "512M",
-    numExecutors: 1,
-    executorMemory: "1G",
-    executorCores: 1,
     // 其他配置
     typaCode: "",
     datasourceId: "",
@@ -351,21 +286,24 @@ watch(
         typaCode: val.data.draftJson ? JSON.parse(val.data.draftJson).typaCode : "",
       };
       // 执行时间默认为1分钟
-      if (isShowWithTypeName("DM,Oracle,MYSQL,Kingbase") && form.value.delayTime == 0) {
+      if ((form.value.typaCode == "SQL" || form.value.typaCode == "PROCEDURE") && form.value.delayTime == 0) {
         form.value.delayTime = 1;
       }
-      // Flink特殊字段
-      form.value.executeMode = form.value.typaCode == "FlinkBatch" ? "BATCH" : form.value.typaCode == "FlinkStream" ? "STREAM" : "";
       let obj;
-      if (form.value.typaCode == "SparkSql") {
-        obj = radioOptions.value?.find((option) => option.id == 4);
-      } else if (form.value.typaCode == "FlinkBatch" || form.value.typaCode == "FlinkStream") {
-        obj = radioOptions.value?.find((option) => option.id == 5);
+      if (form.value.typaCode == "SHELL") {
+        form.value.taskType = "SHELL";
+        form.value.componentType = "54";
+      } else if (form.value.typaCode == "PYTHON") {
+        form.value.taskType = "PYTHON";
+        form.value.componentType = "56";
+      } else if (form.value.typaCode == "PROCEDURE") {
+        form.value.taskType = "PROCEDURE";
+        form.value.componentType = "52";
       } else {
         obj = radioOptions.value?.find((option) => option.id == form.value.sqlType);
+        form.value.taskType = obj?.taskType;
+        form.value.componentType = obj?.componentType;
       }
-      form.value.taskType = obj?.taskType;
-      form.value.componentType = obj?.componentType;
       // 获取： 数据源连接
       getDaDatasource();
       console.log("🚀 ~ form.value:", form.value);

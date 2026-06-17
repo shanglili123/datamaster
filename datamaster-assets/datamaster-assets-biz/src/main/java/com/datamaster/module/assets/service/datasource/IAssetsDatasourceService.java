@@ -197,4 +197,6 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param id
      */
     void detectTableSchemaUpdates(Long id);
+
+    AjaxResult syncToDs(Long id);
 }

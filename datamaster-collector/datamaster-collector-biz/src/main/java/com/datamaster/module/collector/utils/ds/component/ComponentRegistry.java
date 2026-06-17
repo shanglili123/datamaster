@@ -42,8 +42,8 @@ public class ComponentRegistry {
         this.componentItemMap.put(TaskComponentTypeEnum.SQL_DEV.getCode(), new SQLComponent());
         this.componentItemMap.put(TaskComponentTypeEnum.PROCEDURE_DEV.getCode(), new ProcedureComponent());
         this.componentItemMap.put(TaskComponentTypeEnum.SUB_PROCESS.getCode(), new SubProcessComponent());
-        this.componentItemMap.put(TaskComponentTypeEnum.SPARK_SQL_DEV.getCode(), new SparkSQLComponent());
         this.componentItemMap.put(TaskComponentTypeEnum.SHELL_DEV.getCode(), new ShellComponent());
+        this.componentItemMap.put(TaskComponentTypeEnum.PYTHON_DEV.getCode(), new PythonComponent());
     }
 
     public ComponentItem getComponentItem(String code) {

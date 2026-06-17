@@ -184,6 +184,26 @@ public enum DataMasterDSApiType {
     DELETE_WORKER_GROUP("34", "删除工作组", "/worker-groups/{id}", "DELETE"),
 
 
+    //数据源相关接口开始》》》》》》》》》
+
+    /**
+     * 创建数据源
+     */
+    CREATE_DATASOURCE("35", "创建数据源", "/datasources", "POST"),
+
+    /**
+     * 测试数据源连接
+     */
+    TEST_CONNECT_DATASOURCE("36", "测试数据源连接", "/datasources/connect", "POST"),
+
+    /**
+     * 查询数据源列表
+     */
+    QUERY_DATASOURCE_LIST("37", "查询数据源列表", "/datasources", "GET"),
+
+    //数据源相关接口结束》》》》》》》》》
+
+
     ;
 
     /**

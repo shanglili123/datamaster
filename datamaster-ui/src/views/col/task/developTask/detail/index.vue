@@ -132,26 +132,20 @@ watch(
 // 图标
 const getDatasourceIcon = (type) => {
   switch (type) {
+    case "SQL":
     case "DM":
-      return new URL("@/assets/system/images/dpp/DM.png", import.meta.url).href;
     case "Oracle":
-      return new URL("@/assets/system/images/dpp/oracle.png", import.meta.url).href;
     case "MYSQL":
-      return new URL("@/assets/system/images/dpp/mysql.png", import.meta.url).href;
     case "Kingbase":
-      return new URL("@/assets/system/images/dpp/kingBase.png", import.meta.url).href;
     case "Sqlerver":
-      return new URL("@/assets/system/images/dpp/sqlServer.png", import.meta.url).href;
     case "PostgreSql":
-      return new URL("@/assets/system/images/dpp/kafka.png", import.meta.url).href;
     case "Hive":
-      return new URL("@/assets/system/images/dpp/Hive.png", import.meta.url).href;
-    case "SparkSql":
-      return new URL("@/assets/system/images/dpp/Spark.svg", import.meta.url).href;
-    case "FlinkBatch":
-      return new URL("@/assets/system/images/dpp/Flink.svg", import.meta.url).href;
-    case "FlinkStream":
-      return new URL("@/assets/system/images/dpp/Flink.svg", import.meta.url).href;
+      return new URL("@/assets/system/images/dpp/DM.png", import.meta.url).href;
+    case "PROCEDURE":
+      return new URL("@/assets/system/images/dpp/oracle.png", import.meta.url).href;
+    case "SHELL":
+    case "PYTHON":
+      return new URL("@/assets/system/images/dpp/sr.png", import.meta.url).href;
     default:
       return null;
   }
@@ -175,7 +169,7 @@ function getList() {
         ...response.data.taskConfig,
         draftJson: response.data.draftJson,
         status: response.data.status,
-        typaCode: response.data.draftJson ? JSON.parse(response.data.draftJson).typaCode : "",
+        typaCode: response.data.draftJson ? JSON.parse(response.data.draftJson).typaCode : "SQL",
       };
       // 修改或新增标记
       formStatus.value = response.data.status;

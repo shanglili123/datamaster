@@ -48,5 +48,7 @@ public class AssetsDatasourceRespDTO {
     /** 是否有效 */
     private Boolean validFlag;
 
+    /** DolphinScheduler 数据源 ID */
+    private Long dsDatasourceId;
 
 }

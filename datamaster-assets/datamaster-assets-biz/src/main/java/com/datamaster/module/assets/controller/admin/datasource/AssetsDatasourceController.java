@@ -190,6 +190,14 @@ public class AssetsDatasourceController extends BaseController {
         return AssetsDatasourceService.clientsTest(ids);
     }
 
+    @Operation(summary = "同步数据源到调度平台")
+    @PreAuthorize("@ss.hasPermi('da:DataSource:edit')")
+    @Log(title = "数据源", businessType = BusinessType.UPDATE)
+    @GetMapping("syncToDs/{id}")
+    public AjaxResult syncToDs(@PathVariable("id") Long id) {
+        return AssetsDatasourceService.syncToDs(id);
+    }
+
     @Operation(summary = "获取数据源里面的数据表")
     @PreAuthorize("@ss.hasPermi('da:DataSource:query')")
     @GetMapping(value = "/tableList/{id}")

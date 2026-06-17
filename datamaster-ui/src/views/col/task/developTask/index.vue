@@ -670,7 +670,7 @@ const form = ref({
     sqlType: "1",
     type: "",
     sql: "",
-    typaCode: "DM",
+    typaCode: "SQL",
     localParams: [],
     datasources: {
       datasourceId: "",

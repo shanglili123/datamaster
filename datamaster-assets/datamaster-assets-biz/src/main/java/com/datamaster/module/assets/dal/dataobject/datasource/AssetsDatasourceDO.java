@@ -78,6 +78,9 @@ public class AssetsDatasourceDO extends BaseEntity {
     @TableLogic
     private Boolean delFlag;
 
+    /** DolphinScheduler 数据源 ID，同步后设置 */
+    private Long dsDatasourceId;
+
     @JSONField(serialize = false)
     public String toJsonString() {
         // 默认 Fastjson：忽略 null 字段，字段顺序自动

@@ -20,12 +20,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.datamaster.api.ds.api.base.DsResultDTO;
+import com.datamaster.api.ds.api.datasource.DsDatasourceCreateReqDTO;
+import com.datamaster.api.ds.api.service.datasource.IDsDatasourceService;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.database.DataSourceFactory;
 import com.datamaster.common.database.DbQuery;
 import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.constants.DbType;
+import com.datamaster.common.database.constants.DsDatasourceTypeMapper;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbName;
 import com.datamaster.common.database.core.DbTable;
@@ -33,7 +37,7 @@ import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.enums.KingbaseColumnTypeEnum;
 import com.datamaster.common.enums.MySqlColumnTypeEnum;
 import com.datamaster.common.exception.ServiceException;
-import com.datamaster.common.utils.AesEncryptUtil;
+import com.datamaster.common.database.utils.AesEncryptUtil;
 import com.datamaster.common.utils.DateUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
@@ -116,6 +120,8 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     private IAssetsDiscoveryTaskLogService IAssetsDiscoveryTaskLogService;
     @Resource
     private IAssetsDiscoveryLogBodyService IAssetsDiscoveryLogBodyService;
+    @Autowired
+    private IDsDatasourceService dsDatasourceService;
 
     /**
      * Redis      *     *      * 1.      * 2.  AssetsDatasourceDO.simplify()      * 3.  Redis Hash     *     *      * -  Worker  Redis      * -      *     *      * -  Redis  "datasource"
@@ -376,6 +382,64 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         }
         dbQuery.close();
         return AjaxResult.error("数据库连接失败");
+    }
+
+    @Override
+    public AjaxResult syncToDs(Long id) {
+        AssetsDatasourceDO ds = this.getDatasourceDOById(id);
+        if (ds == null) {
+            return AjaxResult.error("数据源不存在");
+        }
+        try {
+            JSONObject config = new JSONObject(ds.getDatasourceConfig());
+            String password = config.getStr("password");
+            String dbname = config.getStr("dbname");
+            try {
+                password = AesEncryptUtil.desEncrypt(password).trim();
+            } catch (Exception e) {
+                log.warn("密码解密失败，使用原始密码同步到调度平台");
+            }
+            String dsName = ds.getDatasourceName();
+            String dsType = DsDatasourceTypeMapper.toDsType(ds.getDatasourceType());
+
+            // 1. 检查 DS 是否已存在同名数据源
+            if (dsDatasourceService.existsByName(dsName)) {
+                return AjaxResult.error("同步失败，数据源 [" + dsName + "] 已在调度平台存在");
+            }
+
+            DsDatasourceCreateReqDTO req = DsDatasourceCreateReqDTO.builder()
+                    .name(dsName)
+                    .type(dsType)
+                    .host(ds.getIp())
+                    .port(ds.getPort() != null ? ds.getPort().intValue() : 0)
+                    .userName(config.getStr("username"))
+                    .password(password)
+                    .database(dbname)
+                    .node("default")
+                    .connectType("PUBLIC")
+                    .build();
+
+            // 2. 创建数据源（DS 创建时会自动验证连接）
+            DsResultDTO result = dsDatasourceService.createDatasource(req);
+            if (result != null && result.isOk()) {
+                // 3. 保存 DS 返回的数据源 ID
+                Object dataObj = result.getData();
+                if (dataObj instanceof Map) {
+                    Object idObj = ((Map<String, Object>) dataObj).get("id");
+                    if (idObj instanceof Number) {
+                        Long dsId = ((Number) idObj).longValue();
+                        ds.setDsDatasourceId(dsId);
+                        this.updateById(ds);
+                        log.info("syncToDs: stored dsDatasourceId={} for datasource id={}", dsId, id);
+                    }
+                }
+                return AjaxResult.success("同步数据源到调度平台成功");
+            }
+            return AjaxResult.error("同步失败:" + (result != null ? result.getMsg() : "调度平台无响应"));
+        } catch (Exception e) {
+            log.error("同步数据源到调度平台失败", e);
+            return AjaxResult.error("同步失败:" + e.getMessage());
+        }
     }
 
     public DbQuery buildDbQuery(Long id) {

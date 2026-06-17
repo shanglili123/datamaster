@@ -231,6 +231,14 @@
               v-hasPermi="['da:dataSource:edit']"
               >测试连接
             </el-button>
+            <el-button
+              link
+              type="primary"
+              icon="Upload"
+              @click="handleSyncToDs(scope.row)"
+              v-hasPermi="['da:dataSource:edit']"
+              >同步到调度平台
+            </el-button>
 
             <el-button
               link
@@ -899,6 +907,7 @@ import {
   listDaDatasource,
   getDaDatasource,
   clientsTest,
+  syncDatasourceToDs,
   delDaDatasource,
   removeDppOrDa,
   addDaDatasource,
@@ -1372,6 +1381,20 @@ function handleTestConnection(row) {
     })
     .finally(() => {
       loading.value = false; // 结束加载
+    });
+}
+function handleSyncToDs(row) {
+  loading.value = true;
+  syncDatasourceToDs(row.id)
+    .then((response) => {
+      if (response.code == 200) {
+        proxy.$modal.msgSuccess(response.msg || "同步成功");
+      } else {
+        proxy.$modal.msgError(response.msg || "同步失败");
+      }
+    })
+    .finally(() => {
+      loading.value = false;
     });
 }
 const btnLoading = ref(false);

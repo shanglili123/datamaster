@@ -36,8 +36,8 @@ public enum TaskComponentTypeEnum {
     //开发
     SQL_DEV("51", "SQL开发"),
     PROCEDURE_DEV("52", "存储过程开发"),
-    SPARK_SQL_DEV("53", "SparkSql开发"),
     SHELL_DEV("54", "SHELL开发"),
+    PYTHON_DEV("56", "Python开发"),
 
     //子任务
     SUB_PROCESS("71", "子任务"),

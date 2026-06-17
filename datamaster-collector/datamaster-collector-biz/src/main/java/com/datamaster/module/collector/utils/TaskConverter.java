@@ -25,18 +25,32 @@ import com.datamaster.module.collector.utils.ds.component.ComponentFactory;
 import com.datamaster.module.collector.utils.model.DsResource;
 import com.datamaster.module.collector.utils.model.FlinkxIncrementalConfig;
 
+import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
+import com.datamaster.module.assets.api.service.asset.IAssetsDatasourceApiService;
+import lombok.extern.slf4j.Slf4j;
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+@Slf4j
 @Component
 public class TaskConverter {
     @Resource
     private FlinkxJson flinkxJson;
 
+    @Resource
+    private IAssetsDatasourceApiService assetsDatasourceApiService;
+    private static IAssetsDatasourceApiService ASSETS_DATASOURCE_API;
+
     private static String resourceName;
     private static String defaultMainClass;
     private static String defaultMaster;
+
+    @PostConstruct
+    public void init() {
+        ASSETS_DATASOURCE_API = this.assetsDatasourceApiService;
+    }
     private static String resourceUrl;
     private static String defaultTenantCode;
     private static DsRedisConfig dsRedisConfig;
@@ -252,8 +266,7 @@ public class TaskConverter {
             Map<String, Object> params = (Map<String, Object>) MapUtils.getObject(task, "taskParams");
 
             //根据类型存入默认数据
-            if (StringUtils.equals(TaskComponentTypeEnum.SPARK_CLEAN.getCode(), componentType)
-                    || StringUtils.equals(TaskComponentTypeEnum.SPARK_SQL_DEV.getCode(), componentType)) {
+            if (StringUtils.equals(TaskComponentTypeEnum.SPARK_CLEAN.getCode(), componentType)) {
                 params.put("mainClass", defaultMainClass);
                 params.put("resourceName", resourceName);
                 params.put("master", defaultMaster);
@@ -266,6 +279,9 @@ public class TaskConverter {
 //            params.put("executorCores", MapUtils.getObject(definitionJsonMap, "executorCores", DEFAULT_EXECUTOR_CORES));
 //            params.put("yarnQueue", MapUtils.getObject(definitionJsonMap, "yarnQueue", ""));
 
+            // 对于 SQL / PROCEDURE 任务，将 DataMaster 数据源 ID 转换为 DS 数据源 ID
+            resolveDsDatasourceId(componentType, params);
+
             // 将任务的taskParams加入到taskMap中
             taskMap.put("taskParams", ComponentFactory.getComponentItem(componentType).parse(params));
 
@@ -277,6 +293,39 @@ public class TaskConverter {
         return JSON.toJSONString(result);
     }
 
+    /**
+     * 将 DataMaster 数据源 ID 转换为 DS 数据源 ID，放入 params 供组件使用
+     */
+    private static void resolveDsDatasourceId(String componentType, Map<String, Object> params) {
+        if (!TaskComponentTypeEnum.SQL_DEV.getCode().equals(componentType)
+                && !TaskComponentTypeEnum.PROCEDURE_DEV.getCode().equals(componentType)) {
+            return;
+        }
+        if (params == null || ASSETS_DATASOURCE_API == null) {
+            return;
+        }
+        Object masterId = params.get("datasourceId");
+        if (masterId == null) {
+            log.warn("resolveDsDatasourceId: datasourceId is null in params, skip");
+            return;
+        }
+        try {
+            Long id = Long.valueOf(masterId.toString());
+            AssetsDatasourceRespDTO dto = ASSETS_DATASOURCE_API.getDatasourceById(id);
+            if (dto == null) {
+                log.warn("resolveDsDatasourceId: datasource not found by id={}", id);
+                return;
+            }
+            if (dto.getDsDatasourceId() == null) {
+                log.warn("resolveDsDatasourceId: dsDatasourceId is null for datasource id={}, please sync first", id);
+                return;
+            }
+            params.put("__dsDatasourceId", dto.getDsDatasourceId());
+            params.put("__datasourceType", dto.getDatasourceType());
+        } catch (Exception e) {
+            log.error("resolveDsDatasourceId: failed for datasourceId={}", masterId, e);
+        }
+    }
 
     /**
      * 将 CollectorEtlNewNodeSaveReqVO 和 ProcessDefinition 转换为 CollectorEtlTaskSaveReqVO
