@@ -1,0 +1,74 @@
+{
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 1,
+        "bytes": 0
+      },
+      "errorLimit": {
+        "record": 0,
+        "percentage": 0
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "kafkareader",
+          "parameter": {
+            "topic": "test-topic",
+            "codec": "json",
+            "consumerSettings": {
+              "bootstrap.servers": "127.0.0.1:9092"
+            },
+            "column": [
+              {
+                "name": "id",
+                "type": "STRING"
+              }
+            ],
+            "pavingData": true,
+            "addMessage": true,
+            "mode": "UNKNOWN",
+            "offset": "",
+            "timestamp": -1,
+            "batchSize": 1,
+            "deserialization": "default",
+            "semantic": "at-least-once",
+            "parallelism": 1,
+            "tableFields": ["id"],
+            "fieldNameList": [],
+            "split": false,
+            "dataCompelOrder": false,
+            "nullReplaceNotExistsField": true
+          }
+        },
+        "writer": {
+          "name": "postgresqlsinkfactory",
+          "parameter": {
+            "username": "datamaster",
+            "password": "datamaster",
+            "connection": [
+              {
+                "jdbcUrl": "jdbc:postgresql://127.0.0.1:5432/datamaster_test?stringtype=unspecified",
+                "table": ["user_1"]
+              }
+            ],
+            "column": [
+              {
+                "name": "id",
+                "type": "INT4"
+              }
+            ],
+            "mode": "insert",
+            "semantic": "at-least-once",
+            "batchSize": 1024,
+            "flushIntervalMills": 10000,
+            "table": "user_1",
+            "allReplace": false,
+            "autoCommit": false
+          }
+        }
+      }
+    ]
+  }
+}
