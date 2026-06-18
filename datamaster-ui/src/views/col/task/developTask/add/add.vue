@@ -28,8 +28,7 @@
 
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item label="调度周期" prop="crontab"
-            :rules="[{ required: title != '任务详情', message: '请输入调度周期', trigger: 'change' }]">
+          <el-form-item label="调度周期" prop="crontab">
             <el-input v-if="title != '任务详情'" v-model="form.crontab" placeholder="请输入调度周期" readonly>
               <template #append>
                 <el-button type="primary" @click="handleShowCron" style="background-color: #2666fb; color: #fff">

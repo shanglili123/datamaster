@@ -1106,10 +1106,72 @@ public class TaskConverter {
     }
 
     /**
+     * 判断是否为 SHELL 任务
+     */
+    public static boolean isShellTask(String draftJson) {
+        if (StringUtils.isEmpty(draftJson)) {
+            return false;
+        }
+        Map<String, Object> definitionJsonMap = JSONUtils.convertTaskDefinitionJsonMap(draftJson);
+        String typaCode = String.valueOf(definitionJsonMap.get("typaCode"));
+        return "SHELL".equalsIgnoreCase(typaCode);
+    }
+
+    /**
+     * 构建 SHELL 任务定义 JSON (DS SHELL 原生类型)
+     */
+    public static String buildShellTaskDefinitionJson(Long id, String name, String code, Integer version,
+                                                       Map<String, Object> mainArgs, String draftJson) {
+        return buildShellTaskDefinitionJson(id, name, code, version, mainArgs, draftJson, null);
+    }
+
+    public static String buildShellTaskDefinitionJson(Long id, String name, String code, Integer version,
+                                                       Map<String, Object> mainArgs, String draftJson, String projectWorkerGroup) {
+        List<Map<String, Object>> transitionList = (List<Map<String, Object>>) mainArgs.get("transition");
+        String rawScript = "";
+        if (transitionList != null && !transitionList.isEmpty()) {
+            Map<String, Object> shellNode = transitionList.get(0);
+            Map<String, Object> param = (Map<String, Object>) shellNode.get("parameter");
+            if (param != null) {
+                rawScript = String.valueOf(param.getOrDefault("rawScript", ""));
+            }
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        Map<String, Object> taskMap = new HashMap<>();
+        Map<String, Object> definitionJsonMap = JSONUtils.convertTaskDefinitionJsonMap(draftJson);
+
+        taskMap.put("id", id);
+        taskMap.put("name", name);
+        taskMap.put("code", code);
+        taskMap.put("version", version);
+        taskMap.put("description", "");
+        taskMap.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, definitionJsonMap.get("workerGroup")));
+        taskMap.put("environmentCode", DEFAULT_ENVIRONMENT_CODE);
+        taskMap.put("flag", DEFAULT_FLAG);
+        taskMap.put("isCache", DEFAULT_IS_CACHE);
+        taskMap.put("taskPriority", MapUtils.getObject(definitionJsonMap, "taskPriority", DEFAULT_TASK_PRIORITY));
+        taskMap.put("taskType", "SHELL");
+        taskMap.put("taskExecuteType", "BATCH");
+        taskMap.put("failRetryTimes", MapUtils.getObject(definitionJsonMap, "failRetryTimes", DEFAULT_TASK_failRetryTimes));
+        taskMap.put("delayTime", MapUtils.getObject(definitionJsonMap, "delayTime", DEFAULT_TASK_delayTime));
+        taskMap.put("failRetryInterval", MapUtils.getObject(definitionJsonMap, "failRetryInterval", DEFAULT_TASK_failRetryInterval));
+
+        Map<String, Object> taskParams = new LinkedHashMap<>();
+        taskParams.put("localParams", new ArrayList<>());
+        taskParams.put("resourceList", new ArrayList<>());
+        taskParams.put("rawScript", rawScript);
+        taskMap.put("taskParams", taskParams);
+
+        result.add(taskMap);
+        return JSON.toJSONString(result);
+    }
+
+    /**
      * 构建 FlinkX 任务定义 JSON (DS CHUNJUN 原生类型)
      */
     public static String buildEtlTaskDefinitionJsonFlinkx(Long id, String name, String code, Integer version,
-                                                          String flinkxJobJson, String draftJson) {
+                                                           String flinkxJobJson, String draftJson) {
         return buildEtlTaskDefinitionJsonFlinkx(id, name, code, version, flinkxJobJson, draftJson, null);
     }
 
@@ -1609,6 +1671,13 @@ public class TaskConverter {
                     break;
                 case DB_WRITER:
                     result.put("writer", data);
+                    break;
+                case SHELL_DEV:
+                case SQL_DEV:
+                case PROCEDURE_DEV:
+                case PYTHON_DEV:
+                case SUB_PROCESS:
+                    transitionList.add(data);
                     break;
             }
         }

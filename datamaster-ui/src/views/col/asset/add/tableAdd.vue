@@ -45,11 +45,11 @@
 import { ref, watch, getCurrentInstance } from 'vue';
 import { ElMessage } from 'element-plus';
 import useUserStore from '@/store/system/user.js';
-import { getTablesByDataSourceId, getColumnByAssetId, getDaDatasourceList } from '@/api/col/task/index.js';
+import { getTablesByDataSourceId, getColumnByAssetId } from '@/api/col/task/index.js';
 import { dppNoPageList } from '@/api/ast/asset/asset.js';
 import {
     getDaDatasource,
-    listDaDatasourceNoKafkaByProjectCode
+    listDaDatasourceByProjectCode
 } from '@/api/ast/dataSource/dataSource.js';
 const props = defineProps({
     form: Object,
@@ -68,8 +68,8 @@ const getDatasourceList = async () => {
     console.log('🚀 ~ getDatasourceList ~ getDatasourceList:', getDatasourceList);
     try {
         loading.value = true;
-        const response = props.type == '1' ? await listDaDatasourceNoKafkaByProjectCode({ projectCode: userStore.projectCode, projectId: userStore.projectId }) : await getDaDatasourceList({ datasourceNotTypeList: ['Kafka'] });
-        createTypeList.value = response.data || [];
+        const response = await listDaDatasourceByProjectCode({ pageSize: 9999, projectCode: userStore.projectCode, projectId: userStore.projectId });
+        createTypeList.value = response.data?.rows || [];
     } finally {
         loading.value = false;
     }

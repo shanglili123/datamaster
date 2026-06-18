@@ -5,9 +5,11 @@ package com.datamaster.module.collector.utils.ds.component;
 import org.apache.commons.collections4.MapUtils;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
 import com.datamaster.common.utils.JSONUtils;
+import com.datamaster.module.collector.utils.model.DsResource;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,6 +38,18 @@ public class SubProcessComponent implements ComponentItem {
         String processDefinitionCode = MapUtils.getString(params,"processDefinitionCode", "");
         taskParams.put("processDefinitionCode", JSONUtils.convertToLong(processDefinitionCode)); // 默认空字符串
         return taskParams;
+    }
+
+    @Override
+    public Map<String, Object> parse2(String nodeCode, Integer nodeVersion, TaskComponentTypeEnum componentType, Map<String, Object> taskParams, String resourceUrl, List<DsResource> resourceList) {
+        Map<String, Object> node = mapNode(nodeCode, nodeVersion, componentType);
+        Map<String, Object> parameter = new LinkedHashMap<>();
+        parameter.put("localParams", taskParams.getOrDefault("localParams", new ArrayList<>()));
+        parameter.put("resourceList", taskParams.getOrDefault("resourceList", new ArrayList<>()));
+        String processDefinitionCode = MapUtils.getString(taskParams, "processDefinitionCode", "");
+        parameter.put("processDefinitionCode", JSONUtils.convertToLong(processDefinitionCode));
+        node.put("parameter", parameter);
+        return node;
     }
 
     @Override

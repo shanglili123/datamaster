@@ -102,6 +102,14 @@ public class AssetsDatasourceController extends BaseController {
         return CommonResult.success(BeanUtils.toBean(page, AssetsDatasourceRespVO.class));
     }
 
+    @Operation(summary = "数据查询数据源列表")
+    @PreAuthorize("@ss.hasPermi('da:dataQuery:list')")
+    @GetMapping("/query/list")
+    public CommonResult<PageResult<AssetsDatasourceRespVO>> queryDatasourceList(AssetsDatasourcePageReqVO AssetsDatasource) {
+        PageResult<AssetsDatasourceDO> page = AssetsDatasourceService.getDatasourcePage(AssetsDatasource);
+        return CommonResult.success(BeanUtils.toBean(page, AssetsDatasourceRespVO.class));
+    }
+
     @Operation(summary = "导出数据源列表")
     @PreAuthorize("@ss.hasPermi('da:DataSource:export')")
     @Log(title = "数据源", businessType = BusinessType.EXPORT)
@@ -199,7 +207,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "获取数据源里面的数据表")
-    @PreAuthorize("@ss.hasPermi('da:DataSource:query')")
+    @PreAuthorize("@ss.hasAnyPermi('da:DataSource:query,da:dataQuery:list')")
     @GetMapping(value = "/tableList/{id}")
     public AjaxResult getTableList(@PathVariable("id") Long id) {
         List<DbTable> tables = AssetsDatasourceService.getDbTables(id);
@@ -207,7 +215,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "获取数据源里面的数据表的数据字段")
-    @PreAuthorize("@ss.hasPermi('da:DataSource:query')")
+    @PreAuthorize("@ss.hasAnyPermi('da:DataSource:query,da:dataQuery:list')")
     @PostMapping(value = "/columnsList")
     public AjaxResult getColumnsList(@RequestBody JSONObject jsonObject) {
         List<StandardsModelColumnReqDTO> columns = AssetsDatasourceService.getColumnsList(jsonObject);
@@ -230,7 +238,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "获取数据源里面的数据表的数据字段")
-    @PreAuthorize("@ss.hasPermi('da:DataSource:query')")
+    @PreAuthorize("@ss.hasAnyPermi('da:DataSource:query,da:dataQuery:list')")
     @PostMapping(value = "/columnsAsAssetColumnList")
     public CommonResult<List<AssetsAssetColumnDO>> columnsAsAssetColumnList(@RequestBody @Valid AssetsDatasourceTableVO param) {
         List<AssetsAssetColumnDO> columns = AssetsDatasourceService.columnsAsAssetColumnList(param.getId(), param.getTableName());
@@ -257,14 +265,14 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:DataQuery:list')")
+    @PreAuthorize("@ss.hasPermi('da:dataQuery:list')")
     @GetMapping(value = "/executeSqlQuery")
     public AjaxResult executeSqlQuery(AssetsDatasourcePageReqVO AssetsDatasource) {
         return success(AssetsDatasourceService.executeSqlQuery(AssetsDatasource));
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:DataQuery:list')")
+    @PreAuthorize("@ss.hasPermi('da:dataQuery:list')")
     @GetMapping(value = "/exportSqlQueryResult/export")
     public void exportSqlQueryResult(HttpServletResponse response, AssetsDatasourcePageReqVO AssetsDatasource) {
         AssetsDatasourceService.exportSqlQueryResult(response, AssetsDatasource);

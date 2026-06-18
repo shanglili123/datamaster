@@ -372,15 +372,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             throw new ServiceException("调度上线中，请先下线调度！");
         }
 
-        //判断是否是离线任务 是需要获取扩展信息的任务编码进行接口调用
-        if (StringUtils.equals("1", type)) {
-            //获取扩展信息
-            CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(Long.parseLong(CollectorEtlNewNodeSaveReqVO.getIdStr()));
-            if (taskExt == null) {
-                throw new ServiceException("暂无数据！");
-            }
-            CollectorEtlTaskDO.setCode(taskExt.getEtlTaskCode());
-        }
+        CollectorEtlTaskDO.setCode(resolvePublishedDsTaskCode(CollectorEtlTaskDO));
 
         // 下线操作
         if (StringUtils.equals("0", CollectorEtlNewNodeSaveReqVO.getReleaseState())) {
@@ -648,6 +640,18 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         updateReqVO.setId(taskId);
         updateReqVO.setStatus(releaseState);
         this.updateCollectorEtlTask(updateReqVO);
+    }
+
+    private String resolvePublishedDsTaskCode(CollectorEtlTaskDO taskDO) {
+        String taskCode = taskDO.getCode();
+        CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(taskDO.getId());
+        if (taskExt != null && StringUtils.isNotEmpty(taskExt.getEtlTaskCode())) {
+            taskCode = taskExt.getEtlTaskCode();
+        }
+        if (StringUtils.isEmpty(taskCode)) {
+            throw new ServiceException("任务编码为空，请重新发布任务！");
+        }
+        return taskCode;
     }
 
     // 创建或更新调度器
@@ -996,18 +1000,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             this.updateReleaseJobTask(nodeSaveReqVO);
 //            return error("任务状态错误，请刷新后重试！");
         }
-        //1：离线任务 2：实时任务 3：数据开发任务 4：作业任务
-        String type = CollectorEtlTaskDO.getType();
-
-        //判断是否是离线任务 是需要获取扩展信息的任务编码进行接口调用
-        if (StringUtils.equals("1", type)) {
-            //获取扩展信息
-            CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(CollectorEtlTaskDO.getId());
-            if (taskExt == null) {
-                throw new ServiceException("暂无数据！");
-            }
-            CollectorEtlTaskDO.setCode(taskExt.getEtlTaskCode());
-        }
+        CollectorEtlTaskDO.setCode(resolvePublishedDsTaskCode(CollectorEtlTaskDO));
 
 
         DsStartTaskReqDTO dsStartTaskReqDTO = TaskConverter.createDsStartTaskReqDTO(CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
@@ -1586,7 +1579,9 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
             Map<String, Object> mainArgs = TaskConverter.buildEtlTaskParams(reqVO.getTaskDefinitionList(), new HashMap<>(), taskInfo, resourceList);
 
-            if (isFlinkx) {
+            if (TaskConverter.isShellTask(reqVO.getDraftJson())) {
+                taskDefinition = TaskConverter.buildShellTaskDefinitionJson(null, nodeName, nodeCode, 0, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+            } else if (isFlinkx) {
                 flinkxJobJson = FlinkxEtlTaskConverter.convertToFlinkxJobJson(mainArgs);
                 streamingFlinkx = TaskConverter.isStreamingFlinkxJob(flinkxJobJson);
                 incrementalConfig = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
@@ -1684,7 +1679,9 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
             Map<String, Object> mainArgs = TaskConverter.buildEtlTaskParams(reqVO.getTaskDefinitionList(), new HashMap<>(), taskInfo, resourceList);
 
-            if (isFlinkx) {
+            if (TaskConverter.isShellTask(reqVO.getDraftJson())) {
+                taskDefinition = TaskConverter.buildShellTaskDefinitionJson(taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+            } else if (isFlinkx) {
                 flinkxJobJson = FlinkxEtlTaskConverter.convertToFlinkxJobJson(mainArgs);
                 streamingFlinkx = TaskConverter.isStreamingFlinkxJob(flinkxJobJson);
                 incrementalConfig = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
@@ -1772,6 +1769,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         //更新任务状态为已上线
         updateTaskStatus(taskDO.getId(), "1");
         taskDO.setStatus("1");
+        taskDO.setCode(taskCode); //确保使用DS编码
 
         if (streamingFlinkx) {
             disableSchedulerForStreamingTask(taskDO, taskCode);
@@ -1794,7 +1792,6 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             schedulerDO.setCronExpression(reqVO.getCrontab());
         }
         if (schedulerDO != null && StringUtils.isNotEmpty(schedulerDO.getCronExpression())) {
-            taskDO.setCode(taskCode); //确保使用DS编码
             try {
                 DsSchedulerRespDTO dsSchedulerRespDTO;
                 if (schedulerDO.getDsId() == null || schedulerDO.getDsId() < 1) {

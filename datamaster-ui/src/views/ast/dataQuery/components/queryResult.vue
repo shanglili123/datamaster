@@ -17,7 +17,11 @@
 
         <!-- 动态生成列 -->
         <template v-for="column in callData.columnList" :key="column">
-          <el-table-column :prop="column" :label="column" align="center" :min-width="180" :show-overflow-tooltip="{effect: 'light'}" />
+          <el-table-column :label="column" align="center" :min-width="180" :show-overflow-tooltip="{effect: 'light'}">
+            <template #default="scope">
+              {{ formatCellValue(scope.row[column]) }}
+            </template>
+          </el-table-column>
         </template>
 
         <!-- 如果没有数据时，显示暂无记录 -->
@@ -93,7 +97,7 @@ async function handleQuery() {
   try {
     const response = await executeSqlQuery(callData.value);
     const { data } = response;
-    const dataList = Array.isArray(data.data) ? [...data.data] : [];
+    const dataList = Array.isArray(data.data) ? data.data.map(removeInternalColumns) : [];
     const columnList = dataList.length > 0 ? Object.keys(dataList[0]) : [];
     callData.value.dataList = dataList;
     callData.value.columnList = columnList;
@@ -103,6 +107,26 @@ async function handleQuery() {
   } finally {
     loading.value = false;
   }
+}
+
+function removeInternalColumns(row) {
+  if (!row || typeof row !== "object") {
+    return row;
+  }
+  const result = { ...row };
+  delete result.ROW_ID;
+  delete result.__row_number__;
+  return result;
+}
+
+function formatCellValue(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return value;
 }
 
 const closeDialog = () => {

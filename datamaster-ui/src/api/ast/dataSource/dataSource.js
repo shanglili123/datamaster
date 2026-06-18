@@ -44,6 +44,15 @@ export function listDaDatasourceByProjectCode(query) {
     });
 }
 
+// 数据查询数据源列表
+export function listQueryDatasource(query) {
+    return request({
+        url: '/ast/dataSource/query/list',
+        method: 'get',
+        params: query
+    });
+}
+
 // 查询研发模块的数据源列表
 export function noDppAdd(query) {
     return request({

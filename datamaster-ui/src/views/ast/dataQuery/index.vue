@@ -37,7 +37,7 @@
 
 <script setup name="DataQuery">
 import { ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
 import Editor from "@/components/SqlEditor/editor/index1.vue";
 import TableInfoDialog from ".//components/queryResult.vue";
 import DeptTree from "@/components/DeptTree/lazy";
@@ -45,12 +45,10 @@ import {
   getColumnByAssetId,
 } from '@/api/col/task/index.js';
 import {
-  listDaDatasource
+  listQueryDatasource,
 } from '@/api/ast/dataSource/dataSource';
 import {
   tableList,
-  getDaDatasourceList,
-  columnsList,
 } from "@/api/std/model/model";
 import { executeSqlQuery } from "@/api/ast/dataSource/dataSource";
 import { encrypt } from "@/utils/aesEncrypt";
@@ -72,28 +70,40 @@ const TablesByDataSource = ref([]); // 树顶级为数据源节点
 
 const editorRef = ref(null);
 const nodeData = ref({ name: "", taskConfig: {} });
+
+function parseDatasourceConfig(datasourceConfig) {
+  if (!datasourceConfig || !datasourceConfig.trim()) {
+    return {};
+  }
+  try {
+    return JSON.parse(datasourceConfig);
+  } catch (error) {
+    console.warn("数据源配置不是合法 JSON，已跳过附加库名信息", datasourceConfig, error);
+    return {};
+  }
+}
+
 // 1. 获取数据源列表，构造树根节点（数据源）
 const getDatasourcesTree = async () => {
   loading.value = true;
   try {
-    const res = await listDaDatasource({
+    const res = await listQueryDatasource({
       pageSize: 9999,
       datasourceType: "DM8,Oracle11,MySql,Oracle,Kingbase8,Hive,Doris,SQL_Server,SQL_Server2008,PostgreSQL",
     });
-    TablesByDataSource.value = res.data.rows.map((ds) => ({
-      id: ds.id,
-      name: ds.datasourceName,
-      isLeaf: false,
-      children: [],
-      dbname: ds?.datasourceConfig && ds.datasourceConfig.trim()
-        ? JSON.parse(ds.datasourceConfig).dbname
-        : undefined,
-      sid: ds?.datasourceConfig && ds.datasourceConfig.trim()
-        ? JSON.parse(ds.datasourceConfig).sid
-        : undefined,
-      datasourceType: ds.datasourceType,
-      level: 1
-    }));
+    TablesByDataSource.value = res.data.rows.map((ds) => {
+      const datasourceConfig = parseDatasourceConfig(ds.datasourceConfig);
+      return {
+        id: ds.id,
+        name: ds.datasourceName,
+        isLeaf: false,
+        children: [],
+        dbname: datasourceConfig.dbname,
+        sid: datasourceConfig.sid,
+        datasourceType: ds.datasourceType,
+        level: 1
+      };
+    });
     console.log("🚀 ~ getDatasourcesTree ~ res.data.rows:", res.data.rows)
   } finally {
     loading.value = false;

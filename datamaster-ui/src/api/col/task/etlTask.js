@@ -205,7 +205,7 @@ export function createTaskTempTableByExcel2(data) {
 
 export function getDaDatasourceList(query) {
   return request({
-    url: '/ast/dataSource/getDaDatasourceList',
+        url: '/ast/dataSource/getDatasourceList',
     method: 'get',
     params: query
   })

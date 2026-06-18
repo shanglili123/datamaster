@@ -5,9 +5,11 @@ package com.datamaster.module.collector.utils.ds.component;
 import com.datamaster.common.database.utils.MD5Util;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
 import com.datamaster.common.exception.ServiceException;
+import com.datamaster.module.collector.utils.model.DsResource;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +51,22 @@ public class ProcedureComponent implements ComponentItem {
         taskParams.put("postStatements", params.getOrDefault("postStatements", new ArrayList<>()));
         taskParams.put("displayRows", params.getOrDefault("displayRows", 10));
         return taskParams;
+    }
+
+    @Override
+    public Map<String, Object> parse2(String nodeCode, Integer nodeVersion, TaskComponentTypeEnum componentType, Map<String, Object> taskParams, String resourceUrl, List<DsResource> resourceList) {
+        Map<String, Object> node = mapNode(nodeCode, nodeVersion, componentType);
+        Map<String, Object> parameter = new LinkedHashMap<>();
+        parameter.put("localParams", taskParams.getOrDefault("localParams", new ArrayList<>()));
+        parameter.put("resourceList", taskParams.getOrDefault("resourceList", new ArrayList<>()));
+        parameter.put("type", taskParams.getOrDefault("__dsDatasourceType", ""));
+        parameter.put("datasource", taskParams.getOrDefault("__dsDatasourceId", ""));
+        parameter.put("method", taskParams.getOrDefault("sql", ""));
+        parameter.put("preStatements", taskParams.getOrDefault("preStatements", new ArrayList<>()));
+        parameter.put("postStatements", taskParams.getOrDefault("postStatements", new ArrayList<>()));
+        parameter.put("displayRows", taskParams.getOrDefault("displayRows", 10));
+        node.put("parameter", parameter);
+        return node;
     }
 
     @Override
