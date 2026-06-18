@@ -13,10 +13,13 @@
             <template v-slot:item="{ element, index }">
               <div class="draggable-item fixed-height">
                 <div class="custom-draggable-item">
-                  <el-checkbox class="checkbox" v-model="element.isChecked" @change="handleCheckedChange(index)"
-                    :disabled="info">
-                    <span class="column-name">{{ element.columnName }}</span>
-                  </el-checkbox>
+                  <el-checkbox v-model="element.isChecked" @change="handleCheckedChange(index)"
+                    :disabled="info" class="checkbox-left" />
+                  <el-input v-if="!info" v-model="element.columnName" size="small" class="name-input" />
+                  <span v-else class="column-name">{{ element.columnName }}</span>
+                  <el-button v-if="!info" type="danger" link size="small" @click.stop="deleteRow(index)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
                   <img src="../../../../../assets/system/images/dpp/mop.png" class="icon" />
                 </div>
               </div>
@@ -50,15 +53,16 @@
                 <div class="custom-draggable-item">
                   <!-- 使用 tooltip 提示禁用原因 -->
                   <el-tooltip v-if="type === 'hdfs'" content="HDFS 类型不可勾选" placement="top">
-                    <el-checkbox class="checkbox" v-model="element.isChecked" :disabled="true">
-                      <span class="column-name">{{ element.columnName }}</span>
-                    </el-checkbox>
+                    <el-checkbox v-model="element.isChecked" :disabled="true" class="checkbox-left" />
                   </el-tooltip>
                   <!-- 正常复选框 -->
-                  <el-checkbox v-else class="checkbox" v-model="element.isChecked" @change="handleCheckedChange(index)"
-                    :disabled="info">
-                    <span class="column-name">{{ element.columnName }}</span>
-                  </el-checkbox>
+                  <el-checkbox v-else v-model="element.isChecked" @change="handleCheckedChange(index)"
+                    :disabled="info" class="checkbox-left" />
+                  <el-input v-if="!info" v-model="element.columnName" size="small" class="name-input" />
+                  <span v-else class="column-name">{{ element.columnName }}</span>
+                  <el-button v-if="!info" type="danger" link size="small" @click.stop="deleteRow(index)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
 
                   <!-- 图标 -->
                   <img src="../../../../../assets/system/images/dpp/mop.png" class="icon" />
@@ -68,6 +72,11 @@
           </draggable>
         </el-col>
 
+        <el-col :span="24">
+          <div style="text-align:center;margin-top:12px">
+            <el-button v-if="!info" type="primary" size="small" native-type="button" @click="addRow">+ 添加一行</el-button>
+          </div>
+        </el-col>
       </el-row>
     </el-form>
   </div>
@@ -193,6 +202,17 @@ const handleCheckedChange = (index) => {
   // 当单个项选中状态变化时，leftSelectAll 和 rightSelectAll 会自动通过计算属性更新
 };
 
+function addRow() {
+  const now = Date.now();
+  readerForm.value.tableFields = [...readerForm.value.tableFields, { columnName: '', isChecked: true, id: now }];
+  readerForm.value.toColumnsList = [...readerForm.value.toColumnsList, { columnName: '', isChecked: true, id: now + 1 }];
+}
+
+function deleteRow(index) {
+  readerForm.value.tableFields.splice(index, 1);
+  readerForm.value.toColumnsList.splice(index, 1);
+}
+
 defineExpose({
   getColumns: () => ({
     fromColumns: readerForm.value.tableFields,
@@ -235,13 +255,33 @@ defineExpose({
   height: 100%;
 }
 
-.checkbox {
-  width: 100%;
+.checkbox-left {
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.name-input {
+  flex: 1;
+  min-width: 0;
+}
+.name-input :deep(.el-input__wrapper) {
+  padding: 0 4px;
+  box-shadow: none !important;
+  border: 1px solid transparent;
+}
+.name-input :deep(.el-input__wrapper:hover) {
+  border-color: #dcdfe6;
+}
+.name-input :deep(.el-input__inner) {
+  padding: 0;
+  font-size: 12px;
+  height: 28px;
 }
 
 .icon {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 /* 中间箭头列 */
@@ -295,4 +335,3 @@ defineExpose({
   transition: opacity 0.2s;
 }
 </style>
-
