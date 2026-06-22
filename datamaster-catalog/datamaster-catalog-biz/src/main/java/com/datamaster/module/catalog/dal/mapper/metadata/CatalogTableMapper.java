@@ -95,7 +95,7 @@ public interface CatalogTableMapper extends BaseMapperX<CatalogTableDO> {
         MPJLambdaWrapperX<CatalogTableDO> lambdaWrapperX = new MPJLambdaWrapperX<>();
         lambdaWrapperX.selectAll(CatalogTableDO.class)
                 .select("t2.CRON_EXPRESSION as cronExpression")
-                .leftJoin("Catalog_TASK_SCHEDULER t2 on t.TASK_ID= t2.TASK_ID and t2.DEL_FLAG = '0'");
+                .leftJoin("CAT_TASK_SCHEDULER t2 on t.TASK_ID= t2.TASK_ID and t2.DEL_FLAG = '0'");
         lambdaWrapperX
                 .eq(reqVO.getTaskId() != null , CatalogTableDO::getTaskId, reqVO.getTaskId())
                 .apply(selfScopeWithUnassigned, "(t.BUSINESS_LEADER = {0} OR (t.BUSINESS_LEADER IS NULL AND t.RESPONSIBLE_DEPT IS NULL))", reqVO.getBusinessLeader())
@@ -122,7 +122,7 @@ public interface CatalogTableMapper extends BaseMapperX<CatalogTableDO> {
         lambdaWrapperX.selectAll(CatalogTableDO.class)
                 .select("t2.CRON_EXPRESSION as cronExpression")
                 .select("COALESCE(c1.columnCount, 0) as columnCount")
-                .leftJoin("Catalog_TASK_SCHEDULER t2 on t.TASK_ID = t2.TASK_ID and t2.DEL_FLAG = '0'")
+                .leftJoin("CAT_TASK_SCHEDULER t2 on t.TASK_ID = t2.TASK_ID and t2.DEL_FLAG = '0'")
                 .leftJoin("(SELECT TABLE_ID, COUNT(1) AS columnCount FROM Catalog_COLUMN WHERE DEL_FLAG = '0' GROUP BY TABLE_ID) c1 on c1.TABLE_ID = t.ID");
 
         lambdaWrapperX

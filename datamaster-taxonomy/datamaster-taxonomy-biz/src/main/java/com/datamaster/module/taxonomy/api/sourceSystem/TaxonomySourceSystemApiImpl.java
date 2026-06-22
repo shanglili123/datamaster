@@ -27,10 +27,12 @@ public class TaxonomySourceSystemApiImpl implements ITaxonomySourceSystemApiServ
 
     @Override
     public List<TaxonomySourceSystemRespDTO> getValidSourceSystems() {
-        // 获取所有有效的来源系统
-        List<TaxonomySourceSystemDO> validSourceSystems = TaxonomySourceSystemService.getAttSourceSystemListByValidFlag(true);
-        
-        // 转换为 DTO 对象
+        return getValidSourceSystems(null);
+    }
+
+    @Override
+    public List<TaxonomySourceSystemRespDTO> getValidSourceSystems(Long projectId) {
+        List<TaxonomySourceSystemDO> validSourceSystems = TaxonomySourceSystemService.getValidSourceSystemList(projectId);
         return validSourceSystems.stream()
                 .map(sourceSystem -> BeanUtils.toBean(sourceSystem, TaxonomySourceSystemRespDTO.class))
                 .collect(Collectors.toList());

@@ -33,7 +33,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectCatalogTaskSchedulerVo"/>
         <where>
             <if test="taskId != null "> and TASK_ID = #{taskId}</if>
-            <if test="jobId != null  and jobId != ''"> and JOB_ID = #{jobId}</if>
+            <if test="jobId != null"> and JOB_ID = #{jobId}</if>
             <if test="startTime != null "> and START_TIME = #{startTime}</if>
             <if test="endTime != null "> and END_TIME = #{endTime}</if>
             <if test="timezoneId != null  and timezoneId != ''"> and TIMEZONE_ID = #{timezoneId}</if>

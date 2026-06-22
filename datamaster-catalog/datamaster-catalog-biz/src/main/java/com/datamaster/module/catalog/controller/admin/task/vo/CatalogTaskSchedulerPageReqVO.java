@@ -23,7 +23,7 @@ public class CatalogTaskSchedulerPageReqVO extends PageParam {
     private Long taskId;
 
     @Schema(description = "调度器id", example = "")
-    private String jobId;
+    private Long jobId;
 
     @Schema(description = "开始时间", example = "")
     private Date startTime;

@@ -119,4 +119,12 @@ public interface ICatalogTaskService extends IService<CatalogTaskDO> {
      * @return 树形结构列表
      */
     List<CatalogTaskSourceTreeRespVO> getSourceSystemTree();
+
+    /**
+     * 获取指定项目下的来源系统树形结构，包含历史未绑定项目的采集任务。
+     *
+     * @param projectId 项目ID
+     * @return 树形结构列表
+     */
+    List<CatalogTaskSourceTreeRespVO> getSourceSystemTree(Long projectId);
 }

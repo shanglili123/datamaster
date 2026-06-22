@@ -18,4 +18,12 @@ public interface ITaxonomySourceSystemApiService {
      * @return 有效来源系统列表
      */
     List<TaxonomySourceSystemRespDTO> getValidSourceSystems();
+
+    /**
+     * 获取指定项目下的有效来源系统列表，包含未绑定项目的通用来源系统。
+     *
+     * @param projectId 项目ID
+     * @return 有效来源系统列表
+     */
+    List<TaxonomySourceSystemRespDTO> getValidSourceSystems(Long projectId);
 }

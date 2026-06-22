@@ -146,7 +146,7 @@ public class CatalogTaskRespVO implements Serializable {
      * 调度状态
      */
     @TableField(exist = false)
-    private String jobId;
+    private Long jobId;
 
     /**
      * 采集范围

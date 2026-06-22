@@ -29,7 +29,7 @@ public class CatalogTaskSchedulerDO extends BaseEntity {
     private Long taskId;
 
     /** 调度器ID */
-    private String jobId;
+    private Long jobId;
 
     /** DolphinScheduler任务编码（用于API调用） */
     private String taskCode;

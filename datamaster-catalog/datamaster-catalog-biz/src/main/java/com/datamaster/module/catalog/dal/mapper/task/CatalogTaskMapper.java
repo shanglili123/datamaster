@@ -38,7 +38,7 @@ public interface CatalogTaskMapper extends BaseMapperX<CatalogTaskDO> {
                         ,"t5.NICK_NAME AS personChargeName"
                 )
                 .leftJoin("TAX_SOURCE_SYSTEM t2 on t.SOURCE_SYSTEM_ID = t2.ID AND t2.DEL_FLAG = '0'")
-                .leftJoin("Catalog_TASK_SCHEDULER t3 ON t.id = t3.task_id AND t3.DEL_FLAG = '0'")
+                .leftJoin("CAT_TASK_SCHEDULER t3 ON t.id = t3.task_id AND t3.DEL_FLAG = '0'")
                 .leftJoin("AST_DATASOURCE t4 ON t.datasource_id = t4.id AND t4.DEL_FLAG = '0'")
                 .leftJoin("SYSTEM_USER t5 ON t.LEADER = t5.USER_ID AND t5.DEL_FLAG = '0'")
                 .eq(reqVO.getId() != null,CatalogTaskDO::getId, reqVO.getId())
@@ -59,9 +59,20 @@ public interface CatalogTaskMapper extends BaseMapperX<CatalogTaskDO> {
                         CatalogTaskDO::getCreateTime, reqVO.getCreateTimeStart())
                 .le(reqVO.getCreateTimeEnd() != null,
                         CatalogTaskDO::getCreateTime, reqVO.getCreateTimeEnd())
-                .eq(reqVO.getProjectId() != null, CatalogTaskDO::getProjectId, reqVO.getProjectId())
+                .and(reqVO.getProjectId() != null, wrapper -> wrapper
+                        .eq(CatalogTaskDO::getProjectId, reqVO.getProjectId())
+                        .or()
+                        .isNull(CatalogTaskDO::getProjectId))
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, CatalogTaskDO.class, lambdaWrapper);
+    }
+
+    default List<CatalogTaskDO> selectListByProjectId(Long projectId) {
+        return selectList(Wrappers.lambdaQuery(CatalogTaskDO.class)
+                .and(projectId != null, wrapper -> wrapper
+                        .eq(CatalogTaskDO::getProjectId, projectId)
+                        .or()
+                        .isNull(CatalogTaskDO::getProjectId)));
     }
 
 

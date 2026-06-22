@@ -32,8 +32,7 @@ public class CatalogTaskSchedulerSaveReqVO extends BaseEntity {
     private Long taskId;
 
     @Schema(description = "调度器ID", example = "")
-    @Size(max = 256, message = "调度器ID长度不能超过256个字符")
-    private String jobId;
+    private Long jobId;
 
     @Schema(description = "DolphinScheduler任务编码（用于API调用）", example = "")
     @Size(max = 256, message = "任务编码长度不能超过256个字符")

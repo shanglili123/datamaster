@@ -2,11 +2,11 @@
   <div class="app-container" ref="app-container">
 
     <el-container>
-      <!-- <SourceSystemTree
+      <SourceSystemTree
         ref="sourceSystemTreeRef"
         @node-click="handleNodeClick"
         @data-loaded="handleTreeDataLoaded"
-      /> -->
+      />
       <el-main class="main-content">
         <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
           <template #search>
@@ -176,9 +176,7 @@
               :label="item.datasourceName"
               :value="item.id"
               :disabled="
-                !['MySql', 'Oracle11', 'Oracle', 'PostgreSQL', 'Hive'].includes(
-                  item.datasourceType
-                )
+                !COLLECT_DATASOURCE_TYPES.includes(item.datasourceType)
               "
             >
             </el-option>
@@ -470,8 +468,8 @@ const store = reactive({
 });
 
 function getAllSourceSystems() {
-  listValidSourceSystem().then((res) => {
-    store.sourceSystems = res.data;
+  return listValidSourceSystem().then((res) => {
+    store.sourceSystems = res.data || [];
     // 扁平化数据用于查找
     const flatten = (list) => {
       if (!Array.isArray(list)) return [];
@@ -484,7 +482,7 @@ function getAllSourceSystems() {
       });
       return result;
     };
-    store.flatSourceSystems = flatten(res.data);
+    store.flatSourceSystems = flatten(store.sourceSystems);
   });
 }
 
@@ -696,6 +694,23 @@ const dialog = reactive({
   },
 });
 
+const COLLECT_DATASOURCE_TYPES = [
+  "DM",
+  "DM8",
+  "MySql",
+  "MYSQL",
+  "Oracle11",
+  "Oracle",
+  "ORACLE11",
+  "ORACLE",
+  "PostgreSQL",
+  "POSTGRESQL",
+  "Hive",
+  "HIVE",
+  "Kingbase8",
+  "KINGBASE8",
+];
+
 // 调度周期弹窗
 const cronDialog = reactive({
   open: false,
@@ -717,14 +732,28 @@ const getDomainPath = computed(() => {
 
 // 获取数据源列表
 function getDatasources() {
-  listDaDatasource().then((res) => {
-    res.data.rows.forEach((item) => {
-      item.datasourceConfig = item.datasourceConfig
-        ? JSON.parse(item.datasourceConfig)
-        : {};
+  return listDaDatasource().then((res) => {
+    const rows = res.data?.rows || [];
+    rows.forEach((item) => {
+      item.datasourceConfig = parseDatasourceConfig(item.datasourceConfig);
     });
-    store.datasources = res.data.rows;
+    store.datasources = rows;
   });
+}
+
+function parseDatasourceConfig(config) {
+  if (!config) return {};
+  if (typeof config === "object") return config;
+  try {
+    return JSON.parse(config);
+  } catch (e) {
+    try {
+      return JSON.parse(config.replace(/\\"/g, '"'));
+    } catch (err) {
+      console.error("数据源配置解析失败", err);
+      return {};
+    }
+  }
 }
 
 // 搜索按钮操作
@@ -759,6 +788,7 @@ function handleUserChange(id) {
 // 切换数据源
 function handleDatasourceChange(id, falg = true) {
   const data = store.datasources.find((item) => item.id === id);
+  if (!data) return;
   dialog.form.ip = data.ip;
   dialog.form.port = data.port;
   dialog.form.username = data.datasourceConfig?.username;
@@ -825,6 +855,8 @@ function handleAddClick() {
   dialog.title = "新增采集任务";
   dialog.open = true;
   dialog.func = addTask;
+  getAllSourceSystems();
+  getDatasources();
 }
 
 // 取消新增/修改
@@ -851,6 +883,7 @@ async function handleConfirmClick() {
   }
   try {
     await dialog.func(params);
+    sourceSystemTreeRef.value?.getTreeData?.();
     handleCancelClick();
     tableRef.value.getList();
   } catch (err) {

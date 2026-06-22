@@ -30,7 +30,7 @@ public class CatalogTaskSchedulerRespVO implements Serializable {
 
     @Excel(name = "调度器id")
     @Schema(description = "调度器ID", example = "")
-    private String jobId;
+    private Long jobId;
 
     @Excel(name = "DolphinScheduler任务编码")
     @Schema(description = "DolphinScheduler任务编码（用于API调用）", example = "")

@@ -204,7 +204,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
         //存储调度信息
         CatalogTaskSchedulerSaveReqVO schedulerSaveReqVO = new CatalogTaskSchedulerSaveReqVO(dictType);
-        schedulerSaveReqVO.setJobId(String.valueOf(schedulerId));
+        schedulerSaveReqVO.setJobId(schedulerId);
         schedulerSaveReqVO.setTaskCode(taskCode);  // 设置任务编码到调度表
         schedulerSaveReqVO.setStatus(SchedulerStatusEnum.DISABLED.getValue());
         CatalogTaskSchedulerService.createCatalogTaskScheduler(schedulerSaveReqVO);
@@ -253,8 +253,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
                     // 更新 DolphinScheduler 调度器
                     String projectCode = resolveProjectCode(updateObj, scheduler);
                     Long newSchedulerId = CatalogTaskDolphinSchedulerService.updateScheduler(
-                            projectCode, Long.parseLong(scheduler.getJobId()), taskCode, cronExpression);
-                    schedulerSaveReqVO.setJobId(String.valueOf(newSchedulerId));
+                            projectCode, scheduler.getJobId(), taskCode, cronExpression);
+                    schedulerSaveReqVO.setJobId(newSchedulerId);
                     schedulerSaveReqVO.setProjectId(updateObj.getProjectId());
                     schedulerSaveReqVO.setProjectCode(projectCode);
                 }
@@ -300,8 +300,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             // 先下线任务和调度器
             if (task != null && scheduler != null && StringUtils.isNotEmpty(scheduler.getTaskCode())) {
                 try {
-                    Long schedulerId = StringUtils.isNotEmpty(scheduler.getJobId()) ?
-                            Long.parseLong(scheduler.getJobId()) : null;
+                    Long schedulerId = scheduler.getJobId();
                     String projectCode = resolveProjectCode(task, scheduler);
                     CatalogTaskDolphinSchedulerService.offlineTaskAndScheduler(projectCode, scheduler.getTaskCode(), schedulerId);
                 } catch (Exception e) {
@@ -521,8 +520,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         CatalogTaskSchedulerDO scheduler = CatalogTaskSchedulerService.getCatalogTaskSchedulerBytaskId(CatalogTask.getId());
 
         if (scheduler != null && StringUtils.isNotEmpty(scheduler.getTaskCode())) {
-            Long schedulerId = StringUtils.isNotEmpty(scheduler.getJobId()) ?
-                    Long.parseLong(scheduler.getJobId()) : null;
+            Long schedulerId = scheduler.getJobId();
 
             // 下线调度器（禁用定时触发）
             if (SchedulerStatusEnum.isDisabled(CatalogTask.getStatus())) {
@@ -2015,14 +2013,19 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
     @Override
     public List<CatalogTaskSourceTreeRespVO> getSourceSystemTree() {
+        return getSourceSystemTree(null);
+    }
+
+    @Override
+    public List<CatalogTaskSourceTreeRespVO> getSourceSystemTree(Long projectId) {
         // 1. 获取所有有效的来源系统
-        List<TaxonomySourceSystemRespDTO> validSourceSystems = attSourceSystemApiService.getValidSourceSystems();
+        List<TaxonomySourceSystemRespDTO> validSourceSystems = attSourceSystemApiService.getValidSourceSystems(projectId);
         if (CollectionUtils.isEmpty(validSourceSystems)) {
             return Lists.newArrayList();
         }
 
         // 2. 查询所有任务，用于构建数据源和数据库节点
-        List<CatalogTaskDO> allTasks = CatalogTaskMapper.selectList();
+        List<CatalogTaskDO> allTasks = CatalogTaskMapper.selectListByProjectId(projectId);
         Map<Long, List<CatalogTaskDO>> tasksBySourceSystemMap = Maps.newHashMap();
         List<AssetsDatasourceRespDTO> daDatasourceRespDTOList = Lists.newArrayList();
         if (CollectionUtils.isNotEmpty(allTasks)) {

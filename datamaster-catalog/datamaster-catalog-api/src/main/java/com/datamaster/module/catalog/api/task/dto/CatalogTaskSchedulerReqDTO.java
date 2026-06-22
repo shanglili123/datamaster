@@ -22,7 +22,7 @@ public class CatalogTaskSchedulerReqDTO {
     private Long taskId;
 
     /** 调度器id */
-    private String jobId;
+    private Long jobId;
 
     /** 开始时间 */
     private Date startTime;
