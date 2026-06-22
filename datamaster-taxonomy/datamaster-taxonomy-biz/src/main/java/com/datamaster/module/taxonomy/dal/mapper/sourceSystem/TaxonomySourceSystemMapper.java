@@ -4,6 +4,7 @@ package com.datamaster.module.taxonomy.dal.mapper.sourceSystem;
 
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import org.apache.commons.lang3.StringUtils;
+import com.datamaster.mybatis.config.MasterDataSourceConfig;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.taxonomy.controller.admin.sourceSystem.vo.TaxonomySourceSystemPageReqVO;
 import com.datamaster.module.taxonomy.dal.dataobject.sourceSystem.TaxonomySourceSystemDO;
@@ -21,6 +22,9 @@ import java.util.Set;
  */
 public interface TaxonomySourceSystemMapper extends BaseMapperX<TaxonomySourceSystemDO> {
 
+    static String userIdAsString(String alias) {
+        return "CAST(" + alias + ".USER_ID AS " + ("mysql".equals(MasterDataSourceConfig.getDatabaseType()) ? "CHAR" : "VARCHAR") + ")";
+    }
 
     default PageResult<TaxonomySourceSystemDO> selectPage(TaxonomySourceSystemPageReqVO reqVO) {
         // 定义排序的字段（防止 SQL 注入，与数据库字段名称一致）
@@ -28,12 +32,15 @@ public interface TaxonomySourceSystemMapper extends BaseMapperX<TaxonomySourceSy
         MPJLambdaWrapper<TaxonomySourceSystemDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.selectAll(TaxonomySourceSystemDO.class)
                 .select("t2.NICK_NAME AS responsiblePersonName,t3.NICK_NAME AS contactPersonName")
-                .leftJoin("SYSTEM_USER t2 on t.RESPONSIBLE_PERSON = t2.USER_ID AND t2.DEL_FLAG = '0'")
-                .leftJoin("SYSTEM_USER t3 on t.CONTACT_PERSON = t3.USER_ID AND t3.DEL_FLAG = '0'")
+                .leftJoin("SYSTEM_USER t2 on t.RESPONSIBLE_PERSON = " + userIdAsString("t2") + " AND t2.DEL_FLAG = '0'")
+                .leftJoin("SYSTEM_USER t3 on t.CONTACT_PERSON = " + userIdAsString("t3") + " AND t3.DEL_FLAG = '0'")
                 .like(StringUtils.isNotBlank(reqVO.getName()), TaxonomySourceSystemDO::getName, reqVO.getName())
                 .eq(StringUtils.isNotBlank(reqVO.getType()), TaxonomySourceSystemDO::getType, reqVO.getType())
                 .eq(reqVO.getValidFlag() != null, "valid_flag", Boolean.TRUE.equals(reqVO.getValidFlag()) ? "1" : "0")
-                .eq(reqVO.getProjectId() != null, TaxonomySourceSystemDO::getProjectId, reqVO.getProjectId())
+                .and(reqVO.getProjectId() != null, wrapper -> wrapper
+                        .eq(TaxonomySourceSystemDO::getProjectId, reqVO.getProjectId())
+                        .or()
+                        .isNull(TaxonomySourceSystemDO::getProjectId))
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, TaxonomySourceSystemDO.class, lambdaWrapper);
     }
@@ -42,8 +49,8 @@ public interface TaxonomySourceSystemMapper extends BaseMapperX<TaxonomySourceSy
         MPJLambdaWrapper<TaxonomySourceSystemDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.selectAll(TaxonomySourceSystemDO.class)
                 .select("t2.NICK_NAME AS responsiblePersonName,t3.NICK_NAME AS contactPersonName")
-                .leftJoin("SYSTEM_USER t2 on t.RESPONSIBLE_PERSON = t2.USER_ID AND t2.DEL_FLAG = '0'")
-                .leftJoin("SYSTEM_USER t3 on t.CONTACT_PERSON = t3.USER_ID AND t3.DEL_FLAG = '0'")
+                .leftJoin("SYSTEM_USER t2 on t.RESPONSIBLE_PERSON = " + userIdAsString("t2") + " AND t2.DEL_FLAG = '0'")
+                .leftJoin("SYSTEM_USER t3 on t.CONTACT_PERSON = " + userIdAsString("t3") + " AND t3.DEL_FLAG = '0'")
                 .eq(TaxonomySourceSystemDO::getId, id);
         return selectOne(lambdaWrapper);
     }

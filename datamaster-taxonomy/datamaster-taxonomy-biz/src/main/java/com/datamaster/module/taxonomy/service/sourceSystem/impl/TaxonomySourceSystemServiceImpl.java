@@ -85,6 +85,18 @@ public class TaxonomySourceSystemServiceImpl  extends ServiceImpl<TaxonomySource
     }
 
     @Override
+    public List<TaxonomySourceSystemDO> getValidSourceSystemList(Long projectId) {
+        LambdaQueryWrapperX<TaxonomySourceSystemDO> wrapper = new LambdaQueryWrapperX<TaxonomySourceSystemDO>()
+                .eq(TaxonomySourceSystemDO::getValidFlag, "1");
+        if (projectId != null) {
+            wrapper.and(item -> item.eq(TaxonomySourceSystemDO::getProjectId, projectId)
+                    .or()
+                    .isNull(TaxonomySourceSystemDO::getProjectId));
+        }
+        return TaxonomySourceSystemMapper.selectList(wrapper);
+    }
+
+    @Override
     public Map<Long, TaxonomySourceSystemDO> getAttSourceSystemMap() {
         List<TaxonomySourceSystemDO> TaxonomySourceSystemList = TaxonomySourceSystemMapper.selectList();
         return TaxonomySourceSystemList.stream()

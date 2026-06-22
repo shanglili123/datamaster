@@ -54,10 +54,9 @@ public class TaxonomySourceSystemController extends BaseController {
     }
 
     @Operation(summary = "查询来源系统列表")
-    @PreAuthorize("@ss.hasPermi('att:sourcesystem:list')")
     @GetMapping("/listValid")
-    public CommonResult<List<TaxonomySourceSystemRespVO>> list() {
-        List<TaxonomySourceSystemDO> TaxonomySourceSystemList = TaxonomySourceSystemService.getAttSourceSystemListByValidFlag(true);
+    public CommonResult<List<TaxonomySourceSystemRespVO>> listValid(TaxonomySourceSystemPageReqVO TaxonomySourceSystem) {
+        List<TaxonomySourceSystemDO> TaxonomySourceSystemList = TaxonomySourceSystemService.getValidSourceSystemList(TaxonomySourceSystem.getProjectId());
         return CommonResult.success(BeanUtils.toBean(TaxonomySourceSystemList, TaxonomySourceSystemRespVO.class));
     }
 

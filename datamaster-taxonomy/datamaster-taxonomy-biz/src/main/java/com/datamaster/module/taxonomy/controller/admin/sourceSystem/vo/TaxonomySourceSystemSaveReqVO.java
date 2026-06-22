@@ -49,6 +49,12 @@ public class TaxonomySourceSystemSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "对接人长度不能超过256个字符")
     private String contactPerson;
 
+    @Schema(description = "项目ID")
+    private Long projectId;
+
+    @Schema(description = "项目编码")
+    private String projectCode;
+
     @Schema(description = "备注", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
     private String remark;

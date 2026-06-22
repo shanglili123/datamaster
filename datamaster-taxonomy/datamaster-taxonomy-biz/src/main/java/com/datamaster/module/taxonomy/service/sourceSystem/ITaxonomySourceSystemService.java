@@ -74,6 +74,14 @@ public interface ITaxonomySourceSystemService extends IService<TaxonomySourceSys
     public List<TaxonomySourceSystemDO> getAttSourceSystemListByValidFlag(Boolean validFlag);
 
     /**
+     * 获得当前项目可用的有效来源系统列表
+     *
+     * @param projectId 项目 ID
+     * @return 来源系统列表
+     */
+    List<TaxonomySourceSystemDO> getValidSourceSystemList(Long projectId);
+
+    /**
      * 获得全部来源系统 Map
      *
      * @return 来源系统 Map
