@@ -7,6 +7,7 @@ import com.datamaster.common.database.DataSourceFactory;
 import com.datamaster.common.database.DbQuery;
 import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.core.DbColumn;
+import com.datamaster.common.database.core.PageResult;
 import com.datamaster.quality.controller.quality.vo.CheckErrorDataReqDTO;
 import com.datamaster.quality.dal.dataobject.quality.CheckErrorData;
 import org.apache.commons.collections4.MapUtils;
@@ -139,10 +140,10 @@ public class JdbcErrorDataStorage implements ErrorDataStorage {
             }
 
             String querySql = "SELECT * FROM " + fullTable + where + " ORDER BY time DESC";
-            var pageResult = dbQuery.queryByPage(querySql, params,
+            PageResult<Map<String, Object>> pageResult = dbQuery.queryByPage(querySql, params,
                     pageRequest.getOffset(), pageRequest.getPageSize(), 0);
 
-            List<CheckErrorData> content = pageResult.getRows().stream()
+            List<CheckErrorData> content = pageResult.getData().stream()
                     .map(this::mapRowToCheckErrorData)
                     .collect(Collectors.toList());
 

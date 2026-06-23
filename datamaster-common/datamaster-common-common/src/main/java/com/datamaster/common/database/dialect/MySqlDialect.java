@@ -225,7 +225,7 @@ public class MySqlDialect extends AbstractDbDialect {
 //                    } else {
 //                        sql.append(" DEFAULT ").append(column.getDataDefault());
 //                    }
-                } else if (column.getNullable() && !column.getColKey()) {//不存在默认值并且允许为NULL
+                } else if (Boolean.TRUE.equals(column.getNullable()) && !Boolean.TRUE.equals(column.getColKey())) {//不存在默认值并且允许为NULL
                     sql.append(" DEFAULT NULL");
                 }
 
@@ -235,7 +235,7 @@ public class MySqlDialect extends AbstractDbDialect {
                 }
 
                 // 加入字段到主键列表，如果是主键
-                if (column.getColKey()) {
+                if (Boolean.TRUE.equals(column.getColKey())) {
                     primaryKeys.add(column.getColName());
                 }
 

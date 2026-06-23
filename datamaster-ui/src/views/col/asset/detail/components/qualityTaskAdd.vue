@@ -466,7 +466,7 @@ async function submitForm() {
 }
 
 function code(obj) {
-    dppQualityTaskObjSaveReqVO.value = [...obj];
+    dppQualityTaskObjSaveReqVO.value = Array.isArray(obj) ? [...obj] : [];
     console.log("🚀 ~ code ~ dppQualityTaskObjSaveReqVO.value:", dppQualityTaskObjSaveReqVO.value)
 }
 
@@ -475,16 +475,47 @@ function getDppQualityTaskinfo(data) {
     loadingInstance.value = true;
 
     try {
+        const detail = data || {};
+        const taskObjList =
+            detail.dppQualityTaskObjSaveReqVO ||
+            detail.collectorQualityTaskObjSaveReqVO ||
+            detail.qualityTaskObjSaveReqVO ||
+            detail.CollectorQualityTaskObjSaveReqVO ||
+            detail.QualityTaskObjSaveReqVO ||
+            [];
+        const taskEvaluateList =
+            detail.dppQualityTaskEvaluateRespVOS ||
+            detail.collectorQualityTaskEvaluateRespVOS ||
+            detail.qualityTaskEvaluateRespVOS ||
+            detail.CollectorQualityTaskEvaluateRespVOS ||
+            detail.QualityTaskEvaluateRespVOS ||
+            detail.dppQualityTaskEvaluateSaveReqVO ||
+            detail.collectorQualityTaskEvaluateSaveReqVO ||
+            detail.qualityTaskEvaluateSaveReqVO ||
+            [];
         const {
-            dppQualityTaskObjSaveReqVO,//对象
-            dppQualityTaskEvaluateRespVOS,// 规则
+            dppQualityTaskObjSaveReqVO: _dppQualityTaskObjSaveReqVO,
+            collectorQualityTaskObjSaveReqVO: _collectorQualityTaskObjSaveReqVO,
+            qualityTaskObjSaveReqVO: _qualityTaskObjSaveReqVO,
+            CollectorQualityTaskObjSaveReqVO: _CollectorQualityTaskObjSaveReqVO,
+            QualityTaskObjSaveReqVO: _QualityTaskObjSaveReqVO,
+            dppQualityTaskEvaluateRespVOS: _dppQualityTaskEvaluateRespVOS,
+            collectorQualityTaskEvaluateRespVOS: _collectorQualityTaskEvaluateRespVOS,
+            qualityTaskEvaluateRespVOS: _qualityTaskEvaluateRespVOS,
+            CollectorQualityTaskEvaluateRespVOS: _CollectorQualityTaskEvaluateRespVOS,
+            QualityTaskEvaluateRespVOS: _QualityTaskEvaluateRespVOS,
+            dppQualityTaskEvaluateSaveReqVO: _dppQualityTaskEvaluateSaveReqVO,
+            collectorQualityTaskEvaluateSaveReqVO: _collectorQualityTaskEvaluateSaveReqVO,
+            qualityTaskEvaluateSaveReqVO: _qualityTaskEvaluateSaveReqVO,
             ...obj
-        } = data;
-        originList.value = dppQualityTaskEvaluateRespVOS
-        dppQualityTaskEvaluateSaveReqVO.value = dppQualityTaskEvaluateRespVOS;
-        code(dppQualityTaskObjSaveReqVO)
+        } = detail;
+        originList.value = Array.isArray(taskEvaluateList) ? [...taskEvaluateList] : []
+        dppQualityTaskEvaluateSaveReqVO.value = Array.isArray(taskEvaluateList) ? [...taskEvaluateList] : [];
+        code(taskObjList)
         Object.assign(form.value, obj);
-        form.value.contactId = Number(form.value.contactId)
+        if (form.value.contactId != null && form.value.contactId !== "") {
+            form.value.contactId = Number(form.value.contactId)
+        }
     } finally {
         loadingInstance.value = false;
     }

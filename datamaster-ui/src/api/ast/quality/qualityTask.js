@@ -72,14 +72,14 @@ export function validationValidDataSql(data) {
 //执行一次
 export function startDppQualityTask(id) {
   return request({
-    url: `/col/qualityTask//startDppQualityTask/${id}`,
+    url: `/col/qualityTask/startCollectorQualityTask/${id}`,
     method: 'put',
   })
 }
 // 任务开关
 export function updateDppQualityTaskStatus(query) {
   return request({
-    url: '/col/qualityTask/updateDppQualityTaskStatus',
+    url: '/col/qualityTask/updateCollectorQualityTaskStatus',
     method: 'post',
     data: query
   })

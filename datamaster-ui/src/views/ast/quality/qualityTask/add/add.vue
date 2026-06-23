@@ -1026,28 +1026,79 @@ async function submitForm() {
 }
 
 function code(obj) {
-  dppQualityTaskObjSaveReqVO.value = [...obj];
+  dppQualityTaskObjSaveReqVO.value = Array.isArray(obj) ? [...obj] : [];
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchQualityTaskDetail(taskId) {
+  let response = await getDppQualityTask(taskId);
+  if (!response) {
+    await sleep(150);
+    response = await getDppQualityTask(taskId);
+  }
+  return response;
 }
 
 async function getDppQualityTaskinfo() {
   loadingInstance.value = true;
   const _id = id;
   try {
-    const response = await getDppQualityTask(_id);
+    const response = await fetchQualityTaskDetail(_id);
+    if (!response) {
+      throw new Error("详情请求被取消，请重新打开配置页");
+    }
+    const detail = response.data || {};
+    const taskObjList =
+      detail.dppQualityTaskObjSaveReqVO ||
+      detail.collectorQualityTaskObjSaveReqVO ||
+      detail.qualityTaskObjSaveReqVO ||
+      detail.CollectorQualityTaskObjSaveReqVO ||
+      detail.QualityTaskObjSaveReqVO ||
+      [];
+    const taskEvaluateList =
+      detail.dppQualityTaskEvaluateRespVOS ||
+      detail.collectorQualityTaskEvaluateRespVOS ||
+      detail.qualityTaskEvaluateRespVOS ||
+      detail.CollectorQualityTaskEvaluateRespVOS ||
+      detail.QualityTaskEvaluateRespVOS ||
+      detail.dppQualityTaskEvaluateSaveReqVO ||
+      detail.collectorQualityTaskEvaluateSaveReqVO ||
+      detail.qualityTaskEvaluateSaveReqVO ||
+      [];
     const {
-      dppQualityTaskObjSaveReqVO, //对象
-      dppQualityTaskEvaluateRespVOS, // 规则
-
+      dppQualityTaskObjSaveReqVO: _dppQualityTaskObjSaveReqVO,
+      collectorQualityTaskObjSaveReqVO: _collectorQualityTaskObjSaveReqVO,
+      qualityTaskObjSaveReqVO: _qualityTaskObjSaveReqVO,
+      CollectorQualityTaskObjSaveReqVO: _CollectorQualityTaskObjSaveReqVO,
+      QualityTaskObjSaveReqVO: _QualityTaskObjSaveReqVO,
+      dppQualityTaskEvaluateRespVOS: _dppQualityTaskEvaluateRespVOS,
+      collectorQualityTaskEvaluateRespVOS: _collectorQualityTaskEvaluateRespVOS,
+      qualityTaskEvaluateRespVOS: _qualityTaskEvaluateRespVOS,
+      CollectorQualityTaskEvaluateRespVOS: _CollectorQualityTaskEvaluateRespVOS,
+      QualityTaskEvaluateRespVOS: _QualityTaskEvaluateRespVOS,
+      dppQualityTaskEvaluateSaveReqVO: _dppQualityTaskEvaluateSaveReqVO,
+      collectorQualityTaskEvaluateSaveReqVO: _collectorQualityTaskEvaluateSaveReqVO,
+      qualityTaskEvaluateSaveReqVO: _qualityTaskEvaluateSaveReqVO,
       ...obj
-    } = response.data;
-    originList.value = dppQualityTaskEvaluateRespVOS;
-    dppQualityTaskEvaluateSaveReqVO.value = dppQualityTaskEvaluateRespVOS;
-    code(dppQualityTaskObjSaveReqVO);
+    } = detail;
+    originList.value = Array.isArray(taskEvaluateList)
+      ? [...taskEvaluateList]
+      : [];
+    dppQualityTaskEvaluateSaveReqVO.value = Array.isArray(taskEvaluateList)
+      ? [...taskEvaluateList]
+      : [];
+    code(taskObjList);
     Object.assign(form.value, obj);
-    form.value.contactId = Number(form.value.contactId);
+    if (form.value.contactId != null && form.value.contactId !== "") {
+      form.value.contactId = Number(form.value.contactId);
+    }
   } catch (error) {
     console.error("获取质量任务失败:", error);
-    ElMessage.warning("获取质量任务信息失败，请稍后重试");
+    const message = error?.message || error || "未知错误";
+    ElMessage.warning(`获取质量任务信息失败：${message}`);
   } finally {
     loadingInstance.value = false;
   }

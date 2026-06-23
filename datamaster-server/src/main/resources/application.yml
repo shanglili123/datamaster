@@ -158,3 +158,8 @@ flyflow:
 
 id.workerId: 1
 id.datacenterId: 1
+
+file:
+  job:
+    log:
+      qualitytask_prefix_url: /opt/quality/logs

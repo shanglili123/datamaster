@@ -273,6 +273,7 @@
         </el-row>
         <component
           :is="currentRuleComponent"
+          :key="ruleComponentKey"
           ref="ruleComponentRef"
           :form="form.rule"
           :dppQualityTaskObjSaveReqVO="dppQualityTaskObjSaveReqVO"
@@ -438,6 +439,10 @@ const currentRuleComponent = computed(() => {
   return getRuleComponent(form.ruleType) || null;
 });
 
+const ruleComponentKey = computed(() => {
+  return `${form.ruleType || "empty"}-${form.id || mode.value || "new"}`;
+});
+
 let loading = ref(false);
 let columnList = ref([]);
 // 评测字段列表缓存：key = datasourceId|tableName
@@ -531,7 +536,7 @@ function handleTargetObjectChange(tableName) {
 async function fetchColumns() {
   console.log("🚀 ~ fetchColumns ~ selectedRef:", selectedRef.value);
 
-  if (!selectedRef.value.datasourceId || !form?.tableName) {
+  if (!selectedRef.value?.datasourceId || !form?.tableName) {
     columnList.value = [];
     return;
   }

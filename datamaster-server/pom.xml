@@ -65,6 +65,12 @@
             <artifactId>datamaster-catalog-biz</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
+        <!-- 数据质量模块 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-quality</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
         <!-- spring-boot-devtools -->
 <!--        <dependency>-->
 <!--            <groupId>org.springframework.boot</groupId>-->

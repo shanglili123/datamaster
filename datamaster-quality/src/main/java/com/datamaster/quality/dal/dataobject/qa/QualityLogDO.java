@@ -38,7 +38,7 @@ public class QualityLogDO extends BaseEntity {
     private Date endTime;
 
     /** 任务id */
-    private String qualityId;
+    private Long qualityId;
 
     /** 评分 */
     private Long score;

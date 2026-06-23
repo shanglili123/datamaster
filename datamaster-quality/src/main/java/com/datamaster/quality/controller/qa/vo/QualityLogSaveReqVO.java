@@ -44,8 +44,7 @@ public class QualityLogSaveReqVO extends BaseEntity {
     private Date endTime;
 
     @Schema(description = "任务id", example = "")
-    @Size(max = 256, message = "任务id长度不能超过256个字符")
-    private String qualityId;
+    private Long qualityId;
 
     @Schema(description = "评分", example = "")
     private Long score;
@@ -65,6 +64,6 @@ public class QualityLogSaveReqVO extends BaseEntity {
         this.successFlag = "2";
         this.startTime = DateUtil.date();
         this.endTime = DateUtil.date();
-        this.qualityId = String.valueOf(QualityTaskById.getId());
+        this.qualityId = QualityTaskById.getId();
     }
 }

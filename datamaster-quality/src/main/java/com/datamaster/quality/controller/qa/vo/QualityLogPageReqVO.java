@@ -38,7 +38,7 @@ public class QualityLogPageReqVO extends PageParam {
     private Date endTime;
 
     @Schema(description = "任务id", example = "")
-    private String qualityId;
+    private Long qualityId;
 
     @Schema(description = "评分", example = "")
     private Long score;

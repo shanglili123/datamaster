@@ -218,7 +218,7 @@ public class PostgreDialect extends AbstractDbDialect {
                 }
 
                 // 检查是否必填
-                if (!column.getNullable()) {
+                if (Boolean.FALSE.equals(column.getNullable())) {
                     sql.append(" NOT NULL");
                 }
 
@@ -232,7 +232,7 @@ public class PostgreDialect extends AbstractDbDialect {
                 }
 
                 // 加入字段到主键列表，如果是主键
-                if (column.getColKey()) {
+                if (Boolean.TRUE.equals(column.getColKey())) {
                     primaryKeys.add(column.getColName());
                 }
 

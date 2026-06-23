@@ -161,7 +161,7 @@ public class SQLServerDialect extends SQLServer2008Dialect {
                 }
 
                 // 加入字段到主键列表，如果是主键
-                if (column.getColKey()) {
+                if (Boolean.TRUE.equals(column.getColKey())) {
                     primaryKeys.add(column.getColName());
                 }
 
