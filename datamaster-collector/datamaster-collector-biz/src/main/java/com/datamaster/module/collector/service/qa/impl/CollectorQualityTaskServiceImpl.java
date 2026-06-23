@@ -593,15 +593,18 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     }
 
     private void handleOfflineTask(String projectCode, CollectorQualityTaskRespVO daDiscoveryTaskById, Long systemJobId, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
-        if(daDiscoveryTaskById.getSystemJobId() != null &&  systemJobId > 0){
+        // 只有在 DS 中有任务定义时才下线
+        if (StringUtils.isNotEmpty(daDiscoveryTaskById.getTaskCode())) {
             DsStatusRespDTO respDTO = dsEtlTaskService.releaseTask("OFFLINE", projectCode, daDiscoveryTaskById.getTaskCode());
             if (respDTO == null || !respDTO.getSuccess()) {
                 throw new ServiceException("发布或下线任务，失败！");
             }
 
-            DsStatusRespDTO offlined = iDsEtlSchedulerService.offlineScheduler(projectCode, systemJobId);
-            if (!offlined.getData()) {
-                throw new ServiceException("下线调度器，失败！");
+            if (systemJobId != null && systemJobId > 0) {
+                DsStatusRespDTO offlined = iDsEtlSchedulerService.offlineScheduler(projectCode, systemJobId);
+                if (!offlined.getData()) {
+                    throw new ServiceException("下线调度器，失败！");
+                }
             }
         }
 
@@ -661,15 +664,21 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
             throw new ServiceException("发布或下线任务，失败！");
         }
 
-        if (systemJobId != null && systemJobId > 0) {
-            updateExistingScheduler(projectCode, daDiscoveryTask, systemJobId);
-        } else {
-            createNewScheduler(projectCode, daDiscoveryTask);
-        }
+        String cycle = daDiscoveryTask.getCycle();
+        if (StringUtils.isNotEmpty(cycle)) {
+            if (systemJobId != null && systemJobId > 0) {
+                updateExistingScheduler(projectCode, daDiscoveryTask, systemJobId);
+            } else {
+                createNewScheduler(projectCode, daDiscoveryTask);
+            }
 
-        DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(projectCode, daDiscoveryTask.getSystemJobId());
-        if (!dsStatusRespDTO1.getData()) {
-            throw new ServiceException("上线调度器，失败！");
+            DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(projectCode, daDiscoveryTask.getSystemJobId());
+            if (!dsStatusRespDTO1.getData()) {
+                throw new ServiceException("上线调度器，失败！");
+            }
+        } else if (systemJobId != null && systemJobId > 0) {
+            // 已有调度器但取消了周期，下线并删除调度器
+            iDsEtlSchedulerService.offlineScheduler(projectCode, systemJobId);
         }
 
         // 更新数据发现任务
@@ -733,7 +742,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         DsTaskSaveRespDTO task = dsEtlTaskService.updateTask(dsTaskSaveReqDTO, projectCode, input.getTaskCode());
 
         if (!task.getSuccess()) {
-            throw new ServiceException("任务状态修改失败，请联系系统管理员"); // 抛出任务定义创建错误的异常
+            throw new ServiceException("任务状态修改失败：" + (task.getMsg() != null ? task.getMsg() : "请联系系统管理员"));
         }
         ProcessDefinition data = task.getData();
         return data; // 返回创建结果

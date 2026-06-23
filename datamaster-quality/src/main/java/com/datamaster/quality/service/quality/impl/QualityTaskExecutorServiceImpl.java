@@ -129,6 +129,9 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         HttpTaskLogger logger = new HttpTaskLogger(prefixUrl, tmpFilePath);
         logger.log("任务开始执行");
 
+        Long taskLogId = null;
+        try {
+
         //1、查询任务基本信息
         QualityTaskRespVO QualityTaskById = iQualityTaskService.getQualityTaskById(JSONUtils.convertToLong(taskId));
         if(QualityTaskById == null){
@@ -150,7 +153,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         //创建本次任务日志，先创建日志，再执行
         QualityLogSaveReqVO QualityLogSaveReqVO = new QualityLogSaveReqVO(QualityTaskById);
         QualityLogSaveReqVO.setPath(filePath);
-        Long taskLogId = iQualityLogService.createQualityLog(QualityLogSaveReqVO);
+        taskLogId = iQualityLogService.createQualityLog(QualityLogSaveReqVO);
         logger.log("质量任务-生成本次任务日志，先创建日志，再执行："+taskLogId);
 
         // 3. 查询本次任务所需执行的数据源列表
@@ -247,9 +250,16 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
         //更新完善日志
         updateQualityLog(taskLogId,"0");
         logger.log("任务结束");
-        // 任务完成后，关闭logger，释放资源
-        logger.close();
         redisService.set(key, "2", 300);
+        } catch (Exception e) {
+            logger.log("质量任务执行异常：" + e.getMessage());
+            if (taskLogId != null) {
+                updateQualityLog(taskLogId,"1");
+            }
+            redisService.set(key, "3", 300);
+        } finally {
+            logger.close();
+        }
     }
 
     public static Map<Long, List<Long>> groupIdsByDatasourceId(List<QualityTaskObjDO> list) {
@@ -269,7 +279,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
     /**
      * 更新数据质量日志状态（仅更新 successFlag 和结束时间）
      * @param id 日志ID
-     * @param successFlag 状态标志（1：成功，2：失败）
+     * @param successFlag 状态标志（0：成功，1：失败，2：进行中）
      */
     public void updateQualityLog(Long id, String successFlag) {
         QualityLogSaveReqVO vo = new QualityLogSaveReqVO();

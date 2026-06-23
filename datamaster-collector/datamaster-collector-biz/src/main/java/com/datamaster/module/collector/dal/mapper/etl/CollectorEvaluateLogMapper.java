@@ -66,7 +66,7 @@ public interface CollectorEvaluateLogMapper extends BaseMapperX<CollectorEvaluat
                     "GROUP BY t.DIMENSION_TYPE " +
                     "ORDER BY t.DIMENSION_TYPE"
     )
-    List<CollectorEvaluateLogStatisticsVO> selectDimStatsByTaskLogId(@Param("taskLogId") Long taskLogId);
+    List<CollectorEvaluateLogStatisticsVO> selectDimStatsByTaskLogId(@Param("taskLogId") String taskLogId);
 
     List<Map<String, Object>> getEvaluateTrend7d();
 

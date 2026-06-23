@@ -25,7 +25,6 @@ import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.httpClient.HeaderEntity;
 import com.datamaster.common.httpClient.HttpUtils;
 import com.datamaster.common.utils.DateUtils;
-import com.datamaster.common.utils.JSONUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -215,7 +214,7 @@ public class CollectorEvaluateLogServiceImpl  extends ServiceImpl<CollectorEvalu
 
     @Override
     public List<CollectorEvaluateLogStatisticsVO> statisticsEvaluateOne(Long id) {
-        List<CollectorEvaluateLogStatisticsVO> CollectorEvaluateDimStatVOS = CollectorEvaluateLogMapper.selectDimStatsByTaskLogId(id);
+        List<CollectorEvaluateLogStatisticsVO> CollectorEvaluateDimStatVOS = CollectorEvaluateLogMapper.selectDimStatsByTaskLogId(String.valueOf(id));
         if(CollectorEvaluateDimStatVOS.isEmpty()){
             return new ArrayList<>();
         }
@@ -226,7 +225,7 @@ public class CollectorEvaluateLogServiceImpl  extends ServiceImpl<CollectorEvalu
             }
             return CollectorEvaluateDimStatVOS;
         }
-        List<CollectorEvaluateLogStatisticsVO> prevList = CollectorEvaluateLogMapper.selectDimStatsByTaskLogId(CollectorQualityLogDO.getId());
+        List<CollectorEvaluateLogStatisticsVO> prevList = CollectorEvaluateLogMapper.selectDimStatsByTaskLogId(String.valueOf(CollectorQualityLogDO.getId()));
         if(prevList == null || prevList.isEmpty()){
             for (CollectorEvaluateLogStatisticsVO vo : CollectorEvaluateDimStatVOS) {
                 vo.setTrendType(3L);
@@ -402,7 +401,7 @@ public class CollectorEvaluateLogServiceImpl  extends ServiceImpl<CollectorEvalu
         }
 
         CollectorQualityTaskObjPageReqVO reqVO = new CollectorQualityTaskObjPageReqVO();
-        reqVO.setTaskId(JSONUtils.convertToLong(CollectorQualityLogById.getQualityId()));
+        reqVO.setTaskId(CollectorQualityLogById.getQualityId());
 
         List<CollectorQualityTaskObjDO> lists = CollectorQualityTaskObjService.getCollectorQualityTaskObjList(reqVO);
         List<CollectorQualityTaskObjRespVO> result = new ArrayList<>();
@@ -428,7 +427,7 @@ public class CollectorEvaluateLogServiceImpl  extends ServiceImpl<CollectorEvalu
         if(CollectorQualityLogById == null){
             return new ArrayList<>();
         }
-        List<CollectorEvaluateLogDO> taskLogId = CollectorEvaluateLogMapper.selectList("task_log_id", id);
+        List<CollectorEvaluateLogDO> taskLogId = CollectorEvaluateLogMapper.selectList("task_log_id", String.valueOf(id));
 
         List<CollectorQualityTaskObjRespVO> newList = this.buildTaskObjRespList(CollectorQualityLogById);
 

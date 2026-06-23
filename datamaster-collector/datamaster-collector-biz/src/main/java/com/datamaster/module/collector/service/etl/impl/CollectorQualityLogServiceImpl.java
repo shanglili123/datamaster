@@ -108,7 +108,7 @@ public class CollectorQualityLogServiceImpl  extends ServiceImpl<CollectorQualit
 
     @Override
     public CollectorQualityLogDO selectPrevLogByIdWithWrapper(Long id) {
-        return CollectorQualityLogMapper.selectPrevLogByIdWithWrapper(String.valueOf(id));
+        return CollectorQualityLogMapper.selectPrevLogByIdWithWrapper(id);
     }
 
     @Override

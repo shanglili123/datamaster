@@ -303,7 +303,10 @@ public class JdbcErrorDataStorage implements ErrorDataStorage {
             if (isMySqlFamily(dbType)) {
                 return "`" + dbName + "`.`" + tableName + "`";
             }
-            return "\"" + dbName + "\".\"" + tableName + "\"";
+            if (org.apache.commons.lang3.StringUtils.isNotBlank(sid)) {
+                return "\"" + sid + "\".\"" + tableName + "\"";
+            }
+            return "\"" + tableName + "\"";
         }
         if (isMySqlFamily(dbType)) {
             return "`" + tableName + "`";

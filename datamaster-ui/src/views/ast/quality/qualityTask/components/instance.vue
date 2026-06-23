@@ -84,7 +84,7 @@
 import { defineProps, defineEmits, ref, computed, watch } from 'vue';
 
 const { proxy } = getCurrentInstance();
-const defaultSort = ref({ columnKey: 'start_time', order: 'desc' });
+const defaultSort = ref({ prop: 'startTime', order: 'descending' });
 import { useRoute, useRouter } from "vue-router"
 const { sys_common_status, sys_job_group, quality_log_success_flag } = proxy.useDict(
   'sys_common_status',
@@ -104,9 +104,11 @@ const open = ref(false);
 let form = ref();
 let queryParams = ref({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 6,
   nodeId: undefined,
-  taskId: undefined
+  taskId: undefined,
+  orderByColumn: 'start_time',
+  isAsc: 'descending'
 });
 const formattedText = computed(() => {
   return form.value.logContent.replace(/\n/g, '<br>');
@@ -116,7 +118,8 @@ const router = useRouter();
 /** 排序触发事件 */
 function handleSortChange({ column, prop, order }) {
   queryParams.value.orderByColumn = column?.columnKey || prop;
-  queryParams.value.isAsc = column.order;
+  queryParams.value.isAsc = order;
+  queryParams.value.pageNum = 1;
   getList();
 }
 
@@ -167,8 +170,9 @@ function getList() {
   listDppQualityLog({
     ...queryParams.value
   }).then((response) => {
-    jobLogList.value = response.data.rows;
-    total.value = response.data.total;
+    const page = response.data || {};
+    jobLogList.value = page.rows || [];
+    total.value = Number(page.total || jobLogList.value.length || 0);
     loading.value = false;
   });
 }

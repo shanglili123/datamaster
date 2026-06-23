@@ -105,7 +105,7 @@ import { listDppQualityLog, doSendMessage } from "@/api/ast/quality/qualityTaskL
 const { proxy } = getCurrentInstance();
 import { useRoute, useRouter } from "vue-router"
 import { ref } from "vue";
-const defaultSort = ref({ columnKey: 'start_time', order: 'desc' });
+const defaultSort = ref({ prop: 'startTime', order: 'descending' });
 const { quality_log_success_flag } = proxy.useDict(
 
     'quality_log_success_flag'
@@ -134,7 +134,7 @@ const router = useRouter();
 const data = reactive({
     queryParams: {
         pageNum: 1,
-        pageSize: 10,
+        pageSize: 6,
         name: null,
         successFlag: null,
         startTime: null,
@@ -143,6 +143,8 @@ const data = reactive({
         score: null,
         problemData: null,
         createTime: null,
+        orderByColumn: 'start_time',
+        isAsc: 'descending',
     },
 
 });
@@ -152,7 +154,8 @@ const { queryParams, } = toRefs(data);
 /** 排序触发事件 */
 function handleSortChange({ column, prop, order }) {
     queryParams.value.orderByColumn = column?.columnKey || prop;
-    queryParams.value.isAsc = column.order;
+    queryParams.value.isAsc = order;
+    queryParams.value.pageNum = 1;
     getList();
 }
 
@@ -160,8 +163,9 @@ function handleSortChange({ column, prop, order }) {
 function getList() {
     loading.value = true;
     listDppQualityLog(queryParams.value).then(response => {
-        DppQualityLogList.value = response.data.rows;
-        total.value = response.data.total;
+        const page = response.data || {};
+        DppQualityLogList.value = page.rows || [];
+        total.value = Number(page.total || DppQualityLogList.value.length || 0);
         loading.value = false;
     });
 }

@@ -42,7 +42,18 @@ public interface CollectorQualityLogMapper extends BaseMapperX<CollectorQualityL
 //    }
 
     default PageResult<CollectorQualityLogDO> selectPage(CollectorQualityLogPageReqVO reqVO) {
-        Set<String> allowedColumns = new HashSet<>(Arrays.asList("id", "create_time", "update_time"));
+        Set<String> allowedColumns = new HashSet<>(Arrays.asList(
+                "id",
+                "name",
+                "success_flag",
+                "start_time",
+                "end_time",
+                "quality_id",
+                "score",
+                "problem_data",
+                "create_time",
+                "update_time"
+        ));
 
         MPJLambdaWrapperX<CollectorQualityLogDO> wrapper = new MPJLambdaWrapperX<>();
         wrapper.selectAll(CollectorQualityLogDO.class)
@@ -57,14 +68,19 @@ public interface CollectorQualityLogMapper extends BaseMapperX<CollectorQualityL
                 .eqIfExists(CollectorQualityLogDO::getCreateTime, reqVO.getCreateTime());
         // 动态排序处理
         String orderByColumn = reqVO.getOrderByColumn();
-        Boolean isAsc = StringUtils.equals("asc", reqVO.getIsAsc());
+        Boolean isAsc = StringUtils.equalsAny(reqVO.getIsAsc(), "asc", "ascending");
         if (StringUtils.isNotBlank(orderByColumn) && allowedColumns.contains(orderByColumn)) {
             wrapper.orderBy(true, Boolean.TRUE.equals(isAsc), orderByColumn);
+        } else {
+            wrapper.orderByDesc(CollectorQualityLogDO::getStartTime,
+                    CollectorQualityLogDO::getEndTime,
+                    CollectorQualityLogDO::getUpdateTime,
+                    CollectorQualityLogDO::getId);
         }
-        return selectPage(reqVO, wrapper);
+        return selectJoinPage(reqVO, CollectorQualityLogDO.class, wrapper);
     }
 
-    default CollectorQualityLogDO selectPrevLogByIdWithWrapper(String id) {
+    default CollectorQualityLogDO selectPrevLogByIdWithWrapper(Long id) {
         // 1) 先拿当前记录的关键字段
         CollectorQualityLogDO cur = this.selectById(id);
         if (cur == null || cur.getQualityId() == null || cur.getStartTime() == null) {

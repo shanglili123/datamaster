@@ -72,7 +72,7 @@ public class QualityTaskObjServiceImpl  extends ServiceImpl<QualityTaskObjMapper
     @Override
     public List<QualityTaskObjDO> getQualityTaskObjList(String taskId) {
         LambdaQueryWrapperX<QualityTaskObjDO> queryWrapperX = new LambdaQueryWrapperX<>();
-        queryWrapperX.eq(QualityTaskObjDO::getTaskId, taskId)
+        queryWrapperX.eq(QualityTaskObjDO::getTaskId, taskId != null ? Long.valueOf(taskId) : null)
                 .eq(QualityTaskObjDO::getDelFlag,"0");
         return QualityTaskObjMapper.selectList(queryWrapperX);
     }

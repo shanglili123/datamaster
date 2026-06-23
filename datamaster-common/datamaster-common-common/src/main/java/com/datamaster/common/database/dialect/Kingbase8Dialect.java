@@ -27,7 +27,9 @@ public class Kingbase8Dialect extends AbstractDbDialect {
 
     @Override
     public String columns(String dbName, String tableName) {
-        return "SELECT a.attname AS COLNAME,  " +
+        return "SELECT " +
+                "c.relname AS TABLENAME, " +
+                "a.attname AS COLNAME,  " +
                 " CASE " +
                 "        WHEN t.typname = 'int2' THEN 'SMALLINT' " +
                 "        WHEN t.typname = 'int4' THEN 'INTEGER' " +
@@ -44,7 +46,7 @@ public class Kingbase8Dialect extends AbstractDbDialect {
                 "CASE WHEN t.typname IN ('numeric', 'decimal', 'float4', 'float8') THEN (a.atttypmod - 4) & 65535 ELSE NULL END AS DATASCALE, " +
                 "CASE WHEN con.contype = 'p' THEN TRUE ELSE FALSE END AS COLKEY, " +
                 "NOT a.attnotnull AS NULLABLE, a.attnum AS COLPOSITION, " +
-                "regexp_replace(pg_get_expr(d.adbin, d.adrelid), '(::[a-zA-Z0-9_]+)+$', '') AS DATADEFAULT" +
+                "regexp_replace(pg_get_expr(d.adbin, d.adrelid), '(::[a-zA-Z0-9_]+)+$', '') AS DATADEFAULT," +
                 "col_description(a.attrelid, a.attnum) AS COLCOMMENT " +
                 "FROM pg_attribute a " +
                 "JOIN pg_class c ON a.attrelid = c.oid " +
@@ -60,7 +62,9 @@ public class Kingbase8Dialect extends AbstractDbDialect {
 
     @Override
     public String columns(DbQueryProperty dbQueryProperty, String tableName) {
-        return "SELECT a.attname AS COLNAME," +
+        return "SELECT " +
+                "c.relname AS TABLENAME, " +
+                "a.attname AS COLNAME," +
                 " CASE " +
                 "        WHEN t.typname = 'int2' THEN 'SMALLINT' " +
                 "        WHEN t.typname = 'int4' THEN 'INTEGER' " +

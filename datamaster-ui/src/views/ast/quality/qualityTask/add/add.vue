@@ -153,13 +153,6 @@
                 <el-form-item
                   label="调度周期"
                   prop="cycle"
-                  :rules="[
-                    {
-                      required: true,
-                      message: '请选择调度周期',
-                      trigger: 'blur',
-                    },
-                  ]"
                 >
                   <el-input v-model="form.cycle" placeholder="请选择调度周期">
                     <template #append>

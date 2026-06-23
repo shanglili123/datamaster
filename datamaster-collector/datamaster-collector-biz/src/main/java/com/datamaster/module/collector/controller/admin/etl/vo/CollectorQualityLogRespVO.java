@@ -46,7 +46,7 @@ public class CollectorQualityLogRespVO implements Serializable {
 
     @Excel(name = "任务id")
     @Schema(description = "任务id", example = "")
-    private String qualityId;
+    private Long qualityId;
 
     @Excel(name = "评分")
     @Schema(description = "评分", example = "")

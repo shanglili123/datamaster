@@ -26,7 +26,9 @@ public class PostgreDialect extends AbstractDbDialect {
 
     @Override
     public String columns(String dbName, String tableName) {
-        return "SELECT a.attname AS COLNAME," +
+        return "SELECT " +
+                "c.relname AS TABLENAME, " +
+                "a.attname AS COLNAME," +
                 " CASE " +
                 "        WHEN t.typname = 'int2' THEN 'SMALLINT' " +
                 "        WHEN t.typname = 'int4' THEN 'INTEGER' " +
@@ -59,7 +61,9 @@ public class PostgreDialect extends AbstractDbDialect {
 
     @Override
     public String columns(DbQueryProperty dbQueryProperty, String tableName) {
-        return "SELECT a.attname AS COLNAME," +
+        return "SELECT " +
+                "c.relname AS TABLENAME, " +
+                "a.attname AS COLNAME," +
                 " CASE " +
                 "        WHEN t.typname = 'int2' THEN 'SMALLINT' " +
                 "        WHEN t.typname = 'int4' THEN 'INTEGER' " +

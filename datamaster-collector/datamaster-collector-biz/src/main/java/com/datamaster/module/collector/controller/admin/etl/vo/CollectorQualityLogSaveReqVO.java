@@ -39,8 +39,7 @@ public class CollectorQualityLogSaveReqVO extends BaseEntity {
     private Date endTime;
 
     @Schema(description = "任务id", example = "")
-    @Size(max = 256, message = "任务id长度不能超过256个字符")
-    private String qualityId;
+    private Long qualityId;
 
     @Schema(description = "评分", example = "")
     private Long score;
