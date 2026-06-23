@@ -1,7 +1,6 @@
 package com.datamaster.module.catalog.service.task.impl;
 
 import cn.hutool.core.date.DateUtil;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
@@ -107,7 +106,7 @@ public class CatalogTaskInstanceLogServiceImpl extends ServiceImpl<CatalogTaskIn
         entity.setLogContent(taskLog);
         entity.setTime(new Date());
         entity.setValidFlag(Boolean.TRUE);
-        entity.setDelFlag(Boolean.FALSE);
+        entity.setDelFlag("0");
 
         String lastLine = getLastNotBlankLine(taskLog);
         if (StringUtils.contains(lastLine, FINALIZE_TOKEN)){
@@ -182,7 +181,7 @@ public class CatalogTaskInstanceLogServiceImpl extends ServiceImpl<CatalogTaskIn
                     .time(new Date())
                     .logContent(taskLog)
                     .validFlag(Boolean.TRUE)
-                    .delFlag(Boolean.FALSE)
+                    .delFlag("0")
                     .build();
 
             this.saveOrUpdateByPk(entity);
@@ -195,10 +194,8 @@ public class CatalogTaskInstanceLogServiceImpl extends ServiceImpl<CatalogTaskIn
 
     @Override
     public int saveOrUpdateByPk(CatalogTaskInstanceLogDO entity) {
-        CatalogTaskInstanceLogDO old = this.getOne(
-                Wrappers.lambdaQuery(CatalogTaskInstanceLogDO.class)
-                        .eq(CatalogTaskInstanceLogDO::getTaskInstanceId, entity.getTaskInstanceId())
-        );
+        CatalogTaskInstanceLogDO old = CatalogTaskInstanceLogMapper
+                .selectCatalogTaskInstanceLogByTaskInstanceId(entity.getTaskInstanceId());
 
         if (old != null) {
             old.setLogContent(entity.getLogContent());
@@ -208,13 +205,9 @@ public class CatalogTaskInstanceLogServiceImpl extends ServiceImpl<CatalogTaskIn
             old.setUpdatorId(entity.getUpdatorId());
             old.setTime(entity.getTime());
 
-            return CatalogTaskInstanceLogMapper.update(
-                    old,
-                    Wrappers.lambdaUpdate(CatalogTaskInstanceLogDO.class)
-                            .eq(CatalogTaskInstanceLogDO::getTaskInstanceId, entity.getTaskInstanceId())
-            );
+            return CatalogTaskInstanceLogMapper.updateCatalogTaskInstanceLog(old);
         } else {
-            return CatalogTaskInstanceLogMapper.insert(entity);
+            return CatalogTaskInstanceLogMapper.insertCatalogTaskInstanceLog(entity);
         }
     }
 }

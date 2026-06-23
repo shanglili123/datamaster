@@ -60,7 +60,7 @@ public interface CatalogTaskInstanceMapper extends BaseMapperX<CatalogTaskInstan
                         ,"t4.DATASOURCE_TYPE AS datasourceType"
                 )
                 .leftJoin("TAX_SOURCE_SYSTEM t2 on t.SOURCE_SYSTEM_ID = t2.ID AND t2.DEL_FLAG = '0'")
-                .leftJoin("Catalog_TASK t3 ON t3.id = t.task_id")
+                .leftJoin("CAT_TASK t3 ON t3.id = t.task_id")
                 .leftJoin("AST_DATASOURCE t4 ON t3.datasource_id = t4.id AND t4.DEL_FLAG = '0'")
                 .eq(reqVO.getDatasourceId() != null,"t3.DATASOURCE_ID", reqVO.getDatasourceId())
                 .eq(reqVO.getSourceSystemId() != null,CatalogTaskInstanceDO::getSourceSystemId, reqVO.getSourceSystemId())
@@ -75,7 +75,12 @@ public interface CatalogTaskInstanceMapper extends BaseMapperX<CatalogTaskInstan
                         CatalogTaskInstanceDO::getCreateTime, reqVO.getCreateTimeStart())
                 .le(reqVO.getCreateTimeEnd() != null,
                         CatalogTaskInstanceDO::getCreateTime, reqVO.getCreateTimeEnd())
-                .eq(reqVO.getProjectId() != null, CatalogTaskInstanceDO::getProjectId, reqVO.getProjectId())
+                .apply(reqVO.getProjectId() != null,
+                        "(t.PROJECT_ID = {0} OR (t.PROJECT_ID IS NULL AND t3.PROJECT_ID = {0}))",
+                        reqVO.getProjectId())
+                .apply(reqVO.getProjectId() == null && StringUtils.isNotBlank(reqVO.getProjectCode()),
+                        "(t.PROJECT_CODE = {0} OR (t.PROJECT_CODE IS NULL AND t3.PROJECT_CODE = {0}))",
+                        reqVO.getProjectCode())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, CatalogTaskInstanceDO.class, lambdaWrapper);
 

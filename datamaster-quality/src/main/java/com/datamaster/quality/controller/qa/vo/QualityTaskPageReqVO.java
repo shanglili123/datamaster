@@ -33,7 +33,7 @@ public class QualityTaskPageReqVO extends PageParam {
     private String contact;
 
     @Schema(description = "联系人ID", example = "")
-    private String contactId;
+    private Long contactId;
 
     @Schema(description = "联系电话", example = "")
     private String contactNumber;

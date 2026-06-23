@@ -50,8 +50,8 @@ public class CatalogTaskInstanceLogDO extends BaseEntity {
     private Boolean validFlag;
 
     /** 删除标志 */
-    @TableLogic
-    private Boolean delFlag;
+    @TableLogic(value = "0", delval = "1")
+    private String delFlag;
 
     @Schema(description = "状态", example = "")
     @TableField(exist = false)

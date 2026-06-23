@@ -34,7 +34,7 @@ public class CollectorQualityTaskDO extends BaseEntity {
     private String contact;
 
     /** 联系人ID */
-    private String contactId;
+    private Long contactId;
 
     /** 联系电话 */
     private String contactNumber;

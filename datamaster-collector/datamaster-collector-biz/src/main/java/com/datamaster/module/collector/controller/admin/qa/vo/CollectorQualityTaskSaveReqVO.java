@@ -2,6 +2,7 @@
 
 package com.datamaster.module.collector.controller.admin.qa.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import com.datamaster.common.core.domain.BaseEntity;
@@ -37,8 +38,7 @@ public class CollectorQualityTaskSaveReqVO extends BaseEntity {
     private String contact;
 
     @Schema(description = "联系人ID", example = "")
-    @Size(max = 256, message = "联系人ID长度不能超过256个字符")
-    private String contactId;
+    private Long contactId;
 
     @Schema(description = "联系电话", example = "")
     @Size(max = 256, message = "联系电话长度不能超过256个字符")
@@ -79,9 +79,11 @@ public class CollectorQualityTaskSaveReqVO extends BaseEntity {
 
 
     // 数据质量任务-稽查对象
+    @JsonProperty("dppQualityTaskObjSaveReqVO")
     private List<CollectorQualityTaskObjSaveReqVO> CollectorQualityTaskObjSaveReqVO;
 
     // 规则对象
+    @JsonProperty("dppQualityTaskEvaluateSaveReqVO")
     private List<CollectorQualityTaskEvaluateSaveReqVO> CollectorQualityTaskEvaluateSaveReqVO;
 
 

@@ -192,21 +192,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         CatalogTaskMapper.insert(dictType);
         Long id = dictType.getId();
 
-        // 创建 DolphinScheduler 任务定义
-        String projectCode = resolveProjectCode(dictType);
-        String taskCode = CatalogTaskDolphinSchedulerService.createTaskDefinition(projectCode, dictType.getName(), id);
-
-        // 先上线任务（DolphinScheduler要求：只有上线的任务才能创建调度器）
-        CatalogTaskDolphinSchedulerService.onlineTask(projectCode, taskCode);
-
-        // 创建调度器
-        Long schedulerId = CatalogTaskDolphinSchedulerService.createScheduler(projectCode, taskCode, dictType.getCronExpression());
-
-        //存储调度信息
+        // 保存本地调度记录（含 cron 表达式），发布时再创建 DS 任务和调度器
         CatalogTaskSchedulerSaveReqVO schedulerSaveReqVO = new CatalogTaskSchedulerSaveReqVO(dictType);
-        schedulerSaveReqVO.setJobId(schedulerId);
-        schedulerSaveReqVO.setTaskCode(taskCode);  // 设置任务编码到调度表
-        schedulerSaveReqVO.setStatus(SchedulerStatusEnum.DISABLED.getValue());
         CatalogTaskSchedulerService.createCatalogTaskScheduler(schedulerSaveReqVO);
 
         if (StringUtils.equals("1", createReqVO.getCollectionScope())) {
@@ -230,6 +217,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         // 1. 更新采集任务
         CatalogTaskDO updateObj = BeanUtils.toBean(updateReqVO, CatalogTaskDO.class);
         fillProjectRelation(updateObj);
+        // collectType 前端不参与编辑，且 DB 类型为 smallint，避免 String→smallint 转换异常
+        updateObj.setCollectType(null);
         int rows = CatalogTaskMapper.updateById(updateObj);
 
         // 2. 查询调度信息
@@ -243,18 +232,35 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
             // cron 表达式
             String cronExpression = updateReqVO.getCronExpression();
-            if (StringUtils.isNotEmpty(cronExpression) && !StringUtils.equals(cronExpression, scheduler.getCronExpression())) {
+            if (cronExpression != null) {
+                cronExpression = cronExpression.trim();
+            }
+            if (cronExpression != null && !StringUtils.equals(cronExpression, scheduler.getCronExpression())) {
                 schedulerSaveReqVO.setCronExpression(cronExpression);
+                if (StringUtils.isEmpty(cronExpression)) {
+                    schedulerSaveReqVO.setStatus(SchedulerStatusEnum.DISABLED.getValue());
+                }
 
                 // 获取任务编码（从调度表）
                 String taskCode = scheduler.getTaskCode();
 
                 if (StringUtils.isNotEmpty(taskCode)) {
-                    // 更新 DolphinScheduler 调度器
                     String projectCode = resolveProjectCode(updateObj, scheduler);
-                    Long newSchedulerId = CatalogTaskDolphinSchedulerService.updateScheduler(
-                            projectCode, scheduler.getJobId(), taskCode, cronExpression);
-                    schedulerSaveReqVO.setJobId(newSchedulerId);
+                    if (StringUtils.isNotEmpty(cronExpression)) {
+                        // 更新 DolphinScheduler 调度器
+                        Long newSchedulerId = scheduler.getJobId() != null
+                                ? CatalogTaskDolphinSchedulerService.updateScheduler(
+                                projectCode, scheduler.getJobId(), taskCode, cronExpression)
+                                : CatalogTaskDolphinSchedulerService.createScheduler(projectCode, taskCode, cronExpression);
+                        schedulerSaveReqVO.setJobId(newSchedulerId);
+                    } else {
+                        // 清空 cron 时禁用调度器，并清掉本地 jobId
+                        if (scheduler.getJobId() != null) {
+                            CatalogTaskDolphinSchedulerService.offlineSchedulerOnly(projectCode, scheduler.getJobId());
+                        }
+                        schedulerSaveReqVO.setJobId(null);
+                        schedulerSaveReqVO.setStatus(SchedulerStatusEnum.DISABLED.getValue());
+                    }
                     schedulerSaveReqVO.setProjectId(updateObj.getProjectId());
                     schedulerSaveReqVO.setProjectCode(projectCode);
                 }
@@ -270,7 +276,15 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
             // 4. 有变化才落库
             if (needUpdate) {
-                CatalogTaskSchedulerService.updateCatalogTaskScheduler(schedulerSaveReqVO);
+                if (cronExpression != null && StringUtils.isEmpty(cronExpression)) {
+                    CatalogTaskSchedulerService.update(new LambdaUpdateWrapper<CatalogTaskSchedulerDO>()
+                            .eq(CatalogTaskSchedulerDO::getId, scheduler.getId())
+                            .set(CatalogTaskSchedulerDO::getCronExpression, "")
+                            .set(CatalogTaskSchedulerDO::getJobId, null)
+                            .set(CatalogTaskSchedulerDO::getStatus, schedulerSaveReqVO.getStatus()));
+                } else {
+                    CatalogTaskSchedulerService.updateCatalogTaskScheduler(schedulerSaveReqVO);
+                }
             }
 
         }
@@ -487,14 +501,79 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
     @Override
     public Map<String, Object> updateReleaseJobTask(CatalogTaskSaveReqVO CatalogTask) {
-        CatalogTaskRespVO CatalogTaskByIdNew = this.getCatalogTaskByIdNew(CatalogTask.getId());
-        String status = CatalogTaskByIdNew.getStatus();
-        if (StringUtils.equals(status, CatalogTask.getStatus())) {
+        CatalogTaskRespVO task = this.getCatalogTaskByIdNew(CatalogTask.getId());
+        String status = task.getStatus();
+        if (StringUtils.equals(status, CatalogTask.getStatus()) && !StringUtils.equals("1", CatalogTask.getStatus())) {
             return new HashMap<>();
         }
 
-        if (StringUtils.equals("0", CatalogTask.getStatus()) && StringUtils.equals("1", CatalogTask.getSchedulerStatus())) {
-            throw new ServiceException("请先将调度下线！");
+        // 发布 (0→1): 创建/更新DS任务定义并上线
+        if (StringUtils.equals("1", CatalogTask.getStatus())) {
+            CatalogTaskDO taskDO = CatalogTaskMapper.selectById(CatalogTask.getId());
+            if (taskDO != null) {
+                String projectCode = resolveProjectCode(taskDO);
+                CatalogTaskSchedulerDO schedulerDO = CatalogTaskSchedulerService.getCatalogTaskSchedulerBytaskId(taskDO.getId());
+                String cronExpression = schedulerDO != null ? schedulerDO.getCronExpression() : null;
+                String existingTaskCode = schedulerDO != null ? schedulerDO.getTaskCode() : null;
+
+                String taskCode;
+                if (StringUtils.isNotEmpty(existingTaskCode)) {
+                    // 重新发布: 更新DS任务定义（保留原有 taskCode）
+                    taskCode = CatalogTaskDolphinSchedulerService.updateTaskDefinition(
+                            projectCode, taskDO.getName(), taskDO.getId(), existingTaskCode, null);
+                } else {
+                    // 首次发布: 创建DS任务定义
+                    taskCode = CatalogTaskDolphinSchedulerService.createTaskDefinition(
+                            projectCode, taskDO.getName(), taskDO.getId());
+                }
+
+                // 上线任务
+                CatalogTaskDolphinSchedulerService.onlineTask(projectCode, taskCode);
+
+                if (schedulerDO != null) {
+                    if (StringUtils.isNotEmpty(cronExpression)) {
+                        // 有 cron 表达式: 创建/更新调度器并上线
+                        Long existingJobId = schedulerDO.getJobId();
+                        Long schedulerId;
+                        if (existingJobId != null) {
+                            schedulerId = CatalogTaskDolphinSchedulerService.updateScheduler(
+                                    projectCode, existingJobId, taskCode, cronExpression);
+                        } else {
+                            schedulerId = CatalogTaskDolphinSchedulerService.createScheduler(
+                                    projectCode, taskCode, cronExpression);
+                        }
+                        CatalogTaskDolphinSchedulerService.onlineSchedulerOnly(projectCode, schedulerId);
+
+                        schedulerDO.setJobId(schedulerId);
+                        schedulerDO.setTaskCode(taskCode);
+                        schedulerDO.setStatus(SchedulerStatusEnum.ENABLED.getValue());
+                    } else {
+                        // 无 cron 表达式: 仅保存任务编码,不创建调度器
+                        schedulerDO.setTaskCode(taskCode);
+                        schedulerDO.setJobId(null);
+                        schedulerDO.setStatus(SchedulerStatusEnum.DISABLED.getValue());
+                    }
+                    CatalogTaskSchedulerService.updateById(schedulerDO);
+                }
+            }
+        }
+
+        // 卸载 (1→0): 仅下线DS任务和调度器,不删除DS定义,保留taskCode/jobId供重新发布使用
+        if (StringUtils.equals("0", CatalogTask.getStatus())) {
+            CatalogTaskSchedulerDO scheduler = CatalogTaskSchedulerService.getCatalogTaskSchedulerBytaskId(CatalogTask.getId());
+            if (scheduler != null && StringUtils.isNotEmpty(scheduler.getTaskCode())) {
+                try {
+                    CatalogTaskDO taskDO = CatalogTaskMapper.selectById(CatalogTask.getId());
+                    String projectCode = resolveProjectCode(taskDO, scheduler);
+                    // 下线任务和调度器
+                    CatalogTaskDolphinSchedulerService.offlineTaskAndScheduler(projectCode, scheduler.getTaskCode(), scheduler.getJobId());
+                    // 保留 taskCode 和 jobId,不清除,仅标记本地状态为 DISABLED
+                    scheduler.setStatus(SchedulerStatusEnum.DISABLED.getValue());
+                    CatalogTaskSchedulerService.updateById(scheduler);
+                } catch (Exception e) {
+                    log.warn("下线DS任务失败，taskId={}", CatalogTask.getId(), e);
+                }
+            }
         }
 
         CatalogTaskDO updateObj = new CatalogTaskDO();
@@ -654,6 +733,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
                 .sourceSystemName(task.getSourceSystemName())
                 .collectionMode(task.getCollectionMode())
                 .collectionScope(task.getCollectionScope())
+                .projectId(task.getProjectId())
+                .projectCode(task.getProjectCode())
                 .status("1")
                 .successCount(0L)
                 .failCount(0L)
@@ -663,7 +744,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
                 .updateCount(0L)
                 .startTime(new Date())
                 .validFlag(Boolean.TRUE)
-                .delFlag(Boolean.FALSE)
+                .delFlag("0")
                 .build();
         String creatorId = redisService.get(buildRunLockKey(task.getId()) + ":creatorId");
         String createBy = redisService.get(buildRunLockKey(task.getId()) + ":createBy");
@@ -695,7 +776,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         instance.setStatus("9");
         instance.setEndTime(new Date());
         instance.setDuration((instance.getEndTime().getTime() - instance.getStartTime().getTime()) / 1000);
-        CatalogTaskInstanceService.updateById(instance);
+        CatalogTableTxService.runInNewTx(() -> CatalogTaskInstanceService.updateById(instance));
     }
 
 
@@ -704,7 +785,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         instance.setFailCause(e.getMessage());
         instance.setEndTime(new Date());
         instance.setDuration((instance.getEndTime().getTime() - instance.getStartTime().getTime()) / 1000);
-        CatalogTaskInstanceService.updateById(instance);
+        CatalogTableTxService.runInNewTx(() -> CatalogTaskInstanceService.updateById(instance));
     }
 
     private void finalizeTask(String redisKey, CatalogTaskInstanceDO instance) {
@@ -1048,7 +1129,16 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
 
         Map<String, List<DbColumn>> tableColumnMap = columns.stream()
+                .filter(Objects::nonNull)
+                .filter(column -> StringUtils.isNotBlank(column.getTableName()))
                 .collect(Collectors.groupingBy(DbColumn::getTableName));
+        long columnsWithoutTableName = columns.stream()
+                .filter(Objects::nonNull)
+                .filter(column -> StringUtils.isBlank(column.getTableName()))
+                .count();
+        if (columnsWithoutTableName > 0) {
+            safeLog(instanceId, taskId, String.format("字段元数据中存在 %d 个缺少表名的字段，已跳过批量分组并按单表兜底加载", columnsWithoutTableName));
+        }
 
         List<CatalogColumnSaveReqVO> CatalogColumnReqDTOList = new ArrayList<>();
         List<Long> updateTableIds = new ArrayList<>();
@@ -1075,7 +1165,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
             List<DbColumn> dbColumns = tableColumnMap.get(table.getTableName());
             final List<DbColumn> finalDbColumns;
-            if (DbType.HIVE.getDb().equals(dbQuery.getProperty().getDbType())) {
+            if (DbType.HIVE.getDb().equals(dbQuery.getProperty().getDbType()) || CollectionUtils.isEmpty(dbColumns)) {
                 finalDbColumns = dbQuery.getDbQuery().getTableColumns(dbQuery.getProperty(), table.getTableName());
             } else {
                 finalDbColumns = dbColumns;
@@ -1709,6 +1799,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             CatalogDbSaveReqVO createReqVO = new CatalogDbSaveReqVO();
             //采集标识
             createReqVO.setTaskId(task.getId());
+            createReqVO.setProjectId(task.getProjectId());
+            createReqVO.setProjectCode(task.getProjectCode());
 
             // ====== 来源系统 ======
             createReqVO.setSourceSystemId(task.getSourceSystemId());
@@ -1757,6 +1849,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             CatalogTableReqDTO.setTaskId(task.getId());
             CatalogTableReqDTO.setDbId(dbScope.getId());
             CatalogTableReqDTO.setDatasourceId(task.getDatasourceId());
+            CatalogTableReqDTO.setProjectId(task.getProjectId());
+            CatalogTableReqDTO.setProjectCode(task.getProjectCode());
 
             // ====== 表基础信息 ======
             CatalogTableReqDTO.setTableName(table.getTableName());
@@ -1804,6 +1898,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
                 createReqVO.setDbId(dbScope.getId());
                 createReqVO.setTableId(table.getId());
                 createReqVO.setDatasourceId(task.getDatasourceId());
+                createReqVO.setProjectId(task.getProjectId());
+                createReqVO.setProjectCode(task.getProjectCode());
 
                 // ====== 字段基础信息 ======
                 createReqVO.setColumnName(StringUtils.isEmpty(column.getColName()) ? "" : column.getColName());

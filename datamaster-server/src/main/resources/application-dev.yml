@@ -77,7 +77,7 @@ ds:
   quality_url: http://127.0.0.1:8083/quality/qualityTaskExecutor/runExecuteTask
   incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://172.21.160.1:8080/col/etlTask/incremental/prepare}
   incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://172.21.160.1:8080/col/etlTask/incremental/complete}
-  collector_url: http://localhost:8080/mc/taskExecutor/runExecuteTask
+  collector_url: http://172.21.160.1:8080/cat/taskExecutor/runExecuteTask
   token: b07f0e57c4818043a57ba05a28da291a
   tenant_code: ${DS_TENANT_CODE:default}
   resource_url: /dolphinscheduler/
@@ -95,4 +95,4 @@ ds:
 
 path:
   quality_url: http://127.0.0.1:8083/quality/qualityTaskExecutor
-  collector_url: http://localhost:8080/mc/taskExecutor
+  collector_url: http://172.21.160.1:8080/cat/taskExecutor

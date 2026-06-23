@@ -135,6 +135,6 @@ public interface CatalogTaskMapper extends BaseMapperX<CatalogTaskDO> {
     }
 
     @InterceptorIgnore(tenantLine = "true")
-    @Select("select * from Catalog_TASK where del_flag = '0' and id = #{taskId}")
+    @Select("select * from CAT_TASK where del_flag = '0' and id = #{taskId}")
     CatalogTaskDO getByTaskId(Long taskId);
 }

@@ -83,8 +83,8 @@ public class CatalogTaskInstanceDO extends BaseEntity {
     private Boolean validFlag;
 
     /** 删除标志 */
-    @TableLogic
-    private Boolean delFlag;
+    @TableLogic(value = "0", delval = "1")
+    private String delFlag;
 
     /** 描述 */
     private String description;

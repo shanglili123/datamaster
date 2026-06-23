@@ -492,7 +492,7 @@ mvn -q -DskipTests -pl datamaster-server -am compile
         v
 CatalogTaskDolphinSchedulerService 在 DS 中创建 HTTP 类型工作流
         │  URL = collector_url + "/" + taskId
-        │  （即 http://localhost:8080/mc/taskExecutor/runExecuteTask/{taskId}）
+        │  （即 http://localhost:8080/cat/taskExecutor/runExecuteTask/{taskId}）
         v
 DolphinScheduler 执行工作流 → HTTP 节点 → PUT 请求该地址
         │

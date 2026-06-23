@@ -38,7 +38,7 @@ public interface CatalogDbMapper extends BaseMapperX<CatalogDbDO> {
 
         MPJLambdaWrapperX<CatalogDbDO> lambdaWrapperX = new MPJLambdaWrapperX<>();
         lambdaWrapperX.selectAll(CatalogDbDO.class)
-                .select("(SELECT COUNT(*) FROM Catalog_TABLE o WHERE o.DB_ID = t.ID) table_count");
+                .select("(SELECT COUNT(*) FROM CAT_TABLE o WHERE o.DB_ID = t.ID) table_count");
         lambdaWrapperX.eqIfPresent(CatalogDbDO::getTaskId, reqVO.getTaskId())
                 .eqIfPresent(CatalogDbDO::getSourceSystemId, reqVO.getSourceSystemId())
                 .eqIfPresent(CatalogDbDO::getVersion, reqVO.getVersion())
@@ -76,8 +76,8 @@ public interface CatalogDbMapper extends BaseMapperX<CatalogDbDO> {
     default CatalogDbDO findById(Long id) {
         MPJLambdaWrapperX<CatalogDbDO> lambdaWrapperX = new MPJLambdaWrapperX<>();
         lambdaWrapperX.selectAll(CatalogDbDO.class)
-                .select("(SELECT COUNT(*) FROM Catalog_TABLE o WHERE o.DB_ID = t.ID ) tableCount")
-                .select("(SELECT COUNT(*) FROM Catalog_COLUMN c WHERE c.DB_ID = t.ID ) columnCount")
+                .select("(SELECT COUNT(*) FROM CAT_TABLE o WHERE o.DB_ID = t.ID ) tableCount")
+                .select("(SELECT COUNT(*) FROM CAT_COLUMN c WHERE c.DB_ID = t.ID ) columnCount")
                 .select("(SELECT u.NICK_NAME FROM SYSTEM_USER u WHERE u.USER_ID = t.BUSINESS_LEADER) businessLeaderName")
                 .select("(SELECT n.NICK_NAME FROM SYSTEM_USER n WHERE n.USER_ID = t.TECH_LEADER) techLeaderName")
 //                .select("(SELECT s.SENSITIVE_LEVEL FROM DG_SENSITIVE_LEVEL s WHERE s.ID = t.SAFETY_LEVEL_ID) safetyLevelName")
@@ -125,7 +125,7 @@ public interface CatalogDbMapper extends BaseMapperX<CatalogDbDO> {
      * @param dbId 数据库ID
      * @return 更新结果
      */
-	@Update("UPDATE Catalog_DB a SET a.STORAGE_SIZE = (SELECT SUM(storage_size) FROM Catalog_TABLE b WHERE b.db_id = a.id AND b.del_flag = '0') WHERE a.id = #{dbId} AND a.del_flag = '0'")
+	@Update("UPDATE CAT_DB a SET STORAGE_SIZE = (SELECT COALESCE(SUM(storage_size), 0) FROM CAT_TABLE b WHERE b.db_id = a.id AND b.del_flag = '0') WHERE a.id = #{dbId} AND a.del_flag = '0'")
 	int updateStorageSizeById(@Param("dbId") Long dbId);
 
     /**
@@ -133,7 +133,7 @@ public interface CatalogDbMapper extends BaseMapperX<CatalogDbDO> {
      * @param dbId 数据库ID
      * @return 更新结果
      */
-	@Update("UPDATE Catalog_TABLE a SET a.column_count = (SELECT COUNT(*) FROM Catalog_COLUMN b WHERE b.table_id = a.id AND a.db_id = b.db_id and b.del_flag='0') WHERE EXISTS (SELECT 1 FROM Catalog_COLUMN b WHERE b.table_id = a.id AND a.db_id = b.db_id and b.del_flag='0') AND a.db_id = #{dbId} and a.del_flag='0'")
+	@Update("UPDATE CAT_TABLE a SET column_count = (SELECT COUNT(*) FROM CAT_COLUMN b WHERE b.table_id = a.id AND a.db_id = b.db_id and b.del_flag='0') WHERE EXISTS (SELECT 1 FROM CAT_COLUMN b WHERE b.table_id = a.id AND a.db_id = b.db_id and b.del_flag='0') AND a.db_id = #{dbId} and a.del_flag='0'")
 	int updateColumnCountByDbId(@Param("dbId") Long dbId);
 
     /**
@@ -141,7 +141,7 @@ public interface CatalogDbMapper extends BaseMapperX<CatalogDbDO> {
      * @param dbId 数据库ID
      * @return 更新结果
      */
-	@Update("UPDATE Catalog_DB a SET a.data_row_count = (SELECT SUM(row_count) FROM Catalog_TABLE b WHERE b.db_id = a.id AND b.del_flag = '0') WHERE a.id = #{dbId} AND a.del_flag = '0'")
+	@Update("UPDATE CAT_DB a SET data_row_count = (SELECT COALESCE(SUM(row_count), 0) FROM CAT_TABLE b WHERE b.db_id = a.id AND b.del_flag = '0') WHERE a.id = #{dbId} AND a.del_flag = '0'")
 	int updateDataRowCountById(@Param("dbId") Long dbId);
 
 }

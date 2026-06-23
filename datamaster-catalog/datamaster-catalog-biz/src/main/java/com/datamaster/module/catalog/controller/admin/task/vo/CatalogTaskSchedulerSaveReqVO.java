@@ -85,7 +85,7 @@ public class CatalogTaskSchedulerSaveReqVO extends BaseEntity {
         this.endTime = date;
 
         this.timezoneId = "Asia/Shanghai";
-        this.cronExpression = dictType.getCronExpression();
+        this.cronExpression = dictType.getCronExpression() != null ? dictType.getCronExpression() : "";
 
         this.failureStrategy = "0";
         this.status = "0";

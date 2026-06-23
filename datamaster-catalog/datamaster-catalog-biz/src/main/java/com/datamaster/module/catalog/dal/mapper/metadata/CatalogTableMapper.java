@@ -42,7 +42,7 @@ public interface CatalogTableMapper extends BaseMapperX<CatalogTableDO> {
                         , "u.PHONENUMBER AS createPhoneNumber"
                         , "u2.PHONENUMBER AS updatePhoneNumber"
                 )
-                .leftJoin("Catalog_DB d ON t.DB_ID=d.id")
+                .leftJoin("CAT_DB d ON t.DB_ID=d.id")
                 .leftJoin("SYSTEM_USER u on t.CREATOR_ID = u.USER_ID AND u.DEL_FLAG = '0'")
                 .leftJoin("SYSTEM_USER u2 on t.UPDATER_ID = u2.USER_ID AND u2.DEL_FLAG = '0'")
                 .leftJoin("AST_ASSET da ON da.TABLE_ID = t.ID AND da.DEL_FLAG = '0'")
@@ -123,7 +123,7 @@ public interface CatalogTableMapper extends BaseMapperX<CatalogTableDO> {
                 .select("t2.CRON_EXPRESSION as cronExpression")
                 .select("COALESCE(c1.columnCount, 0) as columnCount")
                 .leftJoin("CAT_TASK_SCHEDULER t2 on t.TASK_ID = t2.TASK_ID and t2.DEL_FLAG = '0'")
-                .leftJoin("(SELECT TABLE_ID, COUNT(1) AS columnCount FROM Catalog_COLUMN WHERE DEL_FLAG = '0' GROUP BY TABLE_ID) c1 on c1.TABLE_ID = t.ID");
+                .leftJoin("(SELECT TABLE_ID, COUNT(1) AS columnCount FROM CAT_COLUMN WHERE DEL_FLAG = '0' GROUP BY TABLE_ID) c1 on c1.TABLE_ID = t.ID");
 
         lambdaWrapperX
                 .eq(reqVO.getTaskId() != null, CatalogTableDO::getTaskId, reqVO.getTaskId())

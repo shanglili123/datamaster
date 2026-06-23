@@ -37,7 +37,7 @@
                 <div
                   class="justify task-title-row"
                   @click="
-                    routeTo('/col/task/integratioTask/detail', {
+                    routeTo('/col/task/developTask/detail', {
                       ...row,
                       info: true,
                     })

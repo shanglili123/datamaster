@@ -18,6 +18,12 @@ import java.util.Set;
  */
 public interface CatalogTaskInstanceLogMapper extends BaseMapperX<CatalogTaskInstanceLogDO> {
 
+    CatalogTaskInstanceLogDO selectCatalogTaskInstanceLogByTaskInstanceId(Long taskInstanceId);
+
+    int insertCatalogTaskInstanceLog(CatalogTaskInstanceLogDO entity);
+
+    int updateCatalogTaskInstanceLog(CatalogTaskInstanceLogDO entity);
+
     default PageResult<CatalogTaskInstanceLogDO> selectPage(CatalogTaskInstanceLogPageReqVO reqVO) {
         // 定义排序的字段（防止 SQL 注入，与数据库字段名称一致）
         Set<String> allowedColumns = new HashSet<>(Arrays.asList("id", "create_time", "update_time"));

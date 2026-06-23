@@ -28,7 +28,7 @@ ds:
   quality_url: http://{{ datamaster_quality_ip }}:{{ datamaster_quality_port }}/quality/qualityTaskExecutor/runExecuteTask
   incremental_prepare_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/col/etlTask/incremental/prepare
   incremental_complete_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/col/etlTask/incremental/complete
-  mc_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/mc/taskExecutor/runExecuteTask
+  collector_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/cat/taskExecutor/runExecuteTask
   token: {{ dolphinscheduler_token }}
   tenant_code: {{ dolphinscheduler_tenant_code }}
   resource_url: {{ dolphinscheduler_resource_dir }}/
@@ -44,4 +44,4 @@ ds:
 
 path:
   quality_url: http://{{ datamaster_quality_ip }}:{{ datamaster_quality_port }}/quality/qualityTaskExecutor
-  mc_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/mc/taskExecutor
+  collector_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/cat/taskExecutor

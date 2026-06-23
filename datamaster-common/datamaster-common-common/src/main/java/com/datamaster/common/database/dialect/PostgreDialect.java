@@ -91,6 +91,53 @@ public class PostgreDialect extends AbstractDbDialect {
     }
 
     @Override
+    public String getDbColumns(DbQueryProperty dbQueryProperty) {
+        return "SELECT " +
+                "c.relname AS TABLENAME, " +
+                "a.attname AS COLNAME, " +
+                "CASE " +
+                "  WHEN t.typname = 'int2' THEN 'SMALLINT' " +
+                "  WHEN t.typname = 'int4' THEN 'INTEGER' " +
+                "  WHEN t.typname = 'int8' THEN 'BIGINT' " +
+                "  WHEN t.typname = 'float4' THEN 'REAL' " +
+                "  WHEN t.typname = 'float8' THEN 'DOUBLE PRECISION' " +
+                "  WHEN t.typname = 'varchar' THEN 'VARCHAR' " +
+                "  WHEN t.typname = 'bpchar' THEN 'CHAR' " +
+                "  WHEN t.typname = 'text' THEN 'TEXT' " +
+                "  ELSE t.typname " +
+                "END AS DATATYPE, " +
+                "CASE " +
+                "  WHEN t.typname IN ('varchar','char','bpchar','text') THEN a.atttypmod - 4 " +
+                "  ELSE a.attlen " +
+                "END AS DATALENGTH, " +
+                "CASE " +
+                "  WHEN t.typname IN ('numeric','decimal','float4','float8') THEN (a.atttypmod - 4) >> 16 " +
+                "  ELSE NULL " +
+                "END AS DATAPRECISION, " +
+                "CASE " +
+                "  WHEN t.typname IN ('numeric','decimal','float4','float8') THEN (a.atttypmod - 4) & 65535 " +
+                "  ELSE NULL " +
+                "END AS DATASCALE, " +
+                "CASE WHEN con.contype = 'p' THEN TRUE ELSE FALSE END AS COLKEY, " +
+                "NOT a.attnotnull AS NULLABLE, " +
+                "a.attnum AS COLPOSITION, " +
+                "regexp_replace(pg_get_expr(d.adbin, d.adrelid), '(::[a-zA-Z0-9_]+)+$', '') AS DATADEFAULT, " +
+                "col_description(a.attrelid, a.attnum) AS COLCOMMENT " +
+                "FROM pg_attribute a " +
+                "JOIN pg_class c ON a.attrelid = c.oid " +
+                "JOIN pg_type t ON a.atttypid = t.oid " +
+                "LEFT JOIN pg_constraint con " +
+                "  ON con.conrelid = c.oid AND a.attnum = ANY(con.conkey) AND con.contype = 'p' " +
+                "LEFT JOIN pg_attrdef d " +
+                "  ON a.attrelid = d.adrelid AND a.attnum = d.adnum " +
+                "WHERE c.relnamespace = ( " +
+                "  SELECT oid FROM pg_namespace WHERE nspname = '" + dbQueryProperty.getSid() + "' " +
+                ") " +
+                "AND a.attnum > 0 " +
+                "ORDER BY c.relname, a.attnum";
+    }
+
+    @Override
     public String generateCheckTableExistsSQL(DbQueryProperty dbQueryProperty, String tableName) {
         return "SELECT COUNT(*) FROM pg_catalog.pg_tables WHERE schemaname = '" + dbQueryProperty.getSid() + "' AND tablename = '" + tableName + "';";
     }
@@ -360,6 +407,7 @@ public class PostgreDialect extends AbstractDbDialect {
             entity.setColPosition(rs.getInt("COLPOSITION"));
             entity.setDataDefault(rs.getString("DATADEFAULT"));
             entity.setColComment(rs.getString("COLCOMMENT"));
+            entity.setTableName(rs.getString("TABLENAME"));
             return entity;
         };
     }

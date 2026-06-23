@@ -227,7 +227,7 @@ public class CollectorQualityLogServiceImpl  extends ServiceImpl<CollectorQualit
                     .divide(BigDecimal.valueOf(total), 2, RoundingMode.HALF_UP);
         }
         MessageSaveReqDTO messageSaveReqDTO = new MessageSaveReqDTO();
-        messageSaveReqDTO.setReceiverId(Long.valueOf(CollectorQualityTaskDO.getContactId()));
+        messageSaveReqDTO.setReceiverId(CollectorQualityTaskDO.getContactId());
         HashMap<String, Object> messageMeta = new HashMap<>();
         messageMeta.put("taskName", CollectorQualityTaskDO.getTaskName());
         messageMeta.put("executionTime", DateUtils.parseDateToStr(YYYY_MM_DD_HH_MM_SS,CollectorQualityLogDO.getEndTime()));

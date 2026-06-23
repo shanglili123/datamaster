@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container" ref="app-container">
+  <div class="app-container dpp-task-list-page" ref="app-container">
 
     <el-container>
       <SourceSystemTree
@@ -32,85 +32,143 @@
             </el-button>
           </template>
           <qt-table v-bind="tableStore" ref="tableRef">
-            <template #task-status="scope">
-              <el-switch
-                v-if="scope.row.status != undefined"
-                v-model="scope.row.status"
-                active-value="1"
-                inactive-value="0"
-                @change="handleTaskStatusChange(scope.row, $event)"
-              />
+            <template #name="{ row }">
+              <div class="name-label task-title">
+                <div class="justify task-title-row" @click="handleDetailClick(row)">
+                  <img
+                    :src="getDatasourceIcon(row.dbType)"
+                    alt=""
+                    class="datasource-icon"
+                    v-if="getDatasourceIcon(row.dbType)"
+                  />
+                  <el-link
+                    type="primary"
+                    :underline="false"
+                    class="task-name-text task-name-ellipsis"
+                    :title="row.name"
+                  >
+                    {{ row.name || "-" }}
+                  </el-link>
+                  <el-tag
+                    type="primary"
+                    :underline="false"
+                    class="task-cat-ellipsis"
+                    :title="row.sourceSystemName"
+                  >
+                    {{ row.sourceSystemName || "-" }}
+                  </el-tag>
+                </div>
+                <div class="text-ellipsis desc-text" :title="row.description">
+                  {{ row.description || "-" }}
+                </div>
+              </div>
             </template>
-
-            <template #scheduler-status="scope">
-              <el-switch
-                v-if="scope.row.schedulerStatus != undefined"
-                v-model="scope.row.schedulerStatus"
-                active-value="1"
-                inactive-value="0"
-                @change="handleSchedulerStatusChange(scope.row, $event)"
-              />
+            <template #releaseState="{ row }">
+              <div class="task-status-stack fz12">
+                <div class="flex-center">
+                  <span class="black-label mr5">发布状态:</span>
+                  <el-tag :type="row.status == '1' ? 'success' : 'warning'">
+                    {{ row.status == "1" ? "已发布" : "未发布" }}
+                  </el-tag>
+                </div>
+                <div class="flex-center">
+                  <span class="black-label mr5">调度状态:</span>
+                  <el-tag :type="row.schedulerStatus == '1' ? 'success' : 'info'">
+                    {{ row.schedulerStatus == "1" ? "已上线" : "未上线" }}
+                  </el-tag>
+                </div>
+              </div>
             </template>
-
-            <template #handle="{ row }">
-              <el-button
-                link
-                type="primary"
-                icon="Edit"
-                :disabled="row.status == '1'"
-                @click="handleEditClick(row)"
-              >
-                修改
-              </el-button>
-              <el-button
-                link
-                type="primary"
-                icon="view"
-                @click="handleDetailClick(row)"
-              >
-                详情
-              </el-button>
-              <el-popover
-                placement="bottom"
-                :width="150"
-                trigger="click"
-                popper-class="handle-popover"
-              >
-                <template #reference>
-                  <el-button link type="primary" icon="ArrowDown">
-                    更多
-                  </el-button>
+            <template #cronExpression="{ row }">
+              <div class="flex-column fz14 grey-black-text">
+                <div class="flex-center">
+                  <el-icon class="mr5"><Clock /></el-icon>
+                  <span
+                    class="text-ellipsis cron-text"
+                    :title="cronToZh(row.cronExpression)"
+                  >
+                    {{ cronToZh(row.cronExpression) || "-" }}
+                  </span>
+                </div>
+              </div>
+            </template>
+            <template #lastExecute="{ row }">
+              <div class="flex-column fz14 last-execute-col">
+                <template v-if="row.lastExecuteTime">
+                  <span>
+                    {{ parseTime(row.lastExecuteTime, "{y}-{m}-{d} {h}:{i}") }}
+                  </span>
                 </template>
-                <div style="width: 100px">
+                <template v-else>
+                  <div class="mb5">
+                    <el-tag type="info" class="not-executed-tag">未执行</el-tag>
+                  </div>
+                  <span>-</span>
+                </template>
+              </div>
+            </template>
+            <template #personChargeName="{ row }">
+              <div class="flex-column fz14">
+                <span
+                  class="text-ellipsis person-charge-ellipsis"
+                  :title="row.personChargeName"
+                >{{ row.personChargeName || "-" }}</span>
+                <span>{{ row.leaderPhone || "-" }}</span>
+              </div>
+            </template>
+            <template #createBy="{ row }">
+              <div class="flex-column fz14">
+                <span
+                  class="text-ellipsis person-charge-ellipsis"
+                  :title="row.createBy"
+                >{{ row.createBy || "-" }}</span>
+                <span>{{ row.createPhoneNumber || "-" }}</span>
+              </div>
+            </template>
+            <template #action="{ row }">
+              <div class="task-actions-col">
+                <div class="action-row">
                   <el-button
                     link
                     type="primary"
-                    icon="Document"
-                    @click="handleInstanceClick(row)"
-                    style="padding-left: 14px"
-                  >
-                    采集实例
-                  </el-button>
+                    icon="Edit"
+                    :disabled="row.status == '1'"
+                    @click="handleEditClick(row)">修改</el-button>
                   <el-button
                     link
                     type="primary"
-                    icon="VideoPlay"
-                    :disabled="row.status == '0'"
-                    @click="handleRunClick(row)"
-                  >
-                    执行一次
-                  </el-button>
+                    icon="view"
+                    @click="handleDetailClick(row)">详情</el-button>
                   <el-button
                     link
                     type="danger"
                     icon="Delete"
                     :disabled="row.status == '1'"
-                    @click="handleDeleteClick(row)"
-                  >
-                    删除
-                  </el-button>
+                    @click="handleDeleteClick(row)">删除</el-button>
                 </div>
-              </el-popover>
+                <div class="action-row">
+                  <el-button
+                    link
+                    type="success"
+                    icon="Upload"
+                    :disabled="row.status == '1'"
+                    :loading="publishingId === row.id"
+                    @click="handlePublishClick(row)">发布</el-button>
+                  <el-button
+                    link
+                    type="warning"
+                    icon="Download"
+                    :disabled="row.status != '1'"
+                    :loading="unpublishingId === row.id"
+                    @click="handleUnpublishClick(row)">卸载</el-button>
+                  <el-button
+                    link
+                    type="primary"
+                    icon="VideoPlay"
+                    :disabled="row.status != '1'"
+                    @click="handleRunClick(row)">执行一次</el-button>
+                </div>
+              </div>
             </template>
           </qt-table>
         </qt-wrap>
@@ -214,15 +272,8 @@
         <qt-form-item
           label="调度周期"
           prop="cronExpression"
-          :rules="[
-            {
-              required: true,
-              message: '请配置调度周期',
-              trigger: 'blur',
-            },
-          ]"
           :tip="{
-            content: '支持Cron表达式，如 0 0 * * * 表示每天0点执行',
+            content: '支持Cron表达式，如 0 0 * * * 表示每天0点执行，不填则不启用定时调度',
           }"
         >
           <el-input
@@ -363,6 +414,8 @@ import {
 import Crontab from "@/components/Crontab/index.vue";
 import SourceSystemTree from "./components/SourceSystemTree.vue";
 import { getParentLabelPath } from "@/utils/anivia.js";
+import { cronToZh } from "@/utils/cronUtils";
+import { getDatasourceIcon } from "@/utils/datasource";
 import {
   listTask,
   addTask,
@@ -416,9 +469,7 @@ const rules = {
       trigger: ["blur", "change"],
     },
   ],
-  cronExpression: [
-    { required: true, message: "请配置调度周期", trigger: "change" },
-  ],
+  cronExpression: [],
   collectionMode: [
     { required: true, message: "请选择采集模式", trigger: "change" },
   ],
@@ -456,6 +507,7 @@ const router = useRouter();
 
 const formRef = ref();
 const sourceSystemTreeRef = ref();
+const searchUserList = ref([]);
 const store = reactive({
   loading: false,
   rows: [],
@@ -526,119 +578,16 @@ const tableStore = reactive({
     },
   },
   columns: [
-    {
-      type: "selection",
-      width: 55,
-    },
-    {
-      label: "编号",
-      prop: "id",
-      sortable: true,
-      width: 60,
-    },
-    {
-      label: "任务名称",
-      prop: "name",
-      width: 240,
-      align: "left",
-      showOverflowTooltip: {
-        effect: "light",
-      },
-      link: {
-        external: handleDetailClick,
-      },
-    },
-    {
-      label: "描述",
-      prop: "description",
-      align: "left",
-      width: 240,
-      showOverflowTooltip: {
-        effect: "light",
-      },
-    },
-    {
-      label: "来源系统",
-      prop: "sourceSystemName",
-      width: 240,
-      align: "left",
-      showOverflowTooltip: {
-        effect: "light",
-      },
-    },
-    {
-      label: "数据库类型",
-      prop: "dbType",
-      dict: "datasource_type",
-      width: 100,
-    },
-    {
-      label: "数据源名称",
-      prop: "datasourceName",
-      width: 240,
-      align: "left",
-      showOverflowTooltip: {
-        effect: "light",
-      },
-    },
-    // {
-    //   label: "采集方式",
-    //   prop: "collectionMode",
-    //   width: 100,
-    //   dict: "mc_collect_mode",
-    // },
-
-    {
-      label: "任务状态",
-      prop: "status",
-      width: 100,
-      slot: "task-status",
-    },
-    {
-      label: "调度状态",
-      prop: "schedulerStatus",
-      width: 100,
-      slot: "scheduler-status",
-    },
-    {
-      label: "责任人",
-      prop: "personChargeName",
-      width: 120,
-      align: "left",
-      showOverflowTooltip: {
-        effect: "light",
-      },
-    },
-    {
-      label: "最近运行时间",
-      prop: "lastExecuteTime",
-      sortable: true,
-      width: 160,
-      date: true,
-    },
-    {
-      label: "创建人",
-      prop: "createBy",
-      width: 120,
-      align: "left",
-      showOverflowTooltip: {
-        effect: "light",
-      },
-    },
-    {
-      label: "创建时间",
-      prop: "createTime",
-      sortable: true,
-      sortableKey: "create_time",
-      width: 160,
-      date: true,
-    },
-    {
-      label: "操作",
-      width: 220,
-      fixed: "right",
-      slot: "handle",
-    },
+    { type: "selection", width: 55 },
+    { label: "编号", prop: "id", sortable: true, width: 60 },
+    { label: "任务信息", prop: "name", align: "left", slot: "name", width: 280 },
+    { label: "运行控制", prop: "status", width: 145, slot: "releaseState", align: "left" },
+    { label: "调度周期", prop: "cronExpression", width: 160, slot: "cronExpression", align: "left" },
+    { label: "最近执行", width: 160, slot: "lastExecute", align: "left" },
+    { label: "责任人", width: 120, slot: "personChargeName", align: "left" },
+    { label: "创建人", slot: "createBy", width: 120, align: "left" },
+    { label: "创建时间", prop: "createTime", sortable: true, sortableKey: "create_time", date: true, width: 150, align: "left" },
+    { label: "操作", align: "center", fixed: "right", slot: "action", width: 260 },
   ],
   func: listTask,
   params: {},
@@ -659,11 +608,32 @@ const searchStore = reactive({
     {
       label: "任务名称",
       prop: "name",
+      component: { is: "input", placeholder: "请输入任务名称" },
+    },
+    {
+      label: "任务状态",
+      prop: "status",
       component: {
-        is: "input",
+        is: "select",
+        placeholder: "请选择任务状态",
+        options: [
+          { value: "0", label: "未发布" },
+          { value: "1", label: "已发布" },
+        ],
       },
     },
-
+    {
+      label: "责任人",
+      prop: "leader",
+      component: {
+        is: "tree-select",
+        data: searchUserList,
+        props: { value: "userId", label: "nickName", children: "children" },
+        valueKey: "ID",
+        placeholder: "请选择责任人",
+        checkStrictly: true,
+      },
+    },
     {
       label: "创建时间",
       prop: "time",
@@ -769,6 +739,8 @@ function handleResetQueryClick() {
   tableStore.params.sourceSystemId = null;
   tableStore.params.datasourceId = null;
   tableStore.params.id = null;
+  tableStore.params.status = null;
+  tableStore.params.leader = null;
   tableRef.value?.resetQuery();
 }
 
@@ -776,6 +748,7 @@ function handleResetQueryClick() {
 function getUserList() {
   deptUserTree().then((res) => {
     store.userList = res.data;
+    searchUserList.value = res.data;
   });
 }
 
@@ -982,60 +955,37 @@ function onFilterTransfer(value, item) {
   return txt.includes(value.toLowerCase());
 }
 
-// 切换任务状态
-function handleTaskStatusChange(row, status) {
-  ElMessageBox.confirm(
-    `是否确认${status == 1 ? "发布" : "取消发布"}${row.name}任务？`,
-    "系统提示",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
-    .then(() => {
-      return updateReleaseJobTask({
-        id: row.id,
-        status,
-      });
-    })
-    .then(() => {
-      ElMessage.success(
-        `${row.name}${status == 1 ? "发布" : "取消发布"}任务成功!`
-      );
-      row.status = status;
-    })
-    .catch(() => {
-      row.status = status == "1" ? "0" : "1";
-    });
+const publishingId = ref(null);
+const unpublishingId = ref(null);
+
+function handlePublishClick(row) {
+  proxy.$modal.confirm(`确认发布【${row.name}】到 DolphinScheduler 吗？`).then(async () => {
+    publishingId.value = row.id;
+    await updateReleaseJobTask({ id: row.id, status: "1" });
+  }).then(() => {
+    proxy.$modal.msgSuccess("发布成功");
+    tableRef.value.getList();
+  }).catch((error) => {
+    if (error === "cancel" || error === "close") return;
+    proxy.$modal.msgError(error?.message || error?.msg || "发布失败");
+  }).finally(() => {
+    publishingId.value = null;
+  });
 }
 
-// 切换调度状态
-function handleSchedulerStatusChange(row, status) {
-  ElMessageBox.confirm(
-    `是否确认${status == 0 ? "下线" : "上线"}${row.name}的调度任务？`,
-    "系统提示",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
-    .then(() => {
-      return updateReleaseSchedule({
-        id: row.id,
-        status,
-      });
-    })
-    .then(() => {
-      ElMessage.success(
-        `${row.name}${status == 1 ? "上线" : "下线"}调度任务成功!`
-      );
-      row.schedulerStatus = status;
-    })
-    .catch(() => {
-      row.schedulerStatus = status == "1" ? "0" : "1";
-    });
+function handleUnpublishClick(row) {
+  proxy.$modal.confirm(`确认从 DolphinScheduler 卸载【${row.name}】吗？卸载后任务可编辑和删除。`).then(async () => {
+    unpublishingId.value = row.id;
+    await updateReleaseJobTask({ id: row.id, status: "0" });
+  }).then(() => {
+    proxy.$modal.msgSuccess("卸载成功");
+    tableRef.value.getList();
+  }).catch((error) => {
+    if (error === "cancel" || error === "close") return;
+    proxy.$modal.msgError(error?.message || error?.msg || "卸载失败");
+  }).finally(() => {
+    unpublishingId.value = null;
+  });
 }
 
 getDatasources();
@@ -1043,6 +993,22 @@ getUserList();
 getAllSourceSystems();
 </script>
 
+<style lang="scss" src="@/assets/system/styles/table-style-optimized.scss"></style>
 <style lang="scss" scoped>
+.task-actions-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  .action-row {
+    display: flex;
+    justify-content: flex-start;
+    gap: 0;
+    .el-button {
+      font-size: 12px;
+      padding: 0 2px;
+    }
+  }
+}
 </style>
 

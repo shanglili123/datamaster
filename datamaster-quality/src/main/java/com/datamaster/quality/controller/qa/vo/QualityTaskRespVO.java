@@ -45,7 +45,7 @@ public class QualityTaskRespVO implements Serializable {
 
     @Excel(name = "联系人ID")
     @Schema(description = "联系人ID", example = "")
-    private String contactId;
+    private Long contactId;
 
     @Excel(name = "联系电话")
     @Schema(description = "联系电话", example = "")

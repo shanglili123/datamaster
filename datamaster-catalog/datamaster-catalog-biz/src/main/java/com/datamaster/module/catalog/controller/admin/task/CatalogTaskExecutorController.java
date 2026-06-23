@@ -3,8 +3,8 @@ package com.datamaster.module.catalog.controller.admin.task;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import com.datamaster.common.core.controller.BaseController;
 import com.datamaster.common.core.domain.CommonResult;
@@ -35,10 +35,13 @@ public class CatalogTaskExecutorController extends BaseController {
      * @param id 任务ID
      * @return 执行结果
      */
-    @PutMapping("/runExecuteTask/{id}")
+    @RequestMapping(value = "/runExecuteTask/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
     public CommonResult<String> runExecuteTask(@PathVariable("id") Long id) {
         try {
-            CatalogTaskService.runDaDiscoveryTask(id);
+            boolean success = CatalogTaskService.runDaDiscoveryTask(id);
+            if (!success) {
+                return CommonResult.error(GlobalErrorCodeConstants.ERROR.getCode(), "任务id:" + id + "执行失败");
+            }
             return CommonResult.success("任务id:" + id + "执行成功");
         } catch (NumberFormatException e) {
             return CommonResult.error( GlobalErrorCodeConstants.ERROR.getCode(),"任务ID格式错误：" + id);

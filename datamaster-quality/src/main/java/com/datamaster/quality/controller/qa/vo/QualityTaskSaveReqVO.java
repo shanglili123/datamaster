@@ -41,8 +41,7 @@ public class QualityTaskSaveReqVO extends BaseEntity {
     private String contact;
 
     @Schema(description = "联系人ID", example = "")
-    @Size(max = 256, message = "联系人ID长度不能超过256个字符")
-    private String contactId;
+    private Long contactId;
 
     @Schema(description = "联系电话", example = "")
     @Size(max = 256, message = "联系电话长度不能超过256个字符")

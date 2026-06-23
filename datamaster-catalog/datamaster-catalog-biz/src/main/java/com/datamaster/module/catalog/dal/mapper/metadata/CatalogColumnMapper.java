@@ -37,8 +37,8 @@ public interface CatalogColumnMapper extends BaseMapperX<CatalogColumnDO> {
                 .select("t2.TABLE_NAME tableName")
                 .select("t2.DB_NAME dbName")
                 .select("d.source_system_id")
-                .leftJoin("Catalog_TABLE t2 on t.TABLE_ID = t2.ID")
-                .leftJoin("Catalog_DB d on t.DB_ID=d.id");
+                .leftJoin("CAT_TABLE t2 on t.TABLE_ID = t2.ID")
+                .leftJoin("CAT_DB d on t.DB_ID=d.id");
 
         lambdaWrapperX.eqIfPresent(CatalogColumnDO::getTaskId, reqVO.getTaskId())
                 .eqIfPresent(CatalogColumnDO::getDbId, reqVO.getDbId())

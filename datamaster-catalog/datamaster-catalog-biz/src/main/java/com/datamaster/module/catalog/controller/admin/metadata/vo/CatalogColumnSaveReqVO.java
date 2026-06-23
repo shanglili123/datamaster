@@ -108,6 +108,12 @@ public class CatalogColumnSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "状态;0：未发布，1：已发布长度不能超过256个字符")
     private String status;
 
+    @Schema(description = "项目ID", example = "")
+    private Long projectId;
+
+    @Schema(description = "项目编码", example = "")
+    private String projectCode;
+
     @Schema(description = "备注", example = "")
     @Size(max = 512, message = "备注长度不能超过256个字符")
     private String remark;

@@ -985,7 +985,7 @@ function RuleSelectorconfirm(obj, mode) {
 
 // 页面跳转
 const handleSuccess = () => {
-  router.push("/ast/quality/qualityTask");
+  router.push("/cat/quality/qualityTask");
 };
 async function submitForm() {
   loadingInstance.value = true;
