@@ -25,7 +25,7 @@ public interface ServiceApiLogMapper extends BaseMapperX<ServiceApiLogDO> {
         MPJLambdaWrapper<ServiceApiLogDO> wrapper = new MPJLambdaWrapper<>();
         wrapper.selectAll(ServiceApiLogDO.class)
                 .select("t2.NAME AS apiName,t2.REQ_METHOD as reqMethod,t3.NAME as catName")
-                .leftJoin("Service_API t2 on t.API_ID = t2.ID AND t2.DEL_FLAG = '0'")
+                .leftJoin("SVC_API t2 on t.API_ID = t2.ID AND t2.DEL_FLAG = '0'")
                 .leftJoin("TAX_API_CAT t3 on t.CAT_CODE = t3.CODE AND t3.DEL_FLAG = '0'")
                 .like(StringUtils.isNotEmpty(reqVO.getApiName()), "t2.NAME", reqVO.getApiName())
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), ServiceApiLogDO::getCatCode, reqVO.getCatCode())

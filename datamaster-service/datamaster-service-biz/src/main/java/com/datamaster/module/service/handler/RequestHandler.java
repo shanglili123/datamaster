@@ -101,12 +101,14 @@ public class RequestHandler {
         String caller_ip = "";
         Long cat_id = null;
         String cat_code = "";
+        Long project_id = null;
         try {
             api = MappingHandlerMapping.getMappingApiInfo(request);
             {//封装参数
                 api_id = api.getId();
                 cat_id = api.getCatId();
                 cat_code = api.getCatCode();
+                project_id = api.getProjectId();
                 caller_params = JSON.toJSONString(api.getReqParams());
                 caller_url = request.getRequestURI();
                 caller_ip = IPUtil.getIpAddr(request);
@@ -189,6 +191,7 @@ public class RequestHandler {
             apiLogDto.setCallerBy("-");
             apiLogDto.setCatId(cat_id);
             apiLogDto.setCatCode(cat_code);
+            apiLogDto.setProjectId(project_id);
             log.info("asyncTask.doTask(apiLogDto);");
             // 异步记录api日志
             asyncTask.doTask(apiLogDto);

@@ -109,10 +109,16 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                     "HAVING COUNT(d.ID) > 0";
         }
         lambdaWrapper.select("(" + subSelectSql + ") AS tags");
+        Long datasourceIdValue = null;
+        if (StringUtils.isNotBlank(reqVO.getDatasourceId())) {
+            try {
+                datasourceIdValue = Long.valueOf(reqVO.getDatasourceId());
+            } catch (NumberFormatException ignored) {}
+        }
         lambdaWrapper
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), AssetsAssetDO::getCatCode, reqVO.getCatCode())
                 .like(StringUtils.isNotBlank(reqVO.getName()), AssetsAssetDO::getName, reqVO.getName())
-                .eq(StringUtils.isNotBlank(reqVO.getDatasourceId()), AssetsAssetDO::getDatasourceId, reqVO.getDatasourceId())
+                .eq(datasourceIdValue != null, AssetsAssetDO::getDatasourceId, datasourceIdValue)
                 .eq(StringUtils.isNotBlank(reqVO.getType()), AssetsAssetDO::getType, reqVO.getType())
                 .like(StringUtils.isNotBlank(reqVO.getTableName()), AssetsAssetDO::getTableName, reqVO.getTableName())
                 .eq(StringUtils.isNotBlank(reqVO.getTableComment()), AssetsAssetDO::getTableComment, reqVO.getTableComment())
@@ -136,6 +142,12 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
         // 定义排序的字段（防止 SQL 注入，与数据库字段名称一致）
         Set<String> allowedColumns = new HashSet<>(Arrays.asList("id", "create_time", "update_time"));
 
+        Long datasourceIdValue2 = null;
+        if (StringUtils.isNotBlank(reqVO.getDatasourceId())) {
+            try {
+                datasourceIdValue2 = Long.valueOf(reqVO.getDatasourceId());
+            } catch (NumberFormatException ignored) {}
+        }
         MPJLambdaWrapper<AssetsAssetDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.selectAll(AssetsAssetDO.class)
                 .select("t2.NAME AS catName")
@@ -144,7 +156,7 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                 .leftJoin("AST_ASSET_PROJECT_REL t3 on t.id = t3.ASSET_ID AND t3.DEL_FLAG = '0'")
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), AssetsAssetDO::getCatCode, reqVO.getCatCode())
                 .like(StringUtils.isNotBlank(reqVO.getName()), AssetsAssetDO::getName, reqVO.getName())
-                .eq(StringUtils.isNotBlank(reqVO.getDatasourceId()), AssetsAssetDO::getDatasourceId, reqVO.getDatasourceId())
+                .eq(datasourceIdValue2 != null, AssetsAssetDO::getDatasourceId, datasourceIdValue2)
                 .eq(StringUtils.isNotBlank(reqVO.getType()), AssetsAssetDO::getType, reqVO.getType())
                 .like(StringUtils.isNotBlank(reqVO.getTableName()), AssetsAssetDO::getTableName, reqVO.getTableName())
                 .eq(StringUtils.isNotBlank(reqVO.getTableComment()), AssetsAssetDO::getTableComment, reqVO.getTableComment())
