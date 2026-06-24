@@ -359,13 +359,24 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         if (StringUtils.isEmpty(pageReqVO.getDatasourceId())) {
             throw new ServiceException("id");
         }
-        return this.lambdaQuery().eq(AssetsAssetDO::getDatasourceId, pageReqVO.getDatasourceId()).eq(AssetsAssetDO::getDelFlag, "0").list();
+        Long datasourceId = Long.valueOf(pageReqVO.getDatasourceId());
+        return this.lambdaQuery().eq(AssetsAssetDO::getDatasourceId, datasourceId).eq(AssetsAssetDO::getDelFlag, "0").list();
     }
 
     @Override
     public AssetsAssetDO getAssetByAssetPageReqVO(AssetsAssetPageReqVO pageReqVO) {
         MPJLambdaWrapper<AssetsAssetDO> lambdaWrapper = new MPJLambdaWrapper();
-        lambdaWrapper.eq(StringUtils.isNotEmpty(pageReqVO.getName()), AssetsAssetDO::getName, pageReqVO.getName()).eq(pageReqVO.getId() != null, AssetsAssetDO::getId, pageReqVO.getId()).eq(StringUtils.isNotEmpty(pageReqVO.getTableName()), AssetsAssetDO::getTableName, pageReqVO.getTableName()).eq(StringUtils.isNotEmpty(pageReqVO.getDatasourceId()), AssetsAssetDO::getDatasourceId, pageReqVO.getDatasourceId()).eq(StringUtils.isNotEmpty(pageReqVO.getTableComment()), AssetsAssetDO::getTableComment, pageReqVO.getTableComment());
+        Long datasourceIdValue = null;
+        if (StringUtils.isNotEmpty(pageReqVO.getDatasourceId())) {
+            try {
+                datasourceIdValue = Long.valueOf(pageReqVO.getDatasourceId());
+            } catch (NumberFormatException ignored) {}
+        }
+        lambdaWrapper.eq(StringUtils.isNotEmpty(pageReqVO.getName()), AssetsAssetDO::getName, pageReqVO.getName())
+                .eq(pageReqVO.getId() != null, AssetsAssetDO::getId, pageReqVO.getId())
+                .eq(StringUtils.isNotEmpty(pageReqVO.getTableName()), AssetsAssetDO::getTableName, pageReqVO.getTableName())
+                .eq(datasourceIdValue != null, AssetsAssetDO::getDatasourceId, datasourceIdValue)
+                .eq(StringUtils.isNotEmpty(pageReqVO.getTableComment()), AssetsAssetDO::getTableComment, pageReqVO.getTableComment());
         return baseMapper.selectOne(lambdaWrapper);
     }
 

@@ -147,6 +147,7 @@ public class JdbcErrorDataStorage implements ErrorDataStorage {
                     .map(this::mapRowToCheckErrorData)
                     .collect(Collectors.toList());
 
+
             return new PageImpl<>(content, pageRequest, total);
         } catch (Exception e) {
             log.error("分页查询错误明细失败: {}", e.getMessage(), e);
