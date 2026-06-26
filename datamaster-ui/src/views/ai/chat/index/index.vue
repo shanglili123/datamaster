@@ -1,8 +1,14 @@
 <template>
-  <div class="ai-ask-chat-page">
-    <aside class="conversation-pane">
-      <div class="pane-title">AI问数</div>
-      <el-button type="primary" :icon="Plus" class="new-btn" @click="createConversation">新对话</el-button>
+  <div class="ask-data-page">
+    <aside class="chat-sidebar">
+      <div class="brand">
+        <div class="brand-mark">AI</div>
+        <div>
+          <strong>AI问数</strong>
+          <span>数据问答工作台</span>
+        </div>
+      </div>
+      <el-button type="primary" :icon="Plus" class="new-chat" @click="createConversation">新对话</el-button>
       <div class="conversation-list">
         <button
           v-for="item in conversations"
@@ -17,108 +23,88 @@
       </div>
     </aside>
 
-    <main class="chat-workspace">
-      <header class="chat-header">
-        <div>
-          <h2>{{ activeConversation?.title || '新对话' }}</h2>
-          <p>选择数据源，自动引用已同步的问数 Skill 进行分析</p>
+    <main class="chat-main">
+      <header class="chat-topbar">
+        <div class="title-block">
+          <h2>{{ activeConversation?.title || '新问数对话' }}</h2>
+          <span>{{ selectedDatasourceName() || '请选择数据源' }}</span>
         </div>
-        <div class="header-actions">
+        <div class="datasource-picker">
+          <el-select v-model="form.datasourceId" placeholder="选择数据源" filterable clearable>
+            <el-option
+              v-for="item in datasourceList"
+              :key="item.id"
+              :label="item.datasourceName"
+              :value="item.id"
+            >
+              <span>{{ item.datasourceName }}</span>
+              <span class="option-meta">{{ item.datasourceType }} / {{ syncText(item.dbgptSyncStatus) }}</span>
+            </el-option>
+          </el-select>
+          <span class="sync-state" :class="selectedDatasource?.dbgptSyncStatus || 'NONE'">
+            {{ syncText(selectedDatasource?.dbgptSyncStatus) }}
+          </span>
         </div>
       </header>
 
-      <section class="config-bar">
-        <el-select v-model="form.datasourceId" placeholder="选择数据源" filterable clearable class="config-select">
-          <el-option
-            v-for="item in datasourceList"
-            :key="item.id"
-            :label="item.datasourceName"
-            :value="item.id"
-          >
-            <span>{{ item.datasourceName }}</span>
-            <span class="option-meta">{{ item.datasourceType }} / {{ syncText(item.dbgptSyncStatus) }}</span>
-          </el-option>
-        </el-select>
-        <el-select v-model="form.chatMode" placeholder="问数模式" class="mode-select">
-          <el-option label="数据库问答" value="chat_with_db_qa" />
-          <el-option label="知识库问答" value="chat_knowledge" />
-          <el-option label="通用对话" value="chat_normal" />
-        </el-select>
-      </section>
-
-      <section ref="messageScrollRef" class="message-stream">
+      <section ref="messageScrollRef" class="message-area">
         <div v-if="activeMessages.length === 0" class="empty-state">
-          <h3>开始问你的数据</h3>
-          <p>先同步数据源和 Skill，然后选择数据源发起问题。</p>
+          <h1>想查什么，直接问</h1>
+          <p>选择数据源后，AI问数会使用已同步的数据源和自动生成的 Skill 进行回答。</p>
           <div class="examples">
             <button v-for="item in examples" :key="item" @click="prompt = item">{{ item }}</button>
           </div>
         </div>
-        <div v-for="message in activeMessages" :key="message.id" class="message-row" :class="message.role">
+
+        <div
+          v-for="message in activeMessages"
+          :key="message.id"
+          class="message-row"
+          :class="message.role"
+        >
           <div class="avatar">{{ message.role === 'user' ? '我' : 'AI' }}</div>
-          <div class="message-card">
-            <div class="message-content">{{ message.content }}</div>
-            <SqlPreviewCard
-              v-if="message.sql"
-              :sql="message.sql"
-              :executed="message.executeSuccess"
-              :execute-error="message.executeError"
-              :result-count="message.rowCount"
-            />
-            <el-table
-              v-if="message.executeResult?.length"
-              :data="message.executeResult"
-              border
-              size="small"
-              class="result-table"
-            >
-              <el-table-column
-                v-for="column in resultColumns(message.executeResult)"
-                :key="column"
-                :prop="column"
-                :label="column"
-                min-width="140"
-                show-overflow-tooltip
-              />
-            </el-table>
-            <SkillReferencePanel
-              v-if="message.skills?.length"
-              :skills="message.skills"
-              class="skill-panel"
-            />
+          <div class="message-bubble">
+            <div v-if="message.content" class="message-content">{{ message.content }}</div>
+            <div v-else class="typing">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
         </div>
       </section>
 
-      <footer class="prompt-box">
-        <el-input
-          v-model="prompt"
-          type="textarea"
-          :autosize="{ minRows: 3, maxRows: 8 }"
-          placeholder="输入自然语言问题，按 Enter 发送，Shift+Enter 换行"
-          @keydown.enter.prevent="handleEnter"
-          @keydown.shift.enter.stop
-        />
-        <div class="prompt-actions">
-          <span>AI问数将结合已同步的数据源与 Skill 生成回答。</span>
-          <el-button type="primary" :loading="sending" :icon="Promotion" @click="sendMessage">发送</el-button>
+      <footer class="composer-wrap">
+        <div class="composer">
+          <el-input
+            v-model="prompt"
+            type="textarea"
+            resize="none"
+            :autosize="{ minRows: 1, maxRows: 6 }"
+            placeholder="输入你的数据问题"
+            @keydown.enter.prevent="handleEnter"
+            @keydown.shift.enter.stop
+          />
+          <el-button
+            type="primary"
+            circle
+            :loading="sending"
+            :icon="Promotion"
+            class="send-btn"
+            @click="sendMessage"
+          />
         </div>
       </footer>
     </main>
-
   </div>
 </template>
 
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
-import { Collection, Plus, Promotion } from '@element-plus/icons-vue'
+import { Plus, Promotion } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
-import { askDataDbgptChat } from '@/api/ai/askData'
-import SqlPreviewCard from './components/SqlPreviewCard.vue'
-import SkillReferencePanel from './components/SkillReferencePanel.vue'
-
-
+import { getToken } from '@/utils/auth'
 
 const datasourceList = ref([])
 const conversations = ref([])
@@ -128,14 +114,13 @@ const sending = ref(false)
 const messageScrollRef = ref()
 
 const form = reactive({
-  datasourceId: null,
-  chatMode: 'chat_with_db_qa'
+  datasourceId: null
 })
 
 const examples = [
-  '最近7天订单数量趋势',
-  '按部门统计本月数据质量异常数量',
-  '这张表有哪些字段适合做指标统计？'
+  '查询下前5条订单数据',
+  '按城市统计订单金额',
+  '最近7天订单数量趋势'
 ]
 
 const activeConversation = computed(() =>
@@ -143,6 +128,10 @@ const activeConversation = computed(() =>
 )
 
 const activeMessages = computed(() => activeConversation.value?.messages || [])
+
+const selectedDatasource = computed(() =>
+  datasourceList.value.find((item) => item.id === form.datasourceId)
+)
 
 onMounted(async () => {
   await loadDatasources()
@@ -182,90 +171,129 @@ function handleEnter(event) {
 }
 
 async function sendMessage() {
+  if (sending.value) {
+    return
+  }
   const question = prompt.value.trim()
   if (!question) {
     ElMessage.warning('请输入问题')
     return
   }
+  if (!form.datasourceId) {
+    ElMessage.warning('请先选择数据源')
+    return
+  }
   if (!activeConversation.value) {
     createConversation()
   }
+
   const conversation = activeConversation.value
-  conversation.title = conversation.messages.length === 0 ? question.slice(0, 18) : conversation.title
+  conversation.title = conversation.messages.length === 0 ? question.slice(0, 20) : conversation.title
   conversation.datasourceName = selectedDatasourceName()
   conversation.messages.push({
     id: Date.now(),
     role: 'user',
     content: question
   })
+
+  const assistantMessage = {
+    id: Date.now() + 1,
+    role: 'assistant',
+    content: ''
+  }
+  conversation.messages.push(assistantMessage)
+
   prompt.value = ''
   sending.value = true
   await scrollToBottom()
+
   try {
-    const res = await askDataDbgptChat({
+    await streamAskData({
       question,
       datasourceId: form.datasourceId,
-      chatMode: form.chatMode
-    })
-    const data = res.data || {}
-    conversation.messages.push({
-      id: Date.now() + 1,
-      role: 'assistant',
-      content: answerText(data),
-      sql: data.sql,
-      executeResult: data.executeResult || [],
-      executeSuccess: data.executeSuccess,
-      executeError: data.executeError,
-      rowCount: data.rowCount,
-      skills: data.referencedSkills || []
+      chatMode: 'chat_with_db_qa'
+    }, (chunk) => {
+      assistantMessage.content += chunk
+      scrollToBottom()
+    }, (message) => {
+      assistantMessage.content = message || 'AI问数调用失败'
     })
   } catch (error) {
-    conversation.messages.push({
-      id: Date.now() + 1,
-      role: 'assistant',
-      content: error?.message || 'AI问数调用失败'
-    })
+    assistantMessage.content = error?.message || 'AI问数调用失败'
   } finally {
     sending.value = false
     await scrollToBottom()
   }
 }
 
+async function streamAskData(payload, onMessage, onError) {
+  const baseUrl = import.meta.env.VITE_APP_BASE_API || ''
+  const response = await fetch(baseUrl + '/ai/ask-data/dbgpt/chat/stream', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + getToken()
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  })
+
+  if (!response.ok) {
+    throw new Error(await response.text() || 'AI问数请求失败')
+  }
+  if (!response.body) {
+    throw new Error('浏览器不支持流式响应')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const events = buffer.split(/\r?\n\r?\n/)
+    buffer = events.pop() || ''
+    events.forEach((raw) => handleSseEvent(raw, onMessage, onError))
+  }
+  if (buffer.trim()) {
+    handleSseEvent(buffer, onMessage, onError)
+  }
+}
+
+function handleSseEvent(raw, onMessage, onError) {
+  const lines = raw.split(/\r?\n/)
+  let eventName = 'message'
+  const data = []
+  lines.forEach((line) => {
+    if (line.startsWith('event:')) {
+      eventName = line.substring(6).trim()
+    } else if (line.startsWith('data:')) {
+      data.push(line.substring(5).replace(/^ /, ''))
+    } else if (line.trim() && !line.startsWith(':')) {
+      if (data.length > 0) {
+        data[data.length - 1] += '\n' + line
+      }
+    }
+  })
+  const text = data.join('\n')
+  if (eventName === 'message') {
+    onMessage(text)
+  } else if (eventName === 'error') {
+    onError(text)
+  }
+}
+
 function selectedDatasourceName() {
-  return datasourceList.value.find((item) => item.id === form.datasourceId)?.datasourceName || ''
+  return selectedDatasource.value?.datasourceName || ''
 }
 
 function syncText(status) {
   if (status === 'SYNCED') return '已同步'
   if (status === 'FAILED') return '同步失败'
+  if (status === 'SYNCING') return '同步中'
   return '未同步'
-}
-
-function answerText(data) {
-  if (data.explanation) {
-    return data.explanation
-  }
-  if (data.executeSuccess) {
-    return `已查询到 ${data.rowCount || 0} 条记录。`
-  }
-  if (data.executeError) {
-    return `SQL执行失败：${data.executeError}`
-  }
-  if (data.qualityWarning) {
-    return data.qualityWarning
-  }
-  return data.explanation || 'AI问数未返回内容'
-}
-
-function resultColumns(rows) {
-  if (!rows || !rows.length) {
-    return []
-  }
-  const columns = new Set()
-  rows.forEach((row) => {
-    Object.keys(row || {}).forEach((key) => columns.add(key))
-  })
-  return Array.from(columns)
 }
 
 async function scrollToBottom() {
@@ -278,30 +306,60 @@ async function scrollToBottom() {
 </script>
 
 <style lang="scss" scoped>
-.ai-ask-chat-page {
+.ask-data-page {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
-  height: calc(100vh - 96px);
-  background: #f5f7fb;
-  color: #202936;
+  height: calc(100vh - 84px);
+  min-height: 640px;
+  background: #f4f6f8;
+  color: #1f2933;
 }
 
-.conversation-pane {
+.chat-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   padding: 18px;
   background: #ffffff;
-  border-right: 1px solid #e6eaf0;
+  border-right: 1px solid #dfe5ec;
 }
 
-.pane-title {
-  font-size: 18px;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2264d1;
+  color: #ffffff;
   font-weight: 700;
 }
 
-.new-btn {
+.brand strong,
+.brand span {
+  display: block;
+}
+
+.brand strong {
+  font-size: 17px;
+}
+
+.brand span {
+  margin-top: 2px;
+  color: #7b8794;
+  font-size: 12px;
+}
+
+.new-chat {
   width: 100%;
+  border-radius: 6px;
 }
 
 .conversation-list {
@@ -315,11 +373,12 @@ async function scrollToBottom() {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 5px;
+  min-height: 58px;
   padding: 10px 12px;
   border: 1px solid transparent;
   border-radius: 6px;
-  background: #f7f9fc;
+  background: #f7f9fb;
   color: #303133;
   cursor: pointer;
   text-align: left;
@@ -327,10 +386,11 @@ async function scrollToBottom() {
 
 .conversation-item.active {
   background: #eef5ff;
-  border-color: #91caff;
+  border-color: #8fb9f6;
 }
 
-.conversation-item span {
+.conversation-item span,
+.conversation-item small {
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -338,80 +398,96 @@ async function scrollToBottom() {
 }
 
 .conversation-item small {
-  color: #909399;
+  color: #7b8794;
 }
 
-.chat-workspace {
+.chat-main {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
 }
 
-.chat-header {
+.chat-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
+  gap: 18px;
+  padding: 16px 24px;
   background: #ffffff;
-  border-bottom: 1px solid #e6eaf0;
+  border-bottom: 1px solid #dfe5ec;
 }
 
-.chat-header h2 {
+.title-block h2 {
   margin: 0 0 4px;
   font-size: 18px;
+  line-height: 24px;
 }
 
-.chat-header p {
-  margin: 0;
-  color: #748094;
+.title-block span {
+  color: #7b8794;
+  font-size: 13px;
 }
 
-.header-actions {
+.datasource-picker {
   display: flex;
+  align-items: center;
   gap: 10px;
+  min-width: 380px;
 }
 
-.config-bar {
-  display: flex;
-  gap: 12px;
-  padding: 14px 24px;
-  background: #ffffff;
-  border-bottom: 1px solid #e6eaf0;
-}
-
-.config-select {
-  width: 260px;
-}
-
-.mode-select {
-  width: 160px;
+.datasource-picker :deep(.el-select) {
+  flex: 1;
 }
 
 .option-meta {
   float: right;
-  margin-left: 20px;
-  color: #909399;
+  margin-left: 24px;
+  color: #8a94a6;
   font-size: 12px;
 }
 
-.message-stream {
+.sync-state {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid #ccd6e0;
+  border-radius: 6px;
+  color: #667085;
+  background: #f8fafc;
+  font-size: 12px;
+}
+
+.sync-state.SYNCED {
+  color: #0f766e;
+  border-color: #99d7d0;
+  background: #ecfdf9;
+}
+
+.sync-state.FAILED {
+  color: #b42318;
+  border-color: #f5b5ae;
+  background: #fff5f3;
+}
+
+.message-area {
   overflow-y: auto;
-  padding: 24px;
+  padding: 28px 24px;
 }
 
 .empty-state {
-  max-width: 720px;
-  margin: 80px auto 0;
+  max-width: 760px;
+  margin: 86px auto 0;
   text-align: center;
 }
 
-.empty-state h3 {
-  font-size: 24px;
-  margin-bottom: 8px;
+.empty-state h1 {
+  margin: 0 0 12px;
+  font-size: 30px;
+  line-height: 38px;
 }
 
 .empty-state p {
-  color: #748094;
+  margin: 0;
+  color: #667085;
 }
 
 .examples {
@@ -419,22 +495,30 @@ async function scrollToBottom() {
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
 .examples button {
-  padding: 8px 12px;
-  border: 1px solid #dcdfe6;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid #d4dce6;
   border-radius: 6px;
   background: #ffffff;
+  color: #344054;
   cursor: pointer;
+}
+
+.examples button:hover {
+  border-color: #2264d1;
+  color: #2264d1;
 }
 
 .message-row {
   display: flex;
+  align-items: flex-start;
   gap: 12px;
-  max-width: 980px;
-  margin: 0 auto 18px;
+  max-width: 960px;
+  margin: 0 auto 20px;
 }
 
 .message-row.user {
@@ -442,78 +526,135 @@ async function scrollToBottom() {
 }
 
 .avatar {
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1f6feb;
+  background: #2264d1;
   color: #ffffff;
   font-size: 13px;
+  font-weight: 600;
 }
 
 .message-row.user .avatar {
-  background: #19a974;
+  background: #12a594;
 }
 
-.message-card {
-  max-width: min(760px, 80%);
-  padding: 14px 16px;
-  background: #ffffff;
-  border: 1px solid #e6eaf0;
+.message-bubble {
+  max-width: min(760px, 82%);
+  min-height: 38px;
+  padding: 12px 14px;
+  border: 1px solid #dde5ee;
   border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(31, 45, 61, 0.05);
+  background: #ffffff;
+}
+
+.message-row.user .message-bubble {
+  color: #ffffff;
+  background: #2264d1;
+  border-color: #2264d1;
 }
 
 .message-content {
   white-space: pre-wrap;
-  line-height: 1.7;
+  overflow-wrap: anywhere;
+  line-height: 1.75;
+  font-size: 14px;
 }
 
-.result-table {
-  margin-top: 12px;
-}
-
-.skill-panel {
-  margin-top: 12px;
-}
-
-.prompt-box {
-  padding: 14px 24px 18px;
-  background: #ffffff;
-  border-top: 1px solid #e6eaf0;
-}
-
-.prompt-actions {
+.typing {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
-  color: #909399;
-  font-size: 13px;
+  gap: 5px;
+  height: 20px;
 }
 
-@media (max-width: 900px) {
-  .ai-ask-chat-page {
-    grid-template-columns: 1fr;
+.typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8a94a6;
+  animation: typing 1s infinite ease-in-out;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
   }
 
-  .conversation-pane {
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.composer-wrap {
+  padding: 14px 24px 20px;
+  background: #ffffff;
+  border-top: 1px solid #dfe5ec;
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 10px;
+  border: 1px solid #ccd6e0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.composer :deep(.el-textarea__inner) {
+  min-height: 42px !important;
+  padding: 10px 0;
+  border: none;
+  box-shadow: none;
+  line-height: 22px;
+}
+
+.send-btn {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+}
+
+@media (max-width: 960px) {
+  .ask-data-page {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 64px);
+  }
+
+  .chat-sidebar {
     display: none;
   }
 
-  .chat-header,
-  .config-bar,
-  .prompt-actions {
+  .chat-topbar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .config-select,
-  .mode-select {
-    width: 100%;
+  .datasource-picker {
+    min-width: 0;
+  }
+
+  .message-bubble {
+    max-width: 86%;
   }
 }
 </style>
