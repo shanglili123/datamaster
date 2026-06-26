@@ -172,6 +172,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <delete id="deleteAssetColumnByAssetId" parameterType="Long">
         update AST_ASSET_COLUMN
         set DEL_FLAG = '1'
-        where ID = #{id}
+        where ASSET_ID = #{id}
     </delete>
 </mapper>

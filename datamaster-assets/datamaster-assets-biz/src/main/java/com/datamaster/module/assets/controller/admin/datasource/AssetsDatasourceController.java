@@ -34,6 +34,7 @@ import com.datamaster.module.assets.convert.datasource.AssetsDatasourceConvert;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
 import com.datamaster.module.assets.service.asset.IAssetsAssetService;
+import com.datamaster.module.assets.service.dbgpt.IDbGptDatasourceSyncService;
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceService;
 import com.datamaster.module.assets.service.datasource.impl.AssetsDatasourceServiceImpl;
 import com.datamaster.module.standards.api.model.dto.StandardsModelColumnReqDTO;
@@ -53,6 +54,7 @@ import java.util.*;
 public class AssetsDatasourceController extends BaseController {
     private final IAssetsDatasourceService AssetsDatasourceService;
     private final IAssetsAssetService AssetsAssetService;
+    private final IDbGptDatasourceSyncService dbGptDatasourceSyncService;
 
     @Operation(summary = "查询数据源列表")
     @PreAuthorize("@ss.hasPermi('da:DataSource:list')")
@@ -204,6 +206,22 @@ public class AssetsDatasourceController extends BaseController {
     @GetMapping("syncToDs/{id}")
     public AjaxResult syncToDs(@PathVariable("id") Long id) {
         return AssetsDatasourceService.syncToDs(id);
+    }
+
+    @Operation(summary = "同步数据源到AI问数")
+    @PreAuthorize("@ss.hasPermi('da:DataSource:edit')")
+    @Log(title = "数据源", businessType = BusinessType.UPDATE)
+    @PostMapping("syncToDbgpt/{id}")
+    public AjaxResult syncToDbgpt(@PathVariable("id") Long id) {
+        return dbGptDatasourceSyncService.syncById(id);
+    }
+
+    @Operation(summary = "同步全部数据源到AI问数")
+    @PreAuthorize("@ss.hasPermi('da:DataSource:edit')")
+    @Log(title = "数据源", businessType = BusinessType.UPDATE)
+    @PostMapping("syncAllToDbgpt")
+    public AjaxResult syncAllToDbgpt() {
+        return dbGptDatasourceSyncService.syncAll();
     }
 
     @Operation(summary = "获取数据源里面的数据表")

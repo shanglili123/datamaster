@@ -158,10 +158,7 @@ function filterSystemTool(routes) {
                 path === '/tool' ||
                 path.startsWith('tool/') ||
                 path.startsWith('/tool') ||
-                title === '系统工具' ||
-                path === 'ai' ||
-                path === '/ai' ||
-                title === '智能问数'
+                title === '系统工具'
             );
         })
         .map((route) => {

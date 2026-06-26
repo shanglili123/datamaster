@@ -51,8 +51,18 @@ public class EmbeddedRedisConfig {
                     }
                 }
 
-                // 实际启动Redis服务器
-                redisServer.start();
+                // 实际启动Redis服务器。开发环境下可能因为热重启留下上一次的 embedded Redis 进程，
+                // 如果端口已经被占用，跳过即可，让应用继续使用当前端口上的 Redis。
+                try {
+                    redisServer.start();
+                } catch (Exception e) {
+                    if (!isPortAvailable(redisPort)) {
+                        log.warn("Redis 服务器端口 {} 已被占用，跳过 embedded Redis 启动。原因：{}", redisPort, e.getMessage());
+                        redisServer = null;
+                        return;
+                    }
+                    throw new IOException("embedded Redis 启动失败", e);
+                }
 
                 // 清除当前行并打印最终成功消息
                 System.out.print("\r✓ 本地嵌入式 Redis Server 已成功启动于端口: " + redisServer.ports());

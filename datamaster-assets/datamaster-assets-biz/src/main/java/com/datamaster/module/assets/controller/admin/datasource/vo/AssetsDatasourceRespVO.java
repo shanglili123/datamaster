@@ -25,6 +25,9 @@ public class AssetsDatasourceRespVO implements Serializable {
 @Excel(name = "", readConverterExp = "=")    @Schema(description = "", example = "")    private Long DataSize;
 @Excel(name = "")    @Schema(description = "", example = "")    private String description;
 @Excel(name = "")    @Schema(description = "", example = "")    private Boolean validFlag;
+@Schema(description = "AI问数数据源ID", example = "")    private Integer dbgptDatasourceId;
+@Schema(description = "AI问数同步状态", example = "")    private String dbgptSyncStatus;
+@Schema(description = "AI问数同步消息", example = "")    private String dbgptSyncMessage;
 @Excel(name = "")    @Schema(description = "", example = "")    private String createBy;
 @Excel(name = "id")    @Schema(description = "id", example = "")    private Long creatorId;
 @Excel(name = "", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")    @Schema(description = "", example = "")    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    private Date createTime;

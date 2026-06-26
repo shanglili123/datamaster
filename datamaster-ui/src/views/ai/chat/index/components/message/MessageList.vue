@@ -352,7 +352,10 @@ function toReportCard(item) {
   }
 
   const header = "智能洞察";
-  const summary = raw?.msg || (toNumber(raw?.code) === 500 ? "对话异常" : "");
+  let summary = raw?.msg || (toNumber(raw?.code) === 500 ? "对话异常" : "");
+  if (raw?.qualityWarning) {
+    summary = (summary ? summary + "\n\n" : "") + "⚠️ " + raw.qualityWarning;
+  }
   console.log("🚀 ~ toReportCard ~ raw:", raw);
 
   // 如果返回 code 为 500，则停止加载并显示错误信息

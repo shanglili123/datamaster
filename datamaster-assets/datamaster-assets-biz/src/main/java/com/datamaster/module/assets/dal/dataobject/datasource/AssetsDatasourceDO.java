@@ -81,6 +81,15 @@ public class AssetsDatasourceDO extends BaseEntity {
     /** DolphinScheduler 数据源 ID，同步后设置 */
     private Long dsDatasourceId;
 
+    /** AI问数数据源 ID，同步后设置 */
+    private Integer dbgptDatasourceId;
+
+    /** AI问数同步状态 */
+    private String dbgptSyncStatus;
+
+    /** AI问数同步消息 */
+    private String dbgptSyncMessage;
+
     @JSONField(serialize = false)
     public String toJsonString() {
         // 默认 Fastjson：忽略 null 字段，字段顺序自动

@@ -103,6 +103,7 @@
         v-if="!store.loading"
         :is="tabComponent[store.tab]"
         :detail="store.form"
+        @update:detail="getDetail"
       />
     </div>
   </div>

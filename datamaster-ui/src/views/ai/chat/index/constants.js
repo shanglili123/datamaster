@@ -1,5 +1,5 @@
 ﻿
-import { Histogram, Opportunity } from "@element-plus/icons-vue";
+import { Histogram, Opportunity, DataAnalysis } from "@element-plus/icons-vue";
 
 export const CHAT_TYPES = [
   {
@@ -13,6 +13,12 @@ export const CHAT_TYPES = [
     label: "智能问答",
     icon: Opportunity,
     disabled: true,
+  },
+  {
+    value: "askData",
+    label: "AI 问数",
+    icon: DataAnalysis,
+    disabled: false,
   },
 ];
 

@@ -96,6 +96,7 @@
         :is="tabComponent[store.tab]"
         :detail="store.form"
         type="tab"
+        @update:detail="getDetail"
       />
     </div>
   </div>
