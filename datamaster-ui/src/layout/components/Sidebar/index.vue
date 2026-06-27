@@ -38,7 +38,26 @@ const appStore = useAppStore()
 const settingsStore = useSettingsStore()
 const permissionStore = usePermissionStore()
 
-const sidebarRouters =  computed(() => permissionStore.sidebarRouters);
+const sidebarRouters = computed(() => {
+  if (permissionStore.sidebarRouters && permissionStore.sidebarRouters.length > 0) {
+    return permissionStore.sidebarRouters;
+  }
+  if (route.path === "/ai" || route.path.startsWith("/ai/")) {
+    return [
+      {
+        path: "/ai/ask",
+        name: "AiAsk",
+        meta: { title: "问数", icon: "message" }
+      },
+      {
+        path: "/ai/skill",
+        name: "AiSkill",
+        meta: { title: "Skill管理", icon: "skill" }
+      }
+    ];
+  }
+  return [];
+});
 const showLogo = computed(() => settingsStore.sidebarLogo);
 const sideTheme = computed(() => settingsStore.sideTheme);
 const theme = computed(() => settingsStore.theme);

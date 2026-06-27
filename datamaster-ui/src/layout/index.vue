@@ -34,13 +34,29 @@ import usePermissionStore from "@/store/system/permission";
 
 const settingsStore = useSettingsStore();
 const permissionStore = usePermissionStore();
+const appStore = useAppStore();
 const route = useRoute();
 const theme = computed(() => settingsStore.theme);
 const sideTheme = computed(() => settingsStore.sideTheme);
-const sidebar = computed(() => useAppStore().sidebar);
+const sidebar = computed(() => appStore.sidebar);
 const device = computed(() => useAppStore().device);
 const needTagsView = computed(() => settingsStore.tagsView);
 const fixedHeader = computed(() => settingsStore.fixedHeader);
+
+watch(
+  [() => route.path, () => permissionStore.topbarRouters],
+  () => {
+    const sidebarRoutes = getSidebarRoutesForCurrentTopMenu();
+    if (sidebarRoutes.length > 0) {
+      permissionStore.setSidebarRouters(sidebarRoutes);
+      appStore.toggleSideBarHide(false);
+      if (!appStore.sidebar.opened) {
+        appStore.toggleSideBar(false);
+      }
+    }
+  },
+  { immediate: true, deep: true }
+);
 
 // 是否隐藏侧边栏：防止首次加载闪烁
 const sidebarHide = computed(() => {
@@ -91,6 +107,32 @@ function handleClickOutside() {
 const settingRef = ref(null);
 function setLayout() {
   settingRef.value.openSetting();
+}
+
+function getSidebarRoutesForCurrentTopMenu() {
+  const topPath = getTopPath(route.path);
+  if (!topPath) return [];
+  const topRoute = (permissionStore.topbarRouters || []).find((item) => normalizePath(item.path) === topPath);
+  if (!topRoute || !topRoute.children || topRoute.children.length === 0) return [];
+  return topRoute.children.map((child) => {
+    const routeItem = JSON.parse(JSON.stringify(child));
+    routeItem.parentPath = normalizePath(topRoute.path);
+    if (routeItem.path && !routeItem.path.startsWith("/") && !/^https?:/i.test(routeItem.path)) {
+      routeItem.path = `${normalizePath(topRoute.path)}/${routeItem.path}`.replace(/\/+/g, "/");
+    }
+    return routeItem;
+  });
+}
+
+function getTopPath(path) {
+  if (!path || path === "/" || path === "/index") return "";
+  const segments = path.split("/").filter(Boolean);
+  return segments.length > 0 ? `/${segments[0]}` : "";
+}
+
+function normalizePath(path) {
+  if (!path) return "";
+  return path.startsWith("/") ? path : `/${path}`;
 }
 </script>
 

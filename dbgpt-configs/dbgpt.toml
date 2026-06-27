@@ -1,0 +1,8 @@
+[dbgpt]
+debug = false
+log_level = "INFO"
+language = "zh"
+
+[server]
+host = "0.0.0.0"
+port = 5670

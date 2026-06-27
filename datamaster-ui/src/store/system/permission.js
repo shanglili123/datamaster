@@ -17,7 +17,7 @@ const homeRoute = {
     meta: { title: '首页', icon: 'dashboard', affix: true }
 };
 
-const homeMenuTitles = ['首页', '系统管理', '日志管理'];
+const homeMenuTitles = ['首页', '系统管理', '日志管理', '智能问数'];
 
 const usePermissionStore = defineStore('permission', {
     state: () => ({
@@ -41,6 +41,10 @@ const usePermissionStore = defineStore('permission', {
         },
         setTopbarRoutes(routes) {
             this.topbarRouters = routes;
+            const sidebarRoutes = buildSidebarRoutesForCurrentPath(routes);
+            if (sidebarRoutes.length > 0) {
+                this.sidebarRouters = sidebarRoutes;
+            }
         },
         setSidebarRouters(routes) {
             this.sidebarRouters = routes;
@@ -200,6 +204,53 @@ function buildRouterRoutes(routes) {
         }
         return registerRoute;
     });
+}
+
+function buildSidebarRoutesForCurrentPath(routes) {
+    const currentPath = getCurrentBrowserPath();
+    const topPath = getTopRoutePath(currentPath);
+    if (!topPath) return [];
+
+    const matchedTopRoute = (routes || []).find((route) =>
+        normalizeRoutePath(route.path) === topPath
+    );
+    if (!matchedTopRoute || !matchedTopRoute.children || !matchedTopRoute.children.length) {
+        return [];
+    }
+
+    return matchedTopRoute.children.map((child) => {
+        const cloned = cloneRouteRecord(child, toChildSidebarPath(matchedTopRoute.path, child.path));
+        cloned.parentPath = normalizeRoutePath(matchedTopRoute.path);
+        if (child.children && child.children.length) {
+            cloned.children = child.children;
+        }
+        return cloned;
+    });
+}
+
+function getCurrentBrowserPath() {
+    if (typeof window === 'undefined') return '';
+    const hashPath = window.location.hash && window.location.hash.startsWith('#/')
+        ? window.location.hash.slice(1).split('?')[0]
+        : '';
+    return hashPath || window.location.pathname || '';
+}
+
+function getTopRoutePath(path) {
+    if (!path || path === '/' || path === '/index') return '';
+    const segments = path.split('/').filter(Boolean);
+    return segments.length > 0 ? `/${segments[0]}` : '';
+}
+
+function normalizeRoutePath(path) {
+    if (!path) return '';
+    return path.startsWith('/') ? path : `/${path}`;
+}
+
+function toChildSidebarPath(parentPath, childPath) {
+    if (!childPath) return childPath;
+    if (isHttp(childPath) || childPath.startsWith('/')) return childPath;
+    return joinRoutePath(normalizeRoutePath(parentPath), childPath);
 }
 
 function flattenRouteForRegister(route, parentPath, targetRoutes, rootPath = '') {

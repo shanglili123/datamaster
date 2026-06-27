@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  dbgpt:
+    image: eosphorosai/dbgpt-openai:latest
+    container_name: dbgpt
+    restart: unless-stopped
+    ports:
+      - 5670:5670
+    volumes:
+      - /opt/db-gpt/pilot/data:/app/pilot/data
+      - /opt/db-gpt/pilot/message:/app/pilot/message
+    environment:
+      - LOCAL_DB_TYPE=sqlite
+      - LOCAL_DB_PATH=/app/pilot/data/default_sqlite.db
+      - LLM_MODEL=proxyllm
+      - LANGUAGE=zh
+      - DASHSCOPE_API_KEY=sk-3d13e28f0c9c44628181045e454b75f8
+    command: sh -c "pip install psycopg2-binary -q && dbgpt start webserver --config /app/configs/dbgpt-proxy-tongyi.toml"

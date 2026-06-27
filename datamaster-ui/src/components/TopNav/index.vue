@@ -159,6 +159,9 @@ function routeHasTrailingSegments(route, parentResolvedPath, targetSegments) {
 
 // 默认激活的菜单
 const activeMenu = computed(() => {
+  // 让直达二级路由时，在异步菜单加载完成后重新计算并恢复左侧二级菜单。
+  routers.value.length;
+  childrenMenus.value.length;
   const path = route.path;
   let activePath = path;
   console.log(route, "菜单");
@@ -278,6 +281,24 @@ watch(
   () => {
     nextTick(() => {
       calculateVisibleMenus();
+    });
+  },
+  { immediate: true }
+);
+
+watch(
+  [() => route.path, () => childrenMenus.value.length],
+  () => {
+    nextTick(() => {
+      const path = route.path;
+      if (!path || path === "/index" || hideList.indexOf(path) !== -1) return;
+      if (path.lastIndexOf("/") <= 0) return;
+      const tmpPath = path.substring(1);
+      const activePath = "/" + tmpPath.substring(0, tmpPath.indexOf("/"));
+      const routes = activeRoutes(activePath);
+      if (routes.length > 0) {
+        appStore.toggleSideBarHide(false);
+      }
     });
   },
   { immediate: true }
