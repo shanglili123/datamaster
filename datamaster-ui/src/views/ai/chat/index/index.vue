@@ -628,9 +628,10 @@ async function scrollToBottom() {
   padding: 0;
   overflow: hidden;
   border: 1px solid #e5e6eb;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #ffffff;
   color: #1d2129;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
 }
 
 .conversation-panel {
@@ -683,9 +684,15 @@ async function scrollToBottom() {
   color: #1d2129;
   cursor: pointer;
   text-align: left;
+  transition: border-color .2s, background .2s, box-shadow .2s;
 }
 
-.conversation-item:hover,
+.conversation-item:hover {
+  border-color: #94bfff;
+  background: #eef6ff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
 .conversation-item.active {
   border-color: #94bfff;
   background: #eef6ff;
@@ -718,6 +725,7 @@ async function scrollToBottom() {
   padding: 14px 20px;
   border-bottom: 1px solid #e5e6eb;
   background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
 }
 
 .chat-header h2 {
@@ -790,11 +798,13 @@ async function scrollToBottom() {
   background: #ffffff;
   color: #4e5969;
   cursor: pointer;
+  transition: border-color .2s, color .2s, box-shadow .2s;
 }
 
 .examples button:hover {
   border-color: #165dff;
   color: #165dff;
+  box-shadow: 0 1px 4px rgba(22,93,255,.12);
 }
 
 .message-row {
@@ -834,12 +844,18 @@ async function scrollToBottom() {
   border: 1px solid #e5e6eb;
   border-radius: 8px;
   background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+
+.message-row:not(.user) .message-bubble {
+  border-top-left-radius: 2px;
 }
 
 .message-row.user .message-bubble {
-  border-color: #c9cdd4;
-  background: #f7f8fa;
-  color: #1f2937;
+  border: none;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 .message-content {
@@ -1007,6 +1023,7 @@ async function scrollToBottom() {
   padding: 12px 20px 14px;
   border-top: 1px solid #e5e6eb;
   background: #ffffff;
+  box-shadow: 0 -1px 2px rgba(0,0,0,.03);
 }
 
 .composer {

@@ -123,7 +123,8 @@ const md = new MarkdownIt({
         }</code></pre>`;
       } catch (__) {}
     }
-    return ``;
+    const escaped = md?.utils?.escapeHtml(str) || str
+    return `<pre style="position: relative;"><code class="hljs">${escaped}</code></pre>`;
   },
 });
 
@@ -203,7 +204,7 @@ defineExpose({ copyContent }); // 提供方法给 parent 调用
   line-height: 1.6rem;
   letter-spacing: 0em;
   text-align: left;
-  color: #f0f0f6;
+  color: #1d2129;
   max-width: 100%;
 
   pre {
