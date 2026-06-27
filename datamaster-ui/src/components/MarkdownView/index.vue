@@ -235,6 +235,35 @@ defineExpose({ copyContent }); // 提供方法给 parent 调用
     }
   }
 
+  :deep(table) {
+    border-spacing: 0;
+    border-collapse: collapse;
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow: auto;
+    margin-bottom: 12px;
+  }
+
+  :deep(table th) {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  :deep(table td),
+  :deep(table th) {
+    padding: 6px 13px;
+    border: 1px solid #d0d7de;
+  }
+
+  :deep(table tr) {
+    border-top: 1px solid #d8dee4;
+  }
+
+  :deep(table tr:nth-child(2n)) {
+    background-color: #f6f8fa;
+  }
+
   p,
   code.hljs {
     margin-bottom: 16px;
