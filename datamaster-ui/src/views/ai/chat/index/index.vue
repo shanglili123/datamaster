@@ -334,7 +334,8 @@ function hydrateStructuredData(message) {
 }
 
 function extractAgentSteps(message) {
-  const content = message.displayContent || message.content
+  const content = (message.displayContent || message.content)
+    .replace(/^No correct response found\..*?system prompt\.\s*/i, '')
   if (!content) return
 
   const agentPatterns = [
