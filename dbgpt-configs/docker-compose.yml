@@ -15,5 +15,5 @@ services:
       - LOCAL_DB_PATH=/app/pilot/data/default_sqlite.db
       - LLM_MODEL=proxyllm
       - LANGUAGE=zh
-      - DASHSCOPE_API_KEY=sk-3d13e28f0c9c44628181045e454b75f8
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:?set DASHSCOPE_API_KEY before starting DB-GPT}
     command: sh -c "pip install psycopg2-binary -q && dbgpt start webserver --config /app/configs/dbgpt-proxy-tongyi.toml"

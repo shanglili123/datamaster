@@ -100,6 +100,12 @@ SET MENU_NAME = '智能问数',
     ICON = 'znfx'
 WHERE MENU_ID = 2733;
 
+UPDATE SYSTEM_MENU
+SET VISIBLE = '1',
+    STATUS = '1',
+    REMARK = COALESCE(REMARK, '') || CASE WHEN COALESCE(REMARK, '') = '' THEN '' ELSE '; ' END || '旧AI模型管理模块未随主服务部署，默认隐藏'
+WHERE COMPONENT = 'ai/model/index';
+
 INSERT INTO SYSTEM_MENU (
     MENU_ID, MENU_NAME, PARENT_ID, ORDER_NUM, PATH, COMPONENT, QUERY,
     IS_FRAME, IS_CACHE, ROUTE_NAME, MENU_TYPE, VISIBLE, STATUS, PERMS, ICON,
@@ -154,6 +160,50 @@ SET MENU_NAME = 'Skill管理',
     ICON = 'skill'
 WHERE COMPONENT = 'ai/skill/index';
 
+INSERT INTO SYSTEM_MENU (
+    MENU_ID, MENU_NAME, PARENT_ID, ORDER_NUM, PATH, COMPONENT, QUERY,
+    IS_FRAME, IS_CACHE, ROUTE_NAME, MENU_TYPE, VISIBLE, STATUS, PERMS, ICON,
+    CREATE_BY, CREATE_TIME, REMARK
+)
+SELECT *
+FROM (VALUES
+    (2752, 'Skill查询', 2750, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ai:skill:query', '#', 'admin', NOW(), NULL),
+    (2753, 'Skill新增', 2750, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ai:skill:add', '#', 'admin', NOW(), NULL),
+    (2754, 'Skill修改', 2750, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ai:skill:edit', '#', 'admin', NOW(), NULL),
+    (2755, 'Skill删除', 2750, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ai:skill:remove', '#', 'admin', NOW(), NULL),
+    (2756, 'Skill发布', 2750, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ai:skill:publish', '#', 'admin', NOW(), NULL),
+    (2757, 'Skill生成', 2750, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ai:skill:generate', '#', 'admin', NOW(), NULL),
+    (2758, 'Skill同步', 2750, 7, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ai:skill:sync', '#', 'admin', NOW(), NULL)
+) AS menu_items (
+    MENU_ID, MENU_NAME, PARENT_ID, ORDER_NUM, PATH, COMPONENT, QUERY,
+    IS_FRAME, IS_CACHE, ROUTE_NAME, MENU_TYPE, VISIBLE, STATUS, PERMS, ICON,
+    CREATE_BY, CREATE_TIME, REMARK
+)
+WHERE NOT EXISTS (
+    SELECT 1 FROM SYSTEM_MENU target
+    WHERE target.MENU_ID = menu_items.MENU_ID
+       OR target.PERMS = menu_items.PERMS
+);
+
+UPDATE SYSTEM_MENU
+SET PARENT_ID = 2750,
+    MENU_TYPE = 'F',
+    PATH = '#',
+    COMPONENT = NULL,
+    QUERY = NULL,
+    VISIBLE = '0',
+    STATUS = '0',
+    ICON = '#'
+WHERE PERMS IN (
+    'ai:skill:query',
+    'ai:skill:add',
+    'ai:skill:edit',
+    'ai:skill:remove',
+    'ai:skill:publish',
+    'ai:skill:generate',
+    'ai:skill:sync'
+);
+
 INSERT INTO SYSTEM_ROLE_MENU (ROLE_ID, MENU_ID, PROJECT_ID)
 SELECT ROLE_ID, 2733, COALESCE(PROJECT_ID, 0)
 FROM SYSTEM_ROLE_MENU role_menu_source
@@ -184,6 +234,26 @@ WHERE role_menu_source.MENU_ID IN (2724, 2733)
     SELECT 1 FROM SYSTEM_ROLE_MENU target
     WHERE target.ROLE_ID = role_menu_source.ROLE_ID
       AND target.MENU_ID = 2750
+      AND COALESCE(target.PROJECT_ID, -1) = COALESCE(role_menu_source.PROJECT_ID, 0)
+);
+
+INSERT INTO SYSTEM_ROLE_MENU (ROLE_ID, MENU_ID, PROJECT_ID)
+SELECT role_menu_source.ROLE_ID, menu.MENU_ID, COALESCE(role_menu_source.PROJECT_ID, 0)
+FROM SYSTEM_ROLE_MENU role_menu_source
+JOIN SYSTEM_MENU menu ON menu.PERMS IN (
+    'ai:skill:query',
+    'ai:skill:add',
+    'ai:skill:edit',
+    'ai:skill:remove',
+    'ai:skill:publish',
+    'ai:skill:generate',
+    'ai:skill:sync'
+)
+WHERE role_menu_source.MENU_ID IN (2724, 2733, 2750, 2751)
+  AND NOT EXISTS (
+    SELECT 1 FROM SYSTEM_ROLE_MENU target
+    WHERE target.ROLE_ID = role_menu_source.ROLE_ID
+      AND target.MENU_ID = menu.MENU_ID
       AND COALESCE(target.PROJECT_ID, -1) = COALESCE(role_menu_source.PROJECT_ID, 0)
 );
 

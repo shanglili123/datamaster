@@ -12,6 +12,16 @@ Windows 可以用包装入口：
 .\deploy\start-all.ps1
 ```
 
+正式部署前可以先做本地配置预检，不会连接远程机器：
+
+```bash
+./deploy/start-all.sh --check
+```
+
+```powershell
+.\deploy\start-all.ps1 -Check
+```
+
 部署过程只使用 Bash、`ssh`、`scp` 和单容器 `docker run`，不使用 Ansible，也不使用 Docker Compose。
 
 ## 部署前确认
@@ -24,6 +34,7 @@ Windows 可以用包装入口：
 - PG/Redis 端口和密码。
 - DolphinScheduler API 端口。token 可以留空，脚本会自动生成并写入 DS 库。
 - DolphinScheduler tenant code：必须和 DS worker 执行任务使用的 Linux 用户一致，默认 `root`。
+- DB-GPT 地址、端口和模型密钥：`dbgpt_ip`、`dbgpt_port`、`dashscope_api_key`、`ai_skill_model_*`。
 - 离线包文件名和目录是否与 `deploy/deploy.yml` 一致。
 - Chunjun/Flink 是否已经放到 `deploy/packages/soft/chunjun` 和 `deploy/packages/soft/flink`。
 
@@ -36,6 +47,7 @@ deploy/packages
 ├── components
 │   ├── postgres-15.tar
 │   ├── redis-7.2.tar
+│   ├── dbgpt-openai-latest.tar
 │   ├── datamaster-server-ce-1.4.0.tar
 │   ├── datamaster-quality-ce-1.4.0.tar
 │   ├── apache-zookeeper-3.8.4-bin.tar.gz
@@ -81,10 +93,12 @@ soft_package_src: packages/soft
 2. 通过 `ssh`/`scp` 连接每台目标机器，创建 `base_dir` 下的组件目录。
 3. 部署 PostgreSQL：上传镜像 tar 并 `docker load`，再用 `docker run` 启动 PG。
 4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL，再写入 DS tenant 和 DS API token。
-5. 部署 Redis：上传镜像 tar、生成 `redis.conf`，再用 `docker run` 启动 Redis。
-6. 部署 ZooKeeper：上传 tar 包，解压并生成 systemd 服务。
-7. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源和运行环境，再生成 systemd 服务。
-8. 部署 DataMaster server 和 quality：生成 `application-prod.yml`，上传镜像 tar 并启动容器。
+5. 应用业务升级 SQL：默认执行 `sql/postgresql/upgrade/V1.6.0/add-ai-skill.sql`，补齐智能问数表、菜单和权限。
+6. 部署 Redis：上传镜像 tar、生成 `redis.conf`，再用 `docker run` 启动 Redis。
+7. 部署 ZooKeeper：上传 tar 包，解压并生成 systemd 服务。
+8. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源和运行环境，再生成 systemd 服务。
+9. 部署 DB-GPT：上传镜像 tar 并用 `docker run` 启动 `datamaster-dbgpt`。
+10. 部署 DataMaster server 和 quality：生成 `application-prod.yml`，上传镜像 tar 并启动容器。
 
 ## 初始化 jar
 
@@ -357,6 +371,36 @@ datamaster-dolphinscheduler-worker.service
 datamaster-dolphinscheduler-alert.service
 ```
 
+## DB-GPT 执行流程
+
+DB-GPT 使用单容器 `docker run` 部署。
+
+脚本会先创建远程目录：
+
+```text
+{{ dbgpt_data_dir }}
+{{ dbgpt_message_dir }}
+```
+
+然后检查本地镜像 tar：
+
+```yaml
+dbgpt_image_tar_src: packages/components/dbgpt-openai-latest.tar
+```
+
+如果文件存在，会上传到远程并执行 `docker load -i`；不存在则使用服务器已有镜像或在线拉取能力。
+
+最后删除旧容器并重新启动：
+
+```text
+容器名：datamaster-dbgpt
+端口：{{ dbgpt_port }}:5670
+数据目录：{{ dbgpt_data_dir }} -> /app/pilot/data
+消息目录：{{ dbgpt_message_dir }} -> /app/pilot/message
+```
+
+`dashscope_api_key` 会注入为 `DASHSCOPE_API_KEY`。如果现场不用通义代理模型，需要同步调整 `dbgpt_image` 或 DB-GPT 启动命令。
+
 ## DataMaster Server 执行流程
 
 主服务使用单容器 `docker run` 部署。
@@ -391,6 +435,8 @@ Redis 地址、端口、密码
 DolphinScheduler API 地址和自动生成/复用的 token
 DataMaster quality 回调地址
 DS resource 路径
+DB-GPT 地址、问数 chat mode、Skill 知识空间
+AI Skill 模型增强配置
 ```
 
 最后删除旧容器并重新启动：
@@ -409,6 +455,7 @@ DS resource 路径
 postgresql -> {{ postgresql_ip }}
 redis -> {{ redis_ip }}
 dolphinscheduler -> {{ dolphinscheduler_ip }}
+dbgpt -> {{ dbgpt_ip }}
 ```
 
 ## DataMaster Quality 执行流程

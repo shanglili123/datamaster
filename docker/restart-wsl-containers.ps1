@@ -9,6 +9,7 @@ $ErrorActionPreference = "Stop"
 $containerAliases = @(
     "postgresql",
     "docker_redis_1",
+    "dbgpt",
     "dolphinscheduler-zookeeper",
     "dolphinscheduler-master",
     "dolphinscheduler-worker",

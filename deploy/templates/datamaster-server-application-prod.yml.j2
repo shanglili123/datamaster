@@ -45,3 +45,21 @@ ds:
 path:
   quality_url: http://{{ datamaster_quality_ip }}:{{ datamaster_quality_port }}/quality/qualityTaskExecutor
   collector_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/cat/taskExecutor
+
+db-gpt:
+  url: http://{{ dbgpt_ip }}:{{ dbgpt_port }}
+  timeout: 60000
+  model: {{ dbgpt_model }}
+  chat-mode: {{ dbgpt_chat_mode }}
+  skill-space-name: {{ dbgpt_skill_space_name }}
+  skill-space-owner: {{ dbgpt_skill_space_owner }}
+
+ai:
+  skill-model:
+    enabled: {{ ai_skill_model_enabled }}
+    api-url: {{ ai_skill_model_api_url }}
+    api-key: {{ ai_skill_model_api_key }}
+    model: {{ ai_skill_model_name }}
+    timeout: {{ ai_skill_model_timeout }}
+    temperature: {{ ai_skill_model_temperature }}
+    max-tokens: {{ ai_skill_model_max_tokens }}

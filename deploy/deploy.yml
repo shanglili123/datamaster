@@ -30,6 +30,10 @@ datamaster_quality_ssh_host: "<DATAMASTER_QUALITY_IP>"
 datamaster_quality_ssh_user: "<SSH_USER>"
 datamaster_quality_ssh_port: 22
 
+dbgpt_ssh_host: "<DBGPT_IP>"
+dbgpt_ssh_user: "<SSH_USER>"
+dbgpt_ssh_port: 22
+
 # * Must confirm: global deployment root. All remote component directories are created under this path.
 # * 必须确认：远程统一部署根目录。所有组件目录都会在这个路径下面创建。
 # * If you want /data/datamaster as the final deployment root, keep this value unchanged.
@@ -50,6 +54,7 @@ zookeeper_ip: "<ZOOKEEPER_IP>"
 dolphinscheduler_ip: "<DOLPHINSCHEDULER_IP>"
 datamaster_app_ip: "<DATAMASTER_APP_IP>"
 datamaster_quality_ip: "<DATAMASTER_QUALITY_IP>"
+dbgpt_ip: "<DBGPT_IP>"
 
 # * Must confirm: container image names and local image tar files.
 # * 必须确认：容器镜像名和本地镜像 tar 包名称。
@@ -69,6 +74,9 @@ datamaster_server_image_tar_src: "packages/components/{{ datamaster_server_image
 datamaster_quality_image: "crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-quality-ce:1.4.0"
 datamaster_quality_image_tar: "datamaster-quality-ce-1.4.0.tar"
 datamaster_quality_image_tar_src: "packages/components/{{ datamaster_quality_image_tar }}"
+dbgpt_image: "eosphorosai/dbgpt-openai:latest"
+dbgpt_image_tar: "dbgpt-openai-latest.tar"
+dbgpt_image_tar_src: "packages/components/{{ dbgpt_image_tar }}"
 
 # * Must confirm: PostgreSQL port, admin account, business database, and business user.
 # * 必须确认：PostgreSQL 端口、管理员账号、业务库名、业务用户名。
@@ -82,6 +90,7 @@ postgresql_database: datamaster
 postgresql_user: datamaster
 postgresql_password: "datamaster"
 postgresql_init_sql_src: "packages/sql/datamaster.sql"
+postgresql_app_upgrade_sql_src: "../sql/postgresql/upgrade/V1.6.0/add-ai-skill.sql"
 
 # * Must confirm: database initialization jar and SQL files.
 # * 必须确认：数据库初始化 jar 和 SQL 文件。
@@ -134,6 +143,24 @@ soft_package_src: "packages/soft"
 # * 如果目标机器已经占用 8080 或 8083，就修改这里。
 datamaster_server_port: 8080
 datamaster_quality_port: 8083
+dbgpt_port: 5670
+
+# * Must confirm: AI ask-data model and DB-GPT settings.
+# * 必须确认：AI 问数模型和 DB-GPT 配置。
+# * Keep api key empty in source control. Set it here before deployment or export it as AI_SKILL_MODEL_API_KEY.
+# * 源码里保持 key 为空；部署前在这里填写，或通过环境变量 AI_SKILL_MODEL_API_KEY 注入。
+dbgpt_model: qwen-plus
+dbgpt_chat_mode: chat_with_db_qa
+dbgpt_skill_space_name: datamaster-skills
+dbgpt_skill_space_owner: datamaster
+ai_skill_model_enabled: "false"
+ai_skill_model_api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+ai_skill_model_api_key: ""
+ai_skill_model_name: qwen-plus
+ai_skill_model_timeout: 60000
+ai_skill_model_temperature: 0.2
+ai_skill_model_max_tokens: 4096
+dashscope_api_key: ""
 
 # * Must confirm if customizing layout: remote common directories.
 # * 如果自定义目录结构则必须确认：远程通用目录。
@@ -198,3 +225,9 @@ quality_dir: "{{ base_dir }}/quality"
 quality_conf_dir: "{{ quality_dir }}/conf"
 quality_log_dir: "{{ quality_dir }}/logs"
 quality_job_log_dir: "{{ quality_dir }}/job-log"
+
+# * Must confirm if customizing layout: DB-GPT directories.
+# * 如果自定义目录结构则必须确认：DB-GPT 目录。
+dbgpt_dir: "{{ base_dir }}/dbgpt"
+dbgpt_data_dir: "{{ dbgpt_dir }}/data"
+dbgpt_message_dir: "{{ dbgpt_dir }}/message"

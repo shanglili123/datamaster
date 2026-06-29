@@ -2,7 +2,8 @@
 param(
     [string]$Config = "",
     [string]$Limit = "",
-    [string]$Sudo = "sudo"
+    [string]$Sudo = "sudo",
+    [switch]$Check
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,6 +28,9 @@ if (-not [string]::IsNullOrWhiteSpace($Limit)) {
 }
 if (-not [string]::IsNullOrWhiteSpace($Sudo)) {
     $arguments += @("--sudo", $Sudo)
+}
+if ($Check) {
+    $arguments += @("--check")
 }
 
 & bash @arguments

@@ -157,17 +157,19 @@ flyflow:
   url: http://127.0.0.1:26859/
 
 db-gpt:
-  url: http://localhost:5670
-  timeout: 60000
-  model: qwen-plus
-  chat-mode: chat_with_db_qa
+  url: ${DB_GPT_URL:http://localhost:5670}
+  timeout: ${DB_GPT_TIMEOUT:60000}
+  model: ${DB_GPT_MODEL:qwen-plus}
+  chat-mode: ${DB_GPT_CHAT_MODE:chat_with_db_qa}
+  skill-space-name: ${DB_GPT_SKILL_SPACE_NAME:datamaster-skills}
+  skill-space-owner: ${DB_GPT_SKILL_SPACE_OWNER:datamaster}
 
 ai:
   skill-model:
-    enabled: true
-    api-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    api-key: sk-3d13e28f0c9c44628181045e454b75f8
-    model: qwen-plus
+    enabled: ${AI_SKILL_MODEL_ENABLED:false}
+    api-url: ${AI_SKILL_MODEL_API_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    api-key: ${AI_SKILL_MODEL_API_KEY:sk-3d13e28f0c9c44628181045e454b75f8}
+    model: ${AI_SKILL_MODEL_NAME:qwen-plus}
     timeout: ${AI_SKILL_MODEL_TIMEOUT:60000}
     temperature: ${AI_SKILL_MODEL_TEMPERATURE:0.2}
     max-tokens: ${AI_SKILL_MODEL_MAX_TOKENS:4096}
