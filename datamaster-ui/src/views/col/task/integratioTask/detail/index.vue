@@ -98,6 +98,12 @@
         <el-tab-pane label="详细信息" name="2" key="2">
           <info :dppEtlTaskDetail="dppEtlTaskDetail" />
         </el-tab-pane>
+        <el-tab-pane label="运维策略" name="3" key="3">
+          <opsPolicy :taskId="dppEtlTaskDetail.id" />
+        </el-tab-pane>
+        <el-tab-pane label="运维事件" name="4" key="4">
+          <opsEvent :taskId="dppEtlTaskDetail.id" />
+        </el-tab-pane>
       </el-tabs>
     </div>
   </div>
@@ -108,6 +114,8 @@ import { etlTask } from "@/api/col/task/index.js";
 import { useRoute } from "vue-router";
 import process from "@/views/col/task/integratioTask/detail/process.vue";
 import info from "@/views/col/task/integratioTask/detail/info.vue";
+import opsPolicy from "@/views/col/task/integratioTask/detail/opsPolicy.vue";
+import opsEvent from "@/views/col/task/integratioTask/detail/opsEvent.vue";
 import { onActivated, reactive, ref, toRefs, watch, getCurrentInstance } from "vue";
 
 const { proxy } = getCurrentInstance();

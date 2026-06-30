@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.datamaster.api.ds.api.base.DsStatusRespDTO;
@@ -94,6 +95,9 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Resource
     private ICollectorEtlTaskNodeRelService iCollectorEtlTaskNodeRelService;
+    @Resource
+    @Lazy
+    private ICollectorEtlTaskOpsService collectorEtlTaskOpsService;
 
     @Override
     public PageResult<CollectorEtlTaskInstanceDO> getCollectorEtlTaskInstancePage(CollectorEtlTaskInstancePageReqVO pageReqVO) {
@@ -275,7 +279,9 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
                 collectorEtlTaskInstanceDO.setParentNodeInstanceId(commandParam.getLong("parentTaskInstanceId"));
             }
         }
-        return this.save(collectorEtlTaskInstanceDO);
+        boolean saved = this.save(collectorEtlTaskInstanceDO);
+        triggerOpsIfFinished(processInstance, collectorEtlTaskInstanceDO);
+        return saved;
     }
 
     @Override
@@ -309,7 +315,22 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
                 collectorEtlTaskInstanceDO.setParentNodeInstanceId(commandParam.getLong("parentTaskInstanceId"));
             }
         }
-        return this.saveOrUpdate(collectorEtlTaskInstanceDO);
+        boolean saved = this.saveOrUpdate(collectorEtlTaskInstanceDO);
+        old.setStatus(collectorEtlTaskInstanceDO.getStatus());
+        old.setStatusHistory(collectorEtlTaskInstanceDO.getStatusHistory());
+        old.setEndTime(collectorEtlTaskInstanceDO.getEndTime());
+        old.setRunTimes(collectorEtlTaskInstanceDO.getRunTimes());
+        triggerOpsIfFinished(processInstance, old);
+        return saved;
+    }
+
+    private void triggerOpsIfFinished(ProcessInstance processInstance, CollectorEtlTaskInstanceDO instance) {
+        try {
+            collectorEtlTaskOpsService.handleProcessInstanceFinished(processInstance, instance);
+        } catch (Exception e) {
+            log.warn("任务运维托管处理异常，processInstanceId={}",
+                    processInstance == null ? null : processInstance.getId(), e);
+        }
     }
 
     @Override

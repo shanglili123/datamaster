@@ -234,6 +234,12 @@
                     <el-button
                       link
                       type="primary"
+                      icon="Monitor"
+                      @click="handleOpsPolicy(row)">运维托管</el-button
+                    >
+                    <el-button
+                      link
+                      type="primary"
                       icon="VideoPlay"
                       v-if="
                         row.datasourceType === 'FlinkStream' && row.taskInstanceId
@@ -297,6 +303,48 @@
       :userList="userList"
       :info="route.query.info"
     />
+    <el-dialog
+      title="运维托管"
+      v-model="opsDialogVisible"
+      width="560px"
+      destroy-on-close
+    >
+      <el-form :model="opsForm" label-width="120px">
+        <el-form-item label="任务名称">
+          <span>{{ opsTask.name || "-" }}</span>
+        </el-form-item>
+        <el-form-item label="失败即停">
+          <el-switch v-model="opsForm.failStopEnabled" />
+        </el-form-item>
+        <el-form-item label="AI托管">
+          <el-switch v-model="opsForm.aiManaged" />
+        </el-form-item>
+        <el-form-item label="自动恢复">
+          <el-switch v-model="opsForm.autoRecoverEnabled" :disabled="!opsForm.aiManaged" />
+        </el-form-item>
+        <el-form-item label="恢复次数">
+          <el-input-number
+            v-model="opsForm.maxRecoverTimes"
+            :min="0"
+            :max="10"
+            :disabled="!opsForm.autoRecoverEnabled"
+          />
+        </el-form-item>
+        <el-form-item label="恢复策略">
+          <el-select v-model="opsForm.recoverStrategy">
+            <el-option label="安全自动恢复" value="SAFE_AUTO" />
+            <el-option label="只给建议" value="SUGGEST_ONLY" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="通知用户">
+          <el-input v-model="opsForm.notifyUsers" placeholder="多个用户用逗号分隔" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="opsDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="opsSaving" @click="saveOpsPolicy">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -318,6 +366,7 @@ import {
 import { usePageRefresh } from "@/composables/usePageRefresh";
 import { getDatasourceIcon } from "@/utils/datasource";
 import { execute } from "@/api/col/task";
+import { getTaskOpsPolicy, saveTaskOpsPolicy } from "@/api/col/taskOps.js";
 import { cronToZh } from "@/utils/cronUtils";
 import {
   listAttDataDevCat,
@@ -389,6 +438,18 @@ const taskConfigDialogVisible = ref(false);
 const deptOptions = ref([]);
 let userList = ref([]);
 let taskForm = ref({});
+const opsDialogVisible = ref(false);
+const opsSaving = ref(false);
+const opsTask = ref({});
+const opsForm = ref({
+  taskId: null,
+  failStopEnabled: false,
+  aiManaged: false,
+  autoRecoverEnabled: false,
+  maxRecoverTimes: 1,
+  recoverStrategy: "SAFE_AUTO",
+  notifyUsers: "",
+});
 const handleAdd = () => {
   taskConfigDialogVisible.value = true;
 };
@@ -637,6 +698,47 @@ const handleExecuteStop = async (row) => {
     }, 2000);
   }
 };
+
+async function handleOpsPolicy(row) {
+  opsTask.value = row || {};
+  opsForm.value = {
+    taskId: row.id,
+    failStopEnabled: false,
+    aiManaged: false,
+    autoRecoverEnabled: false,
+    maxRecoverTimes: 1,
+    recoverStrategy: "SAFE_AUTO",
+    notifyUsers: "",
+  };
+  opsDialogVisible.value = true;
+  try {
+    const res = await getTaskOpsPolicy(row.id);
+    if (res?.data) {
+      opsForm.value = {
+        taskId: row.id,
+        failStopEnabled: !!res.data.failStopEnabled,
+        aiManaged: !!res.data.aiManaged,
+        autoRecoverEnabled: !!res.data.autoRecoverEnabled,
+        maxRecoverTimes: res.data.maxRecoverTimes ?? 1,
+        recoverStrategy: res.data.recoverStrategy || "SAFE_AUTO",
+        notifyUsers: res.data.notifyUsers || "",
+      };
+    }
+  } catch (e) {
+    proxy.$modal.msgWarning("运维策略加载失败");
+  }
+}
+
+async function saveOpsPolicy() {
+  opsSaving.value = true;
+  try {
+    await saveTaskOpsPolicy(opsForm.value);
+    proxy.$modal.msgSuccess("运维托管策略已保存");
+    opsDialogVisible.value = false;
+  } finally {
+    opsSaving.value = false;
+  }
+}
 
 let DataView = ref(false);
 /** 运行实例接口 */

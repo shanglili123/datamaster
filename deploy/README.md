@@ -93,7 +93,7 @@ soft_package_src: packages/soft
 2. 通过 `ssh`/`scp` 连接每台目标机器，创建 `base_dir` 下的组件目录。
 3. 部署 PostgreSQL：上传镜像 tar 并 `docker load`，再用 `docker run` 启动 PG。
 4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL，再写入 DS tenant 和 DS API token。
-5. 应用业务升级 SQL：默认执行 `sql/postgresql/upgrade/V1.6.0/add-ai-skill.sql`，补齐智能问数表、菜单和权限。
+5. 应用业务升级 SQL：默认执行 `sql/postgresql/upgrade/V1.6.0/add-ai-skill.sql`，补齐智能问数表、AI运维菜单、任务托管策略表和权限。
 6. 部署 Redis：上传镜像 tar、生成 `redis.conf`，再用 `docker run` 启动 Redis。
 7. 部署 ZooKeeper：上传 tar 包，解压并生成 systemd 服务。
 8. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源和运行环境，再生成 systemd 服务。
