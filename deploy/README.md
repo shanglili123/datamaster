@@ -34,7 +34,7 @@ Windows 可以用包装入口：
 - PG/Redis 端口和密码。
 - DolphinScheduler API 端口。token 可以留空，脚本会自动生成并写入 DS 库。
 - DolphinScheduler tenant code：必须和 DS worker 执行任务使用的 Linux 用户一致，默认 `root`。
-- DB-GPT 地址、端口和模型密钥：`dbgpt_ip`、`dbgpt_port`、`dashscope_api_key`、`ai_skill_model_*`。
+- DB-GPT 部署地址、端口和模型密钥：`dbgpt_ssh_host`、`dbgpt_port`、`dashscope_api_key`、`ai_skill_model_*`。
 - 离线包文件名和目录是否与 `deploy/deploy.yml` 一致。
 - Chunjun/Flink 是否已经放到 `deploy/packages/soft/chunjun` 和 `deploy/packages/soft/flink`。
 
@@ -316,10 +316,10 @@ deploy/templates/install-dolphinscheduler.sh.j2
 {{ dolphinscheduler_dir }}/apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin/*/conf/application.yaml
 ```
 
-数据源来自 `deploy/deploy.yml`：
+数据源地址由 `postgresql_ssh_host` 推导，端口和账号来自 `deploy/deploy.yml`：
 
 ```yaml
-postgresql_ip: "<POSTGRESQL_IP>"
+postgresql_ssh_host: "<POSTGRESQL_IP>"
 postgresql_port: 5432
 dolphinscheduler_database: dolphinscheduler
 postgresql_user: datamaster
@@ -334,10 +334,10 @@ SPRING_DATASOURCE_USERNAME=datamaster
 SPRING_DATASOURCE_PASSWORD=datamaster
 ```
 
-运行环境也来自 `deploy/deploy.yml`：
+运行环境也来自 `deploy/deploy.yml`，ZooKeeper 连接串由 `zookeeper_ssh_host` 集群列表和端口自动拼出：
 
 ```yaml
-zookeeper_ip: "<ZOOKEEPER_IP>"
+zookeeper_ssh_host: "<ZOOKEEPER_IP_1>,<ZOOKEEPER_IP_2>,<ZOOKEEPER_IP_3>"
 zookeeper_client_port: 2181
 dolphinscheduler_resource_dir: "{{ base_dir }}/dolphinscheduler-resource"
 chunjun_home: "{{ remote_soft_dir }}/chunjun"
@@ -347,7 +347,7 @@ flink_home: "{{ remote_soft_dir }}/flink"
 会写入：
 
 ```text
-REGISTRY_ZOOKEEPER_CONNECT_STRING=<ZOOKEEPER_IP>:2181
+REGISTRY_ZOOKEEPER_CONNECT_STRING=<ZOOKEEPER_IP_1>:2181,<ZOOKEEPER_IP_2>:2181,<ZOOKEEPER_IP_3>:2181
 RESOURCE_STORAGE_TYPE=LOCAL
 RESOURCE_LOCAL_BASE_PATH=/data/datamaster/dolphinscheduler-resource
 CHUNJUN_HOME=/data/datamaster/soft/chunjun
@@ -452,10 +452,10 @@ AI Skill 模型增强配置
 容器启动时还会增加 host 映射：
 
 ```text
-postgresql -> {{ postgresql_ip }}
-redis -> {{ redis_ip }}
+postgresql -> derived from {{ postgresql_ssh_host }}
+redis -> derived from {{ redis_ssh_host }}
 dolphinscheduler -> {{ dolphinscheduler_ip }}
-dbgpt -> {{ dbgpt_ip }}
+dbgpt -> derived from {{ dbgpt_ssh_host }}
 ```
 
 ## DataMaster Quality 执行流程
@@ -504,8 +504,8 @@ Redis 地址、端口、密码
 容器启动时还会增加 host 映射：
 
 ```text
-postgresql -> {{ postgresql_ip }}
-redis -> {{ redis_ip }}
+postgresql -> derived from {{ postgresql_ssh_host }}
+redis -> derived from {{ redis_ssh_host }}
 ```
 
 ## 配置文件

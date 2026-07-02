@@ -3,8 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATE_DIR="$SCRIPT_DIR/templates"
+CONFIG_TEMPLATE_DIR="$SCRIPT_DIR/config"
 CONFIG_FILE="$SCRIPT_DIR/deploy.yml"
 LIMIT=""
+DEFAULT_LIMIT="postgresql_servers,redis_servers,zookeeper_servers,dolphinscheduler_servers,dbgpt_servers,datamaster_app_servers,nginx_servers"
 SUDO="sudo"
 CHECK_ONLY=0
 
@@ -12,9 +14,11 @@ usage() {
   cat >&2 <<'EOF'
 Usage: ./deploy/start-all.sh [--config deploy.yml] [--limit group[,group]] [--sudo sudo] [--check]
 
+Default groups exclude datamaster_quality_servers. Use --limit datamaster_quality_servers to deploy quality explicitly.
+
 Groups:
   postgresql_servers, redis_servers, zookeeper_servers, dolphinscheduler_servers,
-  dbgpt_servers, datamaster_app_servers, datamaster_quality_servers
+  dbgpt_servers, datamaster_app_servers, nginx_servers, datamaster_quality_servers
 EOF
 }
 
@@ -47,6 +51,10 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ -z "$LIMIT" ]]; then
+  LIMIT="$DEFAULT_LIMIT"
+fi
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "Config file not found: $CONFIG_FILE" >&2
@@ -109,15 +117,23 @@ load_vars() {
 }
 
 add_host_from_config() {
-  local group="$1" prefix="$2" host user port
-  host="${VARS[${prefix}_ssh_host]:-}"
+  local group="$1" prefix="$2" hosts user port host
+  hosts="${VARS[${prefix}_ssh_host]:-}"
   user="${VARS[${prefix}_ssh_user]:-}"
   port="${VARS[${prefix}_ssh_port]:-22}"
-  if [[ -z "$host" ]]; then
-    echo "Missing ${prefix}_ssh_host in $CONFIG_FILE" >&2
-    exit 1
+  if [[ -z "$hosts" ]]; then
+    if should_deploy_group "$group"; then
+      echo "Missing ${prefix}_ssh_host in $CONFIG_FILE" >&2
+      exit 1
+    fi
+    return 0
   fi
-  HOST_ROWS+=("$group|$prefix|$host|$user|$port")
+  IFS=',' read -r -a host_items <<< "$hosts"
+  for host in "${host_items[@]}"; do
+    host="$(trim "$host")"
+    [[ -z "$host" ]] && continue
+    HOST_ROWS+=("$group|$prefix|$host|$user|$port")
+  done
 }
 
 load_hosts() {
@@ -127,7 +143,53 @@ load_hosts() {
   add_host_from_config dolphinscheduler_servers dolphinscheduler
   add_host_from_config dbgpt_servers dbgpt
   add_host_from_config datamaster_app_servers datamaster_app
+  add_host_from_config nginx_servers nginx
   add_host_from_config datamaster_quality_servers datamaster_quality
+}
+
+add_var_key_if_missing() {
+  local key="$1" existing
+  for existing in "${VAR_KEYS[@]}"; do
+    [[ "$existing" == "$key" ]] && return 0
+  done
+  VAR_KEYS+=("$key")
+}
+
+set_derived_var() {
+  local key="$1" value="$2"
+  VARS["$key"]="$value"
+  add_var_key_if_missing "$key"
+}
+
+first_config_host() {
+  local prefix="$1" hosts host
+  hosts="${VARS[${prefix}_ssh_host]:-}"
+  IFS=',' read -r host _ <<< "$hosts"
+  trim "$host"
+}
+
+config_hosts_with_port() {
+  local prefix="$1" port="$2" hosts host result=""
+  hosts="${VARS[${prefix}_ssh_host]:-}"
+  IFS=',' read -r -a host_items <<< "$hosts"
+  for host in "${host_items[@]}"; do
+    host="$(trim "$host")"
+    [[ -z "$host" ]] && continue
+    if [[ -n "$result" ]]; then
+      result="$result,$host:$port"
+    else
+      result="$host:$port"
+    fi
+  done
+  printf '%s' "$result"
+}
+
+derive_service_vars() {
+  set_derived_var postgresql_ip "$(first_config_host postgresql)"
+  set_derived_var redis_ip "$(first_config_host redis)"
+  set_derived_var datamaster_app_ip "$(first_config_host datamaster_app)"
+  set_derived_var dbgpt_ip "$(first_config_host dbgpt)"
+  set_derived_var zookeeper_connect_string "$(config_hosts_with_port zookeeper "${VARS[zookeeper_client_port]:-2181}")"
 }
 
 var_has_placeholder() {
@@ -160,18 +222,29 @@ require_local_file_if_group() {
 
 validate_config() {
   local common_keys=(
-    base_dir timezone postgresql_ip redis_ip zookeeper_ip dolphinscheduler_ip
-    datamaster_app_ip datamaster_quality_ip dbgpt_ip postgresql_port
+    base_dir timezone postgresql_ip redis_ip zookeeper_connect_string dolphinscheduler_ip
+    datamaster_app_ip postgresql_port
     postgresql_admin_database postgresql_admin_user postgresql_admin_password
     postgresql_database postgresql_user postgresql_password redis_port
     dolphinscheduler_api_port dolphinscheduler_tenant_code datamaster_server_port
-    datamaster_quality_port dbgpt_port datamaster_server_image
-    datamaster_quality_image dbgpt_image
+    dbgpt_port dbgpt_image datamaster_server_jar_src datamaster_ui_dist_src
+    nginx_port nginx_image nginx_image_tar nginx_image_tar_src
   )
   local key row row_group row_name row_host row_user row_port
   for key in "${common_keys[@]}"; do
     require_var "$key"
   done
+  if should_deploy_group datamaster_app_servers; then
+    require_var dbgpt_ssh_host
+  fi
+  if should_deploy_group datamaster_quality_servers; then
+    local quality_keys=(
+      datamaster_quality_port datamaster_quality_image
+    )
+    for key in "${quality_keys[@]}"; do
+      require_var "$key"
+    done
+  fi
   for row in "${HOST_ROWS[@]}"; do
     IFS='|' read -r row_group row_name row_host row_user row_port <<< "$row"
     should_deploy_group "$row_group" || continue
@@ -183,6 +256,16 @@ validate_config() {
   require_local_file_if_group postgresql_servers postgresql_init_sql_src
   require_local_file_if_group postgresql_servers dolphinscheduler_init_sql_src
   require_local_file_if_group postgresql_servers postgresql_app_upgrade_sql_src
+  require_local_file_if_group datamaster_app_servers datamaster_server_jar_src
+  if should_deploy_group nginx_servers; then
+    require_var datamaster_ui_dist_src
+    local ui_dist
+    ui_dist="$(resolve_local_path "${VARS[datamaster_ui_dist_src]}")"
+    if [[ ! -d "$ui_dist" ]]; then
+      echo "Required local directory not found for nginx_servers: $ui_dist" >&2
+      exit 1
+    fi
+  fi
 }
 
 should_deploy_group() {
@@ -273,8 +356,13 @@ remote_upload_temp() {
 }
 
 render_template() {
-  local template="$1" output="$2" content key
-  content="$(cat "$TEMPLATE_DIR/$template")"
+  local template="$1" output="$2" content key source
+  if [[ -f "$CONFIG_TEMPLATE_DIR/$template" ]]; then
+    source="$CONFIG_TEMPLATE_DIR/$template"
+  else
+    source="$TEMPLATE_DIR/$template"
+  fi
+  content="$(cat "$source")"
   for key in "${VAR_KEYS[@]}"; do
     content="${content//"{{ $key }}"/${VARS[$key]}}"
   done
@@ -341,7 +429,7 @@ deploy_postgresql() {
   remote_exec "$host" "$user" "$port" "$SUDO mkdir -p $(sq "${VARS[postgresql_data_dir]}") $(sq "${VARS[postgresql_conf_dir]}") $(sq "${VARS[postgresql_log_dir]}")"
   image_tar="$(resolve_local_path "${VARS[postgresql_image_tar_src]}")"
   load_docker_image_if_present "$host" "$user" "$port" "$image_tar" "${VARS[postgresql_image_tar]}"
-  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-postgresql >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-postgresql --restart always -e TZ=$(sq "${VARS[timezone]}") -e POSTGRES_DB=$(sq "${VARS[postgresql_admin_database]}") -e POSTGRES_USER=$(sq "${VARS[postgresql_admin_user]}") -e POSTGRES_PASSWORD=$(sq "${VARS[postgresql_admin_password]}") -p ${VARS[postgresql_port]}:5432 -v $(sq "${VARS[postgresql_data_dir]}"):/var/lib/postgresql/data -v $(sq "${VARS[postgresql_log_dir]}"):/var/log/postgresql ${VARS[postgresql_image]}"
+  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-postgresql >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-postgresql --restart always -e TZ=$(sq "${VARS[timezone]}") -e POSTGRES_DB=$(sq "${VARS[postgresql_admin_database]}") -e POSTGRES_USER=$(sq "${VARS[postgresql_admin_user]}") -e POSTGRES_PASSWORD=$(sq "${VARS[postgresql_admin_password]}") -p ${VARS[postgresql_port]}:5432 -v $(sq "${VARS[postgresql_data_dir]}"):/var/lib/postgresql/data:Z -v $(sq "${VARS[postgresql_log_dir]}"):/var/log/postgresql:Z ${VARS[postgresql_image]}"
   deploy_database_init "$name" "$host" "$user" "$port"
 }
 
@@ -369,7 +457,24 @@ deploy_database_init() {
 execute_app_upgrade_sql() {
   local host="$1" user="$2" port="$3" remote_sql="$4"
   echo "Applying DataMaster app upgrade SQL: $remote_sql"
-  remote_exec "$host" "$user" "$port" "$SUDO docker cp $(sq "$remote_sql") datamaster-postgresql:/tmp/datamaster-app-upgrade.sql && $SUDO docker exec -e PGPASSWORD=$(sq "${VARS[postgresql_password]}") datamaster-postgresql psql -v ON_ERROR_STOP=1 -U $(sq "${VARS[postgresql_user]}") -d $(sq "${VARS[postgresql_database]}") -f /tmp/datamaster-app-upgrade.sql"
+  execute_postgresql_sql_file "$host" "$user" "$port" "${VARS[postgresql_database]}" "$remote_sql" "datamaster-app-upgrade.sql"
+}
+
+execute_postgresql_sql_file() {
+  local host="$1" user="$2" port="$3" database="$4" remote_sql="$5" container_name="$6"
+  remote_exec "$host" "$user" "$port" "$SUDO docker cp $(sq "$remote_sql") datamaster-postgresql:/tmp/$(basename "$container_name") && $SUDO docker exec -e PGPASSWORD=$(sq "${VARS[postgresql_password]}") datamaster-postgresql psql -v ON_ERROR_STOP=1 -U $(sq "${VARS[postgresql_user]}") -d $(sq "$database") -f /tmp/$(basename "$container_name")"
+}
+
+execute_postgresql_sql_text() {
+  local host="$1" user="$2" port="$3" database="$4" label="$5" sql="$6" tmp remote_sql remote_name
+  tmp="$(mktemp "${TMPDIR:-/tmp}/datamaster-sql.XXXXXX.sql")"
+  remote_name="$label.sql"
+  remote_sql="${VARS[remote_init_sql_dir]}/$remote_name"
+  printf '%s
+' "$sql" > "$tmp"
+  install_remote_file "$host" "$user" "$port" "$tmp" "$remote_sql"
+  rm -f "$tmp"
+  execute_postgresql_sql_file "$host" "$user" "$port" "$database" "$remote_sql" "$remote_name"
 }
 
 upsert_dolphinscheduler_tenant() {
@@ -377,7 +482,7 @@ upsert_dolphinscheduler_tenant() {
   tenant_sql="$(sql_literal "${VARS[dolphinscheduler_tenant_code]}")"
   sql="DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM public.t_ds_tenant WHERE tenant_code = $tenant_sql) THEN UPDATE public.t_ds_tenant SET description = 'DataMaster deployment tenant', queue_id = 1, update_time = now() WHERE tenant_code = $tenant_sql; ELSE INSERT INTO public.t_ds_tenant (tenant_code, description, queue_id, create_time, update_time) VALUES ($tenant_sql, 'DataMaster deployment tenant', 1, now(), now()); END IF; END \$\$;"
   echo "Ensuring DolphinScheduler tenant ${VARS[dolphinscheduler_tenant_code]} in ${VARS[dolphinscheduler_database]}..."
-  remote_exec "$host" "$user" "$port" "$SUDO docker exec -e PGPASSWORD=$(sq "${VARS[postgresql_password]}") datamaster-postgresql psql -v ON_ERROR_STOP=1 -U $(sq "${VARS[postgresql_user]}") -d $(sq "${VARS[dolphinscheduler_database]}") -c $(sq "$sql")"
+  execute_postgresql_sql_text "$host" "$user" "$port" "${VARS[dolphinscheduler_database]}" "dolphinscheduler-tenant" "$sql"
 }
 
 upsert_dolphinscheduler_token() {
@@ -385,7 +490,7 @@ upsert_dolphinscheduler_token() {
   token_sql="$(sql_literal "${VARS[dolphinscheduler_token]}")"
   sql="DO \$\$ DECLARE admin_id integer; BEGIN SELECT id INTO admin_id FROM public.t_ds_user WHERE user_name = 'admin' ORDER BY id LIMIT 1; IF admin_id IS NULL THEN RAISE EXCEPTION 'DolphinScheduler admin user not found'; END IF; IF EXISTS (SELECT 1 FROM public.t_ds_access_token WHERE user_id = admin_id) THEN UPDATE public.t_ds_access_token SET token = $token_sql, expire_time = timestamp '2099-12-31 23:59:59', update_time = now() WHERE user_id = admin_id; ELSE INSERT INTO public.t_ds_access_token (user_id, token, expire_time, create_time, update_time) VALUES (admin_id, $token_sql, timestamp '2099-12-31 23:59:59', now(), now()); END IF; END \$\$;"
   echo "Writing DolphinScheduler API token into ${VARS[dolphinscheduler_database]}..."
-  remote_exec "$host" "$user" "$port" "$SUDO docker exec -e PGPASSWORD=$(sq "${VARS[postgresql_password]}") datamaster-postgresql psql -v ON_ERROR_STOP=1 -U $(sq "${VARS[postgresql_user]}") -d $(sq "${VARS[dolphinscheduler_database]}") -c $(sq "$sql")"
+  execute_postgresql_sql_text "$host" "$user" "$port" "${VARS[dolphinscheduler_database]}" "dolphinscheduler-token" "$sql"
 }
 
 deploy_redis() {
@@ -397,7 +502,7 @@ deploy_redis() {
   load_docker_image_if_present "$host" "$user" "$port" "$image_tar" "${VARS[redis_image_tar]}"
   conf="$(render_temp redis.conf.j2)"
   install_remote_file "$host" "$user" "$port" "$conf" "${VARS[redis_conf_dir]}/redis.conf"
-  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-redis >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-redis --restart always -e TZ=$(sq "${VARS[timezone]}") -p ${VARS[redis_port]}:6379 -v $(sq "${VARS[redis_data_dir]}"):/data -v $(sq "${VARS[redis_conf_dir]}/redis.conf"):/etc/redis/redis.conf:ro -v $(sq "${VARS[redis_log_dir]}"):/logs ${VARS[redis_image]} redis-server /etc/redis/redis.conf"
+  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-redis >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-redis --restart always -e TZ=$(sq "${VARS[timezone]}") -p ${VARS[redis_port]}:6379 -v $(sq "${VARS[redis_data_dir]}"):/data:Z -v $(sq "${VARS[redis_conf_dir]}/redis.conf"):/etc/redis/redis.conf:ro,Z -v $(sq "${VARS[redis_log_dir]}"):/logs:Z ${VARS[redis_image]} redis-server /etc/redis/redis.conf"
 }
 
 deploy_zookeeper() {
@@ -450,19 +555,35 @@ deploy_dbgpt() {
   remote_exec "$host" "$user" "$port" "$SUDO mkdir -p $(sq "${VARS[dbgpt_data_dir]}") $(sq "${VARS[dbgpt_message_dir]}")"
   image_tar="$(resolve_local_path "${VARS[dbgpt_image_tar_src]}")"
   load_docker_image_if_present "$host" "$user" "$port" "$image_tar" "${VARS[dbgpt_image_tar]}"
-  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-dbgpt >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-dbgpt --restart always -e TZ=$(sq "${VARS[timezone]}") -e LOCAL_DB_TYPE=sqlite -e LOCAL_DB_PATH=/app/pilot/data/default_sqlite.db -e LLM_MODEL=proxyllm -e LANGUAGE=zh -e DASHSCOPE_API_KEY=$(sq "${VARS[dashscope_api_key]}") -p ${VARS[dbgpt_port]}:5670 -v $(sq "${VARS[dbgpt_data_dir]}"):/app/pilot/data -v $(sq "${VARS[dbgpt_message_dir]}"):/app/pilot/message ${VARS[dbgpt_image]} sh -c $(sq "pip install psycopg2-binary -q && dbgpt start webserver --config /app/configs/dbgpt-proxy-tongyi.toml")"
+  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-dbgpt >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-dbgpt --restart always --security-opt seccomp=unconfined -e TZ=$(sq "${VARS[timezone]}") -e LOCAL_DB_TYPE=sqlite -e LOCAL_DB_PATH=/app/pilot/data/default_sqlite.db -e LLM_MODEL=proxyllm -e LANGUAGE=zh -e DASHSCOPE_API_KEY=$(sq "${VARS[dashscope_api_key]}") -e OPENBLAS_NUM_THREADS=1 -e OMP_NUM_THREADS=1 -e MKL_NUM_THREADS=1 -e NUMEXPR_NUM_THREADS=1 -p ${VARS[dbgpt_port]}:5670 -v $(sq "${VARS[dbgpt_data_dir]}"):/app/pilot/data:Z -v $(sq "${VARS[dbgpt_message_dir]}"):/app/pilot/message:Z ${VARS[dbgpt_image]} sh -c $(sq "pip install psycopg2-binary -q && dbgpt start webserver --config /app/configs/dbgpt-proxy-tongyi.toml")"
 }
 
 deploy_app() {
-  local name="$1" host="$2" user="$3" port="$4" app image_tar
+  local name="$1" host="$2" user="$3" port="$4" app unit jar
   echo
-  echo "Deploying datamaster_app_servers to $(target_of "$host" "$user")..."
+  echo "Deploying datamaster_app_servers to $(target_of "$host" "$user") with java -jar..."
   remote_exec "$host" "$user" "$port" "$SUDO mkdir -p $(sq "${VARS[app_conf_dir]}") $(sq "${VARS[app_log_dir]}") $(sq "${VARS[app_upload_dir]}")"
-  image_tar="$(resolve_local_path "${VARS[datamaster_server_image_tar_src]}")"
-  load_docker_image_if_present "$host" "$user" "$port" "$image_tar" "${VARS[datamaster_server_image_tar]}"
+  jar="$(resolve_local_path "${VARS[datamaster_server_jar_src]}")"
+  install_remote_file "$host" "$user" "$port" "$jar" "${VARS[app_jar_path]}" "0755"
   app="$(render_temp datamaster-server-application-prod.yml.j2)"
   install_remote_file "$host" "$user" "$port" "$app" "${VARS[app_conf_dir]}/application-prod.yml"
-  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-server >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-server --restart always -e TZ=$(sq "${VARS[timezone]}") -e SPRING_PROFILES_ACTIVE=prod -e DS_INCREMENTAL_PREPARE_URL=$(sq "http://${VARS[datamaster_app_ip]}:${VARS[datamaster_server_port]}/col/etlTask/incremental/prepare") -e DS_INCREMENTAL_COMPLETE_URL=$(sq "http://${VARS[datamaster_app_ip]}:${VARS[datamaster_server_port]}/col/etlTask/incremental/complete") -e AI_SKILL_MODEL_API_KEY=$(sq "${VARS[ai_skill_model_api_key]}") -p ${VARS[datamaster_server_port]}:8080 -v $(sq "${VARS[app_conf_dir]}/application-prod.yml"):/usr/app/jar/application-prod.yml:ro -v $(sq "${VARS[app_log_dir]}"):/usr/app/jar/logs -v $(sq "${VARS[app_upload_dir]}"):/usr/app/jar/upload --add-host postgresql:${VARS[postgresql_ip]} --add-host redis:${VARS[redis_ip]} --add-host dolphinscheduler:${VARS[dolphinscheduler_ip]} --add-host dbgpt:${VARS[dbgpt_ip]} ${VARS[datamaster_server_image]}"
+  unit="$(render_temp datamaster-server.service.j2)"
+  install_remote_file "$host" "$user" "$port" "$unit" "/etc/systemd/system/datamaster-server.service"
+  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-server >/dev/null 2>&1 || true; $SUDO systemctl daemon-reload && $SUDO systemctl enable datamaster-server && $SUDO systemctl restart datamaster-server"
+}
+
+deploy_nginx() {
+  local name="$1" host="$2" user="$3" port="$4" conf image_tar ui_dist
+  echo
+  echo "Deploying nginx_servers to $(target_of "$host" "$user")..."
+  remote_exec "$host" "$user" "$port" "$SUDO mkdir -p $(sq "${VARS[nginx_conf_dir]}") $(sq "${VARS[nginx_html_dir]}") $(sq "${VARS[nginx_log_dir]}")"
+  image_tar="$(resolve_local_path "${VARS[nginx_image_tar_src]}")"
+  load_docker_image_if_present "$host" "$user" "$port" "$image_tar" "${VARS[nginx_image_tar]}"
+  conf="$(render_temp nginx.conf.j2)"
+  install_remote_file "$host" "$user" "$port" "$conf" "${VARS[nginx_conf_dir]}/nginx.conf"
+  ui_dist="$(resolve_local_path "${VARS[datamaster_ui_dist_src]}")"
+  install_remote_dir "$host" "$user" "$port" "$ui_dist" "${VARS[nginx_html_dir]}"
+  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-nginx >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-nginx --restart always -e TZ=$(sq "${VARS[timezone]}") -p ${VARS[nginx_port]}:80 -v $(sq "${VARS[nginx_conf_dir]}/nginx.conf"):/etc/nginx/nginx.conf:ro,Z -v $(sq "${VARS[nginx_html_dir]}"):/usr/share/nginx/html:ro,Z -v $(sq "${VARS[nginx_log_dir]}"):/var/log/nginx:Z ${VARS[nginx_image]}"
 }
 
 deploy_quality() {
@@ -474,12 +595,13 @@ deploy_quality() {
   load_docker_image_if_present "$host" "$user" "$port" "$image_tar" "${VARS[datamaster_quality_image_tar]}"
   app="$(render_temp datamaster-quality-application-prod.yml.j2)"
   install_remote_file "$host" "$user" "$port" "$app" "${VARS[quality_conf_dir]}/application-prod.yml"
-  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-quality >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-quality --restart always -e TZ=$(sq "${VARS[timezone]}") -e SPRING_PROFILES_ACTIVE=prod -p ${VARS[datamaster_quality_port]}:8083 -v $(sq "${VARS[quality_conf_dir]}/application-prod.yml"):/usr/app/jar/application-prod.yml:ro -v $(sq "${VARS[quality_log_dir]}"):/usr/app/jar/logs -v $(sq "${VARS[quality_job_log_dir]}"):/usr/app/jar/job-log --add-host postgresql:${VARS[postgresql_ip]} --add-host redis:${VARS[redis_ip]} ${VARS[datamaster_quality_image]}"
+  remote_exec "$host" "$user" "$port" "$SUDO docker rm -f datamaster-quality >/dev/null 2>&1 || true; $SUDO docker run -d --name datamaster-quality --restart always -e TZ=$(sq "${VARS[timezone]}") -e SPRING_PROFILES_ACTIVE=prod -p ${VARS[datamaster_quality_port]}:8083 -v $(sq "${VARS[quality_conf_dir]}/application-prod.yml"):/usr/app/jar/application-prod.yml:ro,Z -v $(sq "${VARS[quality_log_dir]}"):/usr/app/jar/logs:Z -v $(sq "${VARS[quality_job_log_dir]}"):/usr/app/jar/job-log:Z --add-host postgresql:${VARS[postgresql_ip]} --add-host redis:${VARS[redis_ip]} ${VARS[datamaster_quality_image]}"
 }
 
 load_vars
 ensure_runtime_vars
 load_hosts
+derive_service_vars
 validate_config
 
 if [[ "$CHECK_ONLY" -eq 1 ]]; then
@@ -493,4 +615,5 @@ for_each_host zookeeper_servers deploy_zookeeper
 for_each_host dolphinscheduler_servers deploy_dolphinscheduler
 for_each_host dbgpt_servers deploy_dbgpt
 for_each_host datamaster_app_servers deploy_app
+for_each_host nginx_servers deploy_nginx
 for_each_host datamaster_quality_servers deploy_quality

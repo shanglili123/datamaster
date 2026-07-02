@@ -6,32 +6,36 @@
 # * 必须确认：SSH 连接目标。这里决定文件 scp 到哪台机器、命令在哪台机器执行。
 # Keep passwords out of this file; use SSH keys or OpenSSH password prompt.
 # 不要把 SSH 密码写进这个文件；使用 SSH key 或 OpenSSH 密码提示。
-postgresql_ssh_host: "<POSTGRESQL_IP>"
-postgresql_ssh_user: "<SSH_USER>"
+postgresql_ssh_host: "192.168.93.174"
+postgresql_ssh_user: "root"
 postgresql_ssh_port: 22
 
-redis_ssh_host: "<REDIS_IP>"
-redis_ssh_user: "<SSH_USER>"
+redis_ssh_host: "192.168.93.174"
+redis_ssh_user: "root"
 redis_ssh_port: 22
 
-zookeeper_ssh_host: "<ZOOKEEPER_IP>"
-zookeeper_ssh_user: "<SSH_USER>"
+zookeeper_ssh_host: "192.168.93.174,192.168.93.175,192.168.93.176"
+zookeeper_ssh_user: "root"
 zookeeper_ssh_port: 22
 
-dolphinscheduler_ssh_host: "<DOLPHINSCHEDULER_IP>"
-dolphinscheduler_ssh_user: "<SSH_USER>"
+dolphinscheduler_ssh_host: "192.168.93.174,192.168.93.175,192.168.93.176"
+dolphinscheduler_ssh_user: "root"
 dolphinscheduler_ssh_port: 22
 
-datamaster_app_ssh_host: "<DATAMASTER_APP_IP>"
-datamaster_app_ssh_user: "<SSH_USER>"
+datamaster_app_ssh_host: "192.168.93.175"
+datamaster_app_ssh_user: "root"
 datamaster_app_ssh_port: 22
 
-datamaster_quality_ssh_host: "<DATAMASTER_QUALITY_IP>"
-datamaster_quality_ssh_user: "<SSH_USER>"
+nginx_ssh_host: "192.168.93.175"
+nginx_ssh_user: "root"
+nginx_ssh_port: 22
+
+datamaster_quality_ssh_host: ""
+datamaster_quality_ssh_user: "root"
 datamaster_quality_ssh_port: 22
 
-dbgpt_ssh_host: "<DBGPT_IP>"
-dbgpt_ssh_user: "<SSH_USER>"
+dbgpt_ssh_host: "192.168.93.176"
+dbgpt_ssh_user: "root"
 dbgpt_ssh_port: 22
 
 # * Must confirm: global deployment root. All remote component directories are created under this path.
@@ -44,17 +48,9 @@ base_dir: /data/datamaster
 # 时区。按需修改：目标环境不是 Asia/Shanghai 时再改。
 timezone: Asia/Shanghai
 
-# * Must confirm: component service IPs. These addresses are written into app config and container host mappings.
-# * 必须确认：组件服务 IP。这些地址会写入应用配置和容器 host 映射。
-# * Use IPs reachable by other services, not necessarily 127.0.0.1.
-# * 要填写其他服务能访问到的 IP，不一定是 127.0.0.1。
-postgresql_ip: "<POSTGRESQL_IP>"
-redis_ip: "<REDIS_IP>"
-zookeeper_ip: "<ZOOKEEPER_IP>"
-dolphinscheduler_ip: "<DOLPHINSCHEDULER_IP>"
-datamaster_app_ip: "<DATAMASTER_APP_IP>"
-datamaster_quality_ip: "<DATAMASTER_QUALITY_IP>"
-dbgpt_ip: "<DBGPT_IP>"
+# * Must confirm: DolphinScheduler service IP. Other service addresses are derived from *_ssh_host.
+# * 必须确认：DolphinScheduler 服务 IP。其他服务地址由 *_ssh_host 推导。
+dolphinscheduler_ip: "192.168.93.175"
 
 # * Must confirm: container image names and local image tar files.
 # * 必须确认：容器镜像名和本地镜像 tar 包名称。
@@ -62,11 +58,11 @@ dbgpt_ip: "<DBGPT_IP>"
 # * 离线部署时 tar 包必须放到 deploy/packages/components，或者修改 *_image_tar_src。
 # * Image names must match what docker load imports, otherwise docker run cannot find the image.
 # * 镜像名必须和 docker load 导入后的镜像一致，否则 docker run 找不到镜像。
-postgresql_image: postgres:15
-postgresql_image_tar: "postgres-15.tar"
+postgresql_image: postgres:15.8-alpine
+postgresql_image_tar: "postgres-15.8-alpine.tar"
 postgresql_image_tar_src: "packages/components/{{ postgresql_image_tar }}"
-redis_image: redis:7.2
-redis_image_tar: "redis-7.2.tar"
+redis_image: redis:6-alpine
+redis_image_tar: "redis-6-alpine.tar"
 redis_image_tar_src: "packages/components/{{ redis_image_tar }}"
 datamaster_server_image: "crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-server-ce:1.4.0"
 datamaster_server_image_tar: "datamaster-server-ce-1.4.0.tar"
@@ -77,6 +73,16 @@ datamaster_quality_image_tar_src: "packages/components/{{ datamaster_quality_ima
 dbgpt_image: "eosphorosai/dbgpt-openai:latest"
 dbgpt_image_tar: "dbgpt-openai-latest.tar"
 dbgpt_image_tar_src: "packages/components/{{ dbgpt_image_tar }}"
+nginx_image: "nginx:1.25-alpine"
+nginx_image_tar: "nginx-1.25-alpine.tar"
+nginx_image_tar_src: "packages/components/{{ nginx_image_tar }}"
+
+# * Must confirm: DataMaster backend jar and frontend dist source.
+# * 必须确认：DataMaster 后端 jar 和前端 dist 本地路径。
+# * Backend is deployed as java -jar, not as a DataMaster docker image.
+# * 后端使用 java -jar 部署，不再使用 DataMaster 后端镜像容器。
+datamaster_server_jar_src: "../datamaster-server/target/datamaster-server.jar"
+datamaster_ui_dist_src: "../datamaster-ui/dist"
 
 # * Must confirm: PostgreSQL port, admin account, business database, and business user.
 # * 必须确认：PostgreSQL 端口、管理员账号、业务库名、业务用户名。
@@ -144,6 +150,7 @@ soft_package_src: "packages/soft"
 datamaster_server_port: 8080
 datamaster_quality_port: 8083
 dbgpt_port: 5670
+nginx_port: 80
 
 # * Must confirm: AI ask-data model and DB-GPT settings.
 # * 必须确认：AI 问数模型和 DB-GPT 配置。
@@ -216,6 +223,7 @@ app_dir: "{{ base_dir }}/app"
 app_conf_dir: "{{ app_dir }}/conf"
 app_log_dir: "{{ app_dir }}/logs"
 app_upload_dir: "{{ app_dir }}/upload"
+app_jar_path: "{{ app_dir }}/datamaster-server.jar"
 
 # * Must confirm if customizing layout: DataMaster quality service directories.
 # * 如果自定义目录结构则必须确认：DataMaster 质量服务目录。
@@ -231,3 +239,10 @@ quality_job_log_dir: "{{ quality_dir }}/job-log"
 dbgpt_dir: "{{ base_dir }}/dbgpt"
 dbgpt_data_dir: "{{ dbgpt_dir }}/data"
 dbgpt_message_dir: "{{ dbgpt_dir }}/message"
+
+# * Must confirm if customizing layout: Nginx directories.
+# * 如果自定义目录结构则必须确认：Nginx 目录。
+nginx_dir: "{{ base_dir }}/nginx"
+nginx_conf_dir: "{{ nginx_dir }}/conf"
+nginx_html_dir: "{{ nginx_dir }}/html"
+nginx_log_dir: "{{ nginx_dir }}/logs"

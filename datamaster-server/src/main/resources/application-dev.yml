@@ -3,10 +3,10 @@ datasource:
 
 spring:
   redis:
-    host: 172.21.163.204
+    host: 192.168.93.174
     port: 6379
     database: 0
-    password: "J98%FHF#9h@e88h9fre9"
+    password: ""
     timeout: 10s
     lettuce:
       pool:
@@ -53,7 +53,7 @@ MySQL:
 
 PostgreSQL:
   driver-class-name: org.postgresql.Driver
-  url: jdbc:postgresql://127.0.0.1:5432/data_master?currentSchema=public&sslmode=disable
+  url: jdbc:postgresql://192.168.93.174:5432/datamaster?currentSchema=public&sslmode=disable&stringtype=unspecified
   username: datamaster
   password: datamaster
 
@@ -73,31 +73,39 @@ Oracle:
   driver-class-name: org.postgresql.Driver
   url: jdbc:postgresql://127.0.0.1:5432/DATAMASTER?currentSchema=public
 ds:
-  base_url: http://127.0.0.1:12345/dolphinscheduler
-  quality_url: http://172.21.160.1:8080/quality/qualityTaskExecutor/runExecuteTask
-  incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://172.21.160.1:8080/col/etlTask/incremental/prepare}
-  incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://172.21.160.1:8080/col/etlTask/incremental/complete}
-  collector_url: http://172.21.160.1:8080/cat/taskExecutor/runExecuteTask
-  token: b07f0e57c4818043a57ba05a28da291a
-  tenant_code: ${DS_TENANT_CODE:default}
-  resource_url: /dolphinscheduler/
+  base_url: http://192.168.93.175:12345/dolphinscheduler
+  quality_url: http://192.168.93.175:8080/quality/qualityTaskExecutor/runExecuteTask
+  incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://192.168.93.175:8080/col/etlTask/incremental/prepare}
+  incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://192.168.93.175:8080/col/etlTask/incremental/complete}
+  collector_url: http://192.168.93.175:8080/cat/taskExecutor/runExecuteTask
+  token: f8f79e6b9c7b48e5fc5a1836b88e754b
+  tenant_code: ${DS_TENANT_CODE:root}
+  resource_url: /data/datamaster/dolphinscheduler-resource/
   spark:
-    master_url: spark://127.0.0.1:7077
-    main_jar: file:/dolphinscheduler/default/resources/spark-jar/DATAMASTER-etl.jar
+    master_url: spark://192.168.93.175:7077
+    main_jar: file:/data/datamaster/dolphinscheduler-resource/default/resources/spark-jar/DATAMASTER-etl-3.8.8.jar
     main_class: com.datamaster.spark.etl.EtlApplication
   hdfs:
-    url: hdfs://127.0.0.1:8020
+    url: hdfs://192.168.93.175:8020
   redis:
-    host: 127.0.0.1
-    port: 12138
+    host: 192.168.93.174
+    port: 6379
     database: 0
     password:
 
 path:
-  quality_url: http://127.0.0.1:8080/quality/qualityTaskExecutor
-  collector_url: http://172.21.160.1:8080/cat/taskExecutor
+  quality_url: http://192.168.93.175:8080/quality/qualityTaskExecutor
+  collector_url: http://192.168.93.175:8080/cat/taskExecutor
 
 file:
   job:
     log:
       qualitytask_prefix_url: /opt/quality/logs
+
+db-gpt:
+  url: http://192.168.93.176:5670
+  timeout: 60000
+  model: qwen-plus
+  chat-mode: chat_with_db_qa
+  skill-space-name: datamaster-skills
+  skill-space-owner: datamaster
