@@ -237,6 +237,9 @@ validate_config() {
   if should_deploy_group datamaster_app_servers; then
     require_var dbgpt_ssh_host
   fi
+  if should_deploy_group dbgpt_servers; then
+    require_var dashscope_api_key
+  fi
   if should_deploy_group datamaster_quality_servers; then
     local quality_keys=(
       datamaster_quality_port datamaster_quality_image
@@ -337,6 +340,9 @@ ensure_runtime_vars() {
     fi
     VARS[dolphinscheduler_token]="$token"
     echo "Using generated DolphinScheduler token from $token_file"
+  fi
+  if [[ -z "${VARS[dashscope_api_key]:-}" && -n "${DASHSCOPE_API_KEY:-}" ]]; then
+    VARS[dashscope_api_key]="$DASHSCOPE_API_KEY"
   fi
 }
 
