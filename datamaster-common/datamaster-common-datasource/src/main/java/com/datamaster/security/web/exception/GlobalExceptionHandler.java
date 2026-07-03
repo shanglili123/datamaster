@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import com.datamaster.common.constant.HttpStatus;
 import com.datamaster.common.core.domain.AjaxResult;
+import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.exception.DemoModeException;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
@@ -64,6 +65,18 @@ public class GlobalExceptionHandler
         log.error(e.getMessage(), e);
         Integer code = e.getCode();
         return StringUtils.isNotNull(code) ? AjaxResult.error(code, e.getMessage()) : AjaxResult.error(e.getMessage());
+    }
+
+    /**
+     * 数据查询异常
+     */
+    @ExceptionHandler(DataQueryException.class)
+    public AjaxResult handleDataQueryException(DataQueryException e, HttpServletRequest request)
+    {
+        String requestURI = request.getRequestURI();
+        String message = StringUtils.isNotEmpty(e.getMessage()) ? e.getMessage() : "数据库连接失败";
+        log.warn("请求地址'{}',数据查询失败: {}", requestURI, message);
+        return AjaxResult.error(message);
     }
 
     /**

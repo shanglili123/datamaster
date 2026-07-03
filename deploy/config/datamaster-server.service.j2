@@ -1,0 +1,22 @@
+[Unit]
+Description=DataMaster Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ app_dir }}
+Environment=TZ={{ timezone }}
+Environment=SPRING_PROFILES_ACTIVE=prod
+Environment=DS_INCREMENTAL_PREPARE_URL=http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/col/etlTask/incremental/prepare
+Environment=DS_INCREMENTAL_COMPLETE_URL=http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/col/etlTask/incremental/complete
+Environment=AI_SKILL_MODEL_API_KEY={{ dashscope_api_key }}
+ExecStart=/usr/bin/java -jar {{ app_jar_path }} --server.port={{ datamaster_server_port }} --spring.config.additional-location=file:{{ app_conf_dir }}/application-prod.yml
+Restart=always
+RestartSec=10
+SuccessExitStatus=143
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

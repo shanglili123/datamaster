@@ -2,6 +2,8 @@
 
 package com.datamaster.api.ds.service.etl;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +37,7 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
         DataMasterDSApiType apiType = DataMasterDSApiType.CREATE_PROCESS_DEFINITION;
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCode(apiType.getUrl(), String.valueOf(projectCode)),
                 apiType.getMethod(),
-                JSONObject.parseObject(JSONObject.toJSONString(dsTaskSaveReqDTO)),
+                buildWorkflowDefinitionParams(dsTaskSaveReqDTO),
                 DsTaskSaveRespDTO.class);
     }
 
@@ -44,7 +46,7 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
         DataMasterDSApiType apiType = DataMasterDSApiType.UPDATE_PROCESS_DEFINITION;
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCodeAndCode(apiType.getUrl(), String.valueOf(projectCode), taskCode),
                 apiType.getMethod(),
-                JSONObject.parseObject(JSONObject.toJSONString(dsTaskSaveReqDTO)),
+                buildWorkflowDefinitionParams(dsTaskSaveReqDTO),
                 DsTaskSaveRespDTO.class);
     }
 
@@ -102,8 +104,13 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
     @Override
     public DsStatusRespDTO startTask(DsStartTaskReqDTO dsStartTaskReqDTO, String projectCode) {
         DataMasterDSApiType apiType = DataMasterDSApiType.POST_START_PROCESS;
+        JSONObject params = JSONObject.parseObject(JSONObject.toJSONString(dsStartTaskReqDTO));
+        params.put("workflowDefinitionCode", dsStartTaskReqDTO.getProcessDefinitionCode());
+        params.put("workflowInstancePriority", dsStartTaskReqDTO.getProcessInstancePriority());
+        params.remove("processDefinitionCode");
+        params.remove("processInstancePriority");
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode),
-                apiType.getMethod(), JSONObject.parseObject(JSONObject.toJSONString(dsStartTaskReqDTO)),
+                apiType.getMethod(), params,
                 DsStatusRespDTO.class);
     }
 
@@ -121,5 +128,46 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
 
         // 调用
         return DsRequestUtils.requestForm(url, apiType.getMethod(), params, DsTaskSaveRespDTO.class);
+    }
+
+    private JSONObject buildWorkflowDefinitionParams(DsTaskSaveReqDTO dsTaskSaveReqDTO) {
+        JSONObject params = JSONObject.parseObject(JSONObject.toJSONString(dsTaskSaveReqDTO));
+        params.put("taskRelationJson", normalizeWorkflowJson(dsTaskSaveReqDTO.getTaskRelationJson()));
+        params.put("taskDefinitionJson", normalizeWorkflowJson(dsTaskSaveReqDTO.getTaskDefinitionJson()));
+        renameWorkflowKeys(params);
+        return params;
+    }
+
+    private String normalizeWorkflowJson(String json) {
+        if (StringUtils.isBlank(json)) {
+            return json;
+        }
+        Object value = JSON.parse(json);
+        renameWorkflowKeys(value);
+        return JSON.toJSONString(value);
+    }
+
+    private void renameWorkflowKeys(Object value) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            renameKey(object, "processDefinitionCode", "workflowDefinitionCode");
+            renameKey(object, "processDefinitionVersion", "workflowDefinitionVersion");
+            renameKey(object, "processInstancePriority", "workflowInstancePriority");
+            for (Object child : object.values()) {
+                renameWorkflowKeys(child);
+            }
+        } else if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (Object child : array) {
+                renameWorkflowKeys(child);
+            }
+        }
+    }
+
+    private void renameKey(JSONObject object, String oldKey, String newKey) {
+        if (object.containsKey(oldKey)) {
+            object.put(newKey, object.get(oldKey));
+            object.remove(oldKey);
+        }
     }
 }

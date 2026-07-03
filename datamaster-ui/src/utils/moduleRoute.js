@@ -18,7 +18,8 @@ export const PROJECT_MODULE_ROUTE_PREFIXES = [
     '/ast',
     '/std',
     '/tax',
-    '/meta'
+    '/meta',
+    '/ai'
 ];
 
 export function normalizeModuleRoutePath(path) {

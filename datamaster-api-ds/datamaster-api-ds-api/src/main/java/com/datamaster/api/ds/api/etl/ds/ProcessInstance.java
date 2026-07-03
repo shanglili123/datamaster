@@ -3,6 +3,7 @@
 package com.datamaster.api.ds.api.etl.ds;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,10 +30,12 @@ public class ProcessInstance {
     /**
      * 流程编码
      */
+    @JSONField(name = "workflowDefinitionCode", alternateNames = {"processDefinitionCode"})
     private String processDefinitionCode;
     /**
      * 流程版本
      */
+    @JSONField(name = "workflowDefinitionVersion", alternateNames = {"processDefinitionVersion"})
     private int processDefinitionVersion;
     /**
      * 项目编码
@@ -96,6 +99,7 @@ public class ProcessInstance {
     /**
      * 优先级
      */
+    @JSONField(name = "workflowInstancePriority", alternateNames = {"processInstancePriority"})
     private Priority processInstancePriority;
     /**
      * 失败策略

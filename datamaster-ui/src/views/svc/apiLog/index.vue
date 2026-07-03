@@ -343,7 +343,6 @@ import {
 import { getToken } from "@/utils/auth.js";
 import { listAttApiCat } from "@/api/svc/apiCat/apiCat";
 import DeptTree from "@/components/DeptTree";
-import { da } from "element-plus/es/locale/index.mjs";
 
 const { proxy } = getCurrentInstance();
 const { ds_api_log_res_status, ds_api_bas_info_api_method_type } = proxy.useDict(

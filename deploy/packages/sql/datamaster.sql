@@ -156,6 +156,8 @@ DROP TABLE IF EXISTS public.col_evaluate_log;
 DROP TABLE IF EXISTS public.col_etl_task_node_rel_log;
 DROP TABLE IF EXISTS public.col_etl_task_node_rel;
 DROP TABLE IF EXISTS public.col_etl_task_log;
+DROP TABLE IF EXISTS public.col_etl_task_ops_policy;
+DROP TABLE IF EXISTS public.col_etl_task_ops_event;
 DROP TABLE IF EXISTS public.col_etl_task_instance_log;
 DROP TABLE IF EXISTS public.col_etl_task_instance;
 DROP TABLE IF EXISTS public.col_etl_task_ext;
@@ -2431,6 +2433,80 @@ CREATE TABLE public.col_etl_task (
 --
 
 COMMENT ON TABLE public.col_etl_task IS 'col_etl_task';
+
+
+--
+-- Name: col_etl_task_ops_policy; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.col_etl_task_ops_policy (
+    id bigint NOT NULL,
+    task_id bigint NOT NULL,
+    task_type character varying(32),
+    fail_stop_enabled boolean DEFAULT false,
+    ai_managed boolean DEFAULT false,
+    auto_recover_enabled boolean DEFAULT false,
+    max_recover_times integer DEFAULT 1,
+    recover_strategy character varying(64) DEFAULT 'SAFE_AUTO'::character varying,
+    notify_users character varying(500),
+    valid_flag boolean DEFAULT true,
+    del_flag boolean DEFAULT false,
+    creator_id bigint,
+    create_by character varying(64),
+    create_time timestamp without time zone,
+    updater_id bigint,
+    update_by character varying(64),
+    update_time timestamp without time zone,
+    remark character varying(500)
+);
+
+
+--
+-- Name: TABLE col_etl_task_ops_policy; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.col_etl_task_ops_policy IS 'col_etl_task_ops_policy';
+
+
+--
+-- Name: col_etl_task_ops_event; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.col_etl_task_ops_event (
+    id bigint NOT NULL,
+    task_id bigint NOT NULL,
+    task_code character varying(128),
+    task_type character varying(32),
+    task_instance_id bigint,
+    ds_process_instance_id bigint,
+    instance_status character varying(32),
+    event_type character varying(64),
+    failure_type character varying(64),
+    risk_level character varying(32),
+    recoverable boolean DEFAULT false,
+    action character varying(64),
+    action_status character varying(32),
+    reason text,
+    suggestion text,
+    log_excerpt text,
+    ai_raw_result text,
+    valid_flag boolean DEFAULT true,
+    del_flag boolean DEFAULT false,
+    creator_id bigint,
+    create_by character varying(64),
+    create_time timestamp without time zone,
+    updater_id bigint,
+    update_by character varying(64),
+    update_time timestamp without time zone,
+    remark character varying(500)
+);
+
+
+--
+-- Name: TABLE col_etl_task_ops_event; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.col_etl_task_ops_event IS 'col_etl_task_ops_event';
 
 
 --
@@ -19424,6 +19500,22 @@ ALTER TABLE ONLY public.col_evaluate_log
 
 
 --
+-- Name: col_etl_task_ops_event col_etl_task_ops_event_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.col_etl_task_ops_event
+    ADD CONSTRAINT col_etl_task_ops_event_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: col_etl_task_ops_policy col_etl_task_ops_policy_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.col_etl_task_ops_policy
+    ADD CONSTRAINT col_etl_task_ops_policy_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: mdl_business_category mdl_business_category_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19514,6 +19606,26 @@ CREATE INDEX idx_ai_skill_version_skill ON public.ai_skill_version USING btree (
 
 
 --
--- PostgreSQL database dump complete
+-- Name: idx_col_etl_task_ops_event_instance; Type: INDEX; Schema: public; Owner: -
 --
 
+CREATE INDEX idx_col_etl_task_ops_event_instance ON public.col_etl_task_ops_event USING btree (task_instance_id);
+
+
+--
+-- Name: idx_col_etl_task_ops_event_task; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_col_etl_task_ops_event_task ON public.col_etl_task_ops_event USING btree (task_id, create_time);
+
+
+--
+-- Name: idx_col_etl_task_ops_policy_task; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_col_etl_task_ops_policy_task ON public.col_etl_task_ops_policy USING btree (task_id);
+
+
+--
+-- PostgreSQL database dump complete
+--

@@ -202,14 +202,24 @@ public class DatasourceQualityServiceImpl extends ServiceImpl<DatasourceMapper, 
 
     @Override
     public AjaxResult clientsTest(Long id) {
-        DbQuery dbQuery = this.buildDbQuery(id);
-        if (dbQuery.valid()) {
-            dbQuery.close();
-            return AjaxResult.success("数据库连接成功");
+        DbQuery dbQuery = null;
+        try {
+            dbQuery = this.buildDbQuery(id);
+            if (dbQuery.valid()) {
+                return AjaxResult.success("数据库连接成功");
+            }
+            return AjaxResult.error("数据库连接失败");
+        } catch (DataQueryException e) {
+            return AjaxResult.error(StringUtils.isNotEmpty(e.getMessage()) ? e.getMessage() : "数据库连接失败");
+        } finally {
+            if (dbQuery != null) {
+                try {
+                    dbQuery.close();
+                } catch (DataQueryException e) {
+                    log.warn("关闭数据库连接失败", e);
+                }
+            }
         }
-        dbQuery.close();
-        return AjaxResult.error("数据库连接失败");
-
     }
 
     public DbQuery buildDbQuery(Long id) {

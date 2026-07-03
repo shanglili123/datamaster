@@ -2626,13 +2626,13 @@ INSERT INTO public.t_ds_audit_log VALUES (95, 1, 175054305179456, 'wew', 'Proces
 -- Data for Name: t_ds_environment; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public.t_ds_environment VALUES (1, 133155949418208, '千数平台', 'export FLINK_HOME=/opt/soft/flink
+INSERT INTO public.t_ds_environment VALUES (1, 133155949418208, 'datamaster', 'export FLINK_HOME=/opt/soft/flink
 export SPARK_HOME=/opt/soft/spark
 export CHUNJUN_HOME=/opt/soft/chunjun
 export DATAX_LAUNCHER=/opt/soft/datax/bin/datax.py
 export PYTHON_LAUNCHER=/usr/bin/python3
 export JAVA_HOME=/opt/java/openjdk
-export PATH=$CHUNJUN_HOME/bin:$FLINK_HOME/bin:$SPARK_HOME/bin:$PYTHON_LAUNCHER:$JAVA_HOME/bin:$DATAX_LAUNCHER:$PATH', '千数平台', 1, '2025-03-04 14:24:13.236', '2026-06-01 07:29:12.130144');
+export PATH=$CHUNJUN_HOME/bin:$FLINK_HOME/bin:$SPARK_HOME/bin:$PYTHON_LAUNCHER:$JAVA_HOME/bin:$DATAX_LAUNCHER:$PATH', 'datamaster', 1, '2025-03-04 14:24:13.236', '2026-06-01 07:29:12.130144');
 
 
 --
@@ -6836,4 +6836,3 @@ CREATE INDEX workflow_task_relation_log_idx_project_code_workflow_definition ON 
 --
 -- PostgreSQL database dump complete
 --
-

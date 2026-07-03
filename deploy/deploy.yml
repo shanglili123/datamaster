@@ -14,10 +14,6 @@ redis_ssh_host: "192.168.93.174"
 redis_ssh_user: "root"
 redis_ssh_port: 22
 
-zookeeper_ssh_host: "192.168.93.174,192.168.93.175,192.168.93.176"
-zookeeper_ssh_user: "root"
-zookeeper_ssh_port: 22
-
 dolphinscheduler_ssh_host: "192.168.93.174,192.168.93.175,192.168.93.176"
 dolphinscheduler_ssh_user: "root"
 dolphinscheduler_ssh_port: 22
@@ -29,10 +25,6 @@ datamaster_app_ssh_port: 22
 nginx_ssh_host: "192.168.93.175"
 nginx_ssh_user: "root"
 nginx_ssh_port: 22
-
-datamaster_quality_ssh_host: ""
-datamaster_quality_ssh_user: "root"
-datamaster_quality_ssh_port: 22
 
 dbgpt_ssh_host: "192.168.93.176"
 dbgpt_ssh_user: "root"
@@ -64,12 +56,6 @@ postgresql_image_tar_src: "packages/components/{{ postgresql_image_tar }}"
 redis_image: redis:6-alpine
 redis_image_tar: "redis-6-alpine.tar"
 redis_image_tar_src: "packages/components/{{ redis_image_tar }}"
-datamaster_server_image: "crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-server-ce:1.4.0"
-datamaster_server_image_tar: "datamaster-server-ce-1.4.0.tar"
-datamaster_server_image_tar_src: "packages/components/{{ datamaster_server_image_tar }}"
-datamaster_quality_image: "crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-quality-ce:1.4.0"
-datamaster_quality_image_tar: "datamaster-quality-ce-1.4.0.tar"
-datamaster_quality_image_tar_src: "packages/components/{{ datamaster_quality_image_tar }}"
 dbgpt_image: "eosphorosai/dbgpt-openai:latest"
 dbgpt_image_tar: "dbgpt-openai-latest.tar"
 dbgpt_image_tar_src: "packages/components/{{ dbgpt_image_tar }}"
@@ -81,8 +67,8 @@ nginx_image_tar_src: "packages/components/{{ nginx_image_tar }}"
 # * 必须确认：DataMaster 后端 jar 和前端 dist 本地路径。
 # * Backend is deployed as java -jar, not as a DataMaster docker image.
 # * 后端使用 java -jar 部署，不再使用 DataMaster 后端镜像容器。
-datamaster_server_jar_src: "../datamaster-server/target/datamaster-server.jar"
-datamaster_ui_dist_src: "../datamaster-ui/dist"
+datamaster_server_jar_src: "packages/components/datamaster-server.jar"
+datamaster_ui_dist_src: "packages/components/dist"
 
 # * Must confirm: PostgreSQL port, admin account, business database, and business user.
 # * 必须确认：PostgreSQL 端口、管理员账号、业务库名、业务用户名。
@@ -96,7 +82,6 @@ postgresql_database: datamaster
 postgresql_user: datamaster
 postgresql_password: "datamaster"
 postgresql_init_sql_src: "packages/sql/datamaster.sql"
-postgresql_app_upgrade_sql_src: "../sql/postgresql/upgrade/V1.6.0/add-ai-skill.sql"
 
 # * Must confirm: database initialization jar and SQL files.
 # * 必须确认：数据库初始化 jar 和 SQL 文件。
@@ -112,15 +97,6 @@ dolphinscheduler_init_sql_src: "packages/sql/dolphinscheduler.sql"
 # * 密码为空表示不启用 Redis 认证；应用配置和 Redis 配置必须保持一致。
 redis_port: 6379
 redis_password: ""
-
-# * Must confirm: ZooKeeper version, package name, package path, and client port.
-# * 必须确认：ZooKeeper 版本、包名、包路径和客户端端口。
-# * The script uploads this package and runs the generated install script on the target host.
-# * 脚本会上传这个包，并在目标机器执行生成后的安装脚本。
-zookeeper_version: "3.8.4"
-zookeeper_install_tgz: "apache-zookeeper-{{ zookeeper_version }}-bin.tar.gz"
-zookeeper_package_src: "packages/components/{{ zookeeper_install_tgz }}"
-zookeeper_client_port: 2181
 
 # * Must confirm: DolphinScheduler package and API port.
 # * 必须确认：DolphinScheduler 包和 API 端口。
@@ -145,10 +121,9 @@ soft_package_src: "packages/soft"
 
 # * Must confirm: DataMaster service ports.
 # * 必须确认：DataMaster 服务端口。
-# * Change these if the target host already uses 8080 or 8083.
-# * 如果目标机器已经占用 8080 或 8083，就修改这里。
+# * Change these if the target host already uses 8080.
+# * 如果目标机器已经占用 8080，就修改这里。
 datamaster_server_port: 8080
-datamaster_quality_port: 8083
 dbgpt_port: 5670
 nginx_port: 80
 
@@ -194,12 +169,6 @@ redis_data_dir: "{{ redis_dir }}/data"
 redis_conf_dir: "{{ redis_dir }}/conf"
 redis_log_dir: "{{ redis_dir }}/logs"
 
-# * Must confirm if customizing layout: ZooKeeper directories.
-# * 如果自定义目录结构则必须确认：ZooKeeper 目录。
-zookeeper_dir: "{{ base_dir }}/zookeeper"
-zookeeper_data_dir: "{{ zookeeper_dir }}/data"
-zookeeper_log_dir: "{{ zookeeper_dir }}/logs"
-
 # * Must confirm: DolphinScheduler directories and task runtime homes.
 # * 必须确认：DolphinScheduler 目录和任务运行环境目录。
 # * chunjun_home/flink_home must match the paths used by DolphinScheduler tasks.
@@ -223,15 +192,6 @@ app_conf_dir: "{{ app_dir }}/conf"
 app_log_dir: "{{ app_dir }}/logs"
 app_upload_dir: "{{ app_dir }}/upload"
 app_jar_path: "{{ app_dir }}/datamaster-server.jar"
-
-# * Must confirm if customizing layout: DataMaster quality service directories.
-# * 如果自定义目录结构则必须确认：DataMaster 质量服务目录。
-# * quality_job_log_dir stores quality job runtime logs.
-# * quality_job_log_dir 保存质量任务运行日志。
-quality_dir: "{{ base_dir }}/quality"
-quality_conf_dir: "{{ quality_dir }}/conf"
-quality_log_dir: "{{ quality_dir }}/logs"
-quality_job_log_dir: "{{ quality_dir }}/job-log"
 
 # * Must confirm if customizing layout: DB-GPT directories.
 # * 如果自定义目录结构则必须确认：DB-GPT 目录。

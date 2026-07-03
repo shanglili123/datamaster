@@ -114,6 +114,12 @@
                                         <exclude>META-INF/*.RSA</exclude>
                                     </excludes>
                                 </filter>
+                                <filter>
+                                    <artifact>com.datamaster:datamaster-common-base</artifact>
+                                    <excludes>
+                                        <exclude>mapper/**</exclude>
+                                    </excludes>
+                                </filter>
                             </filters>
                         </configuration>
                     </execution>

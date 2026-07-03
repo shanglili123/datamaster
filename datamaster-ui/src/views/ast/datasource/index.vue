@@ -253,15 +253,13 @@
                 <el-button
                   link
                   type="primary"
-                  :disabled="scope.row.isAdminAddTo == false"
                   icon="ArrowDown"
                 >
                   <el-tooltip
                     class="box-item"
                     effect="dark"
-                    content="暂无权限"
+                    content="更多操作"
                     placement="top"
-                    :disabled="scope.row.isAdminAddTo != false"
                   >
                     更多
                   </el-tooltip>

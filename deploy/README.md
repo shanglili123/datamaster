@@ -22,7 +22,7 @@ Windows 可以用包装入口：
 .\deploy\start-all.ps1 -Check
 ```
 
-部署过程只使用 Bash、`ssh`、`scp` 和单容器 `docker run`，不使用 Ansible，也不使用 Docker Compose。
+部署过程只使用 Bash、`ssh`、`scp` 和单容器 `docker run`，不使用 Ansible，也不使用 Docker Compose。脚本会启用 SSH 连接复用，同一轮部署里每台机器通常只需要输入一次 SSH 密码。
 
 ## 部署前确认
 
@@ -48,9 +48,8 @@ deploy/packages
 │   ├── postgres-15.tar
 │   ├── redis-7.2.tar
 │   ├── dbgpt-openai-latest.tar
-│   ├── datamaster-server-ce-1.4.0.tar
-│   ├── datamaster-quality-ce-1.4.0.tar
-│   ├── apache-zookeeper-3.8.4-bin.tar.gz
+│   ├── datamaster-server.jar
+│   ├── dist/
 │   ├── apache-dolphinscheduler-<dolphinscheduler_version>-bin.tar.gz
 │   └── datamaster-db-init.jar
 ├── soft
@@ -66,9 +65,6 @@ deploy/packages
 ```yaml
 postgresql_image_tar: postgres-15.tar
 redis_image_tar: redis-7.2.tar
-datamaster_server_image_tar: datamaster-server-ce-1.4.0.tar
-datamaster_quality_image_tar: datamaster-quality-ce-1.4.0.tar
-zookeeper_install_tgz: apache-zookeeper-3.8.4-bin.tar.gz
 dolphinscheduler_version: "3.4.1"
 dolphinscheduler_install_tgz: apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin.tar.gz
 database_init_jar_src: packages/components/datamaster-db-init.jar
@@ -80,10 +76,11 @@ soft_package_src: packages/soft
 脚本处理方式：
 
 - `components/*.tar`：存在则上传到远程 `{{ base_dir }}/packages` 并执行 `docker load -i`；不存在则跳过，继续使用服务器已有镜像。
-- `components/*.tar.gz`：上传到远程 `{{ base_dir }}/packages`，ZooKeeper 和 DolphinScheduler 安装脚本会自动解压。
+- `components/*.tar.gz`：上传到远程 `{{ base_dir }}/packages`，DolphinScheduler 安装脚本会自动解压。
 - `components/datamaster-db-init.jar`：上传到远程后执行，用于创建数据库、用户并导入 SQL。
 - `sql/datamaster.sql` 和 `sql/dolphinscheduler.sql`：上传到远程 `{{ base_dir }}/init-sql` 后由初始化 jar 导入。
 - `soft/chunjun/` 和 `soft/flink/`：目录里有实际文件时上传到远程 `{{ base_dir }}/soft`。
+- 文件直接上传到最终部署目录，不使用 `/tmp` 或其他远程中转目录。
 
 ## 执行过程
 
@@ -93,12 +90,101 @@ soft_package_src: packages/soft
 2. 通过 `ssh`/`scp` 连接每台目标机器，创建 `base_dir` 下的组件目录。
 3. 部署 PostgreSQL：上传镜像 tar 并 `docker load`，再用 `docker run` 启动 PG。
 4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL，再写入 DS tenant 和 DS API token。
-5. 应用业务升级 SQL：默认执行 `sql/postgresql/upgrade/V1.6.0/add-ai-skill.sql`，补齐智能问数表、AI运维菜单、任务托管策略表和权限。
+5. 可选应用业务升级 SQL：只有配置 `postgresql_app_upgrade_sql_src` 时才会额外执行；全量 SQL 包场景默认不需要。
 6. 部署 Redis：上传镜像 tar、生成 `redis.conf`，再用 `docker run` 启动 Redis。
-7. 部署 ZooKeeper：上传 tar 包，解压并生成 systemd 服务。
-8. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源和运行环境，再生成 systemd 服务。
-9. 部署 DB-GPT：上传镜像 tar 并用 `docker run` 启动 `datamaster-dbgpt`。
-10. 部署 DataMaster server 和 quality：生成 `application-prod.yml`，上传镜像 tar 并启动容器。
+7. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源、JDBC 注册中心和运行环境，再生成 systemd 服务。
+8. 部署 DB-GPT：上传镜像 tar 并用 `docker run` 启动 `datamaster-dbgpt`。
+9. 部署 DataMaster server：上传 `datamaster-server.jar`，生成 `application-prod.yml` 和 systemd 服务后启动。
+10. 部署 Nginx：上传前端 `dist`，生成 `nginx.conf` 并启动 `datamaster-nginx` 容器。
+
+## 单独部署
+
+可以用 `--limit` 只部署某一个或几个组件。`--limit` 的值是部署组名，多个组用英文逗号分隔：
+
+```bash
+./deploy/start-all.sh --limit postgresql_servers
+./deploy/start-all.sh --limit redis_servers
+./deploy/start-all.sh --limit dolphinscheduler_servers
+./deploy/start-all.sh --limit dbgpt_servers
+./deploy/start-all.sh --limit datamaster_app_servers
+./deploy/start-all.sh --limit nginx_servers
+```
+
+也可以组合部署：
+
+```bash
+./deploy/start-all.sh --limit postgresql_servers,redis_servers
+./deploy/start-all.sh --limit dolphinscheduler_servers
+./deploy/start-all.sh --limit datamaster_app_servers,nginx_servers
+```
+
+预检同样支持 `--limit`，只检查对应组件需要的配置和本地文件：
+
+```bash
+./deploy/start-all.sh --check --limit dolphinscheduler_servers
+./deploy/start-all.sh --check --limit datamaster_app_servers,nginx_servers
+```
+
+不传 `--limit` 时，默认部署：
+
+```text
+postgresql_servers,redis_servers,dolphinscheduler_servers,dbgpt_servers,datamaster_app_servers,nginx_servers
+```
+
+DolphinScheduler 默认使用 JDBC 注册中心，不需要 ZooKeeper。
+
+## 启停服务
+
+组件部署完成后，可以用 `deploy/start`、`deploy/stop` 或 `deploy/service.sh` 对远程服务做启动、停止、重启和状态查看。命令会读取 `deploy/deploy.yml` 中对应组件的 `*_ssh_host`，并在目标机器上执行 Docker 或 systemd 命令。
+
+启动服务：
+
+```bash
+./deploy/start postgresql
+./deploy/start redis
+./deploy/start dolphinscheduler
+./deploy/start dbgpt
+./deploy/start backend
+./deploy/start nginx
+./deploy/start all
+```
+
+停止服务：
+
+```bash
+./deploy/stop nginx
+./deploy/stop backend
+./deploy/stop dbgpt
+./deploy/stop dolphinscheduler
+./deploy/stop redis
+./deploy/stop postgresql
+./deploy/stop all
+```
+
+重启和查看状态使用 `service.sh`：
+
+```bash
+./deploy/service.sh restart dolphinscheduler
+./deploy/service.sh restart backend
+./deploy/service.sh status all
+./deploy/service.sh status dolphinscheduler
+```
+
+支持的服务名：
+
+```text
+postgresql, redis, dolphinscheduler, dbgpt, backend, app, nginx, all
+```
+
+别名：
+
+```text
+postgresql: postgres, pg
+dolphinscheduler: ds
+backend: app, datamaster-server
+```
+
+`all` 的启动顺序是 PostgreSQL、Redis、DolphinScheduler、DB-GPT、backend、Nginx；停止顺序相反。
 
 ## 初始化 jar
 
@@ -241,64 +327,6 @@ requirepass {{ redis_password }}
 日志目录：{{ redis_log_dir }} -> /logs
 ```
 
-## ZooKeeper 执行流程
-
-ZooKeeper 使用 tar 包解压加 systemd 部署。
-
-脚本会先创建远程目录：
-
-```text
-{{ zookeeper_dir }}
-{{ zookeeper_data_dir }}
-{{ zookeeper_log_dir }}
-{{ remote_package_dir }}
-```
-
-然后上传：
-
-```text
-deploy/packages/components/apache-zookeeper-3.8.4-bin.tar.gz
-```
-
-到：
-
-```text
-{{ remote_package_dir }}/apache-zookeeper-3.8.4-bin.tar.gz
-```
-
-接着渲染并执行：
-
-```text
-deploy/templates/install-zookeeper.sh.j2
-```
-
-远程安装脚本会解压到：
-
-```text
-{{ zookeeper_dir }}/apache-zookeeper-3.8.4-bin
-```
-
-并生成：
-
-```text
-{{ zookeeper_dir }}/apache-zookeeper-3.8.4-bin/conf/zoo.cfg
-```
-
-主要配置：
-
-```text
-dataDir={{ zookeeper_data_dir }}
-dataLogDir={{ zookeeper_log_dir }}
-clientPort={{ zookeeper_client_port }}
-admin.enableServer=false
-```
-
-最后创建并启动 systemd 服务：
-
-```text
-datamaster-zookeeper.service
-```
-
 ## DolphinScheduler 自动配置
 
 DS 的配置不是手工改静态文件，而是在远程解压后由模板脚本自动处理：
@@ -334,11 +362,9 @@ SPRING_DATASOURCE_USERNAME=datamaster
 SPRING_DATASOURCE_PASSWORD=datamaster
 ```
 
-运行环境也来自 `deploy/deploy.yml`，ZooKeeper 连接串由 `zookeeper_ssh_host` 集群列表和端口自动拼出：
+运行环境也来自 `deploy/deploy.yml`。DolphinScheduler 注册中心使用 JDBC，直接复用 DS 的 PostgreSQL 数据源，不再依赖 ZooKeeper：
 
 ```yaml
-zookeeper_ssh_host: "<ZOOKEEPER_IP_1>,<ZOOKEEPER_IP_2>,<ZOOKEEPER_IP_3>"
-zookeeper_client_port: 2181
 dolphinscheduler_resource_dir: "{{ base_dir }}/dolphinscheduler-resource"
 chunjun_home: "{{ remote_soft_dir }}/chunjun"
 flink_home: "{{ remote_soft_dir }}/flink"
@@ -347,12 +373,14 @@ flink_home: "{{ remote_soft_dir }}/flink"
 会写入：
 
 ```text
-REGISTRY_ZOOKEEPER_CONNECT_STRING=<ZOOKEEPER_IP_1>:2181,<ZOOKEEPER_IP_2>:2181,<ZOOKEEPER_IP_3>:2181
+REGISTRY_TYPE=jdbc
 RESOURCE_STORAGE_TYPE=LOCAL
 RESOURCE_LOCAL_BASE_PATH=/data/datamaster/dolphinscheduler-resource
 CHUNJUN_HOME=/data/datamaster/soft/chunjun
 FLINK_HOME=/data/datamaster/soft/flink
 ```
+
+脚本还会把各 `*/conf/application.yaml` 里的 `registry.type` 改成 `jdbc`。对缺少 `spring.datasource` 的节点配置，例如 worker，也会补入同一套 PostgreSQL 数据源，避免服务启动后继续尝试连接 ZooKeeper。
 
 DS API token 由部署脚本自动生成或复用：
 
@@ -433,7 +461,6 @@ datamaster_server_image_tar_src: packages/components/datamaster-server-ce-1.4.0.
 PostgreSQL 地址、端口、库名、用户名、密码
 Redis 地址、端口、密码
 DolphinScheduler API 地址和自动生成/复用的 token
-DataMaster quality 回调地址
 DS resource 路径
 DB-GPT 地址、问数 chat mode、Skill 知识空间
 AI Skill 模型增强配置
@@ -456,56 +483,6 @@ postgresql -> derived from {{ postgresql_ssh_host }}
 redis -> derived from {{ redis_ssh_host }}
 dolphinscheduler -> {{ dolphinscheduler_ip }}
 dbgpt -> derived from {{ dbgpt_ssh_host }}
-```
-
-## DataMaster Quality 执行流程
-
-质量服务使用单容器 `docker run` 部署。
-
-脚本会创建远程目录：
-
-```text
-{{ quality_conf_dir }}
-{{ quality_log_dir }}
-{{ quality_job_log_dir }}
-```
-
-然后检查本地镜像 tar：
-
-```yaml
-datamaster_quality_image_tar_src: packages/components/datamaster-quality-ce-1.4.0.tar
-```
-
-如果文件存在，会上传到远程并执行 `docker load -i`。
-
-脚本会根据 `deploy/templates/datamaster-quality-application-prod.yml.j2` 生成：
-
-```text
-{{ quality_conf_dir }}/application-prod.yml
-```
-
-质量服务配置会写入：
-
-```text
-PostgreSQL 地址、端口、库名、用户名、密码
-Redis 地址、端口、密码
-```
-
-最后删除旧容器并重新启动：
-
-```text
-容器名：datamaster-quality
-端口：{{ datamaster_quality_port }}:8083
-配置文件：{{ quality_conf_dir }}/application-prod.yml -> /usr/app/jar/application-prod.yml
-日志目录：{{ quality_log_dir }} -> /usr/app/jar/logs
-任务日志目录：{{ quality_job_log_dir }} -> /usr/app/jar/job-log
-```
-
-容器启动时还会增加 host 映射：
-
-```text
-postgresql -> derived from {{ postgresql_ssh_host }}
-redis -> derived from {{ redis_ssh_host }}
 ```
 
 ## 配置文件
@@ -549,7 +526,7 @@ dataMaster/
 ├── datamaster-collector        # 数据汇聚/采集（含 collector-biz/sub）
 ├── datamaster-service          # 数据服务
 ├── datamaster-catalog          # 数据目录
-├── datamaster-quality          # 数据质量（独立服务，端口 8083）
+├── datamaster-quality          # 数据质量模块
 ├── datamaster-etl              # ETL/Spark 任务
 ├── datamaster-server           # 主服务入口（端口 8080）
 ├── datamaster-view             # 前端（Vue 3 + Vite）
@@ -561,11 +538,10 @@ dataMaster/
 
 ## 服务架构
 
-- **主服务**（datamaster-server）：端口 8080，含系统管理、汇聚、资产、目录、服务等模块
-- **质量服务**（datamaster-quality）：独立进程，端口 8083，通过 HTTP 与主服务通信
+- **主服务**（datamaster-server）：端口 8080，含系统管理、汇聚、资产、目录、服务、质量等模块
 - **前端**（datamaster-view）：Vite 开发服务器，端口 81，代理 `/dev-api` 到主服务 8080
 - **数据库**：PostgreSQL（业务库 `datamaster`、DS 调度库 `dolphinscheduler`）
-- **调度器**：DolphinScheduler（容器部署，ZooKeeper + API + Master + Worker + Alert）
+- **调度器**：DolphinScheduler（JDBC 注册中心 + API + Master + Worker + Alert）
 
 ## 本地开发环境启动
 
@@ -611,9 +587,9 @@ redis:
   host: 127.0.0.1
   port: 6379
 
-# 质量服务地址（主服务通过此地址调用 quality）
+# 质量任务执行地址（默认指向主服务自身）
 path:
-  quality_url: http://127.0.0.1:8083/quality
+  quality_url: http://127.0.0.1:8080/quality/qualityTaskExecutor
 ```
 
 ### 4. 启动后端
@@ -621,13 +597,6 @@ path:
 ```bash
 mvn clean package -pl datamaster-server -am -DskipTests
 java -jar datamaster-server/target/datamaster-server-*.jar
-```
-
-质量服务单独启动：
-
-```bash
-mvn clean package -pl datamaster-quality -am -DskipTests
-java -jar datamaster-quality/target/datamaster-quality-*.jar
 ```
 
 ### 5. 启动前端
@@ -649,4 +618,4 @@ yarn run dev
 3. 填写表名（默认 `quality_error_data`）
 4. 保存后主服务自动通知 quality 刷新缓存
 
-quality 启动时自动检查 `quality_error_storage_config` 表，有配置则使用 JDBC 写入，无配置则跳过错误明细写入。
+质量模块启动时自动检查 `quality_error_storage_config` 表，有配置则使用 JDBC 写入，无配置则跳过错误明细写入。

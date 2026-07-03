@@ -2,8 +2,7 @@
   "name": "datamaster-ui",
   "version": "3.8.8",
   "description": "DataMaster UI 工作台",
-  "author": "冰凤",
-  "license": "MIT",
+  "author": "sll",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,10 +11,6 @@
     "preview": "vite preview",
     "eslint:lint": "eslint src",
     "eslint:fix": "eslint src --fix"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://gitee.com/qiantongtech/dataMaster.git"
   },
   "dependencies": {
     "@antv/layout": "^0.3.25",

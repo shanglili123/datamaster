@@ -2,6 +2,7 @@
 
 package com.datamaster.api.ds.api.etl;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,6 +35,7 @@ public class DsSchedulerSaveReqDTO {
     /**
      * 任务编码（必填）
      */
+    @JSONField(name = "workflowDefinitionCode", alternateNames = {"processDefinitionCode"})
     private String processDefinitionCode;
 
     /**

@@ -8,57 +8,57 @@ public enum DataMasterDSApiType {
     /**
      * 创建流程定义接口
      */
-    CREATE_PROCESS_DEFINITION("1", "创建流程定义接口", "/projects/{projectCode}/process-definition", "POST"),
+    CREATE_PROCESS_DEFINITION("1", "创建流程定义接口", "/projects/{projectCode}/workflow-definition", "POST"),
 
     /**
      * 更新流程定义接口
      */
-    UPDATE_PROCESS_DEFINITION("2", "更新流程定义接口", "/projects/{projectCode}/process-definition/{code}", "PUT"),
+    UPDATE_PROCESS_DEFINITION("2", "更新流程定义接口", "/projects/{projectCode}/workflow-definition/{code}", "PUT"),
 
     /**
      * 删除流程定义接口
      */
-    DELETE_PROCESS_DEFINITION("3", "通过流程定义ID删除流程定义", "/projects/{projectCode}/process-definition/{code}", "DELETE"),
+    DELETE_PROCESS_DEFINITION("3", "通过流程定义ID删除流程定义", "/projects/{projectCode}/workflow-definition/{code}", "DELETE"),
 
     /**
      * 分页查询流程定义列表接口
      */
-    GET_PROCESS_DEFINITION_LIST("4", "分页查询流程定义列表接口", "/projects/{projectCode}/process-definition", "GET"),
+    GET_PROCESS_DEFINITION_LIST("4", "分页查询流程定义列表接口", "/projects/{projectCode}/workflow-definition", "GET"),
 
     /**
      * 发布流程定义接口
      */
-    RELEASE_PROCESS_DEFINITION("5", "发布流程定义接口", "/projects/{projectCode}/process-definition/{code}/release", "POST"),
+    RELEASE_PROCESS_DEFINITION("5", "发布流程定义接口", "/projects/{projectCode}/workflow-definition/{code}/release", "POST"),
 
     /**
      * 批量删除流程定义接口
      */
-    BATCH_DELETE_PROCESS_DEFINITION("6", "通过流程定义ID集合批量删除流程定义", "/projects/{projectCode}/process-definition/batch-delete", "POST"),
+    BATCH_DELETE_PROCESS_DEFINITION("6", "通过流程定义ID集合批量删除流程定义", "/projects/{projectCode}/workflow-definition/batch-delete", "POST"),
 
     /**
      * 移动工作流定义接口
      */
-    BATCH_MOVE_PROCESS_DEFINITION("7", "移动工作流定义接口", "/projects/{projectCode}/process-definition/batch-move", "POST"),
+    BATCH_MOVE_PROCESS_DEFINITION("7", "移动工作流定义接口", "/projects/{projectCode}/workflow-definition/batch-move", "POST"),
 
     /**
      * 复制工作流定义接口
      */
-    BATCH_COPY_PROCESS_DEFINITION("8", "复制工作流定义接口", "/projects/{projectCode}/process-definition/batch-copy", "POST"),
+    BATCH_COPY_PROCESS_DEFINITION("8", "复制工作流定义接口", "/projects/{projectCode}/workflow-definition/batch-copy", "POST"),
 
     /**
      * 查询流程历史版本信息接口
      */
-    GET_PROCESS_DEFINITION_VERSIONS("9", "查询流程历史版本信息接口", "/projects/{projectCode}/process-definition/{code}/versions", "GET"),
+    GET_PROCESS_DEFINITION_VERSIONS("9", "查询流程历史版本信息接口", "/projects/{projectCode}/workflow-definition/{code}/versions", "GET"),
 
     /**
      * 切换流程版本接口
      */
-    SWITCH_PROCESS_DEFINITION_VERSION("10", "切换流程版本接口", "/projects/{projectCode}/process-definition/{code}/versions/{version}", "GET"),
+    SWITCH_PROCESS_DEFINITION_VERSION("10", "切换流程版本接口", "/projects/{projectCode}/workflow-definition/{code}/versions/{version}", "GET"),
 
     /**
      * 删除流程历史版本接口
      */
-    DELETE_PROCESS_DEFINITION_VERSION("11", "删除流程历史版本接口", "/projects/{projectCode}/process-definition/{code}/versions/{version}", "DELETE"),
+    DELETE_PROCESS_DEFINITION_VERSION("11", "删除流程历史版本接口", "/projects/{projectCode}/workflow-definition/{code}/versions/{version}", "DELETE"),
 
     //项目相关接口开始》》》》》》》》》
 
@@ -121,12 +121,12 @@ public enum DataMasterDSApiType {
     /**
      * 查询流程实例列表接口
      */
-    GET_PROCESS_INSTANCE_LIST("23", "查询流程实例列表接口", "/projects/{projectCode}/process-instances", "GET"),
+    GET_PROCESS_INSTANCE_LIST("23", "查询流程实例列表接口", "/projects/{projectCode}/workflow-instances", "GET"),
 
     /**
      * 通过流程实例ID查询流程实例接口
      */
-    GET_PROCESS_INSTANCE_BY_ID("24", "通过流程实例ID查询流程实例接口", "/projects/{projectCode}/process-instances/{id}", "GET"),
+    GET_PROCESS_INSTANCE_BY_ID("24", "通过流程实例ID查询流程实例接口", "/projects/{projectCode}/workflow-instances/{id}", "GET"),
 
     /**
      * 分页查询任务实例列表接口
@@ -155,13 +155,13 @@ public enum DataMasterDSApiType {
     /**
      * 根据流程编码获取调度调度信息
      */
-    GET_SCHEDULE_BY_PROCESS_CODE("29", "根据流程编码获取调度调度信息", "/projects/{projectCode}/schedules/getByProcessDefinitionCode/{code}", "GET"),
+    GET_SCHEDULE_BY_PROCESS_CODE("29", "根据流程编码获取调度调度信息", "/projects/{projectCode}/schedules", "GET"),
 
 
     /**
      * 手动启动流程
      */
-    POST_START_PROCESS("30", "手动启动流程", "/projects/{projectCode}/executors/start-process-instance", "POST"),
+    POST_START_PROCESS("30", "手动启动流程", "/projects/{projectCode}/executors/start-workflow-instance", "POST"),
 
     /**
      * 执行流程实例

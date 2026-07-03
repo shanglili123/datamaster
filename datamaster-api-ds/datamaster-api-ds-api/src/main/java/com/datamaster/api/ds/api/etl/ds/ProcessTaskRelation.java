@@ -4,6 +4,7 @@ package com.datamaster.api.ds.api.etl.ds;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -27,6 +28,7 @@ public class ProcessTaskRelation {
     /**
      * process version
      */
+    @JSONField(name = "workflowDefinitionVersion", alternateNames = {"processDefinitionVersion"})
     private int processDefinitionVersion;
 
     /**
@@ -37,6 +39,7 @@ public class ProcessTaskRelation {
     /**
      * process code
      */
+    @JSONField(name = "workflowDefinitionCode", alternateNames = {"processDefinitionCode"})
     private String processDefinitionCode;
 
     /**

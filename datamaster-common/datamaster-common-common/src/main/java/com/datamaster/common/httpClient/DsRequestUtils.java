@@ -7,6 +7,7 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.http.Method;
 import com.alibaba.fastjson2.JSON;
+import com.datamaster.common.exception.ServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -65,7 +66,8 @@ public class DsRequestUtils {
         }
 
         //封装请求对象
-        HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), baseUrl + url)
+        String requestUrl = baseUrl + url;
+        HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), requestUrl)
                 .header("token", token)
                 .timeout(timeout);
         if (body != null) {
@@ -73,7 +75,7 @@ public class DsRequestUtils {
         }
         //获取结果
         HttpResponse response = request.execute();
-        return JSON.parseObject(response.body(), resultClass);
+        return parseResponse(response, requestUrl, resultClass);
     }
 
     /**
@@ -87,7 +89,8 @@ public class DsRequestUtils {
      */
     public static <T> T requestForm(String url, String method, Map<String, Object> params, Class<T> resultClass) {
         //封装请求对象
-        HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), baseUrl + url)
+        String requestUrl = baseUrl + url;
+        HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), requestUrl)
                 .header("token", token)
                 .timeout(timeout);
         if (params != null) {
@@ -95,7 +98,34 @@ public class DsRequestUtils {
         }
         //获取结果
         HttpResponse response = request.execute();
-        return JSON.parseObject(response.body(), resultClass);
+        return parseResponse(response, requestUrl, resultClass);
+    }
+
+    private static <T> T parseResponse(HttpResponse response, String requestUrl, Class<T> resultClass) {
+        String body = response.body();
+        if (response.getStatus() < 200 || response.getStatus() >= 300) {
+            throw new ServiceException("DolphinScheduler接口请求失败，状态码：" + response.getStatus()
+                    + "，地址：" + requestUrl + "，响应：" + abbreviate(body));
+        }
+        if (StringUtils.isBlank(body) || !isJsonResponse(body)) {
+            throw new ServiceException("DolphinScheduler接口返回非JSON响应，地址：" + requestUrl
+                    + "，Content-Type：" + response.header("Content-Type")
+                    + "，响应：" + abbreviate(body));
+        }
+        return JSON.parseObject(body, resultClass);
+    }
+
+    private static boolean isJsonResponse(String body) {
+        String trimBody = StringUtils.trim(body);
+        return StringUtils.startsWith(trimBody, "{") || StringUtils.startsWith(trimBody, "[");
+    }
+
+    private static String abbreviate(String body) {
+        if (body == null) {
+            return "";
+        }
+        String text = StringUtils.normalizeSpace(body);
+        return StringUtils.abbreviate(text, 300);
     }
 
     /**

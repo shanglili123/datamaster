@@ -47,6 +47,9 @@ import metaPublicRouter from './meta/public/index.js';
 /* 表元数据 */
 import metaDynamicRouter from './meta/dynamic/index.js';
 
+/* 智能问数公共路由 */
+import aiRouter from './ai/index.js';
+
 /* 数据规划动态路由 */
 // 用来存储当前请求的取消源
 // let currentCancelSource = null;
@@ -74,7 +77,7 @@ import metaDynamicRouter from './meta/dynamic/index.js';
  */
 
 // 公共路由
-export const constantRoutes = normalizeModuleRouteTree([...systemPublicRouter, ...examplePublicRouter, ...daPublicRouter, ...dsCatRouter, ...dsPublicRouter, ...dPdocument, ...dpPublicRouter, ...dpDataElemRouter, ...daAssetRouter, ...daQualityRouter, ...colRouter, ...mcPublicRouter, ...metaPublicRouter, ...mcDynamicRouter, ...metaDynamicRouter]);
+export const constantRoutes = normalizeModuleRouteTree([...systemPublicRouter, ...examplePublicRouter, ...daPublicRouter, ...dsCatRouter, ...dsPublicRouter, ...dPdocument, ...dpPublicRouter, ...dpDataElemRouter, ...daAssetRouter, ...daQualityRouter, ...colRouter, ...mcPublicRouter, ...metaPublicRouter, ...mcDynamicRouter, ...metaDynamicRouter, ...aiRouter]);
 
 // 动态路由，基于用户权限动态去加载
 export const dynamicRoutes = normalizeModuleRouteTree([...systemDynamicRouter, ...exampleDynamicRouter, ...daDynamicRouter, ...dsDynamicRouter,]);

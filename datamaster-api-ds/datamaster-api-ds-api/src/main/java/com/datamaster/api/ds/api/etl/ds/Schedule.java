@@ -2,6 +2,7 @@
 
 package com.datamaster.api.ds.api.etl.ds;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
@@ -15,6 +16,7 @@ public class Schedule {
     /**
      * process definition code
      */
+    @JSONField(name = "workflowDefinitionCode", alternateNames = {"processDefinitionCode"})
     private String processDefinitionCode;
 
     /**

@@ -2,6 +2,7 @@
 
 package com.datamaster.api.ds.api.etl;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +24,7 @@ public class DsStartTaskReqDTO {
     /**
      * 流程编码
      */
+    @JSONField(name = "workflowDefinitionCode", alternateNames = {"processDefinitionCode"})
     private Long processDefinitionCode;
     /**
      * 失败策略 写死 CONTINUE
@@ -36,6 +38,7 @@ public class DsStartTaskReqDTO {
     /**
      * 写死 MEDIUM
      */
+    @JSONField(name = "workflowInstancePriority", alternateNames = {"processInstancePriority"})
     private String processInstancePriority;
     /**
      * Worker 分组

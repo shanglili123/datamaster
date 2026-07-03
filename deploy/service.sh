@@ -4,6 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/deploy.yml"
 SUDO="sudo"
+SSH_CONTROL_DIR="$SCRIPT_DIR/.runtime/ssh-control"
+SSH_OPTS=(
+  -o ControlMaster=auto
+  -o ControlPersist=10m
+  -o ControlPath="$SSH_CONTROL_DIR/%C"
+)
 
 usage() {
   cat >&2 <<'EOF'
@@ -12,7 +18,7 @@ Usage:
   ./deploy/stop  [--config deploy.yml] [--sudo sudo] <service|all> [...]
 
 Services:
-  postgresql redis zookeeper dolphinscheduler dbgpt backend app nginx quality all
+  postgresql redis dolphinscheduler dbgpt backend app nginx all
 EOF
 }
 
@@ -47,6 +53,8 @@ if [[ $# -eq 0 ]]; then
   usage
   exit 2
 fi
+mkdir -p "$SSH_CONTROL_DIR"
+chmod 700 "$SSH_CONTROL_DIR" 2>/dev/null || true
 
 declare -A VARS=()
 declare -a VAR_KEYS=()
@@ -121,7 +129,7 @@ remote_exec() {
     [[ -z "$host" ]] && continue
     target="$(target_of "$host" "$user")"
     echo "ssh -p $port $target $command"
-    ssh -p "$port" "$target" "$command"
+    ssh "${SSH_OPTS[@]}" -p "$port" "$target" "$command"
   done
 }
 
@@ -164,9 +172,6 @@ handle_service() {
     redis)
       remote_exec redis "$(docker_cmd datamaster-redis)"
       ;;
-    zookeeper|zk)
-      remote_exec zookeeper "$(systemd_cmd datamaster-zookeeper)"
-      ;;
     dolphinscheduler|ds)
       remote_exec dolphinscheduler "$(systemd_multi_cmd 'datamaster-dolphinscheduler-api datamaster-dolphinscheduler-master datamaster-dolphinscheduler-worker datamaster-dolphinscheduler-alert')"
       ;;
@@ -179,22 +184,17 @@ handle_service() {
     nginx)
       remote_exec nginx "$(docker_cmd datamaster-nginx)"
       ;;
-    quality)
-      remote_exec datamaster_quality "$(docker_cmd datamaster-quality)"
-      ;;
     all)
       if [[ "$ACTION" == "stop" ]]; then
         handle_service nginx
         handle_service backend
         handle_service dbgpt
         handle_service dolphinscheduler
-        handle_service zookeeper
         handle_service redis
         handle_service postgresql
       else
         handle_service postgresql
         handle_service redis
-        handle_service zookeeper
         handle_service dolphinscheduler
         handle_service dbgpt
         handle_service backend

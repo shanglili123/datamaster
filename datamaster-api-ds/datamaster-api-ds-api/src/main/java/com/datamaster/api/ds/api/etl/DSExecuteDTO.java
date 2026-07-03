@@ -2,6 +2,7 @@
 
 package com.datamaster.api.ds.api.etl;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class DSExecuteDTO {
     /**
      * 流程id
      */
+    @JSONField(name = "workflowInstanceId", alternateNames = {"processInstanceId"})
     private Long processInstanceId;
 
     /**

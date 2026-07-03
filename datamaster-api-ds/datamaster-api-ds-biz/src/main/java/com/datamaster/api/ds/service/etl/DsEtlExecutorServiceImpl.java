@@ -31,8 +31,11 @@ public class DsEtlExecutorServiceImpl implements IDsEtlExecutorService {
     @Override
     public DsStatusRespDTO execute(DSExecuteDTO dsExecuteDTO, String projectCode) {
         DataMasterDSApiType apiType = DataMasterDSApiType.POST_EXECUTORS_EXECUTE;
+        JSONObject params = JSONObject.parseObject(JSONObject.toJSONString(dsExecuteDTO));
+        params.put("workflowInstanceId", dsExecuteDTO.getProcessInstanceId());
+        params.remove("processInstanceId");
         return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode),
-                apiType.getMethod(), JSONObject.parseObject(JSONObject.toJSONString(dsExecuteDTO)),
+                apiType.getMethod(), params,
                 DsStatusRespDTO.class);
     }
 
@@ -42,7 +45,7 @@ public class DsEtlExecutorServiceImpl implements IDsEtlExecutorService {
         Map<String, Object> params = new HashMap<>();
         params.put("pageNo", 1);
         params.put("pageSize", 100);
-        params.put("processDefinitionCode", processDefinitionCode);
+        params.put("workflowDefinitionCode", processDefinitionCode);
 
         JSONObject response = DsRequestUtils.request(DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode),
                 apiType.getMethod(), null, params, JSONObject.class);

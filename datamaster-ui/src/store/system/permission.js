@@ -17,7 +17,7 @@ const homeRoute = {
     meta: { title: '首页', icon: 'dashboard', affix: true }
 };
 
-const homeMenuTitles = ['首页', '系统管理', '日志管理', '智能问数'];
+const homeMenuTitles = ['首页', '系统管理', '日志管理'];
 
 const usePermissionStore = defineStore('permission', {
     state: () => ({

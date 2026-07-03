@@ -182,7 +182,6 @@ import { onMounted, ref, watch } from "vue";
 import moment from "moment";
 import { listNotice } from "@/api/system/system/notice";
 import { currentUser } from "@/api/tax/project/project";
-import { da, id } from "element-plus/es/locale/index.mjs";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
 import defaultAvatar from "@/assets/images/defaultAvatar.png";
