@@ -476,7 +476,8 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
 
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, projectCode);
 
-        return dsStatusRespDTO.getSuccess() ? success() : error(dsStatusRespDTO.getMsg());
+        return Boolean.TRUE.equals(dsStatusRespDTO == null ? null : dsStatusRespDTO.getSuccess())
+                ? success() : error(dsStatusRespDTO == null ? "DolphinScheduler无响应" : dsStatusRespDTO.getMsg());
     }
 
     @Override
@@ -596,13 +597,13 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         // 只有在 DS 中有任务定义时才下线
         if (StringUtils.isNotEmpty(daDiscoveryTaskById.getTaskCode())) {
             DsStatusRespDTO respDTO = dsEtlTaskService.releaseTask("OFFLINE", projectCode, daDiscoveryTaskById.getTaskCode());
-            if (respDTO == null || !respDTO.getSuccess()) {
+            if (!isDsStatusSuccess(respDTO)) {
                 throw new ServiceException("发布或下线任务，失败！");
             }
 
             if (systemJobId != null && systemJobId > 0) {
                 DsStatusRespDTO offlined = iDsEtlSchedulerService.offlineScheduler(projectCode, systemJobId);
-                if (!offlined.getData()) {
+                if (!isDsStatusSuccess(offlined)) {
                     throw new ServiceException("下线调度器，失败！");
                 }
             }
@@ -624,7 +625,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     private void createNewProcessDefinition(String projectCode, CollectorQualityTaskRespVO daDiscoveryTaskById, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(daDiscoveryTaskById.getTaskName() + StringUtils.generateRandomString());
-        input.addHttpParam("id", "BODY", daDiscoveryTaskById.getId());
+        input.addHttpParam("id", "PARAMETER", daDiscoveryTaskById.getId());
         input.setId(daDiscoveryTaskById.getId());
         input.setWorkerGroup(daDiscoveryTaskById.getWorkerGroup());
         ProcessDefinition definition = this.createProcessDefinition(projectCode, input);
@@ -639,7 +640,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     private void updateExistingProcessDefinition(String projectCode, CollectorQualityTaskRespVO daDiscoveryTaskById, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(daDiscoveryTaskById.getTaskName() + StringUtils.generateRandomString());
-        input.addHttpParam("id", "BODY", daDiscoveryTaskById.getId());
+        input.addHttpParam("id", "PARAMETER", daDiscoveryTaskById.getId());
         input.setId(daDiscoveryTaskById.getId());
         input.setWorkerGroup(daDiscoveryTaskById.getWorkerGroup());
 
@@ -660,7 +661,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
 
     private void updateTaskStatusAndScheduler(String projectCode, CollectorQualityTaskSaveReqVO daDiscoveryTask, Long systemJobId) {
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", projectCode, daDiscoveryTask.getTaskCode());
-        if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
+        if (!isDsStatusSuccess(dsStatusRespDTO)) {
             throw new ServiceException("发布或下线任务，失败！");
         }
 
@@ -673,7 +674,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
             }
 
             DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(projectCode, daDiscoveryTask.getSystemJobId());
-            if (!dsStatusRespDTO1.getData()) {
+            if (!isDsStatusSuccess(dsStatusRespDTO1)) {
                 throw new ServiceException("上线调度器，失败！");
             }
         } else if (systemJobId != null && systemJobId > 0) {
@@ -733,16 +734,26 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         }
     }
 
-    public ProcessDefinition updateProcessDefinition(String projectCode, TaskSaveReqInput input) {
-        Long nodeUniqueKey = this.getNodeUniqueKey(CollectorTaskConverter.stringToLong(projectCode));
+    private boolean isDsStatusSuccess(DsStatusRespDTO response) {
+        if (response == null || Boolean.FALSE.equals(response.getSuccess()) || Boolean.FALSE.equals(response.getData())) {
+            return false;
+        }
+        return Boolean.TRUE.equals(response.getSuccess())
+                || Boolean.TRUE.equals(response.getData())
+                || StringUtils.equalsIgnoreCase(response.getMsg(), "success");
+    }
 
-        input.setNodeCode(CollectorTaskConverter.longToString(nodeUniqueKey));
+    public ProcessDefinition updateProcessDefinition(String projectCode, TaskSaveReqInput input) {
+        if (StringUtils.isBlank(input.getNodeCode())) {
+            Long nodeUniqueKey = this.getNodeUniqueKey(CollectorTaskConverter.stringToLong(projectCode));
+            input.setNodeCode(CollectorTaskConverter.longToString(nodeUniqueKey));
+        }
 
         DsTaskSaveReqDTO dsTaskSaveReqDTO = CollectorTaskConverter.buildDsTaskSaveReq(input);
         DsTaskSaveRespDTO task = dsEtlTaskService.updateTask(dsTaskSaveReqDTO, projectCode, input.getTaskCode());
 
-        if (!task.getSuccess()) {
-            throw new ServiceException("任务状态修改失败：" + (task.getMsg() != null ? task.getMsg() : "请联系系统管理员"));
+        if (task == null || !Boolean.TRUE.equals(task.getSuccess())) {
+            throw new ServiceException("任务状态修改失败：" + (task == null || task.getMsg() == null ? "请联系系统管理员" : task.getMsg()));
         }
         ProcessDefinition data = task.getData();
         return data; // 返回创建结果
@@ -756,7 +767,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         DsTaskSaveReqDTO dsTaskSaveReqDTO = CollectorTaskConverter.buildDsTaskSaveReq(input);
         DsTaskSaveRespDTO task = dsEtlTaskService.createTask(dsTaskSaveReqDTO, CollectorTaskConverter.stringToLong(projectCode));
 
-        if (!task.getSuccess()) {
+        if (task == null || !Boolean.TRUE.equals(task.getSuccess())) {
             throw new ServiceException("任务状态修改失败，请联系系统管理员"); // 抛出任务定义创建错误的异常
         }
         ProcessDefinition data = task.getData();

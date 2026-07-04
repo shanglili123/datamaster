@@ -53,8 +53,8 @@ public class TaskSaveReqInput extends BaseEntity {
     public void addHttpParam(String prop, String httpParametersType, Object value) {
         Map<String, Object> param = new HashMap<>();
         param.put("prop", prop);
-        param.put("httpParametersType", httpParametersType);
+        param.put("httpParametersType", httpParametersType == null ? "PARAMETER" : httpParametersType);
         param.put("value", value);
-        this.httpParams.add(param); // 将新参数添加到 httpParams 列表中
+        this.httpParams.add(param);
     }
 }

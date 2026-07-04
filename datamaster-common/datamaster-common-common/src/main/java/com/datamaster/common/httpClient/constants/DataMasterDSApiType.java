@@ -26,6 +26,11 @@ public enum DataMasterDSApiType {
     GET_PROCESS_DEFINITION_LIST("4", "分页查询流程定义列表接口", "/projects/{projectCode}/workflow-definition", "GET"),
 
     /**
+     * 查询流程定义详情接口
+     */
+    GET_PROCESS_DEFINITION("4-1", "查询流程定义详情接口", "/projects/{projectCode}/workflow-definition/{code}", "GET"),
+
+    /**
      * 发布流程定义接口
      */
     RELEASE_PROCESS_DEFINITION("5", "发布流程定义接口", "/projects/{projectCode}/workflow-definition/{code}/release", "POST"),
@@ -148,7 +153,7 @@ public enum DataMasterDSApiType {
     /**
      * 生成任务编码接口
      */
-    GEN_TASK_DEFINITION_CODES("28", "分页查询任务实例列表接口", "/v2/tasks/gen-task-codes", "GET"),
+    GEN_TASK_DEFINITION_CODES("28", "分页查询任务实例列表接口", "/projects/{projectCode}/task-definition/gen-task-codes", "GET"),
 
     //任务定义相关接口接受结束》》》》》》》》》
 

@@ -90,7 +90,7 @@ public class QualityTaskExecutorController extends BaseController {
      * @return
      */
     @Log(title = "定时任务", businessType = BusinessType.UPDATE)
-    @PutMapping("/runExecuteTask/{id}")
+    @GetMapping("/runExecuteTask/{id}")
     public AjaxResult runExecuteTask(@PathVariable("id") String id) {
         qualityTaskExecutorService.executeTask(id);
         return success() ;

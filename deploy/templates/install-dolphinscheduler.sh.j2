@@ -74,7 +74,7 @@ JAVA_HOME_DETECTED="$(detect_java_home)" || {
 
 cat > "$BASE/datamaster-ds-env.sh" <<EOF
 JAVA_HOME=$JAVA_HOME_DETECTED
-PATH=$JAVA_HOME_DETECTED/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PATH={{ chunjun_home }}/bin:{{ flink_home }}/bin:{{ spark_home }}/bin:/usr/bin/python3:$JAVA_HOME_DETECTED/bin:{{ datax_home }}/bin/datax.py:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 DS_TENANT_CODE={{ dolphinscheduler_tenant_code }}
 DATABASE_TYPE=postgresql
 SPRING_DATASOURCE_URL=jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ dolphinscheduler_database }}?stringtype=unspecified
@@ -85,7 +85,10 @@ RESOURCE_STORAGE_TYPE=LOCAL
 RESOURCE_LOCAL_BASE_PATH={{ dolphinscheduler_resource_dir }}
 HADOOP_HOME={{ hadoop_home }}
 FLINK_HOME={{ flink_home }}
+SPARK_HOME={{ spark_home }}
 CHUNJUN_HOME={{ chunjun_home }}
+DATAX_LAUNCHER={{ datax_home }}/bin/datax.py
+PYTHON_LAUNCHER=/usr/bin/python3
 FLINK_LOG_DIR={{ dolphinscheduler_log_dir }}
 EOF
 
@@ -99,17 +102,29 @@ fi
 find "$INSTALL_DIR" -path '*/dolphinscheduler_env.sh' -print0 | while IFS= read -r -d '' ds_env; do
   sed -ri \
     -e "s#^([[:space:]]*export[[:space:]]+JAVA_HOME=).*#\1$JAVA_HOME_DETECTED#" \
-    -e 's#^(export[[:space:]]+FLINK_HOME=).*#\1{{ flink_home }}#' \
-    -e 's#^(export[[:space:]]+CHUNJUN_HOME=).*#\1{{ chunjun_home }}#' \
-    -e 's#^(export[[:space:]]+HADOOP_HOME=).*#\1{{ hadoop_home }}#' \
-    -e 's#^(export[[:space:]]+DATABASE_TYPE=).*#\1postgresql#' \
-    -e 's#^(export[[:space:]]+SPRING_DATASOURCE_URL=).*#\1jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ dolphinscheduler_database }}?stringtype=unspecified#' \
-    -e 's#^(export[[:space:]]+SPRING_DATASOURCE_USERNAME=).*#\1{{ postgresql_user }}#' \
-    -e 's#^(export[[:space:]]+SPRING_DATASOURCE_PASSWORD=).*#\1{{ postgresql_password }}#' \
-    -e 's#^(export[[:space:]]+REGISTRY_TYPE=).*#\1jdbc#' \
+    -e 's#^([[:space:]]*export[[:space:]]+PATH=).*#\1$CHUNJUN_HOME/bin:$FLINK_HOME/bin:$SPARK_HOME/bin:$PYTHON_LAUNCHER:$JAVA_HOME/bin:$DATAX_LAUNCHER:$PATH#' \
+    -e 's#^([[:space:]]*export[[:space:]]+FLINK_HOME=).*#\1{{ flink_home }}#' \
+    -e 's#^([[:space:]]*export[[:space:]]+SPARK_HOME=).*#\1{{ spark_home }}#' \
+    -e 's#^([[:space:]]*export[[:space:]]+CHUNJUN_HOME=).*#\1{{ chunjun_home }}#' \
+    -e 's#^([[:space:]]*export[[:space:]]+HADOOP_HOME=).*#\1{{ hadoop_home }}#' \
+    -e 's#^([[:space:]]*export[[:space:]]+DATAX_LAUNCHER=).*#\1{{ datax_home }}/bin/datax.py#' \
+    -e 's#^([[:space:]]*export[[:space:]]+PYTHON_LAUNCHER=).*#\1/usr/bin/python3#' \
+    -e 's#^([[:space:]]*export[[:space:]]+FLINK_LOG_DIR=).*#\1{{ dolphinscheduler_log_dir }}#' \
+    -e 's#^([[:space:]]*export[[:space:]]+DATABASE_TYPE=).*#\1postgresql#' \
+    -e 's#^([[:space:]]*export[[:space:]]+SPRING_DATASOURCE_URL=).*#\1jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ dolphinscheduler_database }}?stringtype=unspecified#' \
+    -e 's#^([[:space:]]*export[[:space:]]+SPRING_DATASOURCE_USERNAME=).*#\1{{ postgresql_user }}#' \
+    -e 's#^([[:space:]]*export[[:space:]]+SPRING_DATASOURCE_PASSWORD=).*#\1{{ postgresql_password }}#' \
+    -e 's#^([[:space:]]*export[[:space:]]+REGISTRY_TYPE=).*#\1jdbc#' \
     "$ds_env"
   grep -q '^[[:space:]]*export[[:space:]]\+JAVA_HOME=' "$ds_env" || printf '\nexport JAVA_HOME=%s\n' "$JAVA_HOME_DETECTED" >> "$ds_env"
-  grep -q '^[[:space:]]*export[[:space:]]\+PATH=' "$ds_env" || printf 'export PATH=$JAVA_HOME/bin:$PATH\n' >> "$ds_env"
+  grep -q '^[[:space:]]*export[[:space:]]\+FLINK_HOME=' "$ds_env" || printf 'export FLINK_HOME=%s\n' '{{ flink_home }}' >> "$ds_env"
+  grep -q '^[[:space:]]*export[[:space:]]\+SPARK_HOME=' "$ds_env" || printf 'export SPARK_HOME=%s\n' '{{ spark_home }}' >> "$ds_env"
+  grep -q '^[[:space:]]*export[[:space:]]\+CHUNJUN_HOME=' "$ds_env" || printf 'export CHUNJUN_HOME=%s\n' '{{ chunjun_home }}' >> "$ds_env"
+  grep -q '^[[:space:]]*export[[:space:]]\+HADOOP_HOME=' "$ds_env" || printf 'export HADOOP_HOME=%s\n' '{{ hadoop_home }}' >> "$ds_env"
+  grep -q '^[[:space:]]*export[[:space:]]\+DATAX_LAUNCHER=' "$ds_env" || printf 'export DATAX_LAUNCHER=%s\n' '{{ datax_home }}/bin/datax.py' >> "$ds_env"
+  grep -q '^[[:space:]]*export[[:space:]]\+PYTHON_LAUNCHER=' "$ds_env" || printf 'export PYTHON_LAUNCHER=/usr/bin/python3\n' >> "$ds_env"
+  grep -q '^[[:space:]]*export[[:space:]]\+FLINK_LOG_DIR=' "$ds_env" || printf 'export FLINK_LOG_DIR=%s\n' '{{ dolphinscheduler_log_dir }}' >> "$ds_env"
+  grep -q '^[[:space:]]*export[[:space:]]\+PATH=' "$ds_env" || printf 'export PATH=$CHUNJUN_HOME/bin:$FLINK_HOME/bin:$SPARK_HOME/bin:$PYTHON_LAUNCHER:$JAVA_HOME/bin:$DATAX_LAUNCHER:$PATH\n' >> "$ds_env"
   grep -q '^[[:space:]]*export[[:space:]]\+DATABASE_TYPE=' "$ds_env" || printf 'export DATABASE_TYPE=postgresql\n' >> "$ds_env"
   grep -q '^[[:space:]]*export[[:space:]]\+SPRING_DATASOURCE_URL=' "$ds_env" || printf 'export SPRING_DATASOURCE_URL=%s\n' 'jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ dolphinscheduler_database }}?stringtype=unspecified' >> "$ds_env"
   grep -q '^[[:space:]]*export[[:space:]]\+SPRING_DATASOURCE_USERNAME=' "$ds_env" || printf 'export SPRING_DATASOURCE_USERNAME=%s\n' '{{ postgresql_user }}' >> "$ds_env"

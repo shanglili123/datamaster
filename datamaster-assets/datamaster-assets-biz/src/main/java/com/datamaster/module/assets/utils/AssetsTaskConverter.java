@@ -21,8 +21,8 @@ public class AssetsTaskConverter {    private static String defaultURL;    @Valu
     private static final String DEFAULT_TASK_TYPE = "HTTP";
 
 // 默认任务类型，SPARK或DATAX等
-    private static final String HTTP_METHOD = "PUT";
-    private static final String HTTP_BODY = "";
+    private static final String HTTP_METHOD = "GET";
+    private static final String HTTP_BODY = "{}";
     private static final String HTTP_CHECK_CONDITION = "STATUS_CODE_DEFAULT";
     private static final String CONDITION = "";
     private static final int CONNECT_TIMEOUT = 60000;

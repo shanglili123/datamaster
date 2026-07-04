@@ -20,6 +20,9 @@ public class CollectorEtlTaskInstanceTreeListReqVO extends PageParam {
     @Schema(description = "项目编码", example = "")
     private String projectCode;
 
+    @Schema(description = "任务类型", example = "1：离线任务 2：实时任务 3：数据开发任务 4：作业任务")
+    private String taskType;
+
     @Schema(description = "类目编码", example = "")
     private String catCode;
 

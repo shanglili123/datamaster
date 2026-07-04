@@ -30,6 +30,7 @@ public class DbInitApplication {
 
         executeSqlFile(config, config.appDatabase, config.appSql);
         executeSqlFile(config, config.dolphinSchedulerDatabase, config.dolphinSchedulerSql);
+        applyDolphinSchedulerCompatibilityFixes(config);
     }
 
     private static Connection connect(String host, int port, String database, String user, String password) throws SQLException {
@@ -87,6 +88,14 @@ public class DbInitApplication {
                 }
             }
             System.out.println("Initialized database " + database + ": " + success + " statements executed");
+        }
+    }
+
+    private static void applyDolphinSchedulerCompatibilityFixes(Config config) throws SQLException {
+        try (Connection connection = connect(config.host, config.port, config.dolphinSchedulerDatabase, config.appUser, config.appPassword)) {
+            connection.setAutoCommit(true);
+            execute(connection, "alter table t_ds_project_parameter add column if not exists param_data_type varchar(50) default 'VARCHAR'");
+            System.out.println("Applied DolphinScheduler compatibility fixes to database " + config.dolphinSchedulerDatabase);
         }
     }
 

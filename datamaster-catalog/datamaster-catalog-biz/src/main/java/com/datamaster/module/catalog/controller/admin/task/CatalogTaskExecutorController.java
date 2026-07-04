@@ -35,7 +35,7 @@ public class CatalogTaskExecutorController extends BaseController {
      * @param id 任务ID
      * @return 执行结果
      */
-    @RequestMapping(value = "/runExecuteTask/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
+    @RequestMapping(value = "/runExecuteTask/{id}", method = {RequestMethod.GET, RequestMethod.PUT, RequestMethod.POST})
     public CommonResult<String> runExecuteTask(@PathVariable("id") Long id) {
         try {
             boolean success = CatalogTaskService.runDaDiscoveryTask(id);

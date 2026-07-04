@@ -446,6 +446,7 @@ deploy_database_init() {
   else
     echo "Skip DataMaster app upgrade SQL: postgresql_app_upgrade_sql_src is empty"
   fi
+  apply_dolphinscheduler_compatibility_sql "$host" "$user" "$port"
   upsert_dolphinscheduler_tenant "$host" "$user" "$port"
   upsert_dolphinscheduler_token "$host" "$user" "$port"
 }
@@ -471,6 +472,13 @@ execute_postgresql_sql_text() {
   install_remote_file "$host" "$user" "$port" "$tmp" "$remote_sql"
   rm -f "$tmp"
   execute_postgresql_sql_file "$host" "$user" "$port" "$database" "$remote_sql" "$remote_name"
+}
+
+apply_dolphinscheduler_compatibility_sql() {
+  local host="$1" user="$2" port="$3" sql
+  sql="ALTER TABLE public.t_ds_project_parameter ADD COLUMN IF NOT EXISTS param_data_type varchar(50) DEFAULT 'VARCHAR';"
+  echo "Applying DolphinScheduler compatibility SQL to ${VARS[dolphinscheduler_database]}..."
+  execute_postgresql_sql_text "$host" "$user" "$port" "${VARS[dolphinscheduler_database]}" "dolphinscheduler-compatibility" "$sql"
 }
 
 upsert_dolphinscheduler_tenant() {

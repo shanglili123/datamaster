@@ -3,6 +3,7 @@
 package com.datamaster.api.ds.api.etl.ds;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -99,6 +100,7 @@ public class ProcessDefinition {
      * 任务关系日志列表
      */
     @TableField(exist = false)
+    @JSONField(name = "workflowTaskRelationList", alternateNames = {"taskRelationList"})
     List<ProcessTaskRelation> taskRelationList;
 
     /**

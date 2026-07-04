@@ -12,6 +12,8 @@ import com.datamaster.api.ds.api.etl.DsStartTaskReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveRespDTO;
 import com.datamaster.api.ds.api.etl.ds.ProcessDefinition;
+import com.datamaster.api.ds.api.etl.ds.ProcessTaskRelation;
+import com.datamaster.api.ds.api.etl.ds.TaskDefinition;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.httpClient.DsRequestUtils;
 import com.datamaster.common.httpClient.constants.DataMasterDSApiType;
@@ -35,19 +37,13 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
     @Override
     public DsTaskSaveRespDTO createTask(DsTaskSaveReqDTO dsTaskSaveReqDTO, Long projectCode) {
         DataMasterDSApiType apiType = DataMasterDSApiType.CREATE_PROCESS_DEFINITION;
-        return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCode(apiType.getUrl(), String.valueOf(projectCode)),
-                apiType.getMethod(),
-                buildWorkflowDefinitionParams(dsTaskSaveReqDTO),
-                DsTaskSaveRespDTO.class);
+        return requestWorkflowDefinition(apiType, String.valueOf(projectCode), null, buildWorkflowDefinitionParams(dsTaskSaveReqDTO));
     }
 
     @Override
     public DsTaskSaveRespDTO updateTask(DsTaskSaveReqDTO dsTaskSaveReqDTO, String projectCode, String taskCode) {
         DataMasterDSApiType apiType = DataMasterDSApiType.UPDATE_PROCESS_DEFINITION;
-        return DsRequestUtils.requestForm(DsRequestUtils.replaceProjectCodeAndCode(apiType.getUrl(), String.valueOf(projectCode), taskCode),
-                apiType.getMethod(),
-                buildWorkflowDefinitionParams(dsTaskSaveReqDTO),
-                DsTaskSaveRespDTO.class);
+        return requestWorkflowDefinition(apiType, String.valueOf(projectCode), taskCode, buildWorkflowDefinitionParams(dsTaskSaveReqDTO));
     }
 
     @Override
@@ -131,11 +127,74 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
     }
 
     private JSONObject buildWorkflowDefinitionParams(DsTaskSaveReqDTO dsTaskSaveReqDTO) {
-        JSONObject params = JSONObject.parseObject(JSONObject.toJSONString(dsTaskSaveReqDTO));
+        JSONObject params = JSONObject.parseObject(JSON.toJSONString(dsTaskSaveReqDTO));
         params.put("taskRelationJson", normalizeWorkflowJson(dsTaskSaveReqDTO.getTaskRelationJson()));
         params.put("taskDefinitionJson", normalizeWorkflowJson(dsTaskSaveReqDTO.getTaskDefinitionJson()));
         renameWorkflowKeys(params);
+        params.entrySet().removeIf(entry -> entry.getValue() == null
+                || (entry.getValue() instanceof String && StringUtils.isBlank((String) entry.getValue())));
         return params;
+    }
+
+    private DsTaskSaveRespDTO requestWorkflowDefinition(DataMasterDSApiType apiType, String projectCode, String taskCode, JSONObject params) {
+        String url = StringUtils.isBlank(taskCode)
+                ? DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode)
+                : DsRequestUtils.replaceProjectCodeAndCode(apiType.getUrl(), projectCode, taskCode);
+        JSONObject response = DsRequestUtils.requestForm(url, apiType.getMethod(), params, JSONObject.class);
+        DsTaskSaveRespDTO result = response == null ? new DsTaskSaveRespDTO() : response.toJavaObject(DsTaskSaveRespDTO.class);
+        if (response == null || !result.isOk()) {
+            return result;
+        }
+
+        ProcessDefinition definition = parseWorkflowDefinition(response.getJSONObject("data"));
+        String definitionCode = definition == null ? taskCode : definition.getCode();
+        if (isIncompleteDefinition(definition) && StringUtils.isNotBlank(definitionCode)) {
+            ProcessDefinition detail = getTaskDetail(projectCode, definitionCode);
+            if (detail != null) {
+                definition = detail;
+            }
+        }
+        result.setData(definition);
+        return result;
+    }
+
+    private ProcessDefinition getTaskDetail(String projectCode, String taskCode) {
+        DataMasterDSApiType apiType = DataMasterDSApiType.GET_PROCESS_DEFINITION;
+        JSONObject response = DsRequestUtils.request(
+                DsRequestUtils.replaceProjectCodeAndCode(apiType.getUrl(), projectCode, taskCode),
+                apiType.getMethod(), null, null, JSONObject.class);
+        if (response == null || !(Boolean.TRUE.equals(response.getBoolean("success")) || Integer.valueOf(0).equals(response.getInteger("code")))) {
+            return null;
+        }
+        return parseWorkflowDefinition(response.getJSONObject("data"));
+    }
+
+    private boolean isIncompleteDefinition(ProcessDefinition definition) {
+        return definition == null
+                || definition.getTaskDefinitionList() == null
+                || definition.getTaskRelationList() == null;
+    }
+
+    private ProcessDefinition parseWorkflowDefinition(JSONObject data) {
+        if (data == null) {
+            return null;
+        }
+        JSONObject workflowDefinition = data.getJSONObject("workflowDefinition");
+        ProcessDefinition definition = (workflowDefinition == null ? data : workflowDefinition).toJavaObject(ProcessDefinition.class);
+
+        List<TaskDefinition> taskDefinitionList = data.getList("taskDefinitionList", TaskDefinition.class);
+        if (taskDefinitionList != null) {
+            definition.setTaskDefinitionList(taskDefinitionList);
+        }
+
+        List<ProcessTaskRelation> taskRelationList = data.getList("workflowTaskRelationList", ProcessTaskRelation.class);
+        if (taskRelationList == null) {
+            taskRelationList = data.getList("taskRelationList", ProcessTaskRelation.class);
+        }
+        if (taskRelationList != null) {
+            definition.setTaskRelationList(taskRelationList);
+        }
+        return definition;
     }
 
     private String normalizeWorkflowJson(String json) {

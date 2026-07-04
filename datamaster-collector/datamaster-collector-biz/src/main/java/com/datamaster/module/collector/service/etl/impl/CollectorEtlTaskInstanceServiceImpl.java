@@ -351,6 +351,9 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public PageResult<CollectorEtlTaskInstanceTreeListRespVO> treeList(CollectorEtlTaskInstanceTreeListReqVO reqVO) {
+        if (StringUtils.isBlank(reqVO.getTaskType())) {
+            reqVO.setTaskType("1");
+        }
         if (StringUtils.isNotEmpty(reqVO.getStartTime())) {
             reqVO.setStartTime(reqVO.getStartTime() + " 00:00:00");
         }
@@ -408,7 +411,8 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
                 .processInstanceId(taskInstanceId)
                 .executeType(executeType)
                 .build(), CollectorEtlTaskInstanceDO.getProjectCode());
-        return dsStatusRespDTO.getSuccess() ? success() : error(dsStatusRespDTO.getMsg());
+        return Boolean.TRUE.equals(dsStatusRespDTO == null ? null : dsStatusRespDTO.getSuccess())
+                ? success() : error(dsStatusRespDTO == null ? "DolphinScheduler无响应" : dsStatusRespDTO.getMsg());
     }
 
     @Override

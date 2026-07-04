@@ -52,7 +52,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
 //    @PreAuthorize("@ss.hasPermi('dpp:etlTaskInstance:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlTaskInstanceRespVO>> list(CollectorEtlTaskInstancePageReqVO CollectorEtlTaskInstance) {
-        if (StringUtils.isNotBlank(CollectorEtlTaskInstance.getTaskType())) {
+        if (StringUtils.isBlank(CollectorEtlTaskInstance.getTaskType())) {
             CollectorEtlTaskInstance.setTaskType("1");//默认离线数据集成
         }
         PageResult<CollectorEtlTaskInstanceDO> page = CollectorEtlTaskInstanceService.getCollectorEtlTaskInstancePage(CollectorEtlTaskInstance);

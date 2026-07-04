@@ -54,7 +54,7 @@ public class CatalogTaskDolphinSchedulerService {
     public String createTaskDefinition(String projectCode, String taskName, Long taskId) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(taskName + StringUtils.generateRandomString());
-        input.addHttpParam("id", "BODY", String.valueOf(taskId));
+        input.addHttpParam("id", "PARAMETER", String.valueOf(taskId));
         input.setId(taskId);
 
         ProcessDefinition definition = this.createProcessDefinition(projectCode, input);
@@ -75,7 +75,7 @@ public class CatalogTaskDolphinSchedulerService {
     public String updateTaskDefinition(String projectCode, String taskName, Long taskId, String taskCode, String nodeCode) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(taskName + StringUtils.generateRandomString());
-        input.addHttpParam("id", "BODY", String.valueOf(taskId));
+        input.addHttpParam("id", "PARAMETER", String.valueOf(taskId));
         input.setId(taskId);
         input.setTaskCode(taskCode);
         input.setNodeCode(nodeCode);

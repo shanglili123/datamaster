@@ -88,14 +88,20 @@ public class DsRequestUtils {
      * @return
      */
     public static <T> T requestForm(String url, String method, Map<String, Object> params, Class<T> resultClass) {
+        //拼接url参数（DS API 要求参数在 query string 中）
+        if (params != null && !params.isEmpty()) {
+            String paramsStr = HttpUtil.toParams(params);
+            if (url.indexOf("?") > -1) {
+                url = url + "&" + paramsStr;
+            } else {
+                url = url + "?" + paramsStr;
+            }
+        }
         //封装请求对象
         String requestUrl = baseUrl + url;
         HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), requestUrl)
                 .header("token", token)
                 .timeout(timeout);
-        if (params != null) {
-            request.form(params);
-        }
         //获取结果
         HttpResponse response = request.execute();
         return parseResponse(response, requestUrl, resultClass);

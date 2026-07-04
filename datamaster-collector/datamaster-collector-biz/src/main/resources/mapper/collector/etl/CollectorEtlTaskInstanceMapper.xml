@@ -230,7 +230,7 @@
         COL_ETL_TASK_INSTANCE ti
         LEFT JOIN COL_ETL_TASK_LOG tl ON tl.CODE = ti.TASK_CODE AND tl.VERSION = ti.TASK_VERSION AND tl.DEL_FLAG = '0'
         WHERE
-        ti.TASK_TYPE = '4'
+        ti.TASK_TYPE = #{params.taskType}
         AND ti.DEL_FLAG = '0'
         <if test="params.projectCode!=null and params.projectCode!=''">
             AND ti.PROJECT_CODE = #{params.projectCode}

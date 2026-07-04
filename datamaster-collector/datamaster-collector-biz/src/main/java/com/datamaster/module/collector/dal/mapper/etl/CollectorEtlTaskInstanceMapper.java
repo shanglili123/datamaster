@@ -57,8 +57,6 @@ public interface CollectorEtlTaskInstanceMapper extends BaseMapperX<CollectorEtl
                 .eq(StringUtils.isNotBlank(reqVO.getStatus()),CollectorEtlTaskInstanceDO::getStatus, reqVO.getStatus())
                 .eq(reqVO.getDsId() !=null,CollectorEtlTaskInstanceDO::getDsId, reqVO.getDsId())
                 .eq(reqVO.getCreateTime() !=null,CollectorEtlTaskInstanceDO::getCreateTime, reqVO.getCreateTime())
-
-                .in(CollectorEtlTaskInstanceDO::getStatus, "1","5", "6", "7")
                 .orderByDesc(CollectorEtlTaskInstanceDO::getStartTime);
 
 

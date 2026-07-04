@@ -377,7 +377,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         // 下线操作
         if (StringUtils.equals("0", CollectorEtlNewNodeSaveReqVO.getReleaseState())) {
             DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
-            if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
+            if (!isDsStatusSuccess(dsStatusRespDTO)) {
                 throw new ServiceException("发布或下线任务，失败！");
             }
 
@@ -392,11 +392,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         // 上线操作
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
-        String responseMsg = dsStatusRespDTO.getMsg();
-        if (responseMsg.contains("SubWorkflowDefinition") && responseMsg.contains("is not online")) {
+        String responseMsg = dsStatusRespDTO == null ? null : dsStatusRespDTO.getMsg();
+        if (responseMsg != null && responseMsg.contains("SubWorkflowDefinition") && responseMsg.contains("is not online")) {
             throw new RuntimeException("存在未上线的子工作流，请先将所有子工作流上线");
         }
-        if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
+        if (!isDsStatusSuccess(dsStatusRespDTO)) {
             throw new ServiceException("发布任务失败！");
         }
 
@@ -453,7 +453,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (StringUtils.equals("0", CollectorEtlNewNodeSaveReqVO.getSchedulerState())) {
             if (CollectorEtlSchedulerById.getDsId() != null && CollectorEtlSchedulerById.getDsId() > 0) {
                 DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.offlineScheduler(CollectorEtlTaskDO.getProjectCode(), CollectorEtlSchedulerById.getDsId());
-                if (!dsStatusRespDTO1.getData()) {
+                if (!isDsStatusSuccess(dsStatusRespDTO1)) {
                     throw new ServiceException("下线调度器，失败！");
                 }
             }
@@ -480,7 +480,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlSchedulerSaveReqVO.setStatus(CollectorEtlNewNodeSaveReqVO.getSchedulerState());
 
         DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(CollectorEtlTaskDO.getProjectCode(), CollectorEtlSchedulerSaveReqVO.getDsId());
-        if (!dsStatusRespDTO1.getData()) {
+        if (!isDsStatusSuccess(dsStatusRespDTO1)) {
             throw new ServiceException("上线调度器，失败！");
         }
 
@@ -548,11 +548,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (StringUtils.equals("0", CollectorEtlNewNodeSaveReqVO.getReleaseState())) {
             if (CollectorEtlSchedulerById.getDsId() != null && CollectorEtlSchedulerById.getDsId() > 0) {
                 DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
-                if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
+                if (!isDsStatusSuccess(dsStatusRespDTO)) {
                     throw new ServiceException("发布或下线任务，失败！");
                 }
                 DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.offlineScheduler(CollectorEtlTaskDO.getProjectCode(), CollectorEtlSchedulerById.getDsId());
-                if (!dsStatusRespDTO1.getData()) {
+                if (!isDsStatusSuccess(dsStatusRespDTO1)) {
                     throw new ServiceException("下线调度器，失败！");
                 }
             }
@@ -562,15 +562,16 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             } else {
                 updateTaskStatus(CollectorEtlTaskDO.getId(), "-2");
             }
+            return;
         }
 
         // 上线操作
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
-        String responseMsg = dsStatusRespDTO.getMsg();
-        if (responseMsg.contains("SubWorkflowDefinition") && responseMsg.contains("is not online")) {
+        String responseMsg = dsStatusRespDTO == null ? null : dsStatusRespDTO.getMsg();
+        if (responseMsg != null && responseMsg.contains("SubWorkflowDefinition") && responseMsg.contains("is not online")) {
             throw new RuntimeException("存在未上线的子工作流，请先将所有子工作流上线");
         }
-        if (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess()) {
+        if (!isDsStatusSuccess(dsStatusRespDTO)) {
             throw new ServiceException("发布任务失败！");
         }
 
@@ -587,7 +588,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlSchedulerSaveReqVO.setStatus("1");
 
         DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(CollectorEtlTaskDO.getProjectCode(), CollectorEtlSchedulerSaveReqVO.getDsId());
-        if (!dsStatusRespDTO1.getData()) {
+        if (!isDsStatusSuccess(dsStatusRespDTO1)) {
             throw new ServiceException("上线调度器，失败！");
         }
 
@@ -1007,7 +1008,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, CollectorEtlTaskDO.getProjectCode());
 
-        return dsStatusRespDTO.getSuccess() ? success() : error(dsStatusRespDTO.getMsg());
+        return Boolean.TRUE.equals(dsStatusRespDTO == null ? null : dsStatusRespDTO.getSuccess())
+                ? success() : error(dsStatusRespDTO == null ? "DolphinScheduler无响应" : dsStatusRespDTO.getMsg());
     }
 
 
@@ -1546,7 +1548,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         DsTaskSaveReqDTO dsTaskSaveReqDTO = new DsTaskSaveReqDTO();
         dsTaskSaveReqDTO.setName(reqVO.getName());
         dsTaskSaveReqDTO.setDescription(reqVO.getDescription());
-        dsTaskSaveReqDTO.setExecutionType(reqVO.getExecutionType());
+        dsTaskSaveReqDTO.setExecutionType(StringUtils.isNotBlank(reqVO.getExecutionType()) ? reqVO.getExecutionType() : "SERIAL_WAIT");
 
         Map<String, Object> taskInfo = new HashMap<>();
         List<DsResource> resourceList = new ArrayList<>();
@@ -1762,7 +1764,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (responseMsg != null && responseMsg.contains("SubWorkflowDefinition") && responseMsg.contains("is not online")) {
             throw new RuntimeException("存在未上线的子工作流，请先将所有子工作流上线");
         }
-        if (releaseResp == null || !Boolean.TRUE.equals(releaseResp.getSuccess()) || !Boolean.TRUE.equals(releaseResp.getData())) {
+        if (!isDsStatusSuccess(releaseResp)) {
             throw new ServiceException("上线任务失败！");
         }
 
@@ -1804,7 +1806,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                     schedulerSaveReqVO.setId(schedulerDO.getId());
                     schedulerSaveReqVO.setTaskCode(taskCode);
                     DsStatusRespDTO onlineScheduler = iDsEtlSchedulerService.onlineScheduler(taskDO.getProjectCode(), schedulerSaveReqVO.getDsId());
-                    if (onlineScheduler == null || !Boolean.TRUE.equals(onlineScheduler.getSuccess()) || !Boolean.TRUE.equals(onlineScheduler.getData())) {
+                    if (!isDsStatusSuccess(onlineScheduler)) {
                         throw new ServiceException("上线调度器失败！");
                     }
                     schedulerSaveReqVO.setStatus("1");
@@ -1889,7 +1891,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         //下线DS任务
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(taskDO.getProjectCode()), dsCode);
         boolean processDefinitionMissing = isProcessDefinitionMissing(dsStatusRespDTO);
-        if (!processDefinitionMissing && (dsStatusRespDTO == null || !dsStatusRespDTO.getSuccess())) {
+        if (!processDefinitionMissing && !isDsStatusSuccess(dsStatusRespDTO)) {
             throw new ServiceException("卸载任务失败！");
         }
 
@@ -1898,7 +1900,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         try {
             if (schedulerDO != null && schedulerDO.getDsId() != null && schedulerDO.getDsId() > 0) {
                 DsStatusRespDTO offlineScheduler = iDsEtlSchedulerService.offlineScheduler(taskDO.getProjectCode(), schedulerDO.getDsId());
-                if (offlineScheduler == null || !Boolean.TRUE.equals(offlineScheduler.getData())) {
+                if (!isDsStatusSuccess(offlineScheduler)) {
                     log.warn("下线调度器失败(不影响任务卸载)");
                 }
             }
@@ -1972,13 +1974,22 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 || StringUtils.containsIgnoreCase(response.getMsg(), "does not exist"));
     }
 
+    private boolean isDsStatusSuccess(DsStatusRespDTO response) {
+        if (response == null || Boolean.FALSE.equals(response.getSuccess()) || Boolean.FALSE.equals(response.getData())) {
+            return false;
+        }
+        return Boolean.TRUE.equals(response.getSuccess())
+                || Boolean.TRUE.equals(response.getData())
+                || StringUtils.equalsIgnoreCase(response.getMsg(), "success");
+    }
+
     private DsTaskSaveRespDTO updateDsTaskAllowingOnline(DsTaskSaveReqDTO request, String projectCode, String taskCode) {
         DsTaskSaveRespDTO response = dsEtlTaskService.updateTask(request, projectCode, taskCode);
         if (response == null || !StringUtils.containsIgnoreCase(response.getMsg(), "does not allow edit")) {
             return response;
         }
         DsStatusRespDTO offlineResp = dsEtlTaskService.releaseTask("OFFLINE", projectCode, taskCode);
-        if (offlineResp == null || !Boolean.TRUE.equals(offlineResp.getSuccess())) {
+        if (!isDsStatusSuccess(offlineResp)) {
             throw new ServiceException("更新DS任务前下线失败:" + (offlineResp == null ? "无响应" : offlineResp.getMsg()));
         }
         return dsEtlTaskService.updateTask(request, projectCode, taskCode);
@@ -2615,7 +2626,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     }
 
     private String incrementalCallbackUrl(String baseUrl, Long taskId) {
-        return baseUrl + "/" + taskId + "?processInstanceId=${system.workflow.instance.id}";
+        return baseUrl + "/" + taskId;
     }
 
     private String getProjectWorkerGroup(Long projectCode) {

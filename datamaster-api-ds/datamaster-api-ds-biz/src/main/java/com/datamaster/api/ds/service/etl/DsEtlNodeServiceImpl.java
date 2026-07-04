@@ -28,7 +28,7 @@ public class DsEtlNodeServiceImpl implements IDsEtlNodeService {
         DataMasterDSApiType apiType = DataMasterDSApiType.GEN_TASK_DEFINITION_CODES;
         Map<String, Object> params = new HashMap<>();
         params.put("genNum", 1);
-        return DsRequestUtils.request(apiType.getUrl(),
+        return DsRequestUtils.request(DsRequestUtils.replaceProjectCode(apiType.getUrl(), String.valueOf(projectCode)),
                 apiType.getMethod(),
                 null, params,
                 DsNodeGenCodeRespDTO.class);

@@ -2,6 +2,7 @@
 
 package com.datamaster.api.ds.api.etl.ds;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,6 +42,7 @@ public class TaskInstance implements Serializable {
     /**
      * 流程实例id
      */
+    @JSONField(name = "workflowInstanceId", alternateNames = {"processInstanceId"})
     private Long processInstanceId;
 
     /**
