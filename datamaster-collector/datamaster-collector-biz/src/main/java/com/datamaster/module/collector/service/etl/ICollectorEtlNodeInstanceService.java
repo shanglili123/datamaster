@@ -109,14 +109,5 @@ public interface ICollectorEtlNodeInstanceService extends IService<CollectorEtlN
      */
     CollectorEtlNodeInstanceDO getByDsId(Long dsId);
 
-    /**
-     * 节点实例日志的处理
-     *
-     * @param taskInstanceId
-     * @param processInstanceId
-     * @param logStr
-     */
-    void taskInstanceLogInsert(String taskInstanceId, String processInstanceId, String logStr);
-
     String getLogByNodeInstanceId(Long nodeInstanceId);
 }

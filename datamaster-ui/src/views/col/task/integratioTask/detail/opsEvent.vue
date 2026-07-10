@@ -87,7 +87,7 @@ async function getList() {
       pageSize: queryParams.pageSize,
     });
     if (res?.data) {
-      list.value = res.data.list || [];
+      list.value = res.data.rows || res.data.list || res.data.records || [];
       total.value = res.data.total || 0;
     } else {
       list.value = [];

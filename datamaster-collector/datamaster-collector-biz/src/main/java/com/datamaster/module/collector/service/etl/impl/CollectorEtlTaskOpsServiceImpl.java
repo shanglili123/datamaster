@@ -73,34 +73,63 @@ public class CollectorEtlTaskOpsServiceImpl implements ICollectorEtlTaskOpsServi
     private Double aiSkillModelTemperature;
     @Value("${ai.skill-model.max-tokens:1024}")
     private Integer aiSkillModelMaxTokens;
+    @Value("${ds.base_url:}")
+    private String dsBaseUrl;
+    @Value("${ds.token:}")
+    private String dsToken;
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void handleProcessInstanceFinished(ProcessInstance processInstance, CollectorEtlTaskInstanceDO currentInstance) {
-        if (processInstance == null || processInstance.getState() == null || !processInstance.getState().isFailure()) {
+        if (processInstance == null || processInstance.getState() == null) {
+            log.info("运维检查：processInstance 或 state 为空，跳过");
+            return;
+        }
+        log.info("运维检查：processInstanceId={}, state={}", processInstance.getId(), processInstance.getState());
+        
+        // 检查流程实例是否失败，或者流程中的核心节点（CHUNJUN）是否失败
+        boolean isFailure = processInstance.getState().isFailure();
+        boolean hasCoreFailure = hasCoreNodeFailure(processInstance);
+        boolean hasFailure = isFailure || hasCoreFailure;
+        log.info("运维检查：isFailure={}, hasCoreFailure={}, hasFailure={}", isFailure, hasCoreFailure, hasFailure);
+        
+        if (!hasFailure) {
+            log.info("运维检查：没有检测到失败，跳过");
             return;
         }
         CollectorEtlTaskInstanceDO instance = currentInstance;
         if (instance == null || instance.getTaskId() == null) {
             instance = taskInstanceService.getByDsId(processInstance.getId());
+            log.info("运维检查：从 currentInstance 获取失败，尝试 getByDsId, instance={}", instance != null ? instance.getId() : "null");
         }
         if (instance == null || instance.getTaskId() == null) {
+            log.info("运维检查：instance 或 taskId 为空，跳过");
             return;
         }
         CollectorEtlTaskDO task = taskMapper.selectById(instance.getTaskId());
         if (task == null) {
+            log.info("运维检查：task 为空，taskId={}, 跳过", instance.getTaskId());
             return;
         }
         CollectorEtlTaskOpsPolicyDO policy = policyService.getByTaskId(task.getId());
+        log.info("运维检查：policy={}, failStopEnabled={}, aiManaged={}", 
+            policy != null ? "存在" : "null",
+            policy != null ? policy.getFailStopEnabled() : "null",
+            policy != null ? policy.getAiManaged() : "null");
         if (policy == null || (!Boolean.TRUE.equals(policy.getFailStopEnabled()) && !Boolean.TRUE.equals(policy.getAiManaged()))) {
+            log.info("运维检查：策略未配置或未启用，跳过");
             return;
         }
-        if (eventService.count(Wrappers.lambdaQuery(CollectorEtlTaskOpsEventDO.class)
+        long existCount = eventService.count(Wrappers.lambdaQuery(CollectorEtlTaskOpsEventDO.class)
                 .eq(CollectorEtlTaskOpsEventDO::getTaskInstanceId, instance.getId())
-                .eq(CollectorEtlTaskOpsEventDO::getEventType, "TASK_FAILED")) > 0) {
+                .eq(CollectorEtlTaskOpsEventDO::getEventType, "TASK_FAILED"));
+        log.info("运维检查：已存在运维事件数量={}", existCount);
+        if (existCount > 0) {
+            log.info("运维检查：已存在运维事件，跳过");
             return;
         }
 
+        log.info("运维检查：开始创建运维事件");
         CollectorEtlTaskOpsEventDO event = buildBaseEvent(task, instance, processInstance);
         String logExcerpt = loadLogExcerpt(instance.getId());
         event.setLogExcerpt(logExcerpt);
@@ -117,10 +146,12 @@ public class CollectorEtlTaskOpsServiceImpl implements ICollectorEtlTaskOpsServi
             event.setValidFlag(Boolean.TRUE);
             event.setDelFlag(Boolean.FALSE);
             eventService.save(event);
+            log.info("运维检查：运维事件已保存（失败即停）");
             return;
         }
 
         if (Boolean.TRUE.equals(policy.getAiManaged())) {
+            log.info("运维检查：开始 AI 分析");
             OpsAnalysis analysis = analyzeFailure(task, instance, logExcerpt);
             applyAnalysis(event, analysis);
             executeAiManagedAction(policy, task, instance, analysis, event);
@@ -129,6 +160,78 @@ public class CollectorEtlTaskOpsServiceImpl implements ICollectorEtlTaskOpsServi
         event.setValidFlag(Boolean.TRUE);
         event.setDelFlag(Boolean.FALSE);
         eventService.save(event);
+        log.info("运维检查：运维事件已保存（AI托管）");
+    }
+
+    /**
+     * 检查流程实例中的核心节点（CHUNJUN）是否失败
+     * 即使流程最终状态是 SUCCESS，如果核心采集节点失败也需要触发运维事件
+     */
+    private boolean hasCoreNodeFailure(ProcessInstance processInstance) {
+        log.info("运维检查-hasCoreNodeFailure：开始检查，dsBaseUrl={}, dsToken={}", 
+            StringUtils.isNotBlank(dsBaseUrl) ? "已配置" : "未配置",
+            StringUtils.isNotBlank(dsToken) ? "已配置" : "未配置");
+        
+        if (StringUtils.isBlank(dsBaseUrl) || StringUtils.isBlank(dsToken)) {
+            log.warn("运维检查-hasCoreNodeFailure：DS配置缺失，跳过检查");
+            return false;
+        }
+        try {
+            String projectCode = processInstance.getProjectCode();
+            Long processInstanceId = processInstance.getId();
+            log.info("运维检查-hasCoreNodeFailure：projectCode={}, processInstanceId={}", projectCode, processInstanceId);
+            
+            if (StringUtils.isBlank(projectCode) || processInstanceId == null) {
+                log.warn("运维检查-hasCoreNodeFailure：projectCode 或 processInstanceId 为空，跳过检查");
+                return false;
+            }
+
+            // 查询流程实例下的任务实例
+            String url = dsBaseUrl + "/projects/" + projectCode + "/task-instances?processInstanceId=" + processInstanceId + "&pageNo=1&pageSize=100";
+            log.info("运维检查-hasCoreNodeFailure：请求URL={}", url);
+            
+            List<HeaderEntity> headers = new ArrayList<>();
+            HeaderEntity tokenHeader = new HeaderEntity();
+            tokenHeader.setKey("token");
+            tokenHeader.setValue(dsToken);
+            headers.add(tokenHeader);
+
+            HttpUtils.ResponseObject response = HttpUtils.sendGet(url, headers);
+            if (response == null || response.getStatus() != 200) {
+                log.warn("运维检查-hasCoreNodeFailure：查询DS任务实例失败，status={}", response == null ? "null" : response.getStatus());
+                return false;
+            }
+
+            JSONObject responseBody = response.getBody() instanceof JSONObject
+                    ? (JSONObject) response.getBody()
+                    : JSONObject.parseObject(String.valueOf(response.getBody()));
+            JSONArray taskList = responseBody.getJSONObject("data") != null
+                    ? responseBody.getJSONObject("data").getJSONArray("totalList")
+                    : null;
+
+            if (taskList == null || taskList.isEmpty()) {
+                log.info("运维检查-hasCoreNodeFailure：任务实例列表为空");
+                return false;
+            }
+
+            log.info("运维检查-hasCoreNodeFailure：找到 {} 个任务实例", taskList.size());
+            
+            // 检查是否有 CHUNJUN 类型的任务失败
+            for (int i = 0; i < taskList.size(); i++) {
+                JSONObject task = taskList.getJSONObject(i);
+                String taskType = task.getString("taskType");
+                String state = task.getString("state");
+                log.info("运维检查-hasCoreNodeFailure：任务类型={}, 状态={}", taskType, state);
+                if ("CHUNJUN".equals(taskType) && "FAILURE".equals(state)) {
+                    log.info("运维检查-hasCoreNodeFailure：检测到核心节点CHUNJUN失败");
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("运维检查-hasCoreNodeFailure：检查核心节点失败状态异常", e);
+        }
+        log.info("运维检查-hasCoreNodeFailure：未检测到核心节点失败");
+        return false;
     }
 
     private CollectorEtlTaskOpsEventDO buildBaseEvent(CollectorEtlTaskDO task, CollectorEtlTaskInstanceDO instance,

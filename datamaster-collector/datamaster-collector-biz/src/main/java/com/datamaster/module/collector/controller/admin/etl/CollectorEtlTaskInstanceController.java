@@ -148,8 +148,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
     @Operation(summary = "下载日志文件")
     public void downloadLog(HttpServletResponse response, Long taskInstanceId, String name) {
         try {
-            // 获取文件路径
-            CollectorEtlTaskInstanceLogStatusRespDTO dto = CollectorEtlTaskInstanceService.getLogByTaskInstanceId(taskInstanceId);
+            String log = CollectorEtlTaskInstanceService.downloadLogByTaskInstanceId(taskInstanceId);
             // 如果文件存在
             // 设置响应的内容类型为文件下载
             response.setContentType("application/octet-stream");
@@ -157,7 +156,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
             response.setHeader("Content-Disposition", "attachment;filename=" + name + ".log");
 
             // 创建文件输入流
-            try (InputStream in = new ByteArrayInputStream(dto.getLog().getBytes("UTF-8"));
+            try (InputStream in = new ByteArrayInputStream((log == null ? "" : log).getBytes("UTF-8"));
                  OutputStream out = response.getOutputStream()) {
                 byte[] buffer = new byte[1024];
                 int length;

@@ -244,109 +244,12 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="执行引擎" prop="taskType">
-            <el-radio-group
-              v-if="title != '任务详情'"
-              v-model="form.taskType"
-              class="el-form-input-width"
-              :disabled="props.data.id"
-            >
-              <el-radio label="SPARK"> SPARK </el-radio>
-              <el-radio label="FLINK"> FLINK (FlinkX) </el-radio>
-            </el-radio-group>
-            <div class="form-readonly" v-else>{{ form.taskType || "-" }}</div>
+            <div class="form-readonly">FLINK (FlinkX)</div>
           </el-form-item>
         </el-col>
       </el-row>
 
       <el-row :gutter="20">
-        <template v-if="form.taskType == 'SPARK'">
-          <el-col :span="12">
-            <el-form-item label="Driver核心数" prop="driverCores">
-              <el-input-number
-                v-if="title != '任务详情'"
-                placeholder="请输入Driver核心数"
-                v-model="form.driverCores"
-                controls-position="right"
-                :min="0"
-                style="width: 100%"
-              />
-              <div class="form-readonly" v-else>
-                {{ form.driverCores || "-" }}
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Driver内存数" prop="driverMemory">
-              <el-input
-                v-if="title != '任务详情'"
-                v-model="form.driverMemory"
-                placeholder="请输入Driver内存数"
-                style="width: 100%"
-              >
-              </el-input>
-              <div class="form-readonly" v-else>
-                {{ form.driverMemory || "-" }}
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Executor数量" prop="numExecutors">
-              <el-input-number
-                v-if="title != '任务详情'"
-                placeholder="请输入Executor数量"
-                v-model="form.numExecutors"
-                controls-position="right"
-                style="width: 100%"
-                :min="0"
-              />
-              <div class="form-readonly" v-else>
-                {{ form.numExecutors || "-" }}
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Executor内存数" prop="executorMemory">
-              <el-input
-                v-if="title != '任务详情'"
-                v-model="form.executorMemory"
-                placeholder="请输入Executor内存数"
-                style="width: 100%"
-              >
-              </el-input>
-              <div class="form-readonly" v-else>
-                {{ form.executorMemory || "-" }}
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Executor核心数" prop="executorCores">
-              <el-input-number
-                v-if="title != '任务详情'"
-                placeholder="请输入Executor核心数"
-                v-model="form.executorCores"
-                controls-position="right"
-                style="width: 100%"
-                :min="0"
-              />
-              <div class="form-readonly" v-else>
-                {{ form.executorCores || "-" }}
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Yarn队列" prop="yarnQueue">
-              <el-input
-                v-if="title != '任务详情'"
-                v-model="form.yarnQueue"
-                placeholder="请输入Yarn队列(选填)"
-              >
-              </el-input>
-              <div class="form-readonly" v-else>
-                {{ form.yarnQueue || "-" }}
-              </div>
-            </el-form-item>
-          </el-col>
-        </template>
         <template v-if="form.taskType == 'FLINK'">
           <el-col :span="12">
             <el-form-item label="JobManager内存" prop="jobManagerMemory">
@@ -511,7 +414,7 @@ const rules = {
     { required: true, message: "执行策略不能为空", trigger: "change" },
   ],
   // releaseState: [{ required: true, message: "任务状态不能为空", trigger: "change" }],
-  engine: [{ required: true, message: "执行引擎不能为空", trigger: "change" }],
+  taskType: [{ required: true, message: "执行引擎不能为空", trigger: "change" }],
   personCharge: [
     { required: true, message: "责任人不能为空", trigger: "change" },
   ],
@@ -532,7 +435,7 @@ const form = ref({
   failRetryTimes: "",
   failRetryInterval: "",
   delayTime: "",
-  taskType: "SPARK",
+  taskType: "FLINK",
   // Fink配置
   jobManagerMemory: "1G",
   taskManagerMemory: "2G",
@@ -545,12 +448,6 @@ const form = ref({
   maxRowNumForCheckpoint: 10000,
   isLogger: true,
   logLevel: "info",
-  // Spark配置
-  driverCores: 1,
-  driverMemory: "512m",
-  numExecutors: 1,
-  executorMemory: "512m",
-  executorCores: 1,
   yarnQueue: "",
 });
 
@@ -572,7 +469,7 @@ const reset = () => {
     failRetryTimes: "",
     failRetryInterval: "",
     delayTime: "",
-    taskType: "SPARK",
+    taskType: "FLINK",
     // Fink配置
     jobManagerMemory: "1G",
     taskManagerMemory: "2G",
@@ -585,12 +482,6 @@ const reset = () => {
     maxRowNumForCheckpoint: 10000,
     isLogger: true,
     logLevel: "info",
-    // Spark配置
-    driverCores: 1,
-    driverMemory: "512m",
-    numExecutors: 1,
-    executorMemory: "512m",
-    executorCores: 1,
     yarnQueue: "",
   };
 };
@@ -603,6 +494,7 @@ watch(
         console.log("🚀 ~ props.data.taskConfig:", props.data.taskConfig);
         let draftJson = JSON.parse(data.draftJson);
         form.value = { ...data, ...draftJson };
+        form.value.taskType = "FLINK";
         applyFlinkSettingDefaults();
         form.value.personCharge = Number(form.value.personCharge) || "";
         form.value.crontab = props?.data.taskConfig?.crontab;
@@ -668,6 +560,7 @@ const saveData = () => {
 };
 
 const applyFlinkSettingDefaults = () => {
+  form.value.taskType = "FLINK";
   const setting = form.value.setting || {};
   const errorLimit = setting.errorLimit || {};
   const restore = setting.restore || {};
@@ -686,9 +579,7 @@ const applyFlinkSettingDefaults = () => {
 };
 
 const normalizeFlinkSetting = () => {
-  if (form.value.taskType !== "FLINK") {
-    return;
-  }
+  form.value.taskType = "FLINK";
   form.value.setting = {
     ...(form.value.setting || {}),
     errorLimit: {

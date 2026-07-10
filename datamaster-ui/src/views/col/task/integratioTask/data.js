@@ -5,7 +5,7 @@ export const treeData = [
         label: '输入',
         level: 1,
         type: 1,
-        engine: ['SPARK', 'FLINK'],
+        engine: ['FLINK'],
         children: [
             {
                 label: '表输入组件',
@@ -14,7 +14,7 @@ export const treeData = [
                 level: 2,
                 taskType: 'DATAX',
                 componentType: '1',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/bsr.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/sr.png'
             },
@@ -25,7 +25,7 @@ export const treeData = [
                 level: 2,
                 componentType: '2',
                 taskType: 'DATAX',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/wxl.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/excel.png'
             },
@@ -36,7 +36,7 @@ export const treeData = [
                 level: 2,
                 componentType: '4',
                 taskType: 'DATAX',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/scv.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/csv.png'
             },
@@ -47,16 +47,16 @@ export const treeData = [
         label: '转换',
         type: 3,
         level: 1,
-        engine: ['SPARK', 'FLINK'],
+        engine: ['FLINK'],
         children: [
             {
                 label: '转换组件',
                 key: 'transform-desensitization',
                 type: 3,
                 level: 2,
-                taskType: 'SPARK',
+                taskType: 'FLINK',
                 componentType: '31',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/zh.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/zh.png'
             },
@@ -67,7 +67,7 @@ export const treeData = [
                 level: 2,
                 taskType: 'SORT_RECORD',
                 componentType: '34',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/pxjl.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/SHELL.png'
             },
@@ -78,7 +78,7 @@ export const treeData = [
                 level: 2,
                 taskType: 'FIELD_DERIVATION',
                 componentType: '39',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/zdpf.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/SHELL.png'
             },
@@ -89,7 +89,7 @@ export const treeData = [
                 level: 2,
                 taskType: 'DATA_DEDUPLICATION',
                 componentType: '40',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/dedu.svg', import.meta.url).href, // 动态获取路径
                 form: 'transform/dedupFilter.vue',
             },
@@ -100,7 +100,7 @@ export const treeData = [
                 level: 2,
                 taskType: 'ADD_CONSTANT',
                 componentType: '48',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/add.svg', import.meta.url).href, // 动态获取路径
                 form: 'transform/addConstants.vue',
             },
@@ -111,7 +111,7 @@ export const treeData = [
                 level: 2,
                 taskType: 'SELECT_FIELDS',
                 componentType: '22',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/set.svg', import.meta.url).href, // 动态获取路径
                 form: 'transform/fieldSelectAndmodificat.vue',
             },
@@ -122,7 +122,7 @@ export const treeData = [
                 level: 2,
                 taskType: 'VALUE_MAP',
                 componentType: '47',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/map.svg', import.meta.url).href, // 动态获取路径
                 form: 'transform/valueMapping.vue',
             },
@@ -131,9 +131,9 @@ export const treeData = [
                 key: 'transform-sql',
                 type: 32,
                 level: 2,
-                taskType: 'SPARK',
+                taskType: 'FLINK',
                 componentType: '32',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/zh.svg', import.meta.url).href, // 动态获取路径
                 form: 'transform/transformSql.vue',
             },
@@ -143,7 +143,7 @@ export const treeData = [
         label: '输出',
         type: 2,
         level: 1,
-        engine: ['SPARK', 'FLINK'],
+        engine: ['FLINK'],
         children: [
             {
                 label: '表输出组件',
@@ -152,7 +152,7 @@ export const treeData = [
                 level: 2,
                 taskType: 'DATAX',
                 componentType: '91',
-                engine: ['SPARK', 'FLINK'],
+                engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/bsc.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/sc.png'
             },

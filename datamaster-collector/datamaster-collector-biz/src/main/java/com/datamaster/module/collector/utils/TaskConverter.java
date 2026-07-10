@@ -82,7 +82,7 @@ public class TaskConverter {
 
     @Resource
     private void setDsRedisConfig(DsRedisConfig dsRedisConfig) {
-        this.dsRedisConfig = dsRedisConfig;
+        TaskConverter.dsRedisConfig = dsRedisConfig;
     }
 
     // 默认配置常量
@@ -118,14 +118,10 @@ public class TaskConverter {
                     FlinkxIncrementalConfig.DEFAULT_TIME_FORMAT)));
 
 
-
-    public static final String TASK_INSTANCE_LOG_KEY = "log:taskInstanceLog:";//任务实例日志key
-
-    public static final String PROCESS_INSTANCE_LOG_KEY = "log:processInstanceLog:";//流程实例日志key
-
     public static final String ETL_READER_ID_KEY = "etl:reader:id:";
 
     public static final String ETL_READER_DATE_KEY = "etl:reader:date:";
+
 
     private static String resolveWorkerGroup(String projectWorkerGroup, Object configuredWorkerGroup) {
         if (StringUtils.isNotEmpty(projectWorkerGroup)) {
@@ -936,7 +932,8 @@ public class TaskConverter {
 
     public static String buildIncrementalFlinkxTaskLocationsJson(List<Map<String, Object>> locations,
                                                                  String prepareCode, String flinkxCode,
-                                                                 String completeCode) {
+                                                                 String conditionCode, String completeCode,
+                                                                 String failedCompleteCode) {
         Map<String, Object> sourceLocation = locations == null || locations.isEmpty()
                 ? new HashMap<>() : locations.get(0);
         double x = MapUtils.getDoubleValue(sourceLocation, "x", 0D);
@@ -944,7 +941,9 @@ public class TaskConverter {
         List<Map<String, Object>> result = new ArrayList<>();
         result.add(buildLocation(prepareCode, x - 220D, y));
         result.add(buildLocation(flinkxCode, x, y));
-        result.add(buildLocation(completeCode, x + 220D, y));
+        result.add(buildLocation(conditionCode, x + 220D, y));
+        result.add(buildLocation(completeCode, x + 440D, y - 100D));
+        result.add(buildLocation(failedCompleteCode, x + 440D, y + 100D));
         return JSON.toJSONString(result);
     }
 
@@ -980,25 +979,35 @@ public class TaskConverter {
     }
 
     public static String buildIncrementalFlinkxTaskRelationJson(Long prepareRelationId, Long flinkxRelationId,
-                                                                Long completeRelationId, String prepareCode,
-                                                                String flinkxCode, String completeCode) {
-        return buildIncrementalFlinkxTaskRelationJson(
-                prepareRelationId, flinkxRelationId, completeRelationId,
-                prepareCode, 0, flinkxCode, 0, completeCode, 0);
-    }
-
-    public static String buildIncrementalFlinkxTaskRelationJson(Long prepareRelationId, Long flinkxRelationId,
-                                                                Long completeRelationId,
+                                                                Long conditionRelationId, Long completeRelationId,
+                                                                Long failedCompleteRelationId,
                                                                 String prepareCode, Integer prepareVersion,
                                                                 String flinkxCode, Integer flinkxVersion,
-                                                                String completeCode, Integer completeVersion) {
+                                                                String conditionCode, Integer conditionVersion,
+                                                                String completeCode, Integer completeVersion,
+                                                                String failedCompleteCode, Integer failedCompleteVersion) {
         List<Map<String, Object>> result = new ArrayList<>();
         result.add(buildRelation(prepareRelationId, "0", 0, prepareCode, defaultVersion(prepareVersion)));
         result.add(buildRelation(flinkxRelationId, prepareCode, defaultVersion(prepareVersion),
                 flinkxCode, defaultVersion(flinkxVersion)));
-        result.add(buildRelation(completeRelationId, flinkxCode, defaultVersion(flinkxVersion),
+        result.add(buildRelation(conditionRelationId, flinkxCode, defaultVersion(flinkxVersion),
+                conditionCode, defaultVersion(conditionVersion)));
+        result.add(buildRelation(completeRelationId, conditionCode, defaultVersion(conditionVersion),
                 completeCode, defaultVersion(completeVersion)));
+        result.add(buildRelation(failedCompleteRelationId, conditionCode, defaultVersion(conditionVersion),
+                failedCompleteCode, defaultVersion(failedCompleteVersion)));
         return JSON.toJSONString(result);
+    }
+
+    public static String buildIncrementalFlinkxTaskRelationJson(Long prepareRelationId, Long flinkxRelationId,
+                                                                Long conditionRelationId, Long completeRelationId,
+                                                                Long failedCompleteRelationId,
+                                                                String prepareCode, String flinkxCode,
+                                                                String conditionCode, String completeCode,
+                                                                String failedCompleteCode) {
+        return buildIncrementalFlinkxTaskRelationJson(
+                prepareRelationId, flinkxRelationId, conditionRelationId, completeRelationId, failedCompleteRelationId,
+                prepareCode, 0, flinkxCode, 0, conditionCode, 0, completeCode, 0, failedCompleteCode, 0);
     }
 
     private static int defaultVersion(Integer version) {
@@ -1094,15 +1103,10 @@ public class TaskConverter {
 
     /**
      * 判断是否使用 FlinkX 执行引擎
-     * 前端存储引擎类型在 taskType 字段（值为 "SPARK" 或 "FLINK"）
+     * 数据集成任务统一使用 Chunjun/FlinkX 执行。
      */
     public static boolean isFlinkxEngine(String draftJson) {
-        if (StringUtils.isEmpty(draftJson)) {
-            return false;
-        }
-        Map<String, Object> definitionJsonMap = JSONUtils.convertTaskDefinitionJsonMap(draftJson);
-        String taskType = String.valueOf(definitionJsonMap.get("taskType"));
-        return "FLINK".equalsIgnoreCase(taskType) || "FlinkX".equalsIgnoreCase(taskType);
+        return true;
     }
 
     /**
@@ -1249,9 +1253,14 @@ public class TaskConverter {
                                                                   String prepareCode, Integer prepareVersion,
                                                                   Long flinkxId, String flinkxName,
                                                                   String flinkxCode, Integer flinkxVersion,
+                                                                  Long conditionId, String conditionName,
+                                                                  String conditionCode, Integer conditionVersion,
                                                                   Long completeId, String completeName,
                                                                   String completeCode, Integer completeVersion,
+                                                                  Long failedCompleteId, String failedCompleteName,
+                                                                  String failedCompleteCode, Integer failedCompleteVersion,
                                                                   String prepareCallbackUrl, String completeCallbackUrl,
+                                                                  String failedCompleteCallbackUrl,
                                                                   String draftJson, String projectWorkerGroup) {
         List<Map<String, Object>> result = new ArrayList<>();
         result.add(buildIncrementalPrepareHttpTask(prepareId, prepareName, prepareCode, prepareVersion,
@@ -1259,8 +1268,12 @@ public class TaskConverter {
         result.addAll(JSONUtils.convertTaskDefinitionJson(buildEtlTaskDefinitionJsonFlinkx(
                 flinkxId, flinkxName, flinkxCode, flinkxVersion, buildHttpResponsePlaceholder(prepareName),
                 draftJson, projectWorkerGroup)));
+        result.add(buildConditionTask(conditionId, conditionName, conditionCode, conditionVersion,
+                completeCode, failedCompleteCode, flinkxCode, draftJson, projectWorkerGroup));
         result.add(buildIncrementalCompleteHttpTask(completeId, completeName, completeCode, completeVersion,
                 completeCallbackUrl, draftJson, projectWorkerGroup));
+        result.add(buildIncrementalCompleteHttpTask(failedCompleteId, failedCompleteName, failedCompleteCode, failedCompleteVersion,
+                failedCompleteCallbackUrl, draftJson, projectWorkerGroup));
         return JSON.toJSONString(result);
     }
 
@@ -1269,43 +1282,113 @@ public class TaskConverter {
     }
 
     /**
-     * 构建 FlinkX 任务定义 JSON（含状态回写节点），2 节点：CHUNJUN → Complete HTTP
+     * 构建 FlinkX 任务定义 JSON（含状态回写节点），4 节点：CHUNJUN → CONDITIONS → [成功] Complete HTTP / [失败] FailedComplete HTTP
      */
     public static String buildFlinkxTaskDefinitionJsonWithCompleteCallback(
             Long flinkxId, String flinkxName, String flinkxCode, Integer flinkxVersion,
             String flinkxJobJson,
+            Long conditionId, String conditionName, String conditionCode, Integer conditionVersion,
             Long completeId, String completeName, String completeCode, Integer completeVersion,
-            String completeCallbackUrl, String draftJson, String projectWorkerGroup) {
+            Long failedCompleteId, String failedCompleteName, String failedCompleteCode, Integer failedCompleteVersion,
+            String completeCallbackUrl, String failedCompleteCallbackUrl, String draftJson, String projectWorkerGroup) {
         List<Map<String, Object>> result = new ArrayList<>();
         result.addAll(JSONUtils.convertTaskDefinitionJson(buildEtlTaskDefinitionJsonFlinkx(
                 flinkxId, flinkxName, flinkxCode, flinkxVersion, flinkxJobJson,
                 draftJson, projectWorkerGroup)));
+        result.add(buildConditionTask(conditionId, conditionName, conditionCode, conditionVersion,
+                completeCode, failedCompleteCode, flinkxCode, draftJson, projectWorkerGroup));
         result.add(buildIncrementalCompleteHttpTask(completeId, completeName, completeCode, completeVersion,
                 completeCallbackUrl, draftJson, projectWorkerGroup));
+        result.add(buildIncrementalCompleteHttpTask(failedCompleteId, failedCompleteName, failedCompleteCode, failedCompleteVersion,
+                failedCompleteCallbackUrl, draftJson, projectWorkerGroup));
         return JSON.toJSONString(result);
     }
 
+    private static Map<String, Object> buildConditionTask(Long id, String name, String code,
+                                                          Integer version, String successCompleteCode, String failedCompleteCode,
+                                                          String flinkxCode, String draftJson, String projectWorkerGroup) {
+        Map<String, Object> definitionJsonMap = JSONUtils.convertTaskDefinitionJsonMap(draftJson);
+        Map<String, Object> task = new HashMap<>();
+        task.put("id", id);
+        task.put("name", name);
+        task.put("code", code);
+        task.put("version", version == null ? 0 : version);
+        task.put("description", "");
+        task.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, definitionJsonMap.get("workerGroup")));
+        task.put("environmentCode", DEFAULT_ENVIRONMENT_CODE);
+        task.put("flag", DEFAULT_FLAG);
+        task.put("isCache", DEFAULT_IS_CACHE);
+        task.put("taskPriority", MapUtils.getObject(definitionJsonMap, "taskPriority", DEFAULT_TASK_PRIORITY));
+        task.put("taskType", "CONDITIONS");
+        task.put("taskExecuteType", "BATCH");
+        task.put("failRetryTimes", MapUtils.getObject(definitionJsonMap, "failRetryTimes", DEFAULT_TASK_failRetryTimes));
+        task.put("delayTime", MapUtils.getObject(definitionJsonMap, "delayTime", DEFAULT_TASK_delayTime));
+        task.put("failRetryInterval", MapUtils.getObject(definitionJsonMap, "failRetryInterval", DEFAULT_TASK_failRetryInterval));
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("localParams", new ArrayList<>());
+        params.put("resourceList", new ArrayList<>());
+
+        // 构建 dependence
+        Map<String, Object> dependence = new HashMap<>();
+        List<Map<String, Object>> dependTaskList = new ArrayList<>();
+        Map<String, Object> dependTask = new HashMap<>();
+        List<Map<String, Object>> dependItemList = new ArrayList<>();
+        Map<String, Object> dependItem = new HashMap<>();
+        dependItem.put("depTaskCode", Long.parseLong(flinkxCode));
+        dependItem.put("status", "SUCCESS");
+        dependItemList.add(dependItem);
+        dependTask.put("dependItemList", dependItemList);
+        dependTask.put("relation", "AND");
+        dependTaskList.add(dependTask);
+        dependence.put("dependTaskList", dependTaskList);
+        dependence.put("relation", "AND");
+        params.put("dependence", dependence);
+
+        // 构建 conditionResult
+        Map<String, Object> conditionResult = new HashMap<>();
+        conditionResult.put("conditionSuccess", true);
+        List<Long> successNodes = new ArrayList<>();
+        successNodes.add(Long.parseLong(successCompleteCode));
+        conditionResult.put("successNode", successNodes);
+        List<Long> failedNodes = new ArrayList<>();
+        failedNodes.add(Long.parseLong(failedCompleteCode));
+        conditionResult.put("failedNode", failedNodes);
+        params.put("conditionResult", conditionResult);
+
+        task.put("taskParams", params);
+        return task;
+    }
+
     public static String buildFlinkxTaskRelationWithCompleteCallback(
-            Long flinkxRelationId, Long completeRelationId,
+            Long flinkxRelationId, Long conditionRelationId, Long completeRelationId, Long failedCompleteRelationId,
             String flinkxCode, Integer flinkxVersion,
-            String completeCode, Integer completeVersion) {
+            String conditionCode, Integer conditionVersion,
+            String completeCode, Integer completeVersion,
+            String failedCompleteCode, Integer failedCompleteVersion) {
         List<Map<String, Object>> result = new ArrayList<>();
         result.add(buildRelation(flinkxRelationId, "0", 0, flinkxCode, defaultVersion(flinkxVersion)));
-        result.add(buildRelation(completeRelationId, flinkxCode, defaultVersion(flinkxVersion),
+        result.add(buildRelation(conditionRelationId, flinkxCode, defaultVersion(flinkxVersion),
+                conditionCode, defaultVersion(conditionVersion)));
+        result.add(buildRelation(completeRelationId, conditionCode, defaultVersion(conditionVersion),
                 completeCode, defaultVersion(completeVersion)));
+        result.add(buildRelation(failedCompleteRelationId, conditionCode, defaultVersion(conditionVersion),
+                failedCompleteCode, defaultVersion(failedCompleteVersion)));
         return JSON.toJSONString(result);
     }
 
     public static String buildFlinkxTaskLocationsWithCompleteCallback(
             List<Map<String, Object>> locations,
-            String flinkxCode, String completeCode) {
+            String flinkxCode, String conditionCode, String completeCode, String failedCompleteCode) {
         Map<String, Object> sourceLocation = locations == null || locations.isEmpty()
                 ? new HashMap<>() : locations.get(0);
         double x = MapUtils.getDoubleValue(sourceLocation, "x", 0D);
         double y = MapUtils.getDoubleValue(sourceLocation, "y", 0D);
         List<Map<String, Object>> result = new ArrayList<>();
         result.add(buildLocation(flinkxCode, x, y));
-        result.add(buildLocation(completeCode, x + 220D, y));
+        result.add(buildLocation(conditionCode, x + 220D, y));
+        result.add(buildLocation(completeCode, x + 440D, y - 100D));
+        result.add(buildLocation(failedCompleteCode, x + 440D, y + 100D));
         return JSON.toJSONString(result);
     }
 
@@ -1690,7 +1773,6 @@ public class TaskConverter {
         //配置config
         Map<String, Object> config = new HashMap<>();
         config.put("taskInfo", taskInfo);
-        // EtlApplication.java 连接的 Redis 配置信息
         config.put("redis", dsRedisConfig);
         config.put("resourceUrl", resourceUrl);
         result.put("transition", transitionList);

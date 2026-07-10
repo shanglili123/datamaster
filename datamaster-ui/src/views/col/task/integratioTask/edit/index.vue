@@ -278,7 +278,7 @@ const taskType = ref("");
 //获取执行引擎
 const getTaskType = (json) => {
   if (!json) {
-    return "SPARK";
+    return "FLINK";
   }
   let type = json && JSON.parse(json).taskType;
   return type;
@@ -292,11 +292,9 @@ const getDatasourceIcon = (json) => {
     case "FLINK":
       return new URL("@/assets/system/images/dpp/Flink.svg", import.meta.url)
         .href;
-    case "SPARK":
-      return new URL("@/assets/system/images/dpp/Spark.svg", import.meta.url)
-        .href;
     default:
-      return null;
+      return new URL("@/assets/system/images/dpp/Flink.svg", import.meta.url)
+        .href;
   }
 };
 // 监听 id 变化

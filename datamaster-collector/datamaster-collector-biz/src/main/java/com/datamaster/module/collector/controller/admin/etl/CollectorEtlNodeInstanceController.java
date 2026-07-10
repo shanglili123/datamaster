@@ -42,8 +42,6 @@ import com.datamaster.module.collector.convert.etl.CollectorEtlNodeInstanceConve
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeInstanceDO;
 import com.datamaster.module.collector.service.etl.ICollectorEtlNodeInstanceLogService;
 import com.datamaster.module.collector.service.etl.ICollectorEtlNodeInstanceService;
-import com.datamaster.module.collector.utils.TaskConverter;
-import com.datamaster.redis.service.IRedisService;
 
 /**
  * 数据集成节点实例Controller
@@ -58,9 +56,6 @@ import com.datamaster.redis.service.IRedisService;
 public class CollectorEtlNodeInstanceController extends BaseController {
     @Resource
     private ICollectorEtlNodeInstanceService CollectorEtlNodeInstanceService;
-
-    @Resource
-    private IRedisService redisService;
 
     @Resource
     private ICollectorEtlNodeInstanceLogService CollectorEtlNodeInstanceLogService;
@@ -140,15 +135,12 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     public AjaxResult getLogInfo(@PathVariable("id") Long id) {
         CollectorEtlNodeInstanceDO CollectorEtlNodeInstanceDO = CollectorEtlNodeInstanceService.getCollectorEtlNodeInstanceById(id);
         String content = "";
-        String taskInstanceLogKey = TaskConverter.TASK_INSTANCE_LOG_KEY+ CollectorEtlNodeInstanceDO.getId();
-        if (redisService.hasKey(taskInstanceLogKey)) {
-            content += redisService.get(taskInstanceLogKey) + "\n";
-        } else {
-            //获取表中的日志
-            String logContent = CollectorEtlNodeInstanceLogService.getLog(CollectorEtlNodeInstanceDO.getId());
-            if (logContent != null) {
-                content += logContent + "\n";
-            }
+        if (CollectorEtlNodeInstanceDO == null) {
+            return AjaxResult.success(content);
+        }
+        String logContent = CollectorEtlNodeInstanceLogService.getLog(CollectorEtlNodeInstanceDO.getId());
+        if (logContent != null) {
+            content += logContent + "\n";
         }
         return AjaxResult.success(content);
     }

@@ -30,25 +30,30 @@ public class CollectorEtlIncrementalController {
                                      @RequestParam Long processInstanceId) {
         try {
             String runtimeJobJson = collectorEtlIncrementalService.prepareIncrementalTask(taskId, processInstanceId);
-            return ResponseEntity.ok()
+            return ResponseEntity.status(HttpStatus.OK)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(runtimeJobJson);
         } catch (Exception e) {
             log.error("增量同步边界准备失败，taskId={}", taskId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
                     .body(AjaxResult.error("增量同步边界准备失败: " + e.getMessage()));
         }
     }
 
     @RequestMapping(value = "/complete/{taskId}", method = {RequestMethod.GET, RequestMethod.PUT})
     public ResponseEntity<AjaxResult> complete(@PathVariable Long taskId,
-                                               @RequestParam Long processInstanceId) {
+                                               @RequestParam Long processInstanceId,
+                                               @RequestParam(defaultValue = "0") Integer status) {
         try {
-            collectorEtlIncrementalService.completeIncrementalTask(taskId, processInstanceId);
-            return ResponseEntity.ok(AjaxResult.success("FLINKX任务状态回写完成"));
+            collectorEtlIncrementalService.completeIncrementalTask(taskId, processInstanceId, status);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(AjaxResult.success("FLINKX任务状态回写完成"));
         } catch (Exception e) {
             log.error("FLINKX任务状态回写失败，taskId={}，processInstanceId={}", taskId, processInstanceId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
                     .body(AjaxResult.error("FLINKX任务状态回写失败: " + e.getMessage()));
         }
     }

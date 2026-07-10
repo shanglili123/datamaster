@@ -524,6 +524,7 @@ deploy_dolphinscheduler() {
   flink_dir="$soft_dir/flink"
   if dir_has_payload "$chunjun_dir"; then
     install_remote_dir "$host" "$user" "$port" "$chunjun_dir" "${VARS[chunjun_home]}"
+    remote_exec "$host" "$user" "$port" "$SUDO chmod -R a+rX $(sq "${VARS[chunjun_home]}") && if [ -d $(sq "${VARS[chunjun_home]}/bin") ]; then $SUDO chmod -R a+rx $(sq "${VARS[chunjun_home]}/bin"); fi"
   else
     echo "Skip Chunjun upload: $chunjun_dir has no payload files"
   fi

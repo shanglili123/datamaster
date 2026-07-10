@@ -866,13 +866,11 @@ const getDatasourceIcon = (json) => {
     switch (type) {
       case "FLINK":
         return new URL("@/assets/images/common/flink.svg", import.meta.url).href;
-      case "SPARK":
-        return new URL("@/assets/images/common/spark.svg", import.meta.url).href;
       default:
-        return null;
+        return new URL("@/assets/images/common/flink.svg", import.meta.url).href;
     }
   } catch {
-    return null;
+    return new URL("@/assets/images/common/flink.svg", import.meta.url).href;
   }
 };
 

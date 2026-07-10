@@ -146,6 +146,8 @@ public interface ICollectorEtlTaskInstanceService extends IService<CollectorEtlT
      */
     CollectorEtlTaskInstanceLogStatusRespDTO getLogByTaskInstanceId(Long taskInstanceId);
 
+    String downloadLogByTaskInstanceId(Long taskInstanceId);
+
     /**
      * 获取正在运行的任务实例
      * @param taskId

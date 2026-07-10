@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.datamaster.api.ds.api.base.DsStatusRespDTO;
-import com.datamaster.api.ds.api.service.etl.IDsEtlSchedulerService;
+import com.datamaster.api.ds.api.etl.ds.ProcessInstance;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.enums.WorkflowExecutionStatus;
 import com.datamaster.common.exception.ServiceException;
@@ -21,8 +21,10 @@ import com.datamaster.module.collector.service.etl.ICollectorEtlIncrementalServi
 import com.datamaster.module.collector.service.etl.ICollectorEtlSchedulerService;
 import com.datamaster.module.collector.service.etl.ICollectorEtlTaskExtService;
 import com.datamaster.module.collector.service.etl.ICollectorEtlTaskInstanceService;
+import com.datamaster.module.collector.service.etl.ICollectorEtlTaskOpsService;
 import com.datamaster.module.collector.service.etl.incremental.IncrementalBoundaryQuery;
 import com.datamaster.module.collector.utils.model.FlinkxIncrementalConfig;
+import com.datamaster.api.ds.api.service.etl.IDsEtlSchedulerService;
 import com.datamaster.redis.service.IRedisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,17 +52,19 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
     @Resource
     private IncrementalBoundaryQuery incrementalBoundaryQuery;
     @Resource
-    private IDsEtlTaskService dsEtlTaskService;
-    @Resource
     private ICollectorEtlSchedulerService collectorEtlSchedulerService;
     @Resource
     private IDsEtlSchedulerService dsEtlSchedulerService;
     @Resource
+    private IDsEtlTaskService dsEtlTaskService;
+    @Resource
     private ICollectorEtlTaskInstanceService collectorEtlTaskInstanceService;
     @Resource
-    private IRedisService redisService;
-    @Resource
     private CollectorEtlTaskStatusPushService collectorEtlTaskStatusPushService;
+    @Resource
+    private ICollectorEtlTaskOpsService collectorEtlTaskOpsService;
+    @Resource
+    private IRedisService redisService;
 
     @Value("${ds.incremental_running_ttl_seconds:86400}")
     private long incrementalRunningTtlSeconds;
@@ -105,12 +109,13 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
     }
 
     @Override
-    public void completeIncrementalTask(Long taskId, Long processInstanceId) {
+    public void completeIncrementalTask(Long taskId, Long processInstanceId, Integer status) {
         validateProcessInstanceId(processInstanceId);
         CollectorEtlTaskInstanceDO instance = collectorEtlTaskInstanceService.getByDsId(processInstanceId);
         Date now = new Date();
         if (instance == null) {
             CollectorEtlTaskDO task = collectorEtlTaskMapper.selectById(taskId);
+            CollectorEtlTaskExtDO taskExt = collectorEtlTaskExtService.getByTaskId(taskId);
             if (task == null) {
                 log.warn("FLINKX完成回调: 任务不存在, taskId={}", taskId);
                 return;
@@ -119,20 +124,22 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
             if (taskType == null) {
                 taskType = "1";
             }
+            // 🏆 关键改进：根据status参数决定任务状态
             instance = CollectorEtlTaskInstanceDO.builder()
                     .id(processInstanceId)
                     .catId(task.getCatId())
                     .catCode(task.getCatCode())
                     .taskId(task.getId())
-                    .taskCode(task.getCode())
+                    .taskCode(resolveTaskCode(task, taskExt))
                     .taskType(taskType)
-                    .taskVersion(0)
+                    .taskVersion(resolveTaskVersion(taskExt))
                     .name(task.getName())
                     .personCharge(task.getPersonCharge())
                     .contactNumber(task.getContactNumber())
                     .projectId(task.getProjectId())
                     .projectCode(task.getProjectCode())
-                    .status(String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()))
+                    // 🏆 根据status参数设置任务状态
+                    .status(status == 1 ? String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()) : String.valueOf(WorkflowExecutionStatus.FAILURE.getCode()))
                     .endTime(now)
                     .startTime(now)
                     .dsId(processInstanceId)
@@ -142,7 +149,20 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
             if (!taskId.equals(instance.getTaskId())) {
                 throw new ServiceException("DolphinScheduler流程实例不属于当前增量任务");
             }
-            instance.setStatus(String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()));
+            // 如果前端已经传递了status，直接使用前端传入的状态
+            if (status != null && status >= 0) {
+                // 🏆 根据status参数确定任务最终状态
+                if (status == 1) {
+                    instance.setStatus(String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()));
+                    log.info("任务 {} 标记为成功，status={}", taskId, status);
+                } else {
+                    instance.setStatus(String.valueOf(WorkflowExecutionStatus.FAILURE.getCode()));
+                    log.info("任务 {} 标记为失败，status={}", taskId, status);
+                }
+            } else {
+                instance.setStatus(String.valueOf(WorkflowExecutionStatus.FAILURE.getCode()));
+                log.warn("FLINKX任务 {} 完成回调未携带状态，默认标记为失败", taskId);
+            }
             instance.setEndTime(now);
             if (instance.getStartTime() == null) {
                 instance.setStartTime(now);
@@ -150,21 +170,56 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
             collectorEtlTaskInstanceService.updateById(instance);
         }
         collectorEtlTaskStatusPushService.pushTaskInstanceStatus(instance);
+        triggerOpsIfFailed(instance);
         releaseRunningSlot(taskId, processInstanceId);
     }
 
     @Override
     public void releaseIncrementalTask(Long taskId, Long processInstanceId) {
-        validateProcessInstanceId(processInstanceId);
         releaseRunningSlot(taskId, processInstanceId);
     }
 
     @Override
     public void forceReleaseIncrementalTask(Long taskId) {
-        if (taskId == null) {
+        if (taskId != null) {
+            redisService.delete(runningKey(taskId));
+        }
+    }
+
+    private void triggerOpsIfFailed(CollectorEtlTaskInstanceDO instance) {
+        if (instance == null || !String.valueOf(WorkflowExecutionStatus.FAILURE.getCode()).equals(instance.getStatus())) {
             return;
         }
-        redisService.delete(runningKey(taskId));
+        try {
+            ProcessInstance processInstance = ProcessInstance.builder()
+                    .id(instance.getDsId() == null ? instance.getId() : instance.getDsId())
+                    .processDefinitionCode(instance.getTaskCode())
+                    .projectCode(instance.getProjectCode())
+                    .state(WorkflowExecutionStatus.FAILURE)
+                    .startTime(instance.getStartTime())
+                    .endTime(instance.getEndTime())
+                    .runTimes(instance.getRunTimes())
+                    .name(instance.getName())
+                    .build();
+            collectorEtlTaskOpsService.handleProcessInstanceFinished(processInstance, instance);
+        } catch (Exception e) {
+            log.warn("FLINKX失败回调触发AI运维异常，taskId={}，processInstanceId={}",
+                    instance.getTaskId(), instance.getDsId(), e);
+        }
+    }
+
+    private String resolveTaskCode(CollectorEtlTaskDO task, CollectorEtlTaskExtDO taskExt) {
+        if (taskExt != null && StringUtils.isNotBlank(taskExt.getEtlTaskCode())) {
+            return taskExt.getEtlTaskCode();
+        }
+        return task.getCode();
+    }
+
+    private Integer resolveTaskVersion(CollectorEtlTaskExtDO taskExt) {
+        if (taskExt != null && taskExt.getEtlTaskVersion() != null) {
+            return taskExt.getEtlTaskVersion();
+        }
+        return 0;
     }
 
     private void validateTask(CollectorEtlTaskDO task, CollectorEtlTaskExtDO taskExt) {

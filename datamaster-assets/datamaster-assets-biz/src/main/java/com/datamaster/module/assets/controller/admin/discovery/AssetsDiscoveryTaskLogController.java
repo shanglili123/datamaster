@@ -39,20 +39,10 @@ public class AssetsDiscoveryTaskLogController extends BaseController {
     }
 @PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:list')")
 @RequestMapping(value = "/logDetailCat", method = RequestMethod.GET)
-@Operation(summary = "")    public ReturnT<LogResult> logDetailCat(String handleMsg) {
+@Operation(summary = "")    public ReturnT<LogResult> logDetailCat(Long id, Long dsTaskInstanceId, String handleMsg) {
 // 添加日志审计功能
-    try {            InputStream in = new FileInputStream(handleMsg);            ByteArrayOutputStream bos = new ByteArrayOutputStream();            byte[] buf = new byte[1024];
-    int len;
-    while ((len = in.read(buf)) != -1) {
-    bos.write(buf, 0, len);
-    }
-    String logContent = new String(bos.toByteArray(), "UTF-8");
-    if (bos != null) {
-    bos.close();
-    }
-    if (in != null) {
-    in.close();
-            }
+    try {
+    String logContent = AssetsDiscoveryTaskLogService.getLogInfo(id, dsTaskInstanceId, handleMsg);
 // @TODO 查看日志
     ReturnT<LogResult> returnT = new ReturnT<>(ReturnT.SUCCESS_CODE, "查询日志成功");
     LogResult logResult = new LogResult(0, 0, logContent, true);
@@ -63,24 +53,20 @@ public class AssetsDiscoveryTaskLogController extends BaseController {
     return new ReturnT<>(ReturnT.FAIL_CODE, "暂未找到日志文件信息");
         }    }
 @PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:list')")
-@RequestMapping(value = "/downloadLog", method = RequestMethod.POST)
-@Operation(summary = "")    public void downloadLog(HttpServletResponse response, String handleMsg) {
+@RequestMapping(value = "/downloadLog", method = {RequestMethod.GET, RequestMethod.POST})
+@Operation(summary = "")    public void downloadLog(HttpServletResponse response, Long id, Long dsTaskInstanceId, String handleMsg) {
 // 添加日志审计功能
     try {
-// 获取文件路径
-    File logFile = new File(handleMsg);
-
-// 如果文件存在
-    if (logFile.exists()) {
 // 设置响应的内容类型为文件下载
     response.setContentType("application/octet-stream");
 
 // 设置下载文件名
-    String fileName = logFile.getName();
+    String fileName = "metadata-discovery.log";
     response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
 
 // 创建文件输入流
-    try (InputStream in = new FileInputStream(logFile);
+    String logContent = AssetsDiscoveryTaskLogService.downloadLog(id, dsTaskInstanceId, handleMsg);
+    try (InputStream in = new ByteArrayInputStream((logContent == null ? "" : logContent).getBytes("UTF-8"));
     OutputStream out = response.getOutputStream()) {
     byte[] buffer = new byte[1024];
     int length;
@@ -88,11 +74,7 @@ public class AssetsDiscoveryTaskLogController extends BaseController {
 // 将文件内容写入输出流
     while ((length = in.read(buffer)) != -1) {
     out.write(buffer, 0, length);
-                    }                }            } else {
-// 如果文件不存在，返回404或自定义错误
-    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-    response.getWriter().write("日志文件未找到");
-    }
+                    }                }
     } catch (Exception e) {
     logger.error(e.getMessage(), e);
     try {

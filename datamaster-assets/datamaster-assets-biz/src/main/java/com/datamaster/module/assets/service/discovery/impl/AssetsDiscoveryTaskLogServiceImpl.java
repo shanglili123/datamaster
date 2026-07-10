@@ -1,7 +1,9 @@
 package com.datamaster.module.assets.service.discovery.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,8 @@ public class AssetsDiscoveryTaskLogServiceImpl  extends ServiceImpl<AssetsDiscov
     @Resource
     @Lazy
     private IRedisService redisService;
+    @Resource
+    private IDsEtlTaskService dsEtlTaskService;
 
     @Override
     public PageResult<AssetsDiscoveryTaskLogDO> getDaDiscoveryTaskLogPage(AssetsDiscoveryTaskLogPageReqVO pageReqVO) {
@@ -167,12 +171,28 @@ public class AssetsDiscoveryTaskLogServiceImpl  extends ServiceImpl<AssetsDiscov
 
     @Override
     public String getLogInfo(Long id) {
+        return getLogInfo(id, null, null);
+    }
+
+    @Override
+    public String getLogInfo(Long id, Long dsTaskInstanceId, String path) {
+        Long resolvedDsTaskInstanceId = resolveDsTaskInstanceId(id, dsTaskInstanceId, path);
+        if (resolvedDsTaskInstanceId != null) {
+            try {
+                String dsLog = dsEtlTaskService.getTaskInstanceLog(resolvedDsTaskInstanceId);
+                if (StringUtils.isNotBlank(dsLog)) {
+                    return dsLog;
+                }
+            } catch (Exception e) {
+                log.warn("读取DolphinScheduler元数据采集日志失败，dsTaskInstanceId={}", resolvedDsTaskInstanceId, e);
+            }
+        }
         String content = "";
         final String taskInstanceLogKey = AssetsDiscoveryLogBodyServiceImpl.DISCOVERY_TASK_LOG_KEY_PREFIX + id;
 
-        if (redisService.hasKey(taskInstanceLogKey)) {
+        if (id != null && redisService.hasKey(taskInstanceLogKey)) {
             content += redisService.get(taskInstanceLogKey) + "\n";
-        } else {
+        } else if (id != null) {
             //获取表中的日志
             String logContent = IAssetsDiscoveryLogBodyService.getLog(id);
             if (logContent != null) {
@@ -180,5 +200,36 @@ public class AssetsDiscoveryTaskLogServiceImpl  extends ServiceImpl<AssetsDiscov
             }
         }
         return content;
+    }
+
+    @Override
+    public String downloadLog(Long id, Long dsTaskInstanceId, String path) {
+        Long resolvedDsTaskInstanceId = resolveDsTaskInstanceId(id, dsTaskInstanceId, path);
+        if (resolvedDsTaskInstanceId != null) {
+            try {
+                String dsLog = dsEtlTaskService.downloadTaskInstanceLog(resolvedDsTaskInstanceId);
+                if (StringUtils.isNotBlank(dsLog)) {
+                    return dsLog;
+                }
+            } catch (Exception e) {
+                log.warn("下载DolphinScheduler元数据采集日志失败，dsTaskInstanceId={}", resolvedDsTaskInstanceId, e);
+            }
+        }
+        return getLogInfo(id, dsTaskInstanceId, path);
+    }
+
+    private Long resolveDsTaskInstanceId(Long id, Long dsTaskInstanceId, String path) {
+        if (dsTaskInstanceId != null) {
+            return dsTaskInstanceId;
+        }
+        AssetsDiscoveryTaskLogDO logDO = null;
+        if (id != null) {
+            logDO = AssetsDiscoveryTaskLogMapper.selectById(id);
+        } else if (StringUtils.isNotBlank(path)) {
+            logDO = AssetsDiscoveryTaskLogMapper.selectOne(Wrappers.lambdaQuery(AssetsDiscoveryTaskLogDO.class)
+                    .eq(AssetsDiscoveryTaskLogDO::getPath, path)
+                    .last("limit 1"));
+        }
+        return logDO == null ? null : logDO.getDsTaskInstanceId();
     }
 }

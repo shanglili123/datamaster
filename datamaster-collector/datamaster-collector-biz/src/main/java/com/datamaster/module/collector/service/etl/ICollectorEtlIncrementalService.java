@@ -14,7 +14,7 @@ public interface ICollectorEtlIncrementalService {
     /**
      * Writes the FLINKX completion state and releases the running slot.
      */
-    void completeIncrementalTask(Long taskId, Long processInstanceId);
+    void completeIncrementalTask(Long taskId, Long processInstanceId, Integer status);
 
     /**
      * Releases the running slot after any terminal workflow state.

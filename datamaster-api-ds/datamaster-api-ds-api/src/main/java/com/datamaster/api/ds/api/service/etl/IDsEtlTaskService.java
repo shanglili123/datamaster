@@ -7,6 +7,9 @@ import com.datamaster.api.ds.api.etl.DsStartTaskReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveRespDTO;
 import com.datamaster.api.ds.api.etl.ds.ProcessDefinition;
+import com.datamaster.api.ds.api.etl.ds.TaskInstance;
+
+import java.util.List;
 
 /**
  * <P>
@@ -83,4 +86,9 @@ public interface IDsEtlTaskService {
      */
     DsTaskSaveRespDTO batchCopy(String code, String projectCode);
 
+    List<TaskInstance> listTaskInstances(String projectCode, Long processInstanceId);
+
+    String getTaskInstanceLog(Long taskInstanceId);
+
+    String downloadTaskInstanceLog(Long taskInstanceId);
 }

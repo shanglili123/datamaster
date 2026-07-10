@@ -53,15 +53,6 @@ const baseTable = [
   { key: "taskType", label: "执行引擎", value: "" },
 ];
 
-// Spark 字段
-const sparkFields = [
-  { key: "driverCores", label: "Driver核心数", value: "" },
-  { key: "driverMemory", label: "Driver内存数", value: "" },
-  { key: "numExecutors", label: "Executor数量", value: "" },
-  { key: "executorMemory", label: "Executor内存数", value: "" },
-  { key: "executorCores", label: "Executor核心数", value: "" },
-];
-
 // Flink 字段
 const flinkFields = [
   { key: "jobManagerMemory", label: "JobManager内存数", value: "" },
@@ -82,9 +73,7 @@ const fileDesc = computed(() => {
   const type = props.dppEtlTaskDetail?.taskType;
   let table = [...baseTable];
 
-  if (type === "SPARK") {
-    table = table.concat(sparkFields);
-  } else if (type === "FLINK") {
+  if (!type || type === "FLINK") {
     table = table.concat(flinkFields);
   }
   return table;

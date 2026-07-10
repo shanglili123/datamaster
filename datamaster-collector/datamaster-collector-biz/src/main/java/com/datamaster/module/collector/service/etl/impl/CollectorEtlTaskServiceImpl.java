@@ -843,7 +843,6 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                             if (!StringUtils.equals("2", jsonObject.getString("type"))) {
                                 continue;
                             }
-                            //增量字段
                             String incrementColumn = jsonObject.getString("incrementColumn");
                             String cacheKey = TaskConverter.ETL_READER_DATE_KEY + nodeCode + ":" + incrementColumn;
                             if (redisService.hasKey(cacheKey)) {
@@ -1564,6 +1563,10 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         String completeNodeCode = null;
         String completeNodeName = reqVO.getName() + "-状态回写";
         String taskCode;
+        String conditionNodeCode = null;
+        String conditionNodeName = reqVO.getName() + "-条件分支";
+        String failedCompleteNodeCode = null;
+        String failedCompleteNodeName = reqVO.getName() + "-失败状态回写";
 
         if (isFirstPublish) {
             //首次发布：本地没有已发布扩展；如果DS中已有同名定义，则复用定义编码走更新
@@ -1588,20 +1591,29 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 streamingFlinkx = TaskConverter.isStreamingFlinkxJob(flinkxJobJson);
                 incrementalConfig = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
                 completeNodeCode = nextDsNodeCode(reqVO.getProjectCode());
+                conditionNodeCode = nextDsNodeCode(reqVO.getProjectCode());
+                failedCompleteNodeCode = nextDsNodeCode(reqVO.getProjectCode());
                 if (incrementalConfig != null) {
                     prepareNodeCode = nextDsNodeCode(reqVO.getProjectCode());
                     taskDefinition = TaskConverter.buildIncrementalFlinkxTaskDefinitionJson(
                              null, prepareNodeName, prepareNodeCode, 0,
                              null, nodeName, nodeCode, 0,
+                             null, conditionNodeName, conditionNodeCode, 0,
                              null, completeNodeName, completeNodeCode, 0,
+                             null, failedCompleteNodeName, failedCompleteNodeCode, 0,
                              incrementalCallbackUrl(incrementalPrepareUrl, taskDO.getId()),
-                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId()), reqVO.getDraftJson(),
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 1),
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 0),
+                             reqVO.getDraftJson(),
                              getProjectWorkerGroup(reqVO.getProjectCode()));
                 } else {
                     taskDefinition = TaskConverter.buildFlinkxTaskDefinitionJsonWithCompleteCallback(
                              null, nodeName, nodeCode, 0, flinkxJobJson,
+                             null, conditionNodeName, conditionNodeCode, 0,
                              null, completeNodeName, completeNodeCode, 0,
-                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId()),
+                             null, failedCompleteNodeName, failedCompleteNodeCode, 0,
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 1),
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 0),
                              reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
                 }
             } else {
@@ -1610,14 +1622,15 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
             if (incrementalConfig != null) {
                 taskRelation = TaskConverter.buildIncrementalFlinkxTaskRelationJson(
-                        null, null, null, prepareNodeCode, nodeCode, completeNodeCode);
+                        null, null, null, null, null,
+                        prepareNodeCode, 0, nodeCode, 0, conditionNodeCode, 0, completeNodeCode, 0, failedCompleteNodeCode, 0);
                 locations = TaskConverter.buildIncrementalFlinkxTaskLocationsJson(
-                        reqVO.getLocations(), prepareNodeCode, nodeCode, completeNodeCode);
+                        reqVO.getLocations(), prepareNodeCode, nodeCode, conditionNodeCode, completeNodeCode, failedCompleteNodeCode);
             } else if (isFlinkx) {
                 taskRelation = TaskConverter.buildFlinkxTaskRelationWithCompleteCallback(
-                        null, null, nodeCode, 0, completeNodeCode, 0);
+                        (Long) null, (Long) null, (Long) null, (Long) null, nodeCode, 0, conditionNodeCode, 0, completeNodeCode, 0, failedCompleteNodeCode, 0);
                 locations = TaskConverter.buildFlinkxTaskLocationsWithCompleteCallback(
-                        reqVO.getLocations(), nodeCode, completeNodeCode);
+                        reqVO.getLocations(), nodeCode, conditionNodeCode, completeNodeCode, failedCompleteNodeCode);
             } else {
                 taskRelation = TaskConverter.buildEtlTaskRelationJson(null, nodeCode);
                 locations = TaskConverter.buildEtlTaskLocationsJson(reqVO.getLocations(), nodeCode);
@@ -1689,23 +1702,33 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 incrementalConfig = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
                 completeNodeCode = StringUtils.isNotBlank(taskExt.getCompleteNodeCode())
                         ? taskExt.getCompleteNodeCode() : nextDsNodeCode(reqVO.getProjectCode());
+                conditionNodeCode = nextDsNodeCode(reqVO.getProjectCode());
+                failedCompleteNodeCode = nextDsNodeCode(reqVO.getProjectCode());
                 if (incrementalConfig != null) {
                     prepareNodeCode = StringUtils.isNotBlank(taskExt.getPrepareNodeCode())
                             ? taskExt.getPrepareNodeCode() : nextDsNodeCode(reqVO.getProjectCode());
                     taskDefinition = TaskConverter.buildIncrementalFlinkxTaskDefinitionJson(
                              taskExt.getPrepareNodeId(), prepareNodeName, prepareNodeCode,
                              taskExt.getPrepareNodeVersion(), taskExt.getEtlNodeId(), nodeName,
-                             nodeCode, taskExt.getEtlNodeVersion(), taskExt.getCompleteNodeId(),
-                             completeNodeName, completeNodeCode, taskExt.getCompleteNodeVersion(),
+                             nodeCode, taskExt.getEtlNodeVersion(),
+                             null, conditionNodeName, conditionNodeCode, 0,
+                             taskExt.getCompleteNodeId(), completeNodeName, completeNodeCode,
+                             taskExt.getCompleteNodeVersion(),
+                             null, failedCompleteNodeName, failedCompleteNodeCode, 0,
                              incrementalCallbackUrl(incrementalPrepareUrl, taskDO.getId()),
-                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId()), reqVO.getDraftJson(),
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 1),
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 0),
+                             reqVO.getDraftJson(),
                              getProjectWorkerGroup(reqVO.getProjectCode()));
                 } else {
                     taskDefinition = TaskConverter.buildFlinkxTaskDefinitionJsonWithCompleteCallback(
                              taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, flinkxJobJson,
+                             null, conditionNodeName, conditionNodeCode, 0,
                              taskExt.getCompleteNodeId(), completeNodeName, completeNodeCode,
                              taskExt.getCompleteNodeVersion(),
-                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId()),
+                             null, failedCompleteNodeName, failedCompleteNodeCode, 0,
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 1),
+                             incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 0),
                              reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
                 }
             } else {
@@ -1714,18 +1737,21 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
             if (incrementalConfig != null) {
                 taskRelation = TaskConverter.buildIncrementalFlinkxTaskRelationJson(
-                        taskExt.getPrepareRelationId(), taskExt.getEtlRelationId(), taskExt.getCompleteRelationId(),
+                        taskExt.getPrepareRelationId(), taskExt.getEtlRelationId(), null, taskExt.getCompleteRelationId(), null,
                          prepareNodeCode, taskExt.getPrepareNodeVersion(),
                          nodeCode, taskExt.getEtlNodeVersion(),
-                         completeNodeCode, taskExt.getCompleteNodeVersion());
+                         conditionNodeCode, 0,
+                         completeNodeCode, taskExt.getCompleteNodeVersion(),
+                         failedCompleteNodeCode, 0);
                 locations = TaskConverter.buildIncrementalFlinkxTaskLocationsJson(
-                        reqVO.getLocations(), prepareNodeCode, nodeCode, completeNodeCode);
+                        reqVO.getLocations(), prepareNodeCode, nodeCode, conditionNodeCode, completeNodeCode, failedCompleteNodeCode);
             } else if (isFlinkx) {
                 taskRelation = TaskConverter.buildFlinkxTaskRelationWithCompleteCallback(
-                        taskExt.getEtlRelationId(), taskExt.getCompleteRelationId(),
-                        nodeCode, nodeVersion, completeNodeCode, taskExt.getCompleteNodeVersion());
+                        taskExt.getEtlRelationId(), (Long) null, taskExt.getCompleteRelationId(), (Long) null,
+                        nodeCode, nodeVersion, conditionNodeCode, 0, completeNodeCode, taskExt.getCompleteNodeVersion(),
+                        failedCompleteNodeCode, 0);
                 locations = TaskConverter.buildFlinkxTaskLocationsWithCompleteCallback(
-                        reqVO.getLocations(), nodeCode, completeNodeCode);
+                        reqVO.getLocations(), nodeCode, conditionNodeCode, completeNodeCode, failedCompleteNodeCode);
             } else {
                 taskRelation = TaskConverter.buildEtlTaskRelationJson(taskExt.getEtlRelationId(), nodeCode, nodeVersion);
                 locations = TaskConverter.buildEtlTaskLocationsJson(reqVO.getLocations(), nodeCode);
@@ -1756,6 +1782,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             fillIncrementalExt(taskExt, incrementalConfig, flinkxJobJson, data,
                     prepareNodeCode, prepareNodeName, completeNodeCode, completeNodeName);
             CollectorEtlTaskExtService.updateById(taskExt);
+            createTaskLogSnapshotIfAbsent(reqVO, data, taskCode, locations, taskDO.getDsId());
         }
 
         //上线DS任务
@@ -2390,9 +2417,13 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         TaskDefinition copiedFlinkxNode = getDsTaskDefinitionByType(copiedDefinition, "CHUNJUN");
         TaskDefinition copiedPrepareNode = getDsPreviousTaskDefinition(copiedDefinition, copiedFlinkxNode.getCode());
         TaskDefinition copiedCompleteNode = findDsNextTaskDefinition(copiedDefinition, copiedFlinkxNode.getCode());
+        String conditionNodeCode = nextDsNodeCode(Long.valueOf(task.getProjectCode()));
+        String conditionNodeName = task.getName() + "-条件分支";
         String completeNodeCode = copiedCompleteNode == null
                 ? nextDsNodeCode(Long.valueOf(task.getProjectCode())) : copiedCompleteNode.getCode();
         String completeNodeName = task.getName() + "-状态回写";
+        String failedCompleteNodeCode = nextDsNodeCode(Long.valueOf(task.getProjectCode()));
+        String failedCompleteNodeName = task.getName() + "-失败状态回写";
 
         DsTaskSaveReqDTO request = new DsTaskSaveReqDTO();
         request.setName(task.getName());
@@ -2402,10 +2433,13 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 copiedPrepareNode.getId(), task.getName() + "-增量边界准备", copiedPrepareNode.getCode(),
                 copiedPrepareNode.getVersion(), copiedFlinkxNode.getId(), copiedFlinkxNode.getName(),
                 copiedFlinkxNode.getCode(), copiedFlinkxNode.getVersion(),
+                null, conditionNodeName, conditionNodeCode, 0,
                 copiedCompleteNode == null ? null : copiedCompleteNode.getId(), completeNodeName,
                 completeNodeCode, copiedCompleteNode == null ? 0 : copiedCompleteNode.getVersion(),
+                null, failedCompleteNodeName, failedCompleteNodeCode, 0,
                 incrementalCallbackUrl(incrementalPrepareUrl, task.getId()),
-                incrementalCallbackUrl(incrementalCompleteUrl, task.getId()),
+                incrementalCallbackUrl(incrementalCompleteUrl, task.getId(), 1),
+                incrementalCallbackUrl(incrementalCompleteUrl, task.getId(), 0),
                 task.getDraftJson(), getProjectWorkerGroup(task.getProjectCode())));
         ProcessTaskRelation prepareRelation = getDsTaskRelation(copiedDefinition, copiedPrepareNode.getCode());
         ProcessTaskRelation flinkxRelation = getDsTaskRelation(copiedDefinition, copiedFlinkxNode.getCode());
@@ -2413,13 +2447,15 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 ? null : getDsTaskRelation(copiedDefinition, copiedCompleteNode.getCode());
         request.setTaskRelationJson(TaskConverter.buildIncrementalFlinkxTaskRelationJson(
                 prepareRelation.getId(), flinkxRelation.getId(),
-                completeRelation == null ? null : completeRelation.getId(),
+                null, completeRelation == null ? null : completeRelation.getId(), null,
                 copiedPrepareNode.getCode(), copiedPrepareNode.getVersion(),
                 copiedFlinkxNode.getCode(), copiedFlinkxNode.getVersion(),
-                completeNodeCode, copiedCompleteNode == null ? 0 : copiedCompleteNode.getVersion()));
+                conditionNodeCode, 0,
+                completeNodeCode, copiedCompleteNode == null ? 0 : copiedCompleteNode.getVersion(),
+                failedCompleteNodeCode, 0));
         List<Map<String, Object>> locations = JSONUtils.convertTaskDefinitionJson(task.getLocations());
         request.setLocations(TaskConverter.buildIncrementalFlinkxTaskLocationsJson(
-                locations, copiedPrepareNode.getCode(), copiedFlinkxNode.getCode(), completeNodeCode));
+                locations, copiedPrepareNode.getCode(), copiedFlinkxNode.getCode(), conditionNodeCode, completeNodeCode, failedCompleteNodeCode));
 
         DsTaskSaveRespDTO response = dsEtlTaskService.updateTask(request, task.getProjectCode(), copiedDefinition.getCode());
         if (response == null || !response.getSuccess() || response.getData() == null) {
@@ -2627,6 +2663,30 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     private String incrementalCallbackUrl(String baseUrl, Long taskId) {
         return baseUrl + "/" + taskId;
+    }
+
+    private String incrementalCallbackUrl(String baseUrl, Long taskId, int status) {
+        return incrementalCallbackUrl(baseUrl, taskId) + "?status=" + status;
+    }
+
+    private void createTaskLogSnapshotIfAbsent(CollectorEtlNewNodeSaveReqVO reqVO, ProcessDefinition data,
+                                               String taskCode, String locations, Long fallbackDsId) {
+        CollectorEtlTaskSaveReqVO taskSaveReqVO = TaskConverter.convertToCollectorEtlTaskSaveReqVO(reqVO, data);
+        Long dsId = data == null ? null : data.getId();
+        if (dsId == null) {
+            dsId = fallbackDsId;
+        }
+        taskSaveReqVO.setCode(taskCode);
+        taskSaveReqVO.setDsId(dsId);
+        taskSaveReqVO.setLocations(locations);
+        CollectorEtlTaskLogSaveReqVO logSaveReqVO = TaskConverter.fromCollectorEtlTaskLogSaveReqVO(reqVO, taskSaveReqVO);
+        logSaveReqVO.setCode(taskCode);
+        logSaveReqVO.setDsId(dsId);
+        logSaveReqVO.setLocations(locations);
+        CollectorEtlTaskLogRespVO existing = getCollectorEtlTaskLogByRequest(logSaveReqVO);
+        if (existing == null || existing.getId() == null) {
+            iCollectorEtlTaskLogService.createCollectorEtlTaskLog(logSaveReqVO);
+        }
     }
 
     private String getProjectWorkerGroup(Long projectCode) {

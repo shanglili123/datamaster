@@ -82,4 +82,8 @@ public interface IAssetsDiscoveryTaskLogService extends IService<AssetsDiscovery
     String importDaDiscoveryTaskLog(List<AssetsDiscoveryTaskLogRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     String getLogInfo(Long id);
+
+    String getLogInfo(Long id, Long dsTaskInstanceId, String path);
+
+    String downloadLog(Long id, Long dsTaskInstanceId, String path);
 }

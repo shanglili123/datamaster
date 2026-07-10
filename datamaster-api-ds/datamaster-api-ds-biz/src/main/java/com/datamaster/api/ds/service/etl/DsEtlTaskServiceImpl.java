@@ -14,6 +14,7 @@ import com.datamaster.api.ds.api.etl.DsTaskSaveRespDTO;
 import com.datamaster.api.ds.api.etl.ds.ProcessDefinition;
 import com.datamaster.api.ds.api.etl.ds.ProcessTaskRelation;
 import com.datamaster.api.ds.api.etl.ds.TaskDefinition;
+import com.datamaster.api.ds.api.etl.ds.TaskInstance;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.httpClient.DsRequestUtils;
 import com.datamaster.common.httpClient.constants.DataMasterDSApiType;
@@ -124,6 +125,89 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
 
         // 调用
         return DsRequestUtils.requestForm(url, apiType.getMethod(), params, DsTaskSaveRespDTO.class);
+    }
+
+    @Override
+    public List<TaskInstance> listTaskInstances(String projectCode, Long processInstanceId) {
+        if (StringUtils.isBlank(projectCode) || processInstanceId == null) {
+            return java.util.Collections.emptyList();
+        }
+        DataMasterDSApiType apiType = DataMasterDSApiType.GET_TASK_INSTANCE_LIST;
+        Map<String, Object> params = new HashMap<>();
+        params.put("pageNo", 1);
+        params.put("pageSize", 100);
+        params.put("workflowInstanceId", processInstanceId);
+        params.put("processInstanceId", processInstanceId);
+        JSONObject response = DsRequestUtils.request(DsRequestUtils.replaceProjectCode(apiType.getUrl(), projectCode),
+                apiType.getMethod(), null, params, JSONObject.class);
+        if (response == null || !(Boolean.TRUE.equals(response.getBoolean("success")) || Integer.valueOf(0).equals(response.getInteger("code")))) {
+            return java.util.Collections.emptyList();
+        }
+        JSONObject data = response.getJSONObject("data");
+        if (data == null) {
+            return java.util.Collections.emptyList();
+        }
+        List<TaskInstance> list = data.getList("totalList", TaskInstance.class);
+        return list == null ? java.util.Collections.emptyList() : list;
+    }
+
+    @Override
+    public String getTaskInstanceLog(Long taskInstanceId) {
+        if (taskInstanceId == null) {
+            return "";
+        }
+        DataMasterDSApiType apiType = DataMasterDSApiType.GET_TASK_INSTANCE_LOG;
+        Map<String, Object> params = new HashMap<>();
+        params.put("taskInstanceId", taskInstanceId);
+        params.put("skipLineNum", 0);
+        params.put("limit", 100000);
+        JSONObject response = DsRequestUtils.request(apiType.getUrl(), apiType.getMethod(), null, params, JSONObject.class);
+        if (response == null || !(Boolean.TRUE.equals(response.getBoolean("success")) || Integer.valueOf(0).equals(response.getInteger("code")))) {
+            return "";
+        }
+        return extractLogContent(response.get("data"));
+    }
+
+    @Override
+    public String downloadTaskInstanceLog(Long taskInstanceId) {
+        if (taskInstanceId == null) {
+            return "";
+        }
+        DataMasterDSApiType apiType = DataMasterDSApiType.DOWNLOAD_TASK_INSTANCE_LOG;
+        Map<String, Object> params = new HashMap<>();
+        params.put("taskInstanceId", taskInstanceId);
+        String body = DsRequestUtils.requestRaw(apiType.getUrl(), apiType.getMethod(), params);
+        if (StringUtils.isBlank(body)) {
+            return "";
+        }
+        String trimBody = StringUtils.trim(body);
+        if (StringUtils.startsWith(trimBody, "{")) {
+            return extractLogContent(JSON.parseObject(trimBody).get("data"));
+        }
+        return body;
+    }
+
+    private String extractLogContent(Object data) {
+        if (data == null) {
+            return "";
+        }
+        if (data instanceof JSONObject) {
+            JSONObject object = (JSONObject) data;
+            String message = object.getString("message");
+            if (StringUtils.isNotBlank(message)) {
+                return message;
+            }
+            String log = object.getString("log");
+            if (StringUtils.isNotBlank(log)) {
+                return log;
+            }
+            String content = object.getString("content");
+            return StringUtils.isBlank(content) ? object.toJSONString() : content;
+        }
+        if (data instanceof JSONArray) {
+            return ((JSONArray) data).toJSONString();
+        }
+        return String.valueOf(data);
     }
 
     private JSONObject buildWorkflowDefinitionParams(DsTaskSaveReqDTO dsTaskSaveReqDTO) {

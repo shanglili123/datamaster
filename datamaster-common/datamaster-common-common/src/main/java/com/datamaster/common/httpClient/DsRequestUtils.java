@@ -107,6 +107,28 @@ public class DsRequestUtils {
         return parseResponse(response, requestUrl, resultClass);
     }
 
+    public static String requestRaw(String url, String method, Map<String, Object> params) {
+        if (params != null && !params.isEmpty()) {
+            String paramsStr = HttpUtil.toParams(params);
+            if (url.indexOf("?") > -1) {
+                url = url + "&" + paramsStr;
+            } else {
+                url = url + "?" + paramsStr;
+            }
+        }
+        String requestUrl = baseUrl + url;
+        HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), requestUrl)
+                .header("token", token)
+                .timeout(timeout);
+        HttpResponse response = request.execute();
+        String body = response.body();
+        if (response.getStatus() < 200 || response.getStatus() >= 300) {
+            throw new ServiceException("DolphinScheduler接口请求失败，状态码：" + response.getStatus()
+                    + "，地址：" + requestUrl + "，响应：" + abbreviate(body));
+        }
+        return body;
+    }
+
     private static <T> T parseResponse(HttpResponse response, String requestUrl, Class<T> resultClass) {
         String body = response.body();
         if (response.getStatus() < 200 || response.getStatus() >= 300) {

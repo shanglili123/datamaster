@@ -22,8 +22,6 @@ import com.datamaster.module.collector.controller.admin.etl.vo.CollectorEtlNodeI
 import com.datamaster.module.collector.dal.dataobject.etl.*;
 import com.datamaster.module.collector.dal.mapper.etl.CollectorEtlNodeInstanceMapper;
 import com.datamaster.module.collector.service.etl.*;
-import com.datamaster.module.collector.utils.TaskConverter;
-import com.datamaster.redis.service.IRedisService;
 import javax.annotation.Resource;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -52,12 +50,6 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Resource
     private ITaxonomyProjectApi attProjectApi;
-
-    @Resource
-    private IRedisService redisService;
-
-    @Resource
-    private ICollectorEtlTaskInstanceLogService CollectorEtlTaskInstanceLogService;
 
     @Resource
     private ICollectorEtlNodeInstanceLogService CollectorEtlNodeInstanceLogService;
@@ -244,79 +236,15 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
     }
 
     @Override
-    public void taskInstanceLogInsert(String taskInstanceId, String processInstanceId, String logStr) {
-        String taskInstanceLogKey = TaskConverter.TASK_INSTANCE_LOG_KEY + taskInstanceId;
-        String processInstanceLogKey = TaskConverter.PROCESS_INSTANCE_LOG_KEY + processInstanceId;
-        //判断当前任务实例是否存在
-        if (processInstanceId == null || StringUtils.equals("null", processInstanceId) || (!redisService.hasKey(processInstanceLogKey) && CollectorEtlTaskInstanceService.count(Wrappers.lambdaQuery(CollectorEtlTaskInstanceDO.class)
-                .eq(CollectorEtlTaskInstanceDO::getId, Long.parseLong(processInstanceId))) == 0)) {
-            return;
-        }
-        String taskInstanceLog = redisService.get(taskInstanceLogKey);
-        String processInstanceLog = redisService.get(processInstanceLogKey);
-        if (taskInstanceLog == null) {
-            taskInstanceLog = "";
-        }
-        if (processInstanceLog == null) {
-            processInstanceLog = "";
-        }
-        taskInstanceLog += logStr + (logStr.matches(".*\r?\n.*") ? "" : "\n");
-        processInstanceLog += logStr + (logStr.matches(".*\r?\n.*") ? "" : "\n");
-        redisService.set(taskInstanceLogKey, taskInstanceLog);
-        redisService.set(processInstanceLogKey, processInstanceLog);
-
-        //判断会话是否结束
-        if (StringUtils.indexOf(logStr, "FINALIZE_SESSION") > -1) {
-            //判断当前任务实例是否结束
-            CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = CollectorEtlTaskInstanceService.getById(Long.parseLong(processInstanceId));
-            //判断状态  5：停止 6：失败 7：成功
-            if (CollectorEtlTaskInstanceDO != null && Arrays.asList("5", "6", "7").contains(CollectorEtlTaskInstanceDO.getStatus())) {
-                //写入日志
-                redisService.delete(processInstanceLogKey);
-                //判断是否是数据集成
-                if (StringUtils.equals("1", CollectorEtlTaskInstanceDO.getTaskType())) {
-                    //写入日志
-                    CollectorEtlTaskInstanceLogService.saveOrUpdate(CollectorEtlTaskInstanceLogDO.builder()
-                            .taskInstanceId(CollectorEtlTaskInstanceDO.getId())
-                            .tm(new Date())
-                            .taskType(CollectorEtlTaskInstanceDO.getTaskType())
-                            .taskId(CollectorEtlTaskInstanceDO.getTaskId())
-                            .taskCode(CollectorEtlTaskInstanceDO.getTaskCode())
-                            .logContent(processInstanceLog)
-                            .build());
-                }
-            }
-
-            //获取当前节点实例
-            CollectorEtlNodeInstanceDO CollectorEtlNodeInstanceDO = this.getById(Long.parseLong(taskInstanceId));
-            //写入日志,5分钟过期用于兼容节点状态未改变时可以正常查询日志
-            redisService.delete(taskInstanceLogKey);
-            redisService.set(taskInstanceLogKey, taskInstanceLog, 60 * 5);
-            CollectorEtlNodeInstanceLogService.save(CollectorEtlNodeInstanceLogDO.builder()
-                    .nodeInstanceId(CollectorEtlNodeInstanceDO.getId())
-                    .tm(new Date())
-                    .taskType(CollectorEtlNodeInstanceDO.getTaskType())
-                    .nodeId(CollectorEtlNodeInstanceDO.getNodeId())
-                    .nodeCode(CollectorEtlNodeInstanceDO.getNodeCode())
-                    .taskInstanceId(CollectorEtlNodeInstanceDO.getTaskInstanceId())
-                    .logContent(taskInstanceLog)
-                    .build());
-        }
-    }
-
-    @Override
     public String getLogByNodeInstanceId(Long nodeInstanceId) {
         CollectorEtlNodeInstanceDO CollectorEtlNodeInstanceDO = this.getCollectorEtlNodeInstanceById(nodeInstanceId);
         String content = "";
-        String processInstanceLogKey = TaskConverter.PROCESS_INSTANCE_LOG_KEY + CollectorEtlNodeInstanceDO.getId();
-        if (redisService.hasKey(processInstanceLogKey)) {
-            content += redisService.get(processInstanceLogKey) + "\n";
-        } else {
-            //获取表中的日志
-            String logContent = CollectorEtlNodeInstanceLogService.getLog(CollectorEtlNodeInstanceDO.getId());
-            if (logContent != null) {
-                content += logContent + "\n";
-            }
+        if (CollectorEtlNodeInstanceDO == null) {
+            return content;
+        }
+        String logContent = CollectorEtlNodeInstanceLogService.getLog(CollectorEtlNodeInstanceDO.getId());
+        if (logContent != null) {
+            content += logContent + "\n";
         }
         return content;
     }

@@ -2,7 +2,6 @@
 
 package com.datamaster.module.collector.service.etl.impl;
 
-import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -13,11 +12,14 @@ import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.datamaster.api.ds.api.base.DsStatusRespDTO;
 import com.datamaster.api.ds.api.etl.DSExecuteDTO;
 import com.datamaster.api.ds.api.etl.ds.ProcessInstance;
+import com.datamaster.api.ds.api.etl.ds.TaskInstance;
 import com.datamaster.api.ds.api.service.etl.IDsEtlExecutorService;
+import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.enums.ExecuteType;
@@ -36,13 +38,12 @@ import com.datamaster.module.collector.api.etl.dto.CollectorEtlTaskRespDTO;
 import com.datamaster.module.collector.api.service.etl.CollectorEtlTaskInstanceService;
 import com.datamaster.module.collector.controller.admin.etl.vo.*;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeInstanceDO;
+import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeInstanceLogDO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeLogDO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskDO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskInstanceDO;
 import com.datamaster.module.collector.dal.mapper.etl.CollectorEtlTaskInstanceMapper;
 import com.datamaster.module.collector.service.etl.*;
-import com.datamaster.module.collector.utils.TaskConverter;
-import com.datamaster.redis.service.IRedisService;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -75,13 +76,12 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Resource
     private IDsEtlExecutorService dsEtlExecutorService;
+    @Resource
+    private IDsEtlTaskService dsEtlTaskService;
 
     @Resource
     private ICollectorEtlNodeInstanceService CollectorEtlTNodeInstanceService;
 
-
-    @Resource
-    private IRedisService redisService;
 
     @Resource
     private ICollectorEtlTaskInstanceLogService CollectorEtlTaskInstanceLogService;
@@ -287,7 +287,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     @Override
     public Boolean updateTaskInstance(ProcessInstance processInstance) {
         log.info(JSONObject.toJSONString(processInstance));
-        CollectorEtlTaskInstanceDO old = this.getById(processInstance.getId());
+        CollectorEtlTaskInstanceDO old = this.getByDsId(processInstance.getId());
         if (old == null) {
             return true;
         }
@@ -325,8 +325,12 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     }
 
     private void triggerOpsIfFinished(ProcessInstance processInstance, CollectorEtlTaskInstanceDO instance) {
+        log.info("triggerOpsIfFinished: 开始调用，processInstanceId={}, state={}", 
+            processInstance != null ? processInstance.getId() : "null",
+            processInstance != null && processInstance.getState() != null ? processInstance.getState() : "null");
         try {
             collectorEtlTaskOpsService.handleProcessInstanceFinished(processInstance, instance);
+            log.info("triggerOpsIfFinished: 调用完成");
         } catch (Exception e) {
             log.warn("任务运维托管处理异常，processInstanceId={}",
                     processInstance == null ? null : processInstance.getId(), e);
@@ -430,67 +434,131 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     }
 
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public CollectorEtlTaskInstanceLogStatusRespDTO getLogByTaskInstanceId(Long taskInstanceId) {
         String log = "";
         CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = this.getById(taskInstanceId);
-        //获取任务信息
-        CollectorEtlTaskLogRespVO CollectorEtlTaskLogRespVO = CollectorEtlTaskLogService.getCollectorEtlTaskLogById(CollectorEtlTaskLogPageReqVO.builder()
-                .code(CollectorEtlTaskInstanceDO.getTaskCode())
-                .version(CollectorEtlTaskInstanceDO.getTaskVersion())
-                .build());
-        if (CollectorEtlTaskLogRespVO == null) {
-            throw new RuntimeException("任务不存在");
+        if (CollectorEtlTaskInstanceDO == null) {
+            throw new RuntimeException("任务实例不存在");
         }
-        //获取节点关系数据
-        JSONArray locations = JSONArray.parse(CollectorEtlTaskLogRespVO.getLocations());
         //获取节点数据
         List<CollectorEtlNodeInstanceDO> CollectorEtlNodeInstanceDOList = CollectorEtlTNodeInstanceService.list(Wrappers.lambdaQuery(CollectorEtlNodeInstanceDO.class)
                 .select(CollectorEtlNodeInstanceDO::getId,
+                        CollectorEtlNodeInstanceDO::getDsId,
                         CollectorEtlNodeInstanceDO::getNodeCode,
                         CollectorEtlNodeInstanceDO::getName,
                         CollectorEtlNodeInstanceDO::getStatus)
                 .eq(CollectorEtlNodeInstanceDO::getTaskInstanceId, taskInstanceId));
-
-        String processInstanceLogKey = TaskConverter.PROCESS_INSTANCE_LOG_KEY + taskInstanceId;
-        if (StringUtils.equals("1", CollectorEtlTaskInstanceDO.getTaskType())) {//判断是否是离线任务
-            if (redisService.hasKey(processInstanceLogKey)) {
-                log = redisService.get(processInstanceLogKey);
-            } else {
-                //获取表中的日志
-                String logContent = CollectorEtlTaskInstanceLogService.getLog(taskInstanceId);
-                if (logContent != null) {
-                    log = logContent;
-                }
-            }
-        } else {
-            Map<String, CollectorEtlNodeInstanceDO> nodeInstanceMap = CollectorEtlNodeInstanceDOList.stream().collect(Collectors.toMap(key -> key.getNodeCode(), value -> value));
-
-            for (int i = 0; i < locations.size(); i++) {
-                JSONObject location = (JSONObject) locations.get(i);
-                String code = String.valueOf(location.getLong("taskCode"));
-                CollectorEtlNodeInstanceDO CollectorEtlNodeInstanceDO = nodeInstanceMap.get(code);
-
-                if (CollectorEtlNodeInstanceDO != null) {
-                    String taskInstanceLogKey = TaskConverter.TASK_INSTANCE_LOG_KEY + CollectorEtlNodeInstanceDO.getId();
-                    if (redisService.hasKey(taskInstanceLogKey)) {
-                        log += redisService.get(taskInstanceLogKey) + "\n";
-                    } else {
-                        //获取表中的日志
-                        String logContent = CollectorEtlNodeInstanceLogService.getLog(CollectorEtlNodeInstanceDO.getId());
-                        if (logContent != null) {
-                            log += logContent + "\n";
-                        }
-                    }
-                }
-            }
+        log = collectDsLogs(CollectorEtlTaskInstanceDO, CollectorEtlNodeInstanceDOList, false);
+        if (StringUtils.isBlank(log)) {
+            log = collectNodeLogs(taskInstanceId, CollectorEtlNodeInstanceDOList);
         }
-
 
         return CollectorEtlTaskInstanceLogStatusRespDTO.builder()
                 .log(log)
                 .status(CollectorEtlTaskInstanceDO.getStatus())
                 .nodeInstanceList(BeanUtils.toBean(CollectorEtlNodeInstanceDOList, CollectorEtlNodeInstanceRespDTO.class))
                 .build();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public String downloadLogByTaskInstanceId(Long taskInstanceId) {
+        CollectorEtlTaskInstanceDO taskInstance = this.getById(taskInstanceId);
+        if (taskInstance == null) {
+            throw new RuntimeException("任务实例不存在");
+        }
+        List<CollectorEtlNodeInstanceDO> nodeInstances = CollectorEtlTNodeInstanceService.list(
+                Wrappers.lambdaQuery(CollectorEtlNodeInstanceDO.class)
+                        .select(CollectorEtlNodeInstanceDO::getId,
+                                CollectorEtlNodeInstanceDO::getDsId,
+                                CollectorEtlNodeInstanceDO::getName,
+                                CollectorEtlNodeInstanceDO::getNodeCode)
+                        .eq(CollectorEtlNodeInstanceDO::getTaskInstanceId, taskInstanceId));
+        String log = collectDsLogs(taskInstance, nodeInstances, true);
+        if (StringUtils.isBlank(log)) {
+            log = collectNodeLogs(taskInstanceId, nodeInstances);
+        }
+        return log;
+    }
+
+    private String collectDsLogs(CollectorEtlTaskInstanceDO taskInstance, List<CollectorEtlNodeInstanceDO> nodeInstanceList, boolean download) {
+        List<Long> dsTaskInstanceIds = resolveDsTaskInstanceIds(taskInstance, nodeInstanceList);
+        if (dsTaskInstanceIds.isEmpty()) {
+            return "";
+        }
+        StringBuilder content = new StringBuilder();
+        for (Long dsTaskInstanceId : dsTaskInstanceIds) {
+            try {
+                String nodeLog = download
+                        ? dsEtlTaskService.downloadTaskInstanceLog(dsTaskInstanceId)
+                        : dsEtlTaskService.getTaskInstanceLog(dsTaskInstanceId);
+                if (StringUtils.isNotBlank(nodeLog)) {
+                    if (content.length() > 0) {
+                        content.append('\n');
+                    }
+                    content.append(nodeLog);
+                }
+            } catch (Exception e) {
+                log.warn("读取DolphinScheduler任务实例日志失败，dsTaskInstanceId={}", dsTaskInstanceId, e);
+            }
+        }
+        return content.toString();
+    }
+
+    private List<Long> resolveDsTaskInstanceIds(CollectorEtlTaskInstanceDO taskInstance, List<CollectorEtlNodeInstanceDO> nodeInstanceList) {
+        List<Long> ids = new ArrayList<>();
+        if (nodeInstanceList != null) {
+            ids.addAll(nodeInstanceList.stream()
+                    .map(CollectorEtlNodeInstanceDO::getDsId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList()));
+        }
+        if (!ids.isEmpty() || taskInstance == null || StringUtils.isBlank(taskInstance.getProjectCode())) {
+            return ids;
+        }
+        Long dsProcessInstanceId = taskInstance.getDsId() == null ? taskInstance.getId() : taskInstance.getDsId();
+        List<TaskInstance> dsTaskInstances = dsEtlTaskService.listTaskInstances(taskInstance.getProjectCode(), dsProcessInstanceId);
+        if (dsTaskInstances == null || dsTaskInstances.isEmpty()) {
+            return ids;
+        }
+        return dsTaskInstances.stream()
+                .map(TaskInstance::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private String collectNodeLogs(Long taskInstanceId, List<CollectorEtlNodeInstanceDO> nodeInstanceList) {
+        StringBuilder content = new StringBuilder();
+        if (nodeInstanceList != null && !nodeInstanceList.isEmpty()) {
+            for (CollectorEtlNodeInstanceDO nodeInstance : nodeInstanceList) {
+                String nodeLog = getNodeLog(nodeInstance);
+                if (StringUtils.isNotBlank(nodeLog)) {
+                    content.append(nodeLog).append('\n');
+                }
+            }
+            return content.toString();
+        }
+        List<CollectorEtlNodeInstanceLogDO> logs = CollectorEtlNodeInstanceLogService.list(
+                Wrappers.lambdaQuery(CollectorEtlNodeInstanceLogDO.class)
+                        .eq(CollectorEtlNodeInstanceLogDO::getTaskInstanceId, taskInstanceId)
+                        .orderByAsc(CollectorEtlNodeInstanceLogDO::getTm));
+        if (logs == null || logs.isEmpty()) {
+            return "";
+        }
+        return logs.stream()
+                .map(CollectorEtlNodeInstanceLogDO::getLogContent)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String getNodeLog(CollectorEtlNodeInstanceDO nodeInstance) {
+        if (nodeInstance == null || nodeInstance.getId() == null) {
+            return null;
+        }
+        return CollectorEtlNodeInstanceLogService.getLog(nodeInstance.getId());
     }
 
     @Override
