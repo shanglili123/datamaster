@@ -8,6 +8,23 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column width="110" label="执行类型" align="left" prop="taskType">
+        <template #default="scope">
+          {{ taskTypeLabel(scope.row.taskType) }}
+        </template>
+      </el-table-column>
+      <el-table-column width="110" label="执行状态" align="left" prop="instanceStatus">
+        <template #default="scope">
+          <el-tag
+            v-if="scope.row.instanceStatus"
+            :type="taskInstanceStatusType(scope.row.instanceStatus)"
+            size="small"
+          >
+            {{ taskInstanceStatusLabel(scope.row.instanceStatus) }}
+          </el-tag>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column width="120" label="失败类型" align="left" prop="failureType">
         <template #default="scope">
           {{ scope.row.failureType || '-' }}
@@ -75,6 +92,38 @@ function actionLabel(action) {
     WAIT_MANUAL_RECOVER: "等待人工恢复",
   };
   return map[action] || action || "-";
+}
+
+function taskTypeLabel(taskType) {
+  const map = {
+    1: "数据集成",
+    3: "数据开发",
+    4: "作业任务",
+  };
+  return map[String(taskType)] || taskType || "-";
+}
+
+const taskInstanceStatusMap = {
+  0: { label: "提交成功", type: "info" },
+  1: { label: "运行中", type: "primary" },
+  2: { label: "准备暂停", type: "warning" },
+  3: { label: "暂停", type: "warning" },
+  4: { label: "准备停止", type: "warning" },
+  5: { label: "停止", type: "info" },
+  6: { label: "失败", type: "danger" },
+  7: { label: "成功", type: "success" },
+  8: { label: "需要容错", type: "warning" },
+  9: { label: "已杀死", type: "danger" },
+  10: { label: "等待线程", type: "info" },
+  11: { label: "等待依赖", type: "info" },
+};
+
+function taskInstanceStatusLabel(status) {
+  return taskInstanceStatusMap[String(status)]?.label || status || "-";
+}
+
+function taskInstanceStatusType(status) {
+  return taskInstanceStatusMap[String(status)]?.type || "info";
 }
 
 async function getList() {

@@ -115,6 +115,10 @@ public class CollectorEtlTaskDO extends BaseEntity {
     @TableField(exist = false)
     private Date lastExecuteTime;
 
+    /** 最后执行状态 */
+    @TableField(exist = false)
+    private String lastExecuteStatus;
+
     @Schema(description = "草稿任务配置信息", example = "")
     private String draftJson;
 }

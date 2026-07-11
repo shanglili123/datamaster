@@ -329,6 +329,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <skip>${etl.shade.skip}</skip>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>

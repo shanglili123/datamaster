@@ -207,6 +207,8 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
         this.validFlag = CollectorEtlTaskDO.getValidFlag();
         this.delFlag = CollectorEtlTaskDO.getDelFlag();
         this.draftJson = CollectorEtlTaskDO.getDraftJson();
+        this.lastExecuteTime = CollectorEtlTaskDO.getLastExecuteTime();
+        this.lastExecuteStatus = CollectorEtlTaskDO.getLastExecuteStatus();
         this.createBy = CollectorEtlTaskDO.getCreateBy();
         this.creatorId = CollectorEtlTaskDO.getCreatorId();
         this.createTime = CollectorEtlTaskDO.getCreateTime();

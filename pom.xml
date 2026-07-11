@@ -43,6 +43,10 @@
         <docker.build.skip>true</docker.build.skip>
         <!-- 是否跳过镜像推送（默认跳过，避免误将测试镜像推送至镜像仓库） -->
         <docker.push.skip>true</docker.push.skip>
+        <!-- 本地快速打包开关：默认不跳过，使用 -Pfast-package 时开启 -->
+        <etl.shade.skip>false</etl.shade.skip>
+        <quality.shade.skip>false</quality.shade.skip>
+        <quality.repackage.skip>false</quality.repackage.skip>
     </properties>
     <!-- 依赖声明 -->
     <dependencyManagement>
@@ -227,6 +231,16 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>fast-package</id>
+            <properties>
+                <etl.shade.skip>true</etl.shade.skip>
+                <quality.shade.skip>true</quality.shade.skip>
+                <quality.repackage.skip>true</quality.repackage.skip>
+            </properties>
+        </profile>
+    </profiles>
     <repositories>
         <repository>
             <id>aliyun-public</id>

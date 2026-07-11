@@ -174,7 +174,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             SELECT rel.TASK_ID
             FROM COL_ETL_TASK_NODE_REL rel
                      JOIN COL_ETL_NODE node
-                          ON (node.CODE = rel.PRE_NODE_CODE OR node.CODE = rel.POST_NODE_CODE)
+                          ON (node.CODE = CAST(rel.PRE_NODE_CODE AS varchar) OR node.CODE = CAST(rel.POST_NODE_CODE AS varchar))
             WHERE
                 <choose>
                     <when test="@com.datamaster.mybatis.config.MasterDataSourceConfig@getDatabaseType() == 'mysql'">
@@ -216,7 +216,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             SELECT rel.TASK_ID
             FROM COL_ETL_TASK_NODE_REL rel
                      JOIN COL_ETL_NODE node
-                          ON (node.CODE = rel.PRE_NODE_CODE OR node.CODE = rel.POST_NODE_CODE)
+                          ON (node.CODE = CAST(rel.PRE_NODE_CODE AS varchar) OR node.CODE = CAST(rel.POST_NODE_CODE AS varchar))
             WHERE
                 <choose>
                     <when test="@com.datamaster.mybatis.config.MasterDataSourceConfig@getDatabaseType() == 'mysql'">
@@ -248,7 +248,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                 SELECT rel.TASK_ID
                 FROM COL_ETL_TASK_NODE_REL rel
                     JOIN COL_ETL_NODE node
-                        ON (node.CODE = rel.PRE_NODE_CODE OR node.CODE = rel.POST_NODE_CODE)
+                        ON (node.CODE = CAST(rel.PRE_NODE_CODE AS varchar) OR node.CODE = CAST(rel.POST_NODE_CODE AS varchar))
                 WHERE
                 <choose>
                     <when test="@com.datamaster.mybatis.config.MasterDataSourceConfig@getDatabaseType() == 'mysql'">

@@ -99,6 +99,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <skip>${quality.shade.skip}</skip>
                             <artifactSet>
                                 <includes>
                                     <include>com.datamaster:*:*</include>
@@ -156,6 +157,7 @@
                 <version>2.5.15</version>
                 <configuration>
                     <fork>true</fork>
+                    <skip>${quality.repackage.skip}</skip>
                     <excludeGroupIds>com.datamaster</excludeGroupIds>
                     <classifier>exec</classifier>
                 </configuration>

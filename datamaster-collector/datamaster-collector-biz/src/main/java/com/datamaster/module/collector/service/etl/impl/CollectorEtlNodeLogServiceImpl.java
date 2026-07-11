@@ -206,9 +206,14 @@ public class CollectorEtlNodeLogServiceImpl extends ServiceImpl<CollectorEtlNode
 
     @Override
     public List<CollectorEtlNodeLogDO> listByTaskCode(String taskCode, Integer version) {
+        if (StringUtils.isEmpty(taskCode) || version == null) {
+            return new ArrayList<>();
+        }
         MPJLambdaWrapper<CollectorEtlNodeLogDO> wrapper = new MPJLambdaWrapper<>();
         wrapper.selectAll(CollectorEtlNodeLogDO.class)
-                .innerJoin("COL_ETL_TASK_NODE_REL_LOG t2 ON ((t.CODE = t2.PRE_NODE_CODE AND t.VERSION = t2.PRE_NODE_VERSION) OR (t.CODE = t2.POST_NODE_CODE AND t.VERSION = t2.POST_NODE_VERSION)) AND t2.DEL_FLAG = '0' AND t2.TASK_CODE =" + taskCode + " AND  t2.TASK_VERSION  =" + version)
+                .innerJoin("COL_ETL_TASK_NODE_REL_LOG t2 ON ((t.CODE = CAST(t2.PRE_NODE_CODE AS varchar) AND t.VERSION = t2.PRE_NODE_VERSION) OR (t.CODE = CAST(t2.POST_NODE_CODE AS varchar) AND t.VERSION = t2.POST_NODE_VERSION)) AND t2.DEL_FLAG = '0'")
+                .apply("CAST(t2.TASK_CODE AS varchar) = {0}", taskCode)
+                .apply("t2.TASK_VERSION = {0}", version)
                 .distinct();
         List<CollectorEtlNodeLogDO> CollectorEtlTaskNodeRelDOS = CollectorEtlNodeLogMapper.selectList(wrapper);
         return CollectorEtlTaskNodeRelDOS;

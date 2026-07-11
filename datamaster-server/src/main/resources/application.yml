@@ -55,7 +55,7 @@ spring:
       max-request-size: 3000MB
   devtools:
     restart:
-      enabled: true
+      enabled: false
 
 token:
   header: Authorization

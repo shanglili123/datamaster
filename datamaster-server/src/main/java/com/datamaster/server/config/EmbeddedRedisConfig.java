@@ -12,7 +12,6 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 嵌入式 Redis实例配置，解决本地卡顿的问题
@@ -28,9 +27,12 @@ public class EmbeddedRedisConfig {
     @Value("${spring.profiles.active}")
     private String active;
 
+    @Value("${datamaster.embedded-redis.enabled:false}")
+    private boolean enabled;
+
     @PostConstruct
     public void startRedis() throws IOException, InterruptedException {
-        if ("dev".equals(active)) {
+        if ("dev".equals(active) && enabled) {
             int redisPort = 12138;
             if (isPortAvailable(redisPort)) {
                 redisServer = new RedisServer(redisPort);
@@ -40,16 +42,6 @@ public class EmbeddedRedisConfig {
                 log.info("| 注意: 仅供测试使用，生产环境误用！！！           |");
                 log.info("| 注意: 本地嵌入式 Redis Server 正在启动...         |");
                 log.info("-------------------------------------------------");
-
-                // 启动Redis服务器前的等待动画
-                String[] frames = new String[]{"-", "\\", "|", "/"};
-                for (int i = 0; i < 12; i++) {
-                    for (String frame : frames) {
-                        System.out.print("\r" + frame + " 启动中... 仅供开发和测试使用，请勿用于生产环境！");
-                        System.out.flush();
-                        TimeUnit.MILLISECONDS.sleep(50);
-                    }
-                }
 
                 // 实际启动Redis服务器。开发环境下可能因为热重启留下上一次的 embedded Redis 进程，
                 // 如果端口已经被占用，跳过即可，让应用继续使用当前端口上的 Redis。

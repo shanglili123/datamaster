@@ -111,15 +111,16 @@
               <div class="flex-column fz14 last-execute-col">
                 <template v-if="row.lastExecuteTime">
                   <div class="mb5">
-                    <dict-tag
+                    <el-tag
                       v-if="
                         row.lastExecuteStatus !== null &&
                         row.lastExecuteStatus !== undefined &&
                         row.lastExecuteStatus !== ''
                       "
-                      :options="dpp_etl_task_instance"
-                      :value="row.lastExecuteStatus"
-                    />
+                      :type="taskInstanceStatusType(row.lastExecuteStatus)"
+                    >
+                      {{ taskInstanceStatusLabel(row.lastExecuteStatus) }}
+                    </el-tag>
                     <span v-else>-</span>
                   </div>
                   <span>
@@ -397,13 +398,11 @@ const api = {
 const {
   dpp_etl_task_status,
   col_etl_task_execution_type,
-  dpp_etl_task_instance,
   datasource_type,
   col_etl_task_process_type,
 } = proxy.useDict(
   "dpp_etl_task_status",
   "col_etl_task_execution_type",
-  "dpp_etl_task_instance",
   "datasource_type",
   "col_etl_task_process_type"
 );
@@ -698,6 +697,29 @@ const handleExecuteStop = async (row) => {
     }, 2000);
   }
 };
+
+const taskInstanceStatusMap = {
+  0: { label: "提交成功", type: "info" },
+  1: { label: "运行中", type: "primary" },
+  2: { label: "准备暂停", type: "warning" },
+  3: { label: "暂停", type: "warning" },
+  4: { label: "准备停止", type: "warning" },
+  5: { label: "停止", type: "info" },
+  6: { label: "失败", type: "danger" },
+  7: { label: "成功", type: "success" },
+  8: { label: "需要容错", type: "warning" },
+  9: { label: "已杀死", type: "danger" },
+  10: { label: "等待线程", type: "info" },
+  11: { label: "等待依赖", type: "info" },
+};
+
+function taskInstanceStatusLabel(status) {
+  return taskInstanceStatusMap[String(status)]?.label || status || "-";
+}
+
+function taskInstanceStatusType(status) {
+  return taskInstanceStatusMap[String(status)]?.type || "info";
+}
 
 async function handleOpsPolicy(row) {
   opsTask.value = row || {};

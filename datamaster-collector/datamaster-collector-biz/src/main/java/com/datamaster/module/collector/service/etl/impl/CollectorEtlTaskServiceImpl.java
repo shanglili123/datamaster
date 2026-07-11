@@ -705,6 +705,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (CollectorEtlTaskDO == null) {
             throw new ServiceException("数据集成任务不存在，ID: " + id);
         }
+        fillLastExecuteInfo(CollectorEtlTaskDO);
         CollectorEtlTaskRespVO bean = BeanUtils.toBean(CollectorEtlTaskDO, CollectorEtlTaskRespVO.class);
 
         List<CollectorEtlTaskNodeRelRespVO> CollectorEtlTaskNodeRelRespVOList = this.getTaskNodeRelList(bean);
@@ -796,6 +797,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (nameHolder != null) {
             collectorEtlTaskDO.setPersonChargeName(nameHolder.getPersonChargeName());
         }
+        fillLastExecuteInfo(collectorEtlTaskDO);
         List<CollectorEtlTaskNodeRelRespVO> CollectorEtlTaskNodeRelRespVOList = this.getTaskNodeRelList(BeanUtils.toBean(collectorEtlTaskDO, CollectorEtlTaskRespVO.class));
 
         CollectorEtlTaskUpdateQueryRespVO bean = new CollectorEtlTaskUpdateQueryRespVO(collectorEtlTaskDO);
@@ -811,12 +813,6 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         bean.setCrontab(CollectorEtlSchedulerById.getCronExpression());
         bean.setSchedulerState(CollectorEtlSchedulerById.getStatus());
 
-        //获取最后一次执行的实例
-        CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = CollectorEtlTaskInstanceService.getLastTaskInstanceByTaskCode(bean.getCode());
-        if (CollectorEtlTaskInstanceDO != null) {
-            bean.setLastExecuteTime(CollectorEtlTaskInstanceDO.getStartTime());
-            bean.setLastExecuteStatus(CollectorEtlTaskInstanceDO.getStatus());
-        }
         List<CollectorEtlNodeRespVO> etlNodeLogRespVOList = this.getNodeRespListByTaskNodeRelList(CollectorEtlTaskNodeRelRespVOList);
         if (etlNodeLogRespVOList.size() > 0) {
             for (CollectorEtlNodeRespVO CollectorEtlNodeRespVO : etlNodeLogRespVOList) {
@@ -857,6 +853,26 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         bean.setTaskDefinitionList(removeDuplicateById(etlNodeLogRespVOList, type));
         bean.createTaskConfig();
         return bean;
+    }
+
+    private void fillLastExecuteInfo(CollectorEtlTaskDO taskDO) {
+        if (taskDO == null || taskDO.getId() == null) {
+            return;
+        }
+        List<CollectorEtlTaskInstanceDO> instances = CollectorEtlTaskInstanceService.list(
+                Wrappers.lambdaQuery(CollectorEtlTaskInstanceDO.class)
+                        .eq(CollectorEtlTaskInstanceDO::getTaskId, taskDO.getId())
+                        .orderByDesc(CollectorEtlTaskInstanceDO::getCreateTime)
+                        .last("LIMIT 1"));
+        if (CollectionUtils.isEmpty(instances)) {
+            return;
+        }
+        CollectorEtlTaskInstanceDO instance = instances.get(0);
+        Date lastExecuteTime = instance.getEndTime() != null
+                ? instance.getEndTime()
+                : (instance.getStartTime() != null ? instance.getStartTime() : instance.getCreateTime());
+        taskDO.setLastExecuteTime(lastExecuteTime);
+        taskDO.setLastExecuteStatus(instance.getStatus());
     }
 
 

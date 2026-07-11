@@ -1,6 +1,10 @@
 datasource:
   type: PostgreSQL
 
+datamaster:
+  embedded-redis:
+    enabled: false
+
 spring:
   redis:
     host: 192.168.93.174
@@ -22,8 +26,8 @@ spring:
         loginPassword: 123456
     dynamic:
       druid:
-        initial-size: 5
-        min-idle: 5
+        initial-size: 1
+        min-idle: 1
         maxActive: 20
         maxWait: 60000
         connectTimeout: 30000
