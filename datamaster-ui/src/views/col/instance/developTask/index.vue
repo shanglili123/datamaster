@@ -8,18 +8,14 @@
         <div class="pagecont-top" v-show="showSearch">
           <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="100px"
             v-show="showSearch" @submit.prevent>
-            <el-form-item label="节点实例名称" prop="name">
-              <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入节点实例名称" clearable
+            <el-form-item label="任务实例名称" prop="name">
+              <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入任务实例名称" clearable
                 @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="任务名称" prop="taskInstanceName">
-              <el-input class="el-form-input-width" v-model="queryParams.taskInstanceName" placeholder="请输入任务名称"
-                clearable @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="执行状态" prop="status">
               <el-select v-model="queryParams.status" placeholder="请选择执行状态" clearable class="el-form-input-width">
-                <el-option v-for="dict in dpp_etl_node_instance" :key="dict.value" :label="dict.label"
-                  :value="dict.value" />
+                <el-option v-for="item in taskInstanceStatusOptions" :key="item.value" :label="item.label"
+                  :value="item.value" />
               </el-select>
             </el-form-item>
             <el-form-item label="执行时间" prop="time">
@@ -44,31 +40,29 @@
               <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
             </div>
           </div>
-          <el-table stripe height="500px" v-loading="loading" :data="dppEtlTaskLogList"
+          <el-table stripe v-loading="loading" :data="dppEtlTaskLogList"
             @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
             <el-table-column v-if="getColumnVisibility(0)" width="150" label="编号" align="left" prop="id" />
-            <el-table-column v-if="getColumnVisibility(1)" :show-overflow-tooltip="{ effect: 'light' }" label="节点实例名称"
-              align="left" prop="name" width="300">
+            <el-table-column v-if="getColumnVisibility(1)" :show-overflow-tooltip="{ effect: 'light' }" label="任务实例名称"
+              align="left" prop="name" width="200">
               <template #default="scope">
                 {{ scope.row.name || "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(2)" :show-overflow-tooltip="{ effect: 'light' }" label="任务名称"
-              align="left" prop="taskInstanceName" width="400">
-              <template #default="scope">
-                {{ scope.row.taskInstanceName || "-" }}
               </template>
             </el-table-column>
 
             <el-table-column v-if="getColumnVisibility(3)" label="执行类型" width="120"
               :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="commandType">
               <template #default="scope">
-                <dict-tag :options="dpp_etl_task_instance_command_type" :value="scope.row.commandType" />
+                {{ commandTypeLabel(scope.row.commandType) }}
               </template>
             </el-table-column>
             <el-table-column v-if="getColumnVisibility(4)" width="100" label="执行状态" align="left" prop="status">
               <template #default="scope">
-                <dict-tag :options="dpp_etl_node_instance" :value="scope.row.status.trim()" />
+                <el-tag v-if="scope.row.status !== null && scope.row.status !== undefined && scope.row.status !== ''"
+                  :type="taskInstanceStatusType(scope.row.status)" size="small">
+                  {{ taskInstanceStatusLabel(scope.row.status) }}
+                </el-tag>
+                <span v-else>-</span>
               </template>
             </el-table-column>
             <el-table-column v-if="getColumnVisibility(5)" width="160" label="开始时间" align="left" prop="startTime"
@@ -129,7 +123,7 @@
                 }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="200">
+            <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="160">
               <template #default="scope">
                 <el-button link type="primary" icon="View" @click="logDetailCatList(scope.row)">查看日志</el-button>
                 <el-button link type="warning" icon="Download" @click="handleExport(scope.row)"
@@ -148,49 +142,79 @@
           </el-table>
           <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
-
-          <el-dialog title="查看日志" v-model="open" width="1200px" :append-to="$refs['app-container']" draggable
-            destroy-on-close>
-            <div v-html="formattedText"></div>
-            <template #footer>
-              <div class="dialog-footer">
-                <el-button @click="cancel">关 闭</el-button>
-              </div>
-            </template>
-          </el-dialog>
         </div>
       </el-main>
     </el-container>
+    <TaskLogDialog ref="logDialogRef" />
   </div>
 </template>
 
 <script setup name="Develop">
 import { defineEmits, defineProps } from "vue";
 import { listAttDataDevCat } from "@/api/tax/cat/dataDevCat/dataDevCat";
-import {
-  listDppEtlNodeInstance,
-  getDppEtlNodeInstance,
-  delDppEtlNodeInstance,
-  addDppEtlNodeInstance,
-  updateDppEtlNodeInstance,
-  logDetailCat,
-} from "@/api/col/instance/integratio";
-import { getToken } from "@/utils/auth.js";
+import TaskLogDialog from "@/views/col/components/taskLog.vue";
+import { listDppEtlTaskInstance } from "@/api/col/instance/job";
 import useUserStore from "@/store/system/user";
 const { proxy } = getCurrentInstance();
 import DeptTree from "@/components/DeptTree/index.vue";
 let activeName = ref("first");
-const { dpp_etl_node_instance } = proxy.useDict("dpp_etl_node_instance");
-const { dpp_etl_node_type, dpp_etl_task_instance_command_type } = proxy.useDict(
-  "dpp_etl_node_type",
-  "dpp_etl_task_instance_command_type"
-);
 const dppEtlTaskLogList = ref([]);
+const taskInstanceStatusMap = {
+  0: { label: "提交成功", type: "info" },
+  1: { label: "运行中", type: "primary" },
+  2: { label: "准备暂停", type: "warning" },
+  3: { label: "暂停", type: "warning" },
+  4: { label: "准备停止", type: "warning" },
+  5: { label: "停止", type: "info" },
+  6: { label: "失败", type: "danger" },
+  7: { label: "成功", type: "success" },
+  8: { label: "需要容错", type: "warning" },
+  9: { label: "已杀死", type: "danger" },
+  10: { label: "等待线程", type: "info" },
+  11: { label: "等待依赖", type: "info" },
+};
+const taskInstanceStatusOptions = Object.entries(taskInstanceStatusMap).map(([value, item]) => ({
+  value,
+  label: item.label,
+}));
+const commandTypeMap = {
+  0: "启动工作流",
+  1: "从当前节点开始执行",
+  2: "恢复容错工作流",
+  3: "恢复暂停工作流",
+  4: "从失败节点开始执行",
+  5: "补数",
+  6: "调度执行",
+  7: "重跑",
+  8: "暂停",
+  9: "停止",
+  10: "恢复等待线程",
+  11: "恢复串行等待",
+  12: "动态生成",
+};
+
+function normalizeCode(value) {
+  return value === null || value === undefined ? "" : String(value).trim();
+}
+
+function taskInstanceStatusLabel(status) {
+  const code = normalizeCode(status);
+  return taskInstanceStatusMap[code]?.label || code || "-";
+}
+
+function taskInstanceStatusType(status) {
+  return taskInstanceStatusMap[normalizeCode(status)]?.type || "info";
+}
+
+function commandTypeLabel(commandType) {
+  const code = normalizeCode(commandType);
+  return commandTypeMap[code] || code || "-";
+}
+
 // 列显隐信息
 const columns = ref([
   { key: 0, label: "编号", visible: true },
-  { key: 1, label: "节点实例名称", visible: true },
-  { key: 2, label: "任务名称", visible: true },
+  { key: 1, label: "任务实例名称", visible: true },
   { key: 3, label: "执行类型", visible: true },
   { key: 4, label: "执行状态", visible: true },
   { key: 5, label: "开始时间", visible: true },
@@ -208,37 +232,16 @@ const getColumnVisibility = (key) => {
   return column.visible;
 };
 const userStore = useUserStore();
-const open = ref(false);
-const openDetail = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const ids = ref([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
-const title = ref("");
 const defaultSort = ref({ prop: "createTime", order: "desc" });
-const router = useRouter();
 const emit = defineEmits(["resetCat"]);
 
-/*** 用户导入参数 */
-const upload = reactive({
-  // 是否显示弹出层（用户导入）
-  open: false,
-  // 弹出层标题（用户导入）
-  title: "",
-  // 是否禁用上传
-  isUploading: false,
-  // 是否更新已经存在的用户数据
-  updateSupport: 0,
-  // 设置上传的请求头部
-  headers: { Authorization: "Bearer " + getToken() },
-  // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + "/col/dppEtlTaskLog/importData",
-});
-
 const data = reactive({
-  form: {},
   queryParams: {
     pageNum: 1,
     pageSize: 10,
@@ -264,10 +267,9 @@ const data = reactive({
     catCode: null,
     orderByColumn: "start_time",
   },
-  rules: {},
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams } = toRefs(data);
 
 function handleTimeChange(value) {
   if (!value) {
@@ -285,74 +287,29 @@ function handleTimeClear() {
 function getList() {
   loading.value = true;
   queryParams.value.projectCode = userStore.projectCode;
-  listDppEtlNodeInstance(queryParams.value).then((response) => {
+  listDppEtlTaskInstance(queryParams.value).then((response) => {
     dppEtlTaskLogList.value = response.data.rows;
     total.value = response.data.total;
     loading.value = false;
   });
 }
-let msg = ref();
-async function logDetailCatList(row) {
-  msg.value = {};
-  const response = await logDetailCat(row.id);
-  if (response && response) {
-    msg.value = response.msg;
-    open.value = true;
-  }
-}
-const formattedText = computed(() => {
-  console.log("msg.value", msg.value);
 
-  return msg.value.replace(/\n/g, "<br>"); // 将换行符替换为 <br> 标签
-});
+const logDialogRef = ref(null);
+const logDetailCatList = (row) => {
+  logDialogRef.value.open(row.id);
+};
+
 /** 导出按钮操作 */
 async function handleExport(row) {
   proxy.download(
-    "/col/etlNodeInstance/downloadLog",
+    "/col/etlTaskInstance/downloadLog",
     {
-      nodeInstanceId: row.id,
+      taskInstanceId: row.id,
     },
     `${row.name}.log`
   );
 }
 
-// 取消按钮
-function cancel() {
-  open.value = false;
-  openDetail.value = false;
-  reset();
-}
-
-// 表单重置
-function reset() {
-  form.value = {
-    id: null,
-    type: null,
-    name: null,
-    code: null,
-    version: null,
-    projectId: null,
-    projectCode: null,
-    personCharge: null,
-    locations: null,
-    description: null,
-    timeout: null,
-    extractionCount: null,
-    writeCount: null,
-    status: null,
-    dsId: null,
-    validFlag: null,
-    delFlag: null,
-    createBy: null,
-    creatorId: null,
-    createTime: null,
-    updateBy: null,
-    updaterId: null,
-    updateTime: null,
-    remark: null,
-  };
-  proxy.resetForm("dppEtlTaskLogRef");
-}
 let deptOptions = ref([]);
 /** 下拉树结构 */
 function getDeptTree() {
@@ -405,94 +362,6 @@ function handleSortChange(column, prop, order) {
   queryParams.value.orderByColumn = column.prop;
   queryParams.value.isAsc = column.order;
   getList();
-}
-
-/** 新增按钮操作 */
-function handleAdd() {
-  reset();
-  open.value = true;
-  title.value = "新增数据集成任务-日志";
-}
-
-/** 修改按钮操作 */
-function handleUpdate(row) {
-  reset();
-  const _id = row.id || ids.value;
-  getDppEtlNodeInstance(_id).then((response) => {
-    form.value = response.data;
-    open.value = true;
-    title.value = "修改数据集成任务-日志";
-  });
-}
-
-/** 详情按钮操作 */
-function handleDetail(row) {
-  reset();
-  const _id = row.id || ids.value;
-  getDppEtlNodeInstance(_id).then((response) => {
-    form.value = response.data;
-    openDetail.value = true;
-    title.value = "数据集成任务-日志详情";
-  });
-}
-
-/** 提交按钮 */
-function submitForm() {
-  proxy.$refs["dppEtlTaskLogRef"].validate((valid) => {
-    if (valid) {
-      if (form.value.id != null) {
-        updateDppEtlNodeInstance(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess("修改成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
-      } else {
-        addDppEtlNodeInstance(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess("新增成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
-      }
-    }
-  });
-}
-
-/** 删除按钮操作 */
-function handleDelete(row) {
-  const _ids = row.id || ids.value;
-  proxy.$modal
-    .confirm('是否确认删除数据集成任务-日志编号为"' + _ids + '"的数据项？')
-    .then(function () {
-      return delDppEtlNodeInstance(_ids);
-    })
-    .then(() => {
-      getList();
-      proxy.$modal.msgSuccess("删除成功");
-    })
-    .catch(() => { });
-}
-
-function routeTo(link, row) {
-  if (link !== "" && link.indexOf("http") !== -1) {
-    window.location.href = link;
-    return;
-  }
-  if (link !== "") {
-    if (link === router.currentRoute.value.path) {
-      window.location.reload();
-    } else {
-      router.push({
-        path: link,
-        query: {
-          id: row.id,
-        },
-      });
-    }
-  }
 }
 
 // 监听projectCode数据变化

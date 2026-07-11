@@ -35,6 +35,26 @@ public class CollectorEtlTaskInstanceLogStatusRespDTO {
     private String log;
 
     /**
+     * 本次返回的日志内容，按行增量读取时使用。
+     */
+    private String logContent;
+
+    /**
+     * 本次读取起始行号。
+     */
+    private Integer fromLineNum;
+
+    /**
+     * 本次读取结束行号，下一次请求传此值作为 skipLineNum。
+     */
+    private Integer toLineNum;
+
+    /**
+     * 日志是否已经读到末尾。
+     */
+    private Boolean isEnd;
+
+    /**
      * 节点实例列表
      */
     private List<CollectorEtlNodeInstanceRespDTO> nodeInstanceList;

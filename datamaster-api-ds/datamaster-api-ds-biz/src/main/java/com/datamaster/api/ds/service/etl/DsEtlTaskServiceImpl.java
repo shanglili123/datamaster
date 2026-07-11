@@ -8,6 +8,7 @@ import com.alibaba.fastjson2.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.datamaster.api.ds.api.base.DsStatusRespDTO;
+import com.datamaster.api.ds.api.etl.DsLogResultDTO;
 import com.datamaster.api.ds.api.etl.DsStartTaskReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveRespDTO;
@@ -153,19 +154,37 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
 
     @Override
     public String getTaskInstanceLog(Long taskInstanceId) {
+        DsLogResultDTO result = getTaskInstanceLog(taskInstanceId, 0, 100000);
+        return result == null || result.getLogContent() == null ? "" : result.getLogContent();
+    }
+
+    @Override
+    public DsLogResultDTO getTaskInstanceLog(Long taskInstanceId, Integer skipLineNum, Integer limit) {
         if (taskInstanceId == null) {
-            return "";
+            return DsLogResultDTO.builder()
+                    .fromLineNum(skipLineNum == null ? 0 : skipLineNum)
+                    .toLineNum(skipLineNum == null ? 0 : skipLineNum)
+                    .logContent("")
+                    .end(true)
+                    .build();
         }
+        int fromLineNum = Math.max(skipLineNum == null ? 0 : skipLineNum, 0);
+        int safeLimit = limit == null || limit <= 0 ? 2000 : Math.min(limit, 10000);
         DataMasterDSApiType apiType = DataMasterDSApiType.GET_TASK_INSTANCE_LOG;
         Map<String, Object> params = new HashMap<>();
         params.put("taskInstanceId", taskInstanceId);
-        params.put("skipLineNum", 0);
-        params.put("limit", 100000);
+        params.put("skipLineNum", fromLineNum);
+        params.put("limit", safeLimit);
         JSONObject response = DsRequestUtils.request(apiType.getUrl(), apiType.getMethod(), null, params, JSONObject.class);
         if (response == null || !(Boolean.TRUE.equals(response.getBoolean("success")) || Integer.valueOf(0).equals(response.getInteger("code")))) {
-            return "";
+            return DsLogResultDTO.builder()
+                    .fromLineNum(fromLineNum)
+                    .toLineNum(fromLineNum)
+                    .logContent("")
+                    .end(true)
+                    .build();
         }
-        return extractLogContent(response.get("data"));
+        return extractLogResult(response.get("data"), fromLineNum, safeLimit);
     }
 
     @Override
@@ -188,26 +207,73 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
     }
 
     private String extractLogContent(Object data) {
+        DsLogResultDTO result = extractLogResult(data, 0, 100000);
+        return result == null || result.getLogContent() == null ? "" : result.getLogContent();
+    }
+
+    private DsLogResultDTO extractLogResult(Object data, int fromLineNum, int limit) {
         if (data == null) {
-            return "";
+            return DsLogResultDTO.builder()
+                    .fromLineNum(fromLineNum)
+                    .toLineNum(fromLineNum)
+                    .logContent("")
+                    .end(true)
+                    .build();
         }
+        String content;
+        Integer lineNum = null;
+        Boolean end = null;
         if (data instanceof JSONObject) {
             JSONObject object = (JSONObject) data;
-            String message = object.getString("message");
-            if (StringUtils.isNotBlank(message)) {
-                return message;
+            lineNum = object.getInteger("lineNum");
+            if (lineNum == null) {
+                lineNum = object.getInteger("toLineNum");
             }
-            String log = object.getString("log");
-            if (StringUtils.isNotBlank(log)) {
-                return log;
+            end = object.getBoolean("end");
+            if (end == null) {
+                end = object.getBoolean("isEnd");
             }
-            String content = object.getString("content");
-            return StringUtils.isBlank(content) ? object.toJSONString() : content;
+            content = firstNotBlank(object.getString("message"), object.getString("log"), object.getString("content"));
+        } else if (data instanceof JSONArray) {
+            content = ((JSONArray) data).toJSONString();
+        } else {
+            content = String.valueOf(data);
         }
-        if (data instanceof JSONArray) {
-            return ((JSONArray) data).toJSONString();
+        if (content == null) {
+            content = "";
         }
-        return String.valueOf(data);
+        int lineCount = countLines(content);
+        int toLineNum = lineNum == null ? fromLineNum + lineCount : Math.max(lineNum, fromLineNum);
+        boolean isEnd = end == null ? lineCount < limit : end;
+        return DsLogResultDTO.builder()
+                .fromLineNum(fromLineNum)
+                .toLineNum(toLineNum)
+                .logContent(content)
+                .end(isEnd)
+                .build();
+    }
+
+    private String firstNotBlank(String first, String second, String third) {
+        if (StringUtils.isNotBlank(first)) {
+            return first;
+        }
+        if (StringUtils.isNotBlank(second)) {
+            return second;
+        }
+        return third;
+    }
+
+    private int countLines(String content) {
+        if (StringUtils.isBlank(content)) {
+            return 0;
+        }
+        int count = 1;
+        for (int i = 0; i < content.length(); i++) {
+            if (content.charAt(i) == '\n') {
+                count++;
+            }
+        }
+        return count;
     }
 
     private JSONObject buildWorkflowDefinitionParams(DsTaskSaveReqDTO dsTaskSaveReqDTO) {

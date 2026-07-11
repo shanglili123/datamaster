@@ -140,8 +140,11 @@ public class CollectorEtlTaskInstanceController extends BaseController {
 
     @Operation(summary = "通过实例id获取日志")
     @GetMapping("/getLogByTaskInstanceId")
-    public CommonResult<CollectorEtlTaskInstanceLogStatusRespDTO> getLogByTaskInstanceId(@RequestParam Long taskInstanceId) {
-        return CommonResult.success(CollectorEtlTaskInstanceService.getLogByTaskInstanceId(taskInstanceId));
+    public CommonResult<CollectorEtlTaskInstanceLogStatusRespDTO> getLogByTaskInstanceId(
+            @RequestParam Long taskInstanceId,
+            @RequestParam(required = false) Integer skipLineNum,
+            @RequestParam(required = false) Integer limit) {
+        return CommonResult.success(CollectorEtlTaskInstanceService.getLogByTaskInstanceId(taskInstanceId, skipLineNum, limit));
     }
 
     @RequestMapping(value = "/downloadLog", method = RequestMethod.POST)

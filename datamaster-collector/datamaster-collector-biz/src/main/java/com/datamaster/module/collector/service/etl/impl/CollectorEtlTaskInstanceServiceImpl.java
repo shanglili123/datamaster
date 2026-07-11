@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.datamaster.api.ds.api.base.DsStatusRespDTO;
 import com.datamaster.api.ds.api.etl.DSExecuteDTO;
+import com.datamaster.api.ds.api.etl.DsLogResultDTO;
 import com.datamaster.api.ds.api.etl.ds.ProcessInstance;
 import com.datamaster.api.ds.api.etl.ds.TaskInstance;
 import com.datamaster.api.ds.api.service.etl.IDsEtlExecutorService;
@@ -436,7 +437,14 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public CollectorEtlTaskInstanceLogStatusRespDTO getLogByTaskInstanceId(Long taskInstanceId) {
-        String log = "";
+        return getLogByTaskInstanceId(taskInstanceId, null, null);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public CollectorEtlTaskInstanceLogStatusRespDTO getLogByTaskInstanceId(Long taskInstanceId, Integer skipLineNum, Integer limit) {
+        int fromLineNum = Math.max(skipLineNum == null ? 0 : skipLineNum, 0);
+        int safeLimit = limit == null || limit <= 0 ? 2000 : Math.min(limit, 10000);
         CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = this.getById(taskInstanceId);
         if (CollectorEtlTaskInstanceDO == null) {
             throw new RuntimeException("任务实例不存在");
@@ -449,13 +457,18 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
                         CollectorEtlNodeInstanceDO::getName,
                         CollectorEtlNodeInstanceDO::getStatus)
                 .eq(CollectorEtlNodeInstanceDO::getTaskInstanceId, taskInstanceId));
-        log = collectDsLogs(CollectorEtlTaskInstanceDO, CollectorEtlNodeInstanceDOList, false);
-        if (StringUtils.isBlank(log)) {
-            log = collectNodeLogs(taskInstanceId, CollectorEtlNodeInstanceDOList);
+        LogResult logResult = collectDsLogSlice(CollectorEtlTaskInstanceDO, CollectorEtlNodeInstanceDOList, fromLineNum, safeLimit);
+        if (logResult == null) {
+            String log = collectNodeLogs(taskInstanceId, CollectorEtlNodeInstanceDOList);
+            logResult = sliceLog(log, fromLineNum, safeLimit);
         }
 
         return CollectorEtlTaskInstanceLogStatusRespDTO.builder()
-                .log(log)
+                .log(logResult.getLogContent())
+                .logContent(logResult.getLogContent())
+                .fromLineNum(logResult.getFromLineNum())
+                .toLineNum(logResult.getToLineNum())
+                .isEnd(logResult.isEnd())
                 .status(CollectorEtlTaskInstanceDO.getStatus())
                 .nodeInstanceList(BeanUtils.toBean(CollectorEtlNodeInstanceDOList, CollectorEtlNodeInstanceRespDTO.class))
                 .build();
@@ -504,6 +517,50 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
             }
         }
         return content.toString();
+    }
+
+    private LogResult collectDsLogSlice(CollectorEtlTaskInstanceDO taskInstance, List<CollectorEtlNodeInstanceDO> nodeInstanceList, int skipLineNum, int limit) {
+        List<Long> dsTaskInstanceIds = resolveDsTaskInstanceIds(taskInstance, nodeInstanceList);
+        if (dsTaskInstanceIds.isEmpty()) {
+            return null;
+        }
+        if (dsTaskInstanceIds.size() == 1) {
+            Long dsTaskInstanceId = dsTaskInstanceIds.get(0);
+            try {
+                DsLogResultDTO dsLog = dsEtlTaskService.getTaskInstanceLog(dsTaskInstanceId, skipLineNum, limit);
+                if (dsLog != null) {
+                    return new LogResult(
+                            dsLog.getFromLineNum() == null ? skipLineNum : dsLog.getFromLineNum(),
+                            dsLog.getToLineNum() == null ? skipLineNum : dsLog.getToLineNum(),
+                            dsLog.getLogContent() == null ? "" : dsLog.getLogContent(),
+                            Boolean.TRUE.equals(dsLog.getEnd()));
+                }
+            } catch (Exception e) {
+                log.warn("分段读取DolphinScheduler任务实例日志失败，dsTaskInstanceId={}", dsTaskInstanceId, e);
+            }
+            return null;
+        }
+
+        String log = collectDsLogs(taskInstance, nodeInstanceList, false);
+        return sliceLog(log, skipLineNum, limit);
+    }
+
+    private LogResult sliceLog(String logContent, int skipLineNum, int limit) {
+        String content = logContent == null ? "" : logContent;
+        String[] lines = content.split("\\r?\\n", -1);
+        int total = StringUtils.isBlank(content) ? 0 : lines.length;
+        if (skipLineNum >= total) {
+            return new LogResult(skipLineNum, skipLineNum, "", true);
+        }
+        int toLineNum = Math.min(skipLineNum + limit, total);
+        StringBuilder part = new StringBuilder();
+        for (int i = skipLineNum; i < toLineNum; i++) {
+            if (part.length() > 0) {
+                part.append('\n');
+            }
+            part.append(lines[i]);
+        }
+        return new LogResult(skipLineNum, toLineNum, part.toString(), toLineNum >= total);
     }
 
     private List<Long> resolveDsTaskInstanceIds(CollectorEtlTaskInstanceDO taskInstance, List<CollectorEtlNodeInstanceDO> nodeInstanceList) {

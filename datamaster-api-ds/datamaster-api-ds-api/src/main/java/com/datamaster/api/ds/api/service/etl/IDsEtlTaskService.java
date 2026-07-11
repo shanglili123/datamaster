@@ -3,6 +3,7 @@
 package com.datamaster.api.ds.api.service.etl;
 
 import com.datamaster.api.ds.api.base.DsStatusRespDTO;
+import com.datamaster.api.ds.api.etl.DsLogResultDTO;
 import com.datamaster.api.ds.api.etl.DsStartTaskReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveReqDTO;
 import com.datamaster.api.ds.api.etl.DsTaskSaveRespDTO;
@@ -89,6 +90,8 @@ public interface IDsEtlTaskService {
     List<TaskInstance> listTaskInstances(String projectCode, Long processInstanceId);
 
     String getTaskInstanceLog(Long taskInstanceId);
+
+    DsLogResultDTO getTaskInstanceLog(Long taskInstanceId, Integer skipLineNum, Integer limit);
 
     String downloadTaskInstanceLog(Long taskInstanceId);
 }
