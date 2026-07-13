@@ -114,7 +114,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
     public void executeTask(String taskId) {
         String key = "executeQualityTask-" + taskId;
         String status = redisService.get(key);
-        if (StringUtils.isEmpty(status) && StringUtils.equals("1", status)) {
+        if (StringUtils.isNotEmpty(status) && StringUtils.equals("1", status)) {
             throw new RuntimeException("历史任务未执行完毕，请稍后重试");
         }
         redisService.set(key, "1", 1200);

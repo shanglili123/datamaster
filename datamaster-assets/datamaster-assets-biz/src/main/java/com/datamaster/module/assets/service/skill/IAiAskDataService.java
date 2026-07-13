@@ -8,9 +8,6 @@ import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlRespVO;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * AI ask-data service interface.
  */
@@ -33,17 +30,7 @@ public interface IAiAskDataService {
     AiAskDataSqlRespVO generateSql(AiAskDataSqlReqVO reqVO);
 
     /**
-     * Execute confirmed SQL query.
-     *
-     * @param datasourceId datasource ID
-     * @param sql          SQL to execute
-     * @param maxRows      max rows to return
-     * @return query results
-     */
-    List<Map<String, Object>> executeSql(Long datasourceId, String sql, Integer maxRows);
-
-    /**
-     * One-stop ask-data chat (prepare + generate + optional execute).
+     * One-stop ask-data chat.
      *
      * @param reqVO chat request (same as SQL request)
      * @return full response with SQL and optional results

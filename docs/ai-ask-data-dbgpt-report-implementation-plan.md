@@ -162,8 +162,8 @@ SQL 只用于人工校验或调试，不作为主查询链路。
 
 处理原则：
 
-1. 前端不应在 DBGPT 回复后自动抽取 SQL 并调用 `/ai/ask-data/execute`。
-2. 后端可以暂时保留 `/sql` 和 `/execute` 作为调试接口或兼容接口。
+1. 前端不应在 DBGPT 回复后自动抽取 SQL 并调用 DataMaster 本地执行接口。
+2. 后端不再保留 `/ai/ask-data/execute`；`/sql` 仅用于生成或展示校验 SQL。
 3. 普通问数请求中不再默认要求 DBGPT 必须输出 SQL。
 4. 如需返回 SQL，应由显式参数控制，例如 `returnSql=true`。
 

@@ -254,12 +254,21 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     @Override
     public int removeDatasource(Collection<Long> idList) {
+        if (CollectionUtils.isEmpty(idList)) {
+            return 0;
+        }
 // 批量删除数据源
-        return AssetsDatasourceMapper.deleteBatchIds(idList);
+        List<AssetsDatasourceDO> deletedDatasources = AssetsDatasourceMapper.selectBatchIds(idList);
+        int deleted = AssetsDatasourceMapper.deleteBatchIds(idList);
+        clearDatasourceCache(idList, deletedDatasources);
+        return deleted;
     }
 
     @Override
     public int removeDatasourceDppOrDa(List<Long> idList, Long type) {
+        if (CollectionUtils.isEmpty(idList)) {
+            return 0;
+        }
         int datasource = collectorEtlTaskService.checkTaskIdInDatasource(idList, null);
         if (datasource > 0) {
             throw new ServiceException(",!");
@@ -270,7 +279,41 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
             AssetsDatasourceProjectRelService.remove(queryWrapper);
         }
 // 批量删除数据源
-        return AssetsDatasourceMapper.deleteBatchIds(idList);
+        List<AssetsDatasourceDO> deletedDatasources = AssetsDatasourceMapper.selectBatchIds(idList);
+        int deleted = AssetsDatasourceMapper.deleteBatchIds(idList);
+        clearDatasourceCache(idList, deletedDatasources);
+        return deleted;
+    }
+
+    private void clearDatasourceCache(Collection<Long> idList, List<AssetsDatasourceDO> datasourceList) {
+        if (CollectionUtils.isEmpty(idList)) {
+            return;
+        }
+        Object[] idFields = idList.stream()
+                .filter(Objects::nonNull)
+                .map(String::valueOf)
+                .toArray();
+        if (idFields.length > 0) {
+            redisService.hashDelete("datasource", idFields);
+        }
+        if (CollectionUtils.isEmpty(datasourceList)) {
+            return;
+        }
+        for (AssetsDatasourceDO ds : datasourceList) {
+            if (ds == null) {
+                continue;
+            }
+            try {
+                DbQueryProperty property = new DbQueryProperty(
+                        ds.getDatasourceType(),
+                        ds.getIp(),
+                        ds.getPort(),
+                        ds.getDatasourceConfig());
+                redisService.hashDelete("datasource-old", property.trainToJdbcUrl());
+            } catch (Exception e) {
+                log.warn("清理历史数据源缓存失败，datasourceId={}", ds.getId());
+            }
+        }
     }
 
     @Override
@@ -1302,7 +1345,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     public void detectTableSchemaUpdates(Long id) {
         String key = "detectTableSchemaUpdates-" + id;
         String status = redisService.get(key);
-        if (StringUtils.isEmpty(status) && StringUtils.equals("1", status)) {
+        if (StringUtils.isNotEmpty(status) && StringUtils.equals("1", status)) {
             throw new RuntimeException("");
         }
         AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById = IAssetsDiscoveryTaskService.getDaDiscoveryTaskById(id);

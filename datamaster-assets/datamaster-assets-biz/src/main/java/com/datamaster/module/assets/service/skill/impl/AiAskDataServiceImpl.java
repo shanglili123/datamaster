@@ -1,10 +1,6 @@
 package com.datamaster.module.assets.service.skill.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.datamaster.common.database.DataSourceFactory;
-import com.datamaster.common.database.DbQuery;
-import com.datamaster.common.database.constants.DbQueryProperty;
-import com.datamaster.common.database.core.PageResult;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
@@ -15,6 +11,8 @@ import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataReportRes
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillRespVO;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
+import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillDO;
@@ -30,8 +28,6 @@ import com.datamaster.module.assets.config.DbGptProperties;
 import com.datamaster.module.assets.service.dbgpt.IDbGptClientService;
 import com.datamaster.module.assets.service.skill.IAiAskDataContextService;
 import com.datamaster.module.assets.service.skill.IAiAskDataService;
-import com.datamaster.module.assets.service.skill.IAiSqlSafetyService;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -57,28 +53,20 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     private AiSkillReportTemplateMapper aiSkillReportTemplateMapper;
 
     @Resource
+    private AssetsDatasourceMapper assetsDatasourceMapper;
+    @Resource
     private AssetsAssetMapper assetsAssetMapper;
 
     @Resource
-    private AssetsDatasourceMapper assetsDatasourceMapper;
-
-    @Resource
-    private IAiSqlSafetyService aiSqlSafetyService;
-
-    @Resource
     private IAiAskDataContextService aiAskDataContextService;
-
     @Resource
-    private DataSourceFactory dataSourceFactory;
+    private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
 
     @Resource
     private IDbGptClientService dbGptClientService;
 
     @Resource
     private DbGptProperties dbGptProperties;
-
-    private static final int DEFAULT_MAX_ROWS = 1000;
-    private static final int MAX_EXECUTE_ROWS = 10000;
 
     private static final Pattern SQL_BLOCK_PATTERN = Pattern.compile(
             "(?i)```sql\\s*\\n?([\\s\\S]*?)\\s*```");
@@ -102,6 +90,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
             throw new ServiceException("用户问题不能为空");
         }
+        checkAskDataGovernance(reqVO);
 
         String question = reqVO.getQuestion();
         Long assetId = reqVO.getAssetId();
@@ -154,83 +143,12 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     }
 
     @Override
-    public List<Map<String, Object>> executeSql(Long datasourceId, String sql, Integer maxRows) {
-        if (datasourceId == null) {
-            throw new ServiceException("数据源ID不能为空");
-        }
-
-        // Validate SQL safety
-        String safeSql = aiSqlSafetyService.validateReadOnly(sql);
-
-        // Get datasource
-        AssetsDatasourceDO datasource = assetsDatasourceMapper.selectById(datasourceId);
-        if (datasource == null) {
-            throw new ServiceException("数据源不存在");
-        }
-
-        // Build DbQuery
-        DbQueryProperty property = new DbQueryProperty(
-                datasource.getDatasourceType(),
-                datasource.getIp(),
-                datasource.getPort(),
-                datasource.getDatasourceConfig()
-        );
-
-        DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
-        try {
-            if (!dbQuery.valid()) {
-                throw new ServiceException("数据源连接失败");
-            }
-
-            // Execute query with row limit
-            int limit = maxRows != null ? Math.min(maxRows, MAX_EXECUTE_ROWS) : DEFAULT_MAX_ROWS;
-            String limitedSql = hasLimitClause(safeSql) ? safeSql : safeSql + " LIMIT " + limit;
-
-            PageResult<Map<String, Object>> result = dbQuery.queryByPage(limitedSql, 0, limit);
-            return result.getData() != null ? result.getData() : Collections.emptyList();
-        } catch (ServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ServiceException("SQL执行失败: " + e.getMessage());
-        } finally {
-            dbQuery.close();
-        }
-    }
-
-    @Override
     public AiAskDataSqlRespVO chat(AiAskDataSqlReqVO reqVO) {
         if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
             throw new ServiceException("用户问题不能为空");
         }
 
-        // First, generate SQL context
-        AiAskDataSqlRespVO respVO = generateSql(reqVO);
-
-        // If execute flag is set and SQL is provided, execute it
-        if (Boolean.TRUE.equals(reqVO.getExecute()) && StringUtils.isNotBlank(respVO.getSql())
-                && !respVO.getSql().startsWith("--")) {
-            try {
-                Long datasourceId = extractDatasourceId(respVO);
-                if (datasourceId != null) {
-                    List<Map<String, Object>> results = executeSql(datasourceId, respVO.getSql(), DEFAULT_MAX_ROWS);
-                    respVO.setExecuteResult(results);
-                    respVO.setRowCount(results.size());
-                    respVO.setExecuteSuccess(true);
-                }
-            } catch (Exception e) {
-                respVO.setExecuteSuccess(false);
-                respVO.setExecuteError(e.getMessage());
-            }
-        }
-
-        return respVO;
-    }
-
-    private boolean hasLimitClause(String sql) {
-        if (StringUtils.isBlank(sql)) {
-            return false;
-        }
-        return Pattern.compile("\\blimit\\s+\\d+\\b", Pattern.CASE_INSENSITIVE).matcher(sql).find();
+        return generateSql(reqVO);
     }
 
     @Override
@@ -238,6 +156,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
             throw new ServiceException("用户问题不能为空");
         }
+        checkAskDataGovernance(reqVO);
         if (!"chat_normal".equals(reqVO.getChatMode()) && !looksLikeDataQuestion(reqVO.getQuestion())) {
                 // pass through — let AI handle it
             }
@@ -317,6 +236,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
                     emitter.complete();
                     return;
                 }
+                checkAskDataGovernance(reqVO);
                 if (!"chat_normal".equals(reqVO.getChatMode()) && !looksLikeDataQuestion(reqVO.getQuestion())) {
                     // pass through — let AI handle it
                 }
@@ -359,11 +279,9 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             }
         }
         if (StringUtils.isBlank(sql) || sql.startsWith("--")) {
-            sendSse(emitter, "message", "\n\n> 未能生成可校验的 SELECT SQL。\n");
             sendSse(emitter, "sql", "");
             return;
         }
-        sendSse(emitter, "message", "\n\n校验SQL：\n```sql\n" + sql + "\n```\n");
         sendSse(emitter, "sql", sql);
     }
 
@@ -551,6 +469,21 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         return gptRequest;
     }
 
+    private void checkAskDataGovernance(AiAskDataSqlReqVO reqVO) {
+        if (reqVO == null || reqVO.getAssetId() == null) {
+            return;
+        }
+        AssetsAssetDO asset = assetsAssetMapper.selectById(reqVO.getAssetId());
+        if (asset == null || asset.getDatasourceId() == null || StringUtils.isBlank(asset.getTableName())) {
+            return;
+        }
+        AssetsTableGovernanceReqDTO governanceReq = new AssetsTableGovernanceReqDTO();
+        governanceReq.setDatasourceId(asset.getDatasourceId());
+        governanceReq.setTableName(asset.getTableName());
+        governanceReq.setEntrance("AI_ASK_DATA");
+        assetsTableGovernanceApiService.checkTableAccess(governanceReq);
+    }
+
     private String buildDbGptUserInput(AiAskDataSqlReqVO reqVO) {
         StringBuilder builder = new StringBuilder();
         builder.append("请基于已选择的数据库和可用知识库回答用户问题。");
@@ -620,20 +553,6 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             }
         }
         return false;
-    }
-
-    private Long extractDatasourceId(AiAskDataSqlRespVO respVO) {
-        if (respVO.getReferencedSkills() != null) {
-            for (AiSkillRespVO skill : respVO.getReferencedSkills()) {
-                if ("TABLE".equals(skill.getBizObjectType()) && skill.getBizObjectId() != null) {
-                    AssetsAssetDO asset = assetsAssetMapper.selectById(skill.getBizObjectId());
-                    if (asset != null) {
-                        return asset.getDatasourceId();
-                    }
-                }
-            }
-        }
-        return null;
     }
 
     private List<AiSkillDO> getRelevantSkills(String question, Long assetId) {
@@ -725,6 +644,17 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         if (StringUtils.isBlank(reply)) {
             return null;
         }
+        try {
+            String sql = extractSqlFromJson(JSON.parse(reply));
+            if (StringUtils.isNotBlank(sql)) {
+                return sql;
+            }
+        } catch (Exception ignored) {
+        }
+        String sqlFromJsonFragment = extractSqlFromJsonFragments(reply);
+        if (StringUtils.isNotBlank(sqlFromJsonFragment)) {
+            return sqlFromJsonFragment;
+        }
 
         Matcher codeMatcher = SQL_BLOCK_PATTERN.matcher(reply);
         if (codeMatcher.find()) {
@@ -758,6 +688,107 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             return sql;
         }
 
+        return null;
+    }
+
+    private String extractSqlFromJsonFragments(String reply) {
+        List<String> fragments = extractJsonFragments(reply);
+        for (int i = fragments.size() - 1; i >= 0; i--) {
+            try {
+                String sql = extractSqlFromJson(JSON.parse(fragments.get(i)));
+                if (StringUtils.isNotBlank(sql)) {
+                    return sql;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    private List<String> extractJsonFragments(String content) {
+        List<String> fragments = new ArrayList<>();
+        if (StringUtils.isBlank(content)) {
+            return fragments;
+        }
+        int start = -1;
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = 0; i < content.length(); i++) {
+            char ch = content.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (ch == '\\') {
+                escaped = inString;
+                continue;
+            }
+            if (ch == '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) {
+                continue;
+            }
+            if (ch == '{') {
+                if (depth == 0) {
+                    start = i;
+                }
+                depth++;
+            } else if (ch == '}' && depth > 0) {
+                depth--;
+                if (depth == 0 && start >= 0) {
+                    fragments.add(content.substring(start, i + 1));
+                    start = -1;
+                }
+            }
+        }
+        return fragments;
+    }
+
+    private String extractSqlFromJson(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof com.alibaba.fastjson2.JSONObject) {
+            com.alibaba.fastjson2.JSONObject object = (com.alibaba.fastjson2.JSONObject) value;
+            String sql = firstNonBlank(
+                    object.getString("sql"),
+                    object.getString("SQL"),
+                    object.getString("text2sql"),
+                    object.getString("sqlText"),
+                    object.getString("query")
+            );
+            if (StringUtils.isNotBlank(sql)) {
+                return sql.trim();
+            }
+            for (String key : object.keySet()) {
+                sql = extractSqlFromJson(object.get(key));
+                if (StringUtils.isNotBlank(sql)) {
+                    return sql;
+                }
+            }
+        }
+        if (value instanceof com.alibaba.fastjson2.JSONArray) {
+            com.alibaba.fastjson2.JSONArray array = (com.alibaba.fastjson2.JSONArray) value;
+            for (Object item : array) {
+                String sql = extractSqlFromJson(item);
+                if (StringUtils.isNotBlank(sql)) {
+                    return sql;
+                }
+            }
+        }
+        if (value instanceof String) {
+            String text = ((String) value).trim();
+            if (text.toLowerCase(Locale.ROOT).startsWith("select")) {
+                return text;
+            }
+            try {
+                return extractSqlFromJson(JSON.parse(text));
+            } catch (Exception ignored) {
+            }
+        }
         return null;
     }
 

@@ -5,6 +5,11 @@ datamaster:
   profile: ${user.dir}/upload/
   addressEnabled: false
   captchaType: math
+  governance:
+    table-access:
+      enabled: ${TABLE_GOVERNANCE_ENABLED:false}
+      mode: ${TABLE_GOVERNANCE_MODE:off}
+      fallback-to-catalog: ${TABLE_GOVERNANCE_FALLBACK_TO_CATALOG:true}
 
 server:
   port: 8080

@@ -267,15 +267,48 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         }
         try {
             JSONObject object = JSON.parseObject(value);
+            if (isNativeAgentEvent(object)) {
+                return JSON.toJSONString(object);
+            }
             return extractContent(object);
         } catch (Exception ignored) {
             return value;
         }
     }
 
+    private boolean isNativeAgentEvent(JSONObject object) {
+        if (object == null) {
+            return false;
+        }
+        if (hasStructuredPayload(object)
+                || object.containsKey("incremental")
+                || object.containsKey("display_type")
+                || object.containsKey("view_name")
+                || object.containsKey("resource_value")
+                || object.containsKey("thoughts")
+                || object.containsKey("action")
+                || object.containsKey("tool_name")
+                || object.containsKey("tool_input")) {
+            return true;
+        }
+        Object data = object.get("data");
+        return data instanceof JSONObject && (hasStructuredPayload((JSONObject) data)
+                || ((JSONObject) data).containsKey("incremental")
+                || ((JSONObject) data).containsKey("display_type")
+                || ((JSONObject) data).containsKey("view_name")
+                || ((JSONObject) data).containsKey("resource_value")
+                || ((JSONObject) data).containsKey("thoughts")
+                || ((JSONObject) data).containsKey("action")
+                || ((JSONObject) data).containsKey("tool_name")
+                || ((JSONObject) data).containsKey("tool_input"));
+    }
+
     private String extractContent(JSONObject object) {
         if (object == null) {
             return null;
+        }
+        if (hasStructuredPayload(object)) {
+            return JSON.toJSONString(object);
         }
         String content = firstNonBlank(object.getString("text"), object.getString("content"), object.getString("message"));
         if (!content.isEmpty()) {
@@ -284,6 +317,13 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         Object data = object.get("data");
         if (data instanceof String) {
             return (String) data;
+        }
+        if (data instanceof JSONObject) {
+            String nested = extractContent((JSONObject) data);
+            return firstNonBlank(nested, JSON.toJSONString(data));
+        }
+        if (data instanceof JSONArray) {
+            return JSON.toJSONString(data);
         }
         JSONArray choices = object.getJSONArray("choices");
         if (choices != null && !choices.isEmpty()) {
@@ -298,6 +338,21 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
             }
         }
         return null;
+    }
+
+    private boolean hasStructuredPayload(JSONObject object) {
+        return object.containsKey("sql")
+                || object.containsKey("detailData")
+                || object.containsKey("chatData")
+                || object.containsKey("selectColumn")
+                || object.containsKey("steps")
+                || object.containsKey("tool_calls")
+                || object.containsKey("vis")
+                || object.containsKey("view")
+                || object.containsKey("result")
+                || object.containsKey("observation")
+                || object.containsKey("thought")
+                || object.containsKey("summary");
     }
 
     private void mergeIncrementalContent(StringBuilder content, String parsed) {
@@ -316,13 +371,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
     private DbGptChatCompletionResponse tryParseSingleJson(String responseBody) {
         try {
             JSONObject object = JSON.parseObject(responseBody);
-            String content = firstNonBlank(
-                    object.getString("text"),
-                    object.getString("content"),
-                    object.getString("message"),
-                    object.getString("data"),
-                    responseBody
-            );
+            String content = firstNonBlank(extractContent(object), responseBody);
             return emptyResponse(content);
         } catch (Exception ignored) {
             log.error(ignored.getMessage());
@@ -336,14 +385,17 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         body.put("conv_uid", firstNonBlank(request.getConvUid(), "dm-" + System.currentTimeMillis()));
         body.put("chat_mode", "chat_react_agent");
         body.put("model_name", firstNonBlank(request.getModel(), dbGptProperties.getModel()));
-        body.put("user_input", buildReactAgentInput(dbName, toUserInputText(request)));
+        body.put("user_input", toUserInputText(request));
         body.put("temperature", request.getTemperature() == null ? 0.6 : request.getTemperature());
         body.put("max_new_tokens", request.getMaxTokens() == null ? 4000 : request.getMaxTokens());
-        body.put("select_param", "");
+        body.put("select_param", dbName);
 
         JSONObject extInfo = new JSONObject();
         extInfo.put("database_name", dbName);
+        extInfo.put("db_name", dbName);
         extInfo.put("database_type", toDbGptDbType(request.getDbType()));
+        extInfo.put("datasource_id", request.getDatasourceId());
+        extInfo.put("space_name", request.getSpaceName());
         if (request.getExtra() != null) {
             extInfo.putAll(request.getExtra());
         }

@@ -31,9 +31,6 @@ public class AiAskDataSqlReqVO {
     @Schema(description = "Skill ID列表（可选，指定使用的Skill）")
     private java.util.List<Long> skillIds;
 
-    @Schema(description = "是否执行SQL", example = "false")
-    private Boolean execute;
-
     @Schema(description = "是否要求返回SQL用于校验", example = "false")
     private Boolean returnSql;
 }

@@ -43,14 +43,14 @@
 - `datamaster-collector`：元数据采集任务、采集记录、数据源表结构发现。
 - `datamaster-assets`：资产、表、字段、血缘、预览、资产质量信息。
 - `datamaster-quality`：质量任务、质量规则、质量执行日志、问题数据和质量报告。
-- `datamaster-ai` / `datamaster-mdule-ai`：AI 模型、对话、消息、检索资源能力。
+- `datamaster-assets` 的 `skill`、`dbgpt` 子域：AI Skill、问数会话、DBGPT 数据源和知识库同步能力。
 - `datamaster-ui/src/views/ai/chat`：现有 AI 对话界面。
 - `datamaster-ui/src/api/ai`：现有 AI 前端接口封装。
 - `datamaster-ui/src/api/ast/quality`：质量任务和质量日志接口封装。
 - `datamaster-ui/src/api/ast/asset`：资产和字段接口封装。
 - `datamaster-ui/src/views/meta`、`datamaster-ui/src/views/col/asset`：元数据和采集资产页面。
 
-如果后续代码梳理发现 `datamaster-ai` 和 `datamaster-mdule-ai` 存在职责重复，需要先明确一个作为问数主承载模块，另一个保持兼容或逐步迁移。
+历史空模块 `datamaster-ai` 和 `datamaster-mdule-ai` 已移除，AI 问数相关后端能力统一收敛到 `datamaster-assets`。
 
 ## 4. 总体架构
 
@@ -75,10 +75,10 @@ Skill 检索
 候选表和字段确认
         |
         v
-SQL 生成与安全校验
+生成校验 SQL 或直接问数
         |
         v
-执行查询或生成待确认 SQL
+DBGPT 基于数据库与知识库完成查询分析
         |
         v
 结果解释、引用来源、质量风险提示
@@ -317,8 +317,7 @@ description: 订单明细表问数 Skill。用于订单金额、订单数量、�
 | --- | --- | --- |
 | POST | `/ai/ask-data/prepare` | 根据问题检索候选 Skill、表和字段 |
 | POST | `/ai/ask-data/sql` | 生成 SQL 和解释 |
-| POST | `/ai/ask-data/execute` | 执行已确认 SQL |
-| POST | `/ai/ask-data/chat` | 一站式问数对话 |
+| POST | `/ai/ask-data/chat` | 一站式问数对话，不在 DataMaster 本地执行 SQL |
 
 ## 8. Skill 生成流程
 
@@ -532,7 +531,7 @@ description: {{tableComment}} 问数 Skill。用于 {{businessKeywords}} 等 AI 
 
 - 盘点元数据采集、资产、质量核检现有 Controller、Service、VO、DTO。
 - 明确问数模块应复用的接口和需要补齐的接口。
-- 确认 `datamaster-ai` 与 `datamaster-mdule-ai` 的职责边界。
+- 确认 `datamaster-assets` 中 AI Skill、DBGPT 同步和问数会话的职责边界。
 
 产出：
 
@@ -656,7 +655,6 @@ datamaster-ui/src/views/ai/skill/components/SkillVersionDrawer.vue
 datamaster-ui/src/views/ai/skill/components/TableSkillGenerateDialog.vue
 
 datamaster-ui/src/views/ai/chat/index/components/SkillReferencePanel.vue
-datamaster-ui/src/views/ai/chat/index/components/SqlPreviewCard.vue
 datamaster-ui/src/views/ai/chat/index/components/QualityRiskCard.vue
 ```
 

@@ -18,19 +18,6 @@ export function generateSql(data) {
   })
 }
 
-// 执行SQL查询
-export function executeSql(datasourceId, sql, maxRows = 1000) {
-  return request({
-    url: '/ai/ask-data/execute',
-    method: 'post',
-    params: {
-      datasourceId: datasourceId,
-      sql: sql,
-      maxRows: maxRows
-    }
-  })
-}
-
 // 一站式问数对话
 export function askDataChat(data) {
   return request({

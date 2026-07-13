@@ -125,7 +125,7 @@
             </el-button>
             <div v-if="message.agentSteps" class="agent-fold">
               <details>
-                <summary>思考过程</summary>
+                <summary>执行步骤</summary>
                 <pre>{{ message.agentSteps }}</pre>
               </details>
             </div>
@@ -528,24 +528,27 @@ function normalizeSession(row) {
 }
 
 function normalizeMessage(row) {
+  let message
   if (row?.payloadJson) {
     try {
-      return {
-        ...JSON.parse(row.payloadJson),
+      const payload = JSON.parse(row.payloadJson)
+      message = {
+        ...payload,
         id: row.id,
         role: row.role,
-        content: row.content || JSON.parse(row.payloadJson).content || '',
-        displayContent: row.displayContent || JSON.parse(row.payloadJson).displayContent || ''
+        content: row.content || payload.content || '',
+        displayContent: row.displayContent || payload.displayContent || ''
       }
+      rebuildDisplayContentFromContent(message)
+      return message
     } catch {}
   }
-  return {
+  message = {
     id: row.id,
     role: row.role,
     content: row.content || '',
     displayContent: row.displayContent || '',
     agentSteps: '',
-    executeError: '',
     queryExecuted: false,
     tableRows: [],
     tableColumns: [],
@@ -555,6 +558,38 @@ function normalizeMessage(row) {
     sqlUnavailable: false,
     steps: []
   }
+  rebuildDisplayContentFromContent(message)
+  return message
+}
+
+function rebuildDisplayContentFromContent(message) {
+  if (!message || message.role !== 'assistant' || !message.content) return
+  if (message.displayContent) {
+    message.displayContent = removeValidationSqlSection(message.displayContent).trim()
+  }
+  const mixed = stripNativeJsonBlocks(message.content)
+  if (!mixed.text || mixed.text === message.content) return
+  if (!message.displayContent || isSqlOnlyDisplay(message.displayContent)) {
+    message.displayContent = mixed.text
+  }
+  if (mixed.steps && !message.agentSteps) {
+    message.agentSteps = mixed.steps
+  }
+  const sql = extractLastSqlBlock(message.displayContent)?.sql || extractLastSqlBlock(message.content)?.sql
+  if (sql && !message.returnedSql) {
+    message.returnedSql = sql
+  }
+}
+
+function isSqlOnlyDisplay(content) {
+  if (!content || typeof content !== 'string') return false
+  const text = content.trim()
+  if (!text) return false
+  const withoutSql = text
+    .replace(/校验SQL：?/g, '')
+    .replace(/```sql\s*[\s\S]*?```/gi, '')
+    .trim()
+  return !withoutSql
 }
 
 async function applySessionToForm(session) {
@@ -623,7 +658,6 @@ function serializeMessage(message) {
     content: message.content || '',
     displayContent: message.displayContent || '',
     agentSteps: message.agentSteps || '',
-    executeError: message.executeError || '',
     queryExecuted: Boolean(message.queryExecuted),
     tableRows: message.tableRows || [],
     tableColumns: message.tableColumns || [],
@@ -699,7 +733,6 @@ async function sendMessage() {
     content: '',
     displayContent: '',
     agentSteps: '',
-    executeError: '',
     queryExecuted: false,
     tableRows: [],
     tableColumns: [],
@@ -735,7 +768,7 @@ async function sendMessage() {
           if (!assistantMessage.content) {
             setActiveStep(assistantMessage, 'answer')
           }
-          assistantMessage.content += chunk
+          assistantMessage.content = mergeStreamContent(assistantMessage.content, chunk)
           scrollToBottom()
         },
         onSql(sql) {
@@ -748,6 +781,7 @@ async function sendMessage() {
         }
       })
       hydrateStructuredData(assistantMessage)
+      hydrateNativeExecutionData(assistantMessage)
     }
     finishSteps(assistantMessage)
     await persistMessage(assistantMessage)
@@ -777,9 +811,8 @@ async function generateReportMessage(question, assistantMessage) {
     assistantMessage.reportTemplate = JSON.parse(data.templateContent)
     assistantMessage.reportData = data.reportData
     const sql = data.sql || data.reportData?.sql
-    assistantMessage.displayContent = form.returnSql && sql
-      ? `校验SQL：\n\`\`\`sql\n${sql}\n\`\`\``
-      : ''
+    assistantMessage.returnedSql = sql || ''
+    assistantMessage.displayContent = ''
     return
   }
   assistantMessage.content = data.rawReply || data.qualityWarning || '报告生成失败，未返回结构化数据'
@@ -787,50 +820,100 @@ async function generateReportMessage(question, assistantMessage) {
 }
 
 function hydrateStructuredData(message) {
+  hydrateMixedNativeContent(message)
   const parsed = parseStructuredContent(message.content)
   if (!parsed) {
-    message.displayContent = message.content
+    message.displayContent = message.displayContent || message.content
     extractAgentSteps(message)
     return
   }
 
-  message.displayContent = parsed.text || ''
+  message.displayContent = message.displayContent || parsed.text || ''
   message.tableRows = parsed.rows || []
   message.tableColumns = parsed.columns?.length ? parsed.columns : buildColumns(parsed.rows)
+  if (parsed.sql) {
+    message.returnedSql = parsed.sql
+  }
+  if (parsed.agentSteps) {
+    message.agentSteps = parsed.agentSteps
+  }
   appendSqlMarkdownFromContent(message)
   extractAgentSteps(message)
+}
+
+function hydrateMixedNativeContent(message) {
+  if (!message?.content || typeof message.content !== 'string') return
+  const normalized = stripNativeJsonBlocks(message.content)
+  if (normalized.steps && !message.agentSteps) {
+    message.agentSteps = normalized.steps
+  }
+  if (normalized.text && normalized.text !== message.content) {
+    message.displayContent = normalized.text
+  }
+}
+
+function mergeStreamContent(current, chunk) {
+  if (!chunk) return current || ''
+  const before = current || ''
+  if (looksLikeCompleteJson(chunk) && looksLikeCompleteJson(before)) {
+    return chunk
+  }
+  if (looksLikeCompleteJson(chunk) && extractJsonObjects(before).length) {
+    return chunk
+  }
+  return before + chunk
+}
+
+function looksLikeCompleteJson(value) {
+  if (!value || typeof value !== 'string') return false
+  const text = value.trim()
+  if (!text.startsWith('{') || !text.endsWith('}')) return false
+  try {
+    JSON.parse(text)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function hydrateNativeExecutionData(message) {
+  const raw = parseNativePayload(message.content)
+  if (!raw) return
+  const sql = extractSqlFromRaw(raw)
+  const rows = extractRowsFromRaw(raw)
+  const columns = extractColumnsFromRaw(raw, rows)
+  const steps = extractStepsFromRaw(raw)
+  const text = extractTextFromRaw(raw)
+
+  if (rows.length) {
+    message.tableRows = rows
+    message.tableColumns = columns.length ? columns : buildColumns(rows)
+    message.queryExecuted = true
+  }
+  if (sql) {
+    message.returnedSql = sql
+  }
+  if (steps) {
+    message.agentSteps = steps
+  }
+  if (text && (!message.displayContent || message.displayContent === message.content)) {
+    message.displayContent = text
+  }
+  appendSqlMarkdownFromContent(message)
 }
 
 function appendSqlToMessage(message, sql) {
   const value = (sql || '').trim()
   message.returnedSql = value
   message.sqlUnavailable = !value
-  const block = value
-    ? `校验SQL：\n\`\`\`sql\n${value}\n\`\`\``
-    : '> 未能生成可校验的 SELECT SQL。'
-  const current = message.displayContent || message.content || ''
-  if (value && current.includes(value)) return
-  if (!value && current.includes('未能生成可校验的 SELECT SQL')) return
-  message.displayContent = `${current ? `${current}\n\n` : ''}${block}`
 }
 
 function appendSqlMarkdownFromContent(message) {
-  if (message.sqlUnavailable) {
-    const current = message.displayContent || ''
-    if (current.includes('未能生成可校验的 SELECT SQL')) return
-    message.displayContent = `${current ? `${current}\n\n` : ''}> 未能生成可校验的 SELECT SQL。`
-    return
+  if (message.returnedSql) return
+  const sqlBlock = extractLastSqlBlock(message.content)
+  if (sqlBlock?.sql) {
+    message.returnedSql = sqlBlock.sql
   }
-  const sqlBlock = message.returnedSql
-    ? {
-        sql: message.returnedSql,
-        markdown: `\`\`\`sql\n${message.returnedSql}\n\`\`\``
-      }
-    : extractLastSqlBlock(message.content)
-  if (!sqlBlock) return
-  const current = message.displayContent || ''
-  if (current.includes(sqlBlock.sql)) return
-  message.displayContent = `${current ? `${current}\n\n` : ''}校验SQL：\n${sqlBlock.markdown}`
 }
 
 function extractLastSqlBlock(content) {
@@ -897,6 +980,17 @@ function extractAgentSteps(message) {
 
 function parseStructuredContent(content) {
   if (!content || typeof content !== 'string') return null
+  const mixed = stripNativeJsonBlocks(content)
+  if (mixed.text && mixed.text !== content) {
+    const sql = extractLastSqlBlock(mixed.text)?.sql || ''
+    return {
+      text: mixed.text,
+      rows: [],
+      columns: [],
+      sql,
+      agentSteps: mixed.steps
+    }
+  }
   const parsed = tryParseJson(content.trim())
   if (!parsed) return null
   const raw = normalizeStructuredPayload(parsed)
@@ -904,6 +998,8 @@ function parseStructuredContent(content) {
   let text = raw.msg || raw.message || raw.content || raw.summary || raw.explanation || ''
   let rows = []
   let columns = []
+  let sql = extractSqlFromRaw(raw)
+  let agentSteps = extractStepsFromRaw(raw)
 
   if (Number(raw.code) === 500 && !text) {
     text = '对话异常'
@@ -912,49 +1008,81 @@ function parseStructuredContent(content) {
     text = `${text ? `${text}\n\n` : ''}${raw.qualityWarning}`
   }
 
-  if (Array.isArray(parsed)) {
-    rows = parsed
-  } else if (Array.isArray(raw.rows)) {
-    rows = raw.rows
-  } else if (Array.isArray(raw.list)) {
-    rows = raw.list
-  } else if (Array.isArray(raw.data)) {
-    rows = raw.data
-  } else if (Array.isArray(raw.executeResult)) {
-    rows = raw.executeResult
-  } else if (Array.isArray(raw.detailData?.list)) {
-    rows = raw.detailData.list
-    const labels = Array.isArray(raw.detailData.label) ? raw.detailData.label : []
-    columns = buildColumns(rows, labels)
+  rows = extractRowsFromRaw(raw)
+  columns = extractColumnsFromRaw(raw, rows)
+
+  if (sql && !text.includes(sql)) {
+    text = `${text ? `${text}\n\n` : ''}\`\`\`sql\n${sql}\n\`\`\``
   }
 
-  if (!columns.length && Array.isArray(raw.selectColumn) && raw.selectColumn.length) {
-    const labels = Array.isArray(raw.detailData?.label) && raw.detailData.label.length
-      ? raw.detailData.label
-      : Array.isArray(raw.selectColumnDescription)
-        ? raw.selectColumnDescription
-        : []
-    columns = raw.selectColumn.map((key, index) => ({
-      prop: key,
-      label: labels[index] || key
-    }))
-  }
+  if (!rows.length && !text && !sql && !agentSteps) return null
+  return { text, rows, columns, sql, agentSteps }
+}
 
-  if (raw.sql && !text.includes(raw.sql)) {
-    text = `${text ? `${text}\n\n` : ''}\`\`\`sql\n${raw.sql}\n\`\`\``
-  }
+function stripNativeJsonBlocks(content) {
+  const jsonObjects = extractJsonObjectsWithRange(content)
+  if (!jsonObjects.length) return { text: content, steps: '' }
+  const stepTexts = []
+  let text = ''
+  let cursor = 0
 
-  if (!rows.length && !text) return null
-  return { text, rows, columns }
+  jsonObjects.forEach((item) => {
+    text += content.slice(cursor, item.start)
+    cursor = item.end
+    try {
+      const raw = normalizeStructuredPayload(JSON.parse(item.text))
+      const step = extractStepsFromRaw(raw)
+      if (step) {
+        stepTexts.push(step)
+      } else {
+        text += item.text
+      }
+    } catch {
+      text += item.text
+    }
+  })
+  text += content.slice(cursor)
+
+  return {
+    text: removeValidationSqlSection(text).replace(/\n{3,}/g, '\n\n').trim(),
+    steps: stepTexts.join('\n\n').trim()
+  }
+}
+
+function removeValidationSqlSection(content) {
+  if (!content || typeof content !== 'string') return ''
+  return content
+    .replace(/\n*校验SQL：?\s*```sql\s*[\s\S]*?```\s*/gi, '\n')
+    .replace(/\n*>?\s*未能生成可校验的 SELECT SQL。\s*/gi, '\n')
 }
 
 function normalizeStructuredPayload(raw) {
   if (!raw || Array.isArray(raw) || typeof raw !== 'object') return raw
-  if (raw.detailData || raw.chatData || raw.sql || raw.msg) return raw
+  const vis = parseMaybeJson(raw.vis || raw.view || raw.render)
+  if (vis && typeof vis === 'object') return normalizeStructuredPayload(vis)
+  const resource = parseMaybeJson(raw.resource_value || raw.resourceValue)
+  if (resource && typeof resource === 'object') {
+    return normalizeStructuredPayload({
+      ...resource,
+      msg: raw.msg || raw.message || raw.content || resource.msg || resource.message,
+      steps: raw.steps || raw.thoughts || raw.tool_calls || raw.action || resource.steps
+    })
+  }
+  if (typeof raw.data === 'string') {
+    const parsedData = parseMaybeJson(raw.data)
+    if (parsedData && typeof parsedData === 'object') {
+      return normalizeStructuredPayload({
+        ...parsedData,
+        msg: raw.msg || raw.message || parsedData.msg || parsedData.message
+      })
+    }
+  }
+  if (raw.detailData || raw.chatData || raw.sql || raw.msg || raw.steps || raw.result) return raw
   if (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) {
     return {
       ...raw.data,
       msg: raw.msg || raw.message || raw.data.msg || raw.data.message,
+      steps: raw.steps || raw.thoughts || raw.tool_calls || raw.action || raw.data.steps,
       code: raw.code ?? raw.data.code
     }
   }
@@ -965,14 +1093,188 @@ function tryParseJson(content) {
   try {
     return JSON.parse(content)
   } catch {
-    const match = content.match(/\{[\s\S]*\}/)
-    if (!match) return null
-    try {
-      return JSON.parse(match[0])
-    } catch {
-      return null
+    const candidates = extractJsonObjects(content)
+    for (let i = candidates.length - 1; i >= 0; i--) {
+      try {
+        return JSON.parse(candidates[i])
+      } catch {
+        // Try the previous complete object.
+      }
+    }
+    return null
+  }
+}
+
+function extractJsonObjects(content) {
+  return extractJsonObjectsWithRange(content).map((item) => item.text)
+}
+
+function extractJsonObjectsWithRange(content) {
+  if (!content || typeof content !== 'string') return []
+  const objects = []
+  let start = -1
+  let depth = 0
+  let inString = false
+  let escaped = false
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i]
+    if (escaped) {
+      escaped = false
+      continue
+    }
+    if (char === '\\') {
+      escaped = inString
+      continue
+    }
+    if (char === '"') {
+      inString = !inString
+      continue
+    }
+    if (inString) continue
+    if (char === '{') {
+      if (depth === 0) start = i
+      depth++
+    } else if (char === '}' && depth > 0) {
+      depth--
+      if (depth === 0 && start >= 0) {
+        objects.push({
+          text: content.slice(start, i + 1),
+          start,
+          end: i + 1
+        })
+        start = -1
+      }
     }
   }
+  return objects
+}
+
+function parseNativePayload(content) {
+  if (!content || typeof content !== 'string') return null
+  const parsed = tryParseJson(content.trim())
+  if (!parsed) return null
+  return normalizeStructuredPayload(parsed)
+}
+
+function parseMaybeJson(value) {
+  if (!value || typeof value !== 'string') return null
+  return tryParseJson(value.trim())
+}
+
+function extractTextFromRaw(raw) {
+  if (!raw || typeof raw !== 'object') return ''
+  return raw.msg || raw.message || raw.content || raw.summary || raw.explanation || raw.answer || raw.incremental || raw.data?.incremental || ''
+}
+
+function extractSqlFromRaw(raw) {
+  if (!raw || typeof raw !== 'object') return ''
+  const candidates = [
+    raw.sql,
+    raw.SQL,
+    raw.text2sql,
+    raw.sqlText,
+    raw.query,
+    raw.data?.sql,
+    raw.data?.SQL,
+    raw.result?.sql,
+    raw.view?.sql,
+    raw.detailData?.sql,
+    raw.resource_value?.sql,
+    raw.resourceValue?.sql
+  ]
+  for (const item of candidates) {
+    if (typeof item === 'string' && item.trim()) return item.trim()
+  }
+  const content = extractTextFromRaw(raw)
+  return extractLastSqlBlock(content)?.sql || ''
+}
+
+function extractRowsFromRaw(raw) {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw
+  const candidates = [
+    raw.rows,
+    raw.list,
+    raw.data,
+    raw.executeResult,
+    raw.result,
+    raw.result?.rows,
+    raw.result?.data,
+    raw.view?.rows,
+    raw.view?.data,
+    raw.resource_value?.rows,
+    raw.resource_value?.data,
+    raw.resourceValue?.rows,
+    raw.resourceValue?.data,
+    raw.detailData?.list,
+    raw.detailData?.rows,
+    raw.data?.rows,
+    raw.data?.list,
+    raw.data?.detailData?.list
+  ]
+  for (const item of candidates) {
+    if (Array.isArray(item) && item.length) return item
+  }
+  return []
+}
+
+function extractColumnsFromRaw(raw, rows = []) {
+  if (!raw || typeof raw !== 'object') return []
+  const labels = Array.isArray(raw.detailData?.label) && raw.detailData.label.length
+    ? raw.detailData.label
+    : Array.isArray(raw.selectColumnDescription)
+      ? raw.selectColumnDescription
+      : Array.isArray(raw.data?.selectColumnDescription)
+        ? raw.data.selectColumnDescription
+        : []
+  if (Array.isArray(raw.selectColumn) && raw.selectColumn.length) {
+    return raw.selectColumn.map((key, index) => ({ prop: key, label: labels[index] || key }))
+  }
+  if (Array.isArray(raw.data?.selectColumn) && raw.data.selectColumn.length) {
+    return raw.data.selectColumn.map((key, index) => ({ prop: key, label: labels[index] || key }))
+  }
+  return rows.length ? buildColumns(rows, labels) : []
+}
+
+function extractStepsFromRaw(raw) {
+  if (!raw || typeof raw !== 'object') return ''
+  if (raw.type === 'step.meta' || raw.type === 'step') {
+    return formatStepItem(raw, 0)
+  }
+  const candidates = [
+    raw.agentSteps,
+    raw.steps,
+    raw.thoughts,
+    raw.toolCalls,
+    raw.tool_calls,
+    raw.actions,
+    raw.observation,
+    raw.thought,
+    raw.data?.steps,
+    raw.data?.thoughts,
+    raw.data?.tool_calls,
+    raw.data?.action,
+    raw.action,
+    raw.tool_name,
+    raw.tool_input
+  ]
+  for (const item of candidates) {
+    if (typeof item === 'string' && item.trim()) return item.trim()
+    if (Array.isArray(item) && item.length) return item.map(formatStepItem).join('\n\n')
+    if (item && typeof item === 'object') return JSON.stringify(item, null, 2)
+  }
+  return ''
+}
+
+function formatStepItem(item, index) {
+  if (typeof item === 'string') return item
+  if (!item || typeof item !== 'object') return String(item)
+  const name = item.title || item.name || item.tool || item.tool_name || item.action || item.type || `步骤${index + 1}`
+  const thought = item.thought || item.observation || ''
+  const input = item.action_input || item.tool_input || item.input || item.args || item.sql || item.query || item.content || ''
+  const output = item.output || item.result || item.observation || ''
+  return [`【${name}】`, thought, input, output].filter(Boolean).join('\n')
 }
 
 function buildColumns(rows, labels = []) {

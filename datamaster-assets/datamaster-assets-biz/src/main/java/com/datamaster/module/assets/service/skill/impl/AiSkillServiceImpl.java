@@ -20,10 +20,15 @@ import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillRefDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillVersionDO;
+import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
+import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapper;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillRefMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillVersionMapper;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO;
+import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.assets.service.skill.IAiModelGatewayService;
 import com.datamaster.module.assets.service.skill.IAiSkillService;
 import com.datamaster.module.catalog.api.column.dto.CatalogColumnRespDTO;
@@ -88,7 +93,13 @@ public class AiSkillServiceImpl implements IAiSkillService {
     @Resource
     private AssetsDatasourceMapper assetsDatasourceMapper;
     @Resource
+    private AssetsAssetMapper assetsAssetMapper;
+    @Resource
+    private AssetsAssetColumnMapper assetsAssetColumnMapper;
+    @Resource
     private IAiModelGatewayService aiModelGatewayService;
+    @Resource
+    private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
     @Resource
     private CatalogColumnApiService catalogColumnApiService;
     @Resource
@@ -194,9 +205,9 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (reqVO == null) {
             throw new ServiceException("生成参数不能为空");
         }
-        CatalogTableRespDTO metadataTable = resolveMetadataTableForSkill(reqVO);
-        AssetsAssetDO asset = toSkillTable(metadataTable);
-        List<AssetsAssetColumnDO> columns = metadataColumns(metadataTable);
+        TableSkillContext tableContext = resolveTableSkillContext(reqVO);
+        AssetsAssetDO asset = tableContext.asset;
+        List<AssetsAssetColumnDO> columns = tableContext.columns;
         AssetsDatasourceDO datasource = asset.getDatasourceId() == null ? null : assetsDatasourceMapper.selectById(asset.getDatasourceId());
         CollectorQualitySummaryRespDTO qualitySummary = findQualitySummary(asset);
         String skillCode = tableSkillCode(datasource, asset);
@@ -256,7 +267,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
             tableReq.setDatasourceId(reqVO.getDatasourceId());
             tableReq.setTableName(tableName);
             tableReq.setForceRefresh(reqVO.getForceRefresh());
-            assets.add(toSkillTable(resolveMetadataTableForSkill(tableReq)));
+            assets.add(resolveTableSkillContext(tableReq).asset);
         }
         if (assets.size() < 2) {
             throw new ServiceException("多表Skill至少需要选择两张有效表");
@@ -289,15 +300,46 @@ public class AiSkillServiceImpl implements IAiSkillService {
         return table;
     }
 
+    private TableSkillContext resolveTableSkillContext(AiTableSkillGenerateReqVO reqVO) {
+        AssetsAssetDO asset = resolveAssetTableForSkill(reqVO);
+        if (asset != null) {
+            List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(asset.getId());
+            return new TableSkillContext(asset, columns == null ? new ArrayList<>() : columns);
+        }
+        CatalogTableRespDTO metadataTable = resolveMetadataTableForSkill(reqVO);
+        return new TableSkillContext(toSkillTable(metadataTable), metadataColumns(metadataTable));
+    }
+
+    private AssetsAssetDO resolveAssetTableForSkill(AiTableSkillGenerateReqVO reqVO) {
+        if (reqVO.getDatasourceId() == null || StringUtils.isBlank(reqVO.getTableName())) {
+            return null;
+        }
+        AssetsTableGovernanceReqDTO governanceReq = new AssetsTableGovernanceReqDTO();
+        governanceReq.setDatasourceId(reqVO.getDatasourceId());
+        governanceReq.setTableName(reqVO.getTableName());
+        governanceReq.setEntrance("AI_ASK_DATA_SKILL");
+        AssetsTableGovernanceRespDTO governance = assetsTableGovernanceApiService.resolveTable(governanceReq);
+        if (governance == null || governance.getAssetId() == null
+                || !AssetsTableGovernanceRespDTO.SOURCE_ASSET.equals(governance.getSource())) {
+            return null;
+        }
+        return assetsAssetMapper.selectById(governance.getAssetId());
+    }
+
     private List<AssetsAssetDO> resolveMetadataTablesForDatasource(Long datasourceId) {
         List<CatalogTableRespDTO> metadataTables = catalogTableApiService.listByDatasourceId(datasourceId);
         List<AssetsAssetDO> tables = new ArrayList<>();
-        if (metadataTables == null) {
+        if (metadataTables == null || metadataTables.isEmpty()) {
+            List<AssetsAssetDO> assets = assetsAssetMapper.findByDatasourceId(datasourceId);
+            if (assets != null) {
+                tables.addAll(assets);
+            }
             return tables;
         }
         for (CatalogTableRespDTO metadataTable : metadataTables) {
             if (metadataTable != null && StringUtils.isNotBlank(metadataTable.getTableName())) {
-                tables.add(toSkillTable(metadataTable));
+                AssetsAssetDO asset = firstAsset(datasourceId, metadataTable.getTableName());
+                tables.add(asset == null ? toSkillTable(metadataTable) : asset);
             }
         }
         return tables;
@@ -347,10 +389,27 @@ public class AiSkillServiceImpl implements IAiSkillService {
             if (table == null || table.getId() == null) {
                 continue;
             }
-            CatalogTableRespDTO metadataTable = catalogTableApiService.getById(table.getId());
-            columnMap.put(table.getId(), metadataColumns(metadataTable));
+            if (isRealAssetTable(table)) {
+                List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(table.getId());
+                columnMap.put(table.getId(), columns == null ? new ArrayList<>() : columns);
+            } else {
+                CatalogTableRespDTO metadataTable = catalogTableApiService.getById(table.getId());
+                columnMap.put(table.getId(), metadataColumns(metadataTable));
+            }
         }
         return columnMap;
+    }
+
+    private AssetsAssetDO firstAsset(Long datasourceId, String tableName) {
+        List<AssetsAssetDO> assets = assetsAssetMapper.findByDatasourceIdAndTableName(datasourceId, tableName);
+        if (assets == null || assets.isEmpty()) {
+            return null;
+        }
+        return assets.get(0);
+    }
+
+    private boolean isRealAssetTable(AssetsAssetDO table) {
+        return table != null && !"CAT_TABLE".equals(table.getType());
     }
 
     private CollectorQualitySummaryRespDTO findQualitySummary(AssetsAssetDO table) {
@@ -1227,6 +1286,16 @@ public class AiSkillServiceImpl implements IAiSkillService {
             builder.append(value);
         }
         return builder.toString();
+    }
+
+    private static class TableSkillContext {
+        private AssetsAssetDO asset;
+        private List<AssetsAssetColumnDO> columns;
+
+        private TableSkillContext(AssetsAssetDO asset, List<AssetsAssetColumnDO> columns) {
+            this.asset = asset;
+            this.columns = columns;
+        }
     }
 
     private static class SkillEnhancement {

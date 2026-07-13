@@ -9,7 +9,6 @@ import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlRespVO;
 import com.datamaster.module.assets.service.skill.IAiAskDataService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.MediaType;
@@ -19,8 +18,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
-import java.util.List;
-import java.util.Map;
 
 /**
  * AI ask-data controller.
@@ -46,16 +43,6 @@ public class AiAskDataController {
     @PostMapping("/sql")
     public CommonResult<AiAskDataSqlRespVO> generateSql(@Valid @RequestBody AiAskDataSqlReqVO reqVO) {
         return CommonResult.success(aiAskDataService.generateSql(reqVO));
-    }
-
-    @Operation(summary = "执行SQL查询")
-    @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
-    @PostMapping("/execute")
-    public CommonResult<List<Map<String, Object>>> executeSql(
-            @Parameter(description = "数据源ID") @RequestParam Long datasourceId,
-            @Parameter(description = "SQL语句") @RequestParam String sql,
-            @Parameter(description = "最大返回行数") @RequestParam(defaultValue = "1000") Integer maxRows) {
-        return CommonResult.success(aiAskDataService.executeSql(datasourceId, sql, maxRows));
     }
 
     @Operation(summary = "一站式问数对话")

@@ -44,10 +44,12 @@ import com.datamaster.common.utils.PageUtil;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
 import com.datamaster.module.assets.api.sensitiveLevel.dto.AssetsSensitiveLevelRespDTO;
 import com.datamaster.module.assets.api.service.asset.IAssetsDatasourceApiService;
 import com.datamaster.module.assets.api.service.assetchild.api.IAssetsApiOutService;
 import com.datamaster.module.assets.api.service.assetchild.gis.IAssetsAssetGisOutService;
+import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.service.api.service.api.ServiceApiService;
 import com.datamaster.module.service.async.AsyncTask;
 import com.datamaster.module.service.controller.admin.api.vo.*;
@@ -95,6 +97,8 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
     private IAssetsApiOutService iAssetsApiOutService;
     @Resource
     private IAssetsAssetGisOutService iAssetsAssetGisOutService;
+    @Resource
+    private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
 
     @Override
     public void releaseDataApi(String id, Long updateId, String updateBy) {
@@ -236,6 +240,7 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         String resDataType = dataApiEntity.getResDataType();
         AssetsDatasourceRespDTO dataSource = iAssetsDatasourceApiService
                 .getDatasourceById(Long.valueOf(dataApiEntity.getExecuteConfig().getSourceId()));
+        checkTableGovernance(dataApiEntity, dataApiEntity.getExecuteConfig());
 
         DbQueryProperty dbQueryProperty = new DbQueryProperty(
                 dataSource.getDatasourceType(),
@@ -303,6 +308,20 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
                 return o1;
             }
         }), Feature.OrderedField);
+    }
+
+    private void checkTableGovernance(ServiceApiDO dataApi, ExecuteConfig executeConfig) {
+        if (executeConfig == null || StringUtils.isEmpty(executeConfig.getSourceId())
+                || StringUtils.isEmpty(executeConfig.getTableName())) {
+            return;
+        }
+        AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
+        reqDTO.setDatasourceId(Long.valueOf(executeConfig.getSourceId()));
+        reqDTO.setTableName(executeConfig.getTableName());
+        reqDTO.setProjectId(dataApi.getProjectId());
+        reqDTO.setProjectCode(dataApi.getProjectCode());
+        reqDTO.setEntrance("DATA_SERVICE_TEST");
+        assetsTableGovernanceApiService.checkTableAccess(reqDTO);
     }
 
     /**

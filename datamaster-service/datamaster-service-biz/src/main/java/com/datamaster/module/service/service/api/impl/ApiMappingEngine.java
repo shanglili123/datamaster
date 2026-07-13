@@ -24,9 +24,11 @@ import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.JSONUtils;
 import com.datamaster.common.utils.PageUtil;
 import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
 import com.datamaster.module.assets.api.service.asset.IAssetsDatasourceApiService;
 import com.datamaster.module.assets.api.service.assetchild.api.IAssetsApiOutService;
 import com.datamaster.module.assets.api.service.assetchild.gis.IAssetsAssetGisOutService;
+import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.service.dal.dataobject.api.ServiceApiDO;
 import com.datamaster.module.service.dal.dataobject.api.ExecuteConfig;
 import com.datamaster.module.service.dal.dataobject.dto.ReqParam;
@@ -53,6 +55,8 @@ public class ApiMappingEngine {
     private IAssetsApiOutService iAssetsApiOutService;
     @Resource
     private IAssetsAssetGisOutService iAssetsAssetGisOutService;
+    @Resource
+    private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
 
 
     public Object execute(ServiceApiDO dataApi, Map<String, Object> params) {
@@ -65,6 +69,7 @@ public class ApiMappingEngine {
         ExecuteConfig executeConfig = JSONObject.parseObject(configJson, ExecuteConfig.class);
         dataApi.setExecuteConfig(executeConfig);
         dataSource = iAssetsDatasourceApiService.getDatasourceById(Long.valueOf(executeConfig.getSourceId()));
+        checkTableGovernance(dataApi, executeConfig);
 
         com.datamaster.common.database.constants.DbQueryProperty dbQueryProperty = new DbQueryProperty(
                 dataSource.getDatasourceType(),
@@ -131,6 +136,20 @@ public class ApiMappingEngine {
             dbQuery.close();
         }
         return result;
+    }
+
+    private void checkTableGovernance(ServiceApiDO dataApi, ExecuteConfig executeConfig) {
+        if (executeConfig == null || com.datamaster.common.utils.StringUtils.isEmpty(executeConfig.getSourceId())
+                || com.datamaster.common.utils.StringUtils.isEmpty(executeConfig.getTableName())) {
+            return;
+        }
+        AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
+        reqDTO.setDatasourceId(Long.valueOf(executeConfig.getSourceId()));
+        reqDTO.setTableName(executeConfig.getTableName());
+        reqDTO.setProjectId(dataApi.getProjectId());
+        reqDTO.setProjectCode(dataApi.getProjectCode());
+        reqDTO.setEntrance("DATA_SERVICE");
+        assetsTableGovernanceApiService.checkTableAccess(reqDTO);
     }
 
     private String sqlJdbcNamedParameterBuild(ServiceApiDO dataApi) throws JSQLParserException {

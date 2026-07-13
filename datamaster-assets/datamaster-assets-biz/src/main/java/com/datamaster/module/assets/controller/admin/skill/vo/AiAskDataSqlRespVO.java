@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Ask-data SQL generation response.
@@ -28,15 +27,4 @@ public class AiAskDataSqlRespVO {
     @Schema(description = "质量风险提示")
     private String qualityWarning;
 
-    @Schema(description = "执行结果（如果执行了SQL）")
-    private List<Map<String, Object>> executeResult;
-
-    @Schema(description = "结果行数")
-    private Integer rowCount;
-
-    @Schema(description = "是否执行成功")
-    private Boolean executeSuccess;
-
-    @Schema(description = "执行错误信息")
-    private String executeError;
 }
