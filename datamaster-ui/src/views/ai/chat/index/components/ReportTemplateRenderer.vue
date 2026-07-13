@@ -1,8 +1,8 @@
 <template>
   <div class="report-renderer" :style="pageStyle">
-    <template v-for="section in sections" :key="section.key || section.type">
+    <template v-for="(section, index) in sections" :key="sectionKey(section, index)">
       <h1 v-if="section.type === 'title'" class="report-title" :style="componentStyle('title', section)">
-        {{ valueOf(section.bind) || data.title || template.templateName || '报告' }}
+        {{ valueOf(section.bind) || reportData.title || reportTemplate.templateName || '报告' }}
       </h1>
 
       <p v-else-if="section.type === 'paragraph'" class="report-paragraph" :style="componentStyle('paragraph', section)">
@@ -26,7 +26,7 @@
         class="report-section"
       >
         <h3>{{ section.title }}</h3>
-        <div class="chart" :ref="(el) => setChartRef(section.key, el)" :style="chartStyle(section)" />
+        <div class="chart" :ref="(el) => setChartRef(sectionKey(section, index), el)" :style="chartStyle(section)" />
       </div>
 
       <div v-else-if="section.type === 'table'" class="report-section">
@@ -70,10 +70,12 @@ const props = defineProps({
 const chartRefs = new Map()
 const chartInstances = new Map()
 
-const sections = computed(() => props.template?.layout?.sections || [])
+const reportTemplate = computed(() => normalizeTemplate(props.template))
+const reportData = computed(() => normalizeData(props.data))
+const sections = computed(() => normalizeSections(reportTemplate.value))
 const pageStyle = computed(() => {
-  const page = props.template?.layout?.page || {}
-  const theme = props.template?.style?.theme || {}
+  const page = reportTemplate.value?.layout?.page || {}
+  const theme = reportTemplate.value?.style?.theme || {}
   return {
     padding: page.padding || '24px',
     background: page.background || '#f7f8fa',
@@ -102,22 +104,27 @@ function setChartRef(key, el) {
 function renderCharts() {
   sections.value
     .filter((section) => ['lineChart', 'barChart', 'pieChart'].includes(section.type))
-    .forEach((section) => {
-      const el = chartRefs.get(section.key)
+    .forEach((section, index) => {
+      const key = sectionKey(section, index)
+      const el = chartRefs.get(key)
       if (!el) return
-      let chart = chartInstances.get(section.key)
+      let chart = chartInstances.get(key)
       if (!chart) {
         chart = echarts.init(el)
-        chartInstances.set(section.key, chart)
+        chartInstances.set(key, chart)
       }
       chart.setOption(buildChartOption(section), true)
       chart.resize()
     })
 }
 
+function sectionKey(section, index) {
+  return section?.key || section?.id || section?.bind || `${section?.type || 'section'}-${index}`
+}
+
 function buildChartOption(section) {
   const rows = arrayOf(section.bind)
-  const theme = props.template?.style?.theme || {}
+  const theme = reportTemplate.value?.style?.theme || {}
   if (section.type === 'pieChart') {
     return {
       tooltip: { trigger: 'item' },
@@ -150,16 +157,16 @@ function buildChartOption(section) {
 
 function componentStyle(name, section) {
   return normalizeStyle({
-    ...(props.template?.style?.components?.[name] || {}),
+    ...(reportTemplate.value?.style?.components?.[name] || {}),
     ...(section?.style || {})
   })
 }
 
 function chartStyle(section) {
   return normalizeStyle({
-    ...(props.template?.style?.components?.chart || {}),
+    ...(reportTemplate.value?.style?.components?.chart || {}),
     ...(section?.style || {}),
-    height: section?.style?.height || props.template?.style?.components?.chart?.height || '260px'
+    height: section?.style?.height || reportTemplate.value?.style?.components?.chart?.height || '260px'
   })
 }
 
@@ -181,7 +188,7 @@ function gridStyle(section) {
 
 function valueOf(path) {
   if (!path) return ''
-  return path.split('.').reduce((obj, key) => obj == null ? undefined : obj[key], props.data)
+  return path.split('.').reduce((obj, key) => obj == null ? undefined : obj[key], reportData.value)
 }
 
 function arrayOf(path) {
@@ -198,6 +205,107 @@ function formatValue(value, item) {
     return `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}${item.unit || ''}`
   }
   return `${value}${item?.unit || ''}`
+}
+
+function normalizeTemplate(template) {
+  const parsed = parseMaybeJson(template) || template || {}
+  if (parsed.templateContent) {
+    return normalizeTemplate(parsed.templateContent)
+  }
+  if (parsed.content && (typeof parsed.content === 'string' || parsed.content.layout || parsed.content.dataSchema)) {
+    return normalizeTemplate(parsed.content)
+  }
+  return parsed
+}
+
+function normalizeData(data) {
+  const parsed = parseMaybeJson(data) || data || {}
+  const candidates = [
+    parsed.reportData,
+    parsed.report_data,
+    parsed.data,
+    parsed.result,
+    parsed.payload
+  ]
+  for (const item of candidates) {
+    const normalized = parseMaybeJson(item) || item
+    if (normalized && typeof normalized === 'object' && !Array.isArray(normalized)) {
+      return normalized
+    }
+  }
+  return parsed
+}
+
+function normalizeSections(template) {
+  if (Array.isArray(template?.layout?.sections)) return template.layout.sections.map(normalizeSection)
+  if (Array.isArray(template?.sections)) return template.sections.map(normalizeSection)
+  if (Array.isArray(template?.components)) return template.components.map(normalizeSection)
+  if (Array.isArray(template?.layout)) return template.layout.map(normalizeSection)
+  const fields = Array.isArray(template?.dataSchema?.fields) ? template.dataSchema.fields : []
+  if (!fields.length) return []
+  return fields.map((field) => {
+    if (field.type === 'array') {
+      return {
+        key: field.key,
+        type: 'table',
+        title: field.label,
+        bind: field.key,
+        columns: Object.keys(field.itemSchema || {}).map((key) => ({ prop: key, label: key }))
+      }
+    }
+    if (field.type === 'number') {
+      return {
+        key: field.key,
+        type: 'metricGrid',
+        columns: 1,
+        items: [{ label: field.label, bind: field.key, format: field.format, unit: field.unit }]
+      }
+    }
+    return {
+      key: field.key,
+      type: field.key === 'title' ? 'title' : 'paragraph',
+      bind: field.key,
+      title: field.label
+    }
+  }).map(normalizeSection)
+}
+
+function normalizeSection(section) {
+  const typeMap = {
+    heading: 'title',
+    header: 'title',
+    text: 'paragraph',
+    markdown: 'paragraph',
+    metrics: 'metricGrid',
+    metric: 'metricGrid',
+    chart: 'barChart',
+    line: 'lineChart',
+    bar: 'barChart',
+    pie: 'pieChart',
+    list: 'insightList',
+    insights: 'insightList',
+    warnings: 'warningList',
+    grid: 'metricGrid'
+  }
+  const normalized = { ...section }
+  normalized.type = typeMap[section?.type] || section?.type
+  normalized.bind = normalized.bind || normalized.field || normalized.key || normalized.dataKey
+  if (normalized.type === 'metricGrid' && !Array.isArray(normalized.items) && Array.isArray(normalized.metrics)) {
+    normalized.items = normalized.metrics
+  }
+  if (normalized.type === 'table' && !Array.isArray(normalized.columns) && normalized.itemSchema) {
+    normalized.columns = Object.keys(normalized.itemSchema).map((key) => ({ prop: key, label: key }))
+  }
+  return normalized
+}
+
+function parseMaybeJson(value) {
+  if (!value || typeof value !== 'string') return null
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
 }
 </script>
 
