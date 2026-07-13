@@ -316,7 +316,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         respVO.setTemplateContent(template.getTemplateContent());
 
         try {
-            DbGptChatCompletionResponse gptResponse = dbGptClientService.chatCompletionV1(gptRequest);
+            DbGptChatCompletionResponse gptResponse = dbGptClientService.chatCompletion(gptRequest);
             String reply = extractReply(gptResponse);
             respVO.setRawReply(reply);
             respVO.setReportData(extractJsonFromReply(reply));
@@ -414,7 +414,9 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         StringBuilder builder = new StringBuilder();
         builder.append("你是 DataMaster 报告数据生成助手。请基于已选择的数据库和可用知识库，为报告模板生成结构化数据。\n");
         builder.append("必须只返回一个合法 JSON 对象，不要返回 Markdown，不要返回 HTML，不要使用代码块包裹。\n");
+        builder.append("不要输出分析过程、执行步骤、SQL查询过程、Python代码或HTML报告，只返回前端模板渲染需要的数据对象。\n");
         builder.append("返回字段必须满足模板 dataSchema.required 和 dataSchema.fields；图表和表格数据必须返回数组。\n");
+        builder.append("字段路径必须按点号组织成嵌套对象，例如 metrics.totalOrderCount 必须返回为 {\"metrics\":{\"totalOrderCount\":...}}。\n");
         if (Boolean.TRUE.equals(reqVO.getReturnSql())) {
             builder.append("本次需要在 JSON 的 sql 字段返回用于校验的 SELECT SQL。\n");
         } else {
@@ -423,9 +425,33 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         if (reqVO.getParams() != null && !reqVO.getParams().isEmpty()) {
             builder.append("\n【报告参数】\n").append(JSON.toJSONString(reqVO.getParams())).append("\n");
         }
+        builder.append("\n【必须返回的数据字段】\n").append(buildReportDataSchemaText(template.getTemplateContent())).append("\n");
         builder.append("\n【报告模板JSON】\n").append(template.getTemplateContent()).append("\n");
         builder.append("\n【用户需求】\n").append(reqVO.getQuestion()).append("\n");
         return builder.toString();
+    }
+
+    private String buildReportDataSchemaText(String templateContent) {
+        if (StringUtils.isBlank(templateContent)) {
+            return "请参考报告模板 dataSchema 返回完整 JSON 数据。";
+        }
+        try {
+            com.alibaba.fastjson2.JSONObject template = JSON.parseObject(templateContent);
+            com.alibaba.fastjson2.JSONObject dataSchema = template.getJSONObject("dataSchema");
+            if (dataSchema == null) {
+                return "请参考报告模板 dataSchema 返回完整 JSON 数据。";
+            }
+            StringBuilder builder = new StringBuilder();
+            if (dataSchema.getJSONArray("required") != null) {
+                builder.append("- required: ").append(dataSchema.getJSONArray("required").toJSONString()).append("\n");
+            }
+            if (dataSchema.getJSONArray("fields") != null) {
+                builder.append("- fields: ").append(dataSchema.getJSONArray("fields").toJSONString()).append("\n");
+            }
+            return builder.length() > 0 ? builder.toString() : dataSchema.toJSONString();
+        } catch (Exception e) {
+            return "请参考报告模板 dataSchema 返回完整 JSON 数据。";
+        }
     }
 
     private DbGptChatCompletionRequest buildDbGptAskRequest(AiAskDataSqlReqVO reqVO, boolean stream) {

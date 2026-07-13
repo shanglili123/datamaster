@@ -143,12 +143,8 @@
                 <span>{{ step.label }}</span>
               </div>
             </div>
-            <AssistantReportCard
-              v-if="message.reportCard"
-              :data="message.reportCard"
-            />
             <ReportTemplateRenderer
-              v-else-if="message.reportTemplate && message.reportData"
+              v-if="message.reportTemplate && message.reportData"
               :template="message.reportTemplate"
               :data="message.reportData"
             />
@@ -168,12 +164,12 @@
               <el-empty description="暂无查询结果" :image-size="56" />
             </div>
             <MarkdownView
-              v-if="!message.reportCard && !message.reportTemplate && !message.reportData && (message.displayContent || message.content)"
+              v-if="!message.reportTemplate && !message.reportData && (message.displayContent || message.content)"
               class="message-content"
               :content="message.displayContent || message.content"
             />
             <div
-              v-if="!message.reportCard && !message.reportTemplate && !message.reportData && !message.tableRows?.length && !message.displayContent && !message.content"
+              v-if="!message.reportTemplate && !message.reportData && !message.tableRows?.length && !message.displayContent && !message.content"
               class="typing"
             >
               <span></span>
@@ -242,7 +238,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { getToken } from '@/utils/auth'
 import MarkdownView from '@/components/MarkdownView/index.vue'
-import AssistantReportCard from './components/message/AssistantReportCard.vue'
 import ReportTemplateRenderer from './components/ReportTemplateRenderer.vue'
 import { askDataDbgptReport } from '@/api/ai/askData'
 import { listSkill, listSkillReportTemplates } from '@/api/ai/skill'
@@ -558,7 +553,6 @@ function normalizeMessage(row) {
     queryExecuted: false,
     tableRows: [],
     tableColumns: [],
-    reportCard: null,
     reportTemplate: null,
     reportData: null,
     returnedSql: '',
@@ -577,17 +571,6 @@ function normalizeReportPayload(message) {
   }
   if (typeof message.reportData === 'string') {
     message.reportData = parseMaybeJson(message.reportData) || null
-  }
-  if (typeof message.reportCard === 'string') {
-    message.reportCard = parseMaybeJson(message.reportCard) || null
-  }
-  if (!message.reportCard && message.reportTemplate && message.reportData && !isTemplateReportDataUsable(message.reportTemplate, message.reportData)) {
-    message.reportCard = buildLegacyReportCard(message.content, message.reportData, message.reportTemplate)
-    if (!message.reportCard) {
-      message.reportTemplate = null
-      message.reportData = null
-      message.displayContent = message.displayContent || '报告生成失败，模板或报告数据格式不正确'
-    }
   }
 }
 
@@ -690,7 +673,6 @@ function serializeMessage(message) {
     queryExecuted: Boolean(message.queryExecuted),
     tableRows: message.tableRows || [],
     tableColumns: message.tableColumns || [],
-    reportCard: message.reportCard || null,
     reportTemplate: message.reportTemplate || null,
     reportData: message.reportData || null,
     returnedSql: message.returnedSql || '',
@@ -766,7 +748,6 @@ async function sendMessage() {
     queryExecuted: false,
     tableRows: [],
     tableColumns: [],
-    reportCard: null,
     reportTemplate: null,
     reportData: null,
     returnedSql: '',
@@ -843,226 +824,18 @@ async function generateReportMessage(question, assistantMessage) {
     const reportData = parseMaybeJson(data.reportData) || data.reportData
     const sql = data.sql || reportData?.sql
     assistantMessage.returnedSql = sql || ''
-    assistantMessage.content = data.rawReply || '报告已生成'
     assistantMessage.displayContent = ''
-    if (isPlainObject(reportTemplate) && isPlainObject(reportData) && isTemplateReportDataUsable(reportTemplate, reportData)) {
+    if (reportTemplate && reportData) {
       assistantMessage.reportTemplate = reportTemplate
       assistantMessage.reportData = reportData
-      return
-    }
-    assistantMessage.reportCard = buildLegacyReportCard(data.rawReply, reportData, reportTemplate)
-    if (assistantMessage.reportCard) {
       return
     }
     assistantMessage.content = '报告生成失败，模板或报告数据格式不正确'
     assistantMessage.displayContent = assistantMessage.content
     return
   }
-  assistantMessage.reportCard = buildLegacyReportCard(data.rawReply, null, null)
-  if (assistantMessage.reportCard) {
-    assistantMessage.content = data.rawReply || ''
-    assistantMessage.displayContent = ''
-    return
-  }
-  assistantMessage.content = data.qualityWarning || '报告生成失败，未返回可按模板渲染的数据'
+  assistantMessage.content = data.rawReply || data.qualityWarning || '报告生成失败，未返回结构化数据'
   assistantMessage.displayContent = assistantMessage.content
-}
-
-function isPlainObject(value) {
-  return value && typeof value === 'object' && !Array.isArray(value)
-}
-
-function isTemplateReportDataUsable(template, data) {
-  const candidate = unwrapReportDataForCheck(data)
-  const required = Array.isArray(template?.dataSchema?.required) ? template.dataSchema.required : []
-  if (!required.length) return Object.keys(candidate || {}).length > 0
-  const matched = required.filter((path) => hasValueByPath(candidate, path)).length
-  return matched > 0 && matched >= Math.max(1, Math.ceil(required.length / 2))
-}
-
-function unwrapReportDataForCheck(data) {
-  if (!isPlainObject(data)) return data
-  const keys = ['reportData', 'report_data', 'data', 'result', 'payload']
-  for (const key of keys) {
-    if (isPlainObject(data[key])) return data[key]
-  }
-  return data
-}
-
-function hasValueByPath(data, path) {
-  const value = getByPath(data, path)
-  if (Array.isArray(value)) return value.length > 0
-  if (isPlainObject(value)) return Object.keys(value).length > 0
-  return value !== undefined && value !== null && value !== ''
-}
-
-function getByPath(data, path) {
-  if (!path) return undefined
-  return String(path).split('.').reduce((obj, key) => obj == null ? undefined : obj[key], data)
-}
-
-function buildLegacyReportCard(rawReply, reportData, reportTemplate) {
-  const raw = isPlainObject(reportData) ? reportData : {}
-  const normalized = normalizeLegacyReportRaw(rawReply, raw)
-  const rows = normalized.rows || []
-  const chartRows = normalized.chartRows || rows
-  const sql = normalized.sql || raw.sql || ''
-  const summary = normalized.summary || raw.msg || raw.summary || ''
-  const tabs = []
-
-  if (chartRows.length) {
-    const keys = Object.keys(chartRows[0] || {})
-    const xKey = normalized.xKey || keys.find((key) => /name|date|time|status|city|product/i.test(key)) || keys[0]
-    const yKey = normalized.yKey || keys.find((key) => key !== xKey && typeof chartRows[0]?.[key] === 'number') || keys.find((key) => key !== xKey) || keys[1]
-    if (xKey && yKey) {
-      tabs.push({
-        key: 'viz',
-        label: '可视化',
-        chart: {
-          type: normalized.chartType || 'bar',
-          xAxis: chartRows.map((row) => row?.[xKey]),
-          series: [{
-            name: normalized.seriesName || '数据',
-            data: chartRows.map((row) => Number(row?.[yKey] || 0))
-          }]
-        }
-      })
-    }
-  }
-
-  if (rows.length) {
-    tabs.push({
-      key: 'detail',
-      label: '明细数据',
-      table: {
-        rows,
-        columns: Object.keys(rows[0] || {}).map((key) => ({ prop: key, label: key }))
-      }
-    })
-  }
-
-  if (sql) {
-    tabs.push({ key: 'sql', label: 'Text2SQL', code: sql })
-  }
-
-  if (!tabs.length && !summary) return null
-  return {
-    header: reportTemplate?.templateName || '智能洞察',
-    summary: summary || '报告已生成',
-    tabs
-  }
-}
-
-function normalizeLegacyReportRaw(rawReply, reportData = {}) {
-  if (reportData?.chatData || reportData?.detailData || reportData?.sql) {
-    const rows = Array.isArray(reportData?.detailData?.list) ? reportData.detailData.list : []
-    const chartRows = buildRowsFromChatData(reportData.chatData)
-    return {
-      summary: reportData.msg || reportData.summary,
-      rows,
-      chartRows,
-      sql: reportData.sql,
-      chartType: reportData.dataType === 2 ? 'line' : reportData.dataType === 3 ? 'pie' : 'bar'
-    }
-  }
-
-  const stepData = extractInterpreterData(rawReply)
-  if (stepData) {
-    return legacyRowsFromInterpreterData(stepData)
-  }
-
-  const preparedData = extractPreparedReportData(rawReply)
-  if (preparedData) {
-    return legacyRowsFromInterpreterData(preparedData)
-  }
-
-  if (Array.isArray(reportData?.data) && reportData.data.length) {
-    return { rows: reportData.data, chartRows: reportData.data, summary: reportData.msg || reportData.summary }
-  }
-  return { summary: reportData?.msg || reportData?.summary || '' }
-}
-
-function buildRowsFromChatData(chatData) {
-  if (!chatData) return []
-  const xAxis = chatData.xAxisData || []
-  const yAxis = chatData.yAxisData || []
-  if (!Array.isArray(xAxis) || !Array.isArray(yAxis) || !xAxis.length) return []
-  return xAxis.map((name, index) => ({ name, value: yAxis[index] }))
-}
-
-function extractInterpreterData(rawReply) {
-  if (!rawReply || typeof rawReply !== 'string') return null
-  const jsonObjects = extractJsonObjects(rawReply)
-  for (let i = jsonObjects.length - 1; i >= 0; i--) {
-    const raw = parseMaybeJson(jsonObjects[i])
-    if (!raw || !raw.action_input) continue
-    const input = parseMaybeJson(raw.action_input)
-    if (input?.data && isPlainObject(input.data)) {
-      return input.data
-    }
-  }
-  return null
-}
-
-function extractPreparedReportData(rawReply) {
-  if (!rawReply || typeof rawReply !== 'string') return null
-  const data = {}
-  const scalarRules = [
-    ['total_orders', /total_orders\s*=\s*([0-9.]+)/],
-    ['total_sales', /total_sales\s*=\s*([0-9.]+)/]
-  ]
-  scalarRules.forEach(([key, pattern]) => {
-    const matched = rawReply.match(pattern)
-    if (matched) {
-      data[key] = Number(matched[1])
-    }
-  })
-  const arrayRules = [
-    ['order_trend', /order_trend_data\s*=\s*(\[[\s\S]*?\])/],
-    ['status_distribution', /order_status_data\s*=\s*(\[[\s\S]*?\])/],
-    ['city_sales_data', /city_sales_data\s*=\s*(\[[\s\S]*?\])/],
-    ['product_ranking', /product_ranking\s*=\s*(\[[\s\S]*?\])/]
-  ]
-  arrayRules.forEach(([key, pattern]) => {
-    const matched = rawReply.match(pattern)
-    if (matched) {
-      const parsed = parseMaybeJson(matched[1])
-      if (Array.isArray(parsed)) {
-        data[key] = parsed
-      }
-    }
-  })
-  return Object.keys(data).length ? data : null
-}
-
-function legacyRowsFromInterpreterData(data) {
-  const ranking = data.product_ranking || data.productSalesRanking || data.city_sales_data || data.citySalesData || []
-  const trend = data.order_trend || data.orderTrend || data.order_trend_data || data.orderTrendData || []
-  const status = data.status_distribution || data.statusDistribution || data.order_status_data || data.orderStatusData || []
-  const rankingRows = toRows(ranking)
-  const trendRows = toRows(trend)
-  const rows = [
-    ...rankingRows,
-    ...toRows(status)
-  ]
-  const totalOrders = data.total_orders ?? data.totalOrderCount
-  const totalSales = data.total_sales ?? data.totalSalesAmount
-  const summary = [
-    totalOrders != null ? `总订单数：${totalOrders}` : '',
-    totalSales != null ? `总销售金额：${totalSales}` : ''
-  ].filter(Boolean).join('\n')
-  return {
-    summary,
-    rows: rows.length ? rows : trendRows,
-    chartRows: rankingRows.length ? rankingRows : trendRows,
-    xKey: rankingRows.length ? (rankingRows[0]?.product_name != null ? 'product_name' : 'city') : 'date',
-    yKey: rankingRows.length ? (rankingRows[0]?.total_amount != null ? 'total_amount' : 'amount') : 'count',
-    seriesName: rankingRows.length ? '销售金额' : '订单数量'
-  }
-}
-
-function toRows(value) {
-  return Array.isArray(value) ? value : []
 }
 
 function hydrateStructuredData(message) {
