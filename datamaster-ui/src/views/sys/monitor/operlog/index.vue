@@ -1,4 +1,4 @@
-﻿<template>
+<template>
    <div class="app-container" ref="app-container">
       <div class="pagecont-top" v-show="showSearch">
          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch"
@@ -212,7 +212,7 @@ const data = reactive({
    form: {},
    queryParams: {
       pageNum: 1,
-      pageSize: 10,
+      pageSize: 6,
       operIp: undefined,
       title: undefined,
       operName: undefined,

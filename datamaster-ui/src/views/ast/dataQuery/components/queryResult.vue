@@ -63,7 +63,7 @@ const callData = ref({
   dataList: [],
   columnList: [],
   pageNum: 1,
-  pageSize: 20, // 查询每页默认20条
+  pageSize: 6, // 查询每页默认6条
   dataTotal: 0,
 });
 
@@ -135,7 +135,7 @@ const closeDialog = () => {
     columnList: [],
     dataTotal: 0,
     pageNum: 1,
-    pageSize: 20,
+    pageSize: 6,
   };
   emit("update:visible", false);
 };

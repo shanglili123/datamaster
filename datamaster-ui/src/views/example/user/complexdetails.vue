@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="app-container" ref="app-container">
         <div class="pagecont-top" v-show="showSearch" style="padding-bottom: 15px">
             <div class="infotop">
@@ -384,7 +384,7 @@
         form: {},
         queryParams: {
             pageNum: 1,
-            pageSize: 10,
+            pageSize: 6,
             id: null,
             name: null,
             validFlag: null,

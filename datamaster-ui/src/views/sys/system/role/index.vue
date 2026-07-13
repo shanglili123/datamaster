@@ -451,7 +451,7 @@
         form: {},
         queryParams: {
             pageNum: 1,
-            pageSize: 10,
+            pageSize: 6,
             projectId: 0,
             roleName: undefined,
             roleKey: undefined,

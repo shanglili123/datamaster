@@ -1,4 +1,4 @@
-﻿<template>
+<template>
    <!-- 授权用户 -->
    <el-dialog title="选择用户" v-model="visible" width="800px" top="5vh" append-to-body>
       <el-form :model="queryParams" ref="queryRef" :inline="true">
@@ -65,7 +65,7 @@ const userIds = ref([]);
 
 const queryParams = reactive({
    pageNum: 1,
-   pageSize: 10,
+   pageSize: 6,
    roleId: undefined,
    userName: undefined,
    phonenumber: undefined

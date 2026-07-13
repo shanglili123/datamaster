@@ -96,7 +96,7 @@
       >
         <el-table-column
             v-if="getColumnVisibility(1)"
-            width="80"
+            width="120"
             label="编号"
             align="center"
             prop="id"
@@ -853,7 +853,7 @@
             :selectable="selectable"
             align="center"
         />
-        <el-table-column label="编号" prop="id" width="80">
+        <el-table-column label="编号" prop="id" width="120">
           <template #default="scope">
             {{ scope.row.id || "-" }}
           </template>
@@ -983,14 +983,14 @@ const data = reactive({
   },
   queryParamsProject: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     name: null,
     managerId: null,
     datasourceId: null,
   },
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     datasourceName: null,
     datasourceType: null,
     datasourceConfig: null,
@@ -1136,12 +1136,31 @@ function normalizeConfigText(value) {
   return typeof value === "string" ? value : JSON.stringify(value);
 }
 
+function normalizePageData(response) {
+  const data = response?.data ?? response ?? {};
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
+
 function getListProject() {
   openProject.value = true;
   loadingProject.value = true;
   noDppAdd(queryParamsProject.value).then((response) => {
-    projectList.value = response.data.rows;
-    totalProject.value = response.data.total;
+    const pageData = normalizePageData(response);
+    projectList.value = pageData.rows;
+    totalProject.value = pageData.total;
     loadingProject.value = false;
 
     // 在表格加载完成后，设置之前选中的项目
@@ -1183,7 +1202,7 @@ function handleQueryProject() {
 
 function resetQueryProject() {
   queryParamsProject.value.pageNum = 1;
-  queryParamsProject.value.pageSize = 10;
+  queryParamsProject.value.pageSize = 6;
   queryParamsProject.value.name = null;
   queryParamsProject.value.managerId = null;
   getListProject();
@@ -1195,8 +1214,9 @@ function getList() {
   queryParams.value.projectId = userStore.projectId;
   queryParams.value.projectCode = userStore.projectCode;
   listDaDatasourceByProjectCode(queryParams.value).then((response) => {
-    daDatasourceList.value = response.data.rows;
-    total.value = response.data.total;
+    const pageData = normalizePageData(response);
+    daDatasourceList.value = pageData.rows;
+    total.value = pageData.total;
     loading.value = false;
   });
 }

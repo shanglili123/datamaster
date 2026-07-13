@@ -816,7 +816,7 @@ const tableStore = reactive({
     },
   },
   columns: [
-    { label: "编号", prop: "id", width: 60, sortable: true },
+    { label: "编号", prop: "id", width: 90, sortable: true },
     {
       label: "任务信息",
       prop: "name",

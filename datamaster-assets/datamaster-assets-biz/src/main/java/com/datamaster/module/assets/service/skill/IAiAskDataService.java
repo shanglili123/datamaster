@@ -2,6 +2,8 @@ package com.datamaster.module.assets.service.skill;
 
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataPrepareReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataPrepareRespVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataReportReqVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataReportRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlRespVO;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -51,4 +53,6 @@ public interface IAiAskDataService {
     AiAskDataSqlRespVO chatWithDbGpt(AiAskDataSqlReqVO reqVO);
 
     SseEmitter chatWithDbGptStream(AiAskDataSqlReqVO reqVO);
+
+    AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO);
 }

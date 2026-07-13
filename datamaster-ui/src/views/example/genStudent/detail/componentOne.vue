@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="justify-between mb15">
         <el-row :gutter="15" class="btn-style">
             <el-col :span="1.5">
@@ -404,7 +404,7 @@
         form: {},
         queryParams: {
             pageNum: 1,
-            pageSize: 10,
+            pageSize: 6,
             name: null,
             pictureUrl: null,
             experience: null,

@@ -187,6 +187,13 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
         return selectList(queryWrapper);
     }
 
+    default List<AssetsAssetDO> findByDatasourceId(Long datasourceId) {
+        LambdaQueryWrapper<AssetsAssetDO> queryWrapper = Wrappers.<AssetsAssetDO>lambdaQuery()
+                .eq(AssetsAssetDO::getDatasourceId, datasourceId)
+                .orderByAsc(AssetsAssetDO::getTableName);
+        return selectList(queryWrapper);
+    }
+
     Map<String, Object> getAssetOverviewStatistics();
 
     /**

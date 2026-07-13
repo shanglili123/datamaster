@@ -128,7 +128,7 @@
                         <div style="display: flex; justify-content: flex-end; margin-top: 20px;"
                             v-if="callData.dataTotal">
                             <el-pagination v-if="form.resDataType == '1' || form.resDataType == '3'"
-                                :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper"
+                                :page-sizes="[6, 8, 10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper"
                                 v-model:current-page="callData.pageNum" v-model:page-size="callData.pageSize"
                                 :total="callData.dataTotal" @size-change="handleSizeChange"
                                 @current-change="handleCurrentChange" />
@@ -209,7 +209,7 @@ const data = reactive({
         dataList: [],
         columnList: [],
         pageNum: 1,
-        pageSize: 20,
+        pageSize: 6,
         dataTotal: 0
     },
     bashUrl: null

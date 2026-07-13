@@ -43,6 +43,9 @@ const getSkillTypeTag = (type) => {
     'PLATFORM_METADATA': 'primary',
     'PLATFORM_QUALITY': 'success',
     'TABLE': 'warning',
+    'DATABASE': 'primary',
+    'MULTI_TABLE': 'success',
+    'REPORT_TEMPLATE': 'danger',
     'METRIC': 'danger'
   }
   return map[type] || 'info'
@@ -53,6 +56,9 @@ const getSkillTypeLabel = (type) => {
     'PLATFORM_METADATA': '元数据',
     'PLATFORM_QUALITY': '质量',
     'TABLE': '表级',
+    'DATABASE': '整库',
+    'MULTI_TABLE': '多表',
+    'REPORT_TEMPLATE': '报告模板',
     'METRIC': '指标'
   }
   return map[type] || type

@@ -1,4 +1,4 @@
-﻿<!-- 
+<!-- 
     qt-table 组件
     说明：基于element-plus的表格封装，集成了分页、排序、字典、图标、链接等功能
     注意：不要私自修改本组件中的代码 有问题先联系wy
@@ -116,6 +116,7 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
         v-bind="config.pagination"
+        :page-sizes="config.pagination?.pageSizes || DEFAULT_PAGE_SIZES"
         :background="config.pagination?.background || true"
         :pager-count="config.pagination?.pagerCount || store.pagerCount"
       >
@@ -197,8 +198,9 @@ const router = useRouter();
 
 const DEFAULT_PAGE_PARAMS = {
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 6,
 };
+const DEFAULT_PAGE_SIZES = [6, 8, 10, 20, 30, 50];
 
 const store = reactive({
   loading: false,
@@ -247,9 +249,10 @@ function getList() {
   props
     .func(params)
     .then((res) => {
-      let data = Array.isArray(res.data) ? res.data : res.data.rows;
+      const pageData = normalizePageData(res);
+      let data = pageData.rows;
       if (!notPagination) {
-        store.total = res.data.total;
+        store.total = pageData.total;
       }
       if (autoPagination) {
         store.total = data.length;
@@ -262,6 +265,30 @@ function getList() {
     .catch(() => {
       store.loading = false;
     });
+}
+
+function normalizePageData(res) {
+  const data = res?.data ?? res ?? {};
+  if (Array.isArray(data)) {
+    return {
+      rows: data,
+      total: data.length,
+    };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(res?.rows)
+          ? res.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? res?.total ?? rows.length);
+  return {
+    rows,
+    total: Number.isNaN(total) ? rows.length : total,
+  };
 }
 
 // 重置数据
@@ -367,7 +394,7 @@ function setupDefaultPageParams() {
   const { notPagination, pagination } = config.value;
   if (pagination?.params) {
     const { notPaginationParams } = config.value;
-    const defaultParams = notPaginationParams ? { ...DEFAULT_PAGE_PARAMS } : {};
+    const defaultParams = notPaginationParams ? {} : { ...DEFAULT_PAGE_PARAMS };
     const params = Object.assign(
       {},
       defaultParams,

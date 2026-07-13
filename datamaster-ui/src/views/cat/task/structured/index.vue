@@ -579,7 +579,7 @@ const tableStore = reactive({
   },
   columns: [
     { type: "selection", width: 55 },
-    { label: "编号", prop: "id", sortable: true, width: 60 },
+    { label: "编号", prop: "id", sortable: true, width: 90 },
     { label: "任务信息", prop: "name", align: "left", slot: "name", width: 280 },
     { label: "运行控制", prop: "status", width: 145, slot: "releaseState", align: "left" },
     { label: "调度周期", prop: "cronExpression", width: 160, slot: "cronExpression", align: "left" },

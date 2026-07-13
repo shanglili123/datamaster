@@ -269,7 +269,7 @@ const data = reactive({
     form: {},
     queryParams: {
         pageNum: 1,
-        pageSize: 10,
+        pageSize: 6,
         NAME: null,
         STATUS: null,
         createTime: null
@@ -278,6 +278,24 @@ const data = reactive({
 });
 
 const { queryParams, form, dsApiDetail, rules } = toRefs(data);
+
+function normalizePageData(response) {
+    const data = response?.data ?? response ?? {};
+    if (Array.isArray(data)) {
+        return { rows: data, total: data.length };
+    }
+    const rows = Array.isArray(data.rows)
+        ? data.rows
+        : Array.isArray(data.list)
+            ? data.list
+            : Array.isArray(data.records)
+                ? data.records
+                : Array.isArray(response?.rows)
+                    ? response.rows
+                    : [];
+    const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+    return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
 
 /** 查询API服务列表 */
 function getList() {
@@ -288,8 +306,9 @@ function getList() {
         queryParams.value.params['endCreateTime'] = daterangeCreateTime.value[1];
     }
     listDsApi(queryParams.value).then((response) => {
-        dsApiList.value = response.data.rows;
-        total.value = response.data.total;
+        const pageData = normalizePageData(response);
+        dsApiList.value = pageData.rows;
+        total.value = pageData.total;
         loading.value = false;
     });
 }

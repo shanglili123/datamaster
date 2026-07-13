@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog
       title="用户类型-多选"
       v-model="visible"
@@ -224,7 +224,7 @@ const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     id: null,
     name: null,
     validFlag: null,

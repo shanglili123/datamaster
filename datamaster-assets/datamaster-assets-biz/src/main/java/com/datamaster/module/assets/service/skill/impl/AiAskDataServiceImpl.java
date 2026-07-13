@@ -1,5 +1,6 @@
 package com.datamaster.module.assets.service.skill.impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.datamaster.common.database.DataSourceFactory;
 import com.datamaster.common.database.DbQuery;
 import com.datamaster.common.database.constants.DbQueryProperty;
@@ -9,15 +10,19 @@ import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataPrepareReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataPrepareRespVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataReportReqVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataReportRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillRespVO;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillDO;
+import com.datamaster.module.assets.dal.dataobject.skill.AiSkillReportTemplateDO;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillMapper;
+import com.datamaster.module.assets.dal.mapper.skill.AiSkillReportTemplateMapper;
 import com.datamaster.module.assets.model.dto.dbgpt.DbGptChatCompletionRequest;
 import com.datamaster.module.assets.model.dto.dbgpt.DbGptChatCompletionResponse;
 import com.datamaster.module.assets.model.dto.dbgpt.DbGptChatMessage;
@@ -48,6 +53,8 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     private static final Logger log = LoggerFactory.getLogger(AiAskDataServiceImpl.class);
     @Resource
     private AiSkillMapper aiSkillMapper;
+    @Resource
+    private AiSkillReportTemplateMapper aiSkillReportTemplateMapper;
 
     @Resource
     private AssetsAssetMapper assetsAssetMapper;
@@ -259,17 +266,18 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             }
         }
         boolean isGeneralChat = "chat_normal".equals(gptRequest.getChatMode());
+        String userInput = buildDbGptUserInput(reqVO);
         if (isGeneralChat) {
             gptRequest.setMessages(Collections.singletonList(
-                    new DbGptChatMessage("user", reqVO.getQuestion())
+                    new DbGptChatMessage("user", userInput)
             ));
         } else {
             gptRequest.setMessages(Arrays.asList(
                     new DbGptChatMessage("system", "你是 DataMaster 的智能问数助手。当前是数据库问答场景，"
-                            + "必须基于已选择的数据源回答。用户要求查询数据、统计、排序、筛选时，必须输出一个可执行的 SELECT SQL，"
-                            + "并用 ```sql 代码块包裹；不要复述规则，不要要求用户再次提出问题。"
+                            + "必须基于已选择的数据源回答。优先直接返回查询结果、分析结论和必要说明。"
+                            + "只有用户或请求参数明确要求返回SQL时，才附带可执行的 SELECT SQL。"
                             + "生成 SQL 前参考 " + dbGptProperties.getSkillSpaceName() + " 知识库中的字段、质量风险和业务口径。"),
-                    new DbGptChatMessage("user", reqVO.getQuestion())
+                    new DbGptChatMessage("user", userInput)
             ));
         }
 
@@ -313,14 +321,17 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
                     // pass through — let AI handle it
                 }
 
+                StringBuilder fullReply = new StringBuilder();
                 DbGptChatCompletionRequest gptRequest = buildDbGptAskRequest(reqVO, true);
                 dbGptClientService.chatCompletionV1Stream(gptRequest, chunk -> {
                     try {
+                        fullReply.append(chunk);
                         sendSse(emitter, "message", chunk);
                     } catch (IOException e) {
                         throw new ServiceException("AI问数流式响应发送失败: " + e.getMessage());
                     }
                 });
+                appendSqlWhenRequested(reqVO, fullReply.toString(), emitter);
                 sendSse(emitter, "done", "[DONE]");
                 emitter.complete();
             } catch (Exception e) {
@@ -333,6 +344,170 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             }
         });
         return emitter;
+    }
+
+    private void appendSqlWhenRequested(AiAskDataSqlReqVO reqVO, String reply, SseEmitter emitter) throws IOException {
+        if (!Boolean.TRUE.equals(reqVO.getReturnSql())) {
+            return;
+        }
+        String sql = extractSqlFromReply(reply);
+        if (StringUtils.isBlank(sql)) {
+            try {
+                sql = generateReturnSql(reqVO);
+            } catch (Exception e) {
+                log.warn("返回SQL兜底生成失败：{}", e.getMessage());
+            }
+        }
+        if (StringUtils.isBlank(sql) || sql.startsWith("--")) {
+            sendSse(emitter, "message", "\n\n> 未能生成可校验的 SELECT SQL。\n");
+            sendSse(emitter, "sql", "");
+            return;
+        }
+        sendSse(emitter, "message", "\n\n校验SQL：\n```sql\n" + sql + "\n```\n");
+        sendSse(emitter, "sql", sql);
+    }
+
+    private String generateReturnSql(AiAskDataSqlReqVO reqVO) {
+        DbGptChatCompletionRequest sqlRequest = buildDbGptAskRequest(reqVO, false);
+        sqlRequest.setTemperature(0.1);
+        sqlRequest.setMaxTokens(2000);
+        sqlRequest.setMessages(Collections.singletonList(
+                new DbGptChatMessage("user", buildReturnSqlOnlyInput(reqVO))
+        ));
+        DbGptChatCompletionResponse response = dbGptClientService.chatCompletionV1(sqlRequest);
+        return extractSqlFromReply(extractReply(response));
+    }
+
+    @Override
+    public AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO) {
+        if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
+            throw new ServiceException("用户问题不能为空");
+        }
+        if (reqVO.getDatasourceId() == null) {
+            throw new ServiceException("数据源ID不能为空");
+        }
+        AiSkillReportTemplateDO template = resolveReportTemplate(reqVO);
+        DbGptChatCompletionRequest gptRequest = buildDbGptReportRequest(reqVO, template);
+
+        AiAskDataReportRespVO respVO = new AiAskDataReportRespVO();
+        respVO.setQuestion(reqVO.getQuestion());
+        respVO.setSkillId(template.getSkillId());
+        respVO.setTemplateId(template.getId());
+        respVO.setTemplateCode(template.getTemplateCode());
+        respVO.setTemplateName(template.getTemplateName());
+        respVO.setTemplateContent(template.getTemplateContent());
+
+        try {
+            DbGptChatCompletionResponse gptResponse = dbGptClientService.chatCompletionV1(gptRequest);
+            String reply = extractReply(gptResponse);
+            respVO.setRawReply(reply);
+            respVO.setReportData(extractJsonFromReply(reply));
+            if (respVO.getReportData() != null) {
+                respVO.setSql(respVO.getReportData().getString("sql"));
+            }
+            if (respVO.getReportData() == null) {
+                respVO.setQualityWarning("DBGPT未返回合法JSON报告数据");
+            }
+        } catch (Exception e) {
+            log.warn("DB-GPT报告生成调用失败：{}", e.getMessage());
+            respVO.setQualityWarning(e.getMessage());
+        }
+        return respVO;
+    }
+
+    private AiSkillReportTemplateDO resolveReportTemplate(AiAskDataReportReqVO reqVO) {
+        try {
+            if (reqVO.getTemplateId() != null) {
+                AiSkillReportTemplateDO template = aiSkillReportTemplateMapper.selectById(reqVO.getTemplateId());
+                if (template == null) {
+                    throw new ServiceException("报告模板不存在");
+                }
+                if (reqVO.getSkillId() != null && !reqVO.getSkillId().equals(template.getSkillId())) {
+                    throw new ServiceException("报告模板不属于当前Skill");
+                }
+                return template;
+            }
+            if (reqVO.getSkillId() == null) {
+                throw new ServiceException("请选择Skill或报告模板");
+            }
+            AiSkillReportTemplateDO template = aiSkillReportTemplateMapper.selectDefaultBySkillId(reqVO.getSkillId());
+            if (template == null) {
+                List<AiSkillReportTemplateDO> templates = aiSkillReportTemplateMapper.selectListBySkillId(reqVO.getSkillId());
+                if (templates != null && !templates.isEmpty()) {
+                    template = templates.get(0);
+                }
+            }
+            if (template == null) {
+                throw new ServiceException("当前Skill未配置报告模板");
+            }
+            return template;
+        } catch (RuntimeException e) {
+            if (isReportTemplateTableMissing(e)) {
+                throw new ServiceException("报告模板表未初始化，请执行 sql/postgresql/upgrade/V1.6.0/add-ai-skill.sql 中 AI_SKILL_REPORT_TEMPLATE 建表语句");
+            }
+            throw e;
+        }
+    }
+
+    private boolean isReportTemplateTableMissing(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null
+                    && message.toLowerCase(Locale.ROOT).contains("ai_skill_report_template")
+                    && message.toLowerCase(Locale.ROOT).contains("does not exist")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private DbGptChatCompletionRequest buildDbGptReportRequest(AiAskDataReportReqVO reqVO, AiSkillReportTemplateDO template) {
+        DbGptChatCompletionRequest gptRequest = new DbGptChatCompletionRequest();
+        gptRequest.setModel(firstNonBlank(reqVO.getModel(), dbGptProperties.getModel()));
+        gptRequest.setTemperature(0.4);
+        gptRequest.setMaxTokens(6000);
+        gptRequest.setStream(false);
+        gptRequest.setChatMode(dbGptProperties.getChatMode());
+        gptRequest.setSpaceName(dbGptProperties.getSkillSpaceName());
+        gptRequest.setConvUid("datamaster-report-" + System.currentTimeMillis());
+
+        AssetsDatasourceDO datasource = assetsDatasourceMapper.selectById(reqVO.getDatasourceId());
+        if (datasource == null) {
+            throw new ServiceException("数据源不存在");
+        }
+        if (datasource.getDbgptDatasourceId() != null) {
+            gptRequest.setDatasourceId(datasource.getDbgptDatasourceId());
+            String dbName = dbGptClientService.getDatasourceDbName(datasource.getDbgptDatasourceId());
+            if (dbName != null) {
+                gptRequest.setChatParam(dbName);
+            }
+        }
+        gptRequest.setDbName(datasource.getDatasourceName());
+        gptRequest.setDbType(datasource.getDatasourceType());
+        gptRequest.setMessages(Collections.singletonList(
+                new DbGptChatMessage("user", buildReportUserInput(reqVO, template))
+        ));
+        return gptRequest;
+    }
+
+    private String buildReportUserInput(AiAskDataReportReqVO reqVO, AiSkillReportTemplateDO template) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("你是 DataMaster 报告数据生成助手。请基于已选择的数据库和可用知识库，为报告模板生成结构化数据。\n");
+        builder.append("必须只返回一个合法 JSON 对象，不要返回 Markdown，不要返回 HTML，不要使用代码块包裹。\n");
+        builder.append("返回字段必须满足模板 dataSchema.required 和 dataSchema.fields；图表和表格数据必须返回数组。\n");
+        if (Boolean.TRUE.equals(reqVO.getReturnSql())) {
+            builder.append("本次需要在 JSON 的 sql 字段返回用于校验的 SELECT SQL。\n");
+        } else {
+            builder.append("本次不要求返回 SQL，JSON 的 sql 字段请返回 null 或省略。\n");
+        }
+        if (reqVO.getParams() != null && !reqVO.getParams().isEmpty()) {
+            builder.append("\n【报告参数】\n").append(JSON.toJSONString(reqVO.getParams())).append("\n");
+        }
+        builder.append("\n【报告模板JSON】\n").append(template.getTemplateContent()).append("\n");
+        builder.append("\n【用户需求】\n").append(reqVO.getQuestion()).append("\n");
+        return builder.toString();
     }
 
     private DbGptChatCompletionRequest buildDbGptAskRequest(AiAskDataSqlReqVO reqVO, boolean stream) {
@@ -359,20 +534,65 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             }
         }
         boolean isGeneralChat = "chat_normal".equals(gptRequest.getChatMode());
+        String userInput = buildDbGptUserInput(reqVO);
         if (isGeneralChat) {
             gptRequest.setMessages(Collections.singletonList(
-                    new DbGptChatMessage("user", reqVO.getQuestion())
+                    new DbGptChatMessage("user", userInput)
             ));
         } else {
             gptRequest.setMessages(Arrays.asList(
                     new DbGptChatMessage("system", "你是 DataMaster 的智能问数助手。当前是数据库问答场景，"
-                            + "必须基于已选择的数据源回答。用户要求查询数据、统计、排序、筛选时，必须输出一个可执行的 SELECT SQL，"
-                            + "并用 ```sql 代码块包裹；不要复述规则，不要要求用户再次提出问题。"
+                            + "必须基于已选择的数据源回答。优先直接返回查询结果、分析结论和必要说明。"
+                            + "只有用户或请求参数明确要求返回SQL时，才附带可执行的 SELECT SQL。"
                             + "生成 SQL 前参考 " + dbGptProperties.getSkillSpaceName() + " 知识库中的字段、质量风险和业务口径。"),
-                    new DbGptChatMessage("user", reqVO.getQuestion())
+                    new DbGptChatMessage("user", userInput)
             ));
         }
         return gptRequest;
+    }
+
+    private String buildDbGptUserInput(AiAskDataSqlReqVO reqVO) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("请基于已选择的数据库和可用知识库回答用户问题。");
+        builder.append("默认由 DB-GPT 完成数据查询与分析，不要只返回待执行 SQL。");
+        if (Boolean.TRUE.equals(reqVO.getReturnSql())) {
+            builder.append("本次需要返回用于校验的 SQL，请在答案末尾用 ```sql 代码块附带实际使用或建议校验的 SELECT SQL。");
+        } else {
+            builder.append("本次不要求返回 SQL；除非无法回答且必须说明查询思路，否则不要输出 SQL。");
+        }
+        builder.append("\n\n用户问题：").append(reqVO.getQuestion());
+        return builder.toString();
+    }
+
+    private String buildReturnSqlOnlyInput(AiAskDataSqlReqVO reqVO) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("请基于当前已选择的数据源生成一条可校验的只读 SELECT SQL。");
+        builder.append("只返回 ```sql 代码块，不要返回查询结果、解释或 Markdown 之外的文本。");
+        builder.append("必须使用数据库中真实存在的表名和字段名，必要时参考已选择知识库内容。");
+        builder.append("如果需要限制行数，请添加 LIMIT 1000。");
+        appendSelectedSkillContext(builder, reqVO);
+        builder.append("\n\n用户问题：").append(reqVO.getQuestion());
+        return builder.toString();
+    }
+
+    private void appendSelectedSkillContext(StringBuilder builder, AiAskDataSqlReqVO reqVO) {
+        if (reqVO == null || reqVO.getSkillIds() == null || reqVO.getSkillIds().isEmpty()) {
+            return;
+        }
+        List<AiSkillDO> skills = aiSkillMapper.selectBatchIds(reqVO.getSkillIds());
+        if (skills == null || skills.isEmpty()) {
+            return;
+        }
+        builder.append("\n\n【已选择知识库】\n");
+        for (AiSkillDO skill : skills) {
+            if (skill == null || !"PUBLISHED".equals(skill.getStatus())) {
+                continue;
+            }
+            builder.append("### ").append(firstNonBlank(skill.getSkillName(), skill.getSkillCode())).append("\n");
+            if (StringUtils.isNotBlank(skill.getContent())) {
+                builder.append(skill.getContent()).append("\n");
+            }
+        }
     }
 
     private void sendSse(SseEmitter emitter, String event, String data) throws IOException {
@@ -538,6 +758,35 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             return sql;
         }
 
+        return null;
+    }
+
+    private com.alibaba.fastjson2.JSONObject extractJsonFromReply(String reply) {
+        if (StringUtils.isBlank(reply)) {
+            return null;
+        }
+        String content = reply.trim();
+        try {
+            return JSON.parseObject(content);
+        } catch (Exception ignored) {
+        }
+
+        Matcher jsonBlock = Pattern.compile("(?i)```json\\s*\\n?([\\s\\S]*?)\\s*```").matcher(content);
+        if (jsonBlock.find()) {
+            try {
+                return JSON.parseObject(jsonBlock.group(1).trim());
+            } catch (Exception ignored) {
+            }
+        }
+
+        int start = content.indexOf('{');
+        int end = content.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            try {
+                return JSON.parseObject(content.substring(start, end + 1));
+            } catch (Exception ignored) {
+            }
+        }
         return null;
     }
 

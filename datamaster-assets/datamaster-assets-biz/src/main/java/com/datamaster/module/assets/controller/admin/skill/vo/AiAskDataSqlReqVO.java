@@ -33,4 +33,7 @@ public class AiAskDataSqlReqVO {
 
     @Schema(description = "是否执行SQL", example = "false")
     private Boolean execute;
+
+    @Schema(description = "是否要求返回SQL用于校验", example = "false")
+    private Boolean returnSql;
 }

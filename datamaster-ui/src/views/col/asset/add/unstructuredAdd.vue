@@ -120,7 +120,7 @@ const props = defineProps({
   form: { type: Object, default: () => ({}) },
   isRegister: Boolean
 });
-const queryParams = reactive({ pageNum: 1, pageSize: 10 });
+const queryParams = reactive({ pageNum: 1, pageSize: 6 });
 const currentPageData = computed(() => {
   const startIndex = (queryParams.pageNum - 1) * queryParams.pageSize;
   const endIndex = startIndex + queryParams.pageSize;

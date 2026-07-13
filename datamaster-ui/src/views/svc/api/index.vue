@@ -52,7 +52,7 @@
           <el-table stripe v-loading="loading" :data="dsApiList" @selection-change="handleSelectionChange"
             :default-sort="defaultSort" @sort-change="handleSortChange">
             <!--            <el-table-column type="selection" width="55" align="center" />-->
-            <el-table-column v-if="getColumnVisibility(0)" label="编号" align="center" prop="id" width="80px" />
+            <el-table-column v-if="getColumnVisibility(0)" label="编号" align="center" prop="id" width="120px" />
             <el-table-column :show-overflow-tooltip="{ effect: 'light' }" v-if="getColumnVisibility(1)" label="API名称"
               width="300px" align="left" prop="name">
               <template #default="scope">
@@ -506,7 +506,7 @@ const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     NAME: null,
     STATUS: null,
     createTime: null,
@@ -514,6 +514,24 @@ const data = reactive({
   rules: {},
 });
 const { queryParams, form, rules } = toRefs(data);
+
+function normalizePageData(response) {
+  const data = response?.data ?? response ?? {};
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
 
 function handleNodeClick(data) {
   queryParams.value.catCode = data.code;
@@ -545,8 +563,9 @@ function getList() {
   console.log(queryParams.value);
 
   listDsApi(queryParams.value).then((response) => {
-    dsApiList.value = response.data.rows;
-    total.value = response.data.total;
+    const pageData = normalizePageData(response);
+    dsApiList.value = pageData.rows;
+    total.value = pageData.total;
     loading.value = false;
   });
 }

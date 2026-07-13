@@ -104,6 +104,12 @@
             <version>${dataMaster.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-catalog-api</artifactId>
+            <version>${dataMaster.version}</version>
+            <scope>compile</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.hikvision.ga</groupId>

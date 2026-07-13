@@ -22,6 +22,7 @@ import com.datamaster.api.ds.api.service.etl.IDsEtlNodeService;
 import com.datamaster.api.ds.api.service.etl.IDsEtlSchedulerService;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.core.domain.AjaxResult;
+import com.datamaster.common.core.domain.BaseEntity;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.httpClient.HeaderEntity;
@@ -32,6 +33,7 @@ import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
 import com.datamaster.module.assets.api.service.asset.IAssetsDatasourceApiService;
 import com.datamaster.module.taxonomy.api.project.ITaxonomyProjectApi;
+import com.datamaster.module.collector.api.qa.dto.CollectorQualitySummaryRespDTO;
 import com.datamaster.module.collector.api.service.qa.CollectorQualityTaskApiService;
 import com.datamaster.module.collector.controller.admin.qa.vo.*;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorQualityLogDO;
@@ -39,6 +41,9 @@ import com.datamaster.module.collector.dal.dataobject.qa.CollectorQualityTaskDO;
 import com.datamaster.module.collector.dal.dataobject.qa.CollectorQualityTaskEvaluateDO;
 import com.datamaster.module.collector.dal.dataobject.qa.CollectorQualityTaskObjDO;
 import com.datamaster.module.collector.dal.mapper.qa.CollectorQualityTaskMapper;
+import com.datamaster.module.collector.dal.mapper.etl.CollectorQualityLogMapper;
+import com.datamaster.module.collector.dal.mapper.qa.CollectorQualityTaskEvaluateMapper;
+import com.datamaster.module.collector.dal.mapper.qa.CollectorQualityTaskObjMapper;
 import com.datamaster.module.collector.service.etl.ICollectorEvaluateLogService;
 import com.datamaster.module.collector.service.etl.ICollectorQualityLogService;
 import com.datamaster.module.collector.service.qa.ICollectorQualityTaskEvaluateService;
@@ -78,6 +83,12 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
 
     @Resource
     private CollectorQualityTaskMapper CollectorQualityTaskMapper;
+    @Resource
+    private CollectorQualityTaskObjMapper collectorQualityTaskObjMapper;
+    @Resource
+    private CollectorQualityTaskEvaluateMapper collectorQualityTaskEvaluateMapper;
+    @Resource
+    private CollectorQualityLogMapper collectorQualityLogMapper;
 
     @Resource
     private ICollectorQualityTaskEvaluateService CollectorQualityTaskEvaluateService;
@@ -105,6 +116,80 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     @Override
     public PageResult<CollectorQualityTaskDO> getCollectorQualityTaskPage(CollectorQualityTaskPageReqVO pageReqVO) {
         return CollectorQualityTaskMapper.selectPage(pageReqVO);
+    }
+
+    @Override
+    public CollectorQualitySummaryRespDTO getLatestQualitySummary(Long datasourceId, String tableName) {
+        if (datasourceId == null || StringUtils.isBlank(tableName)) {
+            return null;
+        }
+        List<CollectorQualityTaskObjDO> objects = collectorQualityTaskObjMapper.selectList(Wrappers.lambdaQuery(CollectorQualityTaskObjDO.class)
+                .eq(CollectorQualityTaskObjDO::getDatasourceId, datasourceId)
+                .eq(CollectorQualityTaskObjDO::getTableName, tableName)
+                .orderByDesc(BaseEntity::getCreateTime));
+        if (CollectionUtils.isEmpty(objects)) {
+            objects = collectorQualityTaskObjMapper.selectList(Wrappers.lambdaQuery(CollectorQualityTaskObjDO.class)
+                    .eq(CollectorQualityTaskObjDO::getDatasourceId, datasourceId)
+                    .apply("LOWER(TABLE_NAME) = LOWER({0})", tableName)
+                    .orderByDesc(BaseEntity::getCreateTime));
+        }
+        if (CollectionUtils.isEmpty(objects)) {
+            return null;
+        }
+        Set<Long> taskIds = objects.stream()
+                .map(CollectorQualityTaskObjDO::getTaskId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (CollectionUtils.isEmpty(taskIds)) {
+            return null;
+        }
+        CollectorQualityLogDO latestLog = collectorQualityLogMapper.selectOne(Wrappers.lambdaQuery(CollectorQualityLogDO.class)
+                .in(CollectorQualityLogDO::getQualityId, taskIds)
+                .orderByDesc(CollectorQualityLogDO::getStartTime, CollectorQualityLogDO::getEndTime, CollectorQualityLogDO::getUpdateTime, CollectorQualityLogDO::getId)
+                .last("limit 1"));
+        Long taskId = latestLog == null ? taskIds.iterator().next() : latestLog.getQualityId();
+        CollectorQualityTaskDO task = taskId == null ? null : CollectorQualityTaskMapper.selectById(taskId);
+        CollectorQualitySummaryRespDTO summary = new CollectorQualitySummaryRespDTO();
+        summary.setTaskId(taskId);
+        if (task != null) {
+            summary.setTaskName(task.getTaskName());
+        }
+        if (latestLog != null) {
+            summary.setLogId(latestLog.getId());
+            summary.setLogName(latestLog.getName());
+            summary.setSuccessFlag(latestLog.getSuccessFlag());
+            summary.setStartTime(latestLog.getStartTime());
+            summary.setEndTime(latestLog.getEndTime());
+            summary.setScore(latestLog.getScore());
+            summary.setProblemData(latestLog.getProblemData());
+        }
+        List<Long> objectIds = objects.stream()
+                .filter(obj -> taskId == null || Objects.equals(taskId, obj.getTaskId()))
+                .map(CollectorQualityTaskObjDO::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        List<CollectorQualityTaskEvaluateDO> evaluates = collectorQualityTaskEvaluateMapper.selectList(Wrappers.lambdaQuery(CollectorQualityTaskEvaluateDO.class)
+                .eq(taskId != null, CollectorQualityTaskEvaluateDO::getTaskId, taskId)
+                .in(CollectionUtils.isNotEmpty(objectIds), CollectorQualityTaskEvaluateDO::getObjId, objectIds)
+                .orderByDesc(BaseEntity::getCreateTime)
+                .last("limit 8"));
+        if (CollectionUtils.isNotEmpty(evaluates)) {
+            for (CollectorQualityTaskEvaluateDO evaluate : evaluates) {
+                CollectorQualitySummaryRespDTO.Rule rule = new CollectorQualitySummaryRespDTO.Rule();
+                rule.setId(evaluate.getId());
+                rule.setName(evaluate.getName());
+                rule.setRuleName(evaluate.getRuleName());
+                rule.setRuleType(evaluate.getRuleType());
+                rule.setDimensionType(evaluate.getDimensionType());
+                rule.setEvaColumn(evaluate.getEvaColumn());
+                rule.setWarningLevel(evaluate.getWarningLevel());
+                rule.setStatus(evaluate.getStatus());
+                rule.setErrDescription(evaluate.getErrDescription());
+                rule.setSuggestion(evaluate.getSuggestion());
+                summary.getRules().add(rule);
+            }
+        }
+        return summary;
     }
 
     @Override

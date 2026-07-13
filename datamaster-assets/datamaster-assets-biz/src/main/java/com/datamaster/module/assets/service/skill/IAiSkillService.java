@@ -5,6 +5,8 @@ import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillPageReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillSaveReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillVersionRespVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiDatabaseSkillGenerateReqVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiMultiTableSkillGenerateReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiTableSkillGenerateReqVO;
 
 import java.util.List;
@@ -35,4 +37,8 @@ public interface IAiSkillService {
     AiSkillRespVO generateQualitySkill(Boolean publish);
 
     AiSkillRespVO generateTableSkill(AiTableSkillGenerateReqVO reqVO);
+
+    AiSkillRespVO generateDatabaseSkill(AiDatabaseSkillGenerateReqVO reqVO);
+
+    AiSkillRespVO generateMultiTableSkill(AiMultiTableSkillGenerateReqVO reqVO);
 }

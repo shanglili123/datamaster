@@ -8,11 +8,14 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import com.datamaster.common.core.domain.BaseEntity;
 import com.datamaster.common.core.domain.BatchDeleteCheck;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.module.assets.api.service.asset.IAssetsAssetApiOutService;
+import com.datamaster.module.catalog.api.service.table.CatalogTableApiService;
+import com.datamaster.module.catalog.api.table.dto.CatalogTableRespDTO;
 import com.datamaster.module.catalog.controller.admin.metadata.vo.CatalogDbRespVO;
 import com.datamaster.module.catalog.controller.admin.metadata.vo.CatalogTablePageReqVO;
 import com.datamaster.module.catalog.controller.admin.metadata.vo.CatalogTableRespVO;
@@ -45,7 +48,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
-public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,CatalogTableDO> implements ICatalogTableService {
+public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,CatalogTableDO> implements ICatalogTableService, CatalogTableApiService {
     @Resource
     private CatalogTableMapper CatalogTableMapper;
     @Resource
@@ -68,6 +71,45 @@ public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,Cata
     public PageResult<CatalogTableDO> getCatalogTablePage(CatalogTablePageReqVO pageReqVO) {
         PageResult<CatalogTableDO> CatalogTablelist = CatalogTableMapper.selectPage(pageReqVO);
         return CatalogTablelist;
+    }
+
+    @Override
+    public CatalogTableRespDTO getById(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return BeanUtils.toBean(CatalogTableMapper.selectById(id), CatalogTableRespDTO.class);
+    }
+
+    @Override
+    public CatalogTableRespDTO getByDatasourceIdAndTableName(Long datasourceId, String tableName) {
+        if (datasourceId == null || StringUtils.isBlank(tableName)) {
+            return null;
+        }
+        CatalogTableDO table = CatalogTableMapper.selectOne(Wrappers.lambdaQuery(CatalogTableDO.class)
+                .eq(CatalogTableDO::getDatasourceId, datasourceId)
+                .eq(CatalogTableDO::getTableName, tableName)
+                .orderByDesc(CatalogTableDO::getVersion, BaseEntity::getCreateTime)
+                .last("limit 1"));
+        if (table == null) {
+            table = CatalogTableMapper.selectOne(Wrappers.lambdaQuery(CatalogTableDO.class)
+                    .eq(CatalogTableDO::getDatasourceId, datasourceId)
+                    .apply("LOWER(TABLE_NAME) = LOWER({0})", tableName)
+                    .orderByDesc(CatalogTableDO::getVersion, BaseEntity::getCreateTime)
+                    .last("limit 1"));
+        }
+        return BeanUtils.toBean(table, CatalogTableRespDTO.class);
+    }
+
+    @Override
+    public List<CatalogTableRespDTO> listByDatasourceId(Long datasourceId) {
+        if (datasourceId == null) {
+            return new ArrayList<>();
+        }
+        List<CatalogTableDO> tables = CatalogTableMapper.selectList(Wrappers.lambdaQuery(CatalogTableDO.class)
+                .eq(CatalogTableDO::getDatasourceId, datasourceId)
+                .orderByAsc(CatalogTableDO::getTableName));
+        return BeanUtils.toBean(tables, CatalogTableRespDTO.class);
     }
 
     @Override

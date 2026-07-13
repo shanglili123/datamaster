@@ -45,7 +45,6 @@ public interface AssetsAssetColumnMapper extends BaseMapperX<AssetsAssetColumnDO
     default List<AssetsAssetColumnDO> findByAssetId(Long assetId) {
         LambdaQueryWrapper<AssetsAssetColumnDO> queryWrapper = Wrappers.<AssetsAssetColumnDO>lambdaQuery()
                 .eq(AssetsAssetColumnDO::getAssetId, assetId)
-                .eq(AssetsAssetColumnDO::getDelFlag, "0")
                 .orderByAsc(AssetsAssetColumnDO::getId);
         return selectList(queryWrapper);
     }

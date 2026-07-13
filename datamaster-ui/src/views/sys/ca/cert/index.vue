@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
     <div class="pagecont-top" v-show="showSearch">
       <el-form class="btn-style" :model="queryParams" ref="queryForm" :inline="true" v-show="showSearch" label-width="68px">
@@ -190,7 +190,7 @@ export default {
       // 查询参数
       queryParams: {
         pageNum: 1,
-        pageSize: 10,
+        pageSize: 6,
         name: null,
         subjectId: null,
         subjectName: null,

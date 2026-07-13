@@ -105,7 +105,7 @@ const tableStroe = reactive({
     {
       label: "编号",
       prop: "id",
-      width: 60,
+      width: 90,
     },
     {
       label: "任务名称",

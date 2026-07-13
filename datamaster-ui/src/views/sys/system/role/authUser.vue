@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
     <div class="pagecont-top" v-show="showSearch">
       <el-form class="btn-style" :model="queryParams" ref="queryRef" v-show="showSearch" :inline="true">
@@ -81,7 +81,7 @@ const userIds = ref([]);
 
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 6,
   roleId: route.params.roleId,
   userName: undefined,
   phonenumber: undefined,

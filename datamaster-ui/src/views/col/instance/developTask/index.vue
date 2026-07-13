@@ -42,7 +42,7 @@
           </div>
           <el-table stripe v-loading="loading" :data="dppEtlTaskLogList"
             @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
-            <el-table-column v-if="getColumnVisibility(0)" width="150" label="编号" align="left" prop="id" />
+            <el-table-column v-if="getColumnVisibility(0)" width="225" label="编号" align="left" prop="id" />
             <el-table-column v-if="getColumnVisibility(1)" :show-overflow-tooltip="{ effect: 'light' }" label="任务实例名称"
               align="left" prop="name" width="200">
               <template #default="scope">
@@ -244,7 +244,7 @@ const emit = defineEmits(["resetCat"]);
 const data = reactive({
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     type: null,
     name: null,
     code: null,
@@ -271,6 +271,24 @@ const data = reactive({
 
 const { queryParams } = toRefs(data);
 
+function normalizePageData(response) {
+  const data = response?.data ?? response ?? {};
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
+
 function handleTimeChange(value) {
   if (!value) {
     handleTimeClear();
@@ -288,8 +306,9 @@ function getList() {
   loading.value = true;
   queryParams.value.projectCode = userStore.projectCode;
   listDppEtlTaskInstance(queryParams.value).then((response) => {
-    dppEtlTaskLogList.value = response.data.rows;
-    total.value = response.data.total;
+    const pageData = normalizePageData(response);
+    dppEtlTaskLogList.value = pageData.rows;
+    total.value = pageData.total;
     loading.value = false;
   });
 }

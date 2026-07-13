@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
 
     <el-container>
@@ -598,7 +598,7 @@ const data = reactive({
     themeIdList: [],
     type: null,
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     name: null,
     catCode: null,
     themeId: null,

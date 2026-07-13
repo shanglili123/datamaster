@@ -8,7 +8,7 @@
       :default-sort="defaultSort"
       @sort-change="handleSortChange"
     >
-      <el-table-column width="150" label="编号" align="left" prop="id" />
+      <el-table-column width="225" label="编号" align="left" prop="id" />
       <el-table-column
         :show-overflow-tooltip="{ effect: 'light' }"
         label="任务名称"
@@ -143,7 +143,7 @@ const jobLogList = ref([]);
 const loading = ref(false);
 const queryParams = ref({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 6,
   nodeId: undefined,
   taskId: undefined,
   orderByColumn: "start_time",

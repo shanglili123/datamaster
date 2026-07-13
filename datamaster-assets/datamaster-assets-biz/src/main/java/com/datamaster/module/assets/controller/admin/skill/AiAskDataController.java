@@ -3,6 +3,8 @@ package com.datamaster.module.assets.controller.admin.skill;
 import com.datamaster.common.core.domain.CommonResult;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataPrepareReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataPrepareRespVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataReportReqVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataReportRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlRespVO;
 import com.datamaster.module.assets.service.skill.IAiAskDataService;
@@ -75,5 +77,12 @@ public class AiAskDataController {
     @PostMapping(value = "/dbgpt/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatWithDbGptStream(@Valid @RequestBody AiAskDataSqlReqVO reqVO) {
         return aiAskDataService.chatWithDbGptStream(reqVO);
+    }
+
+    @Operation(summary = "AI问数报告生成")
+    @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
+    @PostMapping("/dbgpt/report")
+    public CommonResult<AiAskDataReportRespVO> generateReport(@Valid @RequestBody AiAskDataReportReqVO reqVO) {
+        return CommonResult.success(aiAskDataService.generateReport(reqVO));
     }
 }

@@ -54,7 +54,6 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
         }
         List<AssetsAssetColumnDO> list = this.lambdaQuery()
                 .eq(AssetsAssetColumnDO::getAssetId, pageReqVO.getAssetId())
-                .eq(AssetsAssetColumnDO::getDelFlag, "0")
                 .orderByAsc(AssetsAssetColumnDO::getId)
                 .list();
 

@@ -338,12 +338,12 @@ const showPagination = computed(() => {
 });
 // 本地分页状态
 const pageLocal = ref(1);
-const limitLocal = ref(10);
+const limitLocal = ref(6);
 watch(
   paginationConfig,
   (cfg) => {
     pageLocal.value = (cfg && cfg.page) || 1;
-    limitLocal.value = (cfg && cfg.limit) || 10;
+    limitLocal.value = (cfg && cfg.limit) || 6;
   },
   { immediate: true }
 );

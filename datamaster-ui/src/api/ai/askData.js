@@ -48,3 +48,12 @@ export function askDataDbgptChat(data) {
     data: data
   })
 }
+
+// AI 问数报告生成
+export function askDataDbgptReport(data) {
+  return request({
+    url: '/ai/ask-data/dbgpt/report',
+    method: 'post',
+    data: data
+  })
+}

@@ -41,7 +41,7 @@ public interface AiSkillMapper extends BaseMapperX<AiSkillDO> {
     default List<AiSkillDO> selectPublishedByKeyword(String keyword) {
         LambdaQueryWrapperX<AiSkillDO> wrapper = new LambdaQueryWrapperX<AiSkillDO>()
                 .eq(AiSkillDO::getStatus, "PUBLISHED")
-                .eq(AiSkillDO::getSkillType, "TABLE")
+                .in(AiSkillDO::getSkillType, java.util.Arrays.asList("TABLE", "DATABASE", "MULTI_TABLE", "REPORT_TEMPLATE"))
                 .orderByDesc(AiSkillDO::getUpdateTime);
         if (StringUtils.isNotBlank(keyword)) {
             wrapper.and(item -> item

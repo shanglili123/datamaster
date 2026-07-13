@@ -54,7 +54,7 @@
           </div>
           <el-table ref="tableRef" stripe v-loading="loading" :data="DppQualityTaskEvaluateList" :default-sort="defaultSort"
             @sort-change="handleSortChange">
-            <el-table-column v-if="getColumnVisibility(1)" label="编号" align="center" prop="id" width="70" />
+            <el-table-column v-if="getColumnVisibility(1)" label="编号" align="center" prop="id" width="105" />
             <el-table-column v-if="getColumnVisibility(2)" label="任务名称" align="left" prop="taskName" width="200">
               <template #default="scope">
                 <span class="link-text">{{ scope.row.taskName || '-' }}</span>
@@ -372,7 +372,7 @@ const data = reactive({
   },
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     type: null,
     taskName: null,
     status: null,
@@ -383,6 +383,23 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+function normalizePageData(response) {
+  const data = response?.data ?? response ?? {};
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
 
 
 function getList() {
@@ -390,8 +407,9 @@ function getList() {
   queryParams.value.projectCode = userStore.projectCode;
   queryParams.value.projectId = userStore.projectId;
   listDppQualityTask(queryParams.value).then((response) => {
-    DppQualityTaskEvaluateList.value = response.data?.rows || [];
-    total.value = response.data.total;
+    const pageData = normalizePageData(response);
+    DppQualityTaskEvaluateList.value = pageData.rows;
+    total.value = pageData.total;
     loading.value = false;
     nextTick(() => { tableRef.value?.doLayout(); });
   });

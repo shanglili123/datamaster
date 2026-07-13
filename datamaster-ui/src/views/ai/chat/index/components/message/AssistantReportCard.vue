@@ -83,7 +83,7 @@
                     v-model:current-page="currentPage"
                     v-model:page-size="pageSize"
                     :total="tab.table.rows.length"
-                    :page-sizes="[10, 20, 50]"
+                    :page-sizes="[6, 8, 10, 20, 50]"
                     layout="total, sizes, prev, pager, next"
                     size="small"
                     background
@@ -152,7 +152,7 @@ const activeTab = ref(
 
 // 分页相关
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(6);
 
 const getCurrentPageData = (table) => {
   const rows = table.rows || [];

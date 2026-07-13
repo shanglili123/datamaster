@@ -284,7 +284,7 @@
 </template>
 
 <script setup name="ColumnList">
-import { getCurrentInstance, reactive, ref, toValue } from "vue";
+import { getCurrentInstance, nextTick, reactive, ref, toValue, watch } from "vue";
 import {
   listColumn,
   delColumn,
@@ -373,7 +373,7 @@ const tableStroe = reactive({
       label: "编号",
       prop: "id",
       sortable: true,
-      width: 70,
+      width: 105,
     },
     {
       label: "字段名称",
@@ -502,6 +502,26 @@ function getSensitiveLevel() {
     store.sensitiveLevels = res.data.rows;
   });
 }
+
+function refreshColumnList() {
+  Object.assign(tableStroe.params, {
+    tableId: props.detail.id,
+    status: route.query.table_status ? "" : props.detail.status,
+    dataType: 1,
+  });
+  nextTick(() => {
+    if (tableRef.value && tableRef.value.getList) {
+      tableRef.value.getList();
+    }
+  });
+}
+
+watch(
+  () => [props.detail.id, props.detail.status, route.query.table_status],
+  () => {
+    refreshColumnList();
+  }
+);
 
 // // 获取标准数据元
 // function getDataElem() {

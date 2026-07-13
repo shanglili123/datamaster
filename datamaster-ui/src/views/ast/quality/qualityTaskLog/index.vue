@@ -33,7 +33,7 @@
             </div>
             <el-table stripe v-loading="loading" :data="DppQualityLogList" :default-sort="defaultSort"
                 @sort-change="handleSortChange">
-                <el-table-column v-if="getColumnVisibility(0)" label="编号" align="center" prop="id" width="80" />
+                <el-table-column v-if="getColumnVisibility(0)" label="编号" align="center" prop="id" width="120" />
                 <el-table-column v-if="getColumnVisibility(1)" label="任务名称" align="center" prop="name">
                     <template #default="scope">
                         {{ scope.row.name || '-' }}

@@ -42,7 +42,7 @@
           </div>
           <el-table stripe v-loading="loading" :data="apiLogList" @selection-change="handleSelectionChange"
             :default-sort="defaultSort" @sort-change="handleSortChange">
-            <el-table-column v-if="getColumnVisibility(1)" label="编号" align="center" prop="id" width="80" />
+            <el-table-column v-if="getColumnVisibility(1)" label="编号" align="center" prop="id" width="120" />
             <el-table-column v-if="getColumnVisibility(2)" :show-overflow-tooltip="{ effect: 'light' }" label="API服务名称"
               align="left" prop="apiName" width="300">
               <template #default="scope">
@@ -412,7 +412,7 @@ const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     apiId: null,
     callerId: null,
     createTime: null,
@@ -462,6 +462,24 @@ const updateResize = (event) => {
   }
 };
 
+function normalizePageData(response) {
+  const data = response?.data ?? response ?? {};
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
+
 /** 查询API服务调用日志列表 */
 function getList() {
   loading.value = true;
@@ -473,8 +491,9 @@ function getList() {
       daterangeCreateTime.value[1] + " 23:59:59";
   }
   listApiLog(queryParams.value).then((response) => {
-    apiLogList.value = response.data.rows;
-    total.value = response.data.total;
+    const pageData = normalizePageData(response);
+    apiLogList.value = pageData.rows;
+    total.value = pageData.total;
     loading.value = false;
   });
 }

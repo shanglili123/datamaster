@@ -539,7 +539,7 @@ const searchStore = reactive({
   ],
   params: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     orderByColumn: "createTime",
     isAsc: "descending",
   },

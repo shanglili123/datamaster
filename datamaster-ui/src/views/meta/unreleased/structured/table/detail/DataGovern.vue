@@ -167,7 +167,7 @@ const tableStroe = reactive({
       label: "编号",
       prop: "id",
       sortable: true,
-      width: 70,
+      width: 105,
     },
     {
       label: "字段名称",

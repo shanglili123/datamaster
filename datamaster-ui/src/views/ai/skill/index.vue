@@ -12,6 +12,14 @@
         <el-form-item label="名称">
           <el-input v-model="queryParams.skillName" placeholder="请输入Skill名称" clearable />
         </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="queryParams.skillType" placeholder="请选择类型" clearable>
+            <el-option label="表级问数" value="TABLE" />
+            <el-option label="整库问数" value="DATABASE" />
+            <el-option label="多表问数" value="MULTI_TABLE" />
+            <el-option label="报告模板" value="REPORT_TEMPLATE" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
             <el-option label="草稿" value="DRAFT" />
@@ -26,7 +34,7 @@
       </el-form>
       <div class="skill-actions">
         <el-button type="primary" icon="Plus" @click="handleAdd">新增</el-button>
-        <el-button icon="Connection" @click="openTableGenerate">生成表级Skill</el-button>
+        <el-button icon="Connection" @click="openSkillGenerate">生成问数Skill</el-button>
         <el-button type="success" icon="Upload" @click="handleSyncAllSkills">同步问数Skill</el-button>
         <el-button icon="Link" @click="handleSyncAllDatasources">同步数据源</el-button>
       </div>
@@ -54,10 +62,12 @@
         </template>
       </el-table-column>
       <el-table-column label="更新时间" prop="updateTime" width="170" />
-      <el-table-column label="操作" width="330" fixed="right">
+      <el-table-column label="操作" width="500" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" icon="Edit" @click="handleEdit(row)">编辑</el-button>
           <el-button link type="primary" icon="View" @click="handleVersions(row)">版本</el-button>
+          <el-button link type="primary" icon="Upload" @click="openTemplateEditor(row)">上传模板</el-button>
+          <el-button link type="primary" icon="Tickets" @click="openTemplateList(row)">查看模板</el-button>
           <el-button link type="success" icon="Check" @click="handlePublish(row)">发布</el-button>
           <el-button link type="success" icon="Upload" @click="handleSyncSkill(row)">同步</el-button>
           <el-button link type="danger" icon="Delete" @click="handleDelete(row)">归档</el-button>
@@ -90,7 +100,12 @@
         <el-row :gutter="16">
           <el-col :span="8">
             <el-form-item label="类型" prop="skillType">
-              <el-input value="表级问数" disabled />
+              <el-select v-model="form.skillType" style="width: 100%">
+                <el-option label="表级问数" value="TABLE" />
+                <el-option label="整库问数" value="DATABASE" />
+                <el-option label="多表问数" value="MULTI_TABLE" />
+                <el-option label="报告模板" value="REPORT_TEMPLATE" />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -125,7 +140,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="tableGenerateOpen" title="生成表级Skill" width="560px" append-to-body>
+    <el-dialog v-model="tableGenerateOpen" title="生成问数Skill" width="560px" append-to-body>
       <el-form :model="tableGenerateForm" label-width="90px">
         <el-form-item label="数据源">
           <el-select
@@ -146,10 +161,13 @@
         </el-form-item>
         <el-form-item label="表">
           <el-select
-            v-model="tableGenerateForm.tableName"
+            v-model="tableGenerateForm.tableNames"
             placeholder="请选择表"
             filterable
             clearable
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
             :loading="tableLoading"
             style="width: 100%"
           >
@@ -173,12 +191,14 @@
       </el-form>
       <template #footer>
         <el-button @click="tableGenerateOpen = false">取消</el-button>
-        <el-button type="primary" :loading="generatingTable" @click="handleGenerateTable">生成</el-button>
+        <el-button type="primary" :loading="generatingTable" @click="handleGenerateTable">
+          {{ skillGenerateButtonText }}
+        </el-button>
       </template>
     </el-dialog>
 
     <el-drawer v-model="versionOpen" title="Skill版本" size="680px">
-      <el-table :data="versionList" border>
+      <el-table :data="pagedVersionList" border>
         <el-table-column label="版本" prop="version" width="80" />
         <el-table-column label="类型" prop="changeType" width="110" />
         <el-table-column label="说明" prop="changeRemark" show-overflow-tooltip />
@@ -189,27 +209,131 @@
           </template>
         </el-table-column>
       </el-table>
+      <pagination
+        v-show="versionList.length > 0"
+        :total="versionList.length"
+        v-model:page="versionPagination.pageNum"
+        v-model:limit="versionPagination.pageSize"
+      />
     </el-drawer>
+
+    <el-drawer v-model="templateListOpen" :title="templateListTitle" size="780px">
+      <div class="template-list-toolbar">
+        <el-button type="primary" icon="Plus" @click="openTemplateEditor(currentTemplateSkill)">上传报告模板</el-button>
+      </div>
+      <el-table v-loading="templateLoading" :data="pagedTemplateList" border>
+        <el-table-column label="模板名称" prop="templateName" min-width="180" show-overflow-tooltip />
+        <el-table-column label="编码" prop="templateCode" min-width="180" show-overflow-tooltip />
+        <el-table-column label="状态" prop="status" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'PUBLISHED' ? 'success' : 'warning'">
+              {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="默认" prop="defaultFlag" width="80">
+          <template #default="{ row }">
+            <el-tag v-if="row.defaultFlag" type="success">默认</el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="版本" prop="version" width="70" />
+        <el-table-column label="更新时间" prop="updateTime" width="170" />
+        <el-table-column label="操作" width="230" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="openTemplateEditor(currentTemplateSkill, row)">编辑</el-button>
+            <el-button link type="success" :disabled="row.defaultFlag" @click="handleSetDefaultTemplate(row)">设默认</el-button>
+            <el-button link type="danger" @click="handleDeleteTemplate(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="templateList.length > 0"
+        :total="templateList.length"
+        v-model:page="templatePagination.pageNum"
+        v-model:limit="templatePagination.pageSize"
+      />
+    </el-drawer>
+
+    <el-dialog v-model="templateEditorOpen" :title="templateEditorTitle" width="980px" append-to-body>
+      <el-form ref="templateFormRef" :model="templateForm" :rules="templateRules" label-width="90px">
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="模板名称" prop="templateName">
+              <el-input v-model="templateForm.templateName" placeholder="请输入模板名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="模板编码" prop="templateCode">
+              <el-input v-model="templateForm.templateCode" placeholder="请输入模板编码" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="状态">
+              <el-select v-model="templateForm.status" style="width: 100%">
+                <el-option label="草稿" value="DRAFT" />
+                <el-option label="已发布" value="PUBLISHED" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="默认模板">
+              <el-switch v-model="templateForm.defaultFlag" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="操作">
+              <el-button icon="Document" @click="fillTemplateFormat">填入标准格式</el-button>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="模板JSON" prop="templateContent">
+          <el-input
+            v-model="templateForm.templateContent"
+            type="textarea"
+            :rows="24"
+            placeholder="请粘贴报告模板JSON"
+          />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="templateForm.remark" placeholder="请输入备注" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="templateEditorOpen = false">取消</el-button>
+        <el-button type="primary" :loading="templateSaving" @click="submitTemplateForm">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="AiSkill">
-import { getCurrentInstance, reactive, ref } from 'vue'
+import { computed, getCurrentInstance, reactive, ref } from 'vue'
 import {
   addSkill,
+  addSkillReportTemplate,
+  deleteSkillReportTemplate,
   delSkill,
+  generateDatabaseSkill,
+  generateMultiTableSkill,
   generateTableSkill,
   getSkill,
+  listSkillReportTemplates,
   listSkill,
   listSkillVersions,
   publishSkill,
   rollbackSkill,
+  setDefaultSkillReportTemplate,
   syncAllSkillToDbgpt,
   syncSkillToDbgpt,
+  updateSkillReportTemplate,
   updateSkill
 } from '@/api/ai/skill'
 import { syncAllDatasourceToDbgpt } from '@/api/ai/dbgpt'
 import { listDaDatasource, tableList } from '@/api/ast/dataSource/dataSource'
+import { buildReportTemplateFormatText } from '@/views/ai/chat/index/reportTemplateFormat'
 
 const { proxy } = getCurrentInstance()
 
@@ -221,19 +345,44 @@ const editorTitle = ref('新增Skill')
 const tableGenerateOpen = ref(false)
 const versionOpen = ref(false)
 const versionList = ref([])
+const versionPagination = reactive({
+  pageNum: 1,
+  pageSize: 6
+})
 const currentSkill = ref(null)
 const skillFormRef = ref()
 const datasourceOptions = ref([])
 const tableOptions = ref([])
 const tableLoading = ref(false)
 const generatingTable = ref(false)
+const templateListOpen = ref(false)
+const templateListTitle = ref('报告模板')
+const templateList = ref([])
+const templateLoading = ref(false)
+const templatePagination = reactive({
+  pageNum: 1,
+  pageSize: 6
+})
+const currentTemplateSkill = ref(null)
+const templateEditorOpen = ref(false)
+const templateEditorTitle = ref('上传报告模板')
+const templateSaving = ref(false)
+const templateFormRef = ref()
 
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 6,
   skillName: '',
-  skillType: 'TABLE',
+  skillType: '',
   status: ''
+})
+
+const pagedVersionList = computed(() => {
+  return paginateList(versionList.value, versionPagination)
+})
+
+const pagedTemplateList = computed(() => {
+  return paginateList(templateList.value, templatePagination)
 })
 
 const form = reactive({
@@ -252,10 +401,34 @@ const form = reactive({
 const tableGenerateForm = reactive({
   assetId: null,
   datasourceId: null,
-  tableName: '',
+  tableNames: [],
   forceRefresh: false,
   publish: false,
   manualNotes: ''
+})
+
+const skillGenerateType = computed(() => {
+  const count = tableGenerateForm.tableNames.length
+  if (count === 0) return 'database'
+  if (count === 1) return 'table'
+  return 'multi'
+})
+
+const skillGenerateButtonText = computed(() => {
+  if (skillGenerateType.value === 'database') return '生成整库Skill'
+  if (skillGenerateType.value === 'multi') return '生成多表Skill'
+  return '生成表级Skill'
+})
+
+const templateForm = reactive({
+  id: null,
+  skillId: null,
+  templateCode: '',
+  templateName: '',
+  templateContent: '',
+  status: 'DRAFT',
+  defaultFlag: false,
+  remark: ''
 })
 
 const rules = {
@@ -265,21 +438,56 @@ const rules = {
   content: [{ required: true, message: 'Skill内容不能为空', trigger: 'blur' }]
 }
 
+const templateRules = {
+  templateName: [{ required: true, message: '模板名称不能为空', trigger: 'blur' }],
+  templateCode: [{ required: true, message: '模板编码不能为空', trigger: 'blur' }],
+  templateContent: [
+    { required: true, message: '模板JSON不能为空', trigger: 'blur' },
+    { validator: validateTemplateJson, trigger: 'blur' }
+  ]
+}
+
 function getList() {
   loading.value = true
   listSkill(queryParams).then((res) => {
-    const data = res.data || {}
-    skillList.value = data.rows || []
-    total.value = data.total || 0
+    const page = normalizePageData(res)
+    skillList.value = page.rows
+    total.value = page.total
   }).finally(() => {
     loading.value = false
   })
 }
 
+function normalizePageData(res) {
+  const data = res?.data || res || {}
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(res?.rows)
+          ? res.rows
+          : []
+  const total = Number(data.total ?? data.totalCount ?? res?.total ?? rows.length)
+  return {
+    rows,
+    total: Number.isNaN(total) ? rows.length : total
+  }
+}
+
+function paginateList(list, pagination) {
+  const rows = Array.isArray(list) ? list : []
+  const pageNum = pagination.pageNum || 1
+  const pageSize = pagination.pageSize || 6
+  const start = (pageNum - 1) * pageSize
+  return rows.slice(start, start + pageSize)
+}
+
 function resetQuery() {
   queryParams.pageNum = 1
   queryParams.skillName = ''
-  queryParams.skillType = 'TABLE'
+  queryParams.skillType = ''
   queryParams.status = ''
   getList()
 }
@@ -374,10 +582,154 @@ function handleSyncAllDatasources() {
   })
 }
 
-function openTableGenerate() {
+function openTemplateList(row) {
+  currentTemplateSkill.value = row
+  templateListTitle.value = `${row.skillName} - 报告模板`
+  templatePagination.pageNum = 1
+  templateListOpen.value = true
+  loadTemplateList()
+}
+
+function loadTemplateList() {
+  if (!currentTemplateSkill.value?.id) return
+  templateLoading.value = true
+  listSkillReportTemplates(currentTemplateSkill.value.id).then((res) => {
+    templateList.value = res.data || []
+    templatePagination.pageNum = 1
+  }).finally(() => {
+    templateLoading.value = false
+  })
+}
+
+function resetTemplateForm() {
+  Object.assign(templateForm, {
+    id: null,
+    skillId: null,
+    templateCode: '',
+    templateName: '',
+    templateContent: '',
+    status: 'DRAFT',
+    defaultFlag: false,
+    remark: ''
+  })
+}
+
+function openTemplateEditor(skill, template) {
+  const targetSkill = skill || currentTemplateSkill.value
+  if (!targetSkill?.id) {
+    proxy.$modal.msgWarning('请先选择Skill')
+    return
+  }
+  currentTemplateSkill.value = targetSkill
+  resetTemplateForm()
+  if (template) {
+    Object.assign(templateForm, {
+      id: template.id,
+      skillId: template.skillId,
+      templateCode: template.templateCode,
+      templateName: template.templateName,
+      templateContent: template.templateContent,
+      status: template.status || 'DRAFT',
+      defaultFlag: !!template.defaultFlag,
+      remark: template.remark || ''
+    })
+    templateEditorTitle.value = '编辑报告模板'
+  } else {
+    templateForm.skillId = targetSkill.id
+    templateForm.templateCode = `${targetSkill.skillCode || 'skill'}_report_template`
+    templateForm.templateName = `${targetSkill.skillName || 'Skill'}报告模板`
+    templateForm.templateContent = buildReportTemplateFormatText(targetSkill)
+    templateEditorTitle.value = '上传报告模板'
+  }
+  templateEditorOpen.value = true
+}
+
+function fillTemplateFormat() {
+  templateForm.templateContent = buildReportTemplateFormatText(currentTemplateSkill.value)
+  if (currentTemplateSkill.value?.skillCode && !templateForm.templateCode) {
+    templateForm.templateCode = `${currentTemplateSkill.value.skillCode}_report_template`
+  }
+  if (currentTemplateSkill.value?.skillName && !templateForm.templateName) {
+    templateForm.templateName = `${currentTemplateSkill.value.skillName}报告模板`
+  }
+}
+
+function submitTemplateForm() {
+  templateFormRef.value.validate((valid) => {
+    if (!valid || !currentTemplateSkill.value?.id) return
+    templateSaving.value = true
+    const payload = {
+      id: templateForm.id,
+      skillId: currentTemplateSkill.value.id,
+      templateCode: templateForm.templateCode,
+      templateName: templateForm.templateName,
+      templateContent: templateForm.templateContent,
+      status: templateForm.status,
+      defaultFlag: templateForm.defaultFlag,
+      remark: templateForm.remark
+    }
+    const request = templateForm.id
+      ? updateSkillReportTemplate(currentTemplateSkill.value.id, templateForm.id, payload)
+      : addSkillReportTemplate(currentTemplateSkill.value.id, payload)
+    request.then(() => {
+      proxy.$modal.msgSuccess('保存成功')
+      templateEditorOpen.value = false
+      if (templateListOpen.value) {
+        loadTemplateList()
+      }
+    }).finally(() => {
+      templateSaving.value = false
+    })
+  })
+}
+
+function handleSetDefaultTemplate(row) {
+  if (!currentTemplateSkill.value?.id) return
+  setDefaultSkillReportTemplate(currentTemplateSkill.value.id, row.id).then(() => {
+    proxy.$modal.msgSuccess('已设为默认模板')
+    loadTemplateList()
+  })
+}
+
+function handleDeleteTemplate(row) {
+  if (!currentTemplateSkill.value?.id) return
+  proxy.$modal.confirm('确认删除该报告模板吗？').then(() => {
+    return deleteSkillReportTemplate(currentTemplateSkill.value.id, row.id)
+  }).then(() => {
+    proxy.$modal.msgSuccess('删除成功')
+    loadTemplateList()
+  })
+}
+
+function validateTemplateJson(rule, value, callback) {
+  if (!value) {
+    callback()
+    return
+  }
+  try {
+    const parsed = JSON.parse(value)
+    if (!parsed.dataSchema) {
+      callback(new Error('模板缺少 dataSchema'))
+      return
+    }
+    if (!parsed.layout) {
+      callback(new Error('模板缺少 layout'))
+      return
+    }
+    if (!parsed.style) {
+      callback(new Error('模板缺少 style'))
+      return
+    }
+    callback()
+  } catch (error) {
+    callback(new Error('模板JSON格式不正确'))
+  }
+}
+
+function openSkillGenerate() {
   tableGenerateForm.assetId = null
   tableGenerateForm.datasourceId = null
-  tableGenerateForm.tableName = ''
+  tableGenerateForm.tableNames = []
   tableGenerateForm.forceRefresh = false
   tableGenerateForm.publish = false
   tableGenerateForm.manualNotes = ''
@@ -393,7 +745,7 @@ function loadDatasourceOptions() {
 }
 
 function handleGenerateDatasourceChange(datasourceId) {
-  tableGenerateForm.tableName = ''
+  tableGenerateForm.tableNames = []
   tableOptions.value = []
   if (!datasourceId) return
   tableLoading.value = true
@@ -424,13 +776,28 @@ function tableOptionLabel(item) {
 }
 
 function handleGenerateTable() {
-  if (!tableGenerateForm.datasourceId || !tableGenerateForm.tableName) {
-    proxy.$modal.msgWarning('请选择数据源和表')
+  if (!tableGenerateForm.datasourceId) {
+    proxy.$modal.msgWarning('请选择数据源')
     return
   }
   generatingTable.value = true
-  generateTableSkill(tableGenerateForm).then(() => {
-    proxy.$modal.msgSuccess('表级Skill已生成')
+  const selectedTableNames = tableGenerateForm.tableNames.filter(Boolean)
+  const generateType = skillGenerateType.value
+  const payload = {
+    datasourceId: tableGenerateForm.datasourceId,
+    tableName: selectedTableNames[0] || '',
+    tableNames: selectedTableNames,
+    forceRefresh: tableGenerateForm.forceRefresh,
+    publish: tableGenerateForm.publish,
+    manualNotes: tableGenerateForm.manualNotes
+  }
+  const request = generateType === 'database'
+    ? generateDatabaseSkill(payload)
+    : generateType === 'multi'
+      ? generateMultiTableSkill(payload)
+      : generateTableSkill(payload)
+  request.then(() => {
+    proxy.$modal.msgSuccess(`${skillGenerateButtonText.value}已生成`)
     tableGenerateOpen.value = false
     getList()
   }).finally(() => {
@@ -442,6 +809,7 @@ function handleVersions(row) {
   currentSkill.value = row
   listSkillVersions(row.id).then((res) => {
     versionList.value = res.data || []
+    versionPagination.pageNum = 1
     versionOpen.value = true
   })
 }
@@ -459,7 +827,12 @@ function handleRollback(row) {
 
 function skillTypeText(type) {
   const map = {
-    TABLE: '表级问数'
+    TABLE: '表级问数',
+    DATABASE: '整库问数',
+    MULTI_TABLE: '多表问数',
+    REPORT_TEMPLATE: '报告模板',
+    PLATFORM_METADATA: '元数据',
+    PLATFORM_QUALITY: '质量'
   }
   return map[type] || type
 }
@@ -541,6 +914,13 @@ getList()
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.template-list-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 :deep(.el-textarea__inner) {

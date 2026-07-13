@@ -473,7 +473,7 @@ const data = reactive({
   form: { status: "1" },
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     modelName: null,
     modelComment: null,
     catCode: null,

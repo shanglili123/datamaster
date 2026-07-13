@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="app-container">
         <div class="pagecont-top" v-show="showSearch">
             <el-form
@@ -221,7 +221,7 @@ const userStore = useUserStore();
 const queryParams = ref({
     dateRange: [],
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     receiverId: userStore.userId,
 });
 const total = ref(0);

@@ -74,7 +74,7 @@
       </div>
       <el-table stripe v-loading="loading" :data="clientList" @selection-change="handleSelectionChange"
         :default-sort="defaultSort" @sort-change="handleSortChange">
-        <el-table-column v-if="getColumnVisibility(0)" width="50" label="编号" align="center" prop="id" />
+        <el-table-column v-if="getColumnVisibility(0)" width="75" label="编号" align="center" prop="id" />
         <el-table-column v-if="getColumnVisibility(1)" width="200" label="应用名称"
           :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="name">
           <template #default="scope">
@@ -424,7 +424,7 @@ const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     id: null,
     name: null,
     type: null,
@@ -445,12 +445,31 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+function normalizePageData(response) {
+  const data = response?.data ?? response ?? {};
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
+
 /** 查询应用列表 */
 function getList() {
   loading.value = true;
   listClient(queryParams.value).then((response) => {
-    clientList.value = response.data.rows;
-    total.value = response.data.total;
+    const pageData = normalizePageData(response);
+    clientList.value = pageData.rows;
+    total.value = pageData.total;
     loading.value = false;
   });
 }

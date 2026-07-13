@@ -182,7 +182,7 @@
               </template>
             </el-table>
             <!-- 分页 -->
-            <el-pagination :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper"
+            <el-pagination :page-sizes="[6, 8, 10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper"
               :current-page.sync="callData.pageNum" :page-size.sync="callData.pageSize" :total="callData.dataTotal"
               @size-change="handleSizeChange" @current-change="handleCurrentChange" />
           </div>
@@ -250,7 +250,7 @@ const callData = reactive({
   dataList: [], // 接口返回的数据列表
   columnList: [], // 数据的列名列表
   pageNum: 1, // 当前页码
-  pageSize: 20, // 每页数据量
+  pageSize: 6, // 每页数据量
   dataTotal: 0, // 数据总数
 });
 const inputList = computed(() => {
@@ -421,7 +421,7 @@ const handleApiResponse = (response) => {
   callData.dataList = response.data.dataList || [];
   callData.columnList = response.data.columnList || [];
   callData.pageNum = response.data.pageNum || 1;
-  callData.pageSize = response.data.pageSize || 20;
+  callData.pageSize = response.data.pageSize || 6;
   callData.dataTotal = response.data.dataTotal || 0;
 };
 </script>

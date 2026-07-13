@@ -94,6 +94,24 @@ export function generateTableSkill(data) {
   })
 }
 
+// 生成整库 Skill
+export function generateDatabaseSkill(data) {
+  return request({
+    url: '/ai/skill/generate/database',
+    method: 'post',
+    data: data
+  })
+}
+
+// 生成多表 Skill
+export function generateMultiTableSkill(data) {
+  return request({
+    url: '/ai/skill/generate/multi-table',
+    method: 'post',
+    data: data
+  })
+}
+
 // 同步全部已发布 Skill 到 AI 问数
 export function syncAllSkillToDbgpt() {
   return request({
@@ -106,6 +124,48 @@ export function syncAllSkillToDbgpt() {
 export function syncSkillToDbgpt(id) {
   return request({
     url: '/ai/skill/' + id + '/sync/dbgpt',
+    method: 'post'
+  })
+}
+
+// 查询 Skill 报告模板
+export function listSkillReportTemplates(skillId) {
+  return request({
+    url: '/ai/skill/' + skillId + '/report-templates',
+    method: 'get'
+  })
+}
+
+// 新增 Skill 报告模板
+export function addSkillReportTemplate(skillId, data) {
+  return request({
+    url: '/ai/skill/' + skillId + '/report-templates',
+    method: 'post',
+    data: data
+  })
+}
+
+// 修改 Skill 报告模板
+export function updateSkillReportTemplate(skillId, templateId, data) {
+  return request({
+    url: '/ai/skill/' + skillId + '/report-templates/' + templateId,
+    method: 'put',
+    data: data
+  })
+}
+
+// 删除 Skill 报告模板
+export function deleteSkillReportTemplate(skillId, templateId) {
+  return request({
+    url: '/ai/skill/' + skillId + '/report-templates/' + templateId,
+    method: 'delete'
+  })
+}
+
+// 设置默认 Skill 报告模板
+export function setDefaultSkillReportTemplate(skillId, templateId) {
+  return request({
+    url: '/ai/skill/' + skillId + '/report-templates/' + templateId + '/default',
     method: 'post'
   })
 }

@@ -75,7 +75,7 @@
             :default-sort="defaultSort"
             @sort-change="handleSortChange"
           >
-            <el-table-column v-if="getColumnVisibility(0)" width="150" label="编号" align="left" prop="id" />
+            <el-table-column v-if="getColumnVisibility(0)" width="225" label="编号" align="left" prop="id" />
             <el-table-column
               v-if="getColumnVisibility(1)"
               :show-overflow-tooltip="{ effect: 'light' }"
@@ -302,7 +302,7 @@ const deptOptions = ref([]);
 const data = reactive({
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     type: null,
     name: null,
     code: null,

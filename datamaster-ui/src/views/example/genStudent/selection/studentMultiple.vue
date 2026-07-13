@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog
       title="学生-多选"
       v-model="visible"
@@ -190,7 +190,7 @@
     form: {},
     queryParams: {
       pageNum: 1,
-      pageSize: 10,
+      pageSize: 6,
       name: null,
       pictureUrl: null,
       experience: null,

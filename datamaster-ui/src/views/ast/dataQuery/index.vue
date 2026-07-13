@@ -58,7 +58,7 @@ const dialogVisible = ref(false);
 
 const queryParams = ref({
   pageNum: 1,
-  pageSize: 20,
+  pageSize: 6,
   sqlText: "",
   id: "", // 选中数据源 id，用于查询
   datasourceType: '',

@@ -30,7 +30,7 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
         ensureSkillSpace();
         int success = 0;
         int failed = 0;
-        List<AiSkillDO> skills = aiSkillMapper.selectPublishedTableSkills();
+        List<AiSkillDO> skills = aiSkillMapper.selectPublishedSkills();
         for (AiSkillDO skill : skills) {
             try {
                 syncSkill(skill);

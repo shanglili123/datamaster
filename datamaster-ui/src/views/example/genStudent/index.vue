@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="app-container" ref="app-container">
         <div class="pagecont-top" v-show="showSearch">
             <el-form
@@ -656,7 +656,7 @@
         form: {},
         queryParams: {
             pageNum: 1,
-            pageSize: 10,
+            pageSize: 6,
             name: null,
             pictureUrl: null,
             experience: null,

@@ -120,7 +120,7 @@ const data = reactive({
     },
     queryParams: {
         pageNum: 1,
-        pageSize: 10,
+        pageSize: 6,
         dataElemId: null,
         type: 1
     },

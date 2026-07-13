@@ -9,16 +9,18 @@
         新对话
       </el-button>
       <div class="conversation-list">
-        <button
+        <div
           v-for="item in conversations"
           :key="item.id"
-          class="conversation-item"
+          class="conversation-row"
           :class="{ active: item.id === activeConversationId }"
-          @click="selectConversation(item.id)"
         >
-          <span>{{ item.title }}</span>
-          <small>{{ item.datasourceName || '未选择数据源' }}</small>
-        </button>
+          <button class="conversation-item" @click="selectConversation(item.id)">
+            <span>{{ item.title }}</span>
+            <small>{{ item.datasourceName || '未选择数据源' }}</small>
+          </button>
+          <el-button text class="conversation-delete" @click.stop="removeConversation(item.id)">删除</el-button>
+        </div>
       </div>
     </aside>
 
@@ -29,7 +31,18 @@
           <p>{{ selectedDatasourceName() || '请选择数据源' }}</p>
         </div>
         <div class="datasource-box">
-          <el-select v-model="form.datasourceId" placeholder="选择数据源" filterable clearable>
+          <el-segmented
+            v-model="form.mode"
+            :options="modeOptions"
+            class="mode-switch"
+          />
+          <el-select
+            v-model="form.datasourceId"
+            placeholder="选择数据源"
+            filterable
+            clearable
+            @change="handleDatasourceChange"
+          >
             <el-option
               v-for="item in datasourceList"
               :key="item.id"
@@ -43,10 +56,48 @@
           <el-tag :type="syncTag(selectedDatasource?.dbgptSyncStatus)" effect="plain">
             {{ syncText(selectedDatasource?.dbgptSyncStatus) }}
           </el-tag>
+          <el-select
+            v-model="form.skillId"
+            placeholder="选择知识库"
+            filterable
+            clearable
+            @change="handleSkillChange"
+          >
+            <el-option
+              v-for="item in skillList"
+              :key="item.id"
+              :label="item.skillName"
+              :value="item.id"
+            />
+          </el-select>
+          <template v-if="form.mode === 'report'">
+            <el-select v-model="form.templateId" placeholder="选择报告模板" filterable clearable>
+              <el-option
+                v-for="item in templateList"
+                :key="item.id"
+                :label="templateOptionLabel(item)"
+                :value="item.id"
+              />
+            </el-select>
+            <el-button icon="Document" @click="openTemplateFormat">
+              模板格式
+            </el-button>
+          </template>
+          <el-switch
+            v-model="form.returnSql"
+            active-text="返回SQL"
+            inactive-text=""
+            class="sql-switch"
+          />
         </div>
       </header>
 
-      <section ref="messageScrollRef" class="message-list">
+      <section ref="messageScrollRef" class="message-list" @scroll="handleMessageScroll">
+        <div v-if="messageWindow.hasBefore" class="history-loader">
+          <el-button text :loading="messageWindow.loadingBefore" @click="loadMoreMessages('before')">
+            加载更早5条
+          </el-button>
+        </div>
         <div v-if="activeMessages.length === 0" class="empty-state">
           <h1>想查什么，直接问</h1>
           <p>选择数据源后，AI问数会使用已同步的数据源和问数 Skill 进行回答。</p>
@@ -65,6 +116,13 @@
         >
           <div class="avatar">{{ message.role === 'user' ? '我' : 'AI' }}</div>
           <div class="message-bubble">
+            <el-button
+              text
+              class="message-delete"
+              @click="removeMessage(message)"
+            >
+              删除
+            </el-button>
             <div v-if="message.agentSteps" class="agent-fold">
               <details>
                 <summary>思考过程</summary>
@@ -85,7 +143,12 @@
                 <span>{{ step.label }}</span>
               </div>
             </div>
-            <div v-if="message.tableRows?.length" class="data-table-wrap">
+            <ReportTemplateRenderer
+              v-if="message.reportTemplate && message.reportData"
+              :template="message.reportTemplate"
+              :data="message.reportData"
+            />
+            <div v-else-if="message.tableRows?.length" class="data-table-wrap">
               <el-table :data="message.tableRows" border size="small" max-height="320">
                 <el-table-column
                   v-for="column in message.tableColumns"
@@ -106,7 +169,7 @@
               :content="message.displayContent || message.content"
             />
             <div
-              v-if="!message.tableRows?.length && !message.displayContent && !message.content"
+              v-if="!message.reportTemplate && !message.reportData && !message.tableRows?.length && !message.displayContent && !message.content"
               class="typing"
             >
               <span></span>
@@ -115,6 +178,11 @@
               <em>正在分析...</em>
             </div>
           </div>
+        </div>
+        <div v-if="messageWindow.hasAfter" class="history-loader">
+          <el-button text :loading="messageWindow.loadingAfter" @click="loadMoreMessages('after')">
+            加载更新5条
+          </el-button>
         </div>
       </section>
 
@@ -136,31 +204,88 @@
             :loading="sending"
             @click="sendMessage"
           />
+          <el-button class="clear-btn" :disabled="!activeMessages.length" @click="clearMessages">
+            清空
+          </el-button>
         </div>
         <div class="composer-tip">Enter 发送，Shift+Enter 换行</div>
       </footer>
     </main>
+
+    <el-dialog v-model="templateFormatOpen" title="报告模板格式" width="960px" append-to-body>
+      <div class="template-format-header">
+        <div>
+          <strong>{{ selectedSkill?.skillName || '通用报告模板' }}</strong>
+          <p>复制后按报告业务修改模板编码、字段、布局、样式和提示语，再到 Skill 模板中上传。</p>
+        </div>
+        <el-button type="primary" icon="CopyDocument" @click="copyTemplateFormat">复制模板</el-button>
+      </div>
+      <el-input
+        v-model="templateFormatText"
+        type="textarea"
+        :rows="26"
+        readonly
+        resize="none"
+      />
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { Plus, Promotion } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { getToken } from '@/utils/auth'
 import MarkdownView from '@/components/MarkdownView/index.vue'
+import ReportTemplateRenderer from './components/ReportTemplateRenderer.vue'
+import { askDataDbgptReport } from '@/api/ai/askData'
+import { listSkill, listSkillReportTemplates } from '@/api/ai/skill'
+import {
+  appendAskMessage,
+  clearAskMessages,
+  createAskSession,
+  deleteAskMessage,
+  deleteAskSession,
+  listAskMessages,
+  listAskSessions,
+  updateAskSession
+} from '@/api/ai/askSession'
+import useUserStore from '@/store/system/user'
+import { buildReportTemplateFormatText } from './reportTemplateFormat'
 
 const datasourceList = ref([])
+const skillList = ref([])
+const templateList = ref([])
 const conversations = ref([])
 const activeConversationId = ref(null)
 const prompt = ref('')
 const sending = ref(false)
 const messageScrollRef = ref()
+const templateFormatOpen = ref(false)
+const templateFormatText = ref('')
+const userStore = useUserStore()
+const sessionReady = ref(false)
+const syncingSession = ref(false)
+const messageWindow = reactive({
+  hasBefore: false,
+  hasAfter: false,
+  loadingBefore: false,
+  loadingAfter: false
+})
 
 const form = reactive({
-  datasourceId: null
+  datasourceId: null,
+  mode: 'qa',
+  skillId: null,
+  templateId: null,
+  returnSql: false
 })
+
+const modeOptions = [
+  { label: '问答', value: 'qa' },
+  { label: '报告', value: 'report' }
+]
 
 const examples = [
   '查询下前5条订单数据',
@@ -178,9 +303,27 @@ const selectedDatasource = computed(() =>
   datasourceList.value.find((item) => item.id === form.datasourceId)
 )
 
+const selectedSkill = computed(() =>
+  skillList.value.find((item) => item.id === form.skillId)
+)
+
 onMounted(async () => {
   await loadDatasources()
-  createConversation()
+  await loadSkills()
+  await loadConversations()
+})
+
+watch(() => form.mode, () => {
+  refreshReportTemplates()
+  syncActiveSessionSelection()
+})
+
+watch(() => [form.datasourceId, form.skillId, form.templateId, form.returnSql], () => {
+  syncActiveSessionSelection()
+})
+
+watch(() => userStore.projectId, async () => {
+  await loadConversations()
 })
 
 async function loadDatasources() {
@@ -192,19 +335,319 @@ async function loadDatasources() {
   datasourceList.value = res.data || []
 }
 
-function createConversation() {
-  const id = Date.now()
-  conversations.value.unshift({
-    id,
-    title: '新问数对话',
-    datasourceName: selectedDatasourceName(),
-    messages: []
+async function loadSkills() {
+  const res = await listSkill({
+    pageNum: 1,
+    pageSize: 200,
+    status: 'PUBLISHED'
   })
-  activeConversationId.value = id
+  skillList.value = res.data?.rows || []
 }
 
-function selectConversation(id) {
+async function handleDatasourceChange() {
+  await refreshReportTemplates()
+}
+
+async function handleSkillChange() {
+  await refreshReportTemplates()
+}
+
+async function refreshReportTemplates() {
+  const currentTemplateId = form.templateId
+  templateList.value = []
+  if (form.mode !== 'report' || !form.datasourceId || !form.skillId) {
+    form.templateId = null
+    return
+  }
+  const res = await listSkillReportTemplates(form.skillId)
+  templateList.value = res.data || []
+  if (currentTemplateId && templateList.value.some((item) => item.id === currentTemplateId)) {
+    form.templateId = currentTemplateId
+    return
+  }
+  const latestTemplate = latestReportTemplate(templateList.value)
+  form.templateId = latestTemplate ? latestTemplate.id : null
+}
+
+function latestReportTemplate(templates) {
+  const rows = Array.isArray(templates) ? templates.filter(Boolean) : []
+  if (!rows.length) return null
+  return [...rows].sort((a, b) => {
+    const timeA = parseTemplateTime(a.updateTime || a.createTime)
+    const timeB = parseTemplateTime(b.updateTime || b.createTime)
+    if (timeA !== timeB) return timeB - timeA
+    return Number(b.id || 0) - Number(a.id || 0)
+  })[0]
+}
+
+function parseTemplateTime(value) {
+  if (!value) return 0
+  return Date.parse(String(value).replace(' ', 'T')) || 0
+}
+
+function templateOptionLabel(item) {
+  const latest = latestReportTemplate(templateList.value)
+  const suffixes = []
+  if (latest && item.id === latest.id) {
+    suffixes.push('最新')
+  }
+  if (item.defaultFlag) {
+    suffixes.push('默认')
+  }
+  return suffixes.length ? `${item.templateName}（${suffixes.join(' / ')}）` : item.templateName
+}
+
+function openTemplateFormat() {
+  templateFormatText.value = buildReportTemplateFormatText(selectedSkill.value)
+  templateFormatOpen.value = true
+}
+
+async function copyTemplateFormat() {
+  try {
+    await navigator.clipboard.writeText(templateFormatText.value)
+    ElMessage.success('模板格式已复制')
+  } catch (error) {
+    ElMessage.error('复制失败，请手动选择复制')
+  }
+}
+
+async function loadConversations() {
+  sessionReady.value = false
+  const res = await listAskSessions({ limit: 10 })
+  conversations.value = (res.data || []).map(normalizeSession)
+  if (conversations.value.length) {
+    await selectConversation(conversations.value[0].id)
+  } else {
+    await createConversation()
+  }
+  sessionReady.value = true
+}
+
+async function createConversation() {
+  const res = await createAskSession(buildSessionPayload({ title: '新问数对话' }))
+  const session = normalizeSession(res.data)
+  conversations.value = [session, ...conversations.value.filter((item) => item.id !== session.id)].slice(0, 10)
+  await selectConversation(session.id)
+}
+
+async function selectConversation(id) {
   activeConversationId.value = id
+  const session = activeConversation.value
+  if (!session) return
+  await applySessionToForm(session)
+  await loadSessionMessages(id)
+}
+
+async function removeConversation(id) {
+  await ElMessageBox.confirm('确认删除该会话及全部聊天记录？', '删除会话', { type: 'warning' })
+  await deleteAskSession(id, currentProjectParams())
+  conversations.value = conversations.value.filter((item) => item.id !== id)
+  if (activeConversationId.value === id) {
+    if (conversations.value.length) {
+      await selectConversation(conversations.value[0].id)
+    } else {
+      await createConversation()
+    }
+  }
+}
+
+async function loadSessionMessages(sessionId) {
+  const res = await listAskMessages(sessionId, { limit: 10 })
+  const data = res.data || {}
+  const session = conversations.value.find((item) => item.id === sessionId)
+  if (!session) return
+  session.messages = (data.rows || []).map(normalizeMessage)
+  messageWindow.hasBefore = Boolean(data.hasBefore)
+  messageWindow.hasAfter = Boolean(data.hasAfter)
+  await scrollToBottom()
+}
+
+async function loadMoreMessages(direction) {
+  const session = activeConversation.value
+  if (!session || !session.messages.length) return
+  const isBefore = direction === 'before'
+  if (isBefore && messageWindow.loadingBefore) return
+  if (!isBefore && messageWindow.loadingAfter) return
+  if (isBefore) messageWindow.loadingBefore = true
+  else messageWindow.loadingAfter = true
+  try {
+    const params = { limit: 5 }
+    if (isBefore) params.beforeId = session.messages[0].id
+    else params.afterId = session.messages[session.messages.length - 1].id
+    const res = await listAskMessages(session.id, params)
+    const data = res.data || {}
+    const rows = (data.rows || []).map(normalizeMessage)
+    if (isBefore) {
+      session.messages = [...rows, ...session.messages].slice(0, 10)
+      messageWindow.hasBefore = Boolean(data.hasBefore)
+      messageWindow.hasAfter = true
+    } else {
+      session.messages = [...session.messages, ...rows].slice(-10)
+      messageWindow.hasAfter = Boolean(data.hasAfter)
+      messageWindow.hasBefore = true
+    }
+  } finally {
+    messageWindow.loadingBefore = false
+    messageWindow.loadingAfter = false
+  }
+}
+
+function handleMessageScroll() {
+  const el = messageScrollRef.value
+  if (!el) return
+  if (el.scrollTop <= 8 && messageWindow.hasBefore) {
+    loadMoreMessages('before')
+  } else if (el.scrollHeight - el.scrollTop - el.clientHeight <= 8 && messageWindow.hasAfter) {
+    loadMoreMessages('after')
+  }
+}
+
+async function removeMessage(message) {
+  const session = activeConversation.value
+  if (!session || !message?.id) return
+  await deleteAskMessage(session.id, message.id, currentProjectParams())
+  session.messages = session.messages.filter((item) => item.id !== message.id)
+}
+
+async function clearMessages() {
+  const session = activeConversation.value
+  if (!session) return
+  await ElMessageBox.confirm('确认清空当前会话的聊天记录？', '清空聊天记录', { type: 'warning' })
+  await clearAskMessages(session.id, currentProjectParams())
+  session.messages = []
+  messageWindow.hasBefore = false
+  messageWindow.hasAfter = false
+}
+
+function normalizeSession(row) {
+  return {
+    ...row,
+    title: row?.title || '新问数对话',
+    messages: row?.messages || []
+  }
+}
+
+function normalizeMessage(row) {
+  if (row?.payloadJson) {
+    try {
+      return {
+        ...JSON.parse(row.payloadJson),
+        id: row.id,
+        role: row.role,
+        content: row.content || JSON.parse(row.payloadJson).content || '',
+        displayContent: row.displayContent || JSON.parse(row.payloadJson).displayContent || ''
+      }
+    } catch {}
+  }
+  return {
+    id: row.id,
+    role: row.role,
+    content: row.content || '',
+    displayContent: row.displayContent || '',
+    agentSteps: '',
+    executeError: '',
+    queryExecuted: false,
+    tableRows: [],
+    tableColumns: [],
+    reportTemplate: null,
+    reportData: null,
+    returnedSql: '',
+    sqlUnavailable: false,
+    steps: []
+  }
+}
+
+async function applySessionToForm(session) {
+  syncingSession.value = true
+  try {
+    form.mode = session.mode || 'qa'
+    form.datasourceId = session.datasourceId || null
+    form.skillId = session.skillId || null
+    form.templateId = session.templateId || null
+    form.returnSql = Boolean(session.returnSql)
+    await refreshReportTemplates()
+  } finally {
+    syncingSession.value = false
+  }
+}
+
+function buildSessionPayload(extra = {}) {
+  return {
+    title: activeConversation.value?.title || extra.title || '新问数对话',
+    mode: form.mode,
+    datasourceId: form.datasourceId,
+    datasourceName: selectedDatasourceName(),
+    skillId: form.skillId,
+    templateId: form.templateId,
+    returnSql: form.returnSql,
+    projectId: userStore.projectId || null,
+    projectCode: userStore.projectCode || '',
+    ...extra
+  }
+}
+
+async function syncActiveSessionSelection() {
+  if (syncingSession.value || !sessionReady.value || !activeConversationId.value) return
+  const res = await updateAskSession(activeConversationId.value, buildSessionPayload())
+  const updated = normalizeSession(res.data)
+  const index = conversations.value.findIndex((item) => item.id === updated.id)
+  if (index >= 0) {
+    conversations.value[index] = {
+      ...conversations.value[index],
+      ...updated,
+      messages: conversations.value[index].messages
+    }
+  }
+}
+
+async function persistMessage(message) {
+  const session = activeConversation.value
+  if (!session) return
+  const payload = serializeMessage(message)
+  const res = await appendAskMessage(session.id, {
+    role: payload.role,
+    content: payload.content,
+    displayContent: payload.displayContent,
+    payloadJson: JSON.stringify(payload)
+  }, currentProjectParams())
+  if (res.data?.id) {
+    message.id = res.data.id
+  }
+  session.messageCount = (session.messageCount || 0) + 1
+}
+
+function serializeMessage(message) {
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content || '',
+    displayContent: message.displayContent || '',
+    agentSteps: message.agentSteps || '',
+    executeError: message.executeError || '',
+    queryExecuted: Boolean(message.queryExecuted),
+    tableRows: message.tableRows || [],
+    tableColumns: message.tableColumns || [],
+    reportTemplate: message.reportTemplate || null,
+    reportData: message.reportData || null,
+    returnedSql: message.returnedSql || '',
+    sqlUnavailable: Boolean(message.sqlUnavailable),
+    steps: message.steps || []
+  }
+}
+
+function currentProjectParams() {
+  return {
+    projectId: userStore.projectId || null,
+    projectCode: userStore.projectCode || ''
+  }
+}
+
+function trimActiveMessagesToLatest() {
+  const session = activeConversation.value
+  if (session && session.messages.length > 10) {
+    session.messages = session.messages.slice(-10)
+    messageWindow.hasBefore = true
+  }
 }
 
 function handleEnter(event) {
@@ -227,20 +670,28 @@ async function sendMessage() {
     ElMessage.warning('请先选择数据源')
     return
   }
+  if (form.mode === 'report' && !form.skillId) {
+    ElMessage.warning('请先选择知识库')
+    return
+  }
   if (!activeConversation.value) {
-    createConversation()
+    await createConversation()
   }
 
   const conversation = activeConversation.value
   if (conversation.messages.length === 0) {
     conversation.title = question.slice(0, 20)
+    await updateAskSession(conversation.id, buildSessionPayload({ title: conversation.title }))
   }
   conversation.datasourceName = selectedDatasourceName()
-  conversation.messages.push({
+  const userMessage = {
     id: Date.now(),
     role: 'user',
     content: question
-  })
+  }
+  conversation.messages.push(userMessage)
+  trimActiveMessagesToLatest()
+  await persistMessage(userMessage)
 
   const assistantMessage = reactive({
     id: Date.now() + 1,
@@ -252,9 +703,14 @@ async function sendMessage() {
     queryExecuted: false,
     tableRows: [],
     tableColumns: [],
+    reportTemplate: null,
+    reportData: null,
+    returnedSql: '',
+    sqlUnavailable: false,
     steps: createAskSteps()
   })
   conversation.messages.push(assistantMessage)
+  trimActiveMessagesToLatest()
 
   prompt.value = ''
   sending.value = true
@@ -262,61 +718,72 @@ async function sendMessage() {
 
   try {
     setActiveStep(assistantMessage, 'connect')
-    await streamAskData({
-      question,
-      datasourceId: form.datasourceId,
-      chatMode: 'chat_with_db_qa'
-    }, {
-      onMessage(chunk) {
-        if (!assistantMessage.content) {
-          setActiveStep(assistantMessage, 'answer')
+    if (form.mode === 'report') {
+      setActiveStep(assistantMessage, 'answer')
+      await generateReportMessage(question, assistantMessage)
+    } else {
+      await streamAskData({
+        question,
+        datasourceId: form.datasourceId,
+        chatMode: 'chat_with_db_qa',
+        skillIds: form.skillId ? [form.skillId] : [],
+        returnSql: form.returnSql,
+        projectId: userStore.projectId || null,
+        projectCode: userStore.projectCode || ''
+      }, {
+        onMessage(chunk) {
+          if (!assistantMessage.content) {
+            setActiveStep(assistantMessage, 'answer')
+          }
+          assistantMessage.content += chunk
+          scrollToBottom()
+        },
+        onSql(sql) {
+          appendSqlToMessage(assistantMessage, sql)
+          scrollToBottom()
+        },
+        onError(message) {
+          assistantMessage.content = message || 'AI问数调用失败'
+          finishSteps(assistantMessage)
         }
-        assistantMessage.content += chunk
-        scrollToBottom()
-      },
-      onError(message) {
-        assistantMessage.content = message || 'AI问数调用失败'
-        finishSteps(assistantMessage)
-      }
-    })
-    hydrateStructuredData(assistantMessage)
-    await hydrateSqlResult(assistantMessage, form.datasourceId)
+      })
+      hydrateStructuredData(assistantMessage)
+    }
     finishSteps(assistantMessage)
+    await persistMessage(assistantMessage)
   } catch (error) {
     assistantMessage.content = error?.message || 'AI问数调用失败'
     finishSteps(assistantMessage)
+    await persistMessage(assistantMessage)
   } finally {
     sending.value = false
     await scrollToBottom()
   }
 }
 
-async function hydrateSqlResult(message, datasourceId) {
-  if (message.tableRows?.length) return
-  const sql = extractSql(message.content)
-  if (!sql) return
-
-  try {
-    const res = await request({
-      url: '/ai/ask-data/execute',
-      method: 'post',
-      params: {
-        datasourceId,
-        sql,
-        maxRows: 1000
-      }
-    })
-    const rows = Array.isArray(res.data) ? res.data : []
-    message.queryExecuted = true
-    message.tableRows = rows
-    message.tableColumns = buildColumns(rows)
-  } catch (error) {
-    message.executeError = error?.message || 'SQL执行失败'
-    if (!message.displayContent) {
-      message.displayContent = message.content
-    }
-    message.displayContent = `${message.displayContent}\n\n> ${message.executeError}`
+async function generateReportMessage(question, assistantMessage) {
+  const res = await askDataDbgptReport({
+    question,
+    datasourceId: form.datasourceId,
+    skillId: form.skillId,
+    templateId: form.templateId,
+    returnSql: form.returnSql
+  })
+  const data = res.data || {}
+  if (data.qualityWarning) {
+    assistantMessage.content = data.qualityWarning
   }
+  if (data.templateContent && data.reportData) {
+    assistantMessage.reportTemplate = JSON.parse(data.templateContent)
+    assistantMessage.reportData = data.reportData
+    const sql = data.sql || data.reportData?.sql
+    assistantMessage.displayContent = form.returnSql && sql
+      ? `校验SQL：\n\`\`\`sql\n${sql}\n\`\`\``
+      : ''
+    return
+  }
+  assistantMessage.content = data.rawReply || data.qualityWarning || '报告生成失败，未返回结构化数据'
+  hydrateStructuredData(assistantMessage)
 }
 
 function hydrateStructuredData(message) {
@@ -330,7 +797,53 @@ function hydrateStructuredData(message) {
   message.displayContent = parsed.text || ''
   message.tableRows = parsed.rows || []
   message.tableColumns = parsed.columns?.length ? parsed.columns : buildColumns(parsed.rows)
+  appendSqlMarkdownFromContent(message)
   extractAgentSteps(message)
+}
+
+function appendSqlToMessage(message, sql) {
+  const value = (sql || '').trim()
+  message.returnedSql = value
+  message.sqlUnavailable = !value
+  const block = value
+    ? `校验SQL：\n\`\`\`sql\n${value}\n\`\`\``
+    : '> 未能生成可校验的 SELECT SQL。'
+  const current = message.displayContent || message.content || ''
+  if (value && current.includes(value)) return
+  if (!value && current.includes('未能生成可校验的 SELECT SQL')) return
+  message.displayContent = `${current ? `${current}\n\n` : ''}${block}`
+}
+
+function appendSqlMarkdownFromContent(message) {
+  if (message.sqlUnavailable) {
+    const current = message.displayContent || ''
+    if (current.includes('未能生成可校验的 SELECT SQL')) return
+    message.displayContent = `${current ? `${current}\n\n` : ''}> 未能生成可校验的 SELECT SQL。`
+    return
+  }
+  const sqlBlock = message.returnedSql
+    ? {
+        sql: message.returnedSql,
+        markdown: `\`\`\`sql\n${message.returnedSql}\n\`\`\``
+      }
+    : extractLastSqlBlock(message.content)
+  if (!sqlBlock) return
+  const current = message.displayContent || ''
+  if (current.includes(sqlBlock.sql)) return
+  message.displayContent = `${current ? `${current}\n\n` : ''}校验SQL：\n${sqlBlock.markdown}`
+}
+
+function extractLastSqlBlock(content) {
+  if (!content || typeof content !== 'string') return null
+  const matches = Array.from(content.matchAll(/```sql\s*([\s\S]*?)```/gi))
+  if (!matches.length) return null
+  const last = matches[matches.length - 1]
+  const sql = (last[1] || '').trim()
+  if (!sql) return null
+  return {
+    sql,
+    markdown: `\`\`\`sql\n${sql}\n\`\`\``
+  }
 }
 
 function extractAgentSteps(message) {
@@ -433,42 +946,6 @@ function parseStructuredContent(content) {
 
   if (!rows.length && !text) return null
   return { text, rows, columns }
-}
-
-function extractSql(content) {
-  if (!content || typeof content !== 'string') return ''
-  const sqlBlock = content.match(/```sql\s*([\s\S]*?)```/i)
-  if (sqlBlock?.[1]) {
-    return sqlBlock[1].trim()
-  }
-  const genericBlock = content.match(/```\s*([\s\S]*?)```/)
-  if (genericBlock?.[1] && /^\s*select\b/i.test(genericBlock[1])) {
-    return genericBlock[1].trim()
-  }
-  const selectMatch = content.match(/\bselect\b[\s\S]*?(?:;|$)/i)
-  if (selectMatch) return selectMatch[0].replace(/;$/, '').trim()
-
-  const lines = content.split('\n')
-  const sqlLines = []
-  let inSql = false
-  for (const line of lines) {
-    const trimmed = line.trim().toLowerCase()
-    if (trimmed.startsWith('select')) {
-      inSql = true
-    }
-    if (inSql) {
-      sqlLines.push(line)
-      if (trimmed.endsWith(';')) {
-        break
-      }
-    }
-  }
-  if (sqlLines.length) {
-    let sql = sqlLines.join(' ').trim()
-    if (sql.endsWith(';')) sql = sql.slice(0, -1)
-    return sql
-  }
-  return ''
 }
 
 function normalizeStructuredPayload(raw) {
@@ -587,6 +1064,8 @@ function handleSseEvent(raw, callbacks) {
   const text = data.join('\n')
   if (eventName === 'message') {
     callbacks.onMessage?.(text)
+  } else if (eventName === 'sql') {
+    callbacks.onSql?.(text)
   } else if (eventName === 'error') {
     callbacks.onError?.(text)
   }
@@ -672,6 +1151,13 @@ async function scrollToBottom() {
   overflow-y: auto;
 }
 
+.conversation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 4px;
+}
+
 .conversation-item {
   display: flex;
   flex-direction: column;
@@ -688,15 +1174,18 @@ async function scrollToBottom() {
   transition: border-color .2s, background .2s, box-shadow .2s;
 }
 
-.conversation-item:hover {
+.conversation-row:hover .conversation-item,
+.conversation-row.active .conversation-item {
   border-color: #94bfff;
   background: #eef6ff;
   box-shadow: 0 1px 4px rgba(0,0,0,.06);
 }
 
-.conversation-item.active {
-  border-color: #94bfff;
-  background: #eef6ff;
+.conversation-delete {
+  align-self: center;
+  min-width: 36px;
+  padding: 0 4px;
+  color: #a9aeb8;
 }
 
 .conversation-item span,
@@ -745,11 +1234,49 @@ async function scrollToBottom() {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 390px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 760px;
+  min-width: 430px;
 }
 
 .datasource-box :deep(.el-select) {
   flex: 1;
+  min-width: 160px;
+}
+
+.mode-switch {
+  flex: 0 0 auto;
+}
+
+.sql-switch {
+  flex: 0 0 auto;
+}
+
+.template-format-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.template-format-header strong {
+  display: block;
+  font-size: 16px;
+  line-height: 24px;
+  color: #303133;
+}
+
+.template-format-header p {
+  margin: 4px 0 0;
+  color: #909399;
+  font-size: 13px;
+}
+
+:deep(.template-format-header + .el-textarea .el-textarea__inner) {
+  font-family: Consolas, Monaco, monospace;
+  line-height: 1.55;
 }
 
 .option-meta {
@@ -764,6 +1291,13 @@ async function scrollToBottom() {
   height: 100%;
   padding: 24px 20px 36px;
   background: #f5f7fa;
+}
+
+.history-loader {
+  display: flex;
+  justify-content: center;
+  max-width: 960px;
+  margin: 0 auto 12px;
 }
 
 .empty-state {
@@ -839,6 +1373,7 @@ async function scrollToBottom() {
 }
 
 .message-bubble {
+  position: relative;
   max-width: min(760px, 82%);
   min-height: 38px;
   padding: 11px 13px;
@@ -846,6 +1381,20 @@ async function scrollToBottom() {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+
+.message-delete {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  min-width: 32px;
+  padding: 0;
+  color: #a9aeb8;
+  opacity: 0;
+}
+
+.message-bubble:hover .message-delete {
+  opacity: 1;
 }
 
 .message-row:not(.user) .message-bubble {
@@ -1056,6 +1605,12 @@ async function scrollToBottom() {
   width: 36px;
   height: 36px;
   padding: 0;
+  border-radius: 6px;
+}
+
+.clear-btn {
+  flex: 0 0 auto;
+  height: 36px;
   border-radius: 6px;
 }
 

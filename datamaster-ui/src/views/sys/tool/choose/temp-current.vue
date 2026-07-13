@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog
     title="单选-字典管理"
     v-model="visible"
@@ -163,7 +163,7 @@ const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     dictName: undefined,
     dictType: undefined,
     status: undefined,

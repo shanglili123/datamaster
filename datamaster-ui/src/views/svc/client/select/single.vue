@@ -132,7 +132,7 @@ const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     id: null,
     name: null,
     type: null,
@@ -210,13 +210,32 @@ function confirm() {
   visible.value = false;
 }
 
+function normalizePageData(response) {
+  const data = response?.data ?? response ?? {};
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
+
 /** 查询字典类型列表 */
 function getList() {
   loading.value = true;
   listClient(proxy.addDateRange(queryParams.value, daterangeCreateTime.value)).then(
     async (response) => {
-      dataList.value = response.data.rows;
-      total.value = response.data.total;
+      const pageData = normalizePageData(response);
+      dataList.value = pageData.rows;
+      total.value = pageData.total;
       loading.value = false;
       // 初始化及分页切换选中逻辑
       await nextTick();

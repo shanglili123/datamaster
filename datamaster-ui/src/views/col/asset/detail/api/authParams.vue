@@ -89,7 +89,7 @@ const callData = reactive({
     dataList: [],  // 接口返回的数据列表
     columnList: [],  // 数据的列名列表
     pageNum: 1,  // 当前页码
-    pageSize: 20,  // 每页数据量
+    pageSize: 6,  // 每页数据量
     dataTotal: 0  // 数据总数
 });
 const inputList = computed(() => {
@@ -252,7 +252,7 @@ const handleApiResponse = (response) => {
     callData.dataList = response.data.dataList || [];
     callData.columnList = response.data.columnList || [];
     callData.pageNum = response.data.pageNum || 1;
-    callData.pageSize = response.data.pageSize || 20;
+    callData.pageSize = response.data.pageSize || 6;
     callData.dataTotal = response.data.dataTotal || 0;
 };
 </script>

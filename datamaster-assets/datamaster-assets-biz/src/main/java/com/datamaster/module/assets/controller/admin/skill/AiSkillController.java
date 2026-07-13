@@ -4,11 +4,16 @@ import com.datamaster.common.core.controller.BaseController;
 import com.datamaster.common.core.domain.CommonResult;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillPageReqVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillReportTemplateRespVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillReportTemplateSaveReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillSaveReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillVersionRespVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiDatabaseSkillGenerateReqVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiMultiTableSkillGenerateReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiTableSkillGenerateReqVO;
 import com.datamaster.module.assets.service.dbgpt.IDbGptSkillSyncService;
+import com.datamaster.module.assets.service.skill.IAiSkillReportTemplateService;
 import com.datamaster.module.assets.service.skill.IAiSkillService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +46,8 @@ public class AiSkillController extends BaseController {
     private IAiSkillService aiSkillService;
     @Resource
     private IDbGptSkillSyncService dbGptSkillSyncService;
+    @Resource
+    private IAiSkillReportTemplateService aiSkillReportTemplateService;
 
     @Operation(summary = "分页查询Skill")
     @PreAuthorize("@ss.hasPermi('ai:skill:list')")
@@ -99,6 +106,54 @@ public class AiSkillController extends BaseController {
         return CommonResult.success(aiSkillService.getSkillVersions(id));
     }
 
+    @Operation(summary = "查询Skill报告模板")
+    @PreAuthorize("@ss.hasPermi('ai:skill:query')")
+    @GetMapping("/{skillId}/report-templates")
+    public CommonResult<List<AiSkillReportTemplateRespVO>> reportTemplates(@PathVariable Long skillId) {
+        return CommonResult.success(aiSkillReportTemplateService.listBySkillId(skillId));
+    }
+
+    @Operation(summary = "获取Skill报告模板详情")
+    @PreAuthorize("@ss.hasPermi('ai:skill:query')")
+    @GetMapping("/{skillId}/report-templates/{templateId}")
+    public CommonResult<AiSkillReportTemplateRespVO> getReportTemplate(@PathVariable Long skillId,
+                                                                       @PathVariable Long templateId) {
+        return CommonResult.success(aiSkillReportTemplateService.getTemplate(skillId, templateId));
+    }
+
+    @Operation(summary = "新增Skill报告模板")
+    @PreAuthorize("@ss.hasPermi('ai:skill:edit')")
+    @PostMapping("/{skillId}/report-templates")
+    public CommonResult<Long> addReportTemplate(@PathVariable Long skillId,
+                                                @Valid @RequestBody AiSkillReportTemplateSaveReqVO reqVO) {
+        return CommonResult.toAjax(aiSkillReportTemplateService.createTemplate(skillId, reqVO));
+    }
+
+    @Operation(summary = "修改Skill报告模板")
+    @PreAuthorize("@ss.hasPermi('ai:skill:edit')")
+    @PutMapping("/{skillId}/report-templates/{templateId}")
+    public CommonResult<Integer> editReportTemplate(@PathVariable Long skillId,
+                                                    @PathVariable Long templateId,
+                                                    @Valid @RequestBody AiSkillReportTemplateSaveReqVO reqVO) {
+        return CommonResult.toAjax(aiSkillReportTemplateService.updateTemplate(skillId, templateId, reqVO));
+    }
+
+    @Operation(summary = "删除Skill报告模板")
+    @PreAuthorize("@ss.hasPermi('ai:skill:edit')")
+    @DeleteMapping("/{skillId}/report-templates/{templateId}")
+    public CommonResult<Integer> deleteReportTemplate(@PathVariable Long skillId,
+                                                      @PathVariable Long templateId) {
+        return CommonResult.toAjax(aiSkillReportTemplateService.deleteTemplate(skillId, templateId));
+    }
+
+    @Operation(summary = "设置默认Skill报告模板")
+    @PreAuthorize("@ss.hasPermi('ai:skill:edit')")
+    @PostMapping("/{skillId}/report-templates/{templateId}/default")
+    public CommonResult<Integer> defaultReportTemplate(@PathVariable Long skillId,
+                                                       @PathVariable Long templateId) {
+        return CommonResult.toAjax(aiSkillReportTemplateService.setDefaultTemplate(skillId, templateId));
+    }
+
     @Operation(summary = "生成元数据平台Skill")
     @PreAuthorize("@ss.hasPermi('ai:skill:generate')")
     @PostMapping("/generate/metadata")
@@ -118,6 +173,20 @@ public class AiSkillController extends BaseController {
     @PostMapping("/generate/table")
     public CommonResult<AiSkillRespVO> generateTable(@RequestBody AiTableSkillGenerateReqVO reqVO) {
         return CommonResult.success(aiSkillService.generateTableSkill(reqVO));
+    }
+
+    @Operation(summary = "生成整库问数Skill")
+    @PreAuthorize("@ss.hasPermi('ai:skill:generate')")
+    @PostMapping("/generate/database")
+    public CommonResult<AiSkillRespVO> generateDatabase(@RequestBody AiDatabaseSkillGenerateReqVO reqVO) {
+        return CommonResult.success(aiSkillService.generateDatabaseSkill(reqVO));
+    }
+
+    @Operation(summary = "生成多表问数Skill")
+    @PreAuthorize("@ss.hasPermi('ai:skill:generate')")
+    @PostMapping("/generate/multi-table")
+    public CommonResult<AiSkillRespVO> generateMultiTable(@RequestBody AiMultiTableSkillGenerateReqVO reqVO) {
+        return CommonResult.success(aiSkillService.generateMultiTableSkill(reqVO));
     }
 
     @Operation(summary = "生成表级问数Skill")

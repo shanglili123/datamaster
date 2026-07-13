@@ -237,7 +237,7 @@ const tableData = ref([])
 // 查询参数
 let queryParams = ref({
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     id: '',
     keyWordData: '',
 })

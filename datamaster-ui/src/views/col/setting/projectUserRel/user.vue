@@ -302,7 +302,7 @@ const data = reactive({
   },
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     projectId: null,
     userId: null,
     createTime: null,
@@ -311,7 +311,7 @@ const data = reactive({
   },
   queryParamsUser: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     projectId: null,
     userName: undefined,
     phoneNumber: undefined,
@@ -387,7 +387,7 @@ function handleQueryUser() {
 function resetQueryUser() {
   queryParamsUser.value = {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     projectId: userStore.projectId,
     userName: undefined,
     phoneNumber: undefined,
@@ -456,7 +456,7 @@ function resetQuery() {
   createTime.value = null;
   queryParams.value = {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     projectId: userStore.projectId,
     userId: null,
     createTime: null,

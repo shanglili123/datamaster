@@ -11,7 +11,7 @@
     </div>
     <el-table stripe v-loading="loading" :data="clientApiRelList" @selection-change="handleSelectionChange"
       :default-sort="defaultSort" @sort-change="handleSortChange">
-      <el-table-column label="编号" type="index" align="center" width="50" :show-overflow-tooltip="{ effect: 'light' }" />
+      <el-table-column label="编号" type="index" align="center" width="75" :show-overflow-tooltip="{ effect: 'light' }" />
       <el-table-column label="API编码" align="center" prop="apiId" :show-overflow-tooltip="{ effect: 'light' }" />
       <el-table-column label="API名称" align="center" prop="apiName" :show-overflow-tooltip="{ effect: 'light' }"
         width="150">
@@ -245,7 +245,7 @@ const data = reactive({
   },
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     clientId: null,
     apiId: null,
     pvFlag: null,
@@ -262,14 +262,33 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+function normalizePageData(response) {
+  const data = response?.data ?? response ?? {};
+  if (Array.isArray(data)) {
+    return { rows: data, total: data.length };
+  }
+  const rows = Array.isArray(data.rows)
+    ? data.rows
+    : Array.isArray(data.list)
+      ? data.list
+      : Array.isArray(data.records)
+        ? data.records
+        : Array.isArray(response?.rows)
+          ? response.rows
+          : [];
+  const total = Number(data.total ?? data.totalCount ?? response?.total ?? rows.length);
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
+}
+
 /** 查询应用API服务关联列表 */
 function getList() {
   queryParams.value.clientId = clientId.value;
   loading.value = true;
   listClientApiRel(queryParams.value)
     .then((response) => {
-      clientApiRelList.value = response.data.rows;
-      total.value = response.data.total;
+      const pageData = normalizePageData(response);
+      clientApiRelList.value = pageData.rows;
+      total.value = pageData.total;
     })
     .finally(() => {
       loading.value = false;

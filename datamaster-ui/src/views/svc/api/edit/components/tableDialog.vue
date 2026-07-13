@@ -67,7 +67,7 @@ const data = reactive({
     total: 0,
     queryParams: {
         pageNum: 1,
-        pageSize: 20,
+        pageSize: 6,
         tableAlias: '',
         documentId: '',
         tableName: ""

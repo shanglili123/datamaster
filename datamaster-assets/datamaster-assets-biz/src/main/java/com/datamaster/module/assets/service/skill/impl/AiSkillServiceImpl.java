@@ -4,7 +4,6 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.datamaster.common.core.page.PageResult;
-import com.datamaster.common.database.core.DbTable;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
@@ -12,6 +11,8 @@ import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillPageReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillSaveReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillVersionRespVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiDatabaseSkillGenerateReqVO;
+import com.datamaster.module.assets.controller.admin.skill.vo.AiMultiTableSkillGenerateReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiTableSkillGenerateReqVO;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
@@ -19,15 +20,18 @@ import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillRefDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillVersionDO;
-import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
-import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapper;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillRefMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillVersionMapper;
-import com.datamaster.module.assets.service.datasource.IAssetsDatasourceService;
 import com.datamaster.module.assets.service.skill.IAiModelGatewayService;
 import com.datamaster.module.assets.service.skill.IAiSkillService;
+import com.datamaster.module.catalog.api.column.dto.CatalogColumnRespDTO;
+import com.datamaster.module.catalog.api.service.column.CatalogColumnApiService;
+import com.datamaster.module.catalog.api.service.table.CatalogTableApiService;
+import com.datamaster.module.catalog.api.table.dto.CatalogTableRespDTO;
+import com.datamaster.module.collector.api.qa.dto.CollectorQualitySummaryRespDTO;
+import com.datamaster.module.collector.api.service.qa.CollectorQualityTaskApiService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,8 +40,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,8 +66,12 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private static final String TYPE_PLATFORM_METADATA = "PLATFORM_METADATA";
     private static final String TYPE_PLATFORM_QUALITY = "PLATFORM_QUALITY";
     private static final String TYPE_TABLE = "TABLE";
+    private static final String TYPE_DATABASE = "DATABASE";
+    private static final String TYPE_MULTI_TABLE = "MULTI_TABLE";
 
     private static final String BIZ_OBJECT_TABLE = "TABLE";
+    private static final String BIZ_OBJECT_DATA_SOURCE = "DATA_SOURCE";
+    private static final String BIZ_OBJECT_TABLE_GROUP = "TABLE_GROUP";
 
     private static final String MANUAL_BEGIN = "<!-- MANUAL_NOTES_BEGIN -->";
     private static final String MANUAL_END = "<!-- MANUAL_NOTES_END -->";
@@ -76,15 +86,15 @@ public class AiSkillServiceImpl implements IAiSkillService {
     @Resource
     private AiSkillRefMapper aiSkillRefMapper;
     @Resource
-    private AssetsAssetMapper assetsAssetMapper;
-    @Resource
-    private AssetsAssetColumnMapper assetsAssetColumnMapper;
-    @Resource
     private AssetsDatasourceMapper assetsDatasourceMapper;
     @Resource
-    private IAssetsDatasourceService assetsDatasourceService;
-    @Resource
     private IAiModelGatewayService aiModelGatewayService;
+    @Resource
+    private CatalogColumnApiService catalogColumnApiService;
+    @Resource
+    private CatalogTableApiService catalogTableApiService;
+    @Resource
+    private CollectorQualityTaskApiService collectorQualityTaskApiService;
 
     @Override
     public PageResult<AiSkillRespVO> getSkillPage(AiSkillPageReqVO pageReqVO) {
@@ -184,14 +194,16 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (reqVO == null) {
             throw new ServiceException("生成参数不能为空");
         }
-        AssetsAssetDO asset = resolveAssetForSkill(reqVO);
-        List<AssetsAssetColumnDO> columns = ensureAssetColumns(asset, reqVO);
+        CatalogTableRespDTO metadataTable = resolveMetadataTableForSkill(reqVO);
+        AssetsAssetDO asset = toSkillTable(metadataTable);
+        List<AssetsAssetColumnDO> columns = metadataColumns(metadataTable);
         AssetsDatasourceDO datasource = asset.getDatasourceId() == null ? null : assetsDatasourceMapper.selectById(asset.getDatasourceId());
+        CollectorQualitySummaryRespDTO qualitySummary = findQualitySummary(asset);
         String skillCode = tableSkillCode(datasource, asset);
         AiSkillDO oldSkill = aiSkillMapper.selectByBizObject(BIZ_OBJECT_TABLE, asset.getId());
         String manualNotes = resolveManualNotes(oldSkill, reqVO);
         SkillEnhancement enhancement = generateTableEnhancement(asset, datasource, columns, manualNotes);
-        String content = tableSkillContent(skillCode, asset, datasource, columns, manualNotes, enhancement);
+        String content = tableSkillContent(skillCode, asset, datasource, columns, manualNotes, enhancement, qualitySummary);
         boolean publish = Boolean.TRUE.equals(reqVO.getPublish());
         AiSkillDO skill = upsertGeneratedSkill(skillCode, firstNonBlank(asset.getTableComment(), asset.getName(), asset.getTableName()) + "问数Skill",
                 TYPE_TABLE, BIZ_OBJECT_TABLE, asset.getId(), content, publish);
@@ -199,94 +211,157 @@ public class AiSkillServiceImpl implements IAiSkillService {
         return BeanUtils.toBean(skill, AiSkillRespVO.class);
     }
 
-    private AssetsAssetDO resolveAssetForSkill(AiTableSkillGenerateReqVO reqVO) {
-        if (reqVO.getAssetId() != null) {
-            AssetsAssetDO asset = assetsAssetMapper.selectById(reqVO.getAssetId());
-            if (asset == null) {
-                throw new ServiceException("资产不存在");
-            }
-            return asset;
-        }
-        if (reqVO.getDatasourceId() == null || StringUtils.isBlank(reqVO.getTableName())) {
-            throw new ServiceException("请选择数据源和表，或传入资产ID");
-        }
-        List<AssetsAssetDO> existing = assetsAssetMapper.findByDatasourceIdAndTableName(reqVO.getDatasourceId(), reqVO.getTableName());
-        if (existing != null && !existing.isEmpty()) {
-            return existing.get(0);
+    @Override
+    public AiSkillRespVO generateDatabaseSkill(AiDatabaseSkillGenerateReqVO reqVO) {
+        if (reqVO == null || reqVO.getDatasourceId() == null) {
+            throw new ServiceException("请选择数据源");
         }
         AssetsDatasourceDO datasource = assetsDatasourceMapper.selectById(reqVO.getDatasourceId());
         if (datasource == null) {
             throw new ServiceException("数据源不存在");
         }
-        DbTable table = findDbTable(reqVO.getDatasourceId(), reqVO.getTableName());
-        AssetsAssetDO asset = new AssetsAssetDO();
-        asset.setName(firstNonBlank(table == null ? "" : table.getTableComment(), reqVO.getTableName()));
-        asset.setType("1");
-        asset.setDatasourceId(reqVO.getDatasourceId());
-        asset.setTableName(reqVO.getTableName());
-        asset.setTableComment(table == null ? "" : table.getTableComment());
-        asset.setDescription(firstNonBlank(table == null ? "" : table.getTableComment(), "由 AI 问数生成 Skill 时自动采集元数据创建。"));
-        asset.setSource("1");
-        asset.setStatus("0");
-        asset.setCatCode("");
-        asset.setValidFlag(Boolean.TRUE);
-        asset.setDelFlag(Boolean.FALSE);
-        asset.setFieldCount(0L);
-        assetsAssetMapper.insert(asset);
-        return asset;
+        List<AssetsAssetDO> assets = resolveMetadataTablesForDatasource(reqVO.getDatasourceId());
+        if (assets == null || assets.isEmpty()) {
+            throw new ServiceException("当前数据源未获取到表元数据");
+        }
+        Map<Long, List<AssetsAssetColumnDO>> columnMap = collectColumnsForMetadataTables(assets);
+        String skillCode = databaseSkillCode(datasource);
+        AiSkillDO oldSkill = aiSkillMapper.selectByBizObject(BIZ_OBJECT_DATA_SOURCE, datasource.getId());
+        String manualNotes = resolveManualNotes(oldSkill, reqVO.getManualNotes());
+        String content = databaseSkillContent(skillCode, datasource, assets, columnMap, manualNotes);
+        AiSkillDO skill = upsertGeneratedSkill(skillCode, firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType(), String.valueOf(datasource.getId())) + "整库问数Skill",
+                TYPE_DATABASE, BIZ_OBJECT_DATA_SOURCE, datasource.getId(), content, Boolean.TRUE.equals(reqVO.getPublish()));
+        refreshDatabaseRefs(skill, datasource, assets);
+        return BeanUtils.toBean(skill, AiSkillRespVO.class);
     }
 
-    private List<AssetsAssetColumnDO> ensureAssetColumns(AssetsAssetDO asset, AiTableSkillGenerateReqVO reqVO) {
-        List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(asset.getId());
-        if (!Boolean.TRUE.equals(reqVO.getForceRefresh()) && columns != null && !columns.isEmpty()) {
+    @Override
+    public AiSkillRespVO generateMultiTableSkill(AiMultiTableSkillGenerateReqVO reqVO) {
+        if (reqVO == null || reqVO.getDatasourceId() == null) {
+            throw new ServiceException("请选择数据源");
+        }
+        if (reqVO.getTableNames() == null || reqVO.getTableNames().size() < 2) {
+            throw new ServiceException("多表Skill至少需要选择两张表");
+        }
+        AssetsDatasourceDO datasource = assetsDatasourceMapper.selectById(reqVO.getDatasourceId());
+        if (datasource == null) {
+            throw new ServiceException("数据源不存在");
+        }
+        List<AssetsAssetDO> assets = new ArrayList<>();
+        for (String tableName : reqVO.getTableNames()) {
+            if (StringUtils.isBlank(tableName)) {
+                continue;
+            }
+            AiTableSkillGenerateReqVO tableReq = new AiTableSkillGenerateReqVO();
+            tableReq.setDatasourceId(reqVO.getDatasourceId());
+            tableReq.setTableName(tableName);
+            tableReq.setForceRefresh(reqVO.getForceRefresh());
+            assets.add(toSkillTable(resolveMetadataTableForSkill(tableReq)));
+        }
+        if (assets.size() < 2) {
+            throw new ServiceException("多表Skill至少需要选择两张有效表");
+        }
+        Map<Long, List<AssetsAssetColumnDO>> columnMap = collectColumnsForMetadataTables(assets);
+        String skillCode = multiTableSkillCode(datasource, assets);
+        AiSkillDO oldSkill = aiSkillMapper.selectBySkillCode(skillCode);
+        String manualNotes = resolveManualNotes(oldSkill, reqVO.getManualNotes());
+        String content = multiTableSkillContent(skillCode, datasource, assets, columnMap, manualNotes);
+        AiSkillDO skill = upsertGeneratedSkill(skillCode, multiTableSkillName(assets) + "多表问数Skill",
+                TYPE_MULTI_TABLE, BIZ_OBJECT_TABLE_GROUP, null, content, Boolean.TRUE.equals(reqVO.getPublish()));
+        refreshMultiTableRefs(skill, datasource, assets, columnMap);
+        return BeanUtils.toBean(skill, AiSkillRespVO.class);
+    }
+
+    private CatalogTableRespDTO resolveMetadataTableForSkill(AiTableSkillGenerateReqVO reqVO) {
+        CatalogTableRespDTO table = null;
+        if (reqVO.getAssetId() != null) {
+            table = catalogTableApiService.getById(reqVO.getAssetId());
+        }
+        if (table == null) {
+            if (reqVO.getDatasourceId() == null || StringUtils.isBlank(reqVO.getTableName())) {
+                throw new ServiceException("请选择数据源和表，或传入元数据表ID");
+            }
+            table = catalogTableApiService.getByDatasourceIdAndTableName(reqVO.getDatasourceId(), reqVO.getTableName());
+        }
+        if (table == null) {
+            throw new ServiceException("未获取到表元数据，请先完成元数据采集");
+        }
+        return table;
+    }
+
+    private List<AssetsAssetDO> resolveMetadataTablesForDatasource(Long datasourceId) {
+        List<CatalogTableRespDTO> metadataTables = catalogTableApiService.listByDatasourceId(datasourceId);
+        List<AssetsAssetDO> tables = new ArrayList<>();
+        if (metadataTables == null) {
+            return tables;
+        }
+        for (CatalogTableRespDTO metadataTable : metadataTables) {
+            if (metadataTable != null && StringUtils.isNotBlank(metadataTable.getTableName())) {
+                tables.add(toSkillTable(metadataTable));
+            }
+        }
+        return tables;
+    }
+
+    private AssetsAssetDO toSkillTable(CatalogTableRespDTO table) {
+        AssetsAssetDO skillTable = new AssetsAssetDO();
+        skillTable.setId(table.getId());
+        skillTable.setName(firstNonBlank(table.getTableComment(), table.getTableName()));
+        skillTable.setType("CAT_TABLE");
+        skillTable.setDatasourceId(table.getDatasourceId());
+        skillTable.setTableId(table.getId());
+        skillTable.setTableName(table.getTableName());
+        skillTable.setTableComment(table.getTableComment());
+        skillTable.setDescription(firstNonBlank(table.getDescription(), table.getTableComment()));
+        skillTable.setFieldCount(table.getColumnCount());
+        return skillTable;
+    }
+
+    private List<AssetsAssetColumnDO> metadataColumns(CatalogTableRespDTO table) {
+        List<AssetsAssetColumnDO> columns = new ArrayList<>();
+        if (table == null || table.getId() == null) {
             return columns;
         }
-        if (asset.getDatasourceId() == null || StringUtils.isBlank(asset.getTableName())) {
-            throw new ServiceException("资产缺少数据源或表名，无法自动采集元数据");
+        List<CatalogColumnRespDTO> catalogColumns = catalogColumnApiService.listByTableId(table.getId());
+        if (catalogColumns == null) {
+            return columns;
         }
-        List<AssetsAssetColumnDO> fetchedColumns = assetsDatasourceService.columnsAsAssetColumnList(asset.getDatasourceId(), asset.getTableName());
-        if (fetchedColumns == null || fetchedColumns.isEmpty()) {
-            throw new ServiceException("未获取到表字段元数据，请检查数据源连接和表名");
+        for (CatalogColumnRespDTO catalogColumn : catalogColumns) {
+            if (catalogColumn == null || StringUtils.isBlank(catalogColumn.getColumnName())) {
+                continue;
+            }
+            AssetsAssetColumnDO column = new AssetsAssetColumnDO(catalogColumn);
+            column.setId(firstNonNull(catalogColumn.getId(), catalogColumn.getColumnId()));
+            column.setAssetId(table.getId());
+            columns.add(column);
         }
-        assetsAssetColumnMapper.deleteAssetColumnByAssetId(asset.getId());
-        for (AssetsAssetColumnDO column : fetchedColumns) {
-            column.setId(null);
-            column.setAssetId(asset.getId());
-            column.setValidFlag(Boolean.TRUE);
-            column.setDelFlag(Boolean.FALSE);
-            assetsAssetColumnMapper.insert(column);
-        }
-        asset.setFieldCount((long) fetchedColumns.size());
-        DbTable table = findDbTable(asset.getDatasourceId(), asset.getTableName());
-        if (table != null && StringUtils.isNotBlank(table.getTableComment())) {
-            asset.setTableComment(table.getTableComment());
-            asset.setName(firstNonBlank(asset.getName(), table.getTableComment(), asset.getTableName()));
-            asset.setDescription(firstNonBlank(asset.getDescription(), table.getTableComment()));
-        }
-        assetsAssetMapper.updateById(asset);
-        return assetsAssetColumnMapper.findByAssetId(asset.getId());
+        return columns;
     }
 
-    private DbTable findDbTable(Long datasourceId, String tableName) {
+    private Map<Long, List<AssetsAssetColumnDO>> collectColumnsForMetadataTables(List<AssetsAssetDO> tables) {
+        Map<Long, List<AssetsAssetColumnDO>> columnMap = new LinkedHashMap<>();
+        if (tables == null) {
+            return columnMap;
+        }
+        for (AssetsAssetDO table : tables) {
+            if (table == null || table.getId() == null) {
+                continue;
+            }
+            CatalogTableRespDTO metadataTable = catalogTableApiService.getById(table.getId());
+            columnMap.put(table.getId(), metadataColumns(metadataTable));
+        }
+        return columnMap;
+    }
+
+    private CollectorQualitySummaryRespDTO findQualitySummary(AssetsAssetDO table) {
+        if (table == null || table.getDatasourceId() == null || StringUtils.isBlank(table.getTableName())) {
+            return null;
+        }
         try {
-            List<DbTable> tables = assetsDatasourceService.getDbTables(datasourceId);
-            if (tables == null) {
-                return null;
-            }
-            for (DbTable table : tables) {
-                if (table != null && StringUtils.equals(table.getTableName(), tableName)) {
-                    return table;
-                }
-            }
-            for (DbTable table : tables) {
-                if (table != null && table.getTableName() != null && table.getTableName().equalsIgnoreCase(tableName)) {
-                    return table;
-                }
-            }
+            return collectorQualityTaskApiService.getLatestQualitySummary(table.getDatasourceId(), table.getTableName());
         } catch (Exception ignored) {
             return null;
         }
-        return null;
     }
 
     private AiSkillDO upsertGeneratedSkill(String skillCode, String skillName, String skillType, String bizObjectType,
@@ -334,13 +409,40 @@ public class AiSkillServiceImpl implements IAiSkillService {
 
     private void refreshTableRefs(AiSkillDO skill, AssetsAssetDO asset, List<AssetsAssetColumnDO> columns, AssetsDatasourceDO datasource) {
         aiSkillRefMapper.deleteBySkillId(skill.getId());
-        insertRef(skill.getId(), "ASSET", asset.getId(), asset.getTableName(), firstNonBlank(asset.getTableComment(), asset.getName()));
+        insertRef(skill.getId(), "TABLE", asset.getId(), asset.getTableName(), firstNonBlank(asset.getTableComment(), asset.getName()));
         if (datasource != null) {
             insertRef(skill.getId(), "DATA_SOURCE", datasource.getId(), datasource.getDatasourceType(), datasource.getDatasourceName());
         }
         if (columns != null) {
             for (AssetsAssetColumnDO column : columns) {
                 insertRef(skill.getId(), "COLUMN", column.getId(), column.getColumnName(), column.getColumnComment());
+            }
+        }
+    }
+
+    private void refreshDatabaseRefs(AiSkillDO skill, AssetsDatasourceDO datasource, List<AssetsAssetDO> assets) {
+        aiSkillRefMapper.deleteBySkillId(skill.getId());
+        insertRef(skill.getId(), "DATA_SOURCE", datasource.getId(), datasource.getDatasourceType(), datasource.getDatasourceName());
+        if (assets != null) {
+            for (AssetsAssetDO asset : assets) {
+                insertRef(skill.getId(), "TABLE", asset.getId(), asset.getTableName(), firstNonBlank(asset.getTableComment(), asset.getName()));
+            }
+        }
+    }
+
+    private void refreshMultiTableRefs(AiSkillDO skill, AssetsDatasourceDO datasource, List<AssetsAssetDO> assets,
+                                       Map<Long, List<AssetsAssetColumnDO>> columnMap) {
+        aiSkillRefMapper.deleteBySkillId(skill.getId());
+        insertRef(skill.getId(), "DATA_SOURCE", datasource.getId(), datasource.getDatasourceType(), datasource.getDatasourceName());
+        if (assets != null) {
+            for (AssetsAssetDO asset : assets) {
+                insertRef(skill.getId(), "TABLE", asset.getId(), asset.getTableName(), firstNonBlank(asset.getTableComment(), asset.getName()));
+                List<AssetsAssetColumnDO> columns = columnMap == null ? null : columnMap.get(asset.getId());
+                if (columns != null) {
+                    for (AssetsAssetColumnDO column : columns) {
+                        insertRef(skill.getId(), "COLUMN", column.getId(), asset.getTableName() + "." + column.getColumnName(), column.getColumnComment());
+                    }
+                }
             }
         }
     }
@@ -490,8 +592,12 @@ public class AiSkillServiceImpl implements IAiSkillService {
     }
 
     private String resolveManualNotes(AiSkillDO oldSkill, AiTableSkillGenerateReqVO reqVO) {
-        if (StringUtils.isNotBlank(reqVO.getManualNotes())) {
-            return reqVO.getManualNotes();
+        return resolveManualNotes(oldSkill, reqVO == null ? "" : reqVO.getManualNotes());
+    }
+
+    private String resolveManualNotes(AiSkillDO oldSkill, String manualNotes) {
+        if (StringUtils.isNotBlank(manualNotes)) {
+            return manualNotes;
         }
         if (oldSkill == null || StringUtils.isBlank(oldSkill.getContent())) {
             return "暂无人工维护备注。";
@@ -517,8 +623,41 @@ public class AiSkillServiceImpl implements IAiSkillService {
         return normalizeCode(join(parts, "-"));
     }
 
+    private String databaseSkillCode(AssetsDatasourceDO datasource) {
+        List<String> parts = new ArrayList<>();
+        parts.add("database");
+        parts.add(firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType(), String.valueOf(datasource.getId())));
+        return normalizeCode(join(parts, "-"));
+    }
+
+    private String multiTableSkillCode(AssetsDatasourceDO datasource, List<AssetsAssetDO> assets) {
+        List<String> parts = new ArrayList<>();
+        parts.add("multi-table");
+        parts.add(firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType(), String.valueOf(datasource.getId())));
+        if (assets != null) {
+            for (AssetsAssetDO asset : assets) {
+                parts.add(firstNonBlank(asset.getTableName(), asset.getName(), String.valueOf(asset.getId())));
+            }
+        }
+        return normalizeCode(join(parts, "-"));
+    }
+
+    private String multiTableSkillName(List<AssetsAssetDO> assets) {
+        List<String> names = new ArrayList<>();
+        if (assets != null) {
+            for (AssetsAssetDO asset : assets) {
+                names.add(firstNonBlank(asset.getTableComment(), asset.getName(), asset.getTableName()));
+                if (names.size() >= 3) {
+                    break;
+                }
+            }
+        }
+        return join(names, "、");
+    }
+
     private String tableSkillContent(String skillCode, AssetsAssetDO asset, AssetsDatasourceDO datasource,
-                                     List<AssetsAssetColumnDO> columns, String manualNotes, SkillEnhancement enhancement) {
+                                     List<AssetsAssetColumnDO> columns, String manualNotes, SkillEnhancement enhancement,
+                                     CollectorQualitySummaryRespDTO qualitySummary) {
         String title = firstNonBlank(asset.getTableComment(), asset.getName(), asset.getTableName());
         StringBuilder fieldRows = new StringBuilder();
         StringBuilder timeFields = new StringBuilder();
@@ -551,7 +690,8 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (metricFields.length() == 0) {
             metricFields.append("- 暂未识别到明显指标字段，涉及统计口径时需要用户确认。\n");
         }
-        String description = firstNonBlank(asset.getDescription(), "由元数据资产自动生成，业务说明需要数据负责人补充。");
+        String description = firstNonBlank(asset.getDescription(), "由元数据管理自动生成，业务说明需要数据负责人补充。");
+        String qualitySection = renderQualitySummary(qualitySummary);
 
         return "---\n"
                 + "name: " + skillCode + "\n"
@@ -562,8 +702,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "- 数据源：" + (datasource == null ? "未知" : firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType())) + "\n"
                 + "- 数据源类型：" + (datasource == null ? "未知" : nullToEmpty(datasource.getDatasourceType())) + "\n"
                 + "- 表名：" + nullToEmpty(asset.getTableName()) + "\n"
-                + "- 资产ID：" + asset.getId() + "\n"
-                + "- 资产类型：" + nullToEmpty(asset.getType()) + "\n"
+                + "- 元数据表ID：" + asset.getId() + "\n"
                 + "- 字段数：" + (asset.getFieldCount() == null ? "" : asset.getFieldCount()) + "\n\n"
                 + "## 业务说明\n\n"
                 + description + "\n\n"
@@ -581,8 +720,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "\n## 关联表\n\n"
                 + "- 暂未自动生成关联表。后续可接入血缘接口补充上游、下游和常用关联键。\n\n"
                 + "## 质量核检结论\n\n"
-                + "- 表结构和字段元数据已在生成本 Skill 时自动采集入库；质量结论需要调用 `datamaster-quality` 平台级 Skill 查询最近质量任务和执行日志。\n"
-                + "- 如果最近核检失败或缺少核检记录，回答必须提示数据可信度风险。\n\n"
+                + qualitySection
                 + renderList(enhancement.qualityHints)
                 + "## SQL 生成规则\n\n"
                 + "- 只生成只读查询 SQL。\n"
@@ -603,24 +741,110 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + renderWarning(enhancement.warning);
     }
 
+    private String databaseSkillContent(String skillCode, AssetsDatasourceDO datasource, List<AssetsAssetDO> assets,
+                                        Map<Long, List<AssetsAssetColumnDO>> columnMap, String manualNotes) {
+        String title = firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType(), String.valueOf(datasource.getId()));
+        StringBuilder tableRows = new StringBuilder();
+        int index = 0;
+        for (AssetsAssetDO asset : assets) {
+            index++;
+            List<AssetsAssetColumnDO> columns = columnMap.get(asset.getId());
+            tableRows.append("| ")
+                    .append(index).append(" | ")
+                    .append(nullToEmpty(asset.getTableName())).append(" | ")
+                    .append(nullToEmpty(firstNonBlank(asset.getTableComment(), asset.getName()))).append(" | ")
+                    .append(columns == null ? 0 : columns.size()).append(" | ")
+                    .append(escapeTableCell(firstNonBlank(asset.getDescription(), ""))).append(" |\n");
+        }
+        return "---\n"
+                + "name: " + skillCode + "\n"
+                + "description: " + title + " 整库问数 Skill。用于理解数据库主题、核心表、公共字段、跨表问数边界和质量风险。\n"
+                + "---\n\n"
+                + "# " + title + " 整库问数 Skill\n\n"
+                + "## 数据库身份\n\n"
+                + "- 数据源：" + title + "\n"
+                + "- 数据源类型：" + nullToEmpty(datasource.getDatasourceType()) + "\n"
+                + "- 数据源ID：" + datasource.getId() + "\n"
+                + "- 表数量：" + assets.size() + "\n\n"
+                + "## 数据库主题说明\n\n"
+                + "- 本 Skill 直接根据 DataMaster 元数据管理中的表字段生成。\n"
+                + "- 用于普通问数时优先帮助定位候选表；如果候选表不唯一，应先让用户确认业务主题或表范围。\n\n"
+                + "## 表清单\n\n"
+                + "| 序号 | 表名 | 表说明 | 字段数 | 描述 |\n"
+                + "| --- | --- | --- | --- | --- |\n"
+                + tableRows
+                + "\n## 公共时间字段\n\n"
+                + renderCommonFields(columnMap, true, false)
+                + "## 公共指标字段\n\n"
+                + renderCommonFields(columnMap, false, true)
+                + "## 问数规则\n\n"
+                + "- 用户问题没有明确表名时，先根据表名、表注释、字段注释和本 Skill 的表清单定位候选表。\n"
+                + "- 如果涉及多表关联，优先使用多表 Skill；缺少多表 Skill 时需要说明关联路径待确认。\n"
+                + "- 字段缺少注释或表说明不足时，需要在回答中提示口径不确定。\n"
+                + "- SQL 只在用户或请求参数明确要求时返回。\n\n"
+                + "## 人工维护备注\n\n"
+                + MANUAL_BEGIN + "\n"
+                + defaultText(manualNotes, "暂无人工维护备注。") + "\n"
+                + MANUAL_END + "\n";
+    }
+
+    private String multiTableSkillContent(String skillCode, AssetsDatasourceDO datasource, List<AssetsAssetDO> assets,
+                                          Map<Long, List<AssetsAssetColumnDO>> columnMap, String manualNotes) {
+        String title = multiTableSkillName(assets);
+        StringBuilder tableSections = new StringBuilder();
+        for (AssetsAssetDO asset : assets) {
+            tableSections.append("### ").append(firstNonBlank(asset.getTableComment(), asset.getName(), asset.getTableName())).append("\n\n")
+                    .append("- 表名：").append(nullToEmpty(asset.getTableName())).append("\n")
+                    .append("- 表说明：").append(firstNonBlank(asset.getDescription(), asset.getTableComment(), asset.getName(), "")).append("\n\n")
+                    .append("| 字段 | 类型 | 说明 | 推荐用途 | 注意事项 |\n")
+                    .append("| --- | --- | --- | --- | --- |\n")
+                    .append(fieldRows(columnMap.get(asset.getId())))
+                    .append("\n");
+        }
+        return "---\n"
+                + "name: " + skillCode + "\n"
+                + "description: " + title + " 多表问数 Skill。用于理解一组表的业务主题、字段口径、推荐关联和跨表统计注意事项。\n"
+                + "---\n\n"
+                + "# " + title + " 多表问数 Skill\n\n"
+                + "## 数据源\n\n"
+                + "- 数据源：" + firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType()) + "\n"
+                + "- 数据源类型：" + nullToEmpty(datasource.getDatasourceType()) + "\n"
+                + "- 涉及表数：" + assets.size() + "\n\n"
+                + "## 主题说明\n\n"
+                + "- 本 Skill 由用户选择的多张表生成，适合跨表统计、关联查询和报告数据准备。\n"
+                + "- 如果实际业务关联键不在自动识别结果中，需要以人工维护备注或用户补充为准。\n\n"
+                + "## 涉及表和字段\n\n"
+                + tableSections
+                + "## 推荐关联线索\n\n"
+                + renderRelationHints(assets, columnMap)
+                + "## 跨表问数规则\n\n"
+                + "- 生成跨表 SQL 前必须确认主表、统计粒度和关联键。\n"
+                + "- 同名字段不一定可以直接关联；需要结合字段说明、主键标记和业务语义判断。\n"
+                + "- 事实表与维表无法确定时，应在回答中说明假设。\n"
+                + "- 多表统计必须避免重复计数，必要时先按主键去重或先聚合再关联。\n\n"
+                + "## 人工维护备注\n\n"
+                + MANUAL_BEGIN + "\n"
+                + defaultText(manualNotes, "暂无人工维护备注。") + "\n"
+                + MANUAL_END + "\n";
+    }
+
     private String metadataSkillContent() {
         return "---\n"
                 + "name: datamaster-metadata\n"
-                + "description: DataMaster 元数据采集和资产检索能力说明。用于 AI 问数、表结构查找、字段含义理解、数据源定位、血缘和资产上下文检索。\n"
+                + "description: DataMaster 元数据采集能力说明。用于 AI 问数、表结构查找、字段含义理解和数据源定位。\n"
                 + "---\n\n"
                 + "# DataMaster 元数据能力\n\n"
                 + "## 能力边界\n\n"
-                + "- 通过采集任务和资产管理能力获取数据源、表、字段、字段类型、字段注释、资产分类和血缘信息。\n"
+                + "- 通过元数据管理能力获取数据源、库、表、字段、字段类型、字段注释和质量标记。\n"
                 + "- 问数前必须优先定位候选表，再定位候选字段。\n\n"
                 + "## 核心接口\n\n"
-                + "- `/ast/asset/list`：分页检索资产表。\n"
-                + "- `/ast/asset/{id}`：获取资产详情。\n"
-                + "- `/ast/assetColumn/list`：按资产查询字段。\n"
-                + "- `/ast/asset/dataLineage/{id}`：查询资产血缘。\n"
+                + "- `/cat/table/list`：分页检索元数据表。\n"
+                + "- `/cat/table/{id}`：获取元数据表详情。\n"
+                + "- `/cat/column/list`：按元数据表查询字段。\n"
                 + "- `/ast/discoveryTask/list`、`/ast/discoveryTaskLog/list`：查询元数据发现任务和日志。\n\n"
                 + "## 问数流程\n\n"
                 + "1. 从用户问题抽取业务主题、指标词、时间词和过滤条件。\n"
-                + "2. 检索资产名称、表名、表注释和字段注释，得到候选表。\n"
+                + "2. 检索元数据表名、表注释和字段注释，得到候选表。\n"
                 + "3. 如果候选表不唯一，先让用户确认。\n"
                 + "4. 查询字段列表，识别时间字段、维度字段、指标字段和枚举字段。\n"
                 + "5. 结合表级 Skill 生成 SQL。\n\n"
@@ -787,6 +1011,133 @@ public class AiSkillServiceImpl implements IAiSkillService {
         return builder.length() == 0 ? "" : builder.append("\n").toString();
     }
 
+    private String renderQualitySummary(CollectorQualitySummaryRespDTO summary) {
+        if (summary == null) {
+            return "- 未获取到该表最近质量核检结果，回答时必须提示数据可信度风险。\n\n";
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append("- 质量任务：").append(firstNonBlank(summary.getTaskName(), summary.getTaskId() == null ? "" : String.valueOf(summary.getTaskId()), "未知")).append("\n");
+        if (summary.getLogId() != null) {
+            builder.append("- 最近日志：").append(firstNonBlank(summary.getLogName(), String.valueOf(summary.getLogId()))).append("\n");
+        }
+        builder.append("- 最近状态：").append(firstNonBlank(summary.getSuccessFlag(), "未知")).append("\n");
+        if (summary.getStartTime() != null || summary.getEndTime() != null) {
+            builder.append("- 执行时间：")
+                    .append(summary.getStartTime() == null ? "" : summary.getStartTime())
+                    .append(summary.getEndTime() == null ? "" : " ~ " + summary.getEndTime())
+                    .append("\n");
+        }
+        if (summary.getScore() != null) {
+            builder.append("- 评分：").append(summary.getScore()).append("\n");
+        }
+        if (summary.getProblemData() != null) {
+            builder.append("- 问题数据量：").append(summary.getProblemData()).append("\n");
+        }
+        if (summary.getRules() != null && !summary.getRules().isEmpty()) {
+            builder.append("\n| 规则 | 字段 | 类型 | 维度 | 等级 | 状态 | 异常说明 | 修复建议 |\n");
+            builder.append("| --- | --- | --- | --- | --- | --- | --- | --- |\n");
+            for (CollectorQualitySummaryRespDTO.Rule rule : summary.getRules()) {
+                builder.append("| ")
+                        .append(escapeTableCell(firstNonBlank(rule.getRuleName(), rule.getName()))).append(" | ")
+                        .append(escapeTableCell(rule.getEvaColumn())).append(" | ")
+                        .append(escapeTableCell(rule.getRuleType())).append(" | ")
+                        .append(escapeTableCell(rule.getDimensionType())).append(" | ")
+                        .append(escapeTableCell(rule.getWarningLevel())).append(" | ")
+                        .append(escapeTableCell(rule.getStatus())).append(" | ")
+                        .append(escapeTableCell(rule.getErrDescription())).append(" | ")
+                        .append(escapeTableCell(rule.getSuggestion())).append(" |\n");
+            }
+        }
+        builder.append("\n- 如果最近状态失败、评分偏低或问题数据量大于 0，回答必须提示数据可信度风险。\n\n");
+        return builder.toString();
+    }
+
+    private String fieldRows(List<AssetsAssetColumnDO> columns) {
+        if (columns == null || columns.isEmpty()) {
+            return "| 暂无字段 |  |  |  | 需要先完成元数据采集 |\n";
+        }
+        StringBuilder rows = new StringBuilder();
+        for (AssetsAssetColumnDO column : columns) {
+            rows.append("| ")
+                    .append(nullToEmpty(column.getColumnName())).append(" | ")
+                    .append(nullToEmpty(column.getColumnType())).append(" | ")
+                    .append(nullToEmpty(column.getColumnComment())).append(" | ")
+                    .append(escapeTableCell(recommendUsage(column))).append(" | ")
+                    .append(escapeTableCell(columnNotice(column))).append(" |\n");
+        }
+        return rows.toString();
+    }
+
+    private String renderCommonFields(Map<Long, List<AssetsAssetColumnDO>> columnMap, boolean timeOnly, boolean metricOnly) {
+        StringBuilder builder = new StringBuilder();
+        if (columnMap != null) {
+            for (List<AssetsAssetColumnDO> columns : columnMap.values()) {
+                if (columns == null) {
+                    continue;
+                }
+                for (AssetsAssetColumnDO column : columns) {
+                    if (timeOnly && !isTimeField(column)) {
+                        continue;
+                    }
+                    if (metricOnly && !isMetricField(column)) {
+                        continue;
+                    }
+                    builder.append("- `").append(column.getColumnName()).append("`：")
+                            .append(firstNonBlank(column.getColumnComment(), column.getColumnType(), "待补充字段说明"))
+                            .append("\n");
+                    if (builder.length() > 1200) {
+                        return builder.append("\n").toString();
+                    }
+                }
+            }
+        }
+        if (builder.length() == 0) {
+            builder.append("- 暂未从字段名或字段注释中识别到明显字段，需要问数时确认口径。\n");
+        }
+        return builder.append("\n").toString();
+    }
+
+    private String renderRelationHints(List<AssetsAssetDO> assets, Map<Long, List<AssetsAssetColumnDO>> columnMap) {
+        Map<String, List<String>> fieldOwners = new LinkedHashMap<>();
+        if (assets != null) {
+            for (AssetsAssetDO asset : assets) {
+                List<AssetsAssetColumnDO> columns = columnMap == null ? null : columnMap.get(asset.getId());
+                if (columns == null) {
+                    continue;
+                }
+                for (AssetsAssetColumnDO column : columns) {
+                    String field = column.getColumnName();
+                    if (StringUtils.isBlank(field)) {
+                        continue;
+                    }
+                    String key = field.toLowerCase(Locale.ROOT);
+                    if (!fieldOwners.containsKey(key)) {
+                        fieldOwners.put(key, new ArrayList<>());
+                    }
+                    fieldOwners.get(key).add(asset.getTableName() + "." + field);
+                }
+            }
+        }
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<String, List<String>> entry : fieldOwners.entrySet()) {
+            if (entry.getValue().size() < 2) {
+                continue;
+            }
+            String key = entry.getKey();
+            boolean looksLikeKey = key.endsWith("id") || key.endsWith("_id") || key.contains("code")
+                    || key.contains("no") || key.contains("编码") || key.contains("编号");
+            if (!looksLikeKey) {
+                continue;
+            }
+            builder.append("- 同名/疑似关联字段 `").append(key).append("`：")
+                    .append(join(entry.getValue(), "、")).append("\n");
+        }
+        if (builder.length() == 0) {
+            builder.append("- 暂未自动识别到稳定关联键，需要由用户或人工备注确认 join 条件。\n");
+        }
+        return builder.append("\n").toString();
+    }
+
     private String renderWarning(String warning) {
         if (StringUtils.isBlank(warning)) {
             return "";
@@ -838,6 +1189,18 @@ public class AiSkillServiceImpl implements IAiSkillService {
             }
         }
         return "";
+    }
+
+    private Long firstNonNull(Long... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Long value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private String defaultText(String value, String defaultValue) {

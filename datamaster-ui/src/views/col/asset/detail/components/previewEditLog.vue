@@ -120,7 +120,7 @@ const queryParams = reactive({
     endTime: null,
     dataTime: [],
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 6,
     creatorId: ""
     // updateWhere: {},
 });

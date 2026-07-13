@@ -3,7 +3,7 @@
   <el-dialog v-model="visibleDialog" draggable class="dialog" :title="title" style="width: 1200px" destroy-on-close>
     <el-table stripe height="380px" v-loading="loading" :data="jobLogList" :default-sort="defaultSort"
       @sort-change="handleSortChange">
-      <el-table-column label="编号" align="center" prop="id" width="80" />
+      <el-table-column label="编号" align="center" prop="id" width="120" />
       <el-table-column label="任务名称" align="center" prop="name">
         <template #default="scope">
           {{ scope.row.name || '-' }}
