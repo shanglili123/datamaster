@@ -47,6 +47,7 @@ public class AssetsDiscoveryColumnServiceImpl  extends ServiceImpl<AssetsDiscove
         MPJLambdaWrapper<AssetsDiscoveryColumnDO> wrapper = new MPJLambdaWrapper<>();
         wrapper.selectAll(AssetsDiscoveryColumnDO.class)
                 .eq(reqVO.getTaskId() != null, AssetsDiscoveryColumnDO::getTaskId, reqVO.getTaskId())
+                .eq(reqVO.getDatasourceId() != null, AssetsDiscoveryColumnDO::getDatasourceId, reqVO.getDatasourceId())
                 .eq( reqVO.getTableId() != null, AssetsDiscoveryColumnDO::getTableId, reqVO.getTableId())
                 .like(StringUtils.isNotBlank(reqVO.getColumnName()), AssetsDiscoveryColumnDO::getColumnName, reqVO.getColumnName())
                 .eq(StringUtils.isNotBlank(reqVO.getColumnComment()), AssetsDiscoveryColumnDO::getColumnComment, reqVO.getColumnComment())

@@ -320,6 +320,7 @@ import {
 } from '@/api/ast/security/sensitiveLevel/sensitiveLevel';
 import { getToken } from '@/utils/auth.js';
 import { updateDaAsset } from '@/api/ast/asset/asset.js';
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 const { da_sensitive_level_rule, da_sensitive_status } = proxy.useDict(
@@ -407,8 +408,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
     loading.value = true;
     listDaSensitiveLevel(queryParams.value).then((response) => {
-        daSensitiveLevelList.value = response.data.rows;
-        total.value = response.data.total;
+        const page = normalizePage(response);
+        total.value = page.total;
+        daSensitiveLevelList.value = pageRows(page.rows, page.total, queryParams.value);
         loading.value = false;
     });
 }

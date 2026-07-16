@@ -29,6 +29,9 @@ public class AssetsDiscoveryColumnDO extends BaseEntity {
     private Long taskId;
 
     /** id */
+    private Long datasourceId;
+
+    /** id */
     private Long tableId;
 
     /** / */
@@ -62,8 +65,9 @@ public class AssetsDiscoveryColumnDO extends BaseEntity {
     @TableLogic
     private Boolean delFlag;
 
-    public AssetsDiscoveryColumnDO(Long taskId, Long discoveryTableId, DbColumn column) {
+    public AssetsDiscoveryColumnDO(Long taskId, Long datasourceId, Long discoveryTableId, DbColumn column) {
         this.setTaskId(taskId);
+        this.setDatasourceId(datasourceId);
         this.setTableId(discoveryTableId);
         this.setColumnName(column.getColName());
         this.setColumnComment(column.getColComment());

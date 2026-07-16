@@ -206,6 +206,7 @@
 import useDictStore from '@/store/system/dict.js'
 import { listType, getType, delType, addType, updateType, refreshCache } from "@/api/system/system/dict/type.js";
 import {genCode} from "@/api/system/tool/gen.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
@@ -243,8 +244,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listType(proxy.addDateRange(queryParams.value, dateRange.value)).then(response => {
-    typeList.value = response.rows;
-    total.value = response.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    typeList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }

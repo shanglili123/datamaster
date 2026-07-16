@@ -21,6 +21,12 @@ public class AssetsAssetApiReqVO {
     @Schema(description = "id", example = "")
     private Long assetId;
 
+    @Schema(description = "项目ID", example = "")
+    private Long projectId;
+
+    @Schema(description = "项目编码", example = "")
+    private String projectCode;
+
     @Schema(description = "API", example = "")
     private String url;
 

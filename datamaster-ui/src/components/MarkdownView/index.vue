@@ -7,7 +7,14 @@
       style="background-color: #ddd; padding: 5px; border-radius: 5px"
     ></div>
     <!-- 对话输出 -->
-    <div v-html="renderedMarkdown" ref="dialogue"></div>
+    <iframe
+      v-if="isFullHtmlDocument"
+      class="html-document-frame"
+      sandbox="allow-scripts"
+      :srcdoc="htmlDocumentContent"
+      ref="dialogue"
+    ></iframe>
+    <div v-else v-html="renderedMarkdown" ref="dialogue"></div>
     <!-- 文章引用 -->
     <div
       class="quote"
@@ -176,9 +183,48 @@ const deepThinking = computed(() => {
 /** 渲染 markdown */
 const renderedMarkdown = computed(() => {
   const content = props.content;
-  let remainingContent = renderContent(content);
+  let remainingContent = normalizeIndentedHtml(renderContent(content));
   return md.render(remainingContent);
 });
+
+const htmlDocumentContent = computed(() => {
+  return normalizeHtmlDocument(renderContent(props.content));
+});
+
+const isFullHtmlDocument = computed(() => {
+  return /<!doctype\s+html|<html[\s>]/i.test(htmlDocumentContent.value);
+});
+
+const normalizeHtmlDocument = (content = "") => {
+  const htmlStart = content.search(/<!doctype\s+html|<html[\s>]/i);
+  const htmlContent = htmlStart === -1 ? content : content.slice(htmlStart);
+  const htmlEnd = htmlContent.search(/<\/html\s*>/i);
+  const documentContent = htmlEnd === -1
+    ? htmlContent
+    : htmlContent.slice(0, htmlEnd + htmlContent.match(/<\/html\s*>/i)[0].length);
+  return injectReportViewportStyle(removeHtmlInterpreterSummary(documentContent));
+};
+
+const injectReportViewportStyle = (content = "") => {
+  const style = "<style>html,body{max-width:none!important;} .container{max-width:100%!important;}</style>";
+  return /<\/head>/i.test(content)
+    ? content.replace(/<\/head>/i, `${style}</head>`)
+    : `${style}${content}`;
+};
+
+const removeHtmlInterpreterSummary = (content = "") => {
+  return content.replace(
+    /✅\s*[^<\n]*?报告已生成并渲染完成。[\s\S]*?所有内容已通过交互式\s*HTML\s*页面直观展示。?\s*$/i,
+    ""
+  );
+};
+
+const normalizeIndentedHtml = (content = "") => {
+  return content.replace(
+    /(^|\n)[ \t]{4,}(?=<\/?(article|aside|blockquote|br|div|dl|dt|dd|figure|figcaption|footer|h[1-6]|header|hr|li|main|ol|p|section|span|strong|table|thead|tbody|tfoot|tr|td|th|ul)\b)/gi,
+    "$1"
+  );
+};
 
 /** 初始化 **/
 onMounted(async () => {
@@ -206,6 +252,15 @@ defineExpose({ copyContent }); // 提供方法给 parent 调用
   text-align: left;
   color: #1d2129;
   max-width: 100%;
+
+  .html-document-frame {
+    display: block;
+    width: 100%;
+    min-height: 620px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+  }
 
   pre {
     position: relative;
@@ -263,6 +318,17 @@ defineExpose({ copyContent }); // 提供方法给 parent 调用
 
   :deep(table tr:nth-child(2n)) {
     background-color: #f6f8fa;
+  }
+
+  :deep(.section) {
+    margin: 14px 0;
+  }
+
+  :deep(.insight) {
+    padding: 12px 14px;
+    border: 1px solid #dbeafe;
+    border-radius: 6px;
+    background: #f8fbff;
   }
 
   p,

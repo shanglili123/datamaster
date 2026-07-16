@@ -3,6 +3,7 @@ package com.datamaster.module.assets.service.skill.impl;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
@@ -17,12 +18,14 @@ import com.datamaster.module.assets.controller.admin.skill.vo.AiTableSkillGenera
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
+import com.datamaster.module.assets.dal.dataobject.sensitiveLevel.AssetsSensitiveLevelDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillRefDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillVersionDO;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapper;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
+import com.datamaster.module.assets.dal.mapper.sensitiveLevel.AssetsSensitiveLevelMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillRefMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillVersionMapper;
@@ -82,6 +85,11 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private static final String MANUAL_END = "<!-- MANUAL_NOTES_END -->";
     private static final int MAX_AI_TEXT_LENGTH = 180;
     private static final int MAX_AI_LIST_SIZE = 8;
+    private static final int MAX_SKILL_CODE_LENGTH = 128;
+    private static final int MAX_SKILL_NAME_LENGTH = 128;
+    private static final int SKILL_CODE_HASH_LENGTH = 12;
+    private static final int MAX_DATABASE_SKILL_TABLE_ROWS = 200;
+    private static final int MAX_RELATION_GRAPH_EDGES = 80;
     private static final Pattern BACKTICK_TOKEN_PATTERN = Pattern.compile("`([^`]+)`");
 
     @Resource
@@ -96,6 +104,8 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private AssetsAssetMapper assetsAssetMapper;
     @Resource
     private AssetsAssetColumnMapper assetsAssetColumnMapper;
+    @Resource
+    private AssetsSensitiveLevelMapper assetsSensitiveLevelMapper;
     @Resource
     private IAiModelGatewayService aiModelGatewayService;
     @Resource
@@ -437,7 +447,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (skill == null) {
             skill = new AiSkillDO();
             skill.setSkillCode(skillCode);
-            skill.setSkillName(skillName);
+            skill.setSkillName(limitText(skillName, MAX_SKILL_NAME_LENGTH));
             skill.setSkillType(skillType);
             skill.setStatus(publish ? STATUS_PUBLISHED : STATUS_DRAFT);
             skill.setSourceType(SOURCE_GENERATED);
@@ -452,7 +462,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
         }
 
         skill.setSkillCode(skillCode);
-        skill.setSkillName(skillName);
+        skill.setSkillName(limitText(skillName, MAX_SKILL_NAME_LENGTH));
         skill.setSkillType(skillType);
         skill.setStatus(publish ? STATUS_PUBLISHED : defaultText(skill.getStatus(), STATUS_DRAFT));
         skill.setSourceType(SOURCE_GENERATED);
@@ -721,18 +731,21 @@ public class AiSkillServiceImpl implements IAiSkillService {
         StringBuilder fieldRows = new StringBuilder();
         StringBuilder timeFields = new StringBuilder();
         StringBuilder metricFields = new StringBuilder();
+        Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap = loadOnlineSensitiveLevels();
         enhancement = enhancement == null ? new SkillEnhancement() : enhancement;
         if (columns != null && !columns.isEmpty()) {
             for (AssetsAssetColumnDO column : columns) {
                 FieldEnhancement fieldEnhancement = enhancement.findField(column.getColumnName());
                 String usage = firstNonBlank(fieldEnhancement == null ? "" : fieldEnhancement.usage, recommendUsage(column));
                 String notice = joinUnique(columnNotice(column), fieldEnhancement == null ? "" : fieldEnhancement.notice);
+                String permissionNotice = columnPermissionNotice(column, sensitiveLevelMap);
                 fieldRows.append("| ")
                         .append(nullToEmpty(column.getColumnName())).append(" | ")
                         .append(nullToEmpty(column.getColumnType())).append(" | ")
                         .append(nullToEmpty(column.getColumnComment())).append(" | ")
                         .append(escapeTableCell(usage)).append(" | ")
-                        .append(escapeTableCell(notice)).append(" |\n");
+                        .append(escapeTableCell(notice)).append(" | ")
+                        .append(escapeTableCell(permissionNotice)).append(" |\n");
                 if (isTimeField(column)) {
                     timeFields.append("- `").append(column.getColumnName()).append("`：").append(nullToEmpty(column.getColumnComment())).append("\n");
                 }
@@ -741,7 +754,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 }
             }
         } else {
-            fieldRows.append("| 暂无字段 |  |  |  | 需要先完成元数据采集 |\n");
+            fieldRows.append("| 暂无字段 |  |  |  | 需要先完成元数据采集 |  |\n");
         }
         if (timeFields.length() == 0) {
             timeFields.append("- 暂未识别到明显时间字段，问数时需要用户确认时间口径。\n");
@@ -766,9 +779,10 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "## 业务说明\n\n"
                 + description + "\n\n"
                 + (StringUtils.isBlank(enhancement.businessSummary) ? "" : "AI增强摘要：" + enhancement.businessSummary + "\n\n")
+                + renderPermissionRules(columns, sensitiveLevelMap)
                 + "## 字段说明\n\n"
-                + "| 字段 | 类型 | 说明 | 推荐用途 | 注意事项 |\n"
-                + "| --- | --- | --- | --- | --- |\n"
+                + "| 字段 | 类型 | 说明 | 推荐用途 | 注意事项 | 权限说明 |\n"
+                + "| --- | --- | --- | --- | --- | --- |\n"
                 + fieldRows
                 + "\n## 常用指标口径\n\n"
                 + metricFields
@@ -804,15 +818,20 @@ public class AiSkillServiceImpl implements IAiSkillService {
                                         Map<Long, List<AssetsAssetColumnDO>> columnMap, String manualNotes) {
         String title = firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType(), String.valueOf(datasource.getId()));
         StringBuilder tableRows = new StringBuilder();
+        Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap = loadOnlineSensitiveLevels();
         int index = 0;
         for (AssetsAssetDO asset : assets) {
             index++;
+            if (index > MAX_DATABASE_SKILL_TABLE_ROWS) {
+                break;
+            }
             List<AssetsAssetColumnDO> columns = columnMap.get(asset.getId());
             tableRows.append("| ")
                     .append(index).append(" | ")
                     .append(nullToEmpty(asset.getTableName())).append(" | ")
                     .append(nullToEmpty(firstNonBlank(asset.getTableComment(), asset.getName()))).append(" | ")
                     .append(columns == null ? 0 : columns.size()).append(" | ")
+                    .append(escapeTableCell(maxSensitiveLevelText(columns, sensitiveLevelMap))).append(" | ")
                     .append(escapeTableCell(firstNonBlank(asset.getDescription(), ""))).append(" |\n");
         }
         return "---\n"
@@ -828,17 +847,22 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "## 数据库主题说明\n\n"
                 + "- 本 Skill 直接根据 DataMaster 元数据管理中的表字段生成。\n"
                 + "- 用于普通问数时优先帮助定位候选表；如果候选表不唯一，应先让用户确认业务主题或表范围。\n\n"
+                + renderPermissionRulesForDatabase()
+                + "## 表关系图\n\n"
+                + renderTableRelationGraph(assets, columnMap)
+                + "## 表关系明细\n\n"
+                + renderRelationTable(assets, columnMap)
+                + "## 推荐关联线索\n\n"
+                + renderRelationHints(assets, columnMap)
                 + "## 表清单\n\n"
-                + "| 序号 | 表名 | 表说明 | 字段数 | 描述 |\n"
-                + "| --- | --- | --- | --- | --- |\n"
+                + renderTableListNotice(assets)
+                + "| 序号 | 表名 | 表说明 | 字段数 | 最高字段敏感等级 | 描述 |\n"
+                + "| --- | --- | --- | --- | --- | --- |\n"
                 + tableRows
-                + "\n## 公共时间字段\n\n"
-                + renderCommonFields(columnMap, true, false)
-                + "## 公共指标字段\n\n"
-                + renderCommonFields(columnMap, false, true)
-                + "## 问数规则\n\n"
+                + "\n## 问数规则\n\n"
                 + "- 用户问题没有明确表名时，先根据表名、表注释、字段注释和本 Skill 的表清单定位候选表。\n"
-                + "- 如果涉及多表关联，优先使用多表 Skill；缺少多表 Skill 时需要说明关联路径待确认。\n"
+                + "- 如果涉及多表关联，先参考表关系图和推荐关联线索；缺少稳定关联路径时需要说明 join 条件待确认。\n"
+                + "- 整库 Skill 只保存表级关系和选表线索，不展开全量字段明细；需要字段口径时生成单表 Skill 或多表 Skill。\n"
                 + "- 字段缺少注释或表说明不足时，需要在回答中提示口径不确定。\n"
                 + "- SQL 只在用户或请求参数明确要求时返回。\n\n"
                 + "## 人工维护备注\n\n"
@@ -851,13 +875,14 @@ public class AiSkillServiceImpl implements IAiSkillService {
                                           Map<Long, List<AssetsAssetColumnDO>> columnMap, String manualNotes) {
         String title = multiTableSkillName(assets);
         StringBuilder tableSections = new StringBuilder();
+        Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap = loadOnlineSensitiveLevels();
         for (AssetsAssetDO asset : assets) {
             tableSections.append("### ").append(firstNonBlank(asset.getTableComment(), asset.getName(), asset.getTableName())).append("\n\n")
                     .append("- 表名：").append(nullToEmpty(asset.getTableName())).append("\n")
                     .append("- 表说明：").append(firstNonBlank(asset.getDescription(), asset.getTableComment(), asset.getName(), "")).append("\n\n")
-                    .append("| 字段 | 类型 | 说明 | 推荐用途 | 注意事项 |\n")
-                    .append("| --- | --- | --- | --- | --- |\n")
-                    .append(fieldRows(columnMap.get(asset.getId())))
+                    .append("| 字段 | 类型 | 说明 | 推荐用途 | 注意事项 | 权限说明 |\n")
+                    .append("| --- | --- | --- | --- | --- | --- |\n")
+                    .append(fieldRows(columnMap.get(asset.getId()), sensitiveLevelMap))
                     .append("\n");
         }
         return "---\n"
@@ -872,6 +897,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "## 主题说明\n\n"
                 + "- 本 Skill 由用户选择的多张表生成，适合跨表统计、关联查询和报告数据准备。\n"
                 + "- 如果实际业务关联键不在自动识别结果中，需要以人工维护备注或用户补充为准。\n\n"
+                + renderPermissionRulesForDatabase()
                 + "## 涉及表和字段\n\n"
                 + tableSections
                 + "## 推荐关联线索\n\n"
@@ -909,6 +935,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "5. 结合表级 Skill 生成 SQL。\n\n"
                 + "## 注意事项\n\n"
                 + "- 不要使用用户无权限访问的资产。\n"
+                + "- 问数和资产预览必须遵守资产字段权限：当前登录人的 data_permission_level 低于字段敏感等级时，不得查询、展示或据此生成结论。\n"
                 + "- 字段缺少注释时需要在回答中提示口径不确定。\n";
     }
 
@@ -1112,8 +1139,12 @@ public class AiSkillServiceImpl implements IAiSkillService {
     }
 
     private String fieldRows(List<AssetsAssetColumnDO> columns) {
+        return fieldRows(columns, loadOnlineSensitiveLevels());
+    }
+
+    private String fieldRows(List<AssetsAssetColumnDO> columns, Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap) {
         if (columns == null || columns.isEmpty()) {
-            return "| 暂无字段 |  |  |  | 需要先完成元数据采集 |\n";
+            return "| 暂无字段 |  |  |  | 需要先完成元数据采集 |  |\n";
         }
         StringBuilder rows = new StringBuilder();
         for (AssetsAssetColumnDO column : columns) {
@@ -1122,9 +1153,135 @@ public class AiSkillServiceImpl implements IAiSkillService {
                     .append(nullToEmpty(column.getColumnType())).append(" | ")
                     .append(nullToEmpty(column.getColumnComment())).append(" | ")
                     .append(escapeTableCell(recommendUsage(column))).append(" | ")
-                    .append(escapeTableCell(columnNotice(column))).append(" |\n");
+                    .append(escapeTableCell(columnNotice(column))).append(" | ")
+                    .append(escapeTableCell(columnPermissionNotice(column, sensitiveLevelMap))).append(" |\n");
         }
         return rows.toString();
+    }
+
+    private String renderPermissionRules(List<AssetsAssetColumnDO> columns,
+                                         Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("## 权限控制\n\n");
+        builder.append("- 资产预览和 AI 问数必须同时遵守项目/资产授权、字段授权和当前登录人的数据权限等级。\n");
+        builder.append("- 人员数据权限字段为 `system_user.data_permission_level`，数字越小权限越高：1=绝密、2=机密、3=秘密、4=内部、5=公开。\n");
+        builder.append("- 字段敏感等级来自资产字段 `sensitive_level_id`。当字段敏感等级数字小于当前用户 `data_permission_level` 时，该字段必须隐藏，不得用于 SELECT、过滤、分组、排序、统计、回答或报告输出。\n");
+        builder.append("- 字段命中脱敏规则时，只能使用脱敏后的展示值；全量脱敏或隐藏字段不得反推原始值。\n");
+        builder.append("- 生成 SQL 时只选择当前用户可见字段；如用户问题依赖不可见字段，应说明无权使用该字段并请求更换口径或申请权限。\n");
+        if (hasSensitiveColumn(columns)) {
+            builder.append("- 本表存在敏感字段，字段级要求见下方“权限说明”列。\n");
+        } else {
+            builder.append("- 本表当前未标记敏感字段，但仍需执行运行时资产和字段授权校验。\n");
+        }
+        return builder.append("\n").toString();
+    }
+
+    private String renderPermissionRulesForDatabase() {
+        return "## 权限控制\n\n"
+                + "- 整库/多表问数只能在当前项目和当前用户已授权的数据资产范围内选表。\n"
+                + "- 字段级权限按当前登录人的 `system_user.data_permission_level` 动态判断，数字越小权限越高：1=绝密、2=机密、3=秘密、4=内部、5=公开。\n"
+                + "- 字段敏感等级数字小于当前用户 `data_permission_level` 时，该字段必须隐藏，不得用于 SELECT、过滤、分组、排序、统计、回答或报告输出。\n"
+                + "- 命中脱敏规则的字段只能返回脱敏值；全量脱敏或隐藏字段不得参与明细展示和结论推断。\n"
+                + "- 如果用户问题需要未授权表或字段，应明确提示无权访问，不要编造结果或绕过权限。\n\n";
+    }
+
+    private boolean hasSensitiveColumn(List<AssetsAssetColumnDO> columns) {
+        if (columns == null) {
+            return false;
+        }
+        for (AssetsAssetColumnDO column : columns) {
+            if (column != null && column.getSensitiveLevelId() != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Map<Long, AssetsSensitiveLevelDO> loadOnlineSensitiveLevels() {
+        Map<Long, AssetsSensitiveLevelDO> levelMap = new LinkedHashMap<>();
+        List<AssetsSensitiveLevelDO> levels = assetsSensitiveLevelMapper.selectList(
+                new QueryWrapper<AssetsSensitiveLevelDO>().eq("online_flag", "1"));
+        if (levels == null) {
+            return levelMap;
+        }
+        for (AssetsSensitiveLevelDO level : levels) {
+            if (level != null && level.getId() != null) {
+                levelMap.put(level.getId(), level);
+            }
+        }
+        return levelMap;
+    }
+
+    private String columnPermissionNotice(AssetsAssetColumnDO column,
+                                          Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap) {
+        if (column == null || column.getSensitiveLevelId() == null) {
+            return "普通字段；仍需通过资产和字段授权后使用";
+        }
+        AssetsSensitiveLevelDO level = sensitiveLevelMap == null ? null : sensitiveLevelMap.get(column.getSensitiveLevelId());
+        String levelText = sensitiveLevelText(column.getSensitiveLevelId(), level);
+        List<String> notices = new ArrayList<>();
+        notices.add("敏感等级：" + levelText);
+        notices.add("当前用户 data_permission_level > " + column.getSensitiveLevelId() + " 时隐藏");
+        if (level != null && "1".equals(level.getSensitiveRule())) {
+            if (level.getStartCharLoc() == null && level.getEndCharLoc() == null) {
+                notices.add("全量敏感规则，未配置明细脱敏时按隐藏处理");
+            } else {
+                notices.add("按敏感等级配置区间脱敏后展示");
+            }
+        } else {
+            notices.add("通过权限校验后可按授权场景使用");
+        }
+        return join(notices, "；");
+    }
+
+    private String maxSensitiveLevelText(List<AssetsAssetColumnDO> columns,
+                                         Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap) {
+        Long minLevelId = null;
+        if (columns != null) {
+            for (AssetsAssetColumnDO column : columns) {
+                if (column == null || column.getSensitiveLevelId() == null) {
+                    continue;
+                }
+                if (minLevelId == null || column.getSensitiveLevelId() < minLevelId) {
+                    minLevelId = column.getSensitiveLevelId();
+                }
+            }
+        }
+        if (minLevelId == null) {
+            return "未标记";
+        }
+        AssetsSensitiveLevelDO level = sensitiveLevelMap == null ? null : sensitiveLevelMap.get(minLevelId);
+        return sensitiveLevelText(minLevelId, level);
+    }
+
+    private String sensitiveLevelText(Long levelId, AssetsSensitiveLevelDO level) {
+        String name = level == null ? "" : firstNonBlank(level.getSensitiveLevel(), level.getDescription());
+        if (StringUtils.isBlank(name)) {
+            name = dataPermissionLevelName(levelId);
+        }
+        return levelId + (StringUtils.isBlank(name) ? "" : "（" + name + "）");
+    }
+
+    private String dataPermissionLevelName(Long levelId) {
+        if (levelId == null) {
+            return "";
+        }
+        if (levelId == 1L) {
+            return "绝密";
+        }
+        if (levelId == 2L) {
+            return "机密";
+        }
+        if (levelId == 3L) {
+            return "秘密";
+        }
+        if (levelId == 4L) {
+            return "内部";
+        }
+        if (levelId == 5L) {
+            return "公开";
+        }
+        return "";
     }
 
     private String renderCommonFields(Map<Long, List<AssetsAssetColumnDO>> columnMap, boolean timeOnly, boolean metricOnly) {
@@ -1156,45 +1313,233 @@ public class AiSkillServiceImpl implements IAiSkillService {
         return builder.append("\n").toString();
     }
 
-    private String renderRelationHints(List<AssetsAssetDO> assets, Map<Long, List<AssetsAssetColumnDO>> columnMap) {
-        Map<String, List<String>> fieldOwners = new LinkedHashMap<>();
+    private String renderTableListNotice(List<AssetsAssetDO> assets) {
+        if (assets == null || assets.size() <= MAX_DATABASE_SKILL_TABLE_ROWS) {
+            return "";
+        }
+        return "- 表数量较多，以下仅展示前 " + MAX_DATABASE_SKILL_TABLE_ROWS
+                + " 张表；问数时仍需按当前项目资产授权和元数据接口检索完整表范围。\n\n";
+    }
+
+    private String renderTableRelationGraph(List<AssetsAssetDO> assets, Map<Long, List<AssetsAssetColumnDO>> columnMap) {
+        Map<String, String> nodeMap = new LinkedHashMap<>();
         if (assets != null) {
+            int index = 0;
             for (AssetsAssetDO asset : assets) {
-                List<AssetsAssetColumnDO> columns = columnMap == null ? null : columnMap.get(asset.getId());
-                if (columns == null) {
+                if (asset == null || StringUtils.isBlank(asset.getTableName())) {
                     continue;
                 }
-                for (AssetsAssetColumnDO column : columns) {
-                    String field = column.getColumnName();
-                    if (StringUtils.isBlank(field)) {
-                        continue;
-                    }
-                    String key = field.toLowerCase(Locale.ROOT);
-                    if (!fieldOwners.containsKey(key)) {
-                        fieldOwners.put(key, new ArrayList<>());
-                    }
-                    fieldOwners.get(key).add(asset.getTableName() + "." + field);
-                }
+                index++;
+                nodeMap.put(asset.getTableName(), "T" + index);
             }
+        }
+        List<RelationEdge> edges = collectRelationEdges(assets, columnMap);
+        StringBuilder builder = new StringBuilder();
+        builder.append("```mermaid\n");
+        builder.append("graph LR\n");
+        if (edges.isEmpty()) {
+            builder.append("  EMPTY[\"未识别到稳定表关系\"]\n");
+        } else {
+            for (RelationEdge edge : edges) {
+                String leftNode = nodeMap.get(edge.leftTable);
+                String rightNode = nodeMap.get(edge.rightTable);
+                if (StringUtils.isBlank(leftNode) || StringUtils.isBlank(rightNode)) {
+                    continue;
+                }
+                builder.append("  ").append(leftNode)
+                        .append("[\"").append(escapeMermaid(edge.leftTable)).append("\"] -- \"")
+                        .append(escapeMermaid(edge.leftField + " = " + edge.rightField)).append("\" --> ")
+                        .append(rightNode).append("[\"").append(escapeMermaid(edge.rightTable)).append("\"]\n");
+            }
+        }
+        builder.append("```\n\n");
+        if (edges.size() >= MAX_RELATION_GRAPH_EDGES) {
+            builder.append("- 关系图仅展示前 ").append(MAX_RELATION_GRAPH_EDGES)
+                    .append(" 条疑似关联，完整关联需结合字段详情和人工维护备注确认。\n\n");
+        } else if (edges.isEmpty()) {
+            builder.append("- 暂未自动识别到稳定关联键，需要由用户或人工备注确认 join 条件。\n\n");
+        } else {
+            builder.append("- 关系图基于同名/疑似主外键字段自动推断，生成 SQL 前仍需确认主表、统计粒度和 join 条件。\n\n");
+        }
+        return builder.toString();
+    }
+
+    private String renderRelationTable(List<AssetsAssetDO> assets, Map<Long, List<AssetsAssetColumnDO>> columnMap) {
+        List<RelationEdge> edges = collectRelationEdges(assets, columnMap);
+        if (edges.isEmpty()) {
+            return "- 暂未自动识别到稳定表关系，需要人工在备注中补充主表、从表、关联字段和业务含义。\n\n";
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append("| 主表 | 主表字段 | 关联表 | 关联字段 | 关系依据 |\n");
+        builder.append("| --- | --- | --- | --- | --- |\n");
+        for (RelationEdge edge : edges) {
+            builder.append("| ")
+                    .append(escapeTableCell(edge.leftTable)).append(" | ")
+                    .append(escapeTableCell(edge.leftField)).append(" | ")
+                    .append(escapeTableCell(edge.rightTable)).append(" | ")
+                    .append(escapeTableCell(edge.rightField)).append(" | ")
+                    .append(escapeTableCell(edge.reason)).append(" |\n");
+        }
+        return builder.append("\n").toString();
+    }
+
+    private String renderRelationHints(List<AssetsAssetDO> assets, Map<Long, List<AssetsAssetColumnDO>> columnMap) {
+        List<RelationEdge> edges = collectRelationEdges(assets, columnMap);
+        Map<String, List<String>> fieldOwners = new LinkedHashMap<>();
+        for (RelationEdge edge : edges) {
+            String key = edge.leftField.equals(edge.rightField)
+                    ? edge.leftField
+                    : edge.leftField + " = " + edge.rightField;
+            if (!fieldOwners.containsKey(key)) {
+                fieldOwners.put(key, new ArrayList<>());
+            }
+            addUnique(fieldOwners.get(key), edge.leftTable + "." + edge.leftField);
+            addUnique(fieldOwners.get(key), edge.rightTable + "." + edge.rightField);
         }
         StringBuilder builder = new StringBuilder();
         for (Map.Entry<String, List<String>> entry : fieldOwners.entrySet()) {
-            if (entry.getValue().size() < 2) {
-                continue;
-            }
-            String key = entry.getKey();
-            boolean looksLikeKey = key.endsWith("id") || key.endsWith("_id") || key.contains("code")
-                    || key.contains("no") || key.contains("编码") || key.contains("编号");
-            if (!looksLikeKey) {
-                continue;
-            }
-            builder.append("- 同名/疑似关联字段 `").append(key).append("`：")
+            builder.append("- 同名/疑似关联字段 `").append(entry.getKey()).append("`：")
                     .append(join(entry.getValue(), "、")).append("\n");
         }
         if (builder.length() == 0) {
             builder.append("- 暂未自动识别到稳定关联键，需要由用户或人工备注确认 join 条件。\n");
         }
         return builder.append("\n").toString();
+    }
+
+    private List<RelationEdge> collectRelationEdges(List<AssetsAssetDO> assets, Map<Long, List<AssetsAssetColumnDO>> columnMap) {
+        Map<String, List<String>> fieldOwners = new LinkedHashMap<>();
+        Map<String, TableColumnRef> primaryKeyMap = new LinkedHashMap<>();
+        Map<String, AssetsAssetDO> tableMap = new LinkedHashMap<>();
+        if (assets != null) {
+            for (AssetsAssetDO asset : assets) {
+                if (asset == null || StringUtils.isBlank(asset.getTableName())) {
+                    continue;
+                }
+                tableMap.put(asset.getTableName().toLowerCase(Locale.ROOT), asset);
+                List<AssetsAssetColumnDO> columns = columnMap == null ? null : columnMap.get(asset.getId());
+                if (columns == null) {
+                    continue;
+                }
+                for (AssetsAssetColumnDO column : columns) {
+                    if (column != null && "1".equals(column.getPkFlag()) && StringUtils.isNotBlank(column.getColumnName())) {
+                        primaryKeyMap.put(asset.getTableName().toLowerCase(Locale.ROOT),
+                                new TableColumnRef(asset.getTableName(), column.getColumnName()));
+                    }
+                }
+                for (AssetsAssetColumnDO column : columns) {
+                    String field = column.getColumnName();
+                    if (!looksLikeRelationField(field)) {
+                        continue;
+                    }
+                    String key = field.toLowerCase(Locale.ROOT);
+                    if (!fieldOwners.containsKey(key)) {
+                        fieldOwners.put(key, new ArrayList<>());
+                    }
+                    addUnique(fieldOwners.get(key), asset.getTableName());
+                }
+            }
+        }
+        List<RelationEdge> edges = new ArrayList<>();
+        Set<String> edgeKeys = new HashSet<>();
+        for (Map.Entry<String, List<String>> entry : fieldOwners.entrySet()) {
+            List<String> tables = entry.getValue();
+            if (tables.size() < 2) {
+                continue;
+            }
+            String root = tables.get(0);
+            for (int i = 1; i < tables.size(); i++) {
+                addRelationEdge(edges, edgeKeys, root, entry.getKey(), tables.get(i), entry.getKey(), "同名疑似关联字段");
+                if (edges.size() >= MAX_RELATION_GRAPH_EDGES) {
+                    return edges;
+                }
+            }
+        }
+        if (assets != null) {
+            for (AssetsAssetDO asset : assets) {
+                if (asset == null || StringUtils.isBlank(asset.getTableName())) {
+                    continue;
+                }
+                List<AssetsAssetColumnDO> columns = columnMap == null ? null : columnMap.get(asset.getId());
+                if (columns == null) {
+                    continue;
+                }
+                for (AssetsAssetColumnDO column : columns) {
+                    String field = column == null ? null : column.getColumnName();
+                    String referencedTable = referencedTableName(field, tableMap);
+                    if (StringUtils.isBlank(referencedTable)
+                            || referencedTable.equalsIgnoreCase(asset.getTableName())) {
+                        continue;
+                    }
+                    TableColumnRef pk = primaryKeyMap.get(referencedTable.toLowerCase(Locale.ROOT));
+                    String rightField = pk == null ? "id" : pk.columnName;
+                    addRelationEdge(edges, edgeKeys, referencedTable, rightField, asset.getTableName(), field,
+                            "字段名疑似外键指向表主键");
+                    if (edges.size() >= MAX_RELATION_GRAPH_EDGES) {
+                        return edges;
+                    }
+                }
+            }
+        }
+        return edges;
+    }
+
+    private void addRelationEdge(List<RelationEdge> edges, Set<String> edgeKeys, String leftTable, String leftField,
+                                 String rightTable, String rightField, String reason) {
+        String key = leftTable + "." + leftField + "->" + rightTable + "." + rightField;
+        String reverseKey = rightTable + "." + rightField + "->" + leftTable + "." + leftField;
+        if (edgeKeys.contains(key) || edgeKeys.contains(reverseKey)) {
+            return;
+        }
+        edgeKeys.add(key);
+        edges.add(new RelationEdge(leftTable, leftField, rightTable, rightField, reason));
+    }
+
+    private String referencedTableName(String field, Map<String, AssetsAssetDO> tableMap) {
+        if (StringUtils.isBlank(field) || tableMap == null || tableMap.isEmpty()) {
+            return "";
+        }
+        String key = field.toLowerCase(Locale.ROOT);
+        List<String> candidates = new ArrayList<>();
+        if (key.endsWith("_id")) {
+            candidates.add(key.substring(0, key.length() - 3));
+        }
+        if (key.endsWith("id") && key.length() > 2) {
+            candidates.add(key.substring(0, key.length() - 2));
+        }
+        for (String candidate : candidates) {
+            String normalized = candidate.replaceAll("_+$", "");
+            if (tableMap.containsKey(normalized)) {
+                return tableMap.get(normalized).getTableName();
+            }
+            for (String tableName : tableMap.keySet()) {
+                if (tableName.endsWith("_" + normalized) || tableName.equals(normalized + "s")) {
+                    return tableMap.get(tableName).getTableName();
+                }
+            }
+        }
+        return "";
+    }
+
+    private boolean looksLikeRelationField(String field) {
+        if (StringUtils.isBlank(field)) {
+            return false;
+        }
+        String key = field.toLowerCase(Locale.ROOT);
+        return key.endsWith("_id") || (key.endsWith("id") && key.length() > 2)
+                || key.contains("code") || key.contains("no")
+                || key.contains("编码") || key.contains("编号");
+    }
+
+    private void addUnique(List<String> values, String value) {
+        if (StringUtils.isBlank(value) || values.contains(value)) {
+            return;
+        }
+        values.add(value);
+    }
+
+    private String escapeMermaid(String value) {
+        return defaultText(value, "").replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private String renderWarning(String warning) {
@@ -1221,7 +1566,21 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private String normalizeCode(String text) {
         String value = lower(text).replaceAll("[^a-z0-9]+", "-");
         value = value.replaceAll("^-+", "").replaceAll("-+$", "");
-        return StringUtils.isBlank(value) ? "table-skill" : value;
+        value = StringUtils.isBlank(value) ? "table-skill" : value;
+        return limitSkillCode(value);
+    }
+
+    private String limitSkillCode(String value) {
+        if (value.length() <= MAX_SKILL_CODE_LENGTH) {
+            return value;
+        }
+        String suffix = "-" + hash(value).substring(0, SKILL_CODE_HASH_LENGTH);
+        int prefixLength = MAX_SKILL_CODE_LENGTH - suffix.length();
+        String prefix = value.substring(0, prefixLength).replaceAll("-+$", "");
+        if (StringUtils.isBlank(prefix)) {
+            prefix = value.substring(0, prefixLength);
+        }
+        return prefix + suffix;
     }
 
     private String hash(String content) {
@@ -1295,6 +1654,32 @@ public class AiSkillServiceImpl implements IAiSkillService {
         private TableSkillContext(AssetsAssetDO asset, List<AssetsAssetColumnDO> columns) {
             this.asset = asset;
             this.columns = columns;
+        }
+    }
+
+    private static class RelationEdge {
+        private String leftTable;
+        private String leftField;
+        private String rightTable;
+        private String rightField;
+        private String reason;
+
+        private RelationEdge(String leftTable, String leftField, String rightTable, String rightField, String reason) {
+            this.leftTable = leftTable;
+            this.leftField = leftField;
+            this.rightTable = rightTable;
+            this.rightField = rightField;
+            this.reason = reason;
+        }
+    }
+
+    private static class TableColumnRef {
+        private String tableName;
+        private String columnName;
+
+        private TableColumnRef(String tableName, String columnName) {
+            this.tableName = tableName;
+            this.columnName = columnName;
         }
     }
 

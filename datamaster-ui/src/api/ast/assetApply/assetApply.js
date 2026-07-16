@@ -1,5 +1,15 @@
 ﻿
 import request from '@/utils/request'
+import useUserStore from '@/store/system/user'
+
+function withProject(data = {}) {
+  const userStore = useUserStore()
+  return {
+    ...data,
+    projectId: data.projectId || userStore.projectId || null,
+    projectCode: data.projectCode || userStore.projectCode || ''
+  }
+}
 
 // 查询数据资产申请列表
 export function listDaAssetApply(query) {
@@ -48,7 +58,7 @@ export function queryServiceForwarding(data) {
   return request({
     url: '/ast/api/queryServiceForwarding',
     method: 'post',
-    data: data
+    data: withProject(data)
   })
 }
 

@@ -201,8 +201,8 @@
       <pagination
         v-show="total > 0"
         :total="total"
-        :page.sync="queryParams.pageNum"
-        :limit.sync="queryParams.pageSize"
+        v-model:page="queryParams.pageNum"
+        v-model:limit="queryParams.pageSize"
         @pagination="getList"
       />
     </div>
@@ -309,6 +309,7 @@ import {
   addAttDataElemCat,
   updateAttDataElemCat,
 } from "@/api/tax/cat/dataElemCat/dataElemCat.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 
@@ -325,6 +326,8 @@ const refreshTable = ref(true);
 const data = reactive({
   form: {},
   queryParams: {
+    pageNum: 1,
+    pageSize: 6,
     name: null,
     parentId: null,
     createTime: null,
@@ -346,12 +349,10 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listAttDataElemCat(queryParams.value).then((response) => {
-    attDataElemCatList.value = proxy.handleTree(
-      response.data,
-      "id",
-      "parentId"
-    );
-    // total.value = response.data.total;
+    const page = normalizePage(response);
+    const treeData = proxy.handleTree(page.rows, "id", "parentId");
+    total.value = treeData.length;
+    attDataElemCatList.value = pageRows(treeData, total.value, queryParams.value);
     loading.value = false;
   });
 }

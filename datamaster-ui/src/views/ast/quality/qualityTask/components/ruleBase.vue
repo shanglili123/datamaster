@@ -330,10 +330,12 @@ import { ref, reactive, watch, toRefs } from "vue";
 import SideMenu from "./ruleSelectorMenu.vue";
 import SpotCheckDialog from "./spotCheckResult.vue";
 import { getColumnByAssetId } from "@/api/col/task/index.js";
+import useUserStore from "@/store/system/user";
 // 通过注册中心按需加载规则子组件，减少静态 import 带来的首屏体积
 import { getRuleConfig, getRuleComponent } from "./rule/registry.js";
 import { verifyInterfaceValue } from "@/api/ast/quality/qualityTask";
 let falg = ref(false);
+const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
 const { quality_warning_status } = proxy.useDict("quality_warning_status");
 const emit = defineEmits(["confirm"]);
@@ -551,6 +553,8 @@ async function fetchColumns() {
       const res = await getColumnByAssetId({
         id: form?.datasourceId || selectedRef.value.datasourceId,
         tableName: form?.tableName,
+        projectId: userStore.projectId,
+        projectCode: userStore.projectCode,
       });
       if (res.code == "200") {
         const list = res.data.map((col) => ({

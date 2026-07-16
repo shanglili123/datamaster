@@ -103,7 +103,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize"
         @pagination="getList" />
     </div>
     <!-- 添加或修改标签类目管理对话框 -->
@@ -167,6 +167,7 @@
 
 <script setup name="DocumentCat">
 import { listAttDocumentCat, getAttDocumentCat, delAttDocumentCat, addAttDocumentCat, updateAttDocumentCat } from "@/api/tax/cat/documentCat/documentCat";
+import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const AttTagCatList = ref([]);
 const AttTagCatOptions = ref([]);
@@ -181,6 +182,8 @@ const total = ref(0);
 const data = reactive({
   form: {},
   queryParams: {
+    pageNum: 1,
+    pageSize: 6,
     name: null,
     parentId: null,
     sortOrder: null,
@@ -201,8 +204,10 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listAttDocumentCat(queryParams.value).then((response) => {
-    AttTagCatList.value = proxy.handleTree(response.data, 'id', 'parentId');
-    // total.value = response.data.total;
+    const page = normalizePage(response);
+    const treeData = proxy.handleTree(page.rows, 'id', 'parentId');
+    total.value = treeData.length;
+    AttTagCatList.value = pageRows(treeData, total.value, queryParams.value);
     loading.value = false;
   });
 }

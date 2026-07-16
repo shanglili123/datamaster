@@ -276,6 +276,7 @@ import {
 } from '@/api/tax/cat/dataDevCat/dataDevCat';
 import { getToken } from '@/utils/auth.js';
 import useUserStore from '@/store/system/user';
+import { normalizePage, pageRows } from "@/utils/page.js";
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
 
@@ -373,13 +374,15 @@ function getList() {
     queryParams.value.projectId = userStore.projectId;
     queryParams.value.projectCode = userStore.projectCode;
     listAttDataDevCat(queryParams.value).then((response) => {
-        AttDataDevCatList.value = proxy.handleTree(response.data, 'id', 'parentId');
-        // total.value = response.data.total;
+        const page = normalizePage(response);
+        const treeData = proxy.handleTree(page.rows, 'id', 'parentId');
+        total.value = treeData.length;
+        AttDataDevCatList.value = pageRows(treeData, total.value, queryParams.value);
         loading.value = false;
 
         attDataDevCatOptions.value = [];
         const data = { id: 0, name: '顶级节点', children: [] };
-        data.children = proxy.handleTree(response.data, 'id', 'parentId');
+        data.children = treeData;
         attDataDevCatOptions.value.push(data);
     });
 }

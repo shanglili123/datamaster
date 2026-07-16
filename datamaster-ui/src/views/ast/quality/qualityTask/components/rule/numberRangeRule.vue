@@ -45,6 +45,7 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
 import { getColumnByAssetId } from "@/api/col/task/index.js";
+import useUserStore from "@/store/system/user";
 
 const props = defineProps({
   form: Object,
@@ -55,6 +56,7 @@ const props = defineProps({
 const emit = defineEmits(["update:form"]);
 
 const formRef = ref(null);
+const userStore = useUserStore();
 
 const form = reactive({ ...props.form });
 const includeBoundaryText = computed(() =>
@@ -95,6 +97,8 @@ async function fetchColumns() {
     const res = await getColumnByAssetId({
       id: form.datasourceId,
       tableName: form.assetid,
+      projectId: userStore.projectId,
+      projectCode: userStore.projectCode,
     });
     if (res.code == "200") {
       columnList.value = res.data;

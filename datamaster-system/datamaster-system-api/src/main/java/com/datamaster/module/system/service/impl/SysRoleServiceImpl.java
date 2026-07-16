@@ -259,10 +259,22 @@ public class SysRoleServiceImpl implements ISysRoleService
     public int updateRole(SysRole role)
     {
         // 修改角色信息
-        roleMapper.updateRole(role);
+        int rows = roleMapper.updateRole(role);
+        if (rows <= 0)
+        {
+            return rows;
+        }
         // 删除角色与菜单关联
-        roleMenuMapper.deleteRoleMenuByRoleId(role.getRoleId());
-        return insertRoleMenu(role);
+        if (role.getProjectId() != null)
+        {
+            roleMenuMapper.deleteRoleMenuByRoleIdAndProjectId(role.getRoleId(), role.getProjectId());
+        }
+        else
+        {
+            roleMenuMapper.deleteRoleMenuByRoleId(role.getRoleId());
+        }
+        insertRoleMenu(role);
+        return rows;
     }
 
     /**
@@ -288,11 +300,16 @@ public class SysRoleServiceImpl implements ISysRoleService
     public int authDataScope(SysRole role)
     {
         // 修改角色信息
-        roleMapper.updateRole(role);
+        int rows = roleMapper.updateRole(role);
+        if (rows <= 0)
+        {
+            return rows;
+        }
         // 删除角色与部门关联
         roleDeptMapper.deleteRoleDeptByRoleId(role.getRoleId());
         // 新增角色和部门信息（数据权限）
-        return insertRoleDept(role);
+        insertRoleDept(role);
+        return rows;
     }
 
     /**
@@ -303,6 +320,10 @@ public class SysRoleServiceImpl implements ISysRoleService
     public int insertRoleMenu(SysRole role)
     {
         int rows = 1;
+        if (role.getMenuIds() == null)
+        {
+            return rows;
+        }
         // 新增用户与角色管理
         List<SysRoleMenu> list = new ArrayList<SysRoleMenu>();
         for (Long menuId : role.getMenuIds())
@@ -332,6 +353,10 @@ public class SysRoleServiceImpl implements ISysRoleService
     public int insertRoleDept(SysRole role)
     {
         int rows = 1;
+        if (role.getDeptIds() == null)
+        {
+            return rows;
+        }
         // 新增角色与部门（数据权限）管理
         List<SysRoleDept> list = new ArrayList<SysRoleDept>();
         for (Long deptId : role.getDeptIds())

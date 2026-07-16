@@ -142,6 +142,13 @@
 
     <el-dialog v-model="tableGenerateOpen" title="生成问数Skill" width="560px" append-to-body>
       <el-form :model="tableGenerateForm" label-width="90px">
+        <el-form-item label="生成范围">
+          <el-segmented
+            v-model="tableGenerateForm.generateScope"
+            :options="generateScopeOptions"
+            @change="handleGenerateScopeChange"
+          />
+        </el-form-item>
         <el-form-item label="数据源">
           <el-select
             v-model="tableGenerateForm.datasourceId"
@@ -159,13 +166,13 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="表">
+        <el-form-item v-if="tableGenerateForm.generateScope !== 'database'" label="表">
           <el-select
-            v-model="tableGenerateForm.tableNames"
+            v-model="tableGenerateTableValue"
             placeholder="请选择表"
             filterable
             clearable
-            multiple
+            :multiple="tableGenerateForm.generateScope === 'multi'"
             collapse-tags
             collapse-tags-tooltip
             :loading="tableLoading"
@@ -401,23 +408,42 @@ const form = reactive({
 const tableGenerateForm = reactive({
   assetId: null,
   datasourceId: null,
+  generateScope: 'database',
   tableNames: [],
   forceRefresh: false,
   publish: false,
   manualNotes: ''
 })
 
+const generateScopeOptions = [
+  { label: '整库', value: 'database' },
+  { label: '单表', value: 'table' },
+  { label: '多表', value: 'multi' }
+]
+
 const skillGenerateType = computed(() => {
-  const count = tableGenerateForm.tableNames.length
-  if (count === 0) return 'database'
-  if (count === 1) return 'table'
-  return 'multi'
+  return tableGenerateForm.generateScope
 })
 
 const skillGenerateButtonText = computed(() => {
   if (skillGenerateType.value === 'database') return '生成整库Skill'
   if (skillGenerateType.value === 'multi') return '生成多表Skill'
   return '生成表级Skill'
+})
+
+const tableGenerateTableValue = computed({
+  get() {
+    return tableGenerateForm.generateScope === 'multi'
+      ? tableGenerateForm.tableNames
+      : tableGenerateForm.tableNames[0] || ''
+  },
+  set(value) {
+    tableGenerateForm.tableNames = Array.isArray(value)
+      ? value
+      : value
+        ? [value]
+        : []
+  }
 })
 
 const templateForm = reactive({
@@ -729,6 +755,7 @@ function validateTemplateJson(rule, value, callback) {
 function openSkillGenerate() {
   tableGenerateForm.assetId = null
   tableGenerateForm.datasourceId = null
+  tableGenerateForm.generateScope = 'database'
   tableGenerateForm.tableNames = []
   tableGenerateForm.forceRefresh = false
   tableGenerateForm.publish = false
@@ -747,13 +774,21 @@ function loadDatasourceOptions() {
 function handleGenerateDatasourceChange(datasourceId) {
   tableGenerateForm.tableNames = []
   tableOptions.value = []
-  if (!datasourceId) return
+  if (!datasourceId || tableGenerateForm.generateScope === 'database') return
   tableLoading.value = true
   tableList(datasourceId).then((res) => {
     tableOptions.value = toRows(res.data)
   }).finally(() => {
     tableLoading.value = false
   })
+}
+
+function handleGenerateScopeChange() {
+  tableGenerateForm.tableNames = []
+  tableOptions.value = []
+  if (tableGenerateForm.datasourceId && tableGenerateForm.generateScope !== 'database') {
+    handleGenerateDatasourceChange(tableGenerateForm.datasourceId)
+  }
 }
 
 function toRows(data) {
@@ -783,6 +818,16 @@ function handleGenerateTable() {
   generatingTable.value = true
   const selectedTableNames = tableGenerateForm.tableNames.filter(Boolean)
   const generateType = skillGenerateType.value
+  if (generateType === 'table' && selectedTableNames.length !== 1) {
+    proxy.$modal.msgWarning('请选择一张表')
+    generatingTable.value = false
+    return
+  }
+  if (generateType === 'multi' && selectedTableNames.length < 2) {
+    proxy.$modal.msgWarning('多表Skill至少选择两张表')
+    generatingTable.value = false
+    return
+  }
   const payload = {
     datasourceId: tableGenerateForm.datasourceId,
     tableName: selectedTableNames[0] || '',

@@ -638,6 +638,7 @@ import { addDaAssetApply } from "@/api/ast/assetApply/assetApply";
 import useUserStore from "@/store/system/user";
 import { getThemeList } from "@/api/tax/theme/theme.js";
 import OverflowTooltip from "@/components/OverflowTooltip";
+import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const { da_assets_status, da_asset_source, da_asset_type } = proxy.useDict(
   "da_assets_status",
@@ -768,7 +769,7 @@ const data = reactive({
   queryParams: {
     themeIdList: [],
     pageNum: 1,
-    pageSize: 6,
+    pageSize: 4,
     name: null,
     catCode: null,
     themeId: null,
@@ -862,8 +863,9 @@ function getList() {
   queryParams.value.projectCode = userStore.projectCode;
   queryParams.value.projectId = userStore.projectId;
   listDppAsset(queryParams.value).then((response) => {
-    daAssetList.value = response.data.rows;
-    total.value = response.data.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    daAssetList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }
@@ -1110,7 +1112,7 @@ function submitFileForm() {
 }
 
 function handleNodeClick(data) {
-  queryParams.value.catCode = data.code;
+  queryParams.value.catCode = data.code || data.value || "";
   if (data.id == "wdsq") {
     queryParams.value.sourceType = "0";
   } else {

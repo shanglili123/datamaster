@@ -68,4 +68,10 @@ public class AssetsAssetColumnPageReqVO extends PageParam {
     @Schema(description = "", example = "")
     private String description;
 
+    @Schema(description = "项目id", example = "")
+    private Long projectId;
+
+    @Schema(description = "项目编码", example = "")
+    private String projectCode;
+
 }

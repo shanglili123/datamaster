@@ -30,7 +30,7 @@ public interface AssetsAssetApplyMapper extends BaseMapperX<AssetsAssetApplyDO> 
                 .like(StringUtils.isNotEmpty(reqVO.getAssetName()), "t2.NAME", reqVO.getAssetName())
                 .like(StringUtils.isNotEmpty(reqVO.getCreateBy()), AssetsAssetApplyDO::getCreateBy, reqVO.getCreateBy())
                 .eq(StringUtils.isNotEmpty(reqVO.getStatus()), AssetsAssetApplyDO::getStatus, reqVO.getStatus())
-                .eq(StringUtils.isNotEmpty(reqVO.getCatAssetCode()), "t5.CODE", reqVO.getCatAssetCode())
+                .likeRight(StringUtils.isNotEmpty(reqVO.getCatAssetCode()), "t5.CODE", reqVO.getCatAssetCode())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()),
                         StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, AssetsAssetApplyDO.class, lambdaWrapper);

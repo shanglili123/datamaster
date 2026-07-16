@@ -1093,6 +1093,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "ID" + AssetsDiscoveryTaskDO.getId());
         AssetsDiscoveryTablePageReqVO AssetsDiscoveryTablePageReqVO = new AssetsDiscoveryTablePageReqVO();
         AssetsDiscoveryTablePageReqVO.setTaskId(AssetsDiscoveryTaskDO.getId());
+        AssetsDiscoveryTablePageReqVO.setDatasourceId(AssetsDiscoveryTaskDO.getDatasourceId());
         List<AssetsDiscoveryTableDO> result = IAssetsDiscoveryTableService.getDaDiscoveryTableList(AssetsDiscoveryTablePageReqVO);
         IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "" + (result != null ? result.size() : 0));
         return result;
@@ -1102,16 +1103,18 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "ID" + matchedTable.getId() + "ID" + matchedTable.getTaskId());
         AssetsDiscoveryColumnPageReqVO AssetsDiscoveryTablePageReqVO = new AssetsDiscoveryColumnPageReqVO();
         AssetsDiscoveryTablePageReqVO.setTaskId(matchedTable.getTaskId());
+        AssetsDiscoveryTablePageReqVO.setDatasourceId(matchedTable.getDatasourceId());
         AssetsDiscoveryTablePageReqVO.setTableId(matchedTable.getId());
         List<AssetsDiscoveryColumnDO> result = IAssetsDiscoveryColumnService.getDaDiscoveryColumnList(AssetsDiscoveryTablePageReqVO);
         IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "" + (result != null ? result.size() : 0));
         return result;
     }
 
-    private List<AssetsDiscoveryTableDO> mapToMetadataTableList(List<DbTable> tables, Long taskId) {
+    private List<AssetsDiscoveryTableDO> mapToMetadataTableList(List<DbTable> tables, Long taskId, Long datasourceId) {
         return tables.stream().map(table -> {
             AssetsDiscoveryTableDO metadataTable = new AssetsDiscoveryTableDO();
             metadataTable.setTaskId(taskId);
+            metadataTable.setDatasourceId(datasourceId);
             metadataTable.setTableName(table.getTableName());
             metadataTable.setTableComment(table.getTableComment());
             return metadataTable;
@@ -1152,7 +1155,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         table.setChangeFlag("1");
         IAssetsDiscoveryTableService.createDaDiscoveryTable(table);
         if (CollUtil.isNotEmpty(columns)) {
-            List<AssetsDiscoveryColumnDO> metadataColumnEntityList = columns.stream().map(column -> new AssetsDiscoveryColumnDO(table.getTaskId(), table.getId(), column)).collect(Collectors.toList());
+            List<AssetsDiscoveryColumnDO> metadataColumnEntityList = columns.stream().map(column -> new AssetsDiscoveryColumnDO(table.getTaskId(), table.getDatasourceId(), table.getId(), column)).collect(Collectors.toList());
             metadataColumnEntityList.forEach(IAssetsDiscoveryColumnService::createDaDiscoveryColumn);
         }
         IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "保存完毕");
@@ -1173,7 +1176,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         if (CollUtil.isEmpty(columns)) {
             return new ArrayList<>();
         }
-        return columns.stream().map(column -> new AssetsDiscoveryColumnDO(matchedTable.getTaskId(), matchedTable.getId(), column)).collect(Collectors.toList());
+        return columns.stream().map(column -> new AssetsDiscoveryColumnDO(matchedTable.getTaskId(), matchedTable.getDatasourceId(), matchedTable.getId(), column)).collect(Collectors.toList());
     }
 
     private boolean compareColumnsAndUpdate(List<AssetsDiscoveryColumnDO> metadataColumnEntityList, List<AssetsDiscoveryColumnDO> discoveryColumnDOList) {
@@ -1185,6 +1188,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
                 IAssetsDiscoveryColumnService.createDaDiscoveryColumn(column);
             } else if (!column.isEqual(matchedColumn)) {
                 modifiedTablesBoolean = true;
+                column.setId(matchedColumn.getId());
                 IAssetsDiscoveryColumnService.updateDaDiscoveryColumn(column);
             }
         }
@@ -1225,6 +1229,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         if (isTableCommentModified(table, matchedTable)) {
             modifiedTablesBoolean = true;
         }
+        table.setId(matchedTable.getId());
         List<AssetsDiscoveryColumnDO> metadataColumnEntityList = generateMetadataColumnList(columns, matchedTable);
         modifiedTablesBoolean |= compareColumnsAndUpdate(metadataColumnEntityList, discoveryColumnDOList);
         modifiedTablesBoolean |= deleteUnmatchedColumns(discoveryColumnDOList, metadataColumnEntityList);
@@ -1245,7 +1250,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         if (CollUtil.isNotEmpty(tables)) {
             totalTables = tables.size();
             IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "从数据源中，实时获取表列数量信息：" + totalTables);
-            metadataTableEntityList = mapToMetadataTableList(tables, AssetsDiscoveryTaskById.getId());
+            metadataTableEntityList = mapToMetadataTableList(tables, AssetsDiscoveryTaskById.getId(), AssetsDiscoveryTaskById.getDatasourceId());
             if (CollUtil.isNotEmpty(metadataTableEntityList)) {
                 for (AssetsDiscoveryTableDO table : metadataTableEntityList) {
                     AssetsDiscoveryTableDO matchedTable = findMatchedTable(table, AssetsDiscoveryTableDOList);

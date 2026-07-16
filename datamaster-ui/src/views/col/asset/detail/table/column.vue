@@ -388,6 +388,7 @@ import { listDaSensitiveLevel } from '@/api/ast/security/sensitiveLevel/sensitiv
 import { listDpDataElem } from '@/api/std/dataElem/dataElem';
 import { useRoute } from 'vue-router';
 import { ref } from "vue";
+import useUserStore from '@/store/system/user';
 
 const { proxy } = getCurrentInstance();
 const { column_type, dp_model_column_pk_flag, dp_model_column_nullable_flag } = proxy.useDict(
@@ -467,6 +468,7 @@ const data = reactive({
 
 const { queryParams, form, daAssetDetail, rules } = toRefs(data);
 const route = useRoute();
+const userStore = useUserStore();
 let assetId = route.query.id || 1;
 watch(
     () => route.query.id,
@@ -481,6 +483,8 @@ watch(
 function getList() {
     loading.value = true;
     queryParams.value.assetId = assetId;
+    queryParams.value.projectId = userStore.projectId;
+    queryParams.value.projectCode = userStore.projectCode;
     listDaAssetColumn(queryParams.value).then((response) => {
         daAssetColumnList.value = response.data.rows;
         total.value = response.data.total;

@@ -189,6 +189,7 @@
 
 <script setup name="Notice">
 import { listNotice, getNoticeOne, delNotice, addNotice, updateNotice } from "@/api/system/system/notice.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 const { sys_notice_status, sys_notice_type, sys_is_or_not } = proxy.useDict("sys_notice_status", "sys_notice_type", "sys_is_or_not");
@@ -229,8 +230,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
    loading.value = true;
    listNotice(queryParams.value).then(response => {
-      noticeList.value = response.rows;
-      total.value = response.total;
+      const page = normalizePage(response);
+      total.value = page.total;
+      noticeList.value = pageRows(page.rows, page.total, queryParams.value);
       loading.value = false;
    });
 }

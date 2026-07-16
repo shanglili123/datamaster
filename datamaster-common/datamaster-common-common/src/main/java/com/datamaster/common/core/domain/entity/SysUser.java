@@ -96,6 +96,10 @@ public class SysUser extends BaseEntity
      */
     private String roleStr;
 
+    /** 数据权限等级：1-绝密 2-机密 3-秘密 4-内部 5-公开 */
+    @Excel(name = "数据权限等级", readConverterExp = "1=绝密,2=机密,3=秘密,4=内部,5=公开")
+    private Long dataPermissionLevel;
+
     /** 角色对象 */
     private List<SysRole> roles;
 
@@ -375,5 +379,13 @@ public class SysUser extends BaseEntity
 
     public void setRoleStr(String roleStr) {
         this.roleStr = roleStr;
+    }
+
+    public Long getDataPermissionLevel() {
+        return dataPermissionLevel;
+    }
+
+    public void setDataPermissionLevel(Long dataPermissionLevel) {
+        this.dataPermissionLevel = dataPermissionLevel;
     }
 }

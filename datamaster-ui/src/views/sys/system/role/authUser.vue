@@ -67,6 +67,7 @@
 <script setup name="AuthUser">
 import selectUser from "./selectUser.vue";
 import { allocatedUserList, authUserCancel, authUserCancelAll } from "@/api/system/system/role.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const route = useRoute();
 const { proxy } = getCurrentInstance();
@@ -91,8 +92,9 @@ const queryParams = reactive({
 function getList() {
   loading.value = true;
   allocatedUserList(queryParams).then((response) => {
-    userList.value = response.rows;
-    total.value = response.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    userList.value = pageRows(page.rows, page.total, queryParams);
     loading.value = false;
   });
 }

@@ -86,7 +86,7 @@
           </template>
         </el-row>
       </div>
-      <el-table stripe height="200px" :data="form.codeList">
+      <el-table stripe height="200px" :data="pagedCodeList">
         <el-table-column label="代码值" align="center" prop="codeValue">
           <template #default="scope">
             <template v-if="!falg && form.useCodeTable == 0">
@@ -129,19 +129,25 @@
               link
               type="danger"
               icon="Delete"
-              @click="handleDelete(scope.row, scope.$index + 1)"
+              @click="handleDelete(scope.row)"
               >删除</el-button
             >
           </template>
         </el-table-column>
       </el-table>
+      <pagination
+        v-show="form.codeList.length > 0"
+        :total="form.codeList.length"
+        v-model:page="codeQueryParams.pageNum"
+        v-model:limit="codeQueryParams.pageSize"
+      />
     </div>
     <el-row> </el-row>
   </el-form>
 </template>
 
 <script setup>
-import { reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { listDpDataElem } from "@/api/std/dataElem/dataElem";
 import { listDpDataElemCode } from "@/api/std/dataElem/dataElem";
 const props = defineProps({
@@ -157,6 +163,16 @@ const formRef = ref(null);
 const form = reactive({ ...props.form });
 let dpDataElemCodeList = ref([]);
 let dpDataElemList = ref([]);
+const codeQueryParams = ref({
+  pageNum: 1,
+  pageSize: 6,
+});
+const pagedCodeList = computed(() => {
+  const list = form.codeList || [];
+  const start =
+    (codeQueryParams.value.pageNum - 1) * codeQueryParams.value.pageSize;
+  return list.slice(start, start + codeQueryParams.value.pageSize);
+});
 function handleCodeTableChange(id) {
   if (!id || id == -1) return;
   loading.value = true;
@@ -174,11 +190,19 @@ function loadCodeItemsByTableId(id) {
   }).then((res) => {
     dpDataElemCodeList.value = res.data.rows;
     form.codeList = res.data.rows;
+    codeQueryParams.value.pageNum = 1;
     loading.value = false;
   });
 }
-function handleDelete(row, index) {
-  form.codeList.splice(Number(index) - 1, 1);
+function handleDelete(row) {
+  const index = form.codeList.indexOf(row);
+  if (index !== -1) {
+    form.codeList.splice(index, 1);
+  }
+  const maxPage = Math.ceil(form.codeList.length / codeQueryParams.value.pageSize) || 1;
+  if (codeQueryParams.value.pageNum > maxPage) {
+    codeQueryParams.value.pageNum = maxPage;
+  }
 }
 function opencodeDialog() {
   // 新增一行空数据
@@ -186,6 +210,8 @@ function opencodeDialog() {
     codeValue: "",
     codeName: "",
   });
+  codeQueryParams.value.pageNum =
+    Math.ceil(form.codeList.length / codeQueryParams.value.pageSize) || 1;
 }
 function loadCodeTableList() {
   listDpDataElem({
@@ -207,6 +233,7 @@ function handleUseCodeTableChange(val) {
   } else {
     form.codeTableId = "";
     form.codeList = [];
+    codeQueryParams.value.pageNum = 1;
     dpDataElemList.value = [];
   }
 }

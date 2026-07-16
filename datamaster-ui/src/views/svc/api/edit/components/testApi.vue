@@ -172,6 +172,7 @@
 <script setup>
 import { queryServiceForwarding } from '@/api/svc/api/api.js';
 import { VAceEditor } from "vue3-ace-editor";
+import useUserStore from '@/store/system/user';
 const props = defineProps({
     data: {
         type: Object,
@@ -205,6 +206,7 @@ const props = defineProps({
     }
 });
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
 const { ds_api_bas_info_api_method_type, ds_api_param_type, ds_api_bas_info_res_data_type } =
     proxy.useDict(
         'ds_api_bas_info_api_method_type',
@@ -375,6 +377,8 @@ const handleCall = () => {
         id: props.data.apiId,
         headerJson: JSON.stringify(props.data.headerJson),
         transmitType: props.data.transmitType,
+        projectId: props.data.projectId || userStore.projectId || null,
+        projectCode: props.data.projectCode || userStore.projectCode || '',
         daAssetApi: props.data.daAssetApi,
         apiServiceType: props.data.apiServiceType,
         queryParams: {

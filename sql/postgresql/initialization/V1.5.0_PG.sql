@@ -9397,7 +9397,7 @@ COMMENT ON TABLE public.cat_task_scope IS 'cat_task_scope';
 DROP TABLE IF EXISTS public.message;
 
 CREATE TABLE public.message (
-  id integer NOT NULL,
+  id BIGINT NOT NULL,
   sender_id BIGINT,
   receiver_id BIGINT,
   title varchar NOT NULL,

@@ -34,6 +34,12 @@ public class ServiceApiReqVO{
     @Schema(description = "状态", example = "")
     private String status;
 
+    @Schema(description = "项目ID", example = "")
+    private Long projectId;
+
+    @Schema(description = "项目编码", example = "")
+    private String projectCode;
+
     private String startDate;
 
     private String endDate;

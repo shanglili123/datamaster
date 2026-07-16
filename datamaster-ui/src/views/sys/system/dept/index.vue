@@ -61,6 +61,8 @@
                </template>
             </el-table-column>
          </el-table>
+         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+            v-model:limit="queryParams.pageSize" @pagination="getList" />
       </div>
 
       <!-- 添加或修改部门对话框 -->
@@ -133,11 +135,14 @@ const title = ref("");
 const deptOptions = ref([]);
 const isExpandAll = ref(true);
 const refreshTable = ref(true);
+const total = ref(0);
 const data = reactive({
    form: {},
    queryParams: {
       deptName: undefined,
-      status: undefined
+      status: undefined,
+      pageNum: 1,
+      pageSize: 6
    },
    rules: {
       parentId: [{ required: true, message: "上级部门不能为空", trigger: "blur" }],
@@ -154,10 +159,19 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
    loading.value = true;
    listDept(queryParams.value).then(response => {
-      deptList.value = proxy.handleTree(response.data, "deptId");
+      const treeData = proxy.handleTree(response.data || [], "deptId");
+      total.value = treeData.length;
+      deptList.value = paginateTreeRoots(treeData);
       loading.value = false;
    });
 
+}
+
+function paginateTreeRoots(treeData) {
+   const pageNum = queryParams.value.pageNum || 1;
+   const pageSize = queryParams.value.pageSize || 6;
+   const start = (pageNum - 1) * pageSize;
+   return treeData.slice(start, start + pageSize);
 }
 
 /** 取消按钮 */
@@ -183,6 +197,7 @@ function reset() {
 
 /** 搜索按钮操作 */
 function handleQuery() {
+   queryParams.value.pageNum = 1;
    getList();
 }
 

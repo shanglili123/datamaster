@@ -14,12 +14,16 @@ import com.datamaster.common.httpClient.HeaderEntity;
 import com.datamaster.common.httpClient.HttpUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
 import com.datamaster.module.assets.api.service.assetchild.api.IAssetsApiOutService;
+import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiPageReqVO;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiReqVO;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiRespVO;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiSaveReqVO;
+import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetchild.api.AssetsAssetApiDO;
+import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.assets.dal.mapper.assetchild.api.AssetsAssetApiMapper;
 import com.datamaster.module.assets.service.assetchild.api.IAssetsAssetApiService;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
@@ -41,6 +45,10 @@ import java.util.stream.Collectors;
 public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper,AssetsAssetApiDO> implements IAssetsAssetApiService, IAssetsApiOutService {
     @Resource
     private AssetsAssetApiMapper AssetsAssetApiMapper;
+    @Resource
+    private AssetsAssetMapper assetsAssetMapper;
+    @Resource
+    private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
 
     @Override
     public PageResult<AssetsAssetApiDO> getAssetApiPage(AssetsAssetApiPageReqVO pageReqVO) {
@@ -169,7 +177,10 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
 
     @Override
     public void queryServiceForwarding(HttpServletResponse response, AssetsAssetApiReqVO AssetsAssetApi) {
-        this.executeServiceForwarding(response,AssetsAssetApi.getId(),AssetsAssetApi.getQueryParams());
+        Map<String, Object> queryParams = AssetsAssetApi.getQueryParams() == null ? new HashMap<>() : AssetsAssetApi.getQueryParams();
+        queryParams.put("projectId", AssetsAssetApi.getProjectId());
+        queryParams.put("projectCode", AssetsAssetApi.getProjectCode());
+        this.executeServiceForwarding(response,AssetsAssetApi.getId(),queryParams);
     }
 
     @Override
@@ -179,6 +190,7 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
 
         //判断api信息，例如是否启用等
         chackYapiConfig(AssetsAssetApiById);
+        checkAssetApiAccess(AssetsAssetApiById, queryParams);
 
         //取出Url
         String url = AssetsAssetApiById.getUrl();
@@ -209,6 +221,37 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
         //判断是否为null
         if (AssetsAssetApiById == null) {
             throw new DataQueryException("APIapi");
+        }
+    }
+
+    private void checkAssetApiAccess(AssetsAssetApiDO assetApi, Map<String, Object> queryParams) {
+        if (assetApi == null || assetApi.getAssetId() == null) {
+            return;
+        }
+        AssetsAssetDO asset = assetsAssetMapper.selectById(assetApi.getAssetId());
+        if (asset == null || asset.getDatasourceId() == null || StringUtils.isBlank(asset.getTableName())) {
+            return;
+        }
+        AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
+        reqDTO.setDatasourceId(asset.getDatasourceId());
+        reqDTO.setTableName(asset.getTableName());
+        reqDTO.setProjectId(toLong(MapUtils.getObject(queryParams, "projectId")));
+        reqDTO.setProjectCode(MapUtils.getString(queryParams, "projectCode"));
+        reqDTO.setEntrance("DATA_SERVICE_API_FORWARD");
+        assetsTableGovernanceApiService.checkTableAccess(reqDTO);
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.valueOf(String.valueOf(value));
+        } catch (Exception ignored) {
+            return null;
         }
     }
 

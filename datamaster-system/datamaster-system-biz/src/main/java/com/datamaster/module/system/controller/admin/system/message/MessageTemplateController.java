@@ -46,7 +46,6 @@ public class MessageTemplateController extends BaseController {
     @PreAuthorize("@ss.hasPermi('system:message:messageTemplate:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<MessageTemplateRespVO>> list(MessageTemplatePageReqVO messageTemplate) {
-        startPage();
         PageResult<MessageTemplateDO> page = messageTemplateService.getMessageTemplatePage(messageTemplate);
         return CommonResult.success(BeanUtils.toBean(page, MessageTemplateRespVO.class));
     }

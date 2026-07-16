@@ -10,6 +10,7 @@ public class AssetsDiscoveryColumnRespVO implements Serializable {
     private static final long serialVersionUID = 1L;
 @Excel(name = "ID")    @Schema(description = "ID")    private Long id;
 @Excel(name = "id")    @Schema(description = "id", example = "")    private Long taskId;
+@Schema(description = "数据源id", example = "")    private Long datasourceId;
 @Excel(name = "id")    @Schema(description = "id", example = "")    private Long tableId;
 @Excel(name = "/")    @Schema(description = "/", example = "")    private String columnName;
 @Excel(name = "/")    @Schema(description = "/", example = "")    private String columnComment;

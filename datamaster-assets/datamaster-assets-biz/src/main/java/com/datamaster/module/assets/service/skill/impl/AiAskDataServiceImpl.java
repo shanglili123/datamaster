@@ -1,7 +1,10 @@
 package com.datamaster.module.assets.service.skill.impl;
 
 import com.alibaba.fastjson2.JSON;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.datamaster.common.core.domain.entity.SysUser;
 import com.datamaster.common.exception.ServiceException;
+import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataPrepareReqVO;
@@ -11,14 +14,20 @@ import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataReportRes
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiAskDataSqlRespVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillRespVO;
+import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnPageReqVO;
 import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO;
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
+import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
+import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceProjectRelDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillReportTemplateDO;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
+import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapper;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
+import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceProjectRelMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillReportTemplateMapper;
 import com.datamaster.module.assets.model.dto.dbgpt.DbGptChatCompletionRequest;
@@ -55,7 +64,11 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     @Resource
     private AssetsDatasourceMapper assetsDatasourceMapper;
     @Resource
+    private AssetsDatasourceProjectRelMapper assetsDatasourceProjectRelMapper;
+    @Resource
     private AssetsAssetMapper assetsAssetMapper;
+    @Resource
+    private AssetsAssetColumnMapper assetsAssetColumnMapper;
 
     @Resource
     private IAiAskDataContextService aiAskDataContextService;
@@ -76,6 +89,10 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         String question = reqVO == null ? "" : reqVO.getQuestion();
         String keyword = reqVO == null ? "" : firstNonBlank(reqVO.getKeyword(), reqVO.getQuestion());
         AiSkillDO assetSkill = reqVO == null || reqVO.getAssetId() == null ? null : aiSkillMapper.selectByBizObject("TABLE", reqVO.getAssetId());
+        checkAskDataAssetAccess(reqVO == null ? null : reqVO.getAssetId(),
+                reqVO == null ? null : reqVO.getProjectId(),
+                reqVO == null ? null : reqVO.getProjectCode(),
+                "AI_ASK_DATA_PREPARE");
         List<AiSkillDO> skillList = mergeSkills(Collections.emptyList(), aiSkillMapper.selectPublishedByKeyword(keyword), assetSkill);
         List<AiSkillRespVO> skills = BeanUtils.toBean(skillList, AiSkillRespVO.class);
         AiAskDataPrepareRespVO respVO = new AiAskDataPrepareRespVO();
@@ -205,7 +222,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         String reply = "";
         try {
             DbGptChatCompletionResponse gptResponse = dbGptClientService.chatCompletionV1(gptRequest);
-            reply = extractReply(gptResponse);
+            reply = normalizeAskReply(extractReply(gptResponse));
         } catch (Exception e) {
             log.warn("DB-GPT原生问数调用失败：{}", e.getMessage());
             respVO.setQualityWarning(e.getMessage());
@@ -304,6 +321,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         if (reqVO.getDatasourceId() == null) {
             throw new ServiceException("数据源ID不能为空");
         }
+        checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getProjectId(), reqVO.getProjectCode());
         AiSkillReportTemplateDO template = resolveReportTemplate(reqVO);
         DbGptChatCompletionRequest gptRequest = buildDbGptReportRequest(reqVO, template);
 
@@ -417,6 +435,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         builder.append("不要输出分析过程、执行步骤、SQL查询过程、Python代码或HTML报告，只返回前端模板渲染需要的数据对象。\n");
         builder.append("返回字段必须满足模板 dataSchema.required 和 dataSchema.fields；图表和表格数据必须返回数组。\n");
         builder.append("字段路径必须按点号组织成嵌套对象，例如 metrics.totalOrderCount 必须返回为 {\"metrics\":{\"totalOrderCount\":...}}。\n");
+        appendMetricIntentRules(builder);
         if (Boolean.TRUE.equals(reqVO.getReturnSql())) {
             builder.append("本次需要在 JSON 的 sql 字段返回用于校验的 SELECT SQL。\n");
         } else {
@@ -496,31 +515,114 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     }
 
     private void checkAskDataGovernance(AiAskDataSqlReqVO reqVO) {
-        if (reqVO == null || reqVO.getAssetId() == null) {
+        if (reqVO == null) {
+            return;
+        }
+        if (reqVO.getAssetId() == null) {
+            checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getProjectId(), reqVO.getProjectCode());
             return;
         }
         AssetsAssetDO asset = assetsAssetMapper.selectById(reqVO.getAssetId());
         if (asset == null || asset.getDatasourceId() == null || StringUtils.isBlank(asset.getTableName())) {
             return;
         }
+        if (reqVO.getDatasourceId() != null && !reqVO.getDatasourceId().equals(asset.getDatasourceId())) {
+            throw new ServiceException("当前问数数据源与资产所属数据源不一致");
+        }
         AssetsTableGovernanceReqDTO governanceReq = new AssetsTableGovernanceReqDTO();
         governanceReq.setDatasourceId(asset.getDatasourceId());
         governanceReq.setTableName(asset.getTableName());
+        governanceReq.setProjectId(reqVO.getProjectId());
+        governanceReq.setProjectCode(reqVO.getProjectCode());
         governanceReq.setEntrance("AI_ASK_DATA");
         assetsTableGovernanceApiService.checkTableAccess(governanceReq);
+    }
+
+    private void checkAskDataAssetAccess(Long assetId, Long projectId, String projectCode, String entrance) {
+        if (assetId == null) {
+            return;
+        }
+        AssetsAssetDO asset = assetsAssetMapper.selectById(assetId);
+        if (asset == null || asset.getDatasourceId() == null || StringUtils.isBlank(asset.getTableName())) {
+            return;
+        }
+        AssetsTableGovernanceReqDTO governanceReq = new AssetsTableGovernanceReqDTO();
+        governanceReq.setDatasourceId(asset.getDatasourceId());
+        governanceReq.setTableName(asset.getTableName());
+        governanceReq.setProjectId(projectId);
+        governanceReq.setProjectCode(projectCode);
+        governanceReq.setEntrance(entrance);
+        assetsTableGovernanceApiService.checkTableAccess(governanceReq);
+    }
+
+    private void checkDatasourceAccess(Long datasourceId, Long projectId, String projectCode) {
+        if (datasourceId == null || (projectId == null && StringUtils.isBlank(projectCode))) {
+            return;
+        }
+        Long count = assetsDatasourceProjectRelMapper.selectCount(Wrappers.<AssetsDatasourceProjectRelDO>lambdaQuery()
+                .eq(AssetsDatasourceProjectRelDO::getDatasourceId, datasourceId)
+                .eq(projectId != null, AssetsDatasourceProjectRelDO::getProjectId, projectId)
+                .eq(StringUtils.isNotBlank(projectCode), AssetsDatasourceProjectRelDO::getProjectCode, projectCode));
+        if (count == null || count <= 0) {
+            throw new ServiceException("当前项目无权访问该数据源");
+        }
     }
 
     private String buildDbGptUserInput(AiAskDataSqlReqVO reqVO) {
         StringBuilder builder = new StringBuilder();
         builder.append("请基于已选择的数据库和可用知识库回答用户问题。");
         builder.append("默认由 DB-GPT 完成数据查询与分析，不要只返回待执行 SQL。");
+        builder.append("当前是问答模式，不要生成 HTML 页面，不要调用或输出 html_interpreter，不要返回 <!DOCTYPE html>、<html>、工具执行 JSON 或“报告已生成并渲染完成”等状态话术。");
+        builder.append("请直接用中文 Markdown 回答用户问题，严格围绕用户原始问题中的分析对象、维度和输出要求组织答案，不要擅自增加固定业务域。");
+        appendMetricIntentRules(builder);
+        appendDatasourceDialectRules(builder, reqVO);
+        appendCurrentUserPermission(builder);
         if (Boolean.TRUE.equals(reqVO.getReturnSql())) {
             builder.append("本次需要返回用于校验的 SQL，请在答案末尾用 ```sql 代码块附带实际使用或建议校验的 SELECT SQL。");
         } else {
             builder.append("本次不要求返回 SQL；除非无法回答且必须说明查询思路，否则不要输出 SQL。");
         }
         builder.append("\n\n用户问题：").append(reqVO.getQuestion());
+        appendAuthorizedAssetScope(builder, reqVO);
         return builder.toString();
+    }
+
+    private void appendDatasourceDialectRules(StringBuilder builder, AiAskDataSqlReqVO reqVO) {
+        if (reqVO == null || reqVO.getDatasourceId() == null) {
+            return;
+        }
+        AssetsDatasourceDO datasource = assetsDatasourceMapper.selectById(reqVO.getDatasourceId());
+        if (datasource == null) {
+            return;
+        }
+        String dbType = firstNonBlank(datasource.getDatasourceType()).toLowerCase(Locale.ROOT);
+        String dbName = firstNonBlank(datasource.getDatasourceName(), String.valueOf(datasource.getId()));
+        builder.append("\n\n【当前数据源方言】\n");
+        builder.append("- 数据源：").append(dbName).append("\n");
+        builder.append("- 数据库类型：").append(firstNonBlank(datasource.getDatasourceType(), "未知")).append("\n");
+        builder.append("- 生成、探测和执行 SQL 时必须使用当前数据库类型的语法，不得混用其他数据库的系统表。\n");
+        if (dbType.contains("mysql")) {
+            builder.append("- 当前是 MySQL。禁止使用 SQLite 的 `sqlite_master`、PostgreSQL 的 `pg_catalog`、Oracle 的 `all_tables`。\n");
+            builder.append("- 如需探测表，请使用 `information_schema.tables`，并按 `table_schema = database()` 或实际库名过滤。\n");
+            builder.append("- MySQL 分页使用 `LIMIT n` 或 `LIMIT offset, n`。\n");
+        } else if (dbType.contains("postgres") || dbType.contains("kingbase")) {
+            builder.append("- 当前是 PostgreSQL/Kingbase。禁止使用 SQLite 的 `sqlite_master` 和 MySQL 专属语法。\n");
+            builder.append("- 如需探测表，请使用 `information_schema.tables` 或 `pg_catalog.pg_tables`，分页使用 `LIMIT n OFFSET m`。\n");
+        } else if (dbType.contains("oracle")) {
+            builder.append("- 当前是 Oracle。禁止使用 SQLite 的 `sqlite_master` 和 MySQL 专属语法。\n");
+            builder.append("- 如需探测表，请使用 `all_tables`/`user_tables`，限制行数使用 `FETCH FIRST n ROWS ONLY`。\n");
+        } else if (dbType.contains("sqlserver") || dbType.contains("sql server")) {
+            builder.append("- 当前是 SQL Server。禁止使用 SQLite 的 `sqlite_master` 和 MySQL 专属语法。\n");
+            builder.append("- 如需探测表，请使用 `information_schema.tables` 或 `sys.tables`，限制行数使用 `TOP n` 或 `OFFSET/FETCH`。\n");
+        }
+    }
+
+    private void appendMetricIntentRules(StringBuilder builder) {
+        builder.append("\n\n【指标口径识别规则】\n");
+        builder.append("- 用户提到“销售量、销量、销售次数、订单量、租赁量、租赁次数、购买次数、交易次数、贡献 top10%”时，默认按数量/次数口径计算，");
+        builder.append("例如 COUNT(*)、COUNT(order_id/rental_id) 或 SUM(quantity)，不要用 SUM(amount/payment/price) 代替。\n");
+        builder.append("- 只有用户明确提到“销售额、消费金额、收入、GMV、金额、客单价、高价值用户”时，才按金额口径计算。\n");
+        builder.append("- “贡献 top10%”应先按用户问题中的指标聚合并降序排序，再取 top 10%；不得更换用户指定的指标口径。\n");
     }
 
     private String buildReturnSqlOnlyInput(AiAskDataSqlReqVO reqVO) {
@@ -528,10 +630,102 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         builder.append("请基于当前已选择的数据源生成一条可校验的只读 SELECT SQL。");
         builder.append("只返回 ```sql 代码块，不要返回查询结果、解释或 Markdown 之外的文本。");
         builder.append("必须使用数据库中真实存在的表名和字段名，必要时参考已选择知识库内容。");
-        builder.append("如果需要限制行数，请添加 LIMIT 1000。");
+        builder.append("如果需要限制行数，请使用当前数据库类型支持的分页/限行语法。");
+        appendMetricIntentRules(builder);
+        appendDatasourceDialectRules(builder, reqVO);
+        appendCurrentUserPermission(builder);
         appendSelectedSkillContext(builder, reqVO);
+        appendAuthorizedAssetScope(builder, reqVO);
         builder.append("\n\n用户问题：").append(reqVO.getQuestion());
         return builder.toString();
+    }
+
+    private void appendAuthorizedAssetScope(StringBuilder builder, AiAskDataSqlReqVO reqVO) {
+        if (reqVO == null || reqVO.getDatasourceId() == null || reqVO.getProjectId() == null) {
+            return;
+        }
+        List<AssetsAssetDO> assets = reqVO.getAssetId() != null
+                ? Collections.singletonList(assetsAssetMapper.selectById(reqVO.getAssetId()))
+                : assetsAssetMapper.findByDatasourceId(reqVO.getDatasourceId());
+        if (assets == null || assets.isEmpty()) {
+            return;
+        }
+        Long userPermissionLevel = currentUserDataPermissionLevel();
+        builder.append("\n\n【当前项目授权数据资产范围】\n");
+        builder.append("当前用户 data_permission_level：")
+                .append(userPermissionLevel == null ? "未配置，按运行时后端权限结果为准" : userPermissionLevel)
+                .append("。字段敏感等级小于该值时不可使用。\n");
+        int tableCount = 0;
+        for (AssetsAssetDO asset : assets) {
+            if (asset == null || StringUtils.isBlank(asset.getTableName())) {
+                continue;
+            }
+            AssetsTableGovernanceReqDTO governanceReq = new AssetsTableGovernanceReqDTO();
+            governanceReq.setDatasourceId(asset.getDatasourceId());
+            governanceReq.setTableName(asset.getTableName());
+            governanceReq.setProjectId(reqVO.getProjectId());
+            governanceReq.setProjectCode(reqVO.getProjectCode());
+            governanceReq.setEntrance("AI_ASK_DATA_SCOPE");
+            AssetsTableGovernanceRespDTO governance = assetsTableGovernanceApiService.resolveTable(governanceReq);
+            if (governance == null || Boolean.FALSE.equals(governance.getAccessAllowed())) {
+                continue;
+            }
+            AssetsAssetColumnPageReqVO columnReq = new AssetsAssetColumnPageReqVO();
+            columnReq.setAssetId(String.valueOf(asset.getId()));
+            columnReq.setProjectId(reqVO.getProjectId());
+            columnReq.setProjectCode(reqVO.getProjectCode());
+            List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.selectListByAuth(columnReq);
+            builder.append("- ").append(asset.getTableName()).append(": ");
+            if (columns == null || columns.isEmpty()) {
+                builder.append("字段未配置授权清单，请谨慎使用元数据字段");
+            } else {
+                builder.append(columns.stream()
+                        .filter(column -> isColumnVisibleForUser(column, userPermissionLevel))
+                        .map(AssetsAssetColumnDO::getColumnName)
+                        .filter(StringUtils::isNotBlank)
+                        .limit(80)
+                        .collect(java.util.stream.Collectors.joining(", ")));
+            }
+            builder.append("\n");
+            tableCount++;
+            if (tableCount >= 30) {
+                builder.append("- 其余授权资产已省略，请优先使用以上最相关表。\n");
+                break;
+            }
+        }
+        builder.append("只能使用以上当前项目授权的数据资产和字段回答，未列出的表字段不要生成或查询。\n");
+    }
+
+    private void appendCurrentUserPermission(StringBuilder builder) {
+        Long userPermissionLevel = currentUserDataPermissionLevel();
+        builder.append("\n\n【当前用户数据权限】\n");
+        if (userPermissionLevel == null) {
+            builder.append("- 当前用户未配置 data_permission_level，必须以服务端最终资产预览/查询权限结果为准。\n");
+        } else {
+            builder.append("- 当前用户 data_permission_level = ").append(userPermissionLevel).append("。数字越小权限越高：1=绝密、2=机密、3=秘密、4=内部、5=公开。\n");
+            builder.append("- 字段 sensitive_level_id 小于当前用户 data_permission_level 时，该字段不可查询、不可展示、不可用于过滤/排序/分组/统计和报告输出。\n");
+        }
+        builder.append("- 命中脱敏规则的字段只能使用脱敏后的值；隐藏字段不得反推或绕过。\n");
+    }
+
+    private Long currentUserDataPermissionLevel() {
+        try {
+            if (SecurityUtils.getLoginUser() == null) {
+                return null;
+            }
+            SysUser user = SecurityUtils.getLoginUser().getUser();
+            return user == null ? null : user.getDataPermissionLevel();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private boolean isColumnVisibleForUser(AssetsAssetColumnDO column, Long userPermissionLevel) {
+        if (column == null) {
+            return false;
+        }
+        return userPermissionLevel == null || column.getSensitiveLevelId() == null
+                || column.getSensitiveLevelId() >= userPermissionLevel;
     }
 
     private void appendSelectedSkillContext(StringBuilder builder, AiAskDataSqlReqVO reqVO) {
@@ -642,6 +836,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     private String buildSystemPrompt(String context) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("你是一个数据查询分析专家。根据以下数据库表结构信息和业务规则，将用户问题转化为SQL查询语句。\n\n");
+        appendCurrentUserPermission(prompt);
         prompt.append("【SQL生成规则】\n");
         prompt.append("1. 只生成SELECT查询语句，不允许INSERT/UPDATE/DELETE/CREATE/DROP/ALTER/TRUNCATE\n");
         prompt.append("2. 必须使用表结构中存在的字段名和表名\n");
@@ -664,6 +859,91 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         }
         DbGptChatCompletionResponse.Choice choice = response.getChoices().get(0);
         return choice.getMessage() != null ? choice.getMessage().getContent() : "";
+    }
+
+    private String normalizeAskReply(String reply) {
+        if (StringUtils.isBlank(reply)) {
+            return reply;
+        }
+        String cleaned = removeStepMetaBlocks(reply);
+        cleaned = removeHtmlInterpreterSummary(cleaned);
+        if (containsFullHtmlDocument(cleaned)) {
+            String text = htmlDocumentToPlainText(cleaned);
+            if (StringUtils.isNotBlank(text)) {
+                cleaned = text;
+            }
+        }
+        return cleaned.trim();
+    }
+
+    private String removeStepMetaBlocks(String text) {
+        String cleaned = text;
+        int guard = 0;
+        while (guard++ < 20) {
+            int start = cleaned.indexOf("{\"type\":\"step.meta\"");
+            if (start < 0) {
+                start = cleaned.indexOf("{\"type\": \"step.meta\"");
+            }
+            if (start < 0) {
+                break;
+            }
+            int htmlStart = indexOfIgnoreCase(cleaned, "<!DOCTYPE", start);
+            if (htmlStart < 0) {
+                htmlStart = indexOfIgnoreCase(cleaned, "<html", start);
+            }
+            int end = htmlStart >= 0 ? htmlStart : cleaned.indexOf('\n', start);
+            if (end < 0) {
+                return cleaned.substring(0, start).trim();
+            }
+            cleaned = cleaned.substring(0, start) + cleaned.substring(end);
+        }
+        return cleaned;
+    }
+
+    private boolean containsFullHtmlDocument(String text) {
+        return indexOfIgnoreCase(text, "<!DOCTYPE") >= 0 || indexOfIgnoreCase(text, "<html") >= 0;
+    }
+
+    private String htmlDocumentToPlainText(String html) {
+        int bodyStart = indexOfIgnoreCase(html, "<body");
+        String content = html;
+        if (bodyStart >= 0) {
+            int bodyOpenEnd = html.indexOf('>', bodyStart);
+            int bodyEnd = indexOfIgnoreCase(html, "</body>", bodyOpenEnd);
+            if (bodyOpenEnd >= 0) {
+                content = bodyEnd >= 0 ? html.substring(bodyOpenEnd + 1, bodyEnd) : html.substring(bodyOpenEnd + 1);
+            }
+        }
+        content = content.replaceAll("(?is)<script[\\s\\S]*?</script>", "");
+        content = content.replaceAll("(?is)<style[\\s\\S]*?</style>", "");
+        content = content.replaceAll("(?i)<br\\s*/?>", "\n");
+        content = content.replaceAll("(?i)</(h[1-6]|p|div|section|article|tr|li|table)>", "\n");
+        content = content.replaceAll("(?is)<[^>]+>", "");
+        content = content.replace("&nbsp;", " ")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&")
+                .replace("&quot;", "\"");
+        content = removeHtmlInterpreterSummary(content);
+        return content.replaceAll("[ \\t\\x0B\\f\\r]+", " ")
+                .replaceAll("\\n\\s*\\n\\s*\\n+", "\n\n")
+                .trim();
+    }
+
+    private String removeHtmlInterpreterSummary(String text) {
+        return text.replaceAll("(?is)✅\\s*[^\\n<]*?报告已生成并渲染完成。.*?所有内容已通过交互式\\s*HTML\\s*页面直观展示。?\\s*$", "")
+                .replaceAll("(?is)报告包含：\\s*[•\\-\\s\\S]*?所有内容已通过交互式\\s*HTML\\s*页面直观展示。?\\s*$", "");
+    }
+
+    private int indexOfIgnoreCase(String text, String needle) {
+        return indexOfIgnoreCase(text, needle, 0);
+    }
+
+    private int indexOfIgnoreCase(String text, String needle, int fromIndex) {
+        if (text == null || needle == null) {
+            return -1;
+        }
+        return text.toLowerCase(Locale.ROOT).indexOf(needle.toLowerCase(Locale.ROOT), Math.max(0, fromIndex));
     }
 
     private String extractSqlFromReply(String reply) {

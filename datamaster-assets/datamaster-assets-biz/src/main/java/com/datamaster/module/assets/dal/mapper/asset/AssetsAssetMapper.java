@@ -37,13 +37,17 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                         "t5.NAME AS dataDomainName",
                         "t5.ENG_NAME AS dataDomainEngName",
                         "t6.NAME AS themeDomainName",
-                        "t6.ENG_NAME AS themeDomainEngName")
+                        "t6.ENG_NAME AS themeDomainEngName",
+                        "COALESCE(t7.PROJECT_ID, t8.PROJECT_ID) AS projectId",
+                        "COALESCE(t7.PROJECT_CODE, t8.PROJECT_CODE) AS projectCode")
                 .leftJoin("TAX_ASSET_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'")
 
                 .leftJoin("MDL_DATA_LAYER t3 ON t.DATA_LAYER_ID = t3.id AND t3.DEL_FLAG = '0'")
                 .leftJoin("MDL_BUSINESS_CATEGORY t4 ON t.BUSINESS_CATEGORY_ID = t4.id AND t4.DEL_FLAG = '0'")
                 .leftJoin("MDL_DATA_DOMAIN t5 ON t.DATA_DOMAIN_ID = t5.id AND t5.DEL_FLAG = '0'")
-                .leftJoin("MDL_THEME_DOMAIN t6 ON t.THEME_DOMAIN_ID = t6.id AND t6.DEL_FLAG = '0'");
+                .leftJoin("MDL_THEME_DOMAIN t6 ON t.THEME_DOMAIN_ID = t6.id AND t6.DEL_FLAG = '0'")
+                .leftJoin("AST_ASSET_PROJECT_REL t7 on t.id = t7.ASSET_ID AND t7.DEL_FLAG = '0'")
+                .leftJoin("AST_DATASOURCE_PROJECT_REL t8 on t.DATASOURCE_ID = t8.DATASOURCE_ID");
 
         //增加标签筛选
         if (CollectionUtils.isNotEmpty(reqVO.getTagIdList())) {
@@ -133,6 +137,8 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                 .eq(reqVO.getDataDomainId() != null, AssetsAssetDO::getDataDomainId, reqVO.getDataDomainId())
                 .eq(reqVO.getThemeDomainId() != null, AssetsAssetDO::getThemeDomainId, reqVO.getThemeDomainId())
                 .likeRight(StringUtils.isNotBlank(reqVO.getThemeDomainCode()), AssetsAssetDO::getThemeDomainCode, reqVO.getThemeDomainCode())
+                .and(reqVO.getProjectId() != null, wrapper -> wrapper.eq("t7.PROJECT_ID", reqVO.getProjectId()).or().eq("t8.PROJECT_ID", reqVO.getProjectId()))
+                .and(StringUtils.isNotBlank(reqVO.getProjectCode()), wrapper -> wrapper.eq("t7.PROJECT_CODE", reqVO.getProjectCode()).or().eq("t8.PROJECT_CODE", reqVO.getProjectCode()))
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn()
                                                                                                                                                                                             .split(",")) : null);
         return selectJoinPage(reqVO, AssetsAssetDO.class, lambdaWrapper);
@@ -149,11 +155,15 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
             } catch (NumberFormatException ignored) {}
         }
         MPJLambdaWrapper<AssetsAssetDO> lambdaWrapper = new MPJLambdaWrapper();
+        boolean hasAssetIds = reqVO.getAssetIdList() != null && !reqVO.getAssetIdList().isEmpty();
+        boolean hasProjectId = reqVO.getProjectId() != null;
+        boolean hasProjectCode = StringUtils.isNotBlank(reqVO.getProjectCode());
         lambdaWrapper.selectAll(AssetsAssetDO.class)
                 .select("t2.NAME AS catName")
-                .select("t3.PROJECT_ID AS projectId,t3.PROJECT_CODE AS projectCode")
+                .select("COALESCE(t3.PROJECT_ID, t4.PROJECT_ID) AS projectId,COALESCE(t3.PROJECT_CODE, t4.PROJECT_CODE) AS projectCode")
                 .leftJoin("TAX_ASSET_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'")
                 .leftJoin("AST_ASSET_PROJECT_REL t3 on t.id = t3.ASSET_ID AND t3.DEL_FLAG = '0'")
+                .leftJoin("AST_DATASOURCE_PROJECT_REL t4 on t.DATASOURCE_ID = t4.DATASOURCE_ID")
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), AssetsAssetDO::getCatCode, reqVO.getCatCode())
                 .like(StringUtils.isNotBlank(reqVO.getName()), AssetsAssetDO::getName, reqVO.getName())
                 .eq(datasourceIdValue2 != null, AssetsAssetDO::getDatasourceId, datasourceIdValue2)
@@ -164,14 +174,19 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                 .eq(StringUtils.isNotBlank(reqVO.getDescription()), AssetsAssetDO::getDescription, reqVO.getDescription())
                 .in(reqVO.getThemeAssetIdList() != null && !reqVO.getThemeAssetIdList()
                         .isEmpty(), AssetsAssetDO::getId, reqVO.getThemeAssetIdList())
-                .and(wrapper -> wrapper
-                        .in(reqVO.getAssetIdList() != null && !reqVO.getAssetIdList()
-                                .isEmpty(), AssetsAssetDO::getId, reqVO.getAssetIdList())
-                        .or(inner -> inner
-                                .eq(reqVO.getProjectId() != null, "t3.PROJECT_ID", reqVO.getProjectId())
-                                .eq(StringUtils.isNotBlank(reqVO.getProjectCode()), "t3.PROJECT_CODE", reqVO.getProjectCode())
-                        )
-                )
+                .and(hasAssetIds || hasProjectId || hasProjectCode, wrapper -> {
+                    if (hasAssetIds) {
+                        wrapper.in(AssetsAssetDO::getId, reqVO.getAssetIdList());
+                    }
+                    if (hasProjectId || hasProjectCode) {
+                        if (hasAssetIds) {
+                            wrapper.or();
+                        }
+                        wrapper.and(projectWrapper -> projectWrapper
+                                .and(hasProjectId, idWrapper -> idWrapper.eq("t3.PROJECT_ID", reqVO.getProjectId()).or().eq("t4.PROJECT_ID", reqVO.getProjectId()))
+                                .and(hasProjectCode, codeWrapper -> codeWrapper.eq("t3.PROJECT_CODE", reqVO.getProjectCode()).or().eq("t4.PROJECT_CODE", reqVO.getProjectCode())));
+                    }
+                })
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn()
                                                                                                                                                                                             .split(",")) : null);
 

@@ -343,6 +343,7 @@ import {
 import { getToken } from "@/utils/auth.js";
 import { computed } from "vue";
 import DeptTree from "@/components/DeptTree";
+import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const { att_rule_audit_type, att_rule_level, att_rule_audit_q_dimension } =
   proxy.useDict(
@@ -468,8 +469,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listAttAuditRule({ ...queryParams.value, validFlag: 1 }).then((response) => {
-    attAuditRuleList.value = response.data.rows;
-    total.value = response.data.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    attAuditRuleList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }

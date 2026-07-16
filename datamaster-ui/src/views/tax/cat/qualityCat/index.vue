@@ -104,7 +104,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize"
         @pagination="getList" />
     </div>
 
@@ -179,6 +179,7 @@ import {
 } from '@/api/tax/cat/qualityCat/qualityCat.js';
 
 import useUserStore from '@/store/system/user';
+import { normalizePage, pageRows } from "@/utils/page.js";
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
 
@@ -195,6 +196,8 @@ const refreshTable = ref(true);
 const data = reactive({
   form: {},
   queryParams: {
+    pageNum: 1,
+    pageSize: 6,
     name: null,
     parentId: null
   },
@@ -212,8 +215,10 @@ function getList() {
   queryParams.value.projectId = userStore.projectId;
   queryParams.value.projectCode = userStore.projectCode;
   listAttQualityCat(queryParams.value).then((response) => {
-    attAssetCatList.value = proxy.handleTree(response.data, 'id');
-    // total.value = response.data.total;
+    const page = normalizePage(response);
+    const treeData = proxy.handleTree(page.rows, 'id');
+    total.value = treeData.length;
+    attAssetCatList.value = pageRows(treeData, total.value, queryParams.value);
     loading.value = false;
   });
 }

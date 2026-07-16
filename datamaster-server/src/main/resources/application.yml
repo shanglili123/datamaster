@@ -91,7 +91,7 @@ mybatis-plus-join:
   logic-del-type: on
 
 pagehelper:
-  helperDialect: mysql
+  helperDialect: postgresql
   supportMethodsArguments: true
   params: count=countSql
 

@@ -118,6 +118,7 @@
 import { ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { preview } from '@/api/ast/asset/assetColumn.js';
+import useUserStore from '@/store/system/user';
 import updateDataDialog from '../components/previewEdit.vue';
 import UpdateHistory from '../components/previewEditLog.vue';
 const props = defineProps({
@@ -128,6 +129,7 @@ const props = defineProps({
 });
 let tableRef = ref(null);
 const route = useRoute();
+const userStore = useUserStore();
 let assetId = route.query.id || 1;
 const { proxy } = getCurrentInstance();
 const tableColumns = ref([]);
@@ -258,7 +260,9 @@ function getListss() {
         filter: query.value,
         orderBy: orderBy.value,
         pageNum: pageNum.value,
-        pageSize: pageSize.value
+        pageSize: pageSize.value,
+        projectId: userStore.projectId,
+        projectCode: userStore.projectCode
     })
         .then((response) => {
             tableColumns.value = response.data.columns;

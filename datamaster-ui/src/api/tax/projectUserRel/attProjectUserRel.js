@@ -1,5 +1,6 @@
 ﻿
 import request from '@/utils/request';
+import useUserStore from '@/store/system/user';
 
 // 查询项目与用户关联关系列表
 export function listAttProjectUserRel(query) {
@@ -116,9 +117,12 @@ export function dataScope(data) {
 
 // 角色状态修改
 export function changeRoleStatus(roleId, status) {
+    const userStore = useUserStore();
     const data = {
         roleId,
-        status
+        status,
+        projectId: userStore.projectId,
+        projectCode: userStore.projectCode
     };
     return request({
         url: '/tax/projectUserRel/role/changeStatus',

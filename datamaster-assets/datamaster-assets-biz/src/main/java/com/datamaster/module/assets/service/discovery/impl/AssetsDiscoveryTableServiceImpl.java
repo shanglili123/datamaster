@@ -1,9 +1,11 @@
 package com.datamaster.module.assets.service.discovery.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,8 +16,10 @@ import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.module.assets.controller.admin.asset.vo.AssetsAssetPageReqVO;
 import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnSaveReqVO;
 import com.datamaster.module.assets.controller.admin.discovery.vo.*;
+import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.discovery.AssetsDiscoveryColumnDO;
 import com.datamaster.module.assets.dal.dataobject.discovery.AssetsDiscoveryTableDO;
+import com.datamaster.module.assets.dal.dataobject.discovery.AssetsDiscoveryTaskDO;
 import com.datamaster.module.assets.dal.mapper.discovery.AssetsDiscoveryTableMapper;
 import com.datamaster.module.assets.service.asset.IAssetsAssetService;
 import com.datamaster.module.assets.service.discovery.IAssetsDiscoveryColumnService;
@@ -28,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -59,10 +64,26 @@ public class AssetsDiscoveryTableServiceImpl  extends ServiceImpl<AssetsDiscover
 
     @Override
     public List<AssetsDiscoveryTableDO> getDaDiscoveryTableList(AssetsDiscoveryTablePageReqVO reqVO) {
+        List<Long> taskIds = new ArrayList<>();
+        if (reqVO.getDatasourceId() != null) {
+            List<AssetsDiscoveryTaskDO> taskList = IAssetsDiscoveryTaskService.list(
+                    Wrappers.<AssetsDiscoveryTaskDO>lambdaQuery()
+                            .eq(AssetsDiscoveryTaskDO::getDatasourceId, reqVO.getDatasourceId())
+                            .orderByDesc(AssetsDiscoveryTaskDO::getLastExecuteTime)
+                            .orderByDesc(AssetsDiscoveryTaskDO::getUpdateTime)
+                            .orderByDesc(AssetsDiscoveryTaskDO::getId)
+            );
+            if (CollectionUtils.isEmpty(taskList)) {
+                return new ArrayList<>();
+            }
+            taskIds = taskList.stream().map(AssetsDiscoveryTaskDO::getId).collect(Collectors.toList());
+        }
+        final List<Long> datasourceTaskIds = taskIds;
 
         MPJLambdaWrapper<AssetsDiscoveryTableDO> wrapper = new MPJLambdaWrapper<>();
         wrapper.selectAll(AssetsDiscoveryTableDO.class)
                 .eq(reqVO.getTaskId() != null, AssetsDiscoveryTableDO::getTaskId, reqVO.getTaskId())
+                .and(reqVO.getDatasourceId() != null, w -> w.eq(AssetsDiscoveryTableDO::getDatasourceId, reqVO.getDatasourceId()).or().in(AssetsDiscoveryTableDO::getTaskId, datasourceTaskIds))
                 .like(StringUtils.isNotBlank(reqVO.getTableName()), AssetsDiscoveryTableDO::getTableName, reqVO.getTableName())
                 .eq(StringUtils.isNotBlank(reqVO.getTableComment()), AssetsDiscoveryTableDO::getTableComment, reqVO.getTableComment())
                 .eq(StringUtils.isNotBlank(reqVO.getChangeFlag()), AssetsDiscoveryTableDO::getChangeFlag, reqVO.getChangeFlag())
@@ -75,7 +96,34 @@ public class AssetsDiscoveryTableServiceImpl  extends ServiceImpl<AssetsDiscover
                     .like(AssetsDiscoveryTableDO::getTableComment, reqVO.getKeyword()));
         }
 
-        return AssetsDiscoveryTableMapper.selectList(wrapper);
+        List<AssetsDiscoveryTableDO> tableList = AssetsDiscoveryTableMapper.selectList(wrapper);
+        markAssetCreated(reqVO.getDatasourceId(), tableList);
+        return tableList;
+    }
+
+    private void markAssetCreated(Long datasourceId, List<AssetsDiscoveryTableDO> tableList) {
+        if (datasourceId == null || tableList == null || tableList.isEmpty()) {
+            return;
+        }
+        List<AssetsAssetDO> assetList = IAssetsAssetService.list(
+                Wrappers.<AssetsAssetDO>lambdaQuery()
+                        .eq(AssetsAssetDO::getDatasourceId, datasourceId)
+                        .eq(AssetsAssetDO::getType, "1")
+        );
+        Map<String, AssetsAssetDO> assetMap = new HashMap<>();
+        for (AssetsAssetDO asset : assetList) {
+            if (asset.getTableName() != null && !assetMap.containsKey(asset.getTableName())) {
+                assetMap.put(asset.getTableName(), asset);
+            }
+        }
+        for (AssetsDiscoveryTableDO table : tableList) {
+            table.setDatasourceId(datasourceId);
+            AssetsAssetDO asset = assetMap.get(table.getTableName());
+            table.setAssetCreatedFlag(asset != null);
+            if (asset != null) {
+                table.setAssetId(asset.getId());
+            }
+        }
     }
 
     @Override

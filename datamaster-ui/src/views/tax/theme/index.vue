@@ -329,6 +329,7 @@ import {
     updateAttTheme
 } from '@/api/tax/theme/theme.js';
 import { getToken } from '@/utils/auth.js';
+import { normalizePage, pageRows } from "@/utils/page.js";
 const noDataImg = new URL('@/assets/system/images/D.png', import.meta.url).href
 const { proxy } = getCurrentInstance();
 const attThemeList = ref([]);
@@ -405,8 +406,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
     loading.value = true;
     listAttTheme(queryParams.value).then((response) => {
-        attThemeList.value = response.data.rows;
-        total.value = response.data.total;
+        const page = normalizePage(response);
+        total.value = page.total;
+        attThemeList.value = pageRows(page.rows, page.total, queryParams.value);
         loading.value = false;
     });
 }

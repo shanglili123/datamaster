@@ -206,6 +206,7 @@ import {
     treeselectDpp as menuTreeselect
 } from '@/api/system/system/menu.js';
 import useUserStore from '@/store/system/user';
+import { normalizePage, pageRows } from "@/utils/page.js";
 const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable');
@@ -273,8 +274,9 @@ function getList() {
     loading.value = true;
     if (queryParams.value.projectId) {
         listRole(proxy.addDateRange(queryParams.value, dateRange.value)).then((response) => {
-            roleList.value = response.rows;
-            total.value = response.total;
+            const page = normalizePage(response);
+            total.value = page.total;
+            roleList.value = pageRows(page.rows, page.total, queryParams.value);
             loading.value = false;
         });
     }
@@ -557,6 +559,7 @@ function handleDataScope(row) {
 /** 提交按钮（数据权限） */
 function submitDataScope() {
     if (form.value.roleId != undefined) {
+        form.value.projectId = userStore.projectId;
         form.value.deptIds = getDeptAllCheckedKeys();
         dataScope(form.value).then((response) => {
             proxy.$modal.msgSuccess('修改成功');

@@ -231,6 +231,7 @@
 
 <script setup name="MessageTemplate">
 import { listMessageTemplate, getMessageTemplate, delMessageTemplate, addMessageTemplate, updateMessageTemplate } from "@/api/system/system/message/messageTemplate";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 const { message_category, message_level } = proxy.useDict("message_category", "message_level");
@@ -276,8 +277,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listMessageTemplate(queryParams.value).then(response => {
-    messageTemplateList.value = response.data.rows;
-    total.value = response.data.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    messageTemplateList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }

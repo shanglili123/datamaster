@@ -3,6 +3,7 @@ package com.datamaster.module.assets.api.governance.dto;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class AssetsTableGovernanceRespDTO implements Serializable {
@@ -28,6 +29,8 @@ public class AssetsTableGovernanceRespDTO implements Serializable {
     private String tableName;
 
     private Boolean accessAllowed;
+
+    private List<String> deniedColumns;
 
     private String message;
 }

@@ -8,8 +8,12 @@ import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceResp
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.assets.config.TableGovernanceProperties;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
+import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
+import com.datamaster.module.assets.dal.dataobject.assetColumnProjectRel.AssetsAssetColumnProjectRelDO;
 import com.datamaster.module.assets.dal.dataobject.assetApply.AssetsAssetApplyDO;
 import com.datamaster.module.assets.dal.dataobject.assetchild.projectRel.AssetsAssetProjectRelDO;
+import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapper;
+import com.datamaster.module.assets.dal.mapper.assetColumnProjectRel.AssetsAssetColumnProjectRelMapper;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.assets.dal.mapper.assetApply.AssetsAssetApplyMapper;
 import com.datamaster.module.assets.dal.mapper.assetchild.projectRel.AssetsAssetProjectRelMapper;
@@ -19,8 +23,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -35,6 +43,10 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
     private TableGovernanceProperties properties;
     @Resource
     private AssetsAssetMapper assetsAssetMapper;
+    @Resource
+    private AssetsAssetColumnMapper assetsAssetColumnMapper;
+    @Resource
+    private AssetsAssetColumnProjectRelMapper assetsAssetColumnProjectRelMapper;
     @Resource
     private AssetsAssetProjectRelMapper assetsAssetProjectRelMapper;
     @Resource
@@ -138,6 +150,10 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
             return;
         }
         if (hasProjectRel(asset.getId(), reqDTO) || hasApprovedApply(asset.getId(), reqDTO)) {
+            checkColumnAccess(respDTO, reqDTO, asset);
+            if (Boolean.FALSE.equals(respDTO.getAccessAllowed())) {
+                return;
+            }
             respDTO.setAccessAllowed(true);
             respDTO.setMessage("命中数据资产，项目已授权");
             return;
@@ -161,5 +177,70 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
                 .eq(StringUtils.isNotBlank(reqDTO.getProjectCode()), AssetsAssetApplyDO::getProjectCode, reqDTO.getProjectCode())
                 .eq(AssetsAssetApplyDO::getStatus, APPLY_APPROVED));
         return count != null && count > 0;
+    }
+
+    private void checkColumnAccess(AssetsTableGovernanceRespDTO respDTO, AssetsTableGovernanceReqDTO reqDTO, AssetsAssetDO asset) {
+        if (reqDTO.getColumnNames() == null || reqDTO.getColumnNames().isEmpty()) {
+            return;
+        }
+        List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(asset.getId());
+        if (columns == null || columns.isEmpty()) {
+            return;
+        }
+        Long relCount = assetsAssetColumnProjectRelMapper.selectCount(Wrappers.<AssetsAssetColumnProjectRelDO>lambdaQuery()
+                .eq(AssetsAssetColumnProjectRelDO::getAssetId, asset.getId())
+                .eq(reqDTO.getProjectId() != null, AssetsAssetColumnProjectRelDO::getProjectId, reqDTO.getProjectId())
+                .eq(StringUtils.isNotBlank(reqDTO.getProjectCode()), AssetsAssetColumnProjectRelDO::getProjectCode, reqDTO.getProjectCode()));
+        if (relCount == null || relCount <= 0) {
+            return;
+        }
+        Set<String> requested = normalizeColumns(reqDTO.getColumnNames());
+        if (requested.isEmpty()) {
+            return;
+        }
+        List<Long> authorizedColumnIds = assetsAssetColumnProjectRelMapper.selectList(Wrappers.<AssetsAssetColumnProjectRelDO>lambdaQuery()
+                        .eq(AssetsAssetColumnProjectRelDO::getAssetId, asset.getId())
+                        .eq(reqDTO.getProjectId() != null, AssetsAssetColumnProjectRelDO::getProjectId, reqDTO.getProjectId())
+                        .eq(StringUtils.isNotBlank(reqDTO.getProjectCode()), AssetsAssetColumnProjectRelDO::getProjectCode, reqDTO.getProjectCode()))
+                .stream()
+                .map(AssetsAssetColumnProjectRelDO::getColumnId)
+                .collect(Collectors.toList());
+        Set<String> authorized = columns.stream()
+                .filter(column -> authorizedColumnIds.contains(column.getId()))
+                .map(AssetsAssetColumnDO::getColumnName)
+                .filter(StringUtils::isNotBlank)
+                .map(this::normalizeColumn)
+                .collect(Collectors.toSet());
+        List<String> denied = requested.stream()
+                .filter(column -> !authorized.contains(column))
+                .collect(Collectors.toList());
+        if (!denied.isEmpty()) {
+            respDTO.setAccessAllowed(false);
+            respDTO.setDeniedColumns(new ArrayList<>(denied));
+            respDTO.setMessage("当前项目无权访问字段：" + String.join(",", denied));
+        }
+    }
+
+    private Set<String> normalizeColumns(List<String> columns) {
+        Set<String> result = new HashSet<>();
+        for (String column : columns) {
+            String normalized = normalizeColumn(column);
+            if (StringUtils.isNotBlank(normalized) && !normalized.contains("(") && !"*".equals(normalized)) {
+                result.add(normalized);
+            }
+        }
+        return result;
+    }
+
+    private String normalizeColumn(String column) {
+        if (StringUtils.isBlank(column)) {
+            return "";
+        }
+        String value = column.trim();
+        int dotIndex = value.lastIndexOf('.');
+        if (dotIndex >= 0 && dotIndex < value.length() - 1) {
+            value = value.substring(dotIndex + 1);
+        }
+        return value.replace("\"", "").replace("`", "").toLowerCase(Locale.ROOT);
     }
 }

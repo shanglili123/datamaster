@@ -429,7 +429,9 @@ import {
 import { getToken } from "@/utils/auth.js";
 import DeptTree from "@/components/DeptTree";
 import { listAttApiCat } from "@/api/svc/apiCat/apiCat";
+import useUserStore from "@/store/system/user";
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
 const {
   ds_api_log_status,
   ds_api_bas_info_api_service_type,
@@ -534,7 +536,7 @@ function normalizePageData(response) {
 }
 
 function handleNodeClick(data) {
-  queryParams.value.catCode = data.code;
+  queryParams.value.catCode = data.code || data.value || "";
   handleQuery();
 }
 
@@ -556,6 +558,8 @@ function getApiCatList() {
 function getList() {
   loading.value = true;
   queryParams.value.params = {};
+  queryParams.value.projectId = userStore.projectId || null;
+  queryParams.value.projectCode = userStore.projectCode || "";
   if (null != daterangeCreateTime && "" != daterangeCreateTime) {
     queryParams.value.params["beginCreateTime"] = daterangeCreateTime.value[0];
     queryParams.value.params["endCreateTime"] = daterangeCreateTime.value[1];

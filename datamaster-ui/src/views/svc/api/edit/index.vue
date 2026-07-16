@@ -89,9 +89,11 @@ import Parameter from '@/views/svc/api/edit/components/parameter.vue';
 import Test from '@/views/svc/api/edit/components/simulation.vue';
 import { getCurrentInstance, reactive, ref, toRefs, watch } from 'vue';
 import testapi from '@/views/svc/api/edit/components/testApi.vue';
+import useUserStore from '@/store/system/user';
 const components = { Base, Parameter, Test };
 const { proxy } = getCurrentInstance();
 const router = useRouter();
+const userStore = useUserStore();
 
 const {
     ds_api_log_status,
@@ -334,6 +336,8 @@ function submitForm() {
             params.reqParams = JSON.stringify(params.executeConfig.reqParams);
             params.headerJson = JSON.stringify(params.executeConfig.headerJson);
             params.configJson = JSON.stringify(params.executeConfig);
+            params.projectId = params.projectId || userStore.projectId || null;
+            params.projectCode = params.projectCode || userStore.projectCode || '';
             if (form1.value.id) {
                 //删除创建、更新时间字段
                 delete params.createTime;

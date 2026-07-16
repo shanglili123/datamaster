@@ -192,6 +192,7 @@
 
 <script setup name="Config">
 import { listConfig, getConfig, delConfig, addConfig, updateConfig, refreshCache } from "@/api/system/system/config.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 const { sys_yes_no } = proxy.useDict("sys_yes_no");
@@ -229,8 +230,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listConfig(proxy.addDateRange(queryParams.value, dateRange.value)).then(response => {
-    configList.value = response.rows;
-    total.value = response.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    configList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }

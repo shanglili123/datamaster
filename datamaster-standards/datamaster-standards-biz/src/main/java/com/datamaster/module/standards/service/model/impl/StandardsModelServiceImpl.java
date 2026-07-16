@@ -180,25 +180,25 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
      */
     @Override
     public boolean updateElementAssetRelation(StandardsDataElemAssetRelReqDTO StandardsDataElemAssetRel) {
-        boolean save = false;
         Long assetId = StandardsDataElemAssetRel.getAssetId();
         iDpDataElemAssetRelService.lambdaUpdate()
                 .eq(StandardsDataElemAssetRelDO::getAssetId, assetId)
                 .remove();
         Set<Long> elementIds = StandardsDataElemAssetRel.getElementIds();
-        List<StandardsDataElemAssetRelDO> StandardsDataElemAssetRelDOList = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(elementIds)) {
-            StandardsDataElemAssetRelDOList = elementIds.stream().map(item -> {
-                StandardsDataElemAssetRelDO StandardsDataElemAssetRelDO = new StandardsDataElemAssetRelDO();
-                StandardsDataElemAssetRelDO.setAssetId(String.valueOf(assetId));//资产id
-                StandardsDataElemAssetRelDO.setDataElemId(String.valueOf(item));//数据元id
-                StandardsDataElemAssetRelDO.setDataElemType("1");//是数据元
-                StandardsDataElemAssetRelDO.setTableName(StandardsDataElemAssetRel.getTableName());
-                StandardsDataElemAssetRelDO.setColumnId(String.valueOf(StandardsDataElemAssetRel.getColumnId()));
-                StandardsDataElemAssetRelDO.setColumnName(StandardsDataElemAssetRel.getColumnName());
-                return StandardsDataElemAssetRelDO;
-            }).collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(elementIds)) {
+            return true;
         }
+        boolean save = false;
+        List<StandardsDataElemAssetRelDO> StandardsDataElemAssetRelDOList = elementIds.stream().map(item -> {
+            StandardsDataElemAssetRelDO StandardsDataElemAssetRelDO = new StandardsDataElemAssetRelDO();
+            StandardsDataElemAssetRelDO.setAssetId(String.valueOf(assetId));//资产id
+            StandardsDataElemAssetRelDO.setDataElemId(String.valueOf(item));//数据元id
+            StandardsDataElemAssetRelDO.setDataElemType("1");//是数据元
+            StandardsDataElemAssetRelDO.setTableName(StandardsDataElemAssetRel.getTableName());
+            StandardsDataElemAssetRelDO.setColumnId(String.valueOf(StandardsDataElemAssetRel.getColumnId()));
+            StandardsDataElemAssetRelDO.setColumnName(StandardsDataElemAssetRel.getColumnName());
+            return StandardsDataElemAssetRelDO;
+        }).collect(Collectors.toList());
         for (StandardsDataElemAssetRelDO StandardsDataElemAssetRelDO : StandardsDataElemAssetRelDOList) {
             save = iDpDataElemAssetRelService.save(StandardsDataElemAssetRelDO);
         }

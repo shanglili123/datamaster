@@ -25,6 +25,7 @@ public interface AssetsDiscoveryTableMapper extends BaseMapperX<AssetsDiscoveryT
         // 构造动态查询条件
         return selectPage(reqVO, new LambdaQueryWrapperX<AssetsDiscoveryTableDO>()
                 .eqIfPresent(AssetsDiscoveryTableDO::getTaskId, reqVO.getTaskId())
+                .eqIfPresent(AssetsDiscoveryTableDO::getDatasourceId, reqVO.getDatasourceId())
                 .likeIfPresent(AssetsDiscoveryTableDO::getTableName, reqVO.getTableName())
                 .eqIfPresent(AssetsDiscoveryTableDO::getTableComment, reqVO.getTableComment())
                 .eqIfPresent(AssetsDiscoveryTableDO::getDataCount, reqVO.getDataCount())

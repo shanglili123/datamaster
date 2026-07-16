@@ -78,8 +78,8 @@
                 <div class="border-item-head">
                     <span class="head-title">规则列表</span>
                 </div>
-                <div class="border-item-body" style="height: 320px;">
-                    <el-table stripe height="300px" v-loading="loading" :data="ruleList" lazy :show-overflow-tooltip="{effect: 'light'}">
+                <div class="border-item-body" style="height: 360px;">
+                    <el-table stripe height="300px" v-loading="loading" :data="pagedRuleList" lazy :show-overflow-tooltip="{effect: 'light'}">
                         <el-table-column v-if="getColumnVisibility(8)" label="评测名称" align="center"
                             :show-overflow-tooltip="{effect: 'light'}">
                             <template #default="scope">
@@ -125,6 +125,12 @@
                             </template>
                         </el-table-column>
                     </el-table>
+                    <pagination
+                        v-show="ruleList.length > 0"
+                        :total="ruleList.length"
+                        v-model:page="ruleQueryParams.pageNum"
+                        v-model:limit="ruleQueryParams.pageSize"
+                    />
                 </div>
             </div>
         </el-row>
@@ -137,7 +143,7 @@
 <script setup>
 import * as echarts from 'echarts';
 import { useRoute } from 'vue-router';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import moment from 'moment';
 const { proxy } = getCurrentInstance();
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
@@ -181,6 +187,14 @@ const rangeOptions = [
 ];
 
 const ruleList = ref([]);
+const ruleQueryParams = ref({
+    pageNum: 1,
+    pageSize: 6,
+});
+const pagedRuleList = computed(() => {
+    const start = (ruleQueryParams.value.pageNum - 1) * ruleQueryParams.value.pageSize;
+    return ruleList.value.slice(start, start + ruleQueryParams.value.pageSize);
+});
 const overallScore = ref();
 const summaryList = ref([]);
 const loading = ref(false);
@@ -347,6 +361,7 @@ const loadRuleTable = async (id) => {
         } else {
             ruleList.value = [];
         }
+        ruleQueryParams.value.pageNum = 1;
     } catch (err) {
         console.warn('规则列表失败', err);
     } finally {

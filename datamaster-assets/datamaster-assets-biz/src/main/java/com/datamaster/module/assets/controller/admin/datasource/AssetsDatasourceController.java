@@ -26,14 +26,17 @@ import com.datamaster.module.taxonomy.api.project.dto.TaxonomyProjectReqDTO;
 import com.datamaster.module.taxonomy.api.project.dto.TaxonomyProjectRespDTO;
 import com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO;
 import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnRelRuleVO;
+import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnPageReqVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourcePageReqVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceRespVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceSaveReqVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceTableVO;
 import com.datamaster.module.assets.convert.datasource.AssetsDatasourceConvert;
+import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
 import com.datamaster.module.assets.service.asset.IAssetsAssetService;
+import com.datamaster.module.assets.service.assetColumn.IAssetsAssetColumnService;
 import com.datamaster.module.assets.service.dbgpt.IDbGptDatasourceSyncService;
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceService;
 import com.datamaster.module.assets.service.datasource.impl.AssetsDatasourceServiceImpl;
@@ -54,6 +57,7 @@ import java.util.*;
 public class AssetsDatasourceController extends BaseController {
     private final IAssetsDatasourceService AssetsDatasourceService;
     private final IAssetsAssetService AssetsAssetService;
+    private final IAssetsAssetColumnService assetsAssetColumnService;
     private final IDbGptDatasourceSyncService dbGptDatasourceSyncService;
 
     @Operation(summary = "查询数据源列表")
@@ -260,6 +264,21 @@ public class AssetsDatasourceController extends BaseController {
     @PostMapping(value = "/columnsAsAssetColumnList")
     public CommonResult<List<AssetsAssetColumnDO>> columnsAsAssetColumnList(@RequestBody @Valid AssetsDatasourceTableVO param) {
         List<AssetsAssetColumnDO> columns = AssetsDatasourceService.columnsAsAssetColumnList(param.getId(), param.getTableName());
+        boolean columnAuthScoped = param.getProjectId() != null || StringUtils.isNotEmpty(param.getProjectCode());
+        if (columnAuthScoped) {
+            List<AssetsAssetDO> assets = AssetsAssetService.getAssetByDataSourceId(param.getId(), param.getTableName());
+            if (!assets.isEmpty()) {
+                List<AssetsAssetColumnDO> authorizedColumns = new ArrayList<>();
+                for (AssetsAssetDO asset : assets) {
+                    AssetsAssetColumnPageReqVO columnReqVO = new AssetsAssetColumnPageReqVO();
+                    columnReqVO.setAssetId(String.valueOf(asset.getId()));
+                    columnReqVO.setProjectId(param.getProjectId());
+                    columnReqVO.setProjectCode(param.getProjectCode());
+                    authorizedColumns.addAll(assetsAssetColumnService.getAssetColumnList(columnReqVO));
+                }
+                columns = authorizedColumns;
+            }
+        }
         if (param.getWithRule() == null) {
             return CommonResult.success(columns);
         }

@@ -41,6 +41,7 @@
 
         <div class="pagecont-bottom pagecont-bottoms">
           <div class="justify-between mb15">
+            <div></div>
             <div class="justify-end top-right-btn">
               <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
             </div>
@@ -116,7 +117,7 @@
             </template>
           </el-table>
 
-          <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+          <pagination :total="total || 0" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
         </div>
       </el-main>
@@ -382,13 +383,13 @@ import {
   listDaAssetApply,
   getDaAssetApply,
   delDaAssetApply,
-  addDaAssetApply,
   updateDaAssetApply,
 } from "@/api/ast/assetApply/assetApply";
 import { listAttProject } from "@/api/tax/project/project.js";
 import { getToken } from "@/utils/auth.js";
 import { listAttAssetCat } from "@/api/tax/cat/assetCat/assetCat.js";
 import DeptTree from "@/components/DeptTree";
+import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const { da_asset_apply_status, datasource_type } = proxy.useDict(
   "da_asset_apply_status",
@@ -453,7 +454,7 @@ const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 6,
+    pageSize: 10,
     assetId: null,
     assetName: null,
     projectId: null,
@@ -477,7 +478,7 @@ const data = reactive({
 const { queryParams, form, rules } = toRefs(data);
 
 function handleNodeClick(data) {
-  queryParams.value.catAssetCode = data.code;
+  queryParams.value.catAssetCode = data.code || data.value || "";
   handleQuery();
 }
 
@@ -524,8 +525,9 @@ function getAssetCat() {
 function getList() {
   loading.value = true;
   listDaAssetApply(queryParams.value).then((response) => {
-    assetApplyList.value = response.data.rows;
-    total.value = response.data.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    assetApplyList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }
@@ -591,13 +593,6 @@ function handleSortChange({ column, prop, order }) {
   getList();
 }
 
-/** 新增按钮操作 */
-function handleAdd() {
-  reset();
-  open.value = true;
-  title.value = "添加数据资产申请";
-}
-
 /** 修改按钮操作 */
 function handleUpdate(row) {
   reset();
@@ -632,14 +627,6 @@ function submitForm() {
         updateDaAssetApply(form.value)
           .then((response) => {
             proxy.$modal.msgSuccess("修改成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
-      } else {
-        addDaAssetApply(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess("新增成功");
             open.value = false;
             getList();
           })

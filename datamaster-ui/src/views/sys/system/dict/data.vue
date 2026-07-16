@@ -207,6 +207,7 @@
 import useDictStore from '@/store/system/dict.js'
 import { optionselect as getDictOptionselect, getType } from "@/api/system/system/dict/type.js";
 import { listData, getData, delData, addData, updateData } from "@/api/system/system/dict/data.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
@@ -271,8 +272,9 @@ function getTypeList() {
 function getList() {
   loading.value = true;
   listData(queryParams.value).then(response => {
-    dataList.value = response.rows;
-    total.value = response.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    dataList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }

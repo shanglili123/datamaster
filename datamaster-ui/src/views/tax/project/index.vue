@@ -489,6 +489,7 @@ import {
 // import { deptUserTree } from "@/api/system/system/user.js";
 import { getToken } from "@/utils/auth.js";
 import { deptUserTree } from "@/api/system/system/user.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 const { dp_model_status } = proxy.useDict("dp_model_status");
@@ -566,9 +567,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listAttProject(queryParams.value).then((response) => {
-    attProjectList.value = response.data.rows;
-    console.log(response.data.rows, "response.data.rows");
-    total.value = response.data.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    attProjectList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
   deptUserTree().then((response) => {

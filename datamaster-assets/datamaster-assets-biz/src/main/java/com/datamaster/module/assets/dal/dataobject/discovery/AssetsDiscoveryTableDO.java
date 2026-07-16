@@ -23,8 +23,16 @@ public class AssetsDiscoveryTableDO extends BaseEntity {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-/** id */
+    /** id */
     private Long taskId;
+
+    private Long datasourceId;
+
+    @TableField(exist = false)
+    private Long assetId;
+
+    @TableField(exist = false)
+    private Boolean assetCreatedFlag;
 
     /**  */
     private String tableName;

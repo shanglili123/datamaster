@@ -99,6 +99,8 @@
                </template>
             </el-table-column>
          </el-table>
+         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
+            v-model:limit="queryParams.pageSize" @pagination="getList" />
       </div>
 
       <!-- 添加或修改菜单对话框 -->
@@ -325,12 +327,15 @@ const menuOptions = ref([]);
 const isExpandAll = ref(false);
 const refreshTable = ref(true);
 const iconSelectRef = ref(null);
+const total = ref(0);
 
 const data = reactive({
   form: {},
   queryParams: {
     menuName: undefined,
-    visible: undefined
+    visible: undefined,
+    pageNum: 1,
+    pageSize: 6
   },
   rules: {
     menuName: [{ required: true, message: "菜单名称不能为空", trigger: "blur" }],
@@ -345,9 +350,18 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listMenu(queryParams.value).then(response => {
-    menuList.value = proxy.handleTree(response.data, "menuId");
+    const treeData = proxy.handleTree(response.data || [], "menuId");
+    total.value = treeData.length;
+    menuList.value = paginateTreeRoots(treeData);
     loading.value = false;
   });
+}
+
+function paginateTreeRoots(treeData) {
+  const pageNum = queryParams.value.pageNum || 1;
+  const pageSize = queryParams.value.pageSize || 6;
+  const start = (pageNum - 1) * pageSize;
+  return treeData.slice(start, start + pageSize);
 }
 
 /** 查询菜单下拉树结构 */
@@ -395,6 +409,7 @@ function selected(name) {
 
 /** 搜索按钮操作 */
 function handleQuery() {
+  queryParams.value.pageNum = 1;
   getList();
 }
 

@@ -167,6 +167,7 @@
 
 <script setup name="Post">
 import { listPost, addPost, delPost, getPost, updatePost } from "@/api/system/system/post.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
@@ -203,8 +204,9 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listPost(queryParams.value).then(response => {
-    postList.value = response.rows;
-    total.value = response.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    postList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }

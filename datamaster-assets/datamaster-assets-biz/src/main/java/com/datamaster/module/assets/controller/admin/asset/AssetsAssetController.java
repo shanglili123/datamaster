@@ -24,6 +24,7 @@ import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.common.utils.poi.ExcelUtil;
+import java.util.Set;
 import com.datamaster.module.taxonomy.api.Rel.dto.TaxonomyTagAssetRelReqDTO;
 import com.datamaster.module.taxonomy.api.Rel.dto.TaxonomyTagAssetRelRespDTO;
 import com.datamaster.module.taxonomy.api.service.cat.tag.ITaxonomyTagApiService;
@@ -225,11 +226,18 @@ public class AssetsAssetController extends BaseController {
 // List<Map<String, Object>> dataMaskingList = AssetsAssetService.dataMasking(Long.valueOf(jsonObject.getStr("id")), (List<Map<String, Object>>) columnData.get("tableData"));
 
 //1.数据资产  2.数据查询
-        List<Map<String, Object>> dataMaskingList = AssetsAssetService.dataMaskings(Long.valueOf(jsonObject.getStr("id")), (List<Map<String, Object>>) columnData.get("tableData"), sysUser.getUserId(), "1");
+        List<Map<String, Object>> dataMaskingList = AssetsAssetService.dataMaskings(Long.valueOf(jsonObject.getStr("id")), (List<Map<String, Object>>) columnData.get("tableData"), sysUser.getUserId(), "1", sysUser.getDataPermissionLevel());
         if (dataMaskingList == null) {
             return error("请检查资产字段与数据表字段是否一致");
         }
         columnData.put("tableData", dataMaskingList);
+        if (dataMaskingList != null && !dataMaskingList.isEmpty()) {
+            Set<String> visibleKeys = dataMaskingList.get(0).keySet();
+            List<Map<String, Object>> columns = (List<Map<String, Object>>) columnData.get("columns");
+            if (columns != null) {
+                columns.removeIf(col -> !visibleKeys.contains(col.get("field")));
+            }
+        }
         return success(columnData);
     }
 

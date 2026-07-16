@@ -31,6 +31,8 @@ public class AssetsAssetColumnRespVO implements Serializable {
 @Excel(name = "")    @Schema(description = "", example = "")    private String relCleanFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private String relAuditFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private String description;
+@Schema(description = "项目id", example = "")    private Long projectId;
+@Schema(description = "项目编码", example = "")    private String projectCode;
 @Excel(name = "")    @Schema(description = "", example = "")    private Boolean validFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private Boolean delFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private String createBy;

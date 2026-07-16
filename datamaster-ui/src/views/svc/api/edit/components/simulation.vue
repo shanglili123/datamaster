@@ -144,7 +144,9 @@
 
 <script setup>
 import { serviceTesting } from '@/api/svc/api/api.js';
+import useUserStore from '@/store/system/user';
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
 const { ds_api_bas_info_api_method_type, ds_api_param_type, ds_api_bas_info_res_data_type,  da_api_param_operator } =
     proxy.useDict(
         'ds_api_bas_info_api_method_type',
@@ -301,6 +303,8 @@ function handleCall() {
     delete params.resParams;
     delete params.createTime;
     delete params.updateTime;
+    params.projectId = params.projectId || userStore.projectId || null;
+    params.projectCode = params.projectCode || userStore.projectCode || '';
     // 根据请求方法 (GET / POST) 进行处理
     if (props.form.reqMethod === '1') {
         // 使用 serviceTesting 来模拟 GET 请求

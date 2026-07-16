@@ -413,6 +413,7 @@
         treeselectNoDpp as menuTreeselect,
         roleMenuTreeselectNoDpp
     } from '@/api/system/system/menu.js';
+    import { normalizePage, pageRows } from "@/utils/page.js";
 
     const router = useRouter();
     const { proxy } = getCurrentInstance();
@@ -470,8 +471,9 @@
     function getList() {
         loading.value = true;
         listRole(proxy.addDateRange(queryParams.value, dateRange.value)).then((response) => {
-            roleList.value = response.rows;
-            total.value = response.total;
+            const page = normalizePage(response);
+            total.value = page.total;
+            roleList.value = pageRows(page.rows, page.total, queryParams.value);
             loading.value = false;
         });
     }

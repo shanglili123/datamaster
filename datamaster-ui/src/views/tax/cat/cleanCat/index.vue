@@ -96,7 +96,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
+      <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize"
         @pagination="getList" />
     </div>
 
@@ -164,6 +164,7 @@
 <script setup name="CleanCat">
 import { listAttCleanCat, getAttCleanCat, delAttCleanCat, addAttCleanCat, updateAttCleanCat } from "@/api/tax/cat/cleanCat/cleanCat.js";
 import { getToken } from "@/utils/auth.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const AttCleanCatList = ref([]);
 const attAssetCatOptions = ref([]);
@@ -241,8 +242,10 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listAttCleanCat(queryParams.value).then(response => {
-    AttCleanCatList.value = proxy.handleTree(response.data, 'id');
-    // total.value = response.data.length;
+    const page = normalizePage(response);
+    const treeData = proxy.handleTree(page.rows, 'id');
+    total.value = treeData.length;
+    AttCleanCatList.value = pageRows(treeData, total.value, queryParams.value);
     loading.value = false;
   });
 }

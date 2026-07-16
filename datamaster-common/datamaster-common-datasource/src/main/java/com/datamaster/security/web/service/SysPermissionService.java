@@ -38,7 +38,7 @@ public class SysPermissionService
     {
         Set<String> roles = new HashSet<String>();
         // 管理员拥有所有权限
-        if (user.isAdmin())
+        if (user.isAdmin() || hasAdminRole(user.getRoles()))
         {
             roles.add("admin");
         }
@@ -59,7 +59,7 @@ public class SysPermissionService
     {
         Set<String> perms = new HashSet<String>();
         // 管理员拥有所有权限
-        if (user.isAdmin())
+        if (user.isAdmin() || hasAdminRole(user.getRoles()))
         {
             perms.add("*:*:*");
         }
@@ -82,5 +82,21 @@ public class SysPermissionService
             }
         }
         return perms;
+    }
+
+    private boolean hasAdminRole(List<SysRole> roles)
+    {
+        if (CollectionUtils.isEmpty(roles))
+        {
+            return false;
+        }
+        for (SysRole role : roles)
+        {
+            if (role != null && role.isAdmin())
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

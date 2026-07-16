@@ -28,11 +28,30 @@ public interface AssetsAssetColumnMapper extends BaseMapperX<AssetsAssetColumnDO
         MPJLambdaWrapper<AssetsAssetColumnDO> lambdaQueryWrapper = new MPJLambdaWrapper();
         lambdaQueryWrapper.selectAll(AssetsAssetColumnDO.class)
                 .select("t2.SENSITIVE_LEVEl as sensitiveLevelName")
+                .select("t3.PROJECT_ID AS projectId,t3.PROJECT_CODE AS projectCode")
                 .leftJoin("AST_SENSITIVE_LEVEL t2 on t.SENSITIVE_LEVEL_ID = t2.ID AND t2.DEL_FLAG = '0'")
+                .leftJoin("AST_ASSET_COLUMN_PROJECT_REL t3 on t.ID = t3.COLUMN_ID AND t3.DEL_FLAG = '0'")
                 .eq(StringUtils.isNotBlank(reqVO.getAssetId()),AssetsAssetColumnDO::getAssetId, reqVO.getAssetId())
+                .eq(reqVO.getProjectId() != null, "t3.PROJECT_ID", reqVO.getProjectId())
+                .eq(StringUtils.isNotBlank(reqVO.getProjectCode()), "t3.PROJECT_CODE", reqVO.getProjectCode())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         // 构造动态查询条件
         return selectJoinPage(reqVO, AssetsAssetColumnDO.class, lambdaQueryWrapper);
+    }
+
+    default List<AssetsAssetColumnDO> selectListByAuth(AssetsAssetColumnPageReqVO reqVO) {
+        MPJLambdaWrapper<AssetsAssetColumnDO> lambdaQueryWrapper = new MPJLambdaWrapper();
+        lambdaQueryWrapper.selectAll(AssetsAssetColumnDO.class)
+                .select("t2.SENSITIVE_LEVEl as sensitiveLevelName")
+                .select("t3.PROJECT_ID AS projectId,t3.PROJECT_CODE AS projectCode")
+                .leftJoin("AST_SENSITIVE_LEVEL t2 on t.SENSITIVE_LEVEL_ID = t2.ID AND t2.DEL_FLAG = '0'")
+                .leftJoin("AST_ASSET_COLUMN_PROJECT_REL t3 on t.ID = t3.COLUMN_ID AND t3.DEL_FLAG = '0'")
+                .eq(StringUtils.isNotBlank(reqVO.getAssetId()), AssetsAssetColumnDO::getAssetId, reqVO.getAssetId())
+                .eq(StringUtils.isNotBlank(reqVO.getSensitiveLevelId()), AssetsAssetColumnDO::getSensitiveLevelId, reqVO.getSensitiveLevelId())
+                .eq(reqVO.getProjectId() != null, "t3.PROJECT_ID", reqVO.getProjectId())
+                .eq(StringUtils.isNotBlank(reqVO.getProjectCode()), "t3.PROJECT_CODE", reqVO.getProjectCode())
+                .orderByAsc(AssetsAssetColumnDO::getId);
+        return selectJoinList(AssetsAssetColumnDO.class, lambdaQueryWrapper);
     }
 
     int updateAssetColumn(AssetsAssetColumnDO AssetsAssetColumnDO);

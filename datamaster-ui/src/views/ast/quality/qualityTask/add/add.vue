@@ -300,7 +300,7 @@
                 </el-col>
               </el-row>
             </div>
-            <el-table stripe height="500px" :data="dppQualityTaskObjSaveReqVO">
+            <el-table stripe height="500px" :data="pagedQualityTaskObjects">
               <el-table-column label="序号" type="index" align="center" />
               <el-table-column
                 label="稽查对象名称"
@@ -366,7 +366,7 @@
                     link
                     type="primary"
                     icon="Edit"
-                    @click="openDialog(scope.row, scope.$index + 1)"
+                    @click="openDialog(scope.row, getObjectGlobalIndex(scope.$index) + 1)"
                     >修改</el-button
                   >
                   <el-button
@@ -379,6 +379,12 @@
                 </template>
               </el-table-column>
             </el-table>
+            <pagination
+              v-show="dppQualityTaskObjSaveReqVO.length > 0"
+              :total="dppQualityTaskObjSaveReqVO.length"
+              v-model:page="objectQueryParams.pageNum"
+              v-model:limit="objectQueryParams.pageSize"
+            />
           </div>
           <div v-loading="loadingList" v-show="activeReult == 2">
             <div class="clearfix header-text" style="margin-top: 10px">
@@ -480,7 +486,7 @@
             <el-table
               stripe
               height="450px"
-              :data="dppQualityTaskEvaluateSaveReqVO"
+              :data="pagedQualityTaskEvaluates"
             >
               <el-table-column label="序号" type="index" align="center" />
               <el-table-column
@@ -563,19 +569,25 @@
                     link
                     type="primary"
                     icon="Edit"
-                    @click="openRuleDialog(scope.row, scope.$index + 1)"
+                    @click="openRuleDialog(scope.row, getRuleOriginIndex(scope.row) + 1)"
                     >修改</el-button
                   >
                   <el-button
                     link
                     type="danger"
                     icon="Delete"
-                    @click="handleRuleDelete(scope.$index + 1)"
+                    @click="handleRuleDelete(scope.row)"
                     >删除</el-button
                   >
                 </template>
               </el-table-column>
             </el-table>
+            <pagination
+              v-show="dppQualityTaskEvaluateSaveReqVO.length > 0"
+              :total="dppQualityTaskEvaluateSaveReqVO.length"
+              v-model:page="queryParams.pageNum"
+              v-model:limit="queryParams.pageSize"
+            />
           </div>
         </div>
         <div class="button-style">
@@ -619,7 +631,7 @@
 </template>
 
 <script setup name="qualityTask">
-import { ref, reactive, toRefs, onMounted } from "vue";
+import { ref, reactive, toRefs, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import InspectionTargetDialog from "../components/inspectionTarget.vue";
 import RuleSelectorDialog from "../components/ruleBase.vue";
@@ -632,9 +644,11 @@ import {
 } from "@/api/ast/quality/qualityTask";
 import Crontab from "@/components/Crontab/index.vue";
 import { getColumnByAssetId } from "@/api/col/task/index.js";
+import useUserStore from "@/store/system/user";
 import { treeData } from "../data.js";
 const { proxy } = getCurrentInstance();
 const route = useRoute();
+const userStore = useUserStore();
 const loading = ref(false);
 const showSearch = ref(true);
 let id = route.query.id || "";
@@ -649,6 +663,10 @@ const {
   "col_etl_task_execution_type"
 );
 let dppQualityTaskObjSaveReqVO = ref([]);
+const objectQueryParams = ref({
+  pageNum: 1,
+  pageSize: 6,
+});
 // 图标
 const getDatasourceIcon = (type) => {
   switch (type) {
@@ -689,9 +707,38 @@ let loadingInstance = ref(null); // 全局 loading 实例
 let originList = ref([]);
 
 const dppQualityTaskEvaluateSaveReqVO = ref([...originList.value]);
+const pagedQualityTaskObjects = computed(() => {
+  const start =
+    (objectQueryParams.value.pageNum - 1) * objectQueryParams.value.pageSize;
+  return dppQualityTaskObjSaveReqVO.value.slice(
+    start,
+    start + objectQueryParams.value.pageSize
+  );
+});
+const pagedQualityTaskEvaluates = computed(() => {
+  const start = (queryParams.value.pageNum - 1) * queryParams.value.pageSize;
+  return dppQualityTaskEvaluateSaveReqVO.value.slice(
+    start,
+    start + queryParams.value.pageSize
+  );
+});
+function getObjectGlobalIndex(pageIndex) {
+  return (
+    (objectQueryParams.value.pageNum - 1) * objectQueryParams.value.pageSize +
+    pageIndex
+  );
+}
+function getRuleOriginIndex(row) {
+  return originList.value.indexOf(row);
+}
 
 let loadingList = ref(false);
 const handleQuery = () => {
+  queryParams.value.pageNum = 1;
+  applyRuleFilter();
+};
+
+function applyRuleFilter() {
   dppQualityTaskEvaluateSaveReqVO.value = originList.value.filter((item) => {
     if (queryParams.value.name && !item.name.includes(queryParams.value.name))
       return false;
@@ -707,7 +754,7 @@ const handleQuery = () => {
     }
     return true;
   });
-};
+}
 function renameRuleToRuleConfig(data, obj) {
   return data
     .filter(
@@ -750,6 +797,8 @@ async function selectInspectionRule() {
           withRule: 1,
           id: item.datasourceId,
           tableName: item.tableName,
+          projectId: userStore.projectId,
+          projectCode: userStore.projectCode,
         });
 
         if (res?.data?.length) {
@@ -778,7 +827,7 @@ async function selectInspectionRule() {
               addedCount++;
             }
           });
-          dppQualityTaskEvaluateSaveReqVO.value = [...originList.value];
+          applyRuleFilter();
 
           if (addedCount > 0) {
             ElMessage.success(
@@ -802,11 +851,13 @@ async function selectInspectionRule() {
 
 const resetQuery = () => {
   queryParams.value = {
+    pageNum: 1,
+    pageSize: 6,
     name: "",
-    qualityDim: "",
+    dimensionType: "",
     publishStatus: "",
   };
-  dppQualityTaskEvaluateSaveReqVO.value = [...originList.value];
+  applyRuleFilter();
 };
 let deptOptions = ref([]);
 
@@ -861,7 +912,7 @@ const data = reactive({
     pageNum: 1,
     pageSize: 6,
     name: "",
-    qualityDim: "",
+    dimensionType: "",
     publishStatus: "",
   },
   stepsList: [
@@ -901,10 +952,12 @@ function handleDelete(row) {
     proxy.$message.warning("删除失败，字段未找到");
   }
 }
-function handleRuleDelete(index) {
-  const realIndex = Number(index) - 1;
-  originList.value.splice(realIndex, 1);
-  dppQualityTaskEvaluateSaveReqVO.value = originList.value;
+function handleRuleDelete(row) {
+  const realIndex = originList.value.indexOf(row);
+  if (realIndex !== -1) {
+    originList.value.splice(realIndex, 1);
+  }
+  applyRuleFilter();
 }
 async function handleNextStep() {
   try {
@@ -972,7 +1025,7 @@ function RuleSelectorconfirm(obj, mode) {
     list.push(obj);
   }
 
-  dppQualityTaskEvaluateSaveReqVO.value = list;
+  applyRuleFilter();
   ruleSelectorDialog.value.closeDialog();
 }
 
@@ -1080,9 +1133,7 @@ async function getDppQualityTaskinfo() {
     originList.value = Array.isArray(taskEvaluateList)
       ? [...taskEvaluateList]
       : [];
-    dppQualityTaskEvaluateSaveReqVO.value = Array.isArray(taskEvaluateList)
-      ? [...taskEvaluateList]
-      : [];
+    applyRuleFilter();
     code(taskObjList);
     Object.assign(form.value, obj);
     if (form.value.contactId != null && form.value.contactId !== "") {

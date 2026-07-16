@@ -4,7 +4,7 @@ package com.datamaster.module.system.controller.admin.system.message.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import com.datamaster.common.core.domain.BaseEntity;
+import com.datamaster.common.core.page.PageParam;
 
 import java.util.Date;
 
@@ -16,7 +16,7 @@ import java.util.Date;
  */
 @Schema(description = "消息 Request VO")
 @Data
-public class MessagePageReqVO extends BaseEntity {
+public class MessagePageReqVO extends PageParam {
 
     private static final long serialVersionUID = 1L;
 

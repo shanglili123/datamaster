@@ -53,7 +53,12 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
             throw new ServiceException("只有已发布Skill可以同步到DB-GPT");
         }
         ensureSkillSpace();
-        syncSkill(skill);
+        try {
+            syncSkill(skill);
+        } catch (Exception e) {
+            markFailed(skill, e.getMessage());
+            throw e;
+        }
         return AjaxResult.success("Skill已同步到DB-GPT知识库：" + skill.getDbgptDocumentName());
     }
 
@@ -94,12 +99,16 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
         String fileName = skill.getSkillCode() + "-v" + (skill.getVersion() == null ? 1 : skill.getVersion()) + ".md";
         String content = buildDocument(skill);
         String docId = dbGptClientService.uploadDocumentToKnowledge(spaceId, fileName, content);
-        if (docId != null) {
-            try {
-                dbGptClientService.syncDocument(spaceId, docId);
-            } catch (Exception e) {
-                log.warn("文档向量化同步触发失败（文档已上传，稍后可在DB-GPT手动同步）: {}", e.getMessage());
-            }
+        if (StringUtils.isBlank(docId)) {
+            docId = dbGptClientService.findDocumentIdByName(spaceId, fileName);
+        }
+        if (StringUtils.isBlank(docId)) {
+            throw new ServiceException("DB-GPT文档上传后未返回文档ID，且知识库中未找到文档：" + fileName);
+        }
+        dbGptClientService.syncDocument(spaceId, docId);
+        String verifiedDocId = dbGptClientService.findDocumentIdByName(spaceId, fileName);
+        if (StringUtils.isBlank(verifiedDocId)) {
+            throw new ServiceException("DB-GPT文档同步后未在知识库中找到文档：" + fileName);
         }
         skill.setDbgptSpaceName(dbGptProperties.getSkillSpaceName());
         skill.setDbgptDocumentName(fileName);

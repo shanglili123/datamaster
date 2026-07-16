@@ -52,10 +52,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
         if (StringUtils.isEmpty(pageReqVO.getAssetId())) {//资产id不能为空
             return AjaxResult.error("id");
         }
-        List<AssetsAssetColumnDO> list = this.lambdaQuery()
-                .eq(AssetsAssetColumnDO::getAssetId, pageReqVO.getAssetId())
-                .orderByAsc(AssetsAssetColumnDO::getId)
-                .list();
+        List<AssetsAssetColumnDO> list = AssetsAssetColumnMapper.selectListByAuth(pageReqVO);
 
         for (AssetsAssetColumnDO AssetsAssetColumnDO : list) {
             Set<Long> dpDataElemListByAssetIdApi = iStandardsModelApiService.getDpDataElemListByAssetIdAndColumnId(AssetsAssetColumnDO.getAssetId(), AssetsAssetColumnDO.getId());
@@ -69,10 +66,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
 
     @Override
     public List<AssetsAssetColumnDO> getAssetColumnList(AssetsAssetColumnPageReqVO pageReqVO) {
-        MPJLambdaWrapper<AssetsAssetColumnDO> lambdaWrapper = new MPJLambdaWrapper();
-        lambdaWrapper.eq(StringUtils.isNotEmpty(pageReqVO.getAssetId()), AssetsAssetColumnDO::getAssetId, pageReqVO.getAssetId())
-                .eq(StringUtils.isNotEmpty(pageReqVO.getSensitiveLevelId()), AssetsAssetColumnDO::getSensitiveLevelId, pageReqVO.getSensitiveLevelId());
-        return AssetsAssetColumnMapper.selectList(lambdaWrapper);
+        return AssetsAssetColumnMapper.selectListByAuth(pageReqVO);
     }
 
     @Override

@@ -20,6 +20,9 @@ public class AssetsDiscoveryColumnPageReqVO extends PageParam {
     @Schema(description = "id", example = "")
     private Long taskId;
 
+    @Schema(description = "数据源id", example = "")
+    private Long datasourceId;
+
     @Schema(description = "id", example = "")
     private Long tableId;
 

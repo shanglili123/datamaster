@@ -7762,7 +7762,7 @@ COMMENT ON COLUMN public.mdl_theme_domain.project_code IS '项目编码';
 DROP TABLE IF EXISTS public.message;
 
 CREATE TABLE public.message (
-  id integer NOT NULL,
+  id BIGINT NOT NULL,
   sender_id bigint,
   receiver_id bigint,
   title varchar NOT NULL,

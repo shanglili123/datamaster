@@ -236,6 +236,7 @@ import { getToken } from '@/utils/auth.js';
 import useUserStore from '@/store/system/user';
 import { addUserAndProject, noProjectUser } from '@/api/tax/project/project.js';
 import { ref } from 'vue';
+import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_user_sex } = proxy.useDict(
   'sys_normal_disable',
@@ -349,8 +350,9 @@ function getList() {
   loading.value = true;
   if (queryParams.value.projectId) {
     listAttProjectUserRel(queryParams.value).then((response) => {
-      AttProjectUserRelList.value = response.data.rows;
-      total.value = response.data.total;
+      const page = normalizePage(response);
+      total.value = page.total;
+      AttProjectUserRelList.value = pageRows(page.rows, page.total, queryParams.value);
       loading.value = false;
     });
     addUserAndProject(queryParams.value.projectId).then((response) => {
@@ -362,9 +364,10 @@ function getList() {
 function getListUser() {
   loadingUser.value = true;
   noProjectUser(queryParamsUser.value).then((response) => {
-    userList.value = response.rows;
+    const page = normalizePage(response);
+    userList.value = pageRows(page.rows, page.total, queryParamsUser.value);
     openTwo.value = true;
-    totalUser.value = response.total;
+    totalUser.value = page.total;
     loadingUser.value = false;
     console.log(userList.value, 'userList');
 
@@ -410,7 +413,7 @@ function handleSelectionChangeUser(selection) {
 function getRoleList() {
   if (queryParams.value.projectId) {
     listRole(queryParams.value).then((response) => {
-      roleList.value = response.rows;
+      roleList.value = normalizePage(response).rows;
       console.log(roleList.value, 'roleList');
     });
   }

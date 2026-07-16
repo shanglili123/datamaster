@@ -166,7 +166,7 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
      */
     List<Long> createAssetBatchNew(List<AssetsAssetSaveReqVO> AssetsAssetList);
 
-    List<Map<String, Object>> dataMaskings(Long id, List<Map<String, Object>> tableData, Long userId, String scene);
+    List<Map<String, Object>> dataMaskings(Long id, List<Map<String, Object>> tableData, Long userId, String scene, Long userPermissionLevel);
 
     List<AssetsAssetDO> getAssetByDataSourceId(Long DataSourceId, String tableName);
 }

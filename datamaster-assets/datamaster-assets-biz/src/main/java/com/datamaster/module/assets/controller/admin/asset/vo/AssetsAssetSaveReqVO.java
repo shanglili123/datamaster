@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import com.datamaster.common.core.domain.BaseEntity;
 import com.datamaster.common.database.core.FileInfo;
+import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnSaveReqVO;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamSaveReqVO;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiSaveReqVO;
 import com.datamaster.module.assets.controller.admin.assetchild.files.vo.AssetsAssetFilesSaveReqVO;
@@ -124,7 +125,6 @@ public class AssetsAssetSaveReqVO extends BaseEntity {
     private String description;
 
     @Schema(description = "", example = "")
-    @Size(max = 256, message = "256")
     private String remark;
 
     //api
@@ -168,4 +168,7 @@ public class AssetsAssetSaveReqVO extends BaseEntity {
 
     @Schema(description = "", example = "")
     private String createType;
+
+    @TableField(exist = false)
+    private List<AssetsAssetColumnSaveReqVO> assetColumnList;
 }

@@ -148,6 +148,11 @@
                 <span>{{ parseTime(scope.row.createTime) }}</span>
               </template>
             </el-table-column>
+            <el-table-column label="数据权限" align="center" key="dataPermissionLevel" prop="dataPermissionLevel">
+              <template #default="scope">
+                <span>{{ dataPermissionLevelLabel(scope.row.dataPermissionLevel) }}</span>
+              </template>
+            </el-table-column>
             <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
               <template #default="scope">
                 <!-- <el-tooltip content="修改" placement="top" v-if="scope.row.userId !== 1">
@@ -273,6 +278,16 @@
           </el-col>
         </el-row>
         <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="数据权限" prop="dataPermissionLevel">
+              <el-select v-model="form.dataPermissionLevel" placeholder="请选择数据权限等级">
+                <el-option v-for="item in dataPermissionLevelOptions" :key="item.value" :label="item.label"
+                  :value="item.value"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="备注">
               <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
@@ -335,6 +350,7 @@ import {
   deptTreeSelect,
 } from "@/api/system/system/user.js";
 import { computed } from "vue";
+import { normalizePage, pageRows } from "@/utils/page.js";
 const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_user_sex } = proxy.useDict(
@@ -448,6 +464,20 @@ const leftWidth = ref(300); // 初始左侧宽度
 const isResizing = ref(false); // 判断是否正在拖拽
 let startX = 0; // 鼠标按下时的初始位置
 
+// 数据权限等级选项
+const dataPermissionLevelOptions = [
+  { value: 1, label: '绝密' },
+  { value: 2, label: '机密' },
+  { value: 3, label: '秘密' },
+  { value: 4, label: '内部' },
+  { value: 5, label: '公开' },
+];
+
+function dataPermissionLevelLabel(level) {
+  const opt = dataPermissionLevelOptions.find(item => item.value === level);
+  return opt ? opt.label : '未知';
+}
+
 const startResize = (event) => {
   isResizing.value = true;
   startX = event.clientX;
@@ -544,8 +574,9 @@ function getList() {
   listUser(proxy.addDateRange(queryParams.value, dateRange.value)).then(
     (res) => {
       loading.value = false;
-      userList.value = res.rows;
-      total.value = res.total;
+      const { rows, total: rowTotal } = normalizePage(res);
+      total.value = rowTotal;
+      userList.value = pageRows(rows, rowTotal, queryParams.value);
     }
   );
 }
@@ -759,6 +790,7 @@ function reset() {
     remark: undefined,
     postIds: [],
     roleIds: [],
+    dataPermissionLevel: 5,
   };
   proxy.resetForm("userRef");
 }

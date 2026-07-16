@@ -247,15 +247,20 @@ const form = ref({
   sourceType: "0",
   name: "",
   themeIdList: [],
-  status: "1",
-  description: "",
-  source: "3",
+    status: "1",
+    description: "",
+    remark: "",
+    source: "3",
   // 1
   tableName: "",
+  tableId: null,
   datasourceId: "",
   tableComment: "",
   datasourceType: "",
   dbname: "",
+  dataCount: null,
+  fieldCount: null,
+  assetColumnList: [],
   // 2
   daAssetApi: {
     appName: "",
@@ -483,6 +488,7 @@ function getFormDataByType(type) {
     status: form.value.status,
     createType: form.value.createType,
     description: form.value.description,
+    remark: form.value.remark,
     source: form.value.source,
     id: form.value.id,
     themeIdList: form.value.themeIdList,
@@ -493,10 +499,14 @@ function getFormDataByType(type) {
       return {
         ...commonFields,
         tableName: form.value.tableName,
+        tableId: form.value.tableId,
         datasourceId: form.value.datasourceId,
         tableComment: form.value.tableComment,
         datasourceType: form.value.datasourceType,
         dbname: form.value.dbname,
+        dataCount: form.value.dataCount,
+        fieldCount: form.value.fieldCount,
+        assetColumnList: form.value.assetColumnList || [],
       };
     case "2":
       return {
@@ -608,14 +618,12 @@ const saveData = async () => {
         let payload = {
           ...form.value,
         };
-        if (props.type == 1) {
-          payload.projectCode = userStore.projectCode;
-          payload.projectId = userStore.projectId;
-        }
+        payload.projectCode = userStore.projectCode;
+        payload.projectId = userStore.projectId;
         await addDaAsset({
           ...payload,
         });
-        proxy.$modal.msgSuccess("新增成功");
+        proxy.$modal.msgSuccess("新增成功，已提交审核");
       }
       emit("update:visible", false);
       emit("confirm", form.value);
@@ -638,13 +646,18 @@ const clearForm = () => {
     status: '1',
     createType: "2",
     description: "",
+    remark: "",
     source: "3",
     // 1
     tableName: "",
+    tableId: null,
     datasourceId: "",
     tableComment: "",
     datasourceType: "",
     dbname: "",
+    dataCount: null,
+    fieldCount: null,
+    assetColumnList: [],
     // 2
     daAssetApi: {
       appName: "",

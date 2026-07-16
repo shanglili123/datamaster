@@ -145,8 +145,10 @@ import moment from 'moment';
 import {
     getColumnByAssetId,
 } from '@/api/col/task/index.js';
+import useUserStore from '@/store/system/user';
 let id = route.query.id || '';
 const router = useRouter();
+const userStore = useUserStore();
 const { att_rule_audit_q_dimension, ast_discovery_task_status, col_etl_task_execution_type } = proxy.useDict(
 
     'att_rule_audit_q_dimension', 'ast_discovery_task_status', 'col_etl_task_execution_type'
@@ -332,7 +334,9 @@ async function selectInspectionRule() {
                 const res = await getColumnByAssetId({
                     withRule: 1,
                     id: item.datasourceId,
-                    tableName: item.tableName
+                    tableName: item.tableName,
+                    projectId: userStore.projectId,
+                    projectCode: userStore.projectCode
                 });
 
                 if (res?.data?.length) {

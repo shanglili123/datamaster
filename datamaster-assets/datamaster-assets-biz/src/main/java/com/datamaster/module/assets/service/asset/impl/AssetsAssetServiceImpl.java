@@ -20,6 +20,7 @@ import com.datamaster.common.constant.CacheConstants;
 import com.datamaster.common.constant.Constants;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.domain.TreeData;
+import com.datamaster.common.core.page.PageParam;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.core.redis.RedisCache;
 import com.datamaster.common.database.DataSourceFactory;
@@ -34,6 +35,7 @@ import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.ExcelToCsvUtil;
 import com.datamaster.common.utils.PageUtil;
+import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.file.FileDataReaderUtil;
 import com.datamaster.common.utils.object.BeanUtils;
@@ -47,6 +49,7 @@ import com.datamaster.module.assets.controller.admin.asset.vo.AssetsAssetSaveReq
 import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnPageReqVO;
 import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnRelRuleVO;
 import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnSaveReqVO;
+import com.datamaster.module.assets.controller.admin.assetColumnProjectRel.vo.AssetsAssetColumnProjectRelSaveReqVO;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamRespVO;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiParamSaveReqVO;
 import com.datamaster.module.assets.controller.admin.assetchild.api.vo.AssetsAssetApiRespVO;
@@ -78,6 +81,7 @@ import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper
 import com.datamaster.module.assets.dal.mapper.sensitiveLevel.AssetsSensitiveLevelMapper;
 import com.datamaster.module.assets.service.asset.IAssetsAssetService;
 import com.datamaster.module.assets.service.assetColumn.IAssetsAssetColumnService;
+import com.datamaster.module.assets.service.assetColumnProjectRel.IAssetsAssetColumnProjectRelService;
 import com.datamaster.module.assets.service.assetchild.api.IAssetsAssetApiParamService;
 import com.datamaster.module.assets.service.assetchild.api.IAssetsAssetApiService;
 import com.datamaster.module.assets.service.assetchild.files.IAssetsAssetFilesService;
@@ -175,6 +179,8 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     private IAssetsAssetApiParamService IAssetsAssetApiParamService;
     @Resource
     private IAssetsAssetProjectRelService IAssetsAssetProjectRelService;
+    @Resource
+    private IAssetsAssetColumnProjectRelService assetsAssetColumnProjectRelService;
     @Resource
     private IAssetsAssetGeoService IAssetsAssetGeoService;
     @Resource
@@ -359,8 +365,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         if (StringUtils.isEmpty(pageReqVO.getDatasourceId())) {
             throw new ServiceException("id");
         }
-        Long datasourceId = Long.valueOf(pageReqVO.getDatasourceId());
-        return this.lambdaQuery().eq(AssetsAssetDO::getDatasourceId, datasourceId).eq(AssetsAssetDO::getDelFlag, "0").list();
+        return this.getAssetList(pageReqVO);
     }
 
     @Override
@@ -423,7 +428,24 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Override
     public List<AssetsAssetDO> getAssetList(AssetsAssetPageReqVO reqVO) {
         MPJLambdaWrapper<AssetsAssetDO> lambdaWrapper = new MPJLambdaWrapper();
-        lambdaWrapper.selectAll(AssetsAssetDO.class).select("t2.NAME AS catName").select("t3.PROJECT_ID AS projectId,t3.PROJECT_CODE AS projectCode").leftJoin("TAX_ASSET_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'").leftJoin("AST_ASSET_PROJECT_REL t3 on t.id = t3.ASSET_ID AND t3.DEL_FLAG = '0'").likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), AssetsAssetDO::getCatCode, reqVO.getCatCode()).like(StringUtils.isNotBlank(reqVO.getName()), AssetsAssetDO::getName, reqVO.getName()).eq(StringUtils.isNotBlank(reqVO.getDatasourceId()), AssetsAssetDO::getDatasourceId, reqVO.getDatasourceId()).like(StringUtils.isNotBlank(reqVO.getTableName()), AssetsAssetDO::getTableName, reqVO.getTableName()).eq(StringUtils.isNotBlank(reqVO.getTableComment()), AssetsAssetDO::getTableComment, reqVO.getTableComment()).eq(StringUtils.isNotBlank(reqVO.getStatus()), AssetsAssetDO::getStatus, reqVO.getStatus()).eq(StringUtils.isNotBlank(reqVO.getType()), AssetsAssetDO::getType, reqVO.getType()).eq(StringUtils.isNotBlank(reqVO.getDescription()), AssetsAssetDO::getDescription, reqVO.getDescription()).in(reqVO.getThemeAssetIdList() != null && !reqVO.getThemeAssetIdList().isEmpty(), AssetsAssetDO::getId, reqVO.getThemeAssetIdList()).orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
+        lambdaWrapper.selectAll(AssetsAssetDO.class)
+                .select("t2.NAME AS catName")
+                .select("COALESCE(t3.PROJECT_ID, t4.PROJECT_ID) AS projectId,COALESCE(t3.PROJECT_CODE, t4.PROJECT_CODE) AS projectCode")
+                .leftJoin("TAX_ASSET_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'")
+                .leftJoin("AST_ASSET_PROJECT_REL t3 on t.id = t3.ASSET_ID AND t3.DEL_FLAG = '0'")
+                .leftJoin("AST_DATASOURCE_PROJECT_REL t4 on t.DATASOURCE_ID = t4.DATASOURCE_ID")
+                .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), AssetsAssetDO::getCatCode, reqVO.getCatCode())
+                .like(StringUtils.isNotBlank(reqVO.getName()), AssetsAssetDO::getName, reqVO.getName())
+                .eq(StringUtils.isNotBlank(reqVO.getDatasourceId()), AssetsAssetDO::getDatasourceId, reqVO.getDatasourceId())
+                .like(StringUtils.isNotBlank(reqVO.getTableName()), AssetsAssetDO::getTableName, reqVO.getTableName())
+                .eq(StringUtils.isNotBlank(reqVO.getTableComment()), AssetsAssetDO::getTableComment, reqVO.getTableComment())
+                .eq(StringUtils.isNotBlank(reqVO.getStatus()), AssetsAssetDO::getStatus, reqVO.getStatus())
+                .eq(StringUtils.isNotBlank(reqVO.getType()), AssetsAssetDO::getType, reqVO.getType())
+                .eq(StringUtils.isNotBlank(reqVO.getDescription()), AssetsAssetDO::getDescription, reqVO.getDescription())
+                .and(reqVO.getProjectId() != null, wrapper -> wrapper.eq("t3.PROJECT_ID", reqVO.getProjectId()).or().eq("t4.PROJECT_ID", reqVO.getProjectId()))
+                .and(StringUtils.isNotBlank(reqVO.getProjectCode()), wrapper -> wrapper.eq("t3.PROJECT_CODE", reqVO.getProjectCode()).or().eq("t4.PROJECT_CODE", reqVO.getProjectCode()))
+                .in(reqVO.getThemeAssetIdList() != null && !reqVO.getThemeAssetIdList().isEmpty(), AssetsAssetDO::getId, reqVO.getThemeAssetIdList())
+                .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return AssetsAssetMapper.selectJoinList(AssetsAssetDO.class, lambdaWrapper);
     }
 
@@ -499,9 +521,68 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
 
     @Override
     public Long createAsset(AssetsAssetSaveReqVO createReqVO) {
+        enrichAssetRemarkFromMetadata(createReqVO);
         AssetsAssetDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetDO.class);
+        AssetsAssetDO existingAsset = StringUtils.equals("1", createReqVO.getType()) ? getExistingTableAsset(createReqVO.getDatasourceId(), createReqVO.getTableName()) : null;
+        if (existingAsset != null) {
+            dictType.setId(existingAsset.getId());
+            AssetsAssetMapper.updateById(dictType);
+            return existingAsset.getId();
+        }
         AssetsAssetMapper.insert(dictType);
         return dictType.getId();
+    }
+
+    private void enrichAssetRemarkFromMetadata(AssetsAssetSaveReqVO asset) {
+        if (asset == null || StringUtils.isNotEmpty(asset.getRemark()) || !StringUtils.equals("1", asset.getType())) {
+            return;
+        }
+        StringBuilder remark = new StringBuilder();
+        remark.append("元数据采集表备注：").append(StringUtils.isNotEmpty(asset.getTableComment()) ? asset.getTableComment() : "-").append('\n');
+        remark.append("元数据采集数据量：").append(asset.getDataCount() != null ? asset.getDataCount() : "-").append('\n');
+        remark.append("元数据采集字段数：").append(asset.getFieldCount() != null ? asset.getFieldCount() : "-").append('\n');
+        remark.append("字段注释：");
+        if (CollectionUtils.isEmpty(asset.getAssetColumnList())) {
+            remark.append("-");
+        } else {
+            for (AssetsAssetColumnSaveReqVO column : asset.getAssetColumnList()) {
+                remark.append('\n')
+                        .append(StringUtils.isNotEmpty(column.getColumnName()) ? column.getColumnName() : "-")
+                        .append("：")
+                        .append(StringUtils.isNotEmpty(column.getColumnComment()) ? column.getColumnComment() : "-");
+                List<String> typeInfo = new ArrayList<>();
+                if (StringUtils.isNotEmpty(column.getColumnType())) {
+                    typeInfo.add(column.getColumnType());
+                }
+                if (column.getColumnLength() != null) {
+                    typeInfo.add("长度" + column.getColumnLength());
+                }
+                if (column.getColumnScale() != null) {
+                    typeInfo.add("精度" + column.getColumnScale());
+                }
+                if (!typeInfo.isEmpty()) {
+                    remark.append("（").append(String.join("/", typeInfo)).append("）");
+                }
+            }
+        }
+        asset.setRemark(remark.toString());
+    }
+
+    private AssetsAssetDO getExistingTableAsset(String datasourceId, String tableName) {
+        if (StringUtils.isEmpty(datasourceId) || StringUtils.isEmpty(tableName)) {
+            return null;
+        }
+        Long datasourceIdValue;
+        try {
+            datasourceIdValue = Long.valueOf(datasourceId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        return AssetsAssetMapper.selectOne(Wrappers.<AssetsAssetDO>lambdaQuery()
+                .eq(AssetsAssetDO::getDatasourceId, datasourceIdValue)
+                .eq(AssetsAssetDO::getTableName, tableName)
+                .eq(AssetsAssetDO::getType, "1")
+                .last("LIMIT 1"));
     }
 
     @Override
@@ -699,7 +780,20 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
 // Ã¨ÂÂ·Ã¥ÂÂÃ¥Â­ÂÃ¦Â®ÂµÃ©ÂÂÃ¥ÂÂ
         List<DbColumn> columns = redisCache.getCacheList(CacheConstants.ASSET_PREVIEW_KEY + AssetsDatasourceDO.getId() + "_" + tableName);
 // Ã¨ÂÂ·Ã¥ÂÂÃ¨ÂµÂÃ¤ÂºÂ§Ã§ÂÂÃ¥Â­ÂÃ¦Â®Âµ
-        List<DbColumn> AssetsAssetColumns = AssetsAssetColumnMapper.findByAssetId(Long.parseLong(jsonObject.getStr("id"))).stream().map(e -> e.toDbColumn()).collect(Collectors.toList());
+        boolean columnAuthScoped = StringUtils.isNotEmpty(jsonObject.getStr("projectId")) || StringUtils.isNotEmpty(jsonObject.getStr("projectCode"));
+        List<AssetsAssetColumnDO> authorizedAssetColumns;
+        if (StringUtils.isNotEmpty(jsonObject.getStr("id"))) {
+            AssetsAssetColumnPageReqVO columnReqVO = new AssetsAssetColumnPageReqVO();
+            columnReqVO.setAssetId(jsonObject.getStr("id"));
+            if (StringUtils.isNotEmpty(jsonObject.getStr("projectId"))) {
+                columnReqVO.setProjectId(Long.valueOf(jsonObject.getStr("projectId")));
+            }
+            columnReqVO.setProjectCode(jsonObject.getStr("projectCode"));
+            authorizedAssetColumns = AssetsAssetColumnMapper.selectListByAuth(columnReqVO);
+        } else {
+            authorizedAssetColumns = Collections.emptyList();
+        }
+        List<DbColumn> AssetsAssetColumns = authorizedAssetColumns.stream().map(e -> e.toDbColumn()).collect(Collectors.toList());
         if (columns.isEmpty()) {
 //Ã¨ÂÂ·Ã¥ÂÂÃ¨Â¡Â¨Ã§ÂÂÃ¥Â­ÂÃ¦Â®Âµ
             columns = dbQuery.getTableColumns(dbQueryProperty, tableName);
@@ -721,10 +815,19 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
             columnMap.put("columnKey", column.getColKey());
             columnTable.add(columnMap);
         }
+        if (columnAuthScoped && CollectionUtils.isEmpty(AssetsAssetColumns)) {
+            Map<String, Object> Data = new HashMap<>();
+            Data.put("columns", columnTable);
+            Data.put("tableData", Collections.emptyList());
+            Data.put("total", 0);
+            dbQuery.close();
+            return Data;
+        }
         List<Map> orderByList = jsonObject.getBeanList("orderBy", Map.class);
         PageUtil pageUtil = new PageUtil(pageNum, pageSize);
         List<Map<String, Object>> queryList;
-        queryList = dbQuery.queryDbColumnByList(columns, tableName, dbQueryProperty, jsonObject.getStr("filter"), orderByList, pageUtil.getOffset(), pageSize);
+        List<DbColumn> queryColumns = columnAuthScoped || CollectionUtils.isNotEmpty(AssetsAssetColumns) ? AssetsAssetColumns : columns;
+        queryList = dbQuery.queryDbColumnByList(queryColumns, tableName, dbQueryProperty, jsonObject.getStr("filter"), orderByList, pageUtil.getOffset(), pageSize);
         int total = dbQuery.countNew(tableName, dbQueryProperty, jsonObject.getStr("filter"));
         Map<String, Object> Data = new HashMap<>();
         Data.put("columns", columnTable);
@@ -740,7 +843,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         List<AssetsAssetColumnDO> cols = AssetsAssetColumnMapper.findByAssetId(assetId);
         Map<String, AssetsAssetColumnDO> colMap = cols.stream().collect(Collectors.toMap(c -> c.getColumnName().toUpperCase(), c -> c, (a, b) -> a));
 // 2) Ã¦ÂÂÃ¦ÂÂÃ§Â­ÂÃ§ÂºÂ§Ã¯Â¼ÂÃ¤Â»ÂÃ¥ÂÂ¨Ã§ÂºÂ¿Ã¯Â¼Â
-        Map<Long, AssetsSensitiveLevelDO> levelMap = AssetsSensitiveLevelMapper.selectList(new QueryWrapper<AssetsSensitiveLevelDO>().eq("online_flag", 1)).stream().collect(Collectors.toMap(AssetsSensitiveLevelDO::getId, x -> x, (a, b) -> a));
+        Map<Long, AssetsSensitiveLevelDO> levelMap = AssetsSensitiveLevelMapper.selectList(new QueryWrapper<AssetsSensitiveLevelDO>().eq("online_flag", "1")).stream().collect(Collectors.toMap(AssetsSensitiveLevelDO::getId, x -> x, (a, b) -> a));
         List<Map<String, Object>> out = new ArrayList<>(Data.size());
         for (Map<String, Object> row : Data) {
 // Ã§ÂÂ¨ LinkedHashMap Ã¤Â¿ÂÃ¦ÂÂÃ¥Â­ÂÃ¦Â®ÂµÃ©Â¡ÂºÃ¥ÂºÂÃ¯Â¼ÂÃ¤Â¸ÂÃ¤Â¸ÂÃ¤Â¿Â®Ã¦ÂÂ¹Ã¥ÂÂ map
@@ -856,11 +959,15 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         Long AssetsAssetDOId = AssetsAssetDO.getId();
         for (AssetsAssetColumnSaveReqVO AssetsAssetColumnSaveReqVO : columnSaveReqVOList) {
             AssetsAssetColumnSaveReqVO.setAssetId(String.valueOf(AssetsAssetDOId));
+            Long columnId;
             if (AssetsAssetColumnSaveReqVO.getId() == null) {
-                IAssetsAssetColumnService.createAssetColumn(AssetsAssetColumnSaveReqVO);
+                columnId = IAssetsAssetColumnService.createAssetColumn(AssetsAssetColumnSaveReqVO);
             } else {
                 IAssetsAssetColumnService.updateAssetColumn(AssetsAssetColumnSaveReqVO);
+                columnId = AssetsAssetColumnSaveReqVO.getId();
             }
+            AssetsAssetReqVO.setId(AssetsAssetDOId);
+            createAssetColumnProjectRel(BeanUtils.toBean(AssetsAssetReqVO, AssetsAssetSaveReqVO.class), columnId);
         }
     }
 
@@ -890,6 +997,12 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
 
     @Override
     public PageResult<AssetsAssetDO> getCollectorAssetPage(AssetsAssetPageReqVO AssetsAsset) {
+        if (SecurityUtils.hasPermi(Constants.ALL_PERMISSION)) {
+            AssetsAsset.setProjectId(null);
+            AssetsAsset.setProjectCode(null);
+            AssetsAsset.setAssetIdList(null);
+            return this.getAssetPage(AssetsAsset, "2");
+        }
         if (StringUtils.isEmpty(AssetsAsset.getProjectCode()) || AssetsAsset.getProjectId() == null) {
             return new PageResult<AssetsAssetDO>();
         }
@@ -928,6 +1041,13 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
 
     @Override
     public List<AssetsAssetDO> getCollectorAssetNoPageList(AssetsAssetPageReqVO AssetsAsset) {
+        if (SecurityUtils.hasPermi(Constants.ALL_PERMISSION)) {
+            AssetsAsset.setProjectId(null);
+            AssetsAsset.setProjectCode(null);
+            AssetsAsset.setAssetIdList(null);
+            AssetsAsset.setPageSize(PageParam.PAGE_SIZE_NONE);
+            return (List<AssetsAssetDO>) this.getAssetPage(AssetsAsset, "2").getRows();
+        }
         if (StringUtils.isEmpty(AssetsAsset.getProjectCode()) || AssetsAsset.getProjectId() == null) {
             return new ArrayList<>();
         }
@@ -985,7 +1105,41 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         }
         createAssetProjectRel(AssetsAsset);
         createAssetThemeIdList(AssetsAsset);
+        createPendingAssetApply(AssetsAsset);
         return AssetsAsset.getId();
+    }
+
+    private void createPendingAssetApply(AssetsAssetSaveReqVO AssetsAsset) {
+        if (AssetsAsset == null || AssetsAsset.getId() == null || AssetsAsset.getProjectId() == null) {
+            return;
+        }
+        LambdaQueryWrapperX<AssetsAssetApplyDO> queryWrapper = new LambdaQueryWrapperX<>();
+        queryWrapper.eq(AssetsAssetApplyDO::getAssetId, AssetsAsset.getId())
+                .eq(AssetsAssetApplyDO::getProjectId, AssetsAsset.getProjectId())
+                .eqIfPresent(AssetsAssetApplyDO::getProjectCode, AssetsAsset.getProjectCode());
+        AssetsAssetApplyDO existingApply = AssetsAssetApplyMapper.selectOne(queryWrapper);
+        if (existingApply != null) {
+            if ("2".equals(existingApply.getStatus())) {
+                existingApply.setStatus("1");
+                existingApply.setApprovalReason(null);
+                existingApply.setUpdateBy(AssetsAsset.getCreateBy());
+                existingApply.setUpdatorId(AssetsAsset.getCreatorId());
+                existingApply.setUpdateTime(new Date());
+                AssetsAssetApplyMapper.updateById(existingApply);
+            }
+            return;
+        }
+        AssetsAssetApplyDO apply = new AssetsAssetApplyDO();
+        apply.setAssetId(AssetsAsset.getId());
+        apply.setProjectId(AssetsAsset.getProjectId());
+        apply.setProjectCode(AssetsAsset.getProjectCode());
+        apply.setSourceType(AssetsAsset.getSourceType());
+        apply.setApplyReason("新增数据资产");
+        apply.setStatus("1");
+        apply.setCreatorId(AssetsAsset.getCreatorId());
+        apply.setCreateBy(AssetsAsset.getCreateBy());
+        apply.setCreateTime(AssetsAsset.getCreateTime() != null ? AssetsAsset.getCreateTime() : new Date());
+        AssetsAssetApplyMapper.insert(apply);
     }
 
     @Override
@@ -1183,18 +1337,61 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
      * *     * @param AssetsAsset
      */
     private void createAssetColumnNew(AssetsAssetSaveReqVO AssetsAsset) {
-        List<CatalogColumnRespDTO> CatalogColumnRespDTOList = catalogColumnApiService.listByTableId(AssetsAsset.getTableId());
-        List<AssetsAssetColumnDO> AssetsAssetColumnDOS = CatalogColumnRespDTOList.stream().map(CatalogColumnRespDTO -> new AssetsAssetColumnDO(CatalogColumnRespDTO)).collect(Collectors.toList());
-        AssetsAsset.setFieldCount(Long.valueOf(AssetsAssetColumnDOS.size()));
+        List<AssetsAssetColumnSaveReqVO> columnSaveReqVOList = AssetsAsset.getAssetColumnList();
+        if (CollectionUtils.isEmpty(columnSaveReqVOList)) {
+            List<CatalogColumnRespDTO> CatalogColumnRespDTOList = AssetsAsset.getTableId() == null ? Collections.emptyList() : catalogColumnApiService.listByTableId(AssetsAsset.getTableId());
+            List<AssetsAssetColumnDO> AssetsAssetColumnDOS = CatalogColumnRespDTOList.stream().map(CatalogColumnRespDTO -> new AssetsAssetColumnDO(CatalogColumnRespDTO)).collect(Collectors.toList());
+            columnSaveReqVOList = BeanUtils.toBean(AssetsAssetColumnDOS, AssetsAssetColumnSaveReqVO.class);
+        }
+        AssetsAsset.setFieldCount(Long.valueOf(columnSaveReqVOList.size()));
         if (AssetsAsset.getId() == null) {
             Long assetId = createAsset(AssetsAsset);
             AssetsAsset.setId(assetId);
         }
-        List<AssetsAssetColumnSaveReqVO> AssetsAssetColumnSaveReqVOList = BeanUtils.toBean(AssetsAssetColumnDOS, AssetsAssetColumnSaveReqVO.class);
-        for (AssetsAssetColumnSaveReqVO AssetsAssetColumnSaveReqVO : AssetsAssetColumnSaveReqVOList) {
-            AssetsAssetColumnSaveReqVO.setAssetId(String.valueOf(AssetsAsset.getId()));
-            IAssetsAssetColumnService.createAssetColumn(AssetsAssetColumnSaveReqVO);
+        String publicSensitiveLevelId = getPublicSensitiveLevelId();
+        Map<String, AssetsAssetColumnDO> existingColumnMap = AssetsAssetColumnMapper.findByAssetId(AssetsAsset.getId())
+                .stream()
+                .filter(column -> StringUtils.isNotEmpty(column.getColumnName()))
+                .collect(Collectors.toMap(AssetsAssetColumnDO::getColumnName, column -> column, (existing, replacement) -> existing));
+        for (AssetsAssetColumnSaveReqVO columnSaveReqVO : columnSaveReqVOList) {
+            columnSaveReqVO.setAssetId(String.valueOf(AssetsAsset.getId()));
+            if (StringUtils.isEmpty(columnSaveReqVO.getSensitiveLevelId())) {
+                columnSaveReqVO.setSensitiveLevelId(publicSensitiveLevelId);
+            }
+            AssetsAssetColumnDO existingColumn = existingColumnMap.get(columnSaveReqVO.getColumnName());
+            Long columnId;
+            if (existingColumn == null) {
+                columnSaveReqVO.setId(null);
+                columnId = IAssetsAssetColumnService.createAssetColumn(columnSaveReqVO);
+            } else {
+                columnSaveReqVO.setId(existingColumn.getId());
+                IAssetsAssetColumnService.updateAssetColumn(columnSaveReqVO);
+                columnId = existingColumn.getId();
+            }
+            createAssetColumnProjectRel(AssetsAsset, columnId);
         }
+    }
+
+    private String getPublicSensitiveLevelId() {
+        AssetsSensitiveLevelDO publicLevel = AssetsSensitiveLevelMapper.selectOne(
+                Wrappers.<AssetsSensitiveLevelDO>lambdaQuery()
+                        .like(AssetsSensitiveLevelDO::getSensitiveLevel, "公开")
+                        .eq(AssetsSensitiveLevelDO::getOnlineFlag, "1")
+                        .last("limit 1")
+        );
+        return publicLevel == null ? "5" : String.valueOf(publicLevel.getId());
+    }
+
+    private void createAssetColumnProjectRel(AssetsAssetSaveReqVO AssetsAsset, Long columnId) {
+        if (AssetsAsset.getProjectId() == null || columnId == null) {
+            return;
+        }
+        AssetsAssetColumnProjectRelSaveReqVO rel = new AssetsAssetColumnProjectRelSaveReqVO();
+        rel.setAssetId(AssetsAsset.getId());
+        rel.setColumnId(columnId);
+        rel.setProjectId(AssetsAsset.getProjectId());
+        rel.setProjectCode(AssetsAsset.getProjectCode());
+        assetsAssetColumnProjectRelService.createAssetColumnProjectRel(rel);
     }
 
     @Override
@@ -1457,15 +1654,35 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     }
 
     @Override
-    public List<Map<String, Object>> dataMaskings(Long assetId, List<Map<String, Object>> Data, Long userId, String scene) {
+    public List<Map<String, Object>> dataMaskings(Long assetId, List<Map<String, Object>> Data, Long userId, String scene, Long userPermissionLevel) {
         Map<String, Object> mt = new HashMap<>();
         List<Map<String, Object>> out = new ArrayList<>(Data.size());
         Map<String, Object> mk = new HashMap<>();
         List<AssetsAssetColumnDO> cols = AssetsAssetColumnMapper.findByAssetId(assetId);
+        Map<Long, AssetsSensitiveLevelDO> levelMap = AssetsSensitiveLevelMapper.selectList(
+                new QueryWrapper<AssetsSensitiveLevelDO>().eq("online_flag", "1"))
+                .stream().collect(Collectors.toMap(AssetsSensitiveLevelDO::getId, x -> x, (a, b) -> a));
         for (AssetsAssetColumnDO col : cols) {
+            // 数据权限等级过滤：列的敏感等级数字越小越敏感，用户权限等级数字越大权限越低
+            // 如果列敏感等级 < 用户权限等级，说明列比用户权限更高，应隐藏
+            if (userPermissionLevel != null && col.getSensitiveLevelId() != null
+                    && col.getSensitiveLevelId() < userPermissionLevel) {
+                mt.put(col.getColumnName(), 3);
+                continue;
+            }
             StandardsDesensitizeAssetcolumnDO assetcolumnDO = standardsDesensitizeAssetcolumnService.getDgDesensitizeAssetcolumnByAid(col.getId());
             if (assetcolumnDO == null) {
-                mt.put(col.getColumnName(), 1);
+                if (col.getSensitiveLevelId() != null) {
+                    AssetsSensitiveLevelDO lvl = levelMap.get(col.getSensitiveLevelId());
+                    if (lvl != null && lvl.getSensitiveRule() != null && "1".equals(lvl.getSensitiveRule())
+                            && lvl.getStartCharLoc() == null && lvl.getEndCharLoc() == null) {
+                        mt.put(col.getColumnName(), 3);
+                    } else {
+                        mt.put(col.getColumnName(), 1);
+                    }
+                } else {
+                    mt.put(col.getColumnName(), 1);
+                }
             } else {
                 StandardsDesensitizeRuleDO rule = standardsDesensitizeRuleService.getDgDesensitizeRuleByDataCategoryId(assetcolumnDO.getDataCategoryId());
                 StandardsDesensitizeWhitelistDO white = whitelistService.getDgDesensitizeWhitelistByCategoryId(assetcolumnDO.getDataCategoryId());
@@ -1480,7 +1697,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
                             mk.put("gz", rule.getIntervalList());
                             mt.put(col.getColumnName(), 2);
                         } else {
-                            mt.put(col.getColumnName(), 1);
+                            mt.put(col.getColumnName(), 3);
                         }
                     }
                 }
@@ -1499,12 +1716,14 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
             for (Map.Entry<String, Object> e : row.entrySet()) {
                 String key = e.getKey();
                 Object val = e.getValue();
-                if (mt.get(key).toString().equals("1")) {
+                Object flag = mt.get(key);
+                if (flag == null || flag.toString().equals("1")) {
                     masked.put(key, val);
-                } else if (mt.get(key).toString().equals("2")) {
+                } else if (flag.toString().equals("2")) {
                     String s = desensitizeByInterval2((String) val, (String) mk.get("rp"), (List<StandardsDesensitizeIntervalDO>) mk.get("gz"));
                     masked.put(key, s);
                 }
+                // type "3" = hide column, skip
             }
             out.add(masked);
         }

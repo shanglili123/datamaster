@@ -24,6 +24,9 @@ public class AssetsDiscoveryColumnSaveReqVO extends BaseEntity {
     @Schema(description = "id", example = "")
     private Long taskId;
 
+    @Schema(description = "数据源id", example = "")
+    private Long datasourceId;
+
     @Schema(description = "id", example = "")
     private Long tableId;
 

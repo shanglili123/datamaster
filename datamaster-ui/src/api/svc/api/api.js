@@ -1,5 +1,15 @@
 ﻿
 import request from '@/utils/request';
+import useUserStore from '@/store/system/user';
+
+function withProject(data = {}) {
+    const userStore = useUserStore();
+    return {
+        ...data,
+        projectId: data.projectId || userStore.projectId || null,
+        projectCode: data.projectCode || userStore.projectCode || ''
+    };
+}
 
 // 查询API服务列表
 export function listDsApi(query) {
@@ -53,7 +63,7 @@ export function serviceTesting(data) {
     return request({
         url: '/svc/api/serviceTesting',
         method: 'post',
-        data: data
+        data: withProject(data)
     });
 }
 
@@ -62,7 +72,7 @@ export function addDataApi(data) {
     return request({
         url: '/svc/api',
         method: 'post',
-        data: data
+        data: withProject(data)
     });
 }
 
@@ -70,7 +80,7 @@ export function updateDataApi(data) {
     return request({
         url: '/svc/api',
         method: 'put',
-        data: data
+        data: withProject(data)
     });
 }
 
@@ -118,7 +128,7 @@ export function queryServiceForwarding(data) {
     return request({
         url: '/svc/api/queryServiceForwarding',
         method: 'post',
-        data: data
+        data: withProject(data)
     });
 }
 

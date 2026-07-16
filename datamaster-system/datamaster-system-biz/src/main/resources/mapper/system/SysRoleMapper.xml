@@ -208,6 +208,9 @@
             update_time = CURRENT_TIMESTAMP
         </set>
         where role_id = #{roleId}
+        <if test="projectId != null">
+            and project_id = #{projectId}
+        </if>
     </update>
 
     <delete id="deleteRoleById" parameterType="Long">

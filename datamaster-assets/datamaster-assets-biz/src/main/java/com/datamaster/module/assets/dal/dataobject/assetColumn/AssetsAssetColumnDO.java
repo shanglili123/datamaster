@@ -116,6 +116,12 @@ public class AssetsAssetColumnDO extends BaseEntity {
     @Schema(description = "", example = "")
     @TableField(exist = false)
     private String dataElemCodeName;
+    @Schema(description = "项目id", example = "")
+    @TableField(exist = false)
+    private Long projectId;
+    @Schema(description = "项目编码", example = "")
+    @TableField(exist = false)
+    private String projectCode;
     /**
      *
      */

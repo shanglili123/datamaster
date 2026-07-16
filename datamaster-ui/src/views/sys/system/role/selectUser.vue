@@ -48,6 +48,7 @@
 
 <script setup name="SelectUser">
 import { authUserSelectAll, unallocatedUserList } from "@/api/system/system/role.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 
 const props = defineProps({
    roleId: {
@@ -91,8 +92,9 @@ function handleSelectionChange(selection) {
 // 查询表数据
 function getList() {
    unallocatedUserList(queryParams).then(res => {
-      userList.value = res.rows;
-      total.value = res.total;
+      const page = normalizePage(res);
+      total.value = page.total;
+      userList.value = pageRows(page.rows, page.total, queryParams);
    });
 }
 

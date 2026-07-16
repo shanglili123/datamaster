@@ -3,15 +3,15 @@
 package com.datamaster.module.system.service.message;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.github.pagehelper.PageInfo;
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.core.page.PageParam;
 import com.datamaster.module.system.controller.admin.system.message.vo.MessagePageReqVO;
 import com.datamaster.module.system.controller.admin.system.message.vo.MessageSaveReqVO;
 import com.datamaster.module.system.convert.message.MessageConvert;
 import com.datamaster.module.system.dal.dataobject.message.MessageDO;
 
-import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -53,8 +53,12 @@ public interface IMessageService extends IService<MessageDO> {
             }
         }
 
-        List<MessageDO> list = list(qw);
-        return new PageResult<>(list, new PageInfo<>(list).getTotal());
+        if (PageParam.PAGE_SIZE_NONE.equals(message.getPageSize())) {
+            List<MessageDO> list = list(qw);
+            return new PageResult<>(list, (long) list.size());
+        }
+        Page<MessageDO> page = page(new Page<>(message.getPageNum(), message.getPageSize()), qw);
+        return new PageResult<>(page.getRecords(), page.getTotal());
     }
 
     /**

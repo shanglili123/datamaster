@@ -299,6 +299,7 @@ import { getToken } from '@/utils/auth.js';
 import DeptTree from '@/components/DeptTree';
 import { computed } from 'vue';
 import { listAttCleanCat } from "@/api/tax/cat/cleanCat/cleanCat.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const { att_rule_level, att_rule_clean_type } = proxy.useDict(
     'att_rule_level',
@@ -408,12 +409,13 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
     loading.value = true;
     listAttCleanRule(queryParams.value).then((response) => {
-        response.data.rows.forEach(obj => {
+        const page = normalizePage(response);
+        page.rows.forEach(obj => {
             let name = dataMapCat.get(obj.type);
             obj.catName = name;
         });
-        attCleanRuleList.value = response.data.rows;
-        total.value = response.data.total;
+        total.value = page.total;
+        attCleanRuleList.value = pageRows(page.rows, page.total, queryParams.value);
         loading.value = false;
     });
 }

@@ -449,6 +449,7 @@ import { getToken } from "@/utils/auth.js";
 import { addDaAssetApply } from "@/api/ast/assetApply/assetApply";
 import useUserStore from "@/store/system/user";
 import { getThemeList } from "@/api/tax/theme/theme.js";
+import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const { da_assets_status, da_asset_source, da_asset_type } = proxy.useDict(
   "da_assets_status",
@@ -723,8 +724,9 @@ function getList() {
   queryParams.value.projectCode = userStore.projectCode;
   queryParams.value.projectId = userStore.projectId;
   listDppAsset(queryParams.value).then((response) => {
-    daAssetList.value = response.data.rows;
-    total.value = response.data.total;
+    const page = normalizePage(response);
+    total.value = page.total;
+    daAssetList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
 }

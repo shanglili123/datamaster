@@ -207,6 +207,7 @@
 <script setup name="Message">
 import { getCurrentInstance, ref } from "vue";
 import useUserStore from "@/store/system/user";
+import { normalizePage, pageRows } from "@/utils/page.js";
 import {
     listMessage,
     delMessage,
@@ -269,8 +270,9 @@ const getList = () => {
         redataMaster.endTime= queryParams.value.dateRange[1]
     }
     listMessage(redataMaster).then((response) => {
-        msgList.value = response.data.rows;
-        total.value = response.data.total;
+        const page = normalizePage(response);
+        total.value = page.total;
+        msgList.value = pageRows(page.rows, page.total, queryParams.value);
     });
 };
 getList();

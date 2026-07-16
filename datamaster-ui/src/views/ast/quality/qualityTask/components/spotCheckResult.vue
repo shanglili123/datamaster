@@ -3,7 +3,7 @@
     <el-dialog v-model="visible" title="查看抽查结果" width="1200px" :before-close="handleClose">
         <el-tabs v-model="activeTab" @tab-click="handleTabClick">
             <el-tab-pane label="问题数据" name="problem">
-                <el-table :data="problemData" height="600px" stripe v-loading="loading">
+                <el-table :data="pagedProblemData" height="560px" stripe v-loading="loading">
                     <el-table-column v-for="col in tableColumns" :key="col.field" :prop="col.field" :min-width="'150px'"
                         :show-overflow-tooltip="{ effect: 'light' }" align="center">
                         <template #header>
@@ -19,10 +19,16 @@
                         </template>
                     </el-table-column>
                 </el-table>
+                <pagination
+                    v-show="problemData.length > 0"
+                    :total="problemData.length"
+                    v-model:page="pageState.problem.pageNum"
+                    v-model:limit="pageState.problem.pageSize"
+                />
             </el-tab-pane>
 
             <el-tab-pane label="正常数据" name="normal">
-                <el-table :data="normalData" height="600px" stripe v-loading="loading">
+                <el-table :data="pagedNormalData" height="560px" stripe v-loading="loading">
                     <el-table-column v-for="col in tableColumns" :key="col.field" :prop="col.field" :min-width="'150px'"
                         :show-overflow-tooltip="{ effect: 'light' }" align="center">
                         <template #header>
@@ -38,6 +44,12 @@
                         </template>
                     </el-table-column>
                 </el-table>
+                <pagination
+                    v-show="normalData.length > 0"
+                    :total="normalData.length"
+                    v-model:page="pageState.normal.pageNum"
+                    v-model:limit="pageState.normal.pageSize"
+                />
             </el-tab-pane>
         </el-tabs>
 
@@ -48,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { validationErrorDataSql, validationValidDataSql } from '@/api/ast/quality/qualityTask'
 
@@ -60,6 +72,18 @@ const tableColumns = ref([])
 const problemData = ref([])
 const normalData = ref([])
 const currentForm = ref(null)
+const pageState = ref({
+    problem: {
+        pageNum: 1,
+        pageSize: 6,
+    },
+    normal: {
+        pageNum: 1,
+        pageSize: 6,
+    },
+})
+const pagedProblemData = computed(() => paginateRows(problemData.value, pageState.value.problem))
+const pagedNormalData = computed(() => paginateRows(normalData.value, pageState.value.normal))
 
 const dataLoaded = ref({
     problem: false,
@@ -77,9 +101,15 @@ async function openDialog(form) {
 
 async function handleTabClick(tab) {
     const tabName = tab.props.name
+    pageState.value[tabName].pageNum = 1
     if (!dataLoaded.value[tabName] && currentForm.value) {
         await loadData(currentForm.value, tabName)
     }
+}
+
+function paginateRows(rows, page) {
+    const start = (page.pageNum - 1) * page.pageSize
+    return rows.slice(start, start + page.pageSize)
 }
 
 async function loadData(form, tabName = activeTab.value) {
@@ -108,9 +138,11 @@ async function loadData(form, tabName = activeTab.value) {
 
             if (tabName == 'problem') {
                 problemData.value = convertData(dataList, resultText)
+                pageState.value.problem.pageNum = 1
                 dataLoaded.value.problem = true
             } else {
                 normalData.value = convertData(dataList, resultText)
+                pageState.value.normal.pageNum = 1
                 dataLoaded.value.normal = true
             }
         } else {
@@ -144,6 +176,8 @@ function resetData() {
     tableColumns.value = []
     problemData.value = []
     normalData.value = []
+    pageState.value.problem.pageNum = 1
+    pageState.value.normal.pageNum = 1
     dataLoaded.value.problem = false
     dataLoaded.value.normal = false
 }

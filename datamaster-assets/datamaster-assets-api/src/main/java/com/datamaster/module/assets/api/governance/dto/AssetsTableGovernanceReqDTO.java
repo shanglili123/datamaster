@@ -3,6 +3,7 @@ package com.datamaster.module.assets.api.governance.dto;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class AssetsTableGovernanceReqDTO implements Serializable {
@@ -16,6 +17,8 @@ public class AssetsTableGovernanceReqDTO implements Serializable {
     private Long projectId;
 
     private String projectCode;
+
+    private List<String> columnNames;
 
     private String entrance;
 }

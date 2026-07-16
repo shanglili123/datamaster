@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container ask-data-page">
+  <div class="app-container ask-data-page" :class="{ fullscreen: isFullscreen }">
     <aside class="conversation-panel">
       <div class="panel-title">
         <strong>对话</strong>
@@ -89,6 +89,9 @@
             inactive-text=""
             class="sql-switch"
           />
+          <el-button :icon="isFullscreen ? 'Aim' : 'FullScreen'" @click="toggleFullscreen">
+            {{ isFullscreen ? '退出全屏' : '全屏' }}
+          </el-button>
         </div>
       </header>
 
@@ -112,10 +115,18 @@
           v-for="message in activeMessages"
           :key="message.id"
           class="message-row"
-          :class="message.role"
+          :class="[message.role, { 'printing-report': printingMessageId === message.id }]"
         >
           <div class="avatar">{{ message.role === 'user' ? '我' : 'AI' }}</div>
-          <div class="message-bubble">
+          <div class="message-bubble" :class="{ 'html-report-bubble': isFullHtmlMessage(message) }">
+            <el-button
+              v-if="isExportableReportMessage(message)"
+              text
+              class="message-export"
+              @click.stop="exportMessagePdf(message)"
+            >
+              导出PDF
+            </el-button>
             <el-button
               text
               class="message-delete"
@@ -235,6 +246,8 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { Plus, Promotion } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 import request from '@/utils/request'
 import { getToken } from '@/utils/auth'
 import MarkdownView from '@/components/MarkdownView/index.vue'
@@ -267,6 +280,8 @@ const templateFormatText = ref('')
 const userStore = useUserStore()
 const sessionReady = ref(false)
 const syncingSession = ref(false)
+const isFullscreen = ref(false)
+const printingMessageId = ref(null)
 const messageWindow = reactive({
   hasBefore: false,
   hasAfter: false,
@@ -298,6 +313,11 @@ const activeConversation = computed(() =>
 )
 
 const activeMessages = computed(() => activeConversation.value?.messages || [])
+
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value
+  nextTick(scrollToBottom)
+}
 
 const selectedDatasource = computed(() =>
   datasourceList.value.find((item) => item.id === form.datasourceId)
@@ -593,6 +613,158 @@ function rebuildDisplayContentFromContent(message) {
   }
 }
 
+function isFullHtmlMessage(message) {
+  if (!message || message.role === 'user') return false
+  const content = message.displayContent || message.content || ''
+  return /<!doctype\s+html|<html[\s>]/i.test(content)
+}
+
+function isExportableReportMessage(message) {
+  return Boolean(message && message.role !== 'user' && (
+    isFullHtmlMessage(message) || (message.reportTemplate && message.reportData)
+  ))
+}
+
+async function exportMessagePdf(message) {
+  if (!message) return
+  try {
+    if (isFullHtmlMessage(message)) {
+      await exportHtmlMessagePdf(message)
+      return
+    }
+    printingMessageId.value = message.id
+    await nextTick()
+    const element = document.querySelector('.message-row.printing-report .message-bubble')
+    await downloadElementAsPdf(element, reportFileName(message))
+  } catch (error) {
+    ElMessage.error(error?.message || 'PDF导出失败')
+  } finally {
+    clearPrintingState()
+  }
+}
+
+async function exportHtmlMessagePdf(message) {
+  const html = buildPrintableHtml(message.displayContent || message.content || '')
+  if (!html) {
+    throw new Error('当前报告内容为空，无法导出')
+  }
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '0'
+  iframe.style.width = '1280px'
+  iframe.style.height = '900px'
+  iframe.style.border = '0'
+  document.body.appendChild(iframe)
+  try {
+    await new Promise((resolve, reject) => {
+      iframe.onload = resolve
+      iframe.onerror = reject
+      iframe.srcdoc = html
+    })
+    const doc = iframe.contentDocument
+    const element = doc?.body
+    if (!element) {
+      throw new Error('HTML报告渲染失败')
+    }
+    await waitForImages(doc)
+    await downloadElementAsPdf(element, reportFileName(message), iframe.contentWindow)
+  } finally {
+    document.body.removeChild(iframe)
+  }
+}
+
+async function downloadElementAsPdf(element, filename, targetWindow = window) {
+  if (!element) {
+    throw new Error('未找到可导出的报告内容')
+  }
+  const canvas = await html2canvas(element, {
+    backgroundColor: '#ffffff',
+    scale: Math.min(2, window.devicePixelRatio || 1.5),
+    useCORS: true,
+    windowWidth: Math.max(1280, targetWindow?.document?.documentElement?.scrollWidth || element.scrollWidth),
+    windowHeight: Math.max(900, targetWindow?.document?.documentElement?.scrollHeight || element.scrollHeight)
+  })
+  const pdf = new jsPDF('p', 'mm', 'a4')
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const margin = 8
+  const imgWidth = pageWidth - margin * 2
+  const imgHeight = (canvas.height * imgWidth) / canvas.width
+  const pageCanvasHeight = Math.floor((canvas.width * (pageHeight - margin * 2)) / imgWidth)
+  let renderedHeight = 0
+  let pageIndex = 0
+  while (renderedHeight < canvas.height) {
+    const sliceHeight = Math.min(pageCanvasHeight, canvas.height - renderedHeight)
+    const pageCanvas = document.createElement('canvas')
+    pageCanvas.width = canvas.width
+    pageCanvas.height = sliceHeight
+    const ctx = pageCanvas.getContext('2d')
+    ctx.drawImage(canvas, 0, renderedHeight, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight)
+    const pageImgHeight = (sliceHeight * imgWidth) / canvas.width
+    if (pageIndex > 0) pdf.addPage()
+    pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, imgWidth, pageImgHeight)
+    renderedHeight += sliceHeight
+    pageIndex += 1
+  }
+  if (imgHeight <= pageHeight - margin * 2 && pageIndex === 0) {
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, imgWidth, imgHeight)
+  }
+  pdf.save(filename)
+}
+
+function waitForImages(doc) {
+  const images = Array.from(doc.images || [])
+  if (!images.length) {
+    return Promise.resolve()
+  }
+  return Promise.all(images.map((img) => {
+    if (img.complete) return Promise.resolve()
+    return new Promise((resolve) => {
+      img.onload = resolve
+      img.onerror = resolve
+    })
+  }))
+}
+
+function reportFileName(message) {
+  const raw = activeConversation.value?.title || message?.title || 'AI问数报告'
+  const safe = raw.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60) || 'AI问数报告'
+  return `${safe}.pdf`
+}
+
+function buildPrintableHtml(content) {
+  const html = extractFullHtmlDocument(content)
+  if (!html) return ''
+  const printStyle = '<style>@page{size:auto;margin:12mm;} html,body{max-width:none!important;background:#fff!important;} .container{max-width:none!important;width:auto!important;}</style>'
+  return /<\/head>/i.test(html)
+    ? html.replace(/<\/head>/i, `${printStyle}</head>`)
+    : `${printStyle}${html}`
+}
+
+function extractFullHtmlDocument(content = '') {
+  const htmlStart = content.search(/<!doctype\s+html|<html[\s>]/i)
+  if (htmlStart < 0) return ''
+  const htmlContent = content.slice(htmlStart)
+  const endMatch = htmlContent.match(/<\/html\s*>/i)
+  if (!endMatch) {
+    return removeHtmlInterpreterSummary(htmlContent)
+  }
+  const end = endMatch.index + endMatch[0].length
+  return removeHtmlInterpreterSummary(htmlContent.slice(0, end))
+}
+
+function removeHtmlInterpreterSummary(content = '') {
+  return content.replace(
+    /✅?\s*[^<\n]*?报告已生成并(?:成功)?渲染。?[\s\S]*?$/i,
+    ''
+  )
+}
+
+function clearPrintingState() {
+  printingMessageId.value = null
+}
+
 function isSqlOnlyDisplay(content) {
   if (!content || typeof content !== 'string') return false
   const text = content.trim()
@@ -811,6 +983,8 @@ async function generateReportMessage(question, assistantMessage) {
   const res = await askDataDbgptReport({
     question,
     datasourceId: form.datasourceId,
+    projectId: userStore.projectId || null,
+    projectCode: userStore.projectCode || '',
     skillId: form.skillId,
     templateId: form.templateId,
     returnSql: form.returnSql
@@ -1435,6 +1609,41 @@ async function scrollToBottom() {
   box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
 }
 
+.ask-data-page.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100vh;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.ask-data-page.fullscreen .conversation-panel {
+  display: none;
+}
+
+.ask-data-page.fullscreen .chat-header {
+  padding: 12px 24px;
+}
+
+.ask-data-page.fullscreen .datasource-box {
+  max-width: none;
+}
+
+.ask-data-page.fullscreen .message-row,
+.ask-data-page.fullscreen .history-loader,
+.ask-data-page.fullscreen .composer,
+.ask-data-page.fullscreen .composer-tip {
+  max-width: 1480px;
+}
+
+.ask-data-page.fullscreen .message-bubble.html-report-bubble {
+  width: calc(100vw - 120px);
+  max-width: none;
+}
+
 .conversation-panel {
   display: flex;
   flex-direction: column;
@@ -1704,6 +1913,11 @@ async function scrollToBottom() {
   box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
 
+.message-bubble.html-report-bubble {
+  width: calc(100vw - 360px);
+  max-width: 1180px;
+}
+
 .message-delete {
   position: absolute;
   top: 2px;
@@ -1714,8 +1928,24 @@ async function scrollToBottom() {
   opacity: 0;
 }
 
-.message-bubble:hover .message-delete {
+.message-export {
+  position: absolute;
+  top: 2px;
+  right: 50px;
+  min-width: 54px;
+  padding: 0;
+  color: #165dff;
+  opacity: 0;
+}
+
+.message-bubble:hover .message-delete,
+.message-bubble:hover .message-export {
   opacity: 1;
+}
+
+.message-row.printing-report .message-delete,
+.message-row.printing-report .message-export {
+  display: none !important;
 }
 
 .message-row:not(.user) .message-bubble {

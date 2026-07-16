@@ -178,8 +178,13 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
 
     @Override
     public void queryServiceForwarding(HttpServletResponse response, ServiceApiReqVO ServiceApiReqVO) {
+        if (ServiceApiReqVO.getQueryParams() == null) {
+            ServiceApiReqVO.setQueryParams(new HashMap<>());
+        }
         Map<String, Object> result = JsonUtil.buildRequestObject(BeanUtils.toBean(ServiceApiReqVO, ServiceApiDO.class),
                 ServiceApiReqVO.getQueryParams());
+        result.put("projectId", ServiceApiReqVO.getProjectId());
+        result.put("projectCode", ServiceApiReqVO.getProjectCode());
         String transmitType = ServiceApiReqVO.getTransmitType();
         if (org.apache.commons.lang3.StringUtils.equals("1", transmitType)) {
             iAssetsApiOutService.executeServiceForwarding(response, JSONUtils.convertToLong(ServiceApiReqVO.getApiId()), result);
@@ -194,6 +199,7 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AjaxResult updateDataApi(ServiceApiDO dataApi) {
+        fillProjectOnUpdate(dataApi);
         String apiServiceType = dataApi.getApiServiceType();
         if (StringUtils.equals("3", apiServiceType)) {
             dataApiDaoUpdateById(dataApi);
@@ -320,8 +326,33 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         reqDTO.setTableName(executeConfig.getTableName());
         reqDTO.setProjectId(dataApi.getProjectId());
         reqDTO.setProjectCode(dataApi.getProjectCode());
+        if (dataApi.getResParamsList() != null) {
+            reqDTO.setColumnNames(dataApi.getResParamsList().stream()
+                    .map(ResParam::getFieldName)
+                    .filter(StringUtils::isNotBlank)
+                    .collect(Collectors.toList()));
+        }
         reqDTO.setEntrance("DATA_SERVICE_TEST");
         assetsTableGovernanceApiService.checkTableAccess(reqDTO);
+    }
+
+    private void fillProjectOnUpdate(ServiceApiDO dataApi) {
+        if (dataApi == null || dataApi.getId() == null) {
+            return;
+        }
+        if (dataApi.getProjectId() != null && StringUtils.isNotBlank(dataApi.getProjectCode())) {
+            return;
+        }
+        ServiceApiDO old = ServiceApiMapper.selectById(dataApi.getId());
+        if (old == null) {
+            return;
+        }
+        if (dataApi.getProjectId() == null) {
+            dataApi.setProjectId(old.getProjectId());
+        }
+        if (StringUtils.isBlank(dataApi.getProjectCode())) {
+            dataApi.setProjectCode(old.getProjectCode());
+        }
     }
 
     /**

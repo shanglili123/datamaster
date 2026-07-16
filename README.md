@@ -111,6 +111,7 @@ datamaster-server  (启动入口，依赖所有业务模块)
   - **数据源注册与管理**：支持 23 种外部数据源的动态注册（关系型/分析型/NoSQL/消息队列/文件存储），连接信息加密存储，提供连接测试、表查询、数据预览能力
   - **数据资产目录**：资产登记、分类挂载、资产字段管理
   - **资产申请**：资产审批与使用流程
+  - **基于项目的数据权限控制**：三级权限管控（数据源级→表级→字段级），是整个平台的数据访问控制中心
 - **数据表**：`AST_DATASOURCE`（数据源配置）、`AST_ASSET`（资产）、`AST_ASSET_COLUMN`（资产字段）、`AST_ASSET_APPLY`（资产申请）等
 - **关键机制**：
   - 启动时将所有已注册数据源加载到 Redis（hash `"datasource"`），供工作节点获取
@@ -119,6 +120,115 @@ datamaster-server  (启动入口，依赖所有业务模块)
   - 使用 MD5 对连接信息做缓存去重（`CacheDataSourceFactoryBean`）
 - **依赖**：`datamaster-common`、`datamaster-taxonomy`（引用分类）
 - **被依赖**：`datamaster-service`（数据服务执行 SQL）、`datamaster-collector`（数据采集读取源）、`datamaster-etl`（ETL 读写）、`datamaster-quality`（质量检测）、`datamaster-catalog`（元数据采集）
+
+### 3.3.1 数据资产权限控制体系
+
+资产模块的核心职责之一是**基于项目的数据权限管控**，采用三级权限控制模型：
+
+#### 权限控制架构
+
+| 控制层级 | 关系表 | 作用 |
+|----------|--------|------|
+| **数据源级** | `AST_DATASOURCE_PROJECT_REL` | 控制项目能连接哪些数据源 |
+| **表级** | `AST_ASSET_PROJECT_REL` | 控制项目能访问哪些资产表 |
+| **字段级** | `AST_ASSET_COLUMN_PROJECT_REL` | 控制项目能查看哪些字段（已设计，未完全实现） |
+
+#### 权限判定流程（Table Governance）
+
+```
+请求访问表
+  │
+  ├─ strict 模式未开启 → 放行
+  │
+  ├─ 无项目上下文 → 放行
+  │
+  ├─ 有项目直连关系 (AST_ASSET_PROJECT_REL) → 放行
+  │
+  ├─ 有已审批的申请 (AST_ASSET_APPLY, status='2') → 放行
+  │
+  └─ 都没有 → 拒绝
+```
+
+配置项（`datamaster.governance.table-access`）：
+- `enabled`：总开关，默认 `false`
+- `mode`：`off`（不拦截）/ `warn`（仅记录）/ `strict`（严格拦截）
+- `fallbackToCatalog`：未找到资产时是否回退到元数据目录（默认 `true`）
+
+#### 两种授权方式
+
+1. **直接分配**：管理员通过 `AST_ASSET_PROJECT_REL` 将资产直接绑定到项目
+2. **申请审批**：用户提交访问申请（`AST_ASSET_APPLY`），管理员审批通过后授权（status 从 `'1'` 变为 `'2'`）
+
+#### 跨模块权限调用
+
+| 调用方 | 调用场景 | 入口标识 |
+|--------|----------|----------|
+| `datamaster-service` | 数据服务 API 测试/发布执行 | `DATA_SERVICE_TEST` / `DATA_SERVICE` |
+| `datamaster-assets` (AI) | 智能问数前检查资产和数据源权限 | `AI_ASK_DATA_PREPARE` / `AI_ASK_DATA` |
+| `datamaster-collector` | 数据采集获取可用资产列表 | 通过 `AST_ASSET_APPLY` status=`'3'` |
+
+#### 操作审计与回滚
+
+- 数据修改需先提交申请（`AST_ASSET_OPERATE_APPLY`）
+- 执行后记录前后快照（`AST_ASSET_OPERATE_LOG`）
+- 支持回滚：INSERT↔DELETE，UPDATE 前后值互换
+
+#### 当前状态
+
+- `strict` 模式默认关闭，需配置 `datamaster.governance.table-access.enabled=true` 生效
+- 字段级拒绝（`deniedColumns`）已设计 DTO 但未实现
+
+#### 用户数据权限等级（基于列敏感等级过滤）
+
+在项目级权限控制基础上，新增**用户数据权限等级**机制，用于控制用户在资产预览时能看到哪些敏感等级的列。
+
+##### 数据模型
+
+| 表 | 字段 | 类型 | 说明 |
+|---|---|---|---|
+| `system_user` | `data_permission_level` | `bigint` | 用户数据权限等级，默认 5（公开） |
+| `ast_sensitive_level` | `id` | `bigint` | 列敏感等级编号，1-5 |
+| `ast_sensitive_level` | `sensitive_rule` | `varchar` | 脱敏规则：`"1"`=完全隐藏/脱敏，`"2"`=部分脱敏 |
+| `ast_sensitive_level` | `online_flag` | `varchar` | 是否启用：`"1"`=启用，`"0"`=停用 |
+
+##### 等级定义（数字越小越敏感）
+
+| 等级 | 含义 | 可查看的用户等级 |
+|---|---|---|
+| 1 | 绝密 | 仅等级 1（绝密） |
+| 2 | 机密 | 等级 1~2 |
+| 3 | 秘密 | 等级 1~3 |
+| 4 | 内部 | 等级 1~4 |
+| 5 | 公开 | 所有等级 |
+
+##### 过滤逻辑（`AssetsAssetServiceImpl.dataMaskings()`）
+
+```
+对每个列:
+  if 列.sensitiveLevelId < 用户.dataPermissionLevel:
+      → 隐藏该列（type=3），跳过后续脱敏规则判断
+  else:
+      → 继续原有脱敏逻辑（脱敏规则、白名单等）
+```
+
+- 数字越小越敏感：`sensitiveLevelId=1`（绝密）< `sensitiveLevelId=5`（公开）
+- 数字越大权限越低：`dataPermissionLevel=1`（绝密）< `dataPermissionLevel=5`（公开）
+- 列的敏感等级 < 用户权限等级 → 列比用户权限更高 → 隐藏
+
+##### 前端集成
+
+- 用户管理页面（`/system/user`）新增「数据权限」下拉选择（绝密/机密/秘密/内部/公开）
+- 资产预览（`/asset/preview`）时，后端根据当前用户权限过滤列头和数据
+- 管理员（`user_id=1`）默认等级为 1（绝密），可查看所有列
+
+##### SQL 迁移
+
+```sql
+-- sql/postgresql/upgrade/V1.6.0/add-user-data-permission-level.sql
+ALTER TABLE system_user ADD COLUMN data_permission_level bigint DEFAULT 5;
+COMMENT ON COLUMN system_user.data_permission_level IS '数据权限等级：1-绝密 2-机密 3-秘密 4-内部 5-公开';
+UPDATE system_user SET data_permission_level = 1 WHERE user_id = 1;  -- 管理员设为绝密
+```
 
 #### `datamaster-collector` 数据采集
 - **功能**：采集任务管理、汇聚实例管理、增量/全量数据同步
@@ -178,12 +288,21 @@ datamaster-server  (启动入口，依赖所有业务模块)
                ├── datamaster-quality        → 读取数据源 → 执行质量检测
                └── datamaster-etl            → 读取数据源 → Spark ETL 读写
                      └── → datamaster-api-ds 调用 DolphinScheduler 触发
+
+权限校验链路（Table Governance）：
+  datamaster-service / datamaster-assets(AI) / datamaster-collector
+              │
+              └── IAssetsTableGovernanceApiService.checkTableAccess()
+                  → 检查 AST_ASSET_PROJECT_REL（直连关系）
+                  → 检查 AST_ASSET_APPLY（审批记录）
+                  → strict 模式下无权限则拒绝
 ```
 
 ### 3.6 架构特点总结
 
 - **模块化单体**：所有业务模块最终在 `datamaster-server` 同一进程中运行，非微服务架构
 - **数据源中心化**：`datamaster-assets` 为所有模块提供统一的数据源注册与连接管理
+- **权限控制中心化**：`datamaster-assets` 通过 Table Governance 机制为所有模块提供统一的数据访问控制
 - **调度双体系**：`datamaster-api-ds`（对接 DolphinScheduler 做流程编排）+ 应用内轻量定时任务
 - **数据源加密**：注册的外部数据源密码使用 AES 加密存储，连接时解密
 - **Redis 同步**：数据源信息启动时加载到 Redis，各模块通过 Redis 获取最新数据源配置

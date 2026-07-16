@@ -10,6 +10,9 @@ public class AssetsDiscoveryTableRespVO implements Serializable {
     private static final long serialVersionUID = 1L;
 @Excel(name = "ID")    @Schema(description = "ID")    private Long id;
 @Excel(name = "id")    @Schema(description = "id", example = "")    private Long taskId;
+@Schema(description = "数据源id", example = "")    private Long datasourceId;
+@Schema(description = "已创建资产id", example = "")    private Long assetId;
+@Schema(description = "是否已创建资产", example = "")    private Boolean assetCreatedFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private String tableName;
 @Excel(name = "")    @Schema(description = "", example = "")    private String tableComment;
 @Excel(name = "")    @Schema(description = "", example = "")    private Long dataCount;
