@@ -75,6 +75,12 @@
 		left join system_user_role ur on rm.role_id = ur.role_id
 		left join system_role ro on ur.role_id = ro.role_id
 		where ur.user_id = #{params.userId}
+		AND m.status = '0'
+		AND ro.status = '0'
+		AND m.menu_type in ('M', 'C', 'F')
+		<if test="projectId != null">
+			AND rm.project_id in (#{projectId},0)
+		</if>
 		<if test="menuName != null and menuName != ''">
             AND m.menu_name like concat('%', #{menuName}, '%')
 		</if>

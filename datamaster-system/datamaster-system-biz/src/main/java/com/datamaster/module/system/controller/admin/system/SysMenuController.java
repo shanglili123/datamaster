@@ -11,9 +11,11 @@ import com.datamaster.common.constant.UserConstants;
 import com.datamaster.common.core.controller.BaseController;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.domain.entity.SysMenu;
+import com.datamaster.common.core.domain.entity.SysRole;
 import com.datamaster.common.enums.BusinessType;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.module.system.service.ISysMenuService;
+import com.datamaster.module.system.service.ISysRoleService;
 
 import java.util.List;
 
@@ -28,6 +30,9 @@ public class SysMenuController extends BaseController
 {
     @Autowired
     private ISysMenuService menuService;
+
+    @Autowired
+    private ISysRoleService roleService;
 
     /**
      * 获取菜单列表
@@ -56,6 +61,7 @@ public class SysMenuController extends BaseController
     @GetMapping("/treeselect")
     public AjaxResult treeselect(SysMenu menu)
     {
+        menu.setStatus("0");
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
         return success(menuService.buildMenuTreeSelect(menus));
     }
@@ -66,6 +72,7 @@ public class SysMenuController extends BaseController
     @GetMapping("/treeselectNoDpp")
     public AjaxResult treeselectNoDpp(SysMenu menu)
     {
+        menu.setStatus("0");
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
         return success(menuService.buildMenuTreeNoSelectDpp(menus));
     }
@@ -76,7 +83,8 @@ public class SysMenuController extends BaseController
     @GetMapping("/treeselectDpp")
     public AjaxResult treeselectDpp(SysMenu menu)
     {
-        List<SysMenu> menus = menuService.selectMenuList(menu, 1L);
+        menu.setStatus("0");
+        List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
         return success(menuService.buildMenuTreeSelectDpp(menus));
     }
 
@@ -86,7 +94,9 @@ public class SysMenuController extends BaseController
     @GetMapping(value = "/roleMenuTreeselect/{roleId}")
     public AjaxResult roleMenuTreeselect(@PathVariable("roleId") Long roleId)
     {
-        List<SysMenu> menus = menuService.selectMenuList(getUserId());
+        SysMenu menu = new SysMenu();
+        menu.setStatus("0");
+        List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
         AjaxResult ajax = AjaxResult.success();
         ajax.put("checkedKeys", menuService.selectMenuListByRoleId(roleId));
         ajax.put("menus", menuService.buildMenuTreeSelect(menus));
@@ -99,7 +109,13 @@ public class SysMenuController extends BaseController
     @GetMapping(value = "/roleMenuTreeselectNoDpp/{roleId}")
     public AjaxResult roleMenuTreeselectNoDpp(@PathVariable("roleId") Long roleId)
     {
-        List<SysMenu> menus = menuService.selectMenuList(getUserId());
+        SysMenu menu = new SysMenu();
+        menu.setStatus("0");
+        SysRole role = roleService.selectRoleById(roleId);
+        if (role != null && role.getProjectId() != null) {
+            menu.setProjectId(role.getProjectId());
+        }
+        List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
         AjaxResult ajax = AjaxResult.success();
         ajax.put("checkedKeys", menuService.selectMenuListByRoleId(roleId));
         ajax.put("menus", menuService.buildMenuTreeNoSelectDpp(menus));
@@ -114,7 +130,12 @@ public class SysMenuController extends BaseController
     {
         SysMenu sysMenu = new SysMenu();
         sysMenu.setPath("dpp");
-        List<SysMenu> menus = menuService.selectMenuList(sysMenu,1L);
+        sysMenu.setStatus("0");
+        SysRole role = roleService.selectRoleById(roleId);
+        if (role != null && role.getProjectId() != null) {
+            sysMenu.setProjectId(role.getProjectId());
+        }
+        List<SysMenu> menus = menuService.selectMenuList(sysMenu, getUserId());
         AjaxResult ajax = AjaxResult.success();
         ajax.put("checkedKeys", menuService.selectMenuListByRoleId(roleId));
         ajax.put("menus", menuService.buildMenuTreeSelectDpp(menus));
