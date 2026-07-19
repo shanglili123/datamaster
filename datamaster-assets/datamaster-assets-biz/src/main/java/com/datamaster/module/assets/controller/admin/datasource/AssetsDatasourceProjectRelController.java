@@ -44,7 +44,7 @@ public class AssetsDatasourceProjectRelController extends BaseController {
     private IAssetsDatasourceProjectRelService AssetsDatasourceProjectRelService;
 
     @Operation(summary = "查询数据源与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::list')")
+    @PreAuthorize("@ss.hasPermi('da:dataSource:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsDatasourceProjectRelRespVO>> list(AssetsDatasourceProjectRelPageReqVO AssetsDatasourceProjectRel) {
         PageResult<AssetsDatasourceProjectRelDO> page = AssetsDatasourceProjectRelService.getDatasourceProjectRelPage(AssetsDatasourceProjectRel);
@@ -52,7 +52,7 @@ public class AssetsDatasourceProjectRelController extends BaseController {
     }
 
     @Operation(summary = "导出数据源与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::export')")
+    @PreAuthorize("@ss.hasPermi('da:dataSource:export')")
     @Log(title = "数据源与项目关联关系", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsDatasourceProjectRelPageReqVO exportReqVO) {
@@ -63,7 +63,7 @@ public class AssetsDatasourceProjectRelController extends BaseController {
     }
 
     @Operation(summary = "导入数据源与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::import')")
+    @PreAuthorize("@ss.hasPermi('da:dataSource:import')")
     @Log(title = "数据源与项目关联关系", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -75,7 +75,7 @@ public class AssetsDatasourceProjectRelController extends BaseController {
     }
 
     @Operation(summary = "获取数据源与项目关联关系详细信息")
-    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::query')")
+    @PreAuthorize("@ss.hasPermi('da:dataSource:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsDatasourceProjectRelRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsDatasourceProjectRelDO AssetsDatasourceProjectRelDO = AssetsDatasourceProjectRelService.getDatasourceProjectRelById(id);
@@ -83,7 +83,7 @@ public class AssetsDatasourceProjectRelController extends BaseController {
     }
 
     @Operation(summary = "新增数据源与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::add')")
+    @PreAuthorize("@ss.hasPermi('da:dataSource:add')")
     @Log(title = "数据源与项目关联关系", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsDatasourceProjectRelSaveReqVO AssetsDatasourceProjectRel) {
@@ -94,7 +94,7 @@ public class AssetsDatasourceProjectRelController extends BaseController {
     }
 
     @Operation(summary = "修改数据源与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::edit')")
+    @PreAuthorize("@ss.hasPermi('da:dataSource:edit')")
     @Log(title = "数据源与项目关联关系", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsDatasourceProjectRelSaveReqVO AssetsDatasourceProjectRel) {
@@ -105,7 +105,7 @@ public class AssetsDatasourceProjectRelController extends BaseController {
     }
 
     @Operation(summary = "删除数据源与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:DataSourceProjectRel::remove')")
+    @PreAuthorize("@ss.hasPermi('da:dataSource:remove')")
     @Log(title = "数据源与项目关联关系", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

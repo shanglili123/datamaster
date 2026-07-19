@@ -312,8 +312,26 @@ public class SysUserServiceImpl implements ISysUserService
     @Transactional
     public void insertUserAuth(Long userId, Long[] roleIds)
     {
-        userRoleMapper.deleteUserRoleByUserId(userId);
-        insertUserRole(userId, roleIds);
+        userRoleMapper.deleteUserSystemRoleByUserId(userId);
+        insertUserRole(userId, filterSystemRoleIds(roleIds));
+    }
+
+    private Long[] filterSystemRoleIds(Long[] roleIds)
+    {
+        if (StringUtils.isEmpty(roleIds))
+        {
+            return roleIds;
+        }
+        List<Long> systemRoleIds = new ArrayList<>();
+        for (Long roleId : roleIds)
+        {
+            SysRole role = roleMapper.selectRoleById(roleId);
+            if (StringUtils.isNotNull(role) && Long.valueOf(0L).equals(role.getProjectId()))
+            {
+                systemRoleIds.add(roleId);
+            }
+        }
+        return systemRoleIds.toArray(new Long[0]);
     }
 
     /**

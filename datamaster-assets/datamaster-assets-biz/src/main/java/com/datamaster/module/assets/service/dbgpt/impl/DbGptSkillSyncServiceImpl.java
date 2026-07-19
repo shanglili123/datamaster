@@ -3,7 +3,6 @@ package com.datamaster.module.assets.service.dbgpt.impl;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
-import com.datamaster.module.assets.config.DbGptProperties;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillDO;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillMapper;
 import com.datamaster.module.assets.service.dbgpt.IDbGptClientService;
@@ -22,12 +21,9 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
     private AiSkillMapper aiSkillMapper;
     @Resource
     private IDbGptClientService dbGptClientService;
-    @Resource
-    private DbGptProperties dbGptProperties;
 
     @Override
     public AjaxResult syncAllSkills() {
-        ensureSkillSpace();
         int success = 0;
         int failed = 0;
         List<AiSkillDO> skills = aiSkillMapper.selectPublishedSkills();
@@ -52,80 +48,31 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
         if (!"PUBLISHED".equals(skill.getStatus())) {
             throw new ServiceException("只有已发布Skill可以同步到DB-GPT");
         }
-        ensureSkillSpace();
         try {
             syncSkill(skill);
         } catch (Exception e) {
             markFailed(skill, e.getMessage());
             throw e;
         }
-        return AjaxResult.success("Skill已同步到DB-GPT知识库：" + skill.getDbgptDocumentName());
-    }
-
-    private String ensureSkillSpace() {
-        String spaceName = dbGptProperties.getSkillSpaceName();
-        // 先尝试获取已有空间
-        try {
-            String spaceId = dbGptClientService.getKnowledgeSpaceId(spaceName);
-            if (spaceId != null) {
-                return spaceId;
-            }
-        } catch (Exception e) {
-            log.warn("获取知识空间失败，将尝试创建: {}", e.getMessage());
-        }
-        // 不存在则创建
-        try {
-            String spaceId = dbGptClientService.createKnowledgeSpace(spaceName, "Chroma", dbGptProperties.getSkillSpaceOwner());
-            if (spaceId != null) {
-                return spaceId;
-            }
-        } catch (Exception e) {
-            log.warn("创建知识空间失败: {}", e.getMessage());
-        }
-        // 创建后重试获取（可能创建实际成功但响应解析失败）
-        try {
-            String spaceId = dbGptClientService.getKnowledgeSpaceId(spaceName);
-            if (spaceId != null) {
-                return spaceId;
-            }
-        } catch (Exception e) {
-            log.warn("重试获取知识空间失败: {}", e.getMessage());
-        }
-        throw new ServiceException("无法获取或创建DB-GPT知识空间: " + spaceName);
+        return AjaxResult.success("Skill已上传到DB-GPT Skill库：" + skill.getDbgptDocumentName());
     }
 
     private void syncSkill(AiSkillDO skill) {
-        String spaceId = ensureSkillSpace();
         String fileName = skill.getSkillCode() + "-v" + (skill.getVersion() == null ? 1 : skill.getVersion()) + ".md";
         String content = buildDocument(skill);
-        String docId = dbGptClientService.uploadDocumentToKnowledge(spaceId, fileName, content);
-        if (StringUtils.isBlank(docId)) {
-            docId = dbGptClientService.findDocumentIdByName(spaceId, fileName);
+        String dbgptSkillId = dbGptClientService.uploadSkill(fileName, content);
+        if (StringUtils.isBlank(dbgptSkillId)) {
+            throw new ServiceException("DB-GPT Skill上传后未返回标识：" + fileName);
         }
-        if (StringUtils.isBlank(docId)) {
-            throw new ServiceException("DB-GPT文档上传后未返回文档ID，且知识库中未找到文档：" + fileName);
-        }
-        dbGptClientService.syncDocument(spaceId, docId);
-        String verifiedDocId = dbGptClientService.findDocumentIdByName(spaceId, fileName);
-        if (StringUtils.isBlank(verifiedDocId)) {
-            throw new ServiceException("DB-GPT文档同步后未在知识库中找到文档：" + fileName);
-        }
-        skill.setDbgptSpaceName(dbGptProperties.getSkillSpaceName());
-        skill.setDbgptDocumentName(fileName);
+        skill.setDbgptSpaceName("DB-GPT Skill");
+        skill.setDbgptDocumentName(skill.getSkillCode());
         skill.setDbgptSyncStatus("SYNCED");
-        skill.setDbgptSyncMessage("同步成功");
+        skill.setDbgptSyncMessage("Skill上传成功，file=" + fileName + "，skillId=" + dbgptSkillId);
         aiSkillMapper.updateById(skill);
     }
 
     private String buildDocument(AiSkillDO skill) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("# ").append(skill.getSkillName()).append("\n\n");
-        builder.append("- Skill编码：").append(skill.getSkillCode()).append("\n");
-        builder.append("- Skill类型：").append(skill.getSkillType()).append("\n");
-        builder.append("- 关联对象：").append(StringUtils.defaultString(skill.getBizObjectType()))
-                .append(" ").append(skill.getBizObjectId() == null ? "" : skill.getBizObjectId()).append("\n\n");
-        builder.append(skill.getContent());
-        return builder.toString();
+        return StringUtils.defaultString(skill.getContent());
     }
 
     private void markFailed(AiSkillDO skill, String message) {

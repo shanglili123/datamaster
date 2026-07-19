@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import com.datamaster.module.assets.config.DbGptProperties;
 import com.datamaster.module.assets.model.dto.dbgpt.*;
 import com.datamaster.module.assets.service.dbgpt.IDbGptClientService;
+import com.datamaster.common.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +44,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
     private static final String KNOWLEDGE_SPACES_PATH = "/api/v2/serve/knowledge/spaces";
     private static final String KNOWLEDGE_DOCUMENTS_PATH = "/api/v2/serve/knowledge/documents";
     private static final String LEGACY_KNOWLEDGE_PATH = "/api/v1/knowledge";
+    private static final String SKILL_UPLOAD_PATH = "/api/v1/skills/upload";
 
     @Override
     public DbGptChatCompletionResponse chatCompletion(DbGptChatCompletionRequest request) {
@@ -376,29 +378,35 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
             String content = firstNonBlank(extractContent(object), responseBody);
             return emptyResponse(content);
         } catch (Exception ignored) {
-            log.error(ignored.getMessage());
+            log.debug("DB-GPT response is not a single JSON object: {}", ignored.getMessage());
         }
         return emptyResponse(responseBody);
     }
 
     private JSONObject buildReactAgentBody(DbGptChatCompletionRequest request) {
         String dbName = firstNonBlank(request.getChatParam(), request.getDbName());
+        String chatMode = firstNonBlank(request.getChatMode(), dbGptProperties.getChatMode(), "chat_with_db_qa");
+        Object skillIdObj = request.getExtra() == null ? null : request.getExtra().get("skill_id");
+        String skillId = skillIdObj == null ? "" : firstNonBlank(String.valueOf(skillIdObj));
         JSONObject body = new JSONObject();
         body.put("conv_uid", firstNonBlank(request.getConvUid(), "dm-" + System.currentTimeMillis()));
-        body.put("chat_mode", firstNonBlank(request.getChatMode(), dbGptProperties.getChatMode(), "chat_with_db_qa"));
+        body.put("chat_mode", chatMode);
         body.put("model_name", firstNonBlank(request.getModel(), dbGptProperties.getModel()));
-        body.put("user_input", buildReactAgentInput(dbName, toUserInputText(request)));
+        body.put("user_input", buildReactAgentInput(dbName, toUserInputText(request), skillId));
         body.put("temperature", request.getTemperature() == null ? 0.6 : request.getTemperature());
         body.put("max_new_tokens", request.getMaxTokens() == null ? 4000 : request.getMaxTokens());
-        body.put("select_param", dbName);
+        boolean skillMode = "chat_react_agent".equalsIgnoreCase(chatMode);
+        body.put("select_param", skillMode ? "" : dbName);
 
         JSONObject extInfo = new JSONObject();
-        extInfo.put("select_param", dbName);
+        extInfo.put("select_param", skillMode ? "" : dbName);
         extInfo.put("database_name", dbName);
         extInfo.put("db_name", dbName);
         extInfo.put("database_type", toDbGptDbType(request.getDbType()));
         extInfo.put("datasource_id", request.getDatasourceId());
-        extInfo.put("space_name", request.getSpaceName());
+        if (StringUtils.isNotBlank(request.getSpaceName())) {
+            extInfo.put("space_name", request.getSpaceName());
+        }
         if (request.getExtra() != null) {
             extInfo.putAll(request.getExtra());
         }
@@ -459,6 +467,12 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         if (request.getMessages() == null || request.getMessages().isEmpty()) {
             return "";
         }
+        if (request.getMessages().size() == 1) {
+            DbGptChatMessage message = request.getMessages().get(0);
+            if (message != null && "user".equals(message.getRole())) {
+                return firstNonBlank(message.getContent());
+            }
+        }
         StringBuilder builder = new StringBuilder();
         for (DbGptChatMessage message : request.getMessages()) {
             if (message == null || firstNonBlank(message.getContent()).isEmpty()) {
@@ -483,11 +497,15 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         return request.getMessages().get(request.getMessages().size() - 1).getContent();
     }
 
-    private String buildReactAgentInput(String dbName, String userInput) {
-        if (dbName == null || dbName.trim().isEmpty()) {
-            return userInput;
+    private String buildReactAgentInput(String dbName, String userInput, String skillId) {
+        String input = firstNonBlank(userInput);
+        if (StringUtils.isNotBlank(skillId) && !input.trim().startsWith("/" + skillId)) {
+            input = "/" + skillId + "  " + input;
         }
-        return "[Database: " + dbName + "] " + firstNonBlank(userInput);
+        if (dbName == null || dbName.trim().isEmpty()) {
+            return input;
+        }
+        return "[Database: " + dbName + "] " + input;
     }
 
     private String toDbGptDbType(String dbType) {
@@ -840,6 +858,70 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
     }
 
     @Override
+    public String uploadSkill(String fileName, String content) {
+        String url = dbGptProperties.getUrl() + SKILL_UPLOAD_PATH;
+        File tempDir = null;
+        File tempFile = null;
+        try {
+            tempDir = FileUtil.mkdir(FileUtil.file(System.getProperty("java.io.tmpdir"),
+                    "dbgpt-skill-" + System.nanoTime()));
+            tempFile = FileUtil.file(tempDir, fileName);
+            FileUtil.writeUtf8String(content == null ? "" : content, tempFile);
+            return doUploadSkill(url, fileName, tempFile);
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("DB-GPT Skill上传异常: " + e.getMessage());
+        } finally {
+            if (tempDir != null) {
+                FileUtil.del(tempDir);
+            }
+        }
+    }
+
+    private String doUploadSkill(String url, String fileName, File file) {
+        log.info("DB-GPT upload skill: url={}, fileField=file, fileName={}, tempFile={}",
+                url, fileName, file == null ? null : file.getAbsolutePath());
+        try (HttpResponse response = HttpUtil.createRequest(Method.POST, url)
+                .form("file", file)
+                .form("name", fileName)
+                .form("file_name", fileName)
+                .form("skill_name", fileName)
+                .timeout(dbGptProperties.getTimeout() * 2)
+                .execute()) {
+
+            String responseBody = response.body();
+            log.info("DB-GPT upload skill response: status={}, body={}", response.getStatus(), responseBody);
+            if (response.getStatus() != 200) {
+                throw new ServiceException("DB-GPT Skill上传失败，状态码: " + response.getStatus() + "，响应: " + responseBody);
+            }
+            JSONObject result = JSON.parseObject(responseBody);
+            if (result.containsKey("success") && !result.getBooleanValue("success")) {
+                throw new ServiceException("DB-GPT Skill上传失败: " + result.getString("err_msg"));
+            }
+            String skillId = extractSkillId(result);
+            return skillId == null ? fileName : skillId;
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("DB-GPT Skill上传异常: " + e.getMessage());
+        }
+    }
+
+    private String extractSkillId(JSONObject result) {
+        if (result == null) {
+            return null;
+        }
+        Object idObj = firstJsonValue(result, "id", "skill_id", "name");
+        if (idObj != null) {
+            return String.valueOf(idObj);
+        }
+        JSONObject data = normalizeDocumentObject(result.get("data"));
+        idObj = firstJsonValue(data, "id", "skill_id", "name");
+        return idObj == null ? null : String.valueOf(idObj);
+    }
+
+    @Override
     public String findDocumentIdByName(String spaceId, String fileName) {
         String legacyDocId = findLegacyDocumentIdByName(dbGptProperties.getSkillSpaceName(), fileName);
         if (legacyDocId != null) {
@@ -920,8 +1002,83 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
     }
 
     @Override
+    public String getDocumentStatus(String docId) {
+        String detailUrl = dbGptProperties.getUrl() + KNOWLEDGE_DOCUMENTS_PATH + "/" + docId;
+        try (HttpResponse response = HttpUtil.createRequest(Method.GET, detailUrl)
+                .header("Content-Type", "application/json")
+                .timeout(dbGptProperties.getTimeout())
+                .execute()) {
+            String body = response.body();
+            log.info("DB-GPT document detail response: status={}, body={}", response.getStatus(), body);
+            if (response.getStatus() != 200) {
+                return null;
+            }
+            JSONObject result = JSON.parseObject(body);
+            JSONObject doc = normalizeDocumentObject(result.get("data"));
+            String status = firstNonBlank(
+                    doc.getString("status"),
+                    doc.getString("state"),
+                    doc.getString("sync_status"),
+                    doc.getString("vector_status"),
+                    doc.getString("document_status"),
+                    result.getString("status"),
+                    result.getString("state"));
+            return status == null ? null : status.toLowerCase();
+        } catch (Exception e) {
+            log.warn("查询DB-GPT文档状态失败: docId={}, error={}", docId, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
     public String uploadDocumentToKnowledge(String spaceId, String fileName, String content) {
-        return doLegacyUploadDocument(dbGptProperties.getSkillSpaceName(), fileName, content);
+        return doWebTextDocumentAdd(dbGptProperties.getSkillSpaceName(), fileName, content);
+    }
+
+    private String doWebTextDocumentAdd(String spaceName, String fileName, String content) {
+        String url = dbGptProperties.getUrl() + "/knowledge/" + encodePath(spaceName) + "/document/add";
+        JSONObject body = new JSONObject();
+        body.put("doc_name", fileName);
+        body.put("source", fileName);
+        body.put("content", content);
+        body.put("doc_type", "TEXT");
+        body.put("questions", new JSONArray());
+
+        log.info("DB-GPT web add text document: url={}, docName={}, contentLength={}",
+                url, fileName, content == null ? 0 : content.length());
+        try (HttpResponse response = HttpUtil.createRequest(Method.POST, url)
+                .header("Content-Type", "application/json")
+                .body(body.toJSONString())
+                .timeout(dbGptProperties.getTimeout() * 2)
+                .execute()) {
+
+            String responseBody = response.body();
+            log.info("DB-GPT web add text document response: status={}, body={}", response.getStatus(), responseBody);
+            if (response.getStatus() != 200) {
+                throw new ServiceException("DB-GPT文本文档创建失败，状态码: " + response.getStatus() + "，响应: " + responseBody);
+            }
+            JSONObject result = JSON.parseObject(responseBody);
+            if (result.containsKey("success") && !result.getBooleanValue("success")) {
+                throw new ServiceException("DB-GPT文本文档创建失败: " + result.getString("err_msg"));
+            }
+            String documentId = extractDocumentId(result.get("data"), fileName);
+            if (documentId != null) {
+                return documentId;
+            }
+            documentId = extractDocumentId(result, fileName);
+            if (documentId != null) {
+                return documentId;
+            }
+            documentId = findDocumentIdByName(null, fileName);
+            if (documentId != null) {
+                return documentId;
+            }
+            throw new ServiceException("DB-GPT文本文档创建成功但未返回文档ID：" + responseBody);
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("DB-GPT文本文档创建异常: " + e.getMessage());
+        }
     }
 
     private String doLegacyUploadDocument(String spaceName, String fileName, String content) {
@@ -1252,6 +1409,12 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
     }
 
     private String extractDocumentId(Object dataObj, String fileName) {
+        if (dataObj instanceof Number) {
+            return String.valueOf(dataObj);
+        }
+        if (dataObj instanceof String && ((String) dataObj).matches("\\d+")) {
+            return (String) dataObj;
+        }
         JSONObject doc = normalizeDocumentObject(dataObj);
         String matchedId = matchDocumentId(doc, fileName);
         if (matchedId != null) {
@@ -1275,6 +1438,9 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
     }
 
     private JSONObject normalizeDocumentObject(Object dataObj) {
+        if (dataObj == null) {
+            return new JSONObject();
+        }
         if (dataObj instanceof JSONObject) {
             return (JSONObject) dataObj;
         }
@@ -1286,7 +1452,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
             }
         }
         if (!(dataObj instanceof JSONArray)) {
-            return null;
+            return new JSONObject();
         }
         JSONArray array = (JSONArray) dataObj;
         JSONObject object = new JSONObject();
@@ -1304,7 +1470,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
                 }
             }
         }
-        return pairArray ? object : null;
+        return pairArray ? object : new JSONObject();
     }
 
     private String encodePath(String value) {
@@ -1329,19 +1495,22 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
     }
 
     @Override
-    public void syncDocument(String spaceId, String docId) {
-        syncLegacyDocument(dbGptProperties.getSkillSpaceName(), docId);
+    public void syncDocument(String spaceId, String docId, String fileName) {
+        syncWebDocumentBatch(dbGptProperties.getSkillSpaceName(), docId, fileName);
     }
 
-    private void syncServeDocument(String spaceId, String docId) {
-        String url = dbGptProperties.getUrl() + KNOWLEDGE_DOCUMENTS_PATH + "/sync";
+    private void syncWebDocumentBatch(String spaceName, String docId, String fileName) {
+        String url = dbGptProperties.getUrl() + "/knowledge/" + encodePath(spaceName) + "/document/sync_batch";
         JSONArray body = new JSONArray();
         JSONObject item = new JSONObject();
+        item.put("name", fileName);
         item.put("doc_id", parseNumericOrRaw(docId));
-        item.put("space_id", spaceId);
+        JSONObject chunkParameters = new JSONObject();
+        chunkParameters.put("chunk_strategy", "Automatic");
+        item.put("chunk_parameters", chunkParameters);
         body.add(item);
 
-        log.info("DB-GPT sync document: url={}, body={}", url, body.toJSONString());
+        log.info("DB-GPT web sync batch document: url={}, body={}", url, body.toJSONString());
         try (HttpResponse response = HttpUtil.createRequest(Method.POST, url)
                 .header("Content-Type", "application/json")
                 .body(body.toJSONString())
@@ -1349,23 +1518,18 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
                 .execute()) {
 
             String responseBody = response.body();
-            log.info("DB-GPT sync document response: status={}, body={}", response.getStatus(), responseBody);
+            log.info("DB-GPT web sync batch document response: status={}, body={}", response.getStatus(), responseBody);
             if (response.getStatus() != 200) {
-                if (isDbGptAsyncSerializeBug(responseBody)) {
-                    log.warn("DB-GPT文档同步接口触发异步任务后响应序列化失败，按已触发处理: docId={}, response={}", docId, responseBody);
-                    return;
-                }
-                throw new ServiceException("DB-GPT文档同步失败，状态码: " + response.getStatus() + "，响应: " + responseBody);
+                throw new ServiceException("DB-GPT文档批量同步失败，状态码: " + response.getStatus() + "，响应: " + responseBody);
             }
             JSONObject result = JSON.parseObject(responseBody);
-            if (!result.getBooleanValue("success")) {
-                throw new ServiceException("DB-GPT文档同步失败: " + result.getString("err_msg"));
+            if (result.containsKey("success") && !result.getBooleanValue("success")) {
+                throw new ServiceException("DB-GPT文档批量同步失败: " + result.getString("err_msg"));
             }
-            log.info("DB-GPT document '{}' sync triggered for space '{}'", docId, spaceId);
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
-            throw new ServiceException("DB-GPT文档同步异常: " + e.getMessage());
+            throw new ServiceException("DB-GPT文档批量同步异常: " + e.getMessage());
         }
     }
 
@@ -1405,6 +1569,77 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
             throw e;
         } catch (Exception e) {
             throw new ServiceException("DB-GPT文档同步异常: " + e.getMessage());
+        }
+    }
+
+    private void syncServeDocument(String spaceId, String docId) {
+        String url = dbGptProperties.getUrl() + KNOWLEDGE_DOCUMENTS_PATH + "/sync";
+        Object docIdValue = parseNumericOrRaw(docId);
+
+        JSONObject docIdsBody = new JSONObject();
+        docIdsBody.put("space_id", spaceId);
+        JSONArray docIds = new JSONArray();
+        docIds.add(docIdValue);
+        docIdsBody.put("doc_ids", docIds);
+        if (doSyncServeDocument(url, docIdsBody, docId)) {
+            return;
+        }
+
+        JSONObject docIdBody = new JSONObject();
+        docIdBody.put("doc_id", docIdValue);
+        docIdBody.put("space_id", spaceId);
+        if (doSyncServeDocument(url, docIdBody, docId)) {
+            return;
+        }
+
+        JSONArray objectArrayBody = new JSONArray();
+        objectArrayBody.add(docIdBody);
+        if (doSyncServeDocument(url, objectArrayBody, docId)) {
+            return;
+        }
+
+        JSONArray idArrayBody = new JSONArray();
+        idArrayBody.add(docIdValue);
+        if (doSyncServeDocument(url, idArrayBody, docId)) {
+            return;
+        }
+        throw new ServiceException("DB-GPT文档同步失败，已尝试多种参数格式: docId=" + docId);
+    }
+
+    private boolean doSyncServeDocument(String url, Object body, String docId) {
+        String bodyText = JSON.toJSONString(body);
+        log.info("DB-GPT sync document: url={}, body={}", url, bodyText);
+        try (HttpResponse response = HttpUtil.createRequest(Method.POST, url)
+                .header("Content-Type", "application/json")
+                .body(bodyText)
+                .timeout(dbGptProperties.getTimeout() * 5)
+                .execute()) {
+
+            String responseBody = response.body();
+            log.info("DB-GPT sync document response: status={}, body={}", response.getStatus(), responseBody);
+            if (response.getStatus() != 200) {
+                if (isDbGptAsyncSerializeBug(responseBody)) {
+                    log.warn("DB-GPT文档同步接口返回coroutine序列化异常，继续尝试下一种参数格式: response={}", responseBody);
+                    return false;
+                }
+                log.warn("DB-GPT文档同步失败，状态码: {}，响应: {}", response.getStatus(), responseBody);
+                return false;
+            }
+            JSONObject result = JSON.parseObject(responseBody);
+            if (result.containsKey("success") && !result.getBooleanValue("success")) {
+                log.warn("DB-GPT文档同步失败: {}", result.getString("err_msg"));
+                return false;
+            }
+            log.info("DB-GPT document sync triggered, checking document status");
+            String status = getDocumentStatus(docId);
+            if ("todo".equalsIgnoreCase(status)) {
+                log.warn("DB-GPT文档同步请求返回成功但状态仍为todo，尝试下一种参数格式: body={}", bodyText);
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            log.warn("DB-GPT文档同步异常: {}", e.getMessage());
+            return false;
         }
     }
 

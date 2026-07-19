@@ -23,6 +23,14 @@ public interface SysUserRoleMapper
     public int deleteUserRoleByUserId(Long userId);
 
     /**
+     * 通过用户ID删除用户和系统角色关联
+     *
+     * @param userId 用户ID
+     * @return 结果
+     */
+    public int deleteUserSystemRoleByUserId(Long userId);
+
+    /**
      * 批量删除用户和角色关联
      *
      * @param sysUserRoleList 用户ID和角色id

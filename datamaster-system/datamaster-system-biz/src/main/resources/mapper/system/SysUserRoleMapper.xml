@@ -15,6 +15,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			user_id=#{userId}
 	</delete>
 
+	<delete id="deleteUserSystemRoleByUserId" parameterType="Long">
+		delete from system_user_role
+		where user_id=#{userId}
+		  and role_id in (
+		      select role_id
+		      from system_role
+		      where coalesce(project_id, 0) = 0
+		  )
+	</delete>
+
 	<select id="countUserRoleByRoleId" resultType="Integer">
 	    select count(1) from system_user_role where role_id=#{roleId}
 	</select>

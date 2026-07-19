@@ -349,7 +349,7 @@ import {
   addUser,
   deptTreeSelect,
 } from "@/api/system/system/user.js";
-import { computed } from "vue";
+import { computed, nextTick } from "vue";
 import { normalizePage, pageRows } from "@/utils/page.js";
 const router = useRouter();
 const { proxy } = getCurrentInstance();
@@ -474,7 +474,8 @@ const dataPermissionLevelOptions = [
 ];
 
 function dataPermissionLevelLabel(level) {
-  const opt = dataPermissionLevelOptions.find(item => item.value === level);
+  const numLevel = level === null || level === undefined ? null : Number(level);
+  const opt = dataPermissionLevelOptions.find(item => item.value === numLevel);
   return opt ? opt.label : '未知';
 }
 
@@ -815,17 +816,24 @@ function handleAdd() {
 
 /** 修改按钮操作 */
 function handleUpdate(row) {
-  reset();
   const userId = row.userId || ids.value;
   getUser(userId).then((response) => {
-    form.value = response.data;
+    const userData = response.data;
+    if (userData.dataPermissionLevel !== null && userData.dataPermissionLevel !== undefined) {
+      userData.dataPermissionLevel = Number(userData.dataPermissionLevel);
+    } else {
+      userData.dataPermissionLevel = 5;
+    }
+    form.value = userData;
     postOptions.value = response.posts;
     roleOptions.value = response.roles;
     form.value.postIds = response.postIds;
     form.value.roleIds = response.roleIds;
-    open.value = true;
     title.value = "修改用户";
-    form.password = "";
+    form.value.password = "";
+    nextTick(() => {
+      open.value = true;
+    });
   });
 }
 

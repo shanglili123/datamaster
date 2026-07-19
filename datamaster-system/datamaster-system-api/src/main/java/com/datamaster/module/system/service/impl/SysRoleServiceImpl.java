@@ -67,7 +67,9 @@ public class SysRoleServiceImpl implements ISysRoleService
     public List<SysRole> selectRolesByUserId(Long userId)
     {
         List<SysRole> userRoles = roleMapper.selectRolePermissionByUserId(userId);
-        List<SysRole> roles = selectRoleAll();
+        SysRole sysRole = new SysRole();
+        sysRole.setProjectId(0L);
+        List<SysRole> roles = selectRoleList(sysRole);
         for (SysRole role : roles)
         {
             for (SysRole userRole : userRoles)

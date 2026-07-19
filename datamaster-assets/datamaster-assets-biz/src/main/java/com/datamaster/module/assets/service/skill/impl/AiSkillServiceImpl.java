@@ -15,6 +15,7 @@ import com.datamaster.module.assets.controller.admin.skill.vo.AiSkillVersionResp
 import com.datamaster.module.assets.controller.admin.skill.vo.AiDatabaseSkillGenerateReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiMultiTableSkillGenerateReqVO;
 import com.datamaster.module.assets.controller.admin.skill.vo.AiTableSkillGenerateReqVO;
+import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnPageReqVO;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
@@ -313,14 +314,23 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private TableSkillContext resolveTableSkillContext(AiTableSkillGenerateReqVO reqVO) {
         AssetsAssetDO asset = resolveAssetTableForSkill(reqVO);
         if (asset != null) {
-            List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(asset.getId());
-            return new TableSkillContext(asset, columns == null ? new ArrayList<>() : columns);
+            return new TableSkillContext(asset, loadAssetColumnsForSkill(asset.getId()));
         }
         CatalogTableRespDTO metadataTable = resolveMetadataTableForSkill(reqVO);
+        AssetsAssetDO metadataAsset = firstAsset(metadataTable.getDatasourceId(), metadataTable.getTableName());
+        if (metadataAsset != null) {
+            return new TableSkillContext(metadataAsset, loadAssetColumnsForSkill(metadataAsset.getId()));
+        }
         return new TableSkillContext(toSkillTable(metadataTable), metadataColumns(metadataTable));
     }
 
     private AssetsAssetDO resolveAssetTableForSkill(AiTableSkillGenerateReqVO reqVO) {
+        if (reqVO.getAssetId() != null) {
+            AssetsAssetDO asset = assetsAssetMapper.selectById(reqVO.getAssetId());
+            if (asset != null && StringUtils.isNotBlank(asset.getTableName())) {
+                return asset;
+            }
+        }
         if (reqVO.getDatasourceId() == null || StringUtils.isBlank(reqVO.getTableName())) {
             return null;
         }
@@ -400,8 +410,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 continue;
             }
             if (isRealAssetTable(table)) {
-                List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(table.getId());
-                columnMap.put(table.getId(), columns == null ? new ArrayList<>() : columns);
+                columnMap.put(table.getId(), loadAssetColumnsForSkill(table.getId()));
             } else {
                 CatalogTableRespDTO metadataTable = catalogTableApiService.getById(table.getId());
                 columnMap.put(table.getId(), metadataColumns(metadataTable));
@@ -415,11 +424,54 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (assets == null || assets.isEmpty()) {
             return null;
         }
-        return assets.get(0);
+        AssetsAssetDO bestAsset = null;
+        int bestSensitiveCount = -1;
+        int bestColumnCount = -1;
+        for (AssetsAssetDO asset : assets) {
+            if (asset == null || asset.getId() == null) {
+                continue;
+            }
+            List<AssetsAssetColumnDO> columns = loadAssetColumnsForSkill(asset.getId());
+            int sensitiveCount = countSensitiveColumns(columns);
+            int columnCount = columns == null ? 0 : columns.size();
+            if (bestAsset == null || sensitiveCount > bestSensitiveCount
+                    || (sensitiveCount == bestSensitiveCount && columnCount > bestColumnCount)) {
+                bestAsset = asset;
+                bestSensitiveCount = sensitiveCount;
+                bestColumnCount = columnCount;
+            }
+        }
+        return bestAsset == null ? assets.get(0) : bestAsset;
+    }
+
+    private int countSensitiveColumns(List<AssetsAssetColumnDO> columns) {
+        if (columns == null || columns.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        for (AssetsAssetColumnDO column : columns) {
+            if (column != null && column.getSensitiveLevelId() != null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private boolean isRealAssetTable(AssetsAssetDO table) {
         return table != null && !"CAT_TABLE".equals(table.getType());
+    }
+
+    private List<AssetsAssetColumnDO> loadAssetColumnsForSkill(Long assetId) {
+        if (assetId == null) {
+            return new ArrayList<>();
+        }
+        AssetsAssetColumnPageReqVO columnReq = new AssetsAssetColumnPageReqVO();
+        columnReq.setAssetId(String.valueOf(assetId));
+        List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.selectListByAuth(columnReq);
+        if (columns == null || columns.isEmpty()) {
+            columns = assetsAssetColumnMapper.findByAssetId(assetId);
+        }
+        return columns == null ? new ArrayList<>() : columns;
     }
 
     private CollectorQualitySummaryRespDTO findQualitySummary(AssetsAssetDO table) {
@@ -774,7 +826,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "- 数据源：" + (datasource == null ? "未知" : firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType())) + "\n"
                 + "- 数据源类型：" + (datasource == null ? "未知" : nullToEmpty(datasource.getDatasourceType())) + "\n"
                 + "- 表名：" + nullToEmpty(asset.getTableName()) + "\n"
-                + "- 元数据表ID：" + asset.getId() + "\n"
+                + "- " + (isRealAssetTable(asset) ? "资产ID" : "元数据表ID") + "：" + asset.getId() + "\n"
                 + "- 字段数：" + (asset.getFieldCount() == null ? "" : asset.getFieldCount()) + "\n\n"
                 + "## 业务说明\n\n"
                 + description + "\n\n"

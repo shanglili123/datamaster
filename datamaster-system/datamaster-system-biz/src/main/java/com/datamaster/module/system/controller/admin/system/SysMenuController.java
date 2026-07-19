@@ -17,7 +17,10 @@ import com.datamaster.common.utils.StringUtils;
 import com.datamaster.module.system.service.ISysMenuService;
 import com.datamaster.module.system.service.ISysRoleService;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 菜单信息
@@ -41,8 +44,11 @@ public class SysMenuController extends BaseController
     @GetMapping("/list")
     public AjaxResult list(SysMenu menu)
     {
+        if (StringUtils.isNull(menu.getStatus())) {
+            menu.setStatus("0");
+        }
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
-        return success(menus);
+        return success(normalizeExistingMenus(menus));
     }
 
     /**
@@ -63,7 +69,7 @@ public class SysMenuController extends BaseController
     {
         menu.setStatus("0");
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
-        return success(menuService.buildMenuTreeSelect(menus));
+        return success(menuService.buildMenuTreeSelect(normalizeExistingMenus(menus)));
     }
 
     /**
@@ -74,7 +80,7 @@ public class SysMenuController extends BaseController
     {
         menu.setStatus("0");
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
-        return success(menuService.buildMenuTreeNoSelectDpp(menus));
+        return success(menuService.buildMenuTreeNoSelectDpp(normalizeExistingMenus(menus)));
     }
 
     /**
@@ -85,7 +91,7 @@ public class SysMenuController extends BaseController
     {
         menu.setStatus("0");
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
-        return success(menuService.buildMenuTreeSelectDpp(menus));
+        return success(menuService.buildMenuTreeSelectDpp(normalizeExistingMenus(menus)));
     }
 
     /**
@@ -99,7 +105,7 @@ public class SysMenuController extends BaseController
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
         AjaxResult ajax = AjaxResult.success();
         ajax.put("checkedKeys", menuService.selectMenuListByRoleId(roleId));
-        ajax.put("menus", menuService.buildMenuTreeSelect(menus));
+        ajax.put("menus", menuService.buildMenuTreeSelect(normalizeExistingMenus(menus)));
         return ajax;
     }
 
@@ -118,7 +124,7 @@ public class SysMenuController extends BaseController
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
         AjaxResult ajax = AjaxResult.success();
         ajax.put("checkedKeys", menuService.selectMenuListByRoleId(roleId));
-        ajax.put("menus", menuService.buildMenuTreeNoSelectDpp(menus));
+        ajax.put("menus", menuService.buildMenuTreeNoSelectDpp(normalizeExistingMenus(menus)));
         return ajax;
     }
 
@@ -138,8 +144,54 @@ public class SysMenuController extends BaseController
         List<SysMenu> menus = menuService.selectMenuList(sysMenu, getUserId());
         AjaxResult ajax = AjaxResult.success();
         ajax.put("checkedKeys", menuService.selectMenuListByRoleId(roleId));
-        ajax.put("menus", menuService.buildMenuTreeSelectDpp(menus));
+        ajax.put("menus", menuService.buildMenuTreeSelectDpp(normalizeExistingMenus(menus)));
         return ajax;
+    }
+
+    private List<SysMenu> normalizeExistingMenus(List<SysMenu> menus) {
+        Set<Long> hiddenMenuIds = new HashSet<>();
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (SysMenu menu : menus) {
+                if (menu == null || menu.getMenuId() == null || hiddenMenuIds.contains(menu.getMenuId())) {
+                    continue;
+                }
+                if (isHiddenSystemTool(menu) || hiddenMenuIds.contains(menu.getParentId())) {
+                    hiddenMenuIds.add(menu.getMenuId());
+                    changed = true;
+                }
+            }
+        }
+
+        List<SysMenu> result = new ArrayList<>();
+        for (SysMenu menu : menus) {
+            if (menu == null || hiddenMenuIds.contains(menu.getMenuId())) {
+                continue;
+            }
+            normalizeMenuName(menu);
+            result.add(menu);
+        }
+        return result;
+    }
+
+    private boolean isHiddenSystemTool(SysMenu menu) {
+        String path = menu.getPath();
+        String menuName = menu.getMenuName();
+        return "系统工具".equals(menuName)
+                || "tool".equals(path)
+                || "/tool".equals(path)
+                || (StringUtils.isNotEmpty(path) && (path.startsWith("tool/") || path.startsWith("/tool")));
+    }
+
+    private void normalizeMenuName(SysMenu menu) {
+        if ("系统监控".equals(menu.getMenuName())) {
+            menu.setMenuName("日志管理");
+        } else if ("数据治理".equals(menu.getMenuName())) {
+            menu.setMenuName("元数据管理");
+        } else if ("数据连接".equals(menu.getMenuName())) {
+            menu.setMenuName("数据源管理");
+        }
     }
 
     /**

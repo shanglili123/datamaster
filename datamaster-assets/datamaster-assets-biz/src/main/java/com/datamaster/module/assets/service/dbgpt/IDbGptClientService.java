@@ -32,11 +32,15 @@ public interface IDbGptClientService {
 
     String getDatasourceDbName(Integer datasourceId);
 
+    String uploadSkill(String fileName, String content);
+
     String uploadDocumentToKnowledge(String spaceId, String fileName, String content);
 
-    void syncDocument(String spaceId, String docId);
+    void syncDocument(String spaceId, String docId, String fileName);
 
     String findDocumentIdByName(String spaceId, String fileName);
+
+    String getDocumentStatus(String docId);
 
     void deleteDocument(String docId);
 }

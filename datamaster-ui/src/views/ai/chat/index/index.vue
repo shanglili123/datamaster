@@ -140,6 +140,13 @@
                 <pre>{{ message.agentSteps }}</pre>
               </details>
             </div>
+            <div v-if="message.returnedSql || message.sqlUnavailable" class="sql-fold">
+              <details :open="Boolean(message.returnedSql)">
+                <summary>SQL</summary>
+                <pre v-if="message.returnedSql">{{ message.returnedSql }}</pre>
+                <p v-else>本次未返回可展示 SQL。</p>
+              </details>
+            </div>
             <div v-if="message.steps?.length" class="step-list">
               <div
                 v-for="(step, index) in message.steps"
@@ -175,7 +182,7 @@
               <el-empty description="暂无查询结果" :image-size="56" />
             </div>
             <MarkdownView
-              v-if="!message.reportTemplate && !message.reportData && (message.displayContent || message.content)"
+              v-if="!message.reportTemplate && !message.reportData && !message.tableRows?.length && (message.displayContent || message.content)"
               class="message-content"
               :content="message.displayContent || message.content"
             />
@@ -556,8 +563,8 @@ function normalizeMessage(row) {
         ...payload,
         id: row.id,
         role: row.role,
-        content: row.content || payload.content || '',
-        displayContent: row.displayContent || payload.displayContent || ''
+        content: payload.content || row.content || '',
+        displayContent: payload.displayContent || row.displayContent || ''
       }
       normalizeReportPayload(message)
       rebuildDisplayContentFromContent(message)
@@ -959,6 +966,10 @@ async function sendMessage() {
           appendSqlToMessage(assistantMessage, sql)
           scrollToBottom()
         },
+        onSteps(steps) {
+          appendAgentStepsToMessage(assistantMessage, steps)
+          scrollToBottom()
+        },
         onError(message) {
           assistantMessage.content = message || 'AI问数调用失败'
           finishSteps(assistantMessage)
@@ -1099,6 +1110,13 @@ function appendSqlToMessage(message, sql) {
   const value = (sql || '').trim()
   message.returnedSql = value
   message.sqlUnavailable = !value
+}
+
+function appendAgentStepsToMessage(message, steps) {
+  const value = (steps || '').trim()
+  if (value) {
+    message.agentSteps = value
+  }
 }
 
 function appendSqlMarkdownFromContent(message) {
@@ -1561,6 +1579,8 @@ function handleSseEvent(raw, callbacks) {
     callbacks.onMessage?.(text)
   } else if (eventName === 'sql') {
     callbacks.onSql?.(text)
+  } else if (eventName === 'steps') {
+    callbacks.onSteps?.(text)
   } else if (eventName === 'error') {
     callbacks.onError?.(text)
   }
@@ -1992,16 +2012,19 @@ async function scrollToBottom() {
 .agent-fold {
   margin-bottom: 8px;
 }
-.agent-fold details {
+.agent-fold details,
+.sql-fold details {
   cursor: pointer;
 }
-.agent-fold summary {
+.agent-fold summary,
+.sql-fold summary {
   font-size: 13px;
   color: #86909c;
   user-select: none;
   padding: 2px 0;
 }
-.agent-fold pre {
+.agent-fold pre,
+.sql-fold pre {
   font-size: 12px;
   color: #666;
   background: #f7f8fa;
@@ -2011,6 +2034,20 @@ async function scrollToBottom() {
   overflow-x: auto;
   white-space: pre-wrap;
   line-height: 1.5;
+}
+
+.sql-fold {
+  margin-bottom: 8px;
+}
+
+.sql-fold pre {
+  color: #1f2937;
+}
+
+.sql-fold p {
+  margin: 4px 0 0;
+  color: #86909c;
+  font-size: 12px;
 }
 
 .data-empty-wrap {
