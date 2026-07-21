@@ -15,6 +15,7 @@ import com.datamaster.common.core.domain.entity.SysUser;
 import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.common.core.page.TableDataInfo;
 import com.datamaster.common.enums.BusinessType;
+import com.datamaster.common.security.AccessPolicy;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.poi.ExcelUtil;
 import com.datamaster.module.system.domain.SysUserRole;
@@ -55,6 +56,7 @@ public class SysRoleController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(SysRole role)
     {
+        role.setProjectId(AccessPolicy.SYSTEM_PROJECT_ID);
         startPage();
         List<SysRole> list = roleService.selectRoleList(role);
         return getDataTable(list);
@@ -65,6 +67,7 @@ public class SysRoleController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, SysRole role)
     {
+        role.setProjectId(AccessPolicy.SYSTEM_PROJECT_ID);
         List<SysRole> list = roleService.selectRoleList(role);
         ExcelUtil<SysRole> util = new ExcelUtil<SysRole>(SysRole.class);
         util.exportExcel(response, list, "角色数据");
@@ -89,6 +92,7 @@ public class SysRoleController extends BaseController
     @PostMapping
     public AjaxResult add(@Validated @RequestBody SysRole role)
     {
+        role.setProjectId(AccessPolicy.SYSTEM_PROJECT_ID);
         if (!roleService.checkRoleNameUnique(role))
         {
             return error("新增角色'" + role.getRoleName() + "'失败，角色名称已存在");
@@ -110,6 +114,7 @@ public class SysRoleController extends BaseController
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody SysRole role)
     {
+        role.setProjectId(AccessPolicy.SYSTEM_PROJECT_ID);
         roleService.checkRoleAllowed(role);
         roleService.checkRoleDataScope(role.getRoleId());
         if (!roleService.checkRoleNameUnique(role))
@@ -145,6 +150,7 @@ public class SysRoleController extends BaseController
     @PutMapping("/dataScope")
     public AjaxResult dataScope(@RequestBody SysRole role)
     {
+        role.setProjectId(AccessPolicy.SYSTEM_PROJECT_ID);
         roleService.checkRoleAllowed(role);
         roleService.checkRoleDataScope(role.getRoleId());
         return toAjax(roleService.authDataScope(role));

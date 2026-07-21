@@ -12,6 +12,7 @@ import com.datamaster.common.core.domain.entity.SysRole;
 import com.datamaster.common.core.domain.entity.SysUser;
 import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.common.core.text.Convert;
+import com.datamaster.common.security.AccessPolicy;
 import com.datamaster.mybatis.config.MasterDataSourceConfig;
 import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
@@ -73,8 +74,9 @@ public class DataScopeAspect
         if (StringUtils.isNotNull(loginUser))
         {
             SysUser currentUser = loginUser.getUser();
-            // 如果是超级管理员，则不过滤数据
-            if (StringUtils.isNotNull(currentUser) && !currentUser.isAdmin())
+            // 平台管理员不过滤系统数据；普通用户和项目角色仍按数据范围限制。
+            if (StringUtils.isNotNull(currentUser)
+                    && !AccessPolicy.isPlatformAdmin(currentUser.getUserId(), currentUser.getRoles()))
             {
                 String permission = StringUtils.defaultIfEmpty(controllerDataScope.permission(), PermissionContextHolder.getContext());
                 dataScopeFilter(joinPoint, currentUser, controllerDataScope.deptAlias(),

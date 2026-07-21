@@ -13,6 +13,7 @@ import com.datamaster.common.constant.UserConstants;
 import com.datamaster.common.core.domain.entity.SysRole;
 import com.datamaster.common.core.domain.entity.SysUser;
 import com.datamaster.common.exception.ServiceException;
+import com.datamaster.common.security.AccessPolicy;
 import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.spring.SpringUtils;
@@ -259,6 +260,8 @@ public class SysUserServiceImpl implements ISysUserService
     @Transactional
     public int insertUser(SysUser user)
     {
+        checkSystemAdminRoleAllowed(user.getUserId(), user.getRoleIds());
+        user.setRoleIds(filterSystemRoleIds(user.getRoleIds()));
         // 新增用户信息
         int rows = userMapper.insertUser(user);
         // 新增用户岗位关联
@@ -291,6 +294,8 @@ public class SysUserServiceImpl implements ISysUserService
     public int updateUser(SysUser user)
     {
         Long userId = user.getUserId();
+        checkSystemAdminRoleAllowed(userId, user.getRoleIds());
+        user.setRoleIds(filterSystemRoleIds(user.getRoleIds()));
         // 删除用户与角色关联
         userRoleMapper.deleteUserRoleByUserId(userId);
         // 新增用户与角色管理
@@ -312,8 +317,46 @@ public class SysUserServiceImpl implements ISysUserService
     @Transactional
     public void insertUserAuth(Long userId, Long[] roleIds)
     {
+        checkSystemAdminRoleAllowed(userId, roleIds);
         userRoleMapper.deleteUserSystemRoleByUserId(userId);
         insertUserRole(userId, filterSystemRoleIds(roleIds));
+    }
+
+    private void checkSystemAdminRoleAllowed(Long userId, Long[] roleIds)
+    {
+        if (SysUser.isAdmin(SecurityUtils.getUserId()))
+        {
+            return;
+        }
+        if (containsSystemAdminRole(roleIds) || userHasSystemAdminRole(userId))
+        {
+            throw new ServiceException("系统管理员角色只能由超级管理员授权");
+        }
+    }
+
+    private boolean containsSystemAdminRole(Long[] roleIds)
+    {
+        if (StringUtils.isEmpty(roleIds))
+        {
+            return false;
+        }
+        for (Long roleId : roleIds)
+        {
+            if (AccessPolicy.SYSTEM_ADMIN_ROLE_ID.equals(roleId))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean userHasSystemAdminRole(Long userId)
+    {
+        if (StringUtils.isNull(userId))
+        {
+            return false;
+        }
+        return roleMapper.selectRoleListByUserId(userId).contains(AccessPolicy.SYSTEM_ADMIN_ROLE_ID);
     }
 
     private Long[] filterSystemRoleIds(Long[] roleIds)
@@ -326,7 +369,7 @@ public class SysUserServiceImpl implements ISysUserService
         for (Long roleId : roleIds)
         {
             SysRole role = roleMapper.selectRoleById(roleId);
-            if (StringUtils.isNotNull(role) && Long.valueOf(0L).equals(role.getProjectId()))
+            if (StringUtils.isNotNull(role) && AccessPolicy.isAllowedSystemUserRole(role))
             {
                 systemRoleIds.add(roleId);
             }

@@ -5,8 +5,10 @@ package com.datamaster.security.web.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import com.datamaster.common.constant.Constants;
 import com.datamaster.common.core.domain.entity.SysRole;
 import com.datamaster.common.core.domain.entity.SysUser;
+import com.datamaster.common.security.AccessPolicy;
 import com.datamaster.module.system.service.ISysMenuService;
 import com.datamaster.module.system.service.ISysRoleService;
 
@@ -38,9 +40,9 @@ public class SysPermissionService
     {
         Set<String> roles = new HashSet<String>();
         // 管理员拥有所有权限
-        if (user.isAdmin() || hasAdminRole(user.getRoles()))
+        if (AccessPolicy.isPlatformAdmin(user.getUserId(), user.getRoles()))
         {
-            roles.add("admin");
+            roles.add(Constants.SUPER_ADMIN);
         }
         else
         {
@@ -59,9 +61,9 @@ public class SysPermissionService
     {
         Set<String> perms = new HashSet<String>();
         // 管理员拥有所有权限
-        if (user.isAdmin() || hasAdminRole(user.getRoles()))
+        if (AccessPolicy.isPlatformAdmin(user.getUserId(), user.getRoles()))
         {
-            perms.add("*:*:*");
+            perms.add(Constants.ALL_PERMISSION);
         }
         else
         {
@@ -80,23 +82,28 @@ public class SysPermissionService
             {
                 perms.addAll(menuService.selectMenuPermsByUserId(user.getUserId()));
             }
+            if (AccessPolicy.hasProjectAdminRole(roles))
+            {
+                for (String perm : menuService.selectMenuPerms())
+                {
+                    if (AccessPolicy.isProjectAdminPermission(perm))
+                    {
+                        perms.add(perm);
+                    }
+                }
+            }
+            else if (AccessPolicy.hasOpsRole(roles))
+            {
+                for (String perm : menuService.selectMenuPerms())
+                {
+                    if (AccessPolicy.isOpsPermission(perm))
+                    {
+                        perms.add(perm);
+                    }
+                }
+            }
+            perms.removeIf(permission -> !AccessPolicy.canUsePermission(permission, user.getUserId(), roles));
         }
         return perms;
-    }
-
-    private boolean hasAdminRole(List<SysRole> roles)
-    {
-        if (CollectionUtils.isEmpty(roles))
-        {
-            return false;
-        }
-        for (SysRole role : roles)
-        {
-            if (role != null && role.isAdmin())
-            {
-                return true;
-            }
-        }
-        return false;
     }
 }

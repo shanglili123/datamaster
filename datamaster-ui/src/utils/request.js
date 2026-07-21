@@ -23,19 +23,31 @@ const service = axios.create({
 
 let cancelTokens = [];
 
+function hasProjectValue(value) {
+  return value !== undefined && value !== null && value !== '';
+}
+
 // request拦截器
 service.interceptors.request.use(config => {
   // 自动注入当前项目ID/编码
   const userStore = useUserStore();
   if (userStore.projectId) {
     if (config.method === 'get' && config.params) {
-      config.params.projectId = userStore.projectId;
-      config.params.projectCode = userStore.projectCode;
+      if (!hasProjectValue(config.params.projectId)) {
+        config.params.projectId = userStore.projectId;
+      }
+      if (!hasProjectValue(config.params.projectCode)) {
+        config.params.projectCode = userStore.projectCode;
+      }
     } else if (config.method === 'get') {
       config.params = { projectId: userStore.projectId, projectCode: userStore.projectCode };
     } else if (config.data && !(config.data instanceof FormData)) {
-      config.data.projectId = userStore.projectId;
-      config.data.projectCode = userStore.projectCode;
+      if (!hasProjectValue(config.data.projectId)) {
+        config.data.projectId = userStore.projectId;
+      }
+      if (!hasProjectValue(config.data.projectCode)) {
+        config.data.projectCode = userStore.projectCode;
+      }
     }
   }
   // 是否需要设置 token

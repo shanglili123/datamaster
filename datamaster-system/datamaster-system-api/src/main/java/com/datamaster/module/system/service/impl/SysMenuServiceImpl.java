@@ -9,7 +9,7 @@ import com.datamaster.common.constant.UserConstants;
 import com.datamaster.common.core.domain.TreeSelect;
 import com.datamaster.common.core.domain.entity.SysMenu;
 import com.datamaster.common.core.domain.entity.SysRole;
-import com.datamaster.common.core.domain.entity.SysUser;
+import com.datamaster.common.security.AccessPolicy;
 import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.module.system.domain.vo.MetaVo;
@@ -64,7 +64,7 @@ public class SysMenuServiceImpl implements ISysMenuService
     {
         List<SysMenu> menuList = null;
         // 管理员显示所有菜单信息
-        if (SysUser.isAdmin(userId))
+        if (AccessPolicy.isPlatformAdmin(userId, getLoginRoles()))
         {
             menuList = menuMapper.selectMenuList(menu);
         }
@@ -73,7 +73,7 @@ public class SysMenuServiceImpl implements ISysMenuService
             menu.getParams().put("userId", userId);
             menuList = menuMapper.selectMenuListByUserId(menu);
         }
-        return menuList;
+        return filterMenusByPolicy(menuList, false);
     }
 
     /**
@@ -86,6 +86,26 @@ public class SysMenuServiceImpl implements ISysMenuService
     public Set<String> selectMenuPermsByUserId(Long userId)
     {
         List<String> perms = menuMapper.selectMenuPermsByUserId(userId);
+        Set<String> permsSet = new HashSet<>();
+        for (String perm : perms)
+        {
+            if (StringUtils.isNotEmpty(perm))
+            {
+                permsSet.addAll(Arrays.asList(perm.trim().split(",")));
+            }
+        }
+        return permsSet;
+    }
+
+    /**
+     * 查询所有权限
+     *
+     * @return 权限列表
+     */
+    @Override
+    public Set<String> selectMenuPerms()
+    {
+        List<String> perms = menuMapper.selectMenuPerms();
         Set<String> permsSet = new HashSet<>();
         for (String perm : perms)
         {
@@ -128,7 +148,7 @@ public class SysMenuServiceImpl implements ISysMenuService
     public List<SysMenu> selectMenuTreeByUserId(Long userId)
     {
         List<SysMenu> menus = null;
-        if (SecurityUtils.isAdmin(userId))
+        if (AccessPolicy.isPlatformAdmin(userId, getLoginRoles()))
         {
             menus = menuMapper.selectMenuTreeAll();
         }
@@ -136,7 +156,7 @@ public class SysMenuServiceImpl implements ISysMenuService
         {
             menus = menuMapper.selectMenuTreeByUserId(userId);
         }
-        return getChildPerms(menus, 0);
+        return getChildPerms(filterMenusByPolicy(menus, false), 0);
     }
 
     /**
@@ -150,7 +170,7 @@ public class SysMenuServiceImpl implements ISysMenuService
     public List<SysMenu> selectMenuTreeByUserIdAndProjectId(Long userId,Long projectId)
     {
         List<SysMenu> menus = null;
-        if (SecurityUtils.isAdmin(userId))
+        if (AccessPolicy.isPlatformAdmin(userId, getLoginRoles()) || AccessPolicy.hasProjectAdminRole(getLoginRoles()))
         {
             menus = menuMapper.selectMenuTreeAll();
         }
@@ -158,7 +178,7 @@ public class SysMenuServiceImpl implements ISysMenuService
         {
             menus = menuMapper.selectMenuTreeByUserIdAndProjectId(userId,projectId);
         }
-        return getChildPerms(menus, 0);
+        return getChildPerms(filterMenusByPolicy(menus, true), 0);
     }
 
     /**
@@ -623,6 +643,55 @@ public class SysMenuServiceImpl implements ISysMenuService
     private boolean hasChild(List<SysMenu> list, SysMenu t)
     {
         return getChildList(list, t).size() > 0;
+    }
+
+    private List<SysMenu> filterMenusByPolicy(List<SysMenu> menus, boolean projectMode)
+    {
+        if (StringUtils.isEmpty(menus))
+        {
+            return menus;
+        }
+        Long userId = SecurityUtils.getUserId();
+        List<SysRole> roles = getLoginRoles();
+        Set<Long> hiddenMenuIds = new HashSet<>();
+        boolean changed = true;
+        while (changed)
+        {
+            changed = false;
+            for (SysMenu menu : menus)
+            {
+                if (menu == null || menu.getMenuId() == null || hiddenMenuIds.contains(menu.getMenuId()))
+                {
+                    continue;
+                }
+                if (hiddenMenuIds.contains(menu.getParentId())
+                        || !AccessPolicy.canAccessMenu(menu, userId, roles, projectMode))
+                {
+                    hiddenMenuIds.add(menu.getMenuId());
+                    changed = true;
+                }
+            }
+        }
+        List<SysMenu> result = new ArrayList<>();
+        for (SysMenu menu : menus)
+        {
+            if (menu != null && !hiddenMenuIds.contains(menu.getMenuId()))
+            {
+                result.add(menu);
+            }
+        }
+        return result;
+    }
+
+    private List<SysRole> getLoginRoles()
+    {
+        if (SecurityUtils.getLoginUser() == null
+                || SecurityUtils.getLoginUser().getUser() == null
+                || StringUtils.isEmpty(SecurityUtils.getLoginUser().getUser().getRoles()))
+        {
+            return Collections.emptyList();
+        }
+        return SecurityUtils.getLoginUser().getUser().getRoles();
     }
 
     /**

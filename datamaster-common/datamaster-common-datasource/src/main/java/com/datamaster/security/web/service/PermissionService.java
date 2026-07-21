@@ -7,6 +7,7 @@ import org.springframework.util.CollectionUtils;
 import com.datamaster.common.constant.Constants;
 import com.datamaster.common.core.domain.entity.SysRole;
 import com.datamaster.common.core.domain.model.LoginUser;
+import com.datamaster.common.security.AccessPolicy;
 import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.security.context.PermissionContextHolder;
@@ -34,7 +35,16 @@ public class PermissionService
             return false;
         }
         LoginUser loginUser = SecurityUtils.getLoginUser();
-        if (StringUtils.isNull(loginUser) || CollectionUtils.isEmpty(loginUser.getPermissions()))
+        if (StringUtils.isNull(loginUser))
+        {
+            return false;
+        }
+        if (AccessPolicy.isPlatformAdmin(loginUser.getUserId(),
+                loginUser.getUser() == null ? null : loginUser.getUser().getRoles()))
+        {
+            return true;
+        }
+        if (CollectionUtils.isEmpty(loginUser.getPermissions()))
         {
             return false;
         }
@@ -66,7 +76,16 @@ public class PermissionService
             return false;
         }
         LoginUser loginUser = SecurityUtils.getLoginUser();
-        if (StringUtils.isNull(loginUser) || CollectionUtils.isEmpty(loginUser.getPermissions()))
+        if (StringUtils.isNull(loginUser))
+        {
+            return false;
+        }
+        if (AccessPolicy.isPlatformAdmin(loginUser.getUserId(),
+                loginUser.getUser() == null ? null : loginUser.getUser().getRoles()))
+        {
+            return true;
+        }
+        if (CollectionUtils.isEmpty(loginUser.getPermissions()))
         {
             return false;
         }
