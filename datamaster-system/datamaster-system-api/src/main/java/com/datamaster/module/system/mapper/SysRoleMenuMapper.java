@@ -39,15 +39,6 @@ public interface SysRoleMenuMapper
     public int deleteRoleMenuByRoleId(Long roleId);
 
     /**
-     * 通过角色ID和项目ID删除角色和菜单关联
-     *
-     * @param roleId 角色ID
-     * @param projectId 项目ID
-     * @return 结果
-     */
-    public int deleteRoleMenuByRoleIdAndProjectId(@Param("roleId") Long roleId, @Param("projectId") Long projectId);
-
-    /**
      * 批量删除角色菜单关联信息
      *
      * @param ids 需要删除的数据ID
@@ -63,11 +54,4 @@ public interface SysRoleMenuMapper
      */
     public int batchRoleMenu(List<SysRoleMenu> roleMenuList);
 
-    /**
-     * 批量新增角色菜单信息带有项目id
-     *
-     * @param roleMenuList 角色菜单列表
-     * @return 结果
-     */
-    public int batchRoleMenuProjectId(List<SysRoleMenu> roleMenuList);
 }

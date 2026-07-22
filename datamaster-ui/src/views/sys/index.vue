@@ -219,8 +219,8 @@ const canCreateProject = computed(() => {
   const permissions = userStore.permissions || [];
   return (
     roles.includes("admin") ||
-    permissions.includes("*:*:*") ||
-    permissions.includes("att:project:add")
+    roles.includes("system") ||
+    permissions.includes("*:*:*")
   );
 });
 

@@ -11,11 +11,9 @@ import com.datamaster.common.constant.UserConstants;
 import com.datamaster.common.core.controller.BaseController;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.domain.entity.SysMenu;
-import com.datamaster.common.core.domain.entity.SysRole;
 import com.datamaster.common.enums.BusinessType;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.module.system.service.ISysMenuService;
-import com.datamaster.module.system.service.ISysRoleService;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -33,9 +31,6 @@ public class SysMenuController extends BaseController
 {
     @Autowired
     private ISysMenuService menuService;
-
-    @Autowired
-    private ISysRoleService roleService;
 
     /**
      * 获取菜单列表
@@ -117,14 +112,10 @@ public class SysMenuController extends BaseController
     {
         SysMenu menu = new SysMenu();
         menu.setStatus("0");
-        SysRole role = roleService.selectRoleById(roleId);
-        if (role != null && role.getProjectId() != null) {
-            menu.setProjectId(role.getProjectId());
-        }
         List<SysMenu> menus = menuService.selectMenuList(menu, getUserId());
         AjaxResult ajax = AjaxResult.success();
         ajax.put("checkedKeys", menuService.selectMenuListByRoleId(roleId));
-        ajax.put("menus", menuService.buildMenuTreeNoSelectDpp(normalizeExistingMenus(menus)));
+        ajax.put("menus", menuService.buildMenuTreeSelect(normalizeExistingMenus(menus)));
         return ajax;
     }
 
@@ -137,10 +128,6 @@ public class SysMenuController extends BaseController
         SysMenu sysMenu = new SysMenu();
         sysMenu.setPath("dpp");
         sysMenu.setStatus("0");
-        SysRole role = roleService.selectRoleById(roleId);
-        if (role != null && role.getProjectId() != null) {
-            sysMenu.setProjectId(role.getProjectId());
-        }
         List<SysMenu> menus = menuService.selectMenuList(sysMenu, getUserId());
         AjaxResult ajax = AjaxResult.success();
         ajax.put("checkedKeys", menuService.selectMenuListByRoleId(roleId));

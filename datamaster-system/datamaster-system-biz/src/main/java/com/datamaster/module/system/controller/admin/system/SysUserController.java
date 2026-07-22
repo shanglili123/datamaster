@@ -26,6 +26,7 @@ import com.datamaster.module.system.service.ISysRoleService;
 import com.datamaster.module.system.service.ISysUserService;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -108,9 +109,13 @@ public class SysUserController extends BaseController
         if (StringUtils.isNotNull(userId))
         {
             SysUser sysUser = userService.getByUserIdAndProjectId(userId,0L);
+            if (StringUtils.isNull(sysUser))
+            {
+                sysUser = userService.selectUserById(userId);
+            }
             ajax.put(AjaxResult.DATA_TAG, sysUser);
             ajax.put("postIds", postService.selectPostListByUserId(userId));
-            ajax.put("roleIds", filterAssignableRoleIds(sysUser.getRoles(), roles));
+            ajax.put("roleIds", filterAssignableRoleIds(sysUser == null ? null : sysUser.getRoles(), roles));
         }
         return ajax;
     }
@@ -231,15 +236,18 @@ public class SysUserController extends BaseController
 
     private List<SysRole> filterAssignableRoles(List<SysRole> roles)
     {
-        return roles.stream()
+        return (roles == null ? Collections.<SysRole>emptyList() : roles).stream()
                 .filter(r -> AccessPolicy.isAssignableSystemUserRole(r, getUserId()))
                 .collect(Collectors.toList());
     }
 
     private List<Long> filterAssignableRoleIds(List<SysRole> userRoles, List<SysRole> assignableRoles)
     {
-        List<Long> assignableRoleIds = assignableRoles.stream().map(SysRole::getRoleId).collect(Collectors.toList());
-        return userRoles.stream()
+        List<Long> assignableRoleIds = (assignableRoles == null ? Collections.<SysRole>emptyList() : assignableRoles)
+                .stream()
+                .map(SysRole::getRoleId)
+                .collect(Collectors.toList());
+        return (userRoles == null ? Collections.<SysRole>emptyList() : userRoles).stream()
                 .map(SysRole::getRoleId)
                 .filter(assignableRoleIds::contains)
                 .collect(Collectors.toList());

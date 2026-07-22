@@ -42,6 +42,17 @@
                         />
                     </el-select>
                 </el-form-item>
+                <el-form-item label="角色类型" prop="projectId">
+                    <el-select
+                        v-model="queryParams.projectId"
+                        placeholder="角色类型"
+                        clearable
+                        class="el-form-input-width"
+                    >
+                        <el-option label="系统角色" :value="0" />
+                        <el-option label="项目角色" :value="1" />
+                    </el-select>
+                </el-form-item>
                 <el-form-item label="创建时间">
                     <el-date-picker
                         class="el-form-input-width"
@@ -141,6 +152,13 @@
                     align="center"
                     :show-overflow-tooltip="true"
                 />
+                <el-table-column label="角色类型" prop="projectId" align="center">
+                    <template #default="scope">
+                        <el-tag :type="isSystemRoleType(scope.row.projectId) ? 'info' : 'primary'">
+                            {{ isSystemRoleType(scope.row.projectId) ? '系统角色' : '项目角色' }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
                 <el-table-column label="显示顺序" prop="roleSort" align="center" />
                 <el-table-column label="状态" align="center">
                     <template #default="scope">
@@ -231,8 +249,8 @@
             <pagination
                 v-show="total > 0"
                 :total="total"
-                v-model:page="queryParams.pageNum"
-                v-model:limit="queryParams.pageSize"
+                v-model:page="data.queryParams.pageNum"
+                v-model:limit="data.queryParams.pageSize"
                 @pagination="getList"
             />
         </div>
@@ -292,6 +310,20 @@
                                     >{{ dict.label }}</el-radio
                                 >
                             </el-radio-group>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="12">
+                        <el-form-item label="角色类型" prop="projectId">
+                            <el-select
+                                v-model="form.projectId"
+                                placeholder="请选择角色类型"
+                                class="el-form-input-width"
+                            >
+                                <el-option label="系统角色" :value="0" />
+                                <el-option label="项目角色" :value="1" />
+                            </el-select>
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -408,10 +440,8 @@
         deptTreeSelect
     } from '@/api/system/system/role.js';
     import {
-        // roleMenuTreeselect,
-        // treeselect as menuTreeselect
-        treeselectNoDpp as menuTreeselect,
-        roleMenuTreeselectNoDpp
+        roleMenuTreeselect,
+        treeselect as menuTreeselect
     } from '@/api/system/system/menu.js';
     import { normalizePage, pageRows } from "@/utils/page.js";
 
@@ -453,7 +483,7 @@
         queryParams: {
             pageNum: 1,
             pageSize: 6,
-            projectId: 0,
+            projectId: undefined,
             roleName: undefined,
             roleKey: undefined,
             status: undefined
@@ -467,14 +497,25 @@
 
     const { queryParams, form, rules } = toRefs(data);
 
+    function normalizeRoleType(projectId) {
+        return Number(projectId) === 0 ? 0 : 1;
+    }
+
+    function isSystemRoleType(projectId) {
+        return normalizeRoleType(projectId) === 0;
+    }
+
     /** 查询角色列表 */
     function getList() {
         loading.value = true;
-        listRole(proxy.addDateRange(queryParams.value, dateRange.value)).then((response) => {
+        const params = proxy.addDateRange(queryParams.value, dateRange.value);
+        console.log('查询参数:', JSON.parse(JSON.stringify(params)));
+        listRole(params).then((response) => {
             const page = normalizePage(response);
             total.value = page.total;
             roleList.value = pageRows(page.rows, page.total, queryParams.value);
             loading.value = false;
+            console.log('返回结果：总数=' + page.total + ', 行数=' + page.rows.length);
         });
     }
 
@@ -616,6 +657,7 @@
         const roleMenu = getRoleMenuTreeselect(roleId);
         getRole(roleId).then((response) => {
             form.value = response.data;
+            form.value.projectId = normalizeRoleType(form.value.projectId);
             form.value.roleSort = Number(form.value.roleSort);
             open.value = true;
             nextTick(() => {
@@ -634,7 +676,7 @@
 
     /** 根据角色ID查询菜单树结构 */
     function getRoleMenuTreeselect(roleId) {
-        return roleMenuTreeselectNoDpp(roleId).then((response) => {
+        return roleMenuTreeselect(roleId).then((response) => {
             menuOptions.value = response.menus;
             return response;
         });
@@ -695,6 +737,7 @@
     function submitForm() {
         proxy.$refs['roleRef'].validate((valid) => {
             if (valid) {
+                form.value.projectId = normalizeRoleType(form.value.projectId);
                 if (form.value.roleId != undefined) {
                     form.value.menuIds = getMenuAllCheckedKeys();
                     updateRole(form.value).then((response) => {

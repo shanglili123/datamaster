@@ -182,11 +182,12 @@ public class ITaxonomyProjectServiceImpl extends ServiceImpl<TaxonomyProjectMapp
                             SysRoleMenu roleMenu = new SysRoleMenu();
                             roleMenu.setRoleId(role.getRoleId());
                             roleMenu.setMenuId(sysRoleMenu.getMenuId());
-                            roleMenu.setProjectId(dictType.getId());
                             rMenusList.add(roleMenu);
                         }
                     }
-                    sysRoleMenuMapper.batchRoleMenuProjectId(rMenusList);
+                    if (!rMenusList.isEmpty()) {
+                        sysRoleMenuMapper.batchRoleMenu(rMenusList);
+                    }
                 }
             }
         }catch (Exception e){

@@ -31,7 +31,7 @@ function hasProjectValue(value) {
 service.interceptors.request.use(config => {
   // 自动注入当前项目ID/编码
   const userStore = useUserStore();
-  if (userStore.projectId) {
+  if (userStore.projectId && !config.url?.includes('/system/role/list')) {
     if (config.method === 'get' && config.params) {
       if (!hasProjectValue(config.params.projectId)) {
         config.params.projectId = userStore.projectId;

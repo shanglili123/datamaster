@@ -198,6 +198,7 @@
         <set>
             <if test="roleName != null and roleName != ''">role_name = #{roleName},</if>
             <if test="roleKey != null and roleKey != ''">role_key = #{roleKey},</if>
+            <if test="projectId != null">project_id = #{projectId},</if>
             <if test="roleSort != null">role_sort = #{roleSort},</if>
             <if test="dataScope != null and dataScope != ''">data_scope = #{dataScope},</if>
             <if test="menuCheckStrictly != null">menu_check_strictly = CASE WHEN #{menuCheckStrictly} THEN 1 ELSE 0 END,</if>
@@ -208,9 +209,6 @@
             update_time = CURRENT_TIMESTAMP
         </set>
         where role_id = #{roleId}
-        <if test="projectId != null">
-            and project_id = #{projectId}
-        </if>
     </update>
 
     <delete id="deleteRoleById" parameterType="Long">

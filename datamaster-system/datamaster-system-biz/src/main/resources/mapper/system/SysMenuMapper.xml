@@ -78,9 +78,6 @@
 		AND m.status = '0'
 		AND ro.status = '0'
 		AND m.menu_type in ('M', 'C', 'F')
-		<if test="projectId != null">
-			AND rm.project_id in (#{projectId},0)
-		</if>
 		<if test="menuName != null and menuName != ''">
             AND m.menu_name like concat('%', #{menuName}, '%')
 		</if>
@@ -112,9 +109,6 @@
 		left join system_role ro on ur.role_id = ro.role_id
 		left join system_user u on ur.user_id = u.user_id
 		where u.user_id = #{userId} and m.menu_type in ('M', 'C') and m.status = '0'  AND ro.status = '0'
-		<if test="projectId != null and projectId != ''">
-			AND rm.project_id in (#{projectId},0)
-		</if>
 		order by m.parent_id, m.order_num
 	</select>
 

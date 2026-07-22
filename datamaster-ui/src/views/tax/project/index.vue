@@ -64,6 +64,7 @@
               plain
               @click="handleAdd"
               v-hasPermi="['att:project:add']"
+              v-hasRole="['system']"
               @mousedown="(e) => e.preventDefault()"
             >
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增

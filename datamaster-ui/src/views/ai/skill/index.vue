@@ -33,10 +33,10 @@
         </el-form-item>
       </el-form>
       <div class="skill-actions">
-        <el-button type="primary" icon="Plus" @click="handleAdd">新增</el-button>
-        <el-button icon="Connection" @click="openSkillGenerate">生成问数Skill</el-button>
-        <el-button type="success" icon="Upload" @click="handleSyncAllSkills">同步问数Skill</el-button>
-        <el-button icon="Link" @click="handleSyncAllDatasources">同步数据源</el-button>
+        <el-button type="primary" icon="Plus" @click="handleAdd" v-hasPermi="['ai:skill:add']">新增</el-button>
+        <el-button icon="Connection" @click="openSkillGenerate" v-hasPermi="['ai:skill:generate']">生成问数Skill</el-button>
+        <el-button type="success" icon="Upload" @click="handleSyncAllSkills" v-hasPermi="['ai:skill:sync']">同步问数Skill</el-button>
+        <el-button icon="Link" @click="handleSyncAllDatasources" v-hasPermi="['da:dataSource:edit']">同步数据源</el-button>
       </div>
     </div>
 
@@ -66,11 +66,11 @@
         <template #default="{ row }">
           <el-button link type="primary" icon="Edit" @click="handleEdit(row)">编辑</el-button>
           <el-button link type="primary" icon="View" @click="handleVersions(row)">版本</el-button>
-          <el-button link type="primary" icon="Upload" @click="openTemplateEditor(row)">上传模板</el-button>
+          <el-button link type="primary" icon="Upload" @click="openTemplateEditor(row)" v-hasPermi="['ai:skill:edit']">上传模板</el-button>
           <el-button link type="primary" icon="Tickets" @click="openTemplateList(row)">查看模板</el-button>
-          <el-button link type="success" icon="Check" @click="handlePublish(row)">发布</el-button>
-          <el-button link type="success" icon="Upload" @click="handleSyncSkill(row)">同步</el-button>
-          <el-button link type="danger" icon="Delete" @click="handleDelete(row)">归档</el-button>
+          <el-button link type="success" icon="Check" @click="handlePublish(row)" v-hasPermi="['ai:skill:publish']">发布</el-button>
+          <el-button link type="success" icon="Upload" @click="handleSyncSkill(row)" v-hasPermi="['ai:skill:sync']">同步</el-button>
+          <el-button link type="danger" icon="Delete" @click="handleDelete(row)" v-hasPermi="['ai:skill:remove']">归档</el-button>
         </template>
       </el-table-column>
     </el-table>
