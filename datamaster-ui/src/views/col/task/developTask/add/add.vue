@@ -51,22 +51,6 @@
       </el-row>
 
       <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="责任人" prop="personCharge"
-            :rules="[{ required: title != '任务详情', message: '请选择责任人', trigger: 'change' }]">
-            <el-tree-select filterable v-model="form.personCharge" :data="userList" :props="{
-              value: 'userId',
-              label: 'nickName',
-              children: 'children',
-            }" value-key="ID" placeholder="请选择责任人" check-strictly @change="handleContactChange" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="联系电话" prop="contactNumber">
-            <el-input v-if="title != '任务详情'" v-model="form.contactNumber" placeholder="请输入联系电话" disabled />
-            <div class="form-readonly" v-else>{{ form.contactNumber }}</div>
-          </el-form-item>
-        </el-col>
       </el-row>
       <el-row :gutter="20">
         <el-col :span="24">
@@ -166,7 +150,6 @@ const props = defineProps({
   title: { type: String, default: "表单标题" },
   data: { type: Object, default: () => ({}) },
   deptOptions: { type: Object, default: () => ({}) },
-  userList: { type: Object, default: () => ({}) },
   info: { type: Boolean, default: false },
 });
 
@@ -272,7 +255,6 @@ watch(
       form.value.typaCode = templateAct.value.typaCode;
       getDaDatasource();
       getList();
-      form.value.personCharge = Number(form.value.personCharge) || "";
       // 任务状态
       if (form.value.status != null && form.value.status != undefined) {
         form.value.releaseState = form.value.status == "-1" ? "0" : form.value.status;
@@ -298,6 +280,12 @@ let daDiscoveryTaskRef = ref();
 const closeDialog = () => {
   emit("update:visible", false);
 };
+const applyCurrentUserAsCreator = (target) => {
+  target.creatorId = userStore.id;
+  target.createBy = userStore.nickName || userStore.name;
+  target.personCharge = userStore.id;
+  target.contactNumber = userStore.phonenumber || "";
+};
 const saveClose = async () => {
   try {
     const valid = await daDiscoveryTaskRef.value.validate();
@@ -312,6 +300,7 @@ const saveClose = async () => {
         }
       }
       const formData = JSON.parse(JSON.stringify(form.value));
+      applyCurrentUserAsCreator(formData);
       formData.draftJson = JSON.stringify(templateAct.value);
       console.log("🚀 ~ saveData ~ formData:", formData);
       emit("save", formData);
@@ -338,6 +327,7 @@ const saveData = async () => {
         }
       }
       const formData = JSON.parse(JSON.stringify(form.value));
+      applyCurrentUserAsCreator(formData);
       formData.draftJson = JSON.stringify(templateAct.value);
       console.log("🚀 ~ saveData ~ formData:", formData);
       emit("confirm", formData);
@@ -361,12 +351,6 @@ function handleShowCron() {
 function crontabFill(value) {
   form.value.crontab = value;
 }
-
-const handleContactChange = (selectedValue) => {
-  const selectedUser = props.userList.find((user) => user.userId == selectedValue);
-  console.log("🚀 ~ handleContactChange ~ selectedUser:", selectedUser);
-  form.value.contactNumber = selectedUser?.phonenumber || "";
-};
 // 定义表单验证规则额
 </script>
 <style scoped lang="less">

@@ -148,15 +148,58 @@ function handleResetClick() {
 </script>
 
 <style lang="scss" scoped>
+.qt-search-bar {
+  ::v-deep(.el-form) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 10px;
+  }
+
+  ::v-deep(.el-form-item) {
+    margin-right: 0;
+    margin-bottom: 12px;
+  }
+
+  ::v-deep(.el-form-item__label) {
+    height: 32px;
+    line-height: 32px;
+    color: #4e5969;
+    font-weight: 500;
+  }
+}
+
 .search-content {
   width: 210px;
+
+  ::v-deep(.el-input__wrapper),
+  ::v-deep(.el-select__wrapper) {
+    min-height: 32px;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #e2e8f0 inset;
+    background: #fbfcfe;
+
+    &:hover {
+      box-shadow: 0 0 0 1px #c8d4e4 inset;
+    }
+
+    &.is-focus,
+    &.is-focused {
+      background: #ffffff;
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+    }
+  }
 }
 
 .search-btns {
+  margin-left: auto;
+
   .el-button {
-    height: 30px;
-    padding: 8px 11px;
+    height: 32px;
+    padding: 8px 12px;
     font-size: 12px;
+    border-radius: 6px;
   }
 }
 .extend-btn {

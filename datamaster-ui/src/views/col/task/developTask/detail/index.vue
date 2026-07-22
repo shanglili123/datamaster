@@ -601,7 +601,9 @@ const fullScreenCallBack = () => {
   .head-container {
     height: 50px;
     background: #fff;
-    box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1);
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
     padding: 0px 15px;
     display: flex;
     justify-content: space-between;
@@ -658,15 +660,22 @@ const fullScreenCallBack = () => {
 }
 
 .left-pane {
-  box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1) !important;
-  background-color: #fff;
+  box-shadow: none !important;
+  background: transparent;
   height: 80vh;
   overflow: hidden;
 
   .left-tree {
-    padding: 15px 15px 15px 15px;
+    height: 100%;
+    padding: 14px;
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
     scrollbar-width: none;
     -ms-overflow-style: none;
+    box-sizing: border-box;
+    overflow: auto;
   }
 
   .icon-img {
@@ -678,18 +687,26 @@ const fullScreenCallBack = () => {
 .el-aside {
   padding: 2px 0;
   margin-bottom: 0;
-  background-color: #f0f2f5;
+  background: transparent;
 }
 
 .custom-tree-node {
   display: flex;
   align-items: center;
   width: 200px;
+  min-width: 0;
   user-select: none;
 }
 
 .treelable {
-  margin-left: 5px;
+  flex: 1;
+  min-width: 0;
+  margin-left: 8px;
+  overflow: hidden;
+  color: #3f4a5a;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .zjiconimg {
@@ -697,11 +714,11 @@ const fullScreenCallBack = () => {
 }
 
 .colorxz {
-  color: #358cf3;
+  color: var(--el-color-primary);
 }
 
 .colorwxz {
-  color: #afd1fa;
+  color: #8aaadc;
 }
 
 .iconimg {
@@ -770,8 +787,11 @@ const fullScreenCallBack = () => {
 }
 
 .graph-container {
-  box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1) !important;
+  border: 1px solid #e8edf5;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05) !important;
   min-height: 70vh !important;
+  overflow: hidden;
 }
 
 :deep(.x6-widget-selection-box) {
@@ -786,7 +806,7 @@ const fullScreenCallBack = () => {
 
 :deep(.x6-graph-background) {
   background-color: white !important;
-  box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1) !important;
+  box-shadow: none !important;
 }
 
 :deep(.x6-graph-grid) {
@@ -811,7 +831,7 @@ const fullScreenCallBack = () => {
       cursor: pointer;
       width: 30px;
       height: 30px;
-      border-radius: 2px;
+      border-radius: 6px;
       border: 1px solid var(--el-color-primary);
       display: flex;
       justify-content: center;

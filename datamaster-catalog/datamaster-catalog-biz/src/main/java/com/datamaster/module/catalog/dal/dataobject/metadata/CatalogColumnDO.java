@@ -168,7 +168,7 @@ public class CatalogColumnDO extends BaseEntity {
      */
     private String valueRule;
 
-    /** 责任人 */
+    /** 创建人 */
     private Long businessLeader;
 
     /**

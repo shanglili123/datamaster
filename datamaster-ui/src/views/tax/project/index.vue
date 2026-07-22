@@ -557,7 +557,7 @@ const data = reactive({
   rules: {
     managerId: [{ required: true, message: "负责人不能为空", trigger: "blur" }],
     name: [{ required: true, message: "项目名称不能为空", trigger: "blur" }],
-    // managerId: [{ required: true, message: "责任人不能为空", trigger: "blur" }],
+    // managerId: [{ required: true, message: "创建人不能为空", trigger: "blur" }],
     // validFlag: [{ required: true, message: '是否有效不能为空', trigger: 'change' }]
   },
 });

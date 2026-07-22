@@ -160,8 +160,8 @@ public class CollectorEtlNodeInstanceRespVO implements Serializable {
     @Schema(description = "备注", example = "")
     private String remark;
 
-    @Excel(name = "责任人名称")
-    @Schema(description = "责任人名称", example = "")
+    @Excel(name = "创建人名称")
+    @Schema(description = "创建人名称", example = "")
     private String personChargeName;
 
     @Excel(name = "运行类型")

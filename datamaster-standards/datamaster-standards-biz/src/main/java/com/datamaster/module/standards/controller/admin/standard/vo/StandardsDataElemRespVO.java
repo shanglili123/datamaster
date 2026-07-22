@@ -49,12 +49,12 @@ public class StandardsDataElemRespVO implements Serializable {
     @Schema(description = "类型", example = "")
     private String type;
 
-    @Excel(name = "责任人")
-    @Schema(description = "责任人", example = "")
+    @Excel(name = "创建人")
+    @Schema(description = "创建人", example = "")
     private String personCharge;
 
     /**
-     * 责任人名称
+     * 创建人名称
      */
     private String personChargeName;
 

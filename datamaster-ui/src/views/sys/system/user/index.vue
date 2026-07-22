@@ -871,7 +871,7 @@ getList();
 }
 
 .left-pane {
-  background-color: #ffffff;
+  background: transparent;
   overflow: hidden;
   transition: width 0s;
   /* 可以根据需要调整过渡时间 */
@@ -883,10 +883,12 @@ getList();
   .pagecont-bottom {
     flex: 1;
     min-height: calc(100vh - 250px);
-    padding: 13px 15px;
-    background-color: #ffffff;
-    border-radius: 2px;
-    box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1);
+    padding: 14px 16px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
   }
 }
 
@@ -896,18 +898,28 @@ getList();
 }
 
 .el-aside {
-  padding: 2px 0px;
+  padding: 2px 0;
   margin-bottom: 0px;
-  background-color: #f0f2f5;
+  background: transparent;
 }
 
 .custom-tree-node {
   display: flex;
   align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
 }
 
 .treelable {
-  margin-left: 5px;
+  flex: 1;
+  min-width: 0;
+  margin-left: 8px;
+  overflow: hidden;
+  color: #3f4a5a;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .zjiconimg {
@@ -915,11 +927,11 @@ getList();
 }
 
 .colorxz {
-  color: #358cf3;
+  color: var(--el-color-primary);
 }
 
 .colorwxz {
-  color: #afd1fa;
+  color: #8aaadc;
 }
 
 .iconimg {
@@ -940,15 +952,17 @@ getList();
 
 .resize-bar {
   cursor: ew-resize;
-  background-color: #f0f2f5;
+  width: 12px;
   height: 86vh;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
 }
 
 .resize-handle-sx {
-  width: 15px;
+  width: 12px;
   text-align: center;
   position: relative;
   /* 必须加，用来定位 collapse-icon */
@@ -968,10 +982,47 @@ getList();
   left: 50%;
   transform: translate(-50%, -50%);
   /* 真正的居中 */
-  font-size: 28px;
-  color: #aaa;
+  font-size: 18px;
+  color: #7f8da3;
   cursor: pointer;
   z-index: 10;
-  padding: 5px;
+  padding: 5px 2px;
+  background: #ffffff;
+  border: 1px solid #e5eaf2;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(31, 45, 61, 0.08);
+
+  &:hover {
+    color: var(--el-color-primary);
+    border-color: #c9dcff;
+  }
+}
+
+:deep(.left-tree .el-input__wrapper) {
+  min-height: 34px;
+  border-radius: 6px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
+}
+
+:deep(.left-tree .el-tree) {
+  --el-tree-node-hover-bg-color: #f6faff;
+  background: transparent;
+  color: #3f4a5a;
+
+  .el-tree-node__content {
+    height: 34px;
+    margin: 2px 0;
+    border-radius: 6px;
+    transition: background-color 0.16s ease, color 0.16s ease;
+  }
+
+  &.el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content {
+    background: #eef5ff;
+
+    .custom-tree-node .treelable {
+      color: var(--el-color-primary);
+    }
+  }
 }
 </style>

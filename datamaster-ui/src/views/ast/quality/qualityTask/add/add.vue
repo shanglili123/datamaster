@@ -128,24 +128,6 @@
                 </el-form-item>
               </el-col>
               <el-col :span="2"> </el-col>
-              <el-col :span="11">
-                <el-form-item label="责任人" prop="contactId">
-                  <el-tree-select
-                    filterable
-                    v-model="form.contactId"
-                    :data="userList"
-                    :props="{
-                      value: 'userId',
-                      label: 'nickName',
-                      children: 'children',
-                    }"
-                    value-key="ID"
-                    placeholder="请选择责任人"
-                    check-strictly
-                    @change="handleContactChange"
-                  />
-                </el-form-item>
-              </el-col>
             </el-row>
 
             <el-row :gutter="20">
@@ -635,7 +617,6 @@ import { ref, reactive, toRefs, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import InspectionTargetDialog from "../components/inspectionTarget.vue";
 import RuleSelectorDialog from "../components/ruleBase.vue";
-import { deptUserTree } from "@/api/system/system/user.js";
 import { listAttQualityCat } from "@/api/tax/cat/qualityCat/qualityCat.js";
 import {
   addDppQualityTask,
@@ -861,7 +842,6 @@ const resetQuery = () => {
 };
 let deptOptions = ref([]);
 
-let userList = ref([]);
 let openCron = ref(false);
 const expression = ref("");
 /** 调度周期按钮操作 */
@@ -883,12 +863,9 @@ function getDeptTree() {
         name: "数据质量类目",
         value: "",
         id: 0,
-        children: deptOptions.value,
+      children: deptOptions.value,
       },
     ];
-  });
-  deptUserTree().then((res) => {
-    userList.value = res.data;
   });
 }
 const data = reactive({
@@ -1044,18 +1021,21 @@ async function submitForm() {
     return;
   }
   try {
+    const payload = {
+      ...form.value,
+      creatorId: userStore.id,
+      createBy: userStore.nickName || userStore.name,
+      contactId: userStore.id,
+      dppQualityTaskObjSaveReqVO: dppQualityTaskObjSaveReqVO.value,
+      dppQualityTaskEvaluateSaveReqVO:
+        dppQualityTaskEvaluateSaveReqVO.value,
+    };
     const res = form.value.id
       ? await updateDppQualityTask({
-          ...form.value,
-          dppQualityTaskObjSaveReqVO: dppQualityTaskObjSaveReqVO.value,
-          dppQualityTaskEvaluateSaveReqVO:
-            dppQualityTaskEvaluateSaveReqVO.value,
+          ...payload,
         })
       : await addDppQualityTask({
-          ...form.value,
-          dppQualityTaskObjSaveReqVO: dppQualityTaskObjSaveReqVO.value,
-          dppQualityTaskEvaluateSaveReqVO:
-            dppQualityTaskEvaluateSaveReqVO.value,
+          ...payload,
         });
 
     // 响应处理

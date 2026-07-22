@@ -36,7 +36,7 @@ public class CollectorEtlTaskLogRespDTO {
     /** 项目编码 */
     private String projectCode;
 
-    /** 责任人 */
+    /** 创建人 */
     private String personCharge;
 
     /** 节点坐标信息 */

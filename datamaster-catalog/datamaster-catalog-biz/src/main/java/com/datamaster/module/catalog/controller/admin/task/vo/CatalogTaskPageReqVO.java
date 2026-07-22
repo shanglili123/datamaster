@@ -36,13 +36,13 @@ public class CatalogTaskPageReqVO extends PageParam {
     @Schema(description = "数据库类型", example = "")
     private String dbType;
 
-    @Schema(description = "责任人", example = "")
+    @Schema(description = "创建人", example = "")
     private Long leader;
 
     @Schema(description = "责任部门", example = "")
     private Long responsibleDept;
 
-    @Schema(description = "责任人电话", example = "")
+    @Schema(description = "创建人电话", example = "")
     private String leaderPhone;
 
     @Schema(description = "采集模式", example = "")

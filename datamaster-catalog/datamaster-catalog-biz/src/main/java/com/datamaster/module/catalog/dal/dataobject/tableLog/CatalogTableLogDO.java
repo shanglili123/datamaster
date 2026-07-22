@@ -62,16 +62,16 @@ public class CatalogTableLogDO extends BaseEntity {
     /** 存储大小 */
     private Integer storageSize;
 
-    /** 业务责任人 */
+    /** 业务创建人 */
     private Long businessLeader;
 
-    /** 业务责任人电话 */
+    /** 业务创建人电话 */
     private String businessLeaderPhone;
 
-    /** 技术责任人 */
+    /** 技术创建人 */
     private Long techLeader;
 
-    /** 技术责任人电话 */
+    /** 技术创建人电话 */
     private String techLeaderPhone;
 
     /** 是否主表;0：否，1：是 */

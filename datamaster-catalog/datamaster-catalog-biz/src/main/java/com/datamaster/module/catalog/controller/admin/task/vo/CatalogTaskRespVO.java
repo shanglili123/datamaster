@@ -48,12 +48,12 @@ public class CatalogTaskRespVO implements Serializable {
     @Schema(description = "数据库类型", example = "")
     private String dbType;
 
-    @Excel(name = "责任人")
-    @Schema(description = "责任人", example = "")
+    @Excel(name = "创建人")
+    @Schema(description = "创建人", example = "")
     private Long leader;
 
-    @Excel(name = "责任人电话")
-    @Schema(description = "责任人电话", example = "")
+    @Excel(name = "创建人电话")
+    @Schema(description = "创建人电话", example = "")
     private String leaderPhone;
 
     @Excel(name = "采集模式")

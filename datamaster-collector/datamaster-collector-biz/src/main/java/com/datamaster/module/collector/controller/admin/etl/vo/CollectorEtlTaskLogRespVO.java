@@ -49,8 +49,8 @@ public class CollectorEtlTaskLogRespVO implements Serializable {
     @Schema(description = "项目编码", example = "")
     private String projectCode;
 
-    @Excel(name = "责任人")
-    @Schema(description = "责任人", example = "")
+    @Excel(name = "创建人")
+    @Schema(description = "创建人", example = "")
     private String personCharge;
 
     @Excel(name = "节点坐标信息")

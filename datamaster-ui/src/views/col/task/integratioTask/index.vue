@@ -442,7 +442,7 @@ const tableStore = reactive({
     },
 
     {
-      label: "责任人",
+      label: "创建人",
       width: 120,
       slot: "personChargeName",
       align: "left",
@@ -523,14 +523,14 @@ const searchStore = reactive({
       },
     },
     {
-      label: "责任人",
+      label: "创建人",
       prop: "personCharge",
       component: {
         is: "tree-select",
         data: userList,
         props: { value: "userId", label: "nickName", children: "children" },
         valueKey: "ID",
-        placeholder: "请选择责任人",
+        placeholder: "请选择创建人",
         checkStrictly: true,
       },
     },

@@ -445,9 +445,50 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+.qt-table {
+  width: 100%;
+}
+
+.qt-table--main {
+  overflow: hidden;
+  border: 1px solid #edf1f7;
+  border-radius: 8px;
+}
+
 ::v-deep(.el-table) {
-  --el-table-header-bg-color: #f1f1f5;
-  --el-table-header-text-color: #666;
+  --el-table-header-bg-color: #f7f9fc;
+  --el-table-header-text-color: #2f3a4a;
+  --el-table-border-color: #edf1f7;
+  --el-table-row-hover-bg-color: #f6faff;
+  color: #3f4a5a;
+  font-size: 13px;
+
+  .el-table__header-wrapper th,
+  .el-table__fixed-header-wrapper th {
+    height: 42px;
+    font-weight: 600;
+    background: #f7f9fc !important;
+  }
+
+  .el-table__cell {
+    padding: 10px 0;
+  }
+
+  .cell {
+    line-height: 20px;
+  }
+
+  .el-table__row {
+    transition: background-color 0.18s ease;
+  }
+
+  .el-table__inner-wrapper::before {
+    display: none;
+  }
+
+  .el-table__empty-block {
+    min-height: 240px;
+  }
 }
 
 .tip-wrap {
@@ -463,18 +504,36 @@ defineExpose({
 }
 
 .qt-table--pagination {
-  padding: 20px 10px;
+  padding: 14px 2px 2px;
   display: flex;
   justify-content: flex-end;
+
+  ::v-deep(.el-pagination) {
+    --el-pagination-button-bg-color: #f7f9fc;
+    --el-pagination-hover-color: var(--el-color-primary);
+
+    .btn-prev,
+    .btn-next,
+    .el-pager li {
+      border-radius: 6px;
+    }
+  }
 }
 
+.emptyBg,
 .empty-wrap {
+  padding: 28px 0;
+
   img {
-    width: 380px;
+    width: 180px;
+    max-width: 36%;
+    opacity: 0.9;
   }
+
   p {
     font-size: 14px;
     margin: 14px 0;
+    color: #8a95a6;
   }
 }
 </style>

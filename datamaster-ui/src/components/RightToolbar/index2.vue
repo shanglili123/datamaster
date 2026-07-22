@@ -1,16 +1,5 @@
 ﻿<template>
-  <div class="top-right-btn" :style="style">
-    <el-row>
-      <el-tooltip class="item" effect="dark" :content="showSearch ? '隐藏搜索' : '显示搜索'" placement="top" v-if="search">
-        <!-- <el-button class="zhankaishouqi" type="primary" :icon="showSearch ? 'ArrowDownBold' : 'ArrowUpBold'" @click="toggleSearch()">{{showSearch ? '收起' : '展开'}}</el-button> -->
-        <el-button class="zhankaishouqi" type="primary"  @click="toggleSearch()">
-          <span>{{showSearch ? '收起' : '展开'}}</span>
-          <el-icon v-if="showSearch" style="margin-left:5px"><ArrowUpBold /></el-icon>
-          <el-icon v-else style="margin-left:5px"><ArrowDownBold /></el-icon>
-        </el-button>
-      </el-tooltip>
-    </el-row>
-  </div>
+  <div class="top-right-btn" :style="style"></div>
 </template>
 
 <script setup>
@@ -20,7 +9,7 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  /* 显隐列信息 */
+  /* 隐藏列信息 */
   columns: {
     type: Array,
   },
@@ -29,7 +18,7 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  /* 显隐列类型（transfer穿梭框、checkbox复选框） */
+  /* 隐藏列类型（transfer穿梭框、checkbox复选框） */
   showColumnsType: {
     type: String,
     default: "checkbox",
@@ -58,11 +47,6 @@ const style = computed(() => {
   return ret;
 });
 
-// 搜索
-function toggleSearch() {
-  emits("update:showSearch", !props.showSearch);
-}
-
 // 刷新
 function refresh() {
   emits("queryTable");
@@ -76,13 +60,13 @@ function dataChange(data) {
   }
 }
 
-// 打开显隐列dialog
+// 打开隐藏列dialog
 function showColumn() {
   open.value = true;
 }
 
 if (props.showColumnsType == 'transfer') {
-  // 显隐列初始默认隐藏列
+  // 隐藏列初始默认隐藏列
   for (let item in props.columns) {
     if (props.columns[item].visible === false) {
       value.value.push(parseInt(item));

@@ -43,7 +43,7 @@ public class CollectorEtlTaskLogPageReqVO extends PageParam {
     @Schema(description = "项目编码", example = "")
     private String projectCode;
 
-    @Schema(description = "责任人", example = "")
+    @Schema(description = "创建人", example = "")
     private String personCharge;
 
     @Schema(description = "节点坐标信息", example = "")

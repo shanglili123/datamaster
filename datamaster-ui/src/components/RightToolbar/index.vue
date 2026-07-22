@@ -1,17 +1,12 @@
 ﻿<template>
   <div class="top-right-btn" :style="style">
     <el-row>
-      <el-tooltip class="item" effect="dark" :content="showSearch ? '隐藏搜索' : '显示搜索'" placement="top" v-if="search">
-        <el-button circle @click="toggleSearch()">
-          <i class="iconfont icon-a-chaxunxianxing"></i>
-        </el-button>
-      </el-tooltip>
       <el-tooltip class="item" effect="dark" content="刷新" placement="top">
         <el-button circle @click="refresh()">
           <i class="iconfont icon-a-shuaxinxianxing"></i>
         </el-button>
       </el-tooltip>
-      <el-tooltip class="item" effect="dark" content="显隐列" placement="top" v-if="columns">
+      <el-tooltip class="item" effect="dark" content="隐藏列" placement="top" v-if="columns">
         <el-button circle icon="Menu" @click="showColumn()" v-if="showColumnsType == 'transfer'" />
         <el-dropdown trigger="click" :hide-on-click="false" style="padding-left: 12px"
           v-if="showColumnsType == 'checkbox'">
@@ -42,7 +37,7 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  /* 显隐列信息 */
+  /* 隐藏列信息 */
   columns: {
     type: Array,
   },
@@ -51,7 +46,7 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
-  /* 显隐列类型（transfer穿梭框、checkbox复选框） */
+  /* 隐藏列类型（transfer穿梭框、checkbox复选框） */
   showColumnsType: {
     type: String,
     default: "checkbox",
@@ -80,11 +75,6 @@ const style = computed(() => {
   return ret;
 });
 
-// 搜索
-function toggleSearch() {
-  emits("update:showSearch", !props.showSearch);
-}
-
 // 刷新
 function refresh() {
   emits("queryTable");
@@ -98,13 +88,13 @@ function dataChange(data) {
   }
 }
 
-// 打开显隐列dialog
+// 打开隐藏列dialog
 function showColumn() {
   open.value = true;
 }
 
 if (props.showColumnsType == 'transfer') {
-  // 显隐列初始默认隐藏列
+  // 隐藏列初始默认隐藏列
   for (let item in props.columns) {
     if (props.columns[item].visible === false) {
       value.value.push(parseInt(item));

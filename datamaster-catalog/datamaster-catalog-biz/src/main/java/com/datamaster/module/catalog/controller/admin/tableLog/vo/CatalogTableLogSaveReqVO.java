@@ -66,18 +66,18 @@ public class CatalogTableLogSaveReqVO extends BaseEntity {
     @Schema(description = "存储大小", example = "")
     private Integer storageSize;
 
-    @Schema(description = "业务责任人", example = "")
+    @Schema(description = "业务创建人", example = "")
     private Long businessLeader;
 
-    @Schema(description = "业务责任人电话", example = "")
-    @Size(max = 256, message = "业务责任人电话长度不能超过256个字符")
+    @Schema(description = "业务创建人电话", example = "")
+    @Size(max = 256, message = "业务创建人电话长度不能超过256个字符")
     private String businessLeaderPhone;
 
-    @Schema(description = "技术责任人", example = "")
+    @Schema(description = "技术创建人", example = "")
     private Long techLeader;
 
-    @Schema(description = "技术责任人电话", example = "")
-    @Size(max = 256, message = "技术责任人电话长度不能超过256个字符")
+    @Schema(description = "技术创建人电话", example = "")
+    @Size(max = 256, message = "技术创建人电话长度不能超过256个字符")
     private String techLeaderPhone;
 
     @Schema(description = "是否主表;0：否，1：是", example = "")

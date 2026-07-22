@@ -43,7 +43,7 @@ public class CollectorEtlTaskRespDTO {
     /** 项目编码 */
     private String projectCode;
 
-    /** 责任人 */
+    /** 创建人 */
     private String personCharge;
 
     /**

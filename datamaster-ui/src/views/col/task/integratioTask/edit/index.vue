@@ -1298,7 +1298,9 @@ const getAssetsFile = (url) => {
   .head-container {
     height: 50px;
     background: #fff;
-    box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1);
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
     padding: 0px 15px;
     display: flex;
     justify-content: space-between;
@@ -1351,15 +1353,17 @@ const getAssetsFile = (url) => {
 
 .left-pane {
   width: 274px;
-  background-color: #fff;
-  box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1);
+  background: #ffffff;
+  border: 1px solid #e8edf5;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   margin-right: 15px;
 
   .left-tree {
-    padding: 15px;
+    padding: 14px;
     flex: 1;
     overflow-y: auto;
     scrollbar-width: none;
@@ -1428,7 +1432,10 @@ const getAssetsFile = (url) => {
   .graph-container {
     flex: 1;
     min-height: 70vh;
-    box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1);
+    overflow: hidden;
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
   }
 
   .tabs-container {
@@ -1449,18 +1456,26 @@ const getAssetsFile = (url) => {
 .el-aside {
   padding: 2px 0;
   margin-bottom: 0;
-  background-color: #f0f2f5;
+  background: transparent;
 }
 
 .custom-tree-node {
   display: flex;
   align-items: center;
   width: 200px;
+  min-width: 0;
   user-select: none;
 }
 
 .treelable {
-  margin-left: 5px;
+  flex: 1;
+  min-width: 0;
+  margin-left: 8px;
+  overflow: hidden;
+  color: #3f4a5a;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .highlight {
@@ -1480,7 +1495,7 @@ const getAssetsFile = (url) => {
 }
 
 .graph-container {
-  box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1) !important;
+  box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05) !important;
   min-height: 70vh !important;
 }
 
@@ -1493,7 +1508,7 @@ const getAssetsFile = (url) => {
 
 :deep(.x6-graph-background) {
   background-color: white !important;
-  box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1) !important;
+  box-shadow: none !important;
 }
 
 :deep(.x6-graph-grid) {

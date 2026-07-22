@@ -78,7 +78,7 @@
           {{ "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="责任人" align="left" prop="personChargeName" width="80">
+      <el-table-column label="创建人" align="left" prop="personChargeName" width="80">
         <template #default="scope">
           {{ scope.row.personChargeName || "-" }}
         </template>

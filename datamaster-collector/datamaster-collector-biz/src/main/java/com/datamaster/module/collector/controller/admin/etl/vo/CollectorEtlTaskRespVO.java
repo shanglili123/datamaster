@@ -62,12 +62,12 @@ public class CollectorEtlTaskRespVO implements Serializable {
     @Schema(description = "项目编码", example = "")
     private String projectCode;
 
-    @Excel(name = "责任人")
-    @Schema(description = "责任人", example = "")
+    @Excel(name = "创建人")
+    @Schema(description = "创建人", example = "")
     private String personCharge;
 
-    @Excel(name = "责任人名称")
-    @Schema(description = "责任人名称", example = "")
+    @Excel(name = "创建人名称")
+    @Schema(description = "创建人名称", example = "")
     private String personChargeName;
 
     @Excel(name = "联系电话")

@@ -91,36 +91,6 @@
             <div class="form-readonly" v-else>{{ form.crontab }}</div>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="责任人" prop="personCharge">
-            <el-tree-select
-              filterable
-              v-model="form.personCharge"
-              :data="userList"
-              :props="{
-                value: 'userId',
-                label: 'nickName',
-                children: 'children',
-              }"
-              value-key="ID"
-              placeholder="请选择责任人"
-              check-strictly
-              @change="handleContactChange"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="联系电话" prop="contactNumber">
-            <el-input
-              v-if="title != '任务详情'"
-              v-model="form.contactNumber"
-              placeholder="请输入联系电话"
-              disabled
-            >
-            </el-input>
-            <div class="form-readonly" v-else>{{ form.contactNumber }}</div>
-          </el-form-item>
-        </el-col>
         <el-col :span="24">
           <el-form-item label="描述" prop="description">
             <el-input
@@ -393,7 +363,6 @@ const props = defineProps({
   title: { type: String, default: "表单标题" },
   data: { type: Object, default: () => ({}) },
   deptOptions: { type: Object, default: () => ({}) },
-  userList: { type: Object, default: () => ({}) },
   info: { type: Boolean, default: false },
   catCode: { type: String, default: "" },
   savedDataSourceId: { type: [String, Number], default: "" },
@@ -415,9 +384,6 @@ const rules = {
   ],
   // releaseState: [{ required: true, message: "任务状态不能为空", trigger: "change" }],
   taskType: [{ required: true, message: "执行引擎不能为空", trigger: "change" }],
-  personCharge: [
-    { required: true, message: "责任人不能为空", trigger: "change" },
-  ],
 };
 const form = ref({
   catId: "",
@@ -496,7 +462,6 @@ watch(
         form.value = { ...data, ...draftJson };
         form.value.taskType = "FLINK";
         applyFlinkSettingDefaults();
-        form.value.personCharge = Number(form.value.personCharge) || "";
         form.value.crontab = props?.data.taskConfig?.crontab;
       } else {
         form.value.catCode = props?.catCode || "";
@@ -525,6 +490,12 @@ let daDiscoveryTaskRef = ref();
 const closeDialog = () => {
   emit("update:visible", false);
 };
+const applyCurrentUserAsCreator = () => {
+  form.value.creatorId = userStore.id;
+  form.value.createBy = userStore.nickName || userStore.name;
+  form.value.personCharge = userStore.id;
+  form.value.contactNumber = userStore.phonenumber || "";
+};
 const saveClose = () => {
   if (saveLoading.value) return;
   console.log("🚀 saveClose called, saveLoading:", saveLoading.value);
@@ -534,6 +505,7 @@ const saveClose = () => {
       saveLoading.value = true;
       console.log("🚀 emitting save event");
       normalizeFlinkSetting();
+      applyCurrentUserAsCreator();
       emit("save", form.value);
     }
   });
@@ -545,6 +517,7 @@ const saveData = () => {
     if (valid) {
       saveLoading.value = true;
       normalizeFlinkSetting();
+      applyCurrentUserAsCreator();
       emit("confirm", form.value);
       // 发送回echo完成事件
       emit("回echo完成", {
@@ -612,13 +585,6 @@ function handleShowCron() {
 function crontabFill(value) {
   form.value.crontab = value;
 }
-const handleContactChange = (selectedValue) => {
-  const selectedUser = props.userList.find(
-    (user) => user.userId == selectedValue
-  );
-  console.log("🚀 ~ handleContactChange ~ selectedUser:", selectedUser);
-  form.value.contactNumber = selectedUser?.phonenumber || "";
-};
 const defaultExpandedCats = computed(() => {
   return props.deptOptions.map((item) => item.id);
 });

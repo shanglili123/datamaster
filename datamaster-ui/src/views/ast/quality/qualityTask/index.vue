@@ -18,8 +18,8 @@
                   :value="dict.value" />
               </el-select>
             </el-form-item>
-            <el-form-item label="责任人" prop="contact">
-              <el-input v-model="queryParams.contact" placeholder="请输入责任人" clearable
+            <el-form-item label="创建人" prop="contact">
+              <el-input v-model="queryParams.contact" placeholder="请输入创建人" clearable
                 class="el-form-input-width" @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item>

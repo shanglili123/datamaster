@@ -76,20 +76,20 @@ public class CatalogTableLogRespVO implements Serializable {
     @Schema(description = "存储大小", example = "")
     private Integer storageSize;
 
-    @Excel(name = "业务责任人")
-    @Schema(description = "业务责任人", example = "")
+    @Excel(name = "业务创建人")
+    @Schema(description = "业务创建人", example = "")
     private Long businessLeader;
 
-    @Excel(name = "业务责任人电话")
-    @Schema(description = "业务责任人电话", example = "")
+    @Excel(name = "业务创建人电话")
+    @Schema(description = "业务创建人电话", example = "")
     private String businessLeaderPhone;
 
-    @Excel(name = "技术责任人")
-    @Schema(description = "技术责任人", example = "")
+    @Excel(name = "技术创建人")
+    @Schema(description = "技术创建人", example = "")
     private Long techLeader;
 
-    @Excel(name = "技术责任人电话")
-    @Schema(description = "技术责任人电话", example = "")
+    @Excel(name = "技术创建人电话")
+    @Schema(description = "技术创建人电话", example = "")
     private String techLeaderPhone;
 
     @Excel(name = "是否主表")

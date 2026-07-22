@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <dp-main>
         <dp-desc :data="data" v-model="active"></dp-desc>
     </dp-main>
@@ -106,7 +106,7 @@
             ]
         },
         {
-            label: '水库责任人',
+            label: '水库创建人',
             value: 'skzrr',
             config: {
                 column: 2,
@@ -114,7 +114,7 @@
             },
             children: [
                 {
-                    label: '政府责任人姓名：',
+                    label: '政府创建人姓名：',
                     value: '关晓军'
                 },
                 {
@@ -122,15 +122,15 @@
                     value: '察布查尔县人民政府'
                 },
                 {
-                    label: '政府责任人职务：',
+                    label: '政府创建人职务：',
                     value: '县委副书记、县长'
                 },
                 {
-                    label: '政府责任人电话：',
+                    label: '政府创建人电话：',
                     value: '18097846738'
                 },
                 {
-                    label: '主管部门责任人姓名：',
+                    label: '主管部门创建人姓名：',
                     value: '关俊辉'
                 },
                 {
@@ -138,11 +138,11 @@
                     value: '农水集团伊南供水公司'
                 },
                 {
-                    label: '主管部门责任人职务：',
+                    label: '主管部门创建人职务：',
                     value: '执行董事'
                 },
                 {
-                    label: '主管部门责任人电话：',
+                    label: '主管部门创建人电话：',
                     value: '13779158608'
                 }
             ]

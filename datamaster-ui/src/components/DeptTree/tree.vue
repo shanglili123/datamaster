@@ -138,7 +138,7 @@ defineExpose({ resetTree });
 
 <style scoped lang="scss">
 .left-pane {
-    background-color: #ffffff;
+    background: transparent;
     overflow: hidden;
     height: 660px;
     display: flex;
@@ -146,10 +146,13 @@ defineExpose({ resetTree });
 }
 
 .left-tree {
-    padding: 15px;
+    padding: 14px;
     flex: 1;
     overflow-y: auto;
-    /* 超出显示滚动条 */
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
     scrollbar-width: thin;
 }
 
@@ -170,23 +173,25 @@ defineExpose({ resetTree });
     width: 100%;
     display: flex;
     align-items: center;
-    padding: 0 36px 0 12px;
+    min-width: 0;
+    padding: 0 10px;
 
     .node-icon {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
 
     .treelable {
-        margin-left: 10px;
+        margin-left: 8px;
         flex: 1;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         font-family: PingFang SC;
         font-weight: 400;
-        font-size: 14px;
-        color: rgba(0, 0, 0, 0.85);
+        font-size: 13px;
+        color: #3f4a5a;
+        min-width: 0;
     }
 }
 
@@ -195,11 +200,11 @@ defineExpose({ resetTree });
 }
 
 .colorxz {
-    color: #358cf3;
+    color: var(--el-color-primary);
 }
 
 .colorwxz {
-    color: var(--el-color-primary);
+    color: #8aaadc;
 }
 
 .resize-bar {
@@ -208,10 +213,12 @@ defineExpose({ resetTree });
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 12px;
+    flex-shrink: 0;
 }
 
 .resize-handle-sx {
-    width: 15px;
+    width: 12px;
     text-align: center;
     position: relative;
 }
@@ -229,17 +236,30 @@ defineExpose({ resetTree });
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 28px;
-    color: #aaa;
+    font-size: 18px;
+    color: #7f8da3;
     cursor: pointer;
     z-index: 10;
-    padding: 5px;
+    padding: 5px 2px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid #e5eaf2;
+    box-shadow: 0 4px 12px rgba(31, 45, 61, 0.08);
+
+    &:hover {
+        color: var(--el-color-primary);
+        border-color: #c9dcff;
+    }
 }
 
 :deep(.dept-tree) {
+    --el-tree-node-hover-bg-color: #f6faff;
+    background: transparent;
+
     &.el-tree--highlight-current .el-tree-node.is-current>.el-tree-node__content {
-        background: rgba(51, 103, 252, 0.06) !important;
+        background: #eef5ff !important;
         border: none;
+        border-radius: 6px;
 
         .custom-tree-node .treelable {
             color: var(--el-color-primary);
@@ -248,15 +268,17 @@ defineExpose({ resetTree });
 
     .el-tree-node__content {
         position: relative;
+        height: 34px;
+        border-radius: 6px;
+        margin: 2px 0;
 
         .el-tree-node__expand-icon {
             position: absolute;
             right: 10px;
-            color: transparent;
+            color: #9aa8ba;
 
             &>svg {
-                background: url("@/assets/da/asset/arrow.png") no-repeat;
-                background-size: 100% 100%;
+                background: none;
             }
         }
     }

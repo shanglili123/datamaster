@@ -3,26 +3,62 @@
     <div
       :class="[config.search ? '' : 'qt-wrap--search']"
       v-if="$slots.search"
-      v-show="store.search"
     >
-      <slot name="search"></slot>
+      <div class="qt-wrap--search-inner">
+        <slot name="search"></slot>
+        <div
+          class="qt-wrap--search-actions"
+          v-if="config.actions.show && (hasDataActions || config.actions.table.show)"
+        >
+          <div class="data-actions" v-if="hasDataActions">
+            <slot name="actions-data"></slot>
+          </div>
+          <div class="table-actions" v-if="config.actions.table.show">
+            <el-tooltip effect="dark" content="刷新" placement="top">
+              <el-button
+                circle
+                v-show="config.actions.table.refresh"
+                @click="handleRefreshClick"
+              >
+                <i class="iconfont icon-a-shuaxinxianxing"></i>
+              </el-button>
+            </el-tooltip>
+
+            <el-tooltip effect="dark" content="隐藏列" placement="top">
+              <el-dropdown
+                trigger="click"
+                :hide-on-click="false"
+                v-show="config.actions.table.columns"
+                popper-class="columns-popper"
+              >
+                <el-button circle icon="Menu" />
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item
+                      v-for="item in props.columns"
+                      :key="item.prop"
+                    >
+                      <el-checkbox
+                        v-show="item?.type != 'selection'"
+                        :checked="!item.hide"
+                        :label="item.label"
+                        @change="handleCheckboxChange($event, item)"
+                      />
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </el-tooltip>
+          </div>
+        </div>
+      </div>
     </div>
     <div :class="['qt-wrap--content', config.fullContent ? 'full' : '']">
-      <div class="qt-wrap--actions" v-if="config.actions.show">
+      <div class="qt-wrap--actions" v-if="config.actions.show && !$slots.search">
         <div class="data-actions">
           <slot name="actions-data"></slot>
         </div>
         <div class="table-actions" v-if="config.actions.table.show">
-          <el-tooltip effect="dark" content="隐藏搜索" placement="top">
-            <el-button
-              circle
-              @click="store.search = !store.search"
-              v-show="config.actions.table.search"
-            >
-              <i class="iconfont icon-a-chaxunxianxing"></i>
-            </el-button>
-          </el-tooltip>
-
           <el-tooltip effect="dark" content="刷新" placement="top">
             <el-button
               circle
@@ -33,7 +69,7 @@
             </el-button>
           </el-tooltip>
 
-          <el-tooltip effect="dark" content="显隐列" placement="top">
+          <el-tooltip effect="dark" content="隐藏列" placement="top">
             <el-dropdown
               trigger="click"
               :hide-on-click="false"
@@ -68,7 +104,7 @@
 </template>
 
 <script setup name="QtWrap">
-import { computed, reactive } from "vue";
+import { computed, useSlots } from "vue";
 import { merge } from "lodash-es";
 
 const DEFAULT_CONFIG = {
@@ -105,12 +141,14 @@ const props = defineProps({
   },
 });
 
+const slots = useSlots();
+
 const config = computed(() => {
   return merge({}, DEFAULT_CONFIG, props.config);
 });
 
-const store = reactive({
-  search: true,
+const hasDataActions = computed(() => {
+  return Boolean(slots["actions-data"]);
 });
 
 // 刷新
@@ -118,7 +156,7 @@ function handleRefreshClick() {
   props.tableRef.getList();
 }
 
-// 显隐列
+// 隐藏列
 function handleCheckboxChange(checked, item) {
   item.hide = !checked;
 }
@@ -128,39 +166,66 @@ function handleCheckboxChange(checked, item) {
 .qt-wrap {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
+
 .qt-wrap--search {
-  padding: 15px 15px 1px;
-  background-color: #fff;
-  border-radius: 2px;
-  box-shadow: 0 5px 8px #8091a51a;
-  margin-bottom: 15px;
+  padding: 14px 16px 2px;
+  background: #ffffff;
+  border: 1px solid #e8edf5;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
+}
+
+.qt-wrap--search-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  :deep(.qt-search-bar) {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.qt-wrap--search-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .qt-wrap--content {
   background-color: #ffffff;
-  border-radius: 2px;
+  border: 1px solid #e8edf5;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
+  overflow: hidden;
 }
 
 .qt-wrap--content.full {
   flex: 1;
-  padding: 13px 15px;
+  padding: 14px 16px;
   min-height: calc(100vh - 250px);
-  box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1);
 }
 
 .qt-wrap--actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .data-actions {
   ::v-deep(.el-button) {
-    height: 28px;
-    padding: 8px 11px;
+    height: 32px;
+    padding: 8px 12px;
     font-size: 12px;
+    border-radius: 6px;
   }
 }
 
@@ -171,6 +236,25 @@ function handleCheckboxChange(checked, item) {
   gap: 12px;
   ::v-deep(.el-button + .el-button) {
     margin-left: 0;
+  }
+}
+
+.table-actions {
+  gap: 8px;
+
+  ::v-deep(.el-button.is-circle) {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: #f7f9fc;
+    border-color: #e5eaf2;
+    color: #4e5969;
+
+    &:hover {
+      background: #eef5ff;
+      border-color: #c9dcff;
+      color: var(--el-color-primary);
+    }
   }
 }
 </style>

@@ -107,15 +107,6 @@
                 </template>
               </div>
             </template>
-            <template #personChargeName="{ row }">
-              <div class="flex-column fz14">
-                <span
-                  class="text-ellipsis person-charge-ellipsis"
-                  :title="row.personChargeName"
-                >{{ row.personChargeName || "-" }}</span>
-                <span>{{ row.leaderPhone || "-" }}</span>
-              </div>
-            </template>
             <template #createBy="{ row }">
               <div class="flex-column fz14">
                 <span
@@ -293,31 +284,6 @@
           </el-input>
         </qt-form-item>
 
-        <el-form-item label="责任人" prop="leader">
-          <el-tree-select
-            filterable
-            v-model="dialog.form.leader"
-            :data="store.userList"
-            :props="{
-              value: 'userId',
-              label: 'nickName',
-              children: 'children',
-            }"
-            value-key="userId"
-            placeholder="请选择责任人"
-            check-strictly
-            @change="handleUserChange"
-          />
-        </el-form-item>
-
-        <el-form-item label="责任人电话" prop="leaderPhone">
-          <el-input
-            v-model="dialog.form.leaderPhone"
-            disabled
-            placeholder="请输入责任人电话"
-          />
-        </el-form-item>
-
         <el-form-item
           label="采集模式"
           class="row-full"
@@ -430,7 +396,7 @@ import {
   batchDeleteCheck,
 } from "@/api/cat/task/task";
 import { listDaDatasource } from "@/api/cat/dataSource/dataSource";
-import { deptUserTree } from "@/api/system/system/user.js";
+import useUserStore from "@/store/system/user";
 import { listValidSourceSystem } from "@/api/tax/sourceSystem/sourceSystem";
 
 // 表单验证规则
@@ -504,10 +470,10 @@ const dicts = proxy.useDict(
 );
 
 const router = useRouter();
+const userStore = useUserStore();
 
 const formRef = ref();
 const sourceSystemTreeRef = ref();
-const searchUserList = ref([]);
 const store = reactive({
   loading: false,
   rows: [],
@@ -516,7 +482,6 @@ const store = reactive({
   sourceSystems: [],
   flatSourceSystems: [],
   datasources: [],
-  userList: [],
 });
 
 function getAllSourceSystems() {
@@ -584,7 +549,6 @@ const tableStore = reactive({
     { label: "运行控制", prop: "status", width: 145, slot: "releaseState", align: "left" },
     { label: "调度周期", prop: "cronExpression", width: 160, slot: "cronExpression", align: "left" },
     { label: "最近执行", width: 160, slot: "lastExecute", align: "left" },
-    { label: "责任人", width: 120, slot: "personChargeName", align: "left" },
     { label: "创建人", slot: "createBy", width: 120, align: "left" },
     { label: "创建时间", prop: "createTime", sortable: true, sortableKey: "create_time", date: true, width: 150, align: "left" },
     { label: "操作", align: "center", fixed: "right", slot: "action", width: 260 },
@@ -620,18 +584,6 @@ const searchStore = reactive({
           { value: "0", label: "未发布" },
           { value: "1", label: "已发布" },
         ],
-      },
-    },
-    {
-      label: "责任人",
-      prop: "leader",
-      component: {
-        is: "tree-select",
-        data: searchUserList,
-        props: { value: "userId", label: "nickName", children: "children" },
-        valueKey: "ID",
-        placeholder: "请选择责任人",
-        checkStrictly: true,
       },
     },
     {
@@ -740,22 +692,8 @@ function handleResetQueryClick() {
   tableStore.params.datasourceId = null;
   tableStore.params.id = null;
   tableStore.params.status = null;
-  tableStore.params.leader = null;
+  tableStore.params.createBy = null;
   tableRef.value?.resetQuery();
-}
-
-// 获取用户列表
-function getUserList() {
-  deptUserTree().then((res) => {
-    store.userList = res.data;
-    searchUserList.value = res.data;
-  });
-}
-
-// 切换用户
-function handleUserChange(id) {
-  const data = store.userList.find((item) => item.userId === id);
-  dialog.form.leaderPhone = data.phonenumber;
 }
 
 // 切换数据源
@@ -832,6 +770,13 @@ function handleAddClick() {
   getDatasources();
 }
 
+function applyCurrentUserAsCreator(target) {
+  target.creatorId = userStore.id;
+  target.createBy = userStore.nickName || userStore.name;
+  target.leader = userStore.id;
+  target.leaderPhone = userStore.phonenumber || "";
+}
+
 // 取消新增/修改
 function handleCancelClick() {
   formRef.value.resetFields();
@@ -849,6 +794,7 @@ async function handleConfirmClick() {
   if (!valid) return;
   dialog.loading = true;
   const { tables, ...params } = dialog.form;
+  applyCurrentUserAsCreator(params);
   if (params.collectionScope == "1") {
     params.scopeSaveReqVOS = dialog.tableList.filter((item) =>
       tables.includes(item.dbName)
@@ -903,17 +849,6 @@ function handleDeleteClick(row) {
       ElMessage.success("删除成功");
       tableRef.value.getList();
     });
-}
-
-// 采集实例
-function handleInstanceClick(row) {
-  router.push({
-    path: DETAIL_PATH,
-    query: {
-      id: row.id,
-      tab: "CollectInstance",
-    },
-  });
 }
 
 // 删除选中行
@@ -989,7 +924,6 @@ function handleUnpublishClick(row) {
 }
 
 getDatasources();
-getUserList();
 getAllSourceSystems();
 </script>
 

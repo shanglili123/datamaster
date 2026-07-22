@@ -49,7 +49,7 @@
                     </el-col>
                     <el-col :span="8">
                         <div class="infotop-row border-top">
-                            <div class="infotop-row-lable">责任人</div>
+                            <div class="infotop-row-lable">创建人</div>
                             <div class="infotop-row-value">
                                 {{ dpDataElemDetail.personCharge || '-' }}
                             </div>

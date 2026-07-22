@@ -62,19 +62,19 @@ public class CatalogDbPageReqVO extends PageParam {
     @Schema(description = "所属系统", example = "")
     private String belongingSystem;
 
-    @Schema(description = "业务责任人", example = "")
+    @Schema(description = "业务创建人", example = "")
     private Long businessLeader;
 
     @Schema(description = "负责部门", example = "")
     private Long responsibleDept;
 
-    @Schema(description = "业务责任人电话", example = "")
+    @Schema(description = "业务创建人电话", example = "")
     private String businessLeaderPhone;
 
-    @Schema(description = "技术责任人", example = "")
+    @Schema(description = "技术创建人", example = "")
     private Long techLeader;
 
-    @Schema(description = "技术责任人电话", example = "")
+    @Schema(description = "技术创建人电话", example = "")
     private String techLeaderPhone;
 
     @Schema(description = "存储大小", example = "")
@@ -107,10 +107,10 @@ public class CatalogDbPageReqVO extends PageParam {
     @Schema(description = "字段数量", example = "")
     private Integer columnCount;
 
-    @Schema(description = "业务责任人姓名", example = "")
+    @Schema(description = "业务创建人姓名", example = "")
     private String businessLeaderName;
 
-    @Schema(description = "技术责任人姓名", example = "")
+    @Schema(description = "技术创建人姓名", example = "")
     private String techLeaderName;
 
     /**

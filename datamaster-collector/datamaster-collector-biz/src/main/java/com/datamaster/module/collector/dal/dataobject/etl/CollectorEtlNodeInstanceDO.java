@@ -111,7 +111,7 @@ public class CollectorEtlNodeInstanceDO extends BaseEntity {
     private Boolean delFlag;
 
     /**
-     * 责任人名称
+     * 创建人名称
      */
     @TableField(exist = false)
     private String personChargeName;

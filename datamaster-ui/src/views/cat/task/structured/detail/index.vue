@@ -41,13 +41,13 @@
           </el-col>
           <el-col :span="8">
             <div class="infotop-row border-top">
-              <div class="infotop-row-lable">责任人</div>
+              <div class="infotop-row-lable">创建人</div>
               <div class="infotop-row-value">{{ form.personChargeName }}</div>
             </div>
           </el-col>
           <el-col :span="8">
             <div class="infotop-row border-top">
-              <div class="infotop-row-lable">责任人电话</div>
+              <div class="infotop-row-lable">创建人电话</div>
               <div class="infotop-row-value">{{ form.leaderPhone }}</div>
             </div>
           </el-col>
@@ -108,17 +108,12 @@ import { getParentLabelPath } from "@/utils/anivia.js";
 
 const tabData = [
   {
-    key: "CollectInstance",
-    label: "采集实例",
-  },
-  {
     key: "BaseInfo",
     label: "基本信息",
   },
 ];
 const tabComponent = {
   BaseInfo: defineAsyncComponent(() => import("./BaseInfo.vue")),
-  CollectInstance: defineAsyncComponent(() => import("./CollectInstance.vue")),
 };
 
 const { proxy } = getCurrentInstance();
@@ -138,7 +133,7 @@ const store = reactive({
   form: {},
   treeDomains: [],
   domains: [],
-  tab: route.query.tab || "CollectInstance",
+  tab: route.query.tab || "BaseInfo",
 });
 
 const form = computed(() => store.form);

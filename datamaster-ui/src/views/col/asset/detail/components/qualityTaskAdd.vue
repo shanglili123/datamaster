@@ -131,7 +131,6 @@
 import { ref, reactive, toRefs, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import RuleSelectorDialog from '@/views/ast/quality/qualityTask/components/ruleBase.vue';
-import { deptUserTree } from "@/api/system/system/user.js";
 import { listAttQualityCat } from "@/api/tax/cat/qualityCat/qualityCat.js";
 import {
     addDppQualityTask,
@@ -214,7 +213,6 @@ const resetQuery = () => {
 };
 let deptOptions = ref([])
 
-let userList = ref([])
 let openCron = ref(false);
 const expression = ref("");
 /** 调度周期按钮操作 */
@@ -239,9 +237,6 @@ function getDeptTree() {
                 children: deptOptions.value,
             },
         ];
-    });
-    deptUserTree().then((res) => {
-        userList.value = res.data;
     });
 }
 const data = reactive({
@@ -442,18 +437,18 @@ async function submitForm() {
             name: item.name && item.name.trim() ? item.name : `资产质量${moment().format('YYYYMMDDHHmmss')}`
         }));
 
+        const payload = {
+            ...form.value,
+            creatorId: userStore.id,
+            createBy: userStore.nickName || userStore.name,
+            contactId: userStore.id,
+            dppQualityTaskObjSaveReqVO: dppQualityTaskObjSaveReqVO.value,
+            dppQualityTaskEvaluateSaveReqVO: dppQualityTaskEvaluateSaveReqVO.value
+        };
 
         const res = form.value.id
-            ? await updateDppQualityTask({
-                ...form.value,
-                dppQualityTaskObjSaveReqVO: dppQualityTaskObjSaveReqVO.value,
-                dppQualityTaskEvaluateSaveReqVO: dppQualityTaskEvaluateSaveReqVO.value
-            })
-            : await addDppQualityTask({
-                ...form.value,
-                dppQualityTaskObjSaveReqVO: dppQualityTaskObjSaveReqVO.value,
-                dppQualityTaskEvaluateSaveReqVO: dppQualityTaskEvaluateSaveReqVO.value
-            });
+            ? await updateDppQualityTask(payload)
+            : await addDppQualityTask(payload);
 
         // 响应处理
         if (res.code == '200') {

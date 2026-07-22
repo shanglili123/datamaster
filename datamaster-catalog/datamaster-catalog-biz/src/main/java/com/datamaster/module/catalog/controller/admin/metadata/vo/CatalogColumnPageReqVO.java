@@ -94,7 +94,7 @@ public class CatalogColumnPageReqVO extends PageParam {
     @Schema(hidden = true)
     private Boolean bizScopeIncludeUnassigned;
 
-    @Schema(description = "业务责任人", example = "")
+    @Schema(description = "业务创建人", example = "")
     private Long businessLeader;
 
     @Schema(description = "负责部门", example = "")

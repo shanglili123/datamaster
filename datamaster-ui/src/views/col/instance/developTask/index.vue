@@ -104,7 +104,7 @@
             <!--                    {{ '-' }}-->
             <!--                </template>-->
             <!--            </el-table-column>-->
-            <el-table-column v-if="getColumnVisibility(9)" width="100" label="责任人" align="left" prop="createBy">
+            <el-table-column v-if="getColumnVisibility(9)" width="100" label="创建人" align="left" prop="createBy">
               <template #default="scope">
                 {{ scope.row.personChargeName || "-" }}
               </template>
@@ -219,7 +219,7 @@ const columns = ref([
   { key: 4, label: "执行状态", visible: true },
   { key: 5, label: "开始时间", visible: true },
   { key: 6, label: "结束时间", visible: true },
-  { key: 9, label: "责任人", visible: true },
+  { key: 9, label: "创建人", visible: true },
   { key: 10, label: "创建人", visible: true },
   { key: 11, label: "创建时间", visible: true },
 ]);

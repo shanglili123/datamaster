@@ -40,7 +40,7 @@ public class CollectorEtlTaskReqDTO {
     @Schema(description = "任务的执行策略", example = "")
     private String executionType;
 
-    /** 责任人 */
+    /** 创建人 */
     private String personCharge;
 
     /** 节点坐标信息 */

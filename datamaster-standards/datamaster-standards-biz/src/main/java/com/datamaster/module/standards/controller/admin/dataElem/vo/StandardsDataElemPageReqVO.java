@@ -31,7 +31,7 @@ public class StandardsDataElemPageReqVO extends PageParam {
     @Schema(description = "类型", example = "")
     private String type;
 
-    @Schema(description = "责任人", example = "")
+    @Schema(description = "创建人", example = "")
     private String personCharge;
 
     @Schema(description = "联系电话", example = "")

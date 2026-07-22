@@ -42,7 +42,7 @@ public class CollectorEtlTaskInstancePageReqVO extends PageParam {
     @Schema(description = "状态历史(json列表)", example = "")
     private String statusHistory;
 
-    @Schema(description = "责任人", example = "")
+    @Schema(description = "创建人", example = "")
     private String personCharge;
 
     @Schema(description = "项目id", example = "")

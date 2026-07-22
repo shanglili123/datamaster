@@ -36,7 +36,7 @@ public class CollectorEtlTaskInstanceReqDTO {
     /** 状态历史(json列表) */
     private String statusHistory;
 
-    /** 责任人 */
+    /** 创建人 */
     private String personCharge;
 
     /** 项目id */

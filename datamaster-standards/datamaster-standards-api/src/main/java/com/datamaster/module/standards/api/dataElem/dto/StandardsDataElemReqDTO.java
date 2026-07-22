@@ -33,7 +33,7 @@ public class StandardsDataElemReqDTO {
     /** 类型 */
     private String type;
 
-    /** 责任人 */
+    /** 创建人 */
     private String personCharge;
 
     /** 联系电话 */

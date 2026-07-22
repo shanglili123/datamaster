@@ -515,14 +515,14 @@ const getCurrentReaderDatasource = () => {
 };
 const isKafkaReader = computed(() => normalizeDatasourceType(getCurrentReaderDatasource().datasourceType) === 'kafka');
 const cdcDatasourceTypes = ['mysql', 'oracle', 'oracle11', 'sqlserver', 'sqlserver2008', 'postgresql', 'postgres'];
-const streamingMqDatasourceTypes = ['rabbitmq', 'redis', 'rocketmq'];
+const streamingQueueDatasourceTypes = ['rabbitmq', 'redis', 'rocketmq'];
 const isCdcReader = computed(() => {
     const datasourceType = normalizeDatasourceType(getCurrentReaderDatasource().datasourceType);
     return cdcDatasourceTypes.includes(datasourceType);
 });
 const isStreamingMqReader = computed(() => {
     const datasourceType = normalizeDatasourceType(getCurrentReaderDatasource().datasourceType);
-    return streamingMqDatasourceTypes.includes(datasourceType);
+    return streamingQueueDatasourceTypes.includes(datasourceType);
 });
 const isStreamReader = computed(() => isKafkaReader.value || isStreamingMqReader.value || isCdcReader.value);
 const isStreamingFieldEditable = computed(() => form.value?.taskParams?.readModeType == '4' && isStreamReader.value);
@@ -759,7 +759,7 @@ const resetAndFetchTables = async (selectedDatasource) => {
     form.value.taskParams.idIncrementConfig.incrementColumn = null;
 
     const normalizedDatasourceType = normalizeDatasourceType(datasourceType);
-    if (normalizedDatasourceType === 'kafka' || streamingMqDatasourceTypes.includes(normalizedDatasourceType)) {
+    if (normalizedDatasourceType === 'kafka' || streamingQueueDatasourceTypes.includes(normalizedDatasourceType)) {
         if (form.value.taskParams.clmt == '2') {
             form.value.taskParams.clmt = '0';
         }
@@ -1304,7 +1304,7 @@ watch(
         const dsId = getDatasourceId(ds);
         const normalizedDatasourceType = normalizeDatasourceType(ds.datasourceType);
         if (dsId && normalizedDatasourceType !== 'kafka'
-            && !streamingMqDatasourceTypes.includes(normalizedDatasourceType)) {
+            && !streamingQueueDatasourceTypes.includes(normalizedDatasourceType)) {
             getTablesByDatasourceId(dsId);
         }
 

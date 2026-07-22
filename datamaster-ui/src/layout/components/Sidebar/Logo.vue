@@ -68,20 +68,20 @@ const sideTheme = computed(() => settingsStore.sideTheme);
 .sidebar-logo-container {
   position: relative;
   width: 100%;
-  height: 60px;
-  line-height: 50px;
-  background: #2b2f3a;
+  height: 68px;
+  line-height: 68px;
+  background: #ffffff;
   text-align: center;
   overflow: hidden;
 
   &::after {
     content: "";
     position: absolute;
-    right: 18px;
+    right: 16px;
     bottom: 0;
-    left: 18px;
+    left: 16px;
     height: 1px;
-    background: rgba(255, 255, 255, 0.22);
+    background: #e5e7eb;
     pointer-events: none;
   }
 
@@ -91,7 +91,7 @@ const sideTheme = computed(() => settingsStore.sideTheme);
     justify-content: flex-start;
     height: 100%;
     width: 100%;
-    padding: 0 0 0 18px;
+    padding: 0 18px;
     box-sizing: border-box;
 
     & .sidebar-logo-image {
@@ -101,9 +101,9 @@ const sideTheme = computed(() => settingsStore.sideTheme);
     }
 
     & .sidebar-logo-full {
-      width: 150px;
-      height: 36px;
-      flex: 0 0 150px;
+      width: 156px;
+      height: 34px;
+      flex: 0 0 156px;
     }
   }
 
@@ -114,9 +114,9 @@ const sideTheme = computed(() => settingsStore.sideTheme);
     }
 
     .sidebar-logo-image {
-      width: 46px;
-      height: 46px;
-      max-width: 46px;
+      width: 38px;
+      height: 38px;
+      max-width: 38px;
     }
 
   }

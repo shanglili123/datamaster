@@ -1,4 +1,4 @@
-﻿
+
 <template>
   <div :class="classObj" class="app-wrapper">
     <div
@@ -172,7 +172,7 @@ function normalizePath(path) {
 }
 
 .hideSidebar .fixed-header {
-  width: calc(100% - 54px);
+  width: calc(100% - 72px);
 }
 
 .sidebarHide .fixed-header {

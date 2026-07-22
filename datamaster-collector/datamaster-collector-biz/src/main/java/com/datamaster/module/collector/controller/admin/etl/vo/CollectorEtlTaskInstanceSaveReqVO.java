@@ -43,8 +43,8 @@ public class CollectorEtlTaskInstanceSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "状态历史(json列表)长度不能超过256个字符")
     private String statusHistory;
 
-    @Schema(description = "责任人", example = "")
-    @Size(max = 256, message = "责任人长度不能超过256个字符")
+    @Schema(description = "创建人", example = "")
+    @Size(max = 256, message = "创建人长度不能超过256个字符")
     private String personCharge;
 
     @Schema(description = "项目id", example = "")

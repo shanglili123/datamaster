@@ -33,8 +33,8 @@ public class CollectorEtlNewNodeSaveReqVO extends BaseEntity {
     private String catCode;
     private Long catId;
 
-    /** 责任人 */
-    @Parameter(name = "catCode", description = "责任人")
+    /** 创建人 */
+    @Parameter(name = "catCode", description = "创建人")
     private String personCharge;
 
     /** 联系电话 */

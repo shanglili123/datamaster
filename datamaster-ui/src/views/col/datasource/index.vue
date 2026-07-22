@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container" ref="app-container">
+  <div class="app-container datasource-list-page" ref="app-container">
 
     <div class="pagecont-top" v-show="showSearch">
       <el-form

@@ -1,4 +1,4 @@
-﻿<!-- eslint-disable vue/require-toggle-inside-transition -->
+<!-- eslint-disable vue/require-toggle-inside-transition -->
 <template>
   <section class="app-main">
     <router-view v-slot="{ Component, route }">
@@ -28,7 +28,7 @@ const tagsViewStore = useTagsViewStore()
   //width: 100%;
   //position: relative;
   //overflow: hidden;
-  background-color: #F0F2F5;
+  background-color: var(--dm-bg-layout, #eef3f8);
   min-height: calc(100vh) !important;
   width: 100%;
   position: relative;
@@ -37,6 +37,7 @@ const tagsViewStore = useTagsViewStore()
   .app-main-inner{
     width: 100%;
     height: 100%;
+    padding: 16px;
   }
 }
 
@@ -47,11 +48,11 @@ const tagsViewStore = useTagsViewStore()
 .hasTagsView {
   .app-main {
     /* 84 = navbar + tags-view = 60 + 34 */
-    min-height: calc(100vh - 94px);
+    min-height: calc(100vh - 100px);
   }
 
   .fixed-header + .app-main {
-    padding-top: 94px;
+    padding-top: 100px;
   }
 }
 </style>
@@ -70,12 +71,16 @@ const tagsViewStore = useTagsViewStore()
 }
 
 ::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
+  background-color: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #c0c0c0;
+  background-color: #cbd5e1;
   border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 </style>
 

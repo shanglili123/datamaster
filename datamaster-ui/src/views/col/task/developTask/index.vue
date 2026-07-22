@@ -846,7 +846,7 @@ const tableStore = reactive({
     },
 
     {
-      label: "责任人",
+      label: "创建人",
       width: 120,
       slot: "personChargeName",
       align: "left",

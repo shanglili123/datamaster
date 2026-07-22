@@ -39,10 +39,10 @@ public class CatalogTaskDO extends BaseEntity {
     /** 数据库类型 */
     private String dbType;
 
-    /** 责任人 */
+    /** 创建人 */
     private Long leader;
 
-    /** 责任人电话 */
+    /** 创建人电话 */
     private String leaderPhone;
 
     /** 采集模式 */

@@ -1,7 +1,7 @@
 <template>
-  <div class="app-container">
-
-    <el-container>
+  <div class="app-container metadata-result-page">
+    <div class="metadata-workspace">
+      <el-container class="metadata-layout">
       <SourceSystemTree
         ref="sourceSystemTreeRef"
         @node-click="handleNodeClick"
@@ -95,7 +95,8 @@
           </qt-table>
         </qt-wrap>
       </el-main>
-    </el-container>
+      </el-container>
+    </div>
   </div>
 </template>
 
@@ -453,4 +454,64 @@ function handleStatusChange(row, status) {
 
 getMetaDatabases();
 </script>
+
+<style lang="scss" scoped>
+.metadata-result-page {
+  height: 100%;
+}
+
+.metadata-workspace {
+  height: 100%;
+  min-height: calc(100vh - 132px);
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #e8edf5;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
+  box-sizing: border-box;
+}
+
+.metadata-layout {
+  height: 100%;
+}
+
+.main-content {
+  padding: 0 0 0 14px;
+}
+
+:deep(.left-pane) {
+  padding: 0;
+}
+
+:deep(.left-tree) {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:deep(.resize-bar) {
+  margin: 0 2px;
+}
+
+:deep(.qt-wrap) {
+  gap: 0;
+}
+
+:deep(.qt-wrap--search),
+:deep(.qt-wrap--content) {
+  border: none;
+  box-shadow: none;
+}
+
+:deep(.qt-wrap--search) {
+  padding: 0 0 14px;
+  border-bottom: 1px solid #edf1f7;
+  border-radius: 0;
+}
+
+:deep(.qt-wrap--content.full) {
+  min-height: calc(100vh - 230px);
+  padding: 14px 0 0;
+}
+</style>
 

@@ -24,8 +24,9 @@
     left: 0;
     z-index: 1001;
     overflow: hidden;
-    -webkit-box-shadow: 2px 0 6px rgba(0,21,41,.35);
-    box-shadow: 2px 0 6px rgba(0,21,41,.35);
+    border-right: 1px solid #e5e7eb;
+    -webkit-box-shadow: none;
+    box-shadow: none;
 
     // reset element-ui css
     .horizontal-collapse-transition {
@@ -34,6 +35,7 @@
 
     .scrollbar-wrapper {
       overflow-x: hidden !important;
+      padding: 10px 10px 16px;
     }
 
     .el-scrollbar__bar.is-vertical {
@@ -46,7 +48,7 @@
 
     &.has-logo {
       .el-scrollbar {
-        height: calc(100% - 50px);
+        height: calc(100% - 68px);
       }
     }
 
@@ -61,19 +63,54 @@
     }
 
     .svg-icon {
+      width: 18px;
+      height: 18px;
       margin-right: 12px;
+      color: inherit;
+      opacity: 0.92;
     }
 
     .el-menu {
       border: none;
       height: 100%;
       width: 100% !important;
+      background: transparent !important;
     }
 
     .el-menu-item, .menu-title {
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
+    }
+
+    .el-menu-item,
+    .el-sub-menu__title {
+      height: 42px !important;
+      line-height: 42px !important;
+      margin: 3px 0;
+      padding-right: 12px !important;
+      border-radius: 8px;
+      letter-spacing: 0;
+      transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .el-sub-menu__title {
+      color: #475569 !important;
+    }
+
+    .el-menu-item {
+      color: #475569 !important;
+    }
+
+    .el-menu-item.is-active {
+      color: #2563eb !important;
+      background: #eff6ff !important;
+      box-shadow: inset 3px 0 0 #2563eb;
+    }
+
+    .el-sub-menu.is-active > .el-sub-menu__title {
+      color: #2563eb !important;
+      background: #f8fafc !important;
     }
 
     .el-menu-item .el-menu-tooltip__trigger {
@@ -84,14 +121,14 @@
     .sub-menu-title-noDropdown,
     .el-sub-menu__title ,.submenu-title-noDropdown {
       &:hover {
-        background-color: rgba(0, 0, 0, 0.00) !important;
-        color: #ffffff;
+        background-color: #f8fafc !important;
+        color: #2563eb !important;
       }
     }
 
     & .theme-dark .is-active > .el-sub-menu__title {
       color: $base-menu-color-active !important;
-      background-color: $base-menu-color-sub-active !important;
+      background-color: #f8fafc !important;
     }
 
     & .nest-menu .el-sub-menu>.el-sub-menu__title,
@@ -108,7 +145,7 @@
       //background-color: $base-sub-menu-background !important;
 
       &:hover {
-        color: #ffffff;
+        color: #2563eb;
         //background-color: $base-sub-menu-hover !important;
       }
     }
@@ -116,25 +153,25 @@
     & .theme-dark .nest-menu .el-sub-menu>.el-sub-menu__title,
     & .theme-dark .el-sub-menu .el-menu-item {
       &:hover span {
-        color: #ffffff;
+        color: #2563eb;
       }
     }
     & .theme-dark .el-sub-menu.is-active {
-      background-color: #0c2135 !important;
+      background-color: transparent !important;
     }
   }
 
   .el-submenu.is-opened > .el-submenu__title .el-submenu__icon-arrow {
-    color: #ffffff!important;
+    color: #2563eb!important;
   }
 
   .hideSidebar {
     .sidebar-container {
-      width: 60px !important;
+      width: 72px !important;
     }
 
     .main-container {
-      margin-left: 54px;
+      margin-left: 72px;
     }
 
     .sub-menu-title-noDropdown {
@@ -145,7 +182,8 @@
         padding: 0 !important;
 
         .svg-icon {
-          margin-left: 20px;
+          margin-left: 27px;
+          margin-right: 0;
         }
       }
     }
@@ -157,7 +195,8 @@
         padding: 0 !important;
 
         .svg-icon {
-          margin-left: 20px;
+          margin-left: 27px;
+          margin-right: 0;
         }
 
       }
@@ -228,10 +267,11 @@
 
   .nest-menu .el-sub-menu>.el-sub-menu__title,
   .el-menu-item {
+    border-radius: 8px;
     &:hover {
       // you can use $sub-menuHover
-      color: #ffffff;
-      background-color: rgba(0, 0, 0, 0.06) !important;
+      color: #2563eb;
+      background-color: #f8fafc !important;
     }
   }
 

@@ -54,8 +54,8 @@ public class CollectorEtlTaskSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "项目编码长度不能超过256个字符")
     private String projectCode;
 
-    @Schema(description = "责任人", example = "")
-    @Size(max = 256, message = "责任人长度不能超过256个字符")
+    @Schema(description = "创建人", example = "")
+    @Size(max = 256, message = "创建人长度不能超过256个字符")
     private String personCharge;
 
     /** 联系电话 */

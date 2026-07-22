@@ -54,7 +54,7 @@ const fileDesc = computed(() => {
 const table = ref([
   {
     key: "personChargeName",
-    label: "责任人",
+    label: "创建人",
     value: "",
   },
   {

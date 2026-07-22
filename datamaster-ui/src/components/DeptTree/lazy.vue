@@ -267,17 +267,23 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .left-pane {
-    background-color: #ffffff;
+    background: transparent;
     overflow: hidden;
     height: 80vh;
 }
 
 .left-tree {
     height: 80vh;
+    padding: 14px;
     overflow-y: auto;
     overflow-x: hidden;
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
     scrollbar-width: thin;
     -ms-overflow-style: auto;
+    box-sizing: border-box;
 }
 
 .left-tree::-webkit-scrollbar {
@@ -300,22 +306,25 @@ onBeforeUnmount(() => {
     width: 100%;
     display: flex;
     align-items: center;
-    padding: 0 36px 0 12px;
+    min-width: 0;
+    padding: 0 10px;
 
     .node-icon {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
     }
 
     .treelable {
-        margin-left: 10px;
+        margin-left: 8px;
         flex: 1;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         font-family: PingFang SC;
-        font-size: 14px;
-        color: rgba(0, 0, 0, 0.85);
+        font-size: 13px;
+        color: #3f4a5a;
+        min-width: 0;
     }
 }
 
@@ -326,14 +335,16 @@ onBeforeUnmount(() => {
 /* 拖拽栏 */
 .resize-bar {
     cursor: ew-resize;
-    background-color: #f0f2f5;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 12px;
+    flex-shrink: 0;
 }
 
 .resize-handle-sx {
-    width: 15px;
+    width: 12px;
     text-align: center;
     position: relative;
 }
@@ -343,30 +354,52 @@ onBeforeUnmount(() => {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 28px;
-    color: #aaa;
+    font-size: 18px;
+    color: #7f8da3;
     cursor: pointer;
     z-index: 10;
-    padding: 5px;
+    padding: 5px 2px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid #e5eaf2;
+    box-shadow: 0 4px 12px rgba(31, 45, 61, 0.08);
+
+    &:hover {
+        color: var(--el-color-primary);
+        border-color: #c9dcff;
+    }
 }
 
 /* 搜索框样式 */
 :deep(.filter-tree) {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 
     .el-input__wrapper {
-        border: 1px solid var(--el-color-primary);
+        min-height: 34px;
+        border-radius: 6px;
+        background: #f8fafc;
+        box-shadow: 0 0 0 1px #e2e8f0 inset;
     }
 
     .el-input__prefix {
-        color: var(--el-color-primary);
+        color: #7f8da3;
     }
 }
 
 /* 树选中样式 */
 :deep(.dept-tree) {
+    --el-tree-node-hover-bg-color: #f6faff;
+    background: transparent;
+
+    .el-tree-node__content {
+        height: 34px;
+        border-radius: 6px;
+        margin: 2px 0;
+        transition: background-color 0.16s ease, color 0.16s ease;
+    }
+
     &.el-tree--highlight-current .el-tree-node.is-current>.el-tree-node__content {
-        background: rgba(51, 103, 252, 0.06) !important;
+        background: #eef5ff !important;
         border: none;
 
         .custom-tree-node {
@@ -380,11 +413,13 @@ onBeforeUnmount(() => {
 /* 右键菜单 */
 .context-menu {
     position: fixed;
-    background-color: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border-radius: 4px;
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
     z-index: 1000;
     user-select: none;
+    overflow: hidden;
 }
 
 .context-menu ul {
@@ -394,13 +429,16 @@ onBeforeUnmount(() => {
 }
 
 .context-menu li {
-    padding: 6px 20px;
+    padding: 8px 18px;
     cursor: pointer;
     white-space: nowrap;
+    color: #3f4a5a;
+    font-size: 13px;
 }
 
 .context-menu li:hover {
-    background-color: #f0f0f0;
+    background-color: #f6faff;
+    color: var(--el-color-primary);
 }
 </style>
 

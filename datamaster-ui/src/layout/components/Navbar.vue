@@ -788,7 +788,8 @@ function clearNotification() {
   overflow: hidden;
   position: relative;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  border-bottom: 1px solid var(--dm-border-light, #edf1f5);
+  box-shadow: none;
   text-align: center;
   line-height: 60px;
 
@@ -815,15 +816,21 @@ function clearNotification() {
   }
 
   .hamburger-container {
-    line-height: 60px;
-    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
     float: left;
+    margin: 10px 8px 0 10px;
+    border-radius: 8px;
     cursor: pointer;
     transition: background 0.3s;
     -webkit-tap-highlight-color: transparent;
 
     &:hover {
-      background: rgba(0, 0, 0, 0.025);
+      background: #f3f6fb;
     }
   }
 
@@ -833,10 +840,10 @@ function clearNotification() {
 
   .topmenu-container {
     position: absolute;
-    left: 50px;
+    left: 66px;
 
     &.has-navbar-logo {
-      left: 200px;
+      left: 214px;
     }
   }
 
@@ -850,6 +857,9 @@ function clearNotification() {
     height: 100%;
     line-height: 60px;
     display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 12px;
 
     ::v-deep .el-form-item__label {
       color: var(--el-text-color-regular) !important;
@@ -866,19 +876,24 @@ function clearNotification() {
     }
 
     .right-menu-item {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
       padding: 0 8px;
-      height: 100%;
+      border-radius: 8px;
       font-size: 18px;
-      color: #5a5e66;
+      color: var(--dm-text-secondary, #6b7280);
       vertical-align: text-bottom;
 
       &.hover-effect {
         cursor: pointer;
-        transition: background 0.3s;
+        transition: color 0.16s ease, background-color 0.16s ease;
 
         &:hover {
-          background: rgba(0, 0, 0, 0.025);
+          color: var(--dm-color-primary, #2563eb);
+          background: #f3f6fb;
         }
       }
     }
@@ -894,31 +909,45 @@ function clearNotification() {
     }
 
     .avatar-container {
-      margin: 0 15px 0 0;
+      margin: 0;
 
       .avatar-wrapper {
         display: flex;
         align-items: center;
-        margin-top: 10px;
+        height: 40px;
+        margin-top: 0;
+        padding: 0 10px 0 4px;
+        border: 1px solid transparent;
+        border-radius: 20px;
         position: relative;
+        transition: border-color 0.16s ease, background-color 0.16s ease;
+
+        &:hover {
+          border-color: var(--dm-border-color, #e5e7eb);
+          background: #f8fafc;
+        }
 
         .user-avatar {
           cursor: pointer;
-          width: 40px;
-          height: 40px;
-          border-radius: 20px;
+          width: 32px;
+          height: 32px;
+          border-radius: 16px;
           object-fit: cover;
           background: #f2f3f5;
           border: 1px solid #eef0f3;
         }
 
         .nickName {
-          font-size: 15px;
-          /*font-weight: bold;*/
-          // color: rgba(0, 0, 0, 0.65);
-          color: var(--themeColor);
+          max-width: 112px;
+          overflow: hidden;
+          color: var(--dm-text-regular, #374151);
           display: inline-block;
+          font-size: 14px;
+          font-weight: 500;
+          line-height: 20px;
           margin-left: 10px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         i {

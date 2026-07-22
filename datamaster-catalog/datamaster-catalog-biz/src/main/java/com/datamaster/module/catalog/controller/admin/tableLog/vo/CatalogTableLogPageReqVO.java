@@ -56,16 +56,16 @@ public class CatalogTableLogPageReqVO extends PageParam {
     @Schema(description = "存储大小", example = "")
     private Integer storageSize;
 
-    @Schema(description = "业务责任人", example = "")
+    @Schema(description = "业务创建人", example = "")
     private Long businessLeader;
 
-    @Schema(description = "业务责任人电话", example = "")
+    @Schema(description = "业务创建人电话", example = "")
     private String businessLeaderPhone;
 
-    @Schema(description = "技术责任人", example = "")
+    @Schema(description = "技术创建人", example = "")
     private Long techLeader;
 
-    @Schema(description = "技术责任人电话", example = "")
+    @Schema(description = "技术创建人电话", example = "")
     private String techLeaderPhone;
 
     @Schema(description = "是否主表;0：否，1：是", example = "")

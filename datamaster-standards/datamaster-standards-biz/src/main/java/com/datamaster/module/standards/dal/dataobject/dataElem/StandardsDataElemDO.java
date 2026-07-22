@@ -59,12 +59,12 @@ public class StandardsDataElemDO extends BaseEntity {
     private String type;
 
     /**
-     * 责任人
+     * 创建人
      */
     private String personCharge;
 
     /**
-     * 责任人名称
+     * 创建人名称
      */
     @TableField(exist = false)
     private String personChargeName;

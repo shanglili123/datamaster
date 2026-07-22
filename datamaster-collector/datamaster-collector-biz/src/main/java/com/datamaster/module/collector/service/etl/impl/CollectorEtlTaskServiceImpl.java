@@ -786,7 +786,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (collectorEtlTaskDO == null) {
             throw new ServiceException("数据集成任务不存在，ID: " + id);
         }
-        // 单独查询责任人名称
+        // 单独查询创建人名称
         MPJLambdaWrapper<CollectorEtlTaskDO> nameWrapper = new MPJLambdaWrapper<>();
         nameWrapper.selectAll(CollectorEtlTaskDO.class)
                 .select("(SELECT NICK_NAME FROM SYSTEM_USER WHERE DEL_FLAG = '0' AND CAST(USER_ID AS "

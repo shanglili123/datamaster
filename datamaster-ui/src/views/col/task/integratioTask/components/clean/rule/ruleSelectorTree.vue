@@ -222,50 +222,59 @@ defineExpose({ resetTree });
 }
 
 .left-pane {
-  background-color: #ffffff;
+  background: transparent;
   overflow: hidden;
 }
 
 .left-tree {
   height: 72vh;
-  padding: 15px 15px 15px 15px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #e8edf5;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
   scrollbar-width: none;
   -ms-overflow-style: none;
-  box-shadow: none !important;
+  box-sizing: border-box;
+  overflow: auto;
 }
 
 .el-aside {
-  padding: 2px 0px;
+  padding: 2px 0;
   margin-bottom: 0px;
-  background-color: none;
+  background: transparent;
 }
 
 .custom-tree-node {
   width: 100%;
   display: flex;
   align-items: center;
-  padding: 0 36px 0 12px;
+  min-width: 0;
+  padding: 0 10px;
 
   .node-icon {
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
   }
 
   .child-icon {
     width: 16px;
     height: 16px;
+    flex-shrink: 0;
   }
 
   .treelable {
-    margin-left: 10px;
+    margin-left: 8px;
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-family: PingFang SC;
     font-weight: 400;
-    font-size: 14px;
-    color: rgba(0, 0, 0, 0.85);
+    font-size: 13px;
+    color: #3f4a5a;
+    min-width: 0;
   }
 }
 
@@ -274,11 +283,11 @@ defineExpose({ resetTree });
 }
 
 .colorxz {
-  color: #358cf3;
+  color: var(--el-color-primary);
 }
 
 .colorwxz {
-  color: var(--el-color-primary);
+  color: #8aaadc;
 }
 
 .iconimg {
@@ -287,15 +296,17 @@ defineExpose({ resetTree });
 
 .resize-bar {
   cursor: ew-resize;
-  background-color: #f0f2f5;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 72vh;
+  width: 12px;
+  flex-shrink: 0;
 }
 
 .resize-handle-sx {
-  width: 15px;
+  width: 12px;
   text-align: center;
   position: relative;
   /* 必须加，用来定位 collapse-icon */
@@ -315,32 +326,48 @@ defineExpose({ resetTree });
   left: 50%;
   transform: translate(-50%, -50%);
   /* 真正的居中 */
-  font-size: 28px;
-  color: #aaa;
+  font-size: 18px;
+  color: #7f8da3;
   cursor: pointer;
   z-index: 10;
-  padding: 5px;
+  padding: 5px 2px;
+  background: #ffffff;
+  border: 1px solid #e5eaf2;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(31, 45, 61, 0.08);
+
+  &:hover {
+    color: var(--el-color-primary);
+    border-color: #c9dcff;
+  }
 }
 
 :deep(.filter-tree) {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 
   .el-input__wrapper {
-    border: 1px solid var(--el-color-primary);
+    min-height: 34px;
+    border-radius: 6px;
+    background: #f8fafc;
+    box-shadow: 0 0 0 1px #e2e8f0 inset;
   }
 
   .el-input__prefix {
-    color: var(--el-color-primary);
+    color: #7f8da3;
   }
 }
 
 :deep(.dept-tree) {
+  --el-tree-node-hover-bg-color: #f6faff;
+  background: transparent;
+
   //组织树 背景颜色 及右边线颜色
   &.el-tree--highlight-current
     .el-tree-node.is-current
     > .el-tree-node__content {
-    background: rgba(51, 103, 252, 0.06) !important;
+    background: #eef5ff !important;
     border: none;
+    border-radius: 6px;
 
     .custom-tree-node {
       .treelable {
@@ -351,19 +378,22 @@ defineExpose({ resetTree });
 
   .el-tree-node__content {
     position: relative;
+    height: 34px;
+    margin: 2px 0;
+    border-radius: 6px;
+    transition: background-color 0.16s ease, color 0.16s ease;
 
     .el-tree-node__expand-icon {
       position: absolute;
       right: 10px;
-      color: transparent;
+      color: #9aa8ba;
       font-size: 11px;
       width: 11px;
       height: 11px;
 
       & > svg {
-        background: url("@/assets/da/asset/arrow.svg") no-repeat;
-        background-size: 100% 100%;
-        transform: rotate(-90deg);
+        background: none;
+        transform: none;
       }
     }
   }

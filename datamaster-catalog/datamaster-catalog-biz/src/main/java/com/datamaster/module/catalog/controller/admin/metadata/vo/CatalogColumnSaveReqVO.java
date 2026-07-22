@@ -164,8 +164,8 @@ public class CatalogColumnSaveReqVO extends BaseEntity {
     @Schema(description = "负责部门", example = "")
     private Long responsibleDept;
 
-    /** 责任人 */
-    @Schema(description = "责任人", example = "")
+    /** 创建人 */
+    @Schema(description = "创建人", example = "")
     private Long businessLeader;
 
     /**

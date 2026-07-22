@@ -68,12 +68,12 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
     @Schema(description = "项目编码", example = "")
     private String projectCode;
 
-    @Excel(name = "责任人")
-    @Schema(description = "责任人", example = "")
+    @Excel(name = "创建人")
+    @Schema(description = "创建人", example = "")
     private String personCharge;
 
-    @Excel(name = "责任人名称")
-    @Schema(description = "责任人名称", example = "")
+    @Excel(name = "创建人名称")
+    @Schema(description = "创建人名称", example = "")
     private String personChargeName;
 
     @Excel(name = "联系电话")
@@ -326,9 +326,9 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
         taskConfig.put("name", this.name); // 从本身获取任务名称
         taskConfig.put("executionType", this.executionType); // 从本身获取执行策略
         taskConfig.put("crontab", this.crontab); // 固定 crontab 表达式
-        taskConfig.put("personCharge", this.personCharge); // 责任人
+        taskConfig.put("personCharge", this.personCharge); // 创建人
         taskConfig.put("contactNumber", this.contactNumber); // 联系电话
-        taskConfig.put("catCode", this.catCode); // 责任人
+        taskConfig.put("catCode", this.catCode); // 创建人
         taskConfig.put("draftJson", this.draftJson);
 
         // 设置 taskConfig
