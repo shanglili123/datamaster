@@ -23,6 +23,7 @@
           clearable
           :placeholder="`请输入${item.label}`"
           v-bind="item.component"
+          style="width: 150px"
           @keyup.enter="handleQueryClick"
         />
 
@@ -34,6 +35,7 @@
           clearable
           :placeholder="`请选择${item.label}`"
           v-bind="item.component"
+          style="width: 150px"
         >
           <el-option
             v-for="(option, index) in item.component.options"
@@ -53,6 +55,7 @@
           format="YYYY-MM-DD"
           value-format="YYYY-MM-DD"
           v-bind="item.component"
+          style="width: 200px"
         />
 
         <!-- 树形选择框 -->
@@ -63,9 +66,10 @@
           clearable
           :placeholder="`请选择${item.label}`"
           v-bind="item.component"
+          style="width: 150px"
         />
       </el-form-item>
-      <el-form-item class="search-btns">
+      <el-form-item class="search-btns" v-if="props.showButtons">
         <el-button plain type="primary" @click="handleQueryClick">
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
         </el-button>
@@ -89,7 +93,7 @@
 </template>
 
 <script setup name="QtSearchBar">
-import { reactive, ref } from "vue";
+import { reactive, ref, inject, onMounted, getCurrentInstance } from "vue";
 
 const props = defineProps({
   params: {
@@ -115,6 +119,10 @@ const props = defineProps({
   visibleCount: {
     type: Number,
     default: 3,
+  },
+  showButtons: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -145,21 +153,30 @@ function handleResetClick() {
   emits("reset");
   props.tableRef?.resetQuery();
 }
+
+defineExpose({ handleQueryClick, handleResetClick, formRef });
+
+// 注册到 QtWrap 以便重置功能
+const registerSearchBar = inject('qtWrapRegisterSearchBar', null);
+const instance = getCurrentInstance();
+onMounted(() => {
+  registerSearchBar?.(instance?.proxy);
+});
 </script>
 
 <style lang="scss" scoped>
 .qt-search-bar {
   ::v-deep(.el-form) {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
     column-gap: 12px;
-    row-gap: 10px;
   }
 
   ::v-deep(.el-form-item) {
-    margin-right: 0;
-    margin-bottom: 12px;
+    flex-shrink: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
   }
 
   ::v-deep(.el-form-item__label) {
@@ -171,7 +188,7 @@ function handleResetClick() {
 }
 
 .search-content {
-  width: 210px;
+  width: 150px;
 
   ::v-deep(.el-input__wrapper),
   ::v-deep(.el-select__wrapper) {

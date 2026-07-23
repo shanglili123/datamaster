@@ -7,18 +7,18 @@
 
       <el-main>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
+          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
             v-show="showSearch" @submit.prevent>
-            <el-form-item label="中文名称" prop="name">
-              <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入中文名称" clearable
+            <el-form-item label="中文" prop="name">
+              <el-input style="width: 160px" v-model="queryParams.name" placeholder="请输入中文名称" clearable
                 @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="英文名称" prop="engName">
-              <el-input class="el-form-input-width" v-model="queryParams.engName" placeholder="请输入英文名称" clearable
+            <el-form-item label="英文" prop="engName">
+              <el-input style="width: 160px" v-model="queryParams.engName" placeholder="请输入英文名称" clearable
                 @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="类型" prop="type">
-              <el-select class="el-form-input-width" v-model="queryParams.type" placeholder="请选择类型">
+              <el-select style="width: 160px" v-model="queryParams.type" placeholder="请选择类型">
                 <el-option v-for="dict in dp_data_elem_code_type" :key="dict.value" :label="dict.label"
                   :value="dict.value"></el-option>
               </el-select>
@@ -32,45 +32,17 @@
               </el-button>
             </el-form-item>
           </el-form>
-        </div>
-        <div class="pagecont-bottom">
-          <div class="justify-between mb15">
-            <el-row :gutter="15" class="btn-style">
-              <el-col :span="1.5">
-                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['dp:dataElem:add']"
-                  @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-              </el-col>
-              <!-- <el-col :span="1.5">
-                <el-button type="primary" plain :disabled="single" @click="handleUpdate"
-                  v-hasPermi="['dp:dataElem:edit']" @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-xiugai--copy mr5"></i>修改
-                </el-button>
-              </el-col>
-              <el-col :span="1.5">
-                <el-button type="danger" plain :disabled="multiple" @click="handleDelete"
-                  v-hasPermi="['dp:dataElem:remove']" @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-shanchu-huise mr5"></i>删除
-                </el-button>
-              </el-col> -->
-              <!--          <el-col :span="1.5">-->
-              <!--            <el-button type="info" plain @click="handleImport" v-hasPermi="['dp:dataElem:export']"-->
-              <!--                       @mousedown="(e) => e.preventDefault()">-->
-              <!--              <i class="iconfont-mini icon-upload-cloud-line mr5"></i>导入-->
-              <!--            </el-button>-->
-              <!--          </el-col>-->
-              <!--          <el-col :span="1.5">-->
-              <!--            <el-button type="warning" plain @click="handleExport" v-hasPermi="['dp:dataElem:export']"-->
-              <!--                       @mousedown="(e) => e.preventDefault()">-->
-              <!--              <i class="iconfont-mini icon-download-line mr5"></i>导出-->
-              <!--            </el-button>-->
-              <!--          </el-col>-->
-            </el-row>
-            <div class="justify-end top-right-btn">
-              <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
-            </div>
+          <div class="data-action-btns">
+            <el-button type="primary" plain @click="handleAdd" v-hasPermi="['dp:dataElem:add']"
+              @mousedown="(e) => e.preventDefault()">
+              <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+            </el-button>
           </div>
+          <div class="top-right-btn">
+            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
+          </div>
+        </div>
+        <div>
           <el-table stripe v-loading="loading" :data="dpDataElemList" @selection-change="handleSelectionChange"
             :default-sort="defaultSort" @sort-change="handleSortChange">
             <el-table-column v-if="getColumnVisibility(0)" label="编号" align="left" prop="id" width="50" />
@@ -848,6 +820,37 @@ getList();
   .el-upload-list__item {
     width: 100%;
     height: 25px;
+  }
+}
+
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
   }
 }
 </style>

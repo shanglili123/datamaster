@@ -7,23 +7,23 @@
                 ref="queryRef"
                 v-show="showSearch"
                 :inline="true"
-                label-width="68px"
+                label-width="45px"
             >
-                <el-form-item label="角色名称" prop="roleName">
+                <el-form-item label="名称" prop="roleName">
                     <el-input
                         v-model="queryParams.roleName"
                         placeholder="请输入角色名称"
                         clearable
-                        class="el-form-input-width"
+                        style="width: 140px"
                         @keyup.enter="handleQuery"
                     />
                 </el-form-item>
-                <el-form-item label="权限字符" prop="roleKey">
+                <el-form-item label="权限" prop="roleKey">
                     <el-input
                         v-model="queryParams.roleKey"
                         placeholder="请输入权限字符"
                         clearable
-                        class="el-form-input-width"
+                        style="width: 140px"
                         @keyup.enter="handleQuery"
                     />
                 </el-form-item>
@@ -32,7 +32,7 @@
                         v-model="queryParams.status"
                         placeholder="角色状态"
                         clearable
-                        class="el-form-input-width"
+                        style="width: 140px"
                     >
                         <el-option
                             v-for="dict in sys_normal_disable"
@@ -42,30 +42,29 @@
                         />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="角色类型" prop="projectId">
+                <el-form-item label="类型" prop="projectId">
                     <el-select
                         v-model="queryParams.projectId"
                         placeholder="角色类型"
                         clearable
-                        class="el-form-input-width"
+                        style="width: 140px"
                     >
                         <el-option label="系统角色" :value="0" />
                         <el-option label="项目角色" :value="1" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="创建时间">
+                <el-form-item label="时间">
                     <el-date-picker
-                        class="el-form-input-width"
                         v-model="dateRange"
                         value-format="YYYY-MM-DD"
                         type="daterange"
                         range-separator="-"
-                        start-placeholder="开始日期"
-                        end-placeholder="结束日期"
+                        start-placeholder="开始"
+                        end-placeholder="结束"
+                        style="width: 200px"
                     ></el-date-picker>
                 </el-form-item>
                 <el-form-item>
-                    <!-- <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button> -->
                     <el-button
                         plain
                         type="primary"
@@ -77,59 +76,17 @@
                     <el-button icon="Refresh" @click="resetQuery">重置</el-button>
                 </el-form-item>
             </el-form>
-        </div>
-        <div class="pagecont-bottom">
-            <div class="justify-between mb15">
-                <el-row :gutter="10" class="btn-style">
-                    <el-col :span="1.5">
-                        <el-button
-                            type="primary"
-                            plain
-                            icon="Plus"
-                            @click="handleAdd"
-                            v-hasPermi="['system:role:add']"
-                            >新增</el-button
-                        >
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button
-                            type="primary"
-                            plain
-                            icon="Edit"
-                            :disabled="single"
-                            @click="handleUpdate"
-                            v-hasPermi="['system:role:edit']"
-                            >修改</el-button
-                        >
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button
-                            type="danger"
-                            plain
-                            icon="Delete"
-                            :disabled="multiple"
-                            @click="handleDelete"
-                            v-hasPermi="['system:role:remove']"
-                            >删除</el-button
-                        >
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button
-                            type="warning"
-                            plain
-                            icon="Download"
-                            @click="handleExport"
-                            v-hasPermi="['system:role:export']"
-                            >导出</el-button
-                        >
-                    </el-col>
-                </el-row>
-                <right-toolbar
-                    v-model:showSearch="showSearch"
-                    @queryTable="getList"
-                ></right-toolbar>
+            <div class="data-action-btns">
+                <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:role:add']">新增</el-button>
+                <el-button type="primary" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['system:role:edit']">修改</el-button>
+                <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:role:remove']">删除</el-button>
+                <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['system:role:export']">导出</el-button>
             </div>
-
+            <div class="top-right-btn">
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+            </div>
+        </div>
+        <div>
             <!-- 表格数据 -->
             <el-table
                 stripe
@@ -810,3 +767,36 @@
 
     getList();
 </script>
+
+<style scoped lang="scss">
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+  }
+}
+</style>

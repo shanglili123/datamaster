@@ -589,9 +589,9 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
   overflow: hidden;
 }
 
-.left-tree {
-  height: v-bind(qtWrapheight);
-  padding: 14px;
+  .left-tree {
+    height: v-bind(qtWrapheight);
+    padding: 15px 15px 1px 15px;
   background: #ffffff;
   border: 1px solid #e8edf5;
   border-radius: 8px;

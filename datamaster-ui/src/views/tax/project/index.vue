@@ -7,13 +7,13 @@
         :model="queryParams"
         ref="queryRef"
         :inline="true"
-        label-width="75px"
+        label-width="45px"
         v-show="showSearch"
         @submit.prevent
       >
-        <el-form-item label="项目名称" prop="name">
+        <el-form-item label="名称" prop="name">
           <el-input
-            class="el-form-input-width"
+            style="width: 150px;"
             v-model="queryParams.name"
             placeholder="请输入项目名称"
             clearable
@@ -22,8 +22,8 @@
         </el-form-item>
         <el-form-item label="负责人" prop="managerId">
           <el-select
+            style="width: 150px;"
             v-model="queryParams.managerId"
-            class="el-form-input-width"
             @change="handleChange"
             filterable
             placeholder="请选择负责人"
@@ -53,50 +53,28 @@
           </el-button>
         </el-form-item>
       </el-form>
+      <div class="data-action-btns">
+        <el-button
+          type="primary"
+          plain
+          @click="handleAdd"
+          v-hasPermi="['att:project:add']"
+          v-hasRole="['system']"
+          @mousedown="(e) => e.preventDefault()"
+        >
+          <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+        </el-button>
+      </div>
+      <div class="top-right-btn">
+        <right-toolbar
+          v-model:showSearch="showSearch"
+          @queryTable="getList"
+          :columns="columns"
+        ></right-toolbar>
+      </div>
     </div>
 
-    <div class="pagecont-bottom">
-      <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-          <el-col :span="1.5">
-            <el-button
-              type="primary"
-              plain
-              @click="handleAdd"
-              v-hasPermi="['att:project:add']"
-              v-hasRole="['system']"
-              @mousedown="(e) => e.preventDefault()"
-            >
-              <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
-          </el-col>
-          <!-- <el-col :span="1.5">
-                        <el-button
-                            type="primary"
-                            plain
-                            :disabled="single"
-                            @click="handleUpdate"
-                            v-hasPermi="['att:project:edit']"
-                            @mousedown="(e) => e.preventDefault()"
-                        >
-                            <i class="iconfont-mini icon-xiugai--copy mr5"></i>修改
-                        </el-button>
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button type="danger" plain :disabled="multiple" @click="handleDelete"
-                            v-hasPermi="['att:project:remove']" @mousedown="(e) => e.preventDefault()">
-                            <i class="iconfont-mini icon-shanchu-huise mr5"></i>删除
-                        </el-button>
-                    </el-col> -->
-        </el-row>
-        <div class="justify-end top-right-btn">
-          <right-toolbar
-            v-model:showSearch="showSearch"
-            @queryTable="getList"
-            :columns="columns"
-          ></right-toolbar>
-        </div>
-      </div>
+    <div>
       <el-table
         stripe
         v-loading="loading"
@@ -810,4 +788,35 @@ getList();
 // getUserTree();
 </script>
 
+<style scoped lang="scss">
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
 
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+  }
+}
+</style>

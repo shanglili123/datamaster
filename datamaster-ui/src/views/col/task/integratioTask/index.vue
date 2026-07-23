@@ -508,13 +508,13 @@ function getDeptTree() {
 const searchStore = reactive({
   items: [
     {
-      label: "任务名称",
+      label: "名称",
       prop: "name",
       align: "left",
       component: { is: "input", placeholder: "请输入任务名称" },
     },
     {
-      label: "任务状态",
+      label: "状态",
       prop: "status",
       component: {
         is: "select",
@@ -1043,5 +1043,19 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" src="@/assets/system/styles/table-style-optimized.scss"></style>
+<style scoped lang="scss">
+:deep(.qt-search-bar) {
+  .el-form {
+    flex-wrap: nowrap !important;
+  }
+  .el-form-item {
+    flex-shrink: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  .search-content {
+    width: 150px !important;
+  }
+}
+</style>
 
 

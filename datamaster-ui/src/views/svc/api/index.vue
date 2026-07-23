@@ -7,21 +7,21 @@
 
       <el-main>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="95px"
+          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
             v-show="showSearch" @submit.prevent>
-            <el-form-item label="API服务名称" prop="name">
-              <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入API服务名称" clearable
-                @keyup.enter="handleQuery" />
+            <el-form-item label="名称" prop="name">
+              <el-input v-model="queryParams.name" placeholder="请输入API服务名称" clearable
+                style="width: 180px;" @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="状态" prop="status">
-              <el-select class="el-form-input-width" v-model="queryParams.status" placeholder="请选择状态" clearable>
+              <el-select v-model="queryParams.status" placeholder="请选择状态" clearable style="width: 160px;">
                 <el-option v-for="dict in ds_api_log_status" :key="dict.value" :label="dict.label"
                   :value="dict.value" />
               </el-select>
             </el-form-item>
-            <el-form-item label="创建时间">
-              <el-date-picker class="el-form-input-width" v-model="daterangeCreateTime" value-format="YYYY-MM-DD"
-                type="daterange" range-separator="-" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
+            <el-form-item label="时间">
+              <el-date-picker v-model="daterangeCreateTime" value-format="YYYY-MM-DD"
+                type="daterange" range-separator="-" start-placeholder="开始" end-placeholder="结束" style="width: 210px;"></el-date-picker>
             </el-form-item>
 
             <el-form-item>
@@ -33,22 +33,17 @@
               </el-button>
             </el-form-item>
           </el-form>
-        </div>
-
-        <div class="pagecont-bottom">
-          <div class="justify-between mb15">
-            <el-row :gutter="15" class="btn-style">
-              <el-col :span="1.5">
-                <el-button type="primary" plain @click="routeToAdd('/svc/api/add')" v-hasPermi="['ds:api:add']"
-                  @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-              </el-col>
-            </el-row>
-            <div class="justify-end top-right-btn">
-              <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
-            </div>
+          <div class="data-action-btns">
+            <el-button type="primary" plain @click="routeToAdd('/svc/api/add')" v-hasPermi="['ds:api:add']"
+              @mousedown="(e) => e.preventDefault()">
+              <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+            </el-button>
           </div>
+          <div class="top-right-btn">
+            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
+          </div>
+        </div>
+        <div>
           <el-table stripe v-loading="loading" :data="dsApiList" @selection-change="handleSelectionChange"
             :default-sort="defaultSort" @sort-change="handleSortChange">
             <!--            <el-table-column type="selection" width="55" align="center" />-->
@@ -886,6 +881,37 @@ getApiCatList();
   .el-upload-list__item {
     width: 100%;
     height: 25px;
+  }
+}
+
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
   }
 }
 </style>

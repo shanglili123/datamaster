@@ -7,22 +7,22 @@
 
       <el-main>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
+          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
             v-show="showSearch" @submit.prevent>
-            <el-form-item label="资产名称" prop="assetName">
-              <el-input class="el-form-input-width" v-model="queryParams.assetName" placeholder="请输入资产名称" clearable
+            <el-form-item label="名称" prop="assetName">
+              <el-input style="width: 140px" v-model="queryParams.assetName" placeholder="请输入资产名称" clearable
                 @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="主题名称" prop="themeName">
-              <el-input class="el-form-input-width" v-model="queryParams.themeName" placeholder="请输入主题名称" clearable
+            <el-form-item label="主题" prop="themeName">
+              <el-input style="width: 140px" v-model="queryParams.themeName" placeholder="请输入主题名称" clearable
                 @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="申请人" prop="createBy">
-              <el-input class="el-form-input-width" v-model="queryParams.createBy" placeholder="请输入申请人" clearable
+              <el-input style="width: 140px" v-model="queryParams.createBy" placeholder="请输入申请人" clearable
                 @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="审核状态" prop="status">
-              <el-select class="el-form-input-width" clearable v-model="queryParams.status" placeholder="请选择审核状态">
+            <el-form-item label="状态" prop="status">
+              <el-select style="width: 140px" clearable v-model="queryParams.status" placeholder="请选择审核状态">
                 <el-option v-for="dict in da_asset_apply_status" :key="dict.value" :label="dict.label"
                   :value="dict.value" />
               </el-select>
@@ -37,15 +37,11 @@
               </el-button>
             </el-form-item>
           </el-form>
-        </div>
-
-        <div class="pagecont-bottom pagecont-bottoms">
-          <div class="justify-between mb15">
-            <div></div>
-            <div class="justify-end top-right-btn">
-              <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
-            </div>
+          <div class="top-right-btn">
+            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
           </div>
+        </div>
+        <div>
           <el-table stripe v-loading="loading" :data="assetApplyList" @selection-change="handleSelectionChange"
             :default-sort="defaultSort" @sort-change="handleSortChange">
             <el-table-column v-if="getColumnVisibility(1)" label="资产名称" align="left" prop="assetName" width="200"
@@ -752,6 +748,38 @@ getList();
   .el-upload-list__item {
     width: 100%;
     height: 25px;
+  }
+}
+
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+    margin-left: auto;
   }
 }
 </style>

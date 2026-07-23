@@ -352,8 +352,8 @@ body,
   padding: 0 !important;
 }
 
-.app-container > .el-container:has(> .left-pane),
-.app-container > .el-container:has(> .el-aside.left-pane) {
+.app-container .el-container:has(> .left-pane),
+.app-container .el-container:has(> .el-aside.left-pane) {
   min-height: calc(100vh - 132px);
   padding: 14px;
   background: #ffffff;
@@ -363,60 +363,67 @@ body,
   box-sizing: border-box;
 }
 
-.app-container > .el-container:has(> .left-pane) > .left-pane,
-.app-container > .el-container:has(> .el-aside.left-pane) > .el-aside.left-pane {
+.app-container .el-container:has(> .left-pane) > .left-pane,
+.app-container .el-container:has(> .el-aside.left-pane) > .el-aside.left-pane {
   padding: 0 !important;
   background: transparent !important;
 }
 
-.app-container > .el-container:has(> .left-pane) .resize-bar,
-.app-container > .el-container:has(> .el-aside.left-pane) .resize-bar {
+.app-container .el-container:has(> .left-pane) .resize-bar,
+.app-container .el-container:has(> .el-aside.left-pane) .resize-bar {
   background: transparent !important;
 }
 
-.app-container > .el-container:has(> .left-pane) .left-tree,
-.app-container > .el-container:has(> .el-aside.left-pane) .left-tree {
+.app-container .el-container:has(> .left-pane) .left-tree,
+.app-container .el-container:has(> .el-aside.left-pane) .left-tree {
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
 
-.app-container > .el-container:has(> .left-pane) > .el-main,
-.app-container > .el-container:has(> .el-aside.left-pane) > .el-main {
+.app-container .el-container:has(> .left-pane) > .el-main,
+.app-container .el-container:has(> .el-aside.left-pane) > .el-main {
   position: relative;
   padding: 0 0 0 14px !important;
 }
 
-.app-container > .el-container:has(> .left-pane) .qt-wrap,
-.app-container > .el-container:has(> .el-aside.left-pane) .qt-wrap {
+.app-container .el-container:has(> .left-pane) .qt-wrap,
+.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap {
   gap: 0;
 }
 
-.app-container > .el-container:has(> .left-pane) .qt-wrap--search,
-.app-container > .el-container:has(> .left-pane) .qt-wrap--content,
-.app-container > .el-container:has(> .el-aside.left-pane) .qt-wrap--search,
-.app-container > .el-container:has(> .el-aside.left-pane) .qt-wrap--content {
+.app-container .el-container:has(> .left-pane) .qt-wrap--search,
+.app-container .el-container:has(> .left-pane) .qt-wrap--actions-bar,
+.app-container .el-container:has(> .left-pane) .qt-wrap--content,
+.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--search,
+.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--actions-bar,
+.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--content {
   border: none !important;
   box-shadow: none !important;
 }
 
-.app-container > .el-container:has(> .left-pane) .qt-wrap--search,
-.app-container > .el-container:has(> .el-aside.left-pane) .qt-wrap--search {
-  padding: 0 0 14px !important;
-  border-bottom: 1px solid var(--dm-border-light) !important;
+.app-container .el-container:has(> .left-pane) .qt-wrap--search,
+.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--search {
+  padding: 15px 0 4px !important;
   border-radius: 0 !important;
 }
 
-.app-container > .el-container:has(> .left-pane) .qt-wrap--content.full,
-.app-container > .el-container:has(> .el-aside.left-pane) .qt-wrap--content.full {
-  padding: 14px 0 0 !important;
+.app-container .el-container:has(> .left-pane) .qt-wrap--actions-bar,
+.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--actions-bar {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--dm-border-light) !important;
 }
 
-.app-container > .el-container:has(> .left-pane) .pagecont-top,
-.app-container > .el-container:has(> .el-aside.left-pane) .pagecont-top {
+.app-container .el-container:has(> .left-pane) .qt-wrap--content.full,
+.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--content.full {
+  padding: 0 0 0 !important;
+}
+
+.app-container .el-container:has(> .left-pane) .pagecont-top,
+.app-container .el-container:has(> .el-aside.left-pane) .pagecont-top {
   min-height: 46px;
   margin-bottom: 0 !important;
-  padding: 0 220px 14px 0 !important;
+  padding: 15px 0 4px 0 !important;
   background: transparent !important;
   border: none !important;
   border-bottom: 1px solid var(--dm-border-light) !important;
@@ -424,29 +431,47 @@ body,
   box-shadow: none !important;
 }
 
-.app-container > .el-container:has(> .left-pane) .pagecont-bottom,
-.app-container > .el-container:has(> .el-aside.left-pane) .pagecont-bottom {
-  padding: 14px 0 0 !important;
+/* pagecont-top (有左侧树): 搜索字段保持一行，通过缩短标签文本来适配 */
+.app-container .el-container:has(> .left-pane) .pagecont-top .el-form,
+.app-container .el-container:has(> .el-aside.left-pane) .pagecont-top .el-form {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start;
+  flex: 0 1 auto;
+
+  .el-form-item {
+    display: inline-flex !important;
+    flex-shrink: 0;
+    margin-right: 6px;
+    margin-bottom: 0;
+  }
+
+  .el-form-input-width {
+    width: 150px;
+  }
+}
+
+.app-container .el-container:has(> .left-pane) .pagecont-bottom,
+.app-container .el-container:has(> .el-aside.left-pane) .pagecont-bottom {
+  padding: 0 0 0 !important;
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
 
-.app-container > .el-container:has(> .left-pane) .pagecont-bottom > .justify-between:first-child,
-.app-container > .el-container:has(> .el-aside.left-pane) .pagecont-bottom > .justify-between:first-child {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 2;
+.app-container .el-container:has(> .left-pane) .pagecont-bottom > .justify-between:first-child,
+.app-container .el-container:has(> .el-aside.left-pane) .pagecont-bottom > .justify-between:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   min-height: 32px;
-  margin: 0 !important;
+  margin: 0 0 12px 0 !important;
   gap: 8px;
 }
 
 .app-container > .el-container:has(> .left-pane) .pagecont-bottom > .justify-between:first-child .el-row,
 .app-container > .el-container:has(> .el-aside.left-pane) .pagecont-bottom > .justify-between:first-child .el-row {
-  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -470,12 +495,30 @@ body,
 .app-container:has(> .pagecont-top):has(> .pagecont-bottom):not(:has(> .el-container)) > .pagecont-top {
   min-height: 46px;
   margin: 0 !important;
-  padding: 0 260px 14px 0 !important;
+  padding: 0 0 4px 0 !important;
   background: transparent !important;
   border: none !important;
   border-bottom: 1px solid var(--dm-border-light) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+/* pagecont-top (无左侧树): 搜索字段保持一行 */
+.app-container:has(> .pagecont-top):has(> .pagecont-bottom):not(:has(> .el-container)) > .pagecont-top .el-form {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start;
+
+  .el-form-item {
+    display: inline-flex !important;
+    flex-shrink: 0;
+    margin-right: 6px;
+    margin-bottom: 0;
+  }
+
+  .el-form-input-width {
+    width: 150px;
+  }
 }
 
 .app-container:has(> .pagecont-top):has(> .pagecont-bottom):not(:has(> .el-container)) > .pagecont-bottom {
@@ -487,17 +530,15 @@ body,
 }
 
 .app-container:has(> .pagecont-top):has(> .pagecont-bottom):not(:has(> .el-container)) > .pagecont-bottom > .justify-between:first-child {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   min-height: 32px;
-  margin: 0 !important;
+  margin: 0 0 12px 0 !important;
   gap: 8px;
 }
 
 .app-container:has(> .pagecont-top):has(> .pagecont-bottom):not(:has(> .el-container)) > .pagecont-bottom > .justify-between:first-child .el-row {
-  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -520,12 +561,29 @@ body,
 .app-container.datasource-list-page > .pagecont-top {
   min-height: 46px;
   margin: 0 !important;
-  padding: 0 260px 14px 0 !important;
+  padding: 0 0 4px 0 !important;
   background: transparent !important;
   border: none !important;
   border-bottom: 1px solid var(--dm-border-light) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+.app-container.datasource-list-page > .pagecont-top .el-form {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start;
+
+  .el-form-item {
+    display: inline-flex !important;
+    flex-shrink: 0;
+    margin-right: 6px;
+    margin-bottom: 0;
+  }
+
+  .el-form-input-width {
+    width: 150px;
+  }
 }
 
 .app-container.datasource-list-page > .pagecont-bottom {
@@ -537,17 +595,15 @@ body,
 }
 
 .app-container.datasource-list-page > .pagecont-bottom > .justify-between:first-child {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   min-height: 32px;
-  margin: 0 !important;
+  margin: 0 0 12px 0 !important;
   gap: 8px;
 }
 
 .app-container.datasource-list-page > .pagecont-bottom > .justify-between:first-child .el-row {
-  justify-content: flex-end;
   gap: 8px;
 }
 

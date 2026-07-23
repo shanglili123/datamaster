@@ -7,41 +7,43 @@
 
       <el-main>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
+          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
             v-show="showSearch" @submit.prevent>
-            <el-form-item label="资产名称" prop="name">
-              <el-input style="width: 166px" v-model="queryParams.name" placeholder="请输入资产名称" clearable
+            <el-form-item label="名称" prop="name">
+              <el-input style="width: 150px" v-model="queryParams.name" placeholder="请输入资产名称" clearable
                 @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="发布状态" prop="status">
-              <el-select style="width: 166px" v-model="queryParams.status" placeholder="请选择发布状态" clearable>
+            <el-form-item label="状态" prop="status">
+              <el-select style="width: 150px" v-model="queryParams.status" placeholder="请选择发布状态" clearable>
                 <el-option v-for="dict in da_assets_status" :key="dict.value" :label="dict.label" :value="dict.value" />
               </el-select>
             </el-form-item>
-            <el-form-item label="所属主题" prop="themeIdList">
-              <el-select style="width: 166px" v-model="queryParams.themeIdList" collapse-tags multiple
+            <el-form-item label="主题" prop="themeIdList">
+              <el-select style="width: 150px" v-model="queryParams.themeIdList" collapse-tags multiple
                 placeholder="请选择主题名称">
                 <el-option v-for="dict in themeList" :key="dict.id" :label="dict.name" :value="dict.id" />
               </el-select>
             </el-form-item>
-            <el-form-item label="资产类型" prop="status">
-              <el-select style="width: 166px" v-model="queryParams.type" placeholder="请选择资产类型" clearable>
+            <el-form-item label="类型" prop="status">
+              <el-select style="width: 150px" v-model="queryParams.type" placeholder="请选择资产类型" clearable>
                 <el-option v-for="dict in da_asset_type" :key="dict.value" :label="dict.label" :value="dict.value" />
               </el-select>
             </el-form-item>
-            <div class="form-item-btn">
+            <el-form-item>
               <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
               </el-button>
               <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
               </el-button>
-              <el-button type="primary" plain @click="handleAdd" v-hasPermi="['da:asset:add']"
-                @mousedown="(e) => e.preventDefault()">
-                <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-              </el-button>
-            </div>
+            </el-form-item>
           </el-form>
+          <div class="data-action-btns">
+            <el-button type="primary" plain @click="handleAdd" v-hasPermi="['da:asset:add']"
+              @mousedown="(e) => e.preventDefault()">
+              <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+            </el-button>
+          </div>
         </div>
         <div class="pagecont-bottom pagecont-bottoms" v-loading="loading">
           <div class="page-list" v-if="total > 0">
@@ -1019,10 +1021,35 @@ getAssetCat();
 getAssetThemeList();
 </script>
 <style scoped lang="scss">
-.form-item-btn {
-  display: inline-flex;
-  margin-bottom: 14px;
-  vertical-align: middle;
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+  }
 }
 
 .butgdlist {

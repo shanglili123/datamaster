@@ -2,33 +2,34 @@
    <div class="app-container" ref="app-container">
       <div class="pagecont-top" v-show="showSearch">
          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch"
-            label-width="68px">
-            <el-form-item label="操作地址" prop="operIp">
-               <el-input v-model="queryParams.operIp" placeholder="请输入操作地址" clearable class="el-form-input-width"
+            label-width="45px">
+            <el-form-item label="地址" prop="operIp">
+               <el-input v-model="queryParams.operIp" placeholder="请输入操作地址" clearable style="width: 120px;"
                   @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="系统模块" prop="title">
-               <el-input v-model="queryParams.title" placeholder="请输入系统模块" clearable class="el-form-input-width"
+            <el-form-item label="模块" prop="title">
+               <el-input v-model="queryParams.title" placeholder="请输入系统模块" clearable style="width: 120px;"
                   @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="操作人员" prop="operName">
-               <el-input v-model="queryParams.operName" placeholder="请输入操作人员" clearable class="el-form-input-width"
+            <el-form-item label="人员" prop="operName">
+               <el-input v-model="queryParams.operName" placeholder="请输入操作人员" clearable style="width: 120px;"
                   @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="类型" prop="businessType">
-               <el-select v-model="queryParams.businessType" placeholder="操作类型" clearable class="el-form-input-width">
+               <el-select v-model="queryParams.businessType" placeholder="操作类型" clearable style="width: 120px;">
                   <el-option v-for="dict in sys_oper_type" :key="dict.value" :label="dict.label" :value="dict.value" />
                </el-select>
             </el-form-item>
             <el-form-item label="状态" prop="status">
-               <el-select v-model="queryParams.status" placeholder="操作状态" clearable class="el-form-input-width">
+               <el-select v-model="queryParams.status" placeholder="操作状态" clearable style="width: 120px;">
                   <el-option v-for="dict in sys_common_status" :key="dict.value" :label="dict.label"
                      :value="dict.value" />
                </el-select>
             </el-form-item>
-            <el-form-item label="操作时间">
-               <el-date-picker class="el-form-input-width" v-model="dateRange" value-format="YYYY-MM-DD HH:mm:ss"
-                  type="daterange" range-separator="-" start-placeholder="开始日期" end-placeholder="结束日期"
+            <el-form-item label="时间">
+               <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD HH:mm:ss"
+                  type="daterange" range-separator="-" start-placeholder="开始" end-placeholder="结束"
+                  style="width: 200px;"
                   :default-time="[new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]"></el-date-picker>
             </el-form-item>
             <el-form-item>
@@ -40,26 +41,16 @@
                </el-button>
             </el-form-item>
          </el-form>
-      </div>
-      <div class="pagecont-bottom pagecont-bottoms">
-         <div class="justify-between mb15">
-            <el-row :gutter="10" class="btn-style">
-               <el-col :span="1.5">
-                  <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-                     v-hasPermi="['monitor:operlog:remove']">删除</el-button>
-               </el-col>
-               <el-col :span="1.5">
-                  <el-button type="danger" plain icon="Delete" @click="handleClean"
-                     v-hasPermi="['monitor:operlog:remove']">清空</el-button>
-               </el-col>
-               <el-col :span="1.5">
-                  <el-button type="warning" plain icon="Download" @click="handleExport"
-                     v-hasPermi="['monitor:operlog:export']">导出</el-button>
-               </el-col>
-            </el-row>
+         <div class="data-action-btns">
+            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['monitor:operlog:remove']">删除</el-button>
+            <el-button type="danger" plain icon="Delete" @click="handleClean" v-hasPermi="['monitor:operlog:remove']">清空</el-button>
+            <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['monitor:operlog:export']">导出</el-button>
+         </div>
+         <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
          </div>
-
+      </div>
+      <div>
          <el-table stripe ref="operlogRef" v-loading="loading" :data="operlogList"
             @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
             <el-table-column type="selection" width="50" align="center" />
@@ -307,6 +298,37 @@ getList();
    border: 1px solid #c0c4cc;
    padding: 0px 10px;
    min-height: 34px;
+}
+
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+  }
 }
 </style>
 

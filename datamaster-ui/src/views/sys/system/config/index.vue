@@ -1,27 +1,27 @@
 <template>
    <div class="app-container" ref="app-container">
       <div class="pagecont-top" v-show="showSearch">
-         <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="参数名称" prop="configName">
+         <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="50px">
+            <el-form-item label="名称" prop="configName">
                <el-input
                   v-model="queryParams.configName"
                   placeholder="请输入参数名称"
                   clearable
-                  class="el-form-input-width"
+                  style="width: 150px"
                   @keyup.enter="handleQuery"
                />
             </el-form-item>
-            <el-form-item label="参数键名" prop="configKey">
+            <el-form-item label="键名" prop="configKey">
                <el-input
                   v-model="queryParams.configKey"
                   placeholder="请输入参数键名"
                   clearable
-                  class="el-form-input-width"
+                  style="width: 150px"
                   @keyup.enter="handleQuery"
                />
             </el-form-item>
-            <el-form-item label="系统内置" prop="configType">
-               <el-select class="el-form-input-width" v-model="queryParams.configType" placeholder="系统内置" clearable>
+            <el-form-item label="内置" prop="configType">
+               <el-select style="width: 150px" v-model="queryParams.configType" placeholder="系统内置" clearable>
                   <el-option
                      v-for="dict in sys_yes_no"
                      :key="dict.value"
@@ -30,15 +30,15 @@
                   />
                </el-select>
             </el-form-item>
-            <el-form-item label="创建时间">
+            <el-form-item label="时间">
                <el-date-picker
-                  class="el-form-input-width"
                   v-model="dateRange"
                   value-format="YYYY-MM-DD"
                   type="daterange"
                   range-separator="-"
-                  start-placeholder="开始日期"
-                  end-placeholder="结束日期"
+                  start-placeholder="开始"
+                  end-placeholder="结束"
+                  style="width: 200px"
                ></el-date-picker>
             </el-form-item>
             <el-form-item>
@@ -50,61 +50,18 @@
                </el-button>
             </el-form-item>
          </el-form>
-      </div>
-      <div  class="pagecont-bottom">
-         <div class="justify-between mb15">
-         <el-row :gutter="10" class="btn-style">
-            <el-col :span="1.5">
-               <el-button
-                  type="primary"
-                  plain
-                  icon="Plus"
-                  @click="handleAdd"
-                  v-hasPermi="['system:config:add']"
-               >新增</el-button>
-            </el-col>
-            <el-col :span="1.5">
-               <el-button
-                  type="primary"
-                  plain
-                  icon="Edit"
-                  :disabled="single"
-                  @click="handleUpdate"
-                  v-hasPermi="['system:config:edit']"
-               >修改</el-button>
-            </el-col>
-            <el-col :span="1.5">
-               <el-button
-                  type="danger"
-                  plain
-                  icon="Delete"
-                  :disabled="multiple"
-                  @click="handleDelete"
-                  v-hasPermi="['system:config:remove']"
-               >删除</el-button>
-            </el-col>
-            <el-col :span="1.5">
-               <el-button
-                  type="warning"
-                  plain
-                  icon="Download"
-                  @click="handleExport"
-                  v-hasPermi="['system:config:export']"
-               >导出</el-button>
-            </el-col>
-            <el-col :span="1.5">
-               <el-button
-                  type="danger"
-                  plain
-                  icon="Refresh"
-                  @click="handleRefreshCache"
-                  v-hasPermi="['system:config:remove']"
-               >刷新缓存</el-button>
-            </el-col>
-         </el-row>
-         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+         <div class="data-action-btns">
+            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:config:add']">新增</el-button>
+            <el-button type="primary" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['system:config:edit']">修改</el-button>
+            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:config:remove']">删除</el-button>
+            <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['system:config:export']">导出</el-button>
+            <el-button type="danger" plain icon="Refresh" @click="handleRefreshCache" v-hasPermi="['system:config:remove']">刷新缓存</el-button>
          </div>
-
+         <div class="top-right-btn">
+            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+         </div>
+      </div>
+      <div>
          <el-table stripe height="60vh" v-loading="loading" :data="configList" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="参数主键" align="center" prop="configId" />
@@ -343,3 +300,35 @@ function handleRefreshCache() {
 getList();
 </script>
 
+<style scoped lang="scss">
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+  }
+}
+</style>

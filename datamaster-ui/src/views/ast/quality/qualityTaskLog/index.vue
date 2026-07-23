@@ -1,15 +1,15 @@
 <template>
     <div class="app-container" ref="app-container">
         <div class="pagecont-top" v-show="showSearch">
-            <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
+            <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
                 v-show="showSearch" @submit.prevent>
-                <el-form-item label="任务名称" prop="name">
-                    <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入任务名称" clearable
-                        @keyup.enter="handleQuery" />
+                <el-form-item label="名称" prop="name">
+                    <el-input v-model="queryParams.name" placeholder="请输入任务名称" clearable
+                        @keyup.enter="handleQuery" style="width: 150px;" />
                 </el-form-item>
-                <el-form-item label="执行状态" prop="successFlag">
+                <el-form-item label="状态" prop="successFlag">
                     <el-select v-model="queryParams.successFlag" placeholder="请选择执行状态" clearable
-                        class="el-form-input-width">
+                        style="width: 150px;">
                         <el-option v-for="dict in quality_log_success_flag" :key="dict.value" :label="dict.label"
                             :value="dict.value" />
                     </el-select>
@@ -23,14 +23,12 @@
                     </el-button>
                 </el-form-item>
             </el-form>
-        </div>
-        <div class="pagecont-bottom">
-            <div class="justify-between mb15">
-                <div class="justify-end top-right-btn">
-                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"
-                        :columns="columns"></right-toolbar>
-                </div>
+            <div class="top-right-btn">
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"
+                    :columns="columns"></right-toolbar>
             </div>
+        </div>
+        <div>
             <el-table stripe v-loading="loading" :data="DppQualityLogList" :default-sort="defaultSort"
                 @sort-change="handleSortChange">
                 <el-table-column v-if="getColumnVisibility(0)" label="编号" align="center" prop="id" width="120" />
@@ -216,3 +214,27 @@ async function sendMessage(row) {
 getList();
 </script>
 
+<style scoped lang="scss">
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+  }
+}
+</style>

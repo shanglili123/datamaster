@@ -17,22 +17,22 @@
             :model="queryParams"
             ref="queryRef"
             :inline="true"
-            label-width="75px"
+            label-width="45px"
             v-show="showSearch"
             @submit.prevent
           >
-            <el-form-item label="英文名称" prop="modelName">
+            <el-form-item label="英文" prop="modelName">
               <el-input
-                class="el-form-input-width"
+                style="width: 160px"
                 v-model="queryParams.modelName"
                 placeholder="请输入英文名称"
                 clearable
                 @keyup.enter="handleQuery"
               />
             </el-form-item>
-            <el-form-item label="中文名称" prop="modelComment">
+            <el-form-item label="中文" prop="modelComment">
               <el-input
-                class="el-form-input-width"
+                style="width: 160px"
                 v-model="queryParams.modelComment"
                 placeholder="请输入中文名称"
                 clearable
@@ -41,7 +41,7 @@
             </el-form-item>
             <el-form-item label="状态" prop="status">
               <el-select
-                class="el-form-input-width"
+                style="width: 160px"
                 v-model="queryParams.status"
                 placeholder="请选择状态"
                 clearable
@@ -71,71 +71,44 @@
               </el-button>
             </el-form-item>
           </el-form>
+          <div class="data-action-btns">
+            <el-button
+              type="primary"
+              plain
+              @click="handleAdd"
+              v-hasPermi="['dp:model:add']"
+              @mousedown="(e) => e.preventDefault()"
+            >
+              <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+            </el-button>
+            <el-button
+              type="primary"
+              :disabled="single"
+              plain
+              @click="handleMaterialization"
+              v-hasPermi="['dp:model:edit']"
+              @mousedown="(e) => e.preventDefault()"
+            >
+              <svg-icon
+                iconClass="wh"
+                style="font-size: 14px; margin-right: 6px"
+                :class="{
+                  'icon-disabled': single,
+                  'icon-normal': !single,
+                }"
+              />物化
+            </el-button>
+          </div>
+          <div class="top-right-btn">
+            <right-toolbar
+              v-model:showSearch="showSearch"
+              @queryTable="getList"
+              :columns="columns"
+            ></right-toolbar>
+          </div>
         </div>
 
-        <div class="pagecont-bottom">
-          <div class="justify-between mb15">
-            <el-row :gutter="15" class="btn-style">
-              <el-col :span="1.5">
-                <el-button
-                  type="primary"
-                  plain
-                  @click="handleAdd"
-                  v-hasPermi="['dp:model:add']"
-                  @mousedown="(e) => e.preventDefault()"
-                >
-                  <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-              </el-col>
-              <el-col :span="1.5">
-                <!--  -->
-                <!--  <img v-else src="@/assets/da/asset/api (2).svg" alt="" /> -->
-                <el-button
-                  type="primary"
-                  :disabled="single"
-                  plain
-                  @click="handleMaterialization"
-                  v-hasPermi="['dp:model:edit']"
-                  @mousedown="(e) => e.preventDefault()"
-                >
-                  <svg-icon
-                    iconClass="wh"
-                    style="font-size: 14px; margin-right: 6px"
-                    :class="{
-                      'icon-disabled': single,
-                      'icon-normal': !single,
-                    }"
-                  />物化
-                </el-button>
-              </el-col>
-              <!-- <el-col :span="1.5">
-                <el-button type="danger" plain :disabled="multiple" @click="handleDelete"
-                  v-hasPermi="['dp:model:remove']" @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-shanchu-huise mr5"></i>删除
-                </el-button>
-              </el-col> -->
-              <!-- <el-col :span="1.5">
-                <el-button type="info" plain @click="handleImport" v-hasPermi="['dp:model:export']"
-                  @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-upload-cloud-line mr5"></i>导入
-                </el-button>
-              </el-col>
-              <el-col :span="1.5">
-                <el-button type="warning" plain @click="handleExport" v-hasPermi="['dp:model:export']"
-                  @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-download-line mr5"></i>导出
-                </el-button>
-              </el-col> -->
-            </el-row>
-            <div class="justify-end top-right-btn">
-              <right-toolbar
-                v-model:showSearch="showSearch"
-                @queryTable="getList"
-                :columns="columns"
-              ></right-toolbar>
-            </div>
-          </div>
-
+        <div>
           <el-table
             stripe
             v-loading="loading"
@@ -816,6 +789,37 @@ getDeptTree();
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+  }
 }
 </style>
 

@@ -6,21 +6,22 @@
         @node-click="handleNodeClick" />
       <el-main>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
+          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
             v-show="showSearch" @submit.prevent>
-            <el-form-item label="任务名称" prop="taskName">
-              <el-input class="el-form-input-width" v-model="queryParams.taskName" placeholder="请输入任务名称" clearable
-                @keyup.enter="handleQuery" />
+             <el-form-item label="名称" prop="taskName">
+              <el-input v-model="queryParams.taskName" placeholder="请输入任务名称" clearable
+                @keyup.enter="handleQuery" style="width: 160px;" />
             </el-form-item>
-            <el-form-item label="任务状态" prop="status">
-              <el-select v-model="queryParams.status" placeholder="请选择任务状态" clearable class="el-form-input-width">
+            <el-form-item label="状态" prop="status">
+              <el-select v-model="queryParams.status" placeholder="请选择任务状态" clearable
+                style="width: 160px;">
                 <el-option v-for="dict in ast_discovery_task_status" :key="dict.value" :label="dict.label"
                   :value="dict.value" />
               </el-select>
             </el-form-item>
             <el-form-item label="创建人" prop="contact">
               <el-input v-model="queryParams.contact" placeholder="请输入创建人" clearable
-                class="el-form-input-width" @keyup.enter="handleQuery" />
+                style="width: 160px;" @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item>
               <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
@@ -31,27 +32,21 @@
               </el-button>
             </el-form-item>
           </el-form>
-        </div>
-        <div class="pagecont-bottom">
-          <div class="justify-between mb15">
-            <el-row :gutter="15" class="btn-style">
-              <el-col :span="1.5">
-                <el-button type="primary" plain @click="routeTo('/ast/quality/qualityTask/add', { row: null, })"
-                  v-hasPermi="['da:qualityTask:add']" @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-              </el-col>
-              <el-col :span="1.5">
-                <el-button plain @click="routeTo('/ast/quality/errorStorageConfig', {})"
-                  @mousedown="(e) => e.preventDefault()">
-                  <i class="iconfont-mini icon-shezhi mr5"></i>存储配置
-                </el-button>
-              </el-col>
-            </el-row>
-            <div class="justify-end top-right-btn">
-              <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
-            </div>
+          <div class="data-action-btns">
+            <el-button type="primary" plain @click="routeTo('/ast/quality/qualityTask/add', { row: null, })"
+              v-hasPermi="['da:qualityTask:add']" @mousedown="(e) => e.preventDefault()">
+              <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+            </el-button>
+            <el-button plain @click="routeTo('/ast/quality/errorStorageConfig', {})"
+              @mousedown="(e) => e.preventDefault()">
+              <i class="iconfont-mini icon-shezhi mr5"></i>存储配置
+            </el-button>
           </div>
+          <div class="top-right-btn">
+            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
+          </div>
+        </div>
+        <div>
           <el-table ref="tableRef" stripe v-loading="loading" :data="DppQualityTaskEvaluateList" :default-sort="defaultSort"
             @sort-change="handleSortChange">
             <el-table-column v-if="getColumnVisibility(1)" label="编号" align="center" prop="id" width="105" />
@@ -118,13 +113,13 @@
                 }}
               </template>
             </el-table-column>
-            <el-table-column v-if="getColumnVisibility(12)" align="left" prop="status" width="110">
+            <el-table-column v-if="getColumnVisibility(12)" align="left" prop="status" width="70">
               <template #header>
-                <span>发布状态</span>
+                <span>状态</span>
               </template>
               <template #default="scope">
-                <el-tag v-if="scope.row.status == 0" type="success" size="small">已发布</el-tag>
-                <el-tag v-else type="info" size="small">未发布</el-tag>
+                <el-tag v-if="scope.row.status == 0" type="success" size="small">上</el-tag>
+                <el-tag v-else type="info" size="small">下</el-tag>
               </template>
             </el-table-column>
             <el-table-column v-if="getColumnVisibility(13)" label="备注" width="120" align="left" prop="remark"
@@ -349,7 +344,7 @@ const columns = ref([
   { key: 9, label: "上次执行时间", visible: true },
   { key: 10, label: "创建人", visible: true },
   { key: 11, label: "创建时间", visible: true },
-  { key: 12, label: "发布状态", visible: true },
+  { key: 12, label: "状态", visible: true },
   { key: 13, label: "备注", visible: true },
   { key: 14, label: "操作", visible: true },
 ]);
@@ -483,6 +478,37 @@ getDeptTree();
     background: #f3f8ff !important;
     border: 0px solid #6ba7ff !important;
     color: #2666fb !important;
+  }
+}
+
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
   }
 }
 

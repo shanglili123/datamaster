@@ -2,14 +2,14 @@
     <div class="app-container" ref="app-container">
 
         <div class="pagecont-top" v-show="showSearch">
-            <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
+            <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
                 v-show="showSearch" @submit.prevent>
-                <el-form-item label="级别名称" prop="sensitiveLevel">
-                    <el-input class="el-form-input-width" v-model="queryParams.sensitiveLevel" placeholder="请输入敏感级别名称"
+                <el-form-item label="名称" prop="sensitiveLevel">
+                    <el-input style="width: 150px;" v-model="queryParams.sensitiveLevel" placeholder="请输入敏感级别名称"
                         clearable @keyup.enter="handleQuery" />
                 </el-form-item>
-                <el-form-item label="替换规则" prop="sensitiveRule">
-                    <el-select class="el-form-input-width" v-model="queryParams.sensitiveRule" placeholder="请选择替换规则"
+                <el-form-item label="规则" prop="sensitiveRule">
+                    <el-select style="width: 150px;" v-model="queryParams.sensitiveRule" placeholder="请选择替换规则"
                         clearable>
                         <el-option v-for="dict in da_sensitive_level_rule" :key="dict.value" :label="dict.label"
                             :value="dict.value" />
@@ -25,23 +25,19 @@
                     </el-button>
                 </el-form-item>
             </el-form>
+            <div class="data-action-btns">
+                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['da:sensitiveLevel:add']"
+                    @mousedown="(e) => e.preventDefault()">
+                    <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+                </el-button>
+            </div>
+            <div class="top-right-btn">
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"
+                    :columns="columns"></right-toolbar>
+            </div>
         </div>
 
-        <div class="pagecont-bottom">
-            <div class="justify-between mb15">
-                <el-row :gutter="15" class="btn-style">
-                    <el-col :span="1.5">
-                        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['da:sensitiveLevel:add']"
-                            @mousedown="(e) => e.preventDefault()">
-                            <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                        </el-button>
-                    </el-col>
-                </el-row>
-                <div class="justify-end top-right-btn">
-                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"
-                        :columns="columns"></right-toolbar>
-                </div>
-            </div>
+        <div>
             <el-table stripe v-loading="loading" :data="daSensitiveLevelList" @selection-change="handleSelectionChange"
                 :default-sort="defaultSort" @sort-change="handleSortChange">
                 <!--       <el-table-column type="selection" width="55" align="center" />-->
@@ -636,4 +632,35 @@ function handleStatusChange(row) {
 getList();
 </script>
 
+<style scoped lang="scss">
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
 
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+  }
+}
+</style>

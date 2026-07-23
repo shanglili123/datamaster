@@ -67,24 +67,24 @@
       <el-main>
         <!--用户数据-->
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="用户名称" prop="userName">
-              <el-input v-model="queryParams.userName" placeholder="请输入用户名称" clearable class="el-form-input-width"
+          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px">
+            <el-form-item label="名称" prop="userName">
+              <el-input v-model="queryParams.userName" placeholder="请输入用户名称" clearable style="width: 150px"
                 @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="手机号码" prop="phonenumber">
-              <el-input v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable class="el-form-input-width"
+            <el-form-item label="手机" prop="phonenumber">
+              <el-input v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable style="width: 150px"
                 @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="状态" prop="status">
-              <el-select v-model="queryParams.status" placeholder="用户状态" clearable class="el-form-input-width">
+              <el-select v-model="queryParams.status" placeholder="用户状态" clearable style="width: 150px">
                 <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label"
                   :value="dict.value" />
               </el-select>
             </el-form-item>
-            <el-form-item label="创建时间">
-              <el-date-picker class="el-form-input-width" v-model="dateRange" value-format="YYYY-MM-DD" type="daterange"
-                range-separator="-" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
+            <el-form-item label="时间">
+              <el-date-picker v-model="dateRange" value-format="YYYY-MM-DD" type="daterange"
+                range-separator="-" start-placeholder="开始" end-placeholder="结束" style="width: 200px;"></el-date-picker>
             </el-form-item>
             <el-form-item>
               <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
@@ -95,37 +95,18 @@
               </el-button>
             </el-form-item>
           </el-form>
-        </div>
-        <div class="pagecont-bottom">
-          <div class="justify-between mb15">
-            <el-row :gutter="10" class="btn-style">
-              <el-col :span="1.5">
-                <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:user:add']">新增
-                </el-button>
-              </el-col>
-              <el-col :span="1.5">
-                <el-button type="primary" plain icon="Edit" :disabled="single" @click="handleUpdate"
-                  v-hasPermi="['system:user:edit']">修改
-                </el-button>
-              </el-col>
-              <el-col :span="1.5">
-                <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-                  v-hasPermi="['system:user:remove']">删除
-                </el-button>
-              </el-col>
-              <el-col :span="1.5">
-                <el-button type="info" plain icon="Upload" @click="handleImport" v-hasPermi="['system:user:import']">导入
-                </el-button>
-              </el-col>
-              <el-col :span="1.5">
-                <el-button type="warning" plain icon="Download" @click="handleExport"
-                  v-hasPermi="['system:user:export']">导出
-                </el-button>
-              </el-col>
-            </el-row>
+          <div class="data-action-btns">
+            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:user:add']">新增</el-button>
+            <el-button type="primary" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['system:user:edit']">修改</el-button>
+            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:user:remove']">删除</el-button>
+            <el-button type="info" plain icon="Upload" @click="handleImport" v-hasPermi="['system:user:import']">导入</el-button>
+            <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['system:user:export']">导出</el-button>
+          </div>
+          <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
           </div>
-
+        </div>
+        <div>
           <el-table stripe height="58vh" v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="50" align="center" />
             <el-table-column label="用户编号" align="center" key="userId" prop="userId" v-if="columns[0].visible" />
@@ -1023,6 +1004,37 @@ getList();
     .custom-tree-node .treelable {
       color: var(--el-color-primary);
     }
+  }
+}
+
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
+
+  .el-form {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex: 0 1 auto !important;
+
+    .el-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
   }
 }
 </style>
