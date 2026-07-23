@@ -1,50 +1,34 @@
 <template>
     <div class="app-container" ref="app-container">
-        <div class="pagecont-top" v-show="showSearch">
-            <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
-                v-show="showSearch" @submit.prevent>
-                <el-form-item label="数据集成类目名称" prop="name" label-width="130">
-                    <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入数据集成类目名称" clearable
-                        @keyup.enter="handleQuery" />
-                </el-form-item>
-                <el-form-item label="上级类目" prop="code">
-                    <el-tree-select filterable class="el-form-input-width" v-model="queryParams.code"
-                        :data="attTaskCatOptions" :props="{ value: 'code', label: 'name', children: 'children' }"
-                        value-key="id" placeholder="请选择上级" check-strictly />
-                </el-form-item>
-
-                <el-form-item>
-                    <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
-                        <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-                    </el-button>
-                    <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
-                        <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-                    </el-button>
-                </el-form-item>
-            </el-form>
-        </div>
+    <!-- 使用公共页头组件 -->
+    <PageHeader
+      :queryParams="queryParams"
+      :showSearch="showSearch"
+      :showAddBtn="true"
+      :addPermission="['att:taskCat:add']"
+      :showToggleBtn="true"
+      :isExpandAll="isExpandAll"
+      @query="handleQuery"
+      @reset="resetQuery"
+      @add="handleAdd"
+      @toggle="toggleExpandAll"
+      @queryTable="getList"
+    >
+      <!-- 核心：在 searchForm 插槽中填入当前页面特有的搜索项 -->
+      <template #searchForm>
+        <el-form-item label="数据集成类目名称" prop="name" label-width="130">
+          <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入数据集成类目名称" clearable
+            @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item label="上级类目" prop="code">
+          <el-tree-select filterable class="el-form-input-width" v-model="queryParams.code"
+            :data="attTaskCatOptions" :props="{ value: 'code', label: 'name', children: 'children' }"
+            value-key="id" placeholder="请选择上级" check-strictly />
+        </el-form-item>
+      </template>
+    </PageHeader>
 
         <div class="pagecont-bottom">
-            <div class="justify-between mb15">
-                <el-row :gutter="15" class="btn-style">
-                    <el-col :span="1.5">
-                        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:taskCat:add']"
-                            @mousedown="(e) => e.preventDefault()">
-                            <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                        </el-button>
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button class="toggle-expand-all" type="primary" plain @click="toggleExpandAll">
-                            <svg-icon v-if="isExpandAll" icon-class="toggle" />
-                            <svg-icon v-else icon-class="expand" />
-                            <span>{{ isExpandAll ? "折叠" : "展开" }}</span>
-                        </el-button>
-                    </el-col>
-                </el-row>
-                <div class="justify-end top-right-btn">
-                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-                </div>
-            </div>
             <el-table height="60vh" v-if="refreshTable" v-loading="loading" :data="AttTaskCatList" row-key="id"
                 :default-expand-all="isExpandAll" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
                 <el-table-column label="数据集成类目名称" align="left" prop="name" width="200"
@@ -272,6 +256,7 @@
 
 <script setup name="TaskCat">
 //  taskCat
+import PageHeader from '@/components/Cat/PageHeader.vue';
 import {
     listAttTaskCat,
     getAttTaskCat,
@@ -615,5 +600,7 @@ function routeTo(link, row) {
 onActivated(() => {
     getList();
 });
+
+getList();
 </script>
 
