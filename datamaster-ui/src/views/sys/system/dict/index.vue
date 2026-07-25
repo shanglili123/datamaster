@@ -57,11 +57,18 @@
          </el-form>
          <div class="data-action-btns">
             <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:dict:add']">新增</el-button>
-            <el-button type="primary" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['system:dict:edit']">修改</el-button>
-            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:dict:remove']">删除</el-button>
-            <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['system:dict:export']">导出</el-button>
-            <el-button type="primary" plain icon="Download" :disabled="multiple" @click="handleEnum">下载</el-button>
-            <el-button type="danger" plain icon="Refresh" @click="handleRefreshCache" v-hasPermi="['system:dict:remove']">刷新缓存</el-button>
+            <el-dropdown trigger="click" v-hasPermi="['system:dict:export', 'system:dict:remove']">
+              <el-button type="info" plain>
+                更多<i class="el-icon-arrow-down el-icon--right"></i>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item icon="Download" @click="handleExport" v-hasPermi="['system:dict:export']">导出</el-dropdown-item>
+                  <el-dropdown-item icon="Download" :disabled="multiple" @click="handleEnum">下载</el-dropdown-item>
+                  <el-dropdown-item icon="Refresh" @click="handleRefreshCache" v-hasPermi="['system:dict:remove']">刷新缓存</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
          </div>
          <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>

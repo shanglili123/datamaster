@@ -78,4 +78,8 @@ public class StandardsDocumentSaveReqVO extends BaseEntity {
     @Size(max = 512, message = "描述长度不能超过512个字符")
     private String description;
 
+    @Schema(description = "标准级别：国家标准、行业标准、地方标准、团体标准", example = "")
+    @Size(max = 20, message = "标准级别长度不能超过20个字符")
+    private String stdLevel;
+
 }

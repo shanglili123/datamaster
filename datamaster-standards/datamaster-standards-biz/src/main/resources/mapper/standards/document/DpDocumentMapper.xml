@@ -27,10 +27,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updaterId"    column="UPDATER_ID"    />
         <result property="updateTime"    column="UPDATE_TIME"    />
         <result property="remark"    column="REMARK"    />
+        <result property="stdLevel"    column="STD_LEVEL"    />
     </resultMap>
 
     <sql id="selectDpDocumentVo">
-        select ID, CODE, NAME, CAT_CODE, TYPE, STATUS, ISSUING_AGENCY, VERSION, RELEASE_DATE, IMPLEMENTATION_DATE, ABOLITION_DATE, FILE_URL,FILE_NAME, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from STD_DOCUMENT
+        select ID, CODE, NAME, CAT_CODE, TYPE, STATUS, ISSUING_AGENCY, VERSION, RELEASE_DATE, IMPLEMENTATION_DATE, ABOLITION_DATE, FILE_URL,FILE_NAME, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK, STD_LEVEL from STD_DOCUMENT
     </sql>
 
     <select id="selectDpDocumentList" parameterType="StandardsDocumentDO" resultMap="StandardsDocumentResult">
@@ -48,6 +49,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="abolitionDate != null "> and ABOLITION_DATE = #{abolitionDate}</if>
             <if test="fileUrl != null  and fileUrl != ''"> and FILE_URL = #{fileUrl}</if>
             <if test="fileName != null  and fileName != ''"> and FILE_NAME = #{fileName}</if>
+            <if test="stdLevel != null  and stdLevel != ''"> and STD_LEVEL = #{stdLevel}</if>
             <if test="createTime != null "> and CREATE_TIME = #{createTime}</if>
         </where>
     </select>
@@ -105,6 +107,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updaterId != null">UPDATER_ID,</if>
             <if test="updateTime != null">UPDATE_TIME,</if>
             <if test="remark != null">REMARK,</if>
+            <if test="stdLevel != null">STD_LEVEL,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{ID},</if>
@@ -129,6 +132,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updaterId != null">#{updaterId},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="remark != null">#{remark},</if>
+            <if test="stdLevel != null">#{stdLevel},</if>
          </trim>
     </insert>
 
@@ -156,6 +160,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updaterId != null">UPDATER_ID = #{updaterId},</if>
             <if test="updateTime != null">UPDATE_TIME = #{updateTime},</if>
             <if test="remark != null">REMARK = #{remark},</if>
+            <if test="stdLevel != null">STD_LEVEL = #{stdLevel},</if>
         </trim>
         where ID = #{ID}
     </update>

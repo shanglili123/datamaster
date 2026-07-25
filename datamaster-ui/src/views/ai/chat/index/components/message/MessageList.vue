@@ -160,7 +160,7 @@ import MarkdownView from "@/components/MarkdownView/index.vue";
 import AssistantReportCard from "./AssistantReportCard.vue";
 import { ChatMessageApi } from "@/api/ai/chat/message";
 import useUserStore from "@/store/system/user";
-import userAvatarDefaultImg from "@/assets/images/defaultAvatar.png";
+import userAvatarDefaultImg from "@/assets/images/defaultAvatar.svg";
 import roleAvatarDefaultImg from "@/assets/ai/gpt-new.svg";
 import { useClipboard } from "@vueuse/core";
 

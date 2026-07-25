@@ -1,7 +1,7 @@
 ﻿
 import { login, logout, getInfo } from '@/api/system/login.js';
 import { getToken, setToken, removeToken } from '@/utils/auth';
-import defAva from '@/assets/images/defaultAvatar.png';
+import defAva from '@/assets/images/defaultAvatar.svg';
 
 const useUserStore = defineStore('user', {
     state: () => ({

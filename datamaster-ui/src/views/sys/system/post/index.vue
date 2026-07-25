@@ -7,7 +7,7 @@
                   v-model="queryParams.postCode"
                   placeholder="请输入岗位编码"
                   clearable
-                  class="el-form-input-width"
+                  style="width: 130px"
                   @keyup.enter="handleQuery"
                />
             </el-form-item>
@@ -16,12 +16,12 @@
                   v-model="queryParams.postName"
                   placeholder="请输入岗位名称"
                   clearable
-                  class="el-form-input-width"
+                  style="width: 130px"
                   @keyup.enter="handleQuery"
                />
             </el-form-item>
             <el-form-item label="状态" prop="status">
-               <el-select v-model="queryParams.status" placeholder="岗位状态" clearable class="el-form-input-width">
+               <el-select v-model="queryParams.status" placeholder="岗位状态" clearable style="width: 120px">
                   <el-option
                      v-for="dict in sys_normal_disable"
                      :key="dict.value"
@@ -39,51 +39,26 @@
                </el-button>
             </el-form-item>
          </el-form>
-      </div>
-      <div  class="pagecont-bottom">
-         <div class="justify-between mb15">
-         <el-row :gutter="10" class="btn-style">
-            <el-col :span="1.5">
-               <el-button
-                  type="primary"
-                  plain
-                  icon="Plus"
-                  @click="handleAdd"
-                  v-hasPermi="['system:post:add']"
-               >新增</el-button>
-            </el-col>
-            <el-col :span="1.5">
-               <el-button
-                  type="primary"
-                  plain
-                  icon="Edit"
-                  :disabled="single"
-                  @click="handleUpdate"
-                  v-hasPermi="['system:post:edit']"
-               >修改</el-button>
-            </el-col>
-            <el-col :span="1.5">
-               <el-button
-                  type="danger"
-                  plain
-                  icon="Delete"
-                  :disabled="multiple"
-                  @click="handleDelete"
-                  v-hasPermi="['system:post:remove']"
-               >删除</el-button>
-            </el-col>
-            <el-col :span="1.5">
-               <el-button
-                  type="warning"
-                  plain
-                  icon="Download"
-                  @click="handleExport"
-                  v-hasPermi="['system:post:export']"
-               >导出</el-button>
-            </el-col>
-         </el-row>
-         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+         <div class="data-action-btns">
+            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:post:add']">新增</el-button>
+            <el-dropdown trigger="click" v-hasPermi="['system:post:edit', 'system:post:remove', 'system:post:export']">
+              <el-button type="info" plain>
+                更多<i class="el-icon-arrow-down el-icon--right"></i>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['system:post:edit']">修改</el-dropdown-item>
+                  <el-dropdown-item icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:post:remove']">删除</el-dropdown-item>
+                  <el-dropdown-item icon="Download" @click="handleExport" v-hasPermi="['system:post:export']">导出</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
          </div>
+         <div class="top-right-btn">
+            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+         </div>
+      </div>
+      <div class="pagecont-bottom">
 
          <el-table stripe height="60vh" v-loading="loading" :data="postList" @selection-change="handleSelectionChange" >
             <el-table-column type="selection" width="55" align="center" />

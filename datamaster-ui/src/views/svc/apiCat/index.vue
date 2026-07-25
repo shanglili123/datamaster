@@ -23,30 +23,24 @@
                     </el-button>
                 </el-form-item>
             </el-form>
+            <div class="data-action-btns">
+                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:apiCat:add']"
+                    @mousedown="(e) => e.preventDefault()">
+                    <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+                </el-button>
+                <el-button class="toggle-expand-all" type="primary" plain @click="toggleExpandAll">
+                    <svg-icon v-if="isExpandAll" icon-class="toggle" />
+                    <svg-icon v-else icon-class="expand" />
+                    <span>{{ isExpandAll ? "折叠" : "展开" }}</span>
+                </el-button>
+            </div>
+            <div class="top-right-btn">
+                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"
+                    :columns="columns"></right-toolbar>
+            </div>
         </div>
 
         <div class="pagecont-bottom">
-            <div class="justify-between mb15">
-                <el-row :gutter="15" class="btn-style">
-                    <el-col :span="1.5">
-                        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:apiCat:add']"
-                            @mousedown="(e) => e.preventDefault()">
-                            <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                        </el-button>
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button class="toggle-expand-all" type="primary" plain @click="toggleExpandAll">
-                            <svg-icon v-if="isExpandAll" icon-class="toggle" />
-                            <svg-icon v-else icon-class="expand" />
-                            <span>{{ isExpandAll ? "折叠" : "展开" }}</span>
-                        </el-button>
-                    </el-col>
-                </el-row>
-                <div class="justify-end top-right-btn">
-                    <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"
-                        :columns="columns"></right-toolbar>
-                </div>
-            </div>
             <el-table v-if="refreshTable" v-loading="loading" :data="AttApiCatList" row-key="id"
                 :default-expand-all="isExpandAll" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
                 <el-table-column label="数据服务类目" align="left" prop="name" width="200"

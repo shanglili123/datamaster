@@ -1,13 +1,13 @@
 <template>
     <div class="app-container" ref="app-container">
-        <div class="pagecont-top" v-show="showSearch">
+        <div class="pagecont-top" v-show="showSearch" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <el-form
                 class="btn-style"
                 :model="queryParams"
                 ref="queryRef"
-                v-show="showSearch"
                 :inline="true"
                 label-width="45px"
+                style="flex-shrink: 0;"
             >
                 <el-form-item label="名称" prop="roleName">
                     <el-input
@@ -76,13 +76,8 @@
                     <el-button icon="Refresh" @click="resetQuery">重置</el-button>
                 </el-form-item>
             </el-form>
-            <div class="data-action-btns">
+            <div style="display: flex; gap: 10px; align-items: center;">
                 <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:role:add']">新增</el-button>
-                <el-button type="primary" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['system:role:edit']">修改</el-button>
-                <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:role:remove']">删除</el-button>
-                <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['system:role:export']">导出</el-button>
-            </div>
-            <div class="top-right-btn">
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
             </div>
         </div>

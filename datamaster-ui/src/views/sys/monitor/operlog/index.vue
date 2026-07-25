@@ -42,9 +42,18 @@
             </el-form-item>
          </el-form>
          <div class="data-action-btns">
-            <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['monitor:operlog:remove']">删除</el-button>
-            <el-button type="danger" plain icon="Delete" @click="handleClean" v-hasPermi="['monitor:operlog:remove']">清空</el-button>
-            <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['monitor:operlog:export']">导出</el-button>
+            <el-dropdown trigger="click" v-hasPermi="['monitor:operlog:remove', 'monitor:operlog:export']">
+              <el-button type="info" plain>
+                更多<i class="el-icon-arrow-down el-icon--right"></i>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['monitor:operlog:remove']">删除</el-dropdown-item>
+                  <el-dropdown-item icon="Delete" @click="handleClean" v-hasPermi="['monitor:operlog:remove']">清空</el-dropdown-item>
+                  <el-dropdown-item icon="Download" @click="handleExport" v-hasPermi="['monitor:operlog:export']">导出</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
          </div>
          <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>

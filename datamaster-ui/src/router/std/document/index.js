@@ -2,76 +2,45 @@
 /* Layout */
 import Layout from '@/layout/index.vue';
 
-// 标准
+// 标准数据
 export default [
     {
-        path: '/mdl/document/national/detail',
+        path: '/mdl/document/list',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: '',
+                component: () => import('@/views/std/document/list/index.vue'),
+                name: 'documentList',
+                meta: { title: '标准数据集', activeMenu: '/mdl/document' }
+            },
+        ]
+    },
+    {
+        path: '/mdl/document/docs',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: '',
+                component: () => import('@/views/std/document/docs/index.vue'),
+                name: 'documentDocs',
+                meta: { title: '标准文档', activeMenu: '/mdl/document' }
+            },
+        ]
+    },
+    {
+        path: '/mdl/document/detail',
         component: Layout,
         hidden: true,
         children: [
             {
                 path: '',
                 component: () => import('@/views/std/document/detail/index.vue'),
-                name: 'national',
-                meta: { title: '国家标准详情', activeMenu: '/mdl/document/national' }
-            },
-        ]
-    },
-    {
-        path: '/mdl/document/industry/detail',
-        component: Layout,
-        children: [
-
-            {
-                path: '',
-                component: () => import('@/views/std/document/detail/index.vue'),
-                name: 'industrylocal',
-                meta: { title: '行业标准详情', activeMenu: '/mdl/document/industry' }
-            },
-
-        ]
-    },
-    {
-        path: '/mdl/document/provincial/detail',
-        component: Layout,
-        children: [
-
-
-            {
-                path: '',
-                component: () => import('@/views/std/document/detail/index.vue'),
-                name: 'provincial',
-                meta: { title: '地方标准详情', activeMenu: '/mdl/document/provincial' }
-            },
-
-        ]
-    },
-    {
-        path: '/mdl/document/group/detail',
-        component: Layout,
-        children: [
-            {
-                path: '',
-                component: () => import('@/views/std/document/detail/index.vue'),
-                name: 'groupDetail',
-                meta: { title: '团体标准详情', activeMenu: '/mdl/document/group' }
-            },
-
-        ]
-    },
-    {
-        path: '/mdl/document/search/detail',
-        component: Layout,
-        children: [
-            {
-                path: '',
-                component: () => import('@/views/std/document/detail/index.vue'),
-                name: 'search',
-                meta: { title: '标准检索详情', activeMenu: '/mdl/document/search' }
+                name: 'documentDetail',
+                meta: { title: '标准详情', activeMenu: '/mdl/document' }
             },
         ]
     },
 ]
-//     }
-// ];
-

@@ -32,46 +32,18 @@
           </el-button>
         </el-form-item>
       </el-form>
+      <div class="data-action-btns">
+        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:client:add']"
+          @mousedown="(e) => e.preventDefault()">
+          <i class="iconfont-mini icon-xinzeng mr5"></i>新增
+        </el-button>
+      </div>
+      <div class="top-right-btn">
+        <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
+      </div>
     </div>
 
     <div class="pagecont-bottom">
-      <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-          <el-col :span="1.5">
-            <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:client:add']"
-              @mousedown="(e) => e.preventDefault()">
-              <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
-          </el-col>
-          <!--         <el-col :span="1.5">
-           <el-button type="primary" plain :disabled="single" @click="handleUpdate" v-hasPermi="['att:client:edit']"
-                      @mousedown="(e) => e.preventDefault()">
-             <i class="iconfont-mini icon-xiugai&#45;&#45;copy mr5"></i>修改
-           </el-button>
-         </el-col>
-         <el-col :span="1.5">
-           <el-button type="danger" plain :disabled="multiple" @click="handleDelete" v-hasPermi="['att:client:remove']"
-                      @mousedown="(e) => e.preventDefault()">
-             <i class="iconfont-mini icon-shanchu-huise mr5"></i>删除
-           </el-button>
-         </el-col>
-         <el-col :span="1.5">
-           <el-button type="info" plain  @click="handleImport" v-hasPermi="['att:client:export']"
-                      @mousedown="(e) => e.preventDefault()">
-             <i class="iconfont-mini icon-upload-cloud-line mr5"></i>导入
-           </el-button>
-         </el-col>
-         <el-col :span="1.5">
-           <el-button type="warning" plain @click="handleExport" v-hasPermi="['att:client:export']"
-                      @mousedown="(e) => e.preventDefault()">
-             <i class="iconfont-mini icon-download-line mr5"></i>导出
-           </el-button>
-         </el-col>-->
-        </el-row>
-        <div class="justify-end top-right-btn">
-          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
-        </div>
-      </div>
       <el-table stripe v-loading="loading" :data="clientList" @selection-change="handleSelectionChange"
         :default-sort="defaultSort" @sort-change="handleSortChange">
         <el-table-column v-if="getColumnVisibility(0)" width="75" label="编号" align="center" prop="id" />

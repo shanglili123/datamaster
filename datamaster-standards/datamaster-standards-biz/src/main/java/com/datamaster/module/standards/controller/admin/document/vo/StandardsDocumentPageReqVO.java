@@ -70,4 +70,7 @@ public class StandardsDocumentPageReqVO extends PageParam {
     @Schema(description = "项目编码")
     private String projectCode;
 
+    @Schema(description = "标准级别")
+    private String stdLevel;
+
 }

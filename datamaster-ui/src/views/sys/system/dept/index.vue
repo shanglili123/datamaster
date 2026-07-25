@@ -21,20 +21,15 @@
                </el-button>
             </el-form-item>
          </el-form>
-      </div>
-      <div class="pagecont-bottom">
-         <div class="justify-between mb15">
-            <el-row :gutter="10" class="btn-style">
-               <el-col :span="1.5">
-                  <el-button type="primary" plain icon="Plus" @click="handleAdd"
-                     v-hasPermi="['system:dept:add']">新增</el-button>
-               </el-col>
-               <el-col :span="1.5">
-                  <el-button type="info" plain icon="Sort" @click="toggleExpandAll">展开/折叠</el-button>
-               </el-col>
-            </el-row>
+         <div class="data-action-btns">
+            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:dept:add']">新增</el-button>
+            <el-button type="info" plain icon="Sort" @click="toggleExpandAll">展开/折叠</el-button>
+         </div>
+         <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
          </div>
+      </div>
+      <div class="pagecont-bottom">
 
          <el-table v-if="refreshTable" height="60vh" v-loading="loading" :data="deptList" row-key="deptId"
             :default-expand-all="isExpandAll" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">

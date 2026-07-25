@@ -429,6 +429,10 @@ body,
   border-bottom: 1px solid var(--dm-border-light) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  display: flex !important;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 /* pagecont-top (有左侧树): 搜索字段保持一行，通过缩短标签文本来适配 */
@@ -436,8 +440,9 @@ body,
 .app-container .el-container:has(> .el-aside.left-pane) .pagecont-top .el-form {
   display: flex !important;
   flex-wrap: nowrap !important;
-  align-items: flex-start;
-  flex: 0 1 auto;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 
   .el-form-item {
     display: inline-flex !important;
@@ -501,13 +506,19 @@ body,
   border-bottom: 1px solid var(--dm-border-light) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  display: flex !important;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 /* pagecont-top (无左侧树): 搜索字段保持一行 */
 .app-container:has(> .pagecont-top):has(> .pagecont-bottom):not(:has(> .el-container)) > .pagecont-top .el-form {
   display: flex !important;
   flex-wrap: nowrap !important;
-  align-items: flex-start;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 
   .el-form-item {
     display: inline-flex !important;

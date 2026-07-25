@@ -26,27 +26,11 @@
     />
     <div class="right-menu">
       <template v-if="appStore.device !== 'mobile'">
-        <div style="width: 250px; margin-top: 10px" v-if="showProjectSelector">
-          <el-form
-            class="btn-style"
-            :model="userStore"
-            ref="queryRef"
-            :inline="true"
-            label-width="93px"
-          >
-            <el-form-item
-              label="所属项目"
-              prop="projectId"
-              :rules="[
-                {
-                  required: true,
-                  message: '请选择所属项目',
-                  trigger: 'change',
-                },
-              ]"
-            >
-              <el-select
-                style="width: 150px"
+        <div style="display: flex; align-items: center; white-space: nowrap" v-if="showProjectSelector">
+          <span style="font-size: 13px; color: #ef4444; margin-right: 2px">*</span>
+          <span style="font-size: 13px; color: #606266; margin-right: 8px">所属项目</span>
+          <el-select
+            style="width: 130px"
                 :fit-input-width="true"
                 v-model="userStore.projectId"
                 @change="projectIdChange"
@@ -76,15 +60,7 @@
                   </template>
                 </el-option>
               </el-select>
-              <!-- <el-select style="width: 150px" class="el-form-input-width" v-model="userStore.projectId"
-                                @change="projectIdChange" placeholder="请选择所属项目" clearable>
-                                <el-option v-for="item in projectOptions" :key="item.id" :label="item.name"
-                                    :value="item.id" />
-                            </el-select> -->
-            </el-form-item>
-          </el-form>
         </div>
-
       </template>
       <div class="avatar-container">
         <el-dropdown
@@ -97,7 +73,6 @@
               :src="userAvatar"
               class="user-avatar"
               alt="avatar"
-              @error="handleAvatarError"
             />
             <span class="nickName">{{ userStore.nickName }}</span>
           </div>
@@ -112,9 +87,6 @@
               >
                 <span>布局设置</span>
               </el-dropdown-item>
-              <!-- <el-dropdown-item command="about">
-                                <span>关于我们</span>
-                            </el-dropdown-item> -->
               <el-dropdown-item divided command="logout">
                 <span>退出登录</span>
               </el-dropdown-item>
@@ -180,11 +152,10 @@ import { loginOut } from "@/api/system/sso-auth.js";
 // import MessageList from "@/views/sys/system/message/components/messageList.vue";
 import { onMounted, ref, watch } from "vue";
 import moment from "moment";
-import { listNotice } from "@/api/system/system/notice";
 import { currentUser } from "@/api/tax/project/project";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
-import defaultAvatar from "@/assets/images/defaultAvatar.png";
+import defaultAvatar from "@/assets/images/defaultAvatar.svg";
 import { isProjectModuleRoute, normalizeModuleRoutePath } from "@/utils/moduleRoute";
 // import { getCurrentAppVersion } from "@/api/system/update/update.js";
 // import {listProject, getProject} from "@/api/project/projectBase/project";
@@ -207,19 +178,12 @@ const isOnlyLogoRoute = computed(() => {
 const activeMsg = ref("first");
 const projectId = ref("");
 const permissionStore = usePermissionStore();
-const userAvatar = computed(() => userStore.avatar || defaultAvatar);
+const userAvatar = computed(() => userStore.avatar);
 
 const needUpdate = ref(false);
 const currentVersion = ref("");
 const latestVersion = ref("");
 //-----------------------以下报工内容-------------------------
-const handleMessage = (msg) => {
-  console.log("接收到的消息:", msg);
-  router.push({
-    path: "/sys/system/notice/detail",
-    query: { id: msg.noticeId },
-  });
-};
 const data = reactive({
   form: {
     reportExperience: null,
@@ -428,7 +392,6 @@ const isProjectDisabled = (projectId, currentRow) => {
 // 消息通知数量
 const msgCount = ref(0);
 const messages = ref([]);
-const noticeList = ref([]);
 const sessionValue = ref(null);
 getMessageNum(); // 第一次主要获取消息
 
@@ -441,20 +404,6 @@ const ws = new WebSocket(wsUri);
 
 const initWebSocket = () => {
   console.log("---------initWebSocket-------------");
-
-  //查询通知公告
-  listNotice().then((response) => {
-    console.log("---------- response.rows-------------", response);
-    response.rows.forEach((item) => {
-      item.title = item.noticeTitle;
-      item.entityType = item.noticeType;
-      item.time =
-        item.updateTime != undefined && item.updateTime != null
-          ? formatTimestamp(item.updateTime)
-          : formatTimestamp(item.createTime);
-    });
-    noticeList.value = response.rows;
-  });
 
   //查询未读消息通知
   listMessage({
@@ -661,12 +610,6 @@ function handleCommand(command) {
   }
 }
 
-function handleAvatarError(event) {
-  if (event?.target) {
-    event.target.src = defaultAvatar;
-  }
-}
-
 function logout() {
   ElMessageBox.confirm("确定注销并退出系统吗？", "提示", {
     confirmButtonText: "确定",
@@ -701,14 +644,6 @@ function handleRefreshClick() {
   proxy.$tab.refreshPage(activeView);
   if (route.meta.link) {
     useTagsViewStore().delIframeView(route);
-  }
-}
-
-function messageDetail() {
-  if (activeMsg.value == "first") {
-    router.push({ path: "/sys/system/bases/message" });
-  } else {
-    router.push({ path: "/sys/notice" });
   }
 }
 
@@ -785,7 +720,7 @@ function clearNotification() {
 
 .navbar {
   height: 60px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   background: #fff;
   border-bottom: 1px solid var(--dm-border-light, #edf1f5);
@@ -855,11 +790,12 @@ function clearNotification() {
   .right-menu {
     float: right;
     height: 100%;
-    line-height: 60px;
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding-right: 12px;
+    gap: 2px;
+    padding-right: 8px;
+    position: relative;
+    z-index: 10;
 
     ::v-deep .el-form-item__label {
       color: var(--el-text-color-regular) !important;
@@ -885,7 +821,6 @@ function clearNotification() {
       border-radius: 8px;
       font-size: 18px;
       color: var(--dm-text-secondary, #6b7280);
-      vertical-align: text-bottom;
 
       &.hover-effect {
         cursor: pointer;
@@ -910,15 +845,24 @@ function clearNotification() {
 
     .avatar-container {
       margin: 0;
+      display: flex;
+      align-items: center;
+      height: 100%;
+
+      ::v-deep .el-dropdown {
+        display: flex;
+        align-items: center;
+        height: 100%;
+      }
 
       .avatar-wrapper {
         display: flex;
         align-items: center;
-        height: 40px;
+        height: 36px;
         margin-top: 0;
-        padding: 0 10px 0 4px;
+        padding: 0 6px 0 4px;
         border: 1px solid transparent;
-        border-radius: 20px;
+        border-radius: 18px;
         position: relative;
         transition: border-color 0.16s ease, background-color 0.16s ease;
 
@@ -929,23 +873,23 @@ function clearNotification() {
 
         .user-avatar {
           cursor: pointer;
-          width: 32px;
-          height: 32px;
-          border-radius: 16px;
+          width: 28px;
+          height: 28px;
+          border-radius: 14px;
           object-fit: cover;
           background: #f2f3f5;
           border: 1px solid #eef0f3;
         }
 
         .nickName {
-          max-width: 112px;
+          max-width: 80px;
           overflow: hidden;
           color: var(--dm-text-regular, #374151);
           display: inline-block;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
           line-height: 20px;
-          margin-left: 10px;
+          margin-left: 6px;
           text-overflow: ellipsis;
           white-space: nowrap;
         }

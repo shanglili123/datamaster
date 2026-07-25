@@ -20,6 +20,19 @@
 
             <el-row :gutter="20">
                 <el-col :span="12">
+                    <el-form-item label="标准级别" prop="stdLevel" :rules="[
+                        { required: true, message: '标准级别不能为空', trigger: 'change' }
+                    ]">
+                        <el-select style="width: 100%;" v-model="form.stdLevel"
+                            placeholder="请选择标准级别">
+                            <el-option label="国家标准" value="国家标准" />
+                            <el-option label="行业标准" value="行业标准" />
+                            <el-option label="地方标准" value="地方标准" />
+                            <el-option label="团体标准" value="团体标准" />
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
                     <el-form-item label="标准状态" prop="status" :rules="[
                         { required: true, message: '标准状态不能为空', trigger: 'blur' }
                     ]">
@@ -30,6 +43,8 @@
                         </el-select>
                     </el-form-item>
                 </el-col>
+            </el-row>
+            <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="标准类目" prop="catCode" :rules="[
                         { required: true, message: '标准类目不能为空', trigger: 'blur' }
@@ -137,6 +152,7 @@ const form = reactive({
     catCode: "",
     name: "",
     status: "1",
+    stdLevel: "",
     standardUrl: "",
     issuingAgency: "",
     version: "",
@@ -153,13 +169,6 @@ const type = ref('1');
 const title = ref("标准弹窗");
 const emit = defineEmits(["update-success"]);
 
-const titleMap = {
-    '1': "国家标准",
-    '2': "行业标准",
-    '3': "地方标准",
-    '4': "团体标准",
-};
-
 /** 打开弹窗 */
 function openModal(formData = {}, options = [], types) {
     deptOptions.value = options;
@@ -169,10 +178,10 @@ function openModal(formData = {}, options = [], types) {
         Object.assign(form, formData);
         form.catCode = form.catCode != null ? String(form.catCode) : "";
         form.status = form.status != null ? String(form.status) : "";
-        title.value = "修改" + (titleMap[type.value] || "标准");
+        title.value = "修改" + (form.stdLevel || "标准");
     } else {
         clearForm();
-        title.value = "新增" + (titleMap[type.value] || "标准");
+        title.value = "新增" + (form.stdLevel || "标准");
     }
 
     visible.value = true;
@@ -191,6 +200,7 @@ function clearForm() {
     form.code = "";
     form.name = "";
     form.status = "1";
+    form.stdLevel = "";
     form.standardUrl = "";
     form.issuingAgency = "";
     form.catCode = "";

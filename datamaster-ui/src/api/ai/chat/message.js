@@ -88,11 +88,4 @@ export const ChatMessageApi = {
         });
     }
 };
-// 查询模型管理详细
-export function getModelLists() {
-  return request({
-    url: '/model/list' ,
-    method: 'get'
-  })
-}
 

@@ -32,14 +32,12 @@
               </el-button>
             </el-form-item>
           </el-form>
+          <div class="top-right-btn">
+            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
+          </div>
         </div>
 
         <div class="pagecont-bottom">
-          <div class="justify-between mb15">
-            <div class="justify-end top-right-btn">
-              <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
-            </div>
-          </div>
           <el-table stripe v-loading="loading" :data="apiLogList" @selection-change="handleSelectionChange"
             :default-sort="defaultSort" @sort-change="handleSortChange">
             <el-table-column v-if="getColumnVisibility(1)" label="编号" align="center" prop="id" width="120" />

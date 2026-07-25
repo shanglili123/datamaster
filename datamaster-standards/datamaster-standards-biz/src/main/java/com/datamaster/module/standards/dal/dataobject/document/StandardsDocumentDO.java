@@ -85,5 +85,7 @@ public class StandardsDocumentDO extends BaseEntity {
     /** 描述 */
     private String description;
 
+    /** 标准级别：国家标准、行业标准、地方标准、团体标准 */
+    private String stdLevel;
 
 }
