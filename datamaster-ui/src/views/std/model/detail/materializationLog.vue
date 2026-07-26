@@ -499,7 +499,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'dp/model/export',
+        'std/model/export',
         {
             ...queryParams.value
         },

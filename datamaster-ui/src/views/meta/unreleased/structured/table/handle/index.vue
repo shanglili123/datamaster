@@ -312,7 +312,7 @@ import { reactive, getCurrentInstance, toValue } from "vue";
 import { listDb, getDb } from "@/api/cat/unreleased/db";
 import { deptUserTree } from "@/api/system/system/user.js";
 import { listDaDatasource } from "@/api/cat/dataSource/dataSource";
-import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
+import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
 import {
   getTable,
   updateTable,

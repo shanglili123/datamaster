@@ -59,15 +59,6 @@ export function delDaDiscoveryTask(id) {
         method: 'delete'
     });
 }
-// 查询调度日志列表
-export function listJobLog(query) {
-    return request({
-        url: '/ast/discoveryTask/jobLog/list',
-        method: 'get',
-        params: query
-    });
-}
-
 // 数据发现 执行一次
 export function startDppEtlTask(data) {
     return request({

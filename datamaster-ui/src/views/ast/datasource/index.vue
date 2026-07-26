@@ -268,8 +268,6 @@
                 </el-button>
               </div>
             </el-popover>
-            <!--           <el-button link type="primary" icon="view" @click="routeTo('/da/datasource/daDatasourceDetail',scope.row)"-->
-            <!--                      v-hasPermi="['da:dataSource:edit']">复杂详情</el-button>-->
           </template>
         </el-table-column>
 
@@ -1493,7 +1491,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
   proxy.download(
-    "da/daDatasource/export",
+    "ast/dataSource/export",
     {
       ...queryParams.value,
     },

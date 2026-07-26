@@ -358,7 +358,7 @@ import { getParentLabelPath } from "@/utils/anivia.js";
 import { listDaDatasource } from "@/api/cat/dataSource/dataSource";
 import { deptUserTree } from "@/api/system/system/user.js";
 import { useRoute, useRouter } from "vue-router";
-import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
+import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
 import { getRealtimeMcTaskScopeList } from "@/api/cat/task/task.js";
 
 // 表单验证规则

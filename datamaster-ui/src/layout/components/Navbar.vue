@@ -154,7 +154,7 @@ import { currentUser } from "@/api/tax/project/project";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
 import defaultAvatar from "@/assets/images/defaultAvatar.svg";
-import { isProjectModuleRoute, normalizeModuleRoutePath } from "@/utils/moduleRoute";
+import { isProjectModuleRoute } from "@/utils/moduleRoute";
 
 const route = useRoute();
 const router = useRouter();
@@ -521,11 +521,11 @@ function findFirstRoutePath(routes, parentPath = "") {
 function joinRoutePath(parentPath, path) {
   if (!path) return parentPath;
   if (/^https?:\/\//.test(path)) return path;
-  if (path.startsWith("/")) return normalizeModuleRoutePath(path);
+  if (path.startsWith("/")) return path;
   const parent = parentPath.endsWith("/")
     ? parentPath.slice(0, -1)
     : parentPath;
-  return normalizeModuleRoutePath(`${parent}/${path}`.replace(/\/+/g, "/"));
+  return `${parent}/${path}`.replace(/\/+/g, "/");
 }
 
 onMounted(() => {

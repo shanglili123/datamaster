@@ -522,7 +522,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'att/AttApiCat/export',
+        'tax/apiCat/export',
         {
             ...queryParams.value
         },

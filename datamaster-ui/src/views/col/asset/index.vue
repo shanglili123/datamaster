@@ -1084,7 +1084,7 @@ function handleRefresh(row) {
 /** 导出按钮操作 */
 function handleExport() {
   proxy.download(
-    "da/asset/export",
+    "ast/asset/export",
     {
       ...queryParams.value,
     },

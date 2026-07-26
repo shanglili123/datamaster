@@ -37,6 +37,13 @@ public class FileUploadUtil {
      */
     private static String storagePath;
 
+    /**
+     * 当前存储平台
+     */
+    private static String currentPlatform;
+
+    private static final String LOCAL_PLATFORM = "local";
+
 
     /**
      * 初始化工具类
@@ -48,6 +55,13 @@ public class FileUploadUtil {
         fileStorageService = service;
         serverConfig = config;
         storagePath = path;
+    }
+
+    /**
+     * 设置当前存储平台
+     */
+    public static void setCurrentPlatform(String platform) {
+        currentPlatform = platform;
     }
 
     /**
@@ -71,10 +85,8 @@ public class FileUploadUtil {
         FileInfo fileInfo = fileStorageService.of(file)
                 .setPath(path)
                 .upload();
-        String url = serverConfig.getUrl() + Constants.RESOURCE_PREFIX + fileInfo.getUrl();
-        fileInfo.setUrl(url);
 
-        return fileInfo;
+        return normalizeAccessUrl(fileInfo, currentPlatform);
     }
 
     /**
@@ -97,6 +109,7 @@ public class FileUploadUtil {
             path = formatter.format(new Date());
         }
         FileInfo fileInfo;
+        String uploadPlatform = StringUtils.isNotEmpty(platform) ? platform : currentPlatform;
         // 如果指定了存储平台，上传到对应平台
         if (StringUtils.isNotEmpty(platform)) {
              fileInfo = fileStorageService.of(file)
@@ -107,11 +120,9 @@ public class FileUploadUtil {
              fileInfo = fileStorageService.of(file)
                     .setPath(path)
                     .upload();
-            String url = Constants.RESOURCE_PREFIX + fileInfo.getUrl();
-            fileInfo.setUrl(url);
         }
 
-        return fileInfo;
+        return normalizeAccessUrl(fileInfo, uploadPlatform);
     }
 
 
@@ -141,10 +152,11 @@ public class FileUploadUtil {
      * @return 返回上传后的文件信息（FileInfo 对象）
      */
     public static FileInfo uploadImage(MultipartFile file) {
-        return fileStorageService.of(file)
+        FileInfo fileInfo = fileStorageService.of(file)
                 .image(img -> img.size(1000, 1000))  // 调整图片大小到 1000*1000
                 .thumbnail(th -> th.size(200, 200))  // 生成 200*200 的缩略图
                 .upload();
+        return normalizeAccessUrl(fileInfo, currentPlatform);
     }
 
     /**
@@ -155,9 +167,10 @@ public class FileUploadUtil {
      * @return 返回上传后的文件信息（FileInfo 对象）
      */
     public static FileInfo uploadPlatform(MultipartFile file) {
-        return fileStorageService.of(file)
-                .setPlatform("aliyun-oss-1")    // 使用指定的存储平台
+        FileInfo fileInfo = fileStorageService.of(file)
+                .setPlatform(currentPlatform)    // 使用当前配置的存储平台
                 .upload();
+        return normalizeAccessUrl(fileInfo, currentPlatform);
     }
 
     /**
@@ -168,7 +181,33 @@ public class FileUploadUtil {
      * @return 返回上传后的文件信息（FileInfo 对象）
      */
     public static FileInfo uploadRequest(HttpServletRequest request) {
-        return fileStorageService.of(request).upload();
+        FileInfo fileInfo = fileStorageService.of(request).upload();
+        return normalizeAccessUrl(fileInfo, currentPlatform);
+    }
+
+    /**
+     * 本地存储返回系统内的 /profile 访问路径，对象存储直接使用存储平台返回的访问地址。
+     */
+    private static FileInfo normalizeAccessUrl(FileInfo fileInfo, String platform) {
+        if (fileInfo == null || StringUtils.isEmpty(fileInfo.getUrl())) {
+            return fileInfo;
+        }
+
+        String url = fileInfo.getUrl();
+        if (isLocalPlatform(platform)) {
+            if (!url.startsWith(Constants.RESOURCE_PREFIX + "/") && !isAbsoluteUrl(url)) {
+                url = Constants.RESOURCE_PREFIX + (url.startsWith("/") ? url : "/" + url);
+            }
+            fileInfo.setUrl(url);
+        }
+        return fileInfo;
+    }
+
+    private static boolean isLocalPlatform(String platform) {
+        return StringUtils.isEmpty(platform) || LOCAL_PLATFORM.equalsIgnoreCase(platform);
+    }
+
+    private static boolean isAbsoluteUrl(String url) {
+        return url.startsWith("http://") || url.startsWith("https://");
     }
 }
-

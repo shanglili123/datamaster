@@ -215,7 +215,7 @@ export function createTaskTempTableByExcel(data) {
 
 export function createTaskTempTableByExcel2(data) {
     return request({
-        url: 'da/dataSource/createTaskTempTable/2',
+        url: 'ast/dataSource/createTaskTempTable/2',
         method: 'post',
         data: data
     })

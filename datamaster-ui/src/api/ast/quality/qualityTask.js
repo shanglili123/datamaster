@@ -106,7 +106,7 @@ export function getQualityTaskAsset(query) {
 
 export function statisticsEvaluateAssetOne(query) {
   return request({
-    url: 'dpp/evaluateLog/statisticsEvaluateAssetOne',
+    url: '/col/evaluateLog/statisticsEvaluateAssetOne',
     method: 'get',
     params: query
   });

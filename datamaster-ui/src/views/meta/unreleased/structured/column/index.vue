@@ -344,8 +344,7 @@ import {
 import { listDb } from "@/api/cat/unreleased/db";
 import { listTable } from "@/api/cat/unreleased/table";
 import { useRoute, useRouter } from "vue-router";
-import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
-// import { getDgDataElemList } from "@/api/dg/standard/dataElem.js";
+import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
 
 const rules = {
   columnName: [

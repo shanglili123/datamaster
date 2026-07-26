@@ -318,7 +318,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'dp/dpCodeMap/export',
+        'std/codeMap/export',
         {
             ...queryParams.value
         },

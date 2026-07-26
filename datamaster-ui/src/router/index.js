@@ -1,7 +1,6 @@
 
 import { createWebHistory, createRouter } from 'vue-router';
 import { clearCancelTokens } from '@/utils/request'; // 确保导入路径正确
-import { normalizeModuleRoutePath, normalizeModuleRouteTree } from '@/utils/moduleRoute';
 
 /* 系统模块公共路由 */
 import systemPublicRouter from './system/public/index.js';
@@ -42,10 +41,6 @@ import dPdocument from './std/document/index.js';
 import mcPublicRouter from './cat/public/index.js';
 /* 元数据采集 */
 import mcDynamicRouter from './cat/dynamic/index.js';
-/* 表元数据 */
-import metaPublicRouter from './meta/public/index.js';
-/* 表元数据 */
-import metaDynamicRouter from './meta/dynamic/index.js';
 
 /* 智能问数公共路由 */
 import aiRouter from './ai/index.js';
@@ -77,10 +72,10 @@ import aiRouter from './ai/index.js';
  */
 
 // 公共路由
-export const constantRoutes = normalizeModuleRouteTree([...systemPublicRouter, ...examplePublicRouter, ...daPublicRouter, ...dsCatRouter, ...dsPublicRouter, ...dPdocument, ...dpPublicRouter, ...dpDataElemRouter, ...daAssetRouter, ...daQualityRouter, ...colRouter, ...mcPublicRouter, ...metaPublicRouter, ...mcDynamicRouter, ...metaDynamicRouter, ...aiRouter]);
+export const constantRoutes = [...systemPublicRouter, ...examplePublicRouter, ...daPublicRouter, ...dsCatRouter, ...dsPublicRouter, ...dPdocument, ...dpPublicRouter, ...dpDataElemRouter, ...daAssetRouter, ...daQualityRouter, ...colRouter, ...mcPublicRouter, ...mcDynamicRouter, ...aiRouter];
 
 // 动态路由，基于用户权限动态去加载
-export const dynamicRoutes = normalizeModuleRouteTree([...systemDynamicRouter, ...exampleDynamicRouter, ...daDynamicRouter, ...dsDynamicRouter,]);
+export const dynamicRoutes = [...systemDynamicRouter, ...exampleDynamicRouter, ...daDynamicRouter, ...dsDynamicRouter,];
 
 const router = createRouter({
     history: createWebHistory(),
@@ -96,16 +91,6 @@ const router = createRouter({
 
 // 在路由守卫中添加取消请求逻辑
 router.beforeEach((to, from, next) => {
-    const normalizedPath = normalizeModuleRoutePath(to.path);
-    if (normalizedPath && normalizedPath !== to.path) {
-        next({
-            path: normalizedPath,
-            query: to.query,
-            hash: to.hash,
-            replace: true
-        });
-        return;
-    }
     clearCancelTokens(); // 在路由切换前取消所有未完成的请求
     next();
 });

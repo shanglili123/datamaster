@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="app-container dpp-task-list-page" ref="app-container">
 
     <el-container>
@@ -460,7 +460,7 @@ const rules = {
   ],
 };
 
-const DETAIL_PATH = "/cat/meta/task/detail";
+const DETAIL_PATH = "/cat/task/detail";
 
 const { proxy } = getCurrentInstance();
 const dicts = proxy.useDict(

@@ -575,7 +575,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'att/attCleanRule/export',
+        'tax/cleanRule/export',
         {
             ...queryParams.value
         },

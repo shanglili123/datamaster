@@ -37,7 +37,7 @@
             <artifactId>datamaster-common-mybatis</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
-        <!-- common基础模块(包含redis, file, quartz, neo4j) -->
+        <!-- common基础模块(包含redis, file, neo4j) -->
         <dependency>
             <groupId>com.datamaster</groupId>
             <artifactId>datamaster-common-base</artifactId>

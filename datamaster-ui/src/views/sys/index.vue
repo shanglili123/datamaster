@@ -184,7 +184,6 @@ import { getRoutersDpp } from "@/api/system/menu";
 import { homeList } from "@/api/system/home";
 import usePermissionStore from "@/store/system/permission";
 import useUserStore from "@/store/system/user";
-import { normalizeModuleRoutePath } from "@/utils/moduleRoute";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -398,11 +397,11 @@ function findFirstRoutePath(routes, parentPath = "") {
 function joinRoutePath(parentPath, path) {
   if (!path) return parentPath;
   if (/^https?:\/\//.test(path)) return path;
-  if (path.startsWith("/")) return normalizeModuleRoutePath(path);
+  if (path.startsWith("/")) return path;
   const parent = parentPath.endsWith("/")
     ? parentPath.slice(0, -1)
     : parentPath;
-  return normalizeModuleRoutePath(`${parent}/${path}`.replace(/\/+/g, "/"));
+  return `${parent}/${path}`.replace(/\/+/g, "/");
 }
 
 function goCreateProject() {

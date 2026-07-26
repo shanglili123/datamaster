@@ -34,18 +34,18 @@ export default defineConfig(({ mode, command }) => {
     },
     // vite 相关配置
     server: {
-      port: 81,
+      port: 8080,
       host: true,
       open: true,
       proxy: {
         // https://cn.vitejs.dev/config/#server-proxy
         "/dev-api": {
-          target: "http://localhost:8080",
+          target: "http://localhost:8989",
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/dev-api/, ""),
         },
         "/dev-ai": {
-          target: "http://localhost:8087",
+          target: "http://localhost:8989",
           // target: "http://192.168.20.115:8080",
           // target: "https://dataMaster-pro.qiantong.tech/prod-api/",
           // target: "http://110.42.38.62:30001/prod-api/",
@@ -53,11 +53,11 @@ export default defineConfig(({ mode, command }) => {
           rewrite: (p) => p.replace(/^\/dev-ai/, ""),
         },
         "/jmreport": {
-          target: "http://localhost:8080",
+          target: "http://localhost:8989",
           changeOrigin: true,
         },
         "/v3/api-docs": {
-          target: "http://localhost:8080",
+          target: "http://localhost:8989",
           changeOrigin: true,
           rewrite: (p) => p.replace("", ""),
         },

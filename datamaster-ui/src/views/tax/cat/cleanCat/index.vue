@@ -423,7 +423,7 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
-  proxy.download('att/attCleanCat/export', {
+  proxy.download('tax/cleanCat/export', {
     ...queryParams.value
   }, `AttCleanCat_${new Date().getTime()}.xlsx`)
 }

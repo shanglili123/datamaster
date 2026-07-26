@@ -570,7 +570,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
   proxy.download(
-    'att/AttProjectUserRel/export',
+    'tax/projectUserRel/export',
     {
       ...queryParams.value
     },

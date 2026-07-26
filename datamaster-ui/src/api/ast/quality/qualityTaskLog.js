@@ -85,7 +85,7 @@ export function pageErrorData(query) {
 // 修改接口 数据、状态，都是这个接口
 export function updateErrorData(data) {
   return request({
-    url: 'dpp/evaluateLog/updateErrorData',
+    url: '/col/evaluateLog/updateErrorData',
     method: 'post',
     data: data
   })

@@ -39,10 +39,6 @@ import com.datamaster.module.assets.service.discovery.IAssetsDiscoveryTableServi
 import com.datamaster.module.assets.service.discovery.IAssetsDiscoveryTaskService;
 import com.datamaster.module.assets.utils.AssetsTaskConverter;
 import com.datamaster.module.assets.utils.model.TaskSaveReqInput;
-import com.datamaster.quartz.domain.SysJob;
-import com.datamaster.quartz.service.ISysJobService;
-import org.quartz.SchedulerException;
-import com.datamaster.common.exception.job.TaskException;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -85,9 +81,6 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
     private IDsEtlNodeService dsEtlNodeService;
     @Resource
     private IDsEtlTaskService dsEtlTaskService;
-    @Resource
-    private ISysJobService iSysJobService;
-
     @Override
     public PageResult<AssetsDiscoveryTaskDO> getDaDiscoveryTaskPage(AssetsDiscoveryTaskPageReqVO pageReqVO) {
         return AssetsDiscoveryTaskMapper.selectPage(pageReqVO);
@@ -130,24 +123,6 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
     @Override
     public Long createDaDiscoveryTask(AssetsDiscoveryTaskSaveReqVO createReqVO) {
         AssetsDiscoveryTaskDO dictType = BeanUtils.toBean(createReqVO, AssetsDiscoveryTaskDO.class);
-//
-    SysJob sysJob = AssetsDiscoveryTaskDOToSysJob(createReqVO);
-//
-    try {
-//
-    Long jobReturnId = iSysJobService.insertJobReturnId(sysJob);
-//
-    dictType.setSystemJobId(jobReturnId);
-//
-    } catch (SchedulerException e) {
-//
-    throw new RuntimeException(e);
-//
-    } catch (TaskException e) {
-//
-    throw new RuntimeException(e);
-//
-    }
         MPJLambdaWrapper<AssetsDiscoveryTaskDO> mpjLambdaWrapper = new MPJLambdaWrapper();
         mpjLambdaWrapper.eq(AssetsDiscoveryTaskDO::getName, createReqVO.getName());
         Long count = AssetsDiscoveryTaskMapper.selectCount(mpjLambdaWrapper);
@@ -164,38 +139,9 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         return dictType.getId();
     }
 
-    public static SysJob AssetsDiscoveryTaskDOToSysJob(AssetsDiscoveryTaskSaveReqVO AssetsDiscoveryTaskDO) {
-        SysJob sysJob = new SysJob();
-        sysJob.setJobName(AssetsDiscoveryTaskDO.getName());
-        sysJob.setJobGroup(AssetsDiscoveryTaskDO.getJobGroup());
-        sysJob.setInvokeTarget("AssetsDatasourceServiceImpl.detectTableSchemaUpdates(" + AssetsDiscoveryTaskDO.getId() + "L)");
-        sysJob.setCronExpression(AssetsDiscoveryTaskDO.getCronExpression());
-        sysJob.setMisfirePolicy(AssetsDiscoveryTaskDO.getMisfirePolicy());
-        sysJob.setConcurrent(AssetsDiscoveryTaskDO.getConcurrent());
-        sysJob.setStatus(AssetsDiscoveryTaskDO.getStatus());
-        return sysJob;
-    }
-
     @Override
     public int updateDaDiscoveryTask(AssetsDiscoveryTaskSaveReqVO updateReqVO) {
 //        // 相关校验
-//
-    SysJob sysJob = AssetsDiscoveryTaskDOToSysJob(updateReqVO);
-//
-//
-    try {
-//
-    iSysJobService.updateJobReturnId(sysJob);
-//
-    } catch (SchedulerException e) {
-//
-    throw new RuntimeException(e);
-//
-    } catch (TaskException e) {
-//
-    throw new RuntimeException(e);
-//
-    }
 
         MPJLambdaWrapper<AssetsDiscoveryTaskDO> mpjLambdaWrapper = new MPJLambdaWrapper();
         mpjLambdaWrapper.eq(AssetsDiscoveryTaskDO::getName, updateReqVO.getName());
@@ -233,39 +179,6 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
 
     @Override
     public int removeDaDiscoveryTask(Collection<Long> idList) {
-//        // 遍历 idList 中的每个 id
-//
-    for (Long id : idList) {
-//            // 查询 AssetsDiscoveryTaskDO 详情
-//
-    AssetsDiscoveryTaskDO AssetsDiscoveryTaskDO = AssetsDiscoveryTaskMapper.selectById(id);
-//
-//
-    if (AssetsDiscoveryTaskDO != null && AssetsDiscoveryTaskDO.getSystemJobId() != null) {
-//                // 提取 systemJobId
-//
-    Long systemJobId = AssetsDiscoveryTaskDO.getSystemJobId();
-//
-    SysJob sysJob = iSysJobService.selectJobById(systemJobId);
-//
-    if(sysJob != null){
-//
-    try{
-//
-    iSysJobService.deleteJob(sysJob);
-//
-    } catch (SchedulerException e) {
-//
-    throw new RuntimeException(e);
-//
-    }
-//
-    }
-//
-    }
-//
-    }
-
         // 遍历 idList 中的每个 id
         for (Long id : idList) {
             // 查询 AssetsDiscoveryTaskDO 详情
@@ -321,19 +234,6 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         bean.setCountPending(countPending);
         bean.setCountSubmitted(countSubmitted);
         bean.setCountIgnoreFlag(countIgnoreFlag);
-
-//
-    Long systemJobId = bean.getSystemJobId();
-//
-    SysJob sysJob = iSysJobService.selectJobById(systemJobId);
-//
-    sysJob = sysJob == null ? new SysJob():sysJob;
-//
-    bean.setMisfirePolicy(sysJob.getMisfirePolicy());
-//
-    bean.setJobGroup(sysJob.getJobGroup());
-//
-    bean.setConcurrent(sysJob.getConcurrent());
 
         return bean;
     }

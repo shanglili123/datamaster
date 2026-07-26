@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.datamaster.common.annotation.Log;
-import com.datamaster.common.constant.Constants;
 import com.datamaster.common.core.controller.BaseController;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.domain.entity.SysUser;
@@ -47,10 +46,13 @@ public class SysProfileController extends BaseController
 
     @Value("${dromara.x-file-storage.local-plus[0].storage-path}")
     private String storagePath;
+    @Value("${dromara.x-file-storage.default-platform:local}")
+    private String defaultPlatform;
 
     @PostConstruct
     public void init() {
         FileUploadUtil.init(fileStorageService, serverConfig, storagePath);
+        FileUploadUtil.setCurrentPlatform(defaultPlatform);
     }
 
     /**
@@ -137,8 +139,8 @@ public class SysProfileController extends BaseController
         {
             LoginUser loginUser = getLoginUser();
             FileInfo fileInfo = FileUploadUtil.upload(file, "avatar/");
-            String avatar = Constants.RESOURCE_PREFIX + "/" + fileInfo.getPath() + fileInfo.getFilename();
-            if (userService.updateUserAvatar(loginUser.getUsername(), Constants.RESOURCE_PREFIX + "/" + fileInfo.getPath() + fileInfo.getFilename()))
+            String avatar = fileInfo.getUrl();
+            if (userService.updateUserAvatar(loginUser.getUsername(), avatar))
             {
                 AjaxResult ajax = AjaxResult.success();
                 ajax.put("imgUrl", avatar);

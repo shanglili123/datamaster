@@ -529,7 +529,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'att/AttTaskCat/export',
+        'tax/taskCat/export',
         {
             ...queryParams.value
         },

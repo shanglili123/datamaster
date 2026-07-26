@@ -192,8 +192,6 @@
           v-hasPermi="['dp:model:edit']"
           >详情</el-button
         >
-        <!-- <el-button link type="primary" icon="view" @click="routeTo('/dp/model/dpModelDetail', scope.row)"
-                  v-hasPermi="['dp:model:edit']">复杂详情</el-button> -->
       </template>
     </el-table-column>
 

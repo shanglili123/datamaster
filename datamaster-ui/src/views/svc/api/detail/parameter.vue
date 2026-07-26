@@ -449,7 +449,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'ds/dsApi/export',
+        'svc/api/export',
         {
             ...queryParams.value
         },

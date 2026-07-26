@@ -9,30 +9,12 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>datamaster-common-base</artifactId>
-    <description>datamaster-common基础模块，包含auth, file, quartz, neo4j等通用功能</description>
+    <description>datamaster-common基础模块，包含auth, file, neo4j等通用功能</description>
     <dependencies>
         <!-- 认证模块依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-        <!-- Sa-Token 权限认证 -->
-        <dependency>
-            <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-spring-boot-starter</artifactId>
-            <version>1.40.0</version>
-        </dependency>
-        <!-- Sa-Token OAuth2.0 模块 -->
-        <dependency>
-            <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-oauth2</artifactId>
-            <version>1.40.0</version>
-        </dependency>
-        <!-- Sa-Token 整合 Redis (可选) -->
-        <dependency>
-            <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-redis-jackson</artifactId>
-            <version>1.40.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -45,6 +27,12 @@
             <groupId>org.dromara.x-file-storage</groupId>
             <artifactId>x-file-storage-spring</artifactId>
             <version>2.2.1</version>
+        </dependency>
+        <!-- S3 协议兼容存储 -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.12.772</version>
         </dependency>
         <!-- 框架配置模块 -->
         <dependency>
@@ -84,19 +72,6 @@
             <groupId>org.ehcache</groupId>
             <artifactId>ehcache</artifactId>
             <version>3.10.8</version>
-        </dependency>
-        
-        <!-- Quartz 定时任务依赖 -->
-        <!-- 定时任务 -->
-        <dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.mchange</groupId>
-                    <artifactId>c3p0</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         
         <!-- Neo4j 图数据库依赖 -->

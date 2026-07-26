@@ -525,7 +525,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'att/AttDataDevCat/export',
+        'tax/dataDevCat/export',
         {
             ...queryParams.value
         },

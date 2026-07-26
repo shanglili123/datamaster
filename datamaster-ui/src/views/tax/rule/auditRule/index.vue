@@ -614,7 +614,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
   proxy.download(
-    "att/auditRule/export",
+    "tax/auditRule/export",
     {
       ...queryParams.value,
     },

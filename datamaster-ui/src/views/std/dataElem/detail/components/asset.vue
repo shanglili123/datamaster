@@ -250,7 +250,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'dp/dpDataElemAssetRel/export',
+        'std/dataElemAssetRel/export',
         {
             ...queryParams.value
         },

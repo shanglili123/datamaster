@@ -377,8 +377,7 @@ import { listDb, getDb } from "@/api/cat/unreleased/db";
 import { listTable } from "@/api/cat/unreleased/table";
 import { addColumn, draftColumn } from "@/api/cat/unreleased/column";
 import { listDomain } from "@/api/tax/domain/domain.js";
-import { listDgSensitiveLevel } from "@/api/dg/compliance/sensitiveLevel";
-// import { getDgDataElemList } from "@/api/dg/standard/dataElem.js";
+import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
 import { useRouter } from "vue-router";
 
 const BASE_URL = "/meta/unreleased/structured/column";

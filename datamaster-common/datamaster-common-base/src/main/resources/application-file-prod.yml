@@ -1,22 +1,24 @@
 dromara:
   x-file-storage: #文件存储配置
-    default-platform: local #默认使用的存储平台
+    default-platform: ${datamaster.storage.type:local} #默认使用的存储平台，可选值：local / s3
     thumbnail-suffix: ".min.jpg" #缩略图后缀，例如【.min.jpg】【.png】
-    #对应平台的配置写在这里，注意缩进要对齐
+    #本地存储配置
     local-plus:
       - platform: local # 存储平台标识
         enable-storage: true  #启用存储
         enable-access: false #启用访问（线上请使用 Nginx 配置，效率更高）
-        domain: "" # 访问域名，例如：“http://127.0.0.1:8081/file/”，注意后面要和 path-patterns 保持一致，“/”结尾，本地存储建议使用相对路径，方便后期更换域名
+        domain: "" # 访问域名，例如："http://127.0.0.1:8081/file/"，注意后面要和 path-patterns 保持一致，"/"结尾，本地存储建议使用相对路径，方便后期更换域名
         path-patterns: /** # 访问路径
         base-path: / # 基础路径
         storage-path: ${user.dir}/upload/ # 存储路径
-    aliyun-oss:
-      - platform: xxxx-oss-xx # 存储平台标识
-        enable-storage: true # 启用存储
-        access-key: xxxxxxxxxxx # 阿里云访问秘钥
-        secret-key: xxxxxxxxxxx # 阿里云秘钥
-        end-point: https://abc.oss-cn-shanghai.aliyuncs.com # OSS服务节点
-        bucket-name: xxxxx # 存储桶名
-        domain: https://abc.oss-cn-shanghai.aliyuncs.com/ # 访问域名，注意“/”结尾，例如：https://abc.oss-cn-shanghai.aliyuncs.com/
-#       base-path: /document # 基础路径
+    #S3 协议兼容存储配置（MinIO、AWS S3、Cloudflare R2、RustFS等）
+    amazon-s3:
+      - platform: s3 # 存储平台标识
+        enable-storage: true # 启用存储（通过 default-platform 切换，此处始终为true）
+        access-key: ${S3_ACCESS_KEY:minioadmin} # 访问密钥
+        secret-key: ${S3_SECRET_KEY:minioadmin} # 秘密密钥
+        region: ${S3_REGION:us-east-1} # 区域，S3兼容服务可使用默认值
+        end-point: ${S3_ENDPOINT:http://127.0.0.1:9000} # S3兼容服务地址
+        bucket-name: ${S3_BUCKET:datamaster} # 存储桶名
+        base-path: / # 基础路径
+        domain: ${S3_DOMAIN:http://127.0.0.1:9000/datamaster/} # 访问域名，直连兼容服务时通常需要包含bucket并以"/"结尾

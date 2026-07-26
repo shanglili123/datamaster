@@ -36,6 +36,8 @@ public class FileUploadController {
     private ServerConfig serverConfig;
     @Value("${dromara.x-file-storage.local-plus[0].storage-path}")
     private String storagePath;
+    @Value("${dromara.x-file-storage.default-platform:local}")
+    private String defaultPlatform;
 
     /**
      * 初始化方法
@@ -45,6 +47,7 @@ public class FileUploadController {
     @PostConstruct
     public void init() {
         FileUploadUtil.init(fileStorageService, serverConfig, storagePath);
+        FileUploadUtil.setCurrentPlatform(defaultPlatform);
     }
 
     /**

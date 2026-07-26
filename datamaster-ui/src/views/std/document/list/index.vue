@@ -98,7 +98,7 @@
             ></right-toolbar>
           </div>
         </div>
-        <div>
+        <div style="flex: 1; overflow-y: auto; min-height: 0;">
           <el-table
             stripe
             v-loading="loading"
@@ -290,6 +290,7 @@
               </div>
             </template>
           </el-table>
+        </div>
 
           <pagination
             v-show="total > 0"
@@ -298,7 +299,6 @@
             v-model:limit="queryParams.pageSize"
             @pagination="getList"
           />
-        </div>
       </el-main>
     </el-container>
     <!-- 标准弹窗 -->
@@ -402,7 +402,7 @@ function getList() {
   loading.value = true;
   listDpDocument(queryParams.value).then((response) => {
     dpDataElemList.value = response.data.rows;
-    total.value = response.data.total;
+    total.value = Number(response.data.total);
     loading.value = false;
   });
 }
@@ -531,14 +531,9 @@ getList();
   margin: 13px 15px;
 }
 
-.el-container {
-  height: auto !important;
-  align-items: flex-start;
-}
-
 .el-main {
   padding: 2px 0px;
-  overflow: visible !important;
+  overflow: hidden;
 }
 
 .pagecont-top {

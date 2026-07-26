@@ -529,9 +529,9 @@ function handleUpdate(row) {
 /** 详情按钮操作 */
 function handleDetail(row) {
     if (row.type == 1) {
-        routeTo("/dp/dataElem/dataElemDetail", row);
+        routeTo("/std/dataElem/column/detail", row);
     } else {
-        routeTo("/dp/dataElem/dataElemCodeDetail", row);
+        routeTo("/std/dataElem/dict/detail", row);
     }
 }
 
@@ -613,7 +613,7 @@ function handleDpDataElemRuleRelSelectionChange(selection) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        "dp/dpDataElem/export",
+        "std/dataElem/export",
         {
             ...queryParams.value,
         },

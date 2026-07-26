@@ -185,7 +185,7 @@ function getList() {
   dpDocumentList(queryParams.value)
     .then((response) => {
       searchList.value = response.data.rows;
-      total.value = response.data.total;
+      total.value = Number(response.data.total);
     })
     .finally(() => {
       loading.value = false;

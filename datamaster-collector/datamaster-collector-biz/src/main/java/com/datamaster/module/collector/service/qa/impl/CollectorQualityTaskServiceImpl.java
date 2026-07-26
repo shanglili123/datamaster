@@ -410,15 +410,6 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
 //        bean.setCountSubmitted(countSubmitted);
 //        bean.setCountIgnoreFlag(countIgnoreFlag);
 
-
-//        Long systemJobId = bean.getSystemJobId();
-//        SysJob sysJob = iSysJobService.selectJobById(systemJobId);
-//        sysJob = sysJob == null ? new SysJob():sysJob;
-//        bean.setMisfirePolicy(sysJob.getMisfirePolicy());
-//        bean.setJobGroup(sysJob.getJobGroup());
-//        bean.setConcurrent(sysJob.getConcurrent());
-
-
         return bean;
     }
 

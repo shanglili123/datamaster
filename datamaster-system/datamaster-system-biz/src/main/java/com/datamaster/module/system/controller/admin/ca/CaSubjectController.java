@@ -10,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.datamaster.common.annotation.Log;
-import com.datamaster.common.constant.Constants;
 import com.datamaster.common.core.controller.BaseController;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.page.TableDataInfo;
@@ -48,10 +47,13 @@ public class CaSubjectController extends BaseController
 
     @Value("${dromara.x-file-storage.local-plus[0].storage-path}")
     private String storagePath;
+    @Value("${dromara.x-file-storage.default-platform:local}")
+    private String defaultPlatform;
 
     @PostConstruct
     public void init() {
         FileUploadUtil.init(fileStorageService, serverConfig, storagePath);
+        FileUploadUtil.setCurrentPlatform(defaultPlatform);
     }
     /**
      * 查询主体管理列表
@@ -110,8 +112,8 @@ public class CaSubjectController extends BaseController
         FileInfo privateKey = FileUploadUtil.upload(fileList.get(1), "ca/");
 
         // 更新数据信息
-        caSubject.setCertificate(Constants.RESOURCE_PREFIX + "/" + cert.getPath() + cert.getFilename());
-        caSubject.setPrivateKey(Constants.RESOURCE_PREFIX + "/" + privateKey.getPath() + privateKey.getFilename());
+        caSubject.setCertificate(cert.getUrl());
+        caSubject.setPrivateKey(privateKey.getUrl());
         caSubject.setCreatorId(getUserId());
         caSubject.setCreateBy(getUsername());
         return toAjax(caSubjectService.insertCaSubject(caSubject));

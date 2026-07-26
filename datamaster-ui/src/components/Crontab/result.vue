@@ -524,7 +524,7 @@ function formatDate(value, type) {
     if (type === undefined) {
         return Y + '-' + (M < 10 ? '0' + M : M) + '-' + (D < 10 ? '0' + D : D) + ' ' + (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
     } else if (type === 'week') {
-        // 在quartz中 1为星期日
+        // cron weekday uses 1 for Sunday here.
         return week + 1;
     }
 }

@@ -103,8 +103,6 @@
                             v-hasPermi="['da:sensitiveLevel:remove']">删除</el-button>
                         <!--           <el-button link type="primary" icon="view" @click="handleDetail(scope.row)"-->
                         <!--                      v-hasPermi="['da:sensitiveLevel:edit']">详情</el-button>-->
-                        <!--           <el-button link type="primary" icon="view" @click="routeTo('/da/sensitiveLevel/daSensitiveLevelDetail',scope.row)"-->
-                        <!--                      v-hasPermi="['da:sensitiveLevel:edit']">复杂详情</el-button>-->
                     </template>
                 </el-table-column>
 
@@ -540,7 +538,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'da/daSensitiveLevel/export',
+        'ast/sensitiveLevel/export',
         {
             ...queryParams.value
         },

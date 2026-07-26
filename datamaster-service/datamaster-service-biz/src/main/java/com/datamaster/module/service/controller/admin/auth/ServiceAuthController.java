@@ -1,20 +1,24 @@
-
-
 package com.datamaster.module.service.controller.admin.auth;
 
-import cn.dev33.satoken.context.SaHolder;
-import cn.dev33.satoken.oauth2.processor.SaOAuth2ServerProcessor;
+import com.datamaster.common.annotation.Anonymous;
+import com.datamaster.common.core.domain.AjaxResult;
+import com.datamaster.module.service.config.auth.ServiceTokenService;
+import com.datamaster.module.taxonomy.api.client.ClientApi;
+import com.datamaster.module.taxonomy.api.client.dto.TaxonomyClientRespDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.datamaster.common.annotation.Anonymous;
-import com.datamaster.module.service.annotation.ServiceCheckClientToken;
+
+import javax.annotation.Resource;
 
 /**
- * Service模块 OAuth2 Server端 控制器
+ * Service模块 OAuth2 Client Credentials 鉴权控制器
+ * <p>
+ * 替代原 Sa-Token OAuth2 Server，提供 /oauth2/client_token 端点。
+ *
  * @author Ming
  */
 @Tag(name = "API服务-鉴权")
@@ -22,8 +26,16 @@ import com.datamaster.module.service.annotation.ServiceCheckClientToken;
 @Slf4j
 public class ServiceAuthController {
 
+    private static final String CLIENT_CREDENTIALS = "client_credentials";
+
+    @Resource
+    private ClientApi clientApi;
+
+    @Resource
+    private ServiceTokenService serviceTokenService;
+
     /**
-     * 处理 OAuth2 凭证式相关请求
+     * 处理 OAuth2 Client Credentials 请求
      */
     @Anonymous
     @Operation(
@@ -36,7 +48,29 @@ public class ServiceAuthController {
             @RequestParam(name = "client_id") String clientId,
             @RequestParam(name = "client_secret") String clientSecret
     ) {
-        log.info("------- 进入请求: " + SaHolder.getRequest().getUrl());
-        return SaOAuth2ServerProcessor.instance.clientToken();
+        log.info("OAuth2 client_token request: clientId={}, grantType={}", clientId, grantType);
+
+        if (!CLIENT_CREDENTIALS.equals(grantType)) {
+            return AjaxResult.error("grant_type 仅支持 client_credentials");
+        }
+
+        TaxonomyClientRespDTO client;
+        try {
+            client = clientApi.getClient(Long.parseLong(clientId));
+        } catch (NumberFormatException e) {
+            return AjaxResult.error("client_id 格式不正确");
+        }
+        if (client == null) {
+            return AjaxResult.error("client_id 不存在");
+        }
+        if (!Boolean.TRUE.equals(client.getValidFlag())) {
+            return AjaxResult.error("client 已被禁用");
+        }
+        if (!clientSecret.equals(client.getSecret())) {
+            return AjaxResult.error("client_secret 不正确");
+        }
+
+        String token = serviceTokenService.generateToken(clientId);
+        return AjaxResult.success("获取成功", token);
     }
 }

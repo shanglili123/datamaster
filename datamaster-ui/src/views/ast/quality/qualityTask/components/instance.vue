@@ -40,7 +40,7 @@
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="200">
         <template #default="scope">
           <el-button link type="primary" icon="View" @click="logDetailCatList(scope.row)"
-            v-hasPermi="['monitor:job:query']">查看</el-button>
+            v-hasPermi="['da:qualityTask:query']">查看</el-button>
           <!-- <el-button link type="warning" @click="handleExport(scope.row)" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-download-line mr5"></i>下载
           </el-button> -->
@@ -69,7 +69,7 @@
         </div>
 </template> -->
   </el-dialog>
-  <!-- 调度日志详细 -->
+  <!-- 执行日志详细 -->
   <el-dialog title="查看日志" v-model="open" width="800px" :append-to="$refs['app-container']" draggable destroy-on-close>
     <div v-html="formattedText"></div>
     <!-- <template #footer>
@@ -86,9 +86,7 @@ import { defineProps, defineEmits, ref, computed, watch } from 'vue';
 const { proxy } = getCurrentInstance();
 const defaultSort = ref({ prop: 'startTime', order: 'descending' });
 import { useRoute, useRouter } from "vue-router"
-const { sys_common_status, sys_job_group, quality_log_success_flag } = proxy.useDict(
-  'sys_common_status',
-  'sys_job_group',
+const { quality_log_success_flag } = proxy.useDict(
   'quality_log_success_flag'
 );
 import { listDppQualityLog, getDppQualityLog, delDppQualityLog, addDppQualityLog, updateDppQualityLog } from "@/api/ast/quality/qualityTaskLog";
@@ -163,7 +161,7 @@ const total = ref(0);
 const dateRange = ref([]);
 let jobLogList = ref([]);
 let loading = ref(false);
-/** 查询调度日志列表 */
+/** 查询执行日志列表 */
 function getList() {
   loading.value = true;
   queryParams.value.qualityId = props.data.id;

@@ -78,10 +78,10 @@ Oracle:
   url: jdbc:postgresql://127.0.0.1:5432/DATAMASTER?currentSchema=public
 ds:
   base_url: http://192.168.93.175:12345/dolphinscheduler
-  quality_url: http://192.168.93.175:8080/quality/qualityTaskExecutor/runExecuteTask
-  incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://192.168.93.175:8080/col/etlTask/incremental/prepare}
-  incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://192.168.93.175:8080/col/etlTask/incremental/complete}
-  collector_url: http://192.168.93.175:8080/cat/taskExecutor/runExecuteTask
+  quality_url: http://192.168.93.175:8989/quality/qualityTaskExecutor/runExecuteTask
+  incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://192.168.93.175:8989/col/etlTask/incremental/prepare}
+  incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://192.168.93.175:8989/col/etlTask/incremental/complete}
+  collector_url: http://192.168.93.175:8989/cat/taskExecutor/runExecuteTask
   token: f8f79e6b9c7b48e5fc5a1836b88e754b
   tenant_code: ${DS_TENANT_CODE:root}
   resource_url: /data/datamaster/dolphinscheduler-resource/
@@ -98,8 +98,8 @@ ds:
     password:
 
 path:
-  quality_url: http://192.168.93.175:8080/quality/qualityTaskExecutor
-  collector_url: http://192.168.93.175:8080/cat/taskExecutor
+  quality_url: http://192.168.93.175:8989/quality/qualityTaskExecutor
+  collector_url: http://192.168.93.175:8989/cat/taskExecutor
 
 file:
   job:

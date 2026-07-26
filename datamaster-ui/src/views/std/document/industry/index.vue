@@ -647,7 +647,7 @@ function handleDpDataElemRuleRelSelectionChange(selection) {
 /** 导出按钮操作 */
 function handleExport() {
   proxy.download(
-    "dp/dpDataElem/export",
+    "std/dataElem/export",
     {
       ...queryParams.value,
     },

@@ -30437,7 +30437,6 @@ INSERT INTO "jimu_dict" VALUES ('1242298510024429569', '提醒方式', 'remindMo
 INSERT INTO "jimu_dict" VALUES ('1244538302904672258', '提醒时间', 'remindTime', NULL, 0, '吴同', '2020-03-30 16:13:48', NULL, NULL, 0, NULL);
 INSERT INTO "jimu_dict" VALUES ('1244538772909989889', '重复提醒', 'reminders', NULL, 0, '吴同', '2020-03-30 16:15:40', NULL, NULL, 0, NULL);
 INSERT INTO "jimu_dict" VALUES ('1244941599661178882', '表单设计器路由类型', 'desform_route_type', '表单设计器下一步路由跳转类型', 0, '吴同', '2020-03-31 18:56:22', NULL, NULL, 0, NULL);
-INSERT INTO "jimu_dict" VALUES ('1250687930947620866', '定时任务状态', 'quartz_status', NULL, 0, '吴同', '2020-04-16 15:30:14', NULL, NULL, NULL, NULL);
 INSERT INTO "jimu_dict" VALUES ('1252881342601908225', '栏目类型', 'cms_menu_type', NULL, 0, '吴同', '2020-04-22 16:46:04', NULL, NULL, NULL, NULL);
 INSERT INTO "jimu_dict" VALUES ('1253673013610672130', '会议室规模', 'meeting_scale', NULL, 0, '吴同', '2020-04-24 21:11:53', NULL, NULL, NULL, NULL);
 INSERT INTO "jimu_dict" VALUES ('1272739651112034306', '缓急', 'urgency', NULL, 0, '吴同', '2020-06-16 11:55:54', NULL, NULL, 0, NULL);
@@ -32396,9 +32395,6 @@ CREATE TABLE IF NOT EXISTS "qrtz_job_details" (
     "job_data" bytea NULL
 );
 
-INSERT INTO "qrtz_job_details" VALUES ('RuoyiScheduler', 'TASK_CLASS_NAME1', 'DEFAULT', NULL, 'com.ruoyi.common.utils.job.QuartzDisallowConcurrentExecution', '0', '1', '0', '0', '<memory at 0x000002E5D0B43E80>');
-INSERT INTO "qrtz_job_details" VALUES ('RuoyiScheduler', 'TASK_CLASS_NAME2', 'DEFAULT', NULL, 'com.ruoyi.common.utils.job.QuartzDisallowConcurrentExecution', '0', '1', '0', '0', '<memory at 0x000002E5D286FA00>');
-INSERT INTO "qrtz_job_details" VALUES ('RuoyiScheduler', 'TASK_CLASS_NAME3', 'DEFAULT', NULL, 'com.ruoyi.common.utils.job.QuartzDisallowConcurrentExecution', '0', '1', '0', '0', '<memory at 0x000002E5D302E680>');
 
 -- Table: qrtz_locks (1 rows)
 CREATE TABLE IF NOT EXISTS "qrtz_locks" (
@@ -32406,7 +32402,6 @@ CREATE TABLE IF NOT EXISTS "qrtz_locks" (
     "lock_name" character varying NOT NULL
 );
 
-INSERT INTO "qrtz_locks" VALUES ('RuoyiScheduler', 'TRIGGER_ACCESS');
 
 -- Table: qrtz_paused_trigger_grps (0 rows)
 CREATE TABLE IF NOT EXISTS "qrtz_paused_trigger_grps" (
@@ -32474,9 +32469,6 @@ CREATE TABLE IF NOT EXISTS "qrtz_triggers" (
     "job_data" bytea NULL
 );
 
-INSERT INTO "qrtz_triggers" VALUES ('RuoyiScheduler', 'TASK_CLASS_NAME1', 'DEFAULT', 'TASK_CLASS_NAME1', 'DEFAULT', NULL, 1723915630000, -1, 5, 'PAUSED', 'CRON', 1723915630000, 0, NULL, 2, NULL);
-INSERT INTO "qrtz_triggers" VALUES ('RuoyiScheduler', 'TASK_CLASS_NAME2', 'DEFAULT', 'TASK_CLASS_NAME2', 'DEFAULT', NULL, 1723915635000, -1, 5, 'PAUSED', 'CRON', 1723915631000, 0, NULL, 2, NULL);
-INSERT INTO "qrtz_triggers" VALUES ('RuoyiScheduler', 'TASK_CLASS_NAME3', 'DEFAULT', 'TASK_CLASS_NAME3', 'DEFAULT', NULL, 1723915640000, -1, 5, 'PAUSED', 'CRON', 1723915632000, 0, NULL, 2, NULL);
 
 -- Table: quality_error_storage_config (1 rows)
 CREATE TABLE IF NOT EXISTS "quality_error_storage_config" (
@@ -33358,10 +33350,6 @@ INSERT INTO "system_dict_data" VALUES (4, 1, '显示', '0', 'sys_show_hide', NUL
 INSERT INTO "system_dict_data" VALUES (5, 2, '隐藏', '1', 'sys_show_hide', NULL, 'danger', 'N', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '隐藏菜单');
 INSERT INTO "system_dict_data" VALUES (6, 1, '正常', '0', 'sys_normal_disable', NULL, 'primary', 'Y', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '正常状态');
 INSERT INTO "system_dict_data" VALUES (7, 2, '停用', '1', 'sys_normal_disable', NULL, 'danger', 'N', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '停用状态');
-INSERT INTO "system_dict_data" VALUES (8, 1, '正常', '0', 'sys_job_status', NULL, 'primary', 'Y', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '正常状态');
-INSERT INTO "system_dict_data" VALUES (9, 2, '暂停', '1', 'sys_job_status', NULL, 'danger', 'N', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '停用状态');
-INSERT INTO "system_dict_data" VALUES (10, 1, '默认', 'DEFAULT', 'sys_job_group', NULL, NULL, 'Y', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '默认分组');
-INSERT INTO "system_dict_data" VALUES (11, 2, '系统', 'SYSTEM', 'sys_job_group', NULL, NULL, 'N', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '系统分组');
 INSERT INTO "system_dict_data" VALUES (12, 1, '是', 'Y', 'sys_yes_no', NULL, 'primary', 'Y', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '系统默认是');
 INSERT INTO "system_dict_data" VALUES (13, 2, '否', 'N', 'sys_yes_no', NULL, 'danger', 'N', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '系统默认否');
 INSERT INTO "system_dict_data" VALUES (14, 1, '通知', '1', 'sys_notice_type', NULL, 'warning', 'Y', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '通知');
@@ -33779,8 +33767,6 @@ CREATE TABLE IF NOT EXISTS "system_dict_type" (
 INSERT INTO "system_dict_type" VALUES (1, '用户性别', 'sys_user_sex', '0', '吴同', '2024-05-06 06:12:18', '吴同', '2025-03-07 14:06:58', '用户性别列表');
 INSERT INTO "system_dict_type" VALUES (2, '菜单状态', 'sys_show_hide', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '菜单状态列表');
 INSERT INTO "system_dict_type" VALUES (3, '系统开关', 'sys_normal_disable', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '系统开关列表');
-INSERT INTO "system_dict_type" VALUES (4, '任务状态', 'sys_job_status', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '任务状态列表');
-INSERT INTO "system_dict_type" VALUES (5, '任务分组', 'sys_job_group', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '任务分组列表');
 INSERT INTO "system_dict_type" VALUES (6, '系统是否', 'sys_yes_no', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '系统是否列表');
 INSERT INTO "system_dict_type" VALUES (7, '通知类型', 'sys_notice_type', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '通知类型列表');
 INSERT INTO "system_dict_type" VALUES (8, '通知状态', 'sys_notice_status', '0', '吴同', '2024-05-06 06:12:18', NULL, NULL, '通知状态列表');
@@ -34030,7 +34016,6 @@ INSERT INTO "system_menu" VALUES (106, '参数设置', 1, 7, 'config', 'sys/syst
 INSERT INTO "system_menu" VALUES (107, '通知公告', 1, 8, 'notice', 'sys/system/notice/index', NULL, 1, 0, NULL, 'C', '0', '0', 'system:notice:list', 'megaphone-line', 'DataMaster', '2024-05-06 06:12:17', 'admin', '2025-09-30 10:03:28', '通知公告菜单');
 INSERT INTO "system_menu" VALUES (108, '日志管理', 1, 9, 'log', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'book-marked-line', 'DataMaster', '2024-05-06 06:12:17', 'admin', '2025-05-30 16:24:05', '日志管理菜单');
 INSERT INTO "system_menu" VALUES (109, '在线用户', 2, 1, 'online', 'sys/monitor/online/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:online:list', 'user-3-line', 'DataMaster', '2024-05-06 06:12:17', 'admin', '2025-09-30 10:03:50', '在线用户菜单');
-INSERT INTO "system_menu" VALUES (110, '定时任务', 2, 2, 'job', 'sys/monitor/job/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:job:list', 'calendar-schedule-line', 'DataMaster', '2024-05-06 06:12:17', 'admin', '2025-09-30 10:03:54', '定时任务菜单');
 INSERT INTO "system_menu" VALUES (112, '服务监控', 2, 4, 'server', 'sys/monitor/server/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:server:list', 'slideshow-4-line', 'DataMaster', '2024-05-06 06:12:17', 'admin', '2025-09-30 10:03:58', '服务监控菜单');
 INSERT INTO "system_menu" VALUES (113, '缓存监控', 2, 5, 'cache', 'sys/monitor/cache/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:cache:list', 'slideshow-2-line', 'DataMaster', '2024-05-06 06:12:17', 'admin', '2025-09-30 10:04:03', '缓存监控菜单');
 INSERT INTO "system_menu" VALUES (114, '缓存列表', 2, 6, 'cacheList', 'sys/monitor/cache/list', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:cache:list', 'file-list-2-line', 'DataMaster', '2024-05-06 06:12:17', 'admin', '2025-09-30 10:04:11', '缓存列表菜单');
@@ -34085,12 +34070,6 @@ INSERT INTO "system_menu" VALUES (1045, '账户解锁', 501, 4, '#', NULL, NULL,
 INSERT INTO "system_menu" VALUES (1046, '在线查询', 109, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:query', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
 INSERT INTO "system_menu" VALUES (1047, '批量强退', 109, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:batchLogout', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
 INSERT INTO "system_menu" VALUES (1048, '单条强退', 109, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:online:forceLogout', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
-INSERT INTO "system_menu" VALUES (1049, '任务查询', 110, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:query', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
-INSERT INTO "system_menu" VALUES (1050, '任务新增', 110, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:add', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
-INSERT INTO "system_menu" VALUES (1051, '任务修改', 110, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:edit', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
-INSERT INTO "system_menu" VALUES (1052, '任务删除', 110, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:remove', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
-INSERT INTO "system_menu" VALUES (1053, '状态修改', 110, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:changeStatus', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
-INSERT INTO "system_menu" VALUES (1054, '任务导出', 110, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'monitor:job:export', '#', 'DataMaster', '2024-05-06 06:12:17', NULL, NULL, NULL);
 INSERT INTO "system_menu" VALUES (2026, '应用管理', 1, 1, 'client', 'sys/auth/client/index', NULL, 1, 0, NULL, 'C', '1', '1', 'auth:client:list', 'user-3-line', 'DataMaster', '2024-08-31 14:33:05', 'admin', '2025-09-30 10:03:05', '应用管理菜单');
 INSERT INTO "system_menu" VALUES (2027, '应用管理查询', 2026, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:query', '#', 'DataMaster', '2024-08-31 14:33:05', NULL, NULL, NULL);
 INSERT INTO "system_menu" VALUES (2028, '应用管理新增', 2026, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'auth:client:add', '#', 'DataMaster', '2024-08-31 14:33:05', NULL, NULL, NULL);
@@ -34401,7 +34380,7 @@ INSERT INTO "system_menu" VALUES (2511, '数据开发', 2510, 2, 'developTask', 
 INSERT INTO "system_menu" VALUES (2751, '问数', 2733, 1, 'ask', 'ai/chat/index/index', NULL, 1, 0, NULL, 'C', '0', '0', 'ai:ask-data:query', 'message', 'admin', '2026-06-27 03:43:30.521250', '', NULL, NULL);
 INSERT INTO "system_menu" VALUES (2750, 'Skill管理', 2733, 2, 'skill', 'ai/skill/index', NULL, 1, 0, NULL, 'C', '0', '0', 'ai:skill:list', 'skill', 'admin', '2026-06-25 14:42:00.603899', '', NULL, NULL);
 INSERT INTO "system_menu" VALUES (2760, 'AI运维', 2, 6, 'ai-ops', 'sys/monitor/aiOps/index', NULL, 1, 0, NULL, 'C', '0', '0', 'monitor:aiops:list', 'znfx', 'admin', '2026-07-03 10:31:38.481883', '', NULL, 'AI运维诊断菜单');
-INSERT INTO "system_menu" VALUES (2725, '采集任务', 2723, 3, 'task', 'cat/task/structured/index', NULL, 1, 0, 'CatTask', 'C', '0', '0', NULL, '#', 'admin', '2026-03-25 17:43:26', 'system', '2026-07-17 11:18:14.482742', NULL);
+INSERT INTO "system_menu" VALUES (2725, '采集任务', 2724, 3, 'task', 'cat/task/structured/index', NULL, 1, 0, 'CatTask', 'C', '0', '0', NULL, '#', 'admin', '2026-03-25 17:43:26', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (2, '日志管理', 0, 999, 'monitor', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'slideshow-3-line', 'DataMaster', '2024-05-06 06:12:17', 'system', '2026-07-17 11:18:14.482742', '系统监控目录');
 INSERT INTO "system_menu" VALUES (2723, '元数据管理', 0, 0, 'dg', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'sjzl', 'admin', '2026-03-25 17:42:27', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (3, '系统工具', 0, 1000, 'tool', NULL, NULL, 1, 0, NULL, 'M', '1', '1', NULL, 'briefcase-2-line', 'DataMaster', '2024-05-06 06:12:17', 'system', '2026-07-17 11:18:14.482742', '系统工具目录');
@@ -34413,10 +34392,10 @@ INSERT INTO "system_menu" VALUES (1057, '生成删除', 116, 3, '#', NULL, NULL,
 INSERT INTO "system_menu" VALUES (1058, '导入代码', 116, 4, '#', NULL, NULL, 1, 0, NULL, 'F', '1', '1', 'tool:gen:import', '#', 'DataMaster', '2024-05-06 06:12:17', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (1059, '预览代码', 116, 5, '#', NULL, NULL, 1, 0, NULL, 'F', '1', '1', 'tool:gen:preview', '#', 'DataMaster', '2024-05-06 06:12:17', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (1060, '生成代码', 116, 6, '#', NULL, NULL, 1, 0, NULL, 'F', '1', '1', 'tool:gen:code', '#', 'DataMaster', '2024-05-06 06:12:17', 'system', '2026-07-17 11:18:14.482742', NULL);
-INSERT INTO "system_menu" VALUES (2724, '元数据管理', 2723, 1, 'meta', NULL, NULL, 1, 0, NULL, 'M', '1', '1', NULL, 'ysjgl', 'admin', '2026-03-25 17:42:50', 'system', '2026-07-17 11:18:14.482742', NULL);
+INSERT INTO "system_menu" VALUES (2724, '元数据管理', 2723, 1, 'cat', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'ysjgl', 'admin', '2026-03-25 17:42:50', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (2555, '数据质量', 2723, 2, 'quality', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'skill', 'admin', '2025-07-18 11:24:17', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (2556, '数据质量类目', 2555, 1, 'qualityCat', 'att/cat/qualityCat/index', NULL, 1, 0, 'QualityCatProject', 'C', '0', '0', 'att:qualityCat:list', '#', 'admin', '2025-07-19 17:10:44', 'system', '2026-07-17 11:18:14.482742', '数据质量类目菜单');
-INSERT INTO "system_menu" VALUES (2727, '元数据结果', 2723, 5, 'management', 'meta/unreleased/structured/table/index', NULL, 1, 0, NULL, 'C', '0', '0', 'mc:metadata:table:list', '#', 'admin', '2026-03-25 17:44:52', 'system', '2026-07-17 11:18:14.482742', NULL);
+INSERT INTO "system_menu" VALUES (2727, '元数据结果', 2724, 5, 'management', 'cat/unreleased/structured/table/index', NULL, 1, 0, NULL, 'C', '0', '0', 'mc:metadata:table:list', '#', 'admin', '2026-03-25 17:44:52', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (2729, '元数据比对', 2723, 7, 'comparison', 'sys/developing/index', NULL, 1, 0, NULL, 'C', '1', '1', '', '#', 'admin', '2026-03-25 17:45:35', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (2552, '项目基础管理', 0, 3, 'projectBase', NULL, NULL, 1, 0, 'ProjectBaseManagement', 'M', '0', '0', NULL, 'lifebuoy-line', 'DataMaster', '2025-03-31 09:29:41', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (2375, '基础管理', 0, 1, 'att', NULL, NULL, 1, 0, NULL, 'M', '1', '1', NULL, 'archive-drawer-line', 'mengfanming', '2025-02-06 10:24:51', 'system', '2026-07-17 11:18:14.482742', NULL);
@@ -34427,7 +34406,7 @@ INSERT INTO "system_menu" VALUES (2351, '规则管理', 2243, 1, 'rule', NULL, N
 INSERT INTO "system_menu" VALUES (2352, '类目管理', 2552, 3, 'cat', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'briefcase-2-line', 'DataMaster', '2025-01-23 15:40:38', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (2537, '项目资产', 2552, 2, 'asset', 'dpp/asset/index', '{\\"type\\":1}', 1, 0, 'dppAsset', 'C', '0', '0', 'dpp:asset:list', 'exchange-dollar-line', 'DataMaster', '2025-03-19 19:21:11', 'system', '2026-07-17 11:18:14.482742', NULL);
 INSERT INTO "system_menu" VALUES (2398, '成员角色管理', 2552, 4, 'projectUserRel', 'dpp/setting/projectUserRel/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:projectUserRel:list', '#', 'DataMaster', '2025-02-11 09:57:17', 'system', '2026-07-17 11:18:14.482742', '项目与用户关联关系菜单');
-INSERT INTO "system_menu" VALUES (2336, '数据源管理', 2723, 1, 'datasource', 'da/datasource/index', '{\\"type\\":0}', 1, 0, 'dpDataSource', 'C', '0', '0', 'da:dataSource:list,da:DataSource:list,da:DataSource:query,da:DataSource:add,da:DataSource:edit,da:DataSource:remove,da:DataSource:export,da:DataSource:import,da:DataSourceProjectRel::list,da:DataSourceProjectRel::query,da:DataSourceProjectRel::add,da:DataSourceProjectRel::edit,da:DataSourceProjectRel::remove,da:DataSourceProjectRel::export,da:DataSourceProjectRel::import', 'copper-coin-line', 'DataMaster', '2025-01-21 15:11:31', 'system', '2026-07-17 14:31:16.131692', '数据源菜单');
+INSERT INTO "system_menu" VALUES (2336, '数据源管理', 2724, 1, 'datasource', 'ast/datasource/index', '{\\"type\\":0}', 1, 0, 'dpDataSource', 'C', '0', '0', 'da:dataSource:list,da:DataSource:list,da:DataSource:query,da:DataSource:add,da:DataSource:edit,da:DataSource:remove,da:DataSource:export,da:DataSource:import,da:DataSourceProjectRel::list,da:DataSourceProjectRel::query,da:DataSourceProjectRel::add,da:DataSourceProjectRel::edit,da:DataSourceProjectRel::remove,da:DataSourceProjectRel::export,da:DataSourceProjectRel::import', 'copper-coin-line', 'DataMaster', '2025-01-21 15:11:31', 'system', '2026-07-17 14:31:16.131692', '数据源菜单');
 INSERT INTO "system_menu" VALUES (2487, '数据开发类目', 2352, 4, 'dataDevCat', 'dpp/setting/dataDevCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:dataDevCat:list', '#', 'DataMaster', '2025-03-11 11:18:56', 'system', '2026-07-17 11:18:14.482742', '数据开发类目管理菜单');
 INSERT INTO "system_menu" VALUES (2501, '数据集成类目', 2352, 3, 'taskCat', 'dpp/setting/taskCat/index', NULL, 1, 0, NULL, 'C', '0', '0', 'att:taskCat:list', '#', 'DataMaster', '2025-03-11 14:32:20', 'system', '2026-07-17 11:18:14.482742', '数据集成任务类目管理菜单');
 INSERT INTO "system_menu" VALUES (2544, '研发类目管理', 2397, 1, 'setting', NULL, NULL, 1, 0, 'ColDevelopmentCategory', 'M', '0', '0', NULL, '#', 'DataMaster', '2025-03-27 15:30:38', 'system', '2026-07-17 11:18:14.482742', NULL);

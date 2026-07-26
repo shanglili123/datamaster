@@ -5,6 +5,9 @@ datamaster:
   profile: ${user.dir}/upload/
   addressEnabled: false
   captchaType: math
+  # 文件存储类型：local=本地存储，s3=S3协议兼容存储
+  storage:
+    type: ${STORAGE_TYPE:local}
   governance:
     table-access:
       enabled: ${TABLE_GOVERNANCE_ENABLED:false}
@@ -12,7 +15,7 @@ datamaster:
       fallback-to-catalog: ${TABLE_GOVERNANCE_FALLBACK_TO_CATALOG:true}
 
 server:
-  port: 8080
+  port: 8989
   servlet:
     context-path: /
   tomcat:
@@ -140,7 +143,7 @@ knife4j:
     enable-filter-multipart-apis: false
     enable-request-cache: true
     enable-host: false
-    enable-host-text: 127.0.0.1:8080
+    enable-host-text: 127.0.0.1:8989
     enable-home-custom: true
     home-custom-path: classpath:markdown/home.md
     enable-search: false

@@ -106,8 +106,6 @@
             <el-table-column v-if="getColumnVisibility(10)" label="操作" align="center"
               class-name="small-padding fixed-width" fixed="right" width="200">
               <template #default="scope">
-                <!--                <el-button link type="primary" icon="view" @click="routeTo('/ds/logDetail/dsApiLogDetail', scope.row)"-->
-                <!--                  v-hasPermi="['ds:apiLog:edit']">查看日志</el-button>-->
                 <el-button link type="primary" icon="view" @click="handleDetail(scope.row)"
                   v-hasPermi="['ds:apiLog:query']">详情</el-button>
                 <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
@@ -638,7 +636,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
   proxy.download(
-    "ds/apiLog/export",
+    "svc/apiLog/export",
     {
       ...queryParams.value,
     },

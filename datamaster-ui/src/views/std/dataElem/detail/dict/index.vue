@@ -1,20 +1,3 @@
-<!-- 复杂详情路由模板
-    {
-        path: '/dp/dataElem',
-        component: Layout,
-        redirect: 'dataElem',
-        hidden: true,
-        children: [
-            {
-                path: 'dpDataElemDetail',
-                component: () => import('@/views/std/dataElem/detail/user.vue'),
-                name: 'tree',
-                meta: { title: '数据元详情', activeMenu: '/dp/dpDataElem'  }
-            }
-        ]
-    }
- -->
-
 <template>
     <div class="app-container" ref="app-container">
         <div class="pagecont-top" v-show="showSearch" style="padding-bottom: 15px">

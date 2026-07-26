@@ -5,7 +5,6 @@ import { getRouters } from '@/api/system/menu.js';
 import Layout from '@/layout/index';
 import ParentView from '@/components/ParentView';
 import InnerLink from '@/layout/components/InnerLink';
-import { normalizeModuleRoute, normalizeModuleRoutePath } from '@/utils/moduleRoute';
 import { isHttp } from '@/utils/validate';
 
 // 匹配views里面所有的.vue文件
@@ -605,7 +604,7 @@ function normalizeQualityCatAsMetadataChild(qualityCatRoute) {
 
 function normalizeQualityCatRoute(qualityCatRoute) {
     qualityCatRoute.name = 'QualityCatProject';
-    qualityCatRoute.component = loadView('att/cat/qualityCat/index');
+    qualityCatRoute.component = loadView('tax/cat/qualityCat/index');
     qualityCatRoute.meta = qualityCatRoute.meta || {};
     qualityCatRoute.meta.title = '数据质量类目';
     qualityCatRoute.meta.activeMenu = '/cat/quality/qualityCat';
@@ -616,12 +615,11 @@ function normalizeQualityCatRoute(qualityCatRoute) {
 function isDAManagement(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
-    return title === '数据资产' || path === '/da' || path === 'da' || path === '/ast' || path === 'ast';
+    return title === '数据资产' || path === '/ast' || path === 'ast';
 }
 
 function normalizeMenuTitle(route) {
     if (!route) return route;
-    normalizeModuleRoute(route);
     if (route.meta) {
         if (route.meta.title === '系统监控') {
             route.meta.title = '日志管理';
@@ -824,9 +822,7 @@ function isMetadataManagement(route) {
     return (
         title === '元数据管理' ||
         path === '/meta' ||
-        path === 'meta' ||
-        path === '/dg' ||
-        path === 'dg'
+        path === 'meta'
     );
 }
 
@@ -899,11 +895,10 @@ export function filterDynamicRoutes(routes) {
 }
 
 export const loadView = (view) => {
-    const normalizedView = normalizeModuleRoutePath(view);
     let res;
     for (const path in modules) {
         const dir = path.split('views/')[1].split('.vue')[0];
-        if (dir === view || dir === normalizedView) {
+        if (dir === view) {
             res = () => modules[path]();
         }
     }

@@ -4266,33 +4266,10 @@ COMMENT ON TABLE public.onl_drag_table_relation IS 'onl_drag_table_relation';
 
 
 --
--- Name: qrtz_blob_triggers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_blob_triggers (
-    sched_name character varying NOT NULL,
-    trigger_name character varying NOT NULL,
-    trigger_group character varying NOT NULL,
-    blob_data bytea
-);
-
-
---
 -- Name: TABLE qrtz_blob_triggers; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.qrtz_blob_triggers IS 'qrtz_blob_triggers';
-
-
---
--- Name: qrtz_calendars; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_calendars (
-    sched_name character varying NOT NULL,
-    calendar_name character varying NOT NULL,
-    calendar bytea NOT NULL
-);
 
 
 --
@@ -4303,44 +4280,10 @@ COMMENT ON TABLE public.qrtz_calendars IS 'qrtz_calendars';
 
 
 --
--- Name: qrtz_cron_triggers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_cron_triggers (
-    sched_name character varying NOT NULL,
-    trigger_name character varying NOT NULL,
-    trigger_group character varying NOT NULL,
-    cron_expression character varying NOT NULL,
-    time_zone_id character varying
-);
-
-
---
 -- Name: TABLE qrtz_cron_triggers; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.qrtz_cron_triggers IS 'qrtz_cron_triggers';
-
-
---
--- Name: qrtz_fired_triggers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_fired_triggers (
-    sched_name character varying NOT NULL,
-    entry_id character varying NOT NULL,
-    trigger_name character varying NOT NULL,
-    trigger_group character varying NOT NULL,
-    instance_name character varying NOT NULL,
-    fired_time bigint NOT NULL,
-    sched_time bigint NOT NULL,
-    priority integer NOT NULL,
-    state character varying NOT NULL,
-    job_name character varying,
-    job_group character varying,
-    is_nonconcurrent character varying,
-    requests_recovery character varying
-);
 
 
 --
@@ -4351,38 +4294,10 @@ COMMENT ON TABLE public.qrtz_fired_triggers IS 'qrtz_fired_triggers';
 
 
 --
--- Name: qrtz_job_details; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_job_details (
-    sched_name character varying NOT NULL,
-    job_name character varying NOT NULL,
-    job_group character varying NOT NULL,
-    description character varying,
-    job_class_name character varying NOT NULL,
-    is_durable character varying NOT NULL,
-    is_nonconcurrent character varying NOT NULL,
-    is_update_data character varying NOT NULL,
-    requests_recovery character varying NOT NULL,
-    job_data bytea
-);
-
-
---
 -- Name: TABLE qrtz_job_details; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.qrtz_job_details IS 'qrtz_job_details';
-
-
---
--- Name: qrtz_locks; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_locks (
-    sched_name character varying NOT NULL,
-    lock_name character varying NOT NULL
-);
 
 
 --
@@ -4393,32 +4308,10 @@ COMMENT ON TABLE public.qrtz_locks IS 'qrtz_locks';
 
 
 --
--- Name: qrtz_paused_trigger_grps; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_paused_trigger_grps (
-    sched_name character varying NOT NULL,
-    trigger_group character varying NOT NULL
-);
-
-
---
 -- Name: TABLE qrtz_paused_trigger_grps; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.qrtz_paused_trigger_grps IS 'qrtz_paused_trigger_grps';
-
-
---
--- Name: qrtz_scheduler_state; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_scheduler_state (
-    sched_name character varying NOT NULL,
-    instance_name character varying NOT NULL,
-    last_checkin_time bigint NOT NULL,
-    checkin_interval bigint NOT NULL
-);
 
 
 --
@@ -4429,20 +4322,6 @@ COMMENT ON TABLE public.qrtz_scheduler_state IS 'qrtz_scheduler_state';
 
 
 --
--- Name: qrtz_simple_triggers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_simple_triggers (
-    sched_name character varying NOT NULL,
-    trigger_name character varying NOT NULL,
-    trigger_group character varying NOT NULL,
-    repeat_count bigint NOT NULL,
-    repeat_interval bigint NOT NULL,
-    times_triggered bigint NOT NULL
-);
-
-
---
 -- Name: TABLE qrtz_simple_triggers; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -4450,56 +4329,10 @@ COMMENT ON TABLE public.qrtz_simple_triggers IS 'qrtz_simple_triggers';
 
 
 --
--- Name: qrtz_simprop_triggers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_simprop_triggers (
-    sched_name character varying NOT NULL,
-    trigger_name character varying NOT NULL,
-    trigger_group character varying NOT NULL,
-    str_prop_1 character varying,
-    str_prop_2 character varying,
-    str_prop_3 character varying,
-    int_prop_1 integer,
-    int_prop_2 integer,
-    long_prop_1 bigint,
-    long_prop_2 bigint,
-    dec_prop_1 numeric,
-    dec_prop_2 numeric,
-    bool_prop_1 character varying,
-    bool_prop_2 character varying
-);
-
-
---
 -- Name: TABLE qrtz_simprop_triggers; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON TABLE public.qrtz_simprop_triggers IS 'qrtz_simprop_triggers';
-
-
---
--- Name: qrtz_triggers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qrtz_triggers (
-    sched_name character varying NOT NULL,
-    trigger_name character varying NOT NULL,
-    trigger_group character varying NOT NULL,
-    job_name character varying NOT NULL,
-    job_group character varying NOT NULL,
-    description character varying,
-    next_fire_time bigint,
-    prev_fire_time bigint,
-    priority integer,
-    trigger_state character varying NOT NULL,
-    trigger_type character varying NOT NULL,
-    start_time bigint NOT NULL,
-    end_time bigint,
-    calendar_name character varying,
-    misfire_instr smallint,
-    job_data bytea
-);
 
 
 --
@@ -29652,7 +29485,6 @@ COPY public.jimu_dict (id, dict_name, dict_code, description, del_flag, create_b
 1244538302904672258	提醒时间	remindTime	\N	0	吴同	2020-03-30 16:13:48	\N	\N	0	\N
 1244538772909989889	重复提醒	reminders	\N	0	吴同	2020-03-30 16:15:40	\N	\N	0	\N
 1244941599661178882	表单设计器路由类型	desform_route_type	表单设计器下一步路由跳转类型	0	吴同	2020-03-31 18:56:22	\N	\N	0	\N
-1250687930947620866	定时任务状态	quartz_status	\N	0	吴同	2020-04-16 15:30:14	\N	\N	\N	\N
 1252881342601908225	栏目类型	cms_menu_type	\N	0	吴同	2020-04-22 16:46:04	\N	\N	\N	\N
 1253673013610672130	会议室规模	meeting_scale	\N	0	吴同	2020-04-24 21:11:53	\N	\N	\N	\N
 1272739651112034306	缓急	urgency	\N	0	吴同	2020-06-16 11:55:54	\N	\N	0	\N
@@ -31218,95 +31050,66 @@ COPY public.onl_drag_table_relation (id, aggregation_name, aggregation_desc, rel
 -- Data for Name: qrtz_blob_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_blob_triggers (sched_name, trigger_name, trigger_group, blob_data) FROM stdin;
-\.
 
 
 --
 -- Data for Name: qrtz_calendars; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_calendars (sched_name, calendar_name, calendar) FROM stdin;
-\.
 
 
 --
 -- Data for Name: qrtz_cron_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_cron_triggers (sched_name, trigger_name, trigger_group, cron_expression, time_zone_id) FROM stdin;
-\.
 
 
 --
 -- Data for Name: qrtz_fired_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_fired_triggers (sched_name, entry_id, trigger_name, trigger_group, instance_name, fired_time, sched_time, priority, state, job_name, job_group, is_nonconcurrent, requests_recovery) FROM stdin;
-\.
 
 
 --
 -- Data for Name: qrtz_job_details; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_job_details (sched_name, job_name, job_group, description, job_class_name, is_durable, is_nonconcurrent, is_update_data, requests_recovery, job_data) FROM stdin;
-RuoyiScheduler	TASK_CLASS_NAME1	DEFAULT	\N	com.ruoyi.common.utils.job.QuartzDisallowConcurrentExecution	0	1	0	0	\\x5b42403235363138653931
-RuoyiScheduler	TASK_CLASS_NAME2	DEFAULT	\N	com.ruoyi.common.utils.job.QuartzDisallowConcurrentExecution	0	1	0	0	\\x5b424037613932393232
-RuoyiScheduler	TASK_CLASS_NAME3	DEFAULT	\N	com.ruoyi.common.utils.job.QuartzDisallowConcurrentExecution	0	1	0	0	\\x5b42403731663261376435
-\.
 
 
 --
 -- Data for Name: qrtz_locks; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_locks (sched_name, lock_name) FROM stdin;
-RuoyiScheduler	TRIGGER_ACCESS
-\.
 
 
 --
 -- Data for Name: qrtz_paused_trigger_grps; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_paused_trigger_grps (sched_name, trigger_group) FROM stdin;
-\.
 
 
 --
 -- Data for Name: qrtz_scheduler_state; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_scheduler_state (sched_name, instance_name, last_checkin_time, checkin_interval) FROM stdin;
-\.
 
 
 --
 -- Data for Name: qrtz_simple_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_simple_triggers (sched_name, trigger_name, trigger_group, repeat_count, repeat_interval, times_triggered) FROM stdin;
-\.
 
 
 --
 -- Data for Name: qrtz_simprop_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_simprop_triggers (sched_name, trigger_name, trigger_group, str_prop_1, str_prop_2, str_prop_3, int_prop_1, int_prop_2, long_prop_1, long_prop_2, dec_prop_1, dec_prop_2, bool_prop_1, bool_prop_2) FROM stdin;
-\.
 
 
 --
 -- Data for Name: qrtz_triggers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.qrtz_triggers (sched_name, trigger_name, trigger_group, job_name, job_group, description, next_fire_time, prev_fire_time, priority, trigger_state, trigger_type, start_time, end_time, calendar_name, misfire_instr, job_data) FROM stdin;
-RuoyiScheduler	TASK_CLASS_NAME1	DEFAULT	TASK_CLASS_NAME1	DEFAULT	\N	1723915630000	-1	5	PAUSED	CRON	1723915630000	0	\N	2	\N
-RuoyiScheduler	TASK_CLASS_NAME2	DEFAULT	TASK_CLASS_NAME2	DEFAULT	\N	1723915635000	-1	5	PAUSED	CRON	1723915631000	0	\N	2	\N
-RuoyiScheduler	TASK_CLASS_NAME3	DEFAULT	TASK_CLASS_NAME3	DEFAULT	\N	1723915640000	-1	5	PAUSED	CRON	1723915632000	0	\N	2	\N
-\.
 
 
 --
@@ -31836,10 +31639,6 @@ COPY public.system_dict_data (dict_code, dict_sort, dict_label, dict_value, dict
 5	2	隐藏	1	sys_show_hide	\N	danger	N	0	吴同	2024-05-06 06:12:18	\N	\N	隐藏菜单
 6	1	正常	0	sys_normal_disable	\N	primary	Y	0	吴同	2024-05-06 06:12:18	\N	\N	正常状态
 7	2	停用	1	sys_normal_disable	\N	danger	N	0	吴同	2024-05-06 06:12:18	\N	\N	停用状态
-8	1	正常	0	sys_job_status	\N	primary	Y	0	吴同	2024-05-06 06:12:18	\N	\N	正常状态
-9	2	暂停	1	sys_job_status	\N	danger	N	0	吴同	2024-05-06 06:12:18	\N	\N	停用状态
-10	1	默认	DEFAULT	sys_job_group	\N	\N	Y	0	吴同	2024-05-06 06:12:18	\N	\N	默认分组
-11	2	系统	SYSTEM	sys_job_group	\N	\N	N	0	吴同	2024-05-06 06:12:18	\N	\N	系统分组
 12	1	是	Y	sys_yes_no	\N	primary	Y	0	吴同	2024-05-06 06:12:18	\N	\N	系统默认是
 13	2	否	N	sys_yes_no	\N	danger	N	0	吴同	2024-05-06 06:12:18	\N	\N	系统默认否
 14	1	通知	1	sys_notice_type	\N	warning	Y	0	吴同	2024-05-06 06:12:18	\N	\N	通知
@@ -32251,8 +32050,6 @@ COPY public.system_dict_type (dict_id, dict_name, dict_type, status, create_by, 
 1	用户性别	sys_user_sex	0	吴同	2024-05-06 06:12:18	吴同	2025-03-07 14:06:58	用户性别列表
 2	菜单状态	sys_show_hide	0	吴同	2024-05-06 06:12:18	\N	\N	菜单状态列表
 3	系统开关	sys_normal_disable	0	吴同	2024-05-06 06:12:18	\N	\N	系统开关列表
-4	任务状态	sys_job_status	0	吴同	2024-05-06 06:12:18	\N	\N	任务状态列表
-5	任务分组	sys_job_group	0	吴同	2024-05-06 06:12:18	\N	\N	任务分组列表
 6	系统是否	sys_yes_no	0	吴同	2024-05-06 06:12:18	\N	\N	系统是否列表
 7	通知类型	sys_notice_type	0	吴同	2024-05-06 06:12:18	\N	\N	通知类型列表
 8	通知状态	sys_notice_status	0	吴同	2024-05-06 06:12:18	\N	\N	通知状态列表
@@ -32443,7 +32240,6 @@ COPY public.system_menu (menu_id, menu_name, parent_id, order_num, path, compone
 107	通知公告	1	8	notice	sys/system/notice/index	\N	1	0	\N	C	0	0	system:notice:list	megaphone-line	DataMaster	2024-05-06 06:12:17	admin	2025-09-30 10:03:28	通知公告菜单
 108	日志管理	1	9	log	\N	\N	1	0	\N	M	0	0	\N	book-marked-line	DataMaster	2024-05-06 06:12:17	admin	2025-05-30 16:24:05	日志管理菜单
 109	在线用户	2	1	online	sys/monitor/online/index	\N	1	0	\N	C	0	0	monitor:online:list	user-3-line	DataMaster	2024-05-06 06:12:17	admin	2025-09-30 10:03:50	在线用户菜单
-110	定时任务	2	2	job	sys/monitor/job/index	\N	1	0	\N	C	0	0	monitor:job:list	calendar-schedule-line	DataMaster	2024-05-06 06:12:17	admin	2025-09-30 10:03:54	定时任务菜单
 112	服务监控	2	4	server	sys/monitor/server/index	\N	1	0	\N	C	0	0	monitor:server:list	slideshow-4-line	DataMaster	2024-05-06 06:12:17	admin	2025-09-30 10:03:58	服务监控菜单
 113	缓存监控	2	5	cache	sys/monitor/cache/index	\N	1	0	\N	C	0	0	monitor:cache:list	slideshow-2-line	DataMaster	2024-05-06 06:12:17	admin	2025-09-30 10:04:03	缓存监控菜单
 114	缓存列表	2	6	cacheList	sys/monitor/cache/list	\N	1	0	\N	C	0	0	monitor:cache:list	file-list-2-line	DataMaster	2024-05-06 06:12:17	admin	2025-09-30 10:04:11	缓存列表菜单
@@ -32500,12 +32296,6 @@ COPY public.system_menu (menu_id, menu_name, parent_id, order_num, path, compone
 1046	在线查询	109	1	#	\N	\N	1	0	\N	F	0	0	monitor:online:query	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
 1047	批量强退	109	2	#	\N	\N	1	0	\N	F	0	0	monitor:online:batchLogout	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
 1048	单条强退	109	3	#	\N	\N	1	0	\N	F	0	0	monitor:online:forceLogout	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
-1049	任务查询	110	1	#	\N	\N	1	0	\N	F	0	0	monitor:job:query	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
-1050	任务新增	110	2	#	\N	\N	1	0	\N	F	0	0	monitor:job:add	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
-1051	任务修改	110	3	#	\N	\N	1	0	\N	F	0	0	monitor:job:edit	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
-1052	任务删除	110	4	#	\N	\N	1	0	\N	F	0	0	monitor:job:remove	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
-1053	状态修改	110	5	#	\N	\N	1	0	\N	F	0	0	monitor:job:changeStatus	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
-1054	任务导出	110	6	#	\N	\N	1	0	\N	F	0	0	monitor:job:export	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
 1055	生成查询	116	1	#	\N	\N	1	0	\N	F	0	0	tool:gen:query	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
 1056	生成修改	116	2	#	\N	\N	1	0	\N	F	0	0	tool:gen:edit	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
 1057	生成删除	116	3	#	\N	\N	1	0	\N	F	0	0	tool:gen:remove	#	DataMaster	2024-05-06 06:12:17	\N	\N	\N
@@ -32819,8 +32609,8 @@ COPY public.system_menu (menu_id, menu_name, parent_id, order_num, path, compone
 2721	主题域管理导出	2716	5	#	\N	\N	1	0	\N	F	0	0	dm:themeDomain:export	#	admin	2026-03-24 14:53:02	\N	\N	\N
 2722	主题域管理导入	2716	6	#	\N	\N	1	0	\N	F	0	0	dm:themeDomain:import	#	admin	2026-03-24 14:53:02	\N	\N	\N
 2723	数据治理	0	5	dg	\N	\N	1	0	\N	M	0	0	\N	sjzl	admin	2026-03-25 17:42:27	admin	2026-03-27 16:08:33	\N
-2724	元数据管理	2723	1	meta	\N	\N	1	0	\N	M	0	0	\N	ysjgl	admin	2026-03-25 17:42:50	admin	2026-03-27 16:10:44	\N
-2727	元数据结果	2724	3	management	meta/unreleased/structured/table/index	\N	1	0	\N	C	0	0	mc:metadata:table:list	#	admin	2026-03-25 17:44:52	admin	2026-05-12 14:57:16	\N
+2724	元数据管理	2723	1	cat	\N	\N	1	0	\N	M	0	0	\N	ysjgl	admin	2026-03-25 17:42:50	admin	2026-03-27 16:10:44	\N
+2727	元数据结果	2724	3	management	cat/unreleased/structured/table/index	\N	1	0	\N	C	0	0	mc:metadata:table:list	#	admin	2026-03-25 17:44:52	admin	2026-05-12 14:57:16	\N
 2729	元数据比对	2724	5	comparison	sys/developing/index	\N	1	0	\N	C	1	1		#	admin	2026-03-25 17:45:35	admin	2026-05-12 14:50:21	\N
 2730	模型管理	2694	5	model	\N	\N	1	0	\N	M	0	0	\N	instance-line	admin	2026-03-27 16:54:27	admin	2026-03-27 16:58:13	\N
 2734	模型管理新增	2732	2	#	\N	\N	1	0	\N	F	0	0	ai:model:add	#	admin	2026-04-01 14:31:09	\N	\N	\N
