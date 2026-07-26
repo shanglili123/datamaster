@@ -98,7 +98,7 @@
             ></right-toolbar>
           </div>
         </div>
-        <div class="pagecont-bottom">
+        <div>
           <el-table
             stripe
             v-loading="loading"
@@ -531,8 +531,14 @@ getList();
   margin: 13px 15px;
 }
 
+.el-container {
+  height: auto !important;
+  align-items: flex-start;
+}
+
 .el-main {
   padding: 2px 0px;
+  overflow: visible !important;
 }
 
 .pagecont-top {

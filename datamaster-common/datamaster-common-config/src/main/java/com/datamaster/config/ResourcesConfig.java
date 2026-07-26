@@ -37,9 +37,6 @@ public class ResourcesConfig implements WebMvcConfigurer
         registry.addViewController("/index").setViewName("admin/index.html");
         registry.addViewController("/").setViewName("admin/index.html");
 
-        // sso 登录页配置
-        registry.addViewController("/sso/index.html").setViewName("sso/index.html");
-        registry.addViewController("/sso/confirm.html").setViewName("sso/login.html");
         registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
     }
 
@@ -56,13 +53,7 @@ public class ResourcesConfig implements WebMvcConfigurer
         /** 页面静态化Vue3 */
         registry.addResourceHandler("/assets/**", "/favicon.ico")
                 .addResourceLocations("classpath:/dist/admin/assets/")
-                .addResourceLocations("classpath:/dist/sso/assets/")
-                .addResourceLocations("classpath:/dist/sso/")
         ;
-
-        /** 页面静态化 SSO 认证登录页面 */
-//        registry.addResourceHandler("/sso/v1/**").addResourceLocations("classpath:/dist/sso/");
-//        registry.addResourceHandler("/sso/v1/assets/**").addResourceLocations("classpath:/dist/sso/assets/");
 
         /** swagger配置 */
         registry.addResourceHandler("/swagger-ui/**")

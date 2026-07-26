@@ -137,9 +137,7 @@ public class SecurityConfig
                                     "/druid/**",
                                     "/websocket/**",
                                     "/payment/**",
-                                    "/syncData/**",
                                     "/sys/**",
-                                    "/oauth2/**",
                                     // 调度器白名单
                                     "/cat/taskExecutor/runExecuteTask/**"
                             ).permitAll()

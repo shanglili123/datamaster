@@ -6,7 +6,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <resultMap type="SysUser" id="SysUserResult">
         <id     property="userId"       column="user_id"      />
-        <id     property="authId"       column="auth_id"      />
         <result property="deptId"       column="dept_id"      />
         <result property="userName"     column="user_name"    />
         <result property="nickName"     column="nick_name"    />
@@ -148,7 +147,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
 	<select id="selectUserAllList" parameterType="SysUser" resultMap="SysUserResult">
 		select u.user_id, u.dept_id, u.nick_name, u.user_name, u.email, u.avatar, u.phonenumber, u.sex, u.status, u.del_flag,
-		u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, d.dept_name, d.leader , u.auth_id
+		u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, d.dept_name, d.leader
 		from system_user u
 		left join system_dept d on u.dept_id = d.dept_id
 		<choose>
@@ -343,7 +342,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <insert id="insertUser" parameterType="SysUser" useGeneratedKeys="true" keyProperty="userId">
  		insert into system_user(
  			<if test="userId != null and userId != 0">user_id,</if>
- 			<if test="authId != null and authId != ''">auth_id,</if>
  			<if test="deptId != null and deptId != 0">dept_id,</if>
  			<if test="userName != null and userName != ''">user_name,</if>
  			<if test="nickName != null and nickName != ''">nick_name,</if>
@@ -359,7 +357,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
  			create_time
  		)values(
  			<if test="userId != null and userId != ''">#{userId},</if>
-			<if test="authId != null and authId != ''">#{authId},</if>
  			<if test="deptId != null and deptId != ''">#{deptId},</if>
  			<if test="userName != null and userName != ''">#{userName},</if>
  			<if test="nickName != null and nickName != ''">#{nickName},</if>
@@ -380,7 +377,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
  		update system_user
  		<set>
  			<if test="deptId != null and deptId != 0">dept_id = #{deptId},</if>
-			<if test="authId != null and authId != ''">auth_id = #{authId},</if>
  			<if test="userName != null and userName != ''">user_name = #{userName},</if>
  			<if test="nickName != null and nickName != ''">nick_name = #{nickName},</if>
  			<if test="email != null ">email = #{email},</if>

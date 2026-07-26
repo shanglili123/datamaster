@@ -14,16 +14,7 @@ import { isProjectModuleRoute } from "@/utils/moduleRoute";
 
 NProgress.configure({ showSpinner: false });
 
-// 认证模式
-const authType = import.meta.env.VITE_APP_AUTH_TYPE;
-// 应用ID
-const clientId = import.meta.env.VITE_APP_CLIENTID;
-// 服务端地址
-const serverUrl = import.meta.env.VITE_APP_SERVER_URL;
-// 当前APP地址
-const appUrl = import.meta.env.VITE_APP_THIS_APP_URL;
-
-const whiteList = ["/login", "/register", "/sso/login", "/sso",];
+const whiteList = ["/login", "/register", "/sso/login", "/sso"];
 
 router.beforeEach((to, from, next) => {
   NProgress.start();
@@ -78,21 +69,7 @@ router.beforeEach((to, from, next) => {
     if (whiteList.indexOf(to.path) !== -1) {
       next();
     } else {
-      if (authType !== "sso") {
-        next(`/login?redirect=${to.fullPath}`);
-      } else {
-        if (to.path.indexOf("/login") !== -1) {
-          next(`/login?redirect=${to.fullPath}`);
-        } else {
-          window.location.href =
-            serverUrl +
-            "/oauth2/authorize?" +
-            "response_type=code" +
-            "&client_id=" + clientId +
-            "&redirect_uri=" + appUrl + "/sso" +
-            "&state=" + to.fullPath;
-        }
-      }
+      next(`/login?redirect=${to.fullPath}`);
       NProgress.done();
     }
   }

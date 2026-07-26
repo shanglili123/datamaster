@@ -148,8 +148,6 @@ import {
   listMessage,
   readAll,
 } from "@/api/system/system/message/message";
-import { loginOut } from "@/api/system/sso-auth.js";
-// import MessageList from "@/views/sys/system/message/components/messageList.vue";
 import { onMounted, ref, watch } from "vue";
 import moment from "moment";
 import { currentUser } from "@/api/tax/project/project";
@@ -157,11 +155,6 @@ import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
 import defaultAvatar from "@/assets/images/defaultAvatar.svg";
 import { isProjectModuleRoute, normalizeModuleRoutePath } from "@/utils/moduleRoute";
-// import { getCurrentAppVersion } from "@/api/system/update/update.js";
-// import {listProject, getProject} from "@/api/project/projectBase/project";
-// import {listReport, getReport, delReport, addReport, updateReport} from "@/api/project/report/report";
-// 认证模式
-const authType = import.meta.env.VITE_APP_AUTH_TYPE;
 
 const route = useRoute();
 const router = useRouter();
@@ -618,14 +611,7 @@ function logout() {
   })
     .then(() => {
       userStore.logOut().then(() => {
-        if (authType === "sso") {
-          // 退出统一认证中心的登录状态
-          loginOut(userStore.userId).then(() => {
-            location.href = "/index";
-          });
-        } else {
-          location.href = "/index";
-        }
+        location.href = "/index";
       });
     })
     .catch(() => {});

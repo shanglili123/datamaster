@@ -36,9 +36,6 @@ public class SysUser extends BaseEntity
     @Excel(name = "用户序号", type = Type.EXPORT, cellType = ColumnType.NUMERIC, prompt = "用户编号")
     private Long userId;
 
-    //认证平台id
-    private String authId;
-
     /** 部门ID */
     @Excel(name = "部门编号", type = Type.IMPORT)
     private Long deptId;
@@ -133,14 +130,6 @@ public class SysUser extends BaseEntity
     public void setUserId(Long userId)
     {
         this.userId = userId;
-    }
-
-    public String getAuthId() {
-        return authId;
-    }
-
-    public void setAuthId(String authId) {
-        this.authId = authId;
     }
 
     public boolean isAdmin()

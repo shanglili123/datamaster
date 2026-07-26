@@ -16,11 +16,6 @@ export default [
         ]
     },
     {
-        path: '/sso',
-        component: () => import('@/views/sys/sso'),
-        hidden: true
-    },
-    {
         path: '/login',
         component: () => import('@/views/sys/login.vue'),
         hidden: true
