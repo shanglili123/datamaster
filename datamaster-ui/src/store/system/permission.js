@@ -826,6 +826,18 @@ function isMetadataManagement(route) {
     );
 }
 
+function isCatalogMetadataManagement(route) {
+    const title = route.meta && route.meta.title;
+    const path = route.path || '';
+    return title === '元数据管理' && (
+        path === 'cat' ||
+        path === '/cat' ||
+        path === 'dg/cat' ||
+        path === '/dg/cat' ||
+        path.endsWith('/cat')
+    );
+}
+
 function isQualityMenu(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
@@ -845,7 +857,8 @@ function isQualityParentMenu(route) {
 }
 
 function moveDatasourceToMetadata(routes) {
-    const metadataRoute = findRoute(routes, (route) => isMetadataManagement(route));
+    const metadataRoute = findRoute(routes, (route) => isCatalogMetadataManagement(route)) ||
+        findRoute(routes, (route) => isMetadataManagement(route));
     if (!metadataRoute) return;
 
     if (metadataRoute.children && metadataRoute.children.some((child) =>
