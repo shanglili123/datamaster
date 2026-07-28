@@ -102,9 +102,10 @@ const sideTheme = computed(() => settingsStore.sideTheme);
     }
 
     & .sidebar-logo-full {
-      width: 214px;
+      width: 100%;
+      max-width: 220px;
       height: 50px;
-      flex: 0 0 214px;
+      flex: 0 1 220px;
     }
   }
 

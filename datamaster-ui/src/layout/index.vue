@@ -61,13 +61,15 @@ watch(
 // 是否隐藏侧边栏：防止首次加载闪烁
 const sidebarHide = computed(() => {
   const path = route.path;
+  // 首页始终隐藏侧边栏
+  if (path === "/index") return true;
   // 1. 如果是明确不需要侧边栏的页面（如配置中的 Logo 路由），直接隐藏
   const navbarLogoRoutes = defaultSettings.navbarLogoRoutes || [];
   if (navbarLogoRoutes.some((p) => path.startsWith(p))) return true;
   // 2. 如果已经有菜单数据了，按数据来
   if (permissionStore.sidebarRouters.length > 0) return false;
   // 3. 如果当前路由不是首页且有二级匹配，先假设有侧边栏，防止初始渲染时 v-if 销毁组件
-  if (path !== "/index" && route.matched.length > 1) return false;
+  if (route.matched.length > 1) return false;
 
   return true;
 });

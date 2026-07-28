@@ -739,16 +739,19 @@ function clearNotification() {
 
   .navbar-logo {
     float: left;
-    width: 200px !important;
+    width: 236px !important;
     height: 100% !important;
     background-color: transparent !important;
 
     ::v-deep.sidebar-logo-link {
+      padding: 0 16px !important;
       background-color: transparent !important;
     }
 
     ::v-deep.sidebar-logo-full {
-      width: 180px !important;
+      flex: 0 1 204px !important;
+      width: 100% !important;
+      max-width: 204px !important;
       height: 42px !important;
       margin-top: 16px !important;
       transform: translateY(4px) !important;
@@ -787,7 +790,7 @@ function clearNotification() {
     left: 66px;
 
     &.has-navbar-logo {
-      left: 270px;
+      left: 286px;
     }
   }
 
