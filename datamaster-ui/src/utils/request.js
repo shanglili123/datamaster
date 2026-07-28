@@ -1,4 +1,4 @@
-﻿
+
 import axios from 'axios'
 import { ElNotification, ElMessageBox, ElMessage, ElLoading } from 'element-plus'
 import { getToken } from '@/utils/auth'
@@ -29,7 +29,7 @@ function hasProjectValue(value) {
 
 // request拦截器
 service.interceptors.request.use(config => {
-  // 自动注入当前项目ID/编码
+  // 自动注入当前空间ID/编码
   const userStore = useUserStore();
   if (userStore.projectId && !config.url?.includes('/system/role/list')) {
     if (config.method === 'get' && config.params) {

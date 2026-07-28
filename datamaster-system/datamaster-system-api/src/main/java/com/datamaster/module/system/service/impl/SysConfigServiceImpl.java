@@ -35,7 +35,7 @@ public class SysConfigServiceImpl implements ISysConfigService
     private RedisCache redisCache;
 
     /**
-     * 项目启动时，初始化参数到缓存
+     * 空间启动时，初始化参数到缓存
      */
     @PostConstruct
     public void init()

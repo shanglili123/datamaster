@@ -10,7 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * 数据资产字段与项目关联关系 Service
+ * 数据资产字段与空间关联关系 Service
  *
  * @author DATAMASTER
  */

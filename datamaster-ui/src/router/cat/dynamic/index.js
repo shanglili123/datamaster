@@ -26,7 +26,7 @@ export default [
         path: '/cat/task/detail',
         component: Layout,
         hidden: true,
-        permissions: ['mc:task:structured:detail'],
+        permissions: ['cat:task:structured:detail'],
         children: [
             {
                 path: '',
@@ -40,7 +40,7 @@ export default [
         path: '/cat/unreleased/structured/db/detail',
         component: Layout,
         hidden: true,
-        permissions: ['mc:metadata:table:detail'],
+        permissions: ['cat:table:detail'],
         children: [
             {
                 path: '',
@@ -54,49 +54,49 @@ export default [
         '/dg/cat/management/add',
         'UnreleasedStructuredTableAdd',
         '新增表元数据',
-        'mc:metadata:table:add',
+        'cat:table:add',
         tableHandleComponent
     ),
     tableRoute(
         '/dg/cat/management/edit',
         'UnreleasedStructuredTableEdit',
         '修改表元数据',
-        'mc:metadata:table:edit',
+        'cat:table:edit',
         tableHandleComponent
     ),
     tableRoute(
         '/dg/cat/management/detail',
         'UnreleasedStructuredTableDetail',
         '表元数据详情',
-        'mc:metadata:table:detail',
+        'cat:table:detail',
         tableDetailComponent
     ),
     tableRoute(
         '/cat/unreleased/structured/table/add',
         'UnreleasedStructuredTableAddLegacy',
         '新增表元数据',
-        'mc:metadata:table:add',
+        'cat:table:add',
         tableHandleComponent
     ),
     tableRoute(
         '/cat/unreleased/structured/table/edit',
         'UnreleasedStructuredTableEditLegacy',
         '修改表元数据',
-        'mc:metadata:table:edit',
+        'cat:table:edit',
         tableHandleComponent
     ),
     tableRoute(
         '/cat/unreleased/structured/table/detail',
         'UnreleasedStructuredTableDetailLegacy',
         '表元数据详情',
-        'mc:metadata:table:detail',
+        'cat:table:detail',
         tableDetailComponent
     ),
     {
         path: '/cat/unreleased/structured/column/add',
         component: Layout,
         hidden: true,
-        permissions: ['mc:metadata:table:add'],
+        permissions: ['cat:table:add'],
         children: [
             {
                 path: '',
@@ -110,7 +110,7 @@ export default [
         path: '/cat/unreleased/structured/column/detail',
         component: Layout,
         hidden: true,
-        permissions: ['mc:metadata:table:detail'],
+        permissions: ['cat:table:detail'],
         children: [
             {
                 path: '',

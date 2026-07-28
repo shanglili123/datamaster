@@ -31,14 +31,14 @@
     <div class="justify-between mb15">
       <el-row :gutter="15" class="btn-style">
         <el-col :span="1.5">
-          <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:projectUserRel:add']"
+          <el-button type="primary" plain @click="handleAdd" v-hasPermi="['col:projectUserRel:add']"
             @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-xinzeng mr5"></i>新增
           </el-button>
         </el-col>
         <el-col :span="1.5">
           <el-button type="danger" plain :disabled="multiple" @click="handleDelete"
-            v-hasPermi="['att:projectUserRel:remove']" @mousedown="(e) => e.preventDefault()">
+            v-hasPermi="['col:projectUserRel:remove']" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-shanchu-huise mr5"></i>移除
           </el-button>
         </el-col>
@@ -89,9 +89,9 @@
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-            v-hasPermi="['att:projectUserRel:edit']">修改</el-button>
+            v-hasPermi="['col:projectUserRel:edit']">修改</el-button>
           <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-            v-hasPermi="['att:projectUserRel:remove']">移除</el-button>
+            v-hasPermi="['col:projectUserRel:remove']">移除</el-button>
         </template>
       </el-table-column>
 
@@ -107,7 +107,7 @@
       v-model:limit="queryParams.pageSize" @pagination="getList" />
   </div>
 
-  <!-- 新增或修改项目与用户关联关系对话框 -->
+  <!-- 新增或修改空间与用户关联关系对话框 -->
   <el-dialog :title="title" v-model="open" :append-to-body="false" class="warn-dialog-23012" width="700px"
     :append-to="$refs['app-container']" draggable>
     <template #header="{ close, titleId, titleClass }">
@@ -345,7 +345,7 @@ function handleDateChange(value) {
   queryParams.value.startTime = value[0];
   queryParams.value.endTime = value[1];
 }
-/** 查询项目与用户关联关系列表 */
+/** 查询空间与用户关联关系列表 */
 function getList() {
   loading.value = true;
   if (queryParams.value.projectId) {
@@ -489,7 +489,7 @@ function handleAdd() {
   getRoleList();
   reset();
   open.value = true;
-  title.value = '新增项目成员';
+  title.value = '新增空间成员';
 }
 
 /** 修改按钮操作 */
@@ -501,7 +501,7 @@ function handleUpdate(row) {
     form.value = response.data;
     console.log(form.value, 'form');
     open.value = true;
-    title.value = '修改项目成员';
+    title.value = '修改空间成员';
   });
 }
 
@@ -512,7 +512,7 @@ function handleDetail(row) {
   getAttProjectUserRel(_id).then((response) => {
     form.value = response.data;
     openDetail.value = true;
-    title.value = '项目与用户关联关系详情';
+    title.value = '空间与用户关联关系详情';
   });
 }
 
@@ -581,7 +581,7 @@ function handleExport() {
 /** ---------------- 导入相关操作 -----------------**/
 /** 导入按钮操作 */
 function handleImport() {
-  upload.title = '项目与用户关联关系导入';
+  upload.title = '空间与用户关联关系导入';
   upload.open = true;
 }
 

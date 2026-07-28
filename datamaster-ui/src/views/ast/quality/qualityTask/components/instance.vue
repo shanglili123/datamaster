@@ -40,7 +40,7 @@
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="200">
         <template #default="scope">
           <el-button link type="primary" icon="View" @click="logDetailCatList(scope.row)"
-            v-hasPermi="['da:qualityTask:query']">查看</el-button>
+            v-hasPermi="['ast:qualityTask:query']">查看</el-button>
           <!-- <el-button link type="warning" @click="handleExport(scope.row)" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-download-line mr5"></i>下载
           </el-button> -->

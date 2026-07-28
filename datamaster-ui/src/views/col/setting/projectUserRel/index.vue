@@ -1,10 +1,10 @@
 <template>
     <div class="app-container" ref="app-container">
         <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-            <el-tab-pane label="项目成员" name="first">
+            <el-tab-pane label="空间成员" name="first">
                 <User ref="userRef"></User>
             </el-tab-pane>
-            <el-tab-pane label="项目角色" name="second">
+            <el-tab-pane label="空间角色" name="second">
                 <Role ref="roleRef"></Role>
             </el-tab-pane>
         </el-tabs>

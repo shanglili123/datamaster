@@ -39,8 +39,8 @@ public class DatasourceRespVO implements Serializable {
     @Schema(description = "数据源配置(json字符串)", example = "")
     private String datasourceConfig;
 
-    @Excel(name = "项目名称")
-    @Schema(description = "项目名称", example = "")
+    @Excel(name = "空间名称")
+    @Schema(description = "空间名称", example = "")
     private String projectName;
 
     @Excel(name = "是否是管理员分配给数据研发")

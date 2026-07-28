@@ -5,7 +5,7 @@
       :queryParams="queryParams"
       :showSearch="showSearch"
       :showAddBtn="true"
-      :addPermission="['att:cleanCat:add']"
+      :addPermission="['tax:cleanCat:add']"
       :showToggleBtn="true"
       :isExpandAll="isExpandAll"
       @query="handleQuery"
@@ -80,11 +80,11 @@
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
           <template #default="scope">
             <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-              v-hasPermi="['att:cleanCat:edit']">修改</el-button>
+              v-hasPermi="['tax:cleanCat:edit']">修改</el-button>
             <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)"
-              v-hasPermi="['att:cleanCat:add']">新增</el-button>
+              v-hasPermi="['tax:cleanCat:add']">新增</el-button>
             <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-              v-hasPermi="['att:cleanCat:remove']">删除</el-button>
+              v-hasPermi="['tax:cleanCat:remove']">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

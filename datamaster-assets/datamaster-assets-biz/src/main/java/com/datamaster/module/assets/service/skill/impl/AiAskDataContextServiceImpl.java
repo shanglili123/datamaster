@@ -32,7 +32,7 @@ public class AiAskDataContextServiceImpl implements IAiAskDataContextService {
 
     // Common dimension patterns
     private static final Pattern DIMENSION_PATTERN = Pattern.compile(
-            "(按|分|组|类别|类型|部门|项目|区域|地区|城市|省份)");
+            "(按|分|组|类别|类型|部门|空间|区域|地区|城市|省份)");
 
     @Override
     public List<String> extractKeywords(String question) {

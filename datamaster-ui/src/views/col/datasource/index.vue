@@ -54,7 +54,7 @@
             type="primary"
             plain
             @click="handleAdd"
-            v-hasPermi="['da:dataSource:add']"
+            v-hasPermi="['ast:dataSource:add']"
             @mousedown="(e) => e.preventDefault()"
         >
           <i class="iconfont-mini icon-xinzeng mr5"></i>新增
@@ -133,7 +133,7 @@
         <!-- <el-table-column
             v-if="getColumnVisibility(2) && type == 1"
             width="120"
-            label="所属项目"
+            label="所属空间"
             align="center"
             prop="projectName"
         >
@@ -212,7 +212,7 @@
                 type="primary"
                 icon="Connection"
                 @click="handleTestConnection(scope.row)"
-                v-hasPermi="['da:dataSource:edit']"
+                v-hasPermi="['ast:dataSource:edit']"
             >测试连接
             </el-button>
 
@@ -221,7 +221,7 @@
                 type="primary"
                 icon="view"
                 @click="handleDetail(scope.row)"
-                v-hasPermi="['da:dataSource:edit']"
+                v-hasPermi="['ast:dataSource:edit']"
             >详情
             </el-button>
             <el-popover placement="bottom" :width="100" trigger="click">
@@ -249,7 +249,7 @@
                     type="primary"
                     icon="Edit"
                     @click="handleUpdate(scope.row)"
-                    v-hasPermi="['da:dataSource:edit']"
+                    v-hasPermi="['ast:dataSource:edit']"
                 >修改
                 </el-button>
                 <el-button
@@ -257,7 +257,7 @@
                     type="danger"
                     icon="Delete"
                     @click="handleDelete(scope.row)"
-                    v-hasPermi="['da:dataSource:remove']"
+                    v-hasPermi="['ast:dataSource:remove']"
                 >删除
                 </el-button>
               </div>
@@ -497,11 +497,11 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="24">
-            <el-form-item label="所属项目" prop="projectNameList">
+            <el-form-item label="所属空间" prop="projectNameList">
               <el-input
                   style="width: 83.5%"
                   v-model="form.projectNameList"
-                  placeholder="请选择项目"
+                  placeholder="请选择空间"
                   disabled
               >
               </el-input>
@@ -509,7 +509,7 @@
                   style="margin-left: 11px"
                   type="primary"
                   @click="getListProject"
-              >选择项目</el-button
+              >选择空间</el-button
               >
             </el-form-item>
           </el-col>
@@ -733,7 +733,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="24">
-            <el-form-item label="所属项目">
+            <el-form-item label="所属空间">
               <div class="form-readonly">
                 {{ form.projectNameListStr || "-" }}
               </div>
@@ -766,10 +766,10 @@
         </div>
       </template>
     </el-dialog>
-    <el-dialog title="项目选择" v-model="openProject" width="1000px" draggable>
+    <el-dialog title="空间选择" v-model="openProject" width="1000px" draggable>
       <template>
         <span role="heading" aria-level="2" class="el-dialog__title">
-          项目选择
+          空间选择
         </span>
       </template>
       <!--用户数据-->
@@ -780,11 +780,11 @@
           :inline="true"
           label-width="68px"
       >
-        <el-form-item label="项目名称" prop="name">
+        <el-form-item label="空间名称" prop="name">
           <el-input
               class="el-form-input-width"
               v-model="queryParamsProject.name"
-              placeholder="请输入项目名称"
+              placeholder="请输入空间名称"
               clearable
               @keyup.enter="handleQuery"
           />
@@ -840,7 +840,7 @@
             {{ scope.row.id || "-" }}
           </template>
         </el-table-column>
-        <el-table-column label="项目名称" align="center" prop="name">
+        <el-table-column label="空间名称" align="center" prop="name">
           <template #default="scope">
             {{ scope.row.name || "-" }}
           </template>
@@ -1145,7 +1145,7 @@ function getListProject() {
     totalProject.value = pageData.total;
     loadingProject.value = false;
 
-    // 在表格加载完成后，设置之前选中的项目
+    // 在表格加载完成后，设置之前选中的空间
     nextTick(() => {
       projectList.value.forEach((project) => {
         form.value.projectList.forEach((item) => {

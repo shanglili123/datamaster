@@ -107,9 +107,9 @@
               class-name="small-padding fixed-width" fixed="right" width="200">
               <template #default="scope">
                 <el-button link type="primary" icon="view" @click="handleDetail(scope.row)"
-                  v-hasPermi="['ds:apiLog:query']">详情</el-button>
+                  v-hasPermi="['svc:apiLog:query']">详情</el-button>
                 <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                  v-hasPermi="['ds:apiLog:remove']">删除</el-button>
+                  v-hasPermi="['svc:apiLog:remove']">删除</el-button>
               </template>
             </el-table-column>
 

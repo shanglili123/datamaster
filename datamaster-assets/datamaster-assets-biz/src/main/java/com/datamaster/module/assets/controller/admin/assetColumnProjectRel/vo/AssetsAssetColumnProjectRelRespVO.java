@@ -9,11 +9,11 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 数据资产字段与项目关联关系 Response VO
+ * 数据资产字段与空间关联关系 Response VO
  *
  * @author DATAMASTER
  */
-@Schema(description = "数据资产字段与项目关联关系 Response VO")
+@Schema(description = "数据资产字段与空间关联关系 Response VO")
 @Data
 public class AssetsAssetColumnProjectRelRespVO implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -30,12 +30,12 @@ public class AssetsAssetColumnProjectRelRespVO implements Serializable {
     @Schema(description = "字段id", example = "")
     private Long columnId;
 
-    @Excel(name = "项目id")
-    @Schema(description = "项目id", example = "")
+    @Excel(name = "空间id")
+    @Schema(description = "空间id", example = "")
     private Long projectId;
 
-    @Excel(name = "项目编码")
-    @Schema(description = "项目编码", example = "")
+    @Excel(name = "空间编码")
+    @Schema(description = "空间编码", example = "")
     private String projectCode;
 
     @Excel(name = "有效标识")

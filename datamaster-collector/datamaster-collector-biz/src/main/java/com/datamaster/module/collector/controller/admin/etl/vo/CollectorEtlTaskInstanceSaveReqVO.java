@@ -47,11 +47,11 @@ public class CollectorEtlTaskInstanceSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "创建人长度不能超过256个字符")
     private String personCharge;
 
-    @Schema(description = "项目id", example = "")
+    @Schema(description = "空间id", example = "")
     private Long projectId;
 
-    @Schema(description = "项目编码", example = "")
-    @Size(max = 256, message = "项目编码长度不能超过256个字符")
+    @Schema(description = "空间编码", example = "")
+    @Size(max = 256, message = "空间编码长度不能超过256个字符")
     private String projectCode;
 
     @Schema(description = "开始时间", example = "")

@@ -95,10 +95,10 @@ public class CatalogColumnLogPageReqVO extends PageParam {
     private String description;
 
 
-    @Schema(description = "项目ID")
+    @Schema(description = "空间ID")
     private Long projectId;
 
-    @Schema(description = "项目编码")
+    @Schema(description = "空间编码")
     private String projectCode;
 
 }

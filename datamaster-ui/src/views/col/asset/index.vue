@@ -97,7 +97,7 @@
               type="primary"
               plain
               @click="handleAdd"
-              v-hasPermi="['da:asset:add']"
+              v-hasPermi="['ast:asset:add']"
               @mousedown="(e) => e.preventDefault()"
             >
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
@@ -573,11 +573,11 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="申请项目" prop="projectCode">
+            <el-form-item label="申请空间" prop="projectCode">
               <el-select
                 v-model="formApply.projectCode"
                 @change="handleSelectProject"
-                placeholder="请选择申请项目"
+                placeholder="请选择申请空间"
               >
                 <el-option
                   v-for="item in projectOptions"
@@ -799,7 +799,7 @@ const data = reactive({
   },
   rulesApply: {
     projectCode: [
-      { required: true, message: "申请项目不能为空", trigger: "change" },
+      { required: true, message: "申请空间不能为空", trigger: "change" },
     ],
     phone: [{ required: true, message: "联系电话不能为空", trigger: "blur" }],
   },

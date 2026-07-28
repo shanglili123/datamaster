@@ -1,14 +1,13 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DataMaster">
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DataMaster">
   <defs>
-    <linearGradient id="dmMark" x1="12" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#2563EB"/>
-      <stop offset="1" stop-color="#14B8A6"/>
+    <linearGradient id="markFill" x1="8" y1="8" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1677FF"/>
+      <stop offset="0.56" stop-color="#13C2C2"/>
+      <stop offset="1" stop-color="#22C55E"/>
     </linearGradient>
   </defs>
-  <rect x="6" y="6" width="52" height="52" rx="15" fill="#F8FAFC" stroke="#D9E6F5" stroke-width="2"/>
-  <path d="M21 42V22C21 20.3 22.3 19 24 19H32C39.2 19 44.5 24.3 44.5 32C44.5 39.7 39.2 45 32 45H24C22.3 45 21 43.7 21 42Z" stroke="url(#dmMark)" stroke-width="5" stroke-linejoin="round"/>
-  <path d="M32 19V45" stroke="#0F766E" stroke-width="5" stroke-linecap="round"/>
-  <circle cx="21" cy="19" r="4" fill="#2563EB"/>
-  <circle cx="44.5" cy="32" r="4" fill="#14B8A6"/>
-  <circle cx="21" cy="45" r="4" fill="#2563EB"/>
+  <rect x="6" y="6" width="60" height="60" rx="18" fill="url(#markFill)"/>
+  <text x="36" y="48" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="900">D</text>
+  <circle cx="20" cy="20" r="3.6" fill="#E0F2FE" opacity="0.95"/>
+  <circle cx="52" cy="52" r="3.6" fill="#ECFDF5" opacity="0.95"/>
 </svg>

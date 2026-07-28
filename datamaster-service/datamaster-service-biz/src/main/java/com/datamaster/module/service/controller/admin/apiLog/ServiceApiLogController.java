@@ -46,7 +46,7 @@ public class ServiceApiLogController extends BaseController {
     private IServiceApiLogService ServiceApiLogService;
 
     @Operation(summary = "查询API服务调用日志列表")
-    @PreAuthorize("@ss.hasPermi('ds:apiLog:list')")
+    @PreAuthorize("@ss.hasPermi('svc:apiLog:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<ServiceApiLogRespVO>> list(ServiceApiLogPageReqVO ServiceApiLog) {
         PageResult<ServiceApiLogDO> page = ServiceApiLogService.getServiceApiLogPage(ServiceApiLog);
@@ -54,7 +54,7 @@ public class ServiceApiLogController extends BaseController {
     }
 
     @Operation(summary = "导出API服务调用日志列表")
-    @PreAuthorize("@ss.hasPermi('ds:apiLog:export')")
+    @PreAuthorize("@ss.hasPermi('svc:apiLog:export')")
     @Log(title = "API服务调用日志", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, ServiceApiLogPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class ServiceApiLogController extends BaseController {
     }
 
     @Operation(summary = "导入API服务调用日志列表")
-    @PreAuthorize("@ss.hasPermi('ds:apiLog:import')")
+    @PreAuthorize("@ss.hasPermi('svc:apiLog:import')")
     @Log(title = "API服务调用日志", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class ServiceApiLogController extends BaseController {
     }
 
     @Operation(summary = "获取API服务调用日志详细信息")
-    @PreAuthorize("@ss.hasPermi('ds:apiLog:query')")
+    @PreAuthorize("@ss.hasPermi('svc:apiLog:query')")
     @GetMapping(value = "/{ID}")
     public CommonResult<ServiceApiLogRespVO> getInfo(@PathVariable("ID") Long ID) {
         ServiceApiLogDO ServiceApiLogDO = ServiceApiLogService.getServiceApiLogById(ID);
@@ -88,7 +88,7 @@ public class ServiceApiLogController extends BaseController {
     }
 
     @Operation(summary = "新增API服务调用日志")
-    @PreAuthorize("@ss.hasPermi('ds:apiLog:add')")
+    @PreAuthorize("@ss.hasPermi('svc:apiLog:add')")
     @Log(title = "API服务调用日志", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody ServiceApiLogSaveReqVO ServiceApiLog) {
@@ -99,7 +99,7 @@ public class ServiceApiLogController extends BaseController {
     }
 
     @Operation(summary = "修改API服务调用日志")
-    @PreAuthorize("@ss.hasPermi('ds:apiLog:edit')")
+    @PreAuthorize("@ss.hasPermi('svc:apiLog:edit')")
     @Log(title = "API服务调用日志", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody ServiceApiLogSaveReqVO ServiceApiLog) {
@@ -110,7 +110,7 @@ public class ServiceApiLogController extends BaseController {
     }
 
     @Operation(summary = "删除API服务调用日志")
-    @PreAuthorize("@ss.hasPermi('ds:apiLog:remove')")
+    @PreAuthorize("@ss.hasPermi('svc:apiLog:remove')")
     @Log(title = "API服务调用日志", businessType = BusinessType.DELETE)
     @DeleteMapping("/{id}")
     public CommonResult<Integer> remove(@PathVariable Long[] id) {

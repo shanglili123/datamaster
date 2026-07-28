@@ -2025,7 +2025,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         if (StringUtils.isNotEmpty(projectCode)) {
             return projectCode;
         }
-        throw new ServiceException("采集任务未关联项目或关联的项目编码不存在");
+        throw new ServiceException("采集任务未关联空间或关联的空间编码不存在");
     }
 
     /**

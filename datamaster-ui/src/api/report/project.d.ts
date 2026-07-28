@@ -4,15 +4,15 @@
 
 export type ProjectItem = {
   /**
-   * 项目 id
+   * 空间 id
    */
   id: string
   /**
-   * 项目名称
+   * 空间名称
    */
   name: string
   /**
-   * 项目状态:
+   * 空间状态:
    *
    * 0 - 已发布
    * 1 - 未发布
@@ -31,14 +31,14 @@ export type ProjectItem = {
    */
   creator: string
   /**
-   * 项目备注
+   * 空间备注
    */
   remark: string
 }
 
 export interface ProjectDetail extends ProjectItem {
   /**
-   * 项目参数
+   * 空间参数
    */
    content: string
 }

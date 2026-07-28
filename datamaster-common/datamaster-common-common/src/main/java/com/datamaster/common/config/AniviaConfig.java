@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * 读取项目相关配置
+ * 读取空间相关配置
  *
  * @author DATAMASTER
  */
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "datamaster")
 public class AniviaConfig
 {
-    /** 项目名称 */
+    /** 空间名称 */
     private String name;
 
     /** 版本 */

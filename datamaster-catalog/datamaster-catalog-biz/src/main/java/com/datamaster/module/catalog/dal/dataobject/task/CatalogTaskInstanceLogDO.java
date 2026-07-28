@@ -40,10 +40,10 @@ public class CatalogTaskInstanceLogDO extends BaseEntity {
     /** 日志内容 */
     private String logContent;
 
-    /** 项目ID */
+    /** 空间ID */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 是否有效 */

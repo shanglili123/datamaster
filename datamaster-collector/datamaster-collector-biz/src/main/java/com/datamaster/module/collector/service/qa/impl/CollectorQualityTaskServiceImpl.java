@@ -919,7 +919,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         if (StringUtils.isNotEmpty(projectCode)) {
             return projectCode;
         }
-        throw new ServiceException("质量任务未关联项目或关联的项目编码不存在");
+        throw new ServiceException("质量任务未关联空间或关联的空间编码不存在");
     }
 
     /**

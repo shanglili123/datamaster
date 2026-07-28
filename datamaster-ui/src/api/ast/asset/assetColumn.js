@@ -1,4 +1,4 @@
-﻿
+
 import request from '@/utils/request.js'
 
 // 查询数据资产字段列表
@@ -44,7 +44,7 @@ export function delDaAssetColumn(id) {
   })
 }
 
-// 查询数据资产字段与项目关联关系列表
+// 查询数据资产字段与空间关联关系列表
 export function listAssetColumnProjectRel(query) {
   return request({
     url: '/ast/assetColumnProjectRel/list',
@@ -53,7 +53,7 @@ export function listAssetColumnProjectRel(query) {
   })
 }
 
-// 查询数据资产字段与项目关联关系详细
+// 查询数据资产字段与空间关联关系详细
 export function getAssetColumnProjectRel(id) {
   return request({
     url: '/ast/assetColumnProjectRel/' + id,
@@ -61,7 +61,7 @@ export function getAssetColumnProjectRel(id) {
   })
 }
 
-// 新增数据资产字段与项目关联关系
+// 新增数据资产字段与空间关联关系
 export function addAssetColumnProjectRel(data) {
   return request({
     url: '/ast/assetColumnProjectRel',
@@ -70,7 +70,7 @@ export function addAssetColumnProjectRel(data) {
   })
 }
 
-// 修改数据资产字段与项目关联关系
+// 修改数据资产字段与空间关联关系
 export function updateAssetColumnProjectRel(data) {
   return request({
     url: '/ast/assetColumnProjectRel',
@@ -79,7 +79,7 @@ export function updateAssetColumnProjectRel(data) {
   })
 }
 
-// 删除数据资产字段与项目关联关系
+// 删除数据资产字段与空间关联关系
 export function delAssetColumnProjectRel(id) {
   return request({
     url: '/ast/assetColumnProjectRel/' + id,

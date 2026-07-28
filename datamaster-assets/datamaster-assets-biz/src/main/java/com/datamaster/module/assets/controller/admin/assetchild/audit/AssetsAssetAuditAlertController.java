@@ -44,7 +44,7 @@ public class AssetsAssetAuditAlertController extends BaseController {
     private IAssetsAssetAuditAlertService AssetsAssetAuditAlertService;
 
     @Operation(summary = "查询数据资产-质量预警列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditAlert:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditAlert:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetAuditAlertRespVO>> list(AssetsAssetAuditAlertPageReqVO AssetsAssetAuditAlert) {
         PageResult<AssetsAssetAuditAlertDO> page = AssetsAssetAuditAlertService.getAssetAuditAlertPage(AssetsAssetAuditAlert);
@@ -52,7 +52,7 @@ public class AssetsAssetAuditAlertController extends BaseController {
     }
 
     @Operation(summary = "导出数据资产-质量预警列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditAlert:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditAlert:export')")
     @Log(title = "数据资产-质量预警", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetAuditAlertPageReqVO exportReqVO) {
@@ -63,7 +63,7 @@ public class AssetsAssetAuditAlertController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产-质量预警列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditAlert:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditAlert:import')")
     @Log(title = "数据资产-质量预警", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -75,7 +75,7 @@ public class AssetsAssetAuditAlertController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产-质量预警详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditAlert:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditAlert:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetAuditAlertRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetAuditAlertDO AssetsAssetAuditAlertDO = AssetsAssetAuditAlertService.getAssetAuditAlertById(id);
@@ -83,7 +83,7 @@ public class AssetsAssetAuditAlertController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产-质量预警")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditAlert:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditAlert:add')")
     @Log(title = "数据资产-质量预警", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetAuditAlertSaveReqVO AssetsAssetAuditAlert) {
@@ -94,7 +94,7 @@ public class AssetsAssetAuditAlertController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产-质量预警")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditAlert:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditAlert:edit')")
     @Log(title = "数据资产-质量预警", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetAuditAlertSaveReqVO AssetsAssetAuditAlert) {
@@ -105,7 +105,7 @@ public class AssetsAssetAuditAlertController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产-质量预警")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditAlert:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditAlert:remove')")
     @Log(title = "数据资产-质量预警", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

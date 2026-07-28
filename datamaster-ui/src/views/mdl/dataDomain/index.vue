@@ -14,7 +14,7 @@
           plain
           icon="Plus"
           @click="handleAdd"
-          v-hasPermi="['dm:dataDomain:add']"
+          v-hasPermi="['mdl:dataDomain:add']"
         >
           新增
         </el-button>
@@ -27,7 +27,7 @@
             type="primary"
             icon="Edit"
             @click="handleUpdate(row)"
-            v-hasPermi="['dm:dataDomain:edit']"
+            v-hasPermi="['mdl:dataDomain:edit']"
           >
             修改
           </el-button>
@@ -36,7 +36,7 @@
             type="danger"
             icon="Delete"
             @click="handleDelete(row)"
-            v-hasPermi="['dm:dataDomain:remove']"
+            v-hasPermi="['mdl:dataDomain:remove']"
           >
             删除
           </el-button>
@@ -45,7 +45,7 @@
             type="primary"
             icon="View"
             @click="handleDetail(row)"
-            v-hasPermi="['dm:dataDomain:edit']"
+            v-hasPermi="['mdl:dataDomain:edit']"
           >
             详情
           </el-button>

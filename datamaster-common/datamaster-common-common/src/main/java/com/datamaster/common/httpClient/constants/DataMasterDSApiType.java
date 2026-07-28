@@ -65,29 +65,29 @@ public enum DataMasterDSApiType {
      */
     DELETE_PROCESS_DEFINITION_VERSION("11", "删除流程历史版本接口", "/projects/{projectCode}/workflow-definition/{code}/versions/{version}", "DELETE"),
 
-    //项目相关接口开始》》》》》》》》》
+    //空间相关接口开始》》》》》》》》》
 
     /**
-     * 通过项目ID查询项目信息接口
+     * 通过空间ID查询空间信息接口
      */
-    GET_PROJECT_INFO("12", "通过项目ID查询项目信息接口", "/v2/projects/{code}", "GET"),
+    GET_PROJECT_INFO("12", "通过空间ID查询空间信息接口", "/v2/projects/{code}", "GET"),
 
     /**
-     * 更新项目信息接口
+     * 更新空间信息接口
      */
-    UPDATE_PROJECT("13", "更新项目信息接口", "/v2/projects/{code}", "PUT"),
+    UPDATE_PROJECT("13", "更新空间信息接口", "/v2/projects/{code}", "PUT"),
 
     /**
-     * 删除项目接口
+     * 删除空间接口
      */
-    DELETE_PROJECT("14", "通过ID删除项目接口", "/v2/projects/{code}", "DELETE"),
+    DELETE_PROJECT("14", "通过ID删除空间接口", "/v2/projects/{code}", "DELETE"),
 
     /**
-     * 创建项目接口
+     * 创建空间接口
      */
-    CREATE_PROJECT("15", "创建项目接口", "/v2/projects", "POST"),
+    CREATE_PROJECT("15", "创建空间接口", "/v2/projects", "POST"),
 
-    //项目相关接口结束》》》》》》》》》
+    //空间相关接口结束》》》》》》》》》
     /**
      * 查询指定用户的access token接口
      */
@@ -179,9 +179,9 @@ public enum DataMasterDSApiType {
     CREATE_WORKER_GROUP("32", "创建工作组", "/worker-groups", "POST"),
 
     /**
-     * 将工作组绑定到项目
+     * 将工作组绑定到空间
      */
-    ASSIGN_WORKER_GROUP_TO_PROJECT("33", "将工作组绑定到项目", "/projects/{projectCode}/worker-group", "POST"),
+    ASSIGN_WORKER_GROUP_TO_PROJECT("33", "将工作组绑定到空间", "/projects/{projectCode}/worker-group", "POST"),
 
     /**
      * 删除工作组

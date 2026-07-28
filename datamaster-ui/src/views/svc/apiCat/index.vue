@@ -15,7 +15,7 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()"
-                        v-hasPermi="['att:apiCat:query']">
+                        v-hasPermi="['svc:apiCat:query']">
                         <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
                     </el-button>
                     <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
@@ -24,7 +24,7 @@
                 </el-form-item>
             </el-form>
             <div class="data-action-btns">
-                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:apiCat:add']"
+                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['svc:apiCat:add']"
                     @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-xinzeng mr5"></i>新增
                 </el-button>
@@ -93,11 +93,11 @@
                     width="240">
                     <template #default="scope">
                         <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                            v-hasPermi="['att:apiCat:edit']">修改</el-button>
+                            v-hasPermi="['svc:apiCat:edit']">修改</el-button>
                         <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)"
-                            v-hasPermi="['att:apiCat:add']">新增</el-button>
+                            v-hasPermi="['svc:apiCat:add']">新增</el-button>
                         <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                            v-hasPermi="['att:apiCat:remove']">删除</el-button>
+                            v-hasPermi="['svc:apiCat:remove']">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>

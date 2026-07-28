@@ -44,7 +44,7 @@ public class AssetsAssetApplyController extends BaseController {
     private IAssetsAssetApplyService AssetsAssetApplyService;
 
     @Operation(summary = "查询数据资产申请列表")
-    @PreAuthorize("@ss.hasPermi('da:assetApply:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApply:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetApplyRespVO>> list(AssetsAssetApplyPageReqVO AssetsAssetApply) {
         AssetsAssetApply.setOrderByColumn("status");
@@ -53,7 +53,7 @@ public class AssetsAssetApplyController extends BaseController {
     }
 
     @Operation(summary = "导出数据资产申请列表")
-    @PreAuthorize("@ss.hasPermi('da:assetApply:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApply:export')")
     @Log(title = "数据资产申请", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetApplyPageReqVO exportReqVO) {
@@ -64,7 +64,7 @@ public class AssetsAssetApplyController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产申请列表")
-    @PreAuthorize("@ss.hasPermi('da:assetApply:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApply:import')")
     @Log(title = "数据资产申请", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -76,7 +76,7 @@ public class AssetsAssetApplyController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产申请详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetApply:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApply:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetApplyRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetApplyDO AssetsAssetApplyDO = AssetsAssetApplyService.getAssetApplyById(id);
@@ -84,7 +84,7 @@ public class AssetsAssetApplyController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产申请")
-    @PreAuthorize("@ss.hasAnyPermi('da:assetApply:add,da:asset:asset:add')")
+    @PreAuthorize("@ss.hasAnyPermi('ast:assetApply:add,ast:asset:asset:add')")
     @Log(title = "数据资产申请", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetApplySaveReqVO AssetsAssetApply) {
@@ -95,7 +95,7 @@ public class AssetsAssetApplyController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产申请")
-    @PreAuthorize("@ss.hasPermi('da:assetApply:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApply:edit')")
     @Log(title = "数据资产申请", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetApplySaveReqVO AssetsAssetApply) {
@@ -106,7 +106,7 @@ public class AssetsAssetApplyController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产申请")
-    @PreAuthorize("@ss.hasPermi('da:assetApply:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApply:remove')")
     @Log(title = "数据资产申请", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

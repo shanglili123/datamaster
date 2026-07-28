@@ -64,7 +64,7 @@ public class AssetsAssetController extends BaseController {
     private ITaxonomyTagApiService taxonomyTagApiService;
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetRespVO>> list(AssetsAssetPageReqVO AssetsAsset) {
         PageResult<AssetsAssetDO> page = AssetsAssetService.getAssetPage(AssetsAsset, "1");
@@ -82,7 +82,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @GetMapping("/listAll")
     public CommonResult<List<AssetsAssetRespVO>> listAll(AssetsAssetPageReqVO AssetsAsset) {
         List<AssetsAssetDO> page = AssetsAssetService.getAssetListAll(AssetsAsset, "1");
@@ -124,7 +124,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('att:tag:query')")
+    @PreAuthorize("@ss.hasPermi('ast:tag:query')")
     @GetMapping("/listAssetTag")
     public CommonResult<PageResult<AssetsAssetRespVO>> listAssetTag(AssetsAssetPageReqVO AssetsAsset) {
         if (CollectionUtils.isEmpty(AssetsAsset.getTagIdList())) {
@@ -137,7 +137,7 @@ public class AssetsAssetController extends BaseController {
 
     @Deprecated
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @GetMapping("/dpp/list")
     public CommonResult<PageResult<AssetsAssetRespVO>> dppList(AssetsAssetPageReqVO AssetsAsset) {
         PageResult<AssetsAssetDO> page = AssetsAssetService.getCollectorAssetPage(AssetsAsset);
@@ -149,7 +149,7 @@ public class AssetsAssetController extends BaseController {
      */
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @GetMapping("/listByIds/{ids}")
     public CommonResult<PageResult<AssetsAssetRespVO>> list(@PathVariable("ids") List<Long> ids) {
         PageResult<AssetsAssetDO> page = AssetsAssetService.getAssetByIds(ids);
@@ -157,7 +157,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @GetMapping("/dpp/noPage/list")
     public AjaxResult dppNoPageList(AssetsAssetPageReqVO AssetsAsset) {
         List<AssetsAssetDO> AssetsAssetDOList = AssetsAssetService.getCollectorAssetNoPageList(AssetsAsset);
@@ -165,7 +165,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @GetMapping("/getTablesByDataSourceId")
     public AjaxResult getTablesByDataSourceId(AssetsAssetPageReqVO AssetsAsset) {
         List<AssetsAssetDO> tablesByDataSourceId = AssetsAssetService.getTablesByDataSourceId(AssetsAsset);
@@ -173,7 +173,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @GetMapping("/getAssetRespList")
     public CommonResult<List<AssetsAssetRespVO>> getAssetRespList(AssetsAssetPageReqVO AssetsAsset) {
         List<AssetsAssetDO> tablesByDataSourceId = AssetsAssetService.getAssetList(AssetsAsset);
@@ -181,7 +181,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:export')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:export')")
     @Log(title = "", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetPageReqVO exportReqVO) {
@@ -192,7 +192,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:import')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:import')")
     @Log(title = "", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -204,14 +204,14 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:query')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetRespVO> getInfo(@PathVariable("id") Long id) {
         return CommonResult.success(AssetsAssetService.getAssetById(id));
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:query')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:query')")
     @PostMapping(value = "/preview")
     public AjaxResult getPreview(@RequestBody JSONObject jsonObject) {
         if (StringUtils.isEmpty(jsonObject.getStr("id"))) {
@@ -242,7 +242,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     @Log(title = "", businessType = BusinessType.INSERT)
     @PostMapping("/bindResources")
     public CommonResult<Long> bindResources(@Valid
@@ -254,7 +254,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:add')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:add')")
     @Log(title = "", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid
@@ -266,8 +266,8 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:add')")
-// 也可以单独配 da:asset:batchAdd
+    @PreAuthorize("@ss.hasPermi('ast:asset:add')")
+// 也可以单独配 ast:asset:batchAdd
     @Log(title = "", businessType = BusinessType.INSERT)
     @PostMapping("/batch")
     public CommonResult<List<Long>> batchAdd(@Valid
@@ -284,7 +284,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     @Log(title = "", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid
@@ -296,7 +296,7 @@ public class AssetsAssetController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:asset:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:remove')")
     @Log(title = "", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ID}")
     public CommonResult<Integer> remove(@PathVariable Long ID) {

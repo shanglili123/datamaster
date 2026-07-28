@@ -68,7 +68,7 @@
                 {{ scope.row.themeName || "-" }}
               </template>
             </el-table-column>
-            <el-table-column v-if="getColumnVisibility(5)" label="申请项目" align="left" prop="projectName" width="150"
+            <el-table-column v-if="getColumnVisibility(5)" label="申请空间" align="left" prop="projectName" width="150"
               :show-overflow-tooltip="{ effect: 'light' }">
               <template #default="scope">
                 {{ scope.row.projectName || "-" }}
@@ -99,9 +99,9 @@
               class-name="small-padding fixed-width" fixed="right" width="140">
               <template #default="scope">
                 <el-button link v-if="scope.row.status == 1" type="primary" icon="Stamp"
-                  @click="handleUpdate(scope.row)" v-hasPermi="['da:assetApply:edit']">审核</el-button>
+                  @click="handleUpdate(scope.row)" v-hasPermi="['ast:assetApply:edit']">审核</el-button>
                 <el-button link type="primary" icon="view" @click="handleDetail(scope.row)"
-                  v-hasPermi="['da:assetApply:edit']">详情</el-button>
+                  v-hasPermi="['ast:assetApply:edit']">详情</el-button>
               </template>
             </el-table-column>
 
@@ -178,7 +178,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="申请项目" prop="projectCode">
+            <el-form-item label="申请空间" prop="projectCode">
               <div class="form-readonly">
                 {{ form.projectName }}
               </div>
@@ -282,7 +282,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="申请项目:" prop="projectName">
+            <el-form-item label="申请空间:" prop="projectName">
               <div class="form-readonly">
                 {{ form.projectName }}
               </div>
@@ -399,7 +399,7 @@ const columns = ref([
   { key: 2, label: "英文名称", visible: true },
   { key: 3, label: "资产类目", visible: true },
   { key: 4, label: "主题名称", visible: true },
-  { key: 5, label: "申请项目", visible: true },
+  { key: 5, label: "申请空间", visible: true },
   { key: 6, label: "申请时间", visible: true },
   { key: 7, label: "申请人", visible: true },
   { key: 8, label: "审核状态", visible: true },

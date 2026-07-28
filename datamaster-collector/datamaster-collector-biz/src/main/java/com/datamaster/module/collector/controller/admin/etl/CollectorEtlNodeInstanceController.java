@@ -61,7 +61,7 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     private ICollectorEtlNodeInstanceLogService CollectorEtlNodeInstanceLogService;
 
     @Operation(summary = "查询数据集成节点实例列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlNodeInstanceRespVO>> list(CollectorEtlNodeInstancePageReqVO CollectorEtlNodeInstance) {
         PageResult<CollectorEtlNodeInstanceDO> page = CollectorEtlNodeInstanceService.getCollectorEtlNodeInstancePage(CollectorEtlNodeInstance);
@@ -69,7 +69,7 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     }
 
     @Operation(summary = "导出数据集成节点实例列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:export')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:export')")
     @Log(title = "数据集成节点实例", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorEtlNodeInstancePageReqVO exportReqVO) {
@@ -80,7 +80,7 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     }
 
     @Operation(summary = "导入数据集成节点实例列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:import')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:import')")
     @Log(title = "数据集成节点实例", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -92,7 +92,7 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成节点实例详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEtlNodeInstanceRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorEtlNodeInstanceDO CollectorEtlNodeInstanceDO = CollectorEtlNodeInstanceService.getCollectorEtlNodeInstanceById(id);
@@ -100,7 +100,7 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     }
 
     @Operation(summary = "新增数据集成节点实例")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:add')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:add')")
     @Log(title = "数据集成节点实例", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorEtlNodeInstanceSaveReqVO CollectorEtlNodeInstance) {
@@ -111,7 +111,7 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     }
 
     @Operation(summary = "修改数据集成节点实例")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:edit')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:edit')")
     @Log(title = "数据集成节点实例", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorEtlNodeInstanceSaveReqVO CollectorEtlNodeInstance) {
@@ -122,7 +122,7 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     }
 
     @Operation(summary = "删除数据集成节点实例")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:remove')")
     @Log(title = "数据集成节点实例", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -130,7 +130,7 @@ public class CollectorEtlNodeInstanceController extends BaseController {
     }
 
     @Operation(summary = "查看日志详情")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:query')")
     @GetMapping(value = "/log/{id}")
     public AjaxResult getLogInfo(@PathVariable("id") Long id) {
         CollectorEtlNodeInstanceDO CollectorEtlNodeInstanceDO = CollectorEtlNodeInstanceService.getCollectorEtlNodeInstanceById(id);

@@ -1,7 +1,7 @@
 
 import request from '@/utils/request';
 
-// 查询项目列表
+// 查询空间列表
 export function listAttProject(query) {
     return request({
         url: '/tax/project/list',
@@ -10,7 +10,7 @@ export function listAttProject(query) {
     });
 }
 
-// 查询当前用户所属的项目列表
+// 查询当前用户所属的空间列表
 export function currentUser() {
     return request({
         url: '/tax/project/currentUser/list',
@@ -18,7 +18,7 @@ export function currentUser() {
     });
 }
 
-// 查询当前用户所属的项目列表
+// 查询当前用户所属的空间列表
 export function noProjectUser(query) {
     return request({
         url: '/tax/project/noProjectUser/list',
@@ -27,7 +27,7 @@ export function noProjectUser(query) {
     });
 }
 
-// 查询项目详细
+// 查询空间详细
 export function getAttProject(id) {
     return request({
         url: '/tax/project/' + id,
@@ -35,7 +35,7 @@ export function getAttProject(id) {
     });
 }
 
-// 获取当前用户是非具备用户添加和项目管理员
+// 获取当前用户是非具备用户添加和空间管理员
 export function addUserAndProject(id) {
     return request({
         url: '/tax/project/addUserAndProject/' + id,
@@ -51,7 +51,7 @@ export function editProjectStatus(id, status) {
     });
 }
 
-// 新增项目
+// 新增空间
 export function addAttProject(data) {
     return request({
         url: '/tax/project',
@@ -60,7 +60,7 @@ export function addAttProject(data) {
     });
 }
 
-// 修改项目
+// 修改空间
 export function updateAttProject(data) {
     return request({
         url: '/tax/project',
@@ -69,7 +69,7 @@ export function updateAttProject(data) {
     });
 }
 
-// 删除项目
+// 删除空间
 export function delAttProject(id) {
     return request({
         url: '/tax/project/' + id,

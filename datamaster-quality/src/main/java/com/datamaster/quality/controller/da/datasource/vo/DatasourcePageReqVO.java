@@ -49,7 +49,7 @@ public class DatasourcePageReqVO extends PageParam {
     @Schema(description = "描述", example = "")
     private String description;
 
-    @Schema(description = "项目编码", example = "")
+    @Schema(description = "空间编码", example = "")
     private String projectCode;
 
     @Schema(description = "数据源id集合", example = "")

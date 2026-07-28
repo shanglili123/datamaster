@@ -34,7 +34,7 @@
             </el-form-item>
           </el-form>
           <div class="data-action-btns">
-            <el-button type="primary" plain @click="routeToAdd('/svc/api/add')" v-hasPermi="['ds:api:add']"
+            <el-button type="primary" plain @click="routeToAdd('/svc/api/add')" v-hasPermi="['svc:api:add']"
               @mousedown="(e) => e.preventDefault()">
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
             </el-button>
@@ -127,11 +127,11 @@
               class-name="small-padding fixed-width" fixed="right" width="220">
               <template #default="scope">
                 <el-button link type="primary" icon="Edit" @click="routeTo('/svc/api/edit', scope.row)"
-                  v-hasPermi="['ds:api:edit']">修改</el-button>
+                  v-hasPermi="['svc:api:edit']">修改</el-button>
                 <el-button link type="primary" icon="view" @click="routeTo('/svc/api/detail', scope.row)"
-                  v-hasPermi="['ds:api:edit']">详情</el-button>
+                  v-hasPermi="['svc:api:edit']">详情</el-button>
                 <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                  v-hasPermi="['ds:api:remove']">删除</el-button>
+                  v-hasPermi="['svc:api:remove']">删除</el-button>
               </template>
             </el-table-column>
 

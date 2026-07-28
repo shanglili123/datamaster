@@ -21,10 +21,10 @@ public class AssetsAssetApplyRespDTO {
     /** 资产id */
     private Long assetId;
 
-    /** 项目id */
+    /** 空间id */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 申请理由 */

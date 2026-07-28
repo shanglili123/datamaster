@@ -26,7 +26,7 @@
                 </el-form-item>
             </el-form>
             <div class="data-action-btns">
-                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['da:sensitiveLevel:add']"
+                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['ast:sensitiveLevel:add']"
                     @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-xinzeng mr5"></i>新增
                 </el-button>
@@ -98,11 +98,11 @@
                     class-name="small-padding fixed-width" fixed="right" width="240">
                     <template #default="scope">
                         <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                            v-hasPermi="['da:sensitiveLevel:edit']">修改</el-button>
+                            v-hasPermi="['ast:sensitiveLevel:edit']">修改</el-button>
                         <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                            v-hasPermi="['da:sensitiveLevel:remove']">删除</el-button>
+                            v-hasPermi="['ast:sensitiveLevel:remove']">删除</el-button>
                         <!--           <el-button link type="primary" icon="view" @click="handleDetail(scope.row)"-->
-                        <!--                      v-hasPermi="['da:sensitiveLevel:edit']">详情</el-button>-->
+                        <!--                      v-hasPermi="['ast:sensitiveLevel:edit']">详情</el-button>-->
                     </template>
                 </el-table-column>
 

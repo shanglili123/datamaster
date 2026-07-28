@@ -32,7 +32,7 @@
               plain
               icon="Plus"
               @click="handleAdd"
-              v-hasPermi="['dm:dataLayer:add']"
+              v-hasPermi="['mdl:dataLayer:add']"
             >
               新增
             </el-button>
@@ -45,7 +45,7 @@
                 type="primary"
                 icon="Edit"
                 @click="handleUpdate(row)"
-                v-hasPermi="['dm:dataLayer:edit']"
+                v-hasPermi="['mdl:dataLayer:edit']"
               >
                 修改
               </el-button>
@@ -54,7 +54,7 @@
                 type="danger"
                 icon="Delete"
                 @click="handleDelete(row)"
-                v-hasPermi="['dm:dataLayer:remove']"
+                v-hasPermi="['mdl:dataLayer:remove']"
               >
                 删除
               </el-button>
@@ -63,7 +63,7 @@
                 type="primary"
                 icon="View"
                 @click="handleDetail(row)"
-                v-hasPermi="['dm:dataLayer:edit']"
+                v-hasPermi="['mdl:dataLayer:edit']"
               >
                 详情
               </el-button>

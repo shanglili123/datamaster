@@ -37,10 +37,10 @@ public class ModelingDataLayerSpecificationPageReqVO extends PageParam {
     @Schema(description = "描述", example = "")
     private String description;
 
-    @Schema(description = "项目ID")
+    @Schema(description = "空间ID")
     private Long projectId;
 
-    @Schema(description = "项目编码")
+    @Schema(description = "空间编码")
     private String projectCode;
 
 }

@@ -38,7 +38,7 @@ public interface SysRoleMapper
     public List<SysRole> selectRoleAll();
 
     /**
-     * 查询所有的角色根据项目id进行筛选
+     * 查询所有的角色根据空间id进行筛选
      *
      * @return 角色列表
      */
@@ -77,7 +77,7 @@ public interface SysRoleMapper
     public SysRole checkRoleNameUnique(String roleName);
 
     /**
-     * 校验角色名称是否唯一带项目id一起判断
+     * 校验角色名称是否唯一带空间id一起判断
      *
      * @param role 角色
      * @return 角色信息
@@ -93,7 +93,7 @@ public interface SysRoleMapper
     public SysRole checkRoleKeyUnique(String roleKey);
 
     /**
-     * 校验角色权限是否唯一带项目id一起判断
+     * 校验角色权限是否唯一带空间id一起判断
      *
      * @param role 角色
      * @return 角色信息

@@ -74,19 +74,19 @@
             <el-row :gutter="15" class="btn-style">
               <el-col :span="1.5">
                 <!-- <el-button type="primary" plain @click="handleAdd"
-                                    v-hasPermi="['att:rule:auditrule:add']" @mousedown="(e) => e.preventDefault()">
+                                    v-hasPermi="['tax:rule:auditrule:add']" @mousedown="(e) => e.preventDefault()">
                                     <i class="iconfont-mini icon-xinzeng mr5"></i>新增
                                 </el-button> -->
               </el-col>
               <!--                            <el-col :span="1.5">-->
               <!--                                <el-button type="primary" plain :disabled="single" @click="handleUpdate"-->
-              <!--                                    v-hasPermi="['att:rule:auditrule:edit']" @mousedown="(e) => e.preventDefault()">-->
+              <!--                                    v-hasPermi="['tax:rule:auditrule:edit']" @mousedown="(e) => e.preventDefault()">-->
               <!--                                    <i class="iconfont-mini icon-xiugai&#45;&#45;copy mr5"></i>修改-->
               <!--                                </el-button>-->
               <!--                            </el-col>-->
               <!--                            <el-col :span="1.5">-->
               <!--                                <el-button type="danger" plain :disabled="multiple" @click="handleDelete"-->
-              <!--                                    v-hasPermi="['att:rule:auditrule:remove']" @mousedown="(e) => e.preventDefault()">-->
+              <!--                                    v-hasPermi="['tax:rule:auditrule:remove']" @mousedown="(e) => e.preventDefault()">-->
               <!--                                    <i class="iconfont-mini icon-shanchu-huise mr5"></i>删除-->
               <!--                                </el-button>-->
               <!--                            </el-col>-->
@@ -197,9 +197,9 @@
                             width="120">
                             <template #default="scope">
                                 <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                                    v-hasPermi="['att:rule:auditrule:edit']">修改</el-button>
+                                    v-hasPermi="['tax:rule:auditrule:edit']">修改</el-button>
                                 <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                                    v-hasPermi="['att:rule:auditrule:remove']">删除</el-button>
+                                    v-hasPermi="['tax:rule:auditrule:remove']">删除</el-button>
                             </template>
                         </el-table-column> -->
 

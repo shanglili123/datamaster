@@ -15,7 +15,7 @@
           <el-input
             style="width: 150px;"
             v-model="queryParams.name"
-            placeholder="请输入项目名称"
+            placeholder="请输入空间名称"
             clearable
             @keyup.enter="handleQuery"
           />
@@ -44,7 +44,7 @@
             type="primary"
             @click="handleQuery"
             @mousedown="(e) => e.preventDefault()"
-            v-hasPermi="['att:project:query']"
+            v-hasPermi="['tax:project:query']"
           >
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
           </el-button>
@@ -58,8 +58,7 @@
           type="primary"
           plain
           @click="handleAdd"
-          v-hasPermi="['att:project:add']"
-          v-hasRole="['system']"
+          v-hasPermi="['tax:project:add']"
           @mousedown="(e) => e.preventDefault()"
         >
           <i class="iconfont-mini icon-xinzeng mr5"></i>新增
@@ -96,7 +95,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="项目名称"
+          label="空间名称"
           align="left"
           prop="name"
           v-if="getColumnVisibility(2)"
@@ -204,7 +203,7 @@
               type="primary"
               icon="Edit"
               @click="handleUpdate(scope.row)"
-              v-hasPermi="['att:project:edit']"
+              v-hasPermi="['tax:project:edit']"
               >修改</el-button
             >
             <el-button
@@ -212,14 +211,14 @@
               type="danger"
               icon="Delete"
               @click="handleDelete(scope.row)"
-              v-hasPermi="['att:project:remove']"
+              v-hasPermi="['tax:project:remove']"
               >删除</el-button
             >
             <el-button
               link
               type="primary"
               icon="view"
-              v-hasPermi="['att:project:query']"
+              v-hasPermi="['tax:project:query']"
               @click="handleDetail(scope.row)"
               >详情</el-button
             >
@@ -242,7 +241,7 @@
       />
     </div>
 
-    <!-- 新增或修改项目对话框 -->
+    <!-- 新增或修改空间对话框 -->
     <el-dialog
       :title="title"
       v-model="open"
@@ -264,8 +263,8 @@
       >
         <el-row :gutter="20">
           <el-col :span="24">
-            <el-form-item label="项目名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入项目名称" />
+            <el-form-item label="空间名称" prop="name">
+              <el-input v-model="form.name" placeholder="请输入空间名称" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -364,7 +363,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="24">
-            <el-form-item label="项目名称:" prop="name">
+            <el-form-item label="空间名称:" prop="name">
               <div class="form-readonly">
                 {{ form.name }}
               </div>
@@ -478,8 +477,8 @@ const attProjectList = ref([]);
 // 列显隐信息
 const columns = ref([
   { key: 1, label: "编号", visible: true },
-  { key: 2, label: "项目名称", visible: true },
-  { key: 3, label: "项目描述", visible: true },
+  { key: 2, label: "空间名称", visible: true },
+  { key: 3, label: "空间描述", visible: true },
   { key: 4, label: "负责人", visible: true },
   { key: 5, label: "联系方式", visible: true },
   { key: 6, label: "创建时间", visible: true },
@@ -534,7 +533,7 @@ const data = reactive({
   },
   rules: {
     managerId: [{ required: true, message: "负责人不能为空", trigger: "blur" }],
-    name: [{ required: true, message: "项目名称不能为空", trigger: "blur" }],
+    name: [{ required: true, message: "空间名称不能为空", trigger: "blur" }],
     // managerId: [{ required: true, message: "创建人不能为空", trigger: "blur" }],
     // validFlag: [{ required: true, message: '是否有效不能为空', trigger: 'change' }]
   },
@@ -542,7 +541,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
-/** 查询项目列表 */
+/** 查询空间列表 */
 function getList() {
   loading.value = true;
   listAttProject(queryParams.value).then((response) => {
@@ -578,7 +577,7 @@ function handleStatusChange(row) {
   const text = row.validFlag === true ? "启用" : "禁用";
   const status = row.validFlag === true ? 1 : 0;
   proxy.$modal
-    .confirm('确认要"' + text + '","' + row.name + '"项目吗？')
+    .confirm('确认要"' + text + '","' + row.name + '"空间吗？')
     .then(function () {
       editProjectStatus(row.id, status).then((response) => {
         proxy.$modal.msgSuccess(text + "成功");
@@ -641,7 +640,7 @@ function handleSortChange(column, prop, order) {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "新增项目";
+  title.value = "新增空间";
 }
 
 /** 修改按钮操作 */
@@ -654,7 +653,7 @@ function handleUpdate(row) {
     delete response.data.updateTime;
     form.value = response.data;
     open.value = true;
-    title.value = "修改项目";
+    title.value = "修改空间";
   });
 }
 
@@ -665,7 +664,7 @@ function handleDetail(row) {
   getAttProject(_id).then((response) => {
     form.value = response.data;
     openDetail.value = true;
-    title.value = "项目详情";
+    title.value = "空间详情";
   });
 }
 
@@ -701,7 +700,7 @@ function submitForm() {
 function handleDelete(row) {
   const _ids = row.id || ids.value;
   proxy.$modal
-    .confirm('是否确认删除项目编号为"' + _ids + '"的数据项？')
+    .confirm('是否确认删除空间编号为"' + _ids + '"的数据项？')
     .then(function () {
       return delAttProject(_ids);
     })
@@ -726,7 +725,7 @@ function handleExport() {
 /** ---------------- 导入相关操作 -----------------**/
 /** 导入按钮操作 */
 function handleImport() {
-  upload.title = "项目导入";
+  upload.title = "空间导入";
   upload.open = true;
 }
 

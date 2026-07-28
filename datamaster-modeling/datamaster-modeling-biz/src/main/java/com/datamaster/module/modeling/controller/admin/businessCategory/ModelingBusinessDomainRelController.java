@@ -46,7 +46,7 @@ public class ModelingBusinessDomainRelController extends BaseController {
     private IModelingBusinessDomainRelService ModelingBusinessDomainRelService;
 
     @Operation(summary = "查询业务分类数据域关联关系列表")
-    @PreAuthorize("@ss.hasPermi('dm:businessdomainrel:list')")
+    @PreAuthorize("@ss.hasPermi('mdl:businessdomainrel:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<ModelingBusinessDomainRelRespVO>> list(ModelingBusinessDomainRelPageReqVO ModelingBusinessDomainRel) {
         PageResult<ModelingBusinessDomainRelDO> page = ModelingBusinessDomainRelService.getModelingBusinessDomainRelPage(ModelingBusinessDomainRel);
@@ -54,7 +54,7 @@ public class ModelingBusinessDomainRelController extends BaseController {
     }
 
     @Operation(summary = "导出业务分类数据域关联关系列表")
-    @PreAuthorize("@ss.hasPermi('dm:businessdomainrel:export')")
+    @PreAuthorize("@ss.hasPermi('mdl:businessdomainrel:export')")
     @Log(title = "业务分类数据域关联关系", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, ModelingBusinessDomainRelPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class ModelingBusinessDomainRelController extends BaseController {
     }
 
     @Operation(summary = "导入业务分类数据域关联关系列表")
-    @PreAuthorize("@ss.hasPermi('dm:businessdomainrel:import')")
+    @PreAuthorize("@ss.hasPermi('mdl:businessdomainrel:import')")
     @Log(title = "业务分类数据域关联关系", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class ModelingBusinessDomainRelController extends BaseController {
     }
 
     @Operation(summary = "获取业务分类数据域关联关系详细信息")
-    @PreAuthorize("@ss.hasPermi('dm:businessdomainrel:query')")
+    @PreAuthorize("@ss.hasPermi('mdl:businessdomainrel:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<ModelingBusinessDomainRelRespVO> getInfo(@PathVariable("id") Long id) {
         ModelingBusinessDomainRelDO ModelingBusinessDomainRelDO = ModelingBusinessDomainRelService.getModelingBusinessDomainRelById(id);
@@ -85,7 +85,7 @@ public class ModelingBusinessDomainRelController extends BaseController {
     }
 
     @Operation(summary = "新增业务分类数据域关联关系")
-    @PreAuthorize("@ss.hasPermi('dm:businessdomainrel:add')")
+    @PreAuthorize("@ss.hasPermi('mdl:businessdomainrel:add')")
     @Log(title = "业务分类数据域关联关系", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody ModelingBusinessDomainRelSaveReqVO ModelingBusinessDomainRel) {
@@ -96,7 +96,7 @@ public class ModelingBusinessDomainRelController extends BaseController {
     }
 
     @Operation(summary = "修改业务分类数据域关联关系")
-    @PreAuthorize("@ss.hasPermi('dm:businessdomainrel:edit')")
+    @PreAuthorize("@ss.hasPermi('mdl:businessdomainrel:edit')")
     @Log(title = "业务分类数据域关联关系", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody ModelingBusinessDomainRelSaveReqVO ModelingBusinessDomainRel) {
@@ -107,7 +107,7 @@ public class ModelingBusinessDomainRelController extends BaseController {
     }
 
     @Operation(summary = "删除业务分类数据域关联关系")
-    @PreAuthorize("@ss.hasPermi('dm:businessdomainrel:remove')")
+    @PreAuthorize("@ss.hasPermi('mdl:businessdomainrel:remove')")
     @Log(title = "业务分类数据域关联关系", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -115,7 +115,7 @@ public class ModelingBusinessDomainRelController extends BaseController {
     }
 
     @Operation(summary = "删除业务分类数据域关联关系")
-    @PreAuthorize("@ss.hasPermi('dm:businessdomainrel:remove')")
+    @PreAuthorize("@ss.hasPermi('mdl:businessdomainrel:remove')")
     @Log(title = "业务分类数据域关联关系", businessType = BusinessType.DELETE)
     @DeleteMapping("/deletebyDomainId/{domainId}/{businessCategoryId}")
     public CommonResult<Integer> deletebyDomainId(@PathVariable Long domainId, @PathVariable Long businessCategoryId) {

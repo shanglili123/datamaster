@@ -146,7 +146,7 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
         }
         if (reqDTO.getProjectId() == null && StringUtils.isBlank(reqDTO.getProjectCode())) {
             respDTO.setAccessAllowed(true);
-            respDTO.setMessage("命中数据资产，但未传入项目上下文，跳过项目权限校验");
+            respDTO.setMessage("命中数据资产，但未传入空间上下文，跳过空间权限校验");
             return;
         }
         if (hasProjectRel(asset.getId(), reqDTO) || hasApprovedApply(asset.getId(), reqDTO)) {
@@ -155,11 +155,11 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
                 return;
             }
             respDTO.setAccessAllowed(true);
-            respDTO.setMessage("命中数据资产，项目已授权");
+            respDTO.setMessage("命中数据资产，空间已授权");
             return;
         }
         respDTO.setAccessAllowed(false);
-        respDTO.setMessage("当前项目无权访问数据资产：" + asset.getTableName());
+        respDTO.setMessage("当前空间无权访问数据资产：" + asset.getTableName());
     }
 
     private boolean hasProjectRel(Long assetId, AssetsTableGovernanceReqDTO reqDTO) {
@@ -217,7 +217,7 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
         if (!denied.isEmpty()) {
             respDTO.setAccessAllowed(false);
             respDTO.setDeniedColumns(new ArrayList<>(denied));
-            respDTO.setMessage("当前项目无权访问字段：" + String.join(",", denied));
+            respDTO.setMessage("当前空间无权访问字段：" + String.join(",", denied));
         }
     }
 

@@ -18,7 +18,7 @@ public class SysRoleMenu
     /** 菜单ID */
     private Long menuId;
 
-    /** 项目ID */
+    /** 空间ID */
     private Long projectId;
 
     public Long getProjectId() {

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
     <el-row :gutter="15">
       <el-col :span="12" class="card-box">
@@ -121,7 +121,7 @@
                   <td colspan="3" class="el-table__cell is-leaf"><div class="cell" v-if="server.jvm">{{ server.jvm.home }}</div></td>
                 </tr>
                 <tr>
-                  <td colspan="1" class="el-table__cell is-leaf"><div class="cell">项目路径</div></td>
+                  <td colspan="1" class="el-table__cell is-leaf"><div class="cell">空间路径</div></td>
                   <td colspan="3" class="el-table__cell is-leaf"><div class="cell" v-if="server.sys">{{ server.sys.userDir }}</div></td>
                 </tr>
                 <tr>

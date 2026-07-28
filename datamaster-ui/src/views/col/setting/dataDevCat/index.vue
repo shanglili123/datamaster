@@ -5,7 +5,7 @@
       :queryParams="queryParams"
       :showSearch="showSearch"
       :showAddBtn="true"
-      :addPermission="['att:dataDevCat:add']"
+      :addPermission="['col:dataDevCat:add']"
       :showToggleBtn="true"
       :isExpandAll="isExpandAll"
       @query="handleQuery"
@@ -81,11 +81,11 @@
                     width="240">
                     <template #default="scope">
                         <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                            v-hasPermi="['att:dataDevCat:edit']">修改</el-button>
+                            v-hasPermi="['col:dataDevCat:edit']">修改</el-button>
                         <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)"
-                            v-hasPermi="['att:dataDevCat:add']">新增</el-button>
+                            v-hasPermi="['col:dataDevCat:add']">新增</el-button>
                         <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                            v-hasPermi="['att:dataDevCat:remove']">删除</el-button>
+                            v-hasPermi="['col:dataDevCat:remove']">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>

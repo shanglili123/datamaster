@@ -15,7 +15,7 @@
               :params="tableStroe.params"
               @query="handleQueryClick"
               @reset="handleResetQueryClick"
-              :config="{ permi: ['mc:unreleased:structured:table:query'] }"
+              :config="{ permi: ['cat:unreleased:structured:table:query'] }"
             />
           </template>
           <template #actions-data>

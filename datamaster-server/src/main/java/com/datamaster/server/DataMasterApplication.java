@@ -41,6 +41,6 @@ public class DataMasterApplication
         // System.setProperty("spring.devtools.restart.enabled", "false");
         SpringApplication.run(DataMasterApplication.class, args);
 
-        System.out.println("==========项目已启动===========");
+        System.out.println("==========空间已启动===========");
     }
 }

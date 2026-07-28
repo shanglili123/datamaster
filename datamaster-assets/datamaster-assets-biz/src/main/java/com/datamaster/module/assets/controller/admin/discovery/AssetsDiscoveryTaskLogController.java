@@ -9,35 +9,35 @@ public class AssetsDiscoveryTaskLogController extends BaseController {
     private IAssetsDiscoveryTaskLogService AssetsDiscoveryTaskLogService;
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:list')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:list')")
     @GetMapping("/list")    public CommonResult<PageResult<AssetsDiscoveryTaskLogRespVO>> list(AssetsDiscoveryTaskLogPageReqVO AssetsDiscoveryTaskLog) {        PageResult<AssetsDiscoveryTaskLogDO> page = AssetsDiscoveryTaskLogService.getDaDiscoveryTaskLogPage(AssetsDiscoveryTaskLog);        return CommonResult.success(BeanUtils.toBean(page, AssetsDiscoveryTaskLogRespVO.class));    }
 @Operation(summary = "")
-@PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:export')")
+@PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:export')")
 @Log(title = "", businessType = BusinessType.EXPORT)
 @PostMapping("/export")    public void export(HttpServletResponse response, AssetsDiscoveryTaskLogPageReqVO exportReqVO) {        exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);        List<AssetsDiscoveryTaskLogDO> list = (List<AssetsDiscoveryTaskLogDO>) AssetsDiscoveryTaskLogService                .getDaDiscoveryTaskLogPage(exportReqVO).getRows();        ExcelUtil<AssetsDiscoveryTaskLogRespVO> util = new ExcelUtil<>(AssetsDiscoveryTaskLogRespVO.class);        util.exportExcel(response, AssetsDiscoveryTaskLogConvert.INSTANCE.convertToRespVOList(list), "");    }
 @Operation(summary = "")
-@PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:import')")
+@PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:import')")
 @Log(title = "", businessType = BusinessType.IMPORT)
 @PostMapping("/importData")    public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {        ExcelUtil<AssetsDiscoveryTaskLogRespVO> util = new ExcelUtil<>(AssetsDiscoveryTaskLogRespVO.class);        List<AssetsDiscoveryTaskLogRespVO> importExcelList = util.importExcel(file.getInputStream());        String operName = getUsername();        String message = AssetsDiscoveryTaskLogService.importDaDiscoveryTaskLog(importExcelList, updateSupport, operName);        return success(message);    }
 @Operation(summary = "")
-@PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:query')")
+@PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:query')")
 @GetMapping(value = "/{id}")    public CommonResult<AssetsDiscoveryTaskLogRespVO> getInfo(@PathVariable("id") Long id) {        AssetsDiscoveryTaskLogDO AssetsDiscoveryTaskLogDO = AssetsDiscoveryTaskLogService.getDaDiscoveryTaskLogById(id);        return CommonResult.success(BeanUtils.toBean(AssetsDiscoveryTaskLogDO, AssetsDiscoveryTaskLogRespVO.class));    }
 @Operation(summary = "")
-@PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:add')")
+@PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:add')")
 @Log(title = "", businessType = BusinessType.INSERT)
 @PostMapping    public CommonResult<Long> add(@Valid
     @RequestBody AssetsDiscoveryTaskLogSaveReqVO AssetsDiscoveryTaskLog) {        AssetsDiscoveryTaskLog.setCreatorId(getUserId());        AssetsDiscoveryTaskLog.setCreateBy(getNickName());        AssetsDiscoveryTaskLog.setCreateTime(DateUtil.date());        return CommonResult.toAjax(AssetsDiscoveryTaskLogService.createDaDiscoveryTaskLog(AssetsDiscoveryTaskLog));    }
 @Operation(summary = "")
-@PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:edit')")
+@PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:edit')")
 @Log(title = "", businessType = BusinessType.UPDATE)
 @PutMapping    public CommonResult<Integer> edit(@Valid
     @RequestBody AssetsDiscoveryTaskLogSaveReqVO AssetsDiscoveryTaskLog) {        AssetsDiscoveryTaskLog.setUpdatorId(getUserId());        AssetsDiscoveryTaskLog.setUpdateBy(getNickName());        AssetsDiscoveryTaskLog.setUpdateTime(DateUtil.date());        return CommonResult.toAjax(AssetsDiscoveryTaskLogService.updateDaDiscoveryTaskLog(AssetsDiscoveryTaskLog));    }
 @Operation(summary = "")
-@PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:remove')")
+@PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:remove')")
 @Log(title = "", businessType = BusinessType.DELETE)
 @DeleteMapping("/{ids}")    public CommonResult<Integer> remove(@PathVariable Long[] ids) {        return CommonResult.toAjax(AssetsDiscoveryTaskLogService.removeDaDiscoveryTaskLog(Arrays.asList(ids)));
     }
-@PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:list')")
+@PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:list')")
 @RequestMapping(value = "/logDetailCat", method = RequestMethod.GET)
 @Operation(summary = "")    public ReturnT<LogResult> logDetailCat(Long id, Long dsTaskInstanceId, String handleMsg) {
 // 添加日志审计功能
@@ -52,7 +52,7 @@ public class AssetsDiscoveryTaskLogController extends BaseController {
     logger.error(e.getMessage(), e);
     return new ReturnT<>(ReturnT.FAIL_CODE, "暂未找到日志文件信息");
         }    }
-@PreAuthorize("@ss.hasPermi('da:discoveryTaskLog:list')")
+@PreAuthorize("@ss.hasPermi('ast:discoveryTaskLog:list')")
 @RequestMapping(value = "/downloadLog", method = {RequestMethod.GET, RequestMethod.POST})
 @Operation(summary = "")    public void downloadLog(HttpServletResponse response, Long id, Long dsTaskInstanceId, String handleMsg) {
 // 添加日志审计功能
@@ -85,6 +85,6 @@ public class AssetsDiscoveryTaskLogController extends BaseController {
             }        }    }
 @Operation(summary = "")
 //
-    @PreAuthorize("@ss.hasPermi('dpp:etlNodeInstance:query')")
+    @PreAuthorize("@ss.hasPermi('col:etlNodeInstance:query')")
 @GetMapping(value = "/log/{id}")    public AjaxResult getLogInfo(@PathVariable("id") Long id) {        return AjaxResult.success(AssetsDiscoveryTaskLogService.getLogInfo(id));
     }}

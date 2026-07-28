@@ -71,10 +71,10 @@ public class ModelingBusinessCategoryDO extends BaseEntity {
 //    @TableField(exist = false)
 //    private List<ModelingDataDomainDO> dataDomainList;
 
-    /** 项目ID */
+    /** 空间ID */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 是否有效;0：无效，1：有效 */

@@ -100,10 +100,10 @@ public class CatalogTaskSchedulerRespVO implements Serializable {
     @Schema(description = "备注", example = "")
     private String remark;
 
-    /** 项目ID */
+    /** 空间ID */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
 }

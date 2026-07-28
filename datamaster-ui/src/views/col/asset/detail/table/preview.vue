@@ -4,7 +4,7 @@
         <div class="justify-between mb15">
             <el-row :gutter="15" class="btn-style">
                 <el-col :span="1.5" v-if="form1.type != '6'">
-                    <el-button type="primary" plain @click="handleAdd" v-hasPermi="['da:assetColumn:assetcolumn:add']"
+                    <el-button type="primary" plain @click="handleAdd" v-hasPermi="['ast:assetColumn:assetcolumn:add']"
                         :loading="loading" @mousedown="(e) => e.preventDefault()">
                         <i class="iconfont-mini icon-xinzeng mr5"></i>新增
                     </el-button>
@@ -93,11 +93,11 @@
             v-if="tableColumns && form1.type != '6'" width="150px">
             <template #default="scope">
                 <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                    v-hasPermi="['da:asset:edit']">修改</el-button>
+                    v-hasPermi="['ast:asset:edit']">修改</el-button>
                 <el-button link type="primary" icon="view" @click="openHistory(scope.row)"
-                    v-hasPermi="['da:asset:edit']">修改记录</el-button>
+                    v-hasPermi="['ast:asset:edit']">修改记录</el-button>
                 <!-- <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                    v-hasPermi="['da:asset:asset:remove']">删除</el-button> -->
+                    v-hasPermi="['ast:asset:asset:remove']">删除</el-button> -->
             </template>
         </el-table-column>
 

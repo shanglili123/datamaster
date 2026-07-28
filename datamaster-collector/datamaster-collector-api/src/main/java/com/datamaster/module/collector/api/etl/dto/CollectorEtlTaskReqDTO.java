@@ -31,10 +31,10 @@ public class CollectorEtlTaskReqDTO {
     /** 任务版本 */
     private Long version;
 
-    /** 项目id */
+    /** 空间id */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     @Schema(description = "任务的执行策略", example = "")

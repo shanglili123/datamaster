@@ -32,9 +32,9 @@
         </el-form>
         <div class="data-action-btns">
             <el-button type="primary" plain icon="Plus" @click="handleAdd"
-                v-hasPermi="['att:project:role:add']">新增</el-button>
+                v-hasPermi="['col:project:role:add']">新增</el-button>
             <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete"
-                v-hasPermi="['att:project:role:remove']">删除</el-button>
+                v-hasPermi="['col:project:role:remove']">删除</el-button>
         </div>
         <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
@@ -69,10 +69,10 @@
             <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
                 <template #default="scope">
                     <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                        v-hasPermi="['att:project:role:edit']"
+                        v-hasPermi="['col:project:role:edit']"
                         v-if="scope.row.roleId !== 1 || scope.row.builtInOrNot">修改</el-button>
                     <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                        v-hasPermi="['att:project:role:remove']" v-if="
+                        v-hasPermi="['col:project:role:remove']" v-if="
                             (scope.row.roleId !== 1 && scope.row.roleId !== 3) ||
                             scope.row.builtInOrNot
                         ">删除</el-button>

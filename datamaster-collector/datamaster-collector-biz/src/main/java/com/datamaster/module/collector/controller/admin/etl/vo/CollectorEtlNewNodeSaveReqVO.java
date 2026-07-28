@@ -41,15 +41,15 @@ public class CollectorEtlNewNodeSaveReqVO extends BaseEntity {
     @Parameter(name = "catCode", description = "联系电话")
     private String contactNumber;
 
-    @Parameter(name = "projectCode", description = "项目编码", required = true)
-    @NotNull(message = "项目编码不能为空")
+    @Parameter(name = "projectCode", description = "空间编码", required = true)
+    @NotNull(message = "空间编码不能为空")
     private Long projectCode;
 
     @Schema(description = "任务类型", example = "")
     @Size(max = 256, message = "任务类型长度不能超过256个字符")
     private String type;
 
-    @Schema(description = "项目id", example = "")
+    @Schema(description = "空间id", example = "")
     private Long projectId;
 
     @Parameter(name = "name", description = "名称", required = true)

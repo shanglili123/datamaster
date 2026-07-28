@@ -54,7 +54,7 @@ public interface ISysUserService
     public SysUser selectUserById(Long userId);
 
     /**
-     * 通过用户ID和项目ID查询用户
+     * 通过用户ID和空间ID查询用户
      *
      * @param userId 用户ID
      * @param projectId 用户ID

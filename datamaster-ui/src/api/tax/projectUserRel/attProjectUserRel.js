@@ -1,8 +1,8 @@
-﻿
+
 import request from '@/utils/request';
 import useUserStore from '@/store/system/user';
 
-// 查询项目与用户关联关系列表
+// 查询空间与用户关联关系列表
 export function listAttProjectUserRel(query) {
     return request({
         url: '/tax/projectUserRel/list',
@@ -11,7 +11,7 @@ export function listAttProjectUserRel(query) {
     });
 }
 
-// 查询项目与用户关联关系详细
+// 查询空间与用户关联关系详细
 export function getAttProjectUserRel(id) {
     return request({
         url: '/tax/projectUserRel/' + id,
@@ -19,7 +19,7 @@ export function getAttProjectUserRel(id) {
     });
 }
 
-// 查询项目与用户关联关系详细
+// 查询空间与用户关联关系详细
 export function getRoleUser(id) {
     return request({
         url: '/tax/projectUserRel/roleUser/' + id,
@@ -27,7 +27,7 @@ export function getRoleUser(id) {
     });
 }
 
-// 新增项目与用户关联关系
+// 新增空间与用户关联关系
 export function addAttProjectUserRel(data) {
     return request({
         url: '/tax/projectUserRel',
@@ -36,7 +36,7 @@ export function addAttProjectUserRel(data) {
     });
 }
 
-// 新增项目与用户关联关系
+// 新增空间与用户关联关系
 export function addUserListAndRoleList(data) {
     return request({
         url: '/tax/projectUserRel/addUserListAndRoleList',
@@ -45,7 +45,7 @@ export function addUserListAndRoleList(data) {
     });
 }
 
-// 修改项目与用户关联关系
+// 修改空间与用户关联关系
 export function updateAttProjectUserRel(data) {
     return request({
         url: '/tax/projectUserRel',
@@ -54,7 +54,7 @@ export function updateAttProjectUserRel(data) {
     });
 }
 
-// 修改项目与用户关联关系
+// 修改空间与用户关联关系
 export function editUserListAndRoleList(data) {
     return request({
         url: '/tax/projectUserRel/editUserListAndRoleList',
@@ -63,7 +63,7 @@ export function editUserListAndRoleList(data) {
     });
 }
 
-// 删除项目与用户关联关系
+// 删除空间与用户关联关系
 export function delAttProjectUserRel(id) {
     return request({
         url: '/tax/projectUserRel/' + id,

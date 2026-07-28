@@ -38,7 +38,7 @@ public class SysDictTypeServiceImpl implements ISysDictTypeService, ISystemDictD
     private SysDictDataMapper dictDataMapper;
 
     /**
-     * 项目启动时，初始化字典到缓存
+     * 空间启动时，初始化字典到缓存
      */
     @PostConstruct
     public void init()

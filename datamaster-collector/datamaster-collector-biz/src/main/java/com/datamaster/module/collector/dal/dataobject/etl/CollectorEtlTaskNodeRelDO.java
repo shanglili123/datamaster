@@ -23,10 +23,10 @@ public class CollectorEtlTaskNodeRelDO extends BaseEntity {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-/** 项目id */
+/** 空间id */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 任务id */

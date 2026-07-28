@@ -61,15 +61,15 @@ public class AssetsDatasourceController extends BaseController {
     private final IDbGptDatasourceSyncService dbGptDatasourceSyncService;
 
     @Operation(summary = "查询数据源列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:list')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsDatasourceRespVO>> list(AssetsDatasourcePageReqVO AssetsDatasource) {
         PageResult<AssetsDatasourceDO> page = AssetsDatasourceService.getDatasourcePage(AssetsDatasource);
         return CommonResult.success(BeanUtils.toBean(page, AssetsDatasourceRespVO.class));
     }
 
-    @Operation(summary = "数据集成中排除Kafka并且是当前项目的数据源列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:list')")
+    @Operation(summary = "数据集成中排除Kafka并且是当前空间的数据源列表")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:list')")
     @GetMapping("/dppNoKafka/list")
     public AjaxResult dppNoKafkaList(AssetsDatasourcePageReqVO AssetsDatasource) {
         List<AssetsDatasourceDO> page = AssetsDatasourceService.getDatasourceDppNoKafka(AssetsDatasource);
@@ -77,15 +77,15 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "数据研发中的查询数据源列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:list')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:list')")
     @GetMapping("/dpp/list")
     public CommonResult<PageResult<AssetsDatasourceRespVO>> dppList(AssetsDatasourcePageReqVO AssetsDatasource) {
         PageResult<AssetsDatasourceDO> page = AssetsDatasourceService.getDatasourceDppPage(AssetsDatasource);
         return CommonResult.success(BeanUtils.toBean(page, AssetsDatasourceRespVO.class));
     }
 
-    @Operation(summary = "查询项目列表，让研发模块添加的数据不可选中")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:list')")
+    @Operation(summary = "查询空间列表，让研发模块添加的数据不可选中")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:list')")
     @GetMapping("/noDppAdd/list")
     public CommonResult<PageResult<TaxonomyProjectRespDTO>> noDppAddList(TaxonomyProjectReqDTO pageReqVO) {
         PageResult<TaxonomyProjectRespDTO> page = AssetsDatasourceService.getNoDppAddList(pageReqVO);
@@ -93,7 +93,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "查询数据资产的数据源连接信息")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @GetMapping("/getDataSourceByAsset")
     public AjaxResult getDataSourceByAsset(AssetsDatasourceRespVO AssetsAsset) {
         List<AssetsDatasourceDO> AssetsAssetDOS = AssetsDatasourceService.getDataSourceByAsset(AssetsAsset);
@@ -101,7 +101,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "查询数据源列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:list')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:list')")
     @GetMapping("/getDatasourceList")
     public CommonResult<List<AssetsDatasourceRespVO>> getDatasourceList(AssetsDatasourcePageReqVO AssetsDatasource) {
         List<AssetsDatasourceDO> page = AssetsDatasourceService.getDatasourceList(AssetsDatasource);
@@ -109,7 +109,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "数据查询数据源列表")
-    @PreAuthorize("@ss.hasPermi('da:dataQuery:list')")
+    @PreAuthorize("@ss.hasPermi('ast:dataQuery:list')")
     @GetMapping("/query/list")
     public CommonResult<PageResult<AssetsDatasourceRespVO>> queryDatasourceList(AssetsDatasourcePageReqVO AssetsDatasource) {
         PageResult<AssetsDatasourceDO> page = AssetsDatasourceService.getDatasourcePage(AssetsDatasource);
@@ -117,7 +117,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "导出数据源列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:export')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:export')")
     @Log(title = "数据源", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsDatasourcePageReqVO exportReqVO) {
@@ -128,7 +128,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "导入数据源列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:import')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:import')")
     @Log(title = "数据源", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -140,7 +140,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "获取数据源详细信息")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:query')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsDatasourceRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsDatasourceDO AssetsDatasourceDO = AssetsDatasourceService.getDatasourceDOById(id);
@@ -148,7 +148,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "新增数据源")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:add')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:add')")
     @Log(title = "数据源", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsDatasourceSaveReqVO AssetsDatasource) {
@@ -159,7 +159,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "修改数据源")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:edit')")
     @Log(title = "数据源", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsDatasourceSaveReqVO AssetsDatasource) {
@@ -170,7 +170,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "删除数据源")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:remove')")
     @Log(title = "数据源", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -178,7 +178,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "修改数据源状态")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:edit')")
     @GetMapping(value = "/editDatasourceStatus/{id}/{status}")
     public AjaxResult editDatasourceStatus(@PathVariable Long id, @PathVariable Long status) {
         Boolean isOk = AssetsDatasourceService.editDatasourceStatus(id, status);
@@ -189,7 +189,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "删除数据源带类型判断是数据资产还是数据研发")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:remove')")
     @Log(title = "数据源", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}/{type}")
     public CommonResult<Integer> removeDppOrDa(@PathVariable("ids") Long[] ids, @PathVariable("type") Long type) {
@@ -197,7 +197,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "测试连接")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:remove')")
     @Log(title = "测试连接", businessType = BusinessType.DELETE)
     @GetMapping("clientsTest/{id}")
     public AjaxResult clientsTest(@PathVariable("id") Long ids) {
@@ -205,7 +205,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "同步数据源到调度平台")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:edit')")
     @Log(title = "数据源", businessType = BusinessType.UPDATE)
     @GetMapping("syncToDs/{id}")
     public AjaxResult syncToDs(@PathVariable("id") Long id) {
@@ -213,7 +213,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "同步数据源到AI问数")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:edit')")
     @Log(title = "数据源", businessType = BusinessType.UPDATE)
     @PostMapping("syncToDbgpt/{id}")
     public AjaxResult syncToDbgpt(@PathVariable("id") Long id) {
@@ -221,7 +221,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "同步全部数据源到AI问数")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:edit')")
     @Log(title = "数据源", businessType = BusinessType.UPDATE)
     @PostMapping("syncAllToDbgpt")
     public AjaxResult syncAllToDbgpt() {
@@ -229,7 +229,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "获取数据源里面的数据表")
-    @PreAuthorize("@ss.hasAnyPermi('da:dataSource:query,da:dataQuery:list')")
+    @PreAuthorize("@ss.hasAnyPermi('ast:dataSource:query,ast:dataQuery:list')")
     @GetMapping(value = "/tableList/{id}")
     public AjaxResult getTableList(@PathVariable("id") Long id) {
         List<DbTable> tables = AssetsDatasourceService.getDbTables(id);
@@ -237,7 +237,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "获取数据源里面的数据表的数据字段")
-    @PreAuthorize("@ss.hasAnyPermi('da:dataSource:query,da:dataQuery:list')")
+    @PreAuthorize("@ss.hasAnyPermi('ast:dataSource:query,ast:dataQuery:list')")
     @PostMapping(value = "/columnsList")
     public AjaxResult getColumnsList(@RequestBody JSONObject jsonObject) {
         List<StandardsModelColumnReqDTO> columns = AssetsDatasourceService.getColumnsList(jsonObject);
@@ -245,7 +245,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "SQL解析")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:query')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:query')")
     @PostMapping("/sqlParse")
     public AjaxResult sqlParse(@RequestBody JSONObject jsonObject) {
         if (StringUtils.isEmpty(jsonObject.getStr("sourceId"))) {
@@ -260,7 +260,7 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "获取数据源里面的数据表的数据字段")
-    @PreAuthorize("@ss.hasAnyPermi('da:dataSource:query,da:dataQuery:list')")
+    @PreAuthorize("@ss.hasAnyPermi('ast:dataSource:query,ast:dataQuery:list')")
     @PostMapping(value = "/columnsAsAssetColumnList")
     public CommonResult<List<AssetsAssetColumnDO>> columnsAsAssetColumnList(@RequestBody @Valid AssetsDatasourceTableVO param) {
         List<AssetsAssetColumnDO> columns = AssetsDatasourceService.columnsAsAssetColumnList(param.getId(), param.getTableName());
@@ -302,21 +302,21 @@ public class AssetsDatasourceController extends BaseController {
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:dataQuery:list')")
+    @PreAuthorize("@ss.hasPermi('ast:dataQuery:list')")
     @GetMapping(value = "/executeSqlQuery")
     public AjaxResult executeSqlQuery(AssetsDatasourcePageReqVO AssetsDatasource) {
         return success(AssetsDatasourceService.executeSqlQuery(AssetsDatasource));
     }
 
     @Operation(summary = "")
-    @PreAuthorize("@ss.hasPermi('da:dataQuery:list')")
+    @PreAuthorize("@ss.hasPermi('ast:dataQuery:list')")
     @GetMapping(value = "/exportSqlQueryResult/export")
     public void exportSqlQueryResult(HttpServletResponse response, AssetsDatasourcePageReqVO AssetsDatasource) {
         AssetsDatasourceService.exportSqlQueryResult(response, AssetsDatasource);
     }
 
     @Operation(summary = "创建表(数据集成)")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:query')")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:query')")
     @PostMapping("/createTaskTempTable")
     public AjaxResult createTaskTempTable(@RequestBody JSONObject jsonObject) {
         DatasourceCreaTeTableReqDTO dto = new DatasourceCreaTeTableReqDTO();

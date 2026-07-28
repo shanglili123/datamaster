@@ -3,13 +3,13 @@
     <div class="justify-between mb15">
         <el-row :gutter="15" class="btn-style">
             <!--      <el-col :span="1.5">-->
-            <!--        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['da:assetColumn:assetcolumn:add']"-->
+            <!--        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['ast:assetColumn:assetcolumn:add']"-->
             <!--                   @mousedown="(e) => e.preventDefault()">-->
             <!--          <i class="iconfont-mini icon-xinzeng mr5"></i>新增-->
             <!--        </el-button>-->
             <!--      </el-col>-->
             <!--      <el-col :span="1.5">-->
-            <!--        <el-button type="warning" plain @click="handleExport" v-hasPermi="['da:assetColumn:assetcolumn:export']"-->
+            <!--        <el-button type="warning" plain @click="handleExport" v-hasPermi="['ast:assetColumn:assetcolumn:export']"-->
             <!--                   @mousedown="(e) => e.preventDefault()">-->
             <!--          <i class="iconfont-mini icon-download-line mr5"></i>导出-->
             <!--        </el-button>-->
@@ -116,7 +116,7 @@
             fixed="right" width="100">
             <template #default="scope">
                 <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                    v-hasPermi="['da:assetColumn:edit']">修改</el-button>
+                    v-hasPermi="['ast:assetColumn:edit']">修改</el-button>
             </template>
         </el-table-column>
 

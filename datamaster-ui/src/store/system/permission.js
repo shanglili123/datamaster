@@ -1,4 +1,4 @@
-﻿
+
 import auth from '@/plugins/auth';
 import router, { constantRoutes, dynamicRoutes } from '@/router';
 import { getRouters } from '@/api/system/menu.js';
@@ -16,13 +16,14 @@ const homeRoute = {
     meta: { title: '首页', icon: 'dashboard', affix: true }
 };
 
-const homeMenuTitles = ['首页', '系统管理', '日志管理'];
+const homeMenuTitles = ['首页', '系统管理', '日志管理', '系统监控', '监控运维', '运维管理'];
 
 const usePermissionStore = defineStore('permission', {
     state: () => ({
         routes: [],
         addRoutes: [],
         defaultRoutes: [],
+        homeRoutes: [],
         topbarRouters: [],
         sidebarRouters: [],
         menuMode: 'home'
@@ -37,6 +38,9 @@ const usePermissionStore = defineStore('permission', {
         },
         setDefaultRoutes(routes) {
             this.defaultRoutes = constantRoutes.concat(routes);
+        },
+        setHomeRoutes(routes) {
+            this.homeRoutes = constantRoutes.concat(routes);
         },
         setTopbarRoutes(routes) {
             this.topbarRouters = routes;
@@ -65,7 +69,9 @@ const usePermissionStore = defineStore('permission', {
                     this.setRoutes(rewriteRoutes);
                     this.setMenuMode('home');
                     this.setSidebarRouters([]);
-                    this.setDefaultRoutes(filterHomeMenus(sidebarRoutes));
+                    const homeSidebarRoutes = filterHomeMenus(sidebarRoutes);
+                    this.setDefaultRoutes(homeSidebarRoutes);
+                    this.setHomeRoutes(homeSidebarRoutes);
                     this.setTopbarRoutes(filterHomeMenus(defaultRoutes));
                     resolve(rewriteRoutes);
                 });
@@ -87,7 +93,8 @@ const usePermissionStore = defineStore('permission', {
             this.setTopbarRoutes(defaultRoutes);
         },
         resetHomeMenus(routes = this.defaultRoutes) {
-            const homeRoutes = filterHomeMenus(normalizeMenuTree(JSON.parse(JSON.stringify(routes))));
+            const sourceRoutes = this.homeRoutes && this.homeRoutes.length ? this.homeRoutes : routes;
+            const homeRoutes = filterHomeMenus(normalizeMenuTree(JSON.parse(JSON.stringify(sourceRoutes))));
             this.setMenuMode('home');
             this.setSidebarRouters([]);
             this.setTopbarRoutes(homeRoutes);
@@ -371,8 +378,11 @@ function reorganizeDevelopmentMenus(routes) {
             .map((route) => normalizeMovedChildPath(route))
     );
 
-    const sourceRoutes = [projectBaseExistingChildren, routes];
-    const projectRoutes = collectRoutes(sourceRoutes, isProjectManagement);
+    const sourceRoutes = [
+        projectBaseExistingChildren,
+        routes.filter((route) => !isSystemManagement(route))
+    ];
+    const projectRoutes = collectRoutes([projectBaseExistingChildren], isProjectManagement);
     const projectAssetRoutes = collectRoutes(sourceRoutes, isProjectAssetManagement);
     const ruleRoutes = collectRoutes(sourceRoutes, isRuleManagement);
     const categoryRoutes = collectRoutes(sourceRoutes, isCategoryManagement);
@@ -444,7 +454,7 @@ function createProjectBaseRoute() {
         redirect: 'noRedirect',
         alwaysShow: true,
         meta: {
-            title: '项目基础管理',
+            title: '空间基础管理',
             icon: 'lifebuoy-line'
         },
         children: []
@@ -458,7 +468,7 @@ function normalizeProjectBaseRoute(projectBaseRoute) {
     projectBaseRoute.redirect = getProjectBaseRedirect(projectBaseRoute);
     projectBaseRoute.alwaysShow = true;
     projectBaseRoute.meta = projectBaseRoute.meta || {};
-    projectBaseRoute.meta.title = '项目基础管理';
+    projectBaseRoute.meta.title = '空间基础管理';
     projectBaseRoute.meta.icon = projectBaseRoute.meta.icon || 'lifebuoy-line';
 }
 
@@ -757,18 +767,18 @@ function isDevelopmentManagement(route) {
 
 function isProjectBaseManagement(route) {
     const title = route.meta && route.meta.title;
-    return title === '项目基础管理';
+    return title === '空间基础管理';
 }
 
 function isProjectManagement(route) {
     const title = route.meta && route.meta.title;
-    return title === '项目管理';
+    return title === '空间管理';
 }
 
 function isProjectAssetManagement(route) {
     const title = route.meta && route.meta.title;
     const name = route.name || '';
-    return title === '项目资产' || name === 'colAsset';
+    return title === '空间资产' || name === 'colAsset';
 }
 
 function isRuleManagement(route) {

@@ -63,7 +63,7 @@ public class AccessPolicy
             String roleName = role.getRoleName();
             if ("gly".equals(roleKey)
                     || (roleKey != null && roleKey.endsWith("-admin"))
-                    || (roleName != null && roleName.contains("项目管理员")))
+                    || (roleName != null && roleName.contains("空间管理员")))
             {
                 return true;
             }
@@ -165,7 +165,7 @@ public class AccessPolicy
         String path = lower(menu.getPath());
         String perms = lower(menu.getPerms());
         String name = menu.getMenuName();
-        return "项目基础管理".equals(name)
+        return "空间基础管理".equals(name)
                 || "成员角色管理".equals(name)
                 || "setting".equals(path)
                 || "projectuserrel".equals(path)
@@ -193,7 +193,7 @@ public class AccessPolicy
     private static boolean isPlatformOnlyPermission(String permission)
     {
         String value = lower(permission);
-        return "att:project:add".equals(value);
+        return "tax:project:add".equals(value);
     }
 
     private static boolean isLogPermission(String permission)
@@ -205,10 +205,10 @@ public class AccessPolicy
     private static boolean isProjectBasePermission(String permission)
     {
         String value = lower(permission);
-        return value != null && (value.startsWith("att:projectuserrel:")
-                || value.startsWith("att:project:role:")
-                || value.startsWith("att:taskcat:")
-                || value.startsWith("att:datadevcat:"));
+        return value != null && (value.startsWith("col:projectuserrel:")
+                || value.startsWith("col:project:role:")
+                || value.startsWith("col:taskcat:")
+                || value.startsWith("col:datadevcat:"));
     }
 
     private static boolean hasRoleId(List<SysRole> roles, Long roleId)

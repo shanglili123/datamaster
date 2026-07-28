@@ -45,7 +45,7 @@ public class CatalogTableController extends BaseController {
     private ICatalogTableService CatalogTableService;
 
     @Operation(summary = "查询元数据信息列表")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:list')")
+    @PreAuthorize("@ss.hasPermi('cat:table:list')")
     @BizDataScope(code = "Catalog_metadata_list", userField = "businessLeader", deptField = "responsibleDept")
     @GetMapping("/list")
     public CommonResult<PageResult<CatalogTableRespVO>> list(CatalogTablePageReqVO CatalogTable) {
@@ -54,7 +54,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "查询元数据信息列表")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:list')")
+    @PreAuthorize("@ss.hasPermi('cat:table:list')")
     @BizDataScope(code = "Catalog_metadata_list", userField = "businessLeader", deptField = "responsibleDept")
     @GetMapping("/getCatalogTablePageAsset")
     public CommonResult<PageResult<CatalogTableRespVO>> getCatalogTablePageAsset(CatalogTablePageReqVO CatalogTable) {
@@ -62,7 +62,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "查询元数据信息列表")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:list')")
+    @PreAuthorize("@ss.hasPermi('cat:table:list')")
     @BizDataScope(code = "Catalog_metadata_list", userField = "businessLeader", deptField = "responsibleDept")
     @GetMapping("/getCatalogTableListAsset")
     public CommonResult<List<CatalogTableRespVO>> getCatalogTableListAsset(CatalogTablePageReqVO CatalogTable) {
@@ -70,7 +70,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "导出元数据信息列表")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:export')")
+    @PreAuthorize("@ss.hasPermi('cat:table:export')")
     @BizDataScope(code = "Catalog_metadata_list", userField = "businessLeader", deptField = "responsibleDept")
     @Log(title = "元数据信息", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
@@ -82,7 +82,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "获取元数据信息详细信息")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:query')")
+    @PreAuthorize("@ss.hasPermi('cat:table:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CatalogTableRespVO> getInfo(@PathVariable("id") Long id) {
         CatalogTableRespVO respVO = CatalogTableService.getCatalogTableById(id);
@@ -90,7 +90,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "新增元数据信息")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:add')")
+    @PreAuthorize("@ss.hasPermi('cat:table:add')")
     @Log(title = "元数据信息", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CatalogTableSaveReqVO CatalogTable) {
@@ -101,7 +101,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "修改元数据信息")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:edit')")
+    @PreAuthorize("@ss.hasPermi('cat:table:edit')")
     @Log(title = "元数据信息", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CatalogTableSaveReqVO CatalogTable) {
@@ -112,7 +112,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "暂存表元数据")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:add')")
+    @PreAuthorize("@ss.hasPermi('cat:table:add')")
     @Log(title = "暂存表元数据", businessType = BusinessType.INSERT)
     @PostMapping("draft")
     public CommonResult<Long> draft(@RequestBody CatalogTableSaveReqVO saveReqVO) {
@@ -122,7 +122,7 @@ public class CatalogTableController extends BaseController {
 
 
     @Operation(summary = "删除元数据信息")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:remove')")
+    @PreAuthorize("@ss.hasPermi('cat:table:remove')")
     @Log(title = "元数据信息", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -130,7 +130,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "批量删除检查表元数据")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:remove')")
+    @PreAuthorize("@ss.hasPermi('cat:table:remove')")
     @GetMapping("/batchDeleteCheck/{ids}")
     public CommonResult<BatchDeleteCheck<Long>> batchDeleteCheck(@PathVariable Long[] ids) {
         BatchDeleteCheck<Long> result = CatalogTableService.batchDeleteCheck(Arrays.asList(ids));
@@ -138,7 +138,7 @@ public class CatalogTableController extends BaseController {
     }
 
     @Operation(summary = "停启用表元数据")
-    @PreAuthorize("@ss.hasPermi('mc:metadata:table:edit')")
+    @PreAuthorize("@ss.hasPermi('cat:table:edit')")
     @Log(title = "停启用表元数据", businessType = BusinessType.UPDATE)
     @PostMapping("/toggle")
     public CommonResult<Integer> toggle(@Valid @RequestBody ToggleStatusVO param) {

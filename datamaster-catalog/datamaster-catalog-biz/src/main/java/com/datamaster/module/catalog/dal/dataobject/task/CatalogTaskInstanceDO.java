@@ -73,10 +73,10 @@ public class CatalogTaskInstanceDO extends BaseEntity {
     /** 状态 */
     private String status;
 
-    /** 项目ID */
+    /** 空间ID */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 是否有效 */

@@ -36,7 +36,7 @@
         <el-button type="primary" icon="Plus" @click="handleAdd" v-hasPermi="['ai:skill:add']">新增</el-button>
         <el-button icon="Connection" @click="openSkillGenerate" v-hasPermi="['ai:skill:generate']">生成问数Skill</el-button>
         <el-button type="success" icon="Upload" @click="handleSyncAllSkills" v-hasPermi="['ai:skill:sync']">同步问数Skill</el-button>
-        <el-button icon="Link" @click="handleSyncAllDatasources" v-hasPermi="['da:dataSource:edit']">同步数据源</el-button>
+        <el-button icon="Link" @click="handleSyncAllDatasources" v-hasPermi="['ast:dataSource:edit']">同步数据源</el-button>
       </div>
     </div>
 

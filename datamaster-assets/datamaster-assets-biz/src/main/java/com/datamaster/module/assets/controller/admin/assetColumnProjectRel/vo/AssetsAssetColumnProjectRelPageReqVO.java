@@ -5,11 +5,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * 数据资产字段与项目关联关系分页 Request VO
+ * 数据资产字段与空间关联关系分页 Request VO
  *
  * @author DATAMASTER
  */
-@Schema(description = "数据资产字段与项目关联关系分页 Request VO")
+@Schema(description = "数据资产字段与空间关联关系分页 Request VO")
 @Data
 public class AssetsAssetColumnProjectRelPageReqVO extends PageParam {
     private static final long serialVersionUID = 1L;
@@ -23,9 +23,9 @@ public class AssetsAssetColumnProjectRelPageReqVO extends PageParam {
     @Schema(description = "字段id", example = "")
     private Long columnId;
 
-    @Schema(description = "项目id", example = "")
+    @Schema(description = "空间id", example = "")
     private Long projectId;
 
-    @Schema(description = "项目编码", example = "")
+    @Schema(description = "空间编码", example = "")
     private String projectCode;
 }

@@ -64,12 +64,12 @@ public class CatalogTaskSchedulerSaveReqVO extends BaseEntity {
     @Size(max = 3000, message = "备注长度不能超过3000个字符")
     private String remark;
 
-    /** 项目ID */
-    @Schema(description = "项目ID")
+    /** 空间ID */
+    @Schema(description = "空间ID")
     private Long projectId;
 
-    /** 项目编码 */
-    @Schema(description = "项目编码")
+    /** 空间编码 */
+    @Schema(description = "空间编码")
     private String projectCode;
 
 

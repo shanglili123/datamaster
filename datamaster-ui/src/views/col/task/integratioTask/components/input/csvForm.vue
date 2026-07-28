@@ -51,7 +51,7 @@
               type="primary"
               plain
               @click="parseExcel"
-              v-hasPermi="['dpp:etl:etltask:add']"
+              v-hasPermi="['col:etl:etltask:add']"
             >
               <i class="iconfont-mini icon-xinzeng mr5"></i> 解析Excel
             </el-button>

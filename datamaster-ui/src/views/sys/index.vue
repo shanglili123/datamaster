@@ -2,9 +2,9 @@
   <div class="dm-page workspace-home">
     <div class="dm-page__header">
       <div>
-        <h1 class="dm-page__title">项目工作台</h1>
+        <h1 class="dm-page__title">空间工作台</h1>
         <div class="dm-page__desc">
-          从项目进入数据建模、数据研发、数据服务和元数据管理工作区。
+          从空间进入数据建模、数据研发、数据服务和元数据管理工作区。
         </div>
       </div>
       <div class="workspace-home__actions">
@@ -15,7 +15,7 @@
           :icon="Plus"
           @click="goCreateProject"
         >
-          新增项目
+          新增空间
         </el-button>
       </div>
     </div>
@@ -25,15 +25,15 @@
         <div class="dm-card workspace-home__projects">
           <div class="dm-card__header">
             <div class="workspace-home__card-title">
-              <span class="dm-card__title">项目列表</span>
+              <span class="dm-card__title">空间列表</span>
               <el-tag size="small" type="info">{{ projectList.length }} 个</el-tag>
-              <span class="workspace-home__hint">仅展示当前登录人有权限的项目</span>
+              <span class="workspace-home__hint">仅展示当前登录人有权限的空间</span>
             </div>
             <el-input
               v-model="keyword"
               clearable
               :prefix-icon="Search"
-              placeholder="搜索项目名称或编码"
+              placeholder="搜索空间名称或编码"
               class="workspace-home__search"
             />
           </div>
@@ -41,7 +41,7 @@
             <el-skeleton v-if="loading" :rows="6" animated />
             <el-empty
               v-else-if="filteredProjects.length === 0"
-              description="暂无可进入的项目"
+              description="暂无可进入的空间"
             />
             <div v-else class="project-grid">
               <button
@@ -57,10 +57,10 @@
                   <div class="project-card__icon">
                     <el-icon><FolderOpened /></el-icon>
                   </div>
-                  <el-tag size="small" effect="plain">项目</el-tag>
+                  <el-tag size="small" effect="plain">空间</el-tag>
                 </div>
                 <div class="project-card__name" :title="project.name">
-                  {{ project.name || "未命名项目" }}
+                  {{ project.name || "未命名空间" }}
                 </div>
                 <div class="project-card__meta">
                   {{ project.code || project.projectCode || "暂无编码" }}
@@ -86,7 +86,7 @@
           <template v-if="!activeProject">
             <div class="dm-card workspace-home__summary workspace-home__summary--empty">
               <div class="dm-card__body">
-                <el-empty description="请选择项目查看统计" :image-size="72" />
+                <el-empty description="请选择空间查看统计" :image-size="72" />
               </div>
             </div>
           </template>
@@ -133,7 +133,7 @@
           <div class="dm-card workspace-home__table-volume">
             <div class="dm-card__header">
               <span class="dm-card__title">数据库表数据量</span>
-              <span class="workspace-home__hint">当前项目各表行数</span>
+              <span class="workspace-home__hint">当前空间各表行数</span>
             </div>
             <div class="dm-card__body">
               <el-table
@@ -314,7 +314,7 @@ async function loadProjects() {
     projectList.value = [];
     activeProject.value = null;
     resetStats();
-    ElMessage.error("项目列表加载失败");
+    ElMessage.error("空间列表加载失败");
   } finally {
     loading.value = false;
   }
@@ -375,7 +375,7 @@ async function enterProject(project) {
     const targetPath = findFirstRoutePath(permissionStore.addRoutes);
     router.push(targetPath || "/index");
   } catch {
-    ElMessage.error("项目菜单加载失败");
+    ElMessage.error("空间菜单加载失败");
   }
 }
 

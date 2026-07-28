@@ -55,10 +55,10 @@ public class CollectorEtlTaskDO extends BaseEntity {
     /** 任务版本 */
     private Long version;
 
-    /** 项目id */
+    /** 空间id */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 创建人 */

@@ -702,7 +702,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
                 .eq(projectId != null, AssetsDatasourceProjectRelDO::getProjectId, projectId)
                 .eq(StringUtils.isNotBlank(projectCode), AssetsDatasourceProjectRelDO::getProjectCode, projectCode));
         if (count == null || count <= 0) {
-            throw new ServiceException("当前项目无权访问该数据源");
+            throw new ServiceException("当前空间无权访问该数据源");
         }
     }
 

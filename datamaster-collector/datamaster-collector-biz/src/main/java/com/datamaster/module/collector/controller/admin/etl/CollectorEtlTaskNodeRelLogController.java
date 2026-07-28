@@ -46,7 +46,7 @@ public class CollectorEtlTaskNodeRelLogController extends BaseController {
     private ICollectorEtlTaskNodeRelLogService CollectorEtlTaskNodeRelLogService;
 
     @Operation(summary = "查询数据集成任务节点关系-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRelLog:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRelLog:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlTaskNodeRelLogRespVO>> list(CollectorEtlTaskNodeRelLogPageReqVO CollectorEtlTaskNodeRelLog) {
         PageResult<CollectorEtlTaskNodeRelLogDO> page = CollectorEtlTaskNodeRelLogService.getCollectorEtlTaskNodeRelLogPage(CollectorEtlTaskNodeRelLog);
@@ -54,7 +54,7 @@ public class CollectorEtlTaskNodeRelLogController extends BaseController {
     }
 
     @Operation(summary = "导出数据集成任务节点关系-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRelLog:export')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRelLog:export')")
     @Log(title = "数据集成任务节点关系-日志", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorEtlTaskNodeRelLogPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class CollectorEtlTaskNodeRelLogController extends BaseController {
     }
 
     @Operation(summary = "导入数据集成任务节点关系-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRelLog:import')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRelLog:import')")
     @Log(title = "数据集成任务节点关系-日志", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class CollectorEtlTaskNodeRelLogController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成任务节点关系-日志详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRelLog:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRelLog:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEtlTaskNodeRelLogRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorEtlTaskNodeRelLogDO CollectorEtlTaskNodeRelLogDO = CollectorEtlTaskNodeRelLogService.getCollectorEtlTaskNodeRelLogById(id);
@@ -85,7 +85,7 @@ public class CollectorEtlTaskNodeRelLogController extends BaseController {
     }
 
     @Operation(summary = "新增数据集成任务节点关系-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRelLog:add')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRelLog:add')")
     @Log(title = "数据集成任务节点关系-日志", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorEtlTaskNodeRelLogSaveReqVO CollectorEtlTaskNodeRelLog) {
@@ -96,7 +96,7 @@ public class CollectorEtlTaskNodeRelLogController extends BaseController {
     }
 
     @Operation(summary = "修改数据集成任务节点关系-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRelLog:edit')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRelLog:edit')")
     @Log(title = "数据集成任务节点关系-日志", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorEtlTaskNodeRelLogSaveReqVO CollectorEtlTaskNodeRelLog) {
@@ -107,7 +107,7 @@ public class CollectorEtlTaskNodeRelLogController extends BaseController {
     }
 
     @Operation(summary = "删除数据集成任务节点关系-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRelLog:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRelLog:remove')")
     @Log(title = "数据集成任务节点关系-日志", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

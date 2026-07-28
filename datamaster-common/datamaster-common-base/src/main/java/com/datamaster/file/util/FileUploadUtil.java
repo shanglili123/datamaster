@@ -15,7 +15,7 @@ import java.util.Date;
 
 /**
  * 文件上传工具类
- * 提供文件上传的静态方法，便于在项目的其他部分调用。
+ * 提供文件上传的静态方法，便于在空间的其他部分调用。
  * 该类使用静态方法操作 FileStorageService 实例，支持多种上传方式。
  *
  * @author DATAMASTER

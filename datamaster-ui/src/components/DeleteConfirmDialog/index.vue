@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog
     v-model="dialogVisible"
     class="deleteConfirmDialog"
@@ -83,7 +83,7 @@ const isInputValid = computed(() => {
 // 打开对话框
 /**
  * 打开删除确认对话框
- * @param {string|number} id - 要删除的项目的ID
+ * @param {string|number} id - 要删除的空间的ID
  * @param {string} title - 删除标题，显示在对话框标题和警告信息中
  * @param {string} [name] - 验证文本名称，用于确认删除操作的关键词，默认为"立即删除"
  */

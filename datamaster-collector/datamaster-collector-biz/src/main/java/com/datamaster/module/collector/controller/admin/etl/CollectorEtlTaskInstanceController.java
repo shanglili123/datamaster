@@ -49,7 +49,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
     private ICollectorEtlTaskInstanceService CollectorEtlTaskInstanceService;
 
     @Operation(summary = "查询数据集成任务实例列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskInstance:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskInstance:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlTaskInstanceRespVO>> list(CollectorEtlTaskInstancePageReqVO CollectorEtlTaskInstance) {
         if (StringUtils.isBlank(CollectorEtlTaskInstance.getTaskType())) {
@@ -60,7 +60,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
     }
 
     @Operation(summary = "导出数据集成任务实例列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskInstance:export')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskInstance:export')")
     @Log(title = "数据集成任务实例", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorEtlTaskInstancePageReqVO exportReqVO) {
@@ -71,7 +71,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
     }
 
     @Operation(summary = "导入数据集成任务实例列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskInstance:import')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskInstance:import')")
     @Log(title = "数据集成任务实例", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -83,7 +83,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成任务实例详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskInstance:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskInstance:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEtlTaskInstanceRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = CollectorEtlTaskInstanceService.getCollectorEtlTaskInstanceById(id);
@@ -91,7 +91,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
     }
 
     @Operation(summary = "新增数据集成任务实例")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskInstance:add')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskInstance:add')")
     @Log(title = "数据集成任务实例", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorEtlTaskInstanceSaveReqVO CollectorEtlTaskInstance) {
@@ -102,7 +102,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
     }
 
     @Operation(summary = "修改数据集成任务实例")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskInstance:edit')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskInstance:edit')")
     @Log(title = "数据集成任务实例", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorEtlTaskInstanceSaveReqVO CollectorEtlTaskInstance) {
@@ -113,7 +113,7 @@ public class CollectorEtlTaskInstanceController extends BaseController {
     }
 
     @Operation(summary = "删除数据集成任务实例")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskInstance:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskInstance:remove')")
     @Log(title = "数据集成任务实例", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

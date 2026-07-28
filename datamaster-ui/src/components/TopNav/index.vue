@@ -91,8 +91,13 @@ const topMenus = computed(() => {
       }
     }
   });
-  return topMenus;
+  return topMenus.filter((menu) => !isHomeTopMenu(menu));
 });
+
+function isHomeTopMenu(menu) {
+  const title = menu && menu.meta && menu.meta.title;
+  return title === "首页" || menu?.path === "/index" || menu?.path === "index";
+}
 
 function normalizeMenuPath(path) {
   if (!path) return path;
@@ -244,9 +249,10 @@ function calculateVisibleMenus() {
   // 当处于需要显示 Logo 的路由时，增加 Logo 宽度
   const currentPath = route.path;
   const navbarLogoRoutes = defaultSettings.navbarLogoRoutes || [];
-  const isLogoRoute = navbarLogoRoutes.some((logoPath) =>
-    currentPath.startsWith(logoPath)
-  );
+  const isLogoRoute =
+    currentPath === "/" ||
+    currentPath === "/index" ||
+    navbarLogoRoutes.some((logoPath) => currentPath.startsWith(logoPath));
   if (isLogoRoute && appStore.sidebar.hide) {
     leftWidth += NAVBAR_LOGO_WIDTH;
   }

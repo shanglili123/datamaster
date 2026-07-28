@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * 数据资产字段与项目关联关系 DO
+ * 数据资产字段与空间关联关系 DO
  *
  * @author DATAMASTER
  */
@@ -31,10 +31,10 @@ public class AssetsAssetColumnProjectRelDO extends BaseEntity {
     /** 字段id */
     private Long columnId;
 
-    /** 项目id */
+    /** 空间id */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 是否有效 */

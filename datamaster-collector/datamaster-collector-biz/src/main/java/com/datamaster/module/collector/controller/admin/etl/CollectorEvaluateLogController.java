@@ -49,7 +49,7 @@ public class CollectorEvaluateLogController extends BaseController {
     private ICollectorEvaluateLogService CollectorEvaluateLogService;
 
     @Operation(summary = "查询评测规则结果列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:evaluateLog:list')")
+//    @PreAuthorize("@ss.hasPermi('col:evaluateLog:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEvaluateLogRespVO>> list(CollectorEvaluateLogPageReqVO CollectorEvaluateLog) {
         PageResult<CollectorEvaluateLogDO> page = CollectorEvaluateLogService.getCollectorEvaluateLogPage(CollectorEvaluateLog);
@@ -57,7 +57,7 @@ public class CollectorEvaluateLogController extends BaseController {
     }
 
     @Operation(summary = "导出评测规则结果列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:evaluateLog:export')")
+//    @PreAuthorize("@ss.hasPermi('col:evaluateLog:export')")
     @Log(title = "评测规则结果", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorEvaluateLogPageReqVO exportReqVO) {
@@ -68,7 +68,7 @@ public class CollectorEvaluateLogController extends BaseController {
     }
 
     @Operation(summary = "导入评测规则结果列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:evaluateLog:import')")
+//    @PreAuthorize("@ss.hasPermi('col:evaluateLog:import')")
     @Log(title = "评测规则结果", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -80,7 +80,7 @@ public class CollectorEvaluateLogController extends BaseController {
     }
 
     @Operation(summary = "获取评测规则结果详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:evaluateLog:query')")
+//    @PreAuthorize("@ss.hasPermi('col:evaluateLog:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEvaluateLogRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorEvaluateLogDO CollectorEvaluateLogDO = CollectorEvaluateLogService.getCollectorEvaluateLogById(id);
@@ -88,7 +88,7 @@ public class CollectorEvaluateLogController extends BaseController {
     }
 
     @Operation(summary = "新增评测规则结果")
-//    @PreAuthorize("@ss.hasPermi('dpp:evaluateLog:add')")
+//    @PreAuthorize("@ss.hasPermi('col:evaluateLog:add')")
     @Log(title = "评测规则结果", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorEvaluateLogSaveReqVO CollectorEvaluateLog) {
@@ -99,7 +99,7 @@ public class CollectorEvaluateLogController extends BaseController {
     }
 
     @Operation(summary = "修改评测规则结果")
-//    @PreAuthorize("@ss.hasPermi('dpp:evaluateLog:edit')")
+//    @PreAuthorize("@ss.hasPermi('col:evaluateLog:edit')")
     @Log(title = "评测规则结果", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorEvaluateLogSaveReqVO CollectorEvaluateLog) {
@@ -110,7 +110,7 @@ public class CollectorEvaluateLogController extends BaseController {
     }
 
     @Operation(summary = "删除评测规则结果")
-//    @PreAuthorize("@ss.hasPermi('dpp:evaluateLog:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:evaluateLog:remove')")
     @Log(title = "评测规则结果", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

@@ -36,7 +36,7 @@ public class DatasourceSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "数据源配置(json字符串)长度不能超过256个字符")
     private String datasourceConfig;
 
-    @Schema(description = "旧项目集合", example = "")
+    @Schema(description = "旧空间集合", example = "")
     private List<Long> projectListOld;
 
     @Schema(description = "IP", example = "")

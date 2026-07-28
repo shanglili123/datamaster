@@ -7,6 +7,7 @@
       :current-route="route.path"
     />
     <hamburger
+      v-if="showSidebarToggle"
       id="hamburger-container"
       :is-active="appStore.sidebar.opened"
       class="hamburger-container"
@@ -28,13 +29,13 @@
       <template v-if="appStore.device !== 'mobile'">
         <div style="display: flex; align-items: center; white-space: nowrap" v-if="showProjectSelector">
           <span style="font-size: 13px; color: #ef4444; margin-right: 2px">*</span>
-          <span style="font-size: 13px; color: #606266; margin-right: 8px">所属项目</span>
+          <span style="font-size: 13px; color: #606266; margin-right: 8px">所属空间</span>
           <el-select
             style="width: 130px"
                 :fit-input-width="true"
                 v-model="userStore.projectId"
                 @change="projectIdChange"
-                placeholder="请选择所属项目"
+                placeholder="请选择所属空间"
                 clearable
                 popper-class="custom-option-style"
               >
@@ -164,6 +165,7 @@ const settingsStore = useSettingsStore();
 const { proxy } = getCurrentInstance();
 const visitedViews = computed(() => useTagsViewStore().visitedViews);
 const isOnlyLogoRoute = computed(() => {
+  if (isHomeShellPath(route.path)) return true;
   const navbarLogoRoutes = defaultSettings.navbarLogoRoutes || [];
   return navbarLogoRoutes.some((logoPath) => route.path.startsWith(logoPath));
 });
@@ -194,6 +196,7 @@ const showProjectSelector = computed(
     isProjectWorkspacePath(route.path) &&
     projectOptions.value.length > 0
 );
+const showSidebarToggle = computed(() => !isHomeShellPath(route.path));
 const open = ref(false);
 const title = ref(null);
 const form = ref({});
@@ -243,7 +246,7 @@ function submitForm() {
     if (valid) {
       const tempList = tableData.value;
       if (tempList.length == 0) {
-        proxy.$modal.msgError("报工项目为空");
+        proxy.$modal.msgError("报工空间为空");
         return;
       }
       let idStatus = false;
@@ -257,11 +260,11 @@ function submitForm() {
         }
       });
       if (idStatus) {
-        proxy.$modal.msgWarning("报工项目为空");
+        proxy.$modal.msgWarning("报工空间为空");
         return;
       }
       if (timeStatus) {
-        proxy.$modal.msgWarning("报工项目工作时长为空");
+        proxy.$modal.msgWarning("报工空间工作时长为空");
         return;
       }
       // 提取所有非空的 projectId 并用逗号连接
@@ -373,9 +376,9 @@ function projectIdChange() {
   }
 }
 
-// 判断项目是否被禁用
+// 判断空间是否被禁用
 const isProjectDisabled = (projectId, currentRow) => {
-  // 判断当前项目是否已被选中，并且不是当前行
+  // 判断当前空间是否已被选中，并且不是当前行
   return tableData.value.some(
     (row) => row.projectId === projectId && row !== currentRow
   );
@@ -474,6 +477,16 @@ function isProjectWorkspacePath(path) {
   return isProjectModuleRoute(path);
 }
 
+function isHomeShellPath(path) {
+  return path === "/" || path === "/index";
+}
+
+function resetHomeShell() {
+  userStore.projectCode = "";
+  permissionStore.resetHomeMenus();
+  appStore.toggleSideBarHide(true);
+}
+
 function loadProjectMenus(projectId, options = { navigate: true }) {
   const project = projectOptions.value.find(
     (item) => String(item.id) === String(projectId)
@@ -545,6 +558,16 @@ onMounted(() => {
   //   }
   // });
 });
+
+watch(
+  () => route.path,
+  (path) => {
+    if (isHomeShellPath(path)) {
+      resetHomeShell();
+    }
+  },
+  { immediate: true }
+);
 // 页面注销
 onBeforeUnmount(() => {
   console.log("------页面注销----");
@@ -725,10 +748,10 @@ function clearNotification() {
     }
 
     ::v-deep.sidebar-logo-full {
-      width: 150px !important;
-      height: 36px !important;
-      margin-top: 12px !important;
-      transform: none !important;
+      width: 180px !important;
+      height: 42px !important;
+      margin-top: 16px !important;
+      transform: translateY(4px) !important;
     }
   }
 
@@ -764,7 +787,7 @@ function clearNotification() {
     left: 66px;
 
     &.has-navbar-logo {
-      left: 214px;
+      left: 270px;
     }
   }
 

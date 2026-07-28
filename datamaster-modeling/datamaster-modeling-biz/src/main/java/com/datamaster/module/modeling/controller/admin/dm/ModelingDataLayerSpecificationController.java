@@ -42,7 +42,7 @@ public class ModelingDataLayerSpecificationController extends BaseController {
     private IModelingDataLayerSpecificationService ModelingDataLayerSpecificationService;
 
     @Operation(summary = "查询数仓分层-规范管理列表")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:list')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<ModelingDataLayerSpecificationRespVO>> list(ModelingDataLayerSpecificationPageReqVO ModelingDataLayerSpecification) {
         PageResult<ModelingDataLayerSpecificationDO> page = ModelingDataLayerSpecificationService.getModelingDataLayerSpecificationPage(ModelingDataLayerSpecification);
@@ -50,7 +50,7 @@ public class ModelingDataLayerSpecificationController extends BaseController {
     }
 
     @Operation(summary = "获取数仓分层-规范管理详细信息")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:query')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<ModelingDataLayerSpecificationRespVO> getInfo(@PathVariable("id") Long id) {
         ModelingDataLayerSpecificationDO ModelingDataLayerSpecificationDO = ModelingDataLayerSpecificationService.getModelingDataLayerSpecificationById(id);
@@ -58,7 +58,7 @@ public class ModelingDataLayerSpecificationController extends BaseController {
     }
 
     @Operation(summary = "新增数仓分层-规范管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:add')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:add')")
     @Log(title = "数仓分层-规范管理", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody ModelingDataLayerSpecificationSaveReqVO ModelingDataLayerSpecification) {
@@ -69,7 +69,7 @@ public class ModelingDataLayerSpecificationController extends BaseController {
     }
 
     @Operation(summary = "修改数仓分层-规范管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:edit')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:edit')")
     @Log(title = "数仓分层-规范管理", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody ModelingDataLayerSpecificationSaveReqVO ModelingDataLayerSpecification) {
@@ -80,7 +80,7 @@ public class ModelingDataLayerSpecificationController extends BaseController {
     }
 
     @Operation(summary = "删除数仓分层-规范管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:remove')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:remove')")
     @Log(title = "数仓分层-规范管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

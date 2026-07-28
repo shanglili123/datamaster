@@ -46,7 +46,7 @@ public class CollectorEtlTaskNodeRelController extends BaseController {
     private ICollectorEtlTaskNodeRelService CollectorEtlTaskNodeRelService;
 
     @Operation(summary = "查询数据集成任务节点关系列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRel:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRel:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlTaskNodeRelRespVO>> list(CollectorEtlTaskNodeRelPageReqVO CollectorEtlTaskNodeRel) {
         PageResult<CollectorEtlTaskNodeRelDO> page = CollectorEtlTaskNodeRelService.getCollectorEtlTaskNodeRelPage(CollectorEtlTaskNodeRel);
@@ -54,7 +54,7 @@ public class CollectorEtlTaskNodeRelController extends BaseController {
     }
 
     @Operation(summary = "导出数据集成任务节点关系列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRel:export')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRel:export')")
     @Log(title = "数据集成任务节点关系", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorEtlTaskNodeRelPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class CollectorEtlTaskNodeRelController extends BaseController {
     }
 
     @Operation(summary = "导入数据集成任务节点关系列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRel:import')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRel:import')")
     @Log(title = "数据集成任务节点关系", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class CollectorEtlTaskNodeRelController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成任务节点关系详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRel:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRel:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEtlTaskNodeRelRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorEtlTaskNodeRelDO CollectorEtlTaskNodeRelDO = CollectorEtlTaskNodeRelService.getCollectorEtlTaskNodeRelById(id);
@@ -85,7 +85,7 @@ public class CollectorEtlTaskNodeRelController extends BaseController {
     }
 
     @Operation(summary = "新增数据集成任务节点关系")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRel:add')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRel:add')")
     @Log(title = "数据集成任务节点关系", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorEtlTaskNodeRelSaveReqVO CollectorEtlTaskNodeRel) {
@@ -96,7 +96,7 @@ public class CollectorEtlTaskNodeRelController extends BaseController {
     }
 
     @Operation(summary = "修改数据集成任务节点关系")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRel:edit')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRel:edit')")
     @Log(title = "数据集成任务节点关系", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorEtlTaskNodeRelSaveReqVO CollectorEtlTaskNodeRel) {
@@ -107,7 +107,7 @@ public class CollectorEtlTaskNodeRelController extends BaseController {
     }
 
     @Operation(summary = "删除数据集成任务节点关系")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskNodeRel:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskNodeRel:remove')")
     @Log(title = "数据集成任务节点关系", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

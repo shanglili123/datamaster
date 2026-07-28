@@ -44,7 +44,7 @@ public class AssetsAssetAuditRuleController extends BaseController {
     private IAssetsAssetAuditRuleService AssetsAssetAuditRuleService;
 
     @Operation(summary = "查询数据资产质量结果记录列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditRule:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditRule:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetAuditRuleRespVO>> list(AssetsAssetAuditRulePageReqVO AssetsAssetAuditRule) {
         PageResult<AssetsAssetAuditRuleDO> page = AssetsAssetAuditRuleService.getAssetAuditRulePage(AssetsAssetAuditRule);
@@ -52,7 +52,7 @@ public class AssetsAssetAuditRuleController extends BaseController {
     }
 
     @Operation(summary = "导出数据资产质量结果记录列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditRule:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditRule:export')")
     @Log(title = "数据资产质量结果记录", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetAuditRulePageReqVO exportReqVO) {
@@ -63,7 +63,7 @@ public class AssetsAssetAuditRuleController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产质量结果记录列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditRule:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditRule:import')")
     @Log(title = "数据资产质量结果记录", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -75,7 +75,7 @@ public class AssetsAssetAuditRuleController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产质量结果记录详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditRule:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditRule:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetAuditRuleRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetAuditRuleDO AssetsAssetAuditRuleDO = AssetsAssetAuditRuleService.getAssetAuditRuleById(id);
@@ -83,7 +83,7 @@ public class AssetsAssetAuditRuleController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产质量结果记录")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditRule:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditRule:add')")
     @Log(title = "数据资产质量结果记录", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetAuditRuleSaveReqVO AssetsAssetAuditRule) {
@@ -94,7 +94,7 @@ public class AssetsAssetAuditRuleController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产质量结果记录")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditRule:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditRule:edit')")
     @Log(title = "数据资产质量结果记录", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetAuditRuleSaveReqVO AssetsAssetAuditRule) {
@@ -105,7 +105,7 @@ public class AssetsAssetAuditRuleController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产质量结果记录")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditRule:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditRule:remove')")
     @Log(title = "数据资产质量结果记录", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

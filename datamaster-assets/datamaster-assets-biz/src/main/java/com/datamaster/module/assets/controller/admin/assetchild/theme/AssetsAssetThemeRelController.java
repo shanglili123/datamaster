@@ -44,7 +44,7 @@ public class AssetsAssetThemeRelController extends BaseController {
     private IAssetsAssetThemeRelService AssetsAssetThemeRelService;
 
     @Operation(summary = "查询数据资产-主题关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:assetThemeRel:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetThemeRel:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetThemeRelRespVO>> list(AssetsAssetThemeRelPageReqVO AssetsAssetThemeRel) {
         PageResult<AssetsAssetThemeRelDO> page = AssetsAssetThemeRelService.getAssetThemeRelPage(AssetsAssetThemeRel);
@@ -52,7 +52,7 @@ public class AssetsAssetThemeRelController extends BaseController {
     }
 
     @Operation(summary = "导出数据资产-主题关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:assetThemeRel:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetThemeRel:export')")
     @Log(title = "数据资产-主题关联关系", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetThemeRelPageReqVO exportReqVO) {
@@ -63,7 +63,7 @@ public class AssetsAssetThemeRelController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产-主题关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:assetThemeRel:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetThemeRel:import')")
     @Log(title = "数据资产-主题关联关系", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -75,7 +75,7 @@ public class AssetsAssetThemeRelController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产-主题关联关系详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetThemeRel:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetThemeRel:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetThemeRelRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetThemeRelDO AssetsAssetThemeRelDO = AssetsAssetThemeRelService.getAssetThemeRelById(id);
@@ -83,7 +83,7 @@ public class AssetsAssetThemeRelController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产-主题关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetThemeRel:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetThemeRel:add')")
     @Log(title = "数据资产-主题关联关系", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetThemeRelSaveReqVO AssetsAssetThemeRel) {
@@ -94,7 +94,7 @@ public class AssetsAssetThemeRelController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产-主题关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetThemeRel:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetThemeRel:edit')")
     @Log(title = "数据资产-主题关联关系", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetThemeRelSaveReqVO AssetsAssetThemeRel) {
@@ -105,7 +105,7 @@ public class AssetsAssetThemeRelController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产-主题关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetThemeRel:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetThemeRel:remove')")
     @Log(title = "数据资产-主题关联关系", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 数据资产字段与项目关联关系 Mapper
+ * 数据资产字段与空间关联关系 Mapper
  *
  * @author DATAMASTER
  */

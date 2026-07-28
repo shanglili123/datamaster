@@ -296,7 +296,7 @@ public class SysUserServiceImpl implements ISysUserService
         Long userId = user.getUserId();
         checkSystemAdminRoleAllowed(userId, user.getRoleIds());
         user.setRoleIds(filterSystemRoleIds(user.getRoleIds()));
-        // 系统用户授权只维护系统角色，不能清掉项目成员里的项目角色。
+        // 系统用户授权只维护系统角色，不能清掉空间成员里的空间角色。
         userRoleMapper.deleteUserSystemRoleByUserId(userId);
         // 新增用户与角色管理
         insertUserRole(user);

@@ -45,7 +45,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     private IAssetsAssetOperateLogService AssetsAssetOperateLogService;
 
     @Operation(summary = "查询数据资产操作记录列表")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetOperateLogRespVO>> list(AssetsAssetOperateLogPageReqVO AssetsAssetOperateLog) {
         PageResult<AssetsAssetOperateLogDO> page = AssetsAssetOperateLogService.getAssetOperateLogPage(AssetsAssetOperateLog);
@@ -53,7 +53,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     }
 
     @Operation(summary = "导出数据资产操作记录列表")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:export')")
     @Log(title = "数据资产操作记录", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetOperateLogPageReqVO exportReqVO) {
@@ -64,7 +64,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产操作记录列表")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:import')")
     @Log(title = "数据资产操作记录", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -76,7 +76,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产操作记录详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetOperateLogRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetOperateLogDO AssetsAssetOperateLogDO = AssetsAssetOperateLogService.getAssetOperateLogById(id);
@@ -84,7 +84,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产操作记录")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:add')")
     @Log(title = "数据资产操作记录", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetOperateLogSaveReqVO AssetsAssetOperateLog) {
@@ -95,7 +95,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产操作记录")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:edit')")
     @Log(title = "数据资产操作记录", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetOperateLogSaveReqVO AssetsAssetOperateLog) {
@@ -106,7 +106,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产操作记录")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:remove')")
     @Log(title = "数据资产操作记录", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -114,7 +114,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     }
 
     @Operation(summary = "回滚")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:add')")
     @PostMapping("/rollBack/{id}")
     public R rollBack(@PathVariable Long id) {
         AssetsAssetOperateLogService.rollBack(id);
@@ -122,7 +122,7 @@ public class AssetsAssetOperateLogController extends BaseController {
     }
 
     @Operation(summary = "查询数据资产操作记录列表")
-    @PreAuthorize("@ss.hasPermi('da:assetOperateLog:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateLog:list')")
     @GetMapping("/queryAssetOperateLogPage")
     public CommonResult<PageResult<AssetsAssetOperateLogRespVO>> queryAssetOperateLogPage(AssetsAssetOperateLogPageReqVO AssetsAssetOperateLog) {
         PageResult<AssetsAssetOperateLogDO> page = AssetsAssetOperateLogService.queryAssetOperateLogPage(AssetsAssetOperateLog);

@@ -74,7 +74,7 @@ public class DataScopeAspect
         if (StringUtils.isNotNull(loginUser))
         {
             SysUser currentUser = loginUser.getUser();
-            // 平台管理员不过滤系统数据；普通用户和项目角色仍按数据范围限制。
+            // 平台管理员不过滤系统数据；普通用户和空间角色仍按数据范围限制。
             if (StringUtils.isNotNull(currentUser)
                     && !AccessPolicy.isPlatformAdmin(currentUser.getUserId(), currentUser.getRoles()))
             {

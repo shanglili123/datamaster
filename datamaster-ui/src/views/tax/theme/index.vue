@@ -13,7 +13,7 @@
                         clearable @keyup.enter="handleQuery" />
                 </el-form-item> -->
                 <el-form-item>
-                    <el-button plain type="primary" v-hasPermi="['att:theme:query']" @click="handleQuery"
+                    <el-button plain type="primary" v-hasPermi="['tax:theme:query']" @click="handleQuery"
                         @mousedown="(e) => e.preventDefault()">
                         <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
                     </el-button>
@@ -27,20 +27,20 @@
             <div class="justify-between mb15">
                 <el-row :gutter="15" class="btn-style">
                     <el-col :span="1.5">
-                        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:theme:add']"
+                        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['tax:theme:add']"
                             @mousedown="(e) => e.preventDefault()">
                             <i class="iconfont-mini icon-xinzeng mr5"></i>新增
                         </el-button>
                     </el-col>
                     <!-- <el-col :span="1.5">
                         <el-button type="primary" plain :disabled="single" @click="handleUpdate"
-                            v-hasPermi="['att:theme:theme:edit']" @mousedown="(e) => e.preventDefault()">
+                            v-hasPermi="['tax:theme:theme:edit']" @mousedown="(e) => e.preventDefault()">
                             <i class="iconfont-mini icon-xiugai--copy mr5"></i>修改
                         </el-button>
                     </el-col>
                     <el-col :span="1.5">
                         <el-button type="danger" plain :disabled="multiple" @click="handleDelete"
-                            v-hasPermi="['att:theme:theme:remove']" @mousedown="(e) => e.preventDefault()">
+                            v-hasPermi="['tax:theme:theme:remove']" @mousedown="(e) => e.preventDefault()">
                             <i class="iconfont-mini icon-shanchu-huise mr5"></i>删除
                         </el-button>
                     </el-col> -->
@@ -111,10 +111,10 @@
                     width="240">
                     <template #default="scope">
                         <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                            v-hasPermi="['att:theme:edit']">修改</el-button>
+                            v-hasPermi="['tax:theme:edit']">修改</el-button>
                         <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                            v-hasPermi="['att:theme:remove']">删除</el-button>
-                        <el-button link v-hasPermi="['att:theme:query']" type="primary" icon="view"
+                            v-hasPermi="['tax:theme:remove']">删除</el-button>
+                        <el-button link v-hasPermi="['tax:theme:query']" type="primary" icon="view"
                             @click="handleDetail(scope.row)">详情</el-button>
 
                     </template>

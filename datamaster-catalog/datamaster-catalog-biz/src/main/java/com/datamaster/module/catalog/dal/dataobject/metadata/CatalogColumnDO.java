@@ -95,10 +95,10 @@ public class CatalogColumnDO extends BaseEntity {
     /** 状态;0：未发布，1：已发布 */
     private String status;
 
-    /** 项目ID */
+    /** 空间ID */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 是否有效;0：无效，1：有效 */

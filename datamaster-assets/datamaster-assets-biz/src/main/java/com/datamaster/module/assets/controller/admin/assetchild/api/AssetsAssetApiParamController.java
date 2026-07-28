@@ -44,7 +44,7 @@ public class AssetsAssetApiParamController extends BaseController {
     private IAssetsAssetApiParamService AssetsAssetApiParamService;
 
     @Operation(summary = "查询数据资产-外部API-参数列表")
-    @PreAuthorize("@ss.hasPermi('da:assetApiParam:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApiParam:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetApiParamRespVO>> list(AssetsAssetApiParamPageReqVO AssetsAssetApiParam) {
         PageResult<AssetsAssetApiParamDO> page = AssetsAssetApiParamService.getAssetApiParamPage(AssetsAssetApiParam);
@@ -52,14 +52,14 @@ public class AssetsAssetApiParamController extends BaseController {
     }
 
     @Operation(summary = "查询数据资产-外部API-参数列表")
-    @PreAuthorize("@ss.hasPermi('da:assetApiParam:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApiParam:list')")
     @GetMapping("/getAssetApiParamList")
     public CommonResult<List<AssetsAssetApiParamRespVO>> getAssetApiParamList(AssetsAssetApiParamPageReqVO AssetsAssetApiParam) {
         return CommonResult.success(BeanUtils.toBean(AssetsAssetApiParamService.getAssetApiParamList(AssetsAssetApiParam.getApiId()), AssetsAssetApiParamRespVO.class));
     }
 
     @Operation(summary = "导出数据资产-外部API-参数列表")
-    @PreAuthorize("@ss.hasPermi('da:assetApiParam:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApiParam:export')")
     @Log(title = "数据资产-外部API-参数", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetApiParamPageReqVO exportReqVO) {
@@ -70,7 +70,7 @@ public class AssetsAssetApiParamController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产-外部API-参数列表")
-    @PreAuthorize("@ss.hasPermi('da:assetApiParam:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApiParam:import')")
     @Log(title = "数据资产-外部API-参数", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -82,7 +82,7 @@ public class AssetsAssetApiParamController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产-外部API-参数详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetApiParam:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApiParam:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetApiParamRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetApiParamDO AssetsAssetApiParamDO = AssetsAssetApiParamService.getAssetApiParamById(id);
@@ -90,7 +90,7 @@ public class AssetsAssetApiParamController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产-外部API-参数")
-    @PreAuthorize("@ss.hasPermi('da:assetApiParam:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApiParam:add')")
     @Log(title = "数据资产-外部API-参数", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetApiParamSaveReqVO AssetsAssetApiParam) {
@@ -101,7 +101,7 @@ public class AssetsAssetApiParamController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产-外部API-参数")
-    @PreAuthorize("@ss.hasPermi('da:assetApiParam:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApiParam:edit')")
     @Log(title = "数据资产-外部API-参数", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetApiParamSaveReqVO AssetsAssetApiParam) {
@@ -112,7 +112,7 @@ public class AssetsAssetApiParamController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产-外部API-参数")
-    @PreAuthorize("@ss.hasPermi('da:assetApiParam:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetApiParam:remove')")
     @Log(title = "数据资产-外部API-参数", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

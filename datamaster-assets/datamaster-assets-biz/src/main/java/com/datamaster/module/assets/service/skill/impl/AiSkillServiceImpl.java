@@ -1215,7 +1215,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                                          Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap) {
         StringBuilder builder = new StringBuilder();
         builder.append("## 权限控制\n\n");
-        builder.append("- 资产预览和 AI 问数必须同时遵守项目/资产授权、字段授权和当前登录人的数据权限等级。\n");
+        builder.append("- 资产预览和 AI 问数必须同时遵守空间/资产授权、字段授权和当前登录人的数据权限等级。\n");
         builder.append("- 人员数据权限字段为 `system_user.data_permission_level`，数字越小权限越高：1=绝密、2=机密、3=秘密、4=内部、5=公开。\n");
         builder.append("- 字段敏感等级来自资产字段 `sensitive_level_id`。当字段敏感等级数字小于当前用户 `data_permission_level` 时，该字段必须隐藏，不得用于 SELECT、过滤、分组、排序、统计、回答或报告输出。\n");
         builder.append("- 字段命中脱敏规则时，只能使用脱敏后的展示值；全量脱敏或隐藏字段不得反推原始值。\n");
@@ -1230,7 +1230,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
 
     private String renderPermissionRulesForDatabase() {
         return "## 权限控制\n\n"
-                + "- 整库/多表问数只能在当前项目和当前用户已授权的数据资产范围内选表。\n"
+                + "- 整库/多表问数只能在当前空间和当前用户已授权的数据资产范围内选表。\n"
                 + "- 字段级权限按当前登录人的 `system_user.data_permission_level` 动态判断，数字越小权限越高：1=绝密、2=机密、3=秘密、4=内部、5=公开。\n"
                 + "- 字段敏感等级数字小于当前用户 `data_permission_level` 时，该字段必须隐藏，不得用于 SELECT、过滤、分组、排序、统计、回答或报告输出。\n"
                 + "- 命中脱敏规则的字段只能返回脱敏值；全量脱敏或隐藏字段不得参与明细展示和结论推断。\n"
@@ -1370,7 +1370,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
             return "";
         }
         return "- 表数量较多，以下仅展示前 " + MAX_DATABASE_SKILL_TABLE_ROWS
-                + " 张表；问数时仍需按当前项目资产授权和元数据接口检索完整表范围。\n\n";
+                + " 张表；问数时仍需按当前空间资产授权和元数据接口检索完整表范围。\n\n";
     }
 
     private String renderTableRelationGraph(List<AssetsAssetDO> assets, Map<Long, List<AssetsAssetColumnDO>> columnMap) {

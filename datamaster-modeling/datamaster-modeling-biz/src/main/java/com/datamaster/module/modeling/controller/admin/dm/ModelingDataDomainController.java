@@ -46,7 +46,7 @@ public class ModelingDataDomainController extends BaseController {
     private IModelingDataDomainService ModelingDataDomainService;
 
     @Operation(summary = "查询数据域管理列表")
-    @PreAuthorize("@ss.hasPermi('dm:dataDomain:list')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataDomain:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<ModelingDataDomainRespVO>> list(ModelingDataDomainPageReqVO ModelingDataDomain) {
         PageResult<ModelingDataDomainDO> page = ModelingDataDomainService.getModelingDataDomainPage(ModelingDataDomain);
@@ -54,7 +54,7 @@ public class ModelingDataDomainController extends BaseController {
     }
 
     @Operation(summary = "导出数据域管理列表")
-    @PreAuthorize("@ss.hasPermi('dm:dataDomain:export')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataDomain:export')")
     @Log(title = "数据域管理", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, ModelingDataDomainPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class ModelingDataDomainController extends BaseController {
     }
 
     @Operation(summary = "导入数据域管理列表")
-    @PreAuthorize("@ss.hasPermi('dm:dataDomain:import')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataDomain:import')")
     @Log(title = "数据域管理", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class ModelingDataDomainController extends BaseController {
     }
 
     @Operation(summary = "获取数据域管理详细信息")
-    @PreAuthorize("@ss.hasPermi('dm:dataDomain:query')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataDomain:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<ModelingDataDomainRespVO> getInfo(@PathVariable("id") Long id) {
         ModelingDataDomainDO ModelingDataDomainDO = ModelingDataDomainService.getModelingDataDomainById(id);
@@ -85,7 +85,7 @@ public class ModelingDataDomainController extends BaseController {
     }
 
     @Operation(summary = "新增数据域管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataDomain:add')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataDomain:add')")
     @Log(title = "数据域管理", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody ModelingDataDomainSaveReqVO ModelingDataDomain) {
@@ -96,7 +96,7 @@ public class ModelingDataDomainController extends BaseController {
     }
 
     @Operation(summary = "修改数据域管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataDomain:edit')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataDomain:edit')")
     @Log(title = "数据域管理", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody ModelingDataDomainSaveReqVO ModelingDataDomain) {
@@ -107,7 +107,7 @@ public class ModelingDataDomainController extends BaseController {
     }
 
     @Operation(summary = "删除数据域管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataDomain:remove')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataDomain:remove')")
     @Log(title = "数据域管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -115,7 +115,7 @@ public class ModelingDataDomainController extends BaseController {
     }
 
     @Operation(summary = "查询数据域管理列通过业务分类id")
-    @PreAuthorize("@ss.hasPermi('dm:dataDomain:list')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataDomain:list')")
     @GetMapping("/listByCategoryId")
     public CommonResult<PageResult<ModelingDataDomainRespVO>> listByCategoryId(ModelingDataDomainPageReqVO ModelingDataDomain) {
         PageResult<ModelingDataDomainDO> page = ModelingDataDomainService.getModelingDataDomainByCategoryId(ModelingDataDomain);

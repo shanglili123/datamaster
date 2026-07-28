@@ -34,7 +34,7 @@
           </el-form>
           <div class="data-action-btns">
             <el-button type="primary" plain @click="routeTo('/ast/quality/qualityTask/add', { row: null, })"
-              v-hasPermi="['da:qualityTask:add']" @mousedown="(e) => e.preventDefault()">
+              v-hasPermi="['ast:qualityTask:add']" @mousedown="(e) => e.preventDefault()">
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
             </el-button>
             <el-button plain @click="routeTo('/ast/quality/errorStorageConfig', {})"
@@ -135,16 +135,16 @@
                   <div class="action-row">
                     <el-button link type="primary" icon="Edit" @click="routeTo('/ast/quality/qualityTask/edit', {
                       ...scope.row,
-                    })" v-hasPermi="['da:qualityTask:edit']" :disabled="scope.row.status == 0">
+                    })" v-hasPermi="['ast:qualityTask:edit']" :disabled="scope.row.status == 0">
                       配置</el-button>
                     <el-button link type="primary" icon="view" @click="
                       routeTo('/ast/quality/qualityTask/detail', {
                         ...scope.row,
                         info: true,
                       })
-                      " v-hasPermi="['da:qualityTask:info']">详情</el-button>
+                      " v-hasPermi="['ast:qualityTask:info']">详情</el-button>
                     <el-button link type="danger" icon="Delete" :disabled="scope.row.status == 0"
-                      @click="handleDelete(scope.row)" v-hasPermi="['da:qualityTask:remove']">删除</el-button>
+                      @click="handleDelete(scope.row)" v-hasPermi="['ast:qualityTask:remove']">删除</el-button>
                   </div>
                   <div class="action-row">
                     <el-button link type="success" icon="Upload" :disabled="scope.row.status == 0"
@@ -154,7 +154,7 @@
                       :loading="unpublishingId === scope.row.id"
                       @click="handleUnpublishClick(scope.row)">卸载</el-button>
                     <el-button link type="primary" icon="VideoPlay"
-                      @click="handleExecuteOnce(scope.row)" v-hasPermi="['da:qualityTask:once']"
+                      @click="handleExecuteOnce(scope.row)" v-hasPermi="['ast:qualityTask:once']"
                       :disabled="scope.row.status != 0">执行一次</el-button>
                   </div>
                 </div>

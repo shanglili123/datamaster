@@ -95,10 +95,10 @@ public class CatalogColumnLogDO extends BaseEntity {
     /** 变更说明 */
     private String updateMsg;
 
-    /** 项目ID */
+    /** 空间ID */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 是否有效;0：无效，1：有效 */

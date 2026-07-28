@@ -25,7 +25,7 @@ export function sqlParse(data) {
     });
 }
 
-// 数据集成中排除Kafka并且是当前项目的数据源列表
+// 数据集成中排除Kafka并且是当前空间的数据源列表
 export function listDaDatasourceNoKafkaByProjectCode(query) {
     return request({
         url: '/ast/dataSource/dppNoKafka/list',

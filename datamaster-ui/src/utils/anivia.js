@@ -223,7 +223,7 @@ export function tansParams(params) {
 }
 
 
-// 返回项目路径
+// 返回空间路径
 export function getNormalPath(p) {
   if (p.length === 0 || !p || p == 'undefined') {
     return p

@@ -30,11 +30,11 @@ import javax.validation.Valid;
 import java.util.Arrays;
 
 /**
- * 数据资产字段与项目关联关系 Controller
+ * 数据资产字段与空间关联关系 Controller
  *
  * @author DATAMASTER
  */
-@Tag(name = "数据资产字段与项目关联关系")
+@Tag(name = "数据资产字段与空间关联关系")
 @RestController
 @RequestMapping("/ast/assetColumnProjectRel")
 @Validated
@@ -42,25 +42,25 @@ public class AssetsAssetColumnProjectRelController extends BaseController {
     @Resource
     private IAssetsAssetColumnProjectRelService assetsAssetColumnProjectRelService;
 
-    @Operation(summary = "查询数据资产字段与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:assetColumnProjectRel:list')")
+    @Operation(summary = "查询数据资产字段与空间关联关系列表")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumnProjectRel:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetColumnProjectRelRespVO>> list(AssetsAssetColumnProjectRelPageReqVO reqVO) {
         PageResult<AssetsAssetColumnProjectRelDO> page = assetsAssetColumnProjectRelService.getAssetColumnProjectRelPage(reqVO);
         return CommonResult.success(BeanUtils.toBean(page, AssetsAssetColumnProjectRelRespVO.class));
     }
 
-    @Operation(summary = "获取数据资产字段与项目关联关系详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetColumnProjectRel:query')")
+    @Operation(summary = "获取数据资产字段与空间关联关系详细信息")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumnProjectRel:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetColumnProjectRelRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetColumnProjectRelDO rel = assetsAssetColumnProjectRelService.getAssetColumnProjectRelById(id);
         return CommonResult.success(BeanUtils.toBean(rel, AssetsAssetColumnProjectRelRespVO.class));
     }
 
-    @Operation(summary = "新增数据资产字段与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetColumnProjectRel:add')")
-    @Log(title = "数据资产字段与项目关联关系", businessType = BusinessType.INSERT)
+    @Operation(summary = "新增数据资产字段与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumnProjectRel:add')")
+    @Log(title = "数据资产字段与空间关联关系", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetColumnProjectRelSaveReqVO reqVO) {
         reqVO.setCreatorId(getUserId());
@@ -69,9 +69,9 @@ public class AssetsAssetColumnProjectRelController extends BaseController {
         return CommonResult.toAjax(assetsAssetColumnProjectRelService.createAssetColumnProjectRel(reqVO));
     }
 
-    @Operation(summary = "修改数据资产字段与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetColumnProjectRel:edit')")
-    @Log(title = "数据资产字段与项目关联关系", businessType = BusinessType.UPDATE)
+    @Operation(summary = "修改数据资产字段与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumnProjectRel:edit')")
+    @Log(title = "数据资产字段与空间关联关系", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetColumnProjectRelSaveReqVO reqVO) {
         reqVO.setUpdatorId(getUserId());
@@ -80,9 +80,9 @@ public class AssetsAssetColumnProjectRelController extends BaseController {
         return CommonResult.toAjax(assetsAssetColumnProjectRelService.updateAssetColumnProjectRel(reqVO));
     }
 
-    @Operation(summary = "删除数据资产字段与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetColumnProjectRel:remove')")
-    @Log(title = "数据资产字段与项目关联关系", businessType = BusinessType.DELETE)
+    @Operation(summary = "删除数据资产字段与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumnProjectRel:remove')")
+    @Log(title = "数据资产字段与空间关联关系", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
         return CommonResult.toAjax(assetsAssetColumnProjectRelService.removeAssetColumnProjectRel(Arrays.asList(ids)));

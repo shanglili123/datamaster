@@ -63,12 +63,12 @@ public class ModelingThemeDomainDO extends BaseEntity {
     private String description;
 
     /**
-     * 项目ID
+     * 空间ID
      */
     private Long projectId;
 
     /**
-     * 项目编码
+     * 空间编码
      */
     private String projectCode;
 

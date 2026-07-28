@@ -63,13 +63,13 @@ public class AssetsAssetProjectRelServiceImpl  extends ServiceImpl<AssetsAssetPr
     public int updateAssetProjectRel(AssetsAssetProjectRelSaveReqVO updateReqVO) {
         // 相关校验
 
-        // 更新数据资产与项目关联关系
+        // 更新数据资产与空间关联关系
         AssetsAssetProjectRelDO updateObj = BeanUtils.toBean(updateReqVO, AssetsAssetProjectRelDO.class);
         return AssetsAssetProjectRelMapper.updateById(updateObj);
     }
     @Override
     public int removeAssetProjectRel(Collection<Long> idList) {
-        // 批量删除数据资产与项目关联关系
+        // 批量删除数据资产与空间关联关系
         return AssetsAssetProjectRelMapper.deleteBatchIds(idList);
     }
 

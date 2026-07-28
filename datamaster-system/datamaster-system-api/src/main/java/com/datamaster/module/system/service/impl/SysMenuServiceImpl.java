@@ -160,10 +160,10 @@ public class SysMenuServiceImpl implements ISysMenuService
     }
 
     /**
-     * 根据用户ID和项目ID查询菜单树信息
+     * 根据用户ID和空间ID查询菜单树信息
      *
      * @param userId 用户ID
-     * @param projectId 项目ID
+     * @param projectId 空间ID
      * @return 菜单列表
      */
     @Override

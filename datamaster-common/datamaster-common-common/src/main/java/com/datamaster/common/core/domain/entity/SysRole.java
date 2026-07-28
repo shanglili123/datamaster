@@ -83,7 +83,7 @@ public class SysRole extends BaseEntity
     }
 
     /**
-     * 项目管理id
+     * 空间管理id
      */
     private Long projectId;
 

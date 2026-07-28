@@ -34,7 +34,7 @@ public class StartedUpRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (context.isActive()) {
-            // 项目启动时，初始化已发布的接口
+            // 空间启动时，初始化已发布的接口
             List<ServiceApiDO> list = ServiceApiService.lambdaQuery()
                     .eq(ServiceApiDO::getStatus, DataConstant.ApiState.WAIT.getKey())
                     .list();

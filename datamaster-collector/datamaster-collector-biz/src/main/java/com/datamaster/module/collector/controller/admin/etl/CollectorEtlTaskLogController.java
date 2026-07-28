@@ -46,7 +46,7 @@ public class CollectorEtlTaskLogController extends BaseController {
     private ICollectorEtlTaskLogService CollectorEtlTaskLogService;
 
     @Operation(summary = "查询数据集成任务-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskLog:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskLog:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlTaskLogRespVO>> list(CollectorEtlTaskLogPageReqVO CollectorEtlTaskLog) {
         PageResult<CollectorEtlTaskLogDO> page = CollectorEtlTaskLogService.getCollectorEtlTaskLogPage(CollectorEtlTaskLog);
@@ -54,7 +54,7 @@ public class CollectorEtlTaskLogController extends BaseController {
     }
 
     @Operation(summary = "导出数据集成任务-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskLog:export')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskLog:export')")
     @Log(title = "数据集成任务-日志", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorEtlTaskLogPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class CollectorEtlTaskLogController extends BaseController {
     }
 
     @Operation(summary = "导入数据集成任务-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskLog:import')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskLog:import')")
     @Log(title = "数据集成任务-日志", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class CollectorEtlTaskLogController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成任务-日志详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskLog:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskLog:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEtlTaskLogRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorEtlTaskLogDO CollectorEtlTaskLogDO = CollectorEtlTaskLogService.getCollectorEtlTaskLogById(id);
@@ -85,7 +85,7 @@ public class CollectorEtlTaskLogController extends BaseController {
     }
 
     @Operation(summary = "新增数据集成任务-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskLog:add')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskLog:add')")
     @Log(title = "数据集成任务-日志", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorEtlTaskLogSaveReqVO CollectorEtlTaskLog) {
@@ -96,7 +96,7 @@ public class CollectorEtlTaskLogController extends BaseController {
     }
 
     @Operation(summary = "修改数据集成任务-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskLog:edit')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskLog:edit')")
     @Log(title = "数据集成任务-日志", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorEtlTaskLogSaveReqVO CollectorEtlTaskLog) {
@@ -107,7 +107,7 @@ public class CollectorEtlTaskLogController extends BaseController {
     }
 
     @Operation(summary = "删除数据集成任务-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTaskLog:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTaskLog:remove')")
     @Log(title = "数据集成任务-日志", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

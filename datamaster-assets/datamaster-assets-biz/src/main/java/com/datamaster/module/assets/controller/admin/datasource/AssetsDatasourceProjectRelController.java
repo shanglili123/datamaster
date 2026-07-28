@@ -33,9 +33,9 @@ import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourcePr
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceProjectRelService;
 
 /**
- * 数据源与项目关联关系Controller * * @author DATAMASTER * @date 2025-03-13
+ * 数据源与空间关联关系Controller * * @author DATAMASTER * @date 2025-03-13
  */
-@Tag(name = "数据源与项目关联关系")
+@Tag(name = "数据源与空间关联关系")
 @RestController
 @RequestMapping("/ast/dataSourceProjectRel")
 @Validated
@@ -43,17 +43,17 @@ public class AssetsDatasourceProjectRelController extends BaseController {
     @Resource
     private IAssetsDatasourceProjectRelService AssetsDatasourceProjectRelService;
 
-    @Operation(summary = "查询数据源与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:list')")
+    @Operation(summary = "查询数据源与空间关联关系列表")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsDatasourceProjectRelRespVO>> list(AssetsDatasourceProjectRelPageReqVO AssetsDatasourceProjectRel) {
         PageResult<AssetsDatasourceProjectRelDO> page = AssetsDatasourceProjectRelService.getDatasourceProjectRelPage(AssetsDatasourceProjectRel);
         return CommonResult.success(BeanUtils.toBean(page, AssetsDatasourceProjectRelRespVO.class));
     }
 
-    @Operation(summary = "导出数据源与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:export')")
-    @Log(title = "数据源与项目关联关系", businessType = BusinessType.EXPORT)
+    @Operation(summary = "导出数据源与空间关联关系列表")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:export')")
+    @Log(title = "数据源与空间关联关系", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsDatasourceProjectRelPageReqVO exportReqVO) {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
@@ -62,9 +62,9 @@ public class AssetsDatasourceProjectRelController extends BaseController {
         util.exportExcel(response, AssetsDatasourceProjectRelConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");
     }
 
-    @Operation(summary = "导入数据源与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:import')")
-    @Log(title = "数据源与项目关联关系", businessType = BusinessType.IMPORT)
+    @Operation(summary = "导入数据源与空间关联关系列表")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:import')")
+    @Log(title = "数据源与空间关联关系", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
         ExcelUtil<AssetsDatasourceProjectRelRespVO> util = new ExcelUtil<>(AssetsDatasourceProjectRelRespVO.class);
@@ -74,17 +74,17 @@ public class AssetsDatasourceProjectRelController extends BaseController {
         return success(message);
     }
 
-    @Operation(summary = "获取数据源与项目关联关系详细信息")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:query')")
+    @Operation(summary = "获取数据源与空间关联关系详细信息")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsDatasourceProjectRelRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsDatasourceProjectRelDO AssetsDatasourceProjectRelDO = AssetsDatasourceProjectRelService.getDatasourceProjectRelById(id);
         return CommonResult.success(BeanUtils.toBean(AssetsDatasourceProjectRelDO, AssetsDatasourceProjectRelRespVO.class));
     }
 
-    @Operation(summary = "新增数据源与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:add')")
-    @Log(title = "数据源与项目关联关系", businessType = BusinessType.INSERT)
+    @Operation(summary = "新增数据源与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:add')")
+    @Log(title = "数据源与空间关联关系", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsDatasourceProjectRelSaveReqVO AssetsDatasourceProjectRel) {
         AssetsDatasourceProjectRel.setCreatorId(getUserId());
@@ -93,9 +93,9 @@ public class AssetsDatasourceProjectRelController extends BaseController {
         return CommonResult.toAjax(AssetsDatasourceProjectRelService.createDatasourceProjectRel(AssetsDatasourceProjectRel));
     }
 
-    @Operation(summary = "修改数据源与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:edit')")
-    @Log(title = "数据源与项目关联关系", businessType = BusinessType.UPDATE)
+    @Operation(summary = "修改数据源与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:edit')")
+    @Log(title = "数据源与空间关联关系", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsDatasourceProjectRelSaveReqVO AssetsDatasourceProjectRel) {
         AssetsDatasourceProjectRel.setUpdatorId(getUserId());
@@ -104,9 +104,9 @@ public class AssetsDatasourceProjectRelController extends BaseController {
         return CommonResult.toAjax(AssetsDatasourceProjectRelService.updateDatasourceProjectRel(AssetsDatasourceProjectRel));
     }
 
-    @Operation(summary = "删除数据源与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:dataSource:remove')")
-    @Log(title = "数据源与项目关联关系", businessType = BusinessType.DELETE)
+    @Operation(summary = "删除数据源与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:dataSource:remove')")
+    @Log(title = "数据源与空间关联关系", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
         return CommonResult.toAjax(AssetsDatasourceProjectRelService.removeDatasourceProjectRel(Arrays.asList(ids)));

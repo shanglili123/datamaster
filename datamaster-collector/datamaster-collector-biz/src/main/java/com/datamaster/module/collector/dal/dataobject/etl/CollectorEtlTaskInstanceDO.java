@@ -77,12 +77,12 @@ public class CollectorEtlTaskInstanceDO extends BaseEntity {
      */
     private String contactNumber;
     /**
-     * 项目id
+     * 空间id
      */
     private Long projectId;
 
     /**
-     * 项目编码
+     * 空间编码
      */
     private String projectCode;
 

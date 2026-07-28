@@ -15,7 +15,7 @@
           plain
           icon="Plus"
           @click="handleAdd"
-          v-hasPermi="['dm:businesscategory:add']"
+          v-hasPermi="['mdl:businesscategory:add']"
         >
           新增
         </el-button>
@@ -38,7 +38,7 @@
             type="primary"
             icon="Edit"
             @click="handleUpdate(row)"
-            v-hasPermi="['dm:businesscategory:edit']"
+            v-hasPermi="['mdl:businesscategory:edit']"
           >
             修改
           </el-button>
@@ -47,7 +47,7 @@
             type="primary"
             icon="Plus"
             @click="handleAdd(row)"
-            v-hasPermi="['dm:businesscategory:add']"
+            v-hasPermi="['mdl:businesscategory:add']"
           >
             新增
           </el-button>
@@ -56,7 +56,7 @@
             type="danger"
             icon="Delete"
             @click="handleDelete(row)"
-            v-hasPermi="['dm:businesscategory:remove']"
+            v-hasPermi="['mdl:businesscategory:remove']"
           >
             删除
           </el-button>

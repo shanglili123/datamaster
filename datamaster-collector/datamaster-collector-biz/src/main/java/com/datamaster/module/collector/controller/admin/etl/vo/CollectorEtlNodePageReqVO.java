@@ -34,10 +34,10 @@ public class CollectorEtlNodePageReqVO extends PageParam {
     @Schema(description = "节点版本", example = "")
     private Long version;
 
-    @Schema(description = "项目id", example = "")
+    @Schema(description = "空间id", example = "")
     private Long projectId;
 
-    @Schema(description = "项目编码", example = "")
+    @Schema(description = "空间编码", example = "")
     private String projectCode;
 
     @Schema(description = "节点参数", example = "")

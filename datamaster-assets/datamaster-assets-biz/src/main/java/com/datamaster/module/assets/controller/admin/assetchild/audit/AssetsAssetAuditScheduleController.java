@@ -44,7 +44,7 @@ public class AssetsAssetAuditScheduleController extends BaseController {
     private IAssetsAssetAuditScheduleService AssetsAssetAuditScheduleService;
 
     @Operation(summary = "查询资产稽查调度列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditSchedule:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditSchedule:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetAuditScheduleRespVO>> list(AssetsAssetAuditSchedulePageReqVO AssetsAssetAuditSchedule) {
         PageResult<AssetsAssetAuditScheduleDO> page = AssetsAssetAuditScheduleService.getAssetAuditSchedulePage(AssetsAssetAuditSchedule);
@@ -52,7 +52,7 @@ public class AssetsAssetAuditScheduleController extends BaseController {
     }
 
     @Operation(summary = "导出资产稽查调度列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditSchedule:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditSchedule:export')")
     @Log(title = "资产稽查调度", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetAuditSchedulePageReqVO exportReqVO) {
@@ -63,7 +63,7 @@ public class AssetsAssetAuditScheduleController extends BaseController {
     }
 
     @Operation(summary = "导入资产稽查调度列表")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditSchedule:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditSchedule:import')")
     @Log(title = "资产稽查调度", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -75,7 +75,7 @@ public class AssetsAssetAuditScheduleController extends BaseController {
     }
 
     @Operation(summary = "获取资产稽查调度详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditSchedule:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditSchedule:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetAuditScheduleRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetAuditScheduleDO AssetsAssetAuditScheduleDO = AssetsAssetAuditScheduleService.getAssetAuditScheduleById(id);
@@ -83,7 +83,7 @@ public class AssetsAssetAuditScheduleController extends BaseController {
     }
 
     @Operation(summary = "新增资产稽查调度")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditSchedule:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditSchedule:add')")
     @Log(title = "资产稽查调度", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetAuditScheduleSaveReqVO AssetsAssetAuditSchedule) {
@@ -94,7 +94,7 @@ public class AssetsAssetAuditScheduleController extends BaseController {
     }
 
     @Operation(summary = "修改资产稽查调度")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditSchedule:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditSchedule:edit')")
     @Log(title = "资产稽查调度", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetAuditScheduleSaveReqVO AssetsAssetAuditSchedule) {
@@ -105,7 +105,7 @@ public class AssetsAssetAuditScheduleController extends BaseController {
     }
 
     @Operation(summary = "删除资产稽查调度")
-    @PreAuthorize("@ss.hasPermi('da:assetAuditSchedule:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetAuditSchedule:remove')")
     @Log(title = "资产稽查调度", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

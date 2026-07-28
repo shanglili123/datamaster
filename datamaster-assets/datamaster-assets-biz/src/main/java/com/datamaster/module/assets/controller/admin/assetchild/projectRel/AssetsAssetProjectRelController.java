@@ -33,9 +33,9 @@ import com.datamaster.module.assets.dal.dataobject.assetchild.projectRel.AssetsA
 import com.datamaster.module.assets.service.assetchild.projectRel.IAssetsAssetProjectRelService;
 
 /**
- * 数据资产与项目关联关系Controller * * @author DATAMASTER * @date 2025-04-18
+ * 数据资产与空间关联关系Controller * * @author DATAMASTER * @date 2025-04-18
  */
-@Tag(name = "数据资产与项目关联关系")
+@Tag(name = "数据资产与空间关联关系")
 @RestController
 @RequestMapping("/ast/assetProjectRel")
 @Validated
@@ -43,17 +43,17 @@ public class AssetsAssetProjectRelController extends BaseController {
     @Resource
     private IAssetsAssetProjectRelService AssetsAssetProjectRelService;
 
-    @Operation(summary = "查询数据资产与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:assetProjectRel:list')")
+    @Operation(summary = "查询数据资产与空间关联关系列表")
+    @PreAuthorize("@ss.hasPermi('ast:assetProjectRel:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetProjectRelRespVO>> list(AssetsAssetProjectRelPageReqVO AssetsAssetProjectRel) {
         PageResult<AssetsAssetProjectRelDO> page = AssetsAssetProjectRelService.getAssetProjectRelPage(AssetsAssetProjectRel);
         return CommonResult.success(BeanUtils.toBean(page, AssetsAssetProjectRelRespVO.class));
     }
 
-    @Operation(summary = "导出数据资产与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:assetProjectRel:export')")
-    @Log(title = "数据资产与项目关联关系", businessType = BusinessType.EXPORT)
+    @Operation(summary = "导出数据资产与空间关联关系列表")
+    @PreAuthorize("@ss.hasPermi('ast:assetProjectRel:export')")
+    @Log(title = "数据资产与空间关联关系", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetProjectRelPageReqVO exportReqVO) {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
@@ -62,9 +62,9 @@ public class AssetsAssetProjectRelController extends BaseController {
         util.exportExcel(response, AssetsAssetProjectRelConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");
     }
 
-    @Operation(summary = "导入数据资产与项目关联关系列表")
-    @PreAuthorize("@ss.hasPermi('da:assetProjectRel:import')")
-    @Log(title = "数据资产与项目关联关系", businessType = BusinessType.IMPORT)
+    @Operation(summary = "导入数据资产与空间关联关系列表")
+    @PreAuthorize("@ss.hasPermi('ast:assetProjectRel:import')")
+    @Log(title = "数据资产与空间关联关系", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
         ExcelUtil<AssetsAssetProjectRelRespVO> util = new ExcelUtil<>(AssetsAssetProjectRelRespVO.class);
@@ -74,17 +74,17 @@ public class AssetsAssetProjectRelController extends BaseController {
         return success(message);
     }
 
-    @Operation(summary = "获取数据资产与项目关联关系详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetProjectRel:query')")
+    @Operation(summary = "获取数据资产与空间关联关系详细信息")
+    @PreAuthorize("@ss.hasPermi('ast:assetProjectRel:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetProjectRelRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetProjectRelDO AssetsAssetProjectRelDO = AssetsAssetProjectRelService.getAssetProjectRelById(id);
         return CommonResult.success(BeanUtils.toBean(AssetsAssetProjectRelDO, AssetsAssetProjectRelRespVO.class));
     }
 
-    @Operation(summary = "新增数据资产与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetProjectRel:add')")
-    @Log(title = "数据资产与项目关联关系", businessType = BusinessType.INSERT)
+    @Operation(summary = "新增数据资产与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:assetProjectRel:add')")
+    @Log(title = "数据资产与空间关联关系", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetProjectRelSaveReqVO AssetsAssetProjectRel) {
         AssetsAssetProjectRel.setCreatorId(getUserId());
@@ -93,9 +93,9 @@ public class AssetsAssetProjectRelController extends BaseController {
         return CommonResult.toAjax(AssetsAssetProjectRelService.createAssetProjectRel(AssetsAssetProjectRel));
     }
 
-    @Operation(summary = "修改数据资产与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetProjectRel:edit')")
-    @Log(title = "数据资产与项目关联关系", businessType = BusinessType.UPDATE)
+    @Operation(summary = "修改数据资产与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:assetProjectRel:edit')")
+    @Log(title = "数据资产与空间关联关系", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetProjectRelSaveReqVO AssetsAssetProjectRel) {
         AssetsAssetProjectRel.setUpdatorId(getUserId());
@@ -104,9 +104,9 @@ public class AssetsAssetProjectRelController extends BaseController {
         return CommonResult.toAjax(AssetsAssetProjectRelService.updateAssetProjectRel(AssetsAssetProjectRel));
     }
 
-    @Operation(summary = "删除数据资产与项目关联关系")
-    @PreAuthorize("@ss.hasPermi('da:assetProjectRel:remove')")
-    @Log(title = "数据资产与项目关联关系", businessType = BusinessType.DELETE)
+    @Operation(summary = "删除数据资产与空间关联关系")
+    @PreAuthorize("@ss.hasPermi('ast:assetProjectRel:remove')")
+    @Log(title = "数据资产与空间关联关系", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
         return CommonResult.toAjax(AssetsAssetProjectRelService.removeAssetProjectRel(Arrays.asList(ids)));

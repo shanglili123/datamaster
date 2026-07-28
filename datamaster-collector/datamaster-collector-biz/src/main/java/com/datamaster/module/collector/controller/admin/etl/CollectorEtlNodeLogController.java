@@ -46,7 +46,7 @@ public class CollectorEtlNodeLogController extends BaseController {
     private ICollectorEtlNodeLogService CollectorEtlNodeLogService;
 
     @Operation(summary = "查询数据集成节点-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeLog:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeLog:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlNodeLogRespVO>> list(CollectorEtlNodeLogPageReqVO CollectorEtlNodeLog) {
         PageResult<CollectorEtlNodeLogDO> page = CollectorEtlNodeLogService.getCollectorEtlNodeLogPage(CollectorEtlNodeLog);
@@ -54,7 +54,7 @@ public class CollectorEtlNodeLogController extends BaseController {
     }
 
     @Operation(summary = "导出数据集成节点-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeLog:export')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeLog:export')")
     @Log(title = "数据集成节点-日志", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorEtlNodeLogPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class CollectorEtlNodeLogController extends BaseController {
     }
 
     @Operation(summary = "导入数据集成节点-日志列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeLog:import')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeLog:import')")
     @Log(title = "数据集成节点-日志", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class CollectorEtlNodeLogController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成节点-日志详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeLog:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeLog:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEtlNodeLogRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorEtlNodeLogDO CollectorEtlNodeLogDO = CollectorEtlNodeLogService.getCollectorEtlNodeLogById(id);
@@ -85,7 +85,7 @@ public class CollectorEtlNodeLogController extends BaseController {
     }
 
     @Operation(summary = "新增数据集成节点-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeLog:add')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeLog:add')")
     @Log(title = "数据集成节点-日志", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorEtlNodeLogSaveReqVO CollectorEtlNodeLog) {
@@ -96,7 +96,7 @@ public class CollectorEtlNodeLogController extends BaseController {
     }
 
     @Operation(summary = "修改数据集成节点-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeLog:edit')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeLog:edit')")
     @Log(title = "数据集成节点-日志", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorEtlNodeLogSaveReqVO CollectorEtlNodeLog) {
@@ -107,7 +107,7 @@ public class CollectorEtlNodeLogController extends BaseController {
     }
 
     @Operation(summary = "删除数据集成节点-日志")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlNodeLog:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:etlNodeLog:remove')")
     @Log(title = "数据集成节点-日志", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

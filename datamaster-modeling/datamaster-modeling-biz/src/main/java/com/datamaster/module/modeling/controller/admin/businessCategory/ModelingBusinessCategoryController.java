@@ -46,7 +46,7 @@ public class ModelingBusinessCategoryController extends BaseController {
     private IModelingBusinessCategoryService ModelingBusinessCategoryService;
 
     @Operation(summary = "查询业务分类列表")
-    @PreAuthorize("@ss.hasPermi('dm:businesscategory:list')")
+    @PreAuthorize("@ss.hasPermi('mdl:businesscategory:list')")
     @GetMapping("/listPage")
     public CommonResult<PageResult<ModelingBusinessCategoryRespVO>> list(ModelingBusinessCategoryPageReqVO ModelingBusinessCategory) {
         PageResult<ModelingBusinessCategoryDO> page = ModelingBusinessCategoryService.getModelingBusinessCategoryPage(ModelingBusinessCategory);
@@ -54,7 +54,7 @@ public class ModelingBusinessCategoryController extends BaseController {
     }
 
     @Operation(summary = "查询业务分类列表")
-    @PreAuthorize("@ss.hasPermi('dm:businesscategory:list')")
+    @PreAuthorize("@ss.hasPermi('mdl:businesscategory:list')")
     @GetMapping("/list")
     public CommonResult<List<ModelingBusinessCategoryRespVO>> listAll(ModelingBusinessCategoryPageReqVO ModelingBusinessCategory) {
         List<ModelingBusinessCategoryDO> page = ModelingBusinessCategoryService.getModelingBusinessCategoryList(ModelingBusinessCategory);
@@ -63,7 +63,7 @@ public class ModelingBusinessCategoryController extends BaseController {
 
 
     @Operation(summary = "导出业务分类列表")
-    @PreAuthorize("@ss.hasPermi('dm:businesscategory:export')")
+    @PreAuthorize("@ss.hasPermi('mdl:businesscategory:export')")
     @Log(title = "业务分类", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, ModelingBusinessCategoryPageReqVO exportReqVO) {
@@ -74,7 +74,7 @@ public class ModelingBusinessCategoryController extends BaseController {
     }
 
     @Operation(summary = "导入业务分类列表")
-    @PreAuthorize("@ss.hasPermi('dm:businesscategory:import')")
+    @PreAuthorize("@ss.hasPermi('mdl:businesscategory:import')")
     @Log(title = "业务分类", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -86,7 +86,7 @@ public class ModelingBusinessCategoryController extends BaseController {
     }
 
     @Operation(summary = "获取业务分类详细信息")
-    @PreAuthorize("@ss.hasPermi('dm:businesscategory:query')")
+    @PreAuthorize("@ss.hasPermi('mdl:businesscategory:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<ModelingBusinessCategoryRespVO> getInfo(@PathVariable("id") Long id) {
         ModelingBusinessCategoryDO ModelingBusinessCategoryDO = ModelingBusinessCategoryService.getModelingBusinessCategoryById(id);
@@ -94,7 +94,7 @@ public class ModelingBusinessCategoryController extends BaseController {
     }
 
     @Operation(summary = "新增业务分类")
-    @PreAuthorize("@ss.hasPermi('dm:businesscategory:add')")
+    @PreAuthorize("@ss.hasPermi('mdl:businesscategory:add')")
     @Log(title = "业务分类", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody ModelingBusinessCategorySaveReqVO ModelingBusinessCategory) {
@@ -105,7 +105,7 @@ public class ModelingBusinessCategoryController extends BaseController {
     }
 
     @Operation(summary = "修改业务分类")
-    @PreAuthorize("@ss.hasPermi('dm:businesscategory:edit')")
+    @PreAuthorize("@ss.hasPermi('mdl:businesscategory:edit')")
     @Log(title = "业务分类", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody ModelingBusinessCategorySaveReqVO ModelingBusinessCategory) {
@@ -116,7 +116,7 @@ public class ModelingBusinessCategoryController extends BaseController {
     }
 
     @Operation(summary = "删除业务分类")
-    @PreAuthorize("@ss.hasPermi('dm:businesscategory:remove')")
+    @PreAuthorize("@ss.hasPermi('mdl:businesscategory:remove')")
     @Log(title = "业务分类", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

@@ -46,7 +46,7 @@ public class AssetsAssetApiController extends BaseController {
     private IAssetsAssetApiService AssetsAssetApiService;
 
     @Operation(summary = "查询数据资产-外部API列表")
-    @PreAuthorize("@ss.hasPermi('da:api:list')")
+    @PreAuthorize("@ss.hasPermi('ast:api:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetApiRespVO>> list(AssetsAssetApiPageReqVO AssetsAssetApi) {
         PageResult<AssetsAssetApiDO> page = AssetsAssetApiService.getAssetApiPage(AssetsAssetApi);
@@ -54,7 +54,7 @@ public class AssetsAssetApiController extends BaseController {
     }
 
     @Operation(summary = "导出数据资产-外部API列表")
-    @PreAuthorize("@ss.hasPermi('da:api:export')")
+    @PreAuthorize("@ss.hasPermi('ast:api:export')")
     @Log(title = "数据资产-外部API", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetApiPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class AssetsAssetApiController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产-外部API列表")
-    @PreAuthorize("@ss.hasPermi('da:api:import')")
+    @PreAuthorize("@ss.hasPermi('ast:api:import')")
     @Log(title = "数据资产-外部API", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class AssetsAssetApiController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产-外部API详细信息")
-    @PreAuthorize("@ss.hasPermi('da:api:query')")
+    @PreAuthorize("@ss.hasPermi('ast:api:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetApiRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetApiDO AssetsAssetApiDO = AssetsAssetApiService.getAssetApiById(id);
@@ -85,7 +85,7 @@ public class AssetsAssetApiController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产-外部API")
-    @PreAuthorize("@ss.hasPermi('da:api:add')")
+    @PreAuthorize("@ss.hasPermi('ast:api:add')")
     @Log(title = "数据资产-外部API", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetApiSaveReqVO AssetsAssetApi) {
@@ -96,7 +96,7 @@ public class AssetsAssetApiController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产-外部API")
-    @PreAuthorize("@ss.hasPermi('da:api:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:api:edit')")
     @Log(title = "数据资产-外部API", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetApiSaveReqVO AssetsAssetApi) {
@@ -107,7 +107,7 @@ public class AssetsAssetApiController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产-外部API")
-    @PreAuthorize("@ss.hasPermi('da:api:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:api:remove')")
     @Log(title = "数据资产-外部API", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -115,7 +115,7 @@ public class AssetsAssetApiController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产-外部API")
-    @PreAuthorize("@ss.hasPermi('da:asset:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     @PostMapping("/queryServiceForwarding")
     public void queryServiceForwarding(HttpServletResponse response, @Valid @RequestBody AssetsAssetApiReqVO AssetsAssetApi) {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");

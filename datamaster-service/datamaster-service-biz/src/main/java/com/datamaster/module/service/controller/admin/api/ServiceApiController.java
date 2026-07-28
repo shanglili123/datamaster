@@ -55,7 +55,7 @@ public class ServiceApiController extends BaseController {
     private IServiceApiService ServiceApiService;
 
     @Operation(summary = "查询API服务列表")
-    @PreAuthorize("@ss.hasPermi('ds:api:list')")
+    @PreAuthorize("@ss.hasPermi('svc:api:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<ServiceApiRespVO>> list(ServiceApiPageReqVO ServiceApi) {
         PageResult<ServiceApiDO> page = ServiceApiService.getServiceApiPage(ServiceApi);
@@ -63,7 +63,7 @@ public class ServiceApiController extends BaseController {
     }
 
     @Operation(summary = "导出API服务列表")
-    @PreAuthorize("@ss.hasPermi('ds:api:export')")
+    @PreAuthorize("@ss.hasPermi('svc:api:export')")
     @Log(title = "API服务", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, ServiceApiPageReqVO exportReqVO) {
@@ -74,7 +74,7 @@ public class ServiceApiController extends BaseController {
     }
 
     @Operation(summary = "导入API服务列表")
-    @PreAuthorize("@ss.hasPermi('ds:api:import')")
+    @PreAuthorize("@ss.hasPermi('svc:api:import')")
     @Log(title = "API服务", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -86,7 +86,7 @@ public class ServiceApiController extends BaseController {
     }
 
     @Operation(summary = "获取API服务详细信息")
-    @PreAuthorize("@ss.hasPermi('ds:api:query')")
+    @PreAuthorize("@ss.hasPermi('svc:api:query')")
     @GetMapping(value = "/{ID}")
     public CommonResult<ServiceApiRespVO> getInfo(@PathVariable("ID") Long ID) {
         ServiceApiDO ServiceApiDO = ServiceApiService.getServiceApiById(ID);
@@ -94,7 +94,7 @@ public class ServiceApiController extends BaseController {
     }
 
     @Operation(summary = "根据名称，版本号，路径进行判断是否重复")
-    @PreAuthorize("@ss.hasPermi('ds:api:query')")
+    @PreAuthorize("@ss.hasPermi('svc:api:query')")
     @PostMapping(value = "/repeatFlag")
     public AjaxResult repeatFlag(@RequestBody JSONObject jsonObject) {
         if (StringUtils.isBlank(jsonObject.getString("name"))) {
@@ -115,7 +115,7 @@ public class ServiceApiController extends BaseController {
 
 
     @Operation(summary = "删除API服务")
-    @PreAuthorize("@ss.hasPermi('ds:api:remove')")
+    @PreAuthorize("@ss.hasPermi('svc:api:remove')")
     @Log(title = "API服务", businessType = BusinessType.DELETE)
     @DeleteMapping("/{id}")
     public CommonResult<Integer> remove(@PathVariable(name = "id") Long[] id) {
@@ -129,7 +129,7 @@ public class ServiceApiController extends BaseController {
      * @return
      */
     @Operation(summary = "SQL解析")
-    @PreAuthorize("@ss.hasPermi('da:asset:list')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:list')")
     @PostMapping("/sqlParse")
     public AjaxResult sqlParse(@RequestBody @Validated SqlParseDto sqlParseDto) {
         /*try {
@@ -142,7 +142,7 @@ public class ServiceApiController extends BaseController {
     }
 
     @Operation(summary = "接口调试")
-    @PreAuthorize("@ss.hasPermi('da:asset:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     @PostMapping("/serviceTesting")
     public AjaxResult serviceTesting(@RequestBody ServiceApiDO dataApi) {
         if (dataApi.getExecuteConfig() != null && StringUtils.isNotBlank(dataApi.getExecuteConfig().getSqlText())) {
@@ -162,7 +162,7 @@ public class ServiceApiController extends BaseController {
 
 
     @Operation(summary = "接口调试")
-    @PreAuthorize("@ss.hasPermi('ds:api:query')")
+    @PreAuthorize("@ss.hasPermi('svc:api:query')")
     @PostMapping("/queryServiceForwarding")
     public void queryServiceForwarding(HttpServletResponse response, @Valid @RequestBody ServiceApiReqVO ServiceApiReqVO) {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
@@ -177,7 +177,7 @@ public class ServiceApiController extends BaseController {
      * @return
      */
     @Operation(summary = "保存Api信息")
-    @PreAuthorize("@ss.hasPermi('da:asset:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     @PostMapping()
     public AjaxResult saveDataApi(@RequestBody ServiceApiDO dataApi) {
 //        if (dataApi.getExecuteConfig() != null && StringUtils.isNotBlank(dataApi.getExecuteConfig().getSqlText())) {
@@ -225,7 +225,7 @@ public class ServiceApiController extends BaseController {
      */
 
     @GetMapping(value = "/release/{id}")
-    @PreAuthorize("@ss.hasPermi('da:asset:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     public AjaxResult releaseDataApi(@PathVariable String id) {
         ServiceApiService.releaseDataApi(id, getUserId(), getUsername());
         return AjaxResult.success();
@@ -237,7 +237,7 @@ public class ServiceApiController extends BaseController {
      * @param id
      * @return
      */
-    @PreAuthorize("@ss.hasPermi('da:asset:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     @GetMapping(value = "/cancel/{id}")
     public AjaxResult cancelDataApi(@PathVariable String id) {
         ServiceApiService.cancelDataApi(id, getUserId(), getUsername());

@@ -180,7 +180,7 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
             throw new ServiceException("会话不存在");
         }
         if (projectId != null && !projectId.equals(session.getProjectId())) {
-            throw new ServiceException("会话不属于当前项目");
+            throw new ServiceException("会话不属于当前空间");
         }
         return session;
     }

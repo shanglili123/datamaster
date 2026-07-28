@@ -91,12 +91,12 @@ public class CatalogTaskSaveReqVO extends BaseEntity {
     @Schema(description = "所属部门", example = "")
     private Long responsibleDept;
 
-    /** 项目ID */
-    @Schema(description = "项目ID")
+    /** 空间ID */
+    @Schema(description = "空间ID")
     private Long projectId;
 
-    /** 项目编码 */
-    @Schema(description = "项目编码")
+    /** 空间编码 */
+    @Schema(description = "空间编码")
     private String projectCode;
 
 }

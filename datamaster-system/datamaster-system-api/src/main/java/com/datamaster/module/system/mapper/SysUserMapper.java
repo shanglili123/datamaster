@@ -41,7 +41,7 @@ public interface SysUserMapper {
     public List<SysUser> selectAllocatedList(SysUser user);
 
     /**
-     * 获取用户列表排除当前项目已经存在的用户
+     * 获取用户列表排除当前空间已经存在的用户
      */
     public List<SysUser> selectNoProjectUserList(SysUser user);
 
@@ -70,10 +70,10 @@ public interface SysUserMapper {
     public SysUser selectUserById(Long userId);
 
     /**
-     * 通过用户ID和项目ID查询用户
+     * 通过用户ID和空间ID查询用户
      *
      * @param userId    用户ID
-     * @param projectId 项目ID
+     * @param projectId 空间ID
      * @return 用户对象信息
      */
     public SysUser selectUserByUserIdAndProjectId(@Param("userId") Long userId, @Param("projectId") Long projectId);

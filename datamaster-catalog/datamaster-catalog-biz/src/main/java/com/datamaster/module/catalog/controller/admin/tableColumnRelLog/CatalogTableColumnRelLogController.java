@@ -41,7 +41,7 @@ public class CatalogTableColumnRelLogController extends BaseController {
     private ICatalogTableColumnRelLogService CatalogTableColumnRelLogService;
 
     @Operation(summary = "查询元数据数据库与信息及字段信息关系-日志列表")
-//    @PreAuthorize("@ss.hasPermi('mc:tableColumnRelLog:TableColumnRelLog:list')")
+//    @PreAuthorize("@ss.hasPermi('cat:tableColumnRelLog:TableColumnRelLog:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CatalogTableColumnRelLogRespVO>> list(CatalogTableColumnRelLogPageReqVO CatalogTableColumnRelLog) {
         PageResult<CatalogTableColumnRelLogDO> page = CatalogTableColumnRelLogService.getCatalogTableColumnRelLogPage(CatalogTableColumnRelLog);
@@ -49,7 +49,7 @@ public class CatalogTableColumnRelLogController extends BaseController {
     }
 
     @Operation(summary = "导出元数据数据库与信息及字段信息关系-日志列表")
-//    @PreAuthorize("@ss.hasPermi('mc:tableColumnRelLog:TableColumnRelLog:export')")
+//    @PreAuthorize("@ss.hasPermi('cat:tableColumnRelLog:TableColumnRelLog:export')")
     @Log(title = "元数据数据库与信息及字段信息关系-日志", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CatalogTableColumnRelLogPageReqVO exportReqVO) {
@@ -60,7 +60,7 @@ public class CatalogTableColumnRelLogController extends BaseController {
     }
 
     @Operation(summary = "获取元数据数据库与信息及字段信息关系-日志详细信息")
-//    @PreAuthorize("@ss.hasPermi('mc:tableColumnRelLog:TableColumnRelLog:query')")
+//    @PreAuthorize("@ss.hasPermi('cat:tableColumnRelLog:TableColumnRelLog:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CatalogTableColumnRelLogRespVO> getInfo(@PathVariable("id") Long id) {
         CatalogTableColumnRelLogDO CatalogTableColumnRelLogDO = CatalogTableColumnRelLogService.getCatalogTableColumnRelLogById(id);
@@ -68,7 +68,7 @@ public class CatalogTableColumnRelLogController extends BaseController {
     }
 
     @Operation(summary = "新增元数据数据库与信息及字段信息关系-日志")
-//    @PreAuthorize("@ss.hasPermi('mc:tableColumnRelLog:TableColumnRelLog:add')")
+//    @PreAuthorize("@ss.hasPermi('cat:tableColumnRelLog:TableColumnRelLog:add')")
     @Log(title = "元数据数据库与信息及字段信息关系-日志", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CatalogTableColumnRelLogSaveReqVO CatalogTableColumnRelLog) {
@@ -79,7 +79,7 @@ public class CatalogTableColumnRelLogController extends BaseController {
     }
 
     @Operation(summary = "修改元数据数据库与信息及字段信息关系-日志")
-//    @PreAuthorize("@ss.hasPermi('mc:tableColumnRelLog:TableColumnRelLog:edit')")
+//    @PreAuthorize("@ss.hasPermi('cat:tableColumnRelLog:TableColumnRelLog:edit')")
     @Log(title = "元数据数据库与信息及字段信息关系-日志", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CatalogTableColumnRelLogSaveReqVO CatalogTableColumnRelLog) {
@@ -90,7 +90,7 @@ public class CatalogTableColumnRelLogController extends BaseController {
     }
 
     @Operation(summary = "删除元数据数据库与信息及字段信息关系-日志")
-//    @PreAuthorize("@ss.hasPermi('mc:tableColumnRelLog:TableColumnRelLog:remove')")
+//    @PreAuthorize("@ss.hasPermi('cat:tableColumnRelLog:TableColumnRelLog:remove')")
     @Log(title = "元数据数据库与信息及字段信息关系-日志", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

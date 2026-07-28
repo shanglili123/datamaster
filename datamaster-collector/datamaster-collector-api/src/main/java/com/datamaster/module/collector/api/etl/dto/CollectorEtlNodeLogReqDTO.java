@@ -30,10 +30,10 @@ public class CollectorEtlNodeLogReqDTO {
     /** 节点版本 */
     private Long version;
 
-    /** 项目id */
+    /** 空间id */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 节点参数 */

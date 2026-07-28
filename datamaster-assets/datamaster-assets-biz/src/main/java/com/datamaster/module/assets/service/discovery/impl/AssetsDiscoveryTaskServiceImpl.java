@@ -597,7 +597,7 @@ public class AssetsDiscoveryTaskServiceImpl extends ServiceImpl<AssetsDiscoveryT
         query.setDatasourceId(datasourceId);
         List<AssetsDatasourceProjectRelDO> relList = assetsDatasourceProjectRelService.getDatasourceProjectRelList(query);
         if (relList.isEmpty()) {
-            throw new ServiceException("数据源未关联项目");
+            throw new ServiceException("数据源未关联空间");
         }
         return relList.get(0).getProjectCode();
     }

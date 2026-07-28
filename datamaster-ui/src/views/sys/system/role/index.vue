@@ -50,7 +50,7 @@
                         style="width: 140px"
                     >
                         <el-option label="系统角色" :value="0" />
-                        <el-option label="项目角色" :value="1" />
+                        <el-option label="空间角色" :value="1" />
                     </el-select>
                 </el-form-item>
                 <el-form-item label="时间">
@@ -107,7 +107,7 @@
                 <el-table-column label="角色类型" prop="projectId" align="center">
                     <template #default="scope">
                         <el-tag :type="isSystemRoleType(scope.row.projectId) ? 'info' : 'primary'">
-                            {{ isSystemRoleType(scope.row.projectId) ? '系统角色' : '项目角色' }}
+                            {{ isSystemRoleType(scope.row.projectId) ? '系统角色' : '空间角色' }}
                         </el-tag>
                     </template>
                 </el-table-column>
@@ -274,7 +274,7 @@
                                 class="el-form-input-width"
                             >
                                 <el-option label="系统角色" :value="0" />
-                                <el-option label="项目角色" :value="1" />
+                                <el-option label="空间角色" :value="1" />
                             </el-select>
                         </el-form-item>
                     </el-col>

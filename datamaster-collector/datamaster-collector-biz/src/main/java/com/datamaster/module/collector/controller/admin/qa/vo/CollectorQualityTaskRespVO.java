@@ -193,10 +193,10 @@ public class CollectorQualityTaskRespVO implements Serializable {
     /** 最新一次的执行记录问题数据 */
     private Long problemData;
 
-    /** 项目ID */
+    /** 空间ID */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
 }

@@ -46,7 +46,7 @@ public class CollectorEtlSchedulerController extends BaseController {
     private ICollectorEtlSchedulerService CollectorEtlSchedulerService;
 
     @Operation(summary = "查询数据集成调度信息列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlScheduler:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlScheduler:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlSchedulerRespVO>> list(CollectorEtlSchedulerPageReqVO CollectorEtlScheduler) {
         PageResult<CollectorEtlSchedulerDO> page = CollectorEtlSchedulerService.getCollectorEtlSchedulerPage(CollectorEtlScheduler);
@@ -54,7 +54,7 @@ public class CollectorEtlSchedulerController extends BaseController {
     }
 
     @Operation(summary = "导出数据集成调度信息列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlScheduler:export')")
+//    @PreAuthorize("@ss.hasPermi('col:etlScheduler:export')")
     @Log(title = "数据集成调度信息", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorEtlSchedulerPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class CollectorEtlSchedulerController extends BaseController {
     }
 
     @Operation(summary = "导入数据集成调度信息列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlScheduler:import')")
+//    @PreAuthorize("@ss.hasPermi('col:etlScheduler:import')")
     @Log(title = "数据集成调度信息", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class CollectorEtlSchedulerController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成调度信息详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlScheduler:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlScheduler:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEtlSchedulerRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorEtlSchedulerDO CollectorEtlSchedulerDO = CollectorEtlSchedulerService.getCollectorEtlSchedulerById(id);
@@ -85,7 +85,7 @@ public class CollectorEtlSchedulerController extends BaseController {
     }
 
     @Operation(summary = "新增数据集成调度信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlScheduler:add')")
+//    @PreAuthorize("@ss.hasPermi('col:etlScheduler:add')")
     @Log(title = "数据集成调度信息", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorEtlSchedulerSaveReqVO CollectorEtlScheduler) {
@@ -96,7 +96,7 @@ public class CollectorEtlSchedulerController extends BaseController {
     }
 
     @Operation(summary = "修改数据集成调度信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlScheduler:edit')")
+//    @PreAuthorize("@ss.hasPermi('col:etlScheduler:edit')")
     @Log(title = "数据集成调度信息", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorEtlSchedulerSaveReqVO CollectorEtlScheduler) {
@@ -107,7 +107,7 @@ public class CollectorEtlSchedulerController extends BaseController {
     }
 
     @Operation(summary = "删除数据集成调度信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlScheduler:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:etlScheduler:remove')")
     @Log(title = "数据集成调度信息", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

@@ -44,7 +44,7 @@ public class AssetsAssetColumnController extends BaseController {
     private IAssetsAssetColumnService AssetsAssetColumnService;
 
     @Operation(summary = "查询数据资产字段列表")
-    @PreAuthorize("@ss.hasPermi('da:assetColumn:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumn:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetColumnRespVO>> list(AssetsAssetColumnPageReqVO AssetsAssetColumn) {
         PageResult<AssetsAssetColumnDO> page = AssetsAssetColumnService.getAssetColumnPage(AssetsAssetColumn);
@@ -52,14 +52,14 @@ public class AssetsAssetColumnController extends BaseController {
     }
 
     @Operation(summary = "根据选择的资产表id信息查询字段信息")
-    @PreAuthorize("@ss.hasPermi('da:assetColumn:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumn:list')")
     @GetMapping("/getColumnByAssetId")
     public AjaxResult getColumnByAssetId(AssetsAssetColumnPageReqVO AssetsAssetColumn) {
         return AssetsAssetColumnService.getColumnByAssetId(AssetsAssetColumn);
     }
 
     @Operation(summary = "导出数据资产字段列表")
-    @PreAuthorize("@ss.hasPermi('da:assetColumn:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumn:export')")
     @Log(title = "数据资产字段", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetColumnPageReqVO exportReqVO) {
@@ -70,7 +70,7 @@ public class AssetsAssetColumnController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产字段列表")
-    @PreAuthorize("@ss.hasPermi('da:assetColumn:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumn:import')")
     @Log(title = "数据资产字段", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -82,7 +82,7 @@ public class AssetsAssetColumnController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产字段详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetColumn:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumn:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetColumnRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetColumnDO AssetsAssetColumnDO = AssetsAssetColumnService.getAssetColumnById(id);
@@ -90,7 +90,7 @@ public class AssetsAssetColumnController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产字段")
-    @PreAuthorize("@ss.hasPermi('da:assetColumn:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumn:add')")
     @Log(title = "数据资产字段", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetColumnSaveReqVO AssetsAssetColumn) {
@@ -101,7 +101,7 @@ public class AssetsAssetColumnController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产字段")
-    @PreAuthorize("@ss.hasPermi('da:assetColumn:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumn:edit')")
     @Log(title = "数据资产字段", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetColumnSaveReqVO AssetsAssetColumn) {
@@ -112,7 +112,7 @@ public class AssetsAssetColumnController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产字段")
-    @PreAuthorize("@ss.hasPermi('da:assetColumn:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetColumn:remove')")
     @Log(title = "数据资产字段", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

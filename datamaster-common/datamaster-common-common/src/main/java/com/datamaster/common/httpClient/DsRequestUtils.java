@@ -157,7 +157,7 @@ public class DsRequestUtils {
     }
 
     /**
-     * 替换项目编码
+     * 替换空间编码
      *
      * @param url
      * @param projectCode
@@ -168,7 +168,7 @@ public class DsRequestUtils {
     }
 
     /**
-     * 替换项目编码及id
+     * 替换空间编码及id
      *
      * @param url
      * @param projectCode
@@ -180,7 +180,7 @@ public class DsRequestUtils {
     }
 
     /**
-     * 替换项目编码及code
+     * 替换空间编码及code
      *
      * @param url
      * @param projectCode

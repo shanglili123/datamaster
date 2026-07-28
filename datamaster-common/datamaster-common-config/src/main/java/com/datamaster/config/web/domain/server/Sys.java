@@ -20,7 +20,7 @@ public class Sys
     private String computerIp;
 
     /**
-     * 项目路径
+     * 空间路径
      */
     private String userDir;
 

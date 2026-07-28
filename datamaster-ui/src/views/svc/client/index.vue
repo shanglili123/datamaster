@@ -23,7 +23,7 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button plain type="primary" v-hasPermi="['att:client:query']" @click="handleQuery"
+          <el-button plain type="primary" v-hasPermi="['svc:client:query']" @click="handleQuery"
             @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
           </el-button>
@@ -33,7 +33,7 @@
         </el-form-item>
       </el-form>
       <div class="data-action-btns">
-        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['att:client:add']"
+        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['svc:client:add']"
           @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-xinzeng mr5"></i>新增
         </el-button>
@@ -115,18 +115,18 @@
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="280">
           <template #default="scope">
             <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-              v-hasPermi="['att:client:edit']">修改</el-button>
+              v-hasPermi="['svc:client:edit']">修改</el-button>
             <el-button link type="primary" icon="view" @click="handleDetail(scope.row)"
-              v-hasPermi="['att:client:query']">详情</el-button>
+              v-hasPermi="['svc:client:query']">详情</el-button>
             <el-popover placement="bottom" :width="150" trigger="click">
               <template #reference>
                 <el-button link type="primary" icon="ArrowDown">更多</el-button>
               </template>
               <div style="width: 100px" class="butgdlist">
                 <el-button link style="padding-left: 14px" type="primary" icon="Refresh" @click="handleReset(scope.row)"
-                  v-hasPermi="['att:client:edit']">重置秘钥</el-button>
+                  v-hasPermi="['svc:client:edit']">重置秘钥</el-button>
                 <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                  v-hasPermi="['att:client:remove']">删除</el-button>
+                  v-hasPermi="['svc:client:remove']">删除</el-button>
               </div>
             </el-popover>
           </template>

@@ -42,7 +42,7 @@ public class CollectorEtlTaskController extends BaseController {
     private ICollectorEtlTaskService CollectorEtlTaskService;
 
     @Operation(summary = "查询数据集成任务列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorEtlTaskRespVO>> list(CollectorEtlTaskPageReqVO CollectorEtlTask) {
         if (StringUtils.isBlank(CollectorEtlTask.getType())) {
@@ -53,7 +53,7 @@ public class CollectorEtlTaskController extends BaseController {
     }
 
     @Operation(summary = "查询数据集成任务列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:list')")
     @GetMapping("/getCollectorEtlTaskPage")
     public CommonResult<PageResult<CollectorEtlTaskRespVO>> getCollectorEtlTaskPageList(CollectorEtlTaskPageReqVO CollectorEtlTask) {
         if (StringUtils.isBlank(CollectorEtlTask.getType())) {
@@ -64,7 +64,7 @@ public class CollectorEtlTaskController extends BaseController {
 
 
     @Operation(summary = "删除数据集成任务")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:remove')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:remove')")
     @Log(title = "数据集成任务", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -105,7 +105,7 @@ public class CollectorEtlTaskController extends BaseController {
     }
 
     @Operation(summary = "新增数据集成节点-获取唯一健")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:add')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:add')")
     @GetMapping("/getNodeUniqueKey")
     public CommonResult<Long> getNodeUniqueKey(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
         return CommonResult.success(CollectorEtlTaskService.getNodeUniqueKey(CollectorEtlNewNodeSaveReqVO));
@@ -118,7 +118,7 @@ public class CollectorEtlTaskController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成任务详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorEtlTaskRespVO> getInfo(@PathVariable("id") Long id) {
         return CommonResult.success(CollectorEtlTaskService.getCollectorEtlTaskById(id));
@@ -126,7 +126,7 @@ public class CollectorEtlTaskController extends BaseController {
 
 
     @Operation(summary = "获取数据集成任务详细信息")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:query')")
     @GetMapping(value = "/updateQuery/{id}")
     public CommonResult<CollectorEtlTaskUpdateQueryRespVO> getuUpdateQueryInfo(@PathVariable("id") Long id) {
         return CommonResult.success(CollectorEtlTaskService.getuUpdateQueryInfo(id));
@@ -134,7 +134,7 @@ public class CollectorEtlTaskController extends BaseController {
 
 
     @Operation(summary = "查询数据集成任务列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:list')")
     @GetMapping("/getCollectorEtlTaskListTree")
     public CommonResult<List<CollectorEtlTaskTreeRespVO>> getCollectorEtlTaskListTree(CollectorEtlTaskPageReqVO CollectorEtlTask) {
         return CommonResult.success(CollectorEtlTaskService.getCollectorEtlTaskListTree(CollectorEtlTask));
@@ -142,7 +142,7 @@ public class CollectorEtlTaskController extends BaseController {
 
 
     @Operation(summary = "查询数据集成任务列表")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:list')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:list')")
     @GetMapping("/getSubTaskStatusList")
     public CommonResult<List<CollectorEtlTaskRespVO>> getSubTaskStatusList(CollectorEtlTaskPageReqVO CollectorEtlTask) {
         return CommonResult.success(CollectorEtlTaskService.getSubTaskStatusList(CollectorEtlTask));
@@ -263,7 +263,7 @@ public class CollectorEtlTaskController extends BaseController {
     }
 
     @Operation(summary = "获取数据集成任务详细信息--前置草稿任务")
-//    @PreAuthorize("@ss.hasPermi('dpp:etlTask:query')")
+//    @PreAuthorize("@ss.hasPermi('col:etlTask:query')")
     @GetMapping(value = "/updateQueryFront/{id}")
     public CommonResult<CollectorEtlTaskUpdateQueryRespVO> getupdateQueryFront(@PathVariable("id") Long id) {
         return CommonResult.success(CollectorEtlTaskService.getupdateQueryFront(id));

@@ -42,10 +42,10 @@ public class CollectorEtlNodeInstanceReqDTO {
     /** 任务实例名称 */
     private String taskInstanceName;
 
-    /** 项目id */
+    /** 空间id */
     private Long projectId;
 
-    /** 项目编码 */
+    /** 空间编码 */
     private String projectCode;
 
     /** 提交时间 */

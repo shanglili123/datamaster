@@ -33,7 +33,7 @@ public class DatasourceDO extends BaseEntity {
     /** 数据源配置(json字符串) */
     private String datasourceConfig;
 
-    /** 项目名称 */
+    /** 空间名称 */
     @TableField(exist = false)
     private String projectName;
 

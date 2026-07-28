@@ -52,7 +52,7 @@ public class AssetsDiscoveryTaskController extends BaseController {
     private IAssetsDiscoveryTaskService assetsDiscoveryTaskService;
 
     @Operation(summary = "查询数据发现任务列表")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:list')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsDiscoveryTaskRespVO>> list(AssetsDiscoveryTaskPageReqVO assetsDiscoveryTask) {
         PageResult<AssetsDiscoveryTaskDO> page = assetsDiscoveryTaskService.getDaDiscoveryTaskPage(assetsDiscoveryTask);
@@ -60,14 +60,14 @@ public class AssetsDiscoveryTaskController extends BaseController {
     }
 
     @Operation(summary = "查询数据发现任务列表")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:list')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:list')")
     @GetMapping("/getDaDiscoveryTaskListPage")
     public CommonResult<PageResult<AssetsDiscoveryTaskRespVO>> getDaDiscoveryTaskListPage(AssetsDiscoveryTaskPageReqVO assetsDiscoveryTask) {
         return CommonResult.success(assetsDiscoveryTaskService.getDaDiscoveryTaskListPage(assetsDiscoveryTask));
     }
 
     @Operation(summary = "导出数据发现任务列表")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:export')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:export')")
     @Log(title = "数据发现任务", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsDiscoveryTaskPageReqVO exportReqVO) {
@@ -79,7 +79,7 @@ public class AssetsDiscoveryTaskController extends BaseController {
     }
 
     @Operation(summary = "导入数据发现任务列表")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:import')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:import')")
     @Log(title = "数据发现任务", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -91,14 +91,14 @@ public class AssetsDiscoveryTaskController extends BaseController {
     }
 
     @Operation(summary = "获取数据发现任务详细信息")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:query')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsDiscoveryTaskRespVO> getInfo(@PathVariable("id") Long id) {
         return CommonResult.success(assetsDiscoveryTaskService.getDaDiscoveryTaskById(id));
     }
 
     @Operation(summary = "新增数据发现任务")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:add')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:add')")
     @Log(title = "数据发现任务", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsDiscoveryTaskSaveReqVO assetsDiscoveryTask) {
@@ -109,7 +109,7 @@ public class AssetsDiscoveryTaskController extends BaseController {
     }
 
     @Operation(summary = "修改数据发现任务")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:edit')")
     @Log(title = "数据发现任务", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsDiscoveryTaskSaveReqVO assetsDiscoveryTask) {
@@ -120,7 +120,7 @@ public class AssetsDiscoveryTaskController extends BaseController {
     }
 
     @Operation(summary = "删除数据发现任务")
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:remove')")
     @Log(title = "数据发现任务", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -141,7 +141,7 @@ public class AssetsDiscoveryTaskController extends BaseController {
     }
 
     @Log(title = "数据发现任务状态修改", businessType = BusinessType.UPDATE)
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:edit')")
     @PostMapping("/updateDaDiscoveryTaskStatus")
     public AjaxResult updateDaDiscoveryTaskStatus(@RequestBody AssetsDiscoveryTaskSaveReqVO assetsDiscoveryTask) {
         boolean result = assetsDiscoveryTaskService.updateDaDiscoveryTaskStatus(assetsDiscoveryTask);
@@ -149,7 +149,7 @@ public class AssetsDiscoveryTaskController extends BaseController {
     }
 
     @Log(title = "数据发现任务调度周期修改", businessType = BusinessType.UPDATE)
-    @PreAuthorize("@ss.hasPermi('da:discoveryTask:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:discoveryTask:edit')")
     @PostMapping("/updateDaDiscoveryTaskCronExpression")
     public AjaxResult updateDaDiscoveryTaskCronExpression(@RequestBody AssetsDiscoveryTaskSaveReqVO assetsDiscoveryTask) {
         boolean result = assetsDiscoveryTaskService.updateDaDiscoveryTaskCronExpression(assetsDiscoveryTask);

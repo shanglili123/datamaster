@@ -5,7 +5,7 @@
       :queryParams="queryParams"
       :showSearch="showSearch"
       :showAddBtn="true"
-      :addPermission="['att:dataElemCat:add']"
+      :addPermission="['tax:dataElemCat:add']"
       :showToggleBtn="true"
       :isExpandAll="isExpandAll"
       @query="handleQuery"
@@ -136,7 +136,7 @@
               type="primary"
               icon="Edit"
               @click="handleUpdate(scope.row)"
-              v-hasPermi="['att:dataElemCat:edit']"
+              v-hasPermi="['tax:dataElemCat:edit']"
               >修改</el-button
             >
             <el-button
@@ -144,7 +144,7 @@
               type="primary"
               icon="Plus"
               @click="handleAdd(scope.row)"
-              v-hasPermi="['att:dataElemCat:add']"
+              v-hasPermi="['tax:dataElemCat:add']"
               >新增</el-button
             >
             <el-button
@@ -152,7 +152,7 @@
               type="danger"
               icon="Delete"
               @click="handleDelete(scope.row)"
-              v-hasPermi="['att:dataElemCat:remove']"
+              v-hasPermi="['tax:dataElemCat:remove']"
               >删除</el-button
             >
           </template>

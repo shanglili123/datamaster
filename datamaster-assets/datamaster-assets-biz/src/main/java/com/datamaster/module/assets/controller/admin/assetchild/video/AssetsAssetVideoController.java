@@ -46,7 +46,7 @@ public class AssetsAssetVideoController extends BaseController {
     private IAssetsAssetVideoService AssetsAssetVideoService;
 
     @Operation(summary = "查询数据资产-视频数据列表")
-    @PreAuthorize("@ss.hasPermi('da:assetVideo:list')")
+    @PreAuthorize("@ss.hasPermi('ast:assetVideo:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<AssetsAssetVideoRespVO>> list(AssetsAssetVideoPageReqVO AssetsAssetVideo) {
         PageResult<AssetsAssetVideoDO> page = AssetsAssetVideoService.getAssetVideoPage(AssetsAssetVideo);
@@ -54,7 +54,7 @@ public class AssetsAssetVideoController extends BaseController {
     }
 
     @Operation(summary = "导出数据资产-视频数据列表")
-    @PreAuthorize("@ss.hasPermi('da:assetVideo:export')")
+    @PreAuthorize("@ss.hasPermi('ast:assetVideo:export')")
     @Log(title = "数据资产-视频数据", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, AssetsAssetVideoPageReqVO exportReqVO) {
@@ -65,7 +65,7 @@ public class AssetsAssetVideoController extends BaseController {
     }
 
     @Operation(summary = "导入数据资产-视频数据列表")
-    @PreAuthorize("@ss.hasPermi('da:assetVideo:import')")
+    @PreAuthorize("@ss.hasPermi('ast:assetVideo:import')")
     @Log(title = "数据资产-视频数据", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -77,7 +77,7 @@ public class AssetsAssetVideoController extends BaseController {
     }
 
     @Operation(summary = "获取数据资产-视频数据详细信息")
-    @PreAuthorize("@ss.hasPermi('da:assetVideo:query')")
+    @PreAuthorize("@ss.hasPermi('ast:assetVideo:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<AssetsAssetVideoRespVO> getInfo(@PathVariable("id") Long id) {
         AssetsAssetVideoDO AssetsAssetVideoDO = AssetsAssetVideoService.getAssetVideoById(id);
@@ -85,7 +85,7 @@ public class AssetsAssetVideoController extends BaseController {
     }
 
     @Operation(summary = "新增数据资产-视频数据")
-    @PreAuthorize("@ss.hasPermi('da:assetVideo:add')")
+    @PreAuthorize("@ss.hasPermi('ast:assetVideo:add')")
     @Log(title = "数据资产-视频数据", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody AssetsAssetVideoSaveReqVO AssetsAssetVideo) {
@@ -96,7 +96,7 @@ public class AssetsAssetVideoController extends BaseController {
     }
 
     @Operation(summary = "修改数据资产-视频数据")
-    @PreAuthorize("@ss.hasPermi('da:assetVideo:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:assetVideo:edit')")
     @Log(title = "数据资产-视频数据", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody AssetsAssetVideoSaveReqVO AssetsAssetVideo) {
@@ -107,7 +107,7 @@ public class AssetsAssetVideoController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产-视频数据")
-    @PreAuthorize("@ss.hasPermi('da:assetVideo:remove')")
+    @PreAuthorize("@ss.hasPermi('ast:assetVideo:remove')")
     @Log(title = "数据资产-视频数据", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
@@ -115,7 +115,7 @@ public class AssetsAssetVideoController extends BaseController {
     }
 
     @Operation(summary = "删除数据资产-视频")
-    @PreAuthorize("@ss.hasPermi('da:asset:edit')")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     @PostMapping("/queryServiceForwarding")
     public void queryServiceForwarding(HttpServletResponse response, @Valid @RequestBody AssetsAssetVideoReqVO AssetsAssetVideoReqVO) {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");

@@ -244,7 +244,7 @@ public class TaskConverter {
             taskMap.put("code", task.getOrDefault("code", 0L)); // 默认 code 为 0L
             taskMap.put("version", task.getOrDefault("version", 0)); // 默认版本号为1
             taskMap.put("description", task.getOrDefault("description", "")); // 默认描述为空
-            taskMap.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, task.get("workerGroup"))); // 项目专属工作组优先
+            taskMap.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, task.get("workerGroup"))); // 空间专属工作组优先
             taskMap.put("environmentCode", task.getOrDefault("environmentCode", DEFAULT_ENVIRONMENT_CODE)); // 默认环境编码
             taskMap.put("flag", DEFAULT_FLAG); // 默认 flag 为 "YES"
             taskMap.put("isCache", task.getOrDefault("isCache", DEFAULT_IS_CACHE)); // 默认 isCache 为 "NO"
@@ -339,8 +339,8 @@ public class TaskConverter {
         createReqVO.setName(data.getName()); // 任务名称
         createReqVO.setCode(String.valueOf(data.getCode())); // 任务编码
         createReqVO.setVersion(data.getVersion()); // 版本号
-        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-        createReqVO.setProjectCode(String.valueOf(data.getProjectCode())); // 项目编码
+        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+        createReqVO.setProjectCode(String.valueOf(data.getProjectCode())); // 空间编码
         createReqVO.setDescription(CollectorEtlNewNodeSaveReqVO.getDescription()); // 描述
         createReqVO.setLocations(data.getLocations()); // 节点坐标信息
         createReqVO.setLocations(data.getLocations()); // 节点坐标信息
@@ -361,10 +361,10 @@ public class TaskConverter {
 
         createReqVO.setExecutionType(data.getExecutionType());//执行执行策略
         // 填充创建者和更新时间信息
-        createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+        createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
         createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
         createReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-        createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+        createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
         createReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
         createReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -390,8 +390,8 @@ public class TaskConverter {
         createReqVO.setName(data.getName()); // 任务名称
         createReqVO.setCode(String.valueOf(data.getCode())); // 任务编码
         createReqVO.setVersion(data.getVersion()); // 版本号
-        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-        createReqVO.setProjectCode(String.valueOf(data.getProjectCode())); // 项目编码
+        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+        createReqVO.setProjectCode(String.valueOf(data.getProjectCode())); // 空间编码
         createReqVO.setDescription(CollectorEtlNewNodeSaveReqVO.getDescription()); // 描述
         createReqVO.setLocations(data.getLocations()); // 节点坐标信息
         createReqVO.setDsId(data.getId()); // DolphinScheduler的ID
@@ -408,10 +408,10 @@ public class TaskConverter {
 
         createReqVO.setExecutionType(data.getExecutionType());//执行执行策略
         // 填充创建者和更新时间信息
-        createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+        createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
         createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
         createReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-        createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+        createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
         createReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
         createReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -440,8 +440,8 @@ public class TaskConverter {
         createReqVO.setName(task.getName()); // 任务名称
         createReqVO.setCode(task.getCode()); // 任务编码
         createReqVO.setVersion(task.getVersion()); // 版本号
-        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-        createReqVO.setProjectCode(task.getProjectCode()); // 项目编码
+        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+        createReqVO.setProjectCode(task.getProjectCode()); // 空间编码
         createReqVO.setDescription(CollectorEtlNewNodeSaveReqVO.getDescription()); // 描述
         createReqVO.setLocations(task.getLocations()); // 节点坐标信息
         createReqVO.setDsId(task.getId()); // DolphinScheduler的ID
@@ -458,10 +458,10 @@ public class TaskConverter {
 
         createReqVO.setExecutionType(task.getExecutionType());//执行执行策略
         // 填充创建者和更新时间信息
-        createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+        createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
         createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
         createReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-        createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+        createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
         createReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
         createReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -497,10 +497,10 @@ public class TaskConverter {
 
 
         // 填充创建者和更新时间信息
-        logSaveReqVO.setCreatorId(CollectorEtlTaskSaveReqVO.getProjectId()); // 假设项目ID为创建者ID（根据需求调整）
+        logSaveReqVO.setCreatorId(CollectorEtlTaskSaveReqVO.getProjectId()); // 假设空间ID为创建者ID（根据需求调整）
         logSaveReqVO.setCreateBy(CollectorEtlTaskSaveReqVO.getName()); // 假设任务名称为创建者（根据需求调整）
         logSaveReqVO.setCreateTime(CollectorEtlTaskSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-        logSaveReqVO.setUpdatorId(CollectorEtlTaskSaveReqVO.getProjectId()); // 假设项目ID为更新者ID（根据需求调整）
+        logSaveReqVO.setUpdatorId(CollectorEtlTaskSaveReqVO.getProjectId()); // 假设空间ID为更新者ID（根据需求调整）
         logSaveReqVO.setUpdateBy(CollectorEtlTaskSaveReqVO.getName()); // 假设任务名称为更新者（根据需求调整）
         logSaveReqVO.setUpdateTime(CollectorEtlTaskSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -529,8 +529,8 @@ public class TaskConverter {
             createReqVO.setName(taskDefinition.getName()); // 任务名称
             createReqVO.setCode(String.valueOf(taskDefinition.getCode())); // 任务编码
             createReqVO.setVersion(taskDefinition.getVersion()); // 任务版本
-            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-            createReqVO.setProjectCode(String.valueOf(taskDefinition.getProjectCode())); // 项目编码
+            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+            createReqVO.setProjectCode(String.valueOf(taskDefinition.getProjectCode())); // 空间编码
 
             createReqVO.setPriority(String.valueOf(taskDefinition.getTaskPriority()));//任务优先级
             createReqVO.setFailRetryTimes((long) taskDefinition.getFailRetryTimes());
@@ -545,10 +545,10 @@ public class TaskConverter {
             createReqVO.setParameters(getTaskParamsAsJson(list, String.valueOf(taskDefinition.getCode()))); // 节点参数
 
             // 填充创建者和更新时间信息
-            createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+            createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
             createReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-            createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+            createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
             createReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
             createReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -594,8 +594,8 @@ public class TaskConverter {
             createReqVO.setName(taskDefinition.getName()); // 任务名称
             createReqVO.setCode(String.valueOf(taskDefinition.getCode())); // 任务编码
             createReqVO.setVersion((long) taskDefinition.getVersion()); // 任务版本
-            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-            createReqVO.setProjectCode(String.valueOf(taskDefinition.getProjectCode())); // 项目编码
+            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+            createReqVO.setProjectCode(String.valueOf(taskDefinition.getProjectCode())); // 空间编码
 
             createReqVO.setPriority(String.valueOf(taskDefinition.getTaskPriority()));//任务优先级
             createReqVO.setFailRetryTimes((long) taskDefinition.getFailRetryTimes());
@@ -610,10 +610,10 @@ public class TaskConverter {
             createReqVO.setParameters(getTaskParamsAsJson(list, String.valueOf(taskDefinition.getCode()))); // 节点参数
 
             // 填充创建者和更新时间信息
-            createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+            createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
             createReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-            createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+            createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
             createReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
             createReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -639,8 +639,8 @@ public class TaskConverter {
             CollectorEtlTaskNodeRelSaveReqVO taskNodeRelSaveReqVO = new CollectorEtlTaskNodeRelSaveReqVO();
 
             // 1. 填充任务节点关系相关字段
-            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 项目编码
+            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
 
             // 任务相关字段
             taskNodeRelSaveReqVO.setTaskId(CollectorEtlTaskSaveReqVO.getId()); // 任务ID
@@ -661,10 +661,10 @@ public class TaskConverter {
             taskNodeRelSaveReqVO.setRemark(null); // 备注
 
             // 2. 填充新增/修改相关信息
-            taskNodeRelSaveReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+            taskNodeRelSaveReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             taskNodeRelSaveReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
             taskNodeRelSaveReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-            taskNodeRelSaveReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+            taskNodeRelSaveReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
             taskNodeRelSaveReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
             taskNodeRelSaveReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -684,8 +684,8 @@ public class TaskConverter {
             CollectorEtlTaskNodeRelLogSaveReqVO taskNodeRelSaveReqVO = new CollectorEtlTaskNodeRelLogSaveReqVO();
 
             // 1. 填充任务节点关系相关字段
-            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 项目编码
+            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
 
             // 任务相关字段
             taskNodeRelSaveReqVO.setTaskId(CollectorEtlTaskSaveReqVO.getId()); // 任务ID
@@ -706,10 +706,10 @@ public class TaskConverter {
             taskNodeRelSaveReqVO.setRemark(null); // 备注
 
             // 2. 填充新增/修改相关信息
-            taskNodeRelSaveReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+            taskNodeRelSaveReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             taskNodeRelSaveReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
             taskNodeRelSaveReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-            taskNodeRelSaveReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+            taskNodeRelSaveReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
             taskNodeRelSaveReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
             taskNodeRelSaveReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -1056,7 +1056,7 @@ public class TaskConverter {
         taskMap.put("code", code); // 默认 code 为 0L
         taskMap.put("version", version); // 默认版本号为1
         taskMap.put("description", ""); // 默认描述为空
-        taskMap.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, definitionJsonMap.get("workerGroup"))); // 项目专属工作组优先
+        taskMap.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, definitionJsonMap.get("workerGroup"))); // 空间专属工作组优先
         taskMap.put("environmentCode", DEFAULT_ENVIRONMENT_CODE); // 默认环境编码
         taskMap.put("flag", DEFAULT_FLAG); // 默认 flag 为 "YES"
         taskMap.put("isCache", DEFAULT_IS_CACHE); // 默认 isCache 为 "NO"
@@ -1609,13 +1609,13 @@ public class TaskConverter {
             createReqVO.setType(createReqVO.getTaskType());//节点类型
             createReqVO.setTaskType(CollectorEtlNewNodeSaveReqVO.getType());//任务类型
             createReqVO.setVersion(1); // 任务版本
-            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-            createReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 项目编码
+            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+            createReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
             // 填充创建者和更新时间信息
-            createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+            createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
             createReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-            createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+            createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
             createReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
             createReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
             createReqVO.setParameters(JSON.toJSONString(createReqVO.getTaskParams()));
@@ -1635,13 +1635,13 @@ public class TaskConverter {
             // 1. 任务相关信息
             createReqVO.setType(createReqVO.getTaskType());//节点类型
             createReqVO.setTaskType(CollectorEtlNewNodeSaveReqVO.getType());//任务类型
-            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-            createReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 项目编码
+            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+            createReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
             // 填充创建者和更新时间信息
-            createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+            createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
             createReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-            createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+            createReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
             createReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
             createReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
             createReqVO.setParameters(JSON.toJSONString(createReqVO.getTaskParams()));
@@ -1672,8 +1672,8 @@ public class TaskConverter {
             CollectorEtlTaskNodeRelSaveReqVO taskNodeRelSaveReqVO = new CollectorEtlTaskNodeRelSaveReqVO();
 
             // 1. 填充任务节点关系相关字段
-            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 项目ID
-            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 项目编码
+            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
+            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
 
             // 任务相关字段
             taskNodeRelSaveReqVO.setTaskId(CollectorEtlTaskSaveReqVO.getId()); // 任务ID
@@ -1700,10 +1700,10 @@ public class TaskConverter {
             taskNodeRelSaveReqVO.setRemark(null); // 备注
 
             // 2. 填充新增/修改相关信息
-            taskNodeRelSaveReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设项目ID为创建者ID（根据需求调整）
+            taskNodeRelSaveReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             taskNodeRelSaveReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
             taskNodeRelSaveReqVO.setCreateTime(CollectorEtlNewNodeSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-            taskNodeRelSaveReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设项目ID为更新者ID（根据需求调整）
+            taskNodeRelSaveReqVO.setUpdatorId(CollectorEtlNewNodeSaveReqVO.getUpdatorId()); // 假设空间ID为更新者ID（根据需求调整）
             taskNodeRelSaveReqVO.setUpdateBy(CollectorEtlNewNodeSaveReqVO.getUpdateBy()); // 假设任务名称为更新者（根据需求调整）
             taskNodeRelSaveReqVO.setUpdateTime(CollectorEtlNewNodeSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 

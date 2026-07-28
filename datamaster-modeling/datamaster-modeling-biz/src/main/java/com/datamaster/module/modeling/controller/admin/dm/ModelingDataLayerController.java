@@ -50,7 +50,7 @@ public class ModelingDataLayerController extends BaseController {
     private IModelingDataLayerService ModelingDataLayerService;
 
     @Operation(summary = "查询数仓分层管理列表")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:list')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:list')")
     @GetMapping("/list")
     public CommonResult<PageResult<ModelingDataLayerRespVO>> list(ModelingDataLayerPageReqVO ModelingDataLayer) {
         PageResult<ModelingDataLayerDO> page = ModelingDataLayerService.getModelingDataLayerPage(ModelingDataLayer);
@@ -58,14 +58,14 @@ public class ModelingDataLayerController extends BaseController {
     }
 
     @Operation(summary = "查询数仓分层管理树")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:list')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:list')")
     @GetMapping("/tree")
     public CommonResult<List<ModelingDataLayerTreeRespVO>> tree() {
         return CommonResult.success(ModelingDataLayerService.tree());
     }
 
     @Operation(summary = "导出数仓分层管理列表")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:export')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:export')")
     @Log(title = "数仓分层管理", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, ModelingDataLayerPageReqVO exportReqVO) {
@@ -76,7 +76,7 @@ public class ModelingDataLayerController extends BaseController {
     }
 
     @Operation(summary = "导入数仓分层管理列表")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:import')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:import')")
     @Log(title = "数仓分层管理", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
@@ -88,7 +88,7 @@ public class ModelingDataLayerController extends BaseController {
     }
 
     @Operation(summary = "获取数仓分层管理详细信息")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:query')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:query')")
     @GetMapping(value = "/{id}")
     public CommonResult<ModelingDataLayerRespVO> getInfo(@PathVariable("id") Long id) {
         ModelingDataLayerDO ModelingDataLayerDO = ModelingDataLayerService.getModelingDataLayerById(id);
@@ -96,7 +96,7 @@ public class ModelingDataLayerController extends BaseController {
     }
 
     @Operation(summary = "新增数仓分层管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:add')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:add')")
     @Log(title = "数仓分层管理", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody ModelingDataLayerSaveReqVO ModelingDataLayer) {
@@ -107,7 +107,7 @@ public class ModelingDataLayerController extends BaseController {
     }
 
     @Operation(summary = "修改数仓分层管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:edit')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:edit')")
     @Log(title = "数仓分层管理", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody ModelingDataLayerSaveReqVO ModelingDataLayer) {
@@ -118,7 +118,7 @@ public class ModelingDataLayerController extends BaseController {
     }
 
     @Operation(summary = "删除数仓分层管理")
-    @PreAuthorize("@ss.hasPermi('dm:dataLayer:remove')")
+    @PreAuthorize("@ss.hasPermi('mdl:dataLayer:remove')")
     @Log(title = "数仓分层管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {

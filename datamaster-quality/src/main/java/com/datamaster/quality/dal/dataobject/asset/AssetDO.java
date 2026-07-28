@@ -38,7 +38,7 @@ public class AssetDO extends BaseEntity {
     @TableField(exist = false)
     private String catName;
 
-    /**是申请过来的资产还是项目自己生成的资产0：申请，1：自创 */
+    /**是申请过来的资产还是空间自己生成的资产0：申请，1：自创 */
     @TableField(exist = false)
     private String sourceType;
 
@@ -82,11 +82,11 @@ public class AssetDO extends BaseEntity {
     @TableLogic
     private Boolean delFlag;
 
-    @Schema(description = "项目id", example = "")
+    @Schema(description = "空间id", example = "")
     @TableField(exist = false)
     private Long projectId;
 
-    @Schema(description = "项目编码", example = "")
+    @Schema(description = "空间编码", example = "")
     @TableField(exist = false)
     private String projectCode;
     /** 创建类型 */

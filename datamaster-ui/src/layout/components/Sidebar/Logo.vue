@@ -68,8 +68,8 @@ const sideTheme = computed(() => settingsStore.sideTheme);
 .sidebar-logo-container {
   position: relative;
   width: 100%;
-  height: 68px;
-  line-height: 68px;
+  height: 76px;
+  line-height: 76px;
   background: #ffffff;
   text-align: center;
   overflow: hidden;
@@ -91,19 +91,20 @@ const sideTheme = computed(() => settingsStore.sideTheme);
     justify-content: flex-start;
     height: 100%;
     width: 100%;
-    padding: 0 18px;
+    padding: 0 14px;
     box-sizing: border-box;
 
     & .sidebar-logo-image {
       display: block;
       vertical-align: middle;
       object-fit: contain;
+      transform: translateY(4px);
     }
 
     & .sidebar-logo-full {
-      width: 156px;
-      height: 34px;
-      flex: 0 0 156px;
+      width: 214px;
+      height: 50px;
+      flex: 0 0 214px;
     }
   }
 
@@ -114,9 +115,10 @@ const sideTheme = computed(() => settingsStore.sideTheme);
     }
 
     .sidebar-logo-image {
-      width: 38px;
-      height: 38px;
-      max-width: 38px;
+      width: 46px;
+      height: 46px;
+      max-width: 46px;
+      transform: translateY(4px);
     }
 
   }
