@@ -28,7 +28,7 @@ public class AssetsDiscoveryTableRespDTO {
     private String tableComment;
 
     /** 数据量 */
-    private Long AssetstaCount;
+    private Long dataCount;
 
     /** 字段量 */
     private Long fieldCount;

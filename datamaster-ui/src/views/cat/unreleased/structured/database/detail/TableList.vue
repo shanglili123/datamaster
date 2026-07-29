@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <qt-wrap
     :columns="tableStroe.columns"
     :tableRef="tableRef"
@@ -239,7 +239,7 @@ const tableStroe = reactive({
       },
     },
     {
-      label: "数据质量",
+      label: "质量探查",
       prop: "dataQuality",
       width: 90,
     },

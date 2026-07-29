@@ -118,10 +118,10 @@ public class AssetsAssetColumnDO extends BaseEntity {
     private String dataElemCodeName;
     @Schema(description = "空间id", example = "")
     @TableField(exist = false)
-    private Long projectId;
+    private Long spaceId;
     @Schema(description = "空间编码", example = "")
     @TableField(exist = false)
-    private String projectCode;
+    private String spaceCode;
     /**
      *
      */

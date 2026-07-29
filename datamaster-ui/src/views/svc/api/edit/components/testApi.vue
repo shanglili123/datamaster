@@ -77,7 +77,7 @@
                             <el-table-column label="描述" fixed="left" align="center" prop="remark"
                                 :show-overflow-tooltip="{effect: 'light'}">
                                 <template #default="{ row }">
-                                    {{ row?.remark || '' }}
+                                    {{ row?.description || '' }}
                                 </template>
                             </el-table-column>
 
@@ -377,8 +377,8 @@ const handleCall = () => {
         id: props.data.apiId,
         headerJson: JSON.stringify(props.data.headerJson),
         transmitType: props.data.transmitType,
-        projectId: props.data.projectId || userStore.projectId || null,
-        projectCode: props.data.projectCode || userStore.projectCode || '',
+        spaceId: props.data.spaceId || userStore.spaceId || null,
+        spaceCode: props.data.spaceCode || userStore.spaceCode || '',
         daAssetApi: props.data.daAssetApi,
         apiServiceType: props.data.apiServiceType,
         queryParams: {

@@ -23,10 +23,10 @@ public class AiAskDataSqlReqVO {
     private Long datasourceId;
 
     @Schema(description = "空间ID", example = "1")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "174954643786848")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "模型名称（可选，默认使用配置文件模型）", example = "qwen-plus")
     private String model;

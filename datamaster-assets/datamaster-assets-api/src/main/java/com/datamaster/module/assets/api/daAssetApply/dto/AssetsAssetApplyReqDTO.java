@@ -22,10 +22,10 @@ public class AssetsAssetApplyReqDTO {
     private Long assetId;
 
     /** 空间id */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 申请理由 */
     private String applyReason;

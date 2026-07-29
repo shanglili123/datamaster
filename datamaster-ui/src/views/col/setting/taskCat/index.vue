@@ -343,7 +343,7 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 watch(
-    () => userStore.projectId,
+    () => userStore.spaceId,
     () => {
         getList();
     }
@@ -360,8 +360,8 @@ function toggleExpandAll() {
 /** 查询数据集成数据集成类目管理列表 */
 function getList() {
     loading.value = true;
-    queryParams.value.projectId = userStore.projectId;
-    queryParams.value.projectCode = userStore.projectCode;
+    queryParams.value.spaceId = userStore.spaceId;
+    queryParams.value.spaceCode = userStore.spaceCode;
     listAttTaskCat(queryParams.value).then((response) => {
         const page = normalizePage(response);
         const treeData = proxy.handleTree(page.rows, 'id', 'parentId');
@@ -479,8 +479,8 @@ function submitForm() {
                     })
                     .catch((error) => { });
             } else {
-                form.value.projectId = userStore.projectId;
-                form.value.projectCode = userStore.projectCode;
+                form.value.spaceId = userStore.spaceId;
+                form.value.spaceCode = userStore.spaceCode;
                 addAttTaskCat(form.value)
                     .then((response) => {
                         proxy.$modal.msgSuccess('新增成功');

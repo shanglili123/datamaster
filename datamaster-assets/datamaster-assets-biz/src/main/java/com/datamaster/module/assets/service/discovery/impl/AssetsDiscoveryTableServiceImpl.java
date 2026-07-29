@@ -277,7 +277,7 @@ public class AssetsDiscoveryTableServiceImpl  extends ServiceImpl<AssetsDiscover
         AssetsAssetPageReqVO AssetsAssetPageReqVO = new AssetsAssetPageReqVO(AssetsDiscoveryTableById);
         //兼容表的备注为空时候，导致的资产地图为空
         AssetsAssetPageReqVO.setName(AssetsDiscoveryTable.getAssetName());
-        AssetsAssetPageReqVO.setDatasourceId(String.valueOf(AssetsDiscoveryTaskById.getDatasourceId()));
+        AssetsAssetPageReqVO.setDatasourceId(AssetsDiscoveryTaskById.getDatasourceId());
         AssetsAssetPageReqVO.setCatCode(AssetsDiscoveryTable.getCatCode());
         List<String> themeIdList = new ArrayList<>();
         themeIdList.add(StringUtils.isEmpty(themeId) ? "1":themeId);

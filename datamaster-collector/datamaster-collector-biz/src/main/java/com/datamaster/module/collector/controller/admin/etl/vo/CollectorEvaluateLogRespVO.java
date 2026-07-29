@@ -52,8 +52,8 @@ public class CollectorEvaluateLogRespVO implements Serializable {
     @Schema(description = "规则描述", example = "")
     private String ruleDescription;
 
-    @Excel(name = "数据质量记录id")
-    @Schema(description = "数据质量记录id", example = "")
+    @Excel(name = "质量探查记录id")
+    @Schema(description = "质量探查记录id", example = "")
     private String taskLogId;
 
     @Excel(name = "评测id")
@@ -108,8 +108,8 @@ public class CollectorEvaluateLogRespVO implements Serializable {
     private Date updateTime;
 
     @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
     @Excel(name = "不同规则的自定义,JSON形式")
     @Schema(description = "不同规则的自定义,JSON形式", example = "")

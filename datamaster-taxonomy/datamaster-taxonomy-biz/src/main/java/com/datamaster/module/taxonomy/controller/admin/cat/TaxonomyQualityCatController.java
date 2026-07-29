@@ -30,12 +30,12 @@ import com.datamaster.module.taxonomy.dal.dataobject.cat.TaxonomyQualityCatDO;
 import com.datamaster.module.taxonomy.service.cat.ITaxonomyQualityCatService;
 
 /**
- * 数据质量类目Controller
+ * 质量探查类目Controller
  *
  * @author DATAMASTER
  * @date 2025-07-19
  */
-@Tag(name = "数据质量类目")
+@Tag(name = "质量探查类目")
 @RestController
 @RequestMapping("/tax/qualityCat")
 @Validated
@@ -43,15 +43,15 @@ public class TaxonomyQualityCatController extends BaseController {
     @Resource
     private ITaxonomyQualityCatService TaxonomyQualityCatService;
 
-    @Operation(summary = "查询数据质量类目列表")
+    @Operation(summary = "查询质量探查类目列表")
     @GetMapping("/list")
     public CommonResult<List<TaxonomyQualityCatRespVO>> list(TaxonomyQualityCatPageReqVO TaxonomyQualityCat) {
         List<TaxonomyQualityCatDO> page = TaxonomyQualityCatService.getAttQualityCatList(TaxonomyQualityCat);
         return CommonResult.success(BeanUtils.toBean(page, TaxonomyQualityCatRespVO.class));
     }
 
-    @Operation(summary = "导出数据质量类目列表")
-    @Log(title = "数据质量类目", businessType = BusinessType.EXPORT)
+    @Operation(summary = "导出质量探查类目列表")
+    @Log(title = "质量探查类目", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, TaxonomyQualityCatPageReqVO exportReqVO) {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
@@ -60,9 +60,9 @@ public class TaxonomyQualityCatController extends BaseController {
         util.exportExcel(response, TaxonomyQualityCatConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");
     }
 
-    @Operation(summary = "导入数据质量类目列表")
+    @Operation(summary = "导入质量探查类目列表")
     @PreAuthorize("@ss.hasPermi('att:qualityCat:import')")
-    @Log(title = "数据质量类目", businessType = BusinessType.IMPORT)
+    @Log(title = "质量探查类目", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
         ExcelUtil<TaxonomyQualityCatRespVO> util = new ExcelUtil<>(TaxonomyQualityCatRespVO.class);
@@ -72,16 +72,16 @@ public class TaxonomyQualityCatController extends BaseController {
         return success(message);
     }
 
-    @Operation(summary = "获取数据质量类目详细信息")
+    @Operation(summary = "获取质量探查类目详细信息")
     @GetMapping(value = "/{id}")
     public CommonResult<TaxonomyQualityCatRespVO> getInfo(@PathVariable("id") Long id) {
         TaxonomyQualityCatDO TaxonomyQualityCatDO = TaxonomyQualityCatService.getAttQualityCatById(id);
         return CommonResult.success(BeanUtils.toBean(TaxonomyQualityCatDO, TaxonomyQualityCatRespVO.class));
     }
 
-    @Operation(summary = "新增数据质量类目")
+    @Operation(summary = "新增质量探查类目")
     @PreAuthorize("@ss.hasPermi('att:qualityCat:add')")
-    @Log(title = "数据质量类目", businessType = BusinessType.INSERT)
+    @Log(title = "质量探查类目", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody TaxonomyQualityCatSaveReqVO TaxonomyQualityCat) {
         TaxonomyQualityCat.setCreatorId(getUserId());
@@ -90,9 +90,9 @@ public class TaxonomyQualityCatController extends BaseController {
         return CommonResult.toAjax(TaxonomyQualityCatService.createAttQualityCat(TaxonomyQualityCat));
     }
 
-    @Operation(summary = "修改数据质量类目")
+    @Operation(summary = "修改质量探查类目")
     @PreAuthorize("@ss.hasPermi('att:qualityCat:edit')")
-    @Log(title = "数据质量类目", businessType = BusinessType.UPDATE)
+    @Log(title = "质量探查类目", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody TaxonomyQualityCatSaveReqVO TaxonomyQualityCat) {
         TaxonomyQualityCat.setUpdatorId(getUserId());
@@ -101,9 +101,9 @@ public class TaxonomyQualityCatController extends BaseController {
         return CommonResult.toAjax(TaxonomyQualityCatService.updateAttQualityCat(TaxonomyQualityCat));
     }
 
-    @Operation(summary = "删除数据质量类目")
+    @Operation(summary = "删除质量探查类目")
     @PreAuthorize("@ss.hasPermi('att:qualityCat:remove')")
-    @Log(title = "数据质量类目", businessType = BusinessType.DELETE)
+    @Log(title = "质量探查类目", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
         return CommonResult.toAjax(TaxonomyQualityCatService.removeAttQualityCat(Arrays.asList(ids)));

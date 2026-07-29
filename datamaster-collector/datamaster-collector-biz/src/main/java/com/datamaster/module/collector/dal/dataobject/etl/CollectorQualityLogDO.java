@@ -8,7 +8,7 @@ import com.datamaster.common.core.domain.BaseEntity;
 import java.util.Date;
 
 /**
- * 数据质量日志 DO 对象 COL_QUALITY_LOG
+ * 质量探查日志 DO 对象 COL_QUALITY_LOG
  *
  * @author DATAMASTER
  * @date 2025-07-19

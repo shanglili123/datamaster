@@ -37,9 +37,9 @@ public class AiAskSessionController extends BaseController {
     @Operation(summary = "查询最近AI问数会话")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @GetMapping
-    public CommonResult<List<AiAskSessionRespVO>> list(@RequestParam(required = false) Long projectId,
+    public CommonResult<List<AiAskSessionRespVO>> list(@RequestParam(required = false) Long spaceId,
                                                        @RequestParam(defaultValue = "10") Integer limit) {
-        return CommonResult.success(aiAskSessionService.listRecent(getUserId(), projectId, limit));
+        return CommonResult.success(aiAskSessionService.listRecent(getUserId(), spaceId, limit));
     }
 
     @Operation(summary = "新增AI问数会话")
@@ -61,30 +61,30 @@ public class AiAskSessionController extends BaseController {
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @DeleteMapping("/{sessionId}")
     public CommonResult<Integer> delete(@PathVariable Long sessionId,
-                                        @RequestParam(required = false) Long projectId) {
-        return CommonResult.toAjax(aiAskSessionService.delete(getUserId(), projectId, sessionId));
+                                        @RequestParam(required = false) Long spaceId) {
+        return CommonResult.toAjax(aiAskSessionService.delete(getUserId(), spaceId, sessionId));
     }
 
     @Operation(summary = "游标查询AI问数消息")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @GetMapping("/{sessionId}/messages")
     public CommonResult<AiAskMessageWindowRespVO> messages(@PathVariable Long sessionId,
-                                                           @RequestParam(required = false) Long projectId,
+                                                           @RequestParam(required = false) Long spaceId,
                                                            @RequestParam(required = false) Long beforeId,
                                                            @RequestParam(required = false) Long afterId,
                                                            @RequestParam(defaultValue = "10") Integer limit) {
         return CommonResult.success(aiAskSessionService.listMessages(
-                getUserId(), projectId, sessionId, beforeId, afterId, limit));
+                getUserId(), spaceId, sessionId, beforeId, afterId, limit));
     }
 
     @Operation(summary = "新增AI问数消息")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @PostMapping("/{sessionId}/messages")
     public CommonResult<AiAskMessageRespVO> appendMessage(@PathVariable Long sessionId,
-                                                          @RequestParam(required = false) Long projectId,
+                                                          @RequestParam(required = false) Long spaceId,
                                                           @RequestBody AiAskMessageSaveReqVO reqVO) {
         return CommonResult.success(aiAskSessionService.appendMessage(
-                getUserId(), getUsername(), projectId, sessionId, reqVO));
+                getUserId(), getUsername(), spaceId, sessionId, reqVO));
     }
 
     @Operation(summary = "删除AI问数消息")
@@ -92,15 +92,15 @@ public class AiAskSessionController extends BaseController {
     @DeleteMapping("/{sessionId}/messages/{messageId}")
     public CommonResult<Integer> deleteMessage(@PathVariable Long sessionId,
                                                @PathVariable Long messageId,
-                                               @RequestParam(required = false) Long projectId) {
-        return CommonResult.toAjax(aiAskSessionService.deleteMessage(getUserId(), projectId, sessionId, messageId));
+                                               @RequestParam(required = false) Long spaceId) {
+        return CommonResult.toAjax(aiAskSessionService.deleteMessage(getUserId(), spaceId, sessionId, messageId));
     }
 
     @Operation(summary = "清空AI问数会话消息")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @DeleteMapping("/{sessionId}/messages")
     public CommonResult<Integer> clearMessages(@PathVariable Long sessionId,
-                                               @RequestParam(required = false) Long projectId) {
-        return CommonResult.success(aiAskSessionService.clearMessages(getUserId(), projectId, sessionId));
+                                               @RequestParam(required = false) Long spaceId) {
+        return CommonResult.success(aiAskSessionService.clearMessages(getUserId(), spaceId, sessionId));
     }
 }

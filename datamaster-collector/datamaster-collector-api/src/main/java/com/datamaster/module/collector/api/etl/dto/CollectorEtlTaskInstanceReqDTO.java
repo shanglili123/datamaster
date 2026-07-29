@@ -40,10 +40,10 @@ public class CollectorEtlTaskInstanceReqDTO {
     private String personCharge;
 
     /** 空间id */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 开始时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

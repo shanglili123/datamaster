@@ -68,10 +68,10 @@ public interface ISysMenuService
      * 根据用户ID和空间ID查询菜单树信息
      *
      * @param userId 用户ID
-     * @param projectId 空间ID
+     * @param spaceId 空间ID
      * @return 菜单列表
      */
-    public List<SysMenu> selectMenuTreeByUserIdAndProjectId(Long userId,Long projectId);
+    public List<SysMenu> selectMenuTreeByUserIdAndSpaceId(Long userId,Long spaceId);
 
     /**
      * 根据角色ID查询菜单树信息

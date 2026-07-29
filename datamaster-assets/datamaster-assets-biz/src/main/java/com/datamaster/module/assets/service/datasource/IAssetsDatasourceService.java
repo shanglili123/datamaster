@@ -8,8 +8,8 @@ import com.datamaster.common.database.DbQuery;
 import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbTable;
-import com.datamaster.module.taxonomy.api.project.dto.TaxonomyProjectReqDTO;
-import com.datamaster.module.taxonomy.api.project.dto.TaxonomyProjectRespDTO;
+import com.datamaster.module.taxonomy.api.space.dto.TaxonomySpaceReqDTO;
+import com.datamaster.module.taxonomy.api.space.dto.TaxonomySpaceRespDTO;
 import com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourcePageReqVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceRespVO;
@@ -168,7 +168,7 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      * @param pageReqVO
      * @return
      */
-    PageResult<TaxonomyProjectRespDTO> getNoDppAddList(TaxonomyProjectReqDTO pageReqVO);
+    PageResult<TaxonomySpaceRespDTO> getNoDppAddList(TaxonomySpaceReqDTO pageReqVO);
 
     /**
      * Kafka

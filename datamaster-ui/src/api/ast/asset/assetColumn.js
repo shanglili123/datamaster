@@ -45,44 +45,44 @@ export function delDaAssetColumn(id) {
 }
 
 // 查询数据资产字段与空间关联关系列表
-export function listAssetColumnProjectRel(query) {
+export function listAssetColumnSpaceRel(query) {
   return request({
-    url: '/ast/assetColumnProjectRel/list',
+    url: '/ast/assetColumnSpaceRel/list',
     method: 'get',
     params: query
   })
 }
 
 // 查询数据资产字段与空间关联关系详细
-export function getAssetColumnProjectRel(id) {
+export function getAssetColumnSpaceRel(id) {
   return request({
-    url: '/ast/assetColumnProjectRel/' + id,
+    url: '/ast/assetColumnSpaceRel/' + id,
     method: 'get'
   })
 }
 
 // 新增数据资产字段与空间关联关系
-export function addAssetColumnProjectRel(data) {
+export function addAssetColumnSpaceRel(data) {
   return request({
-    url: '/ast/assetColumnProjectRel',
+    url: '/ast/assetColumnSpaceRel',
     method: 'post',
     data: data
   })
 }
 
 // 修改数据资产字段与空间关联关系
-export function updateAssetColumnProjectRel(data) {
+export function updateAssetColumnSpaceRel(data) {
   return request({
-    url: '/ast/assetColumnProjectRel',
+    url: '/ast/assetColumnSpaceRel',
     method: 'put',
     data: data
   })
 }
 
 // 删除数据资产字段与空间关联关系
-export function delAssetColumnProjectRel(id) {
+export function delAssetColumnSpaceRel(id) {
   return request({
-    url: '/ast/assetColumnProjectRel/' + id,
+    url: '/ast/assetColumnSpaceRel/' + id,
     method: 'delete'
   })
 }

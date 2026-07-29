@@ -11,8 +11,8 @@
         title="数据集成类目"
         @node-click="handleNodeClick"
         :extraParams="{
-          projectCode: userStore.projectCode,
-          projectId: userStore.projectId,
+          spaceCode: userStore.spaceCode,
+          spaceId: userStore.spaceId,
         }"
       />
       <el-main class="main-content">
@@ -475,8 +475,8 @@ const tableStore = reactive({
   func: listWrapper,
   params: {
     catCode: null,
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
   },
 });
 
@@ -485,8 +485,8 @@ let userList = ref([]);
 let deptOptions = ref([]);
 function getDeptTree() {
   listAttTaskCat({
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
     validFlag: true,
   }).then((response) => {
     deptOptions.value = [];
@@ -539,8 +539,8 @@ const searchStore = reactive({
 
 function listWrapper(params) {
   const p = { ...params };
-  p.projectId = userStore.projectId;
-  p.projectCode = userStore.projectCode;
+  p.spaceId = userStore.spaceId;
+  p.spaceCode = userStore.spaceCode;
   return listDppEtlTask(p);
 }
 
@@ -613,8 +613,8 @@ const handleSave = (form) => {
   console.log("🚀 handleSave called once, form:", form.name);
   const parms = {
     ...form,
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
     draftJson: JSON.stringify({ ...form }),
   };
   createEtlTaskFront(parms).then((res) => {
@@ -632,8 +632,8 @@ const handleSave = (form) => {
 const handleConfirm = (form) => {
   const parms = {
     ...form,
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
     draftJson: JSON.stringify({ ...form }),
   };
   createEtlTaskFront(parms).then((res) => {
@@ -656,8 +656,8 @@ function handleStatusChange(id, row) {
       updateReleaseJobTask({
         id,
         releaseState: row.status,
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       })
         .then((response) => {
           proxy.$modal.msgSuccess("操作成功");
@@ -680,8 +680,8 @@ function handleschedulerState(id, row) {
       updateReleaseSchedule({
         id,
         schedulerState: row.schedulerState,
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       })
         .then((response) => {
           proxy.$modal.msgSuccess("操作成功");
@@ -707,8 +707,8 @@ async function handlePublish(row) {
       await publishDppEtlTask({
         id: row.id,
         type: row.type || "1",
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       });
     })
     .then(() => {
@@ -737,8 +737,8 @@ async function handleUnpublish(row) {
       await unpublishDppEtlTask({
         id: row.id,
         type: row.type || "1",
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       });
     })
     .then(() => {
@@ -791,8 +791,8 @@ function crontabFill(value) {
   row.value.crontab = value;
   releaseTaskCrontab({
     crontab: row.value.crontab,
-    projectCode: userStore.projectCode,
-    projectId: userStore.projectId,
+    spaceCode: userStore.spaceCode,
+    spaceId: userStore.spaceId,
     id: row.value.id,
   }).then((response) => {
     proxy.$modal.msgSuccess("操作成功");
@@ -834,8 +834,8 @@ const handleClone = (row) => {
     .then(() => {
       return copyCreateEtl({
         id: Number(row.id),
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       });
     })
     .then(() => {
@@ -966,9 +966,9 @@ function handleTaskStatusMessage(event) {
       return;
     }
     if (
-      payload.projectId !== null &&
-      payload.projectId !== undefined &&
-      String(payload.projectId) !== String(userStore.projectId)
+      payload.spaceId !== null &&
+      payload.spaceId !== undefined &&
+      String(payload.spaceId) !== String(userStore.spaceId)
     ) {
       return;
     }
@@ -1013,7 +1013,7 @@ function closeTaskStatusWebSocket() {
 
 // Initialization
 watch(
-  () => userStore.projectId,
+  () => userStore.spaceId,
   () => {
     handleQuery();
     getDeptTree();
@@ -1032,7 +1032,7 @@ watch(
   { immediate: true }
 );
 
-if (userStore.projectId) {
+if (userStore.spaceId) {
   getDeptTree();
 }
 usePageRefresh("integratioTask", () => handleQuery());

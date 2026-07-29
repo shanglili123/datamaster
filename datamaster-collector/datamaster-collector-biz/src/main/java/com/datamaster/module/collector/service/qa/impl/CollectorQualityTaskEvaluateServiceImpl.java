@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 /**
- * 数据质量任务-评测规则Service业务层处理
+ * 质量探查任务-评测规则Service业务层处理
  *
  * @author Chaos
  * @date 2025-07-21
@@ -53,13 +53,13 @@ public class CollectorQualityTaskEvaluateServiceImpl  extends ServiceImpl<Collec
     public int updateCollectorQualityTaskEvaluate(CollectorQualityTaskEvaluateSaveReqVO updateReqVO) {
         // 相关校验
 
-        // 更新数据质量任务-评测规则
+        // 更新质量探查任务-评测规则
         CollectorQualityTaskEvaluateDO updateObj = BeanUtils.toBean(updateReqVO, CollectorQualityTaskEvaluateDO.class);
         return CollectorQualityTaskEvaluateMapper.updateById(updateObj);
     }
     @Override
     public int removeCollectorQualityTaskEvaluate(Collection<Long> idList) {
-        // 批量删除数据质量任务-评测规则
+        // 批量删除质量探查任务-评测规则
         return CollectorQualityTaskEvaluateMapper.deleteBatchIds(idList);
     }
 
@@ -87,9 +87,9 @@ public class CollectorQualityTaskEvaluateServiceImpl  extends ServiceImpl<Collec
 
 
         /**
-         * 导入数据质量任务-评测规则数据
+         * 导入质量探查任务-评测规则数据
          *
-         * @param importExcelList 数据质量任务-评测规则数据列表
+         * @param importExcelList 质量探查任务-评测规则数据列表
          * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
          * @param operName 操作用户
          * @return 结果
@@ -115,10 +115,10 @@ public class CollectorQualityTaskEvaluateServiceImpl  extends ServiceImpl<Collec
                             if (existingCollectorQualityTaskEvaluate != null) {
                                 CollectorQualityTaskEvaluateMapper.updateById(CollectorQualityTaskEvaluateDO);
                                 successNum++;
-                                successMessages.add("数据更新成功，ID为 " + CollectorQualityTaskEvaluateId + " 的数据质量任务-评测规则记录。");
+                                successMessages.add("数据更新成功，ID为 " + CollectorQualityTaskEvaluateId + " 的质量探查任务-评测规则记录。");
                             } else {
                                 failureNum++;
-                                failureMessages.add("数据更新失败，ID为 " + CollectorQualityTaskEvaluateId + " 的数据质量任务-评测规则记录不存在。");
+                                failureMessages.add("数据更新失败，ID为 " + CollectorQualityTaskEvaluateId + " 的质量探查任务-评测规则记录不存在。");
                             }
                         } else {
                             failureNum++;
@@ -131,10 +131,10 @@ public class CollectorQualityTaskEvaluateServiceImpl  extends ServiceImpl<Collec
                         if (existingCollectorQualityTaskEvaluate == null) {
                             CollectorQualityTaskEvaluateMapper.insert(CollectorQualityTaskEvaluateDO);
                             successNum++;
-                            successMessages.add("数据插入成功，ID为 " + CollectorQualityTaskEvaluateId + " 的数据质量任务-评测规则记录。");
+                            successMessages.add("数据插入成功，ID为 " + CollectorQualityTaskEvaluateId + " 的质量探查任务-评测规则记录。");
                         } else {
                             failureNum++;
-                            failureMessages.add("数据插入失败，ID为 " + CollectorQualityTaskEvaluateId + " 的数据质量任务-评测规则记录已存在。");
+                            failureMessages.add("数据插入失败，ID为 " + CollectorQualityTaskEvaluateId + " 的质量探查任务-评测规则记录已存在。");
                         }
                     }
                 } catch (Exception e) {

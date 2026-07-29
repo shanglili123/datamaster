@@ -26,7 +26,7 @@
 		<result property="updateTime"     column="update_time"    />
 		<result property="updateBy"       column="update_by"      />
 		<result property="remark"         column="remark"         />
-		<result property="projectId"         column="project_id"         />
+		<result property="spaceId"         column="space_id"         />
 	</resultMap>
 
 	<sql id="selectMenuVo">
@@ -101,7 +101,7 @@
 		order by m.parent_id, m.order_num
 	</select>
 
-	<select id="selectMenuTreeByUserIdAndProjectId" parameterType="Long" resultMap="SysMenuResult">
+	<select id="selectMenuTreeByUserIdAndSpaceId" parameterType="Long" resultMap="SysMenuResult">
 		select distinct m.menu_id, m.parent_id, m.menu_name, m.path, m.component, m.query, m.route_name, m.visible, m.status, coalesce(m.perms,'') as perms, m.is_frame, m.is_cache, m.menu_type, m.icon, m.order_num, m.create_time
 		from system_menu m
 		left join system_role_menu rm on m.menu_id = rm.menu_id

@@ -45,7 +45,7 @@
             <i class="iconfont-mini icon-download-line mr5"></i>下载
           </el-button> -->
           <el-button link type="primary" icon="view" @click="
-            routeTo('/ast/quality/qualityTaskLog/detail', {
+            routeTo('/ast/quality/probeTaskInstance/detail', {
               ...scope.row,
               info: true,
             })
@@ -69,8 +69,8 @@
         </div>
 </template> -->
   </el-dialog>
-  <!-- 执行日志详细 -->
-  <el-dialog title="查看日志" v-model="open" width="800px" :append-to="$refs['app-container']" draggable destroy-on-close>
+  <!-- 探查任务实例执行明细 -->
+  <el-dialog title="查看实例明细" v-model="open" width="800px" :append-to="$refs['app-container']" draggable destroy-on-close>
     <div v-html="formattedText"></div>
     <!-- <template #footer>
             <div class="dialog-footer">
@@ -89,9 +89,9 @@ import { useRoute, useRouter } from "vue-router"
 const { quality_log_success_flag } = proxy.useDict(
   'quality_log_success_flag'
 );
-import { listDppQualityLog, getDppQualityLog, delDppQualityLog, addDppQualityLog, updateDppQualityLog } from "@/api/ast/quality/qualityTaskLog";
+import { listProbeTaskInstance } from "@/api/ast/quality/probeTaskInstance";
 import {
-  qualityLogLogDetailCat
+  probeTaskInstanceLogDetail
 } from "@/api/ast/quality/qualityTask";;
 const props = defineProps({
   visible: { type: Boolean, default: true },
@@ -145,11 +145,11 @@ function routeTo(link, row) {
 async function logDetailCatList(row) {
   try {
     if (!row.path) {
-      proxy.$message.warning('操作失败，未查询到日志');
+      proxy.$message.warning('操作失败，未查询到实例明细');
       return;
     }
     form.value = {};
-    const response = await qualityLogLogDetailCat({ handleMsg: row.path });
+    const response = await probeTaskInstanceLogDetail({ handleMsg: row.path });
     if (response && response.content) {
       form.value = response.content;
       open.value = true;
@@ -161,11 +161,11 @@ const total = ref(0);
 const dateRange = ref([]);
 let jobLogList = ref([]);
 let loading = ref(false);
-/** 查询执行日志列表 */
+/** 查询探查任务实例列表 */
 function getList() {
   loading.value = true;
   queryParams.value.qualityId = props.data.id;
-  listDppQualityLog({
+  listProbeTaskInstance({
     ...queryParams.value
   }).then((response) => {
     const page = response.data || {};

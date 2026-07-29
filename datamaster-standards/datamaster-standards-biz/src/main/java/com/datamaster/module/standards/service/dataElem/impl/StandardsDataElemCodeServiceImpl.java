@@ -157,7 +157,7 @@ public class StandardsDataElemCodeServiceImpl extends ServiceImpl<StandardsDataE
     }
 
     @Override
-    public Integer validateCodeValue(String dataElemId, String codeValue, String id) {
+    public Integer validateCodeValue(Long dataElemId, String codeValue, String id) {
         return baseMapper.selectCount(Wrappers.lambdaQuery(StandardsDataElemCodeDO.class)
                 .ne(StringUtils.isNotBlank(id), StandardsDataElemCodeDO::getId, id)
                 .eq(StandardsDataElemCodeDO::getDataElemId, dataElemId)

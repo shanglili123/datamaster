@@ -12,7 +12,7 @@ import com.datamaster.module.collector.dal.dataobject.qa.CollectorQualityTaskEva
 import java.util.List;
 
 /**
- * 数据质量任务-评测规则 Convert
+ * 质量探查任务-评测规则 Convert
  *
  * @author Chaos
  * @date 2025-07-21

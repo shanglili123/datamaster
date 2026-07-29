@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 数据质量日志Mapper接口
+ * 质量探查日志Mapper接口
  *
  * @author DATAMASTER
  * @date 2025-07-19

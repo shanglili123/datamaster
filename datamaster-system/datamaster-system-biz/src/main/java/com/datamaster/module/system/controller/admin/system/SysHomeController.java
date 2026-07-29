@@ -17,9 +17,9 @@ public class SysHomeController {
 
     @GetMapping("/home")
     public AjaxResult home(
-            @RequestParam(value = "projectId", required = false) Long projectId,
-            @RequestParam(value = "projectCode", required = false) String projectCode) {
-        Map<String, Object> data = sysHomeService.getHomeStats(projectId, projectCode);
+            @RequestParam(value = "spaceId", required = false) Long spaceId,
+            @RequestParam(value = "spaceCode", required = false) String spaceCode) {
+        Map<String, Object> data = sysHomeService.getHomeStats(spaceId, spaceCode);
         return AjaxResult.success(data);
     }
 }

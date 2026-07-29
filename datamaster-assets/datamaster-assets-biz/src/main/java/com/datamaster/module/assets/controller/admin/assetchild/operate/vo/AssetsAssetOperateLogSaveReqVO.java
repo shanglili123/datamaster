@@ -22,5 +22,5 @@ public class AssetsAssetOperateLogSaveReqVO extends BaseEntity {
 @Schema(description = "URL", example = "")    @Size(max = 256, message = "URL256")    private String fileUrl;
 @Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String fileName;//状态;1:执行中  2:失败  3:成功   4:回滚失败  5:回滚成功
 @Schema(description = "状态", example = "")    @Size(max = 256, message = "状态长度不能超过256个字符")    private String status;
-@Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String remark;
+@Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String description;
 @Schema(description = "JSON MD5", example = "")    private String updateWhereMd5;}

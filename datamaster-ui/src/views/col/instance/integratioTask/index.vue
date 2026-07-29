@@ -307,8 +307,8 @@ const data = reactive({
     name: null,
     code: null,
     version: null,
-    projectId: null,
-    projectCode: null,
+    spaceId: null,
+    spaceCode: null,
     personCharge: null,
     locations: null,
     description: null,
@@ -345,7 +345,7 @@ function handleTimeClear() {
 
 function getList() {
   loading.value = true;
-  queryParams.value.projectCode = userStore.projectCode;
+  queryParams.value.spaceCode = userStore.spaceCode;
   listDppEtlTaskInstance(queryParams.value)
     .then((response) => {
       const page = response.data || {};
@@ -379,8 +379,8 @@ async function handleExport(row) {
 
 function getDeptTree() {
   listAttTaskCat({
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
     validFlag: true,
   }).then((response) => {
     const children = proxy.handleTree(response.data, "id", "parentId");
@@ -424,9 +424,9 @@ function handleSortChange(column) {
 }
 
 watch(
-  () => userStore.projectCode,
-  (projectCode) => {
-    if (projectCode) {
+  () => userStore.spaceCode,
+  (spaceCode) => {
+    if (spaceCode) {
       getList();
     }
   },

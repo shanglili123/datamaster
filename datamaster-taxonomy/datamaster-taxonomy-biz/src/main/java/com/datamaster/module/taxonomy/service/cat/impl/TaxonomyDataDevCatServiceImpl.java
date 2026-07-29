@@ -98,8 +98,8 @@ public class TaxonomyDataDevCatServiceImpl extends ServiceImpl<TaxonomyDataDevCa
         LambdaQueryWrapperX<TaxonomyDataDevCatDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.likeIfPresent(TaxonomyDataDevCatDO::getName, reqVO.getName())
                 .likeRightIfPresent(TaxonomyDataDevCatDO::getCode, reqVO.getCode())
-                .eqIfPresent(TaxonomyDataDevCatDO::getProjectId,reqVO.getProjectId())
-                .eqIfPresent(TaxonomyDataDevCatDO::getProjectCode,reqVO.getProjectCode())
+                .eqIfPresent(TaxonomyDataDevCatDO::getSpaceId,reqVO.getSpaceId())
+                .eqIfPresent(TaxonomyDataDevCatDO::getSpaceCode,reqVO.getSpaceCode())
                 .eq(reqVO.getValidFlag() != null, TaxonomyDataDevCatDO::getValidFlag, Boolean.TRUE.equals(reqVO.getValidFlag()) ? "1" : "0")
                 .orderByAsc(TaxonomyDataDevCatDO::getSortOrder);
         return TaxonomyDataDevCatMapper.selectList(queryWrapperX);

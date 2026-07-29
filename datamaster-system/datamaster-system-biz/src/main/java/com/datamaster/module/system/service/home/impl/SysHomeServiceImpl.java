@@ -17,12 +17,12 @@ public class SysHomeServiceImpl implements ISysHomeService {
     private SysHomeMapper sysHomeMapper;
 
     @Override
-    public Map<String, Object> getHomeStats(Long projectId, String projectCode) {
+    public Map<String, Object> getHomeStats(Long spaceId, String spaceCode) {
         Map<String, Object> data = new HashMap<>();
-        data.put("projectId", projectId);
-        data.put("projectCode", projectCode);
+        data.put("spaceId", spaceId);
+        data.put("spaceCode", spaceCode);
 
-        if (projectId == null) {
+        if (spaceId == null) {
             data.put("integrationTaskTotal", 0);
             data.put("integrationTaskFailed", 0);
             data.put("developTaskTotal", 0);
@@ -33,21 +33,21 @@ public class SysHomeServiceImpl implements ISysHomeService {
             return data;
         }
 
-        long integrationTaskTotal = sysHomeMapper.countIntegrationTaskTotal(projectId);
-        long integrationTaskFailed = sysHomeMapper.countIntegrationTaskFailed(projectId);
-        long developTaskTotal = sysHomeMapper.countDevelopTaskTotal(projectId);
-        long developTaskFailed = sysHomeMapper.countDevelopTaskFailed(projectId);
-        long apiCallTotal = sysHomeMapper.countApiCallTotal(projectId);
-        long apiCallFailed = sysHomeMapper.countApiCallFailed(projectId);
-        long datasourceTotal = sysHomeMapper.countDatasourceTotal(projectId);
-        long catalogTableTotal = sysHomeMapper.countCatalogTableTotal(projectId);
-        long apiTotal = sysHomeMapper.countApiTotal(projectId);
-        long dataElemTotal = sysHomeMapper.countDataElemTotal(projectId);
-        long modelTotal = sysHomeMapper.countModelTotal(projectId);
-        long tagTotal = sysHomeMapper.countTagTotal(projectId);
-        long collectTaskTotal = sysHomeMapper.countCollectTaskTotal(projectId);
-        long documentTotal = sysHomeMapper.countDocumentTotal(projectId);
-        List<Map<String, Object>> tableRows = sysHomeMapper.selectTableRows(projectId);
+        long integrationTaskTotal = sysHomeMapper.countIntegrationTaskTotal(spaceId);
+        long integrationTaskFailed = sysHomeMapper.countIntegrationTaskFailed(spaceId);
+        long developTaskTotal = sysHomeMapper.countDevelopTaskTotal(spaceId);
+        long developTaskFailed = sysHomeMapper.countDevelopTaskFailed(spaceId);
+        long apiCallTotal = sysHomeMapper.countApiCallTotal(spaceId);
+        long apiCallFailed = sysHomeMapper.countApiCallFailed(spaceId);
+        long datasourceTotal = sysHomeMapper.countDatasourceTotal(spaceId);
+        long catalogTableTotal = sysHomeMapper.countCatalogTableTotal(spaceId);
+        long apiTotal = sysHomeMapper.countApiTotal(spaceId);
+        long dataElemTotal = sysHomeMapper.countDataElemTotal(spaceId);
+        long modelTotal = sysHomeMapper.countModelTotal(spaceId);
+        long tagTotal = sysHomeMapper.countTagTotal(spaceId);
+        long collectTaskTotal = sysHomeMapper.countCollectTaskTotal(spaceId);
+        long documentTotal = sysHomeMapper.countDocumentTotal(spaceId);
+        List<Map<String, Object>> tableRows = sysHomeMapper.selectTableRows(spaceId);
 
         data.put("integrationTaskTotal", integrationTaskTotal);
         data.put("integrationTaskFailed", integrationTaskFailed);

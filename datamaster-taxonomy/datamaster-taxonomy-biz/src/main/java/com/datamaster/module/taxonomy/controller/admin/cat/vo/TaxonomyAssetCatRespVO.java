@@ -78,16 +78,12 @@ public class TaxonomyAssetCatRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Excel(name = "空间ID")
+    @Schema(description = "空间ID")
+    private Long spaceId;
 
-    @Excel(name = "项目ID")
-    @Schema(description = "项目ID")
-    private Long projectId;
-
-    @Excel(name = "项目编码")
-    @Schema(description = "项目编码")
-    private String projectCode;
+    @Excel(name = "空间编码")
+    @Schema(description = "空间编码")
+    private String spaceCode;
 
 }

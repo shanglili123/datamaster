@@ -136,8 +136,8 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
                     .name(task.getName())
                     .personCharge(task.getPersonCharge())
                     .contactNumber(task.getContactNumber())
-                    .projectId(task.getProjectId())
-                    .projectCode(task.getProjectCode())
+                    .spaceId(task.getSpaceId())
+                    .spaceCode(task.getSpaceCode())
                     // 🏆 根据status参数设置任务状态
                     .status(status == 1 ? String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()) : String.valueOf(WorkflowExecutionStatus.FAILURE.getCode()))
                     .endTime(now)
@@ -194,7 +194,7 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
             ProcessInstance processInstance = ProcessInstance.builder()
                     .id(instance.getDsId() == null ? instance.getId() : instance.getDsId())
                     .processDefinitionCode(instance.getTaskCode())
-                    .projectCode(instance.getProjectCode())
+                    .projectCode(instance.getSpaceCode())
                     .state(WorkflowExecutionStatus.FAILURE)
                     .startTime(instance.getStartTime())
                     .endTime(instance.getEndTime())
@@ -349,7 +349,7 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
         String dsTaskCode = taskExt != null && StringUtils.isNotBlank(taskExt.getEtlTaskCode())
                 ? taskExt.getEtlTaskCode() : task.getCode();
         try {
-            DsStatusRespDTO response = dsEtlTaskService.releaseTask("OFFLINE", task.getProjectCode(), dsTaskCode);
+            DsStatusRespDTO response = dsEtlTaskService.releaseTask("OFFLINE", task.getSpaceCode(), dsTaskCode);
             if (response == null || !response.getSuccess()) {
                 log.warn("增量准备失败后下线DS任务失败，taskId={}，msg={}", task.getId(),
                         response == null ? "无响应" : response.getMsg());
@@ -362,7 +362,7 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
             query.setTaskId(task.getId());
             CollectorEtlSchedulerDO scheduler = collectorEtlSchedulerService.getCollectorEtlSchedulerById(query);
             if (scheduler != null && scheduler.getDsId() != null && scheduler.getDsId() > 0) {
-                dsEtlSchedulerService.offlineScheduler(task.getProjectCode(), scheduler.getDsId());
+                dsEtlSchedulerService.offlineScheduler(task.getSpaceCode(), scheduler.getDsId());
             }
         } catch (Exception e) {
             log.warn("增量准备失败后下线DS调度器异常，taskId={}", task.getId(), e);

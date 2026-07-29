@@ -23,11 +23,11 @@ public class TaxonomyJobCatSaveReqVO extends BaseEntity {
     @Schema(description = "ID")
     private Long id;
 
-    @Schema(description = "项目id")
-    private Long projectId;
+    @Schema(description = "空间id")
+    private Long spaceId;
 
-    @Schema(description = "项目code")
-    private String projectCode;
+    @Schema(description = "空间code")
+    private String spaceCode;
 
     @Schema(description = "类别名称", example = "")
     @Size(max = 256, message = "类别名称长度不能超过256个字符")
@@ -47,10 +47,6 @@ public class TaxonomyJobCatSaveReqVO extends BaseEntity {
     @Schema(description = "层级编码", example = "")
     @Size(max = 256, message = "层级编码长度不能超过256个字符")
     private String code;
-
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
 
 
 }

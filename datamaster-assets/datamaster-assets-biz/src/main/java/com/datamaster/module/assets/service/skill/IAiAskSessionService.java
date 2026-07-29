@@ -10,19 +10,19 @@ import java.util.List;
 
 public interface IAiAskSessionService {
 
-    List<AiAskSessionRespVO> listRecent(Long userId, Long projectId, Integer limit);
+    List<AiAskSessionRespVO> listRecent(Long userId, Long spaceId, Integer limit);
 
     AiAskSessionRespVO create(Long userId, String username, AiAskSessionSaveReqVO reqVO);
 
     AiAskSessionRespVO update(Long userId, String username, Long sessionId, AiAskSessionSaveReqVO reqVO);
 
-    Integer delete(Long userId, Long projectId, Long sessionId);
+    Integer delete(Long userId, Long spaceId, Long sessionId);
 
-    AiAskMessageWindowRespVO listMessages(Long userId, Long projectId, Long sessionId, Long beforeId, Long afterId, Integer limit);
+    AiAskMessageWindowRespVO listMessages(Long userId, Long spaceId, Long sessionId, Long beforeId, Long afterId, Integer limit);
 
-    AiAskMessageRespVO appendMessage(Long userId, String username, Long projectId, Long sessionId, AiAskMessageSaveReqVO reqVO);
+    AiAskMessageRespVO appendMessage(Long userId, String username, Long spaceId, Long sessionId, AiAskMessageSaveReqVO reqVO);
 
-    Integer deleteMessage(Long userId, Long projectId, Long sessionId, Long messageId);
+    Integer deleteMessage(Long userId, Long spaceId, Long sessionId, Long messageId);
 
-    Integer clearMessages(Long userId, Long projectId, Long sessionId);
+    Integer clearMessages(Long userId, Long spaceId, Long sessionId);
 }

@@ -23,4 +23,4 @@ public class AssetsAssetAuditRuleSaveReqVO extends BaseEntity {
 @Schema(description = "", example = "")    private Long issueCount;
 @Schema(description = "", example = "")    private Date auditTime;
 @Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String batchNo;
-@Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String remark;}
+@Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String description;}

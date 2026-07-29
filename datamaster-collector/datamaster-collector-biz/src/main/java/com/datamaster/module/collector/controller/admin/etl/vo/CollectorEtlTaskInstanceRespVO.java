@@ -56,11 +56,11 @@ public class CollectorEtlTaskInstanceRespVO implements Serializable {
 
     @Excel(name = "空间id")
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Excel(name = "空间编码")
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Excel(name = "开始时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     @Schema(description = "开始时间", example = "")
@@ -132,7 +132,7 @@ public class CollectorEtlTaskInstanceRespVO implements Serializable {
     private Date updateTime;
 
     @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
 }

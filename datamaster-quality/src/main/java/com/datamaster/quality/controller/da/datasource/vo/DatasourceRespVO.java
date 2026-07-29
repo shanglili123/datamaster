@@ -41,11 +41,11 @@ public class DatasourceRespVO implements Serializable {
 
     @Excel(name = "空间名称")
     @Schema(description = "空间名称", example = "")
-    private String projectName;
+    private String spaceName;
 
     @Excel(name = "是否是管理员分配给数据研发")
     @Schema(description = "是否是管理员分配给数据研发", example = "")
-    private Boolean isAdminAddTo;
+    private Boolean adminAddTo;
 
     @Excel(name = "IP")
     @Schema(description = "IP", example = "")
@@ -101,8 +101,5 @@ public class DatasourceRespVO implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
 
 }

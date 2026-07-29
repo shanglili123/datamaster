@@ -32,7 +32,7 @@ import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
 import com.datamaster.module.assets.api.service.asset.IAssetsDatasourceApiService;
-import com.datamaster.module.taxonomy.api.project.ITaxonomyProjectApi;
+import com.datamaster.module.taxonomy.api.space.ITaxonomySpaceApi;
 import com.datamaster.module.collector.api.qa.dto.CollectorQualitySummaryRespDTO;
 import com.datamaster.module.collector.api.service.qa.CollectorQualityTaskApiService;
 import com.datamaster.module.collector.controller.admin.qa.vo.*;
@@ -65,7 +65,7 @@ import static com.datamaster.common.core.domain.AjaxResult.error;
 import static com.datamaster.common.core.domain.AjaxResult.success;
 
 /**
- * 数据质量任务Service业务层处理
+ * 质量探查任务Service业务层处理
  *
  * @author Chaos
  * @date 2025-07-21
@@ -79,7 +79,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     private String url;
 
     @Resource
-    private ITaxonomyProjectApi taxonomyProjectApi;
+    private ITaxonomySpaceApi taxonomySpaceApi;
 
     @Resource
     private CollectorQualityTaskMapper CollectorQualityTaskMapper;
@@ -207,7 +207,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         }
 
         CollectorQualityTaskDO dictType = BeanUtils.toBean(createReqVO, CollectorQualityTaskDO.class);
-        fillProjectRelation(dictType);
+        fillSpaceRelation(dictType);
         CollectorQualityTaskMapper.insert(dictType);
         List<CollectorQualityTaskObjSaveReqVO> CollectorQualityTaskObjSaveReqVO = createReqVO.getCollectorQualityTaskObjSaveReqVO();
         for (CollectorQualityTaskObjSaveReqVO qualityTaskObjSaveReqVO : CollectorQualityTaskObjSaveReqVO) {
@@ -237,7 +237,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     public int updateCollectorQualityTask(CollectorQualityTaskSaveReqVO updateReqVO) {
         // 相关校验
         CollectorQualityTaskDO dictType = BeanUtils.toBean(updateReqVO, CollectorQualityTaskDO.class);
-        fillProjectRelation(dictType);
+        fillSpaceRelation(dictType);
         List<CollectorQualityTaskObjSaveReqVO> CollectorQualityTaskObjSaveReqVO = updateReqVO.getCollectorQualityTaskObjSaveReqVO();
         for (CollectorQualityTaskObjSaveReqVO qualityTaskObjSaveReqVO : CollectorQualityTaskObjSaveReqVO) {
             qualityTaskObjSaveReqVO.setTaskId(dictType.getId());
@@ -270,7 +270,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     }
     @Override
     public int removeCollectorQualityTask(Collection<Long> idList) {
-        // 批量删除数据质量任务
+        // 批量删除质量探查任务
         for (Long id : idList) {
             // 查询 DaDiscoveryTaskDO 详情
             CollectorQualityTaskDO CollectorQualityTaskDO = CollectorQualityTaskMapper.selectById(id);
@@ -280,8 +280,8 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
                 if(StringUtils.equals("0",CollectorQualityTaskDO.getStatus())){
                     throw new ServiceException("上线任务，不允删除，请先下线！");
                 }
-                String projectCode = resolveProjectCode(CollectorQualityTaskDO);
-                DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.deleteTask(projectCode, CollectorQualityTaskDO.getTaskCode());
+                String spaceCode = resolveSpaceCode(CollectorQualityTaskDO);
+                DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.deleteTask(spaceCode, CollectorQualityTaskDO.getTaskCode());
             }
         }
         return CollectorQualityTaskMapper.deleteBatchIds(idList);
@@ -438,9 +438,9 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
 
 
         /**
-         * 导入数据质量任务数据
+         * 导入质量探查任务数据
          *
-         * @param importExcelList 数据质量任务数据列表
+         * @param importExcelList 质量探查任务数据列表
          * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
          * @param operName 操作用户
          * @return 结果
@@ -466,10 +466,10 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
                             if (existingCollectorQualityTask != null) {
                                 CollectorQualityTaskMapper.updateById(CollectorQualityTaskDO);
                                 successNum++;
-                                successMessages.add("数据更新成功，ID为 " + CollectorQualityTaskId + " 的数据质量任务记录。");
+                                successMessages.add("数据更新成功，ID为 " + CollectorQualityTaskId + " 的质量探查任务记录。");
                             } else {
                                 failureNum++;
-                                failureMessages.add("数据更新失败，ID为 " + CollectorQualityTaskId + " 的数据质量任务记录不存在。");
+                                failureMessages.add("数据更新失败，ID为 " + CollectorQualityTaskId + " 的质量探查任务记录不存在。");
                             }
                         } else {
                             failureNum++;
@@ -482,10 +482,10 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
                         if (existingCollectorQualityTask == null) {
                             CollectorQualityTaskMapper.insert(CollectorQualityTaskDO);
                             successNum++;
-                            successMessages.add("数据插入成功，ID为 " + CollectorQualityTaskId + " 的数据质量任务记录。");
+                            successMessages.add("数据插入成功，ID为 " + CollectorQualityTaskId + " 的质量探查任务记录。");
                         } else {
                             failureNum++;
-                            failureMessages.add("数据插入失败，ID为 " + CollectorQualityTaskId + " 的数据质量任务记录已存在。");
+                            failureMessages.add("数据插入失败，ID为 " + CollectorQualityTaskId + " 的质量探查任务记录已存在。");
                         }
                     }
                 } catch (Exception e) {
@@ -547,10 +547,10 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
             return error("任务状态错误，请刷新后重试！");
         }
 
-        String projectCode = resolveProjectCode(CollectorQualityTaskDO);
+        String spaceCode = resolveSpaceCode(CollectorQualityTaskDO);
         DsStartTaskReqDTO dsStartTaskReqDTO = CollectorTaskConverter.createDsStartTaskReqDTO(CollectorQualityTaskDO.getTaskCode(), CollectorQualityTaskDO.getWorkerGroup());
 
-        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, projectCode);
+        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, spaceCode);
 
         return Boolean.TRUE.equals(dsStatusRespDTO == null ? null : dsStatusRespDTO.getSuccess())
                 ? success() : error(dsStatusRespDTO == null ? "DolphinScheduler无响应" : dsStatusRespDTO.getMsg());
@@ -563,9 +563,9 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
 
         validateTaskStatus(CollectorQualityTaskById, daDiscoveryTaskStatus);
 
-        String projectCode = resolveProjectCode(
-                CollectorQualityTaskById.getProjectId(),
-                CollectorQualityTaskById.getProjectCode(),
+        String spaceCode = resolveSpaceCode(
+                CollectorQualityTaskById.getSpaceId(),
+                CollectorQualityTaskById.getSpaceCode(),
                 CollectorQualityTaskById.getCatCode()
         );
         daDiscoveryTask.setCycle(CollectorQualityTaskById.getCycle());
@@ -575,13 +575,13 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
             return false;
         }
         if (StringUtils.equals("1", daDiscoveryTaskStatus)) {
-            handleOfflineTask(projectCode, CollectorQualityTaskById, systemJobId, daDiscoveryTask);
+            handleOfflineTask(spaceCode, CollectorQualityTaskById, systemJobId, daDiscoveryTask);
             return true;
         }
 
-        handleOnlineTask(projectCode, CollectorQualityTaskById, systemJobId, daDiscoveryTask);
+        handleOnlineTask(spaceCode, CollectorQualityTaskById, systemJobId, daDiscoveryTask);
 
-        updateTaskStatusAndScheduler(projectCode, daDiscoveryTask, systemJobId);
+        updateTaskStatusAndScheduler(spaceCode, daDiscoveryTask, systemJobId);
 
         return true;
     }
@@ -634,19 +634,19 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     public boolean updateDaDiscoveryTaskCronExpression(CollectorQualityTaskSaveReqVO daDiscoveryTask) {
         CollectorQualityTaskRespVO CollectorQualityTaskById = this.getCollectorQualityTaskById(daDiscoveryTask.getId());
         CollectorQualityTaskDO taskDO = CollectorQualityTaskMapper.selectById(daDiscoveryTask.getId());
-        String projectCode = resolveProjectCode(taskDO);
+        String spaceCode = resolveSpaceCode(taskDO);
         Long systemJobId = CollectorQualityTaskById.getSystemJobId();
         if(systemJobId != null){
             try {
                 //     * 创建调度器 (只有任务发布了才能调用该接口)
                 DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(systemJobId, daDiscoveryTask.getCycle(), CollectorQualityTaskById.getTaskCode(), CollectorQualityTaskById.getWorkerGroup());
-                DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, projectCode);
+                DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, spaceCode);
                 if(dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()){
                     daDiscoveryTask.setTaskId(CollectorQualityTaskById.getTaskId());
                     daDiscoveryTask.setTaskCode(String.valueOf(CollectorQualityTaskById.getTaskCode()));
                     daDiscoveryTask.setNodeId(CollectorQualityTaskById.getNodeId());
                     daDiscoveryTask.setNodeCode(String.valueOf(CollectorQualityTaskById.getNodeCode()));
-                    createSchedulerIfNeeded(projectCode, daDiscoveryTask);
+                    createSchedulerIfNeeded(spaceCode, daDiscoveryTask);
                 }else {
                     Schedule schedule = dsSchedulerRespDTO.getData();
                     daDiscoveryTask.setSystemJobId(schedule.getId());
@@ -669,16 +669,16 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         }
     }
 
-    private void handleOfflineTask(String projectCode, CollectorQualityTaskRespVO daDiscoveryTaskById, Long systemJobId, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
+    private void handleOfflineTask(String spaceCode, CollectorQualityTaskRespVO daDiscoveryTaskById, Long systemJobId, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
         // 只有在 DS 中有任务定义时才下线
         if (StringUtils.isNotEmpty(daDiscoveryTaskById.getTaskCode())) {
-            DsStatusRespDTO respDTO = dsEtlTaskService.releaseTask("OFFLINE", projectCode, daDiscoveryTaskById.getTaskCode());
+            DsStatusRespDTO respDTO = dsEtlTaskService.releaseTask("OFFLINE", spaceCode, daDiscoveryTaskById.getTaskCode());
             if (!isDsStatusSuccess(respDTO)) {
                 throw new ServiceException("发布或下线任务，失败！");
             }
 
             if (systemJobId != null && systemJobId > 0) {
-                DsStatusRespDTO offlined = iDsEtlSchedulerService.offlineScheduler(projectCode, systemJobId);
+                DsStatusRespDTO offlined = iDsEtlSchedulerService.offlineScheduler(spaceCode, systemJobId);
                 if (!isDsStatusSuccess(offlined)) {
                     throw new ServiceException("下线调度器，失败！");
                 }
@@ -690,21 +690,21 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         CollectorQualityTaskMapper.updateById(updateObj);
     }
 
-    private void handleOnlineTask(String projectCode, CollectorQualityTaskRespVO daDiscoveryTaskById, Long systemJobId, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
+    private void handleOnlineTask(String spaceCode, CollectorQualityTaskRespVO daDiscoveryTaskById, Long systemJobId, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
         if (systemJobId == null || systemJobId < 1) {
-            createNewProcessDefinition(projectCode, daDiscoveryTaskById, daDiscoveryTask);
+            createNewProcessDefinition(spaceCode, daDiscoveryTaskById, daDiscoveryTask);
         } else if (daDiscoveryTaskById.getId() != null) {
-            updateExistingProcessDefinition(projectCode, daDiscoveryTaskById, daDiscoveryTask);
+            updateExistingProcessDefinition(spaceCode, daDiscoveryTaskById, daDiscoveryTask);
         }
     }
 
-    private void createNewProcessDefinition(String projectCode, CollectorQualityTaskRespVO daDiscoveryTaskById, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
+    private void createNewProcessDefinition(String spaceCode, CollectorQualityTaskRespVO daDiscoveryTaskById, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(daDiscoveryTaskById.getTaskName() + StringUtils.generateRandomString());
         input.addHttpParam("id", "PARAMETER", daDiscoveryTaskById.getId());
         input.setId(daDiscoveryTaskById.getId());
         input.setWorkerGroup(daDiscoveryTaskById.getWorkerGroup());
-        ProcessDefinition definition = this.createProcessDefinition(projectCode, input);
+        ProcessDefinition definition = this.createProcessDefinition(spaceCode, input);
         TaskDefinition firstTaskDefinition = CollectorTaskConverter.getFirstTaskDefinition(definition);
 
         daDiscoveryTask.setTaskId(definition.getId());
@@ -713,7 +713,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         daDiscoveryTask.setNodeCode(String.valueOf(firstTaskDefinition.getCode()));
     }
 
-    private void updateExistingProcessDefinition(String projectCode, CollectorQualityTaskRespVO daDiscoveryTaskById, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
+    private void updateExistingProcessDefinition(String spaceCode, CollectorQualityTaskRespVO daDiscoveryTaskById, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
         TaskSaveReqInput input = new TaskSaveReqInput();
         input.setName(daDiscoveryTaskById.getTaskName() + StringUtils.generateRandomString());
         input.addHttpParam("id", "PARAMETER", daDiscoveryTaskById.getId());
@@ -725,7 +725,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         input.setNodeId(daDiscoveryTaskById.getNodeId());
         input.setNodeCode(String.valueOf(daDiscoveryTaskById.getNodeCode()));
 
-        ProcessDefinition definition = this.updateProcessDefinition(projectCode, input);
+        ProcessDefinition definition = this.updateProcessDefinition(spaceCode, input);
         TaskDefinition firstTaskDefinition = CollectorTaskConverter.getFirstTaskDefinition(definition);
 
         daDiscoveryTask.setTaskId(definition.getId());
@@ -735,8 +735,8 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     }
 
 
-    private void updateTaskStatusAndScheduler(String projectCode, CollectorQualityTaskSaveReqVO daDiscoveryTask, Long systemJobId) {
-        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", projectCode, daDiscoveryTask.getTaskCode());
+    private void updateTaskStatusAndScheduler(String spaceCode, CollectorQualityTaskSaveReqVO daDiscoveryTask, Long systemJobId) {
+        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", spaceCode, daDiscoveryTask.getTaskCode());
         if (!isDsStatusSuccess(dsStatusRespDTO)) {
             throw new ServiceException("发布或下线任务，失败！");
         }
@@ -744,18 +744,18 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         String cycle = daDiscoveryTask.getCycle();
         if (StringUtils.isNotEmpty(cycle)) {
             if (systemJobId != null && systemJobId > 0) {
-                updateExistingScheduler(projectCode, daDiscoveryTask, systemJobId);
+                updateExistingScheduler(spaceCode, daDiscoveryTask, systemJobId);
             } else {
-                createNewScheduler(projectCode, daDiscoveryTask);
+                createNewScheduler(spaceCode, daDiscoveryTask);
             }
 
-            DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(projectCode, daDiscoveryTask.getSystemJobId());
+            DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(spaceCode, daDiscoveryTask.getSystemJobId());
             if (!isDsStatusSuccess(dsStatusRespDTO1)) {
                 throw new ServiceException("上线调度器，失败！");
             }
         } else if (systemJobId != null && systemJobId > 0) {
             // 已有调度器但取消了周期，下线并删除调度器
-            iDsEtlSchedulerService.offlineScheduler(projectCode, systemJobId);
+            iDsEtlSchedulerService.offlineScheduler(spaceCode, systemJobId);
         }
 
         // 更新数据发现任务
@@ -764,22 +764,22 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     }
 
 
-    private void updateExistingScheduler(String projectCode, CollectorQualityTaskSaveReqVO daDiscoveryTask, Long systemJobId) {
+    private void updateExistingScheduler(String spaceCode, CollectorQualityTaskSaveReqVO daDiscoveryTask, Long systemJobId) {
         DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(systemJobId, daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode(), daDiscoveryTask.getWorkerGroup());
-        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, projectCode);
+        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, spaceCode);
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
-            createSchedulerIfNeeded(projectCode, daDiscoveryTask);
+            createSchedulerIfNeeded(spaceCode, daDiscoveryTask);
         } else {
             Schedule schedule = dsSchedulerRespDTO.getData();
             daDiscoveryTask.setSystemJobId(schedule.getId());
         }
     }
 
-    private void createNewScheduler(String projectCode, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
+    private void createNewScheduler(String spaceCode, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
         DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = CollectorTaskConverter.createSchedulerRequest(daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode(), daDiscoveryTask.getWorkerGroup());
-        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, projectCode);
+        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, spaceCode);
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
-            createSchedulerIfNeeded(projectCode, daDiscoveryTask);
+            createSchedulerIfNeeded(spaceCode, daDiscoveryTask);
         } else {
             Schedule schedule = dsSchedulerRespDTO.getData();
             daDiscoveryTask.setSystemJobId(schedule.getId());
@@ -787,12 +787,12 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
     }
 
 
-    private void createSchedulerIfNeeded(String projectCode, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
-        DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(projectCode, daDiscoveryTask.getTaskCode());
+    private void createSchedulerIfNeeded(String spaceCode, CollectorQualityTaskSaveReqVO daDiscoveryTask) {
+        DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(spaceCode, daDiscoveryTask.getTaskCode());
         if (byTaskCode == null || !byTaskCode.getSuccess()) {
             //     * 创建调度器 (只有任务发布了才能调用该接口)
             DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = CollectorTaskConverter.createSchedulerRequest(daDiscoveryTask.getCycle(),daDiscoveryTask.getTaskCode(), daDiscoveryTask.getWorkerGroup());
-            DsSchedulerRespDTO saveScheduler = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, projectCode);
+            DsSchedulerRespDTO saveScheduler = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, spaceCode);
             if(saveScheduler == null || !saveScheduler.getSuccess()){
                 throw new ServiceException("创建调度器，失败！");
             }
@@ -804,7 +804,7 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         Schedule schedule = byTaskCode.getData();
         daDiscoveryTask.setSystemJobId(schedule.getId());
         DsSchedulerUpdateReqDTO schedulerUpdateRequest = CollectorTaskConverter.createSchedulerUpdateRequest(schedule.getId(), daDiscoveryTask.getCycle(), daDiscoveryTask.getTaskCode(), daDiscoveryTask.getWorkerGroup());
-        DsSchedulerRespDTO updated = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, projectCode);
+        DsSchedulerRespDTO updated = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, spaceCode);
         if (updated == null || !updated.getSuccess()) {
             throw new ServiceException("更新调度器，失败！");
         }
@@ -819,14 +819,14 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
                 || StringUtils.equalsIgnoreCase(response.getMsg(), "success");
     }
 
-    public ProcessDefinition updateProcessDefinition(String projectCode, TaskSaveReqInput input) {
+    public ProcessDefinition updateProcessDefinition(String spaceCode, TaskSaveReqInput input) {
         if (StringUtils.isBlank(input.getNodeCode())) {
-            Long nodeUniqueKey = this.getNodeUniqueKey(CollectorTaskConverter.stringToLong(projectCode));
+            Long nodeUniqueKey = this.getNodeUniqueKey(CollectorTaskConverter.stringToLong(spaceCode));
             input.setNodeCode(CollectorTaskConverter.longToString(nodeUniqueKey));
         }
 
         DsTaskSaveReqDTO dsTaskSaveReqDTO = CollectorTaskConverter.buildDsTaskSaveReq(input);
-        DsTaskSaveRespDTO task = dsEtlTaskService.updateTask(dsTaskSaveReqDTO, projectCode, input.getTaskCode());
+        DsTaskSaveRespDTO task = dsEtlTaskService.updateTask(dsTaskSaveReqDTO, spaceCode, input.getTaskCode());
 
         if (task == null || !Boolean.TRUE.equals(task.getSuccess())) {
             throw new ServiceException("任务状态修改失败：" + (task == null || task.getMsg() == null ? "请联系系统管理员" : task.getMsg()));
@@ -835,13 +835,13 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         return data; // 返回创建结果
     }
 
-    public ProcessDefinition createProcessDefinition(String projectCode, TaskSaveReqInput input) {
-        Long nodeUniqueKey = this.getNodeUniqueKey(CollectorTaskConverter.stringToLong(projectCode));
+    public ProcessDefinition createProcessDefinition(String spaceCode, TaskSaveReqInput input) {
+        Long nodeUniqueKey = this.getNodeUniqueKey(CollectorTaskConverter.stringToLong(spaceCode));
 
         input.setNodeCode(CollectorTaskConverter.longToString(nodeUniqueKey));
 
         DsTaskSaveReqDTO dsTaskSaveReqDTO = CollectorTaskConverter.buildDsTaskSaveReq(input);
-        DsTaskSaveRespDTO task = dsEtlTaskService.createTask(dsTaskSaveReqDTO, CollectorTaskConverter.stringToLong(projectCode));
+        DsTaskSaveRespDTO task = dsEtlTaskService.createTask(dsTaskSaveReqDTO, CollectorTaskConverter.stringToLong(spaceCode));
 
         if (task == null || !Boolean.TRUE.equals(task.getSuccess())) {
             throw new ServiceException("任务状态修改失败，请联系系统管理员"); // 抛出任务定义创建错误的异常
@@ -850,74 +850,74 @@ public class CollectorQualityTaskServiceImpl  extends ServiceImpl<CollectorQuali
         return data; // 返回创建结果
     }
 
-    public Long getNodeUniqueKey(Long projectCode) {
+    public Long getNodeUniqueKey(Long spaceCode) {
         try {
-            DsNodeGenCodeRespDTO dsNodeGenCodeRespDTO = dsEtlNodeService.genCode(projectCode);
+            DsNodeGenCodeRespDTO dsNodeGenCodeRespDTO = dsEtlNodeService.genCode(spaceCode);
             return dsNodeGenCodeRespDTO.getData().get(0);
         } catch (Exception e){
             throw new ServiceException("任务状态修改失败，请联系系统管理员"); // 抛出任务定义创建错误的异常
         }
     }
 
-    private void fillProjectRelation(CollectorQualityTaskDO taskDO) {
+    private void fillSpaceRelation(CollectorQualityTaskDO taskDO) {
         if (taskDO == null) {
             return;
         }
 
-        if (taskDO.getProjectId() != null) {
-            String projectCode = taxonomyProjectApi.getProjectCodeByProjectId(taskDO.getProjectId());
-            if (StringUtils.isNotEmpty(projectCode)) {
-                taskDO.setProjectCode(projectCode);
+        if (taskDO.getSpaceId() != null) {
+            String spaceCode = taxonomySpaceApi.getSpaceCodeBySpaceId(taskDO.getSpaceId());
+            if (StringUtils.isNotEmpty(spaceCode)) {
+                taskDO.setSpaceCode(spaceCode);
             }
-        } else if (taskDO.getProjectId() == null && StringUtils.isNotEmpty(taskDO.getProjectCode())) {
-            taskDO.setProjectId(taxonomyProjectApi.getProjectIdByProjectCode(taskDO.getProjectCode()));
+        } else if (taskDO.getSpaceId() == null && StringUtils.isNotEmpty(taskDO.getSpaceCode())) {
+            taskDO.setSpaceId(taxonomySpaceApi.getSpaceIdBySpaceCode(taskDO.getSpaceCode()));
         }
 
-        if ((taskDO.getProjectId() == null || StringUtils.isEmpty(taskDO.getProjectCode()))
+        if ((taskDO.getSpaceId() == null || StringUtils.isEmpty(taskDO.getSpaceCode()))
                 && StringUtils.isNotEmpty(taskDO.getCatCode())) {
-            CollectorQualityTaskDO catProject = CollectorQualityTaskMapper.selectQualityCatProjectByCode(taskDO.getCatCode());
-            if (catProject != null) {
-                if (taskDO.getProjectId() == null) {
-                    taskDO.setProjectId(catProject.getProjectId());
+            CollectorQualityTaskDO catSpace = CollectorQualityTaskMapper.selectQualityCatSpaceByCode(taskDO.getCatCode());
+            if (catSpace != null) {
+                if (taskDO.getSpaceId() == null) {
+                    taskDO.setSpaceId(catSpace.getSpaceId());
                 }
-                if (StringUtils.isEmpty(taskDO.getProjectCode())) {
-                    taskDO.setProjectCode(catProject.getProjectCode());
+                if (StringUtils.isEmpty(taskDO.getSpaceCode())) {
+                    taskDO.setSpaceCode(catSpace.getSpaceCode());
                 }
             }
         }
     }
 
-    private String resolveProjectCode(CollectorQualityTaskDO taskDO) {
+    private String resolveSpaceCode(CollectorQualityTaskDO taskDO) {
         if (taskDO == null) {
             throw new ServiceException("质量任务不存在");
         }
-        fillProjectRelation(taskDO);
-        return resolveProjectCode(taskDO.getProjectId(), taskDO.getProjectCode(), taskDO.getCatCode());
+        fillSpaceRelation(taskDO);
+        return resolveSpaceCode(taskDO.getSpaceId(), taskDO.getSpaceCode(), taskDO.getCatCode());
     }
 
-    private String resolveProjectCode(Long projectId, String projectCode, String catCode) {
-        if (projectId != null) {
-            String code = taxonomyProjectApi.getProjectCodeByProjectId(projectId);
+    private String resolveSpaceCode(Long spaceId, String spaceCode, String catCode) {
+        if (spaceId != null) {
+            String code = taxonomySpaceApi.getSpaceCodeBySpaceId(spaceId);
             if (StringUtils.isNotEmpty(code)) {
                 return code;
             }
         }
         if (StringUtils.isNotEmpty(catCode)) {
-            CollectorQualityTaskDO catProject = CollectorQualityTaskMapper.selectQualityCatProjectByCode(catCode);
-            if (catProject != null) {
-                if (catProject.getProjectId() != null) {
-                    String code = taxonomyProjectApi.getProjectCodeByProjectId(catProject.getProjectId());
+            CollectorQualityTaskDO catSpace = CollectorQualityTaskMapper.selectQualityCatSpaceByCode(catCode);
+            if (catSpace != null) {
+                if (catSpace.getSpaceId() != null) {
+                    String code = taxonomySpaceApi.getSpaceCodeBySpaceId(catSpace.getSpaceId());
                     if (StringUtils.isNotEmpty(code)) {
                         return code;
                     }
                 }
-                if (StringUtils.isNotEmpty(catProject.getProjectCode())) {
-                    return catProject.getProjectCode();
+                if (StringUtils.isNotEmpty(catSpace.getSpaceCode())) {
+                    return catSpace.getSpaceCode();
                 }
             }
         }
-        if (StringUtils.isNotEmpty(projectCode)) {
-            return projectCode;
+        if (StringUtils.isNotEmpty(spaceCode)) {
+            return spaceCode;
         }
         throw new ServiceException("质量任务未关联空间或关联的空间编码不存在");
     }

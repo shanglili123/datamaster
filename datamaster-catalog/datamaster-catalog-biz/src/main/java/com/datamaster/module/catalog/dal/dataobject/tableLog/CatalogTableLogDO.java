@@ -80,7 +80,7 @@ public class CatalogTableLogDO extends BaseEntity {
     /** 是否临时表;0：否，1：是 */
     private String tempFlag;
 
-    /** 数据质量 */
+    /** 质量探查 */
     private Integer dataQuality;
 
     /** 变更类型 */
@@ -90,10 +90,10 @@ public class CatalogTableLogDO extends BaseEntity {
     private String updateMsg;
 
     /** 空间ID */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 是否有效;0：无效，1：有效 */
     private Boolean validFlag;

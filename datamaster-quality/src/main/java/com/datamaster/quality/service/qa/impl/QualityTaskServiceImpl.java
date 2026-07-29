@@ -30,7 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 数据质量任务Service业务层处理
+ * 质量探查任务Service业务层处理
  *
  * @author Chaos
  * @date 2025-07-21
@@ -60,13 +60,13 @@ public class QualityTaskServiceImpl  extends ServiceImpl<QualityTaskMapper, Qual
     public int updateQualityTask(QualityTaskSaveReqVO updateReqVO) {
         // 相关校验
 
-        // 更新数据质量任务
+        // 更新质量探查任务
         QualityTaskDO updateObj = BeanUtils.toBean(updateReqVO, QualityTaskDO.class);
         return QualityTaskMapper.updateById(updateObj);
     }
     @Override
     public int removeQualityTask(Collection<Long> idList) {
-        // 批量删除数据质量任务
+        // 批量删除质量探查任务
         return QualityTaskMapper.deleteBatchIds(idList);
     }
 
@@ -97,9 +97,9 @@ public class QualityTaskServiceImpl  extends ServiceImpl<QualityTaskMapper, Qual
 
 
         /**
-         * 导入数据质量任务数据
+         * 导入质量探查任务数据
          *
-         * @param importExcelList 数据质量任务数据列表
+         * @param importExcelList 质量探查任务数据列表
          * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
          * @param operName 操作用户
          * @return 结果
@@ -125,10 +125,10 @@ public class QualityTaskServiceImpl  extends ServiceImpl<QualityTaskMapper, Qual
                             if (existingQualityTask != null) {
                                 QualityTaskMapper.updateById(QualityTaskDO);
                                 successNum++;
-                                successMessages.add("数据更新成功，ID为 " + QualityTaskId + " 的数据质量任务记录。");
+                                successMessages.add("数据更新成功，ID为 " + QualityTaskId + " 的质量探查任务记录。");
                             } else {
                                 failureNum++;
-                                failureMessages.add("数据更新失败，ID为 " + QualityTaskId + " 的数据质量任务记录不存在。");
+                                failureMessages.add("数据更新失败，ID为 " + QualityTaskId + " 的质量探查任务记录不存在。");
                             }
                         } else {
                             failureNum++;
@@ -141,10 +141,10 @@ public class QualityTaskServiceImpl  extends ServiceImpl<QualityTaskMapper, Qual
                         if (existingQualityTask == null) {
                             QualityTaskMapper.insert(QualityTaskDO);
                             successNum++;
-                            successMessages.add("数据插入成功，ID为 " + QualityTaskId + " 的数据质量任务记录。");
+                            successMessages.add("数据插入成功，ID为 " + QualityTaskId + " 的质量探查任务记录。");
                         } else {
                             failureNum++;
-                            failureMessages.add("数据插入失败，ID为 " + QualityTaskId + " 的数据质量任务记录已存在。");
+                            failureMessages.add("数据插入失败，ID为 " + QualityTaskId + " 的质量探查任务记录已存在。");
                         }
                     }
                 } catch (Exception e) {

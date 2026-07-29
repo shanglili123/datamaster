@@ -183,8 +183,8 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         }
         Map<String, Object> result = JsonUtil.buildRequestObject(BeanUtils.toBean(ServiceApiReqVO, ServiceApiDO.class),
                 ServiceApiReqVO.getQueryParams());
-        result.put("projectId", ServiceApiReqVO.getProjectId());
-        result.put("projectCode", ServiceApiReqVO.getProjectCode());
+        result.put("spaceId", ServiceApiReqVO.getSpaceId());
+        result.put("spaceCode", ServiceApiReqVO.getSpaceCode());
         String transmitType = ServiceApiReqVO.getTransmitType();
         if (org.apache.commons.lang3.StringUtils.equals("1", transmitType)) {
             iAssetsApiOutService.executeServiceForwarding(response, JSONUtils.convertToLong(ServiceApiReqVO.getApiId()), result);
@@ -324,8 +324,8 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
         reqDTO.setDatasourceId(Long.valueOf(executeConfig.getSourceId()));
         reqDTO.setTableName(executeConfig.getTableName());
-        reqDTO.setProjectId(dataApi.getProjectId());
-        reqDTO.setProjectCode(dataApi.getProjectCode());
+        reqDTO.setSpaceId(dataApi.getSpaceId());
+        reqDTO.setSpaceCode(dataApi.getSpaceCode());
         if (dataApi.getResParamsList() != null) {
             reqDTO.setColumnNames(dataApi.getResParamsList().stream()
                     .map(ResParam::getFieldName)
@@ -340,18 +340,18 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         if (dataApi == null || dataApi.getId() == null) {
             return;
         }
-        if (dataApi.getProjectId() != null && StringUtils.isNotBlank(dataApi.getProjectCode())) {
+        if (dataApi.getSpaceId() != null && StringUtils.isNotBlank(dataApi.getSpaceCode())) {
             return;
         }
         ServiceApiDO old = ServiceApiMapper.selectById(dataApi.getId());
         if (old == null) {
             return;
         }
-        if (dataApi.getProjectId() == null) {
-            dataApi.setProjectId(old.getProjectId());
+        if (dataApi.getSpaceId() == null) {
+            dataApi.setSpaceId(old.getSpaceId());
         }
-        if (StringUtils.isBlank(dataApi.getProjectCode())) {
-            dataApi.setProjectCode(old.getProjectCode());
+        if (StringUtils.isBlank(dataApi.getSpaceCode())) {
+            dataApi.setSpaceCode(old.getSpaceCode());
         }
     }
 

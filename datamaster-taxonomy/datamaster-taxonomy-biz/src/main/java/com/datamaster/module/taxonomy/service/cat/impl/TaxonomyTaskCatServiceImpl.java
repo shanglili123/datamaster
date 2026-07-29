@@ -102,8 +102,8 @@ public class TaxonomyTaskCatServiceImpl extends ServiceImpl<TaxonomyTaskCatMappe
                 .eqIfPresent(TaxonomyTaskCatDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(TaxonomyTaskCatDO::getCode, reqVO.getCode())
                 .eqIfPresent(TaxonomyTaskCatDO::getCreateTime, reqVO.getCreateTime())
-                .eqIfPresent(TaxonomyTaskCatDO::getProjectId,reqVO.getProjectId())
-                .eqIfPresent(TaxonomyTaskCatDO::getProjectCode,reqVO.getProjectCode())
+                .eqIfPresent(TaxonomyTaskCatDO::getSpaceId,reqVO.getSpaceId())
+                .eqIfPresent(TaxonomyTaskCatDO::getSpaceCode,reqVO.getSpaceCode())
                 .eq(reqVO.getValidFlag() != null, TaxonomyTaskCatDO::getValidFlag, Boolean.TRUE.equals(reqVO.getValidFlag()) ? "1" : "0")
                 .orderByAsc(TaxonomyTaskCatDO::getSortOrder);
         return TaxonomyTaskCatMapper.selectList(queryWrapperX);

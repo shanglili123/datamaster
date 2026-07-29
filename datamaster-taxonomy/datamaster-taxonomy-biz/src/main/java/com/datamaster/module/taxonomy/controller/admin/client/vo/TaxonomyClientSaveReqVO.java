@@ -55,9 +55,5 @@ public class TaxonomyClientSaveReqVO extends BaseEntity {
     @Schema(description = "是否公开", example = "")
     private String publicFlag;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 1024, message = "备注长度不能超过1024个字符")
-    private String remark;
-
 
 }

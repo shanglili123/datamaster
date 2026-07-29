@@ -26,8 +26,8 @@ public interface CollectorEtlTaskNodeRelMapper extends BaseMapperX<CollectorEtlT
 
         // 构造动态查询条件
         return selectPage(reqVO, new LambdaQueryWrapperX<CollectorEtlTaskNodeRelDO>()
-                .eqIfPresent(CollectorEtlTaskNodeRelDO::getProjectId, reqVO.getProjectId())
-                .eqIfPresent(CollectorEtlTaskNodeRelDO::getProjectCode, reqVO.getProjectCode())
+                .eqIfPresent(CollectorEtlTaskNodeRelDO::getSpaceId, reqVO.getSpaceId())
+                .eqIfPresent(CollectorEtlTaskNodeRelDO::getSpaceCode, reqVO.getSpaceCode())
                 .eqIfPresent(CollectorEtlTaskNodeRelDO::getTaskId, reqVO.getTaskId())
                 .eqIfPresent(CollectorEtlTaskNodeRelDO::getTaskCode, reqVO.getTaskCode())
                 .eqIfPresent(CollectorEtlTaskNodeRelDO::getTaskVersion, reqVO.getTaskVersion())

@@ -31,7 +31,7 @@ public interface TaxonomyAssetCatMapper extends BaseMapperX<TaxonomyAssetCatDO> 
                 // .likeIfPresent(TaxonomyAssetCatDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
 //                .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
-                .eq(reqVO.getProjectId() != null, TaxonomyAssetCatDO::getProjectId, reqVO.getProjectId())
+                .eq(reqVO.getSpaceId() != null, TaxonomyAssetCatDO::getSpaceId, reqVO.getSpaceId())
                 .orderByAsc(TaxonomyAssetCatDO::getSortOrder));
 
     }

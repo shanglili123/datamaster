@@ -303,8 +303,8 @@ function handleCall() {
     delete params.resParams;
     delete params.createTime;
     delete params.updateTime;
-    params.projectId = params.projectId || userStore.projectId || null;
-    params.projectCode = params.projectCode || userStore.projectCode || '';
+    params.spaceId = params.spaceId || userStore.spaceId || null;
+    params.spaceCode = params.spaceCode || userStore.spaceCode || '';
     // 根据请求方法 (GET / POST) 进行处理
     if (props.form.reqMethod === '1') {
         // 使用 serviceTesting 来模拟 GET 请求

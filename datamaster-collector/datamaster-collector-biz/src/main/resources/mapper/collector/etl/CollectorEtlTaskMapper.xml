@@ -10,8 +10,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="name"    column="NAME"    />
         <result property="code"    column="CODE"    />
         <result property="version"    column="VERSION"    />
-        <result property="projectId"    column="PROJECT_ID"    />
-        <result property="projectCode"    column="PROJECT_CODE"    />
+        <result property="spaceId"    column="SPACE_ID"    />
+        <result property="spaceCode"    column="SPACE_CODE"    />
         <result property="personCharge"    column="PERSON_CHARGE"    />
         <result property="locations"    column="LOCATIONS"    />
         <result property="description"    column="DESCRIPTION"    />
@@ -33,7 +33,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectCollectorEtlTaskVo">
-        select ID, TYPE, NAME, CODE, VERSION, PROJECT_ID,EXECUTION_TYPE, PROJECT_CODE, PERSON_CHARGE, LOCATIONS, DESCRIPTION, TIMEOUT, EXTRACTION_COUNT, WRITE_COUNT, STATUS, DS_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from COL_ETL_TASK
+        select ID, TYPE, NAME, CODE, VERSION, SPACE_ID,EXECUTION_TYPE, SPACE_CODE, PERSON_CHARGE, LOCATIONS, DESCRIPTION, TIMEOUT, EXTRACTION_COUNT, WRITE_COUNT, STATUS, DS_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from COL_ETL_TASK
     </sql>
 
     <select id="selectCollectorEtlTaskList" parameterType="CollectorEtlTaskDO" resultMap="CollectorEtlTaskResult">
@@ -43,8 +43,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null  and name != ''"> and NAME like concat('%', #{name}, '%')</if>
             <if test="code != null  and code != ''"> and CODE = #{code}</if>
             <if test="version != null "> and VERSION = #{version}</if>
-            <if test="projectId != null "> and PROJECT_ID = #{projectId}</if>
-            <if test="projectCode != null  and projectCode != ''"> and PROJECT_CODE = #{projectCode}</if>
+            <if test="spaceId != null "> and SPACE_ID = #{spaceId}</if>
+            <if test="spaceCode != null  and spaceCode != ''"> and SPACE_CODE = #{spaceCode}</if>
             <if test="executionType != null  and executionType != ''"> and EXECUTION_TYPE = #{executionType}</if>
             <if test="personCharge != null  and personCharge != ''"> and PERSON_CHARGE = #{personCharge}</if>
             <if test="locations != null  and locations != ''"> and LOCATIONS = #{locations}</if>
@@ -71,8 +71,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null">NAME,</if>
             <if test="code != null">CODE,</if>
             <if test="version != null">VERSION,</if>
-            <if test="projectId != null">PROJECT_ID,</if>
-            <if test="projectCode != null">PROJECT_CODE,</if>
+            <if test="spaceId != null">SPACE_ID,</if>
+            <if test="spaceCode != null">SPACE_CODE,</if>
             <if test="personCharge != null">PERSON_CHARGE,</if>
             <if test="locations != null">LOCATIONS,</if>
             <if test="description != null">DESCRIPTION,</if>
@@ -98,8 +98,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null">#{name},</if>
             <if test="code != null">#{code},</if>
             <if test="version != null">#{version},</if>
-            <if test="projectId != null">#{projectId},</if>
-            <if test="projectCode != null">#{projectCode},</if>
+            <if test="spaceId != null">#{spaceId},</if>
+            <if test="spaceCode != null">#{spaceCode},</if>
             <if test="personCharge != null">#{personCharge},</if>
             <if test="locations != null">#{locations},</if>
             <if test="description != null">#{description},</if>
@@ -128,8 +128,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null">NAME = #{name},</if>
             <if test="code != null">CODE = #{code},</if>
             <if test="version != null">VERSION = #{version},</if>
-            <if test="projectId != null">PROJECT_ID = #{projectId},</if>
-            <if test="projectCode != null">PROJECT_CODE = #{projectCode},</if>
+            <if test="spaceId != null">SPACE_ID = #{spaceId},</if>
+            <if test="spaceCode != null">SPACE_CODE = #{spaceCode},</if>
             <if test="personCharge != null">PERSON_CHARGE = #{personCharge},</if>
             <if test="locations != null">LOCATIONS = #{locations},</if>
             <if test="description != null">DESCRIPTION = #{description},</if>
@@ -206,9 +206,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         FROM COL_ETL_TASK dt
         WHERE dt.DEL_FLAG = '0'
           AND dt.TYPE != '4'
-            <if test="projectIdList != null and projectIdList.size > 0">
-                AND dt.PROJECT_ID in
-                <foreach item="id" collection="projectIdList" open="(" separator="," close=")">
+            <if test="spaceIdList != null and spaceIdList.size > 0">
+                AND dt.SPACE_ID in
+                <foreach item="id" collection="spaceIdList" open="(" separator="," close=")">
                     #{id}
                 </foreach>
             </if>
@@ -381,11 +381,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="params.code != null and params.code != ''">
                 AND t.CODE = #{params.code}
             </if>
-            <if test="params.projectId != null">
-                AND t.PROJECT_ID = #{params.projectId}
+            <if test="params.spaceId != null">
+                AND t.SPACE_ID = #{params.spaceId}
             </if>
-            <if test="params.projectCode != null and params.projectCode != ''">
-                AND t.PROJECT_CODE = #{params.projectCode}
+            <if test="params.spaceCode != null and params.spaceCode != ''">
+                AND t.SPACE_CODE = #{params.spaceCode}
             </if>
             <if test="params.personCharge != null and params.personCharge != ''">
                 AND t.PERSON_CHARGE = #{params.personCharge}

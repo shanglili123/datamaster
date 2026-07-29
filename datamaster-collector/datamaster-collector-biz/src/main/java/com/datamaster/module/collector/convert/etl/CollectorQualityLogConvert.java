@@ -12,7 +12,7 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorQualityLogDO;
 import java.util.List;
 
 /**
- * 数据质量日志 Convert
+ * 质量探查日志 Convert
  *
  * @author DATAMASTER
  * @date 2025-07-19

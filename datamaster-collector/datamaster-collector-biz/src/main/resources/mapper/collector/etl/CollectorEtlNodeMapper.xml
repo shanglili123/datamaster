@@ -10,8 +10,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="name"    column="NAME"    />
         <result property="code"    column="CODE"    />
         <result property="version"    column="VERSION"    />
-        <result property="projectId"    column="PROJECT_ID"    />
-        <result property="projectCode"    column="PROJECT_CODE"    />
+        <result property="spaceId"    column="SPACE_ID"    />
+        <result property="spaceCode"    column="SPACE_CODE"    />
         <result property="parameters"    column="PARAMETERS"    />
         <result property="priority"    column="PRIORITY"    />
         <result property="failRetryTimes"    column="FAIL_RETRY_TIMES"    />
@@ -34,7 +34,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectCollectorEtlNodeVo">
-        select ID, TYPE, NAME, CODE, VERSION, PROJECT_ID, PROJECT_CODE, PARAMETERS, PRIORITY, FAIL_RETRY_TIMES, FAIL_RETRY_INTERVAL, TIMEOUT, DELAY_TIME, CPU_QUOTA, MEMORY_MAX, DESCRIPTION, DS_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from COL_ETL_NODE
+        select ID, TYPE, NAME, CODE, VERSION, SPACE_ID, SPACE_CODE, PARAMETERS, PRIORITY, FAIL_RETRY_TIMES, FAIL_RETRY_INTERVAL, TIMEOUT, DELAY_TIME, CPU_QUOTA, MEMORY_MAX, DESCRIPTION, DS_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from COL_ETL_NODE
     </sql>
 
     <select id="selectCollectorEtlNodeList" parameterType="CollectorEtlNodeDO" resultMap="CollectorEtlNodeResult">
@@ -44,8 +44,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null  and name != ''"> and NAME like concat('%', #{name}, '%')</if>
             <if test="code != null  and code != ''"> and CODE = #{code}</if>
             <if test="version != null "> and VERSION = #{version}</if>
-            <if test="projectId != null "> and PROJECT_ID = #{projectId}</if>
-            <if test="projectCode != null  and projectCode != ''"> and PROJECT_CODE = #{projectCode}</if>
+            <if test="spaceId != null "> and SPACE_ID = #{spaceId}</if>
+            <if test="spaceCode != null  and spaceCode != ''"> and SPACE_CODE = #{spaceCode}</if>
             <if test="parameters != null  and parameters != ''"> and PARAMETERS = #{parameters}</if>
             <if test="priority != null  and priority != ''"> and PRIORITY = #{priority}</if>
             <if test="failRetryTimes != null "> and FAIL_RETRY_TIMES = #{failRetryTimes}</if>
@@ -73,8 +73,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null">NAME,</if>
             <if test="code != null">CODE,</if>
             <if test="version != null">VERSION,</if>
-            <if test="projectId != null">PROJECT_ID,</if>
-            <if test="projectCode != null">PROJECT_CODE,</if>
+            <if test="spaceId != null">SPACE_ID,</if>
+            <if test="spaceCode != null">SPACE_CODE,</if>
             <if test="parameters != null">PARAMETERS,</if>
             <if test="priority != null">PRIORITY,</if>
             <if test="failRetryTimes != null">FAIL_RETRY_TIMES,</if>
@@ -101,8 +101,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null">#{name},</if>
             <if test="code != null">#{code},</if>
             <if test="version != null">#{version},</if>
-            <if test="projectId != null">#{projectId},</if>
-            <if test="projectCode != null">#{projectCode},</if>
+            <if test="spaceId != null">#{spaceId},</if>
+            <if test="spaceCode != null">#{spaceCode},</if>
             <if test="parameters != null">#{parameters},</if>
             <if test="priority != null">#{priority},</if>
             <if test="failRetryTimes != null">#{failRetryTimes},</if>
@@ -132,8 +132,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null">NAME = #{name},</if>
             <if test="code != null">CODE = #{code},</if>
             <if test="version != null">VERSION = #{version},</if>
-            <if test="projectId != null">PROJECT_ID = #{projectId},</if>
-            <if test="projectCode != null">PROJECT_CODE = #{projectCode},</if>
+            <if test="spaceId != null">SPACE_ID = #{spaceId},</if>
+            <if test="spaceCode != null">SPACE_CODE = #{spaceCode},</if>
             <if test="parameters != null">PARAMETERS = #{parameters},</if>
             <if test="priority != null">PRIORITY = #{priority},</if>
             <if test="failRetryTimes != null">FAIL_RETRY_TIMES = #{failRetryTimes},</if>

@@ -11,10 +11,10 @@ import java.util.List;
  */
 public interface AiAskSessionMapper extends BaseMapperX<AiAskSessionDO> {
 
-    default List<AiAskSessionDO> selectRecent(Long userId, Long projectId, Integer limit) {
+    default List<AiAskSessionDO> selectRecent(Long userId, Long spaceId, Integer limit) {
         return selectList(new LambdaQueryWrapperX<AiAskSessionDO>()
                 .eq(AiAskSessionDO::getUserId, userId)
-                .eq(projectId != null, AiAskSessionDO::getProjectId, projectId)
+                .eq(spaceId != null, AiAskSessionDO::getSpaceId, spaceId)
                 .orderByDesc(AiAskSessionDO::getUpdateTime)
                 .orderByDesc(AiAskSessionDO::getId)
                 .last("LIMIT " + (limit == null ? 10 : Math.max(1, Math.min(limit, 50)))));

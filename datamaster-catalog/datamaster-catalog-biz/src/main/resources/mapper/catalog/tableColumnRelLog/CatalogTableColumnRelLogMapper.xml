@@ -37,9 +37,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="taskId != null "> and TASK_ID = #{taskId}</if>
             <if test="dbId != null "> and DB_ID = #{dbId}</if>
             <if test="dbVersion != null "> and DB_VERSION = #{dbVersion}</if>
-            <if test="tableId != null  and tableId != ''"> and TABLE_ID = #{tableId}</if>
+            <if test="tableId != null"> and TABLE_ID = #{tableId}</if>
             <if test="tableVersion != null "> and TABLE_VERSION = #{tableVersion}</if>
-            <if test="columnId != null  and columnId != ''"> and COLUMN_ID = #{columnId}</if>
+            <if test="columnId != null"> and COLUMN_ID = #{columnId}</if>
             <if test="columnVersion != null "> and COLUMN_VERSION = #{columnVersion}</if>
             <if test="createTime != null "> and CREATE_TIME = #{createTime}</if>
             <if test="description != null  and description != ''"> and DESCRIPTION = #{description}</if>

@@ -64,18 +64,18 @@ public class AssetsAssetApplyDO extends BaseEntity {
     /**
      * id
      */
-    private Long projectId;
+    private Long spaceId;
 
     /**
      *
      */
     @TableField(exist = false)
-    private String projectName;
+    private String spaceName;
 
     /**
      *
      */
-    private String projectCode;
+    private String spaceCode;
 
     /**
      *

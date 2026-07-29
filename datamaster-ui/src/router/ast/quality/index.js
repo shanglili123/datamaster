@@ -2,7 +2,7 @@
 /* Layout */
 import Layout from '@/layout/index.vue'
 
-// 数据质量模块动公共路由
+// 质量探查模块动公共路由
 export default [
     {
         path: '/ast/quality/qualityTask/add',
@@ -13,7 +13,7 @@ export default [
                 path: '',
                 component: () => import('@/views/ast/quality/qualityTask/add/add.vue'),
                 name: 'qualityTaskAdd',
-                meta: { title: '数据质量新增', activeMenu: '/ast/quality/qualityTask' }
+                meta: { title: '质量探查新增', activeMenu: '/ast/quality/qualityTask' }
             }
         ]
     },
@@ -26,7 +26,7 @@ export default [
                 path: '',
                 component: () => import('@/views/ast/quality/qualityTask/add/add.vue'),
                 name: 'qualityTaskEdit',
-                meta: { title: '数据质量配置', activeMenu: '/ast/quality/qualityTask' }
+                meta: { title: '质量探查配置', activeMenu: '/ast/quality/qualityTask' }
             },
         ]
     },
@@ -39,22 +39,22 @@ export default [
                 path: '',
                 component: () => import('@/views/ast/quality/qualityTask/add/add.vue'),
                 name: 'qualityTaskDetail',
-                meta: { title: '数据质量详情', activeMenu: '/ast/quality/qualityTask' }
+                meta: { title: '质量探查详情', activeMenu: '/ast/quality/qualityTask' }
             }
         ]
     },
 
     {
-        path: '/ast/quality/qualityTaskLog/detail',
+        path: '/ast/quality/probeTaskInstance/detail',
         component: Layout,
         redirect: 'detail',
         hidden: true,
         children: [
             {
                 path: '',
-                component: () => import('@/views/ast/quality/qualityTaskLog/detail/index.vue'),
-                name: 'qualityTaskLogDetail',
-                meta: { title: '质量任务日志详情', activeMenu: '/ast/quality/qualityTaskLog' }
+                component: () => import('@/views/ast/quality/probeTaskInstance/detail/index.vue'),
+                name: 'probeTaskInstanceDetail',
+                meta: { title: '探查任务实例详情', activeMenu: '/ast/quality/probeTaskInstance' }
             }
         ]
     },

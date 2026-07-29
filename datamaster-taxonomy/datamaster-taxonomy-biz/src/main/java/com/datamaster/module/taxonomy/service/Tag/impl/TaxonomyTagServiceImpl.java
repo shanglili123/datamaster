@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.datamaster.common.core.page.PageResult;
-import com.datamaster.common.core.text.Convert;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
@@ -63,7 +62,7 @@ public class TaxonomyTagServiceImpl extends ServiceImpl<TaxonomyTagMapper, Taxon
             Long[] tagIds = new Long[list.size()];
             for (int i = 0; i < list.size(); i++) {
                 TaxonomyTagAssetRelDO TaxonomyTagAssetRelDO = list.get(i);
-                tagIds[i] = Convert.toLong(TaxonomyTagAssetRelDO.getTagId());
+                tagIds[i] = TaxonomyTagAssetRelDO.getTagId();
             }
             pageReqVO.setIds(tagIds);
         }
@@ -133,7 +132,7 @@ public class TaxonomyTagServiceImpl extends ServiceImpl<TaxonomyTagMapper, Taxon
         List<TaxonomyTagAssetRelDO> collect = TaxonomyTagAssetRelService.list(queryWrapperX);
         List<Long> list = new ArrayList<>();
         for (TaxonomyTagAssetRelDO TaxonomyTagAssetRelDO : collect) {
-            list.add(Convert.toLong(TaxonomyTagAssetRelDO.getAssetId()));
+            list.add(TaxonomyTagAssetRelDO.getAssetId());
         }
         TaxonomyTagRespVO bean = BeanUtils.toBean(TaxonomyTagDO, TaxonomyTagRespVO.class);
         bean.setAeestId(list);

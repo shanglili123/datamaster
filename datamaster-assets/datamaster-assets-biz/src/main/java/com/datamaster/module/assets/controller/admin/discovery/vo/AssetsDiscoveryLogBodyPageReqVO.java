@@ -9,7 +9,7 @@ import java.util.Date;/** * - Request VO  DA_DISCOVERY_LOG_BODY * * @author DATA
 public class AssetsDiscoveryLogBodyPageReqVO extends PageParam {
     private static final long serialVersionUID = 1L;
 @Schema(description = "id", example = "123")    private Long taskId;
-@Schema(description = "", example = "")    private String logContent;
+@Schema(description = "日志内容", example = "")    private String logContent;
 @Schema(description = ";01", example = "1")    private Boolean validFlag;
 @Schema(description = ";10", example = "0")    private Boolean delFlag;
 @Schema(description = "", example = "2025-10-01 00:00:00")    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    private Date beginTm;

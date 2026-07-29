@@ -39,9 +39,9 @@ public class CollectorOnlDesformDataSaveReqVO extends BaseEntity {
 //    @Size(max = 256, message = "表单数据长度不能超过256个字符")
     private String desformData;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
 //    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 
 }

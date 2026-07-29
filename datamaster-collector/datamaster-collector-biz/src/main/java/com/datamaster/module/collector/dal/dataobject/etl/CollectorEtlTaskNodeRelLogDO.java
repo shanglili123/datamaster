@@ -28,12 +28,12 @@ public class CollectorEtlTaskNodeRelLogDO extends BaseEntity {
 /**
      * 空间id
      */
-    private Long projectId;
+    private Long spaceId;
 
     /**
      * 空间编码
      */
-    private String projectCode;
+    private String spaceCode;
 
     /**
      * 任务id

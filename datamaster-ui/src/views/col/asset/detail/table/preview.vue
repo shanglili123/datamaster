@@ -261,8 +261,8 @@ function getListss() {
         orderBy: orderBy.value,
         pageNum: pageNum.value,
         pageSize: pageSize.value,
-        projectId: userStore.projectId,
-        projectCode: userStore.projectCode
+        spaceId: userStore.spaceId,
+        spaceCode: userStore.spaceCode
     })
         .then((response) => {
             tableColumns.value = response.data.columns;

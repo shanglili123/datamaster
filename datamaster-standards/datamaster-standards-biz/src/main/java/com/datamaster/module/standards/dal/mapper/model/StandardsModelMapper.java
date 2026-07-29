@@ -31,7 +31,7 @@ public interface StandardsModelMapper extends BaseMapperX<StandardsModelDO> {
                 .like(StringUtils.isNotBlank(reqVO.getModelComment()), StandardsModelDO::getModelComment, reqVO.getModelComment())
                 .eq(StringUtils.isNotBlank(reqVO.getStatus()), StandardsModelDO::getStatus, reqVO.getStatus())
                 .eq(reqVO.getDocumentId()!= null, StandardsModelDO::getDocumentId, reqVO.getDocumentId())
-                .eq(reqVO.getProjectId() != null, StandardsModelDO::getProjectId, reqVO.getProjectId())
+                .eq(reqVO.getSpaceId() != null, StandardsModelDO::getSpaceId, reqVO.getSpaceId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
 
         return selectJoinPage(reqVO, StandardsModelDO.class, lambdaWrapper);

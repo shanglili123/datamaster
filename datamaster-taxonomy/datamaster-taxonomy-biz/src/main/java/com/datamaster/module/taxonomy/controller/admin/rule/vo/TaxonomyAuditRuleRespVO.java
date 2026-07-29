@@ -79,10 +79,6 @@ public class TaxonomyAuditRuleRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
-
     /**
      * 数据元规则关联id
      */

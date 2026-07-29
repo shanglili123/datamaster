@@ -5,7 +5,7 @@ package com.datamaster.module.taxonomy.api.cat.dto;
 import lombok.Data;
 
 /**
- * 数据质量类目 DTO 对象 TAX_QUALITY_CAT
+ * 质量探查类目 DTO 对象 TAX_QUALITY_CAT
  *
  * @author DATAMASTER
  * @date 2025-07-19

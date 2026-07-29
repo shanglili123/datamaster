@@ -18,7 +18,7 @@ import com.datamaster.common.core.page.PageParam;
 public class CollectorEtlTaskInstanceTreeListReqVO extends PageParam {
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "任务类型", example = "1：离线任务 2：实时任务 3：数据开发任务 4：作业任务")
     private String taskType;

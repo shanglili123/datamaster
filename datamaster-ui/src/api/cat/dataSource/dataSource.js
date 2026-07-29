@@ -26,7 +26,7 @@ export function sqlParse(data) {
 }
 
 // 数据集成中排除Kafka并且是当前空间的数据源列表
-export function listDaDatasourceNoKafkaByProjectCode(query) {
+export function listDaDatasourceNoKafkaBySpaceCode(query) {
     return request({
         url: '/ast/dataSource/dppNoKafka/list',
         method: 'get',
@@ -35,7 +35,7 @@ export function listDaDatasourceNoKafkaByProjectCode(query) {
 }
 
 // 查询研发模块的数据源列表
-export function listDaDatasourceByProjectCode(query) {
+export function listDaDatasourceBySpaceCode(query) {
     return request({
         url: '/ast/dataSource/dpp/list',
         method: 'get',

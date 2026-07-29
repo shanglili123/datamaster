@@ -31,10 +31,10 @@ public class CollectorEtlNodeLogRespDTO {
     private Long version;
 
     /** 空间id */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 节点参数 */
     private String parameters;

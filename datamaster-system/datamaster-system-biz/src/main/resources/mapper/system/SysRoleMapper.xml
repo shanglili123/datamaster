@@ -6,7 +6,7 @@
 
     <resultMap type="SysRole" id="SysRoleResult">
         <id property="roleId" column="role_id"/>
-        <id property="projectId" column="project_id"/>
+        <id property="spaceId" column="space_id"/>
         <result property="roleName" column="role_name"/>
         <result property="roleKey" column="role_key"/>
         <result property="roleSort" column="role_sort"/>
@@ -24,7 +24,7 @@
 
     <sql id="selectRoleVo">
         select distinct r.role_id,
-                        r.project_id,
+                        r.space_id,
                         r.role_name,
                         r.role_key,
                         r.role_sort,
@@ -50,8 +50,8 @@
         <if test="status != null and status != ''">
             AND r.status = #{status}
         </if>
-        <if test="projectId != null">
-            AND r.project_id = #{projectId}
+        <if test="spaceId != null">
+            AND r.space_id = #{spaceId}
         </if>
         <choose>
             <!-- 如果数据库是 kingBase -->
@@ -101,9 +101,9 @@
         <include refid="selectRoleVo"/>
     </select>
 
-    <select id="selectRoleAllByProjectId" resultMap="SysRoleResult">
+    <select id="selectRoleAllBySpaceId" resultMap="SysRoleResult">
         <include refid="selectRoleVo"/>
-        WHERE r.del_flag = '0' and r.project_id = #{projectId}
+        WHERE r.del_flag = '0' and r.space_id = #{spaceId}
     </select>
 
     <select id="selectRoleListByUserId" parameterType="Long" resultType="Long">
@@ -129,11 +129,11 @@
         where r.role_name=#{roleName} and r.del_flag = '0' limit 1
     </select>
 
-    <select id="checkRoleNameUniqueAndProjectId" parameterType="String" resultMap="SysRoleResult">
+    <select id="checkRoleNameUniqueAndSpaceId" parameterType="String" resultMap="SysRoleResult">
         <include refid="selectRoleVo"/>
         where r.role_name=#{roleName}
-        <if test="projectId != null">
-            and r.project_id = #{projectId}
+        <if test="spaceId != null">
+            and r.space_id = #{spaceId}
         </if>
         and r.del_flag = '0'
         limit 1
@@ -144,11 +144,11 @@
         where r.role_key=#{roleKey} and r.del_flag = '0' limit 1
     </select>
 
-    <select id="checkRoleKeyUniqueAndProjectId" parameterType="String" resultMap="SysRoleResult">
+    <select id="checkRoleKeyUniqueAndSpaceId" parameterType="String" resultMap="SysRoleResult">
         <include refid="selectRoleVo"/>
         where r.role_key=#{roleKey}
-        <if test="projectId != null">
-            and r.project_id = #{projectId}
+        <if test="spaceId != null">
+            and r.space_id = #{spaceId}
         </if>
         and r.del_flag = '0'
         limit 1
@@ -157,7 +157,7 @@
     <insert id="insertRole" parameterType="SysRole" useGeneratedKeys="true" keyProperty="roleId">
         insert into system_role(
         <if test="roleId != null and roleId != 0">role_id,</if>
-        <if test="projectId != null">project_id,</if>
+        <if test="spaceId != null">space_id,</if>
         <if test="roleName != null and roleName != ''">role_name,</if>
         <if test="roleKey != null and roleKey != ''">role_key,</if>
         <if test="roleSort != null">role_sort,</if>
@@ -170,7 +170,7 @@
         create_time
         )values(
         <if test="roleId != null and roleId != 0">#{roleId},</if>
-        <if test="projectId != null">#{projectId},</if>
+        <if test="spaceId != null">#{spaceId},</if>
         <if test="roleName != null and roleName != ''">#{roleName},</if>
         <if test="roleKey != null and roleKey != ''">#{roleKey},</if>
         <if test="roleSort != null">#{roleSort},</if>
@@ -186,10 +186,10 @@
 
     <insert id="insertRoleList" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="roleId">
         insert into
-        system_role(project_id,role_name,role_key,role_sort,data_scope,menu_check_strictly,dept_check_strictly,status
+        system_role(space_id,role_name,role_key,role_sort,data_scope,menu_check_strictly,dept_check_strictly,status
         )values
         <foreach collection="list" item="item" separator=",">
-            (#{item.projectId},#{item.roleName},#{item.roleKey},#{item.roleSort},#{item.dataScope},CASE WHEN #{item.menuCheckStrictly} THEN 1 ELSE 0 END,CASE WHEN #{item.deptCheckStrictly} THEN 1 ELSE 0 END,#{item.status})
+            (#{item.spaceId},#{item.roleName},#{item.roleKey},#{item.roleSort},#{item.dataScope},CASE WHEN #{item.menuCheckStrictly} THEN 1 ELSE 0 END,CASE WHEN #{item.deptCheckStrictly} THEN 1 ELSE 0 END,#{item.status})
         </foreach>
     </insert>
 
@@ -198,7 +198,7 @@
         <set>
             <if test="roleName != null and roleName != ''">role_name = #{roleName},</if>
             <if test="roleKey != null and roleKey != ''">role_key = #{roleKey},</if>
-            <if test="projectId != null">project_id = #{projectId},</if>
+            <if test="spaceId != null">space_id = #{spaceId},</if>
             <if test="roleSort != null">role_sort = #{roleSort},</if>
             <if test="dataScope != null and dataScope != ''">data_scope = #{dataScope},</if>
             <if test="menuCheckStrictly != null">menu_check_strictly = CASE WHEN #{menuCheckStrictly} THEN 1 ELSE 0 END,</if>

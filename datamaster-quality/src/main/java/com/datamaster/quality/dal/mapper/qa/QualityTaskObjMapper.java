@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 数据质量任务-稽查对象Mapper接口
+ * 质量探查任务-稽查对象Mapper接口
  *
  * @author Chaos
  * @date 2025-07-21

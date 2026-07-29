@@ -466,7 +466,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
             return new ArrayList<>();
         }
         AssetsAssetColumnPageReqVO columnReq = new AssetsAssetColumnPageReqVO();
-        columnReq.setAssetId(String.valueOf(assetId));
+        columnReq.setAssetId(assetId);
         List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.selectListByAuth(columnReq);
         if (columns == null || columns.isEmpty()) {
             columns = assetsAssetColumnMapper.findByAssetId(assetId);
@@ -994,7 +994,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private String qualitySkillContent() {
         return "---\n"
                 + "name: datamaster-quality\n"
-                + "description: DataMaster 数据质量核检能力说明。用于 AI 问数前检查表和字段质量状态、解释质量报告、识别异常数据风险、生成质量可信度提示。\n"
+                + "description: DataMaster 质量探查核检能力说明。用于 AI 问数前检查表和字段质量状态、解释质量报告、识别异常数据风险、生成质量可信度提示。\n"
                 + "---\n\n"
                 + "# DataMaster 质量核检能力\n\n"
                 + "## 能力边界\n\n"

@@ -14,15 +14,15 @@ import com.datamaster.mybatis.core.query.MPJLambdaWrapperX;
 import java.util.Arrays;
 
 /**
- * 数据质量任务Mapper接口
+ * 质量探查任务Mapper接口
  *
  * @author Chaos
  * @date 2025-07-21
  */
 public interface CollectorQualityTaskMapper extends BaseMapperX<CollectorQualityTaskDO> {
 
-    @Select("select PROJECT_ID, PROJECT_CODE from TAX_QUALITY_CAT where CODE = #{catCode} and DEL_FLAG = '0'")
-    CollectorQualityTaskDO selectQualityCatProjectByCode(@Param("catCode") String catCode);
+    @Select("select SPACE_ID, SPACE_CODE from TAX_QUALITY_CAT where CODE = #{catCode} and DEL_FLAG = '0'")
+    CollectorQualityTaskDO selectQualityCatSpaceByCode(@Param("catCode") String catCode);
 
     default PageResult<CollectorQualityTaskDO> selectPage(CollectorQualityTaskPageReqVO reqVO) {
         String leftJoin = "TAX_QUALITY_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'";

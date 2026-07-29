@@ -217,9 +217,9 @@ const createTypeList = ref([]); // 数据源列表
 // const getDatasourceList = async () => {
 //   try {
 //     loading.value = true;
-//     const response = await listDaDatasourceNoKafkaByProjectCode({
-//       projectCode: userStore.projectCode,
-//       projectId: userStore.projectId,
+//     const response = await listDaDatasourceNoKafkaBySpaceCode({
+//       spaceCode: userStore.spaceCode,
+//       spaceId: userStore.spaceId,
 //     });
 //     createTypeList.value = response.data || [];
 //   } finally {
@@ -254,7 +254,7 @@ const form = ref({
   // 1
   tableName: "",
   tableId: null,
-  datasourceId: "",
+  datasourceId: null,
   tableComment: "",
   datasourceType: "",
   dbname: "",
@@ -328,7 +328,7 @@ watch(
 const handleTypeChange = () => {
   // 清空表格字段
   form.value.tableName = "";
-  form.value.datasourceId = "";
+  form.value.datasourceId = null;
   form.value.tableComment = "";
   form.value.datasourceType = "";
   form.value.dbname = "";
@@ -401,7 +401,9 @@ watch(
     if (newVal && Object.keys(newVal).length > 0) {
       if (props.data.id) {
         form.value = JSON.parse(JSON.stringify(newVal));
-        form.value.datasourceId = Number(form.value.datasourceId) || "";
+        form.value.datasourceId = form.value.datasourceId === "" || form.value.datasourceId == null
+          ? null
+          : Number(form.value.datasourceId);
         form.value.misfirePolicy = Number(form.value.misfirePolicy) || "";
         form.value.concurrent = Number(form.value.concurrent) || "";
         // form.value.status = Number(form.value.status) || "";
@@ -618,8 +620,8 @@ const saveData = async () => {
         let payload = {
           ...form.value,
         };
-        payload.projectCode = userStore.projectCode;
-        payload.projectId = userStore.projectId;
+        payload.spaceCode = userStore.spaceCode;
+        payload.spaceId = userStore.spaceId;
         await addDaAsset({
           ...payload,
         });
@@ -651,7 +653,7 @@ const clearForm = () => {
     // 1
     tableName: "",
     tableId: null,
-    datasourceId: "",
+    datasourceId: null,
     tableComment: "",
     datasourceType: "",
     dbname: "",

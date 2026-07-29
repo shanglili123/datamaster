@@ -18,7 +18,7 @@ public class StandardsCodeMapPageReqVO extends PageParam {
         @Schema(description = "ID", example = "")
         private Long id;
     @Schema(description = "数据元id", example = "")
-    private String dataElemId;
+    private Long dataElemId;
 
     @Schema(description = "原始值", example = "")
     private String originalValue;
@@ -30,9 +30,9 @@ public class StandardsCodeMapPageReqVO extends PageParam {
     private String codeValue;
 
     @Schema(description = "项目ID")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "项目编码")
-    private String projectCode;
+    private String spaceCode;
 
 }

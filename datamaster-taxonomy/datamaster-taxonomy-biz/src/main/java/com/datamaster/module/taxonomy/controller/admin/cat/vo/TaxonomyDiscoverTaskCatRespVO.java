@@ -26,13 +26,13 @@ public class TaxonomyDiscoverTaskCatRespVO implements Serializable {
     @Schema(description = "ID", example = "")
     private Long id;
 
-    @Excel(name = "项目id")
-    @Schema(description = "项目id")
-    private Long projectId;
+    @Excel(name = "空间id")
+    @Schema(description = "空间id")
+    private Long spaceId;
 
-    @Excel(name = "项目code")
-    @Schema(description = "项目code")
-    private String projectCode;
+    @Excel(name = "空间code")
+    @Schema(description = "空间code")
+    private String spaceCode;
 
     @Excel(name = "类别名称")
     @Schema(description = "类别名称", example = "")
@@ -85,9 +85,4 @@ public class TaxonomyDiscoverTaskCatRespVO implements Serializable {
     @Excel(name = "更新时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
-
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
-
 }

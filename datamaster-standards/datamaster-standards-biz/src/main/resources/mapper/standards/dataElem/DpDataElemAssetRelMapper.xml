@@ -31,10 +31,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectDpDataElemAssetRelVo"/>
         <where>
             <if test="dataElemType != null  and dataElemType != ''"> and DATA_ELEM_TYPE = #{dataElemType}</if>
-            <if test="dataElemId != null  and dataElemId != ''"> and DATA_ELEM_ID = #{dataElemId}</if>
-            <if test="assetId != null  and assetId != ''"> and ASSET_ID = #{assetId}</if>
+            <if test="dataElemId != null"> and DATA_ELEM_ID = #{dataElemId}</if>
+            <if test="assetId != null"> and ASSET_ID = #{assetId}</if>
             <if test="tableName != null  and tableName != ''"> and TABLE_NAME like concat('%', #{tableName}, '%')</if>
-            <if test="columnId != null  and columnId != ''"> and COLUMN_ID = #{columnId}</if>
+            <if test="columnId != null"> and COLUMN_ID = #{columnId}</if>
             <if test="columnName != null  and columnName != ''"> and COLUMN_NAME like concat('%', #{columnName}, '%')</if>
             <if test="createTime != null "> and CREATE_TIME = #{createTime}</if>
         </where>

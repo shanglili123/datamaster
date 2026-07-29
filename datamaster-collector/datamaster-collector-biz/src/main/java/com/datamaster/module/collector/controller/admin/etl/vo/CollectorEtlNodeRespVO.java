@@ -48,11 +48,11 @@ public class CollectorEtlNodeRespVO implements Serializable {
 
     @Excel(name = "空间id")
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Excel(name = "空间编码")
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Excel(name = "节点参数")
     @Schema(description = "节点参数", example = "")
@@ -130,9 +130,6 @@ public class CollectorEtlNodeRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
 
     /**
      *     //任务上下限  0:未上线，1:已上线
@@ -142,5 +139,8 @@ public class CollectorEtlNodeRespVO implements Serializable {
 
     @TableField(exist = false)
     private String taskParams = this.parameters;
+
+    @Schema(description = "备注", example = "")
+    private String remark;
 
 }

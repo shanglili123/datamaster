@@ -39,10 +39,10 @@ public class TaxonomyClientApiRelPageReqVO extends PageParam {
     @Schema(description = "授权状态", example = "")
     private String status;
 
-    @Schema(description = "项目ID")
-    private Long projectId;
+    @Schema(description = "空间ID")
+    private Long spaceId;
 
-    @Schema(description = "项目编码")
-    private String projectCode;
+    @Schema(description = "空间编码")
+    private String spaceCode;
 
 }

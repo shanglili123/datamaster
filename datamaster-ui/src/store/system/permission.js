@@ -1,4 +1,4 @@
-
+﻿
 import auth from '@/plugins/auth';
 import router, { constantRoutes, dynamicRoutes } from '@/router';
 import { getRouters } from '@/api/system/menu.js';
@@ -86,7 +86,7 @@ const usePermissionStore = defineStore('permission', {
             const defaultRoutes = normalizeMenuTree(filterSystemTool(filterAsyncRouter(defaultData)));
 
             addRoutesToRouter(sidebarRoutes);
-            this.setMenuMode('project');
+            this.setMenuMode('space');
             this.setRoutes(rewriteRoutes);
             this.setSidebarRouters(constantRoutes.concat(sidebarRoutes));
             this.setDefaultRoutes(sidebarRoutes);
@@ -364,14 +364,14 @@ function reorganizeDevelopmentMenus(routes) {
     const dppRoute = routes.find((route) => isDevelopmentManagement(route));
     if (!dppRoute) return;
 
-    const projectBaseRoute = detachProjectBaseRoute(routes, dppRoute) || createProjectBaseRoute();
-    const projectBaseExistingChildren = projectBaseRoute.children || [];
-    projectBaseRoute.children = [];
+    const spaceBaseRoute = detachSpaceBaseRoute(routes, dppRoute) || createSpaceBaseRoute();
+    const spaceBaseExistingChildren = spaceBaseRoute.children || [];
+    spaceBaseRoute.children = [];
 
     const existingDevelopmentCategoryRoute = dppRoute.children
         ? detachFirstRoute(dppRoute.children, isDevelopmentCategoryManagement)
         : null;
-    const developmentCategoryRoute = existingDevelopmentCategoryRoute || createDevelopmentCategoryRoute(projectBaseRoute);
+    const developmentCategoryRoute = existingDevelopmentCategoryRoute || createDevelopmentCategoryRoute(spaceBaseRoute);
     developmentCategoryRoute.children = uniqueRoutesByPathOrTitle(
         (developmentCategoryRoute.children || [])
             .filter((child) => !isIntegrationTaskCat(child) && !isDataDevCat(child))
@@ -379,11 +379,11 @@ function reorganizeDevelopmentMenus(routes) {
     );
 
     const sourceRoutes = [
-        projectBaseExistingChildren,
+        spaceBaseExistingChildren,
         routes.filter((route) => !isSystemManagement(route))
     ];
-    const projectRoutes = collectRoutes([projectBaseExistingChildren], isProjectManagement);
-    const projectAssetRoutes = collectRoutes(sourceRoutes, isProjectAssetManagement);
+    const spaceRoutes = collectRoutes([spaceBaseExistingChildren], isSpaceManagement);
+    const spaceAssetRoutes = collectRoutes(sourceRoutes, isSpaceAssetManagement);
     const ruleRoutes = collectRoutes(sourceRoutes, isRuleManagement);
     const categoryRoutes = collectRoutes(sourceRoutes, isCategoryManagement);
     const memberRoleRoutes = collectRoutes(sourceRoutes, isMemberRoleManagement);
@@ -391,11 +391,11 @@ function reorganizeDevelopmentMenus(routes) {
     const integrationCatRoutes = collectRoutes(sourceRoutes, isIntegrationTaskCat);
     const dataDevCatRoutes = collectRoutes(sourceRoutes, isDataDevCat);
 
-    const projectRoute = projectRoutes[0];
-    if (projectRoute) {
-        projectRoute.alwaysShow = true;
-        projectRoute.children = uniqueRoutesByPathOrTitle([
-            ...(projectRoute.children || []),
+    const spaceRoute = spaceRoutes[0];
+    if (spaceRoute) {
+        spaceRoute.alwaysShow = true;
+        spaceRoute.children = uniqueRoutesByPathOrTitle([
+            ...(spaceRoute.children || []),
             ...ruleRoutes
         ]).map((route) => normalizeMovedChildPath(route));
     }
@@ -411,16 +411,16 @@ function reorganizeDevelopmentMenus(routes) {
         ]).map((route) => normalizeMovedChildPath(route));
     }
 
-    projectBaseRoute.children = uniqueRoutesByPathOrTitle([
-        projectRoute,
-        projectAssetRoutes[0],
+    spaceBaseRoute.children = uniqueRoutesByPathOrTitle([
+        spaceRoute,
+        spaceAssetRoutes[0],
         categoryRoute,
         ...memberRoleRoutes,
-        ...projectBaseExistingChildren
+        ...spaceBaseExistingChildren
     ].filter(Boolean)).map((route) => normalizeMovedChildPath(route));
 
-    normalizeProjectBaseRoute(projectBaseRoute);
-    insertBeforeRoute(routes, dppRoute, projectBaseRoute);
+    normalizeSpaceBaseRoute(spaceBaseRoute);
+    insertBeforeRoute(routes, dppRoute, spaceBaseRoute);
     insertDevelopmentCategoryFirst(dppRoute, developmentCategoryRoute);
 }
 
@@ -439,17 +439,17 @@ function createDevelopmentCategoryRoute(sourceRoute) {
     };
 }
 
-function detachProjectBaseRoute(routes, dppRoute) {
+function detachSpaceBaseRoute(routes, dppRoute) {
     return (
-        detachFirstRoute(routes, isProjectBaseManagement) ||
-        (dppRoute.children ? detachFirstRoute(dppRoute.children, isProjectBaseManagement) : null)
+        detachFirstRoute(routes, isSpaceBaseManagement) ||
+        (dppRoute.children ? detachFirstRoute(dppRoute.children, isSpaceBaseManagement) : null)
     );
 }
 
-function createProjectBaseRoute() {
+function createSpaceBaseRoute() {
     return {
-        path: '/projectBase',
-        name: 'ProjectBaseManagement',
+        path: '/spaceBase',
+        name: 'SpaceBaseManagement',
         component: Layout,
         redirect: 'noRedirect',
         alwaysShow: true,
@@ -461,23 +461,23 @@ function createProjectBaseRoute() {
     };
 }
 
-function normalizeProjectBaseRoute(projectBaseRoute) {
-    projectBaseRoute.path = '/projectBase';
-    projectBaseRoute.name = 'ProjectBaseManagement';
-    projectBaseRoute.component = Layout;
-    projectBaseRoute.redirect = getProjectBaseRedirect(projectBaseRoute);
-    projectBaseRoute.alwaysShow = true;
-    projectBaseRoute.meta = projectBaseRoute.meta || {};
-    projectBaseRoute.meta.title = '空间基础管理';
-    projectBaseRoute.meta.icon = projectBaseRoute.meta.icon || 'lifebuoy-line';
+function normalizeSpaceBaseRoute(spaceBaseRoute) {
+    spaceBaseRoute.path = '/spaceBase';
+    spaceBaseRoute.name = 'SpaceBaseManagement';
+    spaceBaseRoute.component = Layout;
+    spaceBaseRoute.redirect = getSpaceBaseRedirect(spaceBaseRoute);
+    spaceBaseRoute.alwaysShow = true;
+    spaceBaseRoute.meta = spaceBaseRoute.meta || {};
+    spaceBaseRoute.meta.title = '空间基础管理';
+    spaceBaseRoute.meta.icon = spaceBaseRoute.meta.icon || 'lifebuoy-line';
 }
 
-function getProjectBaseRedirect(projectBaseRoute) {
-    const firstChild = projectBaseRoute.children && projectBaseRoute.children[0];
+function getSpaceBaseRedirect(spaceBaseRoute) {
+    const firstChild = spaceBaseRoute.children && spaceBaseRoute.children[0];
     if (!firstChild || !firstChild.path) return 'noRedirect';
     return firstChild.path.startsWith('/')
         ? firstChild.path
-        : `/projectBase/${firstChild.path}`;
+        : `/spaceBase/${firstChild.path}`;
 }
 
 function detachFirstRoute(routes, predicate) {
@@ -511,7 +511,7 @@ function detachRoutes(routes, predicate) {
 }
 
 function insertBeforeRoute(routes, targetRoute, routeToInsert) {
-    const existingIndex = routes.findIndex((route) => route === routeToInsert || isProjectBaseManagement(route));
+    const existingIndex = routes.findIndex((route) => route === routeToInsert || isSpaceBaseManagement(route));
     if (existingIndex !== -1) {
         routes.splice(existingIndex, 1);
     }
@@ -558,7 +558,7 @@ function moveQualityCatUnderQualityMenu(routes) {
             (child) => isQualityParentMenu(child)
         );
         const qualityCatIndex = metadataRoute.children.findIndex(
-            (child) => child.meta && child.meta.title === '数据质量类目'
+            (child) => child.meta && child.meta.title === '质量探查类目'
         );
         if (qualityRoute) {
             if (qualityCatIndex !== -1) {
@@ -582,7 +582,7 @@ function moveQualityCatUnderQualityMenu(routes) {
     if (!catRoute || !catRoute.children) return;
 
     const qualityCatIndex = catRoute.children.findIndex(
-        (child) => child.meta && child.meta.title === '数据质量类目'
+        (child) => child.meta && child.meta.title === '质量探查类目'
     );
     if (qualityCatIndex === -1) return;
 
@@ -590,7 +590,7 @@ function moveQualityCatUnderQualityMenu(routes) {
     if (!daRoute || !daRoute.children) return;
 
     const qualityRoute = daRoute.children.find(
-        (child) => child.meta && child.meta.title === '数据质量'
+        (child) => child.meta && child.meta.title === '质量探查'
     );
     if (!qualityRoute) return;
 
@@ -600,7 +600,7 @@ function moveQualityCatUnderQualityMenu(routes) {
 
 function addQualityCatAsFirstChild(qualityRoute, qualityCatRoute) {
     qualityRoute.children = (qualityRoute.children || []).filter(
-        (child) => !(child.meta && child.meta.title === '数据质量类目')
+        (child) => !(child.meta && child.meta.title === '质量探查类目')
     );
     qualityCatRoute.path = 'qualityCat';
     normalizeQualityCatRoute(qualityCatRoute);
@@ -613,10 +613,10 @@ function normalizeQualityCatAsMetadataChild(qualityCatRoute) {
 }
 
 function normalizeQualityCatRoute(qualityCatRoute) {
-    qualityCatRoute.name = 'QualityCatProject';
+    qualityCatRoute.name = 'QualityCatSpace';
     qualityCatRoute.component = loadView('tax/cat/qualityCat/index');
     qualityCatRoute.meta = qualityCatRoute.meta || {};
-    qualityCatRoute.meta.title = '数据质量类目';
+    qualityCatRoute.meta.title = '质量探查类目';
     qualityCatRoute.meta.activeMenu = '/cat/quality/qualityCat';
     delete qualityCatRoute.children;
     delete qualityCatRoute.redirect;
@@ -765,17 +765,17 @@ function isDevelopmentManagement(route) {
     return title === '数据研发' || path === '/col' || path === 'col';
 }
 
-function isProjectBaseManagement(route) {
+function isSpaceBaseManagement(route) {
     const title = route.meta && route.meta.title;
     return title === '空间基础管理';
 }
 
-function isProjectManagement(route) {
+function isSpaceManagement(route) {
     const title = route.meta && route.meta.title;
     return title === '空间管理';
 }
 
-function isProjectAssetManagement(route) {
+function isSpaceAssetManagement(route) {
     const title = route.meta && route.meta.title;
     const name = route.name || '';
     return title === '空间资产' || name === 'colAsset';
@@ -800,7 +800,7 @@ function isDevelopmentCategoryManagement(route) {
 function isMemberRoleManagement(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
-    return title === '成员角色管理' || path === 'projectUserRel' || path.endsWith('/projectUserRel');
+    return title === '成员角色管理' || path === 'spaceUserRel' || path.endsWith('/spaceUserRel');
 }
 
 function isIntegrationTaskCat(route) {
@@ -818,7 +818,7 @@ function isDataDevCat(route) {
 function isQualityCat(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
-    return title === '数据质量类目' || path === 'qualityCat' || path.endsWith('/qualityCat');
+    return title === '质量探查类目' || path === 'qualityCat' || path.endsWith('/qualityCat');
 }
 
 function isBasicManagement(route) {
@@ -851,14 +851,14 @@ function isCatalogMetadataManagement(route) {
 function isQualityMenu(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
-    return (title && title.includes('数据质量')) || path.includes('/quality') || path.includes('quality');
+    return (title && title.includes('质量探查')) || path.includes('/quality') || path.includes('quality');
 }
 
 function isQualityParentMenu(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
     return (
-        title === '数据质量' ||
+        title === '质量探查' ||
         path === 'quality' ||
         path === '/quality' ||
         path === '/cat/quality' ||

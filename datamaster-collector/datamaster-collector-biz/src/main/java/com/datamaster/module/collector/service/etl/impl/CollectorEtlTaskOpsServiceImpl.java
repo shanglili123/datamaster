@@ -177,17 +177,17 @@ public class CollectorEtlTaskOpsServiceImpl implements ICollectorEtlTaskOpsServi
             return false;
         }
         try {
-            String projectCode = processInstance.getProjectCode();
+            String spaceCode = processInstance.getProjectCode();
             Long processInstanceId = processInstance.getId();
-            log.info("运维检查-hasCoreNodeFailure：projectCode={}, processInstanceId={}", projectCode, processInstanceId);
+            log.info("运维检查-hasCoreNodeFailure：spaceCode={}, processInstanceId={}", spaceCode, processInstanceId);
             
-            if (StringUtils.isBlank(projectCode) || processInstanceId == null) {
-                log.warn("运维检查-hasCoreNodeFailure：projectCode 或 processInstanceId 为空，跳过检查");
+            if (StringUtils.isBlank(spaceCode) || processInstanceId == null) {
+                log.warn("运维检查-hasCoreNodeFailure：spaceCode 或 processInstanceId 为空，跳过检查");
                 return false;
             }
 
             // 查询流程实例下的任务实例
-            String url = dsBaseUrl + "/projects/" + projectCode + "/task-instances?processInstanceId=" + processInstanceId + "&pageNo=1&pageSize=100";
+            String url = dsBaseUrl + "/projects/" + spaceCode + "/task-instances?processInstanceId=" + processInstanceId + "&pageNo=1&pageSize=100";
             log.info("运维检查-hasCoreNodeFailure：请求URL={}", url);
             
             List<HeaderEntity> headers = new ArrayList<>();
@@ -284,7 +284,7 @@ public class CollectorEtlTaskOpsServiceImpl implements ICollectorEtlTaskOpsServi
             DsStatusRespDTO response = dsEtlExecutorService.execute(DSExecuteDTO.builder()
                     .processInstanceId(instance.getDsId() == null ? instance.getId() : instance.getDsId())
                     .executeType(ExecuteType.START_FAILURE_TASK_PROCESS)
-                    .build(), task.getProjectCode());
+                    .build(), task.getSpaceCode());
             if (response != null && Boolean.TRUE.equals(response.getSuccess())) {
                 event.setAction("RECOVER_FROM_FAILURE");
                 event.setActionStatus("SUCCESS");
@@ -402,14 +402,14 @@ public class CollectorEtlTaskOpsServiceImpl implements ICollectorEtlTaskOpsServi
         prompt.append("输出 JSON 字段：failureType、riskLevel、recoverable、reason、suggestion。\n");
         prompt.append("failureType 只能是 NETWORK_OR_DATASOURCE、CODE_OR_RULE、PERMISSION、RESOURCE、DATA_QUALITY、SCHEDULER_OR_ENV、UNKNOWN 之一。\n");
         prompt.append("riskLevel 只能是 LOW、MEDIUM、HIGH 之一。\n");
-        prompt.append("recoverable 为布尔值。只有临时网络、数据源短暂不可用、调度环境短暂异常，且重跑不会造成重复写入风险时才返回 true；SQL、字段、权限、资源容量、数据质量、配置错误一般返回 false。\n");
+        prompt.append("recoverable 为布尔值。只有临时网络、数据源短暂不可用、调度环境短暂异常，且重跑不会造成重复写入风险时才返回 true；SQL、字段、权限、资源容量、质量探查、配置错误一般返回 false。\n");
         prompt.append("reason 用中文简短说明根因，suggestion 用中文给人工处理建议。\n\n");
         prompt.append("任务信息：\n");
         prompt.append("- taskId: ").append(task.getId()).append("\n");
         prompt.append("- taskName: ").append(StringUtils.defaultString(task.getName())).append("\n");
         prompt.append("- taskCode: ").append(StringUtils.defaultString(task.getCode())).append("\n");
         prompt.append("- taskType: ").append(StringUtils.defaultString(task.getType())).append("\n");
-        prompt.append("- projectCode: ").append(StringUtils.defaultString(task.getProjectCode())).append("\n");
+        prompt.append("- spaceCode: ").append(StringUtils.defaultString(task.getSpaceCode())).append("\n");
         prompt.append("- incrementalTask: ").append(isIncrementalTask(task)).append("\n");
         if (instance != null) {
             prompt.append("- instanceId: ").append(instance.getId()).append("\n");
@@ -514,7 +514,7 @@ public class CollectorEtlTaskOpsServiceImpl implements ICollectorEtlTaskOpsServi
         String dsTaskCode = resolveDsTaskCode(task);
         try {
             if (StringUtils.isNotBlank(dsTaskCode)) {
-                dsEtlTaskService.releaseTask("OFFLINE", task.getProjectCode(), dsTaskCode);
+                dsEtlTaskService.releaseTask("OFFLINE", task.getSpaceCode(), dsTaskCode);
             }
         } catch (Exception e) {
             log.warn("任务运维下线DS任务异常，taskId={}，reason={}", task.getId(), reason, e);
@@ -522,7 +522,7 @@ public class CollectorEtlTaskOpsServiceImpl implements ICollectorEtlTaskOpsServi
         CollectorEtlSchedulerDO scheduler = getScheduler(task);
         if (scheduler != null && scheduler.getDsId() != null && scheduler.getDsId() > 0) {
             try {
-                dsEtlSchedulerService.offlineScheduler(task.getProjectCode(), scheduler.getDsId());
+                dsEtlSchedulerService.offlineScheduler(task.getSpaceCode(), scheduler.getDsId());
             } catch (Exception e) {
                 log.warn("任务运维下线DS调度异常，taskId={}，schedulerId={}", task.getId(), scheduler.getDsId(), e);
             }

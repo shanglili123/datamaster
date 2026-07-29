@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 public class AiAskSessionSaveReqVO {
 
-    private Long projectId;
+    private Long spaceId;
 
-    private String projectCode;
+    private String spaceCode;
 
     private String title;
 

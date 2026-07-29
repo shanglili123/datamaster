@@ -97,13 +97,13 @@ public class CatalogTaskSchedulerRespVO implements Serializable {
     private Date updateTime;
 
     @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
     /** 空间ID */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
 }

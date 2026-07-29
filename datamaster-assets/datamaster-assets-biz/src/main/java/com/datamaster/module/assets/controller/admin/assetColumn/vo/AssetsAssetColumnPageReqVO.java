@@ -18,7 +18,7 @@ public class AssetsAssetColumnPageReqVO extends PageParam {
         @Schema(description = "ID", example = "")
         private Long id;
     @Schema(description = "id", example = "")
-    private String assetId;
+    private Long assetId;
 
     @Schema(description = "/", example = "")
     private String columnName;
@@ -68,10 +68,10 @@ public class AssetsAssetColumnPageReqVO extends PageParam {
     @Schema(description = "", example = "")
     private String description;
 
-    @Schema(description = "空间id", example = "")
-    private Long projectId;
+    @Schema(description = "空间ID", example = "")
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
 }

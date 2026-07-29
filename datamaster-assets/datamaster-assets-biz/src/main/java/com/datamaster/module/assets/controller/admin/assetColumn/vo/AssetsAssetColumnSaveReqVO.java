@@ -29,8 +29,7 @@ public class AssetsAssetColumnSaveReqVO extends BaseEntity {
     private Long id;
 
     @Schema(description = "id", example = "")
-    @Size(max = 256, message = "id256")
-    private String assetId;
+    private Long assetId;
 
     @Schema(description = "/", example = "")
     @Size(max = 256, message = "/256")
@@ -92,7 +91,6 @@ public class AssetsAssetColumnSaveReqVO extends BaseEntity {
 
     @Schema(description = "", example = "")
     @Size(max = 256, message = "256")
-    private String remark;
 
     /**
      * id

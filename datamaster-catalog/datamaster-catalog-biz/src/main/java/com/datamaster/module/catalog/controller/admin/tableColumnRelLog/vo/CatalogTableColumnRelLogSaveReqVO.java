@@ -41,15 +41,10 @@ public class CatalogTableColumnRelLogSaveReqVO extends BaseEntity {
     private Integer tableVersion;
 
     @Schema(description = "字段 id", example = "")
-    @Size(max = 256, message = "字段 id长度不能超过256个字符")
-    private String columnId;
+    private Long columnId;
 
     @Schema(description = "字段版本", example = "")
     private Integer columnVersion;
-
-    @Schema(description = "备注", example = "")
-    @Size(max = 512, message = "备注长度不能超过256个字符")
-    private String remark;
 
     @Schema(description = "描述", example = "")
     @Size(max = 512, message = "描述长度不能超过256个字符")

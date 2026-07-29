@@ -1,4 +1,4 @@
-# AI 问数 Skill 化实现计划
+﻿# AI 问数 Skill 化实现计划
 
 ## 1. 背景与目标
 
@@ -8,7 +8,7 @@
 
 1. 基础能力 Skill：将元数据采集能力和质量核检能力整理为平台级 Skill。
 2. 表级 Skill 生成：问数模块基于元数据 Skill 和质量 Skill，生成具体数据表的问数 Skill。
-3. AI 问数引用：用户发起自然语言问数时，系统检索相关 Skill，生成 SQL、解释结果，并提示数据质量风险。
+3. AI 问数引用：用户发起自然语言问数时，系统检索相关 Skill，生成 SQL、解释结果，并提示质量探查风险。
 
 最终效果：
 
@@ -136,7 +136,7 @@ description: DataMaster 元数据采集和资产检索能力说明。用于 AI �
 ```markdown
 ---
 name: datamaster-quality
-description: DataMaster 数据质量核检能力说明。用于 AI 问数前检查表和字段质量状态、解释质量报告、识别异常数据风险、生成质量可信度提示。
+description: DataMaster 质量探查核检能力说明。用于 AI 问数前检查表和字段质量状态、解释质量报告、识别异常数据风险、生成质量可信度提示。
 ---
 
 # DataMaster 质量核检能力
@@ -455,7 +455,7 @@ description: {{tableComment}} 问数 Skill。用于 {{businessKeywords}} 等 AI 
 - 统计口径。
 - 使用的数据表和字段。
 - 时间范围。
-- 数据质量状态。
+- 质量探查状态。
 - 引用的 Skill。
 
 如果质量核检失败或最近无质量报告，回答必须提示：

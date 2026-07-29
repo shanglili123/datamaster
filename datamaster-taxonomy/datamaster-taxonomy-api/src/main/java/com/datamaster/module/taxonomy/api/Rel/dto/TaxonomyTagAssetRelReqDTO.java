@@ -19,10 +19,10 @@ public class TaxonomyTagAssetRelReqDTO {
     private Long ID;
 
     /** 标签管理id */
-    private String tagId;
+    private Long tagId;
 
     /** 资产id */
-    private String assetId;
+    private Long assetId;
 
     /** 是否有效 */
     private Boolean validFlag;

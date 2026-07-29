@@ -1,4 +1,4 @@
-﻿
+
 import { login, logout, getInfo } from '@/api/system/login.js';
 import { getToken, setToken, removeToken } from '@/utils/auth';
 import defAva from '@/assets/images/defaultAvatar.svg';
@@ -13,7 +13,7 @@ const useUserStore = defineStore('user', {
         avatar: '',
         roles: [],
         permissions: [],
-        projectId: ''
+        spaceId: ''
     }),
     actions: {
         // 登录
@@ -72,7 +72,7 @@ const useUserStore = defineStore('user', {
                         this.token = '';
                         this.roles = [];
                         this.permissions = [];
-                        localStorage.removeItem('dataMasterProjectId');
+                        localStorage.removeItem('dataMasterSpaceId');
                         removeToken();
                         resolve();
                     })

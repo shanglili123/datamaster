@@ -9,12 +9,12 @@ import com.datamaster.common.core.page.PageParam;
 import java.util.Date;
 
 /**
- * 数据质量日志 Request VO 对象 COL_QUALITY_LOG
+ * 质量探查日志 Request VO 对象 COL_QUALITY_LOG
  *
  * @author DATAMASTER
  * @date 2025-07-19
  */
-@Schema(description = "数据质量日志 Request VO")
+@Schema(description = "质量探查日志 Request VO")
 @Data
 public class CollectorQualityLogPageReqVO extends PageParam {
 

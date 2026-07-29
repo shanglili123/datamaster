@@ -7,19 +7,19 @@ import lombok.Data;
 import com.datamaster.common.core.page.PageParam;
 
 /**
- * 数据质量任务-评测规则 Request VO 对象 COL_QUALITY_TASK_EVALUATE
+ * 质量探查任务-评测规则 Request VO 对象 COL_QUALITY_TASK_EVALUATE
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Schema(description = "数据质量任务-评测规则 Request VO")
+@Schema(description = "质量探查任务-评测规则 Request VO")
 @Data
 public class CollectorQualityTaskEvaluatePageReqVO extends PageParam {
 
     private static final long serialVersionUID = 1L;
         @Schema(description = "ID", example = "")
         private Long id;
-    @Schema(description = "数据质量任务ID", example = "")
+    @Schema(description = "质量探查任务ID", example = "")
     private Long taskId;
 
     @Schema(description = "评测名称", example = "")

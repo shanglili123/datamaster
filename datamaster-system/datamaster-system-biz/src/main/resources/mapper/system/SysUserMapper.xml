@@ -41,7 +41,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <resultMap id="RoleResult" type="SysRole">
         <id     property="roleId"       column="role_id"        />
-		<id     property="projectId"       column="project_id"      />
+		<id     property="spaceId"       column="space_id"      />
         <result property="roleName"     column="role_name"      />
         <result property="roleKey"      column="role_key"       />
         <result property="roleSort"     column="role_sort"      />
@@ -52,7 +52,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 	<sql id="selectUserVo">
         select u.user_id, u.dept_id, u.user_name, u.nick_name, u.email, u.avatar, u.phonenumber, u.password, u.sex, u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, u.data_permission_level,
         d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num, d.leader, d.status as dept_status,
-        r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.status as role_status,r.project_id as project_id
+        r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.status as role_status,r.space_id as space_id
         from system_user u
 		    left join system_dept d on u.dept_id = d.dept_id
 		    left join system_user_role ur on u.user_id = ur.user_id
@@ -268,9 +268,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		where u.user_id = #{userId}
 	</select>
 
-	<select id="selectUserByUserIdAndProjectId" parameterType="Long" resultMap="SysUserResult">
+	<select id="selectUserByUserIdAndSpaceId" parameterType="Long" resultMap="SysUserResult">
 		<include refid="selectUserVo"/>
-		where u.user_id = #{userId} and r.project_id = #{projectId}
+		where u.user_id = #{userId} and r.space_id = #{spaceId}
 	</select>
 
 	<select id="checkUserNameUnique" parameterType="String" resultMap="SysUserResult">

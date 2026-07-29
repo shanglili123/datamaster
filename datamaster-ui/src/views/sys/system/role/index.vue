@@ -42,9 +42,9 @@
                         />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="类型" prop="projectId">
+                <el-form-item label="类型" prop="spaceId">
                     <el-select
-                        v-model="queryParams.projectId"
+                        v-model="queryParams.spaceId"
                         placeholder="角色类型"
                         clearable
                         style="width: 140px"
@@ -104,10 +104,10 @@
                     align="center"
                     :show-overflow-tooltip="true"
                 />
-                <el-table-column label="角色类型" prop="projectId" align="center">
+                <el-table-column label="角色类型" prop="spaceId" align="center">
                     <template #default="scope">
-                        <el-tag :type="isSystemRoleType(scope.row.projectId) ? 'info' : 'primary'">
-                            {{ isSystemRoleType(scope.row.projectId) ? '系统角色' : '空间角色' }}
+                        <el-tag :type="isSystemRoleType(scope.row.spaceId) ? 'info' : 'primary'">
+                            {{ isSystemRoleType(scope.row.spaceId) ? '系统角色' : '空间角色' }}
                         </el-tag>
                     </template>
                 </el-table-column>
@@ -267,9 +267,9 @@
                 </el-row>
                 <el-row :gutter="20">
                     <el-col :span="12">
-                        <el-form-item label="角色类型" prop="projectId">
+                        <el-form-item label="角色类型" prop="spaceId">
                             <el-select
-                                v-model="form.projectId"
+                                v-model="form.spaceId"
                                 placeholder="请选择角色类型"
                                 class="el-form-input-width"
                             >
@@ -435,7 +435,7 @@
         queryParams: {
             pageNum: 1,
             pageSize: 6,
-            projectId: undefined,
+            spaceId: undefined,
             roleName: undefined,
             roleKey: undefined,
             status: undefined
@@ -449,12 +449,12 @@
 
     const { queryParams, form, rules } = toRefs(data);
 
-    function normalizeRoleType(projectId) {
-        return Number(projectId) === 0 ? 0 : 1;
+    function normalizeRoleType(spaceId) {
+        return Number(spaceId) === 0 ? 0 : 1;
     }
 
-    function isSystemRoleType(projectId) {
-        return normalizeRoleType(projectId) === 0;
+    function isSystemRoleType(spaceId) {
+        return normalizeRoleType(spaceId) === 0;
     }
 
     /** 查询角色列表 */
@@ -580,7 +580,7 @@
         deptNodeAll.value = false;
         form.value = {
             roleId: undefined,
-            projectId: 0,
+            spaceId: 0,
             roleName: undefined,
             roleKey: undefined,
             roleSort: 0,
@@ -609,7 +609,7 @@
         const roleMenu = getRoleMenuTreeselect(roleId);
         getRole(roleId).then((response) => {
             form.value = response.data;
-            form.value.projectId = normalizeRoleType(form.value.projectId);
+            form.value.spaceId = normalizeRoleType(form.value.spaceId);
             form.value.roleSort = Number(form.value.roleSort);
             open.value = true;
             nextTick(() => {
@@ -689,7 +689,7 @@
     function submitForm() {
         proxy.$refs['roleRef'].validate((valid) => {
             if (valid) {
-                form.value.projectId = normalizeRoleType(form.value.projectId);
+                form.value.spaceId = normalizeRoleType(form.value.spaceId);
                 if (form.value.roleId != undefined) {
                     form.value.menuIds = getMenuAllCheckedKeys();
                     updateRole(form.value).then((response) => {

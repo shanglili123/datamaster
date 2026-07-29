@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="app-container datasource-list-page" ref="app-container">
 
     <div class="pagecont-top" v-show="showSearch">
@@ -14,7 +14,7 @@
         <el-form-item label="名称" prop="datasourceName">
           <el-input
             v-model="queryParams.datasourceName"
-            placeholder="请输入数据连接名称"
+            placeholder="请输入数据源名称"
             clearable
             style="width: 150px;"
             @keyup.enter="handleQuery"
@@ -23,7 +23,7 @@
         <el-form-item label="类型" prop="datasourceType">
           <el-select
             v-model="queryParams.datasourceType"
-            placeholder="请选择数据连接类型"
+            placeholder="请选择数据源类型"
             clearable
             style="width: 150px;"
           >
@@ -94,7 +94,7 @@
         <el-table-column
           v-if="getColumnVisibility(2)"
           width="250"
-          label="数据连接名称"
+          label="数据源名称"
           align="left"
           prop="datasourceName"
           :show-overflow-tooltip="{ effect: 'light' }"
@@ -119,7 +119,7 @@
         <el-table-column
           v-if="getColumnVisibility(4)"
           width="140"
-          label="数据连接类型"
+          label="数据源类型"
           align="center"
           prop="datasourceType"
         >
@@ -135,10 +135,10 @@
             width="120"
             label="所属空间"
             align="center"
-            prop="projectName"
+            prop="spaceName"
         >
             <template #default="scope">
-                {{ scope.row.projectName || '-' }}
+                {{ scope.row.spaceName || '-' }}
             </template>
         </el-table-column> -->
         <el-table-column
@@ -185,17 +185,6 @@
               @change="handleStatusChange(scope.row)"
             >
             </el-switch>
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="getColumnVisibility(8)"
-          label="备注"
-          align="left"
-          prop="remark"
-          :show-overflow-tooltip="{ effect: 'light' }"
-        >
-          <template #default="scope">
-            {{ scope.row.remark || "-" }}
           </template>
         </el-table-column>
         <el-table-column
@@ -311,19 +300,19 @@
       >
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="数据连接名称" prop="datasourceName">
+            <el-form-item label="数据源名称" prop="datasourceName">
               <el-input
                 v-model="form.datasourceName"
-                placeholder="请输入数据连接名称"
+                placeholder="请输入数据源名称"
               />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="数据连接类型" prop="datasourceType">
+            <el-form-item label="数据源类型" prop="datasourceType">
               <el-select
                 v-model="form.datasourceType"
-                placeholder="请选择数据连接类型"
+                placeholder="请选择数据源类型"
                 @change="handleDatasourceChange"
                 :disabled="form.id"
               >
@@ -503,10 +492,10 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="24">
-            <el-form-item label="所属空间" prop="projectNameList">
+            <el-form-item label="所属空间" prop="spaceNameList">
               <el-input
                 style="width: 83.5%"
-                v-model="form.projectNameList"
+                v-model="form.spaceNameList"
                 placeholder="请选择空间"
                 disabled
               >
@@ -514,7 +503,7 @@
               <el-button
                 style="margin-left: 11px"
                 type="primary"
-                @click="getListProject"
+                @click="getListSpace"
                 >选择空间</el-button
               >
             </el-form-item>
@@ -532,18 +521,6 @@
                   {{ dict.label }}
                 </el-radio>
               </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="备注">
-              <el-input
-                type="textarea"
-                v-model="form.remark"
-                placeholder="请输入备注"
-                :min-height="192"
-              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -583,7 +560,7 @@
       >
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="数据连接名称">
+            <el-form-item label="数据源名称">
               <div class="form-readonly">
                 {{ form.datasourceName || "-" }}
               </div>
@@ -591,7 +568,7 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="数据连接类型">
+            <el-form-item label="数据源类型">
               <div>
                 <dict-tag
                   :options="datasourceTypeOptions"
@@ -741,7 +718,7 @@
           <el-col :span="24">
             <el-form-item label="所属空间">
               <div class="form-readonly">
-                {{ form.projectNameListStr || "-" }}
+                {{ form.spaceNameListStr || "-" }}
               </div>
             </el-form-item>
           </el-col>
@@ -756,15 +733,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="备注">
-              <div class="form-readonly textarea">
-                {{ form.remark || "-" }}
-              </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -772,7 +740,7 @@
         </div>
       </template>
     </el-dialog>
-    <el-dialog title="空间选择" v-model="openProject" width="1000px" draggable>
+    <el-dialog title="空间选择" v-model="openSpace" width="1000px" draggable>
       <template>
         <span role="heading" aria-level="2" class="el-dialog__title">
           空间选择
@@ -781,7 +749,7 @@
       <!--用户数据-->
       <el-form
         class="btn-style"
-        :model="queryParamsProject"
+        :model="queryParamsSpace"
         ref="queryRef"
         :inline="true"
         label-width="68px"
@@ -789,7 +757,7 @@
         <el-form-item label="空间名称" prop="name">
           <el-input
             class="el-form-input-width"
-            v-model="queryParamsProject.name"
+            v-model="queryParamsSpace.name"
             placeholder="请输入空间名称"
             clearable
             @keyup.enter="handleQuery"
@@ -797,13 +765,13 @@
         </el-form-item>
         <el-form-item label="负责人" prop="managerId">
           <el-select
-            v-model="queryParamsProject.managerId"
+            v-model="queryParamsSpace.managerId"
             class="el-form-input-width"
             filterable
             placeholder="请选择"
           >
             <el-option
-              v-for="item in projectOptions"
+              v-for="item in spaceOptions"
               :key="item.userId"
               :label="item.nickName"
               :value="item.userId"
@@ -815,13 +783,13 @@
           <el-button
             plain
             type="primary"
-            @click="handleQueryProject"
+            @click="handleQuerySpace"
             @mousedown="(e) => e.preventDefault()"
           >
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
           </el-button>
           <el-button
-            @click="resetQueryProject"
+            @click="resetQuerySpace"
             @mousedown="(e) => e.preventDefault()"
           >
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
@@ -829,11 +797,11 @@
         </el-form-item>
       </el-form>
       <el-table
-        ref="projectTableRef"
+        ref="spaceTableRef"
         stripe
-        v-loading="loadingProject"
-        :data="projectList"
-        @selection-change="handleSelectionChangeProject"
+        v-loading="loadingSpace"
+        :data="spaceList"
+        @selection-change="handleSelectionChangeSpace"
       >
         <el-table-column
           type="selection"
@@ -864,16 +832,16 @@
         </el-table-column>
       </el-table>
       <pagination
-        v-show="totalProject > 0"
-        :total="totalProject"
-        v-model:page="queryParamsProject.pageNum"
-        v-model:limit="queryParamsProject.pageSize"
-        @pagination="getListProject"
+        v-show="totalSpace > 0"
+        :total="totalSpace"
+        v-model:page="queryParamsSpace.pageNum"
+        v-model:limit="queryParamsSpace.pageSize"
+        @pagination="getListSpace"
       />
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="openProject = false">取 消</el-button>
-          <el-button type="primary" size="mini" @click="submitFormProject"
+          <el-button size="mini" @click="openSpace = false">取 消</el-button>
+          <el-button type="primary" size="mini" @click="submitFormSpace"
             >确 定</el-button
           >
         </div>
@@ -892,7 +860,7 @@ import {
   removeDppOrDa,
   addDaDatasource,
   updateDaDatasource,
-  listDaDatasourceByProjectCode,
+  listDaDatasourceBySpaceCode,
   editDatasourceStatus,
   noDppAdd,
 } from "@/api/ast/dataSource/dataSource";
@@ -910,13 +878,12 @@ const datasourceTypeOptions = computed(() => getDatasourceTypes("datasource"));
 // 列显隐信息
 const columns = ref([
   { key: 1, label: "编号", visible: true },
-  { key: 2, label: "数据连接名称", visible: true },
+  { key: 2, label: "数据源名称", visible: true },
   { key: 3, label: "描述", visible: true },
-  { key: 4, label: "数据连接类型", visible: true },
+  { key: 4, label: "数据源类型", visible: true },
   { key: 5, label: "创建人", visible: true },
   { key: 6, label: "创建时间", visible: true },
   { key: 7, label: "状态", visible: true },
-  { key: 8, label: "备注", visible: true },
   { key: 9, label: "操作", visible: true },
 ]);
 
@@ -929,7 +896,7 @@ const getColumnVisibility = (key) => {
 };
 
 const open = ref(false);
-const openProject = ref(false);
+const openSpace = ref(false);
 const openDetail = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -940,12 +907,12 @@ const total = ref(0);
 const title = ref("");
 const defaultSort = ref({ prop: "createTime", order: "desc" });
 const router = useRouter();
-const projectOptions = ref([]);
-const projectList = ref([]);
-const totalProject = ref(0);
-const projectTableRef = ref(null);
-const loadingProject = ref(false);
-const projectIdAndCodeList = ref([]);
+const spaceOptions = ref([]);
+const spaceList = ref([]);
+const totalSpace = ref(0);
+const spaceTableRef = ref(null);
+const loadingSpace = ref(false);
+const spaceIdAndCodeList = ref([]);
 
 /*** 用户导入参数 */
 const upload = reactive({
@@ -965,12 +932,12 @@ const upload = reactive({
 
 const data = reactive({
   form: {
-    projectNameListStr: "-",
-    projectNameList: [],
-    projectIdList: [],
-    projectList: [],
+    spaceNameListStr: "-",
+    spaceNameList: [],
+    spaceIdList: [],
+    spaceList: [],
   },
-  queryParamsProject: {
+  queryParamsSpace: {
     pageNum: 1,
     pageSize: 6,
     name: null,
@@ -994,10 +961,10 @@ const data = reactive({
   },
   rules: {
     datasourceName: [
-      { required: true, message: "数据连接名称不能为空", trigger: "blur" },
+      { required: true, message: "数据源名称不能为空", trigger: "blur" },
     ],
     datasourceType: [
-      { required: true, message: "数据连接类型不能为空", trigger: "change" },
+      { required: true, message: "数据源类型不能为空", trigger: "change" },
     ],
     datasourceConfig: [
       {
@@ -1070,24 +1037,24 @@ const data = reactive({
   },
 });
 
-const { queryParams, form, rules, queryParamsProject } = toRefs(data);
+const { queryParams, form, rules, queryParamsSpace } = toRefs(data);
 const selectable = (row) => !row.dppAssigned;
 // 监听 id 变化
 watch(
-  () => userStore.projectCode,
+  () => userStore.spaceCode,
   (newCode) => {
     getList();
   },
   { immediate: true } // `immediate` 为 true 表示页面加载时也会立即执行一次 watch
 );
 
-function getProjectOptions() {
+function getSpaceOptions() {
   deptUserTree().then((response) => {
-    projectOptions.value = response.data;
+    spaceOptions.value = response.data;
   });
 }
 
-//数据连接类型change事件
+// 数据源类型 change 事件
 function handleDatasourceChange(type) {
   rules.value.username[0].required = isCredentialRequired(type);
   rules.value.password[0].required = isCredentialRequired(type);
@@ -1143,21 +1110,21 @@ function normalizePageData(response) {
   return { rows, total: Number.isNaN(total) ? rows.length : total };
 }
 
-function getListProject() {
-  openProject.value = true;
-  loadingProject.value = true;
-  noDppAdd(queryParamsProject.value).then((response) => {
+function getListSpace() {
+  openSpace.value = true;
+  loadingSpace.value = true;
+  noDppAdd(queryParamsSpace.value).then((response) => {
     const pageData = normalizePageData(response);
-    projectList.value = pageData.rows;
-    totalProject.value = pageData.total;
-    loadingProject.value = false;
+    spaceList.value = pageData.rows;
+    totalSpace.value = pageData.total;
+    loadingSpace.value = false;
 
     // 在表格加载完成后，设置之前选中的空间
     nextTick(() => {
-      projectList.value.forEach((project) => {
-        form.value.projectList.forEach((item) => {
-          if (item.projectId === project.id) {
-            proxy.$refs.projectTableRef.toggleRowSelection(project, true);
+      spaceList.value.forEach((space) => {
+        form.value.spaceList.forEach((item) => {
+          if (item.spaceId === space.id) {
+            proxy.$refs.spaceTableRef.toggleRowSelection(space, true);
           }
         });
       });
@@ -1165,44 +1132,44 @@ function getListProject() {
   });
 }
 
-function handleSelectionChangeProject(selection) {
-  projectIdAndCodeList.value = [];
+function handleSelectionChangeSpace(selection) {
+  spaceIdAndCodeList.value = [];
   for (let i = 0; i < selection.length; i++) {
     const element = selection[i];
-    let project = {
-      projectId: element.id,
-      projectCode: element.code,
+    let space = {
+      spaceId: element.id,
+      spaceCode: element.code,
     };
-    projectIdAndCodeList.value.push(project);
+    spaceIdAndCodeList.value.push(space);
   }
 
-  form.value.projectNameList = selection.map((item) => item.name);
+  form.value.spaceNameList = selection.map((item) => item.name);
 }
 
-function submitFormProject() {
-  openProject.value = false;
-  form.value.projectList = projectIdAndCodeList.value;
+function submitFormSpace() {
+  openSpace.value = false;
+  form.value.spaceList = spaceIdAndCodeList.value;
 }
 
-function handleQueryProject() {
-  queryParamsProject.value.pageNum = 1;
-  getListProject();
+function handleQuerySpace() {
+  queryParamsSpace.value.pageNum = 1;
+  getListSpace();
 }
 
-function resetQueryProject() {
-  queryParamsProject.value.pageNum = 1;
-  queryParamsProject.value.pageSize = 6;
-  queryParamsProject.value.name = null;
-  queryParamsProject.value.managerId = null;
-  getListProject();
+function resetQuerySpace() {
+  queryParamsSpace.value.pageNum = 1;
+  queryParamsSpace.value.pageSize = 6;
+  queryParamsSpace.value.name = null;
+  queryParamsSpace.value.managerId = null;
+  getListSpace();
 }
 
 /** 查询数据源列表 */
 function getList() {
   loading.value = true;
-  queryParams.value.projectId = userStore.projectId;
-  queryParams.value.projectCode = userStore.projectCode;
-  listDaDatasourceByProjectCode(queryParams.value).then((response) => {
+  queryParams.value.spaceId = userStore.spaceId;
+  queryParams.value.spaceCode = userStore.spaceCode;
+  listDaDatasourceBySpaceCode(queryParams.value).then((response) => {
     const pageData = normalizePageData(response);
     daDatasourceList.value = pageData.rows;
     total.value = pageData.total;
@@ -1221,9 +1188,9 @@ function cancel() {
 function reset() {
   form.value = {
     id: null,
-    projectNameList: [],
-    projectIdList: [],
-    projectList: [],
+    spaceNameList: [],
+    spaceIdList: [],
+    spaceList: [],
     datasourceName: null,
     datasourceType: null,
     datasourceConfig: null,
@@ -1240,7 +1207,6 @@ function reset() {
     updateBy: null,
     updaterId: null,
     updateTime: null,
-    remark: null,
   };
   proxy.resetForm("daDatasourceRef");
 }
@@ -1275,10 +1241,10 @@ function handleSortChange(column, prop, order) {
 function handleAdd() {
   reset();
   form.value.isDaOrDpp = true;
-  form.value.projectList = [
+  form.value.spaceList = [
     {
-      projectId: userStore.projectId,
-      projectCode: userStore.projectCode,
+      spaceId: userStore.spaceId,
+      spaceCode: userStore.spaceCode,
       dppAssigned: true,
     },
   ];
@@ -1296,11 +1262,11 @@ function handleUpdate(row, type) {
   getDaDatasource(_id)
     .then((response) => {
       form.value = response.data;
-      form.value.projectIdList = form.value.projectList.map(
-        (item) => item.projectId
+      form.value.spaceIdList = form.value.spaceList.map(
+        (item) => item.spaceId
       );
-      form.value.projectNameList = form.value.projectList.map(
-        (item) => item.projectName
+      form.value.spaceNameList = form.value.spaceList.map(
+        (item) => item.spaceName
       );
 
       // 拆解 datasourceConfig
@@ -1317,8 +1283,8 @@ function handleUpdate(row, type) {
         if (config.domain) form.value.domain = config.domain;
         form.value.config = normalizeConfigText(config.config);
       }
-      form.value.projectListOld = form.value.projectIdList;
-      queryParamsProject.value.datasourceId = form.value.id;
+      form.value.spaceListOld = form.value.spaceIdList;
+      queryParamsSpace.value.assignedDatasourceId = form.value.id;
       open.value = true;
       if (type == 3) {
         title.value = "数据源详情";
@@ -1338,8 +1304,8 @@ function handleDetail(row) {
   const _id = row.id || ids.value;
   getDaDatasource(_id).then((response) => {
     form.value = response.data;
-    form.value.projectNameListStr = form.value.projectList
-      .map((item) => item.projectName)
+    form.value.spaceNameListStr = form.value.spaceList
+      .map((item) => item.spaceName)
       .join(", ");
     if (form.value.datasourceConfig) {
       const config = JSON.parse(form.value.datasourceConfig);
@@ -1430,13 +1396,13 @@ function submitForm() {
           config: form.value.config,
         });
 
-        let projectListOld = [];
-        form.value.projectListOld.forEach((item) => {
-          if (!form.value.projectList.includes(item)) {
-            projectListOld.push(item);
+        let spaceListOld = [];
+        form.value.spaceListOld.forEach((item) => {
+          if (!form.value.spaceList.includes(item)) {
+            spaceListOld.push(item);
           }
         });
-        form.value.projectListOld = projectListOld;
+        form.value.spaceListOld = spaceListOld;
         updateDaDatasource(form.value)
           .then((response) => {
             proxy.$modal.msgSuccess("修改成功");
@@ -1566,7 +1532,7 @@ function handleStatusChange(row) {
   const text = row.validFlag === true ? "启用" : "禁用";
   const status = row.validFlag === true ? 1 : 0;
   proxy.$modal
-    .confirm("确认要" + text + ' "' + row.datasourceName + '" 数据连接吗？')
+    .confirm("确认要" + text + ' "' + row.datasourceName + '" 数据源吗？')
     .then(function () {
       editDatasourceStatus(row.id, status).then((response) => {
         proxy.$modal.msgSuccess(text + "成功");
@@ -1581,7 +1547,7 @@ function handleStatusChange(row) {
 queryParams.value.orderByColumn = defaultSort.value.prop;
 queryParams.value.isAsc = defaultSort.value.order;
 getList();
-getProjectOptions();
+getSpaceOptions();
 </script>
 
 <style scoped lang="scss">

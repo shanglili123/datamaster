@@ -6,8 +6,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <resultMap type="CollectorEtlTaskNodeRelLogDO" id="CollectorEtlTaskNodeRelLogResult">
         <result property="id"    column="ID"    />
-        <result property="projectId"    column="PROJECT_ID"    />
-        <result property="projectCode"    column="PROJECT_CODE"    />
+        <result property="spaceId"    column="SPACE_ID"    />
+        <result property="spaceCode"    column="SPACE_CODE"    />
         <result property="taskId"    column="TASK_ID"    />
         <result property="taskCode"    column="TASK_CODE"    />
         <result property="taskVersion"    column="TASK_VERSION"    />
@@ -29,14 +29,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectCollectorEtlTaskNodeRelLogVo">
-        select ID, PROJECT_ID, PROJECT_CODE, TASK_ID, TASK_CODE, TASK_VERSION, PRE_NODE_ID, PRE_NODE_CODE, PRE_NODE_VERSION, POST_NODE_ID, POST_NODE_CODE, POST_NODE_VERSION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from COL_ETL_TASK_NODE_REL_LOG
+        select ID, SPACE_ID, SPACE_CODE, TASK_ID, TASK_CODE, TASK_VERSION, PRE_NODE_ID, PRE_NODE_CODE, PRE_NODE_VERSION, POST_NODE_ID, POST_NODE_CODE, POST_NODE_VERSION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from COL_ETL_TASK_NODE_REL_LOG
     </sql>
 
     <select id="selectCollectorEtlTaskNodeRelLogList" parameterType="CollectorEtlTaskNodeRelLogDO" resultMap="CollectorEtlTaskNodeRelLogResult">
         <include refid="selectCollectorEtlTaskNodeRelLogVo"/>
         <where>
-            <if test="projectId != null "> and PROJECT_ID = #{projectId}</if>
-            <if test="projectCode != null  and projectCode != ''"> and PROJECT_CODE = #{projectCode}</if>
+            <if test="spaceId != null "> and SPACE_ID = #{spaceId}</if>
+            <if test="spaceCode != null  and spaceCode != ''"> and SPACE_CODE = #{spaceCode}</if>
             <if test="taskId != null "> and TASK_ID = #{taskId}</if>
             <if test="taskCode != null  and taskCode != ''"> and TASK_CODE = #{taskCode}</if>
             <if test="taskVersion != null "> and TASK_VERSION = #{taskVersion}</if>
@@ -59,8 +59,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         insert into COL_ETL_TASK_NODE_REL_LOG
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
-            <if test="projectId != null">PROJECT_ID,</if>
-            <if test="projectCode != null">PROJECT_CODE,</if>
+            <if test="spaceId != null">SPACE_ID,</if>
+            <if test="spaceCode != null">SPACE_CODE,</if>
             <if test="taskId != null">TASK_ID,</if>
             <if test="taskCode != null">TASK_CODE,</if>
             <if test="taskVersion != null">TASK_VERSION,</if>
@@ -82,8 +82,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
-            <if test="projectId != null">#{projectId},</if>
-            <if test="projectCode != null">#{projectCode},</if>
+            <if test="spaceId != null">#{spaceId},</if>
+            <if test="spaceCode != null">#{spaceCode},</if>
             <if test="taskId != null">#{taskId},</if>
             <if test="taskCode != null">#{taskCode},</if>
             <if test="taskVersion != null">#{taskVersion},</if>
@@ -108,8 +108,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateCollectorEtlTaskNodeRelLog" parameterType="CollectorEtlTaskNodeRelLogDO">
         update COL_ETL_TASK_NODE_REL_LOG
         <trim prefix="SET" suffixOverrides=",">
-            <if test="projectId != null">PROJECT_ID = #{projectId},</if>
-            <if test="projectCode != null">PROJECT_CODE = #{projectCode},</if>
+            <if test="spaceId != null">SPACE_ID = #{spaceId},</if>
+            <if test="spaceCode != null">SPACE_CODE = #{spaceCode},</if>
             <if test="taskId != null">TASK_ID = #{taskId},</if>
             <if test="taskCode != null">TASK_CODE = #{taskCode},</if>
             <if test="taskVersion != null">TASK_VERSION = #{taskVersion},</if>

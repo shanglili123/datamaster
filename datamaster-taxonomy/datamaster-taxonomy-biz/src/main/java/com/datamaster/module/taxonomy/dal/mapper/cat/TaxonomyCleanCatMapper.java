@@ -37,7 +37,7 @@ public interface TaxonomyCleanCatMapper extends BaseMapperX<TaxonomyCleanCatDO> 
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(TaxonomyCleanCatDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
-                .eq(reqVO.getProjectId() != null, TaxonomyCleanCatDO::getProjectId, reqVO.getProjectId())
+                .eq(reqVO.getSpaceId() != null, TaxonomyCleanCatDO::getSpaceId, reqVO.getSpaceId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
     }
 

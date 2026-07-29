@@ -6,7 +6,7 @@ import lombok.experimental.SuperBuilder;
 import com.datamaster.common.core.domain.BaseEntity;
 
 /**
- * 数据质量任务-稽查对象 DO 对象 COL_QUALITY_TASK_OBJ
+ * 质量探查任务-稽查对象 DO 对象 COL_QUALITY_TASK_OBJ
  *
  * @author Chaos
  * @date 2025-07-21
@@ -23,7 +23,7 @@ public class QualityTaskObjDO extends BaseEntity {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-/** 数据质量任务ID */
+/** 质量探查任务ID */
     private Long taskId;
 
     /** 稽查对象名称 */

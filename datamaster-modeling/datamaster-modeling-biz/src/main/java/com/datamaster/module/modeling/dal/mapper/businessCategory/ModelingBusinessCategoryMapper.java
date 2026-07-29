@@ -41,7 +41,7 @@ public interface ModelingBusinessCategoryMapper extends BaseMapperX<ModelingBusi
                         .eq(ModelingBusinessCategoryDO::getId, reqVO.getParentId())
                 )
                 .eq(reqVO.getDomainId() != null, "t4.ID", reqVO.getDomainId())
-                .eq(reqVO.getProjectId() != null, ModelingBusinessCategoryDO::getProjectId, reqVO.getProjectId());
+                .eq(reqVO.getSpaceId() != null, ModelingBusinessCategoryDO::getSpaceId, reqVO.getSpaceId());
 
         // 按照 createTime 字段降序排序
 //                .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()),
@@ -91,7 +91,7 @@ public interface ModelingBusinessCategoryMapper extends BaseMapperX<ModelingBusi
                         .eq(ModelingBusinessCategoryDO::getId, reqVO.getParentId())
                 )
                 .eq(reqVO.getOwnerId() != null, ModelingBusinessCategoryDO::getOwnerId, reqVO.getOwnerId())
-                .eq(reqVO.getProjectId() != null, ModelingBusinessCategoryDO::getProjectId, reqVO.getProjectId());
+                .eq(reqVO.getSpaceId() != null, ModelingBusinessCategoryDO::getSpaceId, reqVO.getSpaceId());
         lambdaWrapper.orderBy(StringUtils.isNotBlank(reqVO.getOrderByColumn()), !"asc".equals(reqVO.getIsAsc()), ModelingBusinessCategoryDO::getCreateTime);
         // 构造动态查询条件
         return selectList(lambdaWrapper);

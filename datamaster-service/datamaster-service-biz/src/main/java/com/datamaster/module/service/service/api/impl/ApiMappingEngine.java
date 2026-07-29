@@ -146,8 +146,8 @@ public class ApiMappingEngine {
         AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
         reqDTO.setDatasourceId(Long.valueOf(executeConfig.getSourceId()));
         reqDTO.setTableName(executeConfig.getTableName());
-        reqDTO.setProjectId(dataApi.getProjectId());
-        reqDTO.setProjectCode(dataApi.getProjectCode());
+        reqDTO.setSpaceId(dataApi.getSpaceId());
+        reqDTO.setSpaceCode(dataApi.getSpaceCode());
         reqDTO.setEntrance("DATA_SERVICE");
         assetsTableGovernanceApiService.checkTableAccess(reqDTO);
     }

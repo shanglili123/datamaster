@@ -26,28 +26,25 @@ public class StandardsDataElemAssetRelSaveReqVO extends BaseEntity {
     private String dataElemType;
 
     @Schema(description = "数据元id", example = "")
-    @Size(max = 256, message = "数据元id长度不能超过256个字符")
-    private String dataElemId;
+    private Long dataElemId;
 
     @Schema(description = "资产id(数据表id)", example = "")
-    @Size(max = 256, message = "资产id(数据表id)长度不能超过256个字符")
-    private String assetId;
+    private Long assetId;
 
     @Schema(description = "数据表", example = "")
     @Size(max = 256, message = "数据表长度不能超过256个字符")
     private String tableName;
 
     @Schema(description = "关联字段id", example = "")
-    @Size(max = 256, message = "关联字段id长度不能超过256个字符")
-    private String columnId;
+    private Long columnId;
 
     @Schema(description = "关联字段", example = "")
     @Size(max = 256, message = "关联字段长度不能超过256个字符")
     private String columnName;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 
 }

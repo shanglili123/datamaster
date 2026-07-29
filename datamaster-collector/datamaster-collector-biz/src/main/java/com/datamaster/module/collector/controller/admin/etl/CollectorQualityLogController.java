@@ -36,28 +36,28 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorQualityLogDO;
 import com.datamaster.module.collector.service.etl.ICollectorQualityLogService;
 
 /**
- * 数据质量日志Controller
+ * 探查任务实例 Controller
  *
  * @author DATAMASTER
  * @date 2025-07-19
  */
-@Tag(name = "数据质量日志")
+@Tag(name = "探查任务实例")
 @RestController
-@RequestMapping("/col/qualityLog")
+@RequestMapping("/col/probeTaskInstance")
 @Validated
 public class CollectorQualityLogController extends BaseController {
     @Resource
     private ICollectorQualityLogService CollectorQualityLogService;
 
-    @Operation(summary = "查询数据质量日志列表")
+    @Operation(summary = "查询探查任务实例列表")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorQualityLogRespVO>> list(CollectorQualityLogPageReqVO CollectorQualityLog) {
         PageResult<CollectorQualityLogDO> page = CollectorQualityLogService.getCollectorQualityLogPage(CollectorQualityLog);
         return CommonResult.success(BeanUtils.toBean(page, CollectorQualityLogRespVO.class));
     }
 
-    @Operation(summary = "导出数据质量日志列表")
-    @Log(title = "数据质量日志", businessType = BusinessType.EXPORT)
+    @Operation(summary = "导出探查任务实例列表")
+    @Log(title = "探查任务实例", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorQualityLogPageReqVO exportReqVO) {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
@@ -66,8 +66,8 @@ public class CollectorQualityLogController extends BaseController {
         util.exportExcel(response, CollectorQualityLogConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");
     }
 
-    @Operation(summary = "导入数据质量日志列表")
-    @Log(title = "数据质量日志", businessType = BusinessType.IMPORT)
+    @Operation(summary = "导入探查任务实例列表")
+    @Log(title = "探查任务实例", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
         ExcelUtil<CollectorQualityLogRespVO> util = new ExcelUtil<>(CollectorQualityLogRespVO.class);
@@ -77,15 +77,15 @@ public class CollectorQualityLogController extends BaseController {
         return success(message);
     }
 
-    @Operation(summary = "获取数据质量日志详细信息")
+    @Operation(summary = "获取探查任务实例详细信息")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorQualityLogRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorQualityLogDO CollectorQualityLogDO = CollectorQualityLogService.getCollectorQualityLogById(id);
         return CommonResult.success(BeanUtils.toBean(CollectorQualityLogDO, CollectorQualityLogRespVO.class));
     }
 
-    @Operation(summary = "新增数据质量日志")
-    @Log(title = "数据质量日志", businessType = BusinessType.INSERT)
+    @Operation(summary = "新增探查任务实例")
+    @Log(title = "探查任务实例", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorQualityLogSaveReqVO CollectorQualityLog) {
         CollectorQualityLog.setCreatorId(getUserId());
@@ -94,8 +94,8 @@ public class CollectorQualityLogController extends BaseController {
         return CommonResult.toAjax(CollectorQualityLogService.createCollectorQualityLog(CollectorQualityLog));
     }
 
-    @Operation(summary = "修改数据质量日志")
-    @Log(title = "数据质量日志", businessType = BusinessType.UPDATE)
+    @Operation(summary = "修改探查任务实例")
+    @Log(title = "探查任务实例", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorQualityLogSaveReqVO CollectorQualityLog) {
         CollectorQualityLog.setUpdatorId(getUserId());
@@ -104,8 +104,8 @@ public class CollectorQualityLogController extends BaseController {
         return CommonResult.toAjax(CollectorQualityLogService.updateCollectorQualityLog(CollectorQualityLog));
     }
 
-    @Operation(summary = "删除数据质量日志")
-    @Log(title = "数据质量日志", businessType = BusinessType.DELETE)
+    @Operation(summary = "删除探查任务实例")
+    @Log(title = "探查任务实例", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
         return CommonResult.toAjax(CollectorQualityLogService.removeCollectorQualityLog(Arrays.asList(ids)));

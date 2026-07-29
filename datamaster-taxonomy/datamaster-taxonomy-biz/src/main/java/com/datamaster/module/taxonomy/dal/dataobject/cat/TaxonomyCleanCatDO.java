@@ -42,11 +42,13 @@ public class TaxonomyCleanCatDO extends BaseEntity {
     /** 层级编码 */
     private String code;
 
-    /** 项目ID */
-    private Long projectId;
+    /** 空间ID */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_ID")
+    private Long spaceId;
 
-    /** 项目编码 */
-    private String projectCode;
+    /** 空间编码 */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_CODE")
+    private String spaceCode;
 
     /** 是否有效 */
     private Boolean validFlag;

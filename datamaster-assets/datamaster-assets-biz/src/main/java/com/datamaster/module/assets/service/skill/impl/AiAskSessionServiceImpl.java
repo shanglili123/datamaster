@@ -34,9 +34,9 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
     private JdbcTemplate jdbcTemplate;
 
     @Override
-    public List<AiAskSessionRespVO> listRecent(Long userId, Long projectId, Integer limit) {
+    public List<AiAskSessionRespVO> listRecent(Long userId, Long spaceId, Integer limit) {
         ensureTablesReady();
-        return BeanUtils.toBean(sessionMapper.selectRecent(userId, projectId, limit), AiAskSessionRespVO.class);
+        return BeanUtils.toBean(sessionMapper.selectRecent(userId, spaceId, limit), AiAskSessionRespVO.class);
     }
 
     @Override
@@ -63,11 +63,11 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
     @Override
     public AiAskSessionRespVO update(Long userId, String username, Long sessionId, AiAskSessionSaveReqVO reqVO) {
         ensureTablesReady();
-        AiAskSessionDO old = requireSession(userId, reqVO == null ? null : reqVO.getProjectId(), sessionId);
+        AiAskSessionDO old = requireSession(userId, reqVO == null ? null : reqVO.getSpaceId(), sessionId);
         Date now = new Date();
         sessionMapper.update(null, Wrappers.lambdaUpdate(AiAskSessionDO.class)
-                .set(AiAskSessionDO::getProjectId, reqVO == null ? old.getProjectId() : reqVO.getProjectId())
-                .set(AiAskSessionDO::getProjectCode, reqVO == null ? old.getProjectCode() : reqVO.getProjectCode())
+                .set(AiAskSessionDO::getSpaceId, reqVO == null ? old.getSpaceId() : reqVO.getSpaceId())
+                .set(AiAskSessionDO::getSpaceCode, reqVO == null ? old.getSpaceCode() : reqVO.getSpaceCode())
                 .set(AiAskSessionDO::getTitle, defaultText(reqVO == null ? null : reqVO.getTitle(), old.getTitle()))
                 .set(AiAskSessionDO::getMode, defaultText(reqVO == null ? null : reqVO.getMode(), old.getMode()))
                 .set(AiAskSessionDO::getDatasourceId, reqVO == null ? old.getDatasourceId() : reqVO.getDatasourceId())
@@ -83,18 +83,18 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
     }
 
     @Override
-    public Integer delete(Long userId, Long projectId, Long sessionId) {
+    public Integer delete(Long userId, Long spaceId, Long sessionId) {
         ensureTablesReady();
-        requireSession(userId, projectId, sessionId);
+        requireSession(userId, spaceId, sessionId);
         aiAskMessageMapper.deleteBySessionId(sessionId);
         return sessionMapper.deleteById(sessionId);
     }
 
     @Override
-    public AiAskMessageWindowRespVO listMessages(Long userId, Long projectId, Long sessionId,
-                                                 Long beforeId, Long afterId, Integer limit) {
+    public AiAskMessageWindowRespVO listMessages(Long userId, Long spaceId, Long sessionId,
+                                                  Long beforeId, Long afterId, Integer limit) {
         ensureTablesReady();
-        requireSession(userId, projectId, sessionId);
+        requireSession(userId, spaceId, sessionId);
         List<AiAskMessageDO> rows;
         if (beforeId != null) {
             rows = aiAskMessageMapper.selectBefore(sessionId, beforeId, limit == null ? 5 : limit);
@@ -111,13 +111,13 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
     }
 
     @Override
-    public AiAskMessageRespVO appendMessage(Long userId, String username, Long projectId, Long sessionId, AiAskMessageSaveReqVO reqVO) {
+    public AiAskMessageRespVO appendMessage(Long userId, String username, Long spaceId, Long sessionId, AiAskMessageSaveReqVO reqVO) {
         ensureTablesReady();
-        AiAskSessionDO session = requireSession(userId, projectId, sessionId);
+        AiAskSessionDO session = requireSession(userId, spaceId, sessionId);
         AiAskMessageDO message = new AiAskMessageDO();
         message.setSessionId(sessionId);
         message.setUserId(userId);
-        message.setProjectId(session.getProjectId());
+        message.setSpaceId(session.getSpaceId());
         message.setRole(reqVO.getRole());
         message.setContent(reqVO.getContent());
         message.setDisplayContent(reqVO.getDisplayContent());
@@ -135,9 +135,9 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
     }
 
     @Override
-    public Integer deleteMessage(Long userId, Long projectId, Long sessionId, Long messageId) {
+    public Integer deleteMessage(Long userId, Long spaceId, Long sessionId, Long messageId) {
         ensureTablesReady();
-        requireSession(userId, projectId, sessionId);
+        requireSession(userId, spaceId, sessionId);
         AiAskMessageDO message = aiAskMessageMapper.selectById(messageId);
         if (message == null || !sessionId.equals(message.getSessionId())) {
             throw new ServiceException("聊天记录不存在");
@@ -148,9 +148,9 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
     }
 
     @Override
-    public Integer clearMessages(Long userId, Long projectId, Long sessionId) {
+    public Integer clearMessages(Long userId, Long spaceId, Long sessionId) {
         ensureTablesReady();
-        requireSession(userId, projectId, sessionId);
+        requireSession(userId, spaceId, sessionId);
         Integer rows = aiAskMessageMapper.deleteBySessionId(sessionId);
         refreshMessageCount(userId, sessionId);
         return rows;
@@ -160,8 +160,8 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
         if (reqVO == null) {
             return;
         }
-        session.setProjectId(reqVO.getProjectId());
-        session.setProjectCode(reqVO.getProjectCode());
+        session.setSpaceId(reqVO.getSpaceId());
+        session.setSpaceCode(reqVO.getSpaceCode());
         session.setTitle(reqVO.getTitle());
         session.setMode(reqVO.getMode());
         session.setDatasourceId(reqVO.getDatasourceId());
@@ -171,7 +171,7 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
         session.setReturnSql(reqVO.getReturnSql());
     }
 
-    private AiAskSessionDO requireSession(Long userId, Long projectId, Long sessionId) {
+    private AiAskSessionDO requireSession(Long userId, Long spaceId, Long sessionId) {
         if (sessionId == null) {
             throw new ServiceException("会话ID不能为空");
         }
@@ -179,7 +179,7 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
         if (session == null || !userId.equals(session.getUserId())) {
             throw new ServiceException("会话不存在");
         }
-        if (projectId != null && !projectId.equals(session.getProjectId())) {
+        if (spaceId != null && !spaceId.equals(session.getSpaceId())) {
             throw new ServiceException("会话不属于当前空间");
         }
         return session;
@@ -223,19 +223,19 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
 
     private void initSessionTable() {
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS AI_ASK_SESSION ("
-                + "ID BIGINT PRIMARY KEY, USER_ID BIGINT NOT NULL, PROJECT_ID BIGINT, PROJECT_CODE VARCHAR(128),"
+                + "ID BIGINT PRIMARY KEY, USER_ID BIGINT NOT NULL, SPACE_ID BIGINT, SPACE_CODE VARCHAR(128),"
                 + "TITLE VARCHAR(255) NOT NULL, MODE VARCHAR(32) DEFAULT 'qa', DATASOURCE_ID BIGINT,"
                 + "DATASOURCE_NAME VARCHAR(255), SKILL_ID BIGINT, TEMPLATE_ID BIGINT, RETURN_SQL BOOLEAN DEFAULT FALSE,"
                 + "MESSAGE_COUNT INTEGER DEFAULT 0, CREATOR_ID BIGINT, CREATE_BY VARCHAR(64), CREATE_TIME TIMESTAMP,"
                 + "UPDATER_ID BIGINT, UPDATE_BY VARCHAR(64), UPDATE_TIME TIMESTAMP, REMARK VARCHAR(500),"
                 + "DEL_FLAG BOOLEAN DEFAULT FALSE)");
         jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS IDX_AI_ASK_SESSION_SCOPE "
-                + "ON AI_ASK_SESSION (USER_ID, PROJECT_ID, UPDATE_TIME DESC)");
+                + "ON AI_ASK_SESSION (USER_ID, SPACE_ID, UPDATE_TIME DESC)");
     }
 
     private void initMessageTable() {
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS AI_ASK_MESSAGE ("
-                + "ID BIGINT PRIMARY KEY, SESSION_ID BIGINT NOT NULL, USER_ID BIGINT NOT NULL, PROJECT_ID BIGINT,"
+                + "ID BIGINT PRIMARY KEY, SESSION_ID BIGINT NOT NULL, USER_ID BIGINT NOT NULL, SPACE_ID BIGINT,"
                 + "ROLE VARCHAR(32) NOT NULL, CONTENT TEXT, DISPLAY_CONTENT TEXT, PAYLOAD_JSON TEXT,"
                 + "CREATOR_ID BIGINT, CREATE_BY VARCHAR(64), CREATE_TIME TIMESTAMP,"
                 + "UPDATER_ID BIGINT, UPDATE_BY VARCHAR(64), UPDATE_TIME TIMESTAMP, REMARK VARCHAR(500),"

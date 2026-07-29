@@ -13,7 +13,7 @@ import java.util.*;
 
 /**
  * <P>
- * 用途:spark清洗组件
+ * 用途:字段派生转换组件
  * </p>
  *
  * @author: FXB
@@ -37,7 +37,6 @@ public class FieldDerivationTransitionComponent implements ComponentItem {
 
         taskParams.put("deployMode", params.getOrDefault("deployMode", DEFAULT_DEPLOY_MODE)); // 默认部署模式为 "client"
         taskParams.put("mainArgs", Base64.encode(JSON.toJSONString(params.getOrDefault("mainArgs", new HashMap<>())))); // 默认空字符串
-        taskParams.put("master", params.get("master")); // 默认Spark master URL
         taskParams.put("driverCores", params.getOrDefault("driverCores", DEFAULT_DRIVER_CORES)); // 默认驱动核心数
         taskParams.put("driverMemory", params.getOrDefault("driverMemory", DEFAULT_DRIVER_MEMORY)); // 默认驱动内存
         taskParams.put("numExecutors", params.getOrDefault("numExecutors", DEFAULT_NUM_EXECUTORS)); // 默认执行器数量

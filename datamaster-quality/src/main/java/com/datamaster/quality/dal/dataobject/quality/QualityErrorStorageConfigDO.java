@@ -24,5 +24,5 @@ public class QualityErrorStorageConfigDO extends BaseEntity {
     private String enabled;
 
     @TableField("remark")
-    private String remark;
+    private String description;
 }

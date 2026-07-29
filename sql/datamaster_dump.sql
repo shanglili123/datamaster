@@ -24698,8 +24698,8 @@ CREATE TABLE IF NOT EXISTS "cat_db" (
     "storage_engine" character varying NULL,
     "responsible_dept" bigint NULL,
     "data_row_count" integer NULL,
-    "project_id" bigint NULL,
-    "project_code" character varying NULL
+    "space_id" bigint NULL,
+    "space_code" character varying NULL
 );
 
 INSERT INTO "cat_db" VALUES (2069080579840884738, 2068993451274502145, 2067498038285524993, 'test', 1, 9, '172.21.163.204', 5432, '{"username":"datamaster","password":"KC2NIvxiBfFsAf55bvzeaQ==","dbname":"datamaster_test","sid":"public"}', 'PostgreSQL', 'datamaster_test', 'public', NULL, NULL, 'PostgreSQL测试库(datamaster_test)', 2, NULL, NULL, NULL, 0, 100, '2', '2026-06-22 23:30:26.512000', '0', '1', '0', '超级管理员', 1, '2026-06-22 23:30:26.550000', NULL, NULL, '2026-06-22 23:30:26.550000', NULL, NULL, '0', NULL, NULL, 0, NULL, NULL);
@@ -26137,8 +26137,8 @@ CREATE TABLE IF NOT EXISTS "cat_task_instance" (
     "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "remark" character varying NULL,
     "description" character varying NULL,
-    "project_id" bigint NULL,
-    "project_code" character varying NULL
+    "space_id" bigint NULL,
+    "space_code" character varying NULL
 );
 
 INSERT INTO "cat_task_instance" VALUES (2077688792126398465, 2067498038285524993, 'test', 2077688435874811905, '1', '1', 23, 23, 0, NULL, 23, 0, 0, '2026-07-16 17:36:23.874000', '2026-07-16 17:36:50.547000', 26, '9', 'true', '0', '超级管理员', 1, '2026-07-16 17:36:24.315000', NULL, NULL, '2026-07-16 17:36:50.567000', NULL, NULL, 1, '174954643786848');
@@ -26158,8 +26158,8 @@ CREATE TABLE IF NOT EXISTS "cat_task_instance_log" (
     "updater_id" bigint NULL,
     "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "remark" character varying NULL,
-    "project_id" bigint NULL,
-    "project_code" character varying NULL
+    "space_id" bigint NULL,
+    "space_code" character varying NULL
 );
 
 INSERT INTO "cat_task_instance_log" VALUES (2077688792126398465, '2026-07-16 17:36:50.722000', 2077688435874811905, '2026-07-16 17:36:24.967 - 任务开始执行
@@ -28447,8 +28447,8 @@ CREATE TABLE IF NOT EXISTS "col_quality_task" (
     "task_code" character varying NULL,
     "asset_flag" character varying NOT NULL DEFAULT '0'::character varying,
     "asset_id" bigint NULL,
-    "project_id" bigint NULL,
-    "project_code" character varying NULL
+    "space_id" bigint NULL,
+    "space_code" character varying NULL
 );
 
 INSERT INTO "col_quality_task" VALUES (12, '水文监测水位数据（原始库）_ODS_HYD_WATER_LEVEL_20250930152908', '-1', NULL, NULL, NULL, '0', NULL, 'medium', 'default', 0, 0, 'PARALLEL', '0 0 0 * * ?', 0, '1', '0', '吴同', 2, '2025-09-30 15:30:32', '吴同', 2, '2025-09-30 15:30:36', NULL, 18, 106, '153381689437728', 169, '153381689458208', '1', 35, 1, '174954643786848');
@@ -31439,8 +31439,8 @@ CREATE TABLE IF NOT EXISTS "mdl_business_category" (
     "updater_id" bigint NULL,
     "update_time" timestamp without time zone NULL DEFAULT CURRENT_TIMESTAMP,
     "remark" character varying NULL,
-    "project_code" character varying NULL,
-    "project_id" bigint NULL,
+    "space_code" character varying NULL,
+    "space_id" bigint NULL,
     "code" character varying NULL,
     "parent_id" bigint NULL,
     "sort_order" integer NULL,
@@ -31465,8 +31465,8 @@ CREATE TABLE IF NOT EXISTS "mdl_data_domain" (
     "updater_id" bigint NULL,
     "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "remark" character varying NULL,
-    "project_id" bigint NULL,
-    "project_code" character varying NULL
+    "space_id" bigint NULL,
+    "space_code" character varying NULL
 );
 
 INSERT INTO "mdl_data_domain" VALUES (1, '水文监测数据域', 'HYD', 2, '水位、流量、流速、含沙量等实时水文要素监测数据', '1', '0', '吴同', 2, '2026-03-27 10:09:54.001000', '吴同', 2, '2026-03-27 10:09:33.655000', NULL, 1, '152317790975712');
@@ -31500,8 +31500,8 @@ CREATE TABLE IF NOT EXISTS "mdl_data_layer" (
     "updater_id" bigint NULL,
     "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "remark" character varying NULL,
-    "project_id" bigint NULL,
-    "project_code" character varying NULL
+    "space_id" bigint NULL,
+    "space_code" character varying NULL
 );
 
 INSERT INTO "mdl_data_layer" VALUES (1, '操作数据层', 'ODS', 1, '1', '也叫贴源层,本层直接存放从业务系统抽取过来的数据,这些数据从结构上和数据上与业务系统保持一致,降低了数据抽取的复杂性。', '1', '0', '吴同', 2, '2026-03-25 09:46:09.722000', '吴同', 2, '2026-03-25 09:46:09.722000', NULL, 1, '152317790975712');
@@ -31529,8 +31529,8 @@ CREATE TABLE IF NOT EXISTS "mdl_data_layer_specification" (
     "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "remark" character varying NULL,
     "sort_order" integer NULL,
-    "project_id" bigint NULL,
-    "project_code" character varying NULL
+    "space_id" bigint NULL,
+    "space_code" character varying NULL
 );
 
 INSERT INTO "mdl_data_layer_specification" VALUES (1, 1, 'ODS_HYD_ST', 'HYD', 1, '1', '水文监测原始数据贴源接入，包含水位、流量、雨量等实时报汛数据', '1', '0', '吴同', 2, '2026-03-27 11:06:46.730000', '吴同', 2, '2026-03-27 11:06:46.730000', NULL, 1, 1, '152317790975712');
@@ -31578,8 +31578,8 @@ CREATE TABLE IF NOT EXISTS "mdl_theme_domain" (
     "updater_id" bigint NULL,
     "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "remark" character varying NULL,
-    "project_id" bigint NULL,
-    "project_code" character varying NULL
+    "space_id" bigint NULL,
+    "space_code" character varying NULL
 );
 
 INSERT INTO "mdl_theme_domain" VALUES (1, 'A01', '水文气象域', 'HYD_MET', 0, 2, 1, '水文监测与气象降雨基础数据加工', '0', '0', '吴同', 2, '2026-03-27 10:51:05.434000', '吴同', 2, '2026-03-27 11:08:26.057000', NULL, 1, '152317790975712');
@@ -34304,8 +34304,8 @@ INSERT INTO "system_menu" VALUES (2559, '数据质量类目删除', 2556, 4, '#'
 INSERT INTO "system_menu" VALUES (2560, '数据质量类目修改', 2556, 3, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:qualityCat:edit', '#', 'admin', '2025-07-19 17:11:50', 'admin', '2025-09-30 09:53:22', NULL);
 INSERT INTO "system_menu" VALUES (2561, '数据质量类目新增', 2556, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:qualityCat:add', '#', 'admin', '2025-07-19 17:11:49', 'admin', '2025-09-30 09:53:16', NULL);
 INSERT INTO "system_menu" VALUES (2562, '数据质量类目查询', 2556, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:qualityCat:query', '#', 'admin', '2025-07-19 17:11:49', 'admin', '2025-09-30 09:53:11', NULL);
-INSERT INTO "system_menu" VALUES (2563, '质量任务日志', 2555, 11, 'qualityTaskLog', 'da/quality/qualityTaskLog/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:qualityLog:index', '#', 'admin', '2025-07-18 13:34:57', 'admin', '2025-09-30 10:53:19', NULL);
-INSERT INTO "system_menu" VALUES (2564, '质量任务日志详情', 2563, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dp:qualityLog:edit', '#', 'admin', '2025-08-18 15:04:28', 'admin', '2025-09-30 10:53:50', NULL);
+INSERT INTO "system_menu" VALUES (2563, '探查任务实例', 2555, 11, 'probeTaskInstance', 'ast/quality/probeTaskInstance/index', NULL, 1, 0, NULL, 'C', '0', '0', 'ast:probeTaskInstance:index', '#', 'admin', '2025-07-18 13:34:57', 'admin', '2025-09-30 10:53:19', NULL);
+INSERT INTO "system_menu" VALUES (2564, '探查任务实例详情', 2563, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'ast:probeTaskInstance:detail', '#', 'admin', '2025-08-18 15:04:28', 'admin', '2025-09-30 10:53:50', NULL);
 INSERT INTO "system_menu" VALUES (2565, '数据质量任务', 2555, 10, 'qualityTask', 'da/quality/qualityTask/index', NULL, 1, 0, NULL, 'C', '0', '0', 'da:qualityTask:index', '#', 'admin', '2025-07-11 11:25:35', 'admin', '2025-09-30 10:51:52', NULL);
 INSERT INTO "system_menu" VALUES (2566, '数据质量任务执行一次', 2565, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:qualityTask:once', '#', 'admin', '2025-08-18 14:50:02', 'admin', '2025-09-30 10:52:34', NULL);
 INSERT INTO "system_menu" VALUES (2567, '数据质量任务调度周期', 2565, 0, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'da:qualityTask:schedule', '#', 'admin', '2025-08-18 14:48:55', 'admin', '2025-09-30 10:52:27', NULL);
@@ -34331,7 +34331,7 @@ INSERT INTO "system_menu" VALUES (2683, '应用API服务关联查询', 2457, 0, 
 INSERT INTO "system_menu" VALUES (2684, '应用API服务关联新增', 2457, 9, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:clientApiRel:add', '#', 'admin', '2025-09-30 16:22:26', 'admin', '2025-09-30 16:23:35', NULL);
 INSERT INTO "system_menu" VALUES (2685, '应用API服务关联修改', 2457, 8, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:clientApiRel:edit', '#', 'admin', '2025-09-30 16:22:48', 'admin', '2025-09-30 16:23:39', NULL);
 INSERT INTO "system_menu" VALUES (2686, '应用API服务关联删除', 2457, 10, NULL, NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'att:clientApiRel:remove', '#', 'admin', '2025-09-30 16:23:16', NULL, NULL, NULL);
-INSERT INTO "system_menu" VALUES (2694, '数据建模', 0, 2, 'dm', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'sjjm', 'admin', '2026-03-24 14:48:16', 'admin', '2026-03-27 16:06:56', NULL);
+INSERT INTO "system_menu" VALUES (2694, '标准建模', 0, 2, 'dm', NULL, NULL, 1, 0, NULL, 'M', '0', '0', NULL, 'sjjm', 'admin', '2026-03-24 14:48:16', 'admin', '2026-03-27 16:06:56', NULL);
 INSERT INTO "system_menu" VALUES (2695, '数据域管理', 2694, 3, 'dataDomain', 'dm/dataDomain/index', NULL, 1, 0, NULL, 'C', '0', '0', 'dm:dataDomain:list', 'sjygl', 'admin', '2026-03-24 14:49:17', 'admin', '2026-03-27 16:52:40', '数据域管理菜单');
 INSERT INTO "system_menu" VALUES (2696, '数据域管理查询', 2695, 1, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dm:dataDomain:query', '#', 'admin', '2026-03-24 14:50:22', NULL, NULL, NULL);
 INSERT INTO "system_menu" VALUES (2697, '数据域管理新增', 2695, 2, '#', NULL, NULL, 1, 0, NULL, 'F', '0', '0', 'dm:dataDomain:add', '#', 'admin', '2026-03-24 14:50:22', NULL, NULL, NULL);

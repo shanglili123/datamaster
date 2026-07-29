@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="app-container" ref="app-container">
 
     <el-container style="90%">
-      <DeptTree :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入数据质量类目名称'" ref="DeptTreeRef"
+      <DeptTree :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入质量探查类目名称'" ref="DeptTreeRef"
         @node-click="handleNodeClick" />
       <el-main>
         <div class="pagecont-top" v-show="showSearch">
@@ -246,7 +246,7 @@ const handleSave = (form) => {
   const parms = {
     ...form,
 
-    projectCode: userStore.projectCode,
+    spaceCode: userStore.spaceCode,
     type: "3",//数据开发新增标识
   }
   createEtlTaskFront(parms).then((res) => {
@@ -264,7 +264,7 @@ function getDeptTree() {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "数据质量类目",
+        name: "质量探查类目",
         value: "",
         id: 0,
         children: deptOptions.value,
@@ -399,8 +399,8 @@ function normalizePageData(response) {
 
 function getList() {
   loading.value = true;
-  queryParams.value.projectCode = userStore.projectCode;
-  queryParams.value.projectId = userStore.projectId;
+  queryParams.value.spaceCode = userStore.spaceCode;
+  queryParams.value.spaceId = userStore.spaceId;
   listDppQualityTask(queryParams.value).then((response) => {
     const pageData = normalizePageData(response);
     DppQualityTaskEvaluateList.value = pageData.rows;
@@ -431,7 +431,7 @@ function resetQuery() {
 function handleDelete(row) {
   const _ids = row.id || ids.value;
   proxy.$modal
-    .confirm('是否确认删除数据质量任务编号为"' + _ids + '"的数据项？')
+    .confirm('是否确认删除质量探查任务编号为"' + _ids + '"的数据项？')
     .then(function () {
       return delDppQualityTask(_ids);
     })

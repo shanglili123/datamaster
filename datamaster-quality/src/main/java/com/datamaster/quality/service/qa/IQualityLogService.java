@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 /**
- * 数据质量日志Service接口
+ * 质量探查日志Service接口
  *
  * @author lili.shang
  * @date 2025-07-19
@@ -21,62 +21,62 @@ import java.util.Map;
 public interface IQualityLogService extends IService<QualityLogDO> {
 
     /**
-     * 获得数据质量日志分页列表
+     * 获得质量探查日志分页列表
      *
      * @param pageReqVO 分页请求
-     * @return 数据质量日志分页列表
+     * @return 质量探查日志分页列表
      */
     PageResult<QualityLogDO> getQualityLogPage(QualityLogPageReqVO pageReqVO);
 
     /**
-     * 创建数据质量日志
+     * 创建质量探查日志
      *
-     * @param createReqVO 数据质量日志信息
-     * @return 数据质量日志编号
+     * @param createReqVO 质量探查日志信息
+     * @return 质量探查日志编号
      */
     Long createQualityLog(QualityLogSaveReqVO createReqVO);
 
     /**
-     * 更新数据质量日志
+     * 更新质量探查日志
      *
-     * @param updateReqVO 数据质量日志信息
+     * @param updateReqVO 质量探查日志信息
      */
     int updateQualityLog(QualityLogSaveReqVO updateReqVO);
 
     /**
-     * 删除数据质量日志
+     * 删除质量探查日志
      *
-     * @param idList 数据质量日志编号
+     * @param idList 质量探查日志编号
      */
     int removeQualityLog(Collection<Long> idList);
 
     /**
-     * 获得数据质量日志详情
+     * 获得质量探查日志详情
      *
-     * @param id 数据质量日志编号
-     * @return 数据质量日志
+     * @param id 质量探查日志编号
+     * @return 质量探查日志
      */
     QualityLogDO getQualityLogById(Long id);
 
     /**
-     * 获得全部数据质量日志列表
+     * 获得全部质量探查日志列表
      *
-     * @return 数据质量日志列表
+     * @return 质量探查日志列表
      */
     List<QualityLogDO> getQualityLogList();
 
     /**
-     * 获得全部数据质量日志 Map
+     * 获得全部质量探查日志 Map
      *
-     * @return 数据质量日志 Map
+     * @return 质量探查日志 Map
      */
     Map<Long, QualityLogDO> getQualityLogMap();
 
 
     /**
-     * 导入数据质量日志数据
+     * 导入质量探查日志数据
      *
-     * @param importExcelList 数据质量日志数据列表
+     * @param importExcelList 质量探查日志数据列表
      * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
      * @param operName 操作用户
      * @return 结果

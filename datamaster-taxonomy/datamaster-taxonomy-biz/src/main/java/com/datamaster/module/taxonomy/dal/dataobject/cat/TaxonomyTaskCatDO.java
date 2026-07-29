@@ -23,11 +23,13 @@ public class TaxonomyTaskCatDO extends BaseEntity {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-/** 项目id */
-    private Long projectId;
+/** 空间id */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_ID")
+    private Long spaceId;
 
-    /** 项目code */
-    private String projectCode;
+    /** 空间code */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_CODE")
+    private String spaceCode;
 
     /** 类别名称 */
     private String name;

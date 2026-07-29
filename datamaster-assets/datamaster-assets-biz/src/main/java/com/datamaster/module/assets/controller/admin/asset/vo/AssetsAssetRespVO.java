@@ -28,13 +28,13 @@ public class AssetsAssetRespVO implements Serializable {
     @Excel(name = "ID")
     @Schema(description = "ID")
     private Long id;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String name;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String type;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String catCode;
     private String catName;
@@ -97,16 +97,16 @@ public class AssetsAssetRespVO implements Serializable {
     private String datasourceIp;
     @TableField(exist = false)
     private String datasourceType;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String tableName;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String tableComment;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private Long dataCount;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private Long fieldCount;
     /**
@@ -114,19 +114,19 @@ public class AssetsAssetRespVO implements Serializable {
      */
     @Schema(description = "", example = "")
     private String source;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String status;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String description;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private Boolean validFlag;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private Boolean delFlag;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String createBy;
     @Excel(name = "id")
@@ -136,7 +136,7 @@ public class AssetsAssetRespVO implements Serializable {
     @Schema(description = "", example = "")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
     private String updateBy;
     @Excel(name = "id")
@@ -146,9 +146,8 @@ public class AssetsAssetRespVO implements Serializable {
     @Schema(description = "", example = "")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updateTime;
-    @Excel(name = "")
+
     @Schema(description = "", example = "")
-    private String remark;
     //api
     @TableField(exist = false)
     private AssetsAssetApiRespVO AssetsAssetApi;
@@ -174,12 +173,12 @@ public class AssetsAssetRespVO implements Serializable {
     @TableField(exist = false)
     private AssetsAssetFilesSaveReqVO AssetsAssetFiles;
     @Schema(description = "id", example = "")
-    private Long projectId;
+    private Long spaceId;
     @Schema(description = "", example = "")
-    private String projectCode;
+    private String spaceCode;
     @Schema(description = "", example = "")
     private String createType;
-    private List<String> tagIds;
+    private List<Long> tagIds;
     private List<String> tagNames;
     private String tags;
     private FileInfo fileInfo;

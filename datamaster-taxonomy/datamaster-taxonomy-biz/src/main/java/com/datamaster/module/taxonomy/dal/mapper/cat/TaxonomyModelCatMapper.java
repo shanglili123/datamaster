@@ -29,7 +29,7 @@ public interface TaxonomyModelCatMapper extends BaseMapperX<TaxonomyModelCatDO> 
                 // .likeIfPresent(TaxonomyModelCatDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
 //                .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
-                .eq(reqVO.getProjectId() != null, TaxonomyModelCatDO::getProjectId, reqVO.getProjectId())
+                .eq(reqVO.getSpaceId() != null, TaxonomyModelCatDO::getSpaceId, reqVO.getSpaceId())
                 .orderByAsc(TaxonomyModelCatDO::getSortOrder));
     }
 

@@ -28,8 +28,8 @@ public interface TaxonomyDataDevCatMapper extends BaseMapperX<TaxonomyDataDevCat
         return selectPage(reqVO, new LambdaQueryWrapperX<TaxonomyDataDevCatDO>()
                 .likeIfPresent(TaxonomyDataDevCatDO::getName, reqVO.getName())
                 .likeRightIfPresent(TaxonomyDataDevCatDO::getCode, reqVO.getCode())
-                .eqIfPresent(TaxonomyDataDevCatDO::getProjectId,reqVO.getProjectId())
-                .eqIfPresent(TaxonomyDataDevCatDO::getProjectCode,reqVO.getProjectCode())
+                .eqIfPresent(TaxonomyDataDevCatDO::getSpaceId,reqVO.getSpaceId())
+                .eqIfPresent(TaxonomyDataDevCatDO::getSpaceCode,reqVO.getSpaceCode())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(TaxonomyDataDevCatDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

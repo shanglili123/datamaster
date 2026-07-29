@@ -26,7 +26,7 @@ public class CheckErrorDataReqDTO implements Serializable {
      * 3-修改状态（忽略）
      */
     private String updateType;
-    private String remark;
+    private String description;
 
     private Integer pageNum;
     private Integer pageSize;

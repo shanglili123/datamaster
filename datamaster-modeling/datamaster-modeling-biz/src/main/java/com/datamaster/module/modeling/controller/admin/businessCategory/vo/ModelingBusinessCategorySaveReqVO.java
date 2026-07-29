@@ -64,8 +64,4 @@ public class ModelingBusinessCategorySaveReqVO extends BaseEntity {
     @Schema(description = "是否有效;0：无效，1：有效", example = "")
     private Boolean validFlag;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
-
 }

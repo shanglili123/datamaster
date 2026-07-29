@@ -7,12 +7,12 @@ import lombok.Data;
 import com.datamaster.common.core.page.PageParam;
 
 /**
- * 数据质量类目 Request VO 对象 TAX_QUALITY_CAT
+ * 质量探查类目 Request VO 对象 TAX_QUALITY_CAT
  *
  * @author DATAMASTER
  * @date 2025-07-19
  */
-@Schema(description = "数据质量类目 Request VO")
+@Schema(description = "质量探查类目 Request VO")
 @Data
 public class TaxonomyQualityCatPageReqVO extends PageParam {
 
@@ -38,10 +38,10 @@ public class TaxonomyQualityCatPageReqVO extends PageParam {
 
     private Boolean validFlag;
 
-    @Schema(description = "项目ID")
-    private Long projectId;
+    @Schema(description = "空间ID")
+    private Long spaceId;
 
-    @Schema(description = "项目编码")
-    private String projectCode;
+    @Schema(description = "空间编码")
+    private String spaceCode;
 
 }

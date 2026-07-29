@@ -9,12 +9,12 @@ import com.datamaster.common.core.domain.BaseEntity;
 import javax.validation.constraints.Size;
 
 /**
- * 数据质量类目 创建/修改 Request VO TAX_QUALITY_CAT
+ * 质量探查类目 创建/修改 Request VO TAX_QUALITY_CAT
  *
  * @author DATAMASTER
  * @date 2025-07-19
  */
-@Schema(description = "数据质量类目 Response VO")
+@Schema(description = "质量探查类目 Response VO")
 @Data
 public class TaxonomyQualityCatSaveReqVO extends BaseEntity {
 
@@ -45,14 +45,10 @@ public class TaxonomyQualityCatSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "描述长度不能超过256个字符")
     private String description;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    @Schema(description = "空间ID")
+    private Long spaceId;
 
-    @Schema(description = "项目ID")
-    private Long projectId;
-
-    @Schema(description = "项目编码")
-    private String projectCode;
+    @Schema(description = "空间编码")
+    private String spaceCode;
 
 }

@@ -49,10 +49,10 @@ public class CollectorEtlNodeInstancePageReqVO extends PageParam {
     private String taskInstanceName;
 
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "提交时间", example = "")
     private Date submitTime;

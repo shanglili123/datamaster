@@ -56,7 +56,7 @@ public class TaxonomySourceSystemController extends BaseController {
     @Operation(summary = "查询来源系统列表")
     @GetMapping("/listValid")
     public CommonResult<List<TaxonomySourceSystemRespVO>> listValid(TaxonomySourceSystemPageReqVO TaxonomySourceSystem) {
-        List<TaxonomySourceSystemDO> TaxonomySourceSystemList = TaxonomySourceSystemService.getValidSourceSystemList(TaxonomySourceSystem.getProjectId());
+        List<TaxonomySourceSystemDO> TaxonomySourceSystemList = TaxonomySourceSystemService.getValidSourceSystemList(TaxonomySourceSystem.getSpaceId());
         return CommonResult.success(BeanUtils.toBean(TaxonomySourceSystemList, TaxonomySourceSystemRespVO.class));
     }
 

@@ -24,7 +24,7 @@ public class AiAskMessageDO extends BaseEntity {
 
     private Long userId;
 
-    private Long projectId;
+    private Long spaceId;
 
     private String role;
 

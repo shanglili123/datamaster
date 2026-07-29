@@ -73,11 +73,18 @@ public class TaxonomyClientApiRelDO extends BaseEntity {
      */
     private String status;
 
-    /** 项目ID */
-    private Long projectId;
+    /**
+     * 描述
+     */
+    private String description;
 
-    /** 项目编码 */
-    private String projectCode;
+    /** 空间ID */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_ID")
+    private Long spaceId;
+
+    /** 空间编码 */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_CODE")
+    private String spaceCode;
 
     /**
      * 是否有效

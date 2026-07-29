@@ -24,9 +24,9 @@ public interface ComponentItem {
     String DEFAULT_FLAG = "YES"; // 默认标志，表示节点启用
     String DEFAULT_IS_CACHE = "NO"; // 默认不启用缓存
     String DEFAULT_TASK_PRIORITY = "MEDIUM"; // 默认任务优先级
-    String DEFAULT_TASK_TYPE = "SPARK"; // 默认任务类型，SPARK或DATAX等
+    String DEFAULT_TASK_TYPE = "CHUNJUN"; // 默认任务类型
     String DEFAULT_PROGRAM_TYPE = "JAVA"; // 默认程序类型，JAVA
-    String DEFAULT_MAIN_JAR = "file:/dolphinscheduler/default/resources/spart-demo-1.0.jar"; // 默认主Jar路径
+    String DEFAULT_MAIN_JAR = ""; // 默认主Jar路径
     String DEFAULT_DEPLOY_MODE = "client"; // 默认部署模式
     int DEFAULT_DRIVER_CORES = 1; // 默认驱动核心数
     String DEFAULT_DRIVER_MEMORY = "512M"; // 默认驱动内存

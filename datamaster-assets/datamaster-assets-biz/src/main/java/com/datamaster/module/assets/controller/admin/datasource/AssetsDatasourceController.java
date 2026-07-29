@@ -22,8 +22,8 @@ import com.datamaster.common.enums.BusinessType;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.common.utils.poi.ExcelUtil;
-import com.datamaster.module.taxonomy.api.project.dto.TaxonomyProjectReqDTO;
-import com.datamaster.module.taxonomy.api.project.dto.TaxonomyProjectRespDTO;
+import com.datamaster.module.taxonomy.api.space.dto.TaxonomySpaceReqDTO;
+import com.datamaster.module.taxonomy.api.space.dto.TaxonomySpaceRespDTO;
 import com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO;
 import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnRelRuleVO;
 import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnPageReqVO;
@@ -87,8 +87,8 @@ public class AssetsDatasourceController extends BaseController {
     @Operation(summary = "查询空间列表，让研发模块添加的数据不可选中")
     @PreAuthorize("@ss.hasPermi('ast:dataSource:list')")
     @GetMapping("/noDppAdd/list")
-    public CommonResult<PageResult<TaxonomyProjectRespDTO>> noDppAddList(TaxonomyProjectReqDTO pageReqVO) {
-        PageResult<TaxonomyProjectRespDTO> page = AssetsDatasourceService.getNoDppAddList(pageReqVO);
+    public CommonResult<PageResult<TaxonomySpaceRespDTO>> noDppAddList(TaxonomySpaceReqDTO pageReqVO) {
+        PageResult<TaxonomySpaceRespDTO> page = AssetsDatasourceService.getNoDppAddList(pageReqVO);
         return CommonResult.success(page);
     }
 
@@ -264,16 +264,16 @@ public class AssetsDatasourceController extends BaseController {
     @PostMapping(value = "/columnsAsAssetColumnList")
     public CommonResult<List<AssetsAssetColumnDO>> columnsAsAssetColumnList(@RequestBody @Valid AssetsDatasourceTableVO param) {
         List<AssetsAssetColumnDO> columns = AssetsDatasourceService.columnsAsAssetColumnList(param.getId(), param.getTableName());
-        boolean columnAuthScoped = param.getProjectId() != null || StringUtils.isNotEmpty(param.getProjectCode());
+        boolean columnAuthScoped = param.getSpaceId() != null || StringUtils.isNotEmpty(param.getSpaceCode());
         if (columnAuthScoped) {
             List<AssetsAssetDO> assets = AssetsAssetService.getAssetByDataSourceId(param.getId(), param.getTableName());
             if (!assets.isEmpty()) {
                 List<AssetsAssetColumnDO> authorizedColumns = new ArrayList<>();
                 for (AssetsAssetDO asset : assets) {
                     AssetsAssetColumnPageReqVO columnReqVO = new AssetsAssetColumnPageReqVO();
-                    columnReqVO.setAssetId(String.valueOf(asset.getId()));
-                    columnReqVO.setProjectId(param.getProjectId());
-                    columnReqVO.setProjectCode(param.getProjectCode());
+                    columnReqVO.setAssetId(asset.getId());
+                    columnReqVO.setSpaceId(param.getSpaceId());
+                    columnReqVO.setSpaceCode(param.getSpaceCode());
                     authorizedColumns.addAll(assetsAssetColumnService.getAssetColumnList(columnReqVO));
                 }
                 columns = authorizedColumns;

@@ -420,7 +420,7 @@ const TYPE_INFOS = {
       icon: "meta-column-count",
     },
     {
-      label: "数据质量",
+      label: "质量探查",
       key: "mdTableRespVO.dataQuality",
       unit: "分",
       icon: "meta-table-quality",

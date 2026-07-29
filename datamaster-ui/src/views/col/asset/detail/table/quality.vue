@@ -39,11 +39,11 @@
                 <el-col :xs="24" :sm="24" :md="12" class="stats-panel">
                     <div class="module-8 border-item">
                         <div class="border-item-head">
-                            <span class="head-title">数据质量维度统计 </span>
+                            <span class="head-title">质量探查维度统计 </span>
                         </div>
                         <div class="border-item-body">
                             <div class="overall-score">
-                                <span>整体数据质量评分：</span>
+                                <span>整体质量探查评分：</span>
                                 <span class="score" :class="getScoreClass(taskData?.score)">
                                     {{ taskData?.score || '0' }}
                                 </span>
@@ -203,13 +203,13 @@ import moment from 'moment';
 const { proxy } = getCurrentInstance();
 
 import qualityTaskDialog from '../components/qualityTaskAdd.vue';
-import ProblemDialog from '@/views/ast/quality/qualityTaskLog/components/problemData.vue';
+import ProblemDialog from '@/views/ast/quality/probeTaskInstance/components/problemData.vue';
 
 import {
     statisticsEvaluateOne,
     statisticsEvaluateTow,
     statisticsEvaluateTable
-} from "@/api/ast/quality/qualityTaskLog";
+} from "@/api/ast/quality/probeTaskInstance";
 import {
     listDppQualityTask,
     delDppQualityTask,

@@ -5,5 +5,5 @@ import java.util.Map;
 
 public interface ISysHomeService {
 
-    Map<String, Object> getHomeStats(Long projectId, String projectCode);
+    Map<String, Object> getHomeStats(Long spaceId, String spaceCode);
 }

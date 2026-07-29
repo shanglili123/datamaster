@@ -24,5 +24,5 @@ public class CollectorQualityErrorStorageConfigDO extends BaseEntity {
     private String enabled;
 
     @TableField("remark")
-    private String remark;
+    private String description;
 }

@@ -74,7 +74,7 @@ public class AssetsAssetApplyServiceImpl extends ServiceImpl<AssetsAssetApplyMap
     public Long createAssetApply(AssetsAssetApplySaveReqVO createReqVO) {
         AssetsAssetApplyDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetApplyDO.class);
         LambdaQueryWrapperX<AssetsAssetApplyDO> queryWrapperX = new LambdaQueryWrapperX<>();
-        queryWrapperX.eq(true, AssetsAssetApplyDO::getAssetId, dictType.getAssetId()).eq(true, AssetsAssetApplyDO::getProjectId, dictType.getProjectId()).eq(true, AssetsAssetApplyDO::getProjectCode, dictType.getProjectCode());
+        queryWrapperX.eq(true, AssetsAssetApplyDO::getAssetId, dictType.getAssetId()).eq(true, AssetsAssetApplyDO::getSpaceId, dictType.getSpaceId()).eq(true, AssetsAssetApplyDO::getSpaceCode, dictType.getSpaceCode());
         AssetsAssetApplyDO AssetsAssetApplyDO = AssetsAssetApplyMapper.selectOne(queryWrapperX);
         if (AssetsAssetApplyDO != null && "2".equals(AssetsAssetApplyDO.getStatus())) {
             AssetsAssetApplyDO.setStatus("1");
@@ -82,7 +82,7 @@ public class AssetsAssetApplyServiceImpl extends ServiceImpl<AssetsAssetApplyMap
             return AssetsAssetApplyDO.getId();
         }
         if (AssetsAssetApplyDO != null) {
-            throw new ServiceException(createReqVO.getProjectName() + "" + createReqVO.getAssetName() + ",!");
+            throw new ServiceException(createReqVO.getSpaceName() + "" + createReqVO.getAssetName() + ",!");
         }
         AssetsAssetApplyMapper.insert(dictType);
         return dictType.getId();
@@ -120,7 +120,7 @@ public class AssetsAssetApplyServiceImpl extends ServiceImpl<AssetsAssetApplyMap
     @Override
     public AssetsAssetApplyDO getAssetApplyById(Long id) {
         MPJLambdaWrapper<AssetsAssetApplyDO> lambdaWrapper = new MPJLambdaWrapper<>();
-        lambdaWrapper.selectAll(AssetsAssetApplyDO.class).select("t2.NAME AS assetName,t2.DESCRIPTION AS description, t2.TABLE_NAME AS assetTableName, t3.NAME AS projectName, " + "t5.DATASOURCE_NAME AS datasourceName, t5.IP AS datasourceIp, t5.DATASOURCE_TYPE AS datasourceType, t6.PHONENUMBER AS phonenumber").leftJoin("AST_ASSET t2 on t.ASSET_ID = t2.ID AND t2.DEL_FLAG = '0'").leftJoin("TAX_PROJECT t3 on t.PROJECT_ID = t3.ID AND t3.DEL_FLAG = '0'")
+        lambdaWrapper.selectAll(AssetsAssetApplyDO.class).select("t2.NAME AS assetName,t2.DESCRIPTION AS description, t2.TABLE_NAME AS assetTableName, t3.NAME AS spaceName, " + "t5.DATASOURCE_NAME AS datasourceName, t5.IP AS datasourceIp, t5.DATASOURCE_TYPE AS datasourceType, t6.PHONENUMBER AS phonenumber").leftJoin("AST_ASSET t2 on t.ASSET_ID = t2.ID AND t2.DEL_FLAG = '0'").leftJoin("TAX_SPACE t3 on t.SPACE_ID = t3.ID AND t3.DEL_FLAG = '0'")
 //                .leftJoin("ATT_THEME t4 on t2.THEME_ID = t4.ID AND t4.DEL_FLAG = '0'")
                 .leftJoin("AST_DATASOURCE t5 on t2.DATASOURCE_ID = t5.ID AND t5.DEL_FLAG = '0'")
                 .leftJoin("SYSTEM_USER t6 on t.CREATOR_ID = t6.USER_ID AND t6.DEL_FLAG = '0'")

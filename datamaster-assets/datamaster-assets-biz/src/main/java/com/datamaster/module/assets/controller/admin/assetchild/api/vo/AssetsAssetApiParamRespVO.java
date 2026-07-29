@@ -29,5 +29,5 @@ public class AssetsAssetApiParamRespVO implements Serializable {
 @Excel(name = "")    @Schema(description = "", example = "")    private String updateBy;
 @Excel(name = "id")    @Schema(description = "id", example = "")    private Long updaterId;
 @Excel(name = "", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    @Schema(description = "", example = "")    private Date updateTime;
-@Excel(name = "")    @Schema(description = "", example = "")    private String remark;
+@Excel(name = "")    @Schema(description = "", example = "")
 @TableField(exist = false)    private List<AssetsAssetApiParamRespVO> AssetsAssetApiParamList;}

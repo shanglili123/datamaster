@@ -1,5 +1,5 @@
-export const PROJECT_MODULE_ROUTE_PREFIXES = [
-    '/projectBase',
+export const SPACE_MODULE_ROUTE_PREFIXES = [
+    '/spaceBase',
     '/col',
     '/svc',
     '/mdl',
@@ -11,9 +11,9 @@ export const PROJECT_MODULE_ROUTE_PREFIXES = [
     '/ai'
 ];
 
-export function isProjectModuleRoute(path) {
+export function isSpaceModuleRoute(path) {
     const routePath = typeof path === 'string' && !isExternalPath(path) ? path : '';
-    return PROJECT_MODULE_ROUTE_PREFIXES.some(
+    return SPACE_MODULE_ROUTE_PREFIXES.some(
         (prefix) => routePath === prefix || routePath.startsWith(`${prefix}/`)
     );
 }

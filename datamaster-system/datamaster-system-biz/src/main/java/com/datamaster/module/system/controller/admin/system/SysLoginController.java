@@ -106,7 +106,7 @@ public class SysLoginController {
             System.out.println("zmzmz");
         }
         Long userId = SecurityUtils.getUserId();
-        List<SysMenu> menus = menuService.selectMenuTreeByUserIdAndProjectId(userId,id);
+        List<SysMenu> menus = menuService.selectMenuTreeByUserIdAndSpaceId(userId,id);
         return AjaxResult.success(menuService.buildMenus(menus));
     }
 }

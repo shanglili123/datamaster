@@ -25,11 +25,11 @@ public class AssetsAssetApplySaveReqVO extends BaseEntity {
     private Long assetId;
 
     @Schema(description = "id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "", example = "")
     @Size(max = 256, message = "256")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "01", example = "")
     private String sourceType;
@@ -48,7 +48,7 @@ public class AssetsAssetApplySaveReqVO extends BaseEntity {
 
     @Schema(description = "", example = "")
     @Size(max = 256, message = "256")
-    private String remark;
+    private String description;
 
     @Schema(description = "", example = "")
     private String assetName;
@@ -63,7 +63,7 @@ public class AssetsAssetApplySaveReqVO extends BaseEntity {
     private String catAssetCode;
 
     @Schema(description = "", example = "")
-    private String projectName;
+    private String spaceName;
 
     @Schema(description = "", example = "")
     private String themeName;

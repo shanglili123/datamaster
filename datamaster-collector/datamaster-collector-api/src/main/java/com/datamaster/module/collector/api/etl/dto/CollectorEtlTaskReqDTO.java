@@ -32,10 +32,10 @@ public class CollectorEtlTaskReqDTO {
     private Long version;
 
     /** 空间id */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "任务的执行策略", example = "")
     private String executionType;

@@ -9,11 +9,11 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Central role and permission policy for platform and project access.
+ * Central role and permission policy for platform and space access.
  */
 public class AccessPolicy
 {
-    public static final Long SYSTEM_PROJECT_ID = 0L;
+    public static final Long SYSTEM_SPACE_ID = 0L;
     public static final Long SYSTEM_ADMIN_ROLE_ID = 2L;
     public static final Long NORMAL_USER_ROLE_ID = 7L;
 
@@ -33,7 +33,7 @@ public class AccessPolicy
 
     public static boolean isSystemUserRole(SysRole role)
     {
-        return role != null && SYSTEM_PROJECT_ID.equals(role.getProjectId());
+        return role != null && SYSTEM_SPACE_ID.equals(role.getSpaceId());
     }
 
     public static boolean isAssignableSystemUserRole(SysRole role, Long operatorUserId)
@@ -55,7 +55,7 @@ public class AccessPolicy
                 && (SYSTEM_ADMIN_ROLE_ID.equals(role.getRoleId()) || NORMAL_USER_ROLE_ID.equals(role.getRoleId()));
     }
 
-    public static boolean hasProjectAdminRole(List<SysRole> roles)
+    public static boolean hasSpaceAdminRole(List<SysRole> roles)
     {
         for (SysRole role : safeRoles(roles))
         {
@@ -85,7 +85,7 @@ public class AccessPolicy
         return false;
     }
 
-    public static boolean canAccessMenu(SysMenu menu, Long userId, List<SysRole> roles, boolean projectMode)
+    public static boolean canAccessMenu(SysMenu menu, Long userId, List<SysRole> roles, boolean spaceMode)
     {
         if (isPlatformAdmin(userId, roles))
         {
@@ -101,11 +101,11 @@ public class AccessPolicy
         }
         if (isLogMenu(menu))
         {
-            return hasOpsRole(roles) || hasProjectAdminRole(roles);
+            return hasOpsRole(roles) || hasSpaceAdminRole(roles);
         }
-        if (isProjectBaseMenu(menu))
+        if (isSpaceBaseMenu(menu))
         {
-            return hasProjectAdminRole(roles);
+            return hasSpaceAdminRole(roles);
         }
         return true;
     }
@@ -130,16 +130,16 @@ public class AccessPolicy
         }
         if (isLogPermission(permission))
         {
-            return hasOpsRole(roles) || hasProjectAdminRole(roles);
+            return hasOpsRole(roles) || hasSpaceAdminRole(roles);
         }
-        if (isProjectBasePermission(permission))
+        if (isSpaceBasePermission(permission))
         {
-            return hasProjectAdminRole(roles);
+            return hasSpaceAdminRole(roles);
         }
         return true;
     }
 
-    public static boolean isProjectAdminPermission(String permission)
+    public static boolean isSpaceAdminPermission(String permission)
     {
         return !isSystemPermission(permission) && !isPlatformOnlyPermission(permission);
     }
@@ -160,7 +160,7 @@ public class AccessPolicy
                 || (perms != null && perms.startsWith("system:"));
     }
 
-    private static boolean isProjectBaseMenu(SysMenu menu)
+    private static boolean isSpaceBaseMenu(SysMenu menu)
     {
         String path = lower(menu.getPath());
         String perms = lower(menu.getPerms());
@@ -168,10 +168,10 @@ public class AccessPolicy
         return "空间基础管理".equals(name)
                 || "成员角色管理".equals(name)
                 || "setting".equals(path)
-                || "projectuserrel".equals(path)
+                || "spaceuserrel".equals(path)
                 || "taskcat".equals(path)
                 || "datadevcat".equals(path)
-                || isProjectBasePermission(perms);
+                || isSpaceBasePermission(perms);
     }
 
     private static boolean isLogMenu(SysMenu menu)
@@ -193,7 +193,7 @@ public class AccessPolicy
     private static boolean isPlatformOnlyPermission(String permission)
     {
         String value = lower(permission);
-        return "tax:project:add".equals(value);
+        return "tax:space:add".equals(value);
     }
 
     private static boolean isLogPermission(String permission)
@@ -202,11 +202,11 @@ public class AccessPolicy
         return value != null && (value.startsWith("monitor:") || value.contains("log"));
     }
 
-    private static boolean isProjectBasePermission(String permission)
+    private static boolean isSpaceBasePermission(String permission)
     {
         String value = lower(permission);
-        return value != null && (value.startsWith("col:projectuserrel:")
-                || value.startsWith("col:project:role:")
+        return value != null && (value.startsWith("col:spaceuserrel:")
+                || value.startsWith("col:space:role:")
                 || value.startsWith("col:taskcat:")
                 || value.startsWith("col:datadevcat:"));
     }

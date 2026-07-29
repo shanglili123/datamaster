@@ -79,9 +79,6 @@ public class StandardsDataLevelRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
 
     @Excel(name = "颜色值")
     @Schema(description = "颜色值", example = "")

@@ -1,4 +1,4 @@
-
+﻿
 import axios from 'axios'
 import { ElNotification, ElMessageBox, ElMessage, ElLoading } from 'element-plus'
 import { getToken } from '@/utils/auth'
@@ -23,7 +23,7 @@ const service = axios.create({
 
 let cancelTokens = [];
 
-function hasProjectValue(value) {
+function hasSpaceValue(value) {
   return value !== undefined && value !== null && value !== '';
 }
 
@@ -31,22 +31,22 @@ function hasProjectValue(value) {
 service.interceptors.request.use(config => {
   // 自动注入当前空间ID/编码
   const userStore = useUserStore();
-  if (userStore.projectId && !config.url?.includes('/system/role/list')) {
+  if (userStore.spaceId && !config.url?.includes('/system/role/list')) {
     if (config.method === 'get' && config.params) {
-      if (!hasProjectValue(config.params.projectId)) {
-        config.params.projectId = userStore.projectId;
+      if (!hasSpaceValue(config.params.spaceId)) {
+        config.params.spaceId = userStore.spaceId;
       }
-      if (!hasProjectValue(config.params.projectCode)) {
-        config.params.projectCode = userStore.projectCode;
+      if (!hasSpaceValue(config.params.spaceCode)) {
+        config.params.spaceCode = userStore.spaceCode;
       }
     } else if (config.method === 'get') {
-      config.params = { projectId: userStore.projectId, projectCode: userStore.projectCode };
+      config.params = { spaceId: userStore.spaceId, spaceCode: userStore.spaceCode };
     } else if (config.data && !(config.data instanceof FormData)) {
-      if (!hasProjectValue(config.data.projectId)) {
-        config.data.projectId = userStore.projectId;
+      if (!hasSpaceValue(config.data.spaceId)) {
+        config.data.spaceId = userStore.spaceId;
       }
-      if (!hasProjectValue(config.data.projectCode)) {
-        config.data.projectCode = userStore.projectCode;
+      if (!hasSpaceValue(config.data.spaceCode)) {
+        config.data.spaceCode = userStore.spaceCode;
       }
     }
   }

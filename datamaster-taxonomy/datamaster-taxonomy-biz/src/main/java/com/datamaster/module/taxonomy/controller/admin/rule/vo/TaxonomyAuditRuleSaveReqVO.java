@@ -43,10 +43,6 @@ public class TaxonomyAuditRuleSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "规则描述长度不能超过256个字符")
     private String description;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
-
     @Schema(description = "规则编码", example = "101")
     private String code;
 

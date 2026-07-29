@@ -47,9 +47,5 @@ public class StandardsSensitiveLevelSaveReqVO extends BaseEntity {
     @Size(max = 3000, message = "描述长度不能超过3000个字符")
     private String description;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 3000, message = "备注长度不能超过3000个字符")
-    private String remark;
-
 
 }

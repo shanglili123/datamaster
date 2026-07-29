@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { listDaDatasourceNoKafkaByProjectCode } from "@/api/ast/dataSource/dataSource.js";
+import { listDaDatasourceNoKafkaBySpaceCode } from "@/api/ast/dataSource/dataSource.js";
 import { getFileList } from "@/api/ast/asset/asset.js";
 import { getToken } from "@/utils/auth.js";
 import useUserStore from "@/store/system/user.js";
@@ -177,9 +177,9 @@ let loading = ref(false);
 const getDatasourceList = async () => {
   try {
     loading.value = true;
-    const response = await listDaDatasourceNoKafkaByProjectCode({
-      projectCode: userStore.projectCode,
-      projectId: userStore.projectId,
+    const response = await listDaDatasourceNoKafkaBySpaceCode({
+      spaceCode: userStore.spaceCode,
+      spaceId: userStore.spaceId,
     });
     createTypeList.value = response.data.filter((item) => item.datasourceType == "HDFS" || item.datasourceType == "FTP" || item.datasourceType == "OSS-ALIYUN");
   } finally {

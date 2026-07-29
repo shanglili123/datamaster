@@ -38,16 +38,16 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                         "t5.ENG_NAME AS dataDomainEngName",
                         "t6.NAME AS themeDomainName",
                         "t6.ENG_NAME AS themeDomainEngName",
-                        "COALESCE(t7.PROJECT_ID, t8.PROJECT_ID) AS projectId",
-                        "COALESCE(t7.PROJECT_CODE, t8.PROJECT_CODE) AS projectCode")
+                        "COALESCE(t7.SPACE_ID, t8.SPACE_ID) AS spaceId",
+                        "COALESCE(t7.SPACE_CODE, t8.SPACE_CODE) AS spaceCode")
                 .leftJoin("TAX_ASSET_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'")
 
                 .leftJoin("MDL_DATA_LAYER t3 ON t.DATA_LAYER_ID = t3.id AND t3.DEL_FLAG = '0'")
                 .leftJoin("MDL_BUSINESS_CATEGORY t4 ON t.BUSINESS_CATEGORY_ID = t4.id AND t4.DEL_FLAG = '0'")
                 .leftJoin("MDL_DATA_DOMAIN t5 ON t.DATA_DOMAIN_ID = t5.id AND t5.DEL_FLAG = '0'")
                 .leftJoin("MDL_THEME_DOMAIN t6 ON t.THEME_DOMAIN_ID = t6.id AND t6.DEL_FLAG = '0'")
-                .leftJoin("AST_ASSET_PROJECT_REL t7 on t.id = t7.ASSET_ID AND t7.DEL_FLAG = '0'")
-                .leftJoin("AST_DATASOURCE_PROJECT_REL t8 on t.DATASOURCE_ID = t8.DATASOURCE_ID");
+                .leftJoin("AST_ASSET_SPACE_REL t7 on t.id = t7.ASSET_ID AND t7.DEL_FLAG = '0'")
+                .leftJoin("AST_DATASOURCE_SPACE_REL t8 on t.DATASOURCE_ID = t8.DATASOURCE_ID");
 
         //增加标签筛选
         if (CollectionUtils.isNotEmpty(reqVO.getTagIdList())) {
@@ -113,16 +113,10 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                     "HAVING COUNT(d.ID) > 0";
         }
         lambdaWrapper.select("(" + subSelectSql + ") AS tags");
-        Long datasourceIdValue = null;
-        if (StringUtils.isNotBlank(reqVO.getDatasourceId())) {
-            try {
-                datasourceIdValue = Long.valueOf(reqVO.getDatasourceId());
-            } catch (NumberFormatException ignored) {}
-        }
         lambdaWrapper
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), AssetsAssetDO::getCatCode, reqVO.getCatCode())
                 .like(StringUtils.isNotBlank(reqVO.getName()), AssetsAssetDO::getName, reqVO.getName())
-                .eq(datasourceIdValue != null, AssetsAssetDO::getDatasourceId, datasourceIdValue)
+                .eq(reqVO.getDatasourceId() != null, AssetsAssetDO::getDatasourceId, reqVO.getDatasourceId())
                 .eq(StringUtils.isNotBlank(reqVO.getType()), AssetsAssetDO::getType, reqVO.getType())
                 .like(StringUtils.isNotBlank(reqVO.getTableName()), AssetsAssetDO::getTableName, reqVO.getTableName())
                 .eq(StringUtils.isNotBlank(reqVO.getTableComment()), AssetsAssetDO::getTableComment, reqVO.getTableComment())
@@ -137,8 +131,8 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                 .eq(reqVO.getDataDomainId() != null, AssetsAssetDO::getDataDomainId, reqVO.getDataDomainId())
                 .eq(reqVO.getThemeDomainId() != null, AssetsAssetDO::getThemeDomainId, reqVO.getThemeDomainId())
                 .likeRight(StringUtils.isNotBlank(reqVO.getThemeDomainCode()), AssetsAssetDO::getThemeDomainCode, reqVO.getThemeDomainCode())
-                .and(reqVO.getProjectId() != null, wrapper -> wrapper.eq("t7.PROJECT_ID", reqVO.getProjectId()).or().eq("t8.PROJECT_ID", reqVO.getProjectId()))
-                .and(StringUtils.isNotBlank(reqVO.getProjectCode()), wrapper -> wrapper.eq("t7.PROJECT_CODE", reqVO.getProjectCode()).or().eq("t8.PROJECT_CODE", reqVO.getProjectCode()))
+                .and(reqVO.getSpaceId() != null, wrapper -> wrapper.eq("t7.SPACE_ID", reqVO.getSpaceId()).or().eq("t8.SPACE_ID", reqVO.getSpaceId()))
+                .and(StringUtils.isNotBlank(reqVO.getSpaceCode()), wrapper -> wrapper.eq("t7.SPACE_CODE", reqVO.getSpaceCode()).or().eq("t8.SPACE_CODE", reqVO.getSpaceCode()))
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn()
                                                                                                                                                                                             .split(",")) : null);
         return selectJoinPage(reqVO, AssetsAssetDO.class, lambdaWrapper);
@@ -148,25 +142,19 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
         // 定义排序的字段（防止 SQL 注入，与数据库字段名称一致）
         Set<String> allowedColumns = new HashSet<>(Arrays.asList("id", "create_time", "update_time"));
 
-        Long datasourceIdValue2 = null;
-        if (StringUtils.isNotBlank(reqVO.getDatasourceId())) {
-            try {
-                datasourceIdValue2 = Long.valueOf(reqVO.getDatasourceId());
-            } catch (NumberFormatException ignored) {}
-        }
         MPJLambdaWrapper<AssetsAssetDO> lambdaWrapper = new MPJLambdaWrapper();
         boolean hasAssetIds = reqVO.getAssetIdList() != null && !reqVO.getAssetIdList().isEmpty();
-        boolean hasProjectId = reqVO.getProjectId() != null;
-        boolean hasProjectCode = StringUtils.isNotBlank(reqVO.getProjectCode());
+        boolean hasSpaceId = reqVO.getSpaceId() != null;
+        boolean hasSpaceCode = StringUtils.isNotBlank(reqVO.getSpaceCode());
         lambdaWrapper.selectAll(AssetsAssetDO.class)
                 .select("t2.NAME AS catName")
-                .select("COALESCE(t3.PROJECT_ID, t4.PROJECT_ID) AS projectId,COALESCE(t3.PROJECT_CODE, t4.PROJECT_CODE) AS projectCode")
+                .select("COALESCE(t3.SPACE_ID, t4.SPACE_ID) AS spaceId,COALESCE(t3.SPACE_CODE, t4.SPACE_CODE) AS spaceCode")
                 .leftJoin("TAX_ASSET_CAT t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0'")
-                .leftJoin("AST_ASSET_PROJECT_REL t3 on t.id = t3.ASSET_ID AND t3.DEL_FLAG = '0'")
-                .leftJoin("AST_DATASOURCE_PROJECT_REL t4 on t.DATASOURCE_ID = t4.DATASOURCE_ID")
+                .leftJoin("AST_ASSET_SPACE_REL t3 on t.id = t3.ASSET_ID AND t3.DEL_FLAG = '0'")
+                .leftJoin("AST_DATASOURCE_SPACE_REL t4 on t.DATASOURCE_ID = t4.DATASOURCE_ID")
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), AssetsAssetDO::getCatCode, reqVO.getCatCode())
                 .like(StringUtils.isNotBlank(reqVO.getName()), AssetsAssetDO::getName, reqVO.getName())
-                .eq(datasourceIdValue2 != null, AssetsAssetDO::getDatasourceId, datasourceIdValue2)
+                .eq(reqVO.getDatasourceId() != null, AssetsAssetDO::getDatasourceId, reqVO.getDatasourceId())
                 .eq(StringUtils.isNotBlank(reqVO.getType()), AssetsAssetDO::getType, reqVO.getType())
                 .like(StringUtils.isNotBlank(reqVO.getTableName()), AssetsAssetDO::getTableName, reqVO.getTableName())
                 .eq(StringUtils.isNotBlank(reqVO.getTableComment()), AssetsAssetDO::getTableComment, reqVO.getTableComment())
@@ -174,17 +162,17 @@ public interface AssetsAssetMapper extends BaseMapperX<AssetsAssetDO> {
                 .eq(StringUtils.isNotBlank(reqVO.getDescription()), AssetsAssetDO::getDescription, reqVO.getDescription())
                 .in(reqVO.getThemeAssetIdList() != null && !reqVO.getThemeAssetIdList()
                         .isEmpty(), AssetsAssetDO::getId, reqVO.getThemeAssetIdList())
-                .and(hasAssetIds || hasProjectId || hasProjectCode, wrapper -> {
+                .and(hasAssetIds || hasSpaceId || hasSpaceCode, wrapper -> {
                     if (hasAssetIds) {
                         wrapper.in(AssetsAssetDO::getId, reqVO.getAssetIdList());
                     }
-                    if (hasProjectId || hasProjectCode) {
+                    if (hasSpaceId || hasSpaceCode) {
                         if (hasAssetIds) {
                             wrapper.or();
                         }
-                        wrapper.and(projectWrapper -> projectWrapper
-                                .and(hasProjectId, idWrapper -> idWrapper.eq("t3.PROJECT_ID", reqVO.getProjectId()).or().eq("t4.PROJECT_ID", reqVO.getProjectId()))
-                                .and(hasProjectCode, codeWrapper -> codeWrapper.eq("t3.PROJECT_CODE", reqVO.getProjectCode()).or().eq("t4.PROJECT_CODE", reqVO.getProjectCode())));
+                        wrapper.and(spaceWrapper -> spaceWrapper
+                                .and(hasSpaceId, idWrapper -> idWrapper.eq("t3.SPACE_ID", reqVO.getSpaceId()).or().eq("t4.SPACE_ID", reqVO.getSpaceId()))
+                                .and(hasSpaceCode, codeWrapper -> codeWrapper.eq("t3.SPACE_CODE", reqVO.getSpaceCode()).or().eq("t4.SPACE_CODE", reqVO.getSpaceCode())));
                     }
                 })
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn()

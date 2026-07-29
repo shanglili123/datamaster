@@ -7,7 +7,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 	<resultMap type="SysRoleMenu" id="SysRoleMenuResult">
 		<result property="roleId"     column="role_id"      />
 		<result property="menuId"     column="menu_id"      />
-		<result property="projectId"     column="project_id"      />
+		<result property="spaceId"     column="space_id"      />
 	</resultMap>
 
 	<select id="checkMenuExistRole" resultType="Integer">
@@ -15,7 +15,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 	</select>
 
 	<select id="getByRoleIdList" resultType="SysRoleMenu">
-		select role_id,menu_id,project_id from system_role_menu where role_id in
+		select role_id,menu_id,space_id from system_role_menu where role_id in
 		<foreach collection="roleIdList" item="roleId" open="(" separator="," close=")">
 			#{roleId}
 		</foreach>

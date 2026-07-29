@@ -35,11 +35,11 @@ public class DatasourceDO extends BaseEntity {
 
     /** 空间名称 */
     @TableField(exist = false)
-    private String projectName;
+    private String spaceName;
 
     /** 是否是管理员分配给数据研发 */
     @TableField(exist = false)
-    private Boolean isAdminAddTo;
+    private Boolean adminAddTo;
 
     /** IP */
     private String ip;

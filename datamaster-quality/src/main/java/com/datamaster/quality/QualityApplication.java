@@ -17,7 +17,7 @@ import com.datamaster.common.httpClient.DsRequestUtils;
 
 /**
  * <P>
- * 用途:数据质量启动类
+ * 用途:质量探查启动类
  * </p>
  *
  * @author: FXB
@@ -34,7 +34,7 @@ import com.datamaster.common.httpClient.DsRequestUtils;
 public class QualityApplication {
     public static void main(String[] args) {
         SpringApplication.run(QualityApplication.class, args);
-        System.out.println("(♥◠‿◠)ﾉﾞ  数据质量启动成功   ლ(´ڡ`ლ)ﾞ  \n" +
+        System.out.println("(♥◠‿◠)ﾉﾞ  质量探查启动成功   ლ(´ڡ`ლ)ﾞ  \n" +
                 "    _            _         _        \n" +
                 "   / \\    _ __  (_)__   __(_)  __ _ \n" +
                 "  / _ \\  | '_ \\ | |\\ \\ / /| | / _` |\n" +

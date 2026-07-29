@@ -32,8 +32,8 @@ public interface TaxonomyTaskCatMapper extends BaseMapperX<TaxonomyTaskCatDO> {
                 .eqIfPresent(TaxonomyTaskCatDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(TaxonomyTaskCatDO::getCode, reqVO.getCode())
                 .eqIfPresent(TaxonomyTaskCatDO::getCreateTime, reqVO.getCreateTime())
-                .eqIfPresent(TaxonomyTaskCatDO::getProjectId,reqVO.getProjectId())
-                .eqIfPresent(TaxonomyTaskCatDO::getProjectCode,reqVO.getProjectCode())
+                .eqIfPresent(TaxonomyTaskCatDO::getSpaceId,reqVO.getSpaceId())
+                .eqIfPresent(TaxonomyTaskCatDO::getSpaceCode,reqVO.getSpaceCode())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(TaxonomyTaskCatDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序

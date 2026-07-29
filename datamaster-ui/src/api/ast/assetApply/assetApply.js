@@ -2,12 +2,12 @@
 import request from '@/utils/request'
 import useUserStore from '@/store/system/user'
 
-function withProject(data = {}) {
+function withSpace(data = {}) {
   const userStore = useUserStore()
   return {
     ...data,
-    projectId: data.projectId || userStore.projectId || null,
-    projectCode: data.projectCode || userStore.projectCode || ''
+    spaceId: data.spaceId || userStore.spaceId || null,
+    spaceCode: data.spaceCode || userStore.spaceCode || ''
   }
 }
 
@@ -58,7 +58,7 @@ export function queryServiceForwarding(data) {
   return request({
     url: '/ast/api/queryServiceForwarding',
     method: 'post',
-    data: withProject(data)
+    data: withSpace(data)
   })
 }
 

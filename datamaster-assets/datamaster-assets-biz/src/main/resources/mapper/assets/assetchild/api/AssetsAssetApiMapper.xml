@@ -9,6 +9,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="assetId"    column="ASSET_ID"    />
         <result property="url"    column="URL"    />
         <result property="httpMethod"    column="HTTP_METHOD"    />
+        <result property="description"    column="DESCRIPTION"    />
         <result property="validFlag"    column="VALID_FLAG"    />
         <result property="developerName"    column="DEVELOPER_NAME"    />
         <result property="appName"    column="APP_NAME"    />
@@ -19,11 +20,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"    column="UPDATE_BY"    />
         <result property="updaterId"    column="UPDATER_ID"    />
         <result property="updateTime"    column="UPDATE_TIME"    />
-        <result property="remark"    column="REMARK"    />
     </resultMap>
 
     <sql id="selectAssetApiVo">
-        select ID, ASSET_ID, URL, HTTP_METHOD,DEVELOPER_NAME,APP_NAME, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_API
+        select ID, ASSET_ID, URL, HTTP_METHOD,DEVELOPER_NAME,APP_NAME, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME from AST_ASSET_API
     </sql>
 
     <select id="selectAssetApiList" parameterType="AssetsAssetApiDO" resultMap="AssetApiResult">
@@ -52,6 +52,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="httpMethod != null">HTTP_METHOD,</if>
             <if test="developerName != null">DEVELOPER_NAME,</if>
             <if test="appName != null">APP_NAME,</if>
+            <if test="description != null">DESCRIPTION,</if>
             <if test="validFlag != null">VALID_FLAG,</if>
             <if test="delFlag != null">DEL_FLAG,</if>
             <if test="createBy != null">CREATE_BY,</if>
@@ -60,7 +61,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY,</if>
             <if test="updaterId != null">UPDATER_ID,</if>
             <if test="updateTime != null">UPDATE_TIME,</if>
-            <if test="remark != null">REMARK,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -69,6 +69,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="httpMethod != null">#{httpMethod},</if>
             <if test="developerName != null">#{developerName},</if>
             <if test="appName != null">#{appName},</if>
+            <if test="description != null">#{description},</if>
             <if test="validFlag != null">#{validFlag},</if>
             <if test="delFlag != null">#{delFlag},</if>
             <if test="createBy != null">#{createBy},</if>
@@ -77,7 +78,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updaterId != null">#{updaterId},</if>
             <if test="updateTime != null">#{updateTime},</if>
-            <if test="remark != null">#{remark},</if>
          </trim>
     </insert>
 
@@ -89,6 +89,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="httpMethod != null">HTTP_METHOD = #{httpMethod},</if>
             <if test="developerName != null">DEVELOPER_NAME = #{developerName},</if>
             <if test="appName != null">APP_NAME = #{appName},</if>
+            <if test="description != null">DESCRIPTION = #{description},</if>
             <if test="validFlag != null">VALID_FLAG = #{validFlag},</if>
             <if test="delFlag != null">DEL_FLAG = #{delFlag},</if>
             <if test="createBy != null">CREATE_BY = #{createBy},</if>
@@ -97,7 +98,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY = #{updateBy},</if>
             <if test="updaterId != null">UPDATER_ID = #{updaterId},</if>
             <if test="updateTime != null">UPDATE_TIME = #{updateTime},</if>
-            <if test="remark != null">REMARK = #{remark},</if>
         </trim>
         where ID = #{id}
     </update>

@@ -123,8 +123,8 @@ public interface ICatalogTaskService extends IService<CatalogTaskDO> {
     /**
      * 获取指定空间下的来源系统树形结构，包含历史未绑定空间的采集任务。
      *
-     * @param projectId 空间ID
+     * @param spaceId 空间ID
      * @return 树形结构列表
      */
-    List<CatalogTaskSourceTreeRespVO> getSourceSystemTree(Long projectId);
+    List<CatalogTaskSourceTreeRespVO> getSourceSystemTree(Long spaceId);
 }

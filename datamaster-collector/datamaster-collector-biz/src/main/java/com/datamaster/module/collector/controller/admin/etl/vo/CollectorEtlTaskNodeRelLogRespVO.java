@@ -27,11 +27,11 @@ public class CollectorEtlTaskNodeRelLogRespVO implements Serializable {
 
     @Excel(name = "空间id")
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Excel(name = "空间编码")
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Excel(name = "任务id")
     @Schema(description = "任务id", example = "")
@@ -102,7 +102,7 @@ public class CollectorEtlTaskNodeRelLogRespVO implements Serializable {
     private Date updateTime;
 
     @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
 }

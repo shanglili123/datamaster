@@ -36,7 +36,7 @@ public class StandardsModelMaterializedPageReqVO extends PageParam {
     private String sqlCommand;
 
     @Schema(description = "数据源id", example = "")
-    private String datasourceId;
+    private Long datasourceId;
 
     @Schema(description = "数据源类型", example = "")
     private String datasourceType;
@@ -45,12 +45,12 @@ public class StandardsModelMaterializedPageReqVO extends PageParam {
     private String datasourceName;
 
     @Schema(description = "资产表id", example = "")
-    private String assetId;
+    private Long assetId;
 
     @Schema(description = "项目ID")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "项目编码")
-    private String projectCode;
+    private String spaceCode;
 
 }

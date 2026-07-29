@@ -14,9 +14,9 @@ public class AssetsTableGovernanceReqDTO implements Serializable {
 
     private String tableName;
 
-    private Long projectId;
+    private Long spaceId;
 
-    private String projectCode;
+    private String spaceCode;
 
     private List<String> columnNames;
 

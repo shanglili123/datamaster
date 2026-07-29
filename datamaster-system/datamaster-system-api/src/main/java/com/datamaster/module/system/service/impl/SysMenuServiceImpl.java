@@ -163,20 +163,20 @@ public class SysMenuServiceImpl implements ISysMenuService
      * 根据用户ID和空间ID查询菜单树信息
      *
      * @param userId 用户ID
-     * @param projectId 空间ID
+     * @param spaceId 空间ID
      * @return 菜单列表
      */
     @Override
-    public List<SysMenu> selectMenuTreeByUserIdAndProjectId(Long userId,Long projectId)
+    public List<SysMenu> selectMenuTreeByUserIdAndSpaceId(Long userId,Long spaceId)
     {
         List<SysMenu> menus = null;
-        if (AccessPolicy.isPlatformAdmin(userId, getLoginRoles()) || AccessPolicy.hasProjectAdminRole(getLoginRoles()))
+        if (AccessPolicy.isPlatformAdmin(userId, getLoginRoles()) || AccessPolicy.hasSpaceAdminRole(getLoginRoles()))
         {
             menus = menuMapper.selectMenuTreeAll();
         }
         else
         {
-            menus = menuMapper.selectMenuTreeByUserIdAndProjectId(userId,projectId);
+            menus = menuMapper.selectMenuTreeByUserIdAndSpaceId(userId,spaceId);
         }
         return getChildPerms(filterMenusByPolicy(menus, true), 0);
     }
@@ -645,7 +645,7 @@ public class SysMenuServiceImpl implements ISysMenuService
         return getChildList(list, t).size() > 0;
     }
 
-    private List<SysMenu> filterMenusByPolicy(List<SysMenu> menus, boolean projectMode)
+    private List<SysMenu> filterMenusByPolicy(List<SysMenu> menus, boolean spaceMode)
     {
         if (StringUtils.isEmpty(menus))
         {
@@ -665,7 +665,7 @@ public class SysMenuServiceImpl implements ISysMenuService
                     continue;
                 }
                 if (hiddenMenuIds.contains(menu.getParentId())
-                        || !AccessPolicy.canAccessMenu(menu, userId, roles, projectMode))
+                        || !AccessPolicy.canAccessMenu(menu, userId, roles, spaceMode))
                 {
                     hiddenMenuIds.add(menu.getMenuId());
                     changed = true;

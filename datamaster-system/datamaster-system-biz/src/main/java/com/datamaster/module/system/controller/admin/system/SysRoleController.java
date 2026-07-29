@@ -90,9 +90,9 @@ public class SysRoleController extends BaseController
     @PostMapping
     public AjaxResult add(@Validated @RequestBody SysRole role)
     {
-        if (role.getProjectId() == null)
+        if (role.getSpaceId() == null)
         {
-            role.setProjectId(AccessPolicy.SYSTEM_PROJECT_ID);
+            role.setSpaceId(AccessPolicy.SYSTEM_SPACE_ID);
         }
         if (!roleService.checkRoleNameUnique(role))
         {
@@ -150,7 +150,7 @@ public class SysRoleController extends BaseController
     @PutMapping("/dataScope")
     public AjaxResult dataScope(@RequestBody SysRole role)
     {
-        role.setProjectId(AccessPolicy.SYSTEM_PROJECT_ID);
+        role.setSpaceId(AccessPolicy.SYSTEM_SPACE_ID);
         roleService.checkRoleAllowed(role);
         roleService.checkRoleDataScope(role.getRoleId());
         return toAjax(roleService.authDataScope(role));

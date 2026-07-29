@@ -38,7 +38,7 @@ public class CollectorEvaluateLogRespDTO {
     /** 规则描述 */
     private String ruleDescription;
 
-    /** 数据质量记录id */
+    /** 质量探查记录id */
     private String taskLogId;
 
     /** 评测id */

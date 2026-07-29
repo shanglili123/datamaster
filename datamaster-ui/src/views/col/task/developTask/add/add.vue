@@ -140,7 +140,7 @@ import { useRoute, useRouter } from "vue-router";
 const route = useRoute();
 const { proxy } = getCurrentInstance();
 import { dppEtlSqlTemp, getNodeUniqueKey } from "@/api/col/task/index.js";
-import { listDaDatasourceNoKafkaByProjectCode } from "@/api/ast/dataSource/dataSource";
+import { listDaDatasourceNoKafkaBySpaceCode } from "@/api/ast/dataSource/dataSource";
 const { dpp_etl_task_status } = proxy.useDict("dpp_etl_task_status");
 import useUserStore from "@/store/system/user";
 const userStore = useUserStore();
@@ -231,9 +231,9 @@ function getDaDatasource(flag) {
     return;
   }
   loading.value = true;
-  listDaDatasourceNoKafkaByProjectCode({
-    projectCode: userStore.projectCode,
-    projectId: userStore.projectId,
+  listDaDatasourceNoKafkaBySpaceCode({
+    spaceCode: userStore.spaceCode,
+    spaceId: userStore.spaceId,
   }).then((response) => {
     createTypeList.value = response.data;
     if (flag) {
@@ -292,8 +292,8 @@ const saveClose = async () => {
     if (valid) {
       if (!form.value.code) {
         const response = await getNodeUniqueKey({
-          projectCode: userStore.projectCode || "133545087166112",
-          projectId: userStore.projectId,
+          spaceCode: userStore.spaceCode || "133545087166112",
+          spaceId: userStore.spaceId,
         });
         if (response && response.data) {
           form.value.code = response.data; // Set unique code
@@ -319,8 +319,8 @@ const saveData = async () => {
     if (valid) {
       if (!form.value.code) {
         const response = await getNodeUniqueKey({
-          projectCode: userStore.projectCode || "133545087166112",
-          projectId: userStore.projectId,
+          spaceCode: userStore.spaceCode || "133545087166112",
+          spaceId: userStore.spaceId,
         });
         if (response && response.data) {
           form.value.code = response.data; // Set unique code

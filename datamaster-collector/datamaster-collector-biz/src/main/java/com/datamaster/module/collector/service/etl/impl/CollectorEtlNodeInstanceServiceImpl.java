@@ -6,7 +6,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.datamaster.module.taxonomy.api.project.ITaxonomyProjectApi;
+import com.datamaster.module.taxonomy.api.space.ITaxonomySpaceApi;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -49,7 +49,7 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
     private ICollectorEtlTaskInstanceService CollectorEtlTaskInstanceService;
 
     @Resource
-    private ITaxonomyProjectApi attProjectApi;
+    private ITaxonomySpaceApi attProjectApi;
 
     @Resource
     private ICollectorEtlNodeInstanceLogService CollectorEtlNodeInstanceLogService;
@@ -190,8 +190,8 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
                 .nodeVersion(taskInstance.getTaskDefinitionVersion())
                 .taskInstanceId(taskInstance.getProcessInstanceId())
                 .taskInstanceName(taskInstance.getProcessInstanceName())
-                .projectId(attProjectApi.getProjectIdByProjectCode(String.valueOf(taskInstance.getProjectCode())))
-                .projectCode(String.valueOf(taskInstance.getProjectCode()))
+                .spaceId(attProjectApi.getSpaceIdBySpaceCode(String.valueOf(taskInstance.getProjectCode())))
+                .spaceCode(String.valueOf(taskInstance.getProjectCode()))
                 .submitTime(taskInstance.getSubmitTime())
                 .startTime(taskInstance.getStartTime())
                 .executePath(taskInstance.getExecutePath())

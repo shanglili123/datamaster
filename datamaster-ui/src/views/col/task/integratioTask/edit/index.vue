@@ -413,8 +413,8 @@ let userList = ref([]);
 let deptOptions = ref([]);
 function getDeptTree() {
   listAttTaskCat({
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
     validFlag: true,
   }).then((response) => {
     deptOptions.value = [];
@@ -444,7 +444,7 @@ const closeDialog = () => {
 };
 
 watch(
-  () => userStore.projectCode,
+  () => userStore.spaceCode,
   () => {
     getDeptTree();
   }
@@ -622,8 +622,8 @@ const handleExportData = async (localSave) => {
       ...exportData2.value,
       taskRelationJson: JSON.stringify(exportData2.value.taskRelationJson),
       taskDefinitionList: JSON.stringify(exportData2.value.taskDefinitionList),
-      projectCode: userStore.projectCode,
-      projectId: userStore.projectId,
+      spaceCode: userStore.spaceCode,
+      spaceId: userStore.spaceId,
       ...nodeData.value?.taskConfig,
     };
     // 判断是更新还是创建
@@ -1164,7 +1164,7 @@ const toolbarClick = (item) => {
 };
 // 初始化函数
 onMounted(async () => {
-  if (userStore.projectId) {
+  if (userStore.spaceId) {
     getDeptTree();
   }
   await initializeGraph();

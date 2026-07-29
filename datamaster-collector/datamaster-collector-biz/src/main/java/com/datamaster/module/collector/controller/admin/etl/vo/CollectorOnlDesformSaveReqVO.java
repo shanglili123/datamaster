@@ -62,9 +62,9 @@ public class CollectorOnlDesformSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "是否程序生成主键的值长度不能超过256个字符")
     private String createPkDataFlag;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 
 }

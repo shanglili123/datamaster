@@ -27,10 +27,10 @@ public class StandardsDataElemAssetRelDO extends BaseEntity {
     private String dataElemType;
 
     /** 数据元id */
-    private String dataElemId;
+    private Long dataElemId;
 
     /** 资产id(数据表id) */
-    private String assetId;
+    private Long assetId;
 
     /** 资产名称 */
     @TableField(exist = false)
@@ -48,16 +48,16 @@ public class StandardsDataElemAssetRelDO extends BaseEntity {
     private String tableName;
 
     /** 关联字段id */
-    private String columnId;
+    private Long columnId;
 
     /** 关联字段 */
     private String columnName;
 
     /** 项目ID */
-    private Long projectId;
+    private Long spaceId;
 
     /** 项目编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 是否有效 */
     private Boolean validFlag;

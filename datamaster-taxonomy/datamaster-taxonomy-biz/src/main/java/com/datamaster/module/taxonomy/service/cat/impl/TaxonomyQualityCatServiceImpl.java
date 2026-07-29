@@ -30,7 +30,7 @@ import com.datamaster.module.collector.api.service.qa.CollectorQualityTaskApiSer
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 
 /**
- * 数据质量类目Service业务层处理
+ * 质量探查类目Service业务层处理
  *
  * @author DATAMASTER
  * @date 2025-07-19
@@ -66,7 +66,7 @@ public class TaxonomyQualityCatServiceImpl  extends ServiceImpl<TaxonomyQualityC
         if (Boolean.FALSE.equals(updateReqVO.getValidFlag())) {
             Long countData = taskApiService.getCountByCatCode(catDO.getCode());
             if (countData > 0) {
-                throw new ServiceException("存在数据质量任务，不允许禁用");
+                throw new ServiceException("存在质量探查任务，不允许禁用");
             }
             TaxonomyQualityCatMapper.updateValidFlag(catDO.getCode(), updateReqVO.getValidFlag());
         } else if (Boolean.TRUE.equals(updateReqVO.getValidFlag())) {
@@ -75,7 +75,7 @@ public class TaxonomyQualityCatServiceImpl  extends ServiceImpl<TaxonomyQualityC
                 throw new ServiceException("须先启用父级");
             }
         }
-        // 更新数据质量类目
+        // 更新质量探查类目
         TaxonomyQualityCatDO updateObj = BeanUtils.toBean(updateReqVO, TaxonomyQualityCatDO.class);
         return TaxonomyQualityCatMapper.updateById(updateObj);
     }
@@ -85,10 +85,10 @@ public class TaxonomyQualityCatServiceImpl  extends ServiceImpl<TaxonomyQualityC
         List<TaxonomyQualityCatDO> TaxonomyQualityCatDOS = TaxonomyQualityCatMapper.selectBatchIds(idList);
         for (TaxonomyQualityCatDO cat : TaxonomyQualityCatDOS) {
             if (taskApiService.getCountByCatCode(cat.getCode()) > 0) {
-                throw new ServiceException("存在数据质量任务，不允许删除");
+                throw new ServiceException("存在质量探查任务，不允许删除");
             }
         }
-        // 批量删除数据质量类目
+        // 批量删除质量探查类目
         return TaxonomyQualityCatMapper.deleteBatchIds(idList);
     }
 
@@ -102,7 +102,7 @@ public class TaxonomyQualityCatServiceImpl  extends ServiceImpl<TaxonomyQualityC
         LambdaQueryWrapperX<TaxonomyQualityCatDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.likeIfPresent(TaxonomyQualityCatDO::getName, reqVO.getName())
                 .likeRightIfPresent(TaxonomyQualityCatDO::getCode, reqVO.getCode())
-                .eqIfPresent(TaxonomyQualityCatDO::getProjectId, reqVO.getProjectId())
+                .eqIfPresent(TaxonomyQualityCatDO::getSpaceId, reqVO.getSpaceId())
                 .eq(reqVO.getValidFlag() != null, TaxonomyQualityCatDO::getValidFlag, Boolean.TRUE.equals(reqVO.getValidFlag()) ? "1" : "0")
                 .orderByAsc(TaxonomyQualityCatDO::getSortOrder);
         return TaxonomyQualityCatMapper.selectList(queryWrapperX);
@@ -122,9 +122,9 @@ public class TaxonomyQualityCatServiceImpl  extends ServiceImpl<TaxonomyQualityC
 
 
     /**
-     * 导入数据质量类目数据
+     * 导入质量探查类目数据
      *
-     * @param importExcelList 数据质量类目数据列表
+     * @param importExcelList 质量探查类目数据列表
      * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
      * @param operName 操作用户
      * @return 结果
@@ -150,10 +150,10 @@ public class TaxonomyQualityCatServiceImpl  extends ServiceImpl<TaxonomyQualityC
                         if (existingAttQualityCat != null) {
                             TaxonomyQualityCatMapper.updateById(TaxonomyQualityCatDO);
                             successNum++;
-                            successMessages.add("数据更新成功，ID为 " + TaxonomyQualityCatId + " 的数据质量类目记录。");
+                            successMessages.add("数据更新成功，ID为 " + TaxonomyQualityCatId + " 的质量探查类目记录。");
                         } else {
                             failureNum++;
-                            failureMessages.add("数据更新失败，ID为 " + TaxonomyQualityCatId + " 的数据质量类目记录不存在。");
+                            failureMessages.add("数据更新失败，ID为 " + TaxonomyQualityCatId + " 的质量探查类目记录不存在。");
                         }
                     } else {
                         failureNum++;
@@ -166,10 +166,10 @@ public class TaxonomyQualityCatServiceImpl  extends ServiceImpl<TaxonomyQualityC
                     if (existingAttQualityCat == null) {
                         TaxonomyQualityCatMapper.insert(TaxonomyQualityCatDO);
                         successNum++;
-                        successMessages.add("数据插入成功，ID为 " + TaxonomyQualityCatId + " 的数据质量类目记录。");
+                        successMessages.add("数据插入成功，ID为 " + TaxonomyQualityCatId + " 的质量探查类目记录。");
                     } else {
                         failureNum++;
-                        failureMessages.add("数据插入失败，ID为 " + TaxonomyQualityCatId + " 的数据质量类目记录已存在。");
+                        failureMessages.add("数据插入失败，ID为 " + TaxonomyQualityCatId + " 的质量探查类目记录已存在。");
                     }
                 }
             } catch (Exception e) {

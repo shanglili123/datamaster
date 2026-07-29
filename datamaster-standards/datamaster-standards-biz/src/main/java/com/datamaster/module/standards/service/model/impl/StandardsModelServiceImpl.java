@@ -191,11 +191,11 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
         boolean save = false;
         List<StandardsDataElemAssetRelDO> StandardsDataElemAssetRelDOList = elementIds.stream().map(item -> {
             StandardsDataElemAssetRelDO StandardsDataElemAssetRelDO = new StandardsDataElemAssetRelDO();
-            StandardsDataElemAssetRelDO.setAssetId(String.valueOf(assetId));//资产id
-            StandardsDataElemAssetRelDO.setDataElemId(String.valueOf(item));//数据元id
+            StandardsDataElemAssetRelDO.setAssetId(assetId);//资产id
+            StandardsDataElemAssetRelDO.setDataElemId(item);//数据元id
             StandardsDataElemAssetRelDO.setDataElemType("1");//是数据元
             StandardsDataElemAssetRelDO.setTableName(StandardsDataElemAssetRel.getTableName());
-            StandardsDataElemAssetRelDO.setColumnId(String.valueOf(StandardsDataElemAssetRel.getColumnId()));
+            StandardsDataElemAssetRelDO.setColumnId(StandardsDataElemAssetRel.getColumnId());
             StandardsDataElemAssetRelDO.setColumnName(StandardsDataElemAssetRel.getColumnName());
             return StandardsDataElemAssetRelDO;
         }).collect(Collectors.toList());

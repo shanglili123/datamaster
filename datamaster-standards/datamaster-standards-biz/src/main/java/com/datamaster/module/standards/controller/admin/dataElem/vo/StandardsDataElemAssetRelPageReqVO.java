@@ -21,24 +21,24 @@ public class StandardsDataElemAssetRelPageReqVO extends PageParam {
     private String dataElemType;
 
     @Schema(description = "数据元id", example = "")
-    private String dataElemId;
+    private Long dataElemId;
 
     @Schema(description = "资产id(数据表id)", example = "")
-    private String assetId;
+    private Long assetId;
 
     @Schema(description = "数据表", example = "")
     private String tableName;
 
     @Schema(description = "关联字段id", example = "")
-    private String columnId;
+    private Long columnId;
 
     @Schema(description = "关联字段", example = "")
     private String columnName;
 
     @Schema(description = "项目ID")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "项目编码")
-    private String projectCode;
+    private String spaceCode;
 
 }

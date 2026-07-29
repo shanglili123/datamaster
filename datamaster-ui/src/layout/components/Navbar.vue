@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="navbar" ref="navbar">
     <logo
       v-if="appStore.sidebar.hide && isOnlyLogoRoute"
@@ -27,20 +27,20 @@
     />
     <div class="right-menu">
       <template v-if="appStore.device !== 'mobile'">
-        <div style="display: flex; align-items: center; white-space: nowrap" v-if="showProjectSelector">
+        <div style="display: flex; align-items: center; white-space: nowrap" v-if="showSpaceSelector">
           <span style="font-size: 13px; color: #ef4444; margin-right: 2px">*</span>
           <span style="font-size: 13px; color: #606266; margin-right: 8px">所属空间</span>
           <el-select
             style="width: 130px"
                 :fit-input-width="true"
-                v-model="userStore.projectId"
-                @change="projectIdChange"
+                v-model="userStore.spaceId"
+                @change="spaceIdChange"
                 placeholder="请选择所属空间"
                 clearable
                 popper-class="custom-option-style"
               >
                 <el-option
-                  v-for="item in projectOptions"
+                  v-for="item in spaceOptions"
                   :key="item.id"
                   :label="item.name"
                   :value="item.id"
@@ -151,11 +151,11 @@ import {
 } from "@/api/system/system/message/message";
 import { onMounted, ref, watch } from "vue";
 import moment from "moment";
-import { currentUser } from "@/api/tax/project/project";
+import { currentUser } from "@/api/tax/space/space";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
 import defaultAvatar from "@/assets/images/defaultAvatar.svg";
-import { isProjectModuleRoute } from "@/utils/moduleRoute";
+import { isSpaceModuleRoute } from "@/utils/moduleRoute";
 
 const route = useRoute();
 const router = useRouter();
@@ -171,7 +171,7 @@ const isOnlyLogoRoute = computed(() => {
 });
 // 默认选择的消息类型
 const activeMsg = ref("first");
-const projectId = ref("");
+const spaceId = ref("");
 const permissionStore = usePermissionStore();
 const userAvatar = computed(() => userStore.avatar);
 
@@ -190,22 +190,22 @@ const data = reactive({
   },
 });
 const { width } = useWindowSize();
-const showProjectSelector = computed(
+const showSpaceSelector = computed(
   () =>
     width.value >= 1200 &&
-    isProjectWorkspacePath(route.path) &&
-    projectOptions.value.length > 0
+    isSpaceWorkspacePath(route.path) &&
+    spaceOptions.value.length > 0
 );
 const showSidebarToggle = computed(() => !isHomeShellPath(route.path));
 const open = ref(false);
 const title = ref(null);
 const form = ref({});
-const projectOptions = ref([]);
+const spaceOptions = ref([]);
 
-const tableData = ref([{ projectId: null, duration: null }]);
+const tableData = ref([{ spaceId: null, duration: null }]);
 
 function resetFromWork() {
-  tableData.value = [{ projectId: null, duration: null }];
+  tableData.value = [{ spaceId: null, duration: null }];
   form.value.reportExperience = null;
 }
 
@@ -252,7 +252,7 @@ function submitForm() {
       let idStatus = false;
       let timeStatus = false;
       tempList.forEach((e) => {
-        if (e.projectId == null) {
+        if (e.spaceId == null) {
           idStatus = true;
         }
         if (e.duration == null) {
@@ -267,9 +267,9 @@ function submitForm() {
         proxy.$modal.msgWarning("报工空间工作时长为空");
         return;
       }
-      // 提取所有非空的 projectId 并用逗号连接
+      // 提取所有非空的 spaceId 并用逗号连接
       form.value.reportContent = tempList
-        .map((item) => item.projectId)
+        .map((item) => item.spaceId)
         .filter((id) => id != null) // 过滤掉 null 或 undefined 的值
         .join(",");
 
@@ -345,7 +345,7 @@ const handlePopoverClick = (value) => {
 
 //打开报工页面
 function openForWork() {
-  tableData.value = [{ projectId: null, duration: null }];
+  tableData.value = [{ spaceId: null, duration: null }];
   form.value.reportExperience = null;
   title.value = "新增报工";
   open.value = true;
@@ -357,30 +357,30 @@ function cancel() {
 
 //报工管理
 function reportingForWork() {
-  router.push({ path: "/project/report" });
+  router.push({ path: "/space/report" });
 }
 
-function projectIdChange() {
-  const project = projectOptions.value.find(
-    (item) => item.id === userStore.projectId
+function spaceIdChange() {
+  const space = spaceOptions.value.find(
+    (item) => item.id === userStore.spaceId
   );
-  if (project) {
-    userStore.projectCode = project.code;
+  if (space) {
+    userStore.spaceCode = space.code;
   }
-  if (userStore.projectId) {
-    localStorage.setItem("dataMasterProjectId", userStore.projectId);
+  if (userStore.spaceId) {
+    localStorage.setItem("dataMasterSpaceId", userStore.spaceId);
     location.reload();
   } else {
-    userStore.projectCode = "";
-    localStorage.removeItem("dataMasterProjectId");
+    userStore.spaceCode = "";
+    localStorage.removeItem("dataMasterSpaceId");
   }
 }
 
 // 判断空间是否被禁用
-const isProjectDisabled = (projectId, currentRow) => {
+const isSpaceDisabled = (spaceId, currentRow) => {
   // 判断当前空间是否已被选中，并且不是当前行
   return tableData.value.some(
-    (row) => row.projectId === projectId && row !== currentRow
+    (row) => row.spaceId === spaceId && row !== currentRow
   );
 };
 //-----------------------以上报工内容-------------------------
@@ -435,46 +435,46 @@ const initWebSocket = () => {
     msgCount.value = messages.value ? messages.value.length : 0;
   };
 };
-const listProject = () => {
+const listSpace = () => {
   if (userStore.id) {
     currentUser().then((response) => {
-      console.log("---------- listProjectUserRel-------------", response);
-      projectOptions.value = response.data || [];
-      if (!projectOptions.value.length) {
-        userStore.projectId = null;
-        userStore.projectCode = "";
-        localStorage.removeItem("dataMasterProjectId");
+      console.log("---------- listSpaceUserRel-------------", response);
+      spaceOptions.value = response.data || [];
+      if (!spaceOptions.value.length) {
+        userStore.spaceId = null;
+        userStore.spaceCode = "";
+        localStorage.removeItem("dataMasterSpaceId");
         return;
       }
 
-      const dataMasterProjectId = localStorage.getItem("dataMasterProjectId");
-      if (!dataMasterProjectId) {
-        userStore.projectId = "";
-        userStore.projectCode = "";
+      const dataMasterSpaceId = localStorage.getItem("dataMasterSpaceId");
+      if (!dataMasterSpaceId) {
+        userStore.spaceId = "";
+        userStore.spaceCode = "";
         return;
       }
 
-      const project = projectOptions.value.find(
-        (item) => String(item.id) === String(dataMasterProjectId)
+      const space = spaceOptions.value.find(
+        (item) => String(item.id) === String(dataMasterSpaceId)
       );
-      if (!project) {
-        userStore.projectId = "";
-        userStore.projectCode = "";
-        localStorage.removeItem("dataMasterProjectId");
+      if (!space) {
+        userStore.spaceId = "";
+        userStore.spaceCode = "";
+        localStorage.removeItem("dataMasterSpaceId");
         return;
       }
 
-      userStore.projectId = project.id;
-      userStore.projectCode = project.code;
-      if (isProjectWorkspacePath(route.path)) {
-        loadProjectMenus(project.id, { navigate: false });
+      userStore.spaceId = space.id;
+      userStore.spaceCode = space.code;
+      if (isSpaceWorkspacePath(route.path)) {
+        loadSpaceMenus(space.id, { navigate: false });
       }
     });
   }
 };
 
-function isProjectWorkspacePath(path) {
-  return isProjectModuleRoute(path);
+function isSpaceWorkspacePath(path) {
+  return isSpaceModuleRoute(path);
 }
 
 function isHomeShellPath(path) {
@@ -482,27 +482,27 @@ function isHomeShellPath(path) {
 }
 
 function resetHomeShell() {
-  userStore.projectCode = "";
+  userStore.spaceCode = "";
   permissionStore.resetHomeMenus();
   appStore.toggleSideBarHide(true);
 }
 
-function loadProjectMenus(projectId, options = { navigate: true }) {
-  const project = projectOptions.value.find(
-    (item) => String(item.id) === String(projectId)
+function loadSpaceMenus(spaceId, options = { navigate: true }) {
+  const space = spaceOptions.value.find(
+    (item) => String(item.id) === String(spaceId)
   );
-  if (project) {
-    userStore.projectCode = project.code;
+  if (space) {
+    userStore.spaceCode = space.code;
   }
-  localStorage.setItem("dataMasterProjectId", projectId);
+  localStorage.setItem("dataMasterSpaceId", spaceId);
 
-  getRoutersDpp(projectId).then((res) => {
+  getRoutersDpp(spaceId).then((res) => {
     const routes = res.data || [];
     permissionStore.updateTopbarRoutes(routes);
 
     if (!options.navigate) return;
 
-  const targetPath = isProjectWorkspacePath(router.currentRoute.value.path)
+  const targetPath = isSpaceWorkspacePath(router.currentRoute.value.path)
       ? router.currentRoute.value.path
       : findFirstRoutePath(permissionStore.addRoutes);
 
@@ -545,7 +545,7 @@ onMounted(() => {
   initWebSocket();
   console.log(userStore);
 
-  listProject();
+  listSpace();
 
   // getCurrentAppVersion().then((res) => {
   //   if (res.data != null) {

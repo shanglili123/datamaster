@@ -45,7 +45,7 @@ public class StandardsModelMaterializedDO extends BaseEntity {
     private String sqlCommand;
 
     /** 数据源id */
-    private String datasourceId;
+    private Long datasourceId;
 
     /** 数据源类型 */
     private String datasourceType;
@@ -57,10 +57,10 @@ public class StandardsModelMaterializedDO extends BaseEntity {
     private Long assetId;
 
     /** 项目ID */
-    private Long projectId;
+    private Long spaceId;
 
     /** 项目编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 是否有效 */
     private Boolean validFlag;

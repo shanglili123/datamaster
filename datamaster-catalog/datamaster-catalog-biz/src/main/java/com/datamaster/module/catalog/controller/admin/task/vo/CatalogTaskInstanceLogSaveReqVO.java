@@ -28,9 +28,9 @@ public class CatalogTaskInstanceLogSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "日志内容长度不能超过256个字符")
     private String logContent;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 3000, message = "备注长度不能超过3000个字符")
-    private String remark;
+    private String description;
 
 
 }

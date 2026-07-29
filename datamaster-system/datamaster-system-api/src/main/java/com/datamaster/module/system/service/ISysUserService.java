@@ -57,10 +57,10 @@ public interface ISysUserService
      * 通过用户ID和空间ID查询用户
      *
      * @param userId 用户ID
-     * @param projectId 用户ID
+     * @param spaceId 用户ID
      * @return 用户对象信息
      */
-    public SysUser getByUserIdAndProjectId(Long userId,Long projectId);
+    public SysUser getByUserIdAndSpaceId(Long userId,Long spaceId);
 
     /**
      * 根据用户ID查询用户所属角色组

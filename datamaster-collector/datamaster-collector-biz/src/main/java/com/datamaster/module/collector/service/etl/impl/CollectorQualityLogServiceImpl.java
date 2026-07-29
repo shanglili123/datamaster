@@ -36,7 +36,7 @@ import com.datamaster.module.system.service.ISysMessageService;
 import static com.datamaster.common.utils.DateUtils.YYYY_MM_DD_HH_MM_SS;
 
 /**
- * 数据质量日志Service业务层处理
+ * 质量探查日志Service业务层处理
  *
  * @author lili.shang
  * @date 2025-07-19
@@ -91,13 +91,13 @@ public class CollectorQualityLogServiceImpl  extends ServiceImpl<CollectorQualit
     public int updateCollectorQualityLog(CollectorQualityLogSaveReqVO updateReqVO) {
         // 相关校验
 
-        // 更新数据质量日志
+        // 更新质量探查日志
         CollectorQualityLogDO updateObj = BeanUtils.toBean(updateReqVO, CollectorQualityLogDO.class);
         return CollectorQualityLogMapper.updateById(updateObj);
     }
     @Override
     public int removeCollectorQualityLog(Collection<Long> idList) {
-        // 批量删除数据质量日志
+        // 批量删除质量探查日志
         return CollectorQualityLogMapper.deleteBatchIds(idList);
     }
 
@@ -142,9 +142,9 @@ public class CollectorQualityLogServiceImpl  extends ServiceImpl<CollectorQualit
 
 
     /**
-     * 导入数据质量日志数据
+     * 导入质量探查日志数据
      *
-     * @param importExcelList 数据质量日志数据列表
+     * @param importExcelList 质量探查日志数据列表
      * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
      * @param operName 操作用户
      * @return 结果
@@ -170,10 +170,10 @@ public class CollectorQualityLogServiceImpl  extends ServiceImpl<CollectorQualit
                         if (existingCollectorQualityLog != null) {
                             CollectorQualityLogMapper.updateById(CollectorQualityLogDO);
                             successNum++;
-                            successMessages.add("数据更新成功，ID为 " + CollectorQualityLogId + " 的数据质量日志记录。");
+                            successMessages.add("数据更新成功，ID为 " + CollectorQualityLogId + " 的质量探查日志记录。");
                         } else {
                             failureNum++;
-                            failureMessages.add("数据更新失败，ID为 " + CollectorQualityLogId + " 的数据质量日志记录不存在。");
+                            failureMessages.add("数据更新失败，ID为 " + CollectorQualityLogId + " 的质量探查日志记录不存在。");
                         }
                     } else {
                         failureNum++;
@@ -186,10 +186,10 @@ public class CollectorQualityLogServiceImpl  extends ServiceImpl<CollectorQualit
                     if (existingCollectorQualityLog == null) {
                         CollectorQualityLogMapper.insert(CollectorQualityLogDO);
                         successNum++;
-                        successMessages.add("数据插入成功，ID为 " + CollectorQualityLogId + " 的数据质量日志记录。");
+                        successMessages.add("数据插入成功，ID为 " + CollectorQualityLogId + " 的质量探查日志记录。");
                     } else {
                         failureNum++;
-                        failureMessages.add("数据插入失败，ID为 " + CollectorQualityLogId + " 的数据质量日志记录已存在。");
+                        failureMessages.add("数据插入失败，ID为 " + CollectorQualityLogId + " 的质量探查日志记录已存在。");
                     }
                 }
             } catch (Exception e) {

@@ -76,8 +76,8 @@ public class StandardsDesensitizeUserRelRespVO implements Serializable {
     private Date updateTime;
 
     @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
     @Excel(name = "生效分类;1：用户 2：角色 3：部门")
     @Schema(description = "生效分类;1：用户 2：角色 3：部门", example = "")

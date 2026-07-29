@@ -18,7 +18,6 @@ import com.datamaster.common.core.domain.TreeData;
 import com.datamaster.common.core.domain.entity.SysUser;
 import com.datamaster.common.core.page.PageParam;
 import com.datamaster.common.core.page.PageResult;
-import com.datamaster.common.core.text.Convert;
 import com.datamaster.common.enums.BusinessType;
 import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
@@ -73,7 +72,7 @@ public class AssetsAssetController extends BaseController {
             for (AssetsAssetRespVO item : result.getRows()) {
                 if (StringUtils.isNotBlank(item.getTags())) {
                     JSONArray tags = JSONArray.parse(item.getTags());
-                    item.setTagIds(tags.stream().map(tag -> ((com.alibaba.fastjson2.JSONObject) tag).getString("tagId")).collect(Collectors.toList()));
+                    item.setTagIds(tags.stream().map(tag -> ((com.alibaba.fastjson2.JSONObject) tag).getLong("tagId")).collect(Collectors.toList()));
                     item.setTagNames(tags.stream().map(tag -> ((com.alibaba.fastjson2.JSONObject) tag).getString("tagName")).collect(Collectors.toList()));
                 }
             }
@@ -102,15 +101,15 @@ public class AssetsAssetController extends BaseController {
         }
         List<TaxonomyTagAssetRelRespDTO> apiList = taxonomyTagAssetRelApiService.getApiList(new TaxonomyTagAssetRelReqDTO());
         Map<Long, String> collect1 = taxonomyTagApiService.getApiList().stream().collect(Collectors.toMap(s -> s.getId(), s -> s.getName()));
-        Map<String, List<TaxonomyTagAssetRelRespDTO>> collect = apiList.stream().collect(Collectors.groupingBy(s -> s.getAssetId()));
+        Map<Long, List<TaxonomyTagAssetRelRespDTO>> collect = apiList.stream().collect(Collectors.groupingBy(s -> s.getAssetId()));
         for (AssetsAssetRespVO row : rows) {
-            List<TaxonomyTagAssetRelRespDTO> attTagAssetRelRespDTOS = collect.get(Convert.toStr(row.getId()));
+            List<TaxonomyTagAssetRelRespDTO> attTagAssetRelRespDTOS = collect.get(row.getId());
             row.setTagIds(new ArrayList<>());
             if (attTagAssetRelRespDTOS != null) {
-                List<String> list = new ArrayList<>();
+                List<Long> list = new ArrayList<>();
                 List<String> listName = new ArrayList<>();
                 for (TaxonomyTagAssetRelRespDTO attTagAssetRelRespDTO : attTagAssetRelRespDTOS) {
-                    String name = collect1.get(Convert.toLong(attTagAssetRelRespDTO.getTagId()));
+                    String name = collect1.get(attTagAssetRelRespDTO.getTagId());
                     if (StringUtils.isNotEmpty(name)) {
                         listName.add(name);
                     }

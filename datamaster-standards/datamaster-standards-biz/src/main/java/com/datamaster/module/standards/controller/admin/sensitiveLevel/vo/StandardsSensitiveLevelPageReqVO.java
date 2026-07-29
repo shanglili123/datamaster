@@ -39,9 +39,9 @@ public class StandardsSensitiveLevelPageReqVO extends PageParam {
     private String description;
 
     @Schema(description = "项目ID")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "项目编码")
-    private String projectCode;
+    private String spaceCode;
 
 }

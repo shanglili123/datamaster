@@ -95,9 +95,4 @@ public class TaxonomyClientRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updateTime;
-
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
-
 }

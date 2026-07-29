@@ -85,8 +85,8 @@ public class AssetsAssetPageReqVO extends PageParam {
     @Schema(description = "01", example = "")
     private String sourceType;
 
-    @Schema(description = "id", example = "")
-    private String datasourceId;
+    @Schema(description = "数据源 ID", example = "")
+    private Long datasourceId;
 
     @Schema(description = "", example = "")
     private String tableName;
@@ -111,10 +111,10 @@ public class AssetsAssetPageReqVO extends PageParam {
     private String description;
 
     @Schema(description = "id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "id", example = "")
     private List<Long> assetIdList;

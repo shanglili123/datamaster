@@ -277,7 +277,7 @@ public class QualityTaskExecutorServiceImpl implements QualityTaskExecutorServic
 
 
     /**
-     * 更新数据质量日志状态（仅更新 successFlag 和结束时间）
+     * 更新质量探查日志状态（仅更新 successFlag 和结束时间）
      * @param id 日志ID
      * @param successFlag 状态标志（0：成功，1：失败，2：进行中）
      */

@@ -41,9 +41,5 @@ public class ModelingDataDomainSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "描述长度不能超过256个字符")
     private String description;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
-
 
 }

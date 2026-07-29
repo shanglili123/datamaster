@@ -65,14 +65,6 @@ export const treeData =
       disabled: false // 禁用该节点
     },
     {
-      id: 9,
-      label: "SparkSql",
-      value: "SparkSql",
-      type: "SPARKSQL",
-      children: [],
-      icon: new URL('@/assets/system/images/dpp/sr.png', import.meta.url).href,
-    },
-    {
       id: 10,
       label: "Flink批",
       value: "FlinkBatch",

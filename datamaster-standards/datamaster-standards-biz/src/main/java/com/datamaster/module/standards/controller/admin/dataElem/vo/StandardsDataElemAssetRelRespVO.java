@@ -31,11 +31,11 @@ public class StandardsDataElemAssetRelRespVO implements Serializable {
 
     @Excel(name = "数据元id")
     @Schema(description = "数据元id", example = "")
-    private String dataElemId;
+    private Long dataElemId;
 
     @Excel(name = "资产id(数据表id)")
     @Schema(description = "资产id(数据表id)", example = "")
-    private String assetId;
+    private Long assetId;
 
     @Excel(name = "数据表")
     @Schema(description = "数据表", example = "")
@@ -43,7 +43,7 @@ public class StandardsDataElemAssetRelRespVO implements Serializable {
 
     @Excel(name = "关联字段id")
     @Schema(description = "关联字段id", example = "")
-    private String columnId;
+    private Long columnId;
 
     @Excel(name = "关联字段")
     @Schema(description = "关联字段", example = "")
@@ -83,9 +83,6 @@ public class StandardsDataElemAssetRelRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
 
     /** 资产名称 */
     @TableField(exist = false)

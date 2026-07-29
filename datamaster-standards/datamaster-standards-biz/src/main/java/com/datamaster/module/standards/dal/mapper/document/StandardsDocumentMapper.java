@@ -45,7 +45,7 @@ public interface StandardsDocumentMapper extends BaseMapperX<StandardsDocumentDO
                 .eq(StringUtils.isNotBlank(reqVO.getStatus()),StandardsDocumentDO::getStatus, reqVO.getStatus())
                 .eq(StringUtils.isNotBlank(reqVO.getStdLevel()),StandardsDocumentDO::getStdLevel, reqVO.getStdLevel())
                 .eq(StringUtils.isNotBlank(reqVO.getVersion()),StandardsDocumentDO::getVersion, reqVO.getVersion())
-                .eq(reqVO.getProjectId() != null, StandardsDocumentDO::getProjectId, reqVO.getProjectId());
+                .eq(reqVO.getSpaceId() != null, StandardsDocumentDO::getSpaceId, reqVO.getSpaceId());
         if ("1".equals(reqVO.getExistStandardUrl())) {
             lambdaWrapper.isNotNull(StandardsDocumentDO::getFileUrl)
                     .ne(StandardsDocumentDO::getFileUrl, "");

@@ -200,8 +200,8 @@ const { queryParams, form, rules } = toRefs(data);
 /** 查询数据资产类目管理列表 */
 function getList() {
     loading.value = true;
-    queryParams.value.projectId = userStore.projectId;
-    queryParams.value.projectCode = userStore.projectCode;
+    queryParams.value.spaceId = userStore.spaceId;
+    queryParams.value.spaceCode = userStore.spaceCode;
     listAttAssetCat(queryParams.value).then((response) => {
         const page = normalizePage(response);
         const treeData = proxy.handleTree(page.rows, 'id');
@@ -212,7 +212,7 @@ function getList() {
 }
 
 watch(
-    () => userStore.projectId,
+    () => userStore.spaceId,
     () => {
         getList();
     }
@@ -280,7 +280,7 @@ function resetQuery() {
 function handleAdd(row) {
     reset();
     // getTreeselect();
-    listAttAssetCat({ projectId: userStore.projectId, projectCode: userStore.projectCode }).then((response) => {
+    listAttAssetCat({ spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((response) => {
         attAssetCatOptions.value = [];
         const data = { id: 0, name: '顶级节点', children: [] };
         data.children = proxy.handleTree(response.data, 'id', 'parentId');
@@ -304,7 +304,7 @@ function toggleExpandAll() {
     });
 }
 function getDataTree() {
-    listAttAssetCat({ projectId: userStore.projectId, projectCode: userStore.projectCode }).then((response) => {
+    listAttAssetCat({ spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((response) => {
         attAssetCatOptions.value = [];
         const data = { id: 0, name: '顶级节点', children: [] };
         data.children = proxy.handleTree(response.data, 'id', 'parentId');
@@ -316,7 +316,7 @@ function getDataTree() {
 async function handleUpdate(row) {
     reset();
     // await getTreeselect();
-    const response = await listAttAssetCat({ projectId: userStore.projectId, projectCode: userStore.projectCode });
+    const response = await listAttAssetCat({ spaceId: userStore.spaceId, spaceCode: userStore.spaceCode });
     attAssetCatOptions.value = [];
     // 过滤节点的计算属性
     const filteredDepts = response.data.filter((d) => {

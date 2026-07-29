@@ -60,7 +60,7 @@ public class AssetsDiscoveryTableSaveReqVO extends BaseEntity {
 
     @Schema(description = "", example = "")
     @Size(max = 256, message = "256")
-    private String remark;
+    private String description;
 
     @Schema(description = "", example = "")
     @TableField(exist = false)

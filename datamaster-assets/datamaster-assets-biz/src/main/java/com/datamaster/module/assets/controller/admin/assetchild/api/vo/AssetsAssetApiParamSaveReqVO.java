@@ -54,7 +54,6 @@ public class AssetsAssetApiParamSaveReqVO extends BaseEntity {
 
     @Schema(description = "", example = "")
     @Size(max = 256, message = "256")
-    private String remark;
 
     @TableField(exist = false)
     private List<AssetsAssetApiParamSaveReqVO> AssetsAssetApiParamList;

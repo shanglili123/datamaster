@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="app-container" ref="app-container">
 
     <el-container style="90%">
@@ -68,10 +68,10 @@
                 {{ scope.row.themeName || "-" }}
               </template>
             </el-table-column>
-            <el-table-column v-if="getColumnVisibility(5)" label="申请空间" align="left" prop="projectName" width="150"
+            <el-table-column v-if="getColumnVisibility(5)" label="申请空间" align="left" prop="spaceName" width="150"
               :show-overflow-tooltip="{ effect: 'light' }">
               <template #default="scope">
-                {{ scope.row.projectName || "-" }}
+                {{ scope.row.spaceName || "-" }}
               </template>
             </el-table-column>
             <el-table-column v-if="getColumnVisibility(8)" label="申请时间" align="center" prop="createTime" width="160"
@@ -178,9 +178,9 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="申请空间" prop="projectCode">
+            <el-form-item label="申请空间" prop="spaceCode">
               <div class="form-readonly">
-                {{ form.projectName }}
+                {{ form.spaceName }}
               </div>
             </el-form-item>
           </el-col>
@@ -282,9 +282,9 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="申请空间:" prop="projectName">
+            <el-form-item label="申请空间:" prop="spaceName">
               <div class="form-readonly">
-                {{ form.projectName }}
+                {{ form.spaceName }}
               </div>
             </el-form-item>
           </el-col>
@@ -381,7 +381,7 @@ import {
   delDaAssetApply,
   updateDaAssetApply,
 } from "@/api/ast/assetApply/assetApply";
-import { listAttProject } from "@/api/tax/project/project.js";
+import { listSpace } from "@/api/tax/space/space.js";
 import { getToken } from "@/utils/auth.js";
 import { listAttAssetCat } from "@/api/tax/cat/assetCat/assetCat.js";
 import DeptTree from "@/components/DeptTree";
@@ -428,7 +428,7 @@ const router = useRouter();
 const deptOptions = ref(undefined);
 const leftWidth = ref(300); // 初始左侧宽度
 const isResizing = ref(false); // 判断是否正在拖拽
-const projectOptions = ref([]);
+const spaceOptions = ref([]);
 let startX = 0; // 鼠标按下时的初始位置
 /*** 用户导入参数 */
 const upload = reactive({
@@ -453,8 +453,8 @@ const data = reactive({
     pageSize: 10,
     assetId: null,
     assetName: null,
-    projectId: null,
-    projectCode: null,
+    spaceId: null,
+    spaceCode: null,
     applyReason: null,
     approvalReason: null,
     status: null,
@@ -540,8 +540,8 @@ function reset() {
   form.value = {
     id: null,
     assetId: null,
-    projectId: null,
-    projectCode: null,
+    spaceId: null,
+    spaceCode: null,
     applyReason: null,
     approvalReason: null,
     status: null,
@@ -599,8 +599,8 @@ function handleUpdate(row) {
     title.value = "数据资产申请审核";
     form.value.status = null;
   });
-  listAttProject().then((response) => {
-    projectOptions.value = response.data.rows;
+  listSpace().then((response) => {
+    spaceOptions.value = response.data.rows;
   });
 }
 

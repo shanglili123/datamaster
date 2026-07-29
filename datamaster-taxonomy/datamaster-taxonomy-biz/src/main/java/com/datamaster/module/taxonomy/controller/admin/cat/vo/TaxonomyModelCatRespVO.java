@@ -77,9 +77,4 @@ public class TaxonomyModelCatRespVO implements Serializable {
     @Excel(name = "更新时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
-
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
-
 }

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <!-- 资产质量的弹窗 -->
     <el-dialog v-model="visible" :title="title" class="medium-dialog" @close="handleClose" destroy-on-close>
         <div ref="app-container" v-loading="loadingInstance">
@@ -231,7 +231,7 @@ function getDeptTree() {
         deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
         deptOptions.value = [
             {
-                name: "数据质量类目",
+                name: "质量探查类目",
                 value: "",
                 id: 0,
                 children: deptOptions.value,
@@ -330,8 +330,8 @@ async function selectInspectionRule() {
                     withRule: 1,
                     id: item.datasourceId,
                     tableName: item.tableName,
-                    projectId: userStore.projectId,
-                    projectCode: userStore.projectCode
+                    spaceId: userStore.spaceId,
+                    spaceCode: userStore.spaceCode
                 });
 
                 if (res?.data?.length) {

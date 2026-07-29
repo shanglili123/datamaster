@@ -60,17 +60,17 @@ public class CatalogTaskSchedulerSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "调度状态长度不能超过256个字符")
     private String status;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 3000, message = "备注长度不能超过3000个字符")
-    private String remark;
+    private String description;
 
     /** 空间ID */
     @Schema(description = "空间ID")
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
     @Schema(description = "空间编码")
-    private String projectCode;
+    private String spaceCode;
 
 
     public CatalogTaskSchedulerSaveReqVO(CatalogTaskDO dictType) {
@@ -89,7 +89,7 @@ public class CatalogTaskSchedulerSaveReqVO extends BaseEntity {
 
         this.failureStrategy = "0";
         this.status = "0";
-        this.projectId = dictType.getProjectId();
-        this.projectCode = dictType.getProjectCode();
+        this.spaceId = dictType.getSpaceId();
+        this.spaceCode = dictType.getSpaceCode();
     }
 }

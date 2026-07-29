@@ -74,9 +74,6 @@ public class CatalogDomainRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
 
     @Excel(name = "描述")
     @Schema(description = "描述", example = "")

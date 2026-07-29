@@ -117,12 +117,6 @@
                   inactive-value="0" @change="handleStatusChange(scope.row)" />
               </template>
             </el-table-column>
-            <el-table-column v-if="getColumnVisibility(11)" label="备注" width="200" align="left" prop="remark"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                {{ scope.row.remark || '-' }}
-              </template>
-            </el-table-column>
             <el-table-column v-if="getColumnVisibility(12)" label="操作" align="center"
               class-name="small-padding fixed-width" fixed="right" width="220">
               <template #default="scope">
@@ -247,11 +241,6 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="备注" prop="remark">
-              <el-input v-model="form.remark" placeholder="请输入备注" />
-            </el-form-item>
-          </el-col>
         </el-row>
       </el-form>
       <template #footer>
@@ -353,24 +342,17 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="描述" prop="DESCRIPTION">
+            <el-form-item label="描述" prop="description">
               <div>
-                {{ form.DESCRIPTION }}
+                {{ form.description }}
               </div>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="状态" prop="STATUS">
-              <dict-tag :options="ds_api_log_status" :value="form.STATUS" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="备注" prop="REMARK">
-              <div>
-                {{ form.REMARK }}
-              </div>
+            <el-form-item label="状态" prop="status">
+              <dict-tag :options="ds_api_log_status" :value="form.status" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -504,8 +486,8 @@ const data = reactive({
   queryParams: {
     pageNum: 1,
     pageSize: 6,
-    NAME: null,
-    STATUS: null,
+    name: null,
+    status: null,
     createTime: null,
   },
   rules: {},
@@ -553,8 +535,8 @@ function getApiCatList() {
 function getList() {
   loading.value = true;
   queryParams.value.params = {};
-  queryParams.value.projectId = userStore.projectId || null;
-  queryParams.value.projectCode = userStore.projectCode || "";
+  queryParams.value.spaceId = userStore.spaceId || null;
+  queryParams.value.spaceCode = userStore.spaceCode || "";
   if (null != daterangeCreateTime && "" != daterangeCreateTime) {
     queryParams.value.params["beginCreateTime"] = daterangeCreateTime.value[0];
     queryParams.value.params["endCreateTime"] = daterangeCreateTime.value[1];
@@ -641,8 +623,8 @@ function reset() {
     limitJson: null,
     reqParams: null,
     resParams: null,
-    DESCRIPTION: null,
-    STATUS: null,
+    description: null,
+    status: null,
     validFlag: null,
     delFlag: null,
     createBy: null,
@@ -651,7 +633,6 @@ function reset() {
     updateBy: null,
     updaterId: null,
     updateTime: null,
-    REMARK: null,
   };
   proxy.resetForm("dsApiRef");
 }

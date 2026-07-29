@@ -25,11 +25,10 @@
         <result property="updateBy"    column="UPDATE_BY"    />
         <result property="updaterId"    column="UPDATER_ID"    />
         <result property="updateTime"    column="UPDATE_TIME"    />
-        <result property="remark"    column="REMARK"    />
     </resultMap>
 
     <sql id="selectAssetVo">
-        select ID, NAME, CAT_CODE,  DATASOURCE_ID, TABLE_NAME, TYPE, TABLE_COMMENT, DATA_COUNT, FIELD_COUNT, SOURCE,STATUS, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET
+        select ID, NAME, CAT_CODE,  DATASOURCE_ID, TABLE_NAME, TYPE, TABLE_COMMENT, DATA_COUNT, FIELD_COUNT, SOURCE,STATUS, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME from AST_ASSET
     </sql>
 
     <select id="selectAssetList" parameterType="AssetsAssetDO" resultMap="AssetsAssetResult">
@@ -44,7 +43,7 @@
             <if test="dataCount != null "> and DATA_COUNT = #{dataCount}</if>
             <if test="fieldCount != null "> and FIELD_COUNT = #{fieldCount}</if>
             <if test="source != null  and source != ''"> and SOURCE = #{source}</if>
-            <if test="status != null  and STATUS != ''"> and STATUS = #{STATUS}</if>
+            <if test="status != null  and status != ''"> and STATUS = #{status}</if>
             <if test="description != null  and description != ''"> and DESCRIPTION = #{description}</if>
             <if test="createTime != null "> and CREATE_TIME = #{createTime}</if>
         </where>
@@ -78,7 +77,6 @@
             <if test="updateBy != null">UPDATE_BY,</if>
             <if test="updaterId != null">UPDATER_ID,</if>
             <if test="updateTime != null">UPDATE_TIME,</if>
-            <if test="remark != null">REMARK,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -101,7 +99,6 @@
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updaterId != null">#{updaterId},</if>
             <if test="updateTime != null">#{updateTime},</if>
-            <if test="remark != null">#{remark},</if>
         </trim>
     </insert>
 
@@ -127,7 +124,6 @@
             <if test="updateBy != null">UPDATE_BY = #{updateBy},</if>
             <if test="updaterId != null">UPDATER_ID = #{updaterId},</if>
             <if test="updateTime != null">UPDATE_TIME = #{updateTime},</if>
-            <if test="remark != null">REMARK = #{remark},</if>
         </trim>
         where ID = #{id}
     </update>
@@ -150,3 +146,4 @@
         where ID = #{id}
     </delete>
 </mapper>
+

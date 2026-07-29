@@ -72,10 +72,10 @@ public interface SysMenuMapper
      * 根据用户ID和空间id查询菜单
      *
      * @param userId 用户ID
-     * @param projectId 空间ID
+     * @param spaceId 空间ID
      * @return 菜单列表
      */
-    public List<SysMenu> selectMenuTreeByUserIdAndProjectId(@Param("userId") Long userId,@Param("projectId") Long projectId);
+    public List<SysMenu> selectMenuTreeByUserIdAndSpaceId(@Param("userId") Long userId,@Param("spaceId") Long spaceId);
 
     /**
      * 根据角色ID查询菜单树信息

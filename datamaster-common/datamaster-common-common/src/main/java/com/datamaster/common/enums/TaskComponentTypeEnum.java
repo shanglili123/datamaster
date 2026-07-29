@@ -26,7 +26,6 @@ public enum TaskComponentTypeEnum {
     //清洗
     SELECT_FIELDS("22", "字段选择"),
 
-    SPARK_CLEAN("31", "SPARK清洗"),
     SORT_RECORD("34", "排序记录"),
     FIELD_DERIVATION("39", "字段派生器"),
     DATA_DEDUPLICATION("40", "数据去重"),

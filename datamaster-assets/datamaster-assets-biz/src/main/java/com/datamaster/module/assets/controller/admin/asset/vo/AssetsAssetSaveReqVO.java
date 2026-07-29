@@ -94,9 +94,8 @@ public class AssetsAssetSaveReqVO extends BaseEntity {
 
     private List<String> themeIdList;
 
-    @Schema(description = "id", example = "")
-    @Size(max = 256, message = "id256")
-    private String datasourceId;
+    @Schema(description = "数据源 ID", example = "")
+    private Long datasourceId;
 
     @Schema(description = "", example = "")
     @Size(max = 256, message = "256")
@@ -125,7 +124,6 @@ public class AssetsAssetSaveReqVO extends BaseEntity {
     private String description;
 
     @Schema(description = "", example = "")
-    private String remark;
 
     //api
     @TableField(exist = false)
@@ -161,10 +159,10 @@ public class AssetsAssetSaveReqVO extends BaseEntity {
     private AssetsAssetFilesSaveReqVO AssetsAssetFiles;
 
     @Schema(description = "id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "", example = "")
     private String createType;

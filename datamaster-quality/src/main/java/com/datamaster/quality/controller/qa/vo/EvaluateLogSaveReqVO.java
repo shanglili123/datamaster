@@ -55,8 +55,8 @@ public class EvaluateLogSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "规则描述长度不能超过256个字符")
     private String ruleDescription;
 
-    @Schema(description = "数据质量记录id", example = "")
-    @Size(max = 256, message = "数据质量记录id长度不能超过256个字符")
+    @Schema(description = "质量探查记录id", example = "")
+    @Size(max = 256, message = "质量探查记录id长度不能超过256个字符")
     private String taskLogId;
 
     @Schema(description = "评测id", example = "")
@@ -72,9 +72,9 @@ public class EvaluateLogSaveReqVO extends BaseEntity {
     @Schema(description = "核查时间", example = "")
     private Date checkDate;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
     private String rule;
 
 

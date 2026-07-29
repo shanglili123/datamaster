@@ -19,7 +19,7 @@ public class StandardsCodeMapReqDTO {
     private Long id;
 
     /** 数据元id */
-    private String dataElemId;
+    private Long dataElemId;
 
     /** 原始值 */
     private String originalValue;

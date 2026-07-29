@@ -30,11 +30,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"    column="UPDATE_BY"    />
         <result property="updaterId"    column="UPDATER_ID"    />
         <result property="updateTime"    column="UPDATE_TIME"    />
-        <result property="remark"    column="REMARK"    />
     </resultMap>
 
     <sql id="selectAssetColumnVo">
-        select ID, ASSET_ID, COLUMN_NAME, COLUMN_COMMENT, COLUMN_TYPE, COLUMN_LENGTH, COLUMN_SCALE, NULLABLE_FLAG, PK_FLAG, DEFAULT_VALUE, DATA_ELEM_CODE_FLAG, DATA_ELEM_CODE_ID, SENSITIVE_LEVEL_ID, REL_DATA_ELME_FLAG, REL_CLEAN_FLAG, REL_AUDIT_FLAG, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_COLUMN
+        select ID, ASSET_ID, COLUMN_NAME, COLUMN_COMMENT, COLUMN_TYPE, COLUMN_LENGTH, COLUMN_SCALE, NULLABLE_FLAG, PK_FLAG, DEFAULT_VALUE, DATA_ELEM_CODE_FLAG, DATA_ELEM_CODE_ID, SENSITIVE_LEVEL_ID, REL_DATA_ELME_FLAG, REL_CLEAN_FLAG, REL_AUDIT_FLAG, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME from AST_ASSET_COLUMN
     </sql>
 
     <select id="selectAssetColumnList" parameterType="AssetsAssetColumnDO" resultMap="AssetColumnResult">
@@ -93,7 +92,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY,</if>
             <if test="updaterId != null">UPDATER_ID,</if>
             <if test="updateTime != null">UPDATE_TIME,</if>
-            <if test="remark != null">REMARK,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -121,7 +119,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updaterId != null">#{updaterId},</if>
             <if test="updateTime != null">#{updateTime},</if>
-            <if test="remark != null">#{remark},</if>
          </trim>
     </insert>
 
@@ -152,7 +149,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY = #{updateBy},</if>
             <if test="updaterId != null">UPDATER_ID = #{updaterId},</if>
             <if test="updateTime != null">UPDATE_TIME = #{updateTime},</if>
-            <if test="remark != null">REMARK = #{remark},</if>
         </trim>
         where ID = #{id}
     </update>
@@ -175,3 +171,4 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where ASSET_ID = #{id}
     </delete>
 </mapper>
+

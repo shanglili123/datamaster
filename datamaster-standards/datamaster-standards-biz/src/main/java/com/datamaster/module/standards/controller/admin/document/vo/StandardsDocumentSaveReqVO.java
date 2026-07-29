@@ -69,10 +69,6 @@ public class StandardsDocumentSaveReqVO extends BaseEntity {
     private String fileUrl;
     private String fileName;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
-
 
     @Schema(description = "描述", example = "")
     @Size(max = 512, message = "描述长度不能超过512个字符")

@@ -82,11 +82,11 @@ public class SysPermissionService
             {
                 perms.addAll(menuService.selectMenuPermsByUserId(user.getUserId()));
             }
-            if (AccessPolicy.hasProjectAdminRole(roles))
+            if (AccessPolicy.hasSpaceAdminRole(roles))
             {
                 for (String perm : menuService.selectMenuPerms())
                 {
-                    if (AccessPolicy.isProjectAdminPermission(perm))
+                    if (AccessPolicy.isSpaceAdminPermission(perm))
                     {
                         perms.add(perm);
                     }

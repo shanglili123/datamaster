@@ -45,8 +45,7 @@ public class StandardsModelMaterializedSaveReqVO extends BaseEntity {
     private String sqlCommand;
 
     @Schema(description = "数据源id", example = "")
-    @Size(max = 256, message = "数据源id长度不能超过256个字符")
-    private String datasourceId;
+    private Long datasourceId;
 
     @Schema(description = "数据源类型", example = "")
     @Size(max = 256, message = "数据源类型长度不能超过256个字符")
@@ -57,12 +56,11 @@ public class StandardsModelMaterializedSaveReqVO extends BaseEntity {
     private String datasourceName;
 
     @Schema(description = "资产表id", example = "")
-    @Size(max = 256, message = "资产表id长度不能超过256个字符")
-    private String assetId;
+    private Long assetId;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 
 }

@@ -42,7 +42,7 @@ public interface SysRoleMapper
      *
      * @return 角色列表
      */
-    public List<SysRole> selectRoleAllByProjectId(@Param("projectId") Long projectId);
+    public List<SysRole> selectRoleAllBySpaceId(@Param("spaceId") Long spaceId);
 
     /**
      * 根据用户ID获取角色选择框列表
@@ -82,7 +82,7 @@ public interface SysRoleMapper
      * @param role 角色
      * @return 角色信息
      */
-    public SysRole checkRoleNameUniqueAndProjectId(SysRole role);
+    public SysRole checkRoleNameUniqueAndSpaceId(SysRole role);
 
     /**
      * 校验角色权限是否唯一
@@ -98,7 +98,7 @@ public interface SysRoleMapper
      * @param role 角色
      * @return 角色信息
      */
-    public SysRole checkRoleKeyUniqueAndProjectId(SysRole role);
+    public SysRole checkRoleKeyUniqueAndSpaceId(SysRole role);
 
     /**
      * 修改角色信息

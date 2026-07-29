@@ -19,15 +19,15 @@ public class TaxonomyTagAssetRelPageReqVO extends PageParam {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "标签管理id", example = "")
-    private String tagId;
+    private Long tagId;
 
     @Schema(description = "资产id", example = "")
-    private String assetId;
+    private Long assetId;
 
-    @Schema(description = "项目ID")
-    private Long projectId;
+    @Schema(description = "空间ID")
+    private Long spaceId;
 
-    @Schema(description = "项目编码")
-    private String projectCode;
+    @Schema(description = "空间编码")
+    private String spaceCode;
 
 }

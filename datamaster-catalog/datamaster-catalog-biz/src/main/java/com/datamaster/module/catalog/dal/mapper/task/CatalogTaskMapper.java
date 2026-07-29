@@ -59,20 +59,20 @@ public interface CatalogTaskMapper extends BaseMapperX<CatalogTaskDO> {
                         CatalogTaskDO::getCreateTime, reqVO.getCreateTimeStart())
                 .le(reqVO.getCreateTimeEnd() != null,
                         CatalogTaskDO::getCreateTime, reqVO.getCreateTimeEnd())
-                .and(reqVO.getProjectId() != null, wrapper -> wrapper
-                        .eq(CatalogTaskDO::getProjectId, reqVO.getProjectId())
+                .and(reqVO.getSpaceId() != null, wrapper -> wrapper
+                        .eq(CatalogTaskDO::getSpaceId, reqVO.getSpaceId())
                         .or()
-                        .isNull(CatalogTaskDO::getProjectId))
+                        .isNull(CatalogTaskDO::getSpaceId))
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, CatalogTaskDO.class, lambdaWrapper);
     }
 
-    default List<CatalogTaskDO> selectListByProjectId(Long projectId) {
+    default List<CatalogTaskDO> selectListBySpaceId(Long spaceId) {
         return selectList(Wrappers.lambdaQuery(CatalogTaskDO.class)
-                .and(projectId != null, wrapper -> wrapper
-                        .eq(CatalogTaskDO::getProjectId, projectId)
+                .and(spaceId != null, wrapper -> wrapper
+                        .eq(CatalogTaskDO::getSpaceId, spaceId)
                         .or()
-                        .isNull(CatalogTaskDO::getProjectId)));
+                        .isNull(CatalogTaskDO::getSpaceId)));
     }
 
 

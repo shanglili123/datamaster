@@ -40,9 +40,9 @@ public class ModelingDataDomainPageReqVO extends PageParam {
     private Long businessCategoryId;
 
     @Schema(description = "空间ID")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码")
-    private String projectCode;
+    private String spaceCode;
 
 }

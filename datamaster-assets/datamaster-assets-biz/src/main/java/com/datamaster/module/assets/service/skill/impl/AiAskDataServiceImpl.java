@@ -19,12 +19,12 @@ import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqD
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
-import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceProjectRelDO;
+import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceSpaceRelDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillDO;
 import com.datamaster.module.assets.dal.dataobject.skill.AiSkillReportTemplateDO;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
-import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceProjectRelMapper;
+import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceSpaceRelMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillMapper;
 import com.datamaster.module.assets.dal.mapper.skill.AiSkillReportTemplateMapper;
 import com.datamaster.module.assets.model.dto.dbgpt.DbGptChatCompletionRequest;
@@ -61,7 +61,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     @Resource
     private AssetsDatasourceMapper assetsDatasourceMapper;
     @Resource
-    private AssetsDatasourceProjectRelMapper assetsDatasourceProjectRelMapper;
+    private AssetsDatasourceSpaceRelMapper assetsDatasourceSpaceRelMapper;
     @Resource
     private AssetsAssetMapper assetsAssetMapper;
     @Resource
@@ -84,8 +84,8 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         String keyword = reqVO == null ? "" : firstNonBlank(reqVO.getKeyword(), reqVO.getQuestion());
         AiSkillDO assetSkill = reqVO == null || reqVO.getAssetId() == null ? null : aiSkillMapper.selectByBizObject("TABLE", reqVO.getAssetId());
         checkAskDataAssetAccess(reqVO == null ? null : reqVO.getAssetId(),
-                reqVO == null ? null : reqVO.getProjectId(),
-                reqVO == null ? null : reqVO.getProjectCode(),
+                reqVO == null ? null : reqVO.getSpaceId(),
+                reqVO == null ? null : reqVO.getSpaceCode(),
                 "AI_ASK_DATA_PREPARE");
         List<AiSkillDO> skillList = mergeSkills(Collections.emptyList(), aiSkillMapper.selectPublishedByKeyword(keyword), assetSkill);
         List<AiSkillRespVO> skills = BeanUtils.toBean(skillList, AiSkillRespVO.class);
@@ -417,7 +417,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         if (reqVO.getDatasourceId() == null) {
             throw new ServiceException("数据源ID不能为空");
         }
-        checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getProjectId(), reqVO.getProjectCode());
+        checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode());
         AiSkillReportTemplateDO template = resolveReportTemplate(reqVO);
         DbGptChatCompletionRequest gptRequest = buildDbGptReportRequest(reqVO, template);
 
@@ -657,7 +657,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             return;
         }
         if (reqVO.getAssetId() == null) {
-            checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getProjectId(), reqVO.getProjectCode());
+            checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode());
             return;
         }
         AssetsAssetDO asset = assetsAssetMapper.selectById(reqVO.getAssetId());
@@ -670,13 +670,13 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         AssetsTableGovernanceReqDTO governanceReq = new AssetsTableGovernanceReqDTO();
         governanceReq.setDatasourceId(asset.getDatasourceId());
         governanceReq.setTableName(asset.getTableName());
-        governanceReq.setProjectId(reqVO.getProjectId());
-        governanceReq.setProjectCode(reqVO.getProjectCode());
+        governanceReq.setSpaceId(reqVO.getSpaceId());
+        governanceReq.setSpaceCode(reqVO.getSpaceCode());
         governanceReq.setEntrance("AI_ASK_DATA");
         assetsTableGovernanceApiService.checkTableAccess(governanceReq);
     }
 
-    private void checkAskDataAssetAccess(Long assetId, Long projectId, String projectCode, String entrance) {
+    private void checkAskDataAssetAccess(Long assetId, Long spaceId, String spaceCode, String entrance) {
         if (assetId == null) {
             return;
         }
@@ -687,20 +687,20 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         AssetsTableGovernanceReqDTO governanceReq = new AssetsTableGovernanceReqDTO();
         governanceReq.setDatasourceId(asset.getDatasourceId());
         governanceReq.setTableName(asset.getTableName());
-        governanceReq.setProjectId(projectId);
-        governanceReq.setProjectCode(projectCode);
+        governanceReq.setSpaceId(spaceId);
+        governanceReq.setSpaceCode(spaceCode);
         governanceReq.setEntrance(entrance);
         assetsTableGovernanceApiService.checkTableAccess(governanceReq);
     }
 
-    private void checkDatasourceAccess(Long datasourceId, Long projectId, String projectCode) {
-        if (datasourceId == null || (projectId == null && StringUtils.isBlank(projectCode))) {
+    private void checkDatasourceAccess(Long datasourceId, Long spaceId, String spaceCode) {
+        if (datasourceId == null || (spaceId == null && StringUtils.isBlank(spaceCode))) {
             return;
         }
-        Long count = assetsDatasourceProjectRelMapper.selectCount(Wrappers.<AssetsDatasourceProjectRelDO>lambdaQuery()
-                .eq(AssetsDatasourceProjectRelDO::getDatasourceId, datasourceId)
-                .eq(projectId != null, AssetsDatasourceProjectRelDO::getProjectId, projectId)
-                .eq(StringUtils.isNotBlank(projectCode), AssetsDatasourceProjectRelDO::getProjectCode, projectCode));
+        Long count = assetsDatasourceSpaceRelMapper.selectCount(Wrappers.<AssetsDatasourceSpaceRelDO>lambdaQuery()
+                .eq(AssetsDatasourceSpaceRelDO::getDatasourceId, datasourceId)
+                .eq(spaceId != null, AssetsDatasourceSpaceRelDO::getSpaceId, spaceId)
+                .eq(StringUtils.isNotBlank(spaceCode), AssetsDatasourceSpaceRelDO::getSpaceCode, spaceCode));
         if (count == null || count <= 0) {
             throw new ServiceException("当前空间无权访问该数据源");
         }

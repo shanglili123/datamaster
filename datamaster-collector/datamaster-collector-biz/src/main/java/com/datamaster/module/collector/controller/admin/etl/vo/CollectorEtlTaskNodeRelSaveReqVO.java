@@ -24,11 +24,11 @@ public class CollectorEtlTaskNodeRelSaveReqVO extends BaseEntity {
     private Long id;
 
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
     @Size(max = 256, message = "空间编码长度不能超过256个字符")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "任务id", example = "")
     private Long taskId;
@@ -60,8 +60,8 @@ public class CollectorEtlTaskNodeRelSaveReqVO extends BaseEntity {
     @Schema(description = "后节点版本", example = "")
     private Integer postNodeVersion;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 }

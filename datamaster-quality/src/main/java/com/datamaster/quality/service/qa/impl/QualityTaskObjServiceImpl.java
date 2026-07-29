@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 /**
- * 数据质量任务-稽查对象Service业务层处理
+ * 质量探查任务-稽查对象Service业务层处理
  *
  * @author Chaos
  * @date 2025-07-21
@@ -54,13 +54,13 @@ public class QualityTaskObjServiceImpl  extends ServiceImpl<QualityTaskObjMapper
     public int updateQualityTaskObj(QualityTaskObjSaveReqVO updateReqVO) {
         // 相关校验
 
-        // 更新数据质量任务-稽查对象
+        // 更新质量探查任务-稽查对象
         QualityTaskObjDO updateObj = BeanUtils.toBean(updateReqVO, QualityTaskObjDO.class);
         return QualityTaskObjMapper.updateById(updateObj);
     }
     @Override
     public int removeQualityTaskObj(Collection<Long> idList) {
-        // 批量删除数据质量任务-稽查对象
+        // 批量删除质量探查任务-稽查对象
         return QualityTaskObjMapper.deleteBatchIds(idList);
     }
 
@@ -96,9 +96,9 @@ public class QualityTaskObjServiceImpl  extends ServiceImpl<QualityTaskObjMapper
 
 
         /**
-         * 导入数据质量任务-稽查对象数据
+         * 导入质量探查任务-稽查对象数据
          *
-         * @param importExcelList 数据质量任务-稽查对象数据列表
+         * @param importExcelList 质量探查任务-稽查对象数据列表
          * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
          * @param operName 操作用户
          * @return 结果
@@ -124,10 +124,10 @@ public class QualityTaskObjServiceImpl  extends ServiceImpl<QualityTaskObjMapper
                             if (existingQualityTaskObj != null) {
                                 QualityTaskObjMapper.updateById(QualityTaskObjDO);
                                 successNum++;
-                                successMessages.add("数据更新成功，ID为 " + QualityTaskObjId + " 的数据质量任务-稽查对象记录。");
+                                successMessages.add("数据更新成功，ID为 " + QualityTaskObjId + " 的质量探查任务-稽查对象记录。");
                             } else {
                                 failureNum++;
-                                failureMessages.add("数据更新失败，ID为 " + QualityTaskObjId + " 的数据质量任务-稽查对象记录不存在。");
+                                failureMessages.add("数据更新失败，ID为 " + QualityTaskObjId + " 的质量探查任务-稽查对象记录不存在。");
                             }
                         } else {
                             failureNum++;
@@ -140,10 +140,10 @@ public class QualityTaskObjServiceImpl  extends ServiceImpl<QualityTaskObjMapper
                         if (existingQualityTaskObj == null) {
                             QualityTaskObjMapper.insert(QualityTaskObjDO);
                             successNum++;
-                            successMessages.add("数据插入成功，ID为 " + QualityTaskObjId + " 的数据质量任务-稽查对象记录。");
+                            successMessages.add("数据插入成功，ID为 " + QualityTaskObjId + " 的质量探查任务-稽查对象记录。");
                         } else {
                             failureNum++;
-                            failureMessages.add("数据插入失败，ID为 " + QualityTaskObjId + " 的数据质量任务-稽查对象记录已存在。");
+                            failureMessages.add("数据插入失败，ID为 " + QualityTaskObjId + " 的质量探查任务-稽查对象记录已存在。");
                         }
                     }
                 } catch (Exception e) {

@@ -29,11 +29,11 @@ public class TaxonomyTagAssetRelRespVO implements Serializable {
 
     @Excel(name = "标签管理id")
     @Schema(description = "标签管理id", example = "")
-    private String tagId;
+    private Long tagId;
 
     @Excel(name = "资产id")
     @Schema(description = "资产id", example = "")
-    private String assetId;
+    private Long assetId;
 
     @Excel(name = "是否有效")
     @Schema(description = "是否有效", example = "")
@@ -69,8 +69,8 @@ public class TaxonomyTagAssetRelRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Excel(name = "描述")
+    @Schema(description = "描述", example = "")
+    private String description;
 
 }

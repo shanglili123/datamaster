@@ -33,46 +33,46 @@ public class AssetsDatasourceDO extends BaseEntity {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-/**  */
+    /** 数据源名称 */
     private String datasourceName;
 
-    /**  */
+    /** 数据源类型 */
     private String datasourceType;
 
-    /** (json) */
+    /** 数据源配置(JSON) */
     private String datasourceConfig;
 
-    /**  */
+    /** 所属空间关系列表 */
     @TableField(exist = false)
-    private List<AssetsDatasourceProjectRelDO> projectList;
+    private List<AssetsDatasourceSpaceRelDO> spaceList;
 
-    /**  */
+    /** 所属空间名称 */
     @TableField(exist = false)
-    private String projectName;
+    private String spaceName;
 
-    /**  */
+    /** 是否管理员添加 */
     @TableField(exist = false)
-    private Boolean isAdminAddTo;
+    private Boolean adminAddTo;
 
     /** IP */
     private String ip;
 
-    /**  */
+    /** 端口 */
     private Long port;
 
-    /**  */
+    /** 表数量 */
     private Long listCount;
 
-    /**  */
+    /** 同步次数 */
     private Long syncCount;
 
-    /**  */
+    /** 数据量 */
     private Long DataSize;
 
-    /**  */
+    /** 描述 */
     private String description;
 
-    /**  */
+    /** 是否有效 */
     private Boolean validFlag;
 
     @TableLogic

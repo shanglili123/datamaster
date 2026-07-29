@@ -12,7 +12,7 @@ public class TableGovernanceProperties {
     private Boolean enabled = false;
 
     /**
-     * off: no enforcement; warn: resolve only; strict: deny when asset exists and project is not authorized.
+     * off: no enforcement; warn: resolve only; strict: deny when asset exists and space is not authorized.
      */
     private String mode = "off";
 

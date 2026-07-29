@@ -7,8 +7,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="AssetsAssetApplyDO" id="AssetsAssetApplyResult">
         <result property="id"    column="ID"    />
         <result property="assetId"    column="ASSET_ID"    />
-        <result property="projectId"    column="PROJECT_ID"    />
-        <result property="projectCode"    column="PROJECT_CODE"    />
+        <result property="spaceId"    column="SPACE_ID"    />
+        <result property="spaceCode"    column="SPACE_CODE"    />
         <result property="applyReason"    column="APPLY_REASON"    />
         <result property="approvalReason"    column="APPROVAL_REASON"    />
         <result property="status"    column="STATUS"    />
@@ -20,19 +20,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"    column="UPDATE_BY"    />
         <result property="updaterId"    column="UPDATER_ID"    />
         <result property="updateTime"    column="UPDATE_TIME"    />
-        <result property="remark"    column="REMARK"    />
     </resultMap>
 
     <sql id="selectAssetApplyVo">
-        select ID, ASSET_ID, PROJECT_ID, PROJECT_CODE, APPLY_REASON, APPROVAL_REASON, STATUS, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_ASSET_APPLY
+        select ID, ASSET_ID, SPACE_ID, SPACE_CODE, APPLY_REASON, APPROVAL_REASON, STATUS, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME from AST_ASSET_APPLY
     </sql>
 
     <select id="selectAssetApplyList" parameterType="AssetsAssetApplyDO" resultMap="AssetsAssetApplyResult">
         <include refid="selectAssetApplyVo"/>
         <where>
             <if test="assetId != null "> and ASSET_ID = #{assetId}</if>
-            <if test="projectId != null "> and PROJECT_ID = #{projectId}</if>
-            <if test="projectCode != null  and projectCode != ''"> and PROJECT_CODE = #{projectCode}</if>
+            <if test="spaceId != null "> and SPACE_ID = #{spaceId}</if>
+            <if test="spaceCode != null  and spaceCode != ''"> and SPACE_CODE = #{spaceCode}</if>
             <if test="applyReason != null  and applyReason != ''"> and APPLY_REASON = #{applyReason}</if>
             <if test="approvalReason != null  and approvalReason != ''"> and APPROVAL_REASON = #{approvalReason}</if>
             <if test="status != null  and status != ''"> and STATUS = #{status}</if>
@@ -50,8 +49,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
             <if test="assetId != null">ASSET_ID,</if>
-            <if test="projectId != null">PROJECT_ID,</if>
-            <if test="projectCode != null">PROJECT_CODE,</if>
+            <if test="spaceId != null">SPACE_ID,</if>
+            <if test="spaceCode != null">SPACE_CODE,</if>
             <if test="applyReason != null">APPLY_REASON,</if>
             <if test="approvalReason != null">APPROVAL_REASON,</if>
             <if test="status != null">STATUS,</if>
@@ -63,13 +62,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY,</if>
             <if test="updaterId != null">UPDATER_ID,</if>
             <if test="updateTime != null">UPDATE_TIME,</if>
-            <if test="remark != null">REMARK,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
             <if test="assetId != null">#{assetId},</if>
-            <if test="projectId != null">#{projectId},</if>
-            <if test="projectCode != null">#{projectCode},</if>
+            <if test="spaceId != null">#{spaceId},</if>
+            <if test="spaceCode != null">#{spaceCode},</if>
             <if test="applyReason != null">#{applyReason},</if>
             <if test="approvalReason != null">#{approvalReason},</if>
             <if test="status != null">#{status},</if>
@@ -81,7 +79,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updaterId != null">#{updaterId},</if>
             <if test="updateTime != null">#{updateTime},</if>
-            <if test="remark != null">#{remark},</if>
          </trim>
     </insert>
 
@@ -89,8 +86,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         update AST_ASSET_APPLY
         <trim prefix="SET" suffixOverrides=",">
             <if test="assetId != null">ASSET_ID = #{assetId},</if>
-            <if test="projectId != null">PROJECT_ID = #{projectId},</if>
-            <if test="projectCode != null">PROJECT_CODE = #{projectCode},</if>
+            <if test="spaceId != null">SPACE_ID = #{spaceId},</if>
+            <if test="spaceCode != null">SPACE_CODE = #{spaceCode},</if>
             <if test="applyReason != null">APPLY_REASON = #{applyReason},</if>
             <if test="approvalReason != null">APPROVAL_REASON = #{approvalReason},</if>
             <if test="status != null">STATUS = #{status},</if>
@@ -102,7 +99,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY = #{updateBy},</if>
             <if test="updaterId != null">UPDATER_ID = #{updaterId},</if>
             <if test="updateTime != null">UPDATE_TIME = #{updateTime},</if>
-            <if test="remark != null">REMARK = #{remark},</if>
         </trim>
         where ID = #{id}
     </update>

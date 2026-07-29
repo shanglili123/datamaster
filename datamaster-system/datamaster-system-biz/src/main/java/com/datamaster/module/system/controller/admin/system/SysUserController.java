@@ -102,13 +102,13 @@ public class SysUserController extends BaseController
         userService.checkUserDataScope(userId);
         AjaxResult ajax = AjaxResult.success();
         SysRole sysRole = new SysRole();
-        sysRole.setProjectId(0L);
+        sysRole.setSpaceId(0L);
         List<SysRole> roles = filterAssignableRoles(roleService.selectRoleList(sysRole));
         ajax.put("roles", roles);
         ajax.put("posts", postService.selectPostAll());
         if (StringUtils.isNotNull(userId))
         {
-            SysUser sysUser = userService.getByUserIdAndProjectId(userId,0L);
+            SysUser sysUser = userService.getByUserIdAndSpaceId(userId,0L);
             if (StringUtils.isNull(sysUser))
             {
                 sysUser = userService.selectUserById(userId);

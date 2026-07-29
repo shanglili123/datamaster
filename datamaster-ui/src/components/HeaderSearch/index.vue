@@ -14,6 +14,7 @@
 import Fuse from 'fuse.js'
 import { getNormalPath } from '@/utils/anivia.js'
 import { isHttp } from '@/utils/validate'
+import { parseRouteQuery } from '@/utils/routeQuery'
 import usePermissionStore from '@/store/system/permission'
 
 const search = ref('');
@@ -45,7 +46,8 @@ function change(val) {
     window.open(path.substr(pindex, path.length), "_blank");
   } else {
     if (query) {
-      router.push({ path: path, query: JSON.parse(query) });
+      const routeQuery = parseRouteQuery(query);
+      router.push(routeQuery ? { path, query: routeQuery } : { path });
     } else {
       router.push(path)
     }

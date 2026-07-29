@@ -37,19 +37,19 @@ public class AssetsAssetApplyPageReqVO extends PageParam {
     private String catAssetCode;
 
     @Schema(description = "id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "01", example = "")
     private String sourceType;
 
     @Schema(description = "", example = "")
-    private String projectName;
+    private String spaceName;
 
     @Schema(description = "", example = "")
     private String themeName;
 
     @Schema(description = "", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "", example = "")
     private String applyReason;

@@ -50,7 +50,7 @@ public class DatasourcePageReqVO extends PageParam {
     private String description;
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "数据源id集合", example = "")
     private List<Long> idList;

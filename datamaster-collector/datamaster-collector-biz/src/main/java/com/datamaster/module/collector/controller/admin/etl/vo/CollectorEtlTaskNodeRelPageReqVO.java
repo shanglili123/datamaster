@@ -26,10 +26,10 @@ public class CollectorEtlTaskNodeRelPageReqVO extends PageParam {
     @Schema(description = "ID", example = "")
     private Long id;
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "任务id", example = "")
     private Long taskId;

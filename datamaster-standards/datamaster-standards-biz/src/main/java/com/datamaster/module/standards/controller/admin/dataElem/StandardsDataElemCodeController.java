@@ -116,7 +116,7 @@ public class StandardsDataElemCodeController extends BaseController {
 
     @Operation(summary = "校验源代码值")
     @GetMapping("/validateCodeValue")
-    public CommonResult<Integer> validateCodeValue(@RequestParam String dataElemId, @RequestParam String codeValue
+    public CommonResult<Integer> validateCodeValue(@RequestParam Long dataElemId, @RequestParam String codeValue
             , @RequestParam(required = false) String id) {
         return CommonResult.success(StandardsDataElemCodeService.validateCodeValue(dataElemId, codeValue, id));
     }

@@ -51,10 +51,10 @@ public class CollectorEtlNodeInstanceDO extends BaseEntity {
     private String taskInstanceName;
 
     /** 空间id */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 提交时间 */
     private Date submitTime;

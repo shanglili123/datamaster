@@ -11,7 +11,7 @@ public interface CollectorEtlTaskService {
      * @param datasourceIdList 数据源id集合
      * @return 条数
      */
-    int checkTaskIdInDatasource(List<Long> datasourceIdList,List<Long> projectIdList);
+    int checkTaskIdInDatasource(List<Long> datasourceIdList,List<Long> spaceIdList);
 
     /**
      * 查询资产主键集合是否被引用

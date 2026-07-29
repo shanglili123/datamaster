@@ -47,11 +47,11 @@ public class CollectorEtlNodeSaveReqVO extends BaseEntity {
     private Integer version;
 
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
     @Size(max = 256, message = "空间编码长度不能超过256个字符")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "节点参数", example = "")
     private String parameters;
@@ -90,10 +90,6 @@ public class CollectorEtlNodeSaveReqVO extends BaseEntity {
 
     @Schema(description = "DolphinScheduler的id", example = "")
     private Long dsId;
-
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
 
     @Override
     public boolean equals(Object o) {

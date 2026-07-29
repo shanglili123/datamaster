@@ -249,8 +249,8 @@ const data = reactive({
     name: null,
     code: null,
     version: null,
-    projectId: null,
-    projectCode: null,
+    spaceId: null,
+    spaceCode: null,
     personCharge: null,
     locations: null,
     description: null,
@@ -304,7 +304,7 @@ function handleTimeClear() {
 /** 查询数据集成任务-日志列表 */
 function getList() {
   loading.value = true;
-  queryParams.value.projectCode = userStore.projectCode;
+  queryParams.value.spaceCode = userStore.spaceCode;
   listDppEtlTaskInstance(queryParams.value).then((response) => {
     const pageData = normalizePageData(response);
     dppEtlTaskLogList.value = pageData.rows;
@@ -333,8 +333,8 @@ let deptOptions = ref([]);
 /** 下拉树结构 */
 function getDeptTree() {
   listAttDataDevCat({
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
     validFlag: true,
   }).then((response) => {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
@@ -383,11 +383,11 @@ function handleSortChange(column, prop, order) {
   getList();
 }
 
-// 监听projectCode数据变化
+// 监听spaceCode数据变化
 watch(
-  () => userStore.projectCode,
-  (projectCode) => {
-    if (projectCode) {
+  () => userStore.spaceCode,
+  (spaceCode) => {
+    if (spaceCode) {
       getList();
     }
   },

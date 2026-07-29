@@ -24,7 +24,7 @@ import java.util.*;
 public class DBReaderComponent implements ComponentItem {
 
     /**
-     * taskParams SPARK（sparksql开发）
+     * taskParams 数据库读取任务参数
      * {
      * "batchSize":1024,//读取数量，空时默认1024
      * "datasource_id":1,//源表数据源id 如果是输出节点时该字段为null
@@ -57,7 +57,7 @@ public class DBReaderComponent implements ComponentItem {
 
 
     /**
-     * taskParams SPARK（sparksql开发）
+     * taskParams 数据库读取任务参数
      * {
      * "batchSize":1024,//读取数量，空时默认1024
      * "datasource_id":1,//源表数据源id 如果是输出节点时该字段为null

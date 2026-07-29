@@ -28,12 +28,12 @@ public interface AssetsAssetColumnMapper extends BaseMapperX<AssetsAssetColumnDO
         MPJLambdaWrapper<AssetsAssetColumnDO> lambdaQueryWrapper = new MPJLambdaWrapper();
         lambdaQueryWrapper.selectAll(AssetsAssetColumnDO.class)
                 .select("t2.SENSITIVE_LEVEl as sensitiveLevelName")
-                .select("t3.PROJECT_ID AS projectId,t3.PROJECT_CODE AS projectCode")
+                .select("t3.SPACE_ID AS spaceId,t3.SPACE_CODE AS spaceCode")
                 .leftJoin("AST_SENSITIVE_LEVEL t2 on t.SENSITIVE_LEVEL_ID = t2.ID AND t2.DEL_FLAG = '0'")
-                .leftJoin("AST_ASSET_COLUMN_PROJECT_REL t3 on t.ID = t3.COLUMN_ID AND t3.DEL_FLAG = '0'")
-                .eq(StringUtils.isNotBlank(reqVO.getAssetId()),AssetsAssetColumnDO::getAssetId, reqVO.getAssetId())
-                .eq(reqVO.getProjectId() != null, "t3.PROJECT_ID", reqVO.getProjectId())
-                .eq(StringUtils.isNotBlank(reqVO.getProjectCode()), "t3.PROJECT_CODE", reqVO.getProjectCode())
+                .leftJoin("AST_ASSET_COLUMN_SPACE_REL t3 on t.ID = t3.COLUMN_ID AND t3.DEL_FLAG = '0'")
+                .eq(reqVO.getAssetId() != null, AssetsAssetColumnDO::getAssetId, reqVO.getAssetId())
+                .eq(reqVO.getSpaceId() != null, "t3.SPACE_ID", reqVO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqVO.getSpaceCode()), "t3.SPACE_CODE", reqVO.getSpaceCode())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         // 构造动态查询条件
         return selectJoinPage(reqVO, AssetsAssetColumnDO.class, lambdaQueryWrapper);
@@ -43,13 +43,13 @@ public interface AssetsAssetColumnMapper extends BaseMapperX<AssetsAssetColumnDO
         MPJLambdaWrapper<AssetsAssetColumnDO> lambdaQueryWrapper = new MPJLambdaWrapper();
         lambdaQueryWrapper.selectAll(AssetsAssetColumnDO.class)
                 .select("t2.SENSITIVE_LEVEl as sensitiveLevelName")
-                .select("t3.PROJECT_ID AS projectId,t3.PROJECT_CODE AS projectCode")
+                .select("t3.SPACE_ID AS spaceId,t3.SPACE_CODE AS spaceCode")
                 .leftJoin("AST_SENSITIVE_LEVEL t2 on t.SENSITIVE_LEVEL_ID = t2.ID AND t2.DEL_FLAG = '0'")
-                .leftJoin("AST_ASSET_COLUMN_PROJECT_REL t3 on t.ID = t3.COLUMN_ID AND t3.DEL_FLAG = '0'")
-                .eq(StringUtils.isNotBlank(reqVO.getAssetId()), AssetsAssetColumnDO::getAssetId, reqVO.getAssetId())
+                .leftJoin("AST_ASSET_COLUMN_SPACE_REL t3 on t.ID = t3.COLUMN_ID AND t3.DEL_FLAG = '0'")
+                .eq(reqVO.getAssetId() != null, AssetsAssetColumnDO::getAssetId, reqVO.getAssetId())
                 .eq(StringUtils.isNotBlank(reqVO.getSensitiveLevelId()), AssetsAssetColumnDO::getSensitiveLevelId, reqVO.getSensitiveLevelId())
-                .eq(reqVO.getProjectId() != null, "t3.PROJECT_ID", reqVO.getProjectId())
-                .eq(StringUtils.isNotBlank(reqVO.getProjectCode()), "t3.PROJECT_CODE", reqVO.getProjectCode())
+                .eq(reqVO.getSpaceId() != null, "t3.SPACE_ID", reqVO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqVO.getSpaceCode()), "t3.SPACE_CODE", reqVO.getSpaceCode())
                 .orderByAsc(AssetsAssetColumnDO::getId);
         return selectJoinList(AssetsAssetColumnDO.class, lambdaQueryWrapper);
     }

@@ -1,4 +1,4 @@
-# DataMaster UI Guideline
+﻿# DataMaster UI Guideline
 
 Version: v0.1
 Reference: `D:\dev\dolphinscheduler-dev\dolphinscheduler-ui`
@@ -126,7 +126,7 @@ Menu reorganization:
 - `基础管理` is merged into `系统管理`.
 - `系统监控` is renamed to `日志管理`.
 - `数据治理` is renamed to `元数据管理`.
-- `数据资产 > 数据质量任务` is moved to `元数据管理`.
+- `数据资产 > 质量探查任务` is moved to `元数据管理`.
 
 If menus are served by backend data, the frontend may temporarily transform display structure, but backend menu data and SQL initialization should be updated later to match the final product model.
 

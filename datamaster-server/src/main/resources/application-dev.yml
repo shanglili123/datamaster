@@ -85,10 +85,6 @@ ds:
   token: f8f79e6b9c7b48e5fc5a1836b88e754b
   tenant_code: ${DS_TENANT_CODE:root}
   resource_url: /data/datamaster/dolphinscheduler-resource/
-  spark:
-    master_url: spark://192.168.93.175:7077
-    main_jar: file:/data/datamaster/dolphinscheduler-resource/default/resources/spark-jar/DATAMASTER-etl-3.8.8.jar
-    main_class: com.datamaster.spark.etl.EtlApplication
   hdfs:
     url: hdfs://192.168.93.175:8020
   redis:

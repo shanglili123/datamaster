@@ -48,6 +48,7 @@
 import { constantRoutes } from "@/router";
 import { isHttp } from "@/utils/validate";
 import { getNormalPath } from "@/utils/anivia";
+import { parseRouteQuery } from "@/utils/routeQuery";
 import useAppStore from "@/store/system/app";
 import useSettingsStore from "@/store/system/settings";
 import usePermissionStore from "@/store/system/permission";
@@ -351,10 +352,8 @@ async function handleSelect(key, keyPath, type) {
           (item) => normalizeMenuPath(item.path) === targetKey
         );
         if (routeMenu && routeMenu.query) {
-          // 如果有query参数,解析后带上
-          let query;
-          try { query = JSON.parse(routeMenu.query); } catch { query = routeMenu.query; }
-          router.push({ path: targetKey, query: query });
+          const query = parseRouteQuery(routeMenu.query);
+          router.push(query ? { path: targetKey, query } : { path: targetKey });
         } else {
           // 没有query参数直接跳转
           router.push({ path: targetKey });
@@ -381,8 +380,12 @@ async function handleSelect(key, keyPath, type) {
               proxy.$tab.refreshPage(lastChild);
             } else if (routes[0].query != null) {
               const lastChild = JSON.parse(JSON.stringify(routes[0]));
-              const query = JSON.parse(routes[0].query);
-              lastChild.query = query;
+              const query = parseRouteQuery(routes[0].query);
+              if (query) {
+                lastChild.query = query;
+              } else {
+                delete lastChild.query;
+              }
               proxy.$tab.refreshPage(lastChild);
             } else {
               proxy.$tab.refreshPage(routes[0]);

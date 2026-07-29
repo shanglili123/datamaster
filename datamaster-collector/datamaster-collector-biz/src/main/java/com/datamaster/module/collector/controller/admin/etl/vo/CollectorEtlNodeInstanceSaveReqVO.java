@@ -51,11 +51,11 @@ public class CollectorEtlNodeInstanceSaveReqVO extends BaseEntity {
     private String taskInstanceName;
 
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
     @Size(max = 256, message = "空间编码长度不能超过256个字符")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "提交时间", example = "")
     private Date submitTime;
@@ -109,9 +109,9 @@ public class CollectorEtlNodeInstanceSaveReqVO extends BaseEntity {
     @Schema(description = "DolphinScheduler的任务实例id", example = "")
     private Long dsTaskInstanceId;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 
 }

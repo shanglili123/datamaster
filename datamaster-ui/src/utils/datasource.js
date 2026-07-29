@@ -24,8 +24,6 @@ const DATASOURCE_CONFIG = {
   SQL: { icon: "datasource/dm.png" },
   PROCEDURE: { icon: "datasource/oracle.png" },
   FLINK: { icon: "flink.svg", tagType: "success" },
-  SPARK: { icon: "spark.svg" },
-  SPARKSQL: { icon: "spark.svg" },
   FLINKBATCH: { icon: "flink.svg", tagType: "success" },
   FLINKSTREAM: { icon: "flink.svg", tagType: "success" },
 };

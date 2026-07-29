@@ -38,10 +38,6 @@ public class CatalogDomainSaveReqVO extends BaseEntity {
     @Schema(description = "是否有效;0：无效，1：有效", example = "")
     private Boolean validFlag;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 512, message = "备注长度不能超过256个字符")
-    private String remark;
-
     @Schema(description = "描述", example = "")
     @Size(max = 512, message = "描述长度不能超过256个字符")
     private String description;

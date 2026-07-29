@@ -27,7 +27,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectDpDataElemCodeList" parameterType="StandardsDataElemCodeDO" resultMap="StandardsDataElemCodeResult">
         <include refid="selectDpDataElemCodeVo"/>
         <where>
-            <if test="dataElemId != null  and dataElemId != ''"> and DATA_ELEM_ID = #{dataElemId}</if>
+            <if test="dataElemId != null"> and DATA_ELEM_ID = #{dataElemId}</if>
             <if test="codeValue != null  and codeValue != ''"> and CODE_VALUE = #{codeValue}</if>
             <if test="codeName != null  and codeName != ''"> and CODE_NAME like concat('%', #{codeName}, '%')</if>
             <if test="createTime != null "> and CREATE_TIME = #{createTime}</if>

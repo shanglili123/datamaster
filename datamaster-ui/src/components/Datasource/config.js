@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 数据源类型
  * key: 数据源类型标识跟config关联 不要改...
  * label: 数据源类型名称 用于展示
@@ -35,8 +35,7 @@ export const DatasourceTypes = {
     API: { key: 'API', label: 'API接口', value: 'API接口' },
     File: { key: 'File', label: 'excel、csv文件', value: 'excel、csv文件' },
     FlinkP: { key: 'FlinkP', label: 'Flink批', value: 'Flink批' },
-    FlinkL: { key: 'FlinkL', label: 'Flink流', value: 'Flink流' },
-    SparkSQL: { key: 'SparkSQL', label: 'SparkSQL', value: 'SparkSQL' }
+    FlinkL: { key: 'FlinkL', label: 'Flink流', value: 'Flink流' }
 };
 
 /**
@@ -48,8 +47,7 @@ const globalConfig = {
     API: 3,
     File: 3,
     FlinkP: 3,
-    FlinkL: 3,
-    SparkSQL: 3
+    FlinkL: 3
 };
 export const config = {
     // 数据连接
@@ -131,7 +129,7 @@ export const config = {
         OSS_ALIYUN: 2,
         ...globalConfig
     },
-    // 数据质量
+    // 质量探查
     daQuality: {
         // SQL_Server2008: 2,
         // OSCAR: 2,
@@ -145,21 +143,6 @@ export const config = {
         Kafka: 2,
         RabbitMQ: 2,
         HDFS: 2,
-        FTP: 2,
-        OSS_ALIYUN: 2,
-        ...globalConfig
-    },
-    // 数据集成-输入-Spark
-    dppIntegratioTaskInSPARK: {
-        Phoenix: 2,
-        FTP: 2,
-        OSS_ALIYUN: 2,
-        ...globalConfig
-    },
-    // 数据集成-输出-Spark
-    dppIntegratioTaskOutSPARK: {
-        Phoenix: 2,
-        Kafka: 2,
         FTP: 2,
         OSS_ALIYUN: 2,
         ...globalConfig

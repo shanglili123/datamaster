@@ -21,9 +21,9 @@ public interface AssetsAssetApplyMapper extends BaseMapperX<AssetsAssetApplyDO> 
     default PageResult<AssetsAssetApplyDO> selectPage(AssetsAssetApplyPageReqVO reqVO) {
         MPJLambdaWrapper<AssetsAssetApplyDO> lambdaWrapper = new MPJLambdaWrapper<>();
         lambdaWrapper.selectAll(AssetsAssetApplyDO.class)
-                .select("t2.NAME AS assetName, t2.TABLE_NAME AS assetTableName, t5.NAME AS catAssetName, t5.CODE AS carAssetCode, t3.NAME AS projectName")
+                .select("t2.NAME AS assetName, t2.TABLE_NAME AS assetTableName, t5.NAME AS catAssetName, t5.CODE AS carAssetCode, t3.NAME AS spaceName")
                 .leftJoin("AST_ASSET t2 on t.ASSET_ID = t2.ID")
-                .leftJoin("TAX_PROJECT t3 on t.PROJECT_ID = t3.ID AND t3.DEL_FLAG = '0'")
+                .leftJoin("TAX_SPACE t3 on t.SPACE_ID = t3.ID AND t3.DEL_FLAG = '0'")
                 .leftJoin("TAX_ASSET_CAT t5 on t2.CAT_CODE = t5.CODE AND t5.DEL_FLAG = '0'")
                 .eq("t2.DEL_FLAG", "0")
                 .in(CollectionUtils.isNotEmpty(reqVO.getAssetIds()), "t2.ID", reqVO.getAssetIds())

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="app-container" ref="app-container">
 
     <!-- 使用公共页头组件 -->
@@ -17,8 +17,8 @@
     >
       <!-- 核心：在 searchForm 插槽中填入当前页面特有的搜索项 -->
       <template #searchForm>
-        <el-form-item label="数据质量类目名称" prop="name" label-width="130">
-          <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入数据质量类目名称" clearable
+        <el-form-item label="质量探查类目名称" prop="name" label-width="130">
+          <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入质量探查类目名称" clearable
             @keyup.enter="handleQuery" />
         </el-form-item>
         <el-form-item label="上级类目" prop="code">
@@ -37,7 +37,7 @@
         <!--                          {{ scope.row.id || '-' }}-->
         <!--                        </template>-->
         <!--                      </el-table-column>-->
-        <el-table-column label="数据质量类目名称" align="left" prop="name" width="200"
+        <el-table-column label="质量探查类目名称" align="left" prop="name" width="200"
           :show-overflow-tooltip="{ effect: 'light' }">
           <template #default="scope">
             {{ scope.row.name || '-' }}
@@ -97,14 +97,14 @@
         @pagination="getList" />
     </div>
 
-    <!-- 新增或修改数据质量类目管理对话框 -->
+    <!-- 新增或修改质量探查类目管理对话框 -->
     <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable
       destroy-on-close>
       <el-form ref="attAssetCatRef" :model="form" :rules="rules" label-width="80px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="类目名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入数据质量类目名称" />
+              <el-input v-model="form.name" placeholder="请输入质量探查类目名称" />
             </el-form-item>
           </el-col>
           <!--            <el-form-item label="类别排序" prop="sortOrder">-->
@@ -192,18 +192,18 @@ const data = reactive({
     parentId: null
   },
   rules: {
-    name: [{ required: true, message: '数据质量类目名称不能为空', trigger: 'blur' }],
+    name: [{ required: true, message: '质量探查类目名称不能为空', trigger: 'blur' }],
     parentId: [{ required: true, message: '上级类目不能为空', trigger: 'blur' }]
   }
 });
 
 const { queryParams, form, rules } = toRefs(data);
 
-/** 查询数据质量类目管理列表 */
+/** 查询质量探查类目管理列表 */
 function getList() {
   loading.value = true;
-  queryParams.value.projectId = userStore.projectId;
-  queryParams.value.projectCode = userStore.projectCode;
+  queryParams.value.spaceId = userStore.spaceId;
+  queryParams.value.spaceCode = userStore.spaceCode;
   listAttQualityCat(queryParams.value).then((response) => {
     const page = normalizePage(response);
     const treeData = proxy.handleTree(page.rows, 'id');
@@ -214,13 +214,13 @@ function getList() {
 }
 
 watch(
-  () => userStore.projectId,
+  () => userStore.spaceId,
   () => {
     getList();
   }
 );
 
-/** 查询数据质量类目管理下拉树结构1 */
+/** 查询质量探查类目管理下拉树结构1 */
 
 // 取消按钮
 function cancel() {
@@ -258,7 +258,7 @@ function handleQuery() {
 function handleStatusChange(row) {
   const text = row.validFlag === true ? '启用' : '禁用';
   proxy.$modal
-    .confirm('确认要"' + text + '","' + row.name + '"数据质量类目吗？')
+    .confirm('确认要"' + text + '","' + row.name + '"质量探查类目吗？')
     .then(function () {
       updateAttQualityCat({ id: row.id, validFlag: row.validFlag }).then((response) => {
         proxy.$modal.msgSuccess(text + '成功');
@@ -282,7 +282,7 @@ function resetQuery() {
 function handleAdd(row) {
   reset();
   // getTreeselect();
-  listAttQualityCat({ projectId: userStore.projectId, projectCode: userStore.projectCode }).then((response) => {
+  listAttQualityCat({ spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((response) => {
     attAssetCatOptions.value = [];
     const data = { id: 0, name: '顶级节点', children: [] };
     data.children = proxy.handleTree(response.data, 'id', 'parentId');
@@ -294,7 +294,7 @@ function handleAdd(row) {
     form.value.parentId = 0;
   }
   open.value = true;
-  title.value = '新增数据质量类目';
+  title.value = '新增质量探查类目';
 }
 
 /** 展开/折叠操作 */
@@ -306,7 +306,7 @@ function toggleExpandAll() {
   });
 }
 function getDataTree() {
-  listAttQualityCat({ projectId: userStore.projectId, projectCode: userStore.projectCode }).then((response) => {
+  listAttQualityCat({ spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((response) => {
     attAssetCatOptions.value = [];
     const data = { id: 0, name: '顶级节点', children: [] };
     data.children = proxy.handleTree(response.data, 'id', 'parentId');
@@ -318,7 +318,7 @@ function getDataTree() {
 async function handleUpdate(row) {
   reset();
   // await getTreeselect();
-  const response = await listAttQualityCat({ projectId: userStore.projectId, projectCode: userStore.projectCode });
+  const response = await listAttQualityCat({ spaceId: userStore.spaceId, spaceCode: userStore.spaceCode });
   attAssetCatOptions.value = [];
   // 过滤节点的计算属性
   const filteredDepts = response.data.filter((d) => {
@@ -337,7 +337,7 @@ async function handleUpdate(row) {
     delete response.data.updateTime;
     form.value = response.data;
     open.value = true;
-    title.value = '修改数据质量类目';
+    title.value = '修改质量探查类目';
   });
 }
 
@@ -365,7 +365,7 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   proxy.$modal
-    .confirm('是否确认删除数据质量类目管理编号为"' + row.name + '"的数据项？')
+    .confirm('是否确认删除质量探查类目管理编号为"' + row.name + '"的数据项？')
     .then(function () {
       return delAttQualityCat(row.id);
     })

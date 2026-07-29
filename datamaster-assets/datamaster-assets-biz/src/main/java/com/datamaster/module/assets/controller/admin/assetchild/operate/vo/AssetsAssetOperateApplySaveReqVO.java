@@ -18,4 +18,4 @@ public class AssetsAssetOperateApplySaveReqVO extends BaseEntity {
 @Schema(description = "", example = "")    private Date operateTime;
 @Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String executeFlag;
 @Schema(description = "", example = "")    private Date executeTime;
-@Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String remark;}
+@Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String description;}

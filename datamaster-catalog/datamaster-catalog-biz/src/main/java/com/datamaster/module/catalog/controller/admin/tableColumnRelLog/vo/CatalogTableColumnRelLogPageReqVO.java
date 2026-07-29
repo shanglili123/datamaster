@@ -36,7 +36,7 @@ public class CatalogTableColumnRelLogPageReqVO extends PageParam {
     private Integer tableVersion;
 
     @Schema(description = "字段 id", example = "")
-    private String columnId;
+    private Long columnId;
 
     @Schema(description = "字段版本", example = "")
     private Integer columnVersion;
@@ -48,9 +48,9 @@ public class CatalogTableColumnRelLogPageReqVO extends PageParam {
 
 
     @Schema(description = "空间ID")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码")
-    private String projectCode;
+    private String spaceCode;
 
 }

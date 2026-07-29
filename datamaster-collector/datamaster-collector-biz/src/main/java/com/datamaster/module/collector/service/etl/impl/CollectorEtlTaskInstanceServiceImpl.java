@@ -31,7 +31,7 @@ import com.datamaster.common.utils.DateUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.mybatis.config.MasterDataSourceConfig;
 import com.datamaster.common.utils.object.BeanUtils;
-import com.datamaster.module.taxonomy.api.project.ITaxonomyProjectApi;
+import com.datamaster.module.taxonomy.api.space.ITaxonomySpaceApi;
 import com.datamaster.module.collector.api.etl.dto.CollectorEtlNodeInstanceRespDTO;
 import com.datamaster.module.collector.api.etl.dto.CollectorEtlTaskInstanceLogStatusRespDTO;
 import com.datamaster.module.collector.api.etl.dto.CollectorEtlTaskInstanceRespDTO;
@@ -67,7 +67,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     private CollectorEtlTaskInstanceMapper CollectorEtlTaskInstanceMapper;
 
     @Resource
-    private ITaxonomyProjectApi attProjectApi;
+    private ITaxonomySpaceApi attProjectApi;
 
     @Resource
     private ICollectorEtlTaskService CollectorEtlTaskService;
@@ -255,8 +255,8 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
                 .taskId(CollectorEtlTaskRespDTO.getId())
                 .taskCode(String.valueOf(processInstance.getProcessDefinitionCode()))
                 .taskVersion(processInstance.getProcessDefinitionVersion())
-                .projectId(attProjectApi.getProjectIdByProjectCode(String.valueOf(processInstance.getProjectCode())))
-                .projectCode(String.valueOf(processInstance.getProjectCode()))
+                .spaceId(attProjectApi.getSpaceIdBySpaceCode(String.valueOf(processInstance.getProjectCode())))
+                .spaceCode(String.valueOf(processInstance.getProjectCode()))
                 .scheduleTime(processInstance.getCommandStartTime())
                 .startTime(processInstance.getStartTime())
                 .endTime(processInstance.getEndTime())
@@ -415,7 +415,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
         DsStatusRespDTO dsStatusRespDTO = dsEtlExecutorService.execute(DSExecuteDTO.builder()
                 .processInstanceId(taskInstanceId)
                 .executeType(executeType)
-                .build(), CollectorEtlTaskInstanceDO.getProjectCode());
+                .build(), CollectorEtlTaskInstanceDO.getSpaceCode());
         return Boolean.TRUE.equals(dsStatusRespDTO == null ? null : dsStatusRespDTO.getSuccess())
                 ? success() : error(dsStatusRespDTO == null ? "DolphinScheduler无响应" : dsStatusRespDTO.getMsg());
     }
@@ -572,11 +572,11 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
                     .distinct()
                     .collect(Collectors.toList()));
         }
-        if (!ids.isEmpty() || taskInstance == null || StringUtils.isBlank(taskInstance.getProjectCode())) {
+        if (!ids.isEmpty() || taskInstance == null || StringUtils.isBlank(taskInstance.getSpaceCode())) {
             return ids;
         }
         Long dsProcessInstanceId = taskInstance.getDsId() == null ? taskInstance.getId() : taskInstance.getDsId();
-        List<TaskInstance> dsTaskInstances = dsEtlTaskService.listTaskInstances(taskInstance.getProjectCode(), dsProcessInstanceId);
+        List<TaskInstance> dsTaskInstances = dsEtlTaskService.listTaskInstances(taskInstance.getSpaceCode(), dsProcessInstanceId);
         if (dsTaskInstances == null || dsTaskInstances.isEmpty()) {
             return ids;
         }

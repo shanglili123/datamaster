@@ -3,12 +3,12 @@
 package com.datamaster.module.taxonomy.service.Rel.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.datamaster.common.core.page.PageResult;
-import com.datamaster.common.core.text.Convert;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
@@ -29,8 +29,10 @@ import com.datamaster.module.taxonomy.service.Tag.ITaxonomyTagService;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -43,35 +45,60 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
-public class TaxonomyTagAssetRelServiceImpl  extends ServiceImpl<TaxonomyTagAssetRelMapper,TaxonomyTagAssetRelDO> implements ITaxonomyTagAssetRelService , ITaxonomyTagAssetRelApiService {
+public class TaxonomyTagAssetRelServiceImpl extends ServiceImpl<TaxonomyTagAssetRelMapper, TaxonomyTagAssetRelDO> implements ITaxonomyTagAssetRelService, ITaxonomyTagAssetRelApiService {
     @Resource
-    private TaxonomyTagAssetRelMapper TaxonomyTagAssetRelMapper;
+    private TaxonomyTagAssetRelMapper taxonomyTagAssetRelMapper;
 
     @Resource
-    private ITaxonomyTagService TaxonomyTagService;
+    private ITaxonomyTagService taxonomyTagService;
 
     @Override
     public PageResult<TaxonomyTagAssetRelDO> getAttTagAssetRelPage(TaxonomyTagAssetRelPageReqVO pageReqVO) {
-        return TaxonomyTagAssetRelMapper.selectPage(pageReqVO);
+        return taxonomyTagAssetRelMapper.selectPage(pageReqVO);
     }
 
     @Override
     public Long createAttTagAssetRel(TaxonomyTagAssetRelSaveReqVO createReqVO) {
+        Long assetId = createReqVO.getAssetId();
+        List<Long> tagIds = createReqVO.getTagIds();
 
-        TaxonomyTagAssetRelMapper.delete("asset_id", createReqVO.getAssetId());
-        List<String> tagIds = createReqVO.getTagIds();
-        // 添加关系表，更新标签关联资产数量
-        for (String tagId : tagIds) {
+        List<TaxonomyTagAssetRelDO> oldRelList = taxonomyTagAssetRelMapper.selectList(
+                Wrappers.lambdaQuery(TaxonomyTagAssetRelDO.class)
+                        .eq(TaxonomyTagAssetRelDO::getAssetId, assetId));
+
+        Set<Long> affectedTagIds = new HashSet<>();
+        for (TaxonomyTagAssetRelDO oldRel : oldRelList) {
+            affectedTagIds.add(oldRel.getTagId());
+        }
+        Set<Long> newTagIds = new HashSet<>();
+        if (tagIds != null) {
+            for (Long tagId : tagIds) {
+                if (tagId != null) {
+                    newTagIds.add(tagId);
+                }
+            }
+            affectedTagIds.addAll(newTagIds);
+        }
+
+        taxonomyTagAssetRelMapper.delete(Wrappers.lambdaQuery(TaxonomyTagAssetRelDO.class)
+                .eq(TaxonomyTagAssetRelDO::getAssetId, assetId));
+
+        if (newTagIds.isEmpty()) {
+            for (Long tagId : affectedTagIds) {
+                refreshTagAssetCount(tagId);
+            }
+            return 1L;
+        }
+
+        for (Long tagId : newTagIds) {
             TaxonomyTagAssetRelDO relDo = new TaxonomyTagAssetRelDO();
-            relDo.setAssetId(createReqVO.getAssetId());
+            relDo.setAssetId(assetId);
             relDo.setTagId(tagId);
-            TaxonomyTagAssetRelMapper.insert(relDo);
-            Long l = TaxonomyTagAssetRelMapper.selectCount("tag_id", tagId);
-            TaxonomyTagDO TaxonomyTagDO = new TaxonomyTagDO();
-            TaxonomyTagDO.setId(Convert.toLong(tagId));
-            TaxonomyTagDO.setAeestCount(l);
-            TaxonomyTagSaveReqVO bean = BeanUtils.toBean(TaxonomyTagDO, TaxonomyTagSaveReqVO.class);
-            TaxonomyTagService.updateAttTag(bean);
+            taxonomyTagAssetRelMapper.insert(relDo);
+        }
+
+        for (Long tagId : affectedTagIds) {
+            refreshTagAssetCount(tagId);
         }
         return 1L;
     }
@@ -82,27 +109,27 @@ public class TaxonomyTagAssetRelServiceImpl  extends ServiceImpl<TaxonomyTagAsse
 
         // 更新标签与资产关联关系
         TaxonomyTagAssetRelDO updateObj = BeanUtils.toBean(updateReqVO, TaxonomyTagAssetRelDO.class);
-        return TaxonomyTagAssetRelMapper.updateById(updateObj);
+        return taxonomyTagAssetRelMapper.updateById(updateObj);
     }
     @Override
     public int removeAttTagAssetRel(Collection<Long> idList) {
         // 批量删除标签与资产关联关系
-        return TaxonomyTagAssetRelMapper.deleteBatchIds(idList);
+        return taxonomyTagAssetRelMapper.deleteBatchIds(idList);
     }
 
     @Override
     public TaxonomyTagAssetRelDO getAttTagAssetRelById(Long id) {
-        return TaxonomyTagAssetRelMapper.selectById(id);
+        return taxonomyTagAssetRelMapper.selectById(id);
     }
 
     @Override
     public List<TaxonomyTagAssetRelDO> getAttTagAssetRelList() {
-        return TaxonomyTagAssetRelMapper.selectList();
+        return taxonomyTagAssetRelMapper.selectList();
     }
 
     @Override
     public Map<Long, TaxonomyTagAssetRelDO> getAttTagAssetRelMap() {
-        List<TaxonomyTagAssetRelDO> TaxonomyTagAssetRelList = TaxonomyTagAssetRelMapper.selectList();
+        List<TaxonomyTagAssetRelDO> TaxonomyTagAssetRelList = taxonomyTagAssetRelMapper.selectList();
         return TaxonomyTagAssetRelList.stream()
                 .collect(Collectors.toMap(
                         TaxonomyTagAssetRelDO::getId,
@@ -138,9 +165,9 @@ public class TaxonomyTagAssetRelServiceImpl  extends ServiceImpl<TaxonomyTagAsse
                     Long TaxonomyTagAssetRelId = respVO.getId();
                     if (isUpdateSupport) {
                         if (TaxonomyTagAssetRelId != null) {
-                            TaxonomyTagAssetRelDO existingAttTagAssetRel = TaxonomyTagAssetRelMapper.selectById(TaxonomyTagAssetRelId);
+                            TaxonomyTagAssetRelDO existingAttTagAssetRel = taxonomyTagAssetRelMapper.selectById(TaxonomyTagAssetRelId);
                             if (existingAttTagAssetRel != null) {
-                                TaxonomyTagAssetRelMapper.updateById(TaxonomyTagAssetRelDO);
+                                taxonomyTagAssetRelMapper.updateById(TaxonomyTagAssetRelDO);
                                 successNum++;
                                 successMessages.add("数据更新成功，ID为 " + TaxonomyTagAssetRelId + " 的标签与资产关联关系记录。");
                             } else {
@@ -154,9 +181,9 @@ public class TaxonomyTagAssetRelServiceImpl  extends ServiceImpl<TaxonomyTagAsse
                     } else {
                         QueryWrapper<TaxonomyTagAssetRelDO> queryWrapper = new QueryWrapper<>();
                         queryWrapper.eq("id", TaxonomyTagAssetRelId);
-                        TaxonomyTagAssetRelDO existingAttTagAssetRel = TaxonomyTagAssetRelMapper.selectOne(queryWrapper);
+                        TaxonomyTagAssetRelDO existingAttTagAssetRel = taxonomyTagAssetRelMapper.selectOne(queryWrapper);
                         if (existingAttTagAssetRel == null) {
-                            TaxonomyTagAssetRelMapper.insert(TaxonomyTagAssetRelDO);
+                            taxonomyTagAssetRelMapper.insert(TaxonomyTagAssetRelDO);
                             successNum++;
                             successMessages.add("数据插入成功，ID为 " + TaxonomyTagAssetRelId + " 的标签与资产关联关系记录。");
                         } else {
@@ -184,28 +211,39 @@ public class TaxonomyTagAssetRelServiceImpl  extends ServiceImpl<TaxonomyTagAsse
 
     @Override
     public int removeAttTagAssetRel(Long id, TaxonomyTagAssetRelPageReqVO TaxonomyTagAssetRel) {
-        TaxonomyTagRespVO TaxonomyTagById = TaxonomyTagService.getAttTagById(Convert.toLong(TaxonomyTagAssetRel.getTagId()));
+        TaxonomyTagRespVO TaxonomyTagById = taxonomyTagService.getAttTagById(TaxonomyTagAssetRel.getTagId());
         TaxonomyTagById.setAeestCount(TaxonomyTagById.getAeestCount() - 1);
         TaxonomyTagSaveReqVO bean = BeanUtils.toBean(TaxonomyTagById, TaxonomyTagSaveReqVO.class);
-        TaxonomyTagService.updateAttTag(bean);
-        return TaxonomyTagAssetRelMapper.deleteById(id);
+        taxonomyTagService.updateAttTag(bean);
+        return taxonomyTagAssetRelMapper.deleteById(id);
     }
 
     @Override
     public List<TaxonomyTagAssetRelRespDTO> getApiList(TaxonomyTagAssetRelReqDTO TaxonomyApiCatReqDTO) {
-        List<TaxonomyTagAssetRelDO> TaxonomyTagAssetRelDOS = TaxonomyTagAssetRelMapper.selectList();
+        List<TaxonomyTagAssetRelDO> TaxonomyTagAssetRelDOS = taxonomyTagAssetRelMapper.selectList();
         return BeanUtils.toBean(TaxonomyTagAssetRelDOS, TaxonomyTagAssetRelRespDTO.class);
     }
 
     @Override
     public void deleteRelByUpdateTag(Long assetId) {
-        List<TaxonomyTagAssetRelDO> TaxonomyTagAssetRelDOS = TaxonomyTagAssetRelMapper.selectList("asset_id", assetId);
-        Map<Long, TaxonomyTagDO> collect = TaxonomyTagService.list().stream().collect(Collectors.toMap(s -> s.getId(), Function.identity()));
+        List<TaxonomyTagAssetRelDO> TaxonomyTagAssetRelDOS = taxonomyTagAssetRelMapper.selectList(
+                Wrappers.lambdaQuery(TaxonomyTagAssetRelDO.class)
+                        .eq(TaxonomyTagAssetRelDO::getAssetId, assetId));
+        Map<Long, TaxonomyTagDO> collect = taxonomyTagService.list().stream().collect(Collectors.toMap(s -> s.getId(), Function.identity()));
         for (TaxonomyTagAssetRelDO TaxonomyTagAssetRelDO : TaxonomyTagAssetRelDOS) {
-            TaxonomyTagDO TaxonomyTagDO1 = collect.get(Convert.toLong(TaxonomyTagAssetRelDO.getTagId()));
+            TaxonomyTagDO TaxonomyTagDO1 = collect.get(TaxonomyTagAssetRelDO.getTagId());
             TaxonomyTagDO1.setAeestCount(TaxonomyTagDO1.getAeestCount() - 1);
             TaxonomyTagSaveReqVO bean = BeanUtils.toBean(TaxonomyTagDO1, TaxonomyTagSaveReqVO.class);
-            TaxonomyTagService.updateAttTag(bean);
+            taxonomyTagService.updateAttTag(bean);
         }
+    }
+
+    private void refreshTagAssetCount(Long tagId) {
+        Long assetCount = taxonomyTagAssetRelMapper.selectCount(Wrappers.lambdaQuery(TaxonomyTagAssetRelDO.class)
+                .eq(TaxonomyTagAssetRelDO::getTagId, tagId));
+        TaxonomyTagSaveReqVO updateReqVO = new TaxonomyTagSaveReqVO();
+        updateReqVO.setId(tagId);
+        updateReqVO.setAeestCount(assetCount);
+        taxonomyTagService.updateAttTag(updateReqVO);
     }
 }

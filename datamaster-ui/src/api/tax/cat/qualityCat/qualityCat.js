@@ -1,7 +1,7 @@
 ﻿
 import request from '@/utils/request'
 
-// 查询数据质量类目列表
+// 查询质量探查类目列表
 export function listAttQualityCat(query) {
   return request({
     url: '/tax/qualityCat/list',
@@ -10,7 +10,7 @@ export function listAttQualityCat(query) {
   })
 }
 
-// 查询数据质量类目详细
+// 查询质量探查类目详细
 export function getAttQualityCat(id) {
   return request({
     url: '/tax/qualityCat/' + id,
@@ -18,7 +18,7 @@ export function getAttQualityCat(id) {
   })
 }
 
-// 新增数据质量类目
+// 新增质量探查类目
 export function addAttQualityCat(data) {
   return request({
     url: '/tax/qualityCat',
@@ -27,7 +27,7 @@ export function addAttQualityCat(data) {
   })
 }
 
-// 修改数据质量类目
+// 修改质量探查类目
 export function updateAttQualityCat(data) {
   return request({
     url: '/tax/qualityCat',
@@ -36,7 +36,7 @@ export function updateAttQualityCat(data) {
   })
 }
 
-// 删除数据质量类目
+// 删除质量探查类目
 export function delAttQualityCat(id) {
   return request({
     url: '/tax/qualityCat/' + id,

@@ -21,20 +21,20 @@ public class AssetsDiscoveryTaskLogSaveReqVO extends BaseEntity {
 @Schema(description = "ID")    private Long id;
 
 @Schema(description = "", example = "")
-@Size(max = 256, message = "256")    private String name;
+@Size(max = 256, message = "任务名称长度不能超过256个字符")    private String name;
 
-@Schema(description = "id", example = "")    private Long nodeId;
+@Schema(description = "节点 ID", example = "")    private Long nodeId;
 
 @Schema(description = "", example = "")
-@Size(max = 256, message = "256")    private String nodeCode;
+@Size(max = 256, message = "节点编码长度不能超过256个字符")    private String nodeCode;
 
 @Schema(description = "", example = "")
 @Size(max = 256, message = "256")    private String taskName;
 
-@Schema(description = "id", example = "")    private Long taskId;
+@Schema(description = "任务 ID", example = "")    private Long taskId;
 
 @Schema(description = "", example = "")
-@Size(max = 256, message = "256")    private String taskCode;
+@Size(max = 256, message = "任务编码长度不能超过256个字符")    private String taskCode;
 
 @Schema(description = "", example = "")
 @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    private Date startTime;
@@ -43,7 +43,7 @@ public class AssetsDiscoveryTaskLogSaveReqVO extends BaseEntity {
 @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    private Date endTime;
 
 @Schema(description = "", example = "")
-@Size(max = 256, message = "256")    private String status;
+@Size(max = 256, message = "任务状态长度不能超过256个字符")    private String status;
 
 @Schema(description = "", example = "")    private Long newTableCount;
 
@@ -52,15 +52,15 @@ public class AssetsDiscoveryTaskLogSaveReqVO extends BaseEntity {
 @Schema(description = "", example = "")    private Long deletedTableCount;
 
 @Schema(description = "", example = "")
-@Size(max = 256, message = "256")    private String contact;
+@Size(max = 256, message = "联系人长度不能超过256个字符")    private String contact;
 
 @Schema(description = "ID", example = "")    private Long contactId;
 
 @Schema(description = "", example = "")
-@Size(max = 256, message = "256")    private String contactNumber;
+@Size(max = 256, message = "联系电话长度不能超过256个字符")    private String contactNumber;
 
 @Schema(description = "", example = "")
-@Size(max = 256, message = "256")    private String email;
+@Size(max = 256, message = "邮箱长度不能超过256个字符")    private String email;
 
 @Schema(description = "DolphinSchedulerid", example = "")    private Long dsId;
 
@@ -70,12 +70,12 @@ public class AssetsDiscoveryTaskLogSaveReqVO extends BaseEntity {
 @Size(max = 256, message = "256")    private String path;
 
 @Schema(description = "", example = "")
-@Size(max = 256, message = "256")    private String remark;
+@Size(max = 256, message = "描述长度不能超过256个字符")    private String description;
     public void populateFromTask(AssetsDiscoveryTaskRespVO AssetsDiscoveryTask) {
         if (AssetsDiscoveryTask == null) {
         return;
         }
-//TODO 对接海豚调度器会改        this.name = AssetsDiscoveryTask.getName();        this.taskName = AssetsDiscoveryTask.getName();        this.remark = AssetsDiscoveryTask.getRemark();        this.contact = AssetsDiscoveryTask.getContact();
+//TODO 对接海豚调度器会改        this.name = AssetsDiscoveryTask.getName();        this.taskName = AssetsDiscoveryTask.getName();        this.description = AssetsDiscoveryTask.getDescription();        this.contact = AssetsDiscoveryTask.getContact();
     this.contactId = AssetsDiscoveryTask.getContactId();
     this.contactNumber = AssetsDiscoveryTask.getContactNumber();
     this.email = AssetsDiscoveryTask.getEmail();

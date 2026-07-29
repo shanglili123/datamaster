@@ -80,7 +80,7 @@ public class CatalogDbPageReqVO extends PageParam {
     @Schema(description = "存储大小", example = "")
     private Integer storageSize;
 
-    @Schema(description = "数据质量", example = "")
+    @Schema(description = "质量探查", example = "")
     private Integer dataQuality;
 
     @Schema(description = "审核状态;1：审批中，2：审批通过，3：审批拒绝，4：审批撤回，5：审批异常", example = "")
@@ -126,9 +126,9 @@ public class CatalogDbPageReqVO extends PageParam {
 
 
     @Schema(description = "空间ID")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码")
-    private String projectCode;
+    private String spaceCode;
 
 }

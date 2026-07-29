@@ -91,5 +91,5 @@ public interface IStandardsDataElemCodeService extends IService<StandardsDataEle
      * @param id
      * @return
      */
-    Integer validateCodeValue(String dataElemId, String codeValue, String id);
+    Integer validateCodeValue(Long dataElemId, String codeValue, String id);
 }

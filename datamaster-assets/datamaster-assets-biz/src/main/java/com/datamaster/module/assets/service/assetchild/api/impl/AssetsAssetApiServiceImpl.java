@@ -178,8 +178,8 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
     @Override
     public void queryServiceForwarding(HttpServletResponse response, AssetsAssetApiReqVO AssetsAssetApi) {
         Map<String, Object> queryParams = AssetsAssetApi.getQueryParams() == null ? new HashMap<>() : AssetsAssetApi.getQueryParams();
-        queryParams.put("projectId", AssetsAssetApi.getProjectId());
-        queryParams.put("projectCode", AssetsAssetApi.getProjectCode());
+        queryParams.put("spaceId", AssetsAssetApi.getSpaceId());
+        queryParams.put("spaceCode", AssetsAssetApi.getSpaceCode());
         this.executeServiceForwarding(response,AssetsAssetApi.getId(),queryParams);
     }
 
@@ -235,8 +235,8 @@ public class AssetsAssetApiServiceImpl  extends ServiceImpl<AssetsAssetApiMapper
         AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
         reqDTO.setDatasourceId(asset.getDatasourceId());
         reqDTO.setTableName(asset.getTableName());
-        reqDTO.setProjectId(toLong(MapUtils.getObject(queryParams, "projectId")));
-        reqDTO.setProjectCode(MapUtils.getString(queryParams, "projectCode"));
+        reqDTO.setSpaceId(toLong(MapUtils.getObject(queryParams, "spaceId")));
+        reqDTO.setSpaceCode(MapUtils.getString(queryParams, "spaceCode"));
         reqDTO.setEntrance("DATA_SERVICE_API_FORWARD");
         assetsTableGovernanceApiService.checkTableAccess(reqDTO);
     }

@@ -97,8 +97,8 @@ async function fetchColumns() {
     const res = await getColumnByAssetId({
       id: form.datasourceId,
       tableName: form.assetid,
-      projectId: userStore.projectId,
-      projectCode: userStore.projectCode,
+      spaceId: userStore.spaceId,
+      spaceCode: userStore.spaceCode,
     });
     if (res.code == "200") {
       columnList.value = res.data;

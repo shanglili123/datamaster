@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="app-container ask-data-page" :class="{ fullscreen: isFullscreen }">
     <aside class="conversation-panel">
       <div class="panel-title">
@@ -349,7 +349,7 @@ watch(() => [form.datasourceId, form.skillId, form.templateId, form.returnSql], 
   syncActiveSessionSelection()
 })
 
-watch(() => userStore.projectId, async () => {
+watch(() => userStore.spaceId, async () => {
   await loadConversations()
 })
 
@@ -467,7 +467,7 @@ async function selectConversation(id) {
 
 async function removeConversation(id) {
   await ElMessageBox.confirm('确认删除该会话及全部聊天记录？', '删除会话', { type: 'warning' })
-  await deleteAskSession(id, currentProjectParams())
+  await deleteAskSession(id, currentSpaceParams())
   conversations.value = conversations.value.filter((item) => item.id !== id)
   if (activeConversationId.value === id) {
     if (conversations.value.length) {
@@ -532,7 +532,7 @@ function handleMessageScroll() {
 async function removeMessage(message) {
   const session = activeConversation.value
   if (!session || !message?.id) return
-  await deleteAskMessage(session.id, message.id, currentProjectParams())
+  await deleteAskMessage(session.id, message.id, currentSpaceParams())
   session.messages = session.messages.filter((item) => item.id !== message.id)
 }
 
@@ -540,7 +540,7 @@ async function clearMessages() {
   const session = activeConversation.value
   if (!session) return
   await ElMessageBox.confirm('确认清空当前会话的聊天记录？', '清空聊天记录', { type: 'warning' })
-  await clearAskMessages(session.id, currentProjectParams())
+  await clearAskMessages(session.id, currentSpaceParams())
   session.messages = []
   messageWindow.hasBefore = false
   messageWindow.hasAfter = false
@@ -806,8 +806,8 @@ function buildSessionPayload(extra = {}) {
     skillId: form.skillId,
     templateId: form.templateId,
     returnSql: form.returnSql,
-    projectId: userStore.projectId || null,
-    projectCode: userStore.projectCode || '',
+    spaceId: userStore.spaceId || null,
+    spaceCode: userStore.spaceCode || '',
     ...extra
   }
 }
@@ -835,7 +835,7 @@ async function persistMessage(message) {
     content: payload.content,
     displayContent: payload.displayContent,
     payloadJson: JSON.stringify(payload)
-  }, currentProjectParams())
+  }, currentSpaceParams())
   if (res.data?.id) {
     message.id = res.data.id
   }
@@ -860,10 +860,10 @@ function serializeMessage(message) {
   }
 }
 
-function currentProjectParams() {
+function currentSpaceParams() {
   return {
-    projectId: userStore.projectId || null,
-    projectCode: userStore.projectCode || ''
+    spaceId: userStore.spaceId || null,
+    spaceCode: userStore.spaceCode || ''
   }
 }
 
@@ -952,8 +952,8 @@ async function sendMessage() {
         chatMode: 'chat_with_db_qa',
         skillIds: form.skillId ? [form.skillId] : [],
         returnSql: form.returnSql,
-        projectId: userStore.projectId || null,
-        projectCode: userStore.projectCode || ''
+        spaceId: userStore.spaceId || null,
+        spaceCode: userStore.spaceCode || ''
       }, {
         onMessage(chunk) {
           if (!assistantMessage.content) {
@@ -994,8 +994,8 @@ async function generateReportMessage(question, assistantMessage) {
   const res = await askDataDbgptReport({
     question,
     datasourceId: form.datasourceId,
-    projectId: userStore.projectId || null,
-    projectCode: userStore.projectCode || '',
+    spaceId: userStore.spaceId || null,
+    spaceCode: userStore.spaceCode || '',
     skillId: form.skillId,
     templateId: form.templateId,
     returnSql: form.returnSql

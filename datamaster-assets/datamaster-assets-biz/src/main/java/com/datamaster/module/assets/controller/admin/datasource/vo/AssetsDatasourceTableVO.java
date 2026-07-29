@@ -17,8 +17,8 @@ public class AssetsDatasourceTableVO {
 
     private Integer withRule;
 
-    private Long projectId;
+    private Long spaceId;
 
-    private String projectCode;
+    private String spaceCode;
 
 }

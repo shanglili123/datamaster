@@ -12,7 +12,7 @@ import com.datamaster.module.taxonomy.dal.dataobject.cat.TaxonomyQualityCatDO;
 import java.util.List;
 
 /**
- * 数据质量类目 Convert
+ * 质量探查类目 Convert
  *
  * @author DATAMASTER
  * @date 2025-07-19

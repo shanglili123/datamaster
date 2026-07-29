@@ -31,8 +31,8 @@ public class TaxonomySourceSystemApiImpl implements ITaxonomySourceSystemApiServ
     }
 
     @Override
-    public List<TaxonomySourceSystemRespDTO> getValidSourceSystems(Long projectId) {
-        List<TaxonomySourceSystemDO> validSourceSystems = TaxonomySourceSystemService.getValidSourceSystemList(projectId);
+    public List<TaxonomySourceSystemRespDTO> getValidSourceSystems(Long spaceId) {
+        List<TaxonomySourceSystemDO> validSourceSystems = TaxonomySourceSystemService.getValidSourceSystemList(spaceId);
         return validSourceSystems.stream()
                 .map(sourceSystem -> BeanUtils.toBean(sourceSystem, TaxonomySourceSystemRespDTO.class))
                 .collect(Collectors.toList());

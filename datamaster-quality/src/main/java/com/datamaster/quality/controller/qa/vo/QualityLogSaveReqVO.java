@@ -13,12 +13,12 @@ import javax.validation.constraints.Size;
 import java.util.Date;
 
 /**
- * 数据质量日志 创建/修改 Request VO COL_QUALITY_LOG
+ * 质量探查日志 创建/修改 Request VO COL_QUALITY_LOG
  *
  * @author lili.shang
  * @date 2025-07-19
  */
-@Schema(description = "数据质量日志 Response VO")
+@Schema(description = "质量探查日志 Response VO")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -52,9 +52,9 @@ public class QualityLogSaveReqVO extends BaseEntity {
     @Schema(description = "问题数据", example = "")
     private Long problemData;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
     private String path;
 

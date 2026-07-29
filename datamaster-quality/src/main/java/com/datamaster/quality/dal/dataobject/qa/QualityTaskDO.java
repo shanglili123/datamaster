@@ -7,7 +7,7 @@ import lombok.experimental.SuperBuilder;
 import com.datamaster.common.core.domain.BaseEntity;
 
 /**
- * 数据质量任务 DO 对象 COL_QUALITY_TASK
+ * 质量探查任务 DO 对象 COL_QUALITY_TASK
  *
  * @author Chaos
  * @date 2025-07-21

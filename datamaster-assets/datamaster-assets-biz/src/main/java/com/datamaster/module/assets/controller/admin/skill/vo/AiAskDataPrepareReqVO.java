@@ -14,9 +14,9 @@ public class AiAskDataPrepareReqVO {
 
     private Long assetId;
 
-    private Long projectId;
+    private Long spaceId;
 
-    private String projectCode;
+    private String spaceCode;
 
     private String keyword;
 }

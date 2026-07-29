@@ -12,8 +12,8 @@
         <result property="taskVersion" column="TASK_VERSION"/>
         <result property="statusHistory" column="STATUS_HISTORY"/>
         <result property="personCharge" column="PERSON_CHARGE"/>
-        <result property="projectId" column="PROJECT_ID"/>
-        <result property="projectCode" column="PROJECT_CODE"/>
+        <result property="spaceId" column="SPACE_ID"/>
+        <result property="spaceCode" column="SPACE_CODE"/>
         <result property="startTime" column="START_TIME"/>
         <result property="endTime" column="END_TIME"/>
         <result property="commandType" column="COMMAND_TYPE"/>
@@ -41,8 +41,8 @@
                TASK_VERSION,
                STATUS_HISTORY,
                PERSON_CHARGE,
-               PROJECT_ID,
-               PROJECT_CODE,
+               SPACE_ID,
+               SPACE_CODE,
                START_TIME,
                END_TIME,
                COMMAND_TYPE,
@@ -72,8 +72,8 @@
             <if test="taskVersion != null ">and TASK_VERSION = #{taskVersion}</if>
             <if test="statusHistory != null  and statusHistory != ''">and STATUS_HISTORY = #{statusHistory}</if>
             <if test="personCharge != null  and personCharge != ''">and PERSON_CHARGE = #{personCharge}</if>
-            <if test="projectId != null ">and PROJECT_ID = #{projectId}</if>
-            <if test="projectCode != null  and projectCode != ''">and PROJECT_CODE = #{projectCode}</if>
+            <if test="spaceId != null ">and SPACE_ID = #{spaceId}</if>
+            <if test="spaceCode != null  and spaceCode != ''">and SPACE_CODE = #{spaceCode}</if>
             <if test="startTime != null ">and START_TIME = #{startTime}</if>
             <if test="endTime != null ">and END_TIME = #{endTime}</if>
             <if test="commandType != null  and commandType != ''">and COMMAND_TYPE = #{commandType}</if>
@@ -101,8 +101,8 @@
             <if test="taskVersion != null">TASK_VERSION,</if>
             <if test="statusHistory != null">STATUS_HISTORY,</if>
             <if test="personCharge != null">PERSON_CHARGE,</if>
-            <if test="projectId != null">PROJECT_ID,</if>
-            <if test="projectCode != null">PROJECT_CODE,</if>
+            <if test="spaceId != null">SPACE_ID,</if>
+            <if test="spaceCode != null">SPACE_CODE,</if>
             <if test="startTime != null">START_TIME,</if>
             <if test="endTime != null">END_TIME,</if>
             <if test="commandType != null">COMMAND_TYPE,</if>
@@ -129,8 +129,8 @@
             <if test="taskVersion != null">#{taskVersion},</if>
             <if test="statusHistory != null">#{statusHistory},</if>
             <if test="personCharge != null">#{personCharge},</if>
-            <if test="projectId != null">#{projectId},</if>
-            <if test="projectCode != null">#{projectCode},</if>
+            <if test="spaceId != null">#{spaceId},</if>
+            <if test="spaceCode != null">#{spaceCode},</if>
             <if test="startTime != null">#{startTime},</if>
             <if test="endTime != null">#{endTime},</if>
             <if test="commandType != null">#{commandType},</if>
@@ -160,8 +160,8 @@
             <if test="taskVersion != null">TASK_VERSION = #{taskVersion},</if>
             <if test="statusHistory != null">STATUS_HISTORY = #{statusHistory},</if>
             <if test="personCharge != null">PERSON_CHARGE = #{personCharge},</if>
-            <if test="projectId != null">PROJECT_ID = #{projectId},</if>
-            <if test="projectCode != null">PROJECT_CODE = #{projectCode},</if>
+            <if test="spaceId != null">SPACE_ID = #{spaceId},</if>
+            <if test="spaceCode != null">SPACE_CODE = #{spaceCode},</if>
             <if test="startTime != null">START_TIME = #{startTime},</if>
             <if test="endTime != null">END_TIME = #{endTime},</if>
             <if test="commandType != null">COMMAND_TYPE = #{commandType},</if>
@@ -232,8 +232,8 @@
         WHERE
         ti.TASK_TYPE = #{params.taskType}
         AND ti.DEL_FLAG = '0'
-        <if test="params.projectCode!=null and params.projectCode!=''">
-            AND ti.PROJECT_CODE = #{params.projectCode}
+        <if test="params.spaceCode!=null and params.spaceCode!=''">
+            AND ti.SPACE_CODE = #{params.spaceCode}
         </if>
         <if test="params.catCode!=null and params.catCode!=''">
             AND ti.CAT_CODE LIKE CONCAT(#{params.catCode}, '%')

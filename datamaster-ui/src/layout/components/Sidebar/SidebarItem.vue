@@ -26,6 +26,7 @@
 import { isExternal } from '@/utils/validate'
 import AppLink from './Link'
 import { getNormalPath } from '@/utils/anivia.js'
+import { parseRouteQuery } from '@/utils/routeQuery'
 
 const props = defineProps({
   // route object
@@ -84,11 +85,9 @@ function resolvePath(routePath, routeQuery) {
     ? routePath
     : getNormalPath(props.basePath + '/' + routePath)
   if (routeQuery) {
-    try {
-      const query = JSON.parse(routeQuery.replace(/\\"/g, '"'));
+    const query = parseRouteQuery(routeQuery);
+    if (query) {
       return { path: resolvedPath, query }
-    } catch {
-      return resolvedPath
     }
   }
   return resolvedPath

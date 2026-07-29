@@ -42,10 +42,10 @@ public class CollectorEtlTaskPageReqVO extends PageParam {
     private Long version;
 
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "创建人", example = "")
     private String personCharge;

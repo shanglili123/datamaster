@@ -46,10 +46,10 @@ public class CollectorEtlTaskInstancePageReqVO extends PageParam {
     private String personCharge;
 
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "调度时间", example = "")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

@@ -26,7 +26,7 @@ public class StandardsDataElemCodeRespVO implements Serializable {
 
     @Excel(name = "数据元id")
     @Schema(description = "数据元id", example = "")
-    private String dataElemId;
+    private Long dataElemId;
 
     @Excel(name = "代码值")
     @Schema(description = "代码值", example = "")
@@ -71,7 +71,7 @@ public class StandardsDataElemCodeRespVO implements Serializable {
     private Date updateTime;
 
     @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
 }

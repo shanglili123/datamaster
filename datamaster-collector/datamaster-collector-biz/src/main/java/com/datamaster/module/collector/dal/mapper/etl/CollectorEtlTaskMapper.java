@@ -51,8 +51,8 @@ public interface CollectorEtlTaskMapper extends BaseMapperX<CollectorEtlTaskDO> 
                 .eq(StringUtils.isNotBlank(reqVO.getCode()), CollectorEtlTaskDO::getCode, reqVO.getCode())
                 .ne(CollectorEtlTaskDO::getStatus,"-2")
                 .ne(CollectorEtlTaskDO::getStatus,"-3")
-                .eq(reqVO.getProjectId() != null, CollectorEtlTaskDO::getProjectId, reqVO.getProjectId())
-                .eq(StringUtils.isNotBlank(reqVO.getProjectCode()), CollectorEtlTaskDO::getProjectCode, reqVO.getProjectCode())
+                .eq(reqVO.getSpaceId() != null, CollectorEtlTaskDO::getSpaceId, reqVO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqVO.getSpaceCode()), CollectorEtlTaskDO::getSpaceCode, reqVO.getSpaceCode())
                 .eq(StringUtils.isNotBlank(reqVO.getPersonCharge()), CollectorEtlTaskDO::getPersonCharge, reqVO.getPersonCharge())
                 .eq(StringUtils.isNotBlank(reqVO.getLocations()), CollectorEtlTaskDO::getLocations, reqVO.getLocations())
                 .eq(StringUtils.isNotBlank(reqVO.getDescription()), CollectorEtlTaskDO::getDescription, reqVO.getDescription())
@@ -66,7 +66,7 @@ public interface CollectorEtlTaskMapper extends BaseMapperX<CollectorEtlTaskDO> 
 
     int checkTaskIdInSubTasks(Long id);
 
-    int checkTaskIdInDatasource(@Param("datasourceIdList") List<Long> datasourceIdList,@Param("projectIdList") List<Long> projectIdList);
+    int checkTaskIdInDatasource(@Param("datasourceIdList") List<Long> datasourceIdList,@Param("spaceIdList") List<Long> spaceIdList);
 
     int checkTaskIdInAsset(@Param("assetIdList") List<Long> assetIdList);
 }

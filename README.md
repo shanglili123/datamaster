@@ -1,753 +1,602 @@
-# dataMaster 项目代码理解报告（最终版）
-> 说明：本文档基于仓库 `D:/dev/DATAMASTER` 的 README、DEPLOY.md、根 `pom.xml`、后端启动类与配置文件整理，并结合本地初始化编译结果形成。目标是快速建立项目结构、启动链路与后续排查思路。
+﻿# DataMaster 项目说明
 
-> **命名说明**：本文档采用项目重构后的命名方案。原模块名与现模块名对照见附录。
+DataMaster 是一个面向银行金融数据治理场景的数据中台系统，采用 Java 8 多模块 Maven 后端和 Vue 3 + Vite 前端。系统覆盖空间管理、数据源管理、数据资产、元数据目录、数据标准、数据采集、ETL、质量探查、数据服务、数据建模和 AI 问数等能力。
+
+本文档记录项目整体架构、模块职责、核心流程、启动依赖和排查入口。重构目标、字段规范化、已改模块清单等改造过程记录单独维护在：
+
+```text
+docs/整体规范化改造目标与方案.md
+```
 
 ## 1. 项目定位
 
-dataMaster 是一个面向企业数据中台、数据治理、数据服务与智能问数场景的前后端分离系统。
+DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的 CRUD 后台。
+
 核心能力包括：
-- 数据集成（ETL）
-- 数据开发
+
+- 空间管理和空间权限隔离
+- 数据源注册、测试、同步和复用
+- 数据资产登记、分类、字段管理和权限控制
+- 元数据采集、目录维护和版本同步
+- 数据标准、数据元和标准文档管理
+- 数据集成、ETL 编排和调度执行
+- 质量探查规则、质量任务和结果管理
+- 数据服务 API 发布、SQL 执行和外部调用
 - 数据建模
-- 元数据管理
-- 数据质量
-- 数据资产
-- 数据服务
-- AI 智能问数（Text2SQL / 图表分析）
+- AI 问数、SQL 生成、图表分析和报告
 
-从 README 来看，它更偏向"企业级数据中台平台"，不是一个单纯的 CRUD 后台。
+整体业务路径可以理解为：
 
-## 2. 技术栈概览
+```text
+空间和用户权限
+  -> 数据源注册
+  -> 元数据采集 / 资产登记
+  -> 标准、分类、权限治理
+  -> ETL / 质量 / 数据服务 / AI 问数应用
+```
+
+## 2. 技术栈
 
 ### 后端
+
 - Java 8
-- Spring Boot 2.5.15
+- Spring Boot 2.5.x
 - Spring Security
 - MyBatis-Plus
+- Dynamic Datasource
 - Druid
 - Redis
 - RabbitMQ
 - PageHelper
-- Swagger / Knife4j
-- JJWT
-- Apache POI / Velocity 等工具库
+- Knife4j / Swagger
+- DolphinScheduler API 适配
+- Flink / ChunJun
 
 ### 前端
+
 - Vue 3
-- Vite
-- Element UI
+- Vite 5
+- Element Plus
+- Pinia
+- Vue Router
+- ECharts
+- CodeMirror / Monaco
+- AntV X6
 
-### 其他依赖
-- Spark
-- DolphinScheduler
-- Hive
-- HBase
-- MySQL / DM8 / Oracle / Kingbase8 / Doris 等数据库支持
+## 3. 项目结构
 
-## 3. 项目结构理解
+根目录是一个多模块 Maven 工程，整体采用“启动入口 + 业务模块 + 公共基础能力 + 前端工程”的结构。
 
-根目录是一个多模块 Maven 工程，模块拆分较细，整体采用 **"平台入口 + 领域模块 + 基础框架"** 的分层架构。以下逐一说明每个模块的职责及模块间的关系。
-
-### 3.1 模块总览与依赖关系
-```
-datamaster-server  (启动入口，依赖所有业务模块)
-├── datamaster-common/*  (基础框架父模块)
-│   ├── datamaster-common-common      ← 注解、枚举、数据源方言、工具类
-│   ├── datamaster-common-datasource  ← 动态数据源路由、连接管理
-│   ├── datamaster-common-config      ← 配置中心
-│   ├── datamaster-common-mybatis     ← MyBatis-Plus 配置扩展
-│   └── datamaster-common-websocket   ← WebSocket 消息推送
-├── datamaster-system           ← 系统管理（用户、角色、菜单、字典）
-├── datamaster-taxonomy         ← 分类管理（资产分类、主题、源系统、清洗规则等）
-├── datamaster-standards        ← 数据标准（标准目录、标准文档）
-├── datamaster-assets           ← 【核心】数据资产（数据源注册、资产目录、资产申请）
-├── datamaster-collector        ← 数据采集（采集任务、汇聚实例）
-├── datamaster-service          ← 数据服务（API 发布、SQL 解析执行、限流缓存）
-├── datamaster-modeling         ← 数据建模（模型设计）
-├── datamaster-catalog          ← 元数据管理（元数据抓取与同步）
-├── datamaster-api-ds           ← DolphinScheduler 适配层（HTTP 封装）
-├── datamaster-etl              ← Spark ETL 程序（独立 Jar）
-├── datamaster-quality          ← 数据质量（质量规则、检测任务，独立微服务）
-└── datamaster-view             ← 前端页面（Vue 3 + Vite）
+```text
+datamaster-server        后端启动入口，聚合业务模块并提供运行配置
+datamaster-common        公共基础能力、数据源、MyBatis、安全、缓存、WebSocket
+datamaster-system        系统管理：用户、角色、菜单、部门、字典、权限
+datamaster-taxonomy      空间、分类、主题、源系统、规则等治理元数据
+datamaster-standards     数据标准、标准文档、数据元
+datamaster-assets        数据资产、数据源管理、资产申请、字段权限、AI 问数资产侧能力
+datamaster-collector     数据采集、ETL 任务、调度任务编排和任务实例管理
+datamaster-service       数据服务 API 发布、SQL 执行、接口调用、限流和缓存
+datamaster-modeling      数据建模
+datamaster-catalog       元数据目录、元数据采集和同步
+datamaster-api-ds        DolphinScheduler API 适配层
+datamaster-flinkx-core   FlinkX / ChunJun 任务 JSON 转换能力
+datamaster-quality       质量探查模块
+datamaster-ui            Vue 3 + Vite 前端
+sql                      数据库脚本
+docs                     项目文档
+docker                   容器和部署相关资源
+deploy                   部署资源
 ```
 
-### 3.2 框架层详解
-#### `datamaster-common` 公共基础框架
-含多个子模块，是项目的技术基础设施。
-| 子模块 | 职责 | 关键内容 |
-|--------|------|----------|
-| `datamaster-common-common` | 公共能力 | 数据源方言体系（3 种数据库类型 + 11 种方言实现）、`DataSourceFactory`、`DbDialect`、注解 `@DataSource`、工具类 |
-| `datamaster-common-datasource` | 数据库访问层 | 动态数据源路由 `DynamicDataSource`（基于 `AbstractRoutingDataSource`）、ThreadLocal 上下文 `DynamicDataSourceContextHolder`、Spring Security 配置、JWT 令牌、Redis 缓存封装 |
-| `datamaster-common-config` | 配置管理 | 应用内轻量定时任务（缓存刷新、状态同步等），区别于 DolphinScheduler 的重调度；配置读取与管理 |
-| `datamaster-common-mybatis` | MyBatis 扩展 | MyBatis-Plus 配置扩展、数据源切换 AOP |
-| `datamaster-common-websocket` | 即时通信 | WebSocket 消息推送 |
+根 `pom.xml` 聚合后端模块，后端主启动类为：
 
-**依赖关系**：`datamaster-common-common` 被所有业务模块直接或间接依赖；`datamaster-common-datasource` 依赖 `datamaster-common-common` 的数据源和方言体系。
+```text
+datamaster-server/src/main/java/com/datamaster/server/DataMasterApplication.java
+```
 
-### 3.3 业务模块详解
+前端入口位于：
 
-#### `datamaster-system` 系统管理
-- **功能**：用户管理、角色管理、菜单管理、部门管理、字典管理、操作日志
-- **数据表**：`SYS_USER`、`SYS_ROLE`、`SYS_MENU`、`SYS_DICT_DATA` 等
-- **依赖**：`datamaster-common` 全部子模块
-- **被依赖**：所有业务模块（通过框架安全组件校验权限）
+```text
+datamaster-ui/
+```
 
-#### `datamaster-taxonomy` 分类管理（资产元数据管理）
-- **功能**：资产分类、主题域、源系统管理、数据集分类、API 分类、模型分类、质量分类、清洗分类、文档分类、任务分类、项目/客户管理、清洗规则、审计规则
-- **说明**：这是元数据的元数据，为 `datamaster-assets` 提供分类体系和规则定义
-- **数据表**：`TAX_ASSET_CAT`、`TAX_THEME`、`TAX_SOURCE_SYSTEM`、`TAX_CLEAN_RULE` 等
-- **依赖**：`datamaster-common`
-- **被依赖**：`datamaster-assets`（资产注册时引用分类）、`datamaster-quality`（引用的清洗/审计规则）
+## 4. 模块职责
 
-#### `datamaster-standards` 数据标准
-- **功能**：数据标准目录管理、标准文档管理
-- **数据表**：以 `STD_` 前缀
-- **依赖**：`datamaster-common`
-- **被依赖**：`datamaster-assets`（资产挂载标准）
+### 4.1 datamaster-common
 
-#### `datamaster-assets` 数据资产（核心模块）
-- **功能**：
-  - **数据源注册与管理**：支持 23 种外部数据源的动态注册（关系型/分析型/NoSQL/消息队列/文件存储），连接信息加密存储，提供连接测试、表查询、数据预览能力
-  - **数据资产目录**：资产登记、分类挂载、资产字段管理
-  - **资产申请**：资产审批与使用流程
-  - **基于项目的数据权限控制**：三级权限管控（数据源级→表级→字段级），是整个平台的数据访问控制中心
-- **数据表**：`AST_DATASOURCE`（数据源配置）、`AST_ASSET`（资产）、`AST_ASSET_COLUMN`（资产字段）、`AST_ASSET_APPLY`（资产申请）等
-- **关键机制**：
-  - 启动时将所有已注册数据源加载到 Redis（hash `"datasource"`），供工作节点获取
-  - 创建/更新数据源时同步刷新 Redis 缓存
-  - 通过 `AbstractDataSourceFactory` 动态创建 JDBC 连接，使用 Hutool 的 `SimpleDataSource` 或 HikariCP
-  - 使用 MD5 对连接信息做缓存去重（`CacheDataSourceFactoryBean`）
-- **依赖**：`datamaster-common`、`datamaster-taxonomy`（引用分类）
-- **被依赖**：`datamaster-service`（数据服务执行 SQL）、`datamaster-collector`（数据采集读取源）、`datamaster-etl`（ETL 读写）、`datamaster-quality`（质量检测）、`datamaster-catalog`（元数据采集）
+公共基础框架，提供跨模块复用能力。
 
-### 3.3.1 数据资产权限控制体系
+主要子模块：
 
-资产模块的核心职责之一是**基于项目的数据权限管控**，采用三级权限控制模型：
+| 子模块 | 职责 |
+| --- | --- |
+| `datamaster-common-common` | 公共注解、枚举、工具类、数据库方言、统一返回、异常处理 |
+| `datamaster-common-datasource` | 动态数据源、连接管理、安全认证、Redis 封装 |
+| `datamaster-common-config` | 公共配置、拦截器、轻量定时能力 |
+| `datamaster-common-mybatis` | MyBatis-Plus 配置、分页、数据权限相关扩展 |
+| `datamaster-common-websocket` | WebSocket 消息推送 |
 
-#### 权限控制架构
+### 4.2 datamaster-system
+
+系统管理模块，负责用户、角色、菜单、部门、字典、权限、操作日志等基础后台能力。
+
+空间改造后，系统角色和菜单权限会结合空间上下文进行权限隔离。
+
+### 4.3 datamaster-taxonomy
+
+治理元数据模块，负责空间、分类、主题域、源系统、规则等治理基础数据。
+
+它为资产、质量、采集、服务等模块提供统一的分类、规则和空间上下文。
+
+### 4.4 datamaster-standards
+
+数据标准模块，负责标准目录、标准文档、数据元、码表、敏感等级、脱敏规则等标准化能力。
+
+资产字段、模型字段和治理规则可以引用标准定义。
+
+### 4.5 datamaster-assets
+
+数据资产核心模块，负责数据源、资产、资产字段、资产申请、资产权限和 AI 问数资产侧能力。
+
+主要职责：
+
+- 数据源注册、测试连接、配置保存、同步调度平台
+- 资产登记、资产目录、字段管理
+- 数据源级、表级、字段级访问控制
+- 资产申请和审批
+- 数据预览、字段脱敏、用户数据权限等级控制
+- 为数据服务、采集、质量和 AI 问数提供数据源与资产能力
+
+### 4.6 datamaster-collector
+
+采集和 ETL 任务模块，负责任务配置、节点编排、发布、执行、实例日志和状态回写。
+
+主要职责：
+
+- 数据集成任务管理
+- 数据开发任务管理
+- 任务节点、关系、位置、实例日志管理
+- 调用 `datamaster-api-ds` 发布和执行 DolphinScheduler 工作流
+- 生成 ChunJun / FlinkX 任务 JSON
+- 处理增量任务边界、回调和状态同步
+
+### 4.7 datamaster-service
+
+数据服务模块，负责把 SQL、参数映射、权限控制和数据源执行封装成可发布 API。
+
+主要职责：
+
+- API 定义和发布
+- 请求参数映射
+- SQL 测试执行
+- API 调用日志
+- 限流、缓存、白名单
+- 执行时读取资产和数据源权限
+
+### 4.8 datamaster-catalog
+
+元数据目录模块，负责采集外部数据源的库、表、字段、索引、分区、存储等结构信息，并维护目录和版本。
+
+### 4.9 datamaster-api-ds
+
+DolphinScheduler HTTP API 适配层，封装项目、任务、调度、执行、上下线、数据源同步等接口。
+
+业务模块通过该层调用 DolphinScheduler，避免在各模块里散落 HTTP 调用细节。
+
+### 4.10 datamaster-flinkx-core
+
+FlinkX / ChunJun 转换核心，负责将平台的输入、转换、输出配置转换为 ChunJun 任务 JSON。
+
+### 4.11 datamaster-quality
+
+质量探查模块，负责质量规则、质量任务、检测执行和检测结果管理。质量任务读取平台数据源配置，对目标数据执行规则校验。
+
+### 4.12 datamaster-ui
+
+前端工程，提供空间、数据源、资产、目录、标准、采集、ETL、质量、服务、AI 问数等页面。
+
+## 5. 核心业务流程
+
+### 5.1 空间管理
+
+空间是平台内的数据治理、权限隔离和任务上下文维度。
+
+```text
+创建空间
+  -> 分配空间成员
+  -> 配置空间角色和菜单权限
+  -> 绑定数据源、资产和任务上下文
+  -> 用户在当前空间内操作数据资产和任务
+```
+
+### 5.2 数据源管理
+
+数据源管理用于登记外部数据库、中间件、文件系统等连接信息。
+
+```text
+新增数据源
+  -> 测试连接
+  -> 保存连接配置
+  -> 绑定空间
+  -> 刷新 Redis datasource 缓存
+  -> 同步 DolphinScheduler 源中心
+  -> 被资产、目录、质量、ETL、数据服务复用
+```
+
+核心表：
+
+```text
+AST_DATASOURCE
+AST_DATASOURCE_SPACE_REL
+```
+
+### 5.3 数据资产
+
+数据资产模块负责资产登记、资产分类、字段维护、资产申请和访问控制。
+
+```text
+注册数据源
+  -> 元数据采集或人工登记资产
+  -> 维护资产字段
+  -> 绑定分类、标准、敏感等级
+  -> 分配空间权限或走资产申请审批
+  -> 被数据服务、AI 问数、质量、ETL 使用
+```
+
+### 5.4 元数据目录
+
+元数据目录负责扫描外部数据源结构，并沉淀库、表、字段、索引、分区等元数据。
+
+```text
+创建采集任务
+  -> 发布 DolphinScheduler HTTP 工作流
+  -> 调度平台回调系统采集接口
+  -> 读取数据源结构
+  -> 比对元数据变化
+  -> 写入目录和版本记录
+```
+
+### 5.5 数据标准
+
+数据标准用于统一数据元、标准文档、码表、敏感等级和脱敏规则。
+
+```text
+维护标准目录
+  -> 维护标准文档 / 数据元 / 码表
+  -> 资产字段挂载标准
+  -> 在治理、质量、建模、服务中复用
+```
+
+### 5.6 数据集成和 ETL
+
+数据集成由 `datamaster-collector` 管理任务配置，通过 DolphinScheduler 调度，由 ChunJun / FlinkX 执行数据同步和转换。
+
+```text
+配置输入、转换、输出
+  -> 构建平台任务节点和关系
+  -> 转换为 ChunJun / FlinkX Job JSON
+  -> 发布 DolphinScheduler 工作流
+  -> 调度执行
+  -> 回写任务实例和状态
+```
+
+支持：
+
+- ChunJun / FlinkX 全量任务
+- ChunJun / FlinkX 增量任务
+- HTTP 回调辅助增量边界计算
+- 任务实例日志和状态同步
+
+### 5.7 数据开发
+
+数据开发复用 collector ETL 任务体系，通过 `type = 3` 区分。
+
+当前定位：
+
+- SQL 执行
+- 存储过程执行
+- Shell 执行
+- Python 执行
+
+数据开发不单独维护一套后台，发布、执行、调度、实例日志复用 `/col/etlTask` 主链路。
+
+### 5.8 质量探查
+
+质量探查负责质量规则配置、质量任务调度和检测结果管理。
+
+```text
+配置质量规则
+  -> 创建质量任务
+  -> 调度执行
+  -> 记录检测结果
+  -> 查看问题数据和质量报告
+```
+
+### 5.9 数据服务
+
+数据服务将 SQL、参数、权限和数据源执行封装成可调用 API。
+
+```text
+创建 API
+  -> 配置 SQL 和参数映射
+  -> 测试执行
+  -> 发布服务
+  -> 外部系统调用
+  -> 记录调用日志
+```
+
+### 5.10 AI 问数
+
+AI 问数基于空间、资产、字段、权限和会话上下文提供自然语言问数能力。
+
+```text
+选择空间和数据范围
+  -> 发起问数
+  -> 生成 SQL
+  -> 权限校验
+  -> 执行查询
+  -> 返回结果 / 图表 / 报告
+```
+
+## 6. 权限控制体系
+
+平台权限分为系统权限、空间权限和数据权限。
+
+### 6.1 系统权限
+
+系统权限由用户、角色、菜单、按钮权限组成，主要由 `datamaster-system` 维护。
+
+```text
+用户 -> 角色 -> 菜单 / 按钮权限
+```
+
+### 6.2 空间权限
+
+空间是业务隔离维度。用户进入不同空间后，可访问的数据源、资产、任务和菜单能力可能不同。
+
+```text
+空间 -> 空间成员 -> 空间角色 -> 空间菜单权限
+```
+
+### 6.3 数据权限
+
+数据资产侧采用多级权限控制：
 
 | 控制层级 | 关系表 | 作用 |
-|----------|--------|------|
-| **数据源级** | `AST_DATASOURCE_PROJECT_REL` | 控制项目能连接哪些数据源 |
-| **表级** | `AST_ASSET_PROJECT_REL` | 控制项目能访问哪些资产表 |
-| **字段级** | `AST_ASSET_COLUMN_PROJECT_REL` | 控制项目能查看哪些字段（已设计，未完全实现） |
+| --- | --- | --- |
+| 数据源级 | `AST_DATASOURCE_SPACE_REL` | 控制空间可使用哪些数据源 |
+| 表级 | `AST_ASSET_SPACE_REL` | 控制空间可访问哪些资产表 |
+| 字段级 | `AST_ASSET_COLUMN_SPACE_REL` | 控制空间可查看哪些字段 |
+| 用户级 | 用户数据权限等级 + 字段敏感等级 | 控制具体用户能看到哪些敏感列 |
 
-#### 权限判定流程（Table Governance）
+权限判定大致流程：
 
-```
-请求访问表
-  │
-  ├─ strict 模式未开启 → 放行
-  │
-  ├─ 无项目上下文 → 放行
-  │
-  ├─ 有项目直连关系 (AST_ASSET_PROJECT_REL) → 放行
-  │
-  ├─ 有已审批的申请 (AST_ASSET_APPLY, status='2') → 放行
-  │
-  └─ 都没有 → 拒绝
+```text
+请求访问资产
+  -> 获取当前空间
+  -> 判断空间是否具备数据源 / 资产 / 字段权限
+  -> 判断用户数据权限等级
+  -> 结合敏感等级和脱敏规则返回可见字段与数据
 ```
 
-配置项（`datamaster.governance.table-access`）：
-- `enabled`：总开关，默认 `false`
-- `mode`：`off`（不拦截）/ `warn`（仅记录）/ `strict`（严格拦截）
-- `fallbackToCatalog`：未找到资产时是否回退到元数据目录（默认 `true`）
+## 7. 数据源体系
 
-#### 两种授权方式
+平台数据源分为三层。
 
-1. **直接分配**：管理员通过 `AST_ASSET_PROJECT_REL` 将资产直接绑定到项目
-2. **申请审批**：用户提交访问申请（`AST_ASSET_APPLY`），管理员审批通过后授权（status 从 `'1'` 变为 `'2'`）
+### 7.1 平台主库
 
-#### 跨模块权限调用
+平台自身业务库通过 `datasource.type` 选择，配置在：
 
-| 调用方 | 调用场景 | 入口标识 |
-|--------|----------|----------|
-| `datamaster-service` | 数据服务 API 测试/发布执行 | `DATA_SERVICE_TEST` / `DATA_SERVICE` |
-| `datamaster-assets` (AI) | 智能问数前检查资产和数据源权限 | `AI_ASK_DATA_PREPARE` / `AI_ASK_DATA` |
-| `datamaster-collector` | 数据采集获取可用资产列表 | 通过 `AST_ASSET_APPLY` status=`'3'` |
-
-#### 操作审计与回滚
-
-- 数据修改需先提交申请（`AST_ASSET_OPERATE_APPLY`）
-- 执行后记录前后快照（`AST_ASSET_OPERATE_LOG`）
-- 支持回滚：INSERT↔DELETE，UPDATE 前后值互换
-
-#### 当前状态
-
-- `strict` 模式默认关闭，需配置 `datamaster.governance.table-access.enabled=true` 生效
-- 字段级拒绝（`deniedColumns`）已设计 DTO 但未实现
-
-#### 用户数据权限等级（基于列敏感等级过滤）
-
-在项目级权限控制基础上，新增**用户数据权限等级**机制，用于控制用户在资产预览时能看到哪些敏感等级的列。
-
-##### 数据模型
-
-| 表 | 字段 | 类型 | 说明 |
-|---|---|---|---|
-| `system_user` | `data_permission_level` | `bigint` | 用户数据权限等级，默认 5（公开） |
-| `ast_sensitive_level` | `id` | `bigint` | 列敏感等级编号，1-5 |
-| `ast_sensitive_level` | `sensitive_rule` | `varchar` | 脱敏规则：`"1"`=完全隐藏/脱敏，`"2"`=部分脱敏 |
-| `ast_sensitive_level` | `online_flag` | `varchar` | 是否启用：`"1"`=启用，`"0"`=停用 |
-
-##### 等级定义（数字越小越敏感）
-
-| 等级 | 含义 | 可查看的用户等级 |
-|---|---|---|
-| 1 | 绝密 | 仅等级 1（绝密） |
-| 2 | 机密 | 等级 1~2 |
-| 3 | 秘密 | 等级 1~3 |
-| 4 | 内部 | 等级 1~4 |
-| 5 | 公开 | 所有等级 |
-
-##### 过滤逻辑（`AssetsAssetServiceImpl.dataMaskings()`）
-
-```
-对每个列:
-  if 列.sensitiveLevelId < 用户.dataPermissionLevel:
-      → 隐藏该列（type=3），跳过后续脱敏规则判断
-  else:
-      → 继续原有脱敏逻辑（脱敏规则、白名单等）
+```text
+datamaster-server/src/main/resources/application-dev.yml
+datamaster-server/src/main/resources/application-prod.yml
 ```
 
-- 数字越小越敏感：`sensitiveLevelId=1`（绝密）< `sensitiveLevelId=5`（公开）
-- 数字越大权限越低：`dataPermissionLevel=1`（绝密）< `dataPermissionLevel=5`（公开）
-- 列的敏感等级 < 用户权限等级 → 列比用户权限更高 → 隐藏
+主库用于存储系统用户、空间、资产、目录、任务、质量、服务等平台业务数据。
 
-##### 前端集成
+### 7.2 用户注册数据源
 
-- 用户管理页面（`/system/user`）新增「数据权限」下拉选择（绝密/机密/秘密/内部/公开）
-- 资产预览（`/asset/preview`）时，后端根据当前用户权限过滤列头和数据
-- 管理员（`user_id=1`）默认等级为 1（绝密），可查看所有列
+用户在数据源管理页面注册外部数据源，供资产、目录、质量、ETL、服务和 AI 问数使用。
 
-##### SQL 迁移
+关键机制：
 
-```sql
--- sql/postgresql/upgrade/V1.6.0/add-user-data-permission-level.sql
-ALTER TABLE system_user ADD COLUMN data_permission_level bigint DEFAULT 5;
-COMMENT ON COLUMN system_user.data_permission_level IS '数据权限等级：1-绝密 2-机密 3-秘密 4-内部 5-公开';
-UPDATE system_user SET data_permission_level = 1 WHERE user_id = 1;  -- 管理员设为绝密
+- 连接信息加密存储
+- 创建和更新时测试连接
+- 启动或变更时刷新 Redis hash `datasource`
+- 同步到 DolphinScheduler 源中心
+- 通过统一方言能力获取表、字段、预览数据
+
+### 7.3 基础设施中间件
+
+平台运行依赖：
+
+| 组件 | 用途 |
+| --- | --- |
+| Redis | 缓存、登录态、数据源信息、任务状态 |
+| RabbitMQ | 异步消息、任务状态推送 |
+| DolphinScheduler | 工作流调度、任务发布和执行 |
+| Flink / ChunJun | 数据集成执行引擎 |
+| HDFS | 文件和资源存储能力 |
+| MongoDB / Neo4j | 部分可选能力 |
+
+## 8. 动态数据源路由
+
+后端启动类排除了 Spring Boot 默认数据源自动配置，平台使用自定义动态数据源体系。
+
+核心链路：
+
+```text
+请求进入
+  -> AOP / 上下文设置当前数据源 key
+  -> DynamicDataSourceContextHolder 保存 ThreadLocal
+  -> DynamicDataSource 根据 key 路由
+  -> 目标数据源执行
 ```
 
-#### `datamaster-collector` 数据采集
-- **功能**：采集任务管理、汇聚实例管理、增量/全量数据同步
-- **数据表**：以 `COL_` 前缀
-- **依赖**：`datamaster-common`、`datamaster-assets`（读取已注册的数据源）、`datamaster-api-ds`（调用调度平台执行采集任务）
-- **被依赖**：无
+主要类：
 
-#### `datamaster-service` 数据服务
-- **功能**：API 定义与发布、SQL 解析与执行、请求参数映射、响应处理、缓存/限流/IP 白名单
-- **说明**：尽管模块名原名 `ds`，但不是数据源（datasource）管理，而是 **数据服务**（Data Service）API 网关
-- **数据表**：`SVC_API`（API 定义）
-- **关键机制**：接收到 API 请求后，解析 SQL，通过 `AssetsDataSourceServiceImpl.getDbQuery(id)` 获取目标数据源的 `DbQuery` 对象执行查询
-- **依赖**：`datamaster-common`、`datamaster-assets`（执行 SQL 时获取数据源连接）
+- `DynamicDataSource`
+- `DynamicDataSourceContextHolder`
+- `DynamicDataSourceAspect`
+- `MasterDataSourceConfig`
+- `@DataSource`
+- `DataSourceType`
 
-#### `datamaster-modeling` 数据建模
-- **功能**：模型设计、模型管理
-- **数据表**：以 `MDL_` 前缀
-- **依赖**：`datamaster-common`、`datamaster-assets`（建模时引用数据源）
+用户注册的数据源不等于平台主库，它们主要用于资产预览、元数据采集、质量检测、ETL 和数据服务执行。
 
-#### `datamaster-catalog` 元数据管理
-- **功能**：元数据抓取、表和字段结构同步、元数据版本管理
-- **数据表**：以 `CAT_` 前缀
-- **依赖**：`datamaster-common`、`datamaster-assets`（读取数据源信息进行采集）
+## 9. 调度调用链路
 
-### 3.4 支撑模块详解
+### 9.1 元数据采集任务
 
-#### `datamaster-api-ds` 调度平台适配层
-- **功能**：对 DolphinScheduler 的 HTTP API 封装，提供项目管理、调度配置、执行触发、状态切换等能力
-- **关键类**：`SchedulerProjectServiceImpl`、`SchedulerEtlServiceImpl`、`SchedulerEtlExecutorServiceImpl`
-- **通信方式**：通过 `SchedulerRequestUtils` + `SchedulerApiType` 枚举统一发起 HTTP 调用
-- **能力覆盖**：`CREATE_PROJECT`、`CREATE_SCHEDULE`、`SCHEDULE_ONLINE/OFFLINE`、`POST_EXECUTORS_EXECUTE` 等
-- **依赖**：`datamaster-common`
-- **被依赖**：`datamaster-collector`（创建采集调度）、`datamaster-etl`（触发 ETL 任务）
+元数据采集使用 DolphinScheduler HTTP 节点回调本系统接口。
 
-#### `datamaster-etl` Spark ETL 程序
-- **功能**：基于 Spark 的 ETL 数据处理程序（独立 Jar，不内嵌 Web 容器）
-- **入口**：`com.data.matser.spark.etl.EtlApplication`
-- **关键类**：`DBWriter`（通过 `AbstractDataSourceFactory` 写入目标库）、`DBUtils`（数据源属性提取）
-- **部署方式**：由 DolphinScheduler 调度触发 Spark 任务执行
-- **依赖**：`datamaster-common`（复用数据源方言体系）
-
-#### `datamaster-quality` 数据质量（独立微服务）
-- **功能**：数据质量规则执行、质量检测任务、审计规则、清洗规则
-- **特点**：独立服务（运行在 8083 端口），拥有自己的数据源注册表（独立 `AssetsDatasourceDO` 和 `AssetsDatasourceMapper`），与主服务 `datamaster-assets` 的数据源注册相互隔离
-- **关键类**：`AssetsDatasourceQualityServiceImpl`、`QualityTaskExecutorServiceImpl`、`RuleExecutorTask`
-- **依赖**：`datamaster-common`、`datamaster-assets`（通过 HTTP/RPC 引用主服务数据）
-- **被依赖**：由 `datamaster-server` 配置中的 `quality_url` 通过 HTTP 触发执行
-- **MongoDB**：质量模块使用 MongoDB（`spring-boot-starter-data-mongodb`）存储质量检测命中的**错误数据**，写入 `quality_error_data` 集合。通过 `@ConditionalOnProperty("custom.mongo.enabled")` 控制是否启用，非必选组件。数据模型为 `CheckErrorData`（`@Document`），通过 `MongoTemplate` / `MongoRepository` 读写。
-
-### 3.5 模块间核心调用链路
-```
-用户操作 → datamaster-assets（注册数据源）        → 写入 AST_DATASOURCE → 同步 Redis
-              │
-              ├── datamaster-catalog       → 读取数据源 → 采集元数据
-              ├── datamaster-collector      → 读取数据源 + datamaster-api-ds → 创建采集调度任务
-              ├── datamaster-service        → 读取数据源 → 执行 API 定义的 SQL 查询
-               ├── datamaster-quality        → 读取数据源 → 执行质量检测
-               └── datamaster-etl            → 读取数据源 → Spark ETL 读写
-                     └── → datamaster-api-ds 调用 DolphinScheduler 触发
-
-权限校验链路（Table Governance）：
-  datamaster-service / datamaster-assets(AI) / datamaster-collector
-              │
-              └── IAssetsTableGovernanceApiService.checkTableAccess()
-                  → 检查 AST_ASSET_PROJECT_REL（直连关系）
-                  → 检查 AST_ASSET_APPLY（审批记录）
-                  → strict 模式下无权限则拒绝
+```text
+用户创建采集任务
+  -> Catalog 任务服务创建 DS HTTP 工作流
+  -> DolphinScheduler 调度执行
+  -> HTTP 节点回调采集接口
+  -> 系统读取数据源结构
+  -> 写入 Catalog 元数据
 ```
 
-### 3.6 架构特点总结
+### 9.2 ChunJun / FlinkX 全量 ETL
 
-- **模块化单体**：所有业务模块最终在 `datamaster-server` 同一进程中运行，非微服务架构
-- **数据源中心化**：`datamaster-assets` 为所有模块提供统一的数据源注册与连接管理
-- **权限控制中心化**：`datamaster-assets` 通过 Table Governance 机制为所有模块提供统一的数据访问控制
-- **调度双体系**：`datamaster-api-ds`（对接 DolphinScheduler 做流程编排）+ 应用内轻量定时任务
-- **数据源加密**：注册的外部数据源密码使用 AES 加密存储，连接时解密
-- **Redis 同步**：数据源信息启动时加载到 Redis，各模块通过 Redis 获取最新数据源配置
-
-### 一个值得注意的点
-AI 智能模块 `datamaster-intelligence` 已被移除。
-
-## 4. 启动入口
-
-后端主启动类位于：
-- `datamaster-server/src/main/java/com/data/matser/BootstrapApplication.java`
-
-这个主类的特征很关键：
-- `@ComponentScan(basePackages = {"com.data.matser"})`
-  - 扫描整个业务包
-- `@ServletComponentScan(basePackages = {"com.data.matser"})`
-  - 启用 Servlet 组件扫描
-- `@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })`
-  - 排除了默认数据源自动配置
-  - 说明项目走的是自定义 / 动态数据源链路
-- `@EnableFileStorage`
-  - 启用了文件存储能力
-- `@EnableAspectJAutoProxy(proxyTargetClass = true)`
-  - 启用了 AOP 代理
-
-### 启动类带来的直接结论
-- 这不是一个只扫本模块的轻量 Boot 应用
-- 启动时会 `com.data.matser` 下的大量业务包一起拉起
-- 数据源配置不能简单按默认 Spring Boot 方式理解，需要结合项目自己的 datasource 配置链路来看
-
-## 5. 配置链路理解
-
-### 5.1 配置文件层次
-
-| 配置文件 | 作用 | 位置 |
-|----------|------|------|
-| `application.yml` | 公共配置（端口、日志、MyBatis、Swagger、token 等） | `datamaster-server/src/main/resources/` |
-| `application-dev.yml` | 开发环境配置（数据源、Redis、RabbitMQ、调度器） | 同上 |
-| `application-prod.yml` | 生产环境配置 | 同上 |
-| `application-{module}-dev.yml` | 各业务模块扩展配置（多为空占位文件） | `datamaster-*/src/main/resources/` |
-
-配置导入链路：
-```yaml
-spring:
-  profiles:
-    active: dev
-  config:
-    import:
-      - "application-${spring.profiles.active}.yml"           # → application-dev.yml
-      - "classpath:application-auth-${spring.profiles.active}.yml"
-      - "classpath:application-file-${spring.profiles.active}.yml"
-      - "classpath:application-system-${spring.profiles.active}.yml"
-      - "classpath:application-mc-${spring.profiles.active}.yml"
+```text
+用户配置 ETL 任务
+  -> Collector 保存任务草稿和节点
+  -> TaskConverter 组装 reader / transition / writer
+  -> FlinkxEtlTaskConverter 生成 ChunJun Job JSON
+  -> TaskConverter 构建 DS CHUNJUN 任务定义
+  -> datamaster-api-ds 调用 DolphinScheduler 发布
+  -> DolphinScheduler Worker 调用 ChunJun 执行
+  -> 回写任务状态和实例日志
 ```
 
-### 5.2 三层数据源架构
-项目中的数据源配置分为三个层次，职责各不相同。
+### 9.3 ChunJun / FlinkX 增量 ETL
 
-#### 第一层：平台自身数据库（主库）
-**用途**：存储平台自己的业务数据（用户、资产、配置等）
-**配置位置**：`application-dev.yml` / `application-prod.yml`
-**技术选型**：Baomidou Dynamic Datasource + Druid 连接池
-通过顶层选择器动态切换：
-```yaml
-datasource:
-  type: PostgreSQL  # 可选: PostgreSQL / MySQL / dm8 / kingbase8 / Oracle
+增量任务在 CHUNJUN 节点前后增加 HTTP 辅助节点。
 
-spring:
-  datasource:
-    dynamic:
-      druid:
-        initial-size: 5
-        maxActive: 20
-      datasource:
-        master:
-          driver-class-name: ${${datasource.type}.driver-class-name}
-          url: ${${datasource.type}.url}
-          username: ${${datasource.type}.username}
-          password: ${${datasource.type}.password}
+```text
+HTTP 增量边界准备节点
+  -> 计算本次 startValue / endValue
+  -> 生成带 where 条件的 ChunJun Job JSON
+  -> CHUNJUN 节点执行同步
+  -> HTTP 状态回写节点记录结果并释放运行标记
 ```
 
-预置的数据库连接模板：
-| 数据库类型 | 配置名 | 驱动 |
-|-----------|--------|------|
-| **PostgreSQL**（默认） | `PostgreSQL` | `org.postgresql.Driver` |
-| **MySQL** | `MySQL` | `com.mysql.cj.jdbc.Driver` |
-| **达梦 DM8** | `dm8` | `dm.jdbc.driver.DmDriver` |
-| **人大金仓 Kingbase8** | `kingbase8` | `com.kingbase8.Driver` |
-| **Oracle 12c** | `Oracle` / `oracle` | `oracle.jdbc.OracleDriver`（prod 配置中正确，dev 配置中误用了 PG 驱动）|
+增量运行标记写入 Redis，用于防止同一任务重叠执行。
 
-#### 第二层：用户注册的外部数据源（核心数据源管理）
-**用途**：平台用户通过 UI 动态注册的外部数据源/中间件，供数据查询、元数据采集、质量检测、ETL、数据服务等使用
-**管理模块**：`datamaster-assets`（数据资产模块）
-**数据表**：`AST_DATASOURCE`
-**支持类型**：共 23 种（定义在 `DbType.java`）
-| 类别 | 数据库 |
-|------|--------|
-| **关系型** | MySQL、MariaDB、Oracle 11g、Oracle 12c、PostgreSQL、SQL Server 2008、SQL Server 2012+、DM8、Kingbase8、DB2、神通（OSCAR） |
-| **分析型** | ClickHouse、Doris、Hive、Phoenix |
-| **NoSQL** | MongoDB、Redis |
-| **消息队列** | Kafka、RabbitMQ |
-| **文件/存储** | HDFS、FTP、阿里云 OSS |
-| **其他** | OTHER（占位，不支持具体操作） |
+## 10. 构建和启动
 
-**关键机制**：
-- 连接信息中的密码使用 **AES 加密** 存储
-- 启动时将所有有效数据源加载到 **Redis hash `"datasource"`**，供工作节点获取
-- 通过 `AbstractDataSourceFactory` 动态创建 JDBC 连接（使用 Hutool SimpleDataSource 或 HikariCP）
-- 使用 **MD5 缓存去重**（`CacheDataSourceFactoryBean`），相同连接信息复用 DataSource
-- 部分类型已有方言实现（11 种，注册在 `DialectRegistry`），其余类型查询时会提示"该数据库类型正在开发中"
+### 10.1 后端构建
 
-**注册数据源的调用链路**：
-```
-用户注册数据源 → AssetsDataSourceServiceImpl → 写入 AST_DATASOURCE → 
-                                                → 同步 Redis hash
-                                                → (其他模块读取 Redis 获取连接信息)
+```bash
+mvn clean package
+mvn test
+mvn -pl datamaster-server -am package
 ```
 
-#### 第三层：基础设施中间件（平台运行依赖）
-**用途**：平台自身运行所需的基础中间件
-**配置位置**：`application-dev.yml`
+### 10.2 前端启动和构建
 
-| 中间件 | 用途 | 配置名 |
-|--------|------|--------|
-| **Redis** | 缓存、Session、数据源信息同步 | `spring.redis` |
-| **RabbitMQ** | 异步消息、任务队列 | `spring.rabbitmq` |
-| **DolphinScheduler** | ETL 任务调度、工作流编排 | `ds.base_url`（API 地址）|
-| **Spark** | ETL 数据处理引擎 | `ds.spark.master_url`、`ds.spark.main_jar` |
-| **HDFS** | 分布式文件存储 | `ds.hdfs.url` |
-| **调度器 Redis** | DolphinScheduler 专用 Redis（获取最新数据源信息） | `ds.redis` |
-
-### 5.3 动态数据源路由机制
-
-启动类排除了 `DataSourceAutoConfiguration.class`，项目使用自定义数据源路由：
-
-```
-请求 → DynamicDataSourceAspect（AOP 拦截 @DS 注解）
-    → DynamicDataSourceContextHolder（ThreadLocal 设置当前数据源 key）
-    → DynamicDataSource（继承 AbstractRoutingDataSource，根据 key 路由）
-    → 目标数据源
+```bash
+cd datamaster-ui
+npm run dev
+npm run build:prod
+npm run eslint:lint
 ```
 
-相关类：
-- `DynamicDataSource.java` → 核心路由数据源
-- `DynamicDataSourceContextHolder.java` → ThreadLocal 持有当前数据源 key
-- `DynamicDataSourceAspect.java` → AOP 切面，日志记录 `@DS` 切换
-- `MasterDataSourceConfig.java` → 注入 `datasource.type` 配置
-- `@DataSource` 注解 / `DataSourceType` 枚举（MASTER/SLAVE）→ 预留的手动切换方式
+### 10.3 启动依赖
 
-## 6. 部署 / 启动依赖理解
+开发启动顺序建议：
 
-从 README 和 DEPLOY.md 看，项目运行通常依赖：
-- JDK 1.8
-- Maven 3.6+
-- Node.js 18+
-- yarn 1.22+
-- Redis 5+
-- RabbitMQ
-- 数据库（README 支持 DM8 / MySQL / Oracle 等，DEPLOY.md 也明确给了开发环境数据源配置）
-- Spark
-- DolphinScheduler 相关服务
-
-### 启动顺序上的直觉
-通常建议先完成：
 1. 数据库
 2. Redis
 3. RabbitMQ
-4. Spark / 调度器相关服务
-5. 后端 `datamaster-server`
-6. 前端 `datamaster-view`
+4. DolphinScheduler
+5. Flink / ChunJun 运行环境
+6. 后端 `datamaster-server`
+7. 前端 `datamaster-ui`
 
-### 导入 / 启动最容易踩的坑
-- **启动类扫描范围很大**：任何业务模块不完整，都可能影响启动
-- **数据源不是默认 Spring Boot 数据源**：主类排除了 `DataSourceAutoConfiguration`
-- **外部依赖多**：Redis、RabbitMQ、数据库、Spark、调度器都可能影响最终是否能真正跑起来
-- **前端和后端分离启动**：后端先跑通，再处理前端代理更稳妥
+## 11. 配置入口
 
-## 7. 初始化与构建结果
+后端配置入口：
 
-### 本地环境
-当前环境验证结果如下：
-- JDK：`1.8.0-262`
-- Maven：`3.6.0`
-- Node.js：`v24.13.0`
-- yarn：`1.22.22`
+```text
+datamaster-server/src/main/resources/application.yml
+datamaster-server/src/main/resources/application-dev.yml
+datamaster-server/src/main/resources/application-prod.yml
+```
 
-### 初始化编译验证
-我已经在本地执行过一次最小初始化编译：
+常见配置关注点：
+
+- 平台主库连接
+- Redis
+- RabbitMQ
+- DolphinScheduler API 地址和 token
+- DolphinScheduler 回调地址
+- HDFS / 资源路径
+- 质量探查执行地址
+- 数据服务运行配置
+
+## 12. 数据库脚本
+
+数据库脚本统一放在：
+
+```text
+sql/
+```
+
+空间和字段规范化相关脚本：
+
+```text
+sql/update_20260728_project_columns_to_space.sql
+sql/update_20260728_space_menu_routes.sql
+```
+
+执行数据库脚本前应先备份数据库，并确保脚本与对应代码版本一起发布。
+
+## 13. 验证建议
+
+代码改动后建议执行：
+
 ```bash
-mvn -q -DskipTests -pl datamaster-server -am compile
+mvn -pl datamaster-server -am package
+cd datamaster-ui
+npm run eslint:lint
+npm run build:prod
 ```
 
-结果：
-- **成功**
-- **退出码 0**
+业务主流程建议验证：
 
-这说明：
-- Maven 能正确识别这个多模块项目
-- `datamaster-server` 及其依赖模块能够完成编译初始化
-- 项目的基础依赖与模块关系在当前环境下是可用的
+- 登录和菜单加载
+- 空间切换
+- 空间管理和空间成员授权
+- 数据源新增、编辑、详情、测试连接
+- 数据源与空间关系保存
+- 资产列表和资产字段权限过滤
+- 元数据采集任务
+- ETL 任务列表、发布和执行
+- 质量探查任务执行
+- 数据服务 API 测试和发布
+- AI 问数基础查询
 
-### 含义
-这一步相当于完成了"项目初始化"的核心验证：
-- 依赖树可解析
-- 模块可以编译
-- 进入下一步 IDE 导入 / 运行配置检查是合理的
+## 14. 开发约定
 
-## 8. 当前代码理解结论
+- 后端包名保持在 `com.datamaster` 下。
+- Java 保持 Java 8 兼容。
+- 前端代码位于 `datamaster-ui/src`。
+- 数据库脚本放入 `sql/`。
+- 项目说明和专题文档放入 `docs/`。
+- 重构、字段规范化、改造范围记录放入专有文档，不写入 README 主体。
+- 不提交密钥、日志、`target`、`dist`、`node_modules` 等生成或本地运行文件。
+- 修改字段时，需要同步处理前端文案、接口字段、后端 VO/DTO/DO、Mapper SQL、数据库脚本和注释。
 
-这个项目最核心的入口可以先记为：
-- **主启动模块：`datamaster-server`**
-- **主类：`BootstrapApplication`**
-- **开发环境配置：`application.yml` + `application-dev.yml`**
-- **构建方式：多模块 Maven 项目**
+## 15. 更多文档
 
-### 简化后的理解
-如果把项目抽象成一句话：
-> dataMaster 是一个以 `datamaster-server` 为启动入口、围绕数据治理和数据服务展开的多模块 Spring Boot 平台，后端依赖 Redis、RabbitMQ、数据库、Spark 和调度器等外部基础设施。
-
-## 9. 建议的后续操作顺序
-如果继续往下推进，建议按这个顺序：
-
-1. 在 IDEA 中导入根目录 `D:/dev/dataMaster`
-2. 让 IDEA 识别为 Maven 多模块项目
-3. 选择 JDK 8
-4. 执行 Maven Reload / Reimport
-5. 等待依赖下载完成
-6. 再跑一次 `datamaster-server` 的编译或启动
-7. 检查 `application-dev.yml` 里外部服务配置是否可达
-8. 如果要跑完整业务，再补齐数据库、Redis、RabbitMQ、Spark、调度器等依赖
-
-## 10. 小结
-
-当前我对这个项目的判断是：
-- 结构是清晰的多模块工程
-- 启动入口明确
-- 配置链路明确
-- 初始化编译已经成功
-- 真正运行时的难点主要在外部依赖和业务模块联动
-
-如果后面继续深入，最值得做的是：
-- 画出 `datamaster-server → datamaster-common → 业务模块` 的依赖关系
-- 梳理 `application-dev.yml` 里的外部服务依赖
-- 检查真正能跑起来的最小闭环需要哪些服务
-- 再补充模块级别的业务代码理解
-
----
-
-## 附录：模块名新旧对照
-
-| 用途 | 原名 | 新名 | 目录名 |
-|------|------|------|--------|
-| 启动入口 | DATAMASTER-server | datamaster-server | datamaster-server |
-| 基础框架 | DATAMASTER-framework/* | datamaster-common/* | datamaster-common |
-| ├ 公共工具 | DATAMASTER-common | datamaster-common-common | datamaster-common-common |
-| ├ 数据源/安全/缓存 | DATAMASTER-mybatis/security/redis | datamaster-common-datasource | datamaster-common-datasource |
-| ├ 配置管理/定时任务 | DATAMASTER-config/quartz | datamaster-common-config | datamaster-common-config |
-| ├ MyBatis 扩展 | DATAMASTER-mybatis | datamaster-common-mybatis | datamaster-common-mybatis |
-| └ 消息推送 | DATAMASTER-websocket | datamaster-common-websocket | datamaster-common-websocket |
-| 系统管理 | DATAMASTER-module-system | datamaster-system | datamaster-system |
-| 分类管理 | DATAMASTER-module-att | datamaster-taxonomy | datamaster-taxonomy |
-| 数据标准 | DATAMASTER-module-dp | datamaster-standards | datamaster-standards |
-| 数据资产 | DATAMASTER-module-da | datamaster-assets | datamaster-assets |
-| 数据采集 | DATAMASTER-module-dpp | datamaster-collector | datamaster-collector |
-| 数据服务 | DATAMASTER-module-ds | datamaster-service | datamaster-service |
-| 数据建模 | DATAMASTER-module-dm | datamaster-modeling | datamaster-modeling |
-| 元数据管理 | DATAMASTER-module-mc | datamaster-catalog | datamaster-catalog |
-| 调度适配 | DATAMASTER-api-ds | datamaster-api-ds | datamaster-api-ds |
-| ETL引擎 | DATAMASTER-etl | datamaster-etl | datamaster-etl |
-| 数据质量 | DATAMASTER-quality | datamaster-quality | datamaster-quality |
-
-### 类名前缀对照
-
-| 原名前缀 | 对应模块 | 新名前缀 |
-|----------|----------|----------|
-| Da (Data Asset) | 数据资产 | Assets |
-| Dp (Data Profile/Standard) | 数据标准 | Standards |
-| Dpp (Data Pipeline Process) | 数据采集 | Collector |
-| Ds (Data Service) | 数据服务 | Service |
-| Dm (Data Model) | 数据建模 | Modeling |
-| Mc (Metadata Catalog) | 元数据管理 | Catalog |
-| Att (Attribute/Taxonomy) | 分类管理 | Taxonomy |
-| Ai (Artificial Intelligence) | AI智能 | Intelligence |
-
-### 表名前缀对照
-
-| 原名前缀 | 新前缀 | 说明 |
-|----------|--------|------|
-| DA_ | AST_ | Asset |
-| DP_ | STD_ | Standard |
-| DPP_ | COL_ | Collection |
-| DS_ | SVC_ | Service |
-| DM_ | MDL_ | Model |
-| MC_ | CAT_ | Catalog |
-| ATT_ | TAX_ | Taxonomy |
-| AI_ | AI_ | Intelligence（不变）|
-| SYS_ | SYS_ | System（不变）|
-
-## 附录：任务调度调用链路
-
-### 1. 元数据采集任务（HTTP 回调）
-
+```text
+docs/整体规范化改造目标与方案.md
+docs/datamaster-ui-guideline.md
+docs/datamaster-ui-implementation-plan.md
+docs/数据库实现.md
+docs/数据开发.md
 ```
-用户在系统创建采集任务
-        │
-        v
-CatalogTaskDolphinSchedulerService 在 DS 中创建 HTTP 类型工作流
-        │  URL = collector_url + "/" + taskId
-        │  （即 http://localhost:8080/cat/taskExecutor/runExecuteTask/{taskId}）
-        v
-DolphinScheduler 执行工作流 → HTTP 节点 → PUT 请求该地址
-        │
-        v
-反向代理 /mc/ → /cat/ → CatalogTaskExecutorController.runExecuteTask(id)
-        │
-        v
-CatalogTaskService.runDaDiscoveryTask(id)  → 扫描数据库表结构
-                                            → 比对变更（增/删/改）
-                                            → 记录元数据到 Catalog
-```
-
-**配置项：**
-- `ds.collector_url`（回调地址，dev/prod 通用）
-- `path.collector_url`（预留基路径）
-- `ds.http_mc_projectCode`（DS 项目编码）
-
-### 2. Spark ETL 任务（SPARK 提交）
-
-```
-用户在 UI 配置 ETL 任务（含 SPARK 节点）
-        │
-        v
-CollectorEtlTaskController (/col/etlTask/updateReleaseTask)
-        │
-        v
-CollectorEtlTaskServiceImpl.publishTask()
-        │── TaskConverter.buildEtlTaskParams()
-        │    → 将节点分组为 reader / transition[] / writer 管道
-        │── TaskConverter.buildEtlTaskDefinitionJson()
-        │    → 构建 DolphinScheduler SPARK 类型任务定义：
-        │       taskType: "SPARK"
-        │       mainClass: com.data.matser.spark.etl.EtlApplication
-        │       mainJar:   DATAMASTER-etl.jar
-        │       mainArgs:  Base64(管道JSON)
-        │       master:    spark://127.0.0.1:7077
-        │── dsEtlTaskService.createTask() / updateTask()  → DS API
-        │── dsEtlTaskService.releaseTask("ONLINE")        → DS API
-        v
-DolphinScheduler Worker 执行 SPARK 节点 → spark-submit
-        │
-        v
-EtlApplication.main() 在 Spark 集群上运行
-        │── ReaderFactory.getReader()      → 读取源数据
-        │── TransitionFactory.transition() → 清洗/转换
-        │── WriterFactory.getWriter()      → 写入目标
-        │── RabbitMQ 上报任务状态
-```
-
-**配置项：**
-- `ds.spark.master_url`（Spark 集群地址）
-- `ds.spark.main_jar`（ETL Jar 路径）
-- `ds.spark.main_class`（入口类）
-- `ds.http_mc_projectCode`（DS 项目编码）
-
-### 3. FLINKX ETL 任务（CHUNJUN 提交）
-
-```
-用户在 UI 配置 ETL 任务（执行引擎选择 FLINK / FlinkX）
-        │
-        v
-CollectorEtlTaskController (/col/etlTask/updateReleaseTask)
-        │
-        v
-CollectorEtlTaskServiceImpl.publishTask()
-        │── TaskConverter.buildEtlTaskParams()
-        │    → 将节点分组为 reader / transition[] / writer 管道
-        │── FlinkxEtlTaskConverter.convertToFlinkxJobJson()
-        │    → 将管道转换为 CHUNJUN job JSON
-        │── TaskConverter.resolveFlinkxIncrementalConfig()
-        │    → 根据 DB Reader 的 readModeType 判断全量或增量模式
-        v
-全量模式：在 DolphinScheduler 中创建单个 CHUNJUN 节点
-        │    taskType: "CHUNJUN"
-        │    taskParams.json: 完整 CHUNJUN job JSON
-        v
-DolphinScheduler Worker 执行 CHUNJUN 节点
-        │
-        v
-$CHUNJUN_HOME/bin/start-chunjun
-        │── Reader 读取源表
-        │── Transformer 清洗/转换
-        │── Writer 写入目标表
-```
-
-FLINKX 增量模式仍然使用同一个发布入口，但 DolphinScheduler 工作流会调整为三个节点：
-
-```
-HTTP 增量边界准备节点
-        │  PUT /col/etlTask/incremental/prepare/{taskId}
-        │      ?processInstanceId=${system.workflow.instance.id}
-        │
-        │── 使用 Redis SET NX 占用标记防止同一任务重叠执行
-        │    key: COL:ETL:FLINKX:INCREMENTAL:RUNNING:{taskId}
-        │    value: DolphinScheduler 流程实例 ID
-        │── 查询目标表 MAX(增量字段) 作为本次 startValue
-        │── 查询源表 MAX(增量字段)   作为本次 endValue
-        │── 目标表为空时，startValue 回退到发布时保存的初始游标
-        │── 返回带动态 where 条件的完整 CHUNJUN job JSON
-        v
-CHUNJUN 执行节点
-        │  taskParams.json = ${<增量边界准备节点名称>.response}
-        │  DolphinScheduler 在执行前将 HTTP 响应替换到 CHUNJUN 参数中
-        │
-        │── ID 增量窗口：   增量字段 > startValue  AND 增量字段 <= endValue
-        │── 时间增量窗口： 增量字段 >= startValue AND 增量字段 <= endValue
-        │── 源表为空时：   where 条件为 1 = 0
-        v
-HTTP 状态回写节点
-        │  PUT /col/etlTask/incremental/complete/{taskId}
-        │      ?processInstanceId=${system.workflow.instance.id}
-        │
-        │── 回写任务实例成功状态、开始时间和结束时间
-        │── 释放 Redis 占用标记
-```
-
-如果定时调度间隔短于任务执行时间，新的流程实例会在准备节点被 Redis 占用标记拒绝，不会进入 CHUNJUN 节点。占用标记默认 TTL 为 86400 秒，避免异常情况下永久占用。
-
-正常链路只依赖 HTTP 准备节点和 HTTP 状态回写节点。系统原有的 `ProcessListener` 还会通过 RabbitMQ 监听 DolphinScheduler 流程实例状态；如果流程失败、被停止或异常终止，导致 HTTP 状态回写节点没有执行，则在收到流程终态消息后兜底释放 Redis 占用标记。该消息由 DolphinScheduler 状态同步链路产生，不是 FLINKX 或 CHUNJUN 主动发送。
-
-**配置项：**
-- `ds.incremental_prepare_url`（增量边界准备 HTTP 回调地址，必须可由 DolphinScheduler Worker 访问）
-- `ds.incremental_complete_url`（增量状态回写 HTTP 回调地址，必须可由 DolphinScheduler Worker 访问）
-- `ds.incremental_running_ttl_seconds`（Redis 占用标记 TTL，默认 86400 秒）
-- `CHUNJUN_HOME`（DolphinScheduler Worker 中的 CHUNJUN 安装目录）
-- `FLINK_HOME`（DolphinScheduler Worker 中的 Flink 安装目录）
-
-### 4. 三种任务对比
-
-| 对比项 | 元数据采集 (Catalog) | Spark ETL (Collector) | FLINKX ETL (Collector) |
-|--------|---------------------|-----------------------|------------------------|
-| DS 节点类型 | HTTP | SPARK | 全量：CHUNJUN；增量：HTTP → CHUNJUN → HTTP |
-| 执行方式 | DS 发 HTTP 回调本系统 | DS 提交 spark-submit 到集群 | DS Worker 调用 CHUNJUN；增量任务先由 HTTP 节点计算窗口 |
-| 执行引擎 | 本系统 Java | Spark 分布式计算 | CHUNJUN / Flink |
-| 功能 | 扫描数据库/表结构元数据 | 数据抽取、清洗、转换、写入 | 数据抽取、清洗、转换、写入；支持运行前动态计算增量窗口 |
-
----
-
-*本文档为最终整理版，可作为后续导入 IDE、排查启动、做二次开发时的基础说明。*

@@ -29,7 +29,7 @@ public class AiSkillReportTemplateRespVO {
 
     private Integer version;
 
-    private String remark;
+    private String description;
 
     private String createBy;
 

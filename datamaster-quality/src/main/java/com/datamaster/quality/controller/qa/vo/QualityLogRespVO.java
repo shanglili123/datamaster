@@ -13,12 +13,12 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 数据质量日志 Response VO 对象 COL_QUALITY_LOG
+ * 质量探查日志 Response VO 对象 COL_QUALITY_LOG
  *
  * @author DATAMASTER
  * @date 2025-07-19
  */
-@Schema(description = "数据质量日志 Response VO")
+@Schema(description = "质量探查日志 Response VO")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -95,7 +95,7 @@ public class QualityLogRespVO implements Serializable {
     private Date updateTime;
 
     @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
 }

@@ -43,11 +43,11 @@ public class CollectorEtlTaskLogRespVO implements Serializable {
 
     @Excel(name = "空间id")
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Excel(name = "空间编码")
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Excel(name = "创建人")
     @Schema(description = "创建人", example = "")

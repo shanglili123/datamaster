@@ -15,7 +15,7 @@ import com.datamaster.mybatis.core.mapper.BaseMapperX;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 
 /**
- * 数据质量类目Mapper接口
+ * 质量探查类目Mapper接口
  *
  * @author DATAMASTER
  * @date 2025-07-19
@@ -38,7 +38,7 @@ public interface TaxonomyQualityCatMapper extends BaseMapperX<TaxonomyQualityCat
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(TaxonomyQualityCatDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
-                .eq(reqVO.getProjectId() != null, TaxonomyQualityCatDO::getProjectId, reqVO.getProjectId())
+                .eq(reqVO.getSpaceId() != null, TaxonomyQualityCatDO::getSpaceId, reqVO.getSpaceId())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns));
     }
 

@@ -22,10 +22,10 @@ public class AssetsAssetApiReqVO {
     private Long assetId;
 
     @Schema(description = "空间ID", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "API", example = "")
     private String url;

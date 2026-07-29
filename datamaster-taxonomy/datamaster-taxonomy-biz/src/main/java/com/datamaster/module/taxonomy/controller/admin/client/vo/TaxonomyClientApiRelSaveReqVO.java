@@ -46,4 +46,8 @@ public class TaxonomyClientApiRelSaveReqVO extends BaseEntity {
     @Schema(description = "授权状态", example = "")
     @Size(max = 256, message = "授权状态长度不能超过256个字符")
     private String status;
+
+    @Schema(description = "描述", example = "")
+    @Size(max = 256, message = "描述长度不能超过256个字符")
+    private String description;
 }

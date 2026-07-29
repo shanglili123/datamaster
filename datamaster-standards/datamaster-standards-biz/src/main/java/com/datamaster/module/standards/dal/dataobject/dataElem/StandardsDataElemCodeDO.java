@@ -24,7 +24,7 @@ public class StandardsDataElemCodeDO extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
 /** 数据元id */
-    private String dataElemId;
+    private Long dataElemId;
 
     /** 代码值 */
     private String codeValue;
@@ -33,10 +33,10 @@ public class StandardsDataElemCodeDO extends BaseEntity {
     private String codeName;
 
     /** 项目ID */
-    private Long projectId;
+    private Long spaceId;
 
     /** 项目编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 是否有效 */
     private Boolean validFlag;

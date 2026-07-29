@@ -50,7 +50,7 @@ public class StandardsModelMaterializedRespVO implements Serializable {
 
     @Excel(name = "数据源id")
     @Schema(description = "数据源id", example = "")
-    private String datasourceId;
+    private Long datasourceId;
 
     @Excel(name = "数据源类型")
     @Schema(description = "数据源类型", example = "")
@@ -62,7 +62,7 @@ public class StandardsModelMaterializedRespVO implements Serializable {
 
     @Excel(name = "资产表id")
     @Schema(description = "资产表id", example = "")
-    private String assetId;
+    private Long assetId;
 
     @Excel(name = "是否有效")
     @Schema(description = "是否有效", example = "")
@@ -99,7 +99,7 @@ public class StandardsModelMaterializedRespVO implements Serializable {
     private Date updateTime;
 
     @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
 }

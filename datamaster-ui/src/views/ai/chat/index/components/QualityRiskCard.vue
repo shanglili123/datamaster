@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="quality-risk-card" v-if="warning">
     <div class="card-header">
       <el-icon><WarningFilled /></el-icon>
-      <span>数据质量风险提示</span>
+      <span>质量探查风险提示</span>
     </div>
     <div class="card-content">
       <div class="warning-message">{{ warning }}</div>

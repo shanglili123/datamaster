@@ -117,6 +117,8 @@
             <if test="auditStatus != null">AUDIT_STATUS,</if>
             <if test="auditTime != null">AUDIT_TIME,</if>
             <if test="status != null">STATUS,</if>
+            <if test="spaceId != null">SPACE_ID,</if>
+            <if test="spaceCode != null">SPACE_CODE,</if>
             <if test="validFlag != null">VALID_FLAG,</if>
             <if test="delFlag != null">DEL_FLAG,</if>
             <if test="createBy != null">CREATE_BY,</if>
@@ -154,6 +156,8 @@
             <if test="auditStatus != null">#{auditStatus},</if>
             <if test="auditTime != null">#{auditTime},</if>
             <if test="status != null">#{status},</if>
+            <if test="spaceId != null">#{spaceId},</if>
+            <if test="spaceCode != null">#{spaceCode},</if>
             <if test="validFlag != null">#{validFlag},</if>
             <if test="delFlag != null">#{delFlag},</if>
             <if test="createBy != null">#{createBy},</if>
@@ -194,6 +198,8 @@
             <if test="auditStatus != null">AUDIT_STATUS = #{auditStatus},</if>
             <if test="auditTime != null">AUDIT_TIME = #{auditTime},</if>
             <if test="status != null">STATUS = #{status},</if>
+            <if test="spaceId != null">SPACE_ID = #{spaceId},</if>
+            <if test="spaceCode != null">SPACE_CODE = #{spaceCode},</if>
             <if test="validFlag != null">VALID_FLAG = #{validFlag},</if>
             <if test="delFlag != null">DEL_FLAG = #{delFlag},</if>
             <if test="createBy != null">CREATE_BY = #{createBy},</if>

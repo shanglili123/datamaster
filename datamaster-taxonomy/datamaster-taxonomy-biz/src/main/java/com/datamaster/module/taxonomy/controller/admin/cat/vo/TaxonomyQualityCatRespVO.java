@@ -11,12 +11,12 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 数据质量类目 Response VO 对象 TAX_QUALITY_CAT
+ * 质量探查类目 Response VO 对象 TAX_QUALITY_CAT
  *
  * @author DATAMASTER
  * @date 2025-07-19
  */
-@Schema(description = "数据质量类目 Response VO")
+@Schema(description = "质量探查类目 Response VO")
 @Data
 public class TaxonomyQualityCatRespVO implements Serializable {
 
@@ -80,16 +80,12 @@ public class TaxonomyQualityCatRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Excel(name = "空间ID")
+    @Schema(description = "空间ID")
+    private Long spaceId;
 
-    @Excel(name = "项目ID")
-    @Schema(description = "项目ID")
-    private Long projectId;
-
-    @Excel(name = "项目编码")
-    @Schema(description = "项目编码")
-    private String projectCode;
+    @Excel(name = "空间编码")
+    @Schema(description = "空间编码")
+    private String spaceCode;
 
 }

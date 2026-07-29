@@ -49,7 +49,7 @@ public class TaskNode {
     private String type;
 
     /**
-     * 执行 SPARK或FLINK
+     * 执行引擎
      */
     private String taskType;
 
@@ -77,4 +77,3 @@ public class TaskNode {
     private String taskStatus;
 
 }
-

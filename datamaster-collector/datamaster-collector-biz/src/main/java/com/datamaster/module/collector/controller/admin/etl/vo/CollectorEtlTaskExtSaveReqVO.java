@@ -55,9 +55,9 @@ public class CollectorEtlTaskExtSaveReqVO extends BaseEntity {
     @Schema(description = "数据汇聚节点关系id", example = "")
     private Long etlRelationId;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
     @Schema(description = "FlinkX任务JSON配置", example = "")
     private String flinkxJobJson;

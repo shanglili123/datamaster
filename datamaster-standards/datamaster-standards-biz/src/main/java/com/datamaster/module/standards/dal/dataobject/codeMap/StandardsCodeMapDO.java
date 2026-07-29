@@ -24,7 +24,7 @@ public class StandardsCodeMapDO extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
 /** 数据元id */
-    private String dataElemId;
+    private Long dataElemId;
 
     /** 原始值 */
     private String originalValue;
@@ -36,10 +36,10 @@ public class StandardsCodeMapDO extends BaseEntity {
     private String codeValue;
 
     /** 项目ID */
-    private Long projectId;
+    private Long spaceId;
 
     /** 项目编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 是否有效 */
     private Boolean validFlag;

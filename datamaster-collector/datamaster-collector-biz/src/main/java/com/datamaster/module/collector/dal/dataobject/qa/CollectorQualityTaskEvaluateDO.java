@@ -6,7 +6,7 @@ import lombok.experimental.SuperBuilder;
 import com.datamaster.common.core.domain.BaseEntity;
 
 /**
- * 数据质量任务-评测规则 DO 对象 COL_QUALITY_TASK_EVALUATE
+ * 质量探查任务-评测规则 DO 对象 COL_QUALITY_TASK_EVALUATE
  *
  * @author Chaos
  * @date 2025-07-21
@@ -23,7 +23,7 @@ public class CollectorQualityTaskEvaluateDO extends BaseEntity {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-/** 数据质量任务ID */
+/** 质量探查任务ID */
     private Long taskId;
 
     /** 评测名称 */

@@ -41,16 +41,16 @@ public class CollectorEtlNewNodeSaveReqVO extends BaseEntity {
     @Parameter(name = "catCode", description = "联系电话")
     private String contactNumber;
 
-    @Parameter(name = "projectCode", description = "空间编码", required = true)
+    @Parameter(name = "spaceCode", description = "空间编码", required = true)
     @NotNull(message = "空间编码不能为空")
-    private Long projectCode;
+    private Long spaceCode;
 
     @Schema(description = "任务类型", example = "")
     @Size(max = 256, message = "任务类型长度不能超过256个字符")
     private String type;
 
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Parameter(name = "name", description = "名称", required = true)
     private String name;
@@ -91,24 +91,14 @@ public class CollectorEtlNewNodeSaveReqVO extends BaseEntity {
     private String idStr;
 
     /**
-     * taskType（SPARK、FINK）
+     * taskType（SQL、PROCEDURE、SHELL、PYTHON、CHUNJUN等）
      * taskPriority任务优先级
      * workerGroup分组
      * failRetryTimes失败重试次数
      * delayTime延时执行时间
      * failRetryInterval失败重试间隔
      *
-     *
-     * SPARK如下：
-     * driverCores驱动核心数
-     * driverMemory驱动内存
-     * numExecutors执行器数量
-     * executorMemory执行器内存数
-     * executorCores执行器核心数
-     * yarnQueue    -----yarm队列
-     *
-     *
-     * FINK如下：
+     * FLINK如下：
      * jobManagerMemory----JobManager内存数
      * taskManagerMemory------TaskManager内存数
      * slot-----Slot数量
@@ -128,8 +118,8 @@ public class CollectorEtlNewNodeSaveReqVO extends BaseEntity {
         this.catId = src.getCatId();
         this.personCharge = src.getPersonCharge();
         this.contactNumber = src.getContactNumber();
-        this.projectCode = JSONUtils.convertToLong(src.getProjectCode());
-        this.projectId = src.getProjectId();
+        this.spaceCode = JSONUtils.convertToLong(src.getSpaceCode());
+        this.spaceId = src.getSpaceId();
         this.type = src.getType();
         this.name = src.getName();
         this.description = src.getDescription();

@@ -33,7 +33,7 @@ public interface ModelingDataDomainMapper extends BaseMapperX<ModelingDataDomain
                 .eqIfPresent(ModelingDataDomainDO::getOwnerUserId, reqVO.getOwnerUserId())
                 .eqIfPresent(ModelingDataDomainDO::getDescription, reqVO.getDescription())
                 .eqIfPresent(ModelingDataDomainDO::getCreateTime, reqVO.getCreateTime())
-                .eqIfPresent(ModelingDataDomainDO::getProjectId, reqVO.getProjectId())
+                .eqIfPresent(ModelingDataDomainDO::getSpaceId, reqVO.getSpaceId())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(ModelingDataDomainDO::getName, reqVO.getName())
                 // 按照 createTime 字段降序排序
@@ -52,7 +52,7 @@ public interface ModelingDataDomainMapper extends BaseMapperX<ModelingDataDomain
                 .leftJoin("MDL_BUSINESS_CATEGORY t4 ON t4.ID=t3.BUSINESS_CATEGORY_ID AND t4.DEL_FLAG = '0'")
                 .leftJoin("SYSTEM_USER u on t.OWNER_USER_ID = u.USER_ID AND u.DEL_FLAG = '0'")
                 .eq(reqVO.getBusinessDomainId() != null, "t4.ID", reqVO.getBusinessDomainId())
-                .eq(reqVO.getProjectId() != null, ModelingDataDomainDO::getProjectId, reqVO.getProjectId());
+                .eq(reqVO.getSpaceId() != null, ModelingDataDomainDO::getSpaceId, reqVO.getSpaceId());
         return selectJoinPage(reqVO, ModelingDataDomainDO.class, lambdaWrapper);
     }
 }

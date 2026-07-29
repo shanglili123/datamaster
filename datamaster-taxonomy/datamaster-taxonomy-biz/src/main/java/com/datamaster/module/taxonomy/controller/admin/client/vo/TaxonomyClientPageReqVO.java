@@ -48,10 +48,10 @@ public class TaxonomyClientPageReqVO extends PageParam {
     @Schema(description = "是否公开", example = "")
     private String publicFlag;
 
-    @Schema(description = "项目ID")
-    private Long projectId;
+    @Schema(description = "空间ID")
+    private Long spaceId;
 
-    @Schema(description = "项目编码")
-    private String projectCode;
+    @Schema(description = "空间编码")
+    private String spaceCode;
 
 }

@@ -24,6 +24,7 @@
 <script setup>
 import { constantRoutes } from '@/router';
 import { isHttp } from '@/utils/validate';
+import { parseRouteQuery } from '@/utils/routeQuery';
 import useAppStore from '@/store/system/app';
 import useSettingsStore from '@/store/system/settings';
 import usePermissionStore from '@/store/system/permission';
@@ -140,9 +141,8 @@ function handleSelect(key, keyPath) {
         // 如果没有子路由,在当前窗口打开
         const routeMenu = childrenMenus.value.find((item) => item.path === key);
         if (routeMenu && routeMenu.query) {
-            // 如果有query参数,解析后带上
-            let query = JSON.parse(routeMenu.query);
-            router.push({ path: key, query: query });
+            const query = parseRouteQuery(routeMenu.query);
+            router.push(query ? { path: key, query } : { path: key });
         } else {
             // 没有query参数直接跳转
             router.push({ path: key });

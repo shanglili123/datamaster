@@ -90,7 +90,7 @@
 <script setup name="EditorConfigView">
 //
 import { treeData } from "@/views/col/task/developTask/data";
-import { listDaDatasourceNoKafkaByProjectCode } from "@/api/ast/dataSource/dataSource";
+import { listDaDatasourceNoKafkaBySpaceCode } from "@/api/ast/dataSource/dataSource";
 const { proxy } = getCurrentInstance();
 const { col_etl_task_priority } = proxy.useDict("col_etl_task_priority");
 import useUserStore from "@/store/system/user";
@@ -170,9 +170,9 @@ function getDaDatasource() {
     createTypeList.value = [];
     return;
   }
-  listDaDatasourceNoKafkaByProjectCode({
-    projectCode: userStore.projectCode,
-    projectId: userStore.projectId,
+  listDaDatasourceNoKafkaBySpaceCode({
+    spaceCode: userStore.spaceCode,
+    spaceId: userStore.spaceId,
   }).then((response) => {
     createTypeList.value = response.data;
   });

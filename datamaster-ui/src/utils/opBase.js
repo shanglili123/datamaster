@@ -123,8 +123,8 @@ export const renderGraph = (graph, savedData, width) => {
 export const fetchNodeUniqueKey = async () => {
   try {
     const response = await getNodeUniqueKey({
-      projectCode: userStore.projectCode || "133545087166112",
-      projectId: userStore.projectId,
+      spaceCode: userStore.spaceCode || "133545087166112",
+      spaceId: userStore.spaceId,
     });
     if (response.code == '200') {
       return response.data;

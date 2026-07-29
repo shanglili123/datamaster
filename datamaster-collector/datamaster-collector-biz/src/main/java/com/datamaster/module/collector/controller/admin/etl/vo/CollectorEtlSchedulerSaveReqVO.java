@@ -58,9 +58,9 @@ public class CollectorEtlSchedulerSaveReqVO extends BaseEntity {
     @Schema(description = "DolphinScheduler的id", example = "")
     private Long dsId;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 
 }

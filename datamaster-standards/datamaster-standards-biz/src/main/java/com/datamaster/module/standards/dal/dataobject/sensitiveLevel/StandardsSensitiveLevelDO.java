@@ -60,10 +60,10 @@ public class StandardsSensitiveLevelDO extends BaseEntity {
     private String description;
 
     /** 项目ID */
-    private Long projectId;
+    private Long spaceId;
 
     /** 项目编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /**
      * 是否有效

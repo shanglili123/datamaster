@@ -76,7 +76,7 @@ import { ref, watch, watchEffect } from 'vue';
 import useUserStore from '@/store/system/user.js';
 import { getColumnByAssetId, getTablesByDataSourceId as getRealtimeTablesByDataSourceId } from '@/api/col/task/index.js';
 import {
-    listDaDatasourceByProjectCode
+    listDaDatasourceBySpaceCode
 } from '@/api/ast/dataSource/dataSource.js';
 import { getDaDiscoveryTableList, getDaDiscoveryColumnList } from '@/api/ast/discovery/discoveryTable.js';
 import { listDaSensitiveLevel } from '@/api/ast/security/sensitiveLevel/sensitiveLevel.js';
@@ -96,7 +96,7 @@ let loading = ref(false);
 const getDatasourceList = async () => {
     try {
         loading.value = true;
-        const response = await listDaDatasourceByProjectCode({ pageSize: 9999, projectCode: userStore.projectCode, projectId: userStore.projectId });
+        const response = await listDaDatasourceBySpaceCode({ pageSize: 9999, spaceCode: userStore.spaceCode, spaceId: userStore.spaceId });
         createTypeList.value = response.data?.rows || [];
     } finally {
         loading.value = false;
@@ -156,8 +156,8 @@ const getColumnsByTable = async (table) => {
     const response = await getColumnByAssetId({
         id: localForm.value.datasourceId,
         tableName: table?.tableName,
-        projectId: userStore.projectId,
-        projectCode: userStore.projectCode
+        spaceId: userStore.spaceId,
+        spaceCode: userStore.spaceCode
     });
     return getRows(response);
 };

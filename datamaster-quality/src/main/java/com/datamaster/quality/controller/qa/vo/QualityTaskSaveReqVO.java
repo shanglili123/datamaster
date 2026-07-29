@@ -12,12 +12,12 @@ import javax.validation.constraints.Size;
 import java.util.List;
 
 /**
- * 数据质量任务 创建/修改 Request VO COL_QUALITY_TASK
+ * 质量探查任务 创建/修改 Request VO COL_QUALITY_TASK
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Schema(description = "数据质量任务 Response VO")
+@Schema(description = "质量探查任务 Response VO")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -81,7 +81,7 @@ public class QualityTaskSaveReqVO extends BaseEntity {
     private String cycle;
 
 
-    // 数据质量任务-稽查对象
+    // 质量探查任务-稽查对象
     private List<QualityTaskObjSaveReqVO> QualityTaskObjSaveReqVO;
 
     // 规则对象

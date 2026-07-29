@@ -19,10 +19,10 @@ public class CollectorEtlTaskNodeRelReqDTO {
     private Long id;
 
     /** 空间id */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 任务id */
     private Long taskId;

@@ -20,11 +20,11 @@ public class TaxonomyJobCatPageReqVO extends PageParam {
     @Schema(description = "ID", example = "")
     private Long id;
 
-    @Schema(description = "项目id")
-    private Long projectId;
+    @Schema(description = "空间id")
+    private Long spaceId;
 
-    @Schema(description = "项目code")
-    private String projectCode;
+    @Schema(description = "空间code")
+    private String spaceCode;
 
     @Schema(description = "类别名称", example = "")
     private String name;

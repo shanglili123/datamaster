@@ -62,11 +62,11 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
 
     @Excel(name = "空间id")
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Excel(name = "空间编码")
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
+    private String spaceCode;
 
     @Excel(name = "创建人")
     @Schema(description = "创建人", example = "")
@@ -145,9 +145,6 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
 
     /**
      * cron表达式
@@ -191,8 +188,8 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
         this.name = CollectorEtlTaskDO.getName();
         this.code = CollectorEtlTaskDO.getCode();
         this.version = CollectorEtlTaskDO.getVersion();
-        this.projectId = CollectorEtlTaskDO.getProjectId();
-        this.projectCode = CollectorEtlTaskDO.getProjectCode();
+        this.spaceId = CollectorEtlTaskDO.getSpaceId();
+        this.spaceCode = CollectorEtlTaskDO.getSpaceCode();
         this.personCharge = CollectorEtlTaskDO.getPersonCharge();
         this.personChargeName = CollectorEtlTaskDO.getPersonChargeName();
         this.contactNumber = CollectorEtlTaskDO.getContactNumber();
@@ -238,8 +235,8 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
         for (CollectorEtlTaskNodeRelRespVO nodeRel : CollectorEtlTaskNodeRelRespVOList) {
             Map<String, Object> nodeRelMap = new HashMap<>();
             nodeRelMap.put("id", nodeRel.getId());
-            nodeRelMap.put("projectId", nodeRel.getProjectId());
-            nodeRelMap.put("projectCode", nodeRel.getProjectCode());
+            nodeRelMap.put("spaceId", nodeRel.getSpaceId());
+            nodeRelMap.put("spaceCode", nodeRel.getSpaceCode());
             nodeRelMap.put("taskId", nodeRel.getTaskId());
             nodeRelMap.put("taskCode", nodeRel.getTaskCode());
             nodeRelMap.put("taskVersion", nodeRel.getTaskVersion());
@@ -283,8 +280,8 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
                     map.put("code", node.getCode());
                     map.put("releaseState", node.getReleaseState());
                     map.put("version", node.getVersion());
-                    map.put("projectId", node.getProjectId());
-                    map.put("projectCode", node.getProjectCode());
+                    map.put("spaceId", node.getSpaceId());
+                    map.put("spaceCode", node.getSpaceCode());
                     map.put("taskParams", stringObjectMap);
                     map.put("priority", node.getPriority());
                     map.put("failRetryTimes", node.getFailRetryTimes());

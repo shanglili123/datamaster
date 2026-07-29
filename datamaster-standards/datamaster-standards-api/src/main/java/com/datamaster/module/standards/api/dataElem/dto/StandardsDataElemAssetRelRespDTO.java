@@ -22,16 +22,16 @@ public class StandardsDataElemAssetRelRespDTO {
     private String dataElemType;
 
     /** 数据元id */
-    private String dataElemId;
+    private Long dataElemId;
 
     /** 资产id(数据表id) */
-    private String assetId;
+    private Long assetId;
 
     /** 数据表 */
     private String tableName;
 
     /** 关联字段id */
-    private String columnId;
+    private Long columnId;
 
     /** 关联字段 */
     private String columnName;

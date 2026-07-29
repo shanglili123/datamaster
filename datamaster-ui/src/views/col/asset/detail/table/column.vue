@@ -105,13 +105,6 @@
                 }}</span>
             </template>
         </el-table-column>
-        <el-table-column v-if="columns[13].visible" label="备注" width="200" align="left" prop="remark"
-            :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.remark || '-' }}
-            </template>
-        </el-table-column>
-
         <el-table-column label="操作" v-if="columns[14].visible" align="left" class-name="small-padding fixed-width"
             fixed="right" width="100">
             <template #default="scope">
@@ -249,13 +242,6 @@
                     </el-form-item>
                 </el-col>
             </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="备注" prop="remark">
-                        <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
         </el-form>
         <template #footer>
             <div class="dialog-footer">
@@ -353,15 +339,6 @@
                     </el-form-item>
                 </el-col>
             </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="字段描述" prop="remark">
-                        <div>
-                            {{ form.remark }}
-                        </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
         </el-form>
         <template #footer>
             <div class="dialog-footer">
@@ -443,7 +420,7 @@ const data = reactive({
         tableComment: null,
         dataCount: null,
         fieldCount: null,
-        STATUS: null,
+        status: null,
         description: null,
         createTime: null
     },
@@ -518,7 +495,7 @@ function reset() {
         tableComment: null,
         dataCount: null,
         fieldCount: null,
-        STATUS: null,
+        status: null,
         description: null,
         validFlag: null,
         delFlag: null,
@@ -527,8 +504,7 @@ function reset() {
         createTime: null,
         updateBy: null,
         updaterId: null,
-        updateTime: null,
-        remark: null
+        updateTime: null
     };
     proxy.resetForm('daAssetRef');
 }

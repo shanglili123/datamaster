@@ -12,7 +12,7 @@ import java.util.Set;/** *  Response VO  DA_ASSET_COLUMN * * @author lhs * @date
 public class AssetsAssetColumnRespVO implements Serializable {
     private static final long serialVersionUID = 1L;
 @Excel(name = "ID")    @Schema(description = "ID")    private Long id;
-@Excel(name = "id")    @Schema(description = "id", example = "")    private String assetId;
+@Excel(name = "id")    @Schema(description = "id", example = "")    private Long assetId;
 @Excel(name = "/")    @Schema(description = "/", example = "")    private String columnName;
 @Excel(name = "/")    @Schema(description = "/", example = "")    private String columnComment;
 @Excel(name = "")    @Schema(description = "", example = "")    private String columnType;
@@ -31,8 +31,8 @@ public class AssetsAssetColumnRespVO implements Serializable {
 @Excel(name = "")    @Schema(description = "", example = "")    private String relCleanFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private String relAuditFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private String description;
-@Schema(description = "空间id", example = "")    private Long projectId;
-@Schema(description = "空间编码", example = "")    private String projectCode;
+@Schema(description = "空间ID", example = "")    private Long spaceId;
+@Schema(description = "空间编码", example = "")    private String spaceCode;
 @Excel(name = "")    @Schema(description = "", example = "")    private Boolean validFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private Boolean delFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private String createBy;
@@ -41,5 +41,5 @@ public class AssetsAssetColumnRespVO implements Serializable {
 @Excel(name = "")    @Schema(description = "", example = "")    private String updateBy;
 @Excel(name = "id")    @Schema(description = "id", example = "")    private Long updaterId;
 @Excel(name = "", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")    @Schema(description = "", example = "")    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    private Date updateTime;
-@Excel(name = "")    @Schema(description = "", example = "")    private String remark;
+@Excel(name = "")    @Schema(description = "", example = "")
 @TableField(exist = false)    private Set<Long> elementId;}

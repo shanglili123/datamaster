@@ -37,7 +37,7 @@ public class DatasourceSaveReqVO extends BaseEntity {
     private String datasourceConfig;
 
     @Schema(description = "旧空间集合", example = "")
-    private List<Long> projectListOld;
+    private List<Long> spaceListOld;
 
     @Schema(description = "IP", example = "")
     @Size(max = 256, message = "IP长度不能超过256个字符")
@@ -58,10 +58,6 @@ public class DatasourceSaveReqVO extends BaseEntity {
     @Schema(description = "描述", example = "")
     @Size(max = 256, message = "描述长度不能超过256个字符")
     private String description;
-
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
 
 
 }

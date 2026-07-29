@@ -114,7 +114,7 @@ import {
     getColumnByAssetId,
 } from "@/api/col/task/index.js";
 import { dppNoPageList } from "@/api/ast/asset/asset.js";
-import { getDaDatasource, listDaDatasourceNoKafkaByProjectCode } from "@/api/ast/dataSource/dataSource.js";
+import { getDaDatasource, listDaDatasourceNoKafkaBySpaceCode } from "@/api/ast/dataSource/dataSource.js";
 const props = defineProps({
     form: Object,
 });

@@ -14,12 +14,12 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 数据质量任务 Response VO 对象 COL_QUALITY_TASK
+ * 质量探查任务 Response VO 对象 COL_QUALITY_TASK
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Schema(description = "数据质量任务 Response VO")
+@Schema(description = "质量探查任务 Response VO")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -128,7 +128,7 @@ public class QualityTaskRespVO implements Serializable {
     private Long assetId;
 
 
-    // 数据质量任务-稽查对象
+    // 质量探查任务-稽查对象
     private List<QualityTaskObjRespVO> QualityTaskObjSaveReqVO;
 
     // 规则对象

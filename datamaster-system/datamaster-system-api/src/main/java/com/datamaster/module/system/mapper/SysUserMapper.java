@@ -73,10 +73,10 @@ public interface SysUserMapper {
      * 通过用户ID和空间ID查询用户
      *
      * @param userId    用户ID
-     * @param projectId 空间ID
+     * @param spaceId 空间ID
      * @return 用户对象信息
      */
-    public SysUser selectUserByUserIdAndProjectId(@Param("userId") Long userId, @Param("projectId") Long projectId);
+    public SysUser selectUserByUserIdAndSpaceId(@Param("userId") Long userId, @Param("spaceId") Long spaceId);
 
     /**
      * 新增用户信息

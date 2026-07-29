@@ -336,8 +336,8 @@ function submitForm() {
             params.reqParams = JSON.stringify(params.executeConfig.reqParams);
             params.headerJson = JSON.stringify(params.executeConfig.headerJson);
             params.configJson = JSON.stringify(params.executeConfig);
-            params.projectId = params.projectId || userStore.projectId || null;
-            params.projectCode = params.projectCode || userStore.projectCode || '';
+            params.spaceId = params.spaceId || userStore.spaceId || null;
+            params.spaceCode = params.spaceCode || userStore.spaceCode || '';
             if (form1.value.id) {
                 //删除创建、更新时间字段
                 delete params.createTime;

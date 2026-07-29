@@ -19,7 +19,7 @@ import static com.datamaster.quality.utils.quality.enums.CommonGenerator.*;
 
 /**
  * <P>
- * 用途:数据质量sql
+ * 用途:质量探查sql
  * </p>
  *
  * @create: 2025-03-12 16:29

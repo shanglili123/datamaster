@@ -38,9 +38,9 @@ public class StandardsDesensitizeIntervalSaveReqVO extends BaseEntity {
     @Schema(description = "末尾值", example = "")
     private Long endNum;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
     /** 是否有效;0：无效，1：有效 */
     private Boolean validFlag;

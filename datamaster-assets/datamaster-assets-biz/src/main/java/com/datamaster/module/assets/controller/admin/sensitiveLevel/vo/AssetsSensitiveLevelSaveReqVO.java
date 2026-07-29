@@ -47,8 +47,4 @@ public class AssetsSensitiveLevelSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "256")
     private String description;
 
-    @Schema(description = "", example = "")
-    @Size(max = 256, message = "256")
-    private String remark;
-
 }

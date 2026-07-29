@@ -9,14 +9,14 @@ import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanc
 import com.datamaster.module.assets.config.TableGovernanceProperties;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
-import com.datamaster.module.assets.dal.dataobject.assetColumnProjectRel.AssetsAssetColumnProjectRelDO;
+import com.datamaster.module.assets.dal.dataobject.assetColumnSpaceRel.AssetsAssetColumnSpaceRelDO;
 import com.datamaster.module.assets.dal.dataobject.assetApply.AssetsAssetApplyDO;
-import com.datamaster.module.assets.dal.dataobject.assetchild.projectRel.AssetsAssetProjectRelDO;
+import com.datamaster.module.assets.dal.dataobject.assetchild.spaceRel.AssetsAssetSpaceRelDO;
 import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapper;
-import com.datamaster.module.assets.dal.mapper.assetColumnProjectRel.AssetsAssetColumnProjectRelMapper;
+import com.datamaster.module.assets.dal.mapper.assetColumnSpaceRel.AssetsAssetColumnSpaceRelMapper;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.assets.dal.mapper.assetApply.AssetsAssetApplyMapper;
-import com.datamaster.module.assets.dal.mapper.assetchild.projectRel.AssetsAssetProjectRelMapper;
+import com.datamaster.module.assets.dal.mapper.assetchild.spaceRel.AssetsAssetSpaceRelMapper;
 import com.datamaster.module.catalog.api.service.table.CatalogTableApiService;
 import com.datamaster.module.catalog.api.table.dto.CatalogTableRespDTO;
 import lombok.extern.slf4j.Slf4j;
@@ -46,9 +46,9 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
     @Resource
     private AssetsAssetColumnMapper assetsAssetColumnMapper;
     @Resource
-    private AssetsAssetColumnProjectRelMapper assetsAssetColumnProjectRelMapper;
+    private AssetsAssetColumnSpaceRelMapper assetsAssetColumnSpaceRelMapper;
     @Resource
-    private AssetsAssetProjectRelMapper assetsAssetProjectRelMapper;
+    private AssetsAssetSpaceRelMapper assetsAssetSpaceRelMapper;
     @Resource
     private AssetsAssetApplyMapper assetsAssetApplyMapper;
     @Resource
@@ -144,12 +144,12 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
             respDTO.setMessage("命中数据资产，当前模式不强制拦截");
             return;
         }
-        if (reqDTO.getProjectId() == null && StringUtils.isBlank(reqDTO.getProjectCode())) {
+        if (reqDTO.getSpaceId() == null && StringUtils.isBlank(reqDTO.getSpaceCode())) {
             respDTO.setAccessAllowed(true);
             respDTO.setMessage("命中数据资产，但未传入空间上下文，跳过空间权限校验");
             return;
         }
-        if (hasProjectRel(asset.getId(), reqDTO) || hasApprovedApply(asset.getId(), reqDTO)) {
+        if (hasSpaceRel(asset.getId(), reqDTO) || hasApprovedApply(asset.getId(), reqDTO)) {
             checkColumnAccess(respDTO, reqDTO, asset);
             if (Boolean.FALSE.equals(respDTO.getAccessAllowed())) {
                 return;
@@ -162,19 +162,19 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
         respDTO.setMessage("当前空间无权访问数据资产：" + asset.getTableName());
     }
 
-    private boolean hasProjectRel(Long assetId, AssetsTableGovernanceReqDTO reqDTO) {
-        Long count = assetsAssetProjectRelMapper.selectCount(Wrappers.<AssetsAssetProjectRelDO>lambdaQuery()
-                .eq(AssetsAssetProjectRelDO::getAssetId, assetId)
-                .eq(reqDTO.getProjectId() != null, AssetsAssetProjectRelDO::getProjectId, reqDTO.getProjectId())
-                .eq(StringUtils.isNotBlank(reqDTO.getProjectCode()), AssetsAssetProjectRelDO::getProjectCode, reqDTO.getProjectCode()));
+    private boolean hasSpaceRel(Long assetId, AssetsTableGovernanceReqDTO reqDTO) {
+        Long count = assetsAssetSpaceRelMapper.selectCount(Wrappers.<AssetsAssetSpaceRelDO>lambdaQuery()
+                .eq(AssetsAssetSpaceRelDO::getAssetId, assetId)
+                .eq(reqDTO.getSpaceId() != null, AssetsAssetSpaceRelDO::getSpaceId, reqDTO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqDTO.getSpaceCode()), AssetsAssetSpaceRelDO::getSpaceCode, reqDTO.getSpaceCode()));
         return count != null && count > 0;
     }
 
     private boolean hasApprovedApply(Long assetId, AssetsTableGovernanceReqDTO reqDTO) {
         Long count = assetsAssetApplyMapper.selectCount(Wrappers.<AssetsAssetApplyDO>lambdaQuery()
                 .eq(AssetsAssetApplyDO::getAssetId, assetId)
-                .eq(reqDTO.getProjectId() != null, AssetsAssetApplyDO::getProjectId, reqDTO.getProjectId())
-                .eq(StringUtils.isNotBlank(reqDTO.getProjectCode()), AssetsAssetApplyDO::getProjectCode, reqDTO.getProjectCode())
+                .eq(reqDTO.getSpaceId() != null, AssetsAssetApplyDO::getSpaceId, reqDTO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqDTO.getSpaceCode()), AssetsAssetApplyDO::getSpaceCode, reqDTO.getSpaceCode())
                 .eq(AssetsAssetApplyDO::getStatus, APPLY_APPROVED));
         return count != null && count > 0;
     }
@@ -187,10 +187,10 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
         if (columns == null || columns.isEmpty()) {
             return;
         }
-        Long relCount = assetsAssetColumnProjectRelMapper.selectCount(Wrappers.<AssetsAssetColumnProjectRelDO>lambdaQuery()
-                .eq(AssetsAssetColumnProjectRelDO::getAssetId, asset.getId())
-                .eq(reqDTO.getProjectId() != null, AssetsAssetColumnProjectRelDO::getProjectId, reqDTO.getProjectId())
-                .eq(StringUtils.isNotBlank(reqDTO.getProjectCode()), AssetsAssetColumnProjectRelDO::getProjectCode, reqDTO.getProjectCode()));
+        Long relCount = assetsAssetColumnSpaceRelMapper.selectCount(Wrappers.<AssetsAssetColumnSpaceRelDO>lambdaQuery()
+                .eq(AssetsAssetColumnSpaceRelDO::getAssetId, asset.getId())
+                .eq(reqDTO.getSpaceId() != null, AssetsAssetColumnSpaceRelDO::getSpaceId, reqDTO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqDTO.getSpaceCode()), AssetsAssetColumnSpaceRelDO::getSpaceCode, reqDTO.getSpaceCode()));
         if (relCount == null || relCount <= 0) {
             return;
         }
@@ -198,12 +198,12 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
         if (requested.isEmpty()) {
             return;
         }
-        List<Long> authorizedColumnIds = assetsAssetColumnProjectRelMapper.selectList(Wrappers.<AssetsAssetColumnProjectRelDO>lambdaQuery()
-                        .eq(AssetsAssetColumnProjectRelDO::getAssetId, asset.getId())
-                        .eq(reqDTO.getProjectId() != null, AssetsAssetColumnProjectRelDO::getProjectId, reqDTO.getProjectId())
-                        .eq(StringUtils.isNotBlank(reqDTO.getProjectCode()), AssetsAssetColumnProjectRelDO::getProjectCode, reqDTO.getProjectCode()))
+        List<Long> authorizedColumnIds = assetsAssetColumnSpaceRelMapper.selectList(Wrappers.<AssetsAssetColumnSpaceRelDO>lambdaQuery()
+                        .eq(AssetsAssetColumnSpaceRelDO::getAssetId, asset.getId())
+                        .eq(reqDTO.getSpaceId() != null, AssetsAssetColumnSpaceRelDO::getSpaceId, reqDTO.getSpaceId())
+                        .eq(StringUtils.isNotBlank(reqDTO.getSpaceCode()), AssetsAssetColumnSpaceRelDO::getSpaceCode, reqDTO.getSpaceCode()))
                 .stream()
-                .map(AssetsAssetColumnProjectRelDO::getColumnId)
+                .map(AssetsAssetColumnSpaceRelDO::getColumnId)
                 .collect(Collectors.toList());
         Set<String> authorized = columns.stream()
                 .filter(column -> authorizedColumnIds.contains(column.getId()))

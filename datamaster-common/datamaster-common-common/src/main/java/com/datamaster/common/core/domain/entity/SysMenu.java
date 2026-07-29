@@ -77,7 +77,7 @@ public class SysMenu extends BaseEntity
     private String icon;
 
     /** 权限字符串 */
-    private Long projectId;
+    private Long spaceId;
 
     /** 子菜单 */
     private List<SysMenu> children = new ArrayList<SysMenu>();
@@ -259,12 +259,12 @@ public class SysMenu extends BaseEntity
         this.children = children;
     }
 
-    public Long getProjectId() {
-        return projectId;
+    public Long getSpaceId() {
+        return spaceId;
     }
 
-    public void setProjectId(Long projectId) {
-        this.projectId = projectId;
+    public void setSpaceId(Long spaceId) {
+        this.spaceId = spaceId;
     }
 
     @Override

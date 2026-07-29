@@ -2,12 +2,12 @@
 import request from '@/utils/request';
 import useUserStore from '@/store/system/user';
 
-function withProject(data = {}) {
+function withSpace(data = {}) {
     const userStore = useUserStore();
     return {
         ...data,
-        projectId: data.projectId || userStore.projectId || null,
-        projectCode: data.projectCode || userStore.projectCode || ''
+        spaceId: data.spaceId || userStore.spaceId || null,
+        spaceCode: data.spaceCode || userStore.spaceCode || ''
     };
 }
 
@@ -63,7 +63,7 @@ export function serviceTesting(data) {
     return request({
         url: '/svc/api/serviceTesting',
         method: 'post',
-        data: withProject(data)
+        data: withSpace(data)
     });
 }
 
@@ -72,7 +72,7 @@ export function addDataApi(data) {
     return request({
         url: '/svc/api',
         method: 'post',
-        data: withProject(data)
+        data: withSpace(data)
     });
 }
 
@@ -80,7 +80,7 @@ export function updateDataApi(data) {
     return request({
         url: '/svc/api',
         method: 'put',
-        data: withProject(data)
+        data: withSpace(data)
     });
 }
 
@@ -128,7 +128,7 @@ export function queryServiceForwarding(data) {
     return request({
         url: '/svc/api/queryServiceForwarding',
         method: 'post',
-        data: withProject(data)
+        data: withSpace(data)
     });
 }
 

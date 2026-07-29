@@ -68,7 +68,7 @@ public class SysRoleServiceImpl implements ISysRoleService
     {
         List<SysRole> userRoles = roleMapper.selectRolePermissionByUserId(userId);
         SysRole sysRole = new SysRole();
-        sysRole.setProjectId(0L);
+        sysRole.setSpaceId(0L);
         List<SysRole> roles = selectRoleList(sysRole);
         for (SysRole role : roles)
         {
@@ -151,8 +151,8 @@ public class SysRoleServiceImpl implements ISysRoleService
     {
         Long roleId = StringUtils.isNull(role.getRoleId()) ? -1L : role.getRoleId();
         SysRole info = new SysRole();
-        if (role.getProjectId() != null){
-            info = roleMapper.checkRoleNameUniqueAndProjectId(role);
+        if (role.getSpaceId() != null){
+            info = roleMapper.checkRoleNameUniqueAndSpaceId(role);
         }else {
             info = roleMapper.checkRoleNameUnique(role.getRoleName());
         }
@@ -174,8 +174,8 @@ public class SysRoleServiceImpl implements ISysRoleService
     {
         Long roleId = StringUtils.isNull(role.getRoleId()) ? -1L : role.getRoleId();
         SysRole info = new SysRole();
-        if (role.getProjectId() != null){
-            info = roleMapper.checkRoleKeyUniqueAndProjectId(role);
+        if (role.getSpaceId() != null){
+            info = roleMapper.checkRoleKeyUniqueAndSpaceId(role);
         }else {
             info = roleMapper.checkRoleKeyUnique(role.getRoleKey());
         }

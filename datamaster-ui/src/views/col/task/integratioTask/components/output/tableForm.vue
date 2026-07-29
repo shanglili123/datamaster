@@ -255,8 +255,8 @@ const getDatasourceList = async () => {
   try {
     loading.value = true;
     const response = await listDaDatasource({
-      projectCode: userStore.projectCode,
-      projectId: userStore.projectId,
+      spaceCode: userStore.spaceCode,
+      spaceId: userStore.spaceId,
       datasourceType: "DM8,Oracle11,MySql,Oracle,Kingbase8,Doris,ClickHouse,Hive,MongoDB,Elasticsearch,SQL_Server,SQL_Server2008,PostgreSQL",
       pageSize: 9999,
     });
@@ -367,8 +367,8 @@ const saveData = async () => {
       loading.value = true;
       try {
         const { data } = await getNodeUniqueKey({
-          projectCode: userStore.projectCode || "133545087166112",
-          projectId: userStore.projectId,
+          spaceCode: userStore.spaceCode || "133545087166112",
+          spaceId: userStore.spaceId,
         });
         form.value.code = data;
       } finally {

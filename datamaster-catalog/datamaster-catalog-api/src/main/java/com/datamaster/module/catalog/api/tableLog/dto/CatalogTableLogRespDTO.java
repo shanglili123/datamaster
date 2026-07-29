@@ -73,7 +73,7 @@ public class CatalogTableLogRespDTO {
     /** 是否临时表;0：否，1：是 */
     private String tempFlag;
 
-    /** 数据质量 */
+    /** 质量探查 */
     private Integer dataQuality;
 
     /** 变更类型 */

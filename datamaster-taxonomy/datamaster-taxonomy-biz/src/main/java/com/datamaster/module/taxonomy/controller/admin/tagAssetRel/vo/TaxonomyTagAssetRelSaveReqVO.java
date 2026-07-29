@@ -25,18 +25,16 @@ public class TaxonomyTagAssetRelSaveReqVO extends BaseEntity {
     private Long id;
 
     @Schema(description = "标签管理id", example = "")
-    @Size(max = 256, message = "标签管理id长度不能超过256个字符")
-    private String tagId;
-    private List<String> tagIds;
+    private Long tagId;
+    private List<Long> tagIds;
 
     @Schema(description = "资产id", example = "")
-    @Size(max = 256, message = "资产id长度不能超过256个字符")
-    private String assetId;
+    private Long assetId;
 
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    @Size(max = 256, message = "描述长度不能超过256个字符")
+    private String description;
 
 
 }

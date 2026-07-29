@@ -40,10 +40,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="status != null  and status != ''"> and STATUS = #{status}</if>
             <if test="message != null  and message != ''"> and MESSAGE = #{message}</if>
             <if test="sqlCommand != null  and sqlCommand != ''"> and SQL_COMMAND = #{sqlCommand}</if>
-            <if test="datasourceId != null  and datasourceId != ''"> and DATASOURCE_ID = #{datasourceId}</if>
+            <if test="datasourceId != null"> and DATASOURCE_ID = #{datasourceId}</if>
             <if test="datasourceType != null  and datasourceType != ''"> and DATASOURCE_TYPE = #{datasourceType}</if>
             <if test="datasourceName != null  and datasourceName != ''"> and DATASOURCE_NAME like concat('%', #{datasourceName}, '%')</if>
-            <if test="assetId != null  and assetId != ''"> and ASSET_ID = #{assetId}</if>
+            <if test="assetId != null"> and ASSET_ID = #{assetId}</if>
             <if test="createTime != null "> and CREATE_TIME = #{createTime}</if>
         </where>
     </select>

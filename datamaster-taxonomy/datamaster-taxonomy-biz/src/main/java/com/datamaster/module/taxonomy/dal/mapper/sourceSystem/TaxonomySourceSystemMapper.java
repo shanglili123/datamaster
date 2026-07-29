@@ -37,10 +37,10 @@ public interface TaxonomySourceSystemMapper extends BaseMapperX<TaxonomySourceSy
                 .like(StringUtils.isNotBlank(reqVO.getName()), TaxonomySourceSystemDO::getName, reqVO.getName())
                 .eq(StringUtils.isNotBlank(reqVO.getType()), TaxonomySourceSystemDO::getType, reqVO.getType())
                 .eq(reqVO.getValidFlag() != null, "valid_flag", Boolean.TRUE.equals(reqVO.getValidFlag()) ? "1" : "0")
-                .and(reqVO.getProjectId() != null, wrapper -> wrapper
-                        .eq(TaxonomySourceSystemDO::getProjectId, reqVO.getProjectId())
+                .and(reqVO.getSpaceId() != null, wrapper -> wrapper
+                        .eq(TaxonomySourceSystemDO::getSpaceId, reqVO.getSpaceId())
                         .or()
-                        .isNull(TaxonomySourceSystemDO::getProjectId))
+                        .isNull(TaxonomySourceSystemDO::getSpaceId))
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, TaxonomySourceSystemDO.class, lambdaWrapper);
     }

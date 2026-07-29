@@ -7,12 +7,12 @@ import lombok.Data;
 import com.datamaster.common.core.page.PageParam;
 
 /**
- * 数据质量任务-稽查对象 Request VO 对象 COL_QUALITY_TASK_OBJ
+ * 质量探查任务-稽查对象 Request VO 对象 COL_QUALITY_TASK_OBJ
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Schema(description = "数据质量任务-稽查对象 Request VO")
+@Schema(description = "质量探查任务-稽查对象 Request VO")
 @Data
 public class CollectorQualityTaskObjPageReqVO extends PageParam {
 
@@ -29,7 +29,7 @@ public class CollectorQualityTaskObjPageReqVO extends PageParam {
     @Schema(description = "表名称", example = "")
     private String tableName;
 
-    /** 数据质量任务ID */
+    /** 质量探查任务ID */
     private Long taskId;
 
 

@@ -13,7 +13,7 @@ import com.datamaster.module.collector.controller.admin.etl.vo.CollectorQualityL
 import com.datamaster.module.collector.controller.admin.qa.vo.CollectorQualityTaskAssetReqVO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorQualityLogDO;
 /**
- * 数据质量日志Service接口
+ * 质量探查日志Service接口
  *
  * @author lili.shang
  * @date 2025-07-19
@@ -21,70 +21,70 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorQualityLogDO;
 public interface ICollectorQualityLogService extends IService<CollectorQualityLogDO> {
 
     /**
-     * 获得数据质量日志分页列表
+     * 获得质量探查日志分页列表
      *
      * @param pageReqVO 分页请求
-     * @return 数据质量日志分页列表
+     * @return 质量探查日志分页列表
      */
     PageResult<CollectorQualityLogDO> getCollectorQualityLogPage(CollectorQualityLogPageReqVO pageReqVO);
 
     /**
-     * 创建数据质量日志
+     * 创建质量探查日志
      *
-     * @param createReqVO 数据质量日志信息
-     * @return 数据质量日志编号
+     * @param createReqVO 质量探查日志信息
+     * @return 质量探查日志编号
      */
     Long createCollectorQualityLog(CollectorQualityLogSaveReqVO createReqVO);
 
     /**
-     * 更新数据质量日志
+     * 更新质量探查日志
      *
-     * @param updateReqVO 数据质量日志信息
+     * @param updateReqVO 质量探查日志信息
      */
     int updateCollectorQualityLog(CollectorQualityLogSaveReqVO updateReqVO);
 
     /**
-     * 删除数据质量日志
+     * 删除质量探查日志
      *
-     * @param idList 数据质量日志编号
+     * @param idList 质量探查日志编号
      */
     int removeCollectorQualityLog(Collection<Long> idList);
 
     /**
-     * 获得数据质量日志详情
+     * 获得质量探查日志详情
      *
-     * @param id 数据质量日志编号
-     * @return 数据质量日志
+     * @param id 质量探查日志编号
+     * @return 质量探查日志
      */
     CollectorQualityLogDO getCollectorQualityLogById(Long id);
     CollectorQualityLogDO selectPrevLogByIdWithWrapper(Long id);
 
     /**
-     * 获得数据质量日志详情
+     * 获得质量探查日志详情
      * 资产专用
-     * @return 数据质量日志
+     * @return 质量探查日志
      */
     CollectorQualityLogDO getCollectorQualityLogById(CollectorQualityTaskAssetReqVO CollectorQualityTaskAssetReqVO);
 
     /**
-     * 获得全部数据质量日志列表
+     * 获得全部质量探查日志列表
      *
-     * @return 数据质量日志列表
+     * @return 质量探查日志列表
      */
     List<CollectorQualityLogDO> getCollectorQualityLogList();
 
     /**
-     * 获得全部数据质量日志 Map
+     * 获得全部质量探查日志 Map
      *
-     * @return 数据质量日志 Map
+     * @return 质量探查日志 Map
      */
     Map<Long, CollectorQualityLogDO> getCollectorQualityLogMap();
 
 
     /**
-     * 导入数据质量日志数据
+     * 导入质量探查日志数据
      *
-     * @param importExcelList 数据质量日志数据列表
+     * @param importExcelList 质量探查日志数据列表
      * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
      * @param operName 操作用户
      * @return 结果
@@ -92,7 +92,7 @@ public interface ICollectorQualityLogService extends IService<CollectorQualityLo
     String importCollectorQualityLog(List<CollectorQualityLogRespVO> importExcelList, boolean isUpdateSupport, String operName);
 
     /**
-     * 发送数据质量日志的消息
+     * 发送质量探查日志的消息
      * @param id
      */
     void sendMessage(Long id);

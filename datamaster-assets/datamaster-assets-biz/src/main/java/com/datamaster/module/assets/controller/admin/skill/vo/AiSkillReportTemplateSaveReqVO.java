@@ -29,5 +29,5 @@ public class AiSkillReportTemplateSaveReqVO {
 
     private Boolean defaultFlag;
 
-    private String remark;
+    private String description;
 }

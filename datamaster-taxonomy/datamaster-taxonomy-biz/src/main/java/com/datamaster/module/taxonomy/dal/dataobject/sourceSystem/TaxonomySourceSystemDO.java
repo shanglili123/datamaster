@@ -52,11 +52,13 @@ public class TaxonomySourceSystemDO extends BaseEntity {
     private String contactPersonName;
 
 
-    /** 项目ID */
-    private Long projectId;
+    /** 空间ID */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_ID")
+    private Long spaceId;
 
-    /** 项目编码 */
-    private String projectCode;
+    /** 空间编码 */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_CODE")
+    private String spaceCode;
 
     /** 删除标志;1：已删除，0：未删除 */
     @TableLogic

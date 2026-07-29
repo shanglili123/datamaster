@@ -1,4 +1,4 @@
-import router from "./router";
+﻿import router from "./router";
 import { ElMessage } from "element-plus";
 import NProgress from "nprogress";
 import "nprogress/nprogress.css";
@@ -9,8 +9,8 @@ import useUserStore from "@/store/system/user";
 import useSettingsStore from "@/store/system/settings";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
-import { currentUser } from "@/api/tax/project/project";
-import { isProjectModuleRoute } from "@/utils/moduleRoute";
+import { currentUser } from "@/api/tax/space/space";
+import { isSpaceModuleRoute } from "@/utils/moduleRoute";
 
 NProgress.configure({ showSpinner: false });
 
@@ -42,7 +42,7 @@ router.beforeEach((to, from, next) => {
                     router.addRoute(route);
                   }
                 });
-                await ensureProjectRoutes(to);
+                await ensureSpaceRoutes(to);
                 next({ ...to, replace: true });
               });
           })
@@ -56,8 +56,8 @@ router.beforeEach((to, from, next) => {
           });
       } else {
         const permissionStore = usePermissionStore();
-        if (isProjectModuleRoute(to.path) && permissionStore.menuMode !== "project") {
-          ensureProjectRoutes(to)
+        if (isSpaceModuleRoute(to.path) && permissionStore.menuMode !== "space") {
+          ensureSpaceRoutes(to)
             .then(() => next({ ...to, replace: true }))
             .catch(() => next());
         } else {
@@ -75,26 +75,26 @@ router.beforeEach((to, from, next) => {
   }
 });
 
-async function ensureProjectRoutes(to) {
-  if (!isProjectModuleRoute(to.path)) return;
+async function ensureSpaceRoutes(to) {
+  if (!isSpaceModuleRoute(to.path)) return;
 
-  let projectId = localStorage.getItem("dataMasterProjectId");
+  let spaceId = localStorage.getItem("dataMasterSpaceId");
 
   const userStore = useUserStore();
   const permissionStore = usePermissionStore();
-  if (!projectId) {
-    const projectResponse = await currentUser();
-    const firstProject = projectResponse?.data?.[0];
-    if (!firstProject?.id) return;
+  if (!spaceId) {
+    const spaceResponse = await currentUser();
+    const firstSpace = spaceResponse?.data?.[0];
+    if (!firstSpace?.id) return;
 
-    projectId = firstProject.id;
-    localStorage.setItem("dataMasterProjectId", projectId);
-    userStore.projectCode = firstProject.code || firstProject.projectCode || "";
+    spaceId = firstSpace.id;
+    localStorage.setItem("dataMasterSpaceId", spaceId);
+    userStore.spaceCode = firstSpace.code || firstSpace.spaceCode || "";
   }
 
-  userStore.projectId = projectId;
+  userStore.spaceId = spaceId;
 
-  const response = await getRoutersDpp(projectId);
+  const response = await getRoutersDpp(spaceId);
   permissionStore.updateTopbarRoutes(response?.data || []);
 }
 

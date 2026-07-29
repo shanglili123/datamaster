@@ -49,7 +49,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
 
     @Override
     public AjaxResult getColumnByAssetId(AssetsAssetColumnPageReqVO pageReqVO) {
-        if (StringUtils.isEmpty(pageReqVO.getAssetId())) {//资产id不能为空
+        if (pageReqVO.getAssetId() == null) {//资产id不能为空
             return AjaxResult.error("id");
         }
         List<AssetsAssetColumnDO> list = AssetsAssetColumnMapper.selectListByAuth(pageReqVO);
@@ -71,7 +71,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
 
     @Override
     public PageResult<AssetsAssetColumnDO> getAssetColumnPage(AssetsAssetColumnPageReqVO pageReqVO) {
-        if (StringUtils.isEmpty(pageReqVO.getAssetId())) {
+        if (pageReqVO.getAssetId() == null) {
             return PageResult.empty();
         }
         PageResult<AssetsAssetColumnDO> AssetsAssetColumnDOPageResult = AssetsAssetColumnMapper.selectPage(pageReqVO);
@@ -81,7 +81,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
             AssetsAssetColumnDO AssetsAssetColumnDO = (AssetsAssetColumnDO) row;
             ids.add(AssetsAssetColumnDO.getDataElemCodeId());
         }
-        List<StandardsDataElemRespDTO> dpDataElemListByAssetId = iStandardsModelApiService.getDpDataElemListByAssetId(Long.valueOf(pageReqVO.getAssetId()), ids);
+        List<StandardsDataElemRespDTO> dpDataElemListByAssetId = iStandardsModelApiService.getDpDataElemListByAssetId(pageReqVO.getAssetId(), ids);
         for (Object row : rows) {
             AssetsAssetColumnDO AssetsAssetColumnDO = (AssetsAssetColumnDO) row;
             String elementName = "";

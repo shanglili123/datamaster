@@ -21,7 +21,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		  and role_id in (
 		      select role_id
 		      from system_role
-		      where coalesce(project_id, 0) = 0
+		      where coalesce(space_id, 0) = 0
 		  )
 	</delete>
 

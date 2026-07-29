@@ -43,7 +43,7 @@ public class EvaluateLogPageReqVO extends PageParam {
     @Schema(description = "规则描述", example = "")
     private String ruleDescription;
 
-    @Schema(description = "数据质量记录id", example = "")
+    @Schema(description = "质量探查记录id", example = "")
     private String taskLogId;
 
     @Schema(description = "评测id", example = "")

@@ -65,7 +65,7 @@
             <artifactId>datamaster-catalog-biz</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
-        <!-- 数据质量模块 -->
+        <!-- 质量探查模块 -->
         <dependency>
             <groupId>com.datamaster</groupId>
             <artifactId>datamaster-quality</artifactId>

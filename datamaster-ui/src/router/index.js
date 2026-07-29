@@ -1,4 +1,4 @@
-
+﻿
 import { createWebHistory, createRouter } from 'vue-router';
 import { clearCancelTokens } from '@/utils/request'; // 确保导入路径正确
 
@@ -18,7 +18,7 @@ import daPublicRouter from './ast/public/index.js';
 import daDynamicRouter from './ast/dynamic/index.js';
 /* 数据资产资产地图 */
 import daAssetRouter from './ast/asset/index.js';
-/* 数据质量 */
+/* 质量探查 */
 import daQualityRouter from './ast/quality/index.js';
 
 import dsPublicRouter from './svc/public/index.js';

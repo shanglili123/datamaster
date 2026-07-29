@@ -152,7 +152,7 @@ public class CatalogTaskController extends BaseController {
     @Operation(summary = "获取来源系统树形结构")
     @GetMapping("/sourceSystemTree")
     public CommonResult<List<CatalogTaskSourceTreeRespVO>> getSourceSystemTree(CatalogTaskPageReqVO reqVO) {
-        List<CatalogTaskSourceTreeRespVO> treeList = CatalogTaskService.getSourceSystemTree(reqVO.getProjectId());
+        List<CatalogTaskSourceTreeRespVO> treeList = CatalogTaskService.getSourceSystemTree(reqVO.getSpaceId());
         return CommonResult.success(treeList);
     }
 

@@ -553,8 +553,8 @@ async function fetchColumns() {
       const res = await getColumnByAssetId({
         id: form?.datasourceId || selectedRef.value.datasourceId,
         tableName: form?.tableName,
-        projectId: userStore.projectId,
-        projectCode: userStore.projectCode,
+        spaceId: userStore.spaceId,
+        spaceCode: userStore.spaceCode,
       });
       if (res.code == "200") {
         const list = res.data.map((col) => ({

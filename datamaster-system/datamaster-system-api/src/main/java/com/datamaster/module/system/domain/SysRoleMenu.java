@@ -19,14 +19,14 @@ public class SysRoleMenu
     private Long menuId;
 
     /** 空间ID */
-    private Long projectId;
+    private Long spaceId;
 
-    public Long getProjectId() {
-        return projectId;
+    public Long getSpaceId() {
+        return spaceId;
     }
 
-    public void setProjectId(Long projectId) {
-        this.projectId = projectId;
+    public void setSpaceId(Long spaceId) {
+        this.spaceId = spaceId;
     }
 
     public Long getRoleId()

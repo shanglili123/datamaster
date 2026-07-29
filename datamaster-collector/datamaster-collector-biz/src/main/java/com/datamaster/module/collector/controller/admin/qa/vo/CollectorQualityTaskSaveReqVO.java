@@ -11,12 +11,12 @@ import javax.validation.constraints.Size;
 import java.util.List;
 
 /**
- * 数据质量任务 创建/修改 Request VO COL_QUALITY_TASK
+ * 质量探查任务 创建/修改 Request VO COL_QUALITY_TASK
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Schema(description = "数据质量任务 Response VO")
+@Schema(description = "质量探查任务 Response VO")
 @Data
 public class CollectorQualityTaskSaveReqVO extends BaseEntity {
 
@@ -78,7 +78,7 @@ public class CollectorQualityTaskSaveReqVO extends BaseEntity {
     private String cycle;
 
 
-    // 数据质量任务-稽查对象
+    // 质量探查任务-稽查对象
     @JsonProperty("dppQualityTaskObjSaveReqVO")
     private List<CollectorQualityTaskObjSaveReqVO> CollectorQualityTaskObjSaveReqVO;
 
@@ -117,11 +117,11 @@ public class CollectorQualityTaskSaveReqVO extends BaseEntity {
 
     /** 空间ID */
     @Schema(description = "空间ID")
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
     @Schema(description = "空间编码")
-    private String projectCode;
+    private String spaceCode;
 
 
 

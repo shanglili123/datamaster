@@ -100,8 +100,8 @@ public class CatalogTableLogRespVO implements Serializable {
     @Schema(description = "是否临时表;0：否，1：是", example = "")
     private String tempFlag;
 
-    @Excel(name = "数据质量")
-    @Schema(description = "数据质量", example = "")
+    @Excel(name = "质量探查")
+    @Schema(description = "质量探查", example = "")
     private Integer dataQuality;
 
     @Excel(name = "变更类型")
@@ -146,9 +146,6 @@ public class CatalogTableLogRespVO implements Serializable {
     @Schema(description = "更新时间", example = "")
     private Date updateTime;
 
-    @Excel(name = "备注")
-    @Schema(description = "备注", example = "")
-    private String remark;
 
     @Excel(name = "描述")
     @Schema(description = "描述", example = "")

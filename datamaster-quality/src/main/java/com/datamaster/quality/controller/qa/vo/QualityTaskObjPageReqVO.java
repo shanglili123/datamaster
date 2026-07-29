@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 import com.datamaster.common.core.page.PageParam;
 
 /**
- * 数据质量任务-稽查对象 Request VO 对象 COL_QUALITY_TASK_OBJ
+ * 质量探查任务-稽查对象 Request VO 对象 COL_QUALITY_TASK_OBJ
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Schema(description = "数据质量任务-稽查对象 Request VO")
+@Schema(description = "质量探查任务-稽查对象 Request VO")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

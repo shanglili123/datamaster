@@ -113,10 +113,10 @@
                                 </template>
                             </el-table-column>
 
-                            <el-table-column label="描述" fixed="left" align="center" prop="remark"
+                            <el-table-column label="描述" fixed="left" align="center" prop="description"
                                 :show-overflow-tooltip="{ effect: 'light' }">
                                 <template #default="{ row }">
-                                    {{ row?.remark || '' }}
+                                    {{ row?.description || '' }}
                                 </template>
                             </el-table-column>
 
@@ -190,10 +190,10 @@
                                 </template>
                             </el-table-column>
 
-                            <el-table-column label="描述" fixed="left" align="center" prop="remark"
+                            <el-table-column label="描述" fixed="left" align="center" prop="description"
                                 :show-overflow-tooltip="{ effect: 'light' }">
                                 <template #default="{ row }">
-                                    {{ row?.remark || '' }}
+                                    {{ row?.description || '' }}
                                 </template>
                             </el-table-column>
 
@@ -271,7 +271,7 @@ const data = reactive({
         pageNum: 1,
         pageSize: 6,
         NAME: null,
-        STATUS: null,
+        status: null,
         createTime: null
     },
     rules: {}
@@ -335,8 +335,8 @@ function reset() {
         limitJson: null,
         reqParams: null,
         resParams: null,
-        DESCRIPTION: null,
-        STATUS: null,
+        description: null,
+        status: null,
         validFlag: null,
         delFlag: null,
         createBy: null,
@@ -344,8 +344,7 @@ function reset() {
         createTime: null,
         updateBy: null,
         updaterId: null,
-        updateTime: null,
-        REMARK: null
+        updateTime: null
     };
     proxy.resetForm('dsApiRef');
 }

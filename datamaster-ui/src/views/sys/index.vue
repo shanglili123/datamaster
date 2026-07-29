@@ -1,19 +1,19 @@
-<template>
+﻿<template>
   <div class="dm-page workspace-home">
     <div class="dm-page__header">
       <div>
         <h1 class="dm-page__title">空间工作台</h1>
         <div class="dm-page__desc">
-          从空间进入数据建模、数据研发、数据服务和元数据管理工作区。
+          从空间进入标准建模、数据研发、数据服务和元数据管理工作区。
         </div>
       </div>
       <div class="workspace-home__actions">
-        <el-button :icon="Refresh" @click="loadProjects">刷新</el-button>
+        <el-button :icon="Refresh" @click="loadSpaces">刷新</el-button>
         <el-button
-          v-if="canCreateProject"
+          v-if="canCreateSpace"
           type="primary"
           :icon="Plus"
-          @click="goCreateProject"
+          @click="goCreateSpace"
         >
           新增空间
         </el-button>
@@ -22,11 +22,11 @@
 
     <el-row :gutter="16" class="workspace-home__main">
       <el-col :xs="24" :lg="15">
-        <div class="dm-card workspace-home__projects">
+        <div class="dm-card workspace-home__spaces">
           <div class="dm-card__header">
             <div class="workspace-home__card-title">
               <span class="dm-card__title">空间列表</span>
-              <el-tag size="small" type="info">{{ projectList.length }} 个</el-tag>
+              <el-tag size="small" type="info">{{ spaceList.length }} 个</el-tag>
               <span class="workspace-home__hint">仅展示当前登录人有权限的空间</span>
             </div>
             <el-input
@@ -40,37 +40,37 @@
           <div class="dm-card__body">
             <el-skeleton v-if="loading" :rows="6" animated />
             <el-empty
-              v-else-if="filteredProjects.length === 0"
+              v-else-if="filteredSpaces.length === 0"
               description="暂无可进入的空间"
             />
-            <div v-else class="project-grid">
+            <div v-else class="space-grid">
               <button
-                v-for="project in filteredProjects"
-                :key="project.id"
-                class="project-card"
-                :class="{ 'is-active': activeProject?.id === project.id }"
+                v-for="space in filteredSpaces"
+                :key="space.id"
+                class="space-card"
+                :class="{ 'is-active': activeSpace?.id === space.id }"
                 type="button"
-                @click="selectProject(project)"
-                @dblclick="enterProject(project)"
+                @click="selectSpace(space)"
+                @dblclick="enterSpace(space)"
               >
-                <div class="project-card__top">
-                  <div class="project-card__icon">
+                <div class="space-card__top">
+                  <div class="space-card__icon">
                     <el-icon><FolderOpened /></el-icon>
                   </div>
                   <el-tag size="small" effect="plain">空间</el-tag>
                 </div>
-                <div class="project-card__name" :title="project.name">
-                  {{ project.name || "未命名空间" }}
+                <div class="space-card__name" :title="space.name">
+                  {{ space.name || "未命名空间" }}
                 </div>
-                <div class="project-card__meta">
-                  {{ project.code || project.projectCode || "暂无编码" }}
+                <div class="space-card__meta">
+                  {{ space.code || space.spaceCode || "暂无编码" }}
                 </div>
-                <div class="project-card__footer">
+                <div class="space-card__footer">
                   <span>点击查看统计，双击进入</span>
                   <el-button
                     link
                     type="primary"
-                    @click.stop="enterProject(project)"
+                    @click.stop="enterSpace(space)"
                   >
                     进入
                   </el-button>
@@ -83,7 +83,7 @@
 
       <el-col :xs="24" :lg="9">
         <div class="workspace-home__side">
-          <template v-if="!activeProject">
+          <template v-if="!activeSpace">
             <div class="dm-card workspace-home__summary workspace-home__summary--empty">
               <div class="dm-card__body">
                 <el-empty description="请选择空间查看统计" :image-size="72" />
@@ -96,7 +96,7 @@
               <div class="dm-card workspace-home__summary">
                 <div class="dm-card__header">
                   <span class="dm-card__title">资源概览</span>
-                  <el-tag size="small" type="success">{{ activeProject?.name }}</el-tag>
+                  <el-tag size="small" type="success">{{ activeSpace?.name }}</el-tag>
                 </div>
                 <div class="dm-card__body">
                   <div class="dm-metric-grid workspace-home__metrics-resource">
@@ -179,7 +179,7 @@ import {
   WarningFilled,
 } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { currentUser } from "@/api/tax/project/project";
+import { currentUser } from "@/api/tax/space/space";
 import { getRoutersDpp } from "@/api/system/menu";
 import { homeList } from "@/api/system/home";
 import usePermissionStore from "@/store/system/permission";
@@ -192,8 +192,8 @@ const permissionStore = usePermissionStore();
 const loading = ref(false);
 const statsLoading = ref(false);
 const keyword = ref("");
-const projectList = ref([]);
-const activeProject = ref(null);
+const spaceList = ref([]);
+const activeSpace = ref(null);
 const tableRows = ref([]);
 
 const stats = reactive({
@@ -213,7 +213,7 @@ const stats = reactive({
   documentTotal: "--",
 });
 
-const canCreateProject = computed(() => {
+const canCreateSpace = computed(() => {
   const roles = userStore.roles || [];
   const permissions = userStore.permissions || [];
   return (
@@ -223,12 +223,12 @@ const canCreateProject = computed(() => {
   );
 });
 
-const filteredProjects = computed(() => {
+const filteredSpaces = computed(() => {
   const value = keyword.value.trim().toLowerCase();
-  if (!value) return projectList.value;
-  return projectList.value.filter((project) => {
-    const name = String(project.name || "").toLowerCase();
-    const code = String(project.code || project.projectCode || "").toLowerCase();
+  if (!value) return spaceList.value;
+  return spaceList.value.filter((space) => {
+    const name = String(space.name || "").toLowerCase();
+    const code = String(space.code || space.spaceCode || "").toLowerCase();
     return name.includes(value) || code.includes(value);
   });
 });
@@ -295,24 +295,24 @@ function resetStats() {
   tableRows.value = [];
 }
 
-async function loadProjects() {
+async function loadSpaces() {
   loading.value = true;
   try {
     const response = await currentUser();
-    projectList.value = response?.data || [];
-    if (projectList.value.length > 0) {
-      const storedProjectId = localStorage.getItem("dataMasterProjectId");
-      const storedProject = projectList.value.find(
-        (project) => String(project.id) === String(storedProjectId)
+    spaceList.value = response?.data || [];
+    if (spaceList.value.length > 0) {
+      const storedSpaceId = localStorage.getItem("dataMasterSpaceId");
+      const storedSpace = spaceList.value.find(
+        (space) => String(space.id) === String(storedSpaceId)
       );
-      selectProject(storedProject || projectList.value[0]);
+      selectSpace(storedSpace || spaceList.value[0]);
     } else {
-      activeProject.value = null;
+      activeSpace.value = null;
       resetStats();
     }
   } catch {
-    projectList.value = [];
-    activeProject.value = null;
+    spaceList.value = [];
+    activeSpace.value = null;
     resetStats();
     ElMessage.error("空间列表加载失败");
   } finally {
@@ -320,13 +320,13 @@ async function loadProjects() {
   }
 }
 
-function selectProject(project) {
-  activeProject.value = project;
-  loadProjectStats(project);
+function selectSpace(space) {
+  activeSpace.value = space;
+  loadSpaceStats(space);
 }
 
-async function loadProjectStats(project) {
-  if (!project?.id) {
+async function loadSpaceStats(space) {
+  if (!space?.id) {
     resetStats();
     return;
   }
@@ -335,8 +335,8 @@ async function loadProjectStats(project) {
   statsLoading.value = true;
   try {
     const response = await homeList({
-      projectId: project.id,
-      projectCode: project.code || project.projectCode || "",
+      spaceId: space.id,
+      spaceCode: space.code || space.spaceCode || "",
     });
     const data = response?.data || {};
     stats.integrationTotal = data.integrationTaskTotal ?? "--";
@@ -361,15 +361,15 @@ async function loadProjectStats(project) {
   }
 }
 
-async function enterProject(project) {
-  if (!project?.id) return;
+async function enterSpace(space) {
+  if (!space?.id) return;
 
-  userStore.projectId = project.id;
-  userStore.projectCode = project.code || project.projectCode || "";
-  localStorage.setItem("dataMasterProjectId", project.id);
+  userStore.spaceId = space.id;
+  userStore.spaceCode = space.code || space.spaceCode || "";
+  localStorage.setItem("dataMasterSpaceId", space.id);
 
   try {
-    const response = await getRoutersDpp(project.id);
+    const response = await getRoutersDpp(space.id);
     const routes = response?.data || [];
     permissionStore.updateTopbarRoutes(routes);
     const targetPath = findFirstRoutePath(permissionStore.addRoutes);
@@ -404,12 +404,12 @@ function joinRoutePath(parentPath, path) {
   return `${parent}/${path}`.replace(/\/+/g, "/");
 }
 
-function goCreateProject() {
-  router.push("/tax/project");
+function goCreateSpace() {
+  router.push("/tax/space");
 }
 
 onMounted(() => {
-  loadProjects();
+  loadSpaces();
 });
 </script>
 
@@ -442,13 +442,13 @@ onMounted(() => {
     }
   }
 
-  .workspace-home__projects,
+  .workspace-home__spaces,
   .workspace-home__side {
     width: 100%;
     min-height: 0;
   }
 
-  .workspace-home__projects {
+  .workspace-home__spaces {
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -547,13 +547,13 @@ onMounted(() => {
   }
 }
 
-.project-grid {
+.space-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 10px;
 }
 
-.project-card {
+.space-card {
   min-width: 0;
   padding: 12px;
   text-align: left;
@@ -577,14 +577,14 @@ onMounted(() => {
     background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
   }
 
-  .project-card__top {
+  .space-card__top {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 10px;
   }
 
-  .project-card__icon {
+  .space-card__icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -595,7 +595,7 @@ onMounted(() => {
     border-radius: var(--dm-radius-base);
   }
 
-  .project-card__name {
+  .space-card__name {
     overflow: hidden;
     color: var(--dm-text-main);
     font-size: 16px;
@@ -605,7 +605,7 @@ onMounted(() => {
     white-space: nowrap;
   }
 
-  .project-card__meta {
+  .space-card__meta {
     min-height: 20px;
     margin-top: 4px;
     overflow: hidden;
@@ -616,7 +616,7 @@ onMounted(() => {
     white-space: nowrap;
   }
 
-  .project-card__footer {
+  .space-card__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -644,7 +644,7 @@ onMounted(() => {
       }
     }
 
-    .workspace-home__projects {
+    .workspace-home__spaces {
       .dm-card__body {
         overflow: visible;
       }

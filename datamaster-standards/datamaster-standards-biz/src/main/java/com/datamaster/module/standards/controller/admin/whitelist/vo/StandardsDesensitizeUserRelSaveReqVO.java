@@ -40,9 +40,9 @@ public class StandardsDesensitizeUserRelSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "用户名称长度不能超过256个字符")
     private String userName;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
     @Schema(description = "生效分类;1：用户 2：角色 3：部门", example = "")
     @Size(max = 256, message = "生效分类;1：用户 2：角色 3：部门长度不能超过256个字符")

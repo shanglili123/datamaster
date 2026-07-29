@@ -41,9 +41,9 @@ import com.datamaster.common.database.utils.AesEncryptUtil;
 import com.datamaster.common.utils.DateUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
-import com.datamaster.module.taxonomy.api.project.ITaxonomyProjectApi;
-import com.datamaster.module.taxonomy.api.project.dto.TaxonomyProjectReqDTO;
-import com.datamaster.module.taxonomy.api.project.dto.TaxonomyProjectRespDTO;
+import com.datamaster.module.taxonomy.api.space.ITaxonomySpaceApi;
+import com.datamaster.module.taxonomy.api.space.dto.TaxonomySpaceReqDTO;
+import com.datamaster.module.taxonomy.api.space.dto.TaxonomySpaceRespDTO;
 import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
 import com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableListReqDTO;
 import com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO;
@@ -57,11 +57,11 @@ import com.datamaster.module.assets.controller.admin.discovery.vo.AssetsDiscover
 import com.datamaster.module.assets.controller.admin.discovery.vo.AssetsDiscoveryTaskRespVO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
-import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceProjectRelDO;
+import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceSpaceRelDO;
 import com.datamaster.module.assets.dal.dataobject.discovery.AssetsDiscoveryColumnDO;
 import com.datamaster.module.assets.dal.dataobject.discovery.AssetsDiscoveryTableDO;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
-import com.datamaster.module.assets.service.datasource.IAssetsDatasourceProjectRelService;
+import com.datamaster.module.assets.service.datasource.IAssetsDatasourceSpaceRelService;
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceService;
 import com.datamaster.module.assets.service.discovery.*;
 import com.datamaster.module.standards.api.model.dto.StandardsModelColumnReqDTO;
@@ -97,9 +97,9 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     @Resource
     private IStandardsModelApiService standardsModelApiService;
     @Resource
-    private IAssetsDatasourceProjectRelService AssetsDatasourceProjectRelService;
+    private IAssetsDatasourceSpaceRelService assetsDatasourceSpaceRelService;
     @Resource
-    private ITaxonomyProjectApi attProjectApi;
+    private ITaxonomySpaceApi taxonomySpaceApi;
     @Resource
     private CollectorEtlTaskService collectorEtlTaskService;
     @Autowired
@@ -187,25 +187,25 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     @Override
     public PageResult<AssetsDatasourceDO> getDatasourceDppPage(AssetsDatasourcePageReqVO pageReqVO) {
-        if (StringUtils.isEmpty(pageReqVO.getProjectCode())) {
+        if (StringUtils.isEmpty(pageReqVO.getSpaceCode())) {
             return new PageResult<AssetsDatasourceDO>();
         }
-        AssetsDatasourceProjectRelDO assetsDatasourceProjectRelDO = new AssetsDatasourceProjectRelDO();
-        assetsDatasourceProjectRelDO.setProjectCode(pageReqVO.getProjectCode());
-        List<AssetsDatasourceProjectRelDO> AssetsDatasourceProjectRelList = AssetsDatasourceProjectRelService.getJoinProjectAndDatasource(assetsDatasourceProjectRelDO);
-        if (AssetsDatasourceProjectRelList.isEmpty()) {
+        AssetsDatasourceSpaceRelDO assetsDatasourceSpaceRelDO = new AssetsDatasourceSpaceRelDO();
+        assetsDatasourceSpaceRelDO.setSpaceCode(pageReqVO.getSpaceCode());
+        List<AssetsDatasourceSpaceRelDO> assetsDatasourceSpaceRelList = assetsDatasourceSpaceRelService.getJoinSpaceAndDatasource(assetsDatasourceSpaceRelDO);
+        if (assetsDatasourceSpaceRelList.isEmpty()) {
             return new PageResult<AssetsDatasourceDO>();
         }
-        Map<Long, AssetsDatasourceProjectRelDO> datasourceProjectRelDOMap = AssetsDatasourceProjectRelList.stream().collect(Collectors.toMap(AssetsDatasourceProjectRelDO::getDatasourceId, AssetsDatasourceProjectRelDO1 -> AssetsDatasourceProjectRelDO1));
-        List<Long> idList = datasourceProjectRelDOMap.keySet().stream().collect(Collectors.toList());
+        Map<Long, AssetsDatasourceSpaceRelDO> datasourceSpaceRelDOMap = assetsDatasourceSpaceRelList.stream().collect(Collectors.toMap(AssetsDatasourceSpaceRelDO::getDatasourceId, AssetsDatasourceSpaceRelDO1 -> AssetsDatasourceSpaceRelDO1));
+        List<Long> idList = datasourceSpaceRelDOMap.keySet().stream().collect(Collectors.toList());
         pageReqVO.setIdList(idList);
         PageResult<AssetsDatasourceDO> AssetsDatasourceDOPageResult = AssetsDatasourceMapper.selectPage(pageReqVO);
         for (Object row : AssetsDatasourceDOPageResult.getRows()) {
             AssetsDatasourceDO AssetsDatasourceDO = (AssetsDatasourceDO) row;
-            AssetsDatasourceProjectRelDO datasourceProjectRelDO = datasourceProjectRelDOMap.get(AssetsDatasourceDO.getId()) == null ? new AssetsDatasourceProjectRelDO() : datasourceProjectRelDOMap.get(AssetsDatasourceDO.getId());
-            if (idList.contains(AssetsDatasourceDO.getId()) && !datasourceProjectRelDO.getDppAssigned()) {
-                AssetsDatasourceDO.setIsAdminAddTo(false);
-                AssetsDatasourceDO.setProjectName(datasourceProjectRelDO.getProjectName());
+            AssetsDatasourceSpaceRelDO datasourceSpaceRelDO = datasourceSpaceRelDOMap.get(AssetsDatasourceDO.getId()) == null ? new AssetsDatasourceSpaceRelDO() : datasourceSpaceRelDOMap.get(AssetsDatasourceDO.getId());
+            if (idList.contains(AssetsDatasourceDO.getId()) && !datasourceSpaceRelDO.getDppAssigned()) {
+                AssetsDatasourceDO.setAdminAddTo(false);
+                AssetsDatasourceDO.setSpaceName(datasourceSpaceRelDO.getSpaceName());
             }
         }
         return AssetsDatasourceDOPageResult;
@@ -222,7 +222,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     public Long createDatasource(AssetsDatasourceSaveReqVO createReqVO) {
         AssetsDatasourceDO dictType = BeanUtils.toBean(createReqVO, AssetsDatasourceDO.class);
         AssetsDatasourceMapper.insert(dictType);
-        delAndSaveDatasourceProject(dictType);
+        replaceDatasourceSpaceRel(dictType);
         redisService.hashPut("datasource", dictType.getId().toString(), com.alibaba.fastjson2.JSONObject.toJSONString(this.getDatasourceDOById(dictType.getId()).simplify()));
         return dictType.getId();
     }
@@ -233,22 +233,22 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
 // 更新数据源
         AssetsDatasourceDO updateObj = BeanUtils.toBean(updateReqVO, AssetsDatasourceDO.class);
-        delAndSaveDatasourceProject(updateObj);
+        replaceDatasourceSpaceRel(updateObj);
         int i = AssetsDatasourceMapper.updateById(updateObj);
         redisService.hashPut("datasource", datasourceId.toString(), com.alibaba.fastjson2.JSONObject.toJSONString(this.getDatasourceDOById(datasourceId).simplify()));
         return i;
     }
 
-    private void delAndSaveDatasourceProject(AssetsDatasourceDO AssetsDatasourceDO) {
-        QueryWrapper<AssetsDatasourceProjectRelDO> queryWrapper = new QueryWrapper<>();
+    private void replaceDatasourceSpaceRel(AssetsDatasourceDO AssetsDatasourceDO) {
+        QueryWrapper<AssetsDatasourceSpaceRelDO> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("DATASOURCE_ID", AssetsDatasourceDO.getId());
-        AssetsDatasourceProjectRelService.remove(queryWrapper);
-        if (!AssetsDatasourceDO.getProjectList().isEmpty()) {
-            for (AssetsDatasourceProjectRelDO AssetsDatasourceProjectRelDO : AssetsDatasourceDO.getProjectList()) {
-                AssetsDatasourceProjectRelDO.setDatasourceId(AssetsDatasourceDO.getId());
-                AssetsDatasourceProjectRelDO.setId(null);
+        assetsDatasourceSpaceRelService.remove(queryWrapper);
+        if (CollectionUtils.isNotEmpty(AssetsDatasourceDO.getSpaceList())) {
+            for (AssetsDatasourceSpaceRelDO AssetsDatasourceSpaceRelDO : AssetsDatasourceDO.getSpaceList()) {
+                AssetsDatasourceSpaceRelDO.setDatasourceId(AssetsDatasourceDO.getId());
+                AssetsDatasourceSpaceRelDO.setId(null);
             }
-            AssetsDatasourceProjectRelService.saveBatch(AssetsDatasourceDO.getProjectList());
+            assetsDatasourceSpaceRelService.saveBatch(AssetsDatasourceDO.getSpaceList());
         }
     }
 
@@ -274,9 +274,9 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
             throw new ServiceException(",!");
         }
         if (!idList.isEmpty()) {
-            QueryWrapper<AssetsDatasourceProjectRelDO> queryWrapper = new QueryWrapper<>();
+            QueryWrapper<AssetsDatasourceSpaceRelDO> queryWrapper = new QueryWrapper<>();
             queryWrapper.in("DATASOURCE_ID", idList);
-            AssetsDatasourceProjectRelService.remove(queryWrapper);
+            assetsDatasourceSpaceRelService.remove(queryWrapper);
         }
 // 批量删除数据源
         List<AssetsDatasourceDO> deletedDatasources = AssetsDatasourceMapper.selectBatchIds(idList);
@@ -330,10 +330,10 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         if (AssetsDatasourceDO == null) {
             return null;
         }
-        AssetsDatasourceProjectRelDO AssetsDatasourceProjectRelDO = new AssetsDatasourceProjectRelDO();
-        AssetsDatasourceProjectRelDO.setDatasourceId(AssetsDatasourceDO.getId());
-        List<AssetsDatasourceProjectRelDO> AssetsDatasourceProjectRelList = AssetsDatasourceProjectRelService.getJoinProjectAndDatasource(AssetsDatasourceProjectRelDO);
-        AssetsDatasourceDO.setProjectList(AssetsDatasourceProjectRelList);
+        AssetsDatasourceSpaceRelDO AssetsDatasourceSpaceRelDO = new AssetsDatasourceSpaceRelDO();
+        AssetsDatasourceSpaceRelDO.setDatasourceId(AssetsDatasourceDO.getId());
+        List<AssetsDatasourceSpaceRelDO> assetsDatasourceSpaceRelList = assetsDatasourceSpaceRelService.getJoinSpaceAndDatasource(AssetsDatasourceSpaceRelDO);
+        AssetsDatasourceDO.setSpaceList(assetsDatasourceSpaceRelList);
         return AssetsDatasourceDO;
     }
 
@@ -682,46 +682,46 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     @Override
-    public PageResult<TaxonomyProjectRespDTO> getNoDppAddList(TaxonomyProjectReqDTO pageReqVO) {
-        PageResult<TaxonomyProjectRespDTO> attProjectPage = attProjectApi.getAttProjectPage(pageReqVO);
-        Map<Long, AssetsDatasourceProjectRelDO> datasourceProjectRelDOMap = new HashMap<>();
-        if (pageReqVO.getDatasourceId() != null) {
-            AssetsDatasourceProjectRelDO assetsDatasourceProjectRelDO = new AssetsDatasourceProjectRelDO();
-            assetsDatasourceProjectRelDO.setDatasourceId(pageReqVO.getDatasourceId());
-            List<AssetsDatasourceProjectRelDO> AssetsDatasourceProjectRelList = AssetsDatasourceProjectRelService.getDatasourceProjectRelList(assetsDatasourceProjectRelDO);
-            datasourceProjectRelDOMap = AssetsDatasourceProjectRelList.stream().collect(Collectors.toMap(AssetsDatasourceProjectRelDO::getProjectId, AssetsDatasourceProjectRelDO1 -> AssetsDatasourceProjectRelDO1));
+    public PageResult<TaxonomySpaceRespDTO> getNoDppAddList(TaxonomySpaceReqDTO pageReqVO) {
+        PageResult<TaxonomySpaceRespDTO> spacePage = taxonomySpaceApi.getSpacePage(pageReqVO);
+        Map<Long, AssetsDatasourceSpaceRelDO> datasourceSpaceRelDOMap = new HashMap<>();
+        if (pageReqVO.getAssignedDatasourceId() != null) {
+            AssetsDatasourceSpaceRelDO assetsDatasourceSpaceRelDO = new AssetsDatasourceSpaceRelDO();
+            assetsDatasourceSpaceRelDO.setDatasourceId(pageReqVO.getAssignedDatasourceId());
+            List<AssetsDatasourceSpaceRelDO> assetsDatasourceSpaceRelList = assetsDatasourceSpaceRelService.getDatasourceSpaceRelList(assetsDatasourceSpaceRelDO);
+            datasourceSpaceRelDOMap = assetsDatasourceSpaceRelList.stream().collect(Collectors.toMap(AssetsDatasourceSpaceRelDO::getSpaceId, AssetsDatasourceSpaceRelDO1 -> AssetsDatasourceSpaceRelDO1));
         }
-        for (Object row : attProjectPage.getRows()) {
-            TaxonomyProjectRespDTO attProjectRespDTO = (TaxonomyProjectRespDTO) row;
-            Boolean dppAssigned = datasourceProjectRelDOMap.get(attProjectRespDTO.getId()) != null && datasourceProjectRelDOMap.get(attProjectRespDTO.getId()).getDppAssigned();
-            attProjectRespDTO.setDppAssigned(dppAssigned);
+        for (Object row : spacePage.getRows()) {
+            TaxonomySpaceRespDTO spaceRespDTO = (TaxonomySpaceRespDTO) row;
+            Boolean dppAssigned = datasourceSpaceRelDOMap.get(spaceRespDTO.getId()) != null && datasourceSpaceRelDOMap.get(spaceRespDTO.getId()).getDppAssigned();
+            spaceRespDTO.setDppAssigned(dppAssigned);
         }
-        return attProjectPage;
+        return spacePage;
     }
 
     @Override
     public List<AssetsDatasourceDO> getDatasourceDppNoKafka(AssetsDatasourcePageReqVO AssetsDatasource) {
         List<Long> idList = new ArrayList<>();
-        Map<Long, AssetsDatasourceProjectRelDO> datasourceProjectRelDOMap = new HashMap<>();
-        if (StringUtils.isNotEmpty(AssetsDatasource.getProjectCode())) {
-            AssetsDatasourceProjectRelDO assetsDatasourceProjectRelDO = new AssetsDatasourceProjectRelDO();
-            assetsDatasourceProjectRelDO.setProjectCode(AssetsDatasource.getProjectCode());
-            List<AssetsDatasourceProjectRelDO> AssetsDatasourceProjectRelList = AssetsDatasourceProjectRelService.getJoinProjectAndDatasource(assetsDatasourceProjectRelDO);
-            if (AssetsDatasourceProjectRelList.isEmpty()) {
+        Map<Long, AssetsDatasourceSpaceRelDO> datasourceSpaceRelDOMap = new HashMap<>();
+        if (StringUtils.isNotEmpty(AssetsDatasource.getSpaceCode())) {
+            AssetsDatasourceSpaceRelDO assetsDatasourceSpaceRelDO = new AssetsDatasourceSpaceRelDO();
+            assetsDatasourceSpaceRelDO.setSpaceCode(AssetsDatasource.getSpaceCode());
+            List<AssetsDatasourceSpaceRelDO> assetsDatasourceSpaceRelList = assetsDatasourceSpaceRelService.getJoinSpaceAndDatasource(assetsDatasourceSpaceRelDO);
+            if (assetsDatasourceSpaceRelList.isEmpty()) {
                 return new ArrayList<>();
             }
-            datasourceProjectRelDOMap = AssetsDatasourceProjectRelList.stream().collect(Collectors.toMap(AssetsDatasourceProjectRelDO::getDatasourceId, AssetsDatasourceProjectRelDO1 -> AssetsDatasourceProjectRelDO1));
-            idList = datasourceProjectRelDOMap.keySet().stream().collect(Collectors.toList());
+            datasourceSpaceRelDOMap = assetsDatasourceSpaceRelList.stream().collect(Collectors.toMap(AssetsDatasourceSpaceRelDO::getDatasourceId, AssetsDatasourceSpaceRelDO1 -> AssetsDatasourceSpaceRelDO1));
+            idList = datasourceSpaceRelDOMap.keySet().stream().collect(Collectors.toList());
             AssetsDatasource.setIdList(idList);
         }
         LambdaQueryWrapperX<AssetsDatasourceDO> queryWrapperX = new LambdaQueryWrapperX<>();
         queryWrapperX.inIfPresent(AssetsDatasourceDO::getId, idList).neIfPresent(AssetsDatasourceDO::getDatasourceType, "Kafka").likeIfPresent(AssetsDatasourceDO::getDatasourceType, AssetsDatasource.getDatasourceType()).likeIfPresent(AssetsDatasourceDO::getDatasourceName, AssetsDatasource.getDatasourceName());
         List<AssetsDatasourceDO> datasourceDOList = AssetsDatasourceMapper.selectList(queryWrapperX);
         for (AssetsDatasourceDO AssetsDatasourceDO : datasourceDOList) {
-            AssetsDatasourceProjectRelDO datasourceProjectRelDO = datasourceProjectRelDOMap.get(AssetsDatasourceDO.getId()) == null ? new AssetsDatasourceProjectRelDO() : datasourceProjectRelDOMap.get(AssetsDatasourceDO.getId());
-            if (idList.contains(AssetsDatasourceDO.getId()) && !datasourceProjectRelDO.getDppAssigned()) {
-                AssetsDatasourceDO.setIsAdminAddTo(false);
-                AssetsDatasourceDO.setProjectName(datasourceProjectRelDO.getProjectName());
+            AssetsDatasourceSpaceRelDO datasourceSpaceRelDO = datasourceSpaceRelDOMap.get(AssetsDatasourceDO.getId()) == null ? new AssetsDatasourceSpaceRelDO() : datasourceSpaceRelDOMap.get(AssetsDatasourceDO.getId());
+            if (idList.contains(AssetsDatasourceDO.getId()) && !datasourceSpaceRelDO.getDppAssigned()) {
+                AssetsDatasourceDO.setAdminAddTo(false);
+                AssetsDatasourceDO.setSpaceName(datasourceSpaceRelDO.getSpaceName());
             }
         }
         return datasourceDOList;

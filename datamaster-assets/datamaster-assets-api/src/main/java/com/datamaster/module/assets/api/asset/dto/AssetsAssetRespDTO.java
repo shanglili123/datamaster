@@ -28,8 +28,8 @@ public class AssetsAssetRespDTO {
     /** 类目编码 */
     private String catCode;
 
-    /** 数据连接id */
-    private String datasourceId;
+    /** 数据源 ID */
+    private Long datasourceId;
 
     /** 表名称 */
     private String tableName;
@@ -38,7 +38,7 @@ public class AssetsAssetRespDTO {
     private String tableComment;
 
     /** 数据量 */
-    private Long AssetstaCount;
+    private Long dataCount;
 
     /** 字段量 */
     private Long fieldCount;
@@ -47,7 +47,7 @@ public class AssetsAssetRespDTO {
     private String source;
 
     /** 状态 */
-    private String STATUS;
+    private String status;
 
     /** 描述 */
     private String description;

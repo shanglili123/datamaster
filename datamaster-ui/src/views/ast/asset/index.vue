@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="app-container" ref="app-container">
 
     <el-container>
@@ -401,9 +401,9 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="申请空间" prop="projectCode">
-              <el-select v-model="formApply.projectCode" @change="handleSelectProject" placeholder="请选择申请空间">
-                <el-option v-for="item in projectOptions" :key="item.code" :label="item.name" :value="item.code" />
+            <el-form-item label="申请空间" prop="spaceCode">
+              <el-select v-model="formApply.spaceCode" @change="handleSelectSpace" placeholder="请选择申请空间">
+                <el-option v-for="item in spaceOptions" :key="item.code" :label="item.name" :value="item.code" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -444,7 +444,7 @@ import {
 } from "@/api/ast/asset/asset";
 import OverflowTooltip from "@/components/OverflowTooltip";
 import CreateEditModal from "@/views/col/asset/add";
-import { currentUser } from "@/api/tax/project/project.js";
+import { currentUser } from "@/api/tax/space/space.js";
 import DeptTree from "@/components/DeptTree";
 import { listAttAssetCat } from "@/api/tax/cat/assetCat/assetCat.js";
 import { getToken } from "@/utils/auth.js";
@@ -526,7 +526,7 @@ const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 const titleApply = ref("");
-const projectOptions = ref([]);
+const spaceOptions = ref([]);
 const defaultSort = ref({ prop: "create_time", order: "desc" });
 const router = useRouter();
 const userStore = useUserStore();
@@ -593,7 +593,7 @@ const options = [
 const data = reactive({
   form: {},
   formApply: {
-    projectCode: null,
+    spaceCode: null,
     phone: null,
     applyReason: null,
   },
@@ -627,7 +627,7 @@ const data = reactive({
     tableName: [{ required: true, message: "表名称不能为空", trigger: "blur" }],
   },
   rulesApply: {
-    projectCode: [
+    spaceCode: [
       { required: true, message: "申请空间不能为空", trigger: "change" },
     ],
     phone: [{ required: true, message: "联系电话不能为空", trigger: "blur" }],
@@ -637,7 +637,7 @@ const data = reactive({
 const { queryParams, form, formApply, rules, rulesApply } = toRefs(data);
 
 watch(
-  () => userStore.projectCode,
+  () => userStore.spaceCode,
   (newCode) => {
     getList();
   },
@@ -695,15 +695,15 @@ function handleApply(row) {
     formApply.value.assetName = response.data.name;
   });
   currentUser().then((response) => {
-    projectOptions.value = response.data;
+    spaceOptions.value = response.data;
   });
 }
 
-function handleSelectProject(value) {
-  formApply.value.projectCode = value;
-  const project = projectOptions.value.find((item) => item.code === value);
-  formApply.value.projectId = project.id;
-  formApply.value.projectName = project.name;
+function handleSelectSpace(value) {
+  formApply.value.spaceCode = value;
+  const space = spaceOptions.value.find((item) => item.code === value);
+  formApply.value.spaceId = space.id;
+  formApply.value.spaceName = space.name;
 }
 
 function handleView(row) {
@@ -723,8 +723,8 @@ function getList() {
     queryParams.value.isAsc = defaultSort.value.order;
   }
   loading.value = true;
-  queryParams.value.projectCode = userStore.projectCode;
-  queryParams.value.projectId = userStore.projectId;
+  queryParams.value.spaceCode = userStore.spaceCode;
+  queryParams.value.spaceId = userStore.spaceId;
   listDppAsset(queryParams.value).then((response) => {
     const page = normalizePage(response);
     total.value = page.total;

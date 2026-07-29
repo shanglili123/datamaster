@@ -173,11 +173,11 @@ public class AssetsAssetDO extends BaseEntity {
 
     @Schema(description = "id", example = "")
     @TableField(exist = false)
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "", example = "")
     @TableField(exist = false)
-    private String projectCode;
+    private String spaceCode;
     /**  */
     private String createType;
 

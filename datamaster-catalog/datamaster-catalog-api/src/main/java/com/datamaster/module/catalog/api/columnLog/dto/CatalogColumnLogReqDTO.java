@@ -80,7 +80,7 @@ public class CatalogColumnLogReqDTO {
     /** 度量单位 */
     private String measuringUnit;
 
-    /** 数据质量 */
+    /** 质量探查 */
     private Integer dataQuality;
 
     /** 变更类型 */

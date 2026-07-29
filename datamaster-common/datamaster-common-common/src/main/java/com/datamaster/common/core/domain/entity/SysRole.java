@@ -85,14 +85,14 @@ public class SysRole extends BaseEntity
     /**
      * 空间管理id
      */
-    private Long projectId;
+    private Long spaceId;
 
-    public Long getProjectId() {
-        return projectId;
+    public Long getSpaceId() {
+        return spaceId;
     }
 
-    public void setProjectId(Long projectId) {
-        this.projectId = projectId;
+    public void setSpaceId(Long spaceId) {
+        this.spaceId = spaceId;
     }
 
     public SysRole()

@@ -124,8 +124,8 @@ public class SysUserServiceImpl implements ISysUserService
     }
 
     @Override
-    public SysUser getByUserIdAndProjectId(Long userId, Long projectId) {
-        return userMapper.selectUserByUserIdAndProjectId(userId,projectId);
+    public SysUser getByUserIdAndSpaceId(Long userId, Long spaceId) {
+        return userMapper.selectUserByUserIdAndSpaceId(userId,spaceId);
     }
 
     /**

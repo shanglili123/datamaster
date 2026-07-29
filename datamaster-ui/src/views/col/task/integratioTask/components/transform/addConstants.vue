@@ -406,8 +406,8 @@ const saveData = async () => {
     if (!form.value.code) {
       loading.value = true;
       const response = await getNodeUniqueKey({
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       });
       loading.value = false;
       form.value.code = response.data;

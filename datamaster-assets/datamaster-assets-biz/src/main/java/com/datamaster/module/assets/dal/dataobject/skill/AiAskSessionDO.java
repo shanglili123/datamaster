@@ -22,9 +22,9 @@ public class AiAskSessionDO extends BaseEntity {
 
     private Long userId;
 
-    private Long projectId;
+    private Long spaceId;
 
-    private String projectCode;
+    private String spaceCode;
 
     private String title;
 

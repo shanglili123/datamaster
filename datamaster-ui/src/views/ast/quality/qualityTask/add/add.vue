@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     class="app-container"
     ref="app-container"
@@ -778,8 +778,8 @@ async function selectInspectionRule() {
           withRule: 1,
           id: item.datasourceId,
           tableName: item.tableName,
-          projectId: userStore.projectId,
-          projectCode: userStore.projectCode,
+          spaceId: userStore.spaceId,
+          spaceCode: userStore.spaceCode,
         });
 
         if (res?.data?.length) {
@@ -860,7 +860,7 @@ function getDeptTree() {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "数据质量类目",
+        name: "质量探查类目",
         value: "",
         id: 0,
       children: deptOptions.value,

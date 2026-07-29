@@ -16,4 +16,4 @@ public class AssetsAssetAuditAlertSaveReqVO extends BaseEntity {
 @Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String alertMessage;
 @Schema(description = "JSON", example = "")    @Size(max = 256, message = "JSON256")    private String alertChannels;
 @Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String alertChannelResult;
-@Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String remark;}
+@Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String description;}

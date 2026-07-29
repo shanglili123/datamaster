@@ -78,11 +78,13 @@ public class TaxonomyCleanRuleDO extends BaseEntity {
     @TableField(exist = false)
     private String catID;
 
-    /** 项目ID */
-    private Long projectId;
+    /** 空间ID */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_ID")
+    private Long spaceId;
 
-    /** 项目编码 */
-    private String projectCode;
+    /** 空间编码 */
+    @com.baomidou.mybatisplus.annotation.TableField("SPACE_CODE")
+    private String spaceCode;
 
     @TableField(exist = false)
     private String catName;

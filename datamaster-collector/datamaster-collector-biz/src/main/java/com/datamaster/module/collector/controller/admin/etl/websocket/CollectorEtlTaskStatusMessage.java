@@ -16,9 +16,9 @@ public class CollectorEtlTaskStatusMessage {
 
     private Long taskInstanceId;
 
-    private Long projectId;
+    private Long spaceId;
 
-    private String projectCode;
+    private String spaceCode;
 
     private String taskType;
 

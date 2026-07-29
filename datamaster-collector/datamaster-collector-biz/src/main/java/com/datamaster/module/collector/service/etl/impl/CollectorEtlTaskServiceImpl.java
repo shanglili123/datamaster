@@ -43,7 +43,7 @@ import com.datamaster.module.taxonomy.api.cat.dto.TaxonomyTaskCatReqDTO;
 import com.datamaster.module.taxonomy.api.cat.dto.TaxonomyTaskCatRespDTO;
 import com.datamaster.module.taxonomy.api.service.cat.ITaxonomyDataDevCatApiService;
 import com.datamaster.module.taxonomy.api.service.cat.ITaxonomyTaskCatApiService;
-import com.datamaster.module.taxonomy.api.project.ITaxonomyProjectApi;
+import com.datamaster.module.taxonomy.api.space.ITaxonomySpaceApi;
 import com.datamaster.module.collector.api.etl.dto.CollectorEtlTaskRespDTO;
 import com.datamaster.module.collector.api.service.etl.CollectorEtlTaskService;
 import com.datamaster.module.collector.controller.admin.etl.vo.*;
@@ -119,7 +119,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @Resource
     private IRedisService redisService;
     @Resource
-    private ITaxonomyProjectApi taxonomyProjectApi;
+    private ITaxonomySpaceApi TaxonomySpaceApi;
 
     @Value("${ds.incremental_prepare_url:http://127.0.0.1:8080/col/etlTask/incremental/prepare}")
     private String incrementalPrepareUrl;
@@ -195,7 +195,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 hasDsTask = true;
             }
             if (hasDsTask) {
-                dsEtlTaskService.deleteTask(CollectorEtlTaskDO.getProjectCode(), dsTaskCode);
+                dsEtlTaskService.deleteTask(CollectorEtlTaskDO.getSpaceCode(), dsTaskCode);
             }
             sum += CollectorEtlTaskMapper.deleteById(id);
         }
@@ -313,7 +313,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     @Override
     public Long getNodeUniqueKey(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
-        DsNodeGenCodeRespDTO dsNodeGenCodeRespDTO = dsEtlNodeService.genCode(CollectorEtlNewNodeSaveReqVO.getProjectCode());
+        DsNodeGenCodeRespDTO dsNodeGenCodeRespDTO = dsEtlNodeService.genCode(CollectorEtlNewNodeSaveReqVO.getSpaceCode());
         return dsNodeGenCodeRespDTO.getData().get(0);
     }
 
@@ -376,7 +376,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         // 下线操作
         if (StringUtils.equals("0", CollectorEtlNewNodeSaveReqVO.getReleaseState())) {
-            DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
+            DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(CollectorEtlTaskDO.getSpaceCode()), CollectorEtlTaskDO.getCode());
             if (!isDsStatusSuccess(dsStatusRespDTO)) {
                 throw new ServiceException("发布或下线任务，失败！");
             }
@@ -391,7 +391,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         }
 
         // 上线操作
-        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
+        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(CollectorEtlTaskDO.getSpaceCode()), CollectorEtlTaskDO.getCode());
         String responseMsg = dsStatusRespDTO == null ? null : dsStatusRespDTO.getMsg();
         if (responseMsg != null && responseMsg.contains("SubWorkflowDefinition") && responseMsg.contains("is not online")) {
             throw new RuntimeException("存在未上线的子工作流，请先将所有子工作流上线");
@@ -452,7 +452,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         // 下线操作
         if (StringUtils.equals("0", CollectorEtlNewNodeSaveReqVO.getSchedulerState())) {
             if (CollectorEtlSchedulerById.getDsId() != null && CollectorEtlSchedulerById.getDsId() > 0) {
-                DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.offlineScheduler(CollectorEtlTaskDO.getProjectCode(), CollectorEtlSchedulerById.getDsId());
+                DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.offlineScheduler(CollectorEtlTaskDO.getSpaceCode(), CollectorEtlSchedulerById.getDsId());
                 if (!isDsStatusSuccess(dsStatusRespDTO1)) {
                     throw new ServiceException("下线调度器，失败！");
                 }
@@ -479,7 +479,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlSchedulerSaveReqVO.setId(CollectorEtlSchedulerById.getId());
         CollectorEtlSchedulerSaveReqVO.setStatus(CollectorEtlNewNodeSaveReqVO.getSchedulerState());
 
-        DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(CollectorEtlTaskDO.getProjectCode(), CollectorEtlSchedulerSaveReqVO.getDsId());
+        DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(CollectorEtlTaskDO.getSpaceCode(), CollectorEtlSchedulerSaveReqVO.getDsId());
         if (!isDsStatusSuccess(dsStatusRespDTO1)) {
             throw new ServiceException("上线调度器，失败！");
         }
@@ -547,11 +547,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         // 下线操作
         if (StringUtils.equals("0", CollectorEtlNewNodeSaveReqVO.getReleaseState())) {
             if (CollectorEtlSchedulerById.getDsId() != null && CollectorEtlSchedulerById.getDsId() > 0) {
-                DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
+                DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(CollectorEtlTaskDO.getSpaceCode()), CollectorEtlTaskDO.getCode());
                 if (!isDsStatusSuccess(dsStatusRespDTO)) {
                     throw new ServiceException("发布或下线任务，失败！");
                 }
-                DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.offlineScheduler(CollectorEtlTaskDO.getProjectCode(), CollectorEtlSchedulerById.getDsId());
+                DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.offlineScheduler(CollectorEtlTaskDO.getSpaceCode(), CollectorEtlSchedulerById.getDsId());
                 if (!isDsStatusSuccess(dsStatusRespDTO1)) {
                     throw new ServiceException("下线调度器，失败！");
                 }
@@ -566,7 +566,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         }
 
         // 上线操作
-        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
+        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(CollectorEtlTaskDO.getSpaceCode()), CollectorEtlTaskDO.getCode());
         String responseMsg = dsStatusRespDTO == null ? null : dsStatusRespDTO.getMsg();
         if (responseMsg != null && responseMsg.contains("SubWorkflowDefinition") && responseMsg.contains("is not online")) {
             throw new RuntimeException("存在未上线的子工作流，请先将所有子工作流上线");
@@ -587,7 +587,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlSchedulerSaveReqVO.setId(CollectorEtlSchedulerById.getId());
         CollectorEtlSchedulerSaveReqVO.setStatus("1");
 
-        DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(CollectorEtlTaskDO.getProjectCode(), CollectorEtlSchedulerSaveReqVO.getDsId());
+        DsStatusRespDTO dsStatusRespDTO1 = iDsEtlSchedulerService.onlineScheduler(CollectorEtlTaskDO.getSpaceCode(), CollectorEtlSchedulerSaveReqVO.getDsId());
         if (!isDsStatusSuccess(dsStatusRespDTO1)) {
             throw new ServiceException("上线调度器，失败！");
         }
@@ -657,16 +657,16 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     // 创建或更新调度器
     private DsSchedulerRespDTO createOrUpdateScheduler(CollectorEtlSchedulerDO CollectorEtlSchedulerById, CollectorEtlTaskDO CollectorEtlTaskDO) {
-        DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = TaskConverter.createSchedulerRequest(CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
-        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, String.valueOf(CollectorEtlTaskDO.getProjectCode()));
+        DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = TaskConverter.createSchedulerRequest(CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
+        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, String.valueOf(CollectorEtlTaskDO.getSpaceCode()));
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
-            DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
+            DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(String.valueOf(CollectorEtlTaskDO.getSpaceCode()), CollectorEtlTaskDO.getCode());
             if (byTaskCode == null || !byTaskCode.getSuccess()) {
                 throw new ServiceException("创建调度器，失败！");
             }
             Schedule data = byTaskCode.getData();
-            DsSchedulerUpdateReqDTO schedulerUpdateRequest = TaskConverter.createSchedulerUpdateRequest(data.getId(), CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
-            dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(CollectorEtlTaskDO.getProjectCode()));
+            DsSchedulerUpdateReqDTO schedulerUpdateRequest = TaskConverter.createSchedulerUpdateRequest(data.getId(), CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
+            dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(CollectorEtlTaskDO.getSpaceCode()));
             if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
                 throw new ServiceException("更新调度器，失败！");
             }
@@ -676,21 +676,21 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     // 更新现有调度器
     private DsSchedulerRespDTO updateExistingScheduler(CollectorEtlSchedulerDO CollectorEtlSchedulerById, CollectorEtlTaskDO CollectorEtlTaskDO) {
-        DsSchedulerUpdateReqDTO schedulerUpdateRequest = TaskConverter.createSchedulerUpdateRequest(CollectorEtlSchedulerById.getDsId(), CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
-        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(CollectorEtlTaskDO.getProjectCode()));
+        DsSchedulerUpdateReqDTO schedulerUpdateRequest = TaskConverter.createSchedulerUpdateRequest(CollectorEtlSchedulerById.getDsId(), CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
+        DsSchedulerRespDTO dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(CollectorEtlTaskDO.getSpaceCode()));
         if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
-            DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(String.valueOf(CollectorEtlTaskDO.getProjectCode()), CollectorEtlTaskDO.getCode());
+            DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(String.valueOf(CollectorEtlTaskDO.getSpaceCode()), CollectorEtlTaskDO.getCode());
             if (byTaskCode == null || !byTaskCode.getSuccess()) {
-                DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = TaskConverter.createSchedulerRequest(CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
-                DsSchedulerRespDTO saveScheduler = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, String.valueOf(CollectorEtlTaskDO.getProjectCode()));
+                DsSchedulerSaveReqDTO dsSchedulerSaveReqDTO = TaskConverter.createSchedulerRequest(CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
+                DsSchedulerRespDTO saveScheduler = iDsEtlSchedulerService.saveScheduler(dsSchedulerSaveReqDTO, String.valueOf(CollectorEtlTaskDO.getSpaceCode()));
                 if (saveScheduler == null || !saveScheduler.getSuccess()) {
                     throw new ServiceException("创建调度器，失败！");
                 }
                 return saveScheduler;
             }
             Schedule data = byTaskCode.getData();
-            DsSchedulerUpdateReqDTO updateRequest = TaskConverter.createSchedulerUpdateRequest(data.getId(), CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
-            dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(updateRequest, String.valueOf(CollectorEtlTaskDO.getProjectCode()));
+            DsSchedulerUpdateReqDTO updateRequest = TaskConverter.createSchedulerUpdateRequest(data.getId(), CollectorEtlSchedulerById.getCronExpression(), CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
+            dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(updateRequest, String.valueOf(CollectorEtlTaskDO.getSpaceCode()));
             if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
                 throw new ServiceException("修改调度器，失败！");
             }
@@ -750,14 +750,14 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlSchedulerSaveReqVO CollectorEtlSchedulerSaveReqVO = new CollectorEtlSchedulerSaveReqVO();
         if (CollectorEtlSchedulerById.getDsId() != null && CollectorEtlSchedulerById.getDsId() > 0) {
             //     * 修改调度器 (只有任务发布了才能调用该接口)
-            DsSchedulerUpdateReqDTO schedulerUpdateRequest = TaskConverter.createSchedulerUpdateRequest(CollectorEtlSchedulerById.getDsId(), CollectorEtlNewNodeSaveReqVO.getCrontab(), dsTaskCode, getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
-            dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(CollectorEtlTaskDO.getProjectCode()));
+            DsSchedulerUpdateReqDTO schedulerUpdateRequest = TaskConverter.createSchedulerUpdateRequest(CollectorEtlSchedulerById.getDsId(), CollectorEtlNewNodeSaveReqVO.getCrontab(), dsTaskCode, getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
+            dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(schedulerUpdateRequest, String.valueOf(CollectorEtlTaskDO.getSpaceCode()));
             if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
-                DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(String.valueOf(CollectorEtlTaskDO.getProjectCode()), dsTaskCode);
+                DsSchedulerRespDTO byTaskCode = iDsEtlSchedulerService.getByTaskCode(String.valueOf(CollectorEtlTaskDO.getSpaceCode()), dsTaskCode);
                 if (byTaskCode != null && byTaskCode.getSuccess()) {
                     Schedule data = byTaskCode.getData();
-                    DsSchedulerUpdateReqDTO updateRequest = TaskConverter.createSchedulerUpdateRequest(data.getId(), CollectorEtlNewNodeSaveReqVO.getCrontab(), dsTaskCode, getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
-                    dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(updateRequest, String.valueOf(CollectorEtlTaskDO.getProjectCode()));
+                    DsSchedulerUpdateReqDTO updateRequest = TaskConverter.createSchedulerUpdateRequest(data.getId(), CollectorEtlNewNodeSaveReqVO.getCrontab(), dsTaskCode, getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
+                    dsSchedulerRespDTO = iDsEtlSchedulerService.updateScheduler(updateRequest, String.valueOf(CollectorEtlTaskDO.getSpaceCode()));
                     if (dsSchedulerRespDTO == null || !dsSchedulerRespDTO.getSuccess()) {
                         throw new ServiceException("修改调度器，失败！");
                     }
@@ -1019,9 +1019,9 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlTaskDO.setCode(resolvePublishedDsTaskCode(CollectorEtlTaskDO));
 
 
-        DsStartTaskReqDTO dsStartTaskReqDTO = TaskConverter.createDsStartTaskReqDTO(CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getProjectCode()));
+        DsStartTaskReqDTO dsStartTaskReqDTO = TaskConverter.createDsStartTaskReqDTO(CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
 
-        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, CollectorEtlTaskDO.getProjectCode());
+        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, CollectorEtlTaskDO.getSpaceCode());
 
         return Boolean.TRUE.equals(dsStatusRespDTO == null ? null : dsStatusRespDTO.getSuccess())
                 ? success() : error(dsStatusRespDTO == null ? "DolphinScheduler无响应" : dsStatusRespDTO.getMsg());
@@ -1034,8 +1034,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         wrapper.selectAll(CollectorEtlTaskDO.class)
                 .ne(CollectorEtlTaskDO::getStatus, "-2")
                 .ne(CollectorEtlTaskDO::getStatus, "-3")
-                .eq(reqVO.getProjectId() != null, CollectorEtlTaskDO::getProjectId, reqVO.getProjectId())
-                .eq(StringUtils.isNotBlank(reqVO.getProjectCode()), CollectorEtlTaskDO::getProjectCode, reqVO.getProjectCode())
+                .eq(reqVO.getSpaceId() != null, CollectorEtlTaskDO::getSpaceId, reqVO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqVO.getSpaceCode()), CollectorEtlTaskDO::getSpaceCode, reqVO.getSpaceCode())
                 .ne(CollectorEtlTaskDO::getType, "4");
         List<CollectorEtlTaskDO> CollectorEtlTaskDOS = CollectorEtlTaskMapper.selectList(wrapper);
         List<CollectorEtlTaskRespVO> CollectorEtlTaskRespVOList = BeanUtils.toBean(CollectorEtlTaskDOS, CollectorEtlTaskRespVO.class);
@@ -1120,8 +1120,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 taskNode.setName(task.getName());
                 taskNode.setCode(task.getCode());
                 taskNode.setVersion(task.getVersion());
-                taskNode.setProjectId(task.getProjectId());
-                taskNode.setProjectCode(task.getProjectCode());
+                taskNode.setSpaceId(task.getSpaceId());
+                taskNode.setSpaceCode(task.getSpaceCode());
                 taskNode.setPersonCharge(task.getPersonCharge());
                 taskNode.setContactNumber(task.getContactNumber());
                 taskNode.setLocations(task.getLocations());
@@ -1237,8 +1237,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                     taskNode.setExtCode(etlTaskExtDO.getEtlTaskCode());
                 }
                 taskNode.setVersion(task.getVersion());
-                taskNode.setProjectId(task.getProjectId());
-                taskNode.setProjectCode(task.getProjectCode());
+                taskNode.setSpaceId(task.getSpaceId());
+                taskNode.setSpaceCode(task.getSpaceCode());
                 taskNode.setPersonCharge(task.getPersonCharge());
                 taskNode.setContactNumber(task.getContactNumber());
                 taskNode.setLocations(task.getLocations());
@@ -1301,8 +1301,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     }
 
     @Override
-    public int checkTaskIdInDatasource(List<Long> datasourceIdList, List<Long> projectIdList) {
-        return CollectorEtlTaskMapper.checkTaskIdInDatasource(datasourceIdList, projectIdList);
+    public int checkTaskIdInDatasource(List<Long> datasourceIdList, List<Long> spaceIdList) {
+        return CollectorEtlTaskMapper.checkTaskIdInDatasource(datasourceIdList, spaceIdList);
     }
 
     @Override
@@ -1320,8 +1320,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         createReqVO.setName(CollectorEtlNewNodeSaveReqVO.getName());
         createReqVO.setType(CollectorEtlNewNodeSaveReqVO.getType());
         createReqVO.setCatCode(CollectorEtlNewNodeSaveReqVO.getCatCode());
-        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId());
-        createReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode()));
+        createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId());
+        createReqVO.setSpaceCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getSpaceCode()));
         createReqVO.setPersonCharge(CollectorEtlNewNodeSaveReqVO.getPersonCharge());
         createReqVO.setContactNumber(CollectorEtlNewNodeSaveReqVO.getContactNumber());
         createReqVO.setDescription(CollectorEtlNewNodeSaveReqVO.getDescription());
@@ -1417,8 +1417,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             if (createReqVO.getVersion() == 0) {
                 createReqVO.setVersion(1);
             }
-            createReqVO.setProjectId(reqVO.getProjectId());
-            createReqVO.setProjectCode(String.valueOf(reqVO.getProjectCode()));
+            createReqVO.setSpaceId(reqVO.getSpaceId());
+            createReqVO.setSpaceCode(String.valueOf(reqVO.getSpaceCode()));
             createReqVO.setParameters(JSON.toJSONString(createReqVO.getTaskParams()));
 
             CollectorEtlNodeLogDO nodeCodeAndVersion = iCollectorEtlNodeLogService.getByNodeCodeAndVersion(
@@ -1544,7 +1544,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(taskDO.getId());
         boolean hasPublishedExt = taskExt != null && StringUtils.isNotEmpty(taskExt.getEtlTaskCode());
         ProcessDefinition existingDsDefinition = hasPublishedExt ? null
-                : dsEtlTaskService.getTaskByName(String.valueOf(reqVO.getProjectCode()), reqVO.getName());
+                : dsEtlTaskService.getTaskByName(String.valueOf(reqVO.getSpaceCode()), reqVO.getName());
         boolean isFirstPublish = !hasPublishedExt;
         boolean createDsDefinition = isFirstPublish
                 && (existingDsDefinition == null || StringUtils.isEmpty(existingDsDefinition.getCode()));
@@ -1552,7 +1552,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         String nodeCode;
         String nodeName;
         if (isFirstPublish) {
-            DsNodeGenCodeRespDTO dsNodeGenCodeRespDTO = dsEtlNodeService.genCode(reqVO.getProjectCode());
+            DsNodeGenCodeRespDTO dsNodeGenCodeRespDTO = dsEtlNodeService.genCode(reqVO.getSpaceCode());
             nodeCode = String.valueOf(dsNodeGenCodeRespDTO.getData().get(0));
             nodeName = reqVO.getName() + "-" + DateUtil.today();
         } else {
@@ -1589,11 +1589,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             if (existingDsDefinition != null && StringUtils.isNotEmpty(existingDsDefinition.getCode())) {
                 taskCode = existingDsDefinition.getCode();
             } else {
-                DsNodeGenCodeRespDTO dsTaskGenCodeRespDTO = dsEtlNodeService.genCode(reqVO.getProjectCode());
+                DsNodeGenCodeRespDTO dsTaskGenCodeRespDTO = dsEtlNodeService.genCode(reqVO.getSpaceCode());
                 taskCode = String.valueOf(dsTaskGenCodeRespDTO.getData().get(0));
             }
 
-            taskInfo.put("projectCode", reqVO.getProjectCode());
+            taskInfo.put("spaceCode", reqVO.getSpaceCode());
             taskInfo.put("taskCode", taskCode);
             taskInfo.put("taskVersion", existingDsDefinition == null ? 1 : existingDsDefinition.getVersion() + 1);
             taskInfo.put("name", reqVO.getName());
@@ -1601,16 +1601,16 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             Map<String, Object> mainArgs = TaskConverter.buildEtlTaskParams(reqVO.getTaskDefinitionList(), new HashMap<>(), taskInfo, resourceList);
 
             if (TaskConverter.isShellTask(reqVO.getDraftJson())) {
-                taskDefinition = TaskConverter.buildShellTaskDefinitionJson(null, nodeName, nodeCode, 0, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                taskDefinition = TaskConverter.buildShellTaskDefinitionJson(null, nodeName, nodeCode, 0, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
             } else if (isFlinkx) {
                 flinkxJobJson = FlinkxEtlTaskConverter.convertToFlinkxJobJson(mainArgs);
                 streamingFlinkx = TaskConverter.isStreamingFlinkxJob(flinkxJobJson);
                 incrementalConfig = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
-                completeNodeCode = nextDsNodeCode(reqVO.getProjectCode());
-                conditionNodeCode = nextDsNodeCode(reqVO.getProjectCode());
-                failedCompleteNodeCode = nextDsNodeCode(reqVO.getProjectCode());
+                completeNodeCode = nextDsNodeCode(reqVO.getSpaceCode());
+                conditionNodeCode = nextDsNodeCode(reqVO.getSpaceCode());
+                failedCompleteNodeCode = nextDsNodeCode(reqVO.getSpaceCode());
                 if (incrementalConfig != null) {
-                    prepareNodeCode = nextDsNodeCode(reqVO.getProjectCode());
+                    prepareNodeCode = nextDsNodeCode(reqVO.getSpaceCode());
                     taskDefinition = TaskConverter.buildIncrementalFlinkxTaskDefinitionJson(
                              null, prepareNodeName, prepareNodeCode, 0,
                              null, nodeName, nodeCode, 0,
@@ -1621,7 +1621,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                              incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 1),
                              incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 0),
                              reqVO.getDraftJson(),
-                             getProjectWorkerGroup(reqVO.getProjectCode()));
+                             getProjectWorkerGroup(reqVO.getSpaceCode()));
                 } else {
                     taskDefinition = TaskConverter.buildFlinkxTaskDefinitionJsonWithCompleteCallback(
                              null, nodeName, nodeCode, 0, flinkxJobJson,
@@ -1630,10 +1630,10 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                              null, failedCompleteNodeName, failedCompleteNodeCode, 0,
                              incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 1),
                              incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 0),
-                             reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                             reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
                 }
             } else {
-                taskDefinition = TaskConverter.buildEtlTaskDefinitionJson(null, nodeName, nodeCode, 0, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                taskDefinition = TaskConverter.buildEtlTaskDefinitionJson(null, nodeName, nodeCode, 0, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
             }
 
             if (incrementalConfig != null) {
@@ -1658,8 +1658,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
             //创建或恢复更新DS任务
             DsTaskSaveRespDTO task = createDsDefinition
-                    ? dsEtlTaskService.createTask(dsTaskSaveReqDTO, reqVO.getProjectCode())
-                    : updateDsTaskAllowingOnline(dsTaskSaveReqDTO, String.valueOf(reqVO.getProjectCode()), taskCode);
+                    ? dsEtlTaskService.createTask(dsTaskSaveReqDTO, reqVO.getSpaceCode())
+                    : updateDsTaskAllowingOnline(dsTaskSaveReqDTO, String.valueOf(reqVO.getSpaceCode()), taskCode);
             if (!task.getSuccess()) {
                 throw new ServiceException("发布任务错误:" + task.getMsg());
             }
@@ -1703,7 +1703,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             taskCode = taskExt.getEtlTaskCode();
             int nodeVersion = taskExt.getEtlNodeVersion() == null ? 0 : taskExt.getEtlNodeVersion();
 
-            taskInfo.put("projectCode", reqVO.getProjectCode());
+            taskInfo.put("spaceCode", reqVO.getSpaceCode());
             taskInfo.put("taskCode", taskCode);
             taskInfo.put("taskVersion", taskExt.getEtlTaskVersion() != null ? taskExt.getEtlTaskVersion() + 1 : 1);
             taskInfo.put("name", reqVO.getName());
@@ -1711,18 +1711,18 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             Map<String, Object> mainArgs = TaskConverter.buildEtlTaskParams(reqVO.getTaskDefinitionList(), new HashMap<>(), taskInfo, resourceList);
 
             if (TaskConverter.isShellTask(reqVO.getDraftJson())) {
-                taskDefinition = TaskConverter.buildShellTaskDefinitionJson(taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                taskDefinition = TaskConverter.buildShellTaskDefinitionJson(taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
             } else if (isFlinkx) {
                 flinkxJobJson = FlinkxEtlTaskConverter.convertToFlinkxJobJson(mainArgs);
                 streamingFlinkx = TaskConverter.isStreamingFlinkxJob(flinkxJobJson);
                 incrementalConfig = TaskConverter.resolveFlinkxIncrementalConfig(mainArgs);
                 completeNodeCode = StringUtils.isNotBlank(taskExt.getCompleteNodeCode())
-                        ? taskExt.getCompleteNodeCode() : nextDsNodeCode(reqVO.getProjectCode());
-                conditionNodeCode = nextDsNodeCode(reqVO.getProjectCode());
-                failedCompleteNodeCode = nextDsNodeCode(reqVO.getProjectCode());
+                        ? taskExt.getCompleteNodeCode() : nextDsNodeCode(reqVO.getSpaceCode());
+                conditionNodeCode = nextDsNodeCode(reqVO.getSpaceCode());
+                failedCompleteNodeCode = nextDsNodeCode(reqVO.getSpaceCode());
                 if (incrementalConfig != null) {
                     prepareNodeCode = StringUtils.isNotBlank(taskExt.getPrepareNodeCode())
-                            ? taskExt.getPrepareNodeCode() : nextDsNodeCode(reqVO.getProjectCode());
+                            ? taskExt.getPrepareNodeCode() : nextDsNodeCode(reqVO.getSpaceCode());
                     taskDefinition = TaskConverter.buildIncrementalFlinkxTaskDefinitionJson(
                              taskExt.getPrepareNodeId(), prepareNodeName, prepareNodeCode,
                              taskExt.getPrepareNodeVersion(), taskExt.getEtlNodeId(), nodeName,
@@ -1735,7 +1735,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                              incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 1),
                              incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 0),
                              reqVO.getDraftJson(),
-                             getProjectWorkerGroup(reqVO.getProjectCode()));
+                             getProjectWorkerGroup(reqVO.getSpaceCode()));
                 } else {
                     taskDefinition = TaskConverter.buildFlinkxTaskDefinitionJsonWithCompleteCallback(
                              taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, flinkxJobJson,
@@ -1745,10 +1745,10 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                              null, failedCompleteNodeName, failedCompleteNodeCode, 0,
                              incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 1),
                              incrementalCallbackUrl(incrementalCompleteUrl, taskDO.getId(), 0),
-                             reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                             reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
                 }
             } else {
-                taskDefinition = TaskConverter.buildEtlTaskDefinitionJson(taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getProjectCode()));
+                taskDefinition = TaskConverter.buildEtlTaskDefinitionJson(taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
             }
 
             if (incrementalConfig != null) {
@@ -1778,7 +1778,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             dsTaskSaveReqDTO.setLocations(locations);
 
             //更新DS任务
-            DsTaskSaveRespDTO task = updateDsTaskAllowingOnline(dsTaskSaveReqDTO, String.valueOf(reqVO.getProjectCode()), taskCode);
+            DsTaskSaveRespDTO task = updateDsTaskAllowingOnline(dsTaskSaveReqDTO, String.valueOf(reqVO.getSpaceCode()), taskCode);
             if (!task.getSuccess()) {
                 throw new ServiceException("发布任务错误:" + task.getMsg());
             }
@@ -1802,7 +1802,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         }
 
         //上线DS任务
-        DsStatusRespDTO releaseResp = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(reqVO.getProjectCode()), taskCode);
+        DsStatusRespDTO releaseResp = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(reqVO.getSpaceCode()), taskCode);
         String responseMsg = releaseResp == null ? null : releaseResp.getMsg();
         if (responseMsg != null && responseMsg.contains("SubWorkflowDefinition") && responseMsg.contains("is not online")) {
             throw new RuntimeException("存在未上线的子工作流，请先将所有子工作流上线");
@@ -1848,7 +1848,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                     CollectorEtlSchedulerSaveReqVO schedulerSaveReqVO = TaskConverter.convertToCollectorEtlSchedulerSaveReqVO(dsSchedulerRespDTO, taskDO);
                     schedulerSaveReqVO.setId(schedulerDO.getId());
                     schedulerSaveReqVO.setTaskCode(taskCode);
-                    DsStatusRespDTO onlineScheduler = iDsEtlSchedulerService.onlineScheduler(taskDO.getProjectCode(), schedulerSaveReqVO.getDsId());
+                    DsStatusRespDTO onlineScheduler = iDsEtlSchedulerService.onlineScheduler(taskDO.getSpaceCode(), schedulerSaveReqVO.getDsId());
                     if (!isDsStatusSuccess(onlineScheduler)) {
                         throw new ServiceException("上线调度器失败！");
                     }
@@ -1892,7 +1892,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         if (schedulerDO.getDsId() != null && schedulerDO.getDsId() > 0) {
             try {
-                DsStatusRespDTO offlineScheduler = iDsEtlSchedulerService.offlineScheduler(taskDO.getProjectCode(), schedulerDO.getDsId());
+                DsStatusRespDTO offlineScheduler = iDsEtlSchedulerService.offlineScheduler(taskDO.getSpaceCode(), schedulerDO.getDsId());
                 if (offlineScheduler == null || !Boolean.TRUE.equals(offlineScheduler.getSuccess())) {
                     log.warn("CDC/流式任务跳过调度器上线，但下线已有调度器失败，taskId={}，taskCode={}，schedulerId={}，原因：{}",
                             taskDO.getId(), taskCode, schedulerDO.getDsId(), offlineScheduler == null ? null : offlineScheduler.getMsg());
@@ -1928,11 +1928,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             dsCode = taskDO.getCode();
         }
 
-        stopRunningProcessInstances(taskDO.getId(), String.valueOf(taskDO.getProjectCode()), dsCode);
+        stopRunningProcessInstances(taskDO.getId(), String.valueOf(taskDO.getSpaceCode()), dsCode);
         collectorEtlIncrementalService.forceReleaseIncrementalTask(taskDO.getId());
 
         //下线DS任务
-        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(taskDO.getProjectCode()), dsCode);
+        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(taskDO.getSpaceCode()), dsCode);
         boolean processDefinitionMissing = isProcessDefinitionMissing(dsStatusRespDTO);
         if (!processDefinitionMissing && !isDsStatusSuccess(dsStatusRespDTO)) {
             throw new ServiceException("卸载任务失败！");
@@ -1942,7 +1942,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlSchedulerDO schedulerDO = getCollectorEtlScheduler(taskDO.getCode(), taskDO.getId());
         try {
             if (schedulerDO != null && schedulerDO.getDsId() != null && schedulerDO.getDsId() > 0) {
-                DsStatusRespDTO offlineScheduler = iDsEtlSchedulerService.offlineScheduler(taskDO.getProjectCode(), schedulerDO.getDsId());
+                DsStatusRespDTO offlineScheduler = iDsEtlSchedulerService.offlineScheduler(taskDO.getSpaceCode(), schedulerDO.getDsId());
                 if (!isDsStatusSuccess(offlineScheduler)) {
                     log.warn("下线调度器失败(不影响任务卸载)");
                 }
@@ -1969,7 +1969,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         updateTaskStatus(taskDO.getId(), "0");
     }
 
-    private void stopRunningProcessInstances(Long taskId, String projectCode, String dsCode) {
+    private void stopRunningProcessInstances(Long taskId, String spaceCode, String dsCode) {
         Set<Long> processInstanceIds = new LinkedHashSet<>();
         Long runningTaskInstanceId = CollectorEtlTaskInstanceService.getRunTaskInstance(taskId);
         if (runningTaskInstanceId != null) {
@@ -1978,7 +1978,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         try {
             List<com.datamaster.api.ds.api.etl.ds.ProcessInstance> dsInstances =
-                    dsEtlExecutorService.listProcessInstances(projectCode, dsCode);
+                    dsEtlExecutorService.listProcessInstances(spaceCode, dsCode);
             if (CollectionUtils.isNotEmpty(dsInstances)) {
                 for (com.datamaster.api.ds.api.etl.ds.ProcessInstance instance : dsInstances) {
                     if (instance == null || instance.getId() == null || instance.getState() == null
@@ -1990,8 +1990,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 }
             }
         } catch (Exception e) {
-            log.warn("卸载任务时查询DS运行中流程实例异常，taskId={}，projectCode={}，taskCode={}，原因：{}",
-                    taskId, projectCode, dsCode, e.getMessage(), e);
+            log.warn("卸载任务时查询DS运行中流程实例异常，taskId={}，spaceCode={}，taskCode={}，原因：{}",
+                    taskId, spaceCode, dsCode, e.getMessage(), e);
         }
 
         for (Long processInstanceId : processInstanceIds) {
@@ -1999,7 +1999,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 DsStatusRespDTO stopResult = dsEtlExecutorService.execute(DSExecuteDTO.builder()
                         .processInstanceId(processInstanceId)
                         .executeType(ExecuteType.STOP)
-                        .build(), projectCode);
+                        .build(), spaceCode);
                 if (stopResult == null || !Boolean.TRUE.equals(stopResult.getSuccess())) {
                     log.warn("卸载任务时停止运行中的DS流程实例失败，taskId={}，processInstanceId={}，msg={}",
                             taskId, processInstanceId, stopResult == null ? "无响应" : stopResult.getMsg());
@@ -2026,16 +2026,16 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 || StringUtils.equalsIgnoreCase(response.getMsg(), "success");
     }
 
-    private DsTaskSaveRespDTO updateDsTaskAllowingOnline(DsTaskSaveReqDTO request, String projectCode, String taskCode) {
-        DsTaskSaveRespDTO response = dsEtlTaskService.updateTask(request, projectCode, taskCode);
+    private DsTaskSaveRespDTO updateDsTaskAllowingOnline(DsTaskSaveReqDTO request, String spaceCode, String taskCode) {
+        DsTaskSaveRespDTO response = dsEtlTaskService.updateTask(request, spaceCode, taskCode);
         if (response == null || !StringUtils.containsIgnoreCase(response.getMsg(), "does not allow edit")) {
             return response;
         }
-        DsStatusRespDTO offlineResp = dsEtlTaskService.releaseTask("OFFLINE", projectCode, taskCode);
+        DsStatusRespDTO offlineResp = dsEtlTaskService.releaseTask("OFFLINE", spaceCode, taskCode);
         if (!isDsStatusSuccess(offlineResp)) {
             throw new ServiceException("更新DS任务前下线失败:" + (offlineResp == null ? "无响应" : offlineResp.getMsg()));
         }
-        return dsEtlTaskService.updateTask(request, projectCode, taskCode);
+        return dsEtlTaskService.updateTask(request, spaceCode, taskCode);
     }
 
     private Long resolveTaskId(CollectorEtlNewNodeSaveReqVO reqVO) {
@@ -2064,23 +2064,23 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlNewNodeSaveReqVO filled = new CollectorEtlNewNodeSaveReqVO(saved);
         filled.setId(taskId);
         filled.setIdStr(String.valueOf(taskId));
-        if (reqVO.getProjectCode() != null) {
-            filled.setProjectCode(reqVO.getProjectCode());
+        if (reqVO.getSpaceCode() != null) {
+            filled.setSpaceCode(reqVO.getSpaceCode());
         }
-        if (reqVO.getProjectId() != null) {
-            filled.setProjectId(reqVO.getProjectId());
+        if (reqVO.getSpaceId() != null) {
+            filled.setSpaceId(reqVO.getSpaceId());
         }
         normalizeProjectCode(filled);
         return filled;
     }
 
     private void normalizeProjectCode(CollectorEtlNewNodeSaveReqVO reqVO) {
-        if (reqVO.getProjectId() == null) {
+        if (reqVO.getSpaceId() == null) {
             return;
         }
-        String projectCode = taxonomyProjectApi.getProjectCodeByProjectId(reqVO.getProjectId());
-        if (StringUtils.isNotBlank(projectCode)) {
-            reqVO.setProjectCode(JSONUtils.convertToLong(projectCode));
+        String spaceCode = TaxonomySpaceApi.getSpaceCodeBySpaceId(reqVO.getSpaceId());
+        if (StringUtils.isNotBlank(spaceCode)) {
+            reqVO.setSpaceCode(JSONUtils.convertToLong(spaceCode));
         }
     }
 
@@ -2123,7 +2123,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         }
 
         DsTaskSaveRespDTO task = dsEtlTaskService.batchCopy(CollectorEtlTaskUpdateQueryRespVO.getCode()
-                , CollectorEtlTaskUpdateQueryRespVO.getProjectCode());
+                , CollectorEtlTaskUpdateQueryRespVO.getSpaceCode());
 
         if (!task.getSuccess()) {
             throw new ServiceException("copy任务错误:" + task.getMsg().toString()); // 抛出任务定义创建错误的异常
@@ -2174,7 +2174,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         for (Map<String, Object> location : locations) {
             Long codeold = MapUtils.getLong(location, "taskCode");
             //生成节点编码
-            DsNodeGenCodeRespDTO dsNodeGenCodeRespDTO = dsEtlNodeService.genCode(CollectorEtlNewNodeSaveReqVO.getProjectCode());
+            DsNodeGenCodeRespDTO dsNodeGenCodeRespDTO = dsEtlNodeService.genCode(CollectorEtlNewNodeSaveReqVO.getSpaceCode());
             String codeNew = String.valueOf(dsNodeGenCodeRespDTO.getData().get(0));
 
             definitionCopyVO.put(codeold, JSONUtils.convertToLong(codeNew));
@@ -2195,7 +2195,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         //构建任务任务信息
         Map<String, Object> taskInfo = new HashMap<>();
-        taskInfo.put("projectCode", CollectorEtlNewNodeSaveReqVO.getProjectCode());
+        taskInfo.put("spaceCode", CollectorEtlNewNodeSaveReqVO.getSpaceCode());
         taskInfo.put("taskCode", taskCode);
         taskInfo.put("taskVersion", 1);
         taskInfo.put("name", name);
@@ -2367,8 +2367,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         return v == null ? 1 : (int) Math.min(Math.max(v, 1L), Integer.MAX_VALUE);
     }
 
-    private String nextDsNodeCode(Long projectCode) {
-        DsNodeGenCodeRespDTO response = dsEtlNodeService.genCode(projectCode);
+    private String nextDsNodeCode(Long spaceCode) {
+        DsNodeGenCodeRespDTO response = dsEtlNodeService.genCode(spaceCode);
         if (response == null || response.getData() == null || response.getData().isEmpty()) {
             throw new ServiceException("生成DolphinScheduler节点编码失败");
         }
@@ -2433,12 +2433,12 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         TaskDefinition copiedFlinkxNode = getDsTaskDefinitionByType(copiedDefinition, "CHUNJUN");
         TaskDefinition copiedPrepareNode = getDsPreviousTaskDefinition(copiedDefinition, copiedFlinkxNode.getCode());
         TaskDefinition copiedCompleteNode = findDsNextTaskDefinition(copiedDefinition, copiedFlinkxNode.getCode());
-        String conditionNodeCode = nextDsNodeCode(Long.valueOf(task.getProjectCode()));
+        String conditionNodeCode = nextDsNodeCode(Long.valueOf(task.getSpaceCode()));
         String conditionNodeName = task.getName() + "-条件分支";
         String completeNodeCode = copiedCompleteNode == null
-                ? nextDsNodeCode(Long.valueOf(task.getProjectCode())) : copiedCompleteNode.getCode();
+                ? nextDsNodeCode(Long.valueOf(task.getSpaceCode())) : copiedCompleteNode.getCode();
         String completeNodeName = task.getName() + "-状态回写";
-        String failedCompleteNodeCode = nextDsNodeCode(Long.valueOf(task.getProjectCode()));
+        String failedCompleteNodeCode = nextDsNodeCode(Long.valueOf(task.getSpaceCode()));
         String failedCompleteNodeName = task.getName() + "-失败状态回写";
 
         DsTaskSaveReqDTO request = new DsTaskSaveReqDTO();
@@ -2456,7 +2456,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 incrementalCallbackUrl(incrementalPrepareUrl, task.getId()),
                 incrementalCallbackUrl(incrementalCompleteUrl, task.getId(), 1),
                 incrementalCallbackUrl(incrementalCompleteUrl, task.getId(), 0),
-                task.getDraftJson(), getProjectWorkerGroup(task.getProjectCode())));
+                task.getDraftJson(), getProjectWorkerGroup(task.getSpaceCode())));
         ProcessTaskRelation prepareRelation = getDsTaskRelation(copiedDefinition, copiedPrepareNode.getCode());
         ProcessTaskRelation flinkxRelation = getDsTaskRelation(copiedDefinition, copiedFlinkxNode.getCode());
         ProcessTaskRelation completeRelation = copiedCompleteNode == null
@@ -2473,7 +2473,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         request.setLocations(TaskConverter.buildIncrementalFlinkxTaskLocationsJson(
                 locations, copiedPrepareNode.getCode(), copiedFlinkxNode.getCode(), conditionNodeCode, completeNodeCode, failedCompleteNodeCode));
 
-        DsTaskSaveRespDTO response = dsEtlTaskService.updateTask(request, task.getProjectCode(), copiedDefinition.getCode());
+        DsTaskSaveRespDTO response = dsEtlTaskService.updateTask(request, task.getSpaceCode(), copiedDefinition.getCode());
         if (response == null || !response.getSuccess() || response.getData() == null) {
             throw new ServiceException("重建复制任务的DolphinScheduler回调节点失败: "
                     + (response == null ? "无响应" : response.getMsg()));
@@ -2705,15 +2705,15 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         }
     }
 
-    private String getProjectWorkerGroup(Long projectCode) {
-        return getProjectWorkerGroup(projectCode == null ? null : String.valueOf(projectCode));
+    private String getProjectWorkerGroup(Long spaceCode) {
+        return getProjectWorkerGroup(spaceCode == null ? null : String.valueOf(spaceCode));
     }
 
-    private String getProjectWorkerGroup(String projectCode) {
-        if (StringUtils.isEmpty(projectCode)) {
+    private String getProjectWorkerGroup(String spaceCode) {
+        if (StringUtils.isEmpty(spaceCode)) {
             return "default";
         }
-        return taxonomyProjectApi.getWorkerGroupByProjectCode(projectCode);
+        return TaxonomySpaceApi.getWorkerGroupBySpaceCode(spaceCode);
     }
 
 }

@@ -22,8 +22,7 @@ public class StandardsDataElemCodeSaveReqVO extends BaseEntity {
     private Long id;
 
     @Schema(description = "数据元id", example = "")
-    @Size(max = 256, message = "数据元id长度不能超过256个字符")
-    private String dataElemId;
+    private Long dataElemId;
 
     @Schema(description = "代码值", example = "")
     @Size(max = 256, message = "代码值长度不能超过256个字符")
@@ -33,9 +32,9 @@ public class StandardsDataElemCodeSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "代码名称长度不能超过256个字符")
     private String codeName;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 
 }

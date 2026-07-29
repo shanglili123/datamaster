@@ -193,7 +193,7 @@ public class StandardsModelMaterializedServiceImpl  extends ServiceImpl<Standard
     private StandardsModelMaterializedDO buildLogRecord(Long modelId, StandardsMaterializedMethodReqVO StandardsModelMaterialized) {
         StandardsModelMaterializedDO logRecord = new StandardsModelMaterializedDO();
         logRecord.setModelId(modelId);
-        logRecord.setDatasourceId(StandardsModelMaterialized.getDatasourceId().toString());
+        logRecord.setDatasourceId(StandardsModelMaterialized.getDatasourceId());
         logRecord.setDatasourceType(StandardsModelMaterialized.getDatasourceType());
         logRecord.setDatasourceName(StandardsModelMaterialized.getDatasourceName());
         logRecord.setValidFlag(true);

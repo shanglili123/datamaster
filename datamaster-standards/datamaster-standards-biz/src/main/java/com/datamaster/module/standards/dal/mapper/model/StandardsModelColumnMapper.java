@@ -40,7 +40,7 @@ public interface StandardsModelColumnMapper extends BaseMapperX<StandardsModelCo
                 .eq(com.datamaster.common.utils.StringUtils.isNotBlank(reqVO.getAuthorityDept()), StandardsModelColumnDO::getAuthorityDept, reqVO.getAuthorityDept())
                 .eq(reqVO.getDataElemId() != null, StandardsModelColumnDO::getDataElemId, reqVO.getDataElemId())
                 .eq(reqVO.getCreateTime() != null, StandardsModelColumnDO::getCreateTime, reqVO.getCreateTime())
-                .eq(reqVO.getProjectId() != null, StandardsModelColumnDO::getProjectId, reqVO.getProjectId())
+                .eq(reqVO.getSpaceId() != null, StandardsModelColumnDO::getSpaceId, reqVO.getSpaceId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()),
                         StringUtils.equals("asc", reqVO.getIsAsc()),
                         StringUtils.isNotBlank(reqVO.getOrderByColumn())

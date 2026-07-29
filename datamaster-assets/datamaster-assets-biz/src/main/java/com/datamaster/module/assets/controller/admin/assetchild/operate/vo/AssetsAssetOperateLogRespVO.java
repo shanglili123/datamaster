@@ -32,7 +32,7 @@ public class AssetsAssetOperateLogRespVO implements Serializable {
 @Excel(name = "")    @Schema(description = "", example = "")    private String updateBy;
 @Excel(name = "id")    @Schema(description = "id", example = "")    private Long updaterId;
 @Excel(name = "", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    @Schema(description = "", example = "")    private Date updateTime;
-@Excel(name = "")    @Schema(description = "", example = "")    private String remark;
+@Excel(name = "")    @Schema(description = "", example = "")    private String description;
 @Schema(description = "JSON MD5", example = "")    private String updateWhereMd5;    /**  */
 @TableField(exist = false)    private String userName;    /**  */
 @TableField(exist = false)    private String phoneNumber;    /**  */

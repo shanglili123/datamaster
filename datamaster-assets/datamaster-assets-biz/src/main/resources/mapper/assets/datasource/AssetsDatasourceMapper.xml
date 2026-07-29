@@ -22,11 +22,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateBy"    column="UPDATE_BY"    />
         <result property="updaterId"    column="UPDATER_ID"    />
         <result property="updateTime"    column="UPDATE_TIME"    />
-        <result property="remark"    column="REMARK"    />
     </resultMap>
 
     <sql id="selectDatasourceVo">
-        select ID, DATASOURCE_NAME, DATASOURCE_TYPE, DATASOURCE_CONFIG, IP, PORT, LIST_COUNT, SYNC_COUNT, DATA_SIZE, DESCRIPTION, VALID_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from AST_DATASOURCE
+        select ID, DATASOURCE_NAME, DATASOURCE_TYPE, DATASOURCE_CONFIG, IP, PORT, LIST_COUNT, SYNC_COUNT, DATA_SIZE, DESCRIPTION, VALID_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME from AST_DATASOURCE
     </sql>
 
     <select id="selectDatasourceList" parameterType="AssetsDatasourceDO" resultMap="AssetsDatasourceResult">
@@ -70,7 +69,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY,</if>
             <if test="updaterId != null">UPDATER_ID,</if>
             <if test="updateTime != null">UPDATE_TIME,</if>
-            <if test="remark != null">REMARK,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -90,7 +88,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updaterId != null">#{updaterId},</if>
             <if test="updateTime != null">#{updateTime},</if>
-            <if test="remark != null">#{remark},</if>
          </trim>
     </insert>
 
@@ -113,7 +110,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY = #{updateBy},</if>
             <if test="updaterId != null">UPDATER_ID = #{updaterId},</if>
             <if test="updateTime != null">UPDATE_TIME = #{updateTime},</if>
-            <if test="remark != null">REMARK = #{remark},</if>
         </trim>
         where ID = #{id}
     </update>
@@ -147,3 +143,4 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			t.del_flag = '0';
     </select>
 </mapper>
+

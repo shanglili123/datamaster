@@ -2,7 +2,6 @@
 
 package com.datamaster.module.collector.utils;
 
-import cn.hutool.core.codec.Base64;
 import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson2.JSON;
 import org.apache.commons.collections4.MapUtils;
@@ -43,10 +42,6 @@ public class TaskConverter {
     private IAssetsDatasourceApiService assetsDatasourceApiService;
     private static IAssetsDatasourceApiService ASSETS_DATASOURCE_API;
 
-    private static String resourceName;
-    private static String defaultMainClass;
-    private static String defaultMaster;
-
     @PostConstruct
     public void init() {
         ASSETS_DATASOURCE_API = this.assetsDatasourceApiService;
@@ -54,21 +49,6 @@ public class TaskConverter {
     private static String resourceUrl;
     private static String defaultTenantCode;
     private static DsRedisConfig dsRedisConfig;
-
-    @Value("${ds.spark.main_jar}")
-    private void setResourceName(String resourceName) {
-        this.resourceName = resourceName;
-    }
-
-    @Value("${ds.spark.main_class}")
-    private void setDefaultMainClass(String defaultMainClass) {
-        this.defaultMainClass = defaultMainClass;
-    }
-
-    @Value("${ds.spark.master_url}")
-    private void setDefaultMaster(String defaultMaster) {
-        this.defaultMaster = defaultMaster;
-    }
 
     @Value("${ds.resource_url}")
     private void setResourceUrl(String resourceUrl) {
@@ -91,16 +71,7 @@ public class TaskConverter {
     private static final String DEFAULT_FLAG = "YES"; // 默认标志，表示节点启用
     private static final String DEFAULT_IS_CACHE = "NO"; // 默认不启用缓存
     private static final String DEFAULT_TASK_PRIORITY = "MEDIUM"; // 默认任务优先级
-    private static final String DEFAULT_TASK_TYPE = "SPARK"; // 默认任务类型，SPARK或DATAX等
-    private static final String DEFAULT_PROGRAM_TYPE = "JAVA"; // 默认程序类型，JAVA
-    private static final String DEFAULT_MAIN_JAR = "file:/dolphinscheduler/default/resources/spart-demo-1.0.jar"; // 默认主Jar路径
-    private static final String DEFAULT_DEPLOY_MODE = "client"; // 默认部署模式
-    private static final int DEFAULT_DRIVER_CORES = 1; // 默认驱动核心数
-    private static final String DEFAULT_DRIVER_MEMORY = "2G"; // 默认驱动内存
-    private static final int DEFAULT_NUM_EXECUTORS = 1; // 默认执行器数量
-    private static final String DEFAULT_EXECUTOR_MEMORY = "4G"; // 默认执行器内存
-    private static final int DEFAULT_EXECUTOR_CORES = 2; // 默认执行器核心数
-    private static final String DEFAULT_SQL_EXECUTION_TYPE = "SCRIPT"; // 默认SQL执行类型
+    private static final String DEFAULT_TASK_TYPE = "CHUNJUN"; // 默认任务类型
     private static final String DEFAULT_CONDITION_TYPE = "NONE"; // 默认条件类型为 "NONE"
 
     private static final int DEFAULT_TASK_failRetryTimes = 0; // failRetryTimes失败重试次数
@@ -149,7 +120,7 @@ public class TaskConverter {
         dsTaskSaveReqDTO.setExecutionType(CollectorEtlNewNodeSaveReqVO.getExecutionType());
 
 
-        //2、封装节点信息 DATAX、SPARK
+        //2、封装节点信息
         String taskDefinition = buildTaskDefinition(CollectorEtlNewNodeSaveReqVO.getTaskDefinitionList(), projectWorkerGroup);
 
         String taskRelation = buildTaskRelationJson(CollectorEtlNewNodeSaveReqVO.getTaskRelationJson());
@@ -249,7 +220,7 @@ public class TaskConverter {
             taskMap.put("flag", DEFAULT_FLAG); // 默认 flag 为 "YES"
             taskMap.put("isCache", task.getOrDefault("isCache", DEFAULT_IS_CACHE)); // 默认 isCache 为 "NO"
             taskMap.put("taskPriority", task.getOrDefault("taskPriority", DEFAULT_TASK_PRIORITY)); // 默认任务优先级为 "MEDIUM"
-            taskMap.put("taskType", task.getOrDefault("taskType", DEFAULT_TASK_TYPE)); // 默认任务类型为 "SPARK"
+            taskMap.put("taskType", task.getOrDefault("taskType", DEFAULT_TASK_TYPE)); // 默认任务类型
             taskMap.put("taskExecuteType", "BATCH");
 
             //2025-06-25 新增配置项默认值
@@ -260,20 +231,6 @@ public class TaskConverter {
             //组件taskParams的封装
             String componentType = String.valueOf(task.get("componentType")); //组件类型
             Map<String, Object> params = (Map<String, Object>) MapUtils.getObject(task, "taskParams");
-
-            //根据类型存入默认数据
-            if (StringUtils.equals(TaskComponentTypeEnum.SPARK_CLEAN.getCode(), componentType)) {
-                params.put("mainClass", defaultMainClass);
-                params.put("resourceName", resourceName);
-                params.put("master", defaultMaster);
-            }
-            // 提取参数
-//            params.put("driverCores", MapUtils.getObject(definitionJsonMap, "driverCores", DEFAULT_DRIVER_CORES));
-//            params.put("driverMemory", MapUtils.getObject(definitionJsonMap, "driverMemory", DEFAULT_DRIVER_MEMORY));
-//            params.put("numExecutors", MapUtils.getObject(definitionJsonMap, "numExecutors", DEFAULT_NUM_EXECUTORS));
-//            params.put("executorMemory", MapUtils.getObject(definitionJsonMap, "executorMemory", DEFAULT_EXECUTOR_MEMORY));
-//            params.put("executorCores", MapUtils.getObject(definitionJsonMap, "executorCores", DEFAULT_EXECUTOR_CORES));
-//            params.put("yarnQueue", MapUtils.getObject(definitionJsonMap, "yarnQueue", ""));
 
             // 对于 SQL / PROCEDURE 任务，将 DataMaster 数据源 ID 转换为 DS 数据源 ID
             resolveDsDatasourceId(componentType, params);
@@ -339,8 +296,8 @@ public class TaskConverter {
         createReqVO.setName(data.getName()); // 任务名称
         createReqVO.setCode(String.valueOf(data.getCode())); // 任务编码
         createReqVO.setVersion(data.getVersion()); // 版本号
-        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-        createReqVO.setProjectCode(String.valueOf(data.getProjectCode())); // 空间编码
+        createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+        createReqVO.setSpaceCode(String.valueOf(data.getProjectCode())); // 空间编码
         createReqVO.setDescription(CollectorEtlNewNodeSaveReqVO.getDescription()); // 描述
         createReqVO.setLocations(data.getLocations()); // 节点坐标信息
         createReqVO.setLocations(data.getLocations()); // 节点坐标信息
@@ -390,8 +347,8 @@ public class TaskConverter {
         createReqVO.setName(data.getName()); // 任务名称
         createReqVO.setCode(String.valueOf(data.getCode())); // 任务编码
         createReqVO.setVersion(data.getVersion()); // 版本号
-        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-        createReqVO.setProjectCode(String.valueOf(data.getProjectCode())); // 空间编码
+        createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+        createReqVO.setSpaceCode(String.valueOf(data.getProjectCode())); // 空间编码
         createReqVO.setDescription(CollectorEtlNewNodeSaveReqVO.getDescription()); // 描述
         createReqVO.setLocations(data.getLocations()); // 节点坐标信息
         createReqVO.setDsId(data.getId()); // DolphinScheduler的ID
@@ -440,8 +397,8 @@ public class TaskConverter {
         createReqVO.setName(task.getName()); // 任务名称
         createReqVO.setCode(task.getCode()); // 任务编码
         createReqVO.setVersion(task.getVersion()); // 版本号
-        createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-        createReqVO.setProjectCode(task.getProjectCode()); // 空间编码
+        createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+        createReqVO.setSpaceCode(task.getSpaceCode()); // 空间编码
         createReqVO.setDescription(CollectorEtlNewNodeSaveReqVO.getDescription()); // 描述
         createReqVO.setLocations(task.getLocations()); // 节点坐标信息
         createReqVO.setDsId(task.getId()); // DolphinScheduler的ID
@@ -483,8 +440,8 @@ public class TaskConverter {
         logSaveReqVO.setName(CollectorEtlTaskSaveReqVO.getName());
         logSaveReqVO.setCode(CollectorEtlTaskSaveReqVO.getCode());
         logSaveReqVO.setVersion(CollectorEtlTaskSaveReqVO.getVersion());
-        logSaveReqVO.setProjectId(CollectorEtlTaskSaveReqVO.getProjectId());
-        logSaveReqVO.setProjectCode(CollectorEtlTaskSaveReqVO.getProjectCode());
+        logSaveReqVO.setSpaceId(CollectorEtlTaskSaveReqVO.getSpaceId());
+        logSaveReqVO.setSpaceCode(CollectorEtlTaskSaveReqVO.getSpaceCode());
         logSaveReqVO.setPersonCharge(CollectorEtlTaskSaveReqVO.getPersonCharge());
         logSaveReqVO.setLocations(CollectorEtlTaskSaveReqVO.getLocations());
         logSaveReqVO.setDescription(CollectorEtlTaskSaveReqVO.getDescription());
@@ -497,10 +454,10 @@ public class TaskConverter {
 
 
         // 填充创建者和更新时间信息
-        logSaveReqVO.setCreatorId(CollectorEtlTaskSaveReqVO.getProjectId()); // 假设空间ID为创建者ID（根据需求调整）
+        logSaveReqVO.setCreatorId(CollectorEtlTaskSaveReqVO.getSpaceId()); // 假设空间ID为创建者ID（根据需求调整）
         logSaveReqVO.setCreateBy(CollectorEtlTaskSaveReqVO.getName()); // 假设任务名称为创建者（根据需求调整）
         logSaveReqVO.setCreateTime(CollectorEtlTaskSaveReqVO.getCreateTime()); // 设置当前时间为创建时间
-        logSaveReqVO.setUpdatorId(CollectorEtlTaskSaveReqVO.getProjectId()); // 假设空间ID为更新者ID（根据需求调整）
+        logSaveReqVO.setUpdatorId(CollectorEtlTaskSaveReqVO.getSpaceId()); // 假设空间ID为更新者ID（根据需求调整）
         logSaveReqVO.setUpdateBy(CollectorEtlTaskSaveReqVO.getName()); // 假设任务名称为更新者（根据需求调整）
         logSaveReqVO.setUpdateTime(CollectorEtlTaskSaveReqVO.getUpdateTime()); // 设置当前时间为更新时间
 
@@ -529,8 +486,8 @@ public class TaskConverter {
             createReqVO.setName(taskDefinition.getName()); // 任务名称
             createReqVO.setCode(String.valueOf(taskDefinition.getCode())); // 任务编码
             createReqVO.setVersion(taskDefinition.getVersion()); // 任务版本
-            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-            createReqVO.setProjectCode(String.valueOf(taskDefinition.getProjectCode())); // 空间编码
+            createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+            createReqVO.setSpaceCode(String.valueOf(taskDefinition.getProjectCode())); // 空间编码
 
             createReqVO.setPriority(String.valueOf(taskDefinition.getTaskPriority()));//任务优先级
             createReqVO.setFailRetryTimes((long) taskDefinition.getFailRetryTimes());
@@ -594,8 +551,8 @@ public class TaskConverter {
             createReqVO.setName(taskDefinition.getName()); // 任务名称
             createReqVO.setCode(String.valueOf(taskDefinition.getCode())); // 任务编码
             createReqVO.setVersion((long) taskDefinition.getVersion()); // 任务版本
-            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-            createReqVO.setProjectCode(String.valueOf(taskDefinition.getProjectCode())); // 空间编码
+            createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+            createReqVO.setSpaceCode(String.valueOf(taskDefinition.getProjectCode())); // 空间编码
 
             createReqVO.setPriority(String.valueOf(taskDefinition.getTaskPriority()));//任务优先级
             createReqVO.setFailRetryTimes((long) taskDefinition.getFailRetryTimes());
@@ -639,8 +596,8 @@ public class TaskConverter {
             CollectorEtlTaskNodeRelSaveReqVO taskNodeRelSaveReqVO = new CollectorEtlTaskNodeRelSaveReqVO();
 
             // 1. 填充任务节点关系相关字段
-            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
+            taskNodeRelSaveReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+            taskNodeRelSaveReqVO.setSpaceCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getSpaceCode())); // 空间编码
 
             // 任务相关字段
             taskNodeRelSaveReqVO.setTaskId(CollectorEtlTaskSaveReqVO.getId()); // 任务ID
@@ -684,8 +641,8 @@ public class TaskConverter {
             CollectorEtlTaskNodeRelLogSaveReqVO taskNodeRelSaveReqVO = new CollectorEtlTaskNodeRelLogSaveReqVO();
 
             // 1. 填充任务节点关系相关字段
-            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
+            taskNodeRelSaveReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+            taskNodeRelSaveReqVO.setSpaceCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getSpaceCode())); // 空间编码
 
             // 任务相关字段
             taskNodeRelSaveReqVO.setTaskId(CollectorEtlTaskSaveReqVO.getId()); // 任务ID
@@ -1061,7 +1018,7 @@ public class TaskConverter {
         taskMap.put("flag", DEFAULT_FLAG); // 默认 flag 为 "YES"
         taskMap.put("isCache", DEFAULT_IS_CACHE); // 默认 isCache 为 "NO"
         taskMap.put("taskPriority", MapUtils.getObject(definitionJsonMap,"taskPriority",DEFAULT_TASK_PRIORITY)); // 默认任务优先级为 "MEDIUM"
-        taskMap.put("taskType", DEFAULT_TASK_TYPE); // 默认任务类型为 "SPARK"
+        taskMap.put("taskType", DEFAULT_TASK_TYPE); // 默认任务类型
         taskMap.put("taskExecuteType", "BATCH");
 
         //2025-06-25 新增配置项默认值
@@ -1072,25 +1029,11 @@ public class TaskConverter {
         Map<String, Object> taskParams = new LinkedHashMap<>();
 
         taskParams.put("localParams", new ArrayList<>()); // 默认空列表
-        taskParams.put("rawScript", ""); // 默认空字符串
         taskParams.put("resourceList", new ArrayList<>()); // 默认空列表
-        taskParams.put("programType", DEFAULT_PROGRAM_TYPE); // 默认程序类型为 "JAVA"
-        taskParams.put("mainClass", defaultMainClass);
-
-        // mainJar是Map，且resourceName字段为默认值
-        Map<String, Object> mainJar = new HashMap<>();
-        mainJar.put("resourceName", resourceName);
-        taskParams.put("mainJar", mainJar);
-        taskParams.put("deployMode", DEFAULT_DEPLOY_MODE); // 默认部署模式为 "client"
-        taskParams.put("mainArgs", Base64.encode(JSON.toJSONString(mainArgs))); // 默认空字符串
-        taskParams.put("master", defaultMaster); // 默认Spark master URL
-        taskParams.put("driverCores",MapUtils.getObject(definitionJsonMap,"driverCores",DEFAULT_DRIVER_CORES) ); // 默认驱动核心数
-        taskParams.put("driverMemory",MapUtils.getObject(definitionJsonMap,"driverMemory",DEFAULT_DRIVER_MEMORY) ); // 默认驱动内存
-        taskParams.put("numExecutors", MapUtils.getObject(definitionJsonMap,"numExecutors",DEFAULT_NUM_EXECUTORS)); // 默认执行器数量
-        taskParams.put("executorMemory",MapUtils.getObject(definitionJsonMap,"executorMemory",DEFAULT_EXECUTOR_MEMORY) ); // 默认执行器内存
-        taskParams.put("executorCores",MapUtils.getObject(definitionJsonMap,"executorCores",DEFAULT_EXECUTOR_CORES) ); // 默认执行器核心数
-        taskParams.put("yarnQueue",MapUtils.getObject(definitionJsonMap,"yarnQueue","") ); // 默认执行器核心数
-        taskParams.put("sqlExecutionType", DEFAULT_SQL_EXECUTION_TYPE); // 默认SQL执行类型为 "SCRIPT"
+        taskParams.put("customConfig", 1);
+        taskParams.put("json", JSON.toJSONString(mainArgs));
+        taskParams.put("deployMode", MapUtils.getObject(definitionJsonMap, "deployMode", "local"));
+        taskParams.put("others", MapUtils.getObject(definitionJsonMap, "others", ""));
 
         // 将任务的taskParams加入到taskMap中
         taskMap.put("taskParams", taskParams);
@@ -1609,8 +1552,8 @@ public class TaskConverter {
             createReqVO.setType(createReqVO.getTaskType());//节点类型
             createReqVO.setTaskType(CollectorEtlNewNodeSaveReqVO.getType());//任务类型
             createReqVO.setVersion(1); // 任务版本
-            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-            createReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
+            createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+            createReqVO.setSpaceCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getSpaceCode())); // 空间编码
             // 填充创建者和更新时间信息
             createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
@@ -1635,8 +1578,8 @@ public class TaskConverter {
             // 1. 任务相关信息
             createReqVO.setType(createReqVO.getTaskType());//节点类型
             createReqVO.setTaskType(CollectorEtlNewNodeSaveReqVO.getType());//任务类型
-            createReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-            createReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
+            createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+            createReqVO.setSpaceCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getSpaceCode())); // 空间编码
             // 填充创建者和更新时间信息
             createReqVO.setCreatorId(CollectorEtlNewNodeSaveReqVO.getCreatorId()); // 假设空间ID为创建者ID（根据需求调整）
             createReqVO.setCreateBy(CollectorEtlNewNodeSaveReqVO.getCreateBy()); // 假设任务名称为创建者（根据需求调整）
@@ -1672,8 +1615,8 @@ public class TaskConverter {
             CollectorEtlTaskNodeRelSaveReqVO taskNodeRelSaveReqVO = new CollectorEtlTaskNodeRelSaveReqVO();
 
             // 1. 填充任务节点关系相关字段
-            taskNodeRelSaveReqVO.setProjectId(CollectorEtlNewNodeSaveReqVO.getProjectId()); // 空间ID
-            taskNodeRelSaveReqVO.setProjectCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getProjectCode())); // 空间编码
+            taskNodeRelSaveReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId()); // 空间ID
+            taskNodeRelSaveReqVO.setSpaceCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getSpaceCode())); // 空间编码
 
             // 任务相关字段
             taskNodeRelSaveReqVO.setTaskId(CollectorEtlTaskSaveReqVO.getId()); // 任务ID
@@ -1735,20 +1678,19 @@ public class TaskConverter {
             if (nodeMap.containsKey(CollectorEtlNodeSaveReqVO.getCode())) {
                 version = nodeMap.get(CollectorEtlNodeSaveReqVO.getCode()).getVersion();
             }
-            //组件类型 本方法含有 DB_READER、EXCEL_READER、CSV_READER、SPARK_CLEAN、DB_WRITER
+            //组件类型
             String componentType = CollectorEtlNodeSaveReqVO.getComponentType();
             TaskComponentTypeEnum taskComponentTypeEnum = TaskComponentTypeEnum.findEnumByType(componentType);
             Map<String, Object> data = ComponentFactory.getComponentItem(componentType)
                     .parse2(CollectorEtlNodeSaveReqVO.getCode(), version, taskComponentTypeEnum, CollectorEtlNodeSaveReqVO.getTaskParams(), resourceUrl, resourceList);
             data.put("nodeName", CollectorEtlNodeSaveReqVO.getName());
-            data.put("projectCode", taskInfo.get("projectCode"));
+            data.put("spaceCode", taskInfo.get("spaceCode"));
             switch (taskComponentTypeEnum) {
                 case DB_READER:
                 case EXCEL_READER:
                 case CSV_READER:
                     result.put("reader", data);
                     break;
-                case SPARK_CLEAN:
                 case SORT_RECORD:
                 case FIELD_DERIVATION:
                 case DATA_DEDUPLICATION:

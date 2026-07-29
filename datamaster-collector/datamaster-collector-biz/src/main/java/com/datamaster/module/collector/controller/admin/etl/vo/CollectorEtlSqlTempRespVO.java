@@ -78,6 +78,6 @@ public class CollectorEtlSqlTempRespVO implements Serializable {
 
     @Excel(name = "备注")
     @Schema(description = "备注", example = "")
-    private String REMARK;
+    private String remark;
 
 }

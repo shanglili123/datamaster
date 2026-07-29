@@ -19,7 +19,7 @@ public class StandardsDataElemCodeReqDTO {
     private Long id;
 
     /** 数据元id */
-    private String dataElemId;
+    private Long dataElemId;
 
     /** 代码值 */
     private String codeValue;

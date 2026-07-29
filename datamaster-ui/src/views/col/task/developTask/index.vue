@@ -5,8 +5,8 @@
       <DeptTree
         :api="api"
         :extraParams="{
-          projectCode: userStore.projectCode,
-          projectId: userStore.projectId,
+          spaceCode: userStore.spaceCode,
+          spaceId: userStore.spaceId,
         }"
         :editable="true"
         :leftWidth="leftWidth"
@@ -456,8 +456,8 @@ const handleAdd = () => {
 const handleSave = (form) => {
   const parms = {
     ...form,
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
     type: "3", //数据开发新增标识
   };
   createEtlTaskFront(parms).then((res) => {
@@ -471,8 +471,8 @@ const handleSave = (form) => {
 const handleConfirm = (form) => {
   const parms = {
     ...form,
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
     type: "3", //数据开发新增标识
   };
   createEtlTaskFront(parms).then((res) => {
@@ -514,8 +514,8 @@ const updateResize = (event) => {
 function getDeptTree() {
   api
     .list({
-      projectId: userStore.projectId,
-      projectCode: userStore.projectCode,
+      spaceId: userStore.spaceId,
+      spaceCode: userStore.spaceCode,
       validFlag: true,
     })
     .then((response) => {
@@ -553,8 +553,8 @@ function handleschedulerState(id, row, e) {
       updateReleaseSchedule({
         id,
         schedulerState: row.schedulerState,
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       })
         .then((response) => {
           proxy.$modal.msgSuccess("操作成功");
@@ -586,8 +586,8 @@ function handleStatusChange(id, row, e) {
       updateReleaseJobTask({
         id,
         releaseState: row.status,
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       })
         .then((response) => {
           proxy.$modal.msgSuccess("操作成功");
@@ -614,8 +614,8 @@ function handlePublish(row) {
       publishDppEtlTask({
         id: row.id,
         type: row.type || "3",
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       })
     )
     .then(() => {
@@ -632,8 +632,8 @@ function handleUnpublish(row) {
       unpublishDppEtlTask({
         id: row.id,
         type: row.type || "3",
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
       })
     )
     .then(() => {
@@ -647,8 +647,8 @@ function crontabFill(value) {
   row.value.crontab = value;
   releaseTaskCrontab({
     crontab: row.value.crontab,
-    projectCode: userStore.projectCode,
-    projectId: userStore.projectId,
+    spaceCode: userStore.spaceCode,
+    spaceId: userStore.spaceId,
     id: row.value.id,
   }).then((response) => {
     proxy.$modal.msgSuccess("操作成功");
@@ -879,8 +879,8 @@ const tableStore = reactive({
   func: listWrapper,
   params: {
     catCode: null,
-    projectId: userStore.projectId,
-    projectCode: userStore.projectCode,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
   },
 });
 
@@ -927,15 +927,15 @@ const searchStore = reactive({
 
 function listWrapper(params) {
   const p = { ...params };
-  p.projectId = userStore.projectId;
-  p.projectCode = userStore.projectCode;
+  p.spaceId = userStore.spaceId;
+  p.spaceCode = userStore.spaceCode;
   p.type = "3";
   return listDppEtlTask(p);
 }
 
 // 监听 id 变化
 watch(
-  () => userStore.projectCode,
+  () => userStore.spaceCode,
   (newId) => {
     handleQuery();
     getDeptTree();

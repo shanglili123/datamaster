@@ -32,12 +32,12 @@ import com.datamaster.module.collector.dal.dataobject.qa.CollectorQualityTaskObj
 import com.datamaster.module.collector.service.qa.ICollectorQualityTaskObjService;
 
 /**
- * 数据质量任务-稽查对象Controller
+ * 质量探查任务-稽查对象Controller
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Tag(name = "数据质量任务-稽查对象")
+@Tag(name = "质量探查任务-稽查对象")
 @RestController
 @RequestMapping("/col/qualityTaskObj")
 @Validated
@@ -45,15 +45,15 @@ public class CollectorQualityTaskObjController extends BaseController {
     @Resource
     private ICollectorQualityTaskObjService CollectorQualityTaskObjService;
 
-    @Operation(summary = "查询数据质量任务-稽查对象列表")
+    @Operation(summary = "查询质量探查任务-稽查对象列表")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorQualityTaskObjRespVO>> list(CollectorQualityTaskObjPageReqVO CollectorQualityTaskObj) {
         PageResult<CollectorQualityTaskObjDO> page = CollectorQualityTaskObjService.getCollectorQualityTaskObjPage(CollectorQualityTaskObj);
         return CommonResult.success(BeanUtils.toBean(page, CollectorQualityTaskObjRespVO.class));
     }
 
-    @Operation(summary = "导出数据质量任务-稽查对象列表")
-    @Log(title = "数据质量任务-稽查对象", businessType = BusinessType.EXPORT)
+    @Operation(summary = "导出质量探查任务-稽查对象列表")
+    @Log(title = "质量探查任务-稽查对象", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorQualityTaskObjPageReqVO exportReqVO) {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
@@ -62,8 +62,8 @@ public class CollectorQualityTaskObjController extends BaseController {
         util.exportExcel(response, CollectorQualityTaskObjConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");
     }
 
-    @Operation(summary = "导入数据质量任务-稽查对象列表")
-    @Log(title = "数据质量任务-稽查对象", businessType = BusinessType.IMPORT)
+    @Operation(summary = "导入质量探查任务-稽查对象列表")
+    @Log(title = "质量探查任务-稽查对象", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
         ExcelUtil<CollectorQualityTaskObjRespVO> util = new ExcelUtil<>(CollectorQualityTaskObjRespVO.class);
@@ -73,15 +73,15 @@ public class CollectorQualityTaskObjController extends BaseController {
         return success(message);
     }
 
-    @Operation(summary = "获取数据质量任务-稽查对象详细信息")
+    @Operation(summary = "获取质量探查任务-稽查对象详细信息")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorQualityTaskObjRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorQualityTaskObjDO CollectorQualityTaskObjDO = CollectorQualityTaskObjService.getCollectorQualityTaskObjById(id);
         return CommonResult.success(BeanUtils.toBean(CollectorQualityTaskObjDO, CollectorQualityTaskObjRespVO.class));
     }
 
-    @Operation(summary = "新增数据质量任务-稽查对象")
-    @Log(title = "数据质量任务-稽查对象", businessType = BusinessType.INSERT)
+    @Operation(summary = "新增质量探查任务-稽查对象")
+    @Log(title = "质量探查任务-稽查对象", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorQualityTaskObjSaveReqVO CollectorQualityTaskObj) {
         CollectorQualityTaskObj.setCreatorId(getUserId());
@@ -90,8 +90,8 @@ public class CollectorQualityTaskObjController extends BaseController {
         return CommonResult.toAjax(CollectorQualityTaskObjService.createCollectorQualityTaskObj(CollectorQualityTaskObj));
     }
 
-    @Operation(summary = "修改数据质量任务-稽查对象")
-    @Log(title = "数据质量任务-稽查对象", businessType = BusinessType.UPDATE)
+    @Operation(summary = "修改质量探查任务-稽查对象")
+    @Log(title = "质量探查任务-稽查对象", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorQualityTaskObjSaveReqVO CollectorQualityTaskObj) {
         CollectorQualityTaskObj.setUpdatorId(getUserId());
@@ -100,8 +100,8 @@ public class CollectorQualityTaskObjController extends BaseController {
         return CommonResult.toAjax(CollectorQualityTaskObjService.updateCollectorQualityTaskObj(CollectorQualityTaskObj));
     }
 
-    @Operation(summary = "删除数据质量任务-稽查对象")
-    @Log(title = "数据质量任务-稽查对象", businessType = BusinessType.DELETE)
+    @Operation(summary = "删除质量探查任务-稽查对象")
+    @Log(title = "质量探查任务-稽查对象", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
         return CommonResult.toAjax(CollectorQualityTaskObjService.removeCollectorQualityTaskObj(Arrays.asList(ids)));

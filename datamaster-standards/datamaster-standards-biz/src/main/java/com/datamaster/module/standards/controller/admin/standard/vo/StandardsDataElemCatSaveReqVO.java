@@ -39,8 +39,4 @@ public class StandardsDataElemCatSaveReqVO {
     @Size(max = 256, message = "层级编码长度不能超过256个字符")
     private String code;
 
-    @Schema(description = "备注", example = "")
-    @Size(max = 3000, message = "备注长度不能超过3000个字符")
-    private String remark;
-
 }

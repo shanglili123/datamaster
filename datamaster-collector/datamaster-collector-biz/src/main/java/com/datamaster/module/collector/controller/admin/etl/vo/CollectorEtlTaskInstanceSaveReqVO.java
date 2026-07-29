@@ -48,11 +48,11 @@ public class CollectorEtlTaskInstanceSaveReqVO extends BaseEntity {
     private String personCharge;
 
     @Schema(description = "空间id", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
     @Size(max = 256, message = "空间编码长度不能超过256个字符")
-    private String projectCode;
+    private String spaceCode;
 
     @Schema(description = "开始时间", example = "")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -87,9 +87,9 @@ public class CollectorEtlTaskInstanceSaveReqVO extends BaseEntity {
     @Schema(description = "DolphinScheduler的id", example = "")
     private Long dsId;
 
-    @Schema(description = "备注", example = "")
+    @Schema(description = "描述", example = "")
     @Size(max = 256, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String description;
 
 
 }

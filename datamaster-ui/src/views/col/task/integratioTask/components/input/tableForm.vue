@@ -663,8 +663,8 @@ const getDatasourceList = async () => {
         loading.value = true;
         const response = await listDaDatasource({
             pageSize: 9999,
-            projectCode: userStore.projectCode,
-            projectId: userStore.projectId,
+            spaceCode: userStore.spaceCode,
+            spaceId: userStore.spaceId,
             datasourceType: "DM8,Oracle11,MySql,Oracle,Kingbase8,Doris,ClickHouse,Hive,MongoDB,Elasticsearch,SQL_Server,SQL_Server2008,PostgreSQL,Kafka",
         });
         createTypeList.value = response.data.rows || [];
@@ -1083,8 +1083,8 @@ const getdppNoPageListList = async (id) => {
     listDppAsset({
         pageNum: 1,
         pageSize: 9999,
-        projectCode: userStore.projectCode,
-        projectId: userStore.projectId,
+        spaceCode: userStore.spaceCode,
+        spaceId: userStore.spaceId,
         params: {
             sourceType: [0, 1],
         },
@@ -1215,8 +1215,8 @@ const saveData = async () => {
         if (!form.value.code) {
             loading.value = true;
             const response = await getNodeUniqueKey({
-                projectCode: userStore.projectCode || '133545087166112',
-                projectId: userStore.projectId
+                spaceCode: userStore.spaceCode || '133545087166112',
+                spaceId: userStore.spaceId
             });
             loading.value = false;
             form.value.code = response.data;

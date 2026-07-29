@@ -114,7 +114,7 @@ let form = ref({
 let id = route.query.id || 1;
 // 监听 id 变化
 watch(
-    [() => route.query.id, () => userStore.projectCode],
+    [() => route.query.id, () => userStore.spaceCode],
     ([newId, newCode], [oldId, oldCode]) => {
       if (newId) {
         console.log("route.query", route.query);
@@ -200,8 +200,8 @@ let deptOptions = ref([]);
 function getDeptTree() {
   Promise.all([
     listAttDataDevCat({
-      projectId: userStore.projectId,
-      projectCode: userStore.projectCode,
+      spaceId: userStore.spaceId,
+      spaceCode: userStore.spaceCode,
       validFlag: true,
     }).catch((err) => {
       console.error("获取类别数据失败", err);
@@ -307,8 +307,8 @@ const dataJson = () => {
     taskRelationJson: JSON.stringify([taskRelationData]),
     locations,
     taskDefinitionList: JSON.stringify([taskDefinitionList]),
-    projectCode: userStore.projectCode || "133545087166112",
-    projectId: userStore.projectId,
+    spaceCode: userStore.spaceCode || "133545087166112",
+    spaceId: userStore.spaceId,
     type: "3",
     ...nodeData.value,
   };
@@ -372,7 +372,7 @@ const minimizeAction = () => {
 
 // 初始化函数
 onMounted(() => {
-  if(userStore.projectId){
+  if(userStore.spaceId){
     getDeptTree();
   }
 });

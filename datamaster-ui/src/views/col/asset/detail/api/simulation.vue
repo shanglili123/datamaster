@@ -101,7 +101,7 @@
                                         :rules="rules.fieldDefault">
                                         <el-input v-model="row.remark" placeholder="请输入描述" />
                                     </el-form-item> -->
-                  {{ row?.remark || "" }}
+                  {{ row?.description || "" }}
                 </template>
               </el-table-column>
 

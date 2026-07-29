@@ -44,8 +44,8 @@ public class SystemContentPageReqVO extends PageParam {
     @Schema(description = "状态", example = "")
     private Integer status;
 
-    @Schema(description = "备注", example = "")
-    private String remark;
+    @Schema(description = "描述", example = "")
+    private String description;
 
 
 }

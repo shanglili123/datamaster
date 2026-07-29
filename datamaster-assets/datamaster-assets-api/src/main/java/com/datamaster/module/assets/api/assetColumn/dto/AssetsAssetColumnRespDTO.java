@@ -19,7 +19,7 @@ public class AssetsAssetColumnRespDTO {
     private Long id;
 
     /** 资产id */
-    private String assetId;
+    private Long assetId;
 
     /** 字段名称/英文名称 */
     private String columnName;

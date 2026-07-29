@@ -11,12 +11,12 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 数据质量任务-稽查对象 Response VO 对象 COL_QUALITY_TASK_OBJ
+ * 质量探查任务-稽查对象 Response VO 对象 COL_QUALITY_TASK_OBJ
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Schema(description = "数据质量任务-稽查对象 Response VO")
+@Schema(description = "质量探查任务-稽查对象 Response VO")
 @Data
 public class CollectorQualityTaskObjRespVO implements Serializable {
 
@@ -26,8 +26,8 @@ public class CollectorQualityTaskObjRespVO implements Serializable {
     @Schema(description = "ID")
     private Long id;
 
-    @Excel(name = "数据质量任务ID")
-    @Schema(description = "数据质量任务ID", example = "")
+    @Excel(name = "质量探查任务ID")
+    @Schema(description = "质量探查任务ID", example = "")
     private Long taskId;
 
     @Excel(name = "稽查对象名称")

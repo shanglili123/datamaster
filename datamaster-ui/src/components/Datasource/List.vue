@@ -36,7 +36,7 @@
         data: {
             type: Array
         },
-        project: {
+        space: {
             type: Boolean
         },
         // 新增回echo相关属性
@@ -78,9 +78,9 @@
         const params = {};
         params.pageNum = 1;
         params.pageSize = 9999;
-        if (props.project) {
-            params.projectId = userStore.projectId;
-            params.projectCode = userStore.projectCode;
+        if (props.space) {
+            params.spaceId = userStore.spaceId;
+            params.spaceCode = userStore.spaceCode;
         }
         
         getDatasourceData(params).then((data) => {

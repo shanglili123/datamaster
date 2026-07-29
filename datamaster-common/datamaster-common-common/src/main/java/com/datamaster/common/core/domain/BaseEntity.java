@@ -83,8 +83,9 @@ public class BaseEntity implements Serializable
     private Date updateTime;
 
     /**
-     * 备注
+     * 请求备注，业务描述字段由具体实体按表结构单独定义
      */
+    @TableField(exist = false)
     @Schema(description = "备注", example = "")
     private String remark;
 
@@ -150,6 +151,14 @@ public class BaseEntity implements Serializable
 
     public void setCreatorId(Long creatorId) {
         this.creatorId = creatorId;
+    }
+
+    public Long getUpdaterId() {
+        return updaterId;
+    }
+
+    public void setUpdaterId(Long updaterId) {
+        this.updaterId = updaterId;
     }
 
     public Long getUpdatorId() {

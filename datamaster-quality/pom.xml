@@ -10,7 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>datamaster-quality</artifactId>
     <description>
-        数据质量服务入口
+        质量探查服务入口
     </description>
     <!-- 设置 jitpack.io 插件仓库 -->
     <pluginRepositories>

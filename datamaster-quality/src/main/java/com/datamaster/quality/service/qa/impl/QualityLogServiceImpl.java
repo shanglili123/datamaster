@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 /**
- * 数据质量日志Service业务层处理
+ * 质量探查日志Service业务层处理
  *
  * @author lili.shang
  * @date 2025-07-19
@@ -53,13 +53,13 @@ public class QualityLogServiceImpl  extends ServiceImpl<QualityLogMapper, Qualit
     public int updateQualityLog(QualityLogSaveReqVO updateReqVO) {
         // 相关校验
 
-        // 更新数据质量日志
+        // 更新质量探查日志
         QualityLogDO updateObj = BeanUtils.toBean(updateReqVO, QualityLogDO.class);
         return QualityLogMapper.updateById(updateObj);
     }
     @Override
     public int removeQualityLog(Collection<Long> idList) {
-        // 批量删除数据质量日志
+        // 批量删除质量探查日志
         return QualityLogMapper.deleteBatchIds(idList);
     }
 
@@ -87,9 +87,9 @@ public class QualityLogServiceImpl  extends ServiceImpl<QualityLogMapper, Qualit
 
 
         /**
-         * 导入数据质量日志数据
+         * 导入质量探查日志数据
          *
-         * @param importExcelList 数据质量日志数据列表
+         * @param importExcelList 质量探查日志数据列表
          * @param isUpdateSupport 是否更新支持，如果已存在，则进行更新数据
          * @param operName 操作用户
          * @return 结果
@@ -115,10 +115,10 @@ public class QualityLogServiceImpl  extends ServiceImpl<QualityLogMapper, Qualit
                             if (existingQualityLog != null) {
                                 QualityLogMapper.updateById(QualityLogDO);
                                 successNum++;
-                                successMessages.add("数据更新成功，ID为 " + QualityLogId + " 的数据质量日志记录。");
+                                successMessages.add("数据更新成功，ID为 " + QualityLogId + " 的质量探查日志记录。");
                             } else {
                                 failureNum++;
-                                failureMessages.add("数据更新失败，ID为 " + QualityLogId + " 的数据质量日志记录不存在。");
+                                failureMessages.add("数据更新失败，ID为 " + QualityLogId + " 的质量探查日志记录不存在。");
                             }
                         } else {
                             failureNum++;
@@ -131,10 +131,10 @@ public class QualityLogServiceImpl  extends ServiceImpl<QualityLogMapper, Qualit
                         if (existingQualityLog == null) {
                             QualityLogMapper.insert(QualityLogDO);
                             successNum++;
-                            successMessages.add("数据插入成功，ID为 " + QualityLogId + " 的数据质量日志记录。");
+                            successMessages.add("数据插入成功，ID为 " + QualityLogId + " 的质量探查日志记录。");
                         } else {
                             failureNum++;
-                            failureMessages.add("数据插入失败，ID为 " + QualityLogId + " 的数据质量日志记录已存在。");
+                            failureMessages.add("数据插入失败，ID为 " + QualityLogId + " 的质量探查日志记录已存在。");
                         }
                     }
                 } catch (Exception e) {

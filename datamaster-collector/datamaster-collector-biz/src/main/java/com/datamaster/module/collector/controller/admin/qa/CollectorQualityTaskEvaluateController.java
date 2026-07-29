@@ -39,12 +39,12 @@ import com.datamaster.module.collector.service.qa.ICollectorQualityTaskEvaluateS
 import com.datamaster.module.collector.service.qa.ICollectorQualityTaskService;
 
 /**
- * 数据质量任务-评测规则Controller
+ * 质量探查任务-评测规则Controller
  *
  * @author Chaos
  * @date 2025-07-21
  */
-@Tag(name = "数据质量任务-评测规则")
+@Tag(name = "质量探查任务-评测规则")
 @RestController
 @RequestMapping("/col/qualityTaskEvaluate")
 @Validated
@@ -54,15 +54,15 @@ public class CollectorQualityTaskEvaluateController extends BaseController {
     @Resource
     private ICollectorQualityTaskService CollectorQualityTaskService;
 
-    @Operation(summary = "查询数据质量任务-评测规则列表")
+    @Operation(summary = "查询质量探查任务-评测规则列表")
     @GetMapping("/list")
     public CommonResult<PageResult<CollectorQualityTaskEvaluateRespVO>> list(CollectorQualityTaskEvaluatePageReqVO CollectorQualityTaskEvaluate) {
         PageResult<CollectorQualityTaskEvaluateDO> page = CollectorQualityTaskEvaluateService.getCollectorQualityTaskEvaluatePage(CollectorQualityTaskEvaluate);
         return CommonResult.success(BeanUtils.toBean(page, CollectorQualityTaskEvaluateRespVO.class));
     }
 
-    @Operation(summary = "导出数据质量任务-评测规则列表")
-    @Log(title = "数据质量任务-评测规则", businessType = BusinessType.EXPORT)
+    @Operation(summary = "导出质量探查任务-评测规则列表")
+    @Log(title = "质量探查任务-评测规则", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, CollectorQualityTaskEvaluatePageReqVO exportReqVO) {
         exportReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
@@ -71,8 +71,8 @@ public class CollectorQualityTaskEvaluateController extends BaseController {
         util.exportExcel(response, CollectorQualityTaskEvaluateConvert.INSTANCE.convertToRespVOList(list), "应用管理数据");
     }
 
-    @Operation(summary = "导入数据质量任务-评测规则列表")
-    @Log(title = "数据质量任务-评测规则", businessType = BusinessType.IMPORT)
+    @Operation(summary = "导入质量探查任务-评测规则列表")
+    @Log(title = "质量探查任务-评测规则", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file, boolean updateSupport) throws Exception {
         ExcelUtil<CollectorQualityTaskEvaluateRespVO> util = new ExcelUtil<>(CollectorQualityTaskEvaluateRespVO.class);
@@ -82,15 +82,15 @@ public class CollectorQualityTaskEvaluateController extends BaseController {
         return success(message);
     }
 
-    @Operation(summary = "获取数据质量任务-评测规则详细信息")
+    @Operation(summary = "获取质量探查任务-评测规则详细信息")
     @GetMapping(value = "/{id}")
     public CommonResult<CollectorQualityTaskEvaluateRespVO> getInfo(@PathVariable("id") Long id) {
         CollectorQualityTaskEvaluateDO CollectorQualityTaskEvaluateDO = CollectorQualityTaskEvaluateService.getCollectorQualityTaskEvaluateById(id);
         return CommonResult.success(BeanUtils.toBean(CollectorQualityTaskEvaluateDO, CollectorQualityTaskEvaluateRespVO.class));
     }
 
-    @Operation(summary = "新增数据质量任务-评测规则")
-    @Log(title = "数据质量任务-评测规则", businessType = BusinessType.INSERT)
+    @Operation(summary = "新增质量探查任务-评测规则")
+    @Log(title = "质量探查任务-评测规则", businessType = BusinessType.INSERT)
     @PostMapping
     public CommonResult<Long> add(@Valid @RequestBody CollectorQualityTaskEvaluateSaveReqVO CollectorQualityTaskEvaluate) {
         CollectorQualityTaskEvaluate.setCreatorId(getUserId());
@@ -99,8 +99,8 @@ public class CollectorQualityTaskEvaluateController extends BaseController {
         return CommonResult.toAjax(CollectorQualityTaskEvaluateService.createCollectorQualityTaskEvaluate(CollectorQualityTaskEvaluate));
     }
 
-    @Operation(summary = "修改数据质量任务-评测规则")
-    @Log(title = "数据质量任务-评测规则", businessType = BusinessType.UPDATE)
+    @Operation(summary = "修改质量探查任务-评测规则")
+    @Log(title = "质量探查任务-评测规则", businessType = BusinessType.UPDATE)
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody CollectorQualityTaskEvaluateSaveReqVO CollectorQualityTaskEvaluate) {
         CollectorQualityTaskEvaluate.setUpdatorId(getUserId());
@@ -109,15 +109,15 @@ public class CollectorQualityTaskEvaluateController extends BaseController {
         return CommonResult.toAjax(CollectorQualityTaskEvaluateService.updateCollectorQualityTaskEvaluate(CollectorQualityTaskEvaluate));
     }
 
-    @Operation(summary = "删除数据质量任务-评测规则")
-    @Log(title = "数据质量任务-评测规则", businessType = BusinessType.DELETE)
+    @Operation(summary = "删除质量探查任务-评测规则")
+    @Log(title = "质量探查任务-评测规则", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public CommonResult<Integer> remove(@PathVariable Long[] ids) {
         return CommonResult.toAjax(CollectorQualityTaskEvaluateService.removeCollectorQualityTaskEvaluate(Arrays.asList(ids)));
     }
 
-    @Operation(summary = "删除数据质量任务-检验功能")
-    @Log(title = "数据质量任务-检验功能", businessType = BusinessType.DELETE)
+    @Operation(summary = "删除质量探查任务-检验功能")
+    @Log(title = "质量探查任务-检验功能", businessType = BusinessType.DELETE)
     @GetMapping("/verifyInterfaceValue")
     public CommonResult<String> verifyInterfaceValue(CollectorQualityTaskEvaluateSaveReqVO CollectorQualityTaskEvaluate) {
 
@@ -125,13 +125,13 @@ public class CollectorQualityTaskEvaluateController extends BaseController {
         return CommonResult.success(meg);
     }
 
-    @Operation(summary = "删除数据质量任务-错误抽查功能")
+    @Operation(summary = "删除质量探查任务-错误抽查功能")
     @PostMapping("/validationErrorDataSql")
     public AjaxResult validationErrorDataSql(@Valid @RequestBody CollectorQualityTaskEvaluateSaveReqVO CollectorQualityTaskEvaluate) {
         return AjaxResult.success(CollectorQualityTaskService.validationErrorDataSql(CollectorQualityTaskEvaluate));
     }
 
-    @Operation(summary = "删除数据质量任务-成功抽查功能")
+    @Operation(summary = "删除质量探查任务-成功抽查功能")
     @PostMapping("/validationValidDataSql")
     public AjaxResult validationValidDataSql(@Valid @RequestBody CollectorQualityTaskEvaluateSaveReqVO CollectorQualityTaskEvaluate) {
         return AjaxResult.success(CollectorQualityTaskService.validationValidDataSql(CollectorQualityTaskEvaluate));

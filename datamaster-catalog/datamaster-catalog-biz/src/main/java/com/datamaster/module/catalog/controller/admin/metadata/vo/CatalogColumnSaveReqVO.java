@@ -94,7 +94,7 @@ public class CatalogColumnSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "度量单位长度不能超过256个字符")
     private String measuringUnit;
 
-    @Schema(description = "数据质量", example = "")
+    @Schema(description = "质量探查", example = "")
     private Integer dataQuality;
 
     @Schema(description = "审核状态;1：审批中，2：审批通过，3：审批拒绝，4：审批撤回，5：审批异常", example = "")
@@ -109,14 +109,10 @@ public class CatalogColumnSaveReqVO extends BaseEntity {
     private String status;
 
     @Schema(description = "空间ID", example = "")
-    private Long projectId;
+    private Long spaceId;
 
     @Schema(description = "空间编码", example = "")
-    private String projectCode;
-
-    @Schema(description = "备注", example = "")
-    @Size(max = 512, message = "备注长度不能超过256个字符")
-    private String remark;
+    private String spaceCode;
 
     @Schema(description = "描述", example = "")
     @Size(max = 512, message = "描述长度不能超过256个字符")

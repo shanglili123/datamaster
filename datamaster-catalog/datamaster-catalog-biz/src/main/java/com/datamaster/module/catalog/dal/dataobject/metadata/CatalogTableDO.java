@@ -77,7 +77,7 @@ public class CatalogTableDO extends BaseEntity {
     /** 是否临时表;0：否，1：是 */
     private String tempFlag;
 
-    /** 数据质量 */
+    /** 质量探查 */
     private Integer dataQuality;
 
     /** 审核状态;1：审批中，2：审批通过，3：审批拒绝，4：审批撤回，5：审批异常 */
@@ -90,10 +90,10 @@ public class CatalogTableDO extends BaseEntity {
     private String status;
 
     /** 空间ID */
-    private Long projectId;
+    private Long spaceId;
 
     /** 空间编码 */
-    private String projectCode;
+    private String spaceCode;
 
     /** 是否有效;0：无效，1：有效 */
     private Boolean validFlag;

@@ -28,8 +28,6 @@
         <poi.version>4.1.2</poi.version>
         <velocity.version>2.3</velocity.version>
         <jwt.version>0.9.1</jwt.version>
-        <scala.version>2.12.18</scala.version>
-        <spark.version>3.4.4</spark.version>
         <hadoop.version>3.0.0</hadoop.version>
         <!-- Docker 镜像构建配置 -->
         <docker.hub>crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji</docker.hub>
@@ -185,7 +183,6 @@
         <module>datamaster-catalog</module>
         <module>datamaster-api-ds</module>
         <module>datamaster-server</module>
-        <module>datamaster-etl</module>
         <module>datamaster-flinkx-core</module>
         <module>datamaster-quality</module>
     </modules>

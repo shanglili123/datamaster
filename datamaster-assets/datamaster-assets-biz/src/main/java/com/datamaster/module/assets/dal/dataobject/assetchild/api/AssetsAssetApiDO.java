@@ -39,6 +39,9 @@ public class AssetsAssetApiDO extends BaseEntity {
     /**  */
     private String httpMethod;
 
+    /** API 描述 */
+    private String description;
+
     /**  */
     private Boolean validFlag;
 

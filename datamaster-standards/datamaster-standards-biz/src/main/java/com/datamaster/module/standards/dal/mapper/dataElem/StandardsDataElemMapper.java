@@ -37,7 +37,7 @@ public interface StandardsDataElemMapper extends BaseMapperX<StandardsDataElemDO
                 .eq(StringUtils.isNotBlank(reqVO.getColumnType()), StandardsDataElemDO::getColumnType, reqVO.getColumnType())
                 .eq(StringUtils.isNotBlank(reqVO.getStatus()), StandardsDataElemDO::getStatus, reqVO.getStatus())
                 .eq(reqVO.getDocumentId()!= null, StandardsDataElemDO::getDocumentId, reqVO.getDocumentId())
-                .eq(reqVO.getProjectId() != null, StandardsDataElemDO::getProjectId, reqVO.getProjectId())
+                .eq(reqVO.getSpaceId() != null, StandardsDataElemDO::getSpaceId, reqVO.getSpaceId())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         return selectJoinPage(reqVO, StandardsDataElemDO.class, lambdaWrapper);
     }
