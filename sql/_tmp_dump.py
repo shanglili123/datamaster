@@ -9,7 +9,9 @@ DB_CONFIG = {
     "password": "datamaster",
 }
 
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "datamaster_dump.sql")
+from datetime import datetime
+date_str = datetime.now().strftime("%Y%m%d")
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), f"datamaster_dump_{date_str}.sql")
 
 conn = psycopg2.connect(**DB_CONFIG)
 conn.autocommit = True

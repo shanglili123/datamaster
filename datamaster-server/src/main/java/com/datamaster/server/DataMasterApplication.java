@@ -33,7 +33,6 @@ import com.datamaster.quality.QualityApplication;
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 public class DataMasterApplication
 {
-    public static final String BRAND_BLUE = "\u001B[38;2;29;80;163m";
     public static final String RESET = "\u001B[0m";
 
     public static void main(String[] args)
