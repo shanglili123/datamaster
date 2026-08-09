@@ -1,6 +1,6 @@
 <template>
-    <el-form ref="form2" :model="form2" label-width="100px" label="字段列表：">
-        <template v-if="form2.apiServiceType != 3">
+    <a-form ref="form2" :model="form2" :label-col="{ style: { width: '100px' } }" label="字段列表：">
+        <template>
             <div class="clearfix header-text">
                 <div class="header-left">
                     <div class="blue-bar"></div>
@@ -8,220 +8,61 @@
                 </div>
             </div>
 
-            <el-table :data="form2.reqParams" max-height="250" stripe>
-                <el-table-column label="序号" width="80" align="center">
-                    <template #default="scope">
-                        <span>{{ scope.$index + 1 }}</span>
+            <a-table :data-source="form2.reqParams" :scroll="{ y: 250 }" striped :pagination="false" :columns="reqParamColumns">
+                <template #bodyCell="{ column, record, index }">
+                    <template v-if="column.key === 'index'">
+                        <span>{{ index + 1 }}</span>
                     </template>
-                </el-table-column>
-                <el-table-column prop="paramName" label="参数名称" align="center"
-                    :show-overflow-tooltip="{ effect: 'light' }" />
-                <el-table-column prop="nullable" label="是否允许为空" align="center"
-                    :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        <el-checkbox disabled v-model="scope.row.nullable" true-label="1" false-label="0" />
+                    <template v-if="column.dataIndex === 'nullable'">
+                        <a-checkbox disabled :checked="record.nullable === '1'" />
                     </template>
-                </el-table-column>
-                <el-table-column prop="paramComment" label="描述" align="center">
-                    <template #default="scope">
-                        {{ scope.row.paramComment || '-' }}
+                    <template v-if="column.dataIndex === 'paramComment'">
+                        {{ record.paramComment || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column prop="paramType" label="参数类型" align="center">
-                    <template #default="scope">
-                        <dict-tag :options="ds_api_param_type" :value="scope.row.paramType" />
+                    <template v-if="column.dataIndex === 'paramType'">
+                        <dict-tag :options="ds_api_param_type" :value="record.paramType" />
                     </template>
-                </el-table-column>
-                <el-table-column
-                  prop="whereType"
-                  label="操作符"
-                  align="center"
-                  v-if="splReult !== true"
-                >
-                  <template #default="scope">
-                    <dict-tag :options="da_api_param_operator" :value="scope.row.whereType" />
-                  </template>
-                </el-table-column>
-                <el-table-column prop="exampleValue" label="示例值" align="center"
-                    :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        {{ scope.row.exampleValue || '-' }}
+                    <template v-if="column.dataIndex === 'whereType'">
+                        <dict-tag :options="da_api_param_operator" :value="record.whereType" />
                     </template>
-                </el-table-column>
-                <el-table-column prop="defaultValue" label="默认值" align="center"
-                    :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        {{ scope.row.defaultValue || '-' }}
+                    <template v-if="column.dataIndex === 'exampleValue'">
+                        {{ record.exampleValue || '-' }}
                     </template>
-                </el-table-column>
-            </el-table>
+                    <template v-if="column.dataIndex === 'defaultValue'">
+                        {{ record.defaultValue || '-' }}
+                    </template>
+                </template>
+            </a-table>
             <div class="clearfix header-text">
                 <div class="header-left">
                     <div class="blue-bar"></div>
                     返回字段
                 </div>
             </div>
-            <el-table :data="form2.resParams" stripe>
-                <el-table-column label="序号" width="80" align="center">
-                    <template #default="scope">
-                        <span>{{ scope.$index + 1 }}</span>
+            <a-table :data-source="form2.resParams" striped :pagination="false" :columns="[
+                { title: '序号', key: 'index', align: 'center', width: 80 },
+                { title: '中文名称', dataIndex: 'fieldName', align: 'center', ellipsis: true },
+                { title: '描述', dataIndex: 'fieldComment', align: 'center', ellipsis: true },
+                { title: '数据类型', dataIndex: 'dataType', align: 'center', ellipsis: true },
+                { title: '示例值', dataIndex: 'exampleValue', align: 'center', ellipsis: true },
+            ]">
+                <template #bodyCell="{ column, record, index }">
+                    <template v-if="column.key === 'index'">
+                        <span>{{ index + 1 }}</span>
                     </template>
-                </el-table-column>
-                <el-table-column prop="fieldName" label="中文名称" align="center"
-                    :show-overflow-tooltip="{ effect: 'light' }" />
-                <el-table-column prop="fieldComment" label="描述" align="center"
-                    :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        {{ scope.row.fieldComment || '-' }}
+                    <template v-if="column.dataIndex === 'fieldComment'">
+                        {{ record.fieldComment || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column prop="dataType" label="数据类型" align="center" :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        {{ scope.row.dataType || '-' }}
+                    <template v-if="column.dataIndex === 'dataType'">
+                        {{ record.dataType || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column prop="exampleValue" label="示例值" align="center"
-                    :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        {{ scope.row.exampleValue || '-' }}
+                    <template v-if="column.dataIndex === 'exampleValue'">
+                        {{ record.exampleValue || '-' }}
                     </template>
-                </el-table-column>
-            </el-table>
+                </template>
+            </a-table>
         </template>
-        <template v-if="form2.apiServiceType == 3">
-            <div class="clearfix header-text">
-                <div class="header-left">
-                    <div class="blue-bar"></div>
-                    请求数据
-                </div>
-            </div>
-            <el-form :model="form2.reqParams" :rules="rules" ref="inputForm" label-width="0">
-                <el-row>
-                    <el-col :span="24">
-                        <el-table :data="form2.reqParams" class="tableStyle" row-key="id" stripe default-expand-all
-                            :tree-props="{ children: 'daAssetApiParamList', hasChildren: 'hasChildren' }">
-                            <el-table-column label="序号" width="80" align="center" fixed="left">
-                                <template #default="{ $index }">
-                                    {{ $index + 1 }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="参数名称" fixed="left" align="center" prop="name"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    {{ row?.name || '' }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="描述" fixed="left" align="center" prop="description"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    {{ row?.description || '' }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="是否为空" width="100" fixed="left" align="center" prop="requestFlag"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    <el-form-item>
-                                        <el-checkbox v-model="row.requestFlag" disabled :true-label="'1'"
-                                            :false-label="'0'"> </el-checkbox>
-                                    </el-form-item>
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="参数类型" fixed="left" align="center" prop="columnType"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    {{ row?.columnType || '' }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="示例值" fixed="left" align="center" prop="exampleValue"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    <!-- <el-form-item
-                                        :prop="`form2.reqParams[${findPosi(form2.reqParams, row.id)}].exampleValue`"
-                                        :rules="hasChildren(row) ? rules.fieldDefault : []">
-                                        <el-input v-model="row.fieldDefault" placeholder="请输入示例值"
-                                            :disabled="hasChildren(row)" />
-                                    </el-form-item> -->
-                                    {{ row.reqParams }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="默认值" fixed="left" align="center" prop="defaultValue"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    <!-- <el-form-item
-                                        :prop="`form2.reqParams[${findPosi(form2.reqParams, row.id)}].defaultValue`"
-                                        :rules="hasChildren(row) ? rules.defaultValue : []">
-                                        <el-input v-model="row.defaultValue" placeholder="请输入默认值"
-                                            :disabled="hasChildren(row)" />
-                                    </el-form-item> -->
-                                    {{ row.defaultValue }}
-                                </template>
-                            </el-table-column>
-                        </el-table>
-                    </el-col>
-                </el-row>
-            </el-form>
-            <div class="clearfix header-text">
-                <div class="header-left">
-                    <div class="blue-bar"></div>
-                    返回参数
-                </div>
-            </div>
-            <el-form :model="form2.resParams" :rules="rules" ref="inputForm" label-width="0">
-                <el-row>
-                    <el-col :span="24">
-                        <el-table :data="form2.resParams" class="tableStyle" row-key="id" stripe default-expand-all
-                            :tree-props="{ children: 'daAssetApiParamList', hasChildren: 'hasChildren' }">
-                            <el-table-column label="序号" width="80" align="center" fixed="left">
-                                <template #default="{ $index }">
-                                    {{ $index + 1 }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="参数名称" fixed="left" align="center" prop="name"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    {{ row?.name || '' }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="描述" fixed="left" align="center" prop="description"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    {{ row?.description || '' }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="参数类型" fixed="left" align="center" prop="columnType"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    {{ row?.columnType || '' }}
-                                </template>
-                            </el-table-column>
-
-                            <el-table-column label="示例值" fixed="left" align="center" prop="exampleValue"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="{ row }">
-                                    <!-- <el-form-item
-                                        :prop="`form2.reqParams[${findPosi(form2.reqParams, row.id)}].exampleValue`"
-                                        :rules="hasChildren(row) ? rules.fieldDefault : []">
-                                        <el-input v-model="row.fieldDefault" placeholder="请输入示例值"
-                                            :disabled="hasChildren(row)" />
-                                    </el-form-item> -->
-                                    {{ row.reqParams }}
-                                </template>
-                            </el-table-column>
-                        </el-table>
-                    </el-col>
-                </el-row>
-            </el-form>
-        </template>
-    </el-form>
+    </a-form>
 </template>
 
 <script setup name="ComponentOne">
@@ -251,6 +92,17 @@ const props = defineProps({
         default: {}
     }
 });
+
+const reqParamColumns = [
+    { title: '序号', key: 'index', align: 'center', width: 80 },
+    { title: '参数名称', dataIndex: 'paramName', align: 'center', ellipsis: true },
+    { title: '是否允许为空', dataIndex: 'nullable', align: 'center', ellipsis: true },
+    { title: '描述', dataIndex: 'paramComment', align: 'center' },
+    { title: '参数类型', dataIndex: 'paramType', align: 'center' },
+    { title: '操作符', dataIndex: 'whereType', align: 'center' },
+    { title: '示例值', dataIndex: 'exampleValue', align: 'center', ellipsis: true },
+    { title: '默认值', dataIndex: 'defaultValue', align: 'center', ellipsis: true },
+];
 
 const open = ref(false);
 const openDetail = ref(false);
@@ -305,12 +157,16 @@ function getList() {
         queryParams.value.params['beginCreateTime'] = daterangeCreateTime.value[0];
         queryParams.value.params['endCreateTime'] = daterangeCreateTime.value[1];
     }
-    listDsApi(queryParams.value).then((response) => {
-        const pageData = normalizePageData(response);
-        dsApiList.value = pageData.rows;
-        total.value = pageData.total;
-        loading.value = false;
-    });
+    listDsApi(queryParams.value)
+        .then((response) => {
+            const pageData = normalizePageData(response);
+            dsApiList.value = pageData.rows;
+            total.value = pageData.total;
+        })
+        .catch((error) => { })
+        .finally(() => {
+            loading.value = false;
+        });
 }
 
 // 取消按钮

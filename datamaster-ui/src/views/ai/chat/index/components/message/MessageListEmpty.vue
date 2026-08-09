@@ -8,36 +8,32 @@
         <span>Hello，我是 dataMaster 智能问数，很高兴见到你!</span>
       </div>
       <div class="subheading">化繁为简，让数据分析更高效。</div>
-      <el-footer class="footer-container">
+      <div class="footer-container">
         <form class="prompt-from">
-          <el-input
-            type="textarea"
-            :autosize="{ minRows: 3 }"
+          <a-textarea
+            :auto-size="{ minRows: 3 }"
             class="prompt-input"
-            v-model="value"
-            @keydown.enter.native="handleSendByKeydown"
-            @keydown.shift.enter.native="addNewLine"
+            v-model:value="value"
+            @keydown.enter="handleSendByKeydown"
+            @keydown.shift.enter="addNewLine"
             placeholder="问问 dataMaster 智能问数...（Shift+Enter 换行，按下 Enter 发送）"
           />
           <div class="prompt-btns">
             <div class="footer-left">
-              <el-select
-                v-model="selectedModelId"
-                placeholder="选择模型"
-                size="default"
-                class="model-select"
-                popper-class="ai-model-select-popper"
-              >
-                <template #prefix>
-                  <img :src="selectedModelIcon" class="model-icon" />
-                </template>
-                <el-option
-                  v-for="item in modelList"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id"
+              <div class="model-select">
+                <img :src="selectedModelIcon" class="model-icon" />
+                <a-select
+                  v-model:value="selectedModelId"
+                  placeholder="选择模型"
+                  class="model-select-select"
+                  popup-class-name="ai-model-select-popper"
                 >
-                  <template #default>
+                  <a-select-option
+                    v-for="item in modelList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  >
                     <div class="model-option">
                       <img
                         :src="getModelIconByPlatform(item.platform)"
@@ -45,45 +41,38 @@
                       />
                       <span>{{ item.name }}</span>
                     </div>
-                  </template>
-                </el-option>
-              </el-select>
-              <el-select
-                v-model="chatType"
-                placeholder="回答方式"
-                size="default"
-                class="chat-type-select"
-                popper-class="ai-chat-type-select-popper"
-              >
-                <template #prefix>
-                  <el-icon class="chat-type-icon">
-                    <component
-                      :is="
-                        chatType
-                          ? CHAT_TYPES.find((t) => t.value === chatType)
-                              ?.icon || Plus
-                          : Plus
-                      "
-                    />
-                  </el-icon>
-                </template>
-                <el-option
-                  v-for="item in CHAT_TYPES"
-                  :key="item.value"
-                  :value="item.value"
-                  :label="item.label"
-                  :disabled="item.disabled"
+                  </a-select-option>
+                </a-select>
+              </div>
+              <div class="chat-type-select">
+                <component
+                  :is="
+                    chatType
+                      ? CHAT_TYPES.find((t) => t.value === chatType)?.icon || PlusOutlined
+                      : PlusOutlined
+                  "
+                  class="chat-type-icon"
+                />
+                <a-select
+                  v-model:value="chatType"
+                  placeholder="回答方式"
+                  class="chat-type-select-select"
+                  popup-class-name="ai-chat-type-select-popper"
                 >
-                  <template #default>
+                  <a-select-option
+                    v-for="item in CHAT_TYPES"
+                    :key="item.value"
+                    :value="item.value"
+                    :label="item.label"
+                    :disabled="item.disabled"
+                  >
                     <div class="chat-type-option">
-                      <el-icon class="chat-type-option-icon">
-                        <component :is="item.icon" />
-                      </el-icon>
+                      <component :is="item.icon" class="chat-type-option-icon" />
                       <span>{{ item.label }}</span>
                     </div>
-                  </template>
-                </el-option>
-              </el-select>
+                  </a-select-option>
+                </a-select>
+              </div>
             </div>
             <div class="footer-right">
               <img
@@ -94,7 +83,7 @@
             </div>
           </div>
         </form>
-      </el-footer>
+      </div>
     </div>
     <div class="ai-disclaimer">
       本功能由 dataMaster 智能问数生成，其回答未必正确无误。
@@ -107,7 +96,7 @@ import { CHAT_TYPES } from "../../constants";
 import defaultModelIcon from "@/assets/ai/gpt-new.svg";
 import deepseekIcon from "@/assets/ai/deepseek.svg";
 import tongyiIcon from "@/assets/ai/TongYi.svg";
-import { Plus } from "@element-plus/icons-vue";
+import { PlusOutlined } from "@ant-design/icons-vue";
 
 const emits = defineEmits([
   "onPrompt",
@@ -269,7 +258,7 @@ const addNewLine = async (event) => {
 
       .prompt-input {
         margin-bottom: 8px;
-        :deep(.el-textarea__inner) {
+        :deep(.ant-input) {
           box-shadow: none;
           resize: none;
           padding: 0;
@@ -371,59 +360,69 @@ const addNewLine = async (event) => {
         }
 
         .model-select {
+          display: flex;
+          align-items: center;
+          gap: 4px;
           width: 150px;
-          :deep(.el-input__wrapper) {
-            background-color: #ffffff;
+          height: 32px;
+          background-color: #ffffff;
+          border: 1px solid #dcdfe6;
+          border-radius: 4px;
+          padding: 0 10px;
+          box-sizing: border-box;
+          transition: all 0.2s;
+          &:hover {
+            border-color: #409eff;
+          }
+          :deep(.ant-select-selector) {
+            background: transparent;
             box-shadow: none !important;
-            border: 1px solid #dcdfe6;
-            border-radius: 4px;
-            padding: 0 10px;
-            height: 32px;
-            transition: all 0.2s;
-            &:hover {
-              border-color: #409eff;
-            }
+            border: none !important;
+            padding: 0;
+            height: 30px;
           }
-          :deep(.el-input__prefix) {
-            display: flex;
-            align-items: center;
-          }
-          :deep(.el-input__inner) {
+          :deep(.ant-select-selection-item) {
             font-size: 13px;
             color: #606266;
             font-weight: 500;
+            line-height: 30px;
           }
           .model-icon {
             width: 16px;
             height: 16px;
             margin-right: 4px;
             display: block;
-            transform: translateY(2px);
+            flex-shrink: 0;
           }
         }
 
         .chat-type-select {
+          display: flex;
+          align-items: center;
+          gap: 4px;
           width: 130px;
-          :deep(.el-input__wrapper) {
-            background-color: #ffffff;
+          height: 32px;
+          background-color: #ffffff;
+          border: 1px solid #dcdfe6;
+          border-radius: 4px;
+          padding: 0 10px;
+          box-sizing: border-box;
+          transition: all 0.2s;
+          &:hover {
+            border-color: #409eff;
+          }
+          :deep(.ant-select-selector) {
+            background: transparent;
             box-shadow: none !important;
-            border: 1px solid #dcdfe6;
-            border-radius: 4px;
-            padding: 0 10px;
-            height: 32px;
-            transition: all 0.2s;
-            &:hover {
-              border-color: #409eff;
-            }
+            border: none !important;
+            padding: 0;
+            height: 30px;
           }
-          :deep(.el-input__prefix) {
-            display: flex;
-            align-items: center;
-          }
-          :deep(.el-input__inner) {
+          :deep(.ant-select-selection-item) {
             font-size: 13px;
             color: #606266;
             font-weight: 500;
+            line-height: 30px;
           }
           :deep(.chat-type-icon) {
             color: #409eff;
@@ -431,7 +430,7 @@ const addNewLine = async (event) => {
             display: flex;
             align-items: center;
             margin-right: 4px;
-            transform: translateY(1px);
+            flex-shrink: 0;
           }
         }
       }
@@ -517,7 +516,7 @@ const addNewLine = async (event) => {
   }
 }
 
-:global(.ai-model-select-popper .el-select-dropdown__item) {
+:global(.ai-model-select-popper .ant-select-item-option) {
   display: flex;
   align-items: center;
 }
@@ -541,7 +540,7 @@ const addNewLine = async (event) => {
   line-height: 16px;
 }
 
-:global(.ai-chat-type-select-popper .el-select-dropdown__item) {
+:global(.ai-chat-type-select-popper .ant-select-item-option) {
   display: flex;
   align-items: center;
 }

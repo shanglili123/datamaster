@@ -6,93 +6,87 @@
         <div class="ops-subtitle">{{ report.summary || '正在等待诊断结果' }}</div>
       </div>
       <div class="ops-actions">
-        <el-tag :type="statusType" effect="dark">{{ statusText }}</el-tag>
-        <el-button type="primary" icon="Refresh" :loading="loading" @click="loadReport">重新诊断</el-button>
+        <a-tag :color="statusType">{{ statusText }}</a-tag>
+        <a-button type="primary" :icon="h(ReloadOutlined)" :loading="loading" @click="loadReport">重新诊断</a-button>
       </div>
     </div>
 
-    <el-row :gutter="15">
-      <el-col :xs="24" :sm="8">
-        <el-card class="summary-card">
+    <a-row :gutter="15">
+      <a-col :xs="24" :sm="8">
+        <a-card class="summary-card" :bordered="false">
           <div class="summary-label">健康评分</div>
           <div class="summary-score" :class="'score-' + report.status">{{ report.score ?? '--' }}</div>
           <div class="summary-time">{{ report.diagnoseTime || '--' }}</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="16">
-        <el-card class="summary-card">
+        </a-card>
+      </a-col>
+      <a-col :xs="24" :sm="16">
+        <a-card class="summary-card" :bordered="false">
           <div class="summary-label">智能建议</div>
           <div v-for="(item, index) in report.suggestions" :key="index" class="suggestion-line">
             {{ index + 1 }}. {{ item }}
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </a-card>
+      </a-col>
+    </a-row>
 
-    <el-row :gutter="15">
-      <el-col :span="24" class="card-box">
-        <el-card>
-          <template #header>
-            <Monitor style="width: 1em; height: 1em; vertical-align: middle;" />
+    <a-row :gutter="15">
+      <a-col :span="24" class="card-box">
+        <a-card :bordered="false">
+          <template #title>
+            <MonitorOutlined style="width: 1em; height: 1em; vertical-align: middle;" />
             <span style="vertical-align: middle;">关键指标</span>
           </template>
-          <el-table :data="report.metrics" border>
-            <el-table-column prop="name" label="指标" min-width="160" />
-            <el-table-column prop="value" label="当前值" width="140" />
-            <el-table-column label="状态" width="120">
-              <template #default="{ row }">
-                <el-tag :type="metricType(row.level)">{{ metricText(row.level) }}</el-tag>
+          <a-table :data-source="report.metrics" :columns="metricsColumns" :pagination="false" bordered size="small">
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'level'">
+                <a-tag :color="metricType(record.level)">{{ metricText(record.level) }}</a-tag>
               </template>
-            </el-table-column>
-            <el-table-column prop="description" label="说明" min-width="240" show-overflow-tooltip />
-          </el-table>
-        </el-card>
-      </el-col>
+            </template>
+          </a-table>
+        </a-card>
+      </a-col>
 
-      <el-col :span="24" class="card-box">
-        <el-card>
-          <template #header>
-            <Warning style="width: 1em; height: 1em; vertical-align: middle;" />
+      <a-col :span="24" class="card-box">
+        <a-card :bordered="false">
+          <template #title>
+            <WarningOutlined style="width: 1em; height: 1em; vertical-align: middle;" />
             <span style="vertical-align: middle;">风险发现</span>
           </template>
-          <el-empty v-if="!report.findings || !report.findings.length" description="暂无风险发现" />
-          <el-table v-else :data="report.findings" border>
-            <el-table-column label="级别" width="100">
-              <template #default="{ row }">
-                <el-tag :type="findingType(row.level)">{{ findingText(row.level) }}</el-tag>
+          <a-empty v-if="!report.findings || !report.findings.length" description="暂无风险发现" />
+          <a-table v-else :data-source="report.findings" :columns="findingsColumns" :pagination="false" bordered size="small">
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'level'">
+                <a-tag :color="findingType(record.level)">{{ findingText(record.level) }}</a-tag>
               </template>
-            </el-table-column>
-            <el-table-column prop="title" label="问题" min-width="180" />
-            <el-table-column prop="detail" label="详情" min-width="260" show-overflow-tooltip />
-            <el-table-column prop="suggestion" label="处理建议" min-width="320" show-overflow-tooltip />
-          </el-table>
-        </el-card>
-      </el-col>
+            </template>
+          </a-table>
+        </a-card>
+      </a-col>
 
-      <el-col :span="24" class="card-box bottom">
-        <el-card>
-          <template #header>
-            <Document style="width: 1em; height: 1em; vertical-align: middle;" />
+      <a-col :span="24" class="card-box bottom">
+        <a-card :bordered="false">
+          <template #title>
+            <FileTextOutlined style="width: 1em; height: 1em; vertical-align: middle;" />
             <span style="vertical-align: middle;">近期异常日志</span>
           </template>
-          <el-empty v-if="!report.logEvents || !report.logEvents.length" description="未发现异常日志片段" />
-          <el-table v-else :data="report.logEvents" border>
-            <el-table-column prop="fileName" label="文件" width="220" show-overflow-tooltip />
-            <el-table-column label="级别" width="100">
-              <template #default="{ row }">
-                <el-tag :type="findingType(row.level)">{{ findingText(row.level) }}</el-tag>
+          <a-empty v-if="!report.logEvents || !report.logEvents.length" description="未发现异常日志片段" />
+          <a-table v-else :data-source="report.logEvents" :columns="logColumns" :pagination="false" bordered size="small">
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'level'">
+                <a-tag :color="findingType(record.level)">{{ findingText(record.level) }}</a-tag>
               </template>
-            </el-table-column>
-            <el-table-column prop="message" label="日志片段" min-width="520" show-overflow-tooltip />
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+            </template>
+          </a-table>
+        </a-card>
+      </a-col>
+    </a-row>
   </div>
 </template>
 
 <script setup>
 import { diagnoseAiOps } from '@/api/system/monitor/aiOps.js'
+import { h } from 'vue'
+import { FileTextOutlined, MonitorOutlined, ReloadOutlined, WarningOutlined } from '@ant-design/icons-vue'
 
 const { proxy } = getCurrentInstance()
 const loading = ref(false)
@@ -108,7 +102,7 @@ const report = ref({
 })
 
 const statusType = computed(() => {
-  if (report.value.status === 'error') return 'danger'
+  if (report.value.status === 'error') return 'error'
   if (report.value.status === 'warn') return 'warning'
   return 'success'
 })
@@ -120,7 +114,7 @@ const statusText = computed(() => {
 })
 
 function metricType(level) {
-  if (level === 'error') return 'danger'
+  if (level === 'error') return 'error'
   if (level === 'warn') return 'warning'
   return 'success'
 }
@@ -132,9 +126,9 @@ function metricText(level) {
 }
 
 function findingType(level) {
-  if (level === 'error') return 'danger'
+  if (level === 'error') return 'error'
   if (level === 'warn') return 'warning'
-  return 'info'
+  return 'default'
 }
 
 function findingText(level) {
@@ -142,6 +136,26 @@ function findingText(level) {
   if (level === 'warn') return '警告'
   return '提示'
 }
+
+const metricsColumns = [
+  { title: '指标', dataIndex: 'name', key: 'name', minWidth: 160 },
+  { title: '当前值', dataIndex: 'value', key: 'value', width: 140 },
+  { title: '状态', key: 'level', width: 120 },
+  { title: '说明', dataIndex: 'description', key: 'description', minWidth: 240, ellipsis: true },
+];
+
+const findingsColumns = [
+  { title: '级别', key: 'level', width: 100 },
+  { title: '问题', dataIndex: 'title', key: 'title', minWidth: 180 },
+  { title: '详情', dataIndex: 'detail', key: 'detail', minWidth: 260, ellipsis: true },
+  { title: '处理建议', dataIndex: 'suggestion', key: 'suggestion', minWidth: 320, ellipsis: true },
+];
+
+const logColumns = [
+  { title: '文件', dataIndex: 'fileName', key: 'fileName', width: 220, ellipsis: true },
+  { title: '级别', key: 'level', width: 100 },
+  { title: '日志片段', dataIndex: 'message', key: 'message', minWidth: 520, ellipsis: true },
+];
 
 function loadReport() {
   loading.value = true

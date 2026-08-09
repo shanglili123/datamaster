@@ -76,8 +76,8 @@ datamaster-standards     数据标准、标准文档、数据元
 datamaster-assets        数据资产、数据源管理、资产申请、字段权限、AI 问数资产侧能力
 datamaster-collector     数据采集、ETL 任务、调度任务编排和任务实例管理
 datamaster-service       数据服务 API 发布、SQL 执行、接口调用、限流和缓存
-datamaster-modeling      数据建模
-datamaster-catalog       元数据目录、元数据采集和同步
+datamaster-governance    数据治理、数据标准、数据建模
+datamaster-metadata      元数据探查与质量探查（含原 catalog 元数据目录）
 datamaster-api-ds        DolphinScheduler API 适配层
 datamaster-flinkx-core   FlinkX / ChunJun 任务 JSON 转换能力
 datamaster-quality       质量探查模块
@@ -173,9 +173,9 @@ datamaster-ui/
 - 限流、缓存、白名单
 - 执行时读取资产和数据源权限
 
-### 4.8 datamaster-catalog
+### 4.8 datamaster-metadata
 
-元数据目录模块，负责采集外部数据源的库、表、字段、索引、分区、存储等结构信息，并维护目录和版本。
+元数据探查与质量探查模块（由 datamaster-catalog 与 datamaster-quality 合并而来），负责采集外部数据源的库、表、字段、索引、分区、存储等结构信息，维护目录和版本，并对库表执行质量规则探查、产出质量报告。
 
 ### 4.9 datamaster-api-ds
 
@@ -451,12 +451,12 @@ datamaster-server/src/main/resources/application-prod.yml
 元数据采集使用 DolphinScheduler HTTP 节点回调本系统接口。
 
 ```text
-用户创建采集任务
-  -> Catalog 任务服务创建 DS HTTP 工作流
+用户创建探查任务
+  -> 元数据探查任务服务创建 DS HTTP 工作流
   -> DolphinScheduler 调度执行
   -> HTTP 节点回调采集接口
   -> 系统读取数据源结构
-  -> 写入 Catalog 元数据
+  -> 写入元数据目录并产出质量报告
 ```
 
 ### 9.2 ChunJun / FlinkX 全量 ETL

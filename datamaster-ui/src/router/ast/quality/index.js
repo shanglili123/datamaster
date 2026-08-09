@@ -1,4 +1,4 @@
-
+﻿
 /* Layout */
 import Layout from '@/layout/index.vue'
 
@@ -13,7 +13,7 @@ export default [
                 path: '',
                 component: () => import('@/views/ast/quality/qualityTask/add/add.vue'),
                 name: 'qualityTaskAdd',
-                meta: { title: '质量探查新增', activeMenu: '/ast/quality/qualityTask' }
+                meta: { title: '质量探查新增', activeMenu: '/meta/catalog/qualityTask' }
             }
         ]
     },
@@ -26,7 +26,7 @@ export default [
                 path: '',
                 component: () => import('@/views/ast/quality/qualityTask/add/add.vue'),
                 name: 'qualityTaskEdit',
-                meta: { title: '质量探查配置', activeMenu: '/ast/quality/qualityTask' }
+                meta: { title: '质量探查配置', activeMenu: '/meta/catalog/qualityTask' }
             },
         ]
     },
@@ -39,7 +39,7 @@ export default [
                 path: '',
                 component: () => import('@/views/ast/quality/qualityTask/add/add.vue'),
                 name: 'qualityTaskDetail',
-                meta: { title: '质量探查详情', activeMenu: '/ast/quality/qualityTask' }
+                meta: { title: '质量探查详情', activeMenu: '/meta/catalog/qualityTask' }
             }
         ]
     },

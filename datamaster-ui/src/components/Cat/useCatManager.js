@@ -6,7 +6,7 @@ export default function useCatManager({
   delFunc,
   addFunc,
   updateFunc,
-  nameLabel = "类目名称",
+  nameLabel = "目录名称",
 } = {}) {
   const { proxy } = getCurrentInstance();
 
@@ -28,7 +28,7 @@ export default function useCatManager({
     },
     rules: {
       name: [{ required: true, message: `${nameLabel}不能为空`, trigger: "blur" }],
-      parentId: [{ required: true, message: "上级类目不能为空", trigger: "blur" }],
+      parentId: [{ required: true, message: "上级目录不能为空", trigger: "blur" }],
     },
   });
 

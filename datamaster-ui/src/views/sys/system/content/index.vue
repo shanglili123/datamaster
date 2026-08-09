@@ -1,72 +1,72 @@
 <template>
     <div class="dataBody">
-        <el-row class="form-container" :gutter="20">
+        <a-row class="form-container" :gutter="20">
             <!-- Logo 上传 -->
-            <el-col :span="24">
+            <a-col :span="24">
                 <div class="form-item">
                     <div class="form-label">登录页logo</div>
                     <div class="form-input">
                         <ImageUpload v-model="loginLogoModelValue" :limit="1" :fileSize="10" :isShowTip="true" @update:modelValue="loginLogoUpdate" :platForm="platForm"  />  <!-- 使用组件 -->
                     </div>
                 </div>
-            </el-col>
+            </a-col>
 
-            <el-col :span="24">
+            <a-col :span="24">
             <div class="form-item">
                 <div class="form-label">系统Logo</div>
                 <div class="form-input">
                     <ImageUpload v-model="logoModelValue" :limit="1" :fileSize="10" :isShowTip="true" @update:modelValue="logoUpdate" :platForm="platForm"  />  <!-- 使用组件 -->
                 </div>
             </div>
-            </el-col>
+            </a-col>
 
-            <el-col :span="24">
+            <a-col :span="24">
                 <div class="form-item">
                     <div class="form-label">登录页轮播图</div>
                     <div class="form-input">
                         <ImageUpload v-model="carouselImageModelValue" :limit="3" :fileSize="10" :isShowTip="true" @update:modelValue="carouselImageUpdate" :platForm="platForm"  />  <!-- 使用组件 -->
                     </div>
                 </div>
-            </el-col>
+            </a-col>
 
             <!-- 联系电话 -->
-            <el-col :span="24" :xs="24">
+            <a-col :span="24" :xs="24">
                 <div class="form-item">
                     <div class="form-label">联系电话</div>
                     <div class="form-input-i">
-                        <el-input v-model="contentDetail.contactNumber" placeholder="请输入联系电话"></el-input>
+                        <a-input v-model:value="contentDetail.contactNumber" placeholder="请输入联系电话"></a-input>
                     </div>
                 </div>
-            </el-col>
+            </a-col>
 
             <!-- 电子邮箱 -->
-            <el-col :span="24" :xs="24">
+            <a-col :span="24" :xs="24">
                 <div class="form-item">
                     <div class="form-label">电子邮箱</div>
                     <div class="form-input-i">
-                        <el-input v-model="contentDetail.email" placeholder="请输入电子邮箱"></el-input>
+                        <a-input v-model:value="contentDetail.email" placeholder="请输入电子邮箱"></a-input>
                     </div>
                 </div>
-            </el-col>
+            </a-col>
 
             <!-- 备案号 -->
-            <el-col :span="24" :xs="24">
+            <a-col :span="24" :xs="24">
                 <div class="form-item">
                     <div class="form-label">备案号</div>
                     <div class="form-input-i">
-                        <el-input v-model="contentDetail.recordNumber" placeholder="请输入备案号"></el-input>
+                        <a-input v-model:value="contentDetail.recordNumber" placeholder="请输入备案号"></a-input>
                     </div>
                 </div>
-            </el-col>
+            </a-col>
 
 <!--            {{contentDetail}}-->
             <div style="margin-top: 20px;">
-                <!--                <el-button @click="update" v-show="status">修改</el-button>-->
-                <!--                <el-button @click="confirm" v-show="!status">保存</el-button>-->
-                <el-button @click="confirm">保存</el-button>
+                <!--                <a-button @click="update" v-show="status">修改</a-button>-->
+                <!--                <a-button @click="confirm" v-show="!status">保存</a-button>-->
+                <a-button @click="confirm">保存</a-button>
             </div>
 
-        </el-row>
+        </a-row>
     </div>
 
 </template>
@@ -233,7 +233,7 @@
         width: 30%; /* 使输入框占满剩余宽度 */
     }
 
-    .el-input {
+    .ant-input {
         flex-grow: 1; /* 使输入框占满剩余的空间 */
         width: 30%; /* 确保输入框占据100%宽度 */
     }
@@ -248,12 +248,12 @@
         border-radius: 8px;
     }
 
-    .el-button {
+    .ant-btn {
         background-color: #2666FB;
         color: white;
     }
 
-    .el-button:hover {
+    .ant-btn:hover {
         background-color: #66b1ff;
     }
 

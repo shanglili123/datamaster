@@ -1,46 +1,46 @@
-﻿
+
 import request from '@/utils/request'
 
-// 查询清洗规则类目列表
+// 查询清洗规则目录列表
 export function listAttCleanCat(query) {
   return request({
-    url: '/tax/cleanCat/list',
+    url: '/tax/category/list/CLEAN',
     method: 'get',
     params: query
   })
 }
 
-// 查询清洗规则类目详细
+// 查询清洗规则目录详细
 export function getAttCleanCat(ID) {
   return request({
-    url: '/tax/cleanCat/' + ID,
+    url: '/tax/category/' + ID,
     method: 'get'
   })
 }
 
-// 新增清洗规则类目
+// 新增清洗规则目录
 export function addAttCleanCat(data) {
   return request({
-    url: '/tax/cleanCat',
+    url: '/tax/category',
     method: 'post',
-    data: data
+    data: { ...data, catType: 'CLEAN' }
   })
 }
 
-// 修改清洗规则类目
+// 修改清洗规则目录
 export function updateAttCleanCat(data) {
   return request({
-    url: '/tax/cleanCat',
+    url: '/tax/category',
     method: 'put',
-    data: data
+    data: { ...data, catType: 'CLEAN' }
   })
 }
 
-// 删除清洗规则类目
+// 删除清洗规则目录
 export function delAttCleanCat(ID) {
   return request({
-    url: '/tax/cleanCat/' + ID,
-    method: 'delete'
+    url: '/tax/category/' + ID,
+    method: 'delete',
+    params: { catType: 'CLEAN' }
   })
 }
-

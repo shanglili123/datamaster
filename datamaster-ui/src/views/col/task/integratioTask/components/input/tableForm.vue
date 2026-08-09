@@ -1,427 +1,411 @@
 <template>
-    <el-dialog v-model="visibleDialog" :draggable="true" class="medium-dialog" :title="currentNode?.data?.name"
-        showCancelButton :show-close="false" destroy-on-close :close-on-click-modal="false">
-        <el-form ref="dpModelRefs" :model="form" label-width="110px" @submit.prevent v-loading="loading"
+    <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name"
+        :closable="false" :destroy-on-close="true" :mask-closable="false">
+        <a-spin :spinning="loading">
+        <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
             :disabled="info">
 
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="节点名称" prop="name"
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="节点名称" name="name"
                         :rules="[{ required: true, message: '请输入节点名称', trigger: 'change' }]">
-                        <el-input v-if="!info" v-model="form.name" placeholder="请输入节点名称" />
+                        <a-input v-if="!info" v-model:value="form.name" placeholder="请输入节点名称" />
                         <div v-else class="form-readonly">{{ form.name }}</div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="类型" prop="typeName">
-                        <el-input v-if="!info" v-model="form.taskParams.typeName" placeholder="请输入类型" disabled />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="类型" name="typeName">
+                        <a-input v-if="!info" v-model:value="form.taskParams.typeName" placeholder="请输入类型" disabled />
                         <div v-else class="form-readonly">{{ form.taskParams.typeName }}</div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="描述" prop="description">
-                        <el-input v-if="!info" v-model="form.description" type="textarea" placeholder="请输入描述" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="描述" name="description">
+                        <a-input v-if="!info" v-model:value="form.description" type="textarea" placeholder="请输入描述" />
                         <div v-else class="form-readonly">{{ form.description || '-' }}</div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="连接方式" prop="clmt">
-                        <el-radio-group v-if="!info" @change="handleReleaseStateChange" v-model="form.taskParams.clmt">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="连接方式" name="clmt">
+                        <a-radio-group v-if="!info" @change="(e) => handleReleaseStateChange(e.target.value)"
+                            v-model:value="form.taskParams.clmt">
                             <template v-for="dict in col_connection" :key="dict.value">
-                                <el-radio :value="dict.value">
+                                <a-radio :value="dict.value">
                                     {{ dict.label }}
-                                </el-radio>
+                                </a-radio>
                             </template>
-                        </el-radio-group>
+                        </a-radio-group>
                         <div class="form-readonly" v-else>{{col_connection.find((item) => item.value ==
                             form.taskParams.clmt)?.label || '-'}}</div>
-                    </el-form-item>
-                </el-col>
+                    </a-form-item>
+                </a-col>
                 <template v-if="form.taskParams.clmt == '1'">
-                    <el-col :span="12">
-                        <el-form-item label="资产表" prop="taskParams.asset_id_cpoy" :rules="[
+                    <a-col :span="12">
+                        <a-form-item label="资产表" name="taskParams.asset_id_cpoy" :rules="[
                             { required: true, message: '请选择资产表', trigger: 'blur' }
                         ]">
-                            <el-select v-if="!info" v-model="form.taskParams.asset_id_cpoy" filterable
+                            <a-select v-if="!info" v-model:value="form.taskParams.asset_id_cpoy" show-search
                                 @change="handleAssetTableChange" :loading="dppLoading">
-                                <el-option v-for="item in dppNoPageListList" :key="item.id" :label="item.name"
+                                <a-select-option v-for="item in dppNoPageListList" :key="item.id" :label="item.name"
                                     :value="item.id" />
-                            </el-select>
+                            </a-select>
                             <div class="form-readonly" v-else>{{dppNoPageListList.find((item) => item.id ==
                                 form.taskParams.asset_id_cpoy)?.name || '-'}}</div>
-                        </el-form-item>
-                    </el-col>
+                        </a-form-item>
+                    </a-col>
                 </template>
-            </el-row>
+            </a-row>
             <!-- -->
             <template v-if="form.taskParams.clmt == '0' || form.taskParams.clmt == '2'">
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="源数据库连接" prop="taskParams.readerDatasource.datasourceId" :rules="[
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="源数据库连接" name="taskParams.readerDatasource.datasourceId" :rules="[
                             {
                                 required: true,
                                 message: '请选择源数据库连接',
                                 trigger: 'change'
                             }
                         ]">
-<el-select v-if="!info" :key="'ds-' + createTypeList.length"
-    v-model="form.taskParams.readerDatasource.datasourceId" placeholder="请选择源数据库连接"
-    @change="handleDatasourceChange" filterable>
-    <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
-        :value="String(dict.id)"></el-option>
-</el-select>
+<a-select v-if="!info" :key="'ds-' + createTypeList.length"
+    v-model:value="form.taskParams.readerDatasource.datasourceId" placeholder="请选择源数据库连接"
+    @change="handleDatasourceChange" show-search>
+    <a-select-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
+        :value="String(dict.id)">{{ dict.datasourceName }}</a-select-option>
+</a-select>
                             <div class="form-readonly" v-else>{{createTypeList.find((item) => item.id ==
                                 form.taskParams.readerDatasource.datasourceId)?.datasourceName || '-'}}</div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="数据连接类型" prop="taskParams.readerDatasource.datasourceType">
-                            <el-input v-if="!info" v-model="form.taskParams.readerDatasource.datasourceType"
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="数据连接类型" name="taskParams.readerDatasource.datasourceType">
+                            <a-input v-if="!info" v-model:value="form.taskParams.readerDatasource.datasourceType"
                                 placeholder="请输入数据连接类型" disabled />
                             <div class="form-readonly" v-else>{{ form.taskParams.readerDatasource.datasourceType || '-'
                                 }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="数据连接实例" prop="taskParams.readerDatasource.dbname">
-                            <el-input v-if="!info" v-model="form.taskParams.readerDatasource.dbname"
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="数据连接实例" name="taskParams.readerDatasource.dbname">
+                            <a-input v-if="!info" v-model:value="form.taskParams.readerDatasource.dbname"
                                 placeholder="请输入数据连接实例" disabled />
                             <div class="form-readonly" v-else>{{ form.taskParams.readerDatasource.dbname || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12" v-if="form.taskParams.clmt == '0' && !isKafkaReader">
-                        <el-form-item label="选择表" prop="taskParams.asset_id"
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12" v-if="form.taskParams.clmt == '0' && !isKafkaReader">
+                        <a-form-item label="选择表" name="taskParams.asset_id"
                             :rules="[{ required: true, message: '请选择表', trigger: 'change' }]">
-                            <el-select v-if="!info" v-model="form.taskParams.asset_id" filterable @change="handleChange"
+                            <a-select v-if="!info" v-model:value="form.taskParams.asset_id" show-search @change="handleChange"
                                 :loading="loadingTables">
-                                <el-option v-for="item in TablesByDataSource" :key="item.tableName"
+                                <a-select-option v-for="item in TablesByDataSource" :key="item.tableName"
                                     :label="item.tableName" :value="item.tableName" />
-                            </el-select>
+                            </a-select>
                             <div class="form-readonly" v-else>{{ form.taskParams.asset_id }}</div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12" v-if="form.taskParams.clmt == '2'">
-                        <el-form-item>
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12" v-if="form.taskParams.clmt == '2'">
+                        <a-form-item>
                             <div style="text-align: right; width: 100%">
-                                <el-button size="small" type="primary" @click="sqlParseFunction"
-                                    class="sql-parse-btn">SQL解析</el-button>
+                                <a-button size="small" type="primary" @click="sqlParseFunction"
+                                    class="sql-parse-btn">SQL解析</a-button>
                             </div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20" v-if="form.taskParams.clmt == '2'">
-                    <el-col :span="24">
-                        <el-form-item label="SQL语句" prop="taskParams.querySql"
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20" v-if="form.taskParams.clmt == '2'">
+                    <a-col :span="24">
+                        <a-form-item label="SQL语句" name="taskParams.querySql"
                             :rules="[{ required: true, message: '请输入SQL语句', trigger: 'blur' }]">
                             <sql-editor ref="editorRef" :value="form.taskParams.querySql" class="sql-editor"
                                 :height="'140px'" @changeTextarea="changeTextarea($event)" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
             </template>
-            <el-row :gutter="20" v-if="form.taskParams.clmt != '2'">
-                <el-col :span="12">
-                    <el-form-item label="读取模式" prop="taskParams.readModeType" :rules="[
+            <a-row :gutter="20" v-if="form.taskParams.clmt != '2'">
+                <a-col :span="12">
+                    <a-form-item label="读取模式" name="taskParams.readModeType" :rules="[
                         {
                             required: true,
                             message: '请选择读取模式',
                             trigger: 'change'
                         }
                     ]">
-                        <el-radio-group v-if="!info" v-model="form.taskParams.readModeType"
-                            @change="handlereadModeTypeChange">
-                            <el-radio value="1">全量</el-radio>
-                            <el-radio value="2">id增量</el-radio>
-                            <el-radio value="3">时间增量</el-radio>
-                            <el-radio value="4" :disabled="!isStreamReader">CDC/流式</el-radio>
-                        </el-radio-group>
+                        <a-radio-group v-if="!info" v-model:value="form.taskParams.readModeType"
+                            @change="(e) => handlereadModeTypeChange(e.target.value)">
+                            <a-radio value="1">全量</a-radio>
+                            <a-radio value="2">id增量</a-radio>
+                            <a-radio value="3">时间增量</a-radio>
+                            <a-radio value="4" :disabled="!isStreamReader">CDC/流式</a-radio>
+                        </a-radio-group>
                         <div class="form-readonly" v-else>{{ form.taskParams.readModeType == 1 ? '全量' :
                             form.taskParams.readModeType == 2 ?
                                 'id增量' : form.taskParams.readModeType == 3 ? '时间增量' : 'CDC/流式' }}</div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                    </a-form-item>
+                </a-col>
+            </a-row>
             <template v-if="form.taskParams.clmt != '2' && form.taskParams.readModeType == 4">
-                <el-row :gutter="20" v-if="isKafkaReader">
-                    <el-col :span="12">
-                        <el-form-item label="Topic" prop="taskParams.topic">
-                            <el-input v-if="!info" v-model="form.taskParams.topic" placeholder="请输入 Topic" />
+                <a-row :gutter="20" v-if="isKafkaReader">
+                    <a-col :span="12">
+                        <a-form-item label="Topic" name="taskParams.topic">
+                            <a-input v-if="!info" v-model:value="form.taskParams.topic" placeholder="请输入 Topic" />
                             <div class="form-readonly" v-else>{{ form.taskParams.topic || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="消费组" prop="taskParams.kafkaConfig.groupId">
-                            <el-input v-if="!info" v-model="form.taskParams.kafkaConfig.groupId"
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="消费组" name="taskParams.kafkaConfig.groupId">
+                            <a-input v-if="!info" v-model:value="form.taskParams.kafkaConfig.groupId"
                                 placeholder="默认 datamaster-chunjun" />
                             <div class="form-readonly" v-else>{{ form.taskParams.kafkaConfig.groupId || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20" v-if="isKafkaReader">
-                    <el-col :span="12">
-                        <el-form-item label="启动位置" prop="taskParams.kafkaConfig.mode">
-                            <el-select v-if="!info" v-model="form.taskParams.kafkaConfig.mode">
-                                <el-option label="最新" value="LATEST" />
-                                <el-option label="最早" value="EARLIEST" />
-                                <el-option label="消费组位点" value="GROUP_OFFSETS" />
-                                <el-option label="指定时间" value="TIMESTAMP" />
-                                <el-option label="指定位点" value="SPECIFIC_OFFSETS" />
-                            </el-select>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20" v-if="isKafkaReader">
+                    <a-col :span="12">
+                        <a-form-item label="启动位置" name="taskParams.kafkaConfig.mode">
+                            <a-select v-if="!info" v-model:value="form.taskParams.kafkaConfig.mode">
+                                <a-select-option label="最新" value="LATEST" />
+                                <a-select-option label="最早" value="EARLIEST" />
+                                <a-select-option label="消费组位点" value="GROUP_OFFSETS" />
+                                <a-select-option label="指定时间" value="TIMESTAMP" />
+                                <a-select-option label="指定位点" value="SPECIFIC_OFFSETS" />
+                            </a-select>
                             <div class="form-readonly" v-else>{{ form.taskParams.kafkaConfig.mode || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="消息格式" prop="taskParams.kafkaConfig.codec">
-                            <el-select v-if="!info" v-model="form.taskParams.kafkaConfig.codec" placeholder="请选择消息格式">
-                                <el-option label="json - JSON 格式解析" value="json" />
-                                <el-option label="text - 纯文本格式" value="text" />
-                                <el-option label="csv - CSV 格式" value="csv" />
-                                <el-option label="protobuf - Protobuf 二进制格式" value="protobuf" />
-                            </el-select>
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="消息格式" name="taskParams.kafkaConfig.codec">
+                            <a-select v-if="!info" v-model:value="form.taskParams.kafkaConfig.codec" placeholder="请选择消息格式">
+                                <a-select-option label="json - JSON 格式解析" value="json" />
+                                <a-select-option label="text - 纯文本格式" value="text" />
+                                <a-select-option label="csv - CSV 格式" value="csv" />
+                                <a-select-option label="protobuf - Protobuf 二进制格式" value="protobuf" />
+                            </a-select>
                             <div class="form-readonly" v-else>{{ form.taskParams.kafkaConfig.codec || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20" v-if="isKafkaReader">
-                    <el-col :span="12">
-                        <el-form-item label="是否平铺" prop="taskParams.kafkaConfig.pavingData">
-                            <el-switch v-if="!info" v-model="form.taskParams.kafkaConfig.pavingData" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20" v-if="isKafkaReader">
+                    <a-col :span="12">
+                        <a-form-item label="是否平铺" name="taskParams.kafkaConfig.pavingData">
+                            <a-switch v-if="!info" v-model:checked="form.taskParams.kafkaConfig.pavingData" />
                             <div class="form-readonly" v-else>{{ form.taskParams.kafkaConfig.pavingData === false ? '否' : '是' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20" v-if="isKafkaReader">
-                    <el-col :span="24">
-                        <el-form-item label="Kafka扩展配置" prop="taskParams.kafkaConfigJson">
-                            <el-input v-if="!info" v-model="form.taskParams.kafkaConfigJson" type="textarea"
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20" v-if="isKafkaReader">
+                    <a-col :span="24">
+                        <a-form-item label="Kafka扩展配置" name="taskParams.kafkaConfigJson">
+                            <a-input v-if="!info" v-model:value="form.taskParams.kafkaConfigJson" type="textarea"
                                 placeholder='可选 JSON，例如 {"consumerSettings":{"security.protocol":"SASL_PLAINTEXT"}}' />
                             <div class="form-readonly" v-else>{{ form.taskParams.kafkaConfigJson || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20" v-if="!isKafkaReader && !isStreamingMqReader">
-                    <el-col :span="12">
-                        <el-form-item label="Server ID" prop="taskParams.cdcConfig.serverId">
-                            <el-input v-if="!info" v-model="form.taskParams.cdcConfig.serverId"
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20" v-if="!isKafkaReader && !isStreamingMqReader">
+                    <a-col :span="12">
+                        <a-form-item label="Server ID" name="taskParams.cdcConfig.serverId">
+                            <a-input v-if="!info" v-model:value="form.taskParams.cdcConfig.serverId"
                                 placeholder="MySQL CDC 可空，默认按数据源生成" />
                             <div class="form-readonly" v-else>{{ form.taskParams.cdcConfig.serverId || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="时间格式" prop="taskParams.cdcConfig.timestampFormat">
-                            <el-input v-if="!info" v-model="form.taskParams.cdcConfig.timestampFormat"
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="时间格式" name="taskParams.cdcConfig.timestampFormat">
+                            <a-input v-if="!info" v-model:value="form.taskParams.cdcConfig.timestampFormat"
                                 placeholder="yyyy-MM-dd HH:mm:ss" />
                             <div class="form-readonly" v-else>{{ form.taskParams.cdcConfig.timestampFormat || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20" v-if="!isKafkaReader && !isStreamingMqReader">
-                    <el-col :span="12">
-                        <el-form-item label="是否平铺" prop="taskParams.cdcConfig.pavingData">
-                            <el-switch v-if="!info" v-model="form.taskParams.cdcConfig.pavingData" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20" v-if="!isKafkaReader && !isStreamingMqReader">
+                    <a-col :span="12">
+                        <a-form-item label="是否平铺" name="taskParams.cdcConfig.pavingData">
+                            <a-switch v-if="!info" v-model:checked="form.taskParams.cdcConfig.pavingData" />
                             <div class="form-readonly" v-else>{{ form.taskParams.cdcConfig.pavingData === false ? '否' : '是' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20" v-if="!isKafkaReader && !isStreamingMqReader">
-                    <el-col :span="24">
-                        <el-form-item label="CDC扩展配置" prop="taskParams.cdcConfigJson">
-                            <el-input v-if="!info" v-model="form.taskParams.cdcConfigJson" type="textarea"
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20" v-if="!isKafkaReader && !isStreamingMqReader">
+                    <a-col :span="24">
+                        <a-form-item label="CDC扩展配置" name="taskParams.cdcConfigJson">
+                            <a-input v-if="!info" v-model:value="form.taskParams.cdcConfigJson" type="textarea"
                                 placeholder='可选 JSON，例如 {"readPosition":"current","startScn":"123"}' />
                             <div class="form-readonly" v-else>{{ form.taskParams.cdcConfigJson || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
             </template>
             <template v-if="form.taskParams.readModeType == 2">
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="id字段" prop="taskParams.idIncrementConfig.incrementColumn" :rules="[
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="id字段" name="taskParams.idIncrementConfig.incrementColumn" :rules="[
                             {
                                 required: true,
                                 message: '请选择id字段',
                                 trigger: 'blur'
                             }
                         ]">
-                            <el-select v-if="!info" v-model="form.taskParams.idIncrementConfig.incrementColumn"
-                                collapse-tags collapse-tags-tooltip filterable placeholder="请选择id字段">
-                                <el-option v-for="item in ColumnByAssettab" :key="item.columnName"
+                            <a-select v-if="!info" v-model:value="form.taskParams.idIncrementConfig.incrementColumn"
+                                show-search placeholder="请选择id字段">
+                                <a-select-option v-for="item in ColumnByAssettab" :key="item.columnName"
                                     :label="item.columnName" :value="item.columnName" />
-                            </el-select>
+                            </a-select>
                             <div class="form-readonly" v-else>{{ form.taskParams.idIncrementConfig.incrementColumn ||
                                 '-' }}</div>
-                        </el-form-item>
-                    </el-col>
+                        </a-form-item>
+                    </a-col>
 
-                    <el-col :span="12">
-                        <el-form-item label="开始值" prop="taskParams.idIncrementConfig.incrementStart" :rules="[
+                    <a-col :span="12">
+                        <a-form-item label="开始值" name="taskParams.idIncrementConfig.incrementStart" :rules="[
                             { required: true, message: '请输入开始值', trigger: 'change' },
                             { validator: checkInteger, trigger: 'change' }
                         ]">
-                            <el-input v-if="!info" v-model="form.taskParams.idIncrementConfig.incrementStart"
+                            <a-input v-if="!info" v-model:value="form.taskParams.idIncrementConfig.incrementStart"
                                 placeholder="请输入开始值" type="number">
-                            </el-input>
+                            </a-input>
                             <div class="form-readonly" v-else>{{ form.taskParams.idIncrementConfig.incrementStart || '-'
                                 }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
             </template>
             <template v-if="form.taskParams.readModeType == 3">
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="时间格式" prop="taskParams.dateIncrementConfig.dateFormat">
-                            <el-select v-if="!info" v-model="form.taskParams.dateIncrementConfig.dateFormat"
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="时间格式" name="taskParams.dateIncrementConfig.dateFormat">
+                            <a-select v-if="!info" v-model:value="form.taskParams.dateIncrementConfig.dateFormat"
                                 placeholder="请选择时间格式">
-                                <el-option v-for="item in dateFormatOptions" :key="item.value" :label="item.label"
+                                <a-select-option v-for="item in dateFormatOptions" :key="item.value" :label="item.label"
                                     :value="item.value" />
-                            </el-select>
+                            </a-select>
                             <div class="form-readonly" v-else>{{dateFormatOptions.find(item => item.value ==
                                 form.taskParams.dateIncrementConfig.dateFormat)?.label || '-'}}</div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="初始游标">
-                            <el-date-picker v-if="!info" clearable v-model="dateIncrementCursorTime"
-                                :type="dateIncrementPickerType" :format="dateIncrementPickerFormat"
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="初始游标">
+                            <a-date-picker v-if="!info" allow-clear v-model:value="dateIncrementCursorTime"
+                                :picker="dateIncrementPickerType" :format="dateIncrementPickerFormat"
                                 :value-format="dateIncrementPickerFormat" placeholder="请选择首次同步的起始时间" />
                             <div class="form-readonly" v-else>{{ dateIncrementCursorTime || '-' }}</div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
             </template>
-            <el-row :gutter="20" v-if="form.taskParams.clmt != '2' && form.taskParams.readModeType != 4">
-                <el-col :span="24">
-                    <el-form-item label="where条件" prop="where">
-                        <el-input v-if="!info" v-model="form.taskParams.where" type="textarea"
+            <a-row :gutter="20" v-if="form.taskParams.clmt != '2' && form.taskParams.readModeType != 4">
+                <a-col :span="24">
+                    <a-form-item label="where条件" name="where">
+                        <a-input v-if="!info" v-model:value="form.taskParams.where" type="textarea"
                             :placeholder="'例如 id > 10 and id < 1000，请不要以分号;结尾'" />
                         <div class="form-readonly" v-else>{{ form.taskParams.where || '-' }}</div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                    </a-form-item>
+                </a-col>
+            </a-row>
             <template v-if="form.taskParams.clmt != '2'">
                 <div class="h2-title stream-field-title">
                     <span>属性字段</span>
-                    <el-button v-if="isStreamingFieldEditable && !info" size="small" type="primary"
-                        @click="addStreamField">添加一行</el-button>
+                    <a-button v-if="isStreamingFieldEditable && !info" size="small" type="primary"
+                        @click="addStreamField">添加一行</a-button>
                 </div>
-                <el-table stripe height="310px" v-loading="loadingList" :data="ColumnByAssettab">
-                    <el-table-column label="序号" type="index" width="80" align="left">
-                        <template #default="scope">
-                            <span>{{ scope.$index + 1 }}</span>
+                <a-table :loading="loadingList" :data-source="ColumnByAssettab" :columns="tableColumns"
+                    :pagination="false" :scroll="{ y: 310 }">
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.dataIndex === 'index'">
+                            <span>{{ index + 1 }}</span>
                         </template>
-                    </el-table-column>
-                    <el-table-column label="英文名称" align="left" prop="columnName"
-                        :show-overflow-tooltip="{ effect: 'light' }">
-                        <template #default="scope">
-                            <el-input v-if="isStreamingFieldEditable && !info" v-model="scope.row.columnName"
+                        <template v-else-if="column.dataIndex === 'columnName'">
+                            <a-input v-if="isStreamingFieldEditable && !info" v-model:value="record.columnName"
                                 placeholder="字段名，如 id" />
-                            <span v-else>{{ scope.row.columnName || '-' }}</span>
+                            <span v-else>{{ record.columnName || '-' }}</span>
                         </template>
-                    </el-table-column>
-                    <el-table-column label="中文名称" align="left" prop="columnComment" v-if="!isStreamingFieldEditable"
-                        :show-overflow-tooltip="{ effect: 'light' }">
-                        <template #default="scope">
-                            {{ scope.row.columnComment || '-' }}
+                        <template v-else-if="column.dataIndex === 'columnComment'">
+                            {{ record.columnComment || '-' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="字段类型" align="left" prop="columnType">
-                        <template #default="scope">
-                            <el-select v-if="isStreamingFieldEditable && !info" v-model="scope.row.columnType"
-                                filterable placeholder="选择类型">
-                                <el-option v-for="item in streamFieldTypeOptions" :key="item" :label="item"
+                        <template v-else-if="column.dataIndex === 'columnType'">
+                            <a-select v-if="isStreamingFieldEditable && !info" v-model:value="record.columnType"
+                                show-search placeholder="选择类型">
+                                <a-select-option v-for="item in streamFieldTypeOptions" :key="item" :label="item"
                                     :value="item" />
-                            </el-select>
-                            <span v-else>{{ scope.row.columnType || '-' }}</span>
+                            </a-select>
+                            <span v-else>{{ record.columnType || '-' }}</span>
                         </template>
-                    </el-table-column>
-                    <el-table-column label="是否Key" align="left" prop="isKey" v-if="isStreamingFieldEditable">
-                        <template #default="scope">
-                            <el-switch v-if="!info" v-model="scope.row.isKey" />
-                            <span v-else>{{ scope.row.isKey ? '是' : '否' }}</span>
+                        <template v-else-if="column.dataIndex === 'isKey'">
+                            <a-switch v-if="!info" v-model:checked="record.isKey" />
+                            <span v-else>{{ record.isKey ? '是' : '否' }}</span>
                         </template>
-                    </el-table-column>
-                    <el-table-column label="是否主键" align="left" prop="pkFlag"
-                        v-if="form?.taskParams.type == '1' && !isStreamingFieldEditable">
-                        <template #default="scope">
-                            <el-switch v-model="scope.row.pkFlag" :active-value="'1'" :inactive-value="'0'" disabled />
+                        <template v-else-if="column.dataIndex === 'pkFlag'">
+                            <a-switch v-model:checked="record.pkFlag" :checked-value="'1'" :unchecked-value="'0'" disabled />
                         </template>
-                    </el-table-column>
-                    <el-table-column label="字段长度" align="left" prop="columnLength"
-                        v-if="form?.taskParams.type == '1' && !isStreamingFieldEditable">
-                        <template #default="scope">
-                            {{ scope.row.columnLength || '-' }}
+                        <template v-else-if="column.dataIndex === 'columnLength'">
+                            {{ record.columnLength || '-' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="小数经度" align="left" prop="columnScale"
-                        v-if="form?.taskParams.type == '1' && !isStreamingFieldEditable">
-                        <template #default="scope">
-                            {{ scope.row.columnScale || '-' }}
+                        <template v-else-if="column.dataIndex === 'columnScale'">
+                            {{ record.columnScale || '-' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="增量配置" align="center" fixed="right" width="150"
-                        v-if="form.taskParams.readModeType != 1 && form.taskParams.readModeType != 4">
-                        <template #default="scope">
+                        <template v-else-if="column.key === 'increment'">
                             <template v-if="info">
-                                <el-tag v-if="form.taskParams.readModeType == 2
-                                    && form.taskParams.idIncrementConfig.incrementColumn == scope.row.columnName"
-                                    type="success">增量字段</el-tag>
-                                <el-tag v-else-if="form.taskParams.readModeType == 3
-                                    && hasDateIncrementConfig(scope.row.columnName)" type="success">增量字段</el-tag>
+                                <a-tag v-if="form.taskParams.readModeType == 2
+                                    && form.taskParams.idIncrementConfig.incrementColumn == record.columnName"
+                                    color="success">增量字段</a-tag>
+                                <a-tag v-else-if="form.taskParams.readModeType == 3
+                                    && hasDateIncrementConfig(record.columnName)" color="success">增量字段</a-tag>
                                 <span v-else>-</span>
                             </template>
                             <template v-else-if="form.taskParams.readModeType == 2">
-                                <el-tag v-if="form.taskParams.idIncrementConfig.incrementColumn == scope.row.columnName"
-                                    type="success">已设置</el-tag>
-                                <el-button v-else link type="primary"
-                                    @click="setIdIncrementColumn(scope.row)">设为增量字段</el-button>
+                                <a-tag v-if="form.taskParams.idIncrementConfig.incrementColumn == record.columnName"
+                                    color="success">已设置</a-tag>
+                                <a-button v-else type="link" size="small"
+                                    @click="setIdIncrementColumn(record)">设为增量字段</a-button>
                             </template>
                             <template v-else-if="form.taskParams.readModeType == 3">
-                                <el-checkbox :model-value="hasDateIncrementConfig(scope.row.columnName)"
-                                    :disabled="!isTimeColumn(scope.row)" @change="setDateIncrementColumn(scope.row, $event)">
-                                    {{ isTimeColumn(scope.row) ? '选择' : '非时间字段' }}
-                                </el-checkbox>
+                                <a-checkbox :checked="hasDateIncrementConfig(record.columnName)"
+                                    :disabled="!isTimeColumn(record)" @change="(e) => setDateIncrementColumn(record, e.target.checked)">
+                                    {{ isTimeColumn(record) ? '选择' : '非时间字段' }}
+                                </a-checkbox>
                             </template>
                         </template>
-                    </el-table-column>
-                    <el-table-column label="操作" align="center" fixed="right" width="90"
-                        v-if="isStreamingFieldEditable && !info">
-                        <template #default="scope">
-                            <el-button link type="danger" @click="removeStreamField(scope.$index)">删除</el-button>
+                        <template v-else-if="column.key === 'actions'">
+                            <a-button type="link" danger size="small" @click="removeStreamField(index)">删除</a-button>
                         </template>
-                    </el-table-column>
-                </el-table>
+                    </template>
+                </a-table>
             </template>
 
-        </el-form>
+        </a-form>
+        </a-spin>
         <template #footer>
             <div style="text-align: right">
-                <el-button @click="closeDialog">关闭</el-button>
-                <el-button type="primary" @click="saveData" v-if="!info">保存</el-button>
+                <a-button @click="closeDialog">关闭</a-button>
+                <a-button type="primary" @click="saveData" v-if="!info">保存</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 <script setup>
+import { message } from 'ant-design-vue'
 import SqlEditor from '@/components/SqlEditor/index1.vue';
+
 import {
     getTablesByDataSourceId,
     getColumnByAssetId,
     getLocalNodeUniqueKey as getNodeUniqueKey
 } from '@/api/col/task/index.js';
+
 import {
     listDaDatasource,
     getDaDatasource,
     sqlParse
 } from '@/api/ast/dataSource/dataSource.js';
+
 import { listDppAsset } from '@/api/ast/asset/asset.js';
 const { proxy } = getCurrentInstance();
+
 import useUserStore from '@/store/system/user.js';
 const userStore = useUserStore();
 const { col_connection } = proxy.useDict('col_connection');
@@ -526,6 +510,32 @@ const isStreamingMqReader = computed(() => {
 });
 const isStreamReader = computed(() => isKafkaReader.value || isStreamingMqReader.value || isCdcReader.value);
 const isStreamingFieldEditable = computed(() => form.value?.taskParams?.readModeType == '4' && isStreamReader.value);
+
+const tableColumns = computed(() => {
+    const cols = [
+        { title: '序号', dataIndex: 'index', width: 80, align: 'left' },
+        { title: '英文名称', dataIndex: 'columnName', align: 'left', ellipsis: true },
+    ];
+    if (!isStreamingFieldEditable.value) {
+        cols.push({ title: '中文名称', dataIndex: 'columnComment', align: 'left', ellipsis: true });
+    }
+    cols.push({ title: '字段类型', dataIndex: 'columnType', align: 'left' });
+    if (isStreamingFieldEditable.value) {
+        cols.push({ title: '是否Key', dataIndex: 'isKey', align: 'left' });
+    }
+    if (form.value?.taskParams?.type == '1' && !isStreamingFieldEditable.value) {
+        cols.push({ title: '是否主键', dataIndex: 'pkFlag', align: 'left' });
+        cols.push({ title: '字段长度', dataIndex: 'columnLength', align: 'left' });
+        cols.push({ title: '小数经度', dataIndex: 'columnScale', align: 'left' });
+    }
+    if (form.value.taskParams.readModeType != 1 && form.value.taskParams.readModeType != 4) {
+        cols.push({ title: '增量配置', key: 'increment', align: 'center', fixed: 'right', width: 150 });
+    }
+    if (isStreamingFieldEditable.value && !props.info) {
+        cols.push({ title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 90 });
+    }
+    return cols;
+});
 
 const getNodeData = () => props.currentNode?.getProp?.("data") || props.currentNode?.data || {};
 

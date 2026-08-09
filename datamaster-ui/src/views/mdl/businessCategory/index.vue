@@ -10,180 +10,139 @@
         />
       </template>
       <template #actions-data>
-        <el-button
+        <a-button
           type="primary"
-          plain
-          icon="Plus"
           @click="handleAdd"
           v-hasPermi="['mdl:businesscategory:add']"
         >
           新增
-        </el-button>
-        <el-button
+        </a-button>
+        <a-button
           class="extend-btn"
           type="primary"
-          plain
           @click="toggleExpandAll"
         >
           <svg-icon v-if="defaultExpandAll" icon-class="toggle" />
           <svg-icon v-else icon-class="expand" />
           <span>{{ defaultExpandAll ? "折叠" : "展开" }}</span>
-        </el-button>
+        </a-button>
       </template>
 
       <qt-table v-bind="tableStore" ref="tableRef">
         <template #action="{ row }">
-          <el-button
-            link
-            type="primary"
-            icon="Edit"
+          <a-button
+            type="link"
+            size="small"
             @click="handleUpdate(row)"
             v-hasPermi="['mdl:businesscategory:edit']"
           >
             修改
-          </el-button>
-          <el-button
-            link
-            type="primary"
-            icon="Plus"
+          </a-button>
+          <a-button
+            type="link"
+            size="small"
             @click="handleAdd(row)"
             v-hasPermi="['mdl:businesscategory:add']"
           >
             新增
-          </el-button>
-          <el-button
-            link
-            type="danger"
-            icon="Delete"
+          </a-button>
+          <a-button
+            type="link"
+            danger
+            size="small"
             @click="handleDelete(row)"
             v-hasPermi="['mdl:businesscategory:remove']"
           >
             删除
-          </el-button>
+          </a-button>
         </template>
 
         <template #validFlag="{ row }">
-          <el-switch
-            v-model="row.validFlag"
-            active-color="#13ce66"
-            inactive-color="#ff4949"
-            @change="handleStatusChange(row)"
+          <a-switch
+            v-model:checked="row.validFlag"
+            @change="() => handleStatusChange(row)"
           />
         </template>
       </qt-table>
     </qt-wrap>
 
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="open"
+      v-model:open="open"
       width="800px"
-      :append-to="$refs['app-container']"
       draggable
+      destroy-on-close
     >
-      <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form
+      <a-form
         ref="businessCategoryRef"
         :model="form"
         :rules="rules"
-        label-width="130px"
+        :label-col="{ style: { width: '130px' } }"
         @submit.prevent
       >
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="业务分类名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入业务分类名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="上级分类" prop="parentId">
-              <el-tree-select
-                filterable
-                v-model="form.parentId"
-                :data="parentOptions"
-                :props="{ value: 'id', label: 'name', children: 'children' }"
-                value-key="id"
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="业务分类名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入业务分类名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="上级分类" name="parentId">
+              <a-tree-select
+                show-search
+                allow-clear
+                v-model:value="form.parentId"
+                :tree-data="parentOptions"
+                :field-names="{ value: 'id', label: 'name', children: 'children' }"
                 placeholder="请选择上级分类"
-                check-strictly
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="英文缩写" prop="engName">
-              <el-input v-model="form.engName" placeholder="请输入英文缩写" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="排序" prop="sortOrder">
-              <el-input-number v-model="form.sortOrder" :min="0" :max="9999" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="负责人" prop="ownerId">
-              <el-select
-                v-model="form.ownerId"
-                filterable
-                placeholder="请选择负责人"
-                @change="handleOwnerChange"
-              >
-                <el-option
-                  v-for="item in managerOptions"
-                  :key="item.userId"
-                  :label="item.nickName"
-                  :value="item.userId"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="负责人电话" prop="ownerPhone">
-              <el-input
-                v-model="form.ownerPhone"
-                placeholder="请输入负责人电话"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
-              <el-input
-                v-model="form.description"
-                type="textarea"
-                maxlength="256"
-                :min-height="128"
-                show-word-limit
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="英文缩写" name="engName">
+              <a-input v-model:value="form.engName" placeholder="请输入英文缩写" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="排序" name="sortOrder">
+              <a-input-number v-model:value="form.sortOrder" :min="0" :max="9999" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
+              <a-textarea
+                v-model:value="form.description"
+                :maxlength="256"
+                :auto-size="{ minRows: 4, maxRows: 8 }"
+                show-count
                 placeholder="请输入描述"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input
-                v-model="form.remark"
-                type="textarea"
-                maxlength="500"
-                show-word-limit
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
+              <a-textarea
+                v-model:value="form.remark"
+                :maxlength="500"
+                show-count
+                :auto-size="{ minRows: 2, maxRows: 4 }"
                 placeholder="请输入备注"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancel">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -195,7 +154,6 @@ import {
   updateBusinessCategory,
   delBusinessCategory,
 } from "@/api/mdl/businessCategory/businessCategory.js";
-import { deptUserTree } from "@/api/system/system/user.js";
 import QtWrap from "@/components/QtWrap";
 import QtTable from "@/components/QtTable";
 import QtSearchBar from "@/components/QtSearchBar";
@@ -203,7 +161,6 @@ import QtSearchBar from "@/components/QtSearchBar";
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
 const parentOptions = ref([]);
-const managerOptions = ref([]);
 const open = ref(false);
 const title = ref("");
 const tableRef = ref(null);
@@ -222,7 +179,6 @@ const data = reactive({
   queryParams: {
     name: null,
     code: null,
-    ownerId: null,
   },
   rules: {
     name: [{ required: true, message: "业务分类名称不能为空", trigger: "blur" }],
@@ -276,13 +232,6 @@ const tableStore = reactive({
       width: 120,
       align: "left",
     },
-    { label: "负责人", prop: "ownerName", align: "left", width: 120 },
-    {
-      label: "负责人电话",
-      prop: "ownerPhone",
-      width: 140,
-      align: "left",
-    },
     { label: "排序", prop: "sortOrder", width: 80, align: "left" },
     { label: "状态", prop: "validFlag", slot: "validFlag", width: 100 },
     { label: "创建人", prop: "createBy", align: "left", width: 120 },
@@ -314,20 +263,6 @@ const searchStore = reactive({
       prop: "code",
       component: { is: "input", placeholder: "请输入层级编码" },
     },
-    {
-      label: "负责人",
-      prop: "ownerId",
-      component: {
-        is: "select",
-        options: computed(() =>
-          managerOptions.value.map((item) => ({
-            label: item.nickName,
-            value: item.userId,
-          }))
-        ),
-        placeholder: "请选择负责人",
-      },
-    },
   ],
 });
 
@@ -343,19 +278,6 @@ function getParentTree() {
     parentOptions.value.push(data);
   });
 }
-
-function getManagerOptions() {
-  deptUserTree().then((response) => {
-    managerOptions.value = response.data;
-  });
-}
-
-const handleOwnerChange = (selectedValue) => {
-  const selectedUser = managerOptions.value.find(
-    (user) => user.userId == selectedValue
-  );
-  form.value.ownerPhone = selectedUser?.phonenumber || "";
-};
 
 function cancel() {
   open.value = false;
@@ -456,8 +378,9 @@ async function handleUpdate(row) {
 }
 
 function submitForm() {
-  proxy.$refs["businessCategoryRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["businessCategoryRef"]
+    .validate()
+    .then(() => {
       if (form.value.id != null) {
         updateBusinessCategory(form.value).then(() => {
           proxy.$modal.msgSuccess("修改成功");
@@ -471,8 +394,8 @@ function submitForm() {
           getList();
         });
       }
-    }
-  });
+    })
+    .catch(() => {});
 }
 
 function handleDelete(row) {
@@ -490,7 +413,6 @@ function handleDelete(row) {
 
 onMounted(() => {
   getParentTree();
-  getManagerOptions();
 });
 </script>
 <style scoped lang="scss">

@@ -1,183 +1,173 @@
 <template>
   <!-- 新增或修改数据资产地图任务对话框 -->
-  <el-dialog :title="title" v-model="visibleDialog" class="medium-dialog" draggable destroy-on-close>
-    <el-form ref="daDiscoveryTaskRef" :model="form" label-width="110px" @submit.prevent>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="资产名称" prop="name" :rules="[{ required: true, message: '请输入资产名称', trigger: 'blur' },{ min: 1, max: 30, message: '长度必须介于1到20个字符之间', trigger: 'blur' }]">
-            <el-input v-model="form.name" placeholder="请输入资产名称" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="所属类目" prop="catCode"
-            :rules="[{ required: true, message: '请输入类目编码', trigger: 'change' }]">
-            <el-tree-select filterable v-model="form.catCode" :data="deptOptions"
-              :props="{ value: 'code', label: 'name', children: 'children' }" value-key="ID" placeholder="请选择所属类目"
-              check-strictly />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="所属主题" prop="themeIdList"
-            :rules="[{ required: true, message: '请选择主题', trigger: 'change' }]">
-            <el-select v-model="form.themeIdList" collapse-tags multiple max-collapse-tags="2" placeholder="请选择主题名称">
-              <el-option v-for="dict in themeList" :key="dict.id" :label="dict.name" :value="dict.id"></el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="资产状态" prop="status" :rules="[
+  <a-modal :title="title" v-model:open="visibleDialog" class="medium-dialog" destroy-on-close>
+    <a-form ref="daDiscoveryTaskRef" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="资产名称" name="name" :rules="[{ required: true, message: '请输入资产名称', trigger: 'blur' },{ min: 1, max: 30, message: '长度必须介于1到20个字符之间', trigger: 'blur' }]">
+            <a-input v-model:value="form.name" placeholder="请输入资产名称" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="所属目录" name="catCode"
+            :rules="[{ required: true, message: '请输入目录编码', trigger: 'change' }]"
+>
+            <a-tree-select show-search tree-default-expand-all v-model:value="form.catCode" :tree-data="deptOptions"
+              :field-names="{ value: 'code', label: 'name', children: 'children' }" placeholder="请选择所属目录"
+/>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="所属主题" name="themeIdList"
+            :rules="[{ required: true, message: '请选择主题', trigger: 'change' }]"
+>
+            <a-select v-model:value="form.themeIdList" mode="multiple" max-tag-count="2" placeholder="请选择主题名称">
+              <a-select-option v-for="dict in themeList" :key="dict.id" :label="dict.name" :value="dict.id">{{ dict.name }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="资产状态" name="status" :rules="[
             {
               required: true,
               message: '请选择资产状态',
               trigger: 'change',
             },
-          ]">
-            <el-radio-group v-model="form.status">
-              <el-radio value="1">未发布</el-radio>
-              <el-radio value="2">已发布</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="资产类型" prop="type" :rules="[
+          ]"
+>
+            <a-radio-group v-model:value="form.status">
+              <a-radio value="1">未发布</a-radio>
+              <a-radio value="2">已发布</a-radio>
+            </a-radio-group>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="资产类型" name="type" :rules="[
             {
               required: true,
               message: '请选择资产类型',
               trigger: 'change',
             },
-          ]">
-            <el-select v-model="form.type" placeholder="请输入类型" filterable :disabled="form.id"
-              @change="handleTypeChange">
-              <el-option v-for="dict in da_asset_type" :key="dict.value" :label="dict.label"
-                :value="dict.value"></el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12" v-if="!props.isRegister">
-          <el-form-item label="创建类型" prop="status" :rules="[
+          ]"
+>
+            <a-select v-model:value="form.type" placeholder="请输入类型" show-search :disabled="form.id"
+              @change="handleTypeChange"
+>
+              <a-select-option v-for="dict in da_asset_type" :key="dict.value" :label="dict.label"
+                :value="dict.value"
+>{{ dict.label }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12" v-if="!props.isRegister">
+          <a-form-item label="创建类型" name="status" :rules="[
             {
               required: true,
               message: '请选择创建类型',
               trigger: 'change',
             },
-          ]">
-            <el-radio-group v-model="form.createType" :disabled="form.id" @change="handleCreateChange">
-              <el-radio value="1">暂不注册资产</el-radio>
-              <el-radio value="2">注册资产</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述" prop="description">
-            <el-input type="textarea" :min-height="192" v-model="form.description" placeholder="请输入描述" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <!-- <el-divider content-position="center" v-if="form.id != undefined || form.createType == '2'">
+          ]"
+>
+            <a-radio-group v-model:value="form.createType" :disabled="form.id" @change="handleCreateChange">
+              <a-radio value="1">暂不注册资产</a-radio>
+              <a-radio value="2">注册资产</a-radio>
+            </a-radio-group>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述" name="description">
+            <a-textarea v-model:value="form.description" :auto-size="{ minRows: 8 }" placeholder="请输入描述" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <!-- <a-divider v-if="form.id != undefined || form.createType == '2'">
         <span class="blue-text">参数配置</span>
-      </el-divider> -->
+      </a-divider> -->
       <component :is="currentFormComponent" v-model:form="form" ref="ApiConfigRef" v-if="form.createType == '2'"
-        :isRegister="props.isRegister" :type="props.type" />
-      <el-row :gutter="20" v-if="form.type == '111' && (form.id != undefined || form.createType == '2')">
-        <el-col :span="12">
-          <el-form-item label="服务类型" prop="daAssetGis.type"
-            :rules="[{ required: true, message: '请输入服务类型', trigger: 'blur' }]">
-            <el-select v-model="form.daAssetGis.type" placeholder="请选择参数类型">
-              <el-option v-for="dict in da_asset_gis_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="服务地址" prop="daAssetGis.url"
-            :rules="[{ required: true, message: '请输入服务地址', trigger: 'blur' }]">
-            <el-input v-model="form.daAssetGis.url" placeholder="请输入服务地址" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20" v-if="form.type == '111' && (form.id != undefined || form.createType == '2')">
-        <el-col :span="12">
-          <el-form-item label="请求类型" prop="daAssetGis.type"
-            :rules="[{ required: true, message: '请选择请求类型', trigger: 'blur' }]">
-            <el-select v-model="form.daAssetGis.httpMethod" placeholder="请选择请求类型">
-              <el-option v-for="dict in da_asset_api_method" :key="dict.value" :label="dict.label"
-                :value="dict.value" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20" v-if="form.type == '111' && (form.id != undefined || form.createType == '2')">
-        <el-col :span="12">
-          <el-form-item label="文件类型" prop="daAssetGeo.fileType"
-            :rules="[{ required: true, message: '请输入文件类型', trigger: 'blur' }]">
-            <el-select v-model="form.daAssetGeo.fileType" placeholder="请选择参数类型">
-              <el-option v-for="dict in da_asset_geo_file_type" :key="dict.value" :label="dict.label"
-                :value="dict.value" />
-            </el-select>
-            <!-- <el-input v-model="form.daAssetGeo.fileType" placeholder="请输入文件类型" /> -->
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="上传文件" prop="daAssetGeo.fileUrl"
-            :rules="[{ required: true, message: '请上传文件', trigger: 'fileUrl' }]">
-            <FileUploadbtn :limit="1" v-model="form.daAssetGeo.fileUrl" :dragFlag="false" :fileType="['geojson']"
-              :fileSize="50" :isShowTip="false" v-model:fileSize="form.fileSize" v-model:fileExt="form.fileType" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+        :isRegister="props.isRegister" :type="props.type"
+/>
+      <a-row :gutter="20" v-if="form.type == '111' && (form.id != undefined || form.createType == '2')">
+        <a-col :span="12">
+          <a-form-item label="文件类型" name="assetsAssetGeo.fileType"
+            :rules="[{ required: true, message: '请输入文件类型', trigger: 'blur' }]"
+>
+            <a-select v-model:value="form.assetsAssetGeo.fileType" placeholder="请选择参数类型">
+              <a-select-option v-for="dict in da_asset_geo_file_type" :key="dict.value" :label="dict.label"
+                :value="dict.value"
+/>
+            </a-select>
+            <!-- <a-input v-model:value="form.assetsAssetGeo.fileType" placeholder="请输入文件类型" /> -->
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="上传文件" name="assetsAssetGeo.fileUrl"
+            :rules="[{ required: true, message: '请上传文件', trigger: 'fileUrl' }]"
+>
+            <FileUploadbtn :limit="1" v-model="form.assetsAssetGeo.fileUrl" :dragFlag="false" :fileType="['geojson']"
+              :fileSize="50" :isShowTip="false" v-model:fileSize="form.fileSize" v-model:fileExt="form.fileType"
+/>
+          </a-form-item>
+        </a-col>
+      </a-row>
       <excelAdd ref="excelAddRef" />
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input type="textarea" :min-height="192" v-model="form.remark" placeholder="请输入备注" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="备注" name="remark">
+            <a-textarea v-model:value="form.remark" :auto-size="{ minRows: 8 }" placeholder="请输入备注" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </a-form>
     <template #footer>
       <div class="dialog-footer">
         <!-- 关闭按钮 -->
-        <el-button @click="closeDialog">取消</el-button>
+        <a-button @click="closeDialog">取消</a-button>
         <!-- 保存按钮 -->
-        <el-button type="primary" @click="saveData" :loading="loading">确定</el-button>
+        <a-button type="primary" @click="saveData" :loading="loading">确定</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
 import { defineProps, defineEmits, ref, computed, watch } from "vue";
-// import Crontab from "@/components/Crontab/ruleBase.vue";
-// import { getDaDiscoveryTask } from "@/api/ast/discovery/discoveryTask";
+// import { message } from 'ant-design-vue'
+import Crontab from "@/components/Crontab/index.vue";
+// import { message } from 'ant-design-vue'
+import { getDaDiscoveryTask } from "@/api/ast/discovery/discoveryTask";
 // 数据库表
+
 import tableConfigForm from "./tableAdd.vue";
-// 外部api
-import apiConfigForm from "./apiAdd.vue";
 // 视频
+
 import daAssetVideo from "./videoAdd.vue";
 // 矢量数据 上传
+
 import excelAdd from "./excelAdd.vue";
 // 非结构化数据
+
 import Unstructured from "./unstructuredAdd.vue";
+
 import { getThemeList } from "@/api/tax/theme/theme.js";
+
 import useUserStore from "@/store/system/user";
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
-const { da_asset_type, da_asset_gis_type, da_asset_geo_file_type, da_asset_api_method } = proxy.useDict(
+const { da_asset_type, da_asset_geo_file_type, da_asset_video_platform } = proxy.useDict(
   "da_asset_type",
-  "da_asset_gis_type",
   "da_asset_geo_file_type",
-  "da_asset_video_platform",
-  "da_asset_gis_typ",
-  "da_asset_api_method"
+  "da_asset_video_platform"
 );
+
 import { addDaAsset, updateDaAsset, bindResources } from "@/api/ast/asset/asset";
-// import ExcelUploadDialog from "@/views/col/etl/components/formComponents/components/ExcelUploadDialog.vue";
+// import { message } from 'ant-design-vue'
 const props = defineProps({
   visible: { type: Boolean, default: true },
   title: { type: String, default: "表单标题" },
@@ -194,8 +184,6 @@ const currentFormComponent = computed(() => {
   switch (form.value.type) {
     case "1":
       return tableConfigForm;
-    case "2":
-      return apiConfigForm;
     // case "5":
     //   return daAssetVideo;
     // case "6":
@@ -261,16 +249,8 @@ const form = ref({
   dataCount: null,
   fieldCount: null,
   assetColumnList: [],
-  // 2
-  daAssetApi: {
-    appName: "",
-    url: "",
-    httpMethod: "",
-    developerName: "",
-  },
-  daAssetApiParamList: [],
   // 4
-  daAssetGeo: {
+  assetsAssetGeo: {
     fileUrl: "",
     fileType: "",
     elementType: "",
@@ -278,14 +258,7 @@ const form = ref({
     example: "",
     fileName: "",
   },
-  daAssetGis: {
-    url: "",
-    type: "",
-    httpMethod: "",
-    coordinateSystem: "",
-    remark: "",
-  },
-  daAssetVideo: {
+  assetsAssetVideo: {
     ip: "",
     port: "",
     protocol: "",
@@ -299,7 +272,7 @@ const form = ref({
       artemisPath: "",
     },
   },
-  daAssetFiles: {
+  assetsAssetFiles: {
     url: null,
     startData: "",
     tableFields: [],
@@ -332,14 +305,7 @@ const handleTypeChange = () => {
   form.value.tableComment = "";
   form.value.datasourceType = "";
   form.value.dbname = "";
-  form.value.daAssetApi = {
-    appName: "",
-    url: "",
-    httpMethod: "",
-    developerName: "",
-  };
-  form.value.daAssetApiParamList = [];
-  form.value.daAssetGeo = {
+  form.value.assetsAssetGeo = {
     fileUrl: "",
     fileType: "",
     elementType: "",
@@ -347,14 +313,7 @@ const handleTypeChange = () => {
     example: "",
     fileName: "",
   };
-  form.value.daAssetGis = {
-    url: "",
-    type: "",
-    httpMethod: "",
-    coordinateSystem: "",
-    remark: "",
-  };
-  form.value.daAssetVideo = {
+  form.value.assetsAssetVideo = {
     ip: "",
     port: "",
     protocol: "",
@@ -370,7 +329,7 @@ const handleTypeChange = () => {
       artemisPath: "",
     },
   };
-  form.value.daAssetFiles = {
+  form.value.assetsAssetFiles = {
     url: null,
     startData: "",
     tableFields: [],
@@ -411,8 +370,8 @@ watch(
         form.value.createType = props.isRegister ? "2" : form.value.createType;
         // 视频配置处理
         if (props.data.type == "5") {
-          if (form.value.daAssetVideo == null) {
-            form.value.daAssetVideo = {
+          if (form.value.assetsAssetVideo == null) {
+            form.value.assetsAssetVideo = {
               ip: "",
               port: "",
               protocol: "",
@@ -427,28 +386,11 @@ watch(
               }),
             };
           } else {
-            form.value.daAssetVideo.config = JSON.parse(props.data?.daAssetVideo?.config);
+            form.value.assetsAssetVideo.config = JSON.parse(props.data?.assetsAssetVideo?.config);
           }
         }
-        if (form.value.daAssetGis == null) {
-          form.value.daAssetGis = {
-            url: "",
-            type: "",
-            httpMethod: "",
-            coordinateSystem: "",
-            remark: "",
-          };
-        }
-        if (form.value.daAssetApi == null) {
-          form.value.daAssetApi = {
-            appName: "",
-            url: "",
-            httpMethod: "",
-            developerName: "",
-          };
-        }
-        if (form.value.daAssetGeo == null) {
-          form.value.daAssetGeo = {
+        if (form.value.assetsAssetGeo == null) {
+          form.value.assetsAssetGeo = {
             fileUrl: "",
             fileType: "",
             elementType: "",
@@ -465,21 +407,6 @@ watch(
     deep: true,
   }
 );
-function removeIdFields(data) {
-  if (!Array.isArray(data)) return [];
-  return data.map((item) => {
-    if (item == null || typeof item != "object") return item;
-    const newItem = { ...item };
-    delete newItem.id;
-    delete newItem.parentId;
-    for (const key in newItem) {
-      if (Array.isArray(newItem[key])) {
-        newItem[key] = removeIdFields(newItem[key]);
-      }
-    }
-    return newItem;
-  });
-}
 
 function getFormDataByType(type) {
   const commonFields = {
@@ -510,37 +437,26 @@ function getFormDataByType(type) {
         fieldCount: form.value.fieldCount,
         assetColumnList: form.value.assetColumnList || [],
       };
-    case "2":
-      return {
-        ...commonFields,
-        daAssetApi: { ...form.value.daAssetApi },
-        daAssetApiParamList: form.value.daAssetApiParamList,
-      };
-    case "3":
-      return {
-        ...commonFields,
-        daAssetGis: { ...form.value.daAssetGis },
-      };
     case "4":
       return {
         ...commonFields,
-        daAssetGeo: { ...form.value.daAssetGeo },
+        assetsAssetGeo: { ...form.value.assetsAssetGeo },
       };
     case "5":
       return {
         ...commonFields,
-        daAssetVideo: {
-          ip: form.value.daAssetVideo.ip,
-          port: form.value.daAssetVideo.port,
-          protocol: form.value.daAssetVideo.protocol,
-          platform: form.value.daAssetVideo.platform,
-          cameraName: form.value.daAssetVideo.config.cameraName,
-          cameraCode: form.value.daAssetVideo.config.cameraCode,
-          artemisPath: form.value.daAssetVideo.config.artemisPath,
+        assetsAssetVideo: {
+          ip: form.value.assetsAssetVideo.ip,
+          port: form.value.assetsAssetVideo.port,
+          protocol: form.value.assetsAssetVideo.protocol,
+          platform: form.value.assetsAssetVideo.platform,
+          cameraName: form.value.assetsAssetVideo.config.cameraName,
+          cameraCode: form.value.assetsAssetVideo.config.cameraCode,
+          artemisPath: form.value.assetsAssetVideo.config.artemisPath,
           config: JSON.stringify({
-            cameraName: form.value.daAssetVideo.config.cameraName,
-            cameraCode: form.value.daAssetVideo.config.cameraCode,
-            artemisPath: form.value.daAssetVideo.config.artemisPath,
+            cameraName: form.value.assetsAssetVideo.config.cameraName,
+            cameraCode: form.value.assetsAssetVideo.config.cameraCode,
+            artemisPath: form.value.assetsAssetVideo.config.artemisPath,
           }),
         },
       };
@@ -548,12 +464,12 @@ function getFormDataByType(type) {
       return {
         ...commonFields,
 
-        daAssetFiles: {
-          url: proxy.$refs.excelAddRef.form.daAssetFiles.url,
-          startData: proxy.$refs.excelAddRef.form.daAssetFiles.startData,
-          startColumn: proxy.$refs.excelAddRef.form.daAssetFiles.startColumn,
-          type: proxy.$refs.excelAddRef.form.daAssetFiles.type,
-          name: proxy.$refs.excelAddRef.form.daAssetFiles.name,
+        assetsAssetFiles: {
+          url: proxy.$refs.excelAddRef.form.assetsAssetFiles.url,
+          startData: proxy.$refs.excelAddRef.form.assetsAssetFiles.startData,
+          startColumn: proxy.$refs.excelAddRef.form.assetsAssetFiles.startColumn,
+          type: proxy.$refs.excelAddRef.form.assetsAssetFiles.type,
+          name: proxy.$refs.excelAddRef.form.assetsAssetFiles.name,
         },
       };
     case "7": {
@@ -575,18 +491,11 @@ let ApiConfigRef = ref();
 const saveData = async () => {
   loading.value = true; // 开始加载
   try {
-    if (form.value.type === "2" && form.value.createType == "2") {
-      const valid = await ApiConfigRef.value.validateForms();
-      if (!valid) {
-        proxy.$message.warning("校验未通过，请完善表格信息");
-        return;
-      }
-    }
     const valid = await proxy.$refs["daDiscoveryTaskRef"].validate();
     if (valid) {
       if (props.data.type == "5") {
-        if (form.value.daAssetVideo == null) {
-          form.value.daAssetVideo = {
+        if (form.value.assetsAssetVideo == null) {
+          form.value.assetsAssetVideo = {
             ip: "",
             port: "",
             protocol: "",
@@ -601,7 +510,7 @@ const saveData = async () => {
             }),
           };
         } else {
-          form.value.daAssetVideo.config = JSON.stringify(form.value?.daAssetVideo?.config);
+          form.value.assetsAssetVideo.config = JSON.stringify(form.value?.assetsAssetVideo?.config);
         }
       }
       form.value = getFormDataByType(form.value.type);
@@ -614,9 +523,6 @@ const saveData = async () => {
           proxy.$modal.msgSuccess("修改成功");
         }
       } else {
-        if (form.value.type == 2) {
-          form.value.daAssetApiParamList = removeIdFields(form.value.daAssetApiParamList);
-        }
         let payload = {
           ...form.value,
         };
@@ -660,16 +566,8 @@ const clearForm = () => {
     dataCount: null,
     fieldCount: null,
     assetColumnList: [],
-    // 2
-    daAssetApi: {
-      appName: "",
-      url: "",
-      httpMethod: "",
-      developerName: "",
-    },
-    daAssetApiParamList: [],
     // 4
-    daAssetGeo: {
+    assetsAssetGeo: {
       fileUrl: "",
       fileType: "",
       elementType: "",
@@ -677,15 +575,8 @@ const clearForm = () => {
       example: "",
       fileName: "",
     },
-    daAssetGis: {
-      url: "",
-      type: "",
-      httpMethod: "",
-      coordinateSystem: "",
-      remark: "",
-    },
     // 5
-    daAssetVideo: {
+    assetsAssetVideo: {
       ip: "",
       port: "",
       protocol: "",
@@ -699,7 +590,7 @@ const clearForm = () => {
         artemisPath: "",
       }),
     },
-    daAssetFiles: {
+    assetsAssetFiles: {
       url: null,
       startData: "",
       startColumn: "",

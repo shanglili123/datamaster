@@ -8,72 +8,72 @@
     </div>
 
     <div class="skill-toolbar">
-      <el-form :model="queryParams" inline @submit.prevent>
-        <el-form-item label="名称">
-          <el-input v-model="queryParams.skillName" placeholder="请输入Skill名称" clearable />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="queryParams.skillType" placeholder="请选择类型" clearable>
-            <el-option label="表级问数" value="TABLE" />
-            <el-option label="整库问数" value="DATABASE" />
-            <el-option label="多表问数" value="MULTI_TABLE" />
-            <el-option label="报告模板" value="REPORT_TEMPLATE" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
-            <el-option label="草稿" value="DRAFT" />
-            <el-option label="已发布" value="PUBLISHED" />
-            <el-option label="已归档" value="ARCHIVED" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" icon="Search" @click="getList">查询</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <a-form :model="queryParams" layout="inline" @submit.prevent>
+        <a-form-item label="名称">
+          <a-input v-model:value="queryParams.skillName" placeholder="请输入Skill名称" allow-clear />
+        </a-form-item>
+        <a-form-item label="类型">
+          <a-select v-model:value="queryParams.skillType" placeholder="请选择类型" allow-clear style="width: 150px">
+            <a-select-option label="表级问数" value="TABLE" />
+            <a-select-option label="整库问数" value="DATABASE" />
+            <a-select-option label="多表问数" value="MULTI_TABLE" />
+            <a-select-option label="报告模板" value="REPORT_TEMPLATE" />
+          </a-select>
+        </a-form-item>
+        <a-form-item label="状态">
+          <a-select v-model:value="queryParams.status" placeholder="请选择状态" allow-clear style="width: 150px">
+            <a-select-option label="草稿" value="DRAFT" />
+            <a-select-option label="已发布" value="PUBLISHED" />
+            <a-select-option label="已归档" value="ARCHIVED" />
+          </a-select>
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" :icon="h(SearchOutlined)" @click="getList">查询</a-button>
+          <a-button :icon="h(ReloadOutlined)" @click="resetQuery">重置</a-button>
+        </a-form-item>
+      </a-form>
       <div class="skill-actions">
-        <el-button type="primary" icon="Plus" @click="handleAdd" v-hasPermi="['ai:skill:add']">新增</el-button>
-        <el-button icon="Connection" @click="openSkillGenerate" v-hasPermi="['ai:skill:generate']">生成问数Skill</el-button>
-        <el-button type="success" icon="Upload" @click="handleSyncAllSkills" v-hasPermi="['ai:skill:sync']">同步问数Skill</el-button>
-        <el-button icon="Link" @click="handleSyncAllDatasources" v-hasPermi="['ast:dataSource:edit']">同步数据源</el-button>
+        <a-button type="primary" :icon="h(PlusOutlined)" @click="handleAdd" v-hasPermi="['ai:skill:add']">新增</a-button>
+        <a-button :icon="h(ApartmentOutlined)" @click="openSkillGenerate" v-hasPermi="['ai:skill:generate']">生成问数Skill</a-button>
+        <a-button type="primary" :icon="h(UploadOutlined)" @click="handleSyncAllSkills" v-hasPermi="['ai:skill:sync']">同步问数Skill</a-button>
+        <a-button :icon="h(LinkOutlined)" @click="handleSyncAllDatasources" v-hasPermi="['ast:dataSource:edit']">同步数据源</a-button>
       </div>
     </div>
 
-    <el-table v-loading="loading" :data="skillList" border>
-      <el-table-column label="名称" prop="skillName" min-width="180" show-overflow-tooltip />
-      <el-table-column label="编码" prop="skillCode" min-width="220" show-overflow-tooltip />
-      <el-table-column label="类型" prop="skillType" width="150">
-        <template #default="{ row }">{{ skillTypeText(row.skillType) }}</template>
-      </el-table-column>
-      <el-table-column label="状态" prop="status" width="110">
-        <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)">{{ statusText(row.status) }}</el-tag>
+    <a-spin :spinning="loading">
+      <a-table
+        :data-source="skillList"
+        :columns="skillColumns"
+        :pagination="false"
+        bordered
+        row-key="id"
+        :scroll="{ x: 1600 }"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'skillType'">
+            {{ skillTypeText(record.skillType) }}
+          </template>
+          <template v-else-if="column.dataIndex === 'status'">
+            <a-tag :color="statusTagColor(record.status)">{{ statusText(record.status) }}</a-tag>
+          </template>
+          <template v-else-if="column.dataIndex === 'dbgptSyncStatus'">
+            <a-tag :color="syncTagColor(record.dbgptSyncStatus)">
+              {{ syncText(record.dbgptSyncStatus) }}
+            </a-tag>
+            <div class="sync-doc" v-if="record.dbgptDocumentName">{{ record.dbgptDocumentName }}</div>
+          </template>
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="handleEdit(record)">编辑</a-button>
+            <a-button type="link" size="small" @click="handleVersions(record)">版本</a-button>
+            <a-button type="link" size="small" @click="openTemplateEditor(record)" v-hasPermi="['ai:skill:edit']">上传模板</a-button>
+            <a-button type="link" size="small" @click="openTemplateList(record)">查看模板</a-button>
+            <a-button type="link" size="small" @click="handlePublish(record)" v-hasPermi="['ai:skill:publish']">发布</a-button>
+            <a-button type="link" size="small" @click="handleSyncSkill(record)" v-hasPermi="['ai:skill:sync']">同步</a-button>
+            <a-button type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['ai:skill:remove']">归档</a-button>
+          </template>
         </template>
-      </el-table-column>
-      <el-table-column label="来源" prop="sourceType" width="130" />
-      <el-table-column label="版本" prop="version" width="80" />
-      <el-table-column label="问数同步" width="150">
-        <template #default="{ row }">
-          <el-tag :type="syncTag(row.dbgptSyncStatus)" size="small">
-            {{ syncText(row.dbgptSyncStatus) }}
-          </el-tag>
-          <div class="sync-doc" v-if="row.dbgptDocumentName">{{ row.dbgptDocumentName }}</div>
-        </template>
-      </el-table-column>
-      <el-table-column label="更新时间" prop="updateTime" width="170" />
-      <el-table-column label="操作" width="500" fixed="right">
-        <template #default="{ row }">
-          <el-button link type="primary" icon="Edit" @click="handleEdit(row)">编辑</el-button>
-          <el-button link type="primary" icon="View" @click="handleVersions(row)">版本</el-button>
-          <el-button link type="primary" icon="Upload" @click="openTemplateEditor(row)" v-hasPermi="['ai:skill:edit']">上传模板</el-button>
-          <el-button link type="primary" icon="Tickets" @click="openTemplateList(row)">查看模板</el-button>
-          <el-button link type="success" icon="Check" @click="handlePublish(row)" v-hasPermi="['ai:skill:publish']">发布</el-button>
-          <el-button link type="success" icon="Upload" @click="handleSyncSkill(row)" v-hasPermi="['ai:skill:sync']">同步</el-button>
-          <el-button link type="danger" icon="Delete" @click="handleDelete(row)" v-hasPermi="['ai:skill:remove']">归档</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      </a-table>
+    </a-spin>
 
     <pagination
       v-show="total > 0"
@@ -83,241 +83,241 @@
       @pagination="getList"
     />
 
-    <el-dialog v-model="editorOpen" :title="editorTitle" width="900px" append-to-body>
-      <el-form ref="skillFormRef" :model="form" :rules="rules" label-width="90px">
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="名称" prop="skillName">
-              <el-input v-model="form.skillName" placeholder="请输入Skill名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="编码" prop="skillCode">
-              <el-input v-model="form.skillCode" placeholder="请输入Skill编码" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <el-form-item label="类型" prop="skillType">
-              <el-select v-model="form.skillType" style="width: 100%">
-                <el-option label="表级问数" value="TABLE" />
-                <el-option label="整库问数" value="DATABASE" />
-                <el-option label="多表问数" value="MULTI_TABLE" />
-                <el-option label="报告模板" value="REPORT_TEMPLATE" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="状态" prop="status">
-              <el-select v-model="form.status" placeholder="请选择状态">
-                <el-option label="草稿" value="DRAFT" />
-                <el-option label="已发布" value="PUBLISHED" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="对象ID">
-              <el-input-number v-model="form.bizObjectId" controls-position="right" :min="1" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="内容" prop="content">
-          <el-input
-            v-model="form.content"
-            type="textarea"
+    <a-modal v-model:open="editorOpen" :title="editorTitle" width="900" destroy-on-close>
+      <a-form ref="skillFormRef" :model="form" :rules="rules" :label-col="{ style: { width: '90px' } }">
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="名称" name="skillName">
+              <a-input v-model:value="form.skillName" placeholder="请输入Skill名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="编码" name="skillCode">
+              <a-input v-model:value="form.skillCode" placeholder="请输入Skill编码" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-form-item label="类型" name="skillType">
+              <a-select v-model:value="form.skillType" style="width: 100%">
+                <a-select-option label="表级问数" value="TABLE" />
+                <a-select-option label="整库问数" value="DATABASE" />
+                <a-select-option label="多表问数" value="MULTI_TABLE" />
+                <a-select-option label="报告模板" value="REPORT_TEMPLATE" />
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="状态" name="status">
+              <a-select v-model:value="form.status" placeholder="请选择状态">
+                <a-select-option label="草稿" value="DRAFT" />
+                <a-select-option label="已发布" value="PUBLISHED" />
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="对象ID">
+              <a-input-number v-model:value="form.bizObjectId" :min="1" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-form-item label="内容" name="content">
+          <a-textarea
+            v-model:value="form.content"
             :rows="22"
             placeholder="请输入Markdown Skill内容"
           />
-        </el-form-item>
-        <el-form-item label="变更说明">
-          <el-input v-model="form.changeRemark" placeholder="请输入变更说明" />
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+        <a-form-item label="变更说明">
+          <a-input v-model:value="form.changeRemark" placeholder="请输入变更说明" />
+        </a-form-item>
+      </a-form>
       <template #footer>
-        <el-button @click="editorOpen = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">保存</el-button>
+        <a-button @click="editorOpen = false">取消</a-button>
+        <a-button type="primary" @click="submitForm">保存</a-button>
       </template>
-    </el-dialog>
+    </a-modal>
 
-    <el-dialog v-model="tableGenerateOpen" title="生成问数Skill" width="560px" append-to-body>
-      <el-form :model="tableGenerateForm" label-width="90px">
-        <el-form-item label="生成范围">
-          <el-segmented
-            v-model="tableGenerateForm.generateScope"
+    <a-modal v-model:open="tableGenerateOpen" title="生成问数Skill" width="560" destroy-on-close>
+      <a-form :model="tableGenerateForm" :label-col="{ style: { width: '90px' } }">
+        <a-form-item label="生成范围">
+          <a-segmented
+            v-model:value="tableGenerateForm.generateScope"
             :options="generateScopeOptions"
             @change="handleGenerateScopeChange"
           />
-        </el-form-item>
-        <el-form-item label="数据源">
-          <el-select
-            v-model="tableGenerateForm.datasourceId"
+        </a-form-item>
+        <a-form-item label="数据源">
+          <a-select
+            v-model:value="tableGenerateForm.datasourceId"
             placeholder="请选择数据源"
-            filterable
-            clearable
+            show-search
+            allow-clear
             style="width: 100%"
             @change="handleGenerateDatasourceChange"
           >
-            <el-option
+            <a-select-option
               v-for="item in datasourceOptions"
               :key="item.id"
-              :label="item.datasourceName || item.name || item.id"
               :value="item.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item v-if="tableGenerateForm.generateScope !== 'database'" label="表">
-          <el-select
-            v-model="tableGenerateTableValue"
+            >
+              {{ item.datasourceName || item.name || item.id }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item v-if="tableGenerateForm.generateScope !== 'database'" label="表">
+          <a-select
+            v-model:value="tableGenerateTableValue"
             placeholder="请选择表"
-            filterable
-            clearable
-            :multiple="tableGenerateForm.generateScope === 'multi'"
-            collapse-tags
-            collapse-tags-tooltip
+            show-search
+            allow-clear
+            :mode="tableGenerateForm.generateScope === 'multi' ? 'multiple' : undefined"
             :loading="tableLoading"
             style="width: 100%"
           >
-            <el-option
+            <a-select-option
               v-for="item in tableOptions"
               :key="item.tableName || item.name"
-              :label="tableOptionLabel(item)"
               :value="item.tableName || item.name"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="强制刷新">
-          <el-switch v-model="tableGenerateForm.forceRefresh" />
-        </el-form-item>
-        <el-form-item label="发布">
-          <el-switch v-model="tableGenerateForm.publish" />
-        </el-form-item>
-        <el-form-item label="人工备注">
-          <el-input v-model="tableGenerateForm.manualNotes" type="textarea" :rows="5" />
-        </el-form-item>
-      </el-form>
+            >
+              {{ tableOptionLabel(item) }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="强制刷新">
+          <a-switch v-model:checked="tableGenerateForm.forceRefresh" />
+        </a-form-item>
+        <a-form-item label="发布">
+          <a-switch v-model:checked="tableGenerateForm.publish" />
+        </a-form-item>
+        <a-form-item label="人工备注">
+          <a-textarea v-model:value="tableGenerateForm.manualNotes" :rows="5" />
+        </a-form-item>
+      </a-form>
       <template #footer>
-        <el-button @click="tableGenerateOpen = false">取消</el-button>
-        <el-button type="primary" :loading="generatingTable" @click="handleGenerateTable">
+        <a-button @click="tableGenerateOpen = false">取消</a-button>
+        <a-button type="primary" :loading="generatingTable" @click="handleGenerateTable">
           {{ skillGenerateButtonText }}
-        </el-button>
+        </a-button>
       </template>
-    </el-dialog>
+    </a-modal>
 
-    <el-drawer v-model="versionOpen" title="Skill版本" size="680px">
-      <el-table :data="pagedVersionList" border>
-        <el-table-column label="版本" prop="version" width="80" />
-        <el-table-column label="类型" prop="changeType" width="110" />
-        <el-table-column label="说明" prop="changeRemark" show-overflow-tooltip />
-        <el-table-column label="创建时间" prop="createTime" width="170" />
-        <el-table-column label="操作" width="90">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleRollback(row)">回滚</el-button>
+    <a-drawer v-model:open="versionOpen" title="Skill版本" width="680">
+      <a-table :data-source="pagedVersionList" :columns="versionColumns" :pagination="false" bordered row-key="version" size="small">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="handleRollback(record)">回滚</a-button>
           </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </a-table>
       <pagination
         v-show="versionList.length > 0"
         :total="versionList.length"
         v-model:page="versionPagination.pageNum"
         v-model:limit="versionPagination.pageSize"
       />
-    </el-drawer>
+    </a-drawer>
 
-    <el-drawer v-model="templateListOpen" :title="templateListTitle" size="780px">
+    <a-drawer v-model:open="templateListOpen" :title="templateListTitle" width="780">
       <div class="template-list-toolbar">
-        <el-button type="primary" icon="Plus" @click="openTemplateEditor(currentTemplateSkill)">上传报告模板</el-button>
+        <a-button type="primary" :icon="h(PlusOutlined)" @click="openTemplateEditor(currentTemplateSkill)">上传报告模板</a-button>
       </div>
-      <el-table v-loading="templateLoading" :data="pagedTemplateList" border>
-        <el-table-column label="模板名称" prop="templateName" min-width="180" show-overflow-tooltip />
-        <el-table-column label="编码" prop="templateCode" min-width="180" show-overflow-tooltip />
-        <el-table-column label="状态" prop="status" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'PUBLISHED' ? 'success' : 'warning'">
-              {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
-            </el-tag>
+      <a-spin :spinning="templateLoading">
+        <a-table :data-source="pagedTemplateList" :columns="templateColumns" :pagination="false" bordered row-key="id" size="small">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'status'">
+              <a-tag :color="record.status === 'PUBLISHED' ? 'success' : 'warning'">
+                {{ record.status === 'PUBLISHED' ? '已发布' : '草稿' }}
+              </a-tag>
+            </template>
+            <template v-else-if="column.dataIndex === 'defaultFlag'">
+              <a-tag v-if="record.defaultFlag" color="success">默认</a-tag>
+              <span v-else>-</span>
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-button type="link" size="small" @click="openTemplateEditor(currentTemplateSkill, record)">编辑</a-button>
+              <a-button type="link" size="small" :disabled="record.defaultFlag" @click="handleSetDefaultTemplate(record)">设默认</a-button>
+              <a-button type="link" danger size="small" @click="handleDeleteTemplate(record)">删除</a-button>
+            </template>
           </template>
-        </el-table-column>
-        <el-table-column label="默认" prop="defaultFlag" width="80">
-          <template #default="{ row }">
-            <el-tag v-if="row.defaultFlag" type="success">默认</el-tag>
-            <span v-else>-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="版本" prop="version" width="70" />
-        <el-table-column label="更新时间" prop="updateTime" width="170" />
-        <el-table-column label="操作" width="230" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openTemplateEditor(currentTemplateSkill, row)">编辑</el-button>
-            <el-button link type="success" :disabled="row.defaultFlag" @click="handleSetDefaultTemplate(row)">设默认</el-button>
-            <el-button link type="danger" @click="handleDeleteTemplate(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        </a-table>
+      </a-spin>
       <pagination
         v-show="templateList.length > 0"
         :total="templateList.length"
         v-model:page="templatePagination.pageNum"
         v-model:limit="templatePagination.pageSize"
       />
-    </el-drawer>
+    </a-drawer>
 
-    <el-dialog v-model="templateEditorOpen" :title="templateEditorTitle" width="980px" append-to-body>
-      <el-form ref="templateFormRef" :model="templateForm" :rules="templateRules" label-width="90px">
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="模板名称" prop="templateName">
-              <el-input v-model="templateForm.templateName" placeholder="请输入模板名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="模板编码" prop="templateCode">
-              <el-input v-model="templateForm.templateCode" placeholder="请输入模板编码" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <el-form-item label="状态">
-              <el-select v-model="templateForm.status" style="width: 100%">
-                <el-option label="草稿" value="DRAFT" />
-                <el-option label="已发布" value="PUBLISHED" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="默认模板">
-              <el-switch v-model="templateForm.defaultFlag" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="操作">
-              <el-button icon="Document" @click="fillTemplateFormat">填入标准格式</el-button>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="模板JSON" prop="templateContent">
-          <el-input
-            v-model="templateForm.templateContent"
-            type="textarea"
+    <a-modal v-model:open="templateEditorOpen" :title="templateEditorTitle" width="980" destroy-on-close>
+      <a-form ref="templateFormRef" :model="templateForm" :rules="templateRules" :label-col="{ style: { width: '90px' } }">
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="模板名称" name="templateName">
+              <a-input v-model:value="templateForm.templateName" placeholder="请输入模板名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="模板编码" name="templateCode">
+              <a-input v-model:value="templateForm.templateCode" placeholder="请输入模板编码" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-form-item label="状态">
+              <a-select v-model:value="templateForm.status" style="width: 100%">
+                <a-select-option label="草稿" value="DRAFT" />
+                <a-select-option label="已发布" value="PUBLISHED" />
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="默认模板">
+              <a-switch v-model:checked="templateForm.defaultFlag" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="操作">
+              <a-button :icon="h(FileTextOutlined)" @click="fillTemplateFormat">填入标准格式</a-button>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-form-item label="模板JSON" name="templateContent">
+          <a-textarea
+            v-model:value="templateForm.templateContent"
             :rows="24"
             placeholder="请粘贴报告模板JSON"
           />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="templateForm.remark" placeholder="请输入备注" />
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+        <a-form-item label="备注">
+          <a-input v-model:value="templateForm.remark" placeholder="请输入备注" />
+        </a-form-item>
+      </a-form>
       <template #footer>
-        <el-button @click="templateEditorOpen = false">取消</el-button>
-        <el-button type="primary" :loading="templateSaving" @click="submitTemplateForm">保存</el-button>
+        <a-button @click="templateEditorOpen = false">取消</a-button>
+        <a-button type="primary" :loading="templateSaving" @click="submitTemplateForm">保存</a-button>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup name="AiSkill">
-import { computed, getCurrentInstance, reactive, ref } from 'vue'
+
+import { computed, getCurrentInstance, h, reactive, ref } from 'vue'
+
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  PlusOutlined,
+  ApartmentOutlined,
+  UploadOutlined,
+  LinkOutlined,
+  FileTextOutlined
+} from '@ant-design/icons-vue'
+
 import {
   addSkill,
   addSkillReportTemplate,
@@ -338,11 +338,56 @@ import {
   updateSkillReportTemplate,
   updateSkill
 } from '@/api/ai/skill'
+
 import { syncAllDatasourceToDbgpt } from '@/api/ai/dbgpt'
+
 import { listDaDatasource, tableList } from '@/api/ast/dataSource/dataSource'
+
 import { buildReportTemplateFormatText } from '@/views/ai/chat/index/reportTemplateFormat'
 
 const { proxy } = getCurrentInstance()
+
+const skillColumns = [
+  { title: '名称', dataIndex: 'skillName', minWidth: 180, ellipsis: true },
+  { title: '编码', dataIndex: 'skillCode', minWidth: 220, ellipsis: true },
+  { title: '类型', dataIndex: 'skillType', width: 150 },
+  { title: '状态', dataIndex: 'status', width: 110 },
+  { title: '来源', dataIndex: 'sourceType', width: 130 },
+  { title: '版本', dataIndex: 'version', width: 80 },
+  { title: '问数同步', dataIndex: 'dbgptSyncStatus', width: 150 },
+  { title: '更新时间', dataIndex: 'updateTime', width: 170 },
+  { title: '操作', key: 'actions', width: 500, fixed: 'right' },
+]
+
+const versionColumns = [
+  { title: '版本', dataIndex: 'version', width: 80 },
+  { title: '类型', dataIndex: 'changeType', width: 110 },
+  { title: '说明', dataIndex: 'changeRemark', ellipsis: true },
+  { title: '创建时间', dataIndex: 'createTime', width: 170 },
+  { title: '操作', key: 'actions', width: 90 },
+]
+
+const templateColumns = [
+  { title: '模板名称', dataIndex: 'templateName', minWidth: 180, ellipsis: true },
+  { title: '编码', dataIndex: 'templateCode', minWidth: 180, ellipsis: true },
+  { title: '状态', dataIndex: 'status', width: 90 },
+  { title: '默认', dataIndex: 'defaultFlag', width: 80 },
+  { title: '版本', dataIndex: 'version', width: 70 },
+  { title: '更新时间', dataIndex: 'updateTime', width: 170 },
+  { title: '操作', key: 'actions', width: 230, fixed: 'right' },
+]
+
+function statusTagColor(status) {
+  if (status === 'PUBLISHED') return 'success'
+  if (status === 'ARCHIVED') return 'default'
+  return 'warning'
+}
+
+function syncTagColor(status) {
+  if (status === 'SYNCED') return 'success'
+  if (status === 'FAILED') return 'error'
+  return 'default'
+}
 
 const loading = ref(false)
 const skillList = ref([])
@@ -549,8 +594,7 @@ function handleEdit(row) {
 }
 
 function submitForm() {
-  skillFormRef.value.validate((valid) => {
-    if (!valid) return
+  skillFormRef.value.validate().then(() => {
     const payload = {
       id: form.id,
       skillName: form.skillName,
@@ -569,7 +613,7 @@ function submitForm() {
       editorOpen.value = false
       getList()
     })
-  })
+  }).catch(() => {})
 }
 
 function handleDelete(row) {
@@ -681,8 +725,8 @@ function fillTemplateFormat() {
 }
 
 function submitTemplateForm() {
-  templateFormRef.value.validate((valid) => {
-    if (!valid || !currentTemplateSkill.value?.id) return
+  templateFormRef.value.validate().then(() => {
+    if (!currentTemplateSkill.value?.id) return
     templateSaving.value = true
     const payload = {
       id: templateForm.id,
@@ -706,7 +750,7 @@ function submitTemplateForm() {
     }).finally(() => {
       templateSaving.value = false
     })
-  })
+  }).catch(() => {})
 }
 
 function handleSetDefaultTemplate(row) {
@@ -893,7 +937,7 @@ function statusText(status) {
 
 function statusTag(status) {
   if (status === 'PUBLISHED') return 'success'
-  if (status === 'ARCHIVED') return 'info'
+  if (status === 'ARCHIVED') return 'default'
   return 'warning'
 }
 
@@ -908,8 +952,8 @@ function syncText(status) {
 
 function syncTag(status) {
   if (status === 'SYNCED') return 'success'
-  if (status === 'FAILED') return 'danger'
-  return 'info'
+  if (status === 'FAILED') return 'error'
+  return 'default'
 }
 
 getList()
@@ -968,7 +1012,7 @@ getList()
   margin-bottom: 12px;
 }
 
-:deep(.el-textarea__inner) {
+:deep(.ant-input) {
   font-family: Consolas, Monaco, monospace;
   line-height: 1.55;
 }

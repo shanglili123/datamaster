@@ -1,125 +1,191 @@
 <template>
   <div :class="{ 'has-logo': showLogo }" :style="{ backgroundColor: sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }">
     <logo v-if="showLogo" :collapse="isCollapse" />
-    <el-scrollbar :class="sideTheme" wrap-class="scrollbar-wrapper">
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="isCollapse"
-        :background-color="sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground"
-        :text-color="sideTheme === 'theme-dark' ? variables.menuColor : variables.menuLightColor"
-        :unique-opened="true"
-        active-text-color="#2563eb"
-        :collapse-transition="false"
-        mode="vertical"
-      >
-        <sidebar-item
-          :style="{ '--bgColor': theme}"
-          v-for="(route, index) in sidebarRouters"
-          :key="route.path + index"
-          :item="route"
-          :base-path="route.path"
-        />
-      </el-menu>
-    </el-scrollbar>
+    <a-menu
+      :selected-keys="activeMenu ? [activeMenu] : []"
+      :open-keys="isCollapse ? [] : openKeys"
+      :inline-collapsed="isCollapse"
+      :mode="isCollapse ? 'vertical' : 'inline'"
+      :theme="sideTheme === 'theme-dark' ? 'dark' : 'light'"
+      @click="handleMenuClick"
+      @openChange="handleOpenChange"
+      class="sidebar-menu"
+    >
+      <template v-for="(route, index) in topbarRouters" :key="route.routePath + index">
+        <a-menu-item v-if="!route.visibleChildren.length" :key="route.routePath">
+          <template #icon v-if="route.meta && route.meta.icon && route.meta.icon !== '#'">
+            <svg-icon :icon-class="route.meta.icon" />
+          </template>
+          <span>{{ route.meta && route.meta.title }}</span>
+        </a-menu-item>
+        <a-sub-menu v-else :key="route.routePath">
+          <template #title>
+            <span v-if="route.meta && route.meta.icon && route.meta.icon !== '#'">
+              <svg-icon :icon-class="route.meta.icon" />
+            </span>
+            <span>{{ route.meta && route.meta.title }}</span>
+          </template>
+          <!-- 三级菜单不在侧边栏展开，由内容区顶部页签承载；此处统一渲染为二级菜单项 -->
+          <a-menu-item v-for="child in route.visibleChildren" :key="child.routePath">
+            {{ child.meta && child.meta.title }}
+          </a-menu-item>
+        </a-sub-menu>
+      </template>
+    </a-menu>
   </div>
 </template>
 
 <script setup>
 import Logo from './Logo'
-import SidebarItem from './SidebarItem'
 import variables from '@/assets/system/styles/variables.module.scss'
 import useAppStore from '@/store/system/app'
 import useSettingsStore from '@/store/system/settings'
 import usePermissionStore from '@/store/system/permission'
+import { isHttp } from '@/utils/validate'
 import { getNormalPath } from '@/utils/anivia'
+import { parseRouteQuery } from '@/utils/routeQuery'
+import { useRouter, useRoute } from 'vue-router'
 
 const route = useRoute();
+const router = useRouter();
 const appStore = useAppStore()
 const settingsStore = useSettingsStore()
 const permissionStore = usePermissionStore()
 
-const sidebarRouters = computed(() => {
-  if (permissionStore.sidebarRouters && permissionStore.sidebarRouters.length > 0) {
-    return permissionStore.sidebarRouters;
-  }
-  if (route.path === "/ai" || route.path.startsWith("/ai/")) {
-    return [
-      {
-        path: "/ai/ask",
-        name: "AiAsk",
-        meta: { title: "问数", icon: "message" }
-      },
-      {
-        path: "/ai/skill",
-        name: "AiSkill",
-        meta: { title: "Skill管理", icon: "skill" }
-      }
-    ];
-  }
-  return [];
-});
-const showLogo = computed(() => settingsStore.sidebarLogo);
-const sideTheme = computed(() => settingsStore.sideTheme);
-const theme = computed(() => settingsStore.theme);
-const isCollapse = computed(() => !appStore.sidebar.opened);
-
-const activeMenu = computed(() => {
-  const { meta, path } = route;
-  if (meta.activeMenu) {
-    const sidebarPath = findSidebarActivePath(sidebarRouters.value, meta.activeMenu);
-    if (sidebarPath) return sidebarPath;
-    return meta.activeMenu;
-  }
-  return path;
+const topbarRouters = computed(() => {
+  const routers = permissionStore.topbarRouters || []
+  return decorateRoutes(routers.filter(r => !isHomeMenu(r)))
 })
 
-function findSidebarActivePath(routes, activeMenuPath) {
-  const parts = activeMenuPath.split('/').filter(Boolean);
-  if (parts.length < 2) return null;
-  const trailingSegments = parts.slice(1);
-  for (const route of routes) {
-    const result = traverseSidebarRoute(route, '', trailingSegments);
-    if (result) return result;
-  }
-  return null;
+const showLogo = computed(() => settingsStore.sidebarLogo)
+const sideTheme = computed(() => settingsStore.sideTheme)
+const isCollapse = computed(() => !appStore.sidebar.opened)
+
+const openKeys = ref([])
+
+// 当前高亮：优先精确匹配菜单叶子路径；命中三级叶子时回退高亮其二级父菜单
+const activeMenu = computed(() => {
+  const path = route.path
+  if (path === '/index' || path === '/') return ''
+  const matched = findMenu(path)
+  const l2 = findSecondLevelAncestor(path)
+  // 三级页面命中叶子时，侧边栏只渲染到二级，需高亮其二级父菜单
+  if (l2 && (!matched || matched.routePath !== l2)) return l2
+  if (matched) return matched.routePath
+  const segments = path.split('/').filter(Boolean)
+  if (segments.length > 0) return '/' + segments[0]
+  return path
+})
+
+// 导航变化时展开对应的一、二级子菜单
+watch(activeMenu, (key) => {
+  openKeys.value = key ? findAncestors(key) : []
+}, { immediate: true })
+
+function isHomeMenu(menu) {
+  const title = menu && menu.meta && menu.meta.title
+  return title === '首页' || menu?.path === '/index' || menu?.path === 'index'
 }
 
-function traverseSidebarRoute(route, parentPath, targetSegments) {
-  const routePath = route.path || '';
-  const resolved = routePath.startsWith('/')
-    ? routePath
-    : parentPath ? getNormalPath(parentPath + '/' + routePath) : routePath;
-  const resolvedParts = resolved.split('/').filter(Boolean);
-  if (resolvedParts.length >= targetSegments.length) {
-    const trailing = resolvedParts.slice(-targetSegments.length);
-    if (trailing.every((p, i) => p === targetSegments[i])) {
-      return resolved;
-    }
-  }
-  if (route.children) {
-    for (const child of route.children) {
-      const result = traverseSidebarRoute(child, resolved, targetSegments);
-      if (result) return result;
-    }
-  }
-  return null;
+// 给菜单树补充解析后的完整路径与可见子菜单，用于递归渲染
+function decorateRoutes(routes, parentPath = '') {
+  return (routes || [])
+    .filter(r => !r.hidden)
+    .map(r => {
+      const routePath = resolveMenuPath(r.path, parentPath)
+      const visibleChildren = decorateRoutes(r.children, routePath)
+      return { ...r, routePath, visibleChildren }
+    })
 }
 
+function resolveMenuPath(path, parentPath) {
+  if (!path) return ''
+  if (isHttp(path)) return path
+  if (path.startsWith('/')) return path
+  return getNormalPath(parentPath + '/' + path)
+}
+
+// 递归查找完整路径对应的菜单项
+function findMenu(path, routes = topbarRouters.value) {
+  for (const menu of routes) {
+    if (menu.routePath === path) return menu
+    if (menu.visibleChildren && menu.visibleChildren.length) {
+      const found = findMenu(path, menu.visibleChildren)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// 查找路径所属的二级菜单路径（用于三级页面高亮二级菜单）
+function findSecondLevelAncestor(path) {
+  for (const top of topbarRouters.value) {
+    for (const child of top.visibleChildren || []) {
+      if (path === child.routePath || path.startsWith(child.routePath + '/')) {
+        return child.routePath
+      }
+    }
+  }
+  return null
+}
+
+// 计算某个完整路径的所有祖先菜单路径（用于展开子菜单）
+function findAncestors(path) {
+  const ancestors = []
+  const segments = path.split('/').filter(Boolean)
+  let acc = ''
+  for (const seg of segments) {
+    acc += '/' + seg
+    if (acc === path) break
+    ancestors.push(acc)
+  }
+  return ancestors
+}
+
+function handleOpenChange(keys) {
+  openKeys.value = keys
+}
+
+function handleMenuClick({ key }) {
+  const menu = findMenu(key)
+  if (!menu) {
+    router.push({ path: key })
+    return
+  }
+  if (isHttp(key)) {
+    window.open(key, '_blank')
+    return
+  }
+  const children = menu.visibleChildren
+  if (children && children.length > 0) {
+    // 兼容：若一级/二级菜单本身可点击，跳转到第一个可见子页面
+    const firstChild = children[0]
+    const childPath = firstChild.routePath || firstChild.path || ''
+    if (firstChild.query) {
+      const query = parseRouteQuery(firstChild.query)
+      router.push(query ? { path: childPath, query } : { path: childPath })
+    } else {
+      router.push({ path: childPath })
+    }
+  } else {
+    if (menu.query) {
+      const query = parseRouteQuery(menu.query)
+      router.push(query ? { path: key, query } : { path: key })
+    } else {
+      router.push({ path: key })
+    }
+  }
+}
 </script>
 
 <style lang="scss" scoped>
-/* 子菜单颜色 */
-.theme-dark {
-  ::v-deep .nest-menu li {
-    background-color: transparent !important;
+.has-logo {
+  .sidebar-menu {
+    border-inline-end: none !important;
   }
 }
 
-/* 选中子菜单颜色 */
-.theme-dark {
-  ::v-deep div .nest-menu li.is-active {
-    background-color: #eff6ff !important;
-  }
+.sidebar-menu {
+  border-inline-end: none !important;
 }
 </style>
-

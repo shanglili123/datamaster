@@ -1,15 +1,14 @@
 ﻿<template>
   <div class="icon-body">
-    <el-input
-      v-model="iconName"
+    <a-input
+      v-model:value="iconName"
       class="icon-search"
-      clearable
+      allow-clear
       placeholder="请输入图标名称"
-      @clear="filterIcons"
       @input="filterIcons"
     >
-      <template #suffix><i class="el-icon-search el-input__icon" /></template>
-    </el-input>
+      <template #suffix><SearchOutlined /></template>
+    </a-input>
     <div class="icon-list">
       <div class="list-container">
         <div v-for="(item, index) in iconList" class="icon-item-wrapper" :key="index" @click="selectedIcon(item)">
@@ -25,6 +24,7 @@
 
 <script setup>
 import icons from './requireIcons'
+import { SearchOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps({
   activeIcon: {

@@ -1,5 +1,5 @@
 <template>
-    <el-tag :type="tag?.type ? tag.type : 'primary'">{{ tag.label }}</el-tag>
+    <a-tag :color="tag?.type === 'success' ? 'green' : tag?.type === 'warning' ? 'orange' : tag?.type === 'primary' ? 'blue' : undefined">{{ tag.label }}</a-tag>
 </template>
 
 <script setup name="DatasourceTag">

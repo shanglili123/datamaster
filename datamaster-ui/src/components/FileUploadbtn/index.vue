@@ -1,13 +1,21 @@
-﻿<template>
+<template>
   <div class="upload-file">
-    <el-upload :limit="limit" multiple :action="uploadFileUrl" :before-upload="handleBeforeUpload" :file-list="fileList"
-      :on-error="handleUploadError" :on-exceed="handleExceed" :on-success="handleUploadSuccess" :headers="headers"
-      class="upload-file-uploader" ref="fileUpload" :data="uploadData" :drag="dragFlag"
-      :accept="fileType.map((ext) => '.' + ext).join(',')" :on-remove="handleRemove">
-      <el-button type="primary" size="small" icon="Upload" plain>
+    <a-upload :max-count="limit" multiple :action="uploadFileUrl" :before-upload="handleBeforeUpload" :file-list="fileList"
+      :headers="headers"
+      class="upload-file-uploader" ref="fileUpload" :data="uploadData" :type="dragFlag ? 'drag' : 'select'"
+      :accept="fileType.map((ext) => '.' + ext).join(',')" :on-remove="handleRemove"
+      @change="(info) => {
+        const { file } = info;
+        if (file.status === 'done') {
+          handleUploadSuccess(file.response, file);
+        } else if (file.status === 'error') {
+          handleUploadError(file.error);
+        }
+      }">
+      <a-button type="primary" size="small" :icon="h(UploadOutlined)">
         选择文件
-      </el-button>
-    </el-upload>
+      </a-button>
+    </a-upload>
     <!-- 上传提示 -->
     <div class="el-upload__tip" v-if="isShowTip">
       仅支持上传
@@ -20,7 +28,10 @@
   </div>
 </template>
 <script setup>
+
+import { h } from 'vue'
 import { getToken } from "@/utils/auth";
+import { UploadOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
   modelValue: [String, Object, Array],

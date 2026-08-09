@@ -1,12 +1,14 @@
 <template>
-    <div class="shape-content" v-loading="!store.shape.loaded">
-        <ImpactShape
-            :origin="store.shape.origin"
-            :targets="store.shape.targets"
-            :type="store.shape.type"
-            v-if="store.shape.loaded"
-        />
-    </div>
+    <a-spin :spinning="!store.shape.loaded" wrapper-class-name="shape-spin">
+        <div class="shape-content">
+            <ImpactShape
+                :origin="store.shape.origin"
+                :targets="store.shape.targets"
+                :type="store.shape.type"
+                v-if="store.shape.loaded"
+            />
+        </div>
+    </a-spin>
 </template>
 
 <script setup name="ImpactAnalysis">

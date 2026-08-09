@@ -1,57 +1,74 @@
 <template>
-  <el-dialog title="详请" v-model="visible" width="800px" draggable>
-    <el-table
-      stripe
-      height="65vh"
-      v-loading="loading"
-      :data="dpDataElemCodeList"
-      :default-sort="defaultSort"
+  <a-modal
+    title="详请"
+    v-model:open="visible"
+    width="800px"
+    :draggable="true"
+    :footer="null"
+  >
+    <a-table
+      striped
+      :loading="loading"
+      :data-source="dpDataElemCodeList"
+      :row-key="(record) => record.id"
+      :pagination="false"
+      :scroll="{ y: '65vh' }"
     >
-      <el-table-column label="编号" align="left" prop="id" width="80" />
-      <el-table-column label="代码值" align="left" prop="codeValue" width="160">
-        <template #default="scope">
-          {{ scope.row.codeValue || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="代码名称"
+      <a-table-column title="编号" align="left" data-index="id" :width="80" />
+      <a-table-column
+        title="代码值"
         align="left"
-        prop="codeName"
-        width="350"
+        data-index="codeValue"
+        :width="160"
       >
-        <template #default="scope">
-          {{ scope.row.codeName || "-" }}
+        <template #default="{ record }">
+          {{ record.codeValue || "-" }}
         </template>
-      </el-table-column>
-      <el-table-column label="创建人" align="left" prop="createBy" width="160">
-        <template #default="scope">
-          {{ scope.row.createBy || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="创建时间"
+      </a-table-column>
+      <a-table-column
+        title="代码名称"
         align="left"
-        prop="createTime"
-        width="220"
+        data-index="codeName"
+        :width="350"
       >
-        <template #default="scope">
+        <template #default="{ record }">
+          {{ record.codeName || "-" }}
+        </template>
+      </a-table-column>
+      <a-table-column
+        title="创建人"
+        align="left"
+        data-index="createBy"
+        :width="160"
+      >
+        <template #default="{ record }">
+          {{ record.createBy || "-" }}
+        </template>
+      </a-table-column>
+      <a-table-column
+        title="创建时间"
+        align="left"
+        data-index="createTime"
+        :width="220"
+      >
+        <template #default="{ record }">
           <span>{{
-            parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}")
+            parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}")
           }}</span>
         </template>
-      </el-table-column>
-      <el-table-column
-        label="备注"
+      </a-table-column>
+      <a-table-column
+        title="备注"
         align="left"
-        prop="remark"
-        width="360"
-        :show-overflow-tooltip="{ effect: 'light' }"
+        data-index="remark"
+        :width="360"
+        ellipsis
       >
-        <template #default="scope">
-          {{ scope.row.remark || "-" }}
+        <template #default="{ record }">
+          {{ record.remark || "-" }}
         </template>
-      </el-table-column>
-      <template #empty>
+      </a-table-column>
+      <template #emptyText>
         <div class="emptyBg">
           <img
             src="../../../../../../../../assets/system/images/no_data/noData.png"
@@ -60,7 +77,7 @@
           <p>无数据</p>
         </div>
       </template>
-    </el-table>
+    </a-table>
 
     <pagination
       v-show="total > 0"
@@ -71,10 +88,10 @@
     />
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="handleClose">关 闭</el-button>
+        <a-button size="small" @click="handleClose">关 闭</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup name="ComponentOne">
@@ -91,7 +108,6 @@ const open = ref(false);
 const openDetail = ref(false);
 const loading = ref(true);
 const total = ref(0);
-const defaultSort = ref({ prop: "createTime", order: "desc" });
 
 const data = reactive({
   form: {},

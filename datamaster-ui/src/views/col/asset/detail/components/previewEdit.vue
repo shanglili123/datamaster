@@ -1,39 +1,41 @@
 <template>
     <!-- 数据预览的修改弹窗 -->
-    <el-dialog v-model="visible" class="dialog" draggable destroy-on-close>
+    <a-modal v-model:open="visible" class="dialog" destroy-on-close>
         <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
+            <span role="heading" aria-level="2">
                 {{ title }}
             </span>
         </template>
-        <el-form ref="queryFormRef" :model="dataForm" :rules="rules" label-width="200px" @submit.prevent
-            v-loading="loading">
-            <el-row v-for="item in columnsTwo" :key="item.en" :gutter="20">
-                <el-col :span="24">
-                    <el-form-item :prop="item.en" style="width: 100%;">
+        <a-spin :spinning="loading">
+        <a-form ref="queryFormRef" :model="dataForm" :rules="rules" :label-col="{ style: { width: '200px' } }"
+            @submit.prevent>
+            <a-row v-for="item in columnsTwo" :key="item.en" :gutter="20">
+                <a-col :span="24">
+                    <a-form-item :name="item.en" style="width: 100%;">
                         <!-- label -->
                         <template #label>
                             <overflow-tooltip :text="item.cn ? `${item.en} (${item.cn})` : item.en" max-width="200px" />
                         </template>
-                        <el-input v-model="dataForm[item.en]" :type="item.dataLength > 200 ? 'textarea' : 'input'"
+                        <a-input v-model:value="dataForm[item.en]" :type="item.dataLength > 200 ? 'textarea' : 'input'"
                             :placeholder="`请输入 ${formatLabel(item)}`" style="width: 100%;" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
+        </a-spin>
 
         <template #footer>
-            <el-button @click="visible = false">取消</el-button>
-            <el-button type="primary" @click="submitForm" :disabled="loading">
+            <a-button @click="visible = false">取消</a-button>
+            <a-button type="primary" @click="submitForm" :disabled="loading">
                 确定
-            </el-button>
+            </a-button>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
 import { ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "ant-design-vue";
 import { addDaAssetOperateLog } from "@/api/ast/assetchild/operate/daAssetOperateLog.js";
 import moment from "moment";
 import OverflowTooltip from "@/components/OverflowTooltip";
@@ -156,7 +158,7 @@ function submitForm() {
             .then((res) => {
                 if (res.code == "200") {
                     close();
-                    ElMessage.success("修改成功");
+                    message.success("修改成功");
                     emit("ok");
                 }
             })
@@ -170,7 +172,7 @@ defineExpose({ addRow });
 </script>
 
 <style scoped lang="scss">
-::v-deep .el-form-item--small .el-form-item__content {
+::v-deep .ant-form-item .ant-form-item-control {
     line-height: 32px;
     width: 75%;
 }

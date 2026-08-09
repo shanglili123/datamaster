@@ -1,41 +1,41 @@
 <template>
   <!--  超长字段截断  -->
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <el-row>
-      <el-col :span="12">
-        <el-form-item
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-row>
+      <a-col :span="12">
+        <a-form-item
           label="字符数量"
-          prop="maxLength"
+          name="maxLength"
           :rules="
             !falg
               ? [{ required: true, message: '请输入字符数量', trigger: 'blur' }]
               : []
           "
         >
-          <el-input-number v-if="!falg" v-model="form.maxLength" :min="0" />
+          <a-input-number v-if="!falg" v-model:value="form.maxLength" :min="0" />
           <div v-else class="form-readonly">{{ form.maxLength ?? "-" }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-col :span="12" class="hasMsg">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+    </a-row>
+    <a-row>
+      <a-col :span="12" class="hasMsg">
+        <a-form-item
           label="处理方式"
-          prop="direction"
+          name="direction"
           :rules="
             !falg
               ? [{ required: true, message: '请选择处理方式', trigger: 'blur' }]
               : []
           "
         >
-          <el-radio-group v-model="form.direction" :disabled="falg">
-            <el-radio :value="'1'">正向</el-radio>
-            <el-radio :value="'2'">反向</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+          <a-radio-group v-model:value="form.direction" :disabled="falg">
+            <a-radio :value="'1'">正向</a-radio>
+            <a-radio :value="'2'">反向</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script setup>

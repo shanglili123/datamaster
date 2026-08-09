@@ -1,26 +1,26 @@
 <template>
   <div class="app-container">
-    <el-input
-      v-model="input1"
+    <a-input
+      v-model:value="input1"
       style="max-width: 300px; margin-right: 20px"
       placeholder="单选"
       class="input-with-select"
     >
-      <template #append>
-        <el-button :icon="Search" @click="radioShow" />
+      <template #addonAfter>
+        <a-button :icon="h(SearchOutlined)" @click="radioShow" />
       </template>
-    </el-input>
+    </a-input>
 
-    <el-input
-      v-model="input2"
+    <a-input
+      v-model:value="input2"
       style="max-width: 300px"
       placeholder="多选"
       class="input-with-select"
     >
-      <template #append>
-        <el-button :icon="Search" @click="checkShow" />
+      <template #addonAfter>
+        <a-button :icon="h(SearchOutlined)" @click="checkShow" />
       </template>
-    </el-input>
+    </a-input>
 
     <!-- 单选  字典管理 -->
     <Current ref="dictRef1" @confirm="radioSubmit" />
@@ -30,9 +30,10 @@
 </template>
 
 <script setup name="ToolChoose">
+import { h } from 'vue'
 import Current from "./temp-current.vue";
 import Selection from "./userTypeMultiple.vue";
-import { Search } from "@element-plus/icons-vue";
+import { SearchOutlined } from "@ant-design/icons-vue";
 const dictRef1 = ref();
 const dictRef2 = ref();
 const input1 = ref("");

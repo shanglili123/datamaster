@@ -14,24 +14,24 @@
             </div>
           </div>
         </div>
-        <el-row :gutter="2">
-          <!-- <el-col :span="8">
+        <a-row :gutter="2">
+          <!-- <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">编号</div>
               <div class="infotop-row-value">
                 {{ dppEtlTaskDetail?.id || '-' }}
               </div>
             </div>
-          </el-col> -->
-          <el-col :span="8">
+          </a-col> -->
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">任务实例名称</div>
               <div class="infotop-row-value">
                 {{ dppEtlTaskDetail?.name || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建时间</div>
               <div class="infotop-row-value">
@@ -39,33 +39,25 @@
 
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">执行状态</div>
               <div class="infotop-row-value">
                 <dict-tag :options="dpp_etl_node_instance" :value="dppEtlTaskDetail.status" />
               </div>
             </div>
-          </el-col>
-          <el-col :span="8" style="margin: 2px 0;">
+          </a-col>
+          <a-col :span="8" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建人</div>
               <div class="infotop-row-value">
                 {{ dppEtlTaskDetail?.createBy || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8" style="margin: 2px 0;">
-            <div class="infotop-row border-top">
-              <div class="infotop-row-lable">创建人</div>
-              <div class="infotop-row-value">
-                {{ dppEtlTaskDetail?.personChargeName || '-' }}
-              </div>
-            </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8" style="margin: 2px 0;">
+          <a-col :span="8" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">执行类型</div>
               <div class="infotop-row-value">
@@ -74,9 +66,9 @@
 
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8" style="margin: 2px 0;">
+          <a-col :span="8" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">开始时间</div>
               <div class="infotop-row-value">
@@ -88,9 +80,9 @@
                 }}
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8" style="margin: 2px 0;">
+          <a-col :span="8" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">结束时间</div>
               <div class="infotop-row-value">
@@ -102,20 +94,22 @@
                 }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </div>
     </div>
 
-    <div class="pagecont-bottom" v-loading="loading">
-      <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane label="任务流程" name="1" key="1">
+    <div class="pagecont-bottom">
+      <a-spin :spinning="loading">
+      <a-tabs v-model:activeKey="activeName" class="demo-tabs" @tabClick="handleClick">
+        <a-tab-pane tab="任务流程" key="1">
           <processNode ref="compRef" />
-        </el-tab-pane>
-        <el-tab-pane label="任务日志" name="2" key="2">
+        </a-tab-pane>
+        <a-tab-pane tab="任务日志" key="2">
           <instanceLog ref="compReftwo" />
-        </el-tab-pane>
-      </el-tabs>
+        </a-tab-pane>
+      </a-tabs>
+      </a-spin>
     </div>
   </div>
 </template>
@@ -199,7 +193,6 @@ watch(
   },
   { immediate: true }
 );
-
 
 // 清理函数
 const clearPolling = () => {

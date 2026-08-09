@@ -2,16 +2,20 @@
     <dp-main>
         <dp-shrink width="260px" placement="left">
             <template #flex>
-                <el-table class="video-list" :data="videoList">
-                    <el-table-column label="监控名称" prop="name" show-overflow-tooltip>
-                    </el-table-column>
-                    <el-table-column label="状态" align="center" width="80">
-                        <template #default="scope">
-                            <el-tag type="primary" v-if="scope.row.isOnline == '1'"> 在线 </el-tag>
-                            <el-tag type="danger" v-else>离线</el-tag>
+                <a-table
+                    class="video-list"
+                    :data-source="videoList"
+                    :columns="videoColumns"
+                    :pagination="false"
+                    row-key="id"
+                >
+                    <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'status'">
+                            <a-tag v-if="record.isOnline == '1'" color="blue"> 在线 </a-tag>
+                            <a-tag v-else color="red">离线</a-tag>
                         </template>
-                    </el-table-column>
-                </el-table>
+                    </template>
+                </a-table>
             </template>
 
             <div class="video-main">
@@ -34,6 +38,10 @@
 </template>
 
 <script setup name="DetailPopResViewB">
+    const videoColumns = [
+        { title: '监控名称', dataIndex: 'name', key: 'name', ellipsis: true },
+        { title: '状态', dataIndex: 'status', key: 'status', align: 'center', width: 80 }
+    ];
     const videoList = ref([
         {
             id: '20eed7584c8d4cb992b531c762695345',
@@ -93,7 +101,7 @@
     }
 
     onMounted(() => {
-        const rows = document.querySelectorAll('.video-list .el-table__body .el-table__row');
+        const rows = document.querySelectorAll('.video-list .ant-table-tbody .ant-table-row');
         rows.forEach((e, index) => {
             e.setAttribute('draggable', true);
             e.addEventListener('dragstart', (event) => {

@@ -4,8 +4,8 @@
     <div class="box-center">
       <div class="tip">点击下方按钮，开始你的对话吧</div>
       <div class="btns">
-        <el-button type="primary" round @click="handlerNewChat"
-          >新建对话</el-button
+        <a-button type="primary" shape="round" @click="handlerNewChat"
+          >新建对话</a-button
         >
       </div>
     </div>

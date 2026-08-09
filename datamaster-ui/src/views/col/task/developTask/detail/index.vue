@@ -1,34 +1,35 @@
 <template>
-  <div class="app-container" ref="app-container" v-loading="loading" style="overflow: hidden !important">
+  <div class="app-container" ref="app-container" style="overflow: hidden !important">
+    <a-spin :spinning="loading">
     <div class="head-container">
       <div class="head-title">
-        <el-tooltip :content="nodeData.typaCode" placement="top">
+        <a-tooltip :title="nodeData.typaCode" placement="top">
           <img :src="getDatasourceIcon(nodeData.typaCode)" alt=""
             style="width: 20px; margin-right: 5px; cursor: pointer;" />
-        </el-tooltip>
+        </a-tooltip>
 
         {{ nodeData.name != "" ? nodeData.name : "数据开发任务" }}
       </div>
       <div class="head-btns">
-        <el-button type="primary" size="small" @click="handleExportData" v-if="!route.query.info">
+        <a-button type="primary" size="small" @click="handleExportData" v-if="!route.query.info">
           <img src="@/assets/dpp/etl/title-act (1).svg" alt="">任务保存
-        </el-button>
-        <el-button type="primary" plain size="small" @click="routeTo('/col/task/developTask', '')">
+        </a-button>
+        <a-button size="small" @click="routeTo('/col/task/developTask', '')">
           <img class="currImg" src="@/assets/dpp/etl/title (3).svg" alt="">
           <img class="act" src="@/assets/dpp/etl/title-act (3).svg" alt="">任务取消
-        </el-button>
-        <el-button type="primary" plain size="small" @click="openTaskConfigDialog" v-if="!route.query.info">
+        </a-button>
+        <a-button size="small" @click="openTaskConfigDialog" v-if="!route.query.info">
           <img class="currImg" src="@/assets/dpp/etl/title (4).svg" alt="">
           <img class="act" src="@/assets/dpp/etl/title-act (4).svg" alt="">任务配置
-        </el-button>
-        <el-button type="primary" plain size="small" @click="openTaskConfigDialog" v-else>
+        </a-button>
+        <a-button size="small" @click="openTaskConfigDialog" v-else>
           <img class="currImg" src="@/assets/dpp/etl/title (4).svg" alt="">
           <img class="act" src="@/assets/dpp/etl/title-act (4).svg" alt="">任务详情
-        </el-button>
-        <el-button type="primary" plain v-if="formStatus == 1" size="small" @click="handleRun">
+        </a-button>
+        <a-button v-if="formStatus == 1" size="small" @click="handleRun">
           <img class="currImg" src="@/assets/dpp/etl/title (2).svg" alt="">
           <img class="act" src="@/assets/dpp/etl/title-act (2).svg" alt="">任务运行
-        </el-button>
+        </a-button>
       </div>
     </div>
     <!-- <sql-editor ref="editorRef" :value="form.taskParams.sql" class="sql-editor" :height="'calc(100vh - 180px)'"
@@ -37,9 +38,7 @@
       <div class="sideConfig" :style="{ visibility: route.query.info ? 'hidden' : 'visible' }">
         <div class="icon" :class="{ act: activeValue.name == item.name }" v-for="item in iconList" :key="item"
           @click="handleIcon(item)" :title="item.name">
-          <el-icon>
-            <component :is="item.icon" />
-          </el-icon>
+          <component :is="item.icon" class="side-icon" />
         </div>
       </div>
       <div class="editor-warp">
@@ -60,33 +59,38 @@
       <div class="sideConfig sideConfig-r">
         <div class="icon" :class="{ act: activeValueR.name == item.name }" v-for="item in iconListR" :key="item"
           @click="handleIconR(item)" :title="item.name">
-          <el-icon>
-            <component :is="item.icon" />
-          </el-icon>
+          <component :is="item.icon" class="side-icon" />
         </div>
       </div>
     </div>
     <div class="tabs-container" v-bind:style="tabAreaStyle">
       <!-- 图标放置在最右侧 -->
-      <el-icon class="icon-right" @click="minimizeAction">
-        <Minus />
-      </el-icon>
-      <el-tabs v-model="activeTab" class="custom-tabs">
-        <el-tab-pane v-for="(tab, index) in tabs" :key="index" :name="tab.name">
-          <template #label>
+      <MinusOutlined class="icon-right" @click="minimizeAction" />
+      <a-tabs v-model:activeKey="activeTab" class="custom-tabs">
+        <a-tab-pane v-for="(tab, index) in tabs" :key="index" :name="tab.name">
+          <template #tab>
             <span>{{ tab.label }}</span>
           </template>
           <div class="tab-content" v-html="tab.content"></div>
-        </el-tab-pane>
-      </el-tabs>
+        </a-tab-pane>
+      </a-tabs>
     </div>
     <add :visible="taskConfigDialogVisible" :title="!route.query.info ? '修改任务配置' : '任务详情'"
       @update:visible="taskConfigDialogVisible = $event" @save="handletaskConfig" :data="nodeData" :userList="userList"
       :deptOptions="deptOptions" :info="true" />
+    </a-spin>
   </div>
 </template>
 <script setup>
 import { ref, computed, watch } from "vue";
+import { Modal } from "ant-design-vue";
+import {
+  MinusOutlined,
+  ProfileOutlined,
+  DashboardOutlined,
+  FieldTimeOutlined,
+  ControlOutlined,
+} from "@ant-design/icons-vue";
 import { useRoute, useRouter } from "vue-router";
 import add from "../add/add.vue";
 import useUserStore from "@/store/system/user";
@@ -218,7 +222,7 @@ function getDeptTree() {
       deptOptions.value = [
         {
           id: 0,
-          name: "数据开发类目",
+          name: "数据开发目录",
           value: "",
           children: proxy.handleTree(taskCatRes.data, "id", "parentId"),
         },
@@ -465,33 +469,24 @@ const saveData = async () => {
 // 离开页面时提示
 onBeforeRouteLeave((to, from, next) => {
   if (hasUnsavedChanges.value) {
-    ElMessageBox.confirm(
-      "您已经编辑部分任务内容，是否放弃已编辑内容？",
-      "提示",
-      {
-        confirmButtonText: "保存",
-        cancelButtonText: "放弃",
-        type: "warning",
-        beforeClose: (action, instance, done) => {
-          if (action === 'confirm') {
-            // 点击保存
-            handleExportData();
-            saveData();
-            done();       // 关闭弹窗
-            next(false);  // 阻止路由离开
-          } else if (action === 'cancel') {
-            // 点击放弃
-            done();       // 关闭弹窗
-            next();       // 允许路由离开
-          } else if (action === 'close') {
-            // 点击 X 号，只关闭弹窗，不阻止路由
-            done();       // 关闭弹窗
-            next(false);  // 阻止路由离开
-            // 不调用 next()，路由不会受影响
-          }
-        }
+    const modal = Modal.confirm({
+      title: "提示",
+      content: "您已经编辑部分任务内容，是否放弃已编辑内容？",
+      okText: "保存",
+      cancelText: "放弃",
+      onOk: () => {
+        // 点击保存
+        handleExportData();
+        saveData();
+        modal.destroy();
+        next(false);  // 阻止路由离开
+      },
+      onCancel: () => {
+        // 点击放弃或关闭按钮，允许路由离开
+        modal.destroy();
+        next();
       }
-    );
+    });
   } else {
     next();
   }
@@ -504,19 +499,19 @@ const iconList = ref([
   {
     name: "日志控制台",
     type: "console",
-    icon: "Tickets",
+    icon: ProfileOutlined,
     data: {},
   },
   {
     name: "查询结果",
     type: "result",
-    icon: "Odometer",
+    icon: DashboardOutlined,
     data: [],
   },
   {
     name: "执行历史记录",
     type: "history",
-    icon: "Timer",
+    icon: FieldTimeOutlined,
     data: [],
   },
 ]);
@@ -538,7 +533,7 @@ const iconListR = ref([
   {
     name: "属性配置",
     type: "attrConfig",
-    icon: "Operation",
+    icon: ControlOutlined,
     data: {
       taskDefinitionList: [],
     },
@@ -642,7 +637,7 @@ const fullScreenCallBack = () => {
         display: none;
       }
 
-      .el-button {
+      .ant-btn {
         height: 28px;
 
         &:hover {
@@ -684,7 +679,7 @@ const fullScreenCallBack = () => {
   }
 }
 
-.el-aside {
+.left-pane {
   padding: 2px 0;
   margin-bottom: 0;
   background: transparent;
@@ -714,7 +709,7 @@ const fullScreenCallBack = () => {
 }
 
 .colorxz {
-  color: var(--el-color-primary);
+  color: #2666fb;
 }
 
 .colorwxz {
@@ -776,10 +771,10 @@ const fullScreenCallBack = () => {
   }
 
   .search {
-    :deep(.el-input__wrapper) {
+    :deep(.ant-input) {
       background: transparent;
 
-      .el-input__inner {
+      .ant-input {
         color: #fff;
       }
     }
@@ -832,7 +827,7 @@ const fullScreenCallBack = () => {
       width: 30px;
       height: 30px;
       border-radius: 6px;
-      border: 1px solid var(--el-color-primary);
+      border: 1px solid #2666fb;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -840,23 +835,23 @@ const fullScreenCallBack = () => {
       background-color: #e9effe;
 
       &:hover {
-        background-color: var(--el-color-primary);
+        background-color: #2666fb;
 
-        .el-icon {
+        .side-icon {
           color: #fff;
         }
       }
 
       &.act {
-        background-color: var(--el-color-primary);
+        background-color: #2666fb;
 
-        .el-icon {
+        .side-icon {
           color: #fff;
         }
       }
 
-      .el-icon {
-        color: var(--el-color-primary);
+      .side-icon {
+        color: #2666fb;
       }
     }
 

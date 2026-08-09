@@ -1,45 +1,53 @@
 ﻿<template>
-    <el-form>
-        <el-form-item>
-            <el-radio v-model="radioValue" :value="1"> 月，允许的通配符[, - * /] </el-radio>
-        </el-form-item>
+    <a-form>
+        <a-form-item>
+            <a-radio-group v-model:value="radioValue">
+                <a-radio :value="1"> 月，允许的通配符[, - * /] </a-radio>
+            </a-radio-group>
+        </a-form-item>
 
-        <el-form-item>
-            <el-radio v-model="radioValue" :value="2">
-                周期从
-                <el-input-number v-model="cycle01" :min="1" :max="11" /> -
-                <el-input-number v-model="cycle02" :min="cycle01 + 1" :max="12" /> 月
-            </el-radio>
-        </el-form-item>
+        <a-form-item>
+            <a-radio-group v-model:value="radioValue">
+                <a-radio :value="2">
+                    周期从
+                    <a-input-number v-model:value="cycle01" :min="1" :max="11" /> -
+                    <a-input-number v-model:value="cycle02" :min="cycle01 + 1" :max="12" /> 月
+                </a-radio>
+            </a-radio-group>
+        </a-form-item>
 
-        <el-form-item>
-            <el-radio v-model="radioValue" :value="3">
-                从
-                <el-input-number v-model="average01" :min="1" :max="11" /> 月开始，每
-                <el-input-number v-model="average02" :min="1" :max="12 - average01" /> 月月执行一次
-            </el-radio>
-        </el-form-item>
+        <a-form-item>
+            <a-radio-group v-model:value="radioValue">
+                <a-radio :value="3">
+                    从
+                    <a-input-number v-model:value="average01" :min="1" :max="11" /> 月开始，每
+                    <a-input-number v-model:value="average02" :min="1" :max="12 - average01" /> 月月执行一次
+                </a-radio>
+            </a-radio-group>
+        </a-form-item>
 
-        <el-form-item>
-            <el-radio v-model="radioValue" :value="4">
-                指定
-                <el-select
-                    clearable
-                    v-model="checkboxList"
-                    placeholder="可多选"
-                    multiple
-                    :multiple-limit="8"
-                >
-                    <el-option
-                        v-for="item in monthList"
-                        :key="item.key"
-                        :label="item.value"
-                        :value="item.key"
-                    />
-                </el-select>
-            </el-radio>
-        </el-form-item>
-    </el-form>
+        <a-form-item>
+            <a-radio-group v-model:value="radioValue">
+                <a-radio :value="4">
+                    指定
+                    <a-select
+                        allow-clear
+                        v-model:value="checkboxList"
+                        placeholder="可多选"
+                        mode="multiple"
+                        :multiple-limit="8"
+                    >
+                        <a-select-option
+                            v-for="item in monthList"
+                            :key="item.key"
+                            :label="item.value"
+                            :value="item.key"
+                        />
+                    </a-select>
+                </a-radio>
+            </a-radio-group>
+        </a-form-item>
+    </a-form>
 </template>
 
 <script setup>

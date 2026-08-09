@@ -1,61 +1,60 @@
 <template>
   <div class="app-container" ref="app-container">
     <div class="pagecont-top" v-show="showSearch">
-      <el-form class="btn-style" :model="queryParams" ref="queryRef" v-show="showSearch" :inline="true">
-        <el-form-item label="用户名称" prop="userName">
-          <el-input v-model="queryParams.userName" placeholder="请输入用户名称" clearable @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="手机号码" prop="phonenumber">
-          <el-input v-model="queryParams.phonenumber" placeholder="请输入手机号码" clearable @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" icon="Search" @click="handleQuery">查询</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <a-form class="btn-style" :model="queryParams" ref="queryRef" v-show="showSearch" layout="inline">
+        <a-form-item label="用户名称" name="userName">
+          <a-input v-model:value="queryParams.userName" placeholder="请输入用户名称" allow-clear @pressEnter="handleQuery" />
+        </a-form-item>
+        <a-form-item label="手机号码" name="phonenumber">
+          <a-input v-model:value="queryParams.phonenumber" placeholder="请输入手机号码" allow-clear @pressEnter="handleQuery" />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+            <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+            <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
+          </a-button>
+        </a-form-item>
+      </a-form>
     </div>
 
     <div class="pagecont-bottom">
       <div class="justify-between mb15">
-        <el-row :gutter="10" class="btn-style">
-          <el-col :span="1.5">
-            <el-button type="primary" plain icon="Plus" @click="openSelectUser"
-              v-hasPermi="['system:role:add']">新增用户</el-button>
-          </el-col>
-          <el-col :span="1.5">
-            <el-button type="danger" plain icon="CircleClose" :disabled="multiple" @click="cancelAuthUserAll"
-              v-hasPermi="['system:role:remove']">批量取消授权</el-button>
-          </el-col>
-          <el-col :span="1.5">
-            <el-button type="warning" plain icon="Close" @click="handleClose">关闭</el-button>
-          </el-col>
-        </el-row>
+        <div class="btn-style">
+          <a-button type="primary" @click="openSelectUser"
+            v-hasPermi="['system:role:add']">新增用户</a-button>
+          <a-button danger :disabled="multiple" @click="cancelAuthUserAll"
+            v-hasPermi="['system:role:remove']">批量取消授权</a-button>
+          <a-button @click="handleClose">关闭</a-button>
+        </div>
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </div>
 
-      <el-table stripe height="60vh" v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" align="center" />
-        <el-table-column label="用户名称" prop="userName" :show-overflow-tooltip="true" />
-        <el-table-column label="用户昵称" prop="nickName" :show-overflow-tooltip="true" />
-        <el-table-column label="邮箱" prop="email" :show-overflow-tooltip="true" />
-        <el-table-column label="手机" prop="phonenumber" :show-overflow-tooltip="true" />
-        <el-table-column label="状态" align="center" prop="status">
-          <template #default="scope">
-            <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
+      <a-table
+        striped
+        :loading="loading"
+        :data-source="userList"
+        :pagination="false"
+        :columns="tableColumns"
+        :scroll="{ y: '60vh' }"
+        row-key="userId"
+        :row-selection="{ selectedRowKeys, onChange: handleSelectionChange }"
+        :locale="{ emptyText: '暂无记录' }"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'status'">
+            <dict-tag :options="sys_normal_disable" :value="record.status" />
           </template>
-        </el-table-column>
-        <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-          <template #default="scope">
-            <span>{{ parseTime(scope.row.createTime) }}</span>
+          <template v-if="column.dataIndex === 'createTime'">
+            <span>{{ parseTime(record.createTime) }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-          <template #default="scope">
-            <el-button link type="primary" icon="CircleClose" @click="cancelAuthUser(scope.row)"
-              v-hasPermi="['system:role:remove']">取消授权</el-button>
+          <template v-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="cancelAuthUser(record)"
+              v-hasPermi="['system:role:remove']">取消授权</a-button>
           </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </a-table>
 
       <pagination :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize"
         @pagination="getList" />
@@ -79,6 +78,16 @@ const showSearch = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const userIds = ref([]);
+const selectedRowKeys = ref([]);
+const tableColumns = [
+  { title: '用户名称', dataIndex: 'userName', ellipsis: true },
+  { title: '用户昵称', dataIndex: 'nickName', ellipsis: true },
+  { title: '邮箱', dataIndex: 'email', ellipsis: true },
+  { title: '手机', dataIndex: 'phonenumber', ellipsis: true },
+  { title: '状态', dataIndex: 'status', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180 },
+  { title: '操作', key: 'actions', align: 'center' },
+];
 
 const queryParams = reactive({
   pageNum: 1,
@@ -118,9 +127,10 @@ function resetQuery() {
 }
 
 /** 多选框选中数据 */
-function handleSelectionChange(selection) {
-  userIds.value = selection.map((item) => item.userId);
-  multiple.value = !selection.length;
+function handleSelectionChange(selectedKeys, selectedRows) {
+  selectedRowKeys.value = selectedKeys;
+  userIds.value = selectedRows.map((item) => item.userId);
+  multiple.value = !selectedRows.length;
 }
 
 /** 打开授权用户表弹窗 */

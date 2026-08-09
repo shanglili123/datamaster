@@ -37,7 +37,8 @@
             </div>
         </div>
 
-        <div class="pagecont-top" v-loading="loading" v-show="showSearch" style="padding-bottom: 15px">
+        <a-spin :spinning="loading">
+        <div class="pagecont-top" v-show="showSearch" style="padding-bottom: 15px">
             <div class="infotop">
                 <div class="main">
 
@@ -49,29 +50,27 @@
                         :rules="rules2" :configTypeOptions="configTypeOptions" :sourceOptions="sourceOptions"
                         :paramTypeOptions="paramTypeOptions" :whereTypeOptions="whereTypeOptions" :splReult="splReult"
                         :activeReult="activeReult" />
-                    <Test ref="test" v-if="activeReult == 2 && form1.apiServiceType != 3" :form="form1"
-                        :resTypeOptions="resTypeOptions" :whetherOptions="whetherOptions"
-                        :statusOptions="statusOptions" />
-                    <testapi ref="test" v-if="activeReult == 2 && form1.apiServiceType == 3" :data="form1"
-                        :resTypeOptions="resTypeOptions" :whetherOptions="whetherOptions"
-                        :statusOptions="statusOptions" />
+                    <Test ref="test" v-if="activeReult == 2" :form="form1" :resTypeOptions="resTypeOptions"
+                        :whetherOptions="whetherOptions" :statusOptions="statusOptions" />
                 </div>
                 <div slot="footer" class="button-style">
-                    <el-button type="primary" @click="handleSuccess">返回列表</el-button>
-                    <el-button v-if="activeReult !== 0" @click="handleLastStep">上一步
-                    </el-button>
-                    <el-button v-if="activeReult !== 2" @click="handleNextStep">下一步
-                    </el-button>
-                    <el-button type="primary" v-if="activeReult === 2" @click="submitForm"
+                    <a-button type="primary" @click="handleSuccess">返回列表</a-button>
+                    <a-button v-if="activeReult !== 0" @click="handleLastStep">上一步
+                    </a-button>
+                    <a-button v-if="activeReult !== 2" @click="handleNextStep">下一步
+                    </a-button>
+                    <a-button type="primary" v-if="activeReult === 2" @click="submitForm"
                         :loading="loadingOptions.loading">确定并退出
-                    </el-button>
+                    </a-button>
                 </div>
             </div>
         </div>
+        </a-spin>
     </div>
 </template>
 
 <script setup name="ServiceApi">
+import { message } from 'ant-design-vue'
 import {
     getDsApi,
     updateDataApi,
@@ -79,16 +78,22 @@ import {
     listDataTable,
     repeatFlag
 } from '@/api/svc/api/api.js';
+
 import {
     getDaDatasourceList,
     getTablesByDataSourceId
 } from '@/api/ast/dataSource/dataSource.js';
+
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
+
 import Base from '@/views/svc/api/edit/components/base.vue';
+
 import Parameter from '@/views/svc/api/edit/components/parameter.vue';
+
 import Test from '@/views/svc/api/edit/components/simulation.vue';
+
 import { getCurrentInstance, reactive, ref, toRefs, watch } from 'vue';
-import testapi from '@/views/svc/api/edit/components/testApi.vue';
+
 import useUserStore from '@/store/system/user';
 const components = { Base, Parameter, Test };
 const { proxy } = getCurrentInstance();
@@ -143,7 +148,7 @@ const data = reactive({
     rules1: {
         name: [{ required: true, message: 'API名称不能为空', trigger: 'blur' }],
         apiVersion: [{ required: true, message: 'API版本不能为空', trigger: 'blur' }],
-        catCode: [{ required: true, message: '类目不能为空', trigger: 'blur' }],
+        catCode: [{ required: true, message: '目录不能为空', trigger: 'blur' }],
         apiUrl: [
             { required: true, message: '请输入API路径', trigger: 'input' },
             {
@@ -425,19 +430,17 @@ function getDataApiById(id) {
             form2.reqParams = form1.value.reqParams;
             form2.resParams = form1.value.resParams;
             form2.value.headerJson = form1.value.headerJson;
-            if (form2.value.apiServiceType != '3') {
-                await getTablesByDataSourceId({
-                    datasourceId: form2.value.sourceId
-                }).then((response) => {
-                    if (response.code === 200) {
-                        tableOptions.value = response.data;
-                        form2.value.filteredTableOptions = response.data;
-                    } else {
-                        tableOptions.value = [];
-                        form2.value.filteredTableOptions = [];
-                    }
-                });
-            }
+            await getTablesByDataSourceId({
+                datasourceId: form2.value.sourceId
+            }).then((response) => {
+                if (response.code === 200) {
+                    tableOptions.value = response.data;
+                    form2.value.filteredTableOptions = response.data;
+                } else {
+                    tableOptions.value = [];
+                    form2.value.filteredTableOptions = [];
+                }
+            });
             const targetObject = typeOption.value.find((item) => item.id == form1.typeId);
             if (targetObject) {
                 const { fullPath, idArray } = getFullPathAndIdArray(typeOption, targetObject);

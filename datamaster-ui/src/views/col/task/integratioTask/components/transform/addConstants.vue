@@ -1,180 +1,153 @@
 <template>
-  <el-dialog
-    v-model="visibleDialog"
-    :draggable="true"
+  <a-modal
+    v-model:open="visibleDialog"
     class="medium-dialog"
     :title="form.taskParams.typeName"
-    showCancelButton
-    :show-close="false"
-    destroy-on-close
+    :closable="false"
+    :destroy-on-close="true"
   >
-    <el-form
+    <a-spin :spinning="loading">
+    <a-form
       ref="dpModelRefs"
       :model="form"
-      label-width="140px"
+      :label-col="{ style: { width: '140px' } }"
       @submit.prevent
-      v-loading="loading"
       :disabled="info"
     >
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item
             label="节点名称"
-            prop="name"
+            name="name"
             :rules="[
               { required: true, message: '请输入节点名称', trigger: 'change' },
             ]"
           >
-            <el-input
+            <a-input
               v-if="!info"
-              v-model="form.name"
+              v-model:value="form.name"
               placeholder="请输入节点名称"
             />
             <div v-else class="form-readonly">{{ form.name }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="类型" prop="taskParams.typeName">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="类型" name="taskParams.typeName">
             <template v-if="!info">
-              <el-select
-                v-model="form.taskParams.typeName"
+              <a-select
+                v-model:value="form.taskParams.typeName"
                 placeholder="请输入类型"
-                filterable
+                show-search
                 disabled
               >
-                <el-option
+                <a-select-option
                   v-for="dict in typeList"
                   :key="dict.value"
                   :label="dict.label"
                   :value="dict.value"
                 />
-              </el-select>
+              </a-select>
             </template>
             <div v-else class="form-readonly">
               {{ form.taskParams.typeName }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
+          </a-form-item>
+        </a-col>
+      </a-row>
 
-      <el-divider content-position="center">
+      <a-divider orientation="center">
         <span class="blue-text">常量字段</span>
-      </el-divider>
+      </a-divider>
       <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-          <el-col :span="1.5">
-            <el-button type="primary" plain @click="handleAddField">
+        <a-row :gutter="15" class="btn-style">
+          <a-col :span="1.5">
+            <a-button type="primary" @click="handleAddField">
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
-          </el-col>
-        </el-row>
+            </a-button>
+          </a-col>
+        </a-row>
       </div>
-      <el-table
-        stripe
+      <a-table
         height="500px"
-        :data="tableFields"
-        v-loading="loadingList"
+        :data-source="tableFields"
+        :loading="loadingList"
+        :columns="tableColumns"
+        :row-key="'columnName'"
       >
-        <el-table-column label="序号" type="index" width="80" align="left" />
-
-        <el-table-column label="字段名称" align="left" prop="columnName">
-          <template #default="scope">
-            <el-input
-              v-model="scope.row.columnName"
+        <template #headerCell="{ column }">
+          <template v-if="column.dataIndex === 'emptyString'">
+            <div class="justify-center">
+              <span>设为空串</span>
+              <a-tooltip
+                title="勾选后，即使“默认值”字段填写了内容，也会被覆盖为空字符串"
+                placement="top"
+              >
+                <InfoCircleOutlined />
+              </a-tooltip>
+            </div>
+          </template>
+        </template>
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.dataIndex === 'index'">
+            {{ index + 1 }}
+          </template>
+          <template v-else-if="column.dataIndex === 'columnName'">
+            <a-input
+              v-model:value="record.columnName"
               placeholder="请输入"
               style="width: 100%"
             />
           </template>
-        </el-table-column>
-
-        <el-table-column label="字段类型" align="left" prop="type" width="150">
-          <template #default="scope">
-            <el-select
-              v-model="scope.row.type"
+          <template v-else-if="column.dataIndex === 'type'">
+            <a-select
+              v-model:value="record.type"
               placeholder="请选择"
               style="width: 100%"
             >
-              <el-option
+              <a-select-option
                 v-for="dict in columntype"
                 :key="dict.value"
                 :label="dict.label"
                 :value="dict.value"
               />
-            </el-select>
+            </a-select>
           </template>
-        </el-table-column>
-
-        <el-table-column label="默认值" align="left" prop="defaultValue">
-          <template #default="scope">
-            <el-input
-              v-model="scope.row.defaultValue"
+          <template v-else-if="column.dataIndex === 'defaultValue'">
+            <a-input
+              v-model:value="record.defaultValue"
               placeholder="请输入"
               style="width: 100%"
             />
           </template>
-        </el-table-column>
-
-        <el-table-column
-          label="设为空串"
-          align="left"
-          prop="emptyString"
-          width="150"
-        >
-          <template #header>
-            <div class="justify-center">
-              <span>设为空串</span>
-              <el-tooltip
-                effect="dark"
-                content="勾选后，即使“默认值”字段填写了内容，也会被覆盖为空字符串"
-                placement="top"
-              >
-                <el-icon>
-                  <InfoFilled />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-          <template #default="scope">
-            <el-select
-              v-model="scope.row.emptyString"
+          <template v-else-if="column.dataIndex === 'emptyString'">
+            <a-select
+              v-model:value="record.emptyString"
               placeholder="请选择"
               style="width: 100%"
             >
-              <el-option label="是" :value="true" />
-              <el-option label="否" :value="false" />
-            </el-select>
+              <a-select-option label="是" :value="true" />
+              <a-select-option label="否" :value="false" />
+            </a-select>
           </template>
-        </el-table-column>
-
-        <el-table-column
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-          fixed="right"
-          width="120"
-          v-if="!info"
-        >
-          <template #default="scope">
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleDelete(scope.row)"
-              >删除</el-button
-            >
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" danger @click="handleDelete(record)">
+              <template #icon><DeleteOutlined /></template>
+              删除
+            </a-button>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-form>
+        </template>
+      </a-table>
+    </a-form>
+    </a-spin>
     <template #footer>
       <div style="text-align: right">
-        <el-button @click="closeDialog">关闭</el-button>
-        <el-button type="primary" @click="saveData" v-if="!info"
-          >保存</el-button
+        <a-button @click="closeDialog">关闭</a-button>
+        <a-button type="primary" @click="saveData" v-if="!info"
+          >保存</a-button
         >
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 
   <FieldConflictDialog
     v-model="showConflictDialog"
@@ -193,8 +166,12 @@
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
+import { InfoCircleOutlined, DeleteOutlined } from "@ant-design/icons-vue";
 import CreateEditModal from "../fieldMergeModal.vue";
+
 import FieldConflictDialog from "../fieldDetection.vue";
+
 import {
   defineProps,
   defineEmits,
@@ -204,9 +181,13 @@ import {
   getCurrentInstance,
 } from "vue";
 
+
 import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/col/task/index.js";
+
 import useUserStore from "@/store/system/user.js";
+
 import { createNodeSelect } from "@/views/col/utils/opBase.js";
+
 import { hasDuplicateObjects } from "@/utils/index.js";
 
 const { proxy } = getCurrentInstance();
@@ -222,6 +203,20 @@ const columntype = [
   { value: "String", label: "String" },
   { value: "Timestamp", label: "Timestamp" },
 ];
+
+const tableColumns = computed(() => {
+  const cols = [
+    { title: '序号', dataIndex: 'index', width: 80, align: 'left' },
+    { title: '字段名称', dataIndex: 'columnName', align: 'left' },
+    { title: '字段类型', dataIndex: 'type', align: 'left', width: 150 },
+    { title: '默认值', dataIndex: 'defaultValue', align: 'left' },
+    { title: '设为空串', dataIndex: 'emptyString', align: 'left', width: 150 },
+  ];
+  if (!props.info) {
+    cols.push({ title: '操作', key: 'actions', align: 'center', className: 'small-padding fixed-width', fixed: 'right', width: 120 });
+  }
+  return cols;
+});
 const props = defineProps({
   visible: { type: Boolean, default: true },
   title: { type: String, default: "表单标题" },

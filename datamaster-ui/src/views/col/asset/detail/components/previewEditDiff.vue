@@ -1,21 +1,22 @@
 <template>
     <!-- 数据预览的修改记录前后对比弹窗 -->
-    <el-dialog v-model="visible" class="dialog" width="1200px" draggable destroy-on-close>
+    <a-modal v-model:open="visible" class="dialog" width="1200px" destroy-on-close>
         <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
+            <span role="heading" aria-level="2">
                 前后比对
             </span>
         </template>
         <div class="center">
 
             <CodeDiff :old-string="oldStrToCompare" :new-string="newStrToCompare" :context="10"
-                output-format="side-by-side" />
+                output-format="side-by-side"
+/>
         </div>
         <!-- <template #footer>
-            <el-button type="primary" @click="cancel">确认</el-button>
-            <el-button icon="Stopwatch" @click="rollBack" :disabled="loading">回滚</el-button>
+            <a-button type="primary" @click="cancel">确认</a-button>
+            <a-button @click="rollBack" :disabled="loading"><HistoryOutlined />回滚</a-button>
         </template> -->
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>

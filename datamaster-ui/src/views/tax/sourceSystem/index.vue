@@ -10,29 +10,25 @@
         />
       </template>
       <template #actions-data>
-        <el-button type="primary" plain icon="Plus" @click="handleAdd">
+        <a-button type="primary" @click="handleAdd">
           新增
-        </el-button>
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
+        </a-button>
+        <a-button
+          danger
           :disabled="!store.rows.length"
           @click="handleDelete"
         >
           删除
-        </el-button>
+        </a-button>
       </template>
       <qt-table v-bind="tableStore" ref="tableRef">
         <template #type="scope">
           <dict-tag :options="sys_source_system_type" :value="scope.row.type" />
         </template>
         <template #validFlag="scope">
-          <el-switch
-            v-model="scope.row.validFlag"
-            active-color="#13ce66"
-            inactive-color="#ff4949"
-            @change="handleStatusChange(scope.row)"
+          <a-switch
+            v-model:checked="scope.row.validFlag"
+            @change="() => handleStatusChange(scope.row)"
           />
         </template>
         <template #responsiblePerson="scope">
@@ -42,221 +38,199 @@
           {{ getUserLabel(scope.row.contactPerson) }}
         </template>
         <template #handle="{ row }">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(row)"
-            >修改</el-button
+          <a-button type="link" size="small" @click="handleUpdate(row)"
+            >修改</a-button
           >
-          <el-button
-            link
-            type="danger"
-            icon="Delete"
+          <a-button
+            type="link"
+            danger
+            size="small"
             @click="handleDelete(row)"
             :disabled="row.validFlag"
-            >删除</el-button
+            >删除</a-button
           >
-          <el-button link type="primary" icon="view" @click="handleDetail(row)"
-            >详情</el-button
+          <a-button type="link" size="small" @click="handleDetail(row)"
+            >详情</a-button
           >
         </template>
       </qt-table>
     </qt-wrap>
 
     <!-- 添加或修改来源系统对话框 -->
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="open"
+      v-model:open="open"
       width="800px"
-      :append-to="$refs['app-container']"
       draggable
+      destroy-on-close
     >
-      <template #header>
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form
+      <a-form
         ref="sourceSystemRef"
         :model="form"
         :rules="rules"
-        label-width="80px"
+        :label-col="{ style: { width: '80px' } }"
         @submit.prevent
       >
-        <el-form-item label="系统名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入系统名称" />
-        </el-form-item>
+        <a-form-item label="系统名称" name="name">
+          <a-input v-model:value="form.name" placeholder="请输入系统名称" />
+        </a-form-item>
 
-        <el-form-item label="系统类型" prop="type">
-          <el-select v-model="form.type" placeholder="请选择系统类型">
-            <el-option
+        <a-form-item label="系统类型" name="type">
+          <a-select v-model:value="form.type" placeholder="请选择系统类型" allow-clear>
+            <a-select-option
               v-for="dict in sys_source_system_type"
               :key="dict.value"
-              :label="dict.label"
               :value="dict.value"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="负责人" prop="responsiblePerson">
-          <el-select
-            v-model="form.responsiblePerson"
-            filterable
-            placeholder="请选择负责人"
-          >
-            <el-option
-              v-for="item in userOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
+              >{{ dict.label }}</a-select-option
             >
-            </el-option>
-          </el-select>
-        </el-form-item>
+          </a-select>
+        </a-form-item>
 
-        <el-form-item label="对接人" prop="contactPerson">
-          <el-select
-            v-model="form.contactPerson"
-            filterable
+        <a-form-item label="对接人" name="contactPerson">
+          <a-select
+            v-model:value="form.contactPerson"
+            show-search
+            allow-clear
+            option-filter-prop="label"
             placeholder="请选择对接人"
           >
-            <el-option
+            <a-select-option
               v-for="item in userOptions"
               :key="item.value"
-              :label="item.label"
               :value="item.value"
+              :label="item.label"
+              >{{ item.label }}</a-select-option
             >
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="排序" prop="sortOrder">
-          <el-input-number
+          </a-select>
+        </a-form-item>
+        <a-form-item label="排序" name="sortOrder">
+          <a-input-number
             style="width: 100%"
-            v-model="form.sortOrder"
-            controls-position="right"
+            v-model:value="form.sortOrder"
             :min="0"
           />
-        </el-form-item>
-        <el-form-item label="状态" prop="validFlag">
-          <el-radio v-model="form.validFlag" :label="false">禁用</el-radio>
-          <el-radio v-model="form.validFlag" :label="true">启用</el-radio>
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input
-            type="textarea"
-            maxlength="500个字符"
-            show-word-limit
-            v-model="form.description"
+        </a-form-item>
+        <a-form-item label="状态" name="validFlag">
+          <a-radio-group v-model:value="form.validFlag">
+            <a-radio :value="false">禁用</a-radio>
+            <a-radio :value="true">启用</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item label="描述" name="description">
+          <a-textarea
+            :maxlength="500"
+            show-count
+            v-model:value="form.description"
             placeholder="请输入描述"
+            :auto-size="{ minRows: 2, maxRows: 4 }"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="备注" prop="remark">
-          <el-input
-            type="textarea"
-            maxlength="500个字符"
-            show-word-limit
-            v-model="form.remark"
+        <a-form-item label="备注" name="remark">
+          <a-textarea
+            :maxlength="500"
+            show-count
+            v-model:value="form.remark"
             placeholder="请输入备注"
+            :auto-size="{ minRows: 2, maxRows: 4 }"
           />
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">取 消</el-button>
-          <el-button type="primary" size="mini" @click="submitForm"
-            >确 定</el-button
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm"
+            >确 定</a-button
           >
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 来源系统详情对话框 -->
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="openDetail"
-      :append-to="$refs['app-container']"
+      v-model:open="openDetail"
       draggable
+      destroy-on-close
     >
-      <el-form
+      <a-form
         ref="sourceSystemRef"
         :model="form"
-        label-width="90px"
+        :label-col="{ style: { width: '90px' } }"
         class="column-form"
       >
-        <el-form-item label="编号" prop="id">
+        <a-form-item label="编号" name="id">
           <div class="form-readonly">
             {{ form.id }}
           </div>
-        </el-form-item>
-        <el-form-item label="系统名称" prop="name">
+        </a-form-item>
+        <a-form-item label="系统名称" name="name">
           <div class="form-readonly">
             {{ form.name }}
           </div>
-        </el-form-item>
-        <el-form-item label="系统类型" prop="type">
+        </a-form-item>
+        <a-form-item label="系统类型" name="type">
           <div class="form-readonly">
             {{ getDictLabel(sys_source_system_type, form.type) }}
           </div>
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="负责人" prop="responsiblePersonName">
-          <div class="form-readonly">
-            {{ form.responsiblePersonName }}
-          </div>
-        </el-form-item>
-        <el-form-item label="对接人" prop="contactPersonName">
+        <a-form-item label="对接人" name="contactPersonName">
           <div class="form-readonly">
             {{ form.contactPersonName }}
           </div>
-        </el-form-item>
-        <el-form-item label="排序" prop="sortOrder">
+        </a-form-item>
+        <a-form-item label="排序" name="sortOrder">
           <div class="form-readonly">
             {{ form.sortOrder }}
           </div>
-        </el-form-item>
-        <el-form-item label="状态" prop="validFlag">
+        </a-form-item>
+        <a-form-item label="状态" name="validFlag">
           <div class="form-readonly">
             {{ form.validFlag ? "启用" : "禁用" }}
           </div>
-        </el-form-item>
-        <el-form-item label="描述" prop="description" class="row-full">
+        </a-form-item>
+        <a-form-item label="描述" name="description" class="row-full">
           <div class="form-readonly textarea">
             {{ form.description ?? "-" }}
           </div>
-        </el-form-item>
-        <el-form-item label="备注" prop="remark" class="row-full">
+        </a-form-item>
+        <a-form-item label="备注" name="remark" class="row-full">
           <div class="form-readonly textarea">
             {{ form.remark ?? "-" }}
           </div>
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="创建人" prop="createBy">
+        <a-form-item label="创建人" name="createBy">
           <div class="form-readonly">
             {{ form.createBy }}
           </div>
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="创建时间" prop="createTime">
+        <a-form-item label="创建时间" name="createTime">
           <div class="form-readonly">
             {{ parseTime(form.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
           </div>
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="更新人" prop="updateBy">
+        <a-form-item label="更新人" name="updateBy">
           <div class="form-readonly">
             {{ form.updateBy }}
           </div>
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="更新时间" prop="updateTime">
+        <a-form-item label="更新时间" name="updateTime">
           <div class="form-readonly">
             {{ parseTime(form.updateTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
           </div>
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="openDetail = false">关闭 </el-button>
+          <a-button @click="openDetail = false">关闭 </a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <DeleteConfirmDialog
       ref="deleteConfirmDialog"
@@ -374,10 +348,6 @@ const tableStore = reactive({
       sortable: true,
     },
     {
-      label: "负责人",
-      prop: "responsiblePersonName",
-    },
-    {
       label: "对接人",
       prop: "contactPersonName",
     },
@@ -424,15 +394,6 @@ const searchStore = reactive({
           { value: true, label: "启用" },
           { value: false, label: "禁用" },
         ],
-      },
-    },
-    {
-      label: "负责人",
-      prop: "responsiblePerson",
-      component: {
-        is: "select",
-        placeholder: "请选择负责人",
-        options: [],
       },
     },
     {
@@ -553,8 +514,9 @@ function handleDetail(row) {
 }
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["sourceSystemRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["sourceSystemRef"]
+    .validate()
+    .then(() => {
       if (form.value.id != null) {
         updateSourceSystem(form.value)
           .then((response) => {
@@ -572,8 +534,8 @@ function submitForm() {
           })
           .catch((error) => {});
       }
-    }
-  });
+    })
+    .catch(() => {});
 }
 /** 删除按钮操作 */
 function handleDelete(row) {

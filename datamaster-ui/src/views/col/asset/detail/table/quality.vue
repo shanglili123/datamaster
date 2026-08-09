@@ -1,6 +1,7 @@
 <template>
     <!-- 资产质量 tab-->
-    <div v-loading="loading">
+    <a-spin :spinning="loading">
+    <div>
         <div class="quality-header" v-if="taskData.id">
             <div class="quality-info">
                 <div class="quality-item">
@@ -14,29 +15,30 @@
                 </div>
             </div>
             <div class="quality-actions">
-                <el-button type="primary" class="btn-margin-right" icon="Edit" @click="openQualityDialog(taskData)"
-                    :disabled="taskData.status != '1'">
+                <a-button type="primary" class="btn-margin-right" :icon="h(EditOutlined)"
+                    @click="openQualityDialog(taskData)" :disabled="taskData.status != '1'">
                     修改资产质量任务
-                </el-button>
-                <el-button type="primary" :disabled="taskData.status != '1'" class="btn-margin-right" icon="Setting"
-                    @click="handleJobLog(taskData)">
+                </a-button>
+                <a-button type="primary" :disabled="taskData.status != '1'" class="btn-margin-right"
+                    :icon="h(SettingOutlined)" @click="handleJobLog(taskData)">
                     调度配置
-                </el-button>
-                <el-button type="primary" class="btn-margin-right" icon="VideoPlay" @click="handleExecuteOnce(taskData)"
-                    :disabled="taskData.status == '1'">
+                </a-button>
+                <a-button type="primary" class="btn-margin-right" :icon="h(PlayCircleOutlined)"
+                    @click="handleExecuteOnce(taskData)" :disabled="taskData.status == '1'">
                     执行一次
-                </el-button>
-                <el-button :type="taskData.status == '0' ? 'danger' : 'primary'"
-                    :icon="taskData.status == '0' ? 'CircleClose' : 'VideoPlay'"
+                </a-button>
+                <a-button type="primary" :danger="taskData.status == '0'"
+                    :icon="taskData.status == '0' ? h(CloseCircleOutlined) : h(PlayCircleOutlined)"
                     @click="handleStatusChange(taskData.status == '1' ? 0 : 1, taskData)">
                     {{ taskData.status == '0' ? '停止任务' : '启动任务' }}
-                </el-button>
+                </a-button>
             </div>
         </div>
-        <div class="app-container  stagingIndex" v-loading="loading" v-if="taskData.id">
-            <el-row gutter="20" class="top-section">
+        <a-spin :spinning="loading" v-if="taskData.id">
+        <div class="app-container  stagingIndex">
+            <a-row :gutter="20" class="top-section">
                 <!-- 左侧评分 -->
-                <el-col :xs="24" :sm="24" :md="12" class="stats-panel">
+                <a-col :xs="24" :sm="24" :md="12" class="stats-panel">
                     <div class="module-8 border-item">
                         <div class="border-item-head">
                             <span class="head-title">质量探查维度统计 </span>
@@ -48,136 +50,125 @@
                                     {{ taskData?.score || '0' }}
                                 </span>
                             </div>
-                            <el-table :data="summaryList" border size="small" style="margin-top: 12px" height="246">
-                                <el-table-column prop="dimensionType" label="质量维度" align="left">
-                                    <template #default="scope">
-                                        <dict-tag :options="att_rule_audit_q_dimension"
-                                            :value="scope.row.dimensionType" />
+                            <a-table
+                                :data-source="summaryList"
+                                :columns="[
+                                    { title: '质量维度', dataIndex: 'dimensionType', align: 'left' },
+                                    { title: '规则数', dataIndex: 'succesTotal', align: 'left' },
+                                    { title: '问题数占比', dataIndex: 'proportion', align: 'left' },
+                                    { title: '趋势', key: 'trend', align: 'left' },
+                                ]"
+                                :bordered="true"
+                                size="small"
+                                :pagination="false"
+                                :scroll="{ y: 246 }"
+                                style="margin-top: 12px"
+                            >
+                                <template #bodyCell="{ column, record }">
+                                    <template v-if="column.dataIndex === 'dimensionType'">
+                                        <dict-tag :options="att_rule_audit_q_dimension" :value="record.dimensionType" />
                                     </template>
-
-                                </el-table-column>
-                                <el-table-column prop="succesTotal" label="规则数" align="left">
-                                    <template #default="scope">{{ scope.row.succesTotal || '-' }}</template>
-                                </el-table-column>
-                                <el-table-column prop="proportion" label="问题数占比" align="left">
-                                    <template #default="scope">
-                                        {{ scope.row.proportion != null ? scope.row.proportion + '%' : '-' }}
+                                    <template v-if="column.dataIndex === 'succesTotal'">
+                                        {{ record.succesTotal || '-' }}
                                     </template>
-
-                                </el-table-column>
-                                <el-table-column label="趋势" align="left">
-                                    <template #default="{ row }">
-                                        <template v-if="row.trendType == '-1'">
-                                            -
-                                        </template>
-                                        <template v-else-if="row.trendType == '1'">
-                                            <el-icon color="green">
-                                                <ArrowUp />
-                                            </el-icon>
+                                    <template v-if="column.dataIndex === 'proportion'">
+                                        {{ record.proportion != null ? record.proportion + '%' : '-' }}
+                                    </template>
+                                    <template v-if="column.key === 'trend'">
+                                        <template v-if="record.trendType == '-1'">-</template>
+                                        <template v-else-if="record.trendType == '1'">
+                                            <UpOutlined style="color: green" />
                                         </template>
                                         <template v-else>
-                                            <el-icon color="red">
-                                                <ArrowDown />
-                                            </el-icon>
+                                            <DownOutlined style="color: red" />
                                         </template>
                                     </template>
-                                </el-table-column>
-
-                            </el-table>
+                                </template>
+                            </a-table>
                         </div>
                     </div>
-                </el-col>
+                </a-col>
 
                 <!-- 右侧折线图 -->
-                <el-col :xs="24" :sm="24" :md="12" class="trend-chart-panel">
+                <a-col :xs="24" :sm="24" :md="12" class="trend-chart-panel">
                     <div class="module-8 border-item">
                         <div class="border-item-head">
                             <span class="head-title">治理数据量变化趋势</span>
-                            <el-select v-model="selectedRange" size="small" placeholder="选择时间范围" style="width: 120px"
+                            <a-select v-model:value="selectedRange" size="small" placeholder="选择时间范围" style="width: 120px"
                                 @change="onRangeChange">
-                                <el-option v-for="item in rangeOptions" :key="item.value" :label="item.label"
+                                <a-select-option v-for="item in rangeOptions" :key="item.value" :label="item.label"
                                     :value="item.value" />
-                            </el-select>
+                            </a-select>
                         </div>
                         <div class="border-item-body">
                             <div ref="chartRef" class="echart-container"></div>
                         </div>
                     </div>
-                </el-col>
-            </el-row>
+                </a-col>
+            </a-row>
 
             <!-- 规则列表 -->
-            <el-row>
+            <a-row>
                 <div class="module-8 border-item" style="width: 100%">
                     <div class="border-item-head">
                         <span class="head-title">规则列表</span>
                     </div>
                     <div class="border-item-body" style="height: 320px;">
-                        <el-table stripe height="300px" v-loading="loading" :data="ruleList" lazy
-                            :show-overflow-tooltip="{ effect: 'light' }">
-                            <el-table-column v-if="getColumnVisibility(8)" label="评测名称" align="left"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="scope">
-                                    {{ getEvaluateName(scope.row) }}
+                        <a-table
+                            striped
+                            :loading="loading"
+                            :data-source="ruleList"
+                            :columns="ruleTableColumns"
+                            :pagination="false"
+                            :scroll="{ y: 300 }"
+                            :locale="{ emptyText: '暂无记录' }"
+                        >
+                            <template #bodyCell="{ column, record }">
+                                <template v-if="column.key === 'evaluateName'">
+                                    {{ getEvaluateName(record) }}
                                 </template>
-                            </el-table-column>
-
-                            <el-table-column v-if="getColumnVisibility(1)" label="数据库名称" align="left" prop="name"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="scope">{{ scope.row.datasourceName || '-' }}</template>
-                            </el-table-column>
-                            <el-table-column v-if="getColumnVisibility(2)" label="字段名/中文名" align="left" prop="name"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="scope"> {{ scope.row.columnLabel || '-' }}</template>
-                            </el-table-column>
-                            <el-table-column v-if="getColumnVisibility(3)" label="质量维度" align="left"
-                                prop="dimensionType" :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="scope">
-                                    <dict-tag :options="att_rule_audit_q_dimension" :value="scope.row.dimensionType" />
-
+                                <template v-if="column.dataIndex === 'datasourceName'">
+                                    {{ record.datasourceName || '-' }}
                                 </template>
-                            </el-table-column>
-                            <el-table-column v-if="getColumnVisibility(5)" label="稽查名称" align="left" prop="ruleName"
-                                :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="scope">{{ scope.row.ruleName || '-' }}</template>
-                            </el-table-column>
-
-                            <el-table-column v-if="getColumnVisibility(7)" label="问题数据量占比" align="left"
-                                prop="proportion" :show-overflow-tooltip="{ effect: 'light' }">
-                                <template #default="scope">
+                                <template v-if="column.dataIndex === 'columnLabel'">
+                                    {{ record.columnLabel || '-' }}
+                                </template>
+                                <template v-if="column.dataIndex === 'dimensionType'">
+                                    <dict-tag :options="att_rule_audit_q_dimension" :value="record.dimensionType" />
+                                </template>
+                                <template v-if="column.dataIndex === 'ruleName'">
+                                    {{ record.ruleName || '-' }}
+                                </template>
+                                <template v-if="column.dataIndex === 'proportion'">
                                     {{
-                                        (scope.row.problemTotal != -1 && scope.row.problemTotal != null)
-                                            ? `${scope.row.problemTotal} /条 ${scope.row.proportion ?? '-'}%`
+                                        (record.problemTotal != -1 && record.problemTotal != null)
+                                            ? `${record.problemTotal} /条 ${record.proportion ?? '-'}%`
                                             : '-'
                                     }}
                                 </template>
-
-                            </el-table-column>
-                            <el-table-column label="操作" fixed="right" width="140" align="left">
-                                <template #default="scope">
-                                    <el-button link type="primary" icon="View"
-                                        @click="openDialog(scope.row)">查看问题数据</el-button>
+                                <template v-if="column.key === 'actions'">
+                                    <a-button type="link" size="small" @click="openDialog(record)">查看问题数据</a-button>
                                 </template>
-                            </el-table-column>
-                        </el-table>
+                            </template>
+                        </a-table>
                     </div>
                 </div>
-            </el-row>
+            </a-row>
 
 
         </div>
-        <el-empty description="暂无资产质量任务" v-else>
-            <el-button type="primary" @click="openQualityDialog(undefined)">
+        </a-spin>
+        <a-empty description="暂无资产质量任务" v-else>
+            <a-button type="primary" @click="openQualityDialog(undefined)">
                 <i class="iconfont-mini icon-xinzeng mr5"></i>新增资产质量任务
-            </el-button>
-        </el-empty>
+            </a-button>
+        </a-empty>
         <!-- 问题数据弹窗 -->
         <ProblemDialog ref="problemDialogRef" />
         <qualityTaskDialog ref="qualityDialog" @submit-success="fetchData" />
         <DataViewDialog :visible="DataView" :taskType="3" @update:visible="DataView = $event" :data="form"
             title="执行记录" />
-        <el-dialog title="调度周期" v-model="openCron" :append-to="$refs['app-container']" destroy-on-close
-            :appendTo="'#app'">
+        <a-modal title="调度周期" v-model:open="openCron" destroy-on-close>
             <crontab ref="crontabRef" @hide="openCron = false" @fill="crontabFill" :expression="expression">
             </crontab>
             <!--      <crontab-->
@@ -188,8 +179,9 @@
             <!--        :Crontab="false"-->
             <!--      >-->
             <!--      </crontab>-->
-        </el-dialog>
+        </a-modal>
     </div>
+    </a-spin>
 
     <!-- 引入弹窗组件，绑定visible -->
 
@@ -198,7 +190,16 @@
 <script setup>
 import * as echarts from 'echarts';
 import { useRoute } from 'vue-router';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { h } from 'vue';
+import {
+    EditOutlined,
+    SettingOutlined,
+    PlayCircleOutlined,
+    CloseCircleOutlined,
+    UpOutlined,
+    DownOutlined
+} from '@ant-design/icons-vue';
 import moment from 'moment';
 const { proxy } = getCurrentInstance();
 
@@ -359,6 +360,19 @@ const getColumnVisibility = (key) => {
     const column = columns.value.find((col) => col.key === key);
     return column ? column.visible : true;
 };
+
+const ruleTableColumns = computed(() => {
+    const allCols = [
+        { title: '评测名称', key: 'evaluateName', align: 'left', ellipsis: true, colKey: 8 },
+        { title: '数据库名称', dataIndex: 'datasourceName', align: 'left', ellipsis: true, colKey: 1 },
+        { title: '字段名/中文名', dataIndex: 'columnLabel', align: 'left', ellipsis: true, colKey: 2 },
+        { title: '质量维度', dataIndex: 'dimensionType', align: 'left', ellipsis: true, colKey: 3 },
+        { title: '稽查名称', dataIndex: 'ruleName', align: 'left', ellipsis: true, colKey: 5 },
+        { title: '问题数据量占比', dataIndex: 'proportion', align: 'left', ellipsis: true, colKey: 7 },
+        { title: '操作', key: 'actions', align: 'left', fixed: 'right', width: 140, colKey: 'actions' },
+    ];
+    return allCols.filter(col => getColumnVisibility(col.colKey));
+});
 
 const loadChartWithData = (data = []) => {
     let { title = [], value = [] } = data;
@@ -631,7 +645,7 @@ onBeforeUnmount(() => {
                 display: inline-block;
                 width: 3px;
                 height: 20px;
-                background: var(--el-color-primary);
+                background: #2666fb;
                 margin-right: 10px;
                 border-radius: 2px;
             }

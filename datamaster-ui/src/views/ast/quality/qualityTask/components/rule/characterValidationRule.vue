@@ -1,52 +1,50 @@
 <template>
   <!-- 字符串类型校验 -->
-  <el-form
+  <a-form
     ref="formRef"
     :model="form"
     :rules="falg ? {} : rules"
-    label-width="130px"
+    :label-col="{ style: { width: '130px' } }"
     :disabled="false"
   >
-    <el-row>
-      <el-col :span="12">
+    <a-row>
+      <a-col :span="12">
         <!-- 评测对象下拉 -->
-        <el-form-item label="使用正则" prop="useRegexFlag">
-          <el-checkbox
+        <a-form-item label="使用正则" name="useRegexFlag">
+          <a-checkbox
             v-if="!falg"
-            v-model="form.useRegexFlag"
-            :true-value="1"
-            :false-value="0"
-            >使用正则</el-checkbox
+            v-model:checked="form.useRegexFlag"
+            :checked-value="1"
+            :un-checked-value="0"
+            >使用正则</a-checkbox
           >
           <div v-else class="form-readonly">
             {{ form.useRegexFlag == 1 ? "使用正则" : "不使用正则" }}
           </div>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12" v-if="!form.useRegexFlag" class="hasMsg">
-        <el-form-item label="允许字符类型" prop="allowedChars">
+        </a-form-item>
+      </a-col>
+      <a-col :span="12" v-if="!form.useRegexFlag" class="hasMsg">
+        <a-form-item label="允许字符类型" name="allowedChars">
           <template v-if="!falg">
-            <el-checkbox-group v-model="form.allowedChars" name="chars">
-              <el-checkbox :value="'1'">数字</el-checkbox>
-              <el-checkbox :value="'2'">字母</el-checkbox>
-              <el-checkbox :value="'3'">空格</el-checkbox>
-              <el-checkbox :value="'4'">特殊符号</el-checkbox>
-            </el-checkbox-group>
+            <a-checkbox-group v-model:value="form.allowedChars" name="chars">
+              <a-checkbox :value="'1'">数字</a-checkbox>
+              <a-checkbox :value="'2'">字母</a-checkbox>
+              <a-checkbox :value="'3'">空格</a-checkbox>
+              <a-checkbox :value="'4'">特殊符号</a-checkbox>
+            </a-checkbox-group>
           </template>
           <div v-else class="form-readonly">{{ allowedCharsText }}</div>
           <span class="msg"
-            ><el-icon>
-              <InfoFilled /> </el-icon
-            >若选中数字和字母，系统自动识别为“仅允许字母与数字的组合</span
+            ><InfoFilled /> 若选中数字和字母，系统自动识别为“仅允许字母与数字的组合</span
           >
-        </el-form-item>
-      </el-col>
-      <el-col :span="12" v-if="!form.useRegexFlag">
-        <el-form-item label="忽略空值" prop="ignoreNullValue">
-          <el-radio-group v-if="!falg" v-model="form.ignoreNullValue">
-            <el-radio :value="'1'">是</el-radio>
-            <el-radio :value="'0'">否</el-radio>
-          </el-radio-group>
+        </a-form-item>
+      </a-col>
+      <a-col :span="12" v-if="!form.useRegexFlag">
+        <a-form-item label="忽略空值" name="ignoreNullValue">
+          <a-radio-group v-if="!falg" v-model:value="form.ignoreNullValue">
+            <a-radio :value="'1'">是</a-radio>
+            <a-radio :value="'0'">否</a-radio>
+          </a-radio-group>
           <div v-else class="form-readonly">
             {{
               form.ignoreNullValue === "1"
@@ -56,12 +54,12 @@
                 : "-"
             }}
           </div>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12" v-if="form.useRegexFlag">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+      <a-col :span="12" v-if="form.useRegexFlag">
+        <a-form-item
           label="正则表达式"
-          prop="regex"
+          name="regex"
           :rules="[
             {
               required: form.useRegexFlag,
@@ -77,22 +75,24 @@
             },
           ]"
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.regex"
+            v-model:value="form.regex"
             placeholder="请输入正则表达式"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.regex || "-" }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script setup>
 import { reactive, ref, watch } from "vue";
 import { getColumnByAssetId } from "@/api/col/task/index.js";
+
+import { InfoCircleFilled as InfoFilled } from "@ant-design/icons-vue";
 
 const props = defineProps({
   form: Object,
@@ -157,15 +157,13 @@ const exposedFields = [
 
 function validate() {
   return new Promise((resolve, reject) => {
-    formRef.value.validate((valid) => {
-      if (valid) {
-        const result = Object.fromEntries(
-          exposedFields.map((key) => [key, form[key]])
-        );
-        resolve({ valid: true, data: result });
-      } else {
-        resolve({ valid: false });
-      }
+    formRef.value.validate().then(() => {
+      const result = Object.fromEntries(
+        exposedFields.map((key) => [key, form[key]])
+      );
+      resolve({ valid: true, data: result });
+    }).catch(() => {
+      resolve({ valid: false });
     });
   });
 }

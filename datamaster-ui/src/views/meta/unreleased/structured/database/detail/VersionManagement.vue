@@ -7,67 +7,67 @@
         >
             <qt-table v-bind="tableStroe" ref="tableRef">
                 <template #active-version="{ row }">
-                    <el-icon v-show="row.activeVersion == 'Y'"><Select /></el-icon>
+                    <CheckCircleOutlined v-show="row.activeVersion == 'Y'" style="color: #52c41a" />
                 </template>
                 <template #handle="{ row }">
-                    <el-button link type="primary" icon="view" @click="handleDetailClick(row)">
+                    <a-button type="link" :icon="h(EyeOutlined)" @click="handleDetailClick(row)">
                         详情
-                    </el-button>
-                    <el-button link type="primary" icon="Edit"> 恢复 </el-button>
+                    </a-button>
+                    <a-button type="link" :icon="h(EditOutlined)"> 恢复 </a-button>
                 </template>
             </qt-table>
         </qt-wrap>
 
-        <el-dialog v-model="dialog.open" title="版本详情" width="800" draggable>
-            <el-form label-width="auto">
-                <el-form-item label="库名：">
-                    <el-input v-model="dialog.row.dbName" placeholder="请输入库名" disabled />
-                </el-form-item>
-                <el-form-item label="版本号：">
-                    <el-input v-model="dialog.row.version" placeholder="请输入版本号" disabled />
-                </el-form-item>
-                <el-form-item label="变更类型：">
-                    <el-input
-                        v-model="dialog.row.updateType"
+        <a-modal v-model:open="dialog.open" title="版本详情" width="800" destroy-on-close>
+            <a-form :label-col="{ style: { width: '100px' } }">
+                <a-form-item label="库名：">
+                    <a-input v-model:value="dialog.row.dbName" placeholder="请输入库名" disabled />
+                </a-form-item>
+                <a-form-item label="版本号：">
+                    <a-input v-model:value="dialog.row.version" placeholder="请输入版本号" disabled />
+                </a-form-item>
+                <a-form-item label="变更类型：">
+                    <a-input
+                        v-model:value="dialog.row.updateType"
                         placeholder="请输入变更类型"
                         disabled
                     />
-                </el-form-item>
-                <el-form-item label="变更说明：">
-                    <el-input
-                        v-model="dialog.row.updateMsg"
+                </a-form-item>
+                <a-form-item label="变更说明：">
+                    <a-textarea
+                        v-model:value="dialog.row.updateMsg"
                         placeholder="请输入变更说明"
                         disabled
-                        type="textarea"
-                        :min-height="192"
-                        show-word-limit
-                        maxlength="500个字符"
+                        :auto-size="{ minRows: 8 }"
+                        :maxlength="500"
+                        show-count
                     />
-                </el-form-item>
-                <el-form-item label="当前版本：">
+                </a-form-item>
+                <a-form-item label="当前版本：">
                     <dict-tag
                         :options="toValue(dicts.sys_yes_no)"
                         :value="dialog.row.activeVersion"
                     />
-                </el-form-item>
-                <el-form-item label="创建人：">
-                    <el-input v-model="dialog.row.name" placeholder="请输入修改人" disabled />
-                </el-form-item>
-                <el-form-item label="创建时间：">
-                    <el-input v-model="dialog.row.time" placeholder="请输入创建时间" disabled />
-                </el-form-item>
-            </el-form>
+                </a-form-item>
+                <a-form-item label="创建人：">
+                    <a-input v-model:value="dialog.row.name" placeholder="请输入修改人" disabled />
+                </a-form-item>
+                <a-form-item label="创建时间：">
+                    <a-input v-model:value="dialog.row.time" placeholder="请输入创建时间" disabled />
+                </a-form-item>
+            </a-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button @click="dialog.open = false">关闭</el-button>
+                    <a-button @click="dialog.open = false">关闭</a-button>
                 </div>
             </template>
-        </el-dialog>
+        </a-modal>
     </div>
 </template>
 
 <script setup name="VersionManagement">
-    import { reactive, toValue, getCurrentInstance } from 'vue';
+    import { reactive, toValue, getCurrentInstance, h } from 'vue';
+    import { CheckCircleOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons-vue';
 
     const { proxy } = getCurrentInstance();
     const dicts = proxy.useDict('sys_yes_no');

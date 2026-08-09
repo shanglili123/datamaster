@@ -1,23 +1,25 @@
 <template>
   <div class="app-container">
 
-    <el-container>
+    <a-layout style="flex-direction: row">
       <DeptTree
         ref="DeptTreeRef"
         v-bind="store.dept"
         placeholder="请输入业务域名称"
       />
-      <el-main class="pagecont-bottom">
-        <div class="shape-content" v-loading="!store.shape.loaded">
-          <LineageShape
-            :origins="store.shape.origins"
-            :target="store.shape.target"
-            :type="store.shape.type"
-            v-if="store.shape.loaded"
-          />
-        </div>
-      </el-main>
-    </el-container>
+      <a-layout-content class="pagecont-bottom">
+        <a-spin :spinning="!store.shape.loaded">
+          <div class="shape-content">
+            <LineageShape
+              :origins="store.shape.origins"
+              :target="store.shape.target"
+              :type="store.shape.type"
+              v-if="store.shape.loaded"
+            />
+          </div>
+        </a-spin>
+      </a-layout-content>
+    </a-layout>
   </div>
 </template>
 
@@ -83,6 +85,11 @@ getList();
     z-index: 9999;
   }
   .shape-content {
+    width: 100%;
+    height: 100%;
+  }
+  :deep(.ant-spin-nested-loading),
+  :deep(.ant-spin-container) {
     width: 100%;
     height: 100%;
   }

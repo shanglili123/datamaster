@@ -1,26 +1,26 @@
 <template>
   <div class="qt-search-bar">
-    <el-form
+    <a-form
       ref="formRef"
       :model="props.params"
-      :inline="true"
+      layout="inline"
       @submit.prevent
       v-bind="props.config?.form"
     >
-      <el-form-item
+      <a-form-item
         :label="item.label"
-        :prop="item.prop"
+        :name="item.prop"
         v-for="(item, index) in props.items"
         :key="item.prop"
         v-bind="getFormItemProps(item)"
         v-show="index < props.visibleCount ? true : store.expand"
       >
         <!-- 输入框 -->
-        <el-input
+        <a-input
           class="search-content"
           v-if="item.component.is == 'input'"
-          v-model="props.params[item.prop]"
-          clearable
+          v-model:value="props.params[item.prop]"
+          allow-clear
           :placeholder="`请输入${item.label}`"
           v-bind="item.component"
           style="width: 150px"
@@ -28,29 +28,29 @@
         />
 
         <!-- 下拉框 -->
-        <el-select
+        <a-select
           class="search-content"
           v-if="item.component.is == 'select'"
-          v-model="props.params[item.prop]"
-          clearable
+          v-model:value="props.params[item.prop]"
+          allow-clear
           :placeholder="`请选择${item.label}`"
           v-bind="item.component"
           style="width: 150px"
         >
-          <el-option
+          <a-select-option
             v-for="(option, index) in item.component.options"
             :key="index"
             v-bind="option"
           />
-        </el-select>
+        </a-select>
 
         <!-- 时间选择器 -->
-        <el-date-picker
+        <a-date-picker
           class="search-content"
           v-if="item.component.is == 'date-picker'"
-          v-model="props.params[item.prop]"
+          v-model:value="props.params[item.prop]"
           :type="item.component.type || 'date'"
-          clearable
+          :allow-clear="true"
           :placeholder="`请选择${item.label}`"
           format="YYYY-MM-DD"
           value-format="YYYY-MM-DD"
@@ -59,25 +59,24 @@
         />
 
         <!-- 树形选择框 -->
-        <el-tree-select
+        <a-tree-select
           class="search-content"
           v-if="item.component.is == 'tree-select'"
-          v-model="props.params[item.prop]"
-          clearable
+          v-model:value="props.params[item.prop]"
+          allow-clear
           :placeholder="`请选择${item.label}`"
           v-bind="item.component"
           style="width: 150px"
         />
-      </el-form-item>
-      <el-form-item class="search-btns" v-if="props.showButtons">
-        <el-button plain type="primary" @click="handleQueryClick">
+      </a-form-item>
+      <a-form-item class="search-btns" v-if="props.showButtons">
+        <a-button type="primary" @click="handleQueryClick">
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="handleResetClick">
+        </a-button>
+        <a-button @click="handleResetClick">
           <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-        <el-button
-          plain
+        </a-button>
+        <a-button
           type="primary"
           v-if="store.length > props.visibleCount"
           @click="store.expand = !store.expand"
@@ -86,9 +85,9 @@
           <svg-icon v-if="store.expand" icon-class="toggle" />
           <svg-icon v-else icon-class="expand" />
           <span>{{ store.expand ? "折叠" : "展开" }}</span>
-        </el-button>
-      </el-form-item>
-    </el-form>
+        </a-button>
+      </a-form-item>
+    </a-form>
   </div>
 </template>
 
@@ -166,20 +165,20 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .qt-search-bar {
-  ::v-deep(.el-form) {
+  :deep(.ant-form-inline) {
     display: flex !important;
     flex-wrap: nowrap !important;
     align-items: flex-start !important;
     column-gap: 12px;
   }
 
-  ::v-deep(.el-form-item) {
+  :deep(.ant-form-item) {
     flex-shrink: 0 !important;
     margin-right: 0 !important;
     margin-bottom: 0 !important;
   }
 
-  ::v-deep(.el-form-item__label) {
+  :deep(.ant-form-item-label) {
     height: 32px;
     line-height: 32px;
     color: #4e5969;
@@ -190,29 +189,30 @@ onMounted(() => {
 .search-content {
   width: 150px;
 
-  ::v-deep(.el-input__wrapper),
-  ::v-deep(.el-select__wrapper) {
+  :deep(.ant-input-affix-wrapper),
+  :deep(.ant-select-selector),
+  :deep(.ant-picker) {
     min-height: 32px;
     border-radius: 6px;
-    box-shadow: 0 0 0 1px #e2e8f0 inset;
     background: #fbfcfe;
 
     &:hover {
-      box-shadow: 0 0 0 1px #c8d4e4 inset;
+      border-color: #c8d4e4;
     }
+  }
 
-    &.is-focus,
-    &.is-focused {
-      background: #ffffff;
-      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
-    }
+  :deep(.ant-input-affix-wrapper-focused),
+  :deep(.ant-select-focused .ant-select-selector),
+  :deep(.ant-picker-focused) {
+    background: #ffffff;
+    border-color: #1677ff;
   }
 }
 
 .search-btns {
   margin-left: auto;
 
-  .el-button {
+  .ant-btn {
     height: 32px;
     padding: 8px 12px;
     font-size: 12px;

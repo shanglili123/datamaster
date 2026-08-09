@@ -1,58 +1,62 @@
 <template>
    <div class="app-container" ref="app-container">
       <div class="pagecont-top" v-show="showSearch">
-         <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="岗位编码" prop="postCode">
-               <el-input
-                  v-model="queryParams.postCode"
+         <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline" :label-col="{ style: { width: '68px' } }">
+            <a-form-item label="岗位编码" name="postCode">
+               <a-input
+                  v-model:value="queryParams.postCode"
                   placeholder="请输入岗位编码"
-                  clearable
+                  allow-clear
                   style="width: 130px"
-                  @keyup.enter="handleQuery"
+                  @pressEnter="handleQuery"
                />
-            </el-form-item>
-            <el-form-item label="岗位名称" prop="postName">
-               <el-input
-                  v-model="queryParams.postName"
+            </a-form-item>
+            <a-form-item label="岗位名称" name="postName">
+               <a-input
+                  v-model:value="queryParams.postName"
                   placeholder="请输入岗位名称"
-                  clearable
+                  allow-clear
                   style="width: 130px"
-                  @keyup.enter="handleQuery"
+                  @pressEnter="handleQuery"
                />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-               <el-select v-model="queryParams.status" placeholder="岗位状态" clearable style="width: 120px">
-                  <el-option
+            </a-form-item>
+            <a-form-item label="状态" name="status">
+               <a-select v-model:value="queryParams.status" placeholder="岗位状态" allow-clear style="width: 120px">
+                  <a-select-option
                      v-for="dict in sys_normal_disable"
                      :key="dict.value"
-                     :label="dict.label"
-                     :value="dict.value"
-                  />
-               </el-select>
-            </el-form-item>
-            <el-form-item>
-               <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+                     :value="dict.value">{{ dict.label }}</a-select-option>
+               </a-select>
+            </a-form-item>
+            <a-form-item>
+               <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                   <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-               </el-button>
-               <el-button @click="resetQuery" @mousedown="e => e.preventDefault()">
+               </a-button>
+               <a-button @click="resetQuery" @mousedown="e => e.preventDefault()">
                   <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-               </el-button>
-            </el-form-item>
-         </el-form>
+               </a-button>
+            </a-form-item>
+         </a-form>
          <div class="data-action-btns">
-            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:post:add']">新增</el-button>
-            <el-dropdown trigger="click" v-hasPermi="['system:post:edit', 'system:post:remove', 'system:post:export']">
-              <el-button type="info" plain>
-                更多<i class="el-icon-arrow-down el-icon--right"></i>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermi="['system:post:edit']">修改</el-dropdown-item>
-                  <el-dropdown-item icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermi="['system:post:remove']">删除</el-dropdown-item>
-                  <el-dropdown-item icon="Download" @click="handleExport" v-hasPermi="['system:post:export']">导出</el-dropdown-item>
-                </el-dropdown-menu>
+            <a-button type="primary" :icon="h(PlusOutlined)" @click="handleAdd" v-hasPermi="['system:post:add']">新增</a-button>
+            <a-dropdown trigger="click" v-hasPermi="['system:post:edit', 'system:post:remove', 'system:post:export']">
+              <a-button>
+                更多<DownOutlined style="font-size: 12px; margin-left: 4px;" />
+              </a-button>
+              <template #overlay>
+                <a-menu @click="handleMoreMenu">
+                  <a-menu-item key="edit" :disabled="single" v-hasPermi="['system:post:edit']">
+                    <EditOutlined />修改
+                  </a-menu-item>
+                  <a-menu-item key="delete" :disabled="multiple" v-hasPermi="['system:post:remove']">
+                    <DeleteOutlined />删除
+                  </a-menu-item>
+                  <a-menu-item key="export" v-hasPermi="['system:post:export']">
+                    <DownloadOutlined />导出
+                  </a-menu-item>
+                </a-menu>
               </template>
-            </el-dropdown>
+            </a-dropdown>
          </div>
          <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
@@ -60,29 +64,34 @@
       </div>
       <div class="pagecont-bottom">
 
-         <el-table stripe height="60vh" v-loading="loading" :data="postList" @selection-change="handleSelectionChange" >
-            <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="岗位编号" align="center" prop="postId" />
-            <el-table-column label="岗位编码" align="center" prop="postCode" />
-            <el-table-column label="岗位名称" align="center" prop="postName" />
-            <el-table-column label="岗位排序" align="center" prop="postSort" />
-            <el-table-column label="状态" align="center" prop="status">
-               <template #default="scope">
-                  <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
-               </template>
-            </el-table-column>
-            <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-               <template #default="scope">
-                  <span>{{ parseTime(scope.row.createTime) }}</span>
-               </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center" class-name="small-padding fixed-width"  fixed="right" width="240">
-               <template #default="scope">
-                  <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:post:edit']">修改</el-button>
-                  <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:post:remove']">删除</el-button>
-               </template>
-            </el-table-column>
-         </el-table>
+         <a-spin :spinning="loading">
+            <a-table
+              :data-source="postList"
+              :columns="tableColumns"
+              :pagination="false"
+              striped
+              :scroll="{ y: '60vh' }"
+              :row-selection="{ type: 'checkbox', onChange: handleSelectionChange }"
+              row-key="postId"
+              :locale="{ emptyText: emptyContent }"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.dataIndex === 'status'">
+                  <dict-tag :options="sys_normal_disable" :value="record.status" />
+                </template>
+                <template v-else-if="column.dataIndex === 'createTime'">
+                  <span>{{ parseTime(record.createTime) }}</span>
+                </template>
+                <template v-else-if="column.key === 'actions'">
+                  <a-button type="link" size="small" @click="handleUpdate(record)" v-hasPermi="['system:post:edit']">修改</a-button>
+                  <a-button type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['system:post:remove']">删除</a-button>
+                </template>
+                <template v-else>
+                  <span>{{ record[column.dataIndex] || '-' }}</span>
+                </template>
+              </template>
+            </a-table>
+         </a-spin>
 
          <pagination
             v-show="total > 0"
@@ -94,58 +103,77 @@
       </div>
 
       <!-- 添加或修改岗位对话框 -->
-      <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']"  draggable destroy-on-close>
-         <el-form ref="postRef" :model="form" :rules="rules" label-width="80px">
-            <el-row :gutter="20">
-               <el-col :span="12">
-                  <el-form-item label="岗位名称" prop="postName">
-                     <el-input v-model="form.postName" placeholder="请输入岗位名称" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="岗位编码" prop="postCode">
-                     <el-input v-model="form.postCode" placeholder="请输入编码名称" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="岗位顺序" prop="postSort">
-                     <el-input-number style="width:100%" v-model="form.postSort" controls-position="right" :min="0" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="岗位状态" prop="status">
-                     <el-radio-group v-model="form.status">
-                        <el-radio
+      <a-modal :title="title" v-model:open="open" width="800px" destroy-on-close>
+         <a-form ref="postRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+               <a-col :span="12">
+                  <a-form-item label="岗位名称" name="postName">
+                     <a-input v-model:value="form.postName" placeholder="请输入岗位名称" />
+                  </a-form-item>
+               </a-col>
+               <a-col :span="12">
+                  <a-form-item label="岗位编码" name="postCode">
+                     <a-input v-model:value="form.postCode" placeholder="请输入编码名称" />
+                  </a-form-item>
+               </a-col>
+               <a-col :span="12">
+                  <a-form-item label="岗位顺序" name="postSort">
+                     <a-input-number style="width:100%" v-model:value="form.postSort" :min="0" />
+                  </a-form-item>
+               </a-col>
+               <a-col :span="12">
+                  <a-form-item label="岗位状态" name="status">
+                     <a-radio-group v-model:value="form.status">
+                        <a-radio
                            v-for="dict in sys_normal_disable"
                            :key="dict.value"
                            :value="dict.value"
-                        >{{ dict.label }}</el-radio>
-                     </el-radio-group>
-                  </el-form-item>
-               </el-col>
-               <el-col :span="24">
-                  <el-form-item label="备注" prop="remark">
-                     <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-                  </el-form-item>
-               </el-col>
-            </el-row>
-         </el-form>
+                        >{{ dict.label }}</a-radio>
+                     </a-radio-group>
+                  </a-form-item>
+               </a-col>
+               <a-col :span="24">
+                  <a-form-item label="备注" name="remark">
+                     <a-textarea v-model:value="form.remark" placeholder="请输入内容" />
+                  </a-form-item>
+               </a-col>
+            </a-row>
+         </a-form>
          <template #footer>
             <div class="dialog-footer">
-               <el-button @click="cancel">取 消</el-button>
-               <el-button type="primary" @click="submitForm">确 定</el-button>
+               <a-button @click="cancel">取 消</a-button>
+               <a-button type="primary" @click="submitForm">确 定</a-button>
             </div>
          </template>
-      </el-dialog>
+      </a-modal>
    </div>
 </template>
 
 <script setup name="Post">
+
 import { listPost, addPost, delPost, getPost, updatePost } from "@/api/system/system/post.js";
+
 import { normalizePage, pageRows } from "@/utils/page.js";
+import { h } from 'vue';
+import { DeleteOutlined, DownOutlined, DownloadOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
+
+const tableColumns = [
+  { title: '岗位编号', dataIndex: 'postId', align: 'center' },
+  { title: '岗位编码', dataIndex: 'postCode', align: 'center' },
+  { title: '岗位名称', dataIndex: 'postName', align: 'center' },
+  { title: '岗位排序', dataIndex: 'postSort', align: 'center' },
+  { title: '状态', dataIndex: 'status', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180 },
+  { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
 
 const postList = ref([]);
 const open = ref(false);
@@ -218,10 +246,10 @@ function resetQuery() {
 }
 
 /** 多选框选中数据 */
-function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.postId);
-  single.value = selection.length != 1;
-  multiple.value = !selection.length;
+function handleSelectionChange(selectedRowKeys, selectedRows) {
+  ids.value = selectedRows.map(item => item.postId);
+  single.value = selectedRows.length != 1;
+  multiple.value = !selectedRows.length;
 }
 
 /** 新增按钮操作 */

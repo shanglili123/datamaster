@@ -1,95 +1,80 @@
 <template>
     <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-            <el-col :span="1.5">
-                <el-button type="primary" plain @click="handleAdd" @mousedown="(e) => e.preventDefault()">
+        <a-row :gutter="15" class="btn-style">
+            <a-col :span="1.5">
+                <a-button type="primary" @click="handleAdd" @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-            </el-col>
-        </el-row>
+                </a-button>
+            </a-col>
+        </a-row>
         <div class="justify-end top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </div>
     </div>
-    <el-table stripe height="360" v-loading="loading" :data="dpDataElemCodeList"
-        @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
-        <el-table-column label="编号" align="left" prop="id" width="50" />
-        <el-table-column label="代码值" align="left" prop="codeValue" width="160">
-            <template #default="scope">
-                {{ scope.row.codeValue || '-' }}
+    <a-table stripe :loading="loading" :data-source="dpDataElemCodeList" :columns="tableColumns"
+        :pagination="false" :scroll="{ y: 360 }"
+        :row-selection="{ type: 'checkbox', onChange: handleSelectionChange }" row-key="id"
+        :locale="{ emptyText: emptyContent }" @change="handleSortChange">
+        <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'codeValue'">
+                {{ record.codeValue || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="代码名称" align="left" prop="codeName" width="220">
-            <template #default="scope">
-                {{ scope.row.codeName || '-' }}
+            <template v-else-if="column.dataIndex === 'codeName'">
+                {{ record.codeName || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="创建人" align="left" prop="createBy" width="160">
-            <template #default="scope">
-                {{ scope.row.createBy || '-' }}
+            <template v-else-if="column.dataIndex === 'createBy'">
+                {{ record.createBy || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="创建时间" align="left" prop="createTime" width="220">
-            <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+            <template v-else-if="column.dataIndex === 'createTime'">
+                <span>{{ parseTime(record.createTime, '{y}-{m}-{d} {h}:{i}') }}</span>
             </template>
-        </el-table-column>
-        <el-table-column label="备注" align="left" prop="remark" :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.remark || '-' }}
+            <template v-else-if="column.dataIndex === 'remark'">
+                {{ record.remark || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="300">
-            <template #default="scope">
-                <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-                <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+            <template v-else-if="column.key === 'actions'">
+                <a-button type="link" size="small" @click="handleUpdate(record)">修改</a-button>
+                <a-button type="link" danger size="small" @click="handleDelete(record)">删除</a-button>
             </template>
-        </el-table-column>
-
-        <template #empty>
-            <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-            </div>
         </template>
-    </el-table>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 新增或修改数据元代码对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable>
-        <el-form ref="dpDataElemCodeRef" :model="form" :rules="rules" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="代码值" prop="codeValue">
-                        <el-input v-model="form.codeValue" placeholder="请输入代码值" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="代码名称" :show-overflow-tooltip="{ effect: 'light' }" prop="codeName">
-                        <el-input v-model="form.codeName" placeholder="请输入代码名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="备注" :show-overflow-tooltip="{ effect: 'light' }" prop="remark">
-                        <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+    <a-modal :title="title" v-model:open="open" width="800px" draggable>
+        <a-form ref="dpDataElemCodeRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="代码值" name="codeValue">
+                        <a-input v-model:value="form.codeValue" placeholder="请输入代码值" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="代码名称" name="codeName">
+                        <a-input v-model:value="form.codeName" placeholder="请输入代码名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="备注" name="remark">
+                        <a-input v-model:value="form.remark" type="textarea" placeholder="请输入备注" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="cancel">取 消</el-button>
-                <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+                <a-button size="small" @click="cancel">取 消</a-button>
+                <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup name="ComponentOne">
+import { h } from "vue";
 import {
     listDpDataElemCode,
     getDpDataElemCode,
@@ -113,6 +98,21 @@ const multiple = ref(true);
 const total = ref(0);
 const title = ref('');
 const defaultSort = ref({ prop: 'createTime', order: 'desc' });
+
+const tableColumns = [
+    { title: "编号", dataIndex: "id", align: "left", width: 60, sorter: true },
+    { title: "代码值", dataIndex: "codeValue", align: "left", width: 160 },
+    { title: "代码名称", dataIndex: "codeName", align: "left", width: 220 },
+    { title: "创建人", dataIndex: "createBy", align: "left", width: 160 },
+    { title: "创建时间", dataIndex: "createTime", align: "left", width: 220, sorter: true },
+    { title: "备注", dataIndex: "remark", align: "left", ellipsis: true },
+    { title: "操作", key: "actions", align: "center", fixed: "right", width: 200 },
+];
+
+const emptyContent = h("div", { class: "emptyBg" }, [
+    h("img", { src: new URL("@/assets/system/images/no_data/noData.png", import.meta.url).href, alt: "" }),
+    h("p", "暂无记录"),
+]);
 
 const data = reactive({
     dpDataElemCodeDetail: {},
@@ -220,16 +220,23 @@ function resetQuery() {
 }
 
 // 多选框选中数据
-function handleSelectionChange(selection) {
-    ids.value = selection.map((item) => item.id);
-    single.value = selection.length != 1;
-    multiple.value = !selection.length;
+function handleSelectionChange(selectedRowKeys, selectedRows) {
+    ids.value = selectedRows.map((item) => item.id);
+    single.value = selectedRows.length != 1;
+    multiple.value = !selectedRows.length;
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-    queryParams.value.orderByColumn = column.prop;
-    queryParams.value.isAsc = column.order;
+function handleSortChange(pag, filters, sorter) {
+    const prop = sorter.field || sorter.column?.dataIndex;
+    const order =
+        sorter.order === "ascend"
+            ? "ascending"
+            : sorter.order === "descend"
+                ? "descending"
+                : null;
+    queryParams.value.orderByColumn = prop;
+    queryParams.value.isAsc = order;
     getList();
 }
 
@@ -253,33 +260,31 @@ function handleUpdate(row) {
 
 /** 提交按钮 */
 function submitForm() {
-    proxy.$refs['dpDataElemCodeRef'].validate((valid) => {
+    proxy.$refs['dpDataElemCodeRef'].validate().then(() => {
         console.log(dpDataElemCodeDetail.value);
         form.value.dataElemId = id;
-        if (valid) {
-            if (form.value.id != null) {
-                updateDpDataElemCode(form.value)
-                    .then((response) => {
-                        proxy.$modal.msgSuccess('修改成功');
-                        open.value = false;
-                        getList();
-                        //事件推送
-                        proxy.$bus.emit('data_elem_code_change');
-                    })
-                    .catch((error) => { });
-            } else {
-                addDpDataElemCode(form.value)
-                    .then((response) => {
-                        proxy.$modal.msgSuccess('新增成功');
-                        open.value = false;
-                        getList();
-                        //事件推送
-                        proxy.$bus.emit('data_elem_code_change');
-                    })
-                    .catch((error) => { });
-            }
+        if (form.value.id != null) {
+            updateDpDataElemCode(form.value)
+                .then((response) => {
+                    proxy.$modal.msgSuccess('修改成功');
+                    open.value = false;
+                    getList();
+                    //事件推送
+                    proxy.$bus.emit('data_elem_code_change');
+                })
+                .catch((error) => { });
+        } else {
+            addDpDataElemCode(form.value)
+                .then((response) => {
+                    proxy.$modal.msgSuccess('新增成功');
+                    open.value = false;
+                    getList();
+                    //事件推送
+                    proxy.$bus.emit('data_elem_code_change');
+                })
+                .catch((error) => { });
         }
-    });
+    }).catch(() => { });
 }
 
 /** 删除按钮操作 */

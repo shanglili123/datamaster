@@ -1,5 +1,6 @@
 <template>
-  <div class="app-container" v-loading="store.loading">
+  <a-spin :spinning="store.loading">
+  <div class="app-container">
     <div class="pagecont-top-wrap">
       <div class="infotop">
         <div class="infotop-title mb15 clearfixs">
@@ -18,28 +19,27 @@
             </div>
           </div>
           <div class="btn-style">
-            <el-button
+            <a-button
               type="primary"
-              plain
               class="fh_btn"
               @mousedown="(e) => e.preventDefault()"
               @click="router.back"
             >
               <svg-icon iconClass="fhs" />返回
-            </el-button>
+            </a-button>
           </div>
         </div>
 
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">业务域</div>
               <div class="infotop-row-value">
                 {{ getDomainPath(form.domainId) }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">数据库类型</div>
               <div class="infotop-row-value">
@@ -49,28 +49,27 @@
                 />
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">版本号</div>
               <div class="infotop-row-value">
                 {{ formatVersion(form.version) }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </div>
     </div>
 
     <div class="pagecont-bottom">
-      <el-tabs v-model="store.tab" @tab-change="handleTabChange">
-        <el-tab-pane
+      <a-tabs v-model:activeKey="store.tab" @change="handleTabChange">
+        <a-tab-pane
           v-for="tab in tabData"
-          :label="tab.label"
-          :name="tab.key"
+          :tab="tab.label"
           :key="tab.key"
         />
-      </el-tabs>
+      </a-tabs>
 
       <component
         v-if="!store.loading"
@@ -79,6 +78,7 @@
       />
     </div>
   </div>
+  </a-spin>
 </template>
 <script setup name="DatabaseDetail">
 import { computed, getCurrentInstance, reactive, toValue } from "vue";

@@ -3,98 +3,95 @@
         <div class="pagecont-top" v-show="showSearch" style="padding-bottom: 15px">
             <div class="infotop">
                 <div class="infotop-title mb15">小强</div>
-                <el-row :gutter="20">
-                    <el-col :span="8">
+                <a-row :gutter="20">
+                    <a-col :span="8">
                         <div class="infotop-row border-top">
                             <div class="infotop-row-lable">学号</div>
                             <div class="infotop-row-value">{{ userform.xh }}</div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row border-top">
                             <div class="infotop-row-lable">姓名</div>
                             <div class="infotop-row-value">{{ userform.name }}</div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row border-top">
                             <div class="infotop-row-lable">性别</div>
                             <div class="infotop-row-value">{{ userform.sex }}</div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row">
                             <div class="infotop-row-lable">年级</div>
                             <div class="infotop-row-value">
-                                <el-tag type="primary">{{ userform.nj }}</el-tag>
+                                <a-tag color="blue">{{ userform.nj }}</a-tag>
                             </div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row">
                             <div class="infotop-row-lable">班级名称</div>
                             <div class="infotop-row-value">{{ userform.bjmc }}</div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row">
                             <div class="infotop-row-lable">出生日期</div>
                             <div class="infotop-row-value">{{ userform.csrq }}</div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row">
                             <div class="infotop-row-lable">年龄</div>
                             <div class="infotop-row-value">{{ userform.eage }}</div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row">
                             <div class="infotop-row-lable">备注</div>
                             <div class="infotop-row-value">{{ userform.bz }}</div>
                         </div>
-                    </el-col>
-                </el-row>
+                    </a-col>
+                </a-row>
 
-                <!-- <el-form-item>
-          <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+                <!-- <a-form-item>
+          <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item> -->
+          </a-button>
+        </a-form-item> -->
             </div>
         </div>
 
         <div class="pagecont-bottom">
-            <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-                <el-tab-pane label="家长管理" name="1">
+            <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+                <a-tab-pane :tab="'家长管理'" key="1">
                     <div class="justify-between mb15">
-                        <el-row :gutter="15" class="btn-style">
-                            <el-col :span="1.5">
-                                <el-button
+                        <a-row :gutter="15" class="btn-style">
+                            <a-col :span="1.5">
+                                <a-button
                                     type="primary"
-                                    plain
                                     @click="handleAdd"
                                     v-hasPermi="['user:userType:add']"
                                     @mousedown="(e) => e.preventDefault()"
                                 >
                                     <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                                </el-button>
-                            </el-col>
-                            <el-col :span="1.5">
-                                <el-button
-                                    type="warning"
-                                    plain
+                                </a-button>
+                            </a-col>
+                            <a-col :span="1.5">
+                                <a-button
                                     @click="handleExport"
                                     v-hasPermi="['user:userType:export']"
                                     @mousedown="(e) => e.preventDefault()"
                                 >
                                     <i class="iconfont-mini icon-download-line mr5"></i>导出
-                                </el-button>
-                            </el-col>
-                        </el-row>
+                                </a-button>
+                            </a-col>
+                        </a-row>
                         <div class="justify-end top-right-btn">
                             <right-toolbar
                                 v-model:showSearch="showSearch"
@@ -103,159 +100,64 @@
                             ></right-toolbar>
                         </div>
                     </div>
-                    <el-table
-                        stripe
+                    <a-table
+                        striped
                         height="374px"
-                        v-loading="loading"
-                        :data="userTypeList"
-                        @selection-change="handleSelectionChange"
-                        :default-sort="{ prop: 'createTime', order: 'descending' }"
+                        :loading="loading"
+                        :data-source="userTypeList"
+                        :columns="tableColumns"
+                        row-key="id"
+                        :row-selection="{ selectedRowKeys, onChange: handleSelectionChange }"
+                        :locale="{ emptyText: '暂无记录' }"
                     >
-                        <el-table-column type="selection" width="55" align="center" />
-                        <el-table-column
-                            v-if="columns[0].visible"
-                            label="ID"
-                            align="center"
-                            prop="id"
-                        />
-                        <el-table-column
-                            v-if="columns[1].visible"
-                            label="类型名称"
-                            align="center"
-                            prop="name"
-                        >
-                            <template #default="scope">
-                                {{ scope.row.name || '-' }}
+                        <template #bodyCell="{ column, record }">
+                            <template v-if="column.dataIndex === 'name'">
+                                {{ record.name || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[2].visible"
-                            label="是否有效"
-                            align="center"
-                            prop="validFlag"
-                        >
-                            <template #default="scope">
-                                {{ scope.row.validFlag || '-' }}
+                            <template v-else-if="column.dataIndex === 'validFlag'">
+                                {{ record.validFlag || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[3].visible"
-                            label="删除标志"
-                            align="center"
-                            prop="delFlag"
-                        >
-                            <template #default="scope">
-                                {{ scope.row.delFlag || '-' }}
+                            <template v-else-if="column.dataIndex === 'delFlag'">
+                                {{ record.delFlag || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[4].visible"
-                            label="创建人"
-                            align="center"
-                            prop="createBy"
-                        >
-                            <template #default="scope">
-                                {{ scope.row.createBy || '-' }}
+                            <template v-else-if="column.dataIndex === 'createBy'">
+                                {{ record.createBy || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[5].visible"
-                            label="创建人id"
-                            align="center"
-                            prop="creatorId"
-                        >
-                            <template #default="scope">
-                                {{ scope.row.creatorId || '-' }}
+                            <template v-else-if="column.dataIndex === 'creatorId'">
+                                {{ record.creatorId || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[6].visible"
-                            label="创建时间"
-                            align="center"
-                            prop="createTime"
-                            width="180"
-                            sortable
-                        >
-                            <template #default="scope">
-                                <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
+                            <template v-else-if="column.dataIndex === 'createTime'">
+                                <span>{{ parseTime(record.createTime, '{y}-{m}-{d}') }}</span>
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[7].visible"
-                            label="更新人"
-                            align="center"
-                            prop="updateBy"
-                        >
-                            <template #default="scope">
-                                {{ scope.row.updateBy || '-' }}
+                            <template v-else-if="column.dataIndex === 'updateBy'">
+                                {{ record.updateBy || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[8].visible"
-                            label="更新人id"
-                            align="center"
-                            prop="updaterId"
-                        >
-                            <template #default="scope">
-                                {{ scope.row.updaterId || '-' }}
+                            <template v-else-if="column.dataIndex === 'updaterId'">
+                                {{ record.updaterId || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[9].visible"
-                            label="更新时间"
-                            align="center"
-                            prop="updateTime"
-                            width="180"
-                            sortable
-                        >
-                            <template #default="scope">
-                                <span>{{ parseTime(scope.row.updateTime, '{y}-{m}-{d}') }}</span>
+                            <template v-else-if="column.dataIndex === 'updateTime'">
+                                <span>{{ parseTime(record.updateTime, '{y}-{m}-{d}') }}</span>
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            v-if="columns[10].visible"
-                            label="备注"
-                            align="center"
-                            prop="remark"
-                        >
-                            <template #default="scope">
-                                {{ scope.row.remark || '-' }}
+                            <template v-else-if="column.dataIndex === 'remark'">
+                                {{ record.remark || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column
-                            label="操作"
-                            align="center"
-                            class-name="small-padding fixed-width"
-                            fixed="right"
-                            width="240"
-                        >
-                            <template #default="scope">
-                                <el-button
-                                    link
-                                    type="primary"
-                                    icon="Edit"
-                                    @click="handleUpdate(scope.row)"
+                            <template v-else-if="column.key === 'actions'">
+                                <a-button
+                                    type="link"
+                                    :icon="h(EditOutlined)"
+                                    @click="handleUpdate(record)"
                                     v-hasPermi="['user:userType:edit']"
-                                    >修改</el-button
-                                >
-                                <el-button
-                                    link
-                                    type="danger"
-                                    icon="Delete"
-                                    @click="handleDelete(scope.row)"
+                                >修改</a-button>
+                                <a-button
+                                    type="link"
+                                    danger
+                                    :icon="h(DeleteOutlined)"
+                                    @click="handleDelete(record)"
                                     v-hasPermi="['user:userType:remove']"
-                                    >删除</el-button
-                                >
+                                >删除</a-button>
                             </template>
-                        </el-table-column>
-
-                        <template #empty>
-                            <div class="emptyBg">
-                                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                                <p>暂无记录</p>
-                            </div>
                         </template>
-                    </el-table>
+                    </a-table>
 
                     <pagination
                         v-show="total > 0"
@@ -264,66 +166,59 @@
                         v-model:limit="queryParams.pageSize"
                         @pagination="getList"
                     />
-                </el-tab-pane>
-                <el-tab-pane label="教师信息" name="2">教师信息</el-tab-pane>
-                <el-tab-pane label="发展评价" name="3">发展评价</el-tab-pane>
-                <el-tab-pane label="健康档案" name="4">健康档案</el-tab-pane>
-                <el-tab-pane label="学期评估" name="5">学期评估</el-tab-pane>
-                <el-tab-pane label="学期评价" name="6">学期评价</el-tab-pane>
-            </el-tabs>
+                </a-tab-pane>
+                <a-tab-pane :tab="'教师信息'" key="2">教师信息</a-tab-pane>
+                <a-tab-pane :tab="'发展评价'" key="3">发展评价</a-tab-pane>
+                <a-tab-pane :tab="'健康档案'" key="4">健康档案</a-tab-pane>
+                <a-tab-pane :tab="'学期评估'" key="5">学期评估</a-tab-pane>
+                <a-tab-pane :tab="'学期评价'" key="6">学期评价</a-tab-pane>
+            </a-tabs>
         </div>
 
         <!-- 添加或修改用户类型对话框 -->
-        <el-dialog
+        <a-modal
             :title="title"
-            v-model="open"
+            v-model:open="open"
             width="800px"
-            :append-to="$refs['app-container']"
             draggable
             destroy-on-close
         >
-            <template #header="{ close, titleId, titleClass }">
-                <span role="heading" aria-level="2" class="el-dialog__title">
-                    {{ title }}
-                </span>
-            </template>
-            <el-form ref="userTypeRef" :model="form" :rules="rules" label-width="80px">
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="类型名称" prop="name">
-                            <el-input v-model="form.name" placeholder="请输入类型名称" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="是否有效" prop="validFlag">
-                            <el-input v-model="form.validFlag" placeholder="请输入是否有效" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="删除标志" prop="delFlag">
-                            <el-input v-model="form.delFlag" placeholder="请输入删除标志" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="24">
-                        <el-form-item label="备注" prop="remark">
-                            <el-input
-                                v-model="form.remark"
-                                type="textarea"
+            <a-form ref="userTypeRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="类型名称" name="name">
+                            <a-input v-model:value="form.name" placeholder="请输入类型名称" />
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="是否有效" name="validFlag">
+                            <a-input v-model:value="form.validFlag" placeholder="请输入是否有效" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="删除标志" name="delFlag">
+                            <a-input v-model:value="form.delFlag" placeholder="请输入删除标志" />
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="24">
+                        <a-form-item label="备注" name="remark">
+                            <a-textarea
+                                v-model:value="form.remark"
                                 placeholder="请输入内容"
                             />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+            </a-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button size="mini" @click="cancel">取 消</el-button>
-                    <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+                    <a-button size="small" @click="cancel">取 消</a-button>
+                    <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
                 </div>
             </template>
-        </el-dialog>
+        </a-modal>
     </div>
 </template>
 
@@ -335,6 +230,8 @@
         addUserType,
         updateUserType
     } from '@/api/example/user/userType';
+    import { h } from 'vue';
+    import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 
     const { proxy } = getCurrentInstance();
 
@@ -342,8 +239,8 @@
 
     const activeName = ref('1');
 
-    const handleClick = (tab, event) => {
-        console.log(tab, event);
+    const handleClick = (key) => {
+        console.log(key);
     };
 
     // 列显隐信息
@@ -361,6 +258,56 @@
         { key: 10, label: '备注', visible: true }
     ]);
 
+    const getColumnVisibility = (key) => {
+        const column = columns.value.find((col) => col.key === key);
+        // 如果没有找到对应列配置，默认显示
+        if (!column) return true;
+        // 如果找到对应列配置，根据visible属性来控制显示
+        return column.visible;
+    };
+
+    const tableColumns = [
+        { key: 'id', title: 'ID', dataIndex: 'id', align: 'center', hidden: !getColumnVisibility(0) },
+        { key: 'name', title: '类型名称', dataIndex: 'name', align: 'center', hidden: !getColumnVisibility(1) },
+        { key: 'validFlag', title: '是否有效', dataIndex: 'validFlag', align: 'center', hidden: !getColumnVisibility(2) },
+        { key: 'delFlag', title: '删除标志', dataIndex: 'delFlag', align: 'center', hidden: !getColumnVisibility(3) },
+        { key: 'createBy', title: '创建人', dataIndex: 'createBy', align: 'center', hidden: !getColumnVisibility(4) },
+        { key: 'creatorId', title: '创建人id', dataIndex: 'creatorId', align: 'center', hidden: !getColumnVisibility(5) },
+        {
+            key: 'createTime',
+            title: '创建时间',
+            dataIndex: 'createTime',
+            align: 'center',
+            width: 180,
+            sorter: true,
+            sorterKey: 'createTime',
+            defaultSortOrder: 'descend',
+            hidden: !getColumnVisibility(6)
+        },
+        { key: 'updateBy', title: '更新人', dataIndex: 'updateBy', align: 'center', hidden: !getColumnVisibility(7) },
+        { key: 'updaterId', title: '更新人id', dataIndex: 'updaterId', align: 'center', hidden: !getColumnVisibility(8) },
+        {
+            key: 'updateTime',
+            title: '更新时间',
+            dataIndex: 'updateTime',
+            align: 'center',
+            width: 180,
+            sorter: true,
+            sorterKey: 'updateTime',
+            hidden: !getColumnVisibility(9)
+        },
+        { key: 'remark', title: '备注', dataIndex: 'remark', align: 'center', hidden: !getColumnVisibility(10) },
+        {
+            key: 'actions',
+            title: '操作',
+            align: 'center',
+            className: 'small-padding fixed-width',
+            fixed: 'right',
+            width: 240,
+            hidden: false
+        }
+    ];
+
     const open = ref(false);
     const loading = ref(true);
     const showSearch = ref(true);
@@ -369,6 +316,7 @@
     const multiple = ref(true);
     const total = ref(0);
     const title = ref('');
+    const selectedRowKeys = ref([]);
 
     const data = reactive({
         userform: {
@@ -406,7 +354,7 @@
     function getList() {
         loading.value = true;
         // listUserType(queryParams.value).then(response => {
-        var response = {
+        let response = {
             data: {}
         };
         (response.data = {
@@ -489,10 +437,11 @@
     }
 
     // 多选框选中数据
-    function handleSelectionChange(selection) {
-        ids.value = selection.map((item) => item.id);
-        single.value = selection.length != 1;
-        multiple.value = !selection.length;
+    function handleSelectionChange(selectedKeys, selectedRows) {
+        selectedRowKeys.value = selectedKeys;
+        ids.value = selectedRows.map((item) => item.id);
+        single.value = selectedRows.length != 1;
+        multiple.value = !selectedRows.length;
     }
 
     /** 新增按钮操作 */
@@ -515,23 +464,21 @@
 
     /** 提交按钮 */
     function submitForm() {
-        proxy.$refs['userTypeRef'].validate((valid) => {
-            if (valid) {
-                if (form.value.id != null) {
-                    updateUserType(form.value).then((response) => {
-                        proxy.$modal.msgSuccess('修改成功');
-                        open.value = false;
-                        getList();
-                    });
-                } else {
-                    addUserType(form.value).then((response) => {
-                        proxy.$modal.msgSuccess('新增成功');
-                        open.value = false;
-                        getList();
-                    });
-                }
+        proxy.$refs['userTypeRef'].validate().then(() => {
+            if (form.value.id != null) {
+                updateUserType(form.value).then((response) => {
+                    proxy.$modal.msgSuccess('修改成功');
+                    open.value = false;
+                    getList();
+                });
+            } else {
+                addUserType(form.value).then((response) => {
+                    proxy.$modal.msgSuccess('新增成功');
+                    open.value = false;
+                    getList();
+                });
             }
-        });
+        }).catch(() => {});
     }
 
     /** 删除按钮操作 */

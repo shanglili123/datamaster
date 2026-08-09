@@ -1,269 +1,218 @@
 ﻿<template>
   <div class="app-container" ref="app-container">
     <div class="pagecont-top" v-show="showSearch">
-      <el-form
+      <a-form
         class="btn-style"
         :model="queryParams"
         ref="queryRef"
-        :inline="true"
-        label-width="75px"
+        layout="inline"
+        :label-col="{ style: { width: '75px' } }"
       >
-        <el-form-item label="ID" prop="id">
-          <el-input
+        <a-form-item label="ID" name="id">
+          <a-input
             class="el-form-input-width"
-            v-model="queryParams.id"
+            v-model:value="queryParams.id"
             placeholder="请输入ID"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="部门名称" prop="name">
-          <el-input
+        </a-form-item>
+        <a-form-item label="部门名称" name="name">
+          <a-input
             class="el-form-input-width"
-            v-model="queryParams.name"
+            v-model:value="queryParams.name"
             placeholder="请输入部门名称"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="负责人" prop="leader">
-          <el-input
+        </a-form-item>
+        <a-form-item label="邮箱" name="email">
+          <a-input
             class="el-form-input-width"
-            v-model="queryParams.leader"
-            placeholder="请输入负责人"
-            clearable
-            @keyup.enter="handleQuery"
-          />
-        </el-form-item>
-        <el-form-item label="联系电话" prop="phone">
-          <el-input
-            class="el-form-input-width"
-            v-model="queryParams.phone"
-            placeholder="请输入联系电话"
-            clearable
-            @keyup.enter="handleQuery"
-          />
-        </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input
-            class="el-form-input-width"
-            v-model="queryParams.email"
+            v-model:value="queryParams.email"
             placeholder="请输入邮箱"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="部门状态" prop="status">
-          <el-select
-            v-model="queryParams.status"
+        </a-form-item>
+        <a-form-item label="部门状态" name="status">
+          <a-select
+            v-model:value="queryParams.status"
             placeholder="请选择部门状态"
-            clearable
+            allow-clear
             class="el-form-input-width"
           >
-            <el-option
+            <a-select-option
               v-for="dict in sys_notice_status"
               :key="dict.value"
-              :label="dict.label"
               :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button
-            plain
+            >
+              {{ dict.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item>
+          <a-button
             type="primary"
             @click="handleQuery"
             @mousedown="(e) => e.preventDefault()"
           >
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </a-button>
+        </a-form-item>
+      </a-form>
     </div>
     <div class="pagecont-bottom">
       <div class="justify-between mb15">
-        <el-row :gutter="10" class="btn-style">
-          <el-col :span="1.5">
-            <el-button
+        <a-row :gutter="10" class="btn-style">
+          <a-col :span="1.5">
+            <a-button
               type="primary"
-              plain
-              icon="Plus"
+              :icon="h(PlusOutlined)"
               @click="handleAdd"
               v-hasPermi="['gen:dept:add']"
-              >新增</el-button
+              >新增</a-button
             >
-          </el-col>
-          <el-col :span="1.5">
-            <el-button type="info" plain icon="Sort" @click="toggleExpandAll"
-              >展开/折叠</el-button
+          </a-col>
+          <a-col :span="1.5">
+            <a-button :icon="h(SwitcherOutlined)" @click="toggleExpandAll"
+              >展开/折叠</a-button
             >
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
         <right-toolbar
           v-model:showSearch="showSearch"
           @queryTable="getList"
         ></right-toolbar>
       </div>
 
-      <el-table
+      <a-table
         height="60vh"
         v-if="refreshTable"
-        v-loading="loading"
-        :data="deptList"
+        :loading="loading"
+        :data-source="deptList"
+        :columns="tableColumns"
+        :pagination="false"
         row-key="id"
-        :default-expand-all="isExpandAll"
-        :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+        :default-expand-all-rows="isExpandAll"
+        :children-column-name="'children'"
+        :locale="{ emptyText: '暂无数据' }"
       >
-        <el-table-column label="部门名称" prop="name" />
-        <el-table-column label="负责人" align="center" prop="leader">
-          <template #default="scope">
-            {{ scope.row.leader || "-" }}
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'status'">
+            <dict-tag :options="sys_notice_status" :value="record.status" />
           </template>
-        </el-table-column>
-        <el-table-column label="联系电话" align="center" prop="phone">
-          <template #default="scope">
-            {{ scope.row.phone || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column label="邮箱" align="center" prop="email">
-          <template #default="scope">
-            {{ scope.row.email || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column label="部门状态" align="center" prop="status">
-          <template #default="scope">
-            <dict-tag :options="sys_notice_status" :value="scope.row.status" />
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-        >
-          <template #default="scope">
-            <el-button
-              link
-              type="primary"
-              icon="Edit"
-              @click="handleUpdate(scope.row)"
+          <template v-else-if="column.key === 'actions'">
+            <a-button
+              type="link"
+              :icon="h(EditOutlined)"
+              @click="handleUpdate(record)"
               v-hasPermi="['gen:dept:edit']"
-              >修改</el-button
+              >修改</a-button
             >
-            <el-button
-              link
-              type="primary"
-              icon="Plus"
-              @click="handleAdd(scope.row)"
+            <a-button
+              type="link"
+              :icon="h(PlusOutlined)"
+              @click="handleAdd(record)"
               v-hasPermi="['gen:dept:add']"
-              >新增</el-button
+              >新增</a-button
             >
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleDelete(scope.row)"
+            <a-button
+              type="link"
+              danger
+              :icon="h(DeleteOutlined)"
+              @click="handleDelete(record)"
               v-hasPermi="['gen:dept:remove']"
-              >删除</el-button
+              >删除</a-button
             >
           </template>
-        </el-table-column>
-      </el-table>
+          <template v-else>
+            <span>{{ record[column.dataIndex] || '-' }}</span>
+          </template>
+        </template>
+      </a-table>
     </div>
 
     <!-- 添加或修改示例部门对话框 -->
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="open"
+      v-model:open="open"
       width="800px"
-      :append-to="$refs['app-container']"
       draggable
       destroy-on-close
     >
-      <el-form ref="deptRef" :model="form" :rules="rules" label-width="80px">
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="父部门id" prop="parentId">
-              <el-tree-select
-                v-model="form.parentId"
-                :data="deptOptions"
-                :props="{ value: 'id', label: 'name', children: 'children' }"
-                value-key="id"
+      <a-form ref="deptRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="父部门id" name="parentId">
+              <a-tree-select
+                v-model:value="form.parentId"
+                :tree-data="deptOptions"
+                :field-names="{ value: 'id', label: 'name', children: 'children' }"
                 placeholder="请选择父部门id"
                 check-strictly
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="部门名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入部门名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="负责人" prop="leader">
-              <el-input v-model="form.leader" placeholder="请输入负责人" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="phone">
-              <el-input v-model="form.phone" placeholder="请输入联系电话" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="邮箱" prop="email">
-              <el-input v-model="form.email" placeholder="请输入邮箱" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="部门状态" prop="status">
-              <el-radio-group v-model="form.status">
-                <el-radio
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="部门名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入部门名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="邮箱" name="email">
+              <a-input v-model:value="form.email" placeholder="请输入邮箱" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="部门状态" name="status">
+              <a-radio-group v-model:value="form.status">
+                <a-radio
                   v-for="dict in sys_notice_status"
                   :key="dict.value"
-                  :label="parseInt(dict.value)"
-                  >{{ dict.label }}</el-radio
+                  :value="parseInt(dict.value)"
+                  >{{ dict.label }}</a-radio
                 >
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否有效" prop="validFlag">
-              <el-input v-model="form.validFlag" placeholder="请输入是否有效" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="删除标志" prop="delFlag">
-              <el-input v-model="form.delFlag" placeholder="请输入删除标志" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input
-                v-model="form.remark"
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="是否有效" name="validFlag">
+              <a-input v-model:value="form.validFlag" placeholder="请输入是否有效" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="删除标志" name="delFlag">
+              <a-input v-model:value="form.delFlag" placeholder="请输入删除标志" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
+              <a-input
+                v-model:value="form.remark"
                 type="textarea"
                 placeholder="请输入内容"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
+          <a-button @click="cancel">取 消</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -275,9 +224,18 @@ import {
   addDept,
   updateDept,
 } from "@/api/example/gen/dept";
+import { h } from 'vue';
+import { PlusOutlined, SwitcherOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 const { sys_notice_status } = proxy.useDict("sys_notice_status");
+
+const tableColumns = [
+  { title: '部门名称', dataIndex: 'name', align: 'left', ellipsis: true },
+  { title: '邮箱', dataIndex: 'email', align: 'center' },
+  { title: '部门状态', dataIndex: 'status', align: 'center' },
+  { title: '操作', key: 'actions', align: 'center', width: 220 },
+];
 
 const deptList = ref([]);
 const deptOptions = ref([]);
@@ -452,23 +410,21 @@ async function handleUpdate(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["deptRef"].validate((valid) => {
-    if (valid) {
-      if (form.value.id != null) {
-        updateDept(form.value).then((response) => {
-          proxy.$modal.msgSuccess("修改成功");
-          open.value = false;
-          getList();
-        });
-      } else {
-        addDept(form.value).then((response) => {
-          proxy.$modal.msgSuccess("新增成功");
-          open.value = false;
-          getList();
-        });
-      }
+  proxy.$refs["deptRef"].validate().then(() => {
+    if (form.value.id != null) {
+      updateDept(form.value).then((response) => {
+        proxy.$modal.msgSuccess("修改成功");
+        open.value = false;
+        getList();
+      });
+    } else {
+      addDept(form.value).then((response) => {
+        proxy.$modal.msgSuccess("新增成功");
+        open.value = false;
+        getList();
+      });
     }
-  });
+  }).catch(() => {});
 }
 
 /** 删除按钮操作 */

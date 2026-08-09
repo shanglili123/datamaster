@@ -16,63 +16,63 @@
             </div>
           </div>
         </div>
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">英文名称</div>
               <div class="infotop-row-value">
                 {{ dpModelDetail.modelName || "-" }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建方式</div>
               <div class="infotop-row-value">
                 <dict-tag :options="dp_model_create_type" :value="dpModelDetail.createType" />
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">状态</div>
               <div class="infotop-row-value">
                 <dict-tag :options="dp_model_status" :value="dpModelDetail.status" />
               </div>
             </div>
-          </el-col>
-          <el-col :span="24" style="margin: 2px 0;">
+          </a-col>
+          <a-col :span="24" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">描述</div>
               <div class="infotop-row-value">
                 {{ dpModelDetail.description || "-" }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="24">
+          </a-col>
+          <a-col :span="24">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">备注</div>
               <div class="infotop-row-value">
                 {{ dpModelDetail.remark || "-" }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </div>
     </div>
 
     <div class="pagecont-bottom">
-      <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane label="属性字段" name="1">
+      <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+        <a-tab-pane :tab="'属性字段'" key="1">
           <modelColumn />
-        </el-tab-pane>
-        <el-tab-pane label="逻辑物化" name="2">
+        </a-tab-pane>
+        <a-tab-pane :tab="'逻辑物化'" key="2">
           <modelMaterialized :modelId="route.query.id" :row="dpModelDetail"></modelMaterialized>
-        </el-tab-pane>
-        <el-tab-pane label="详细信息" name="3">
+        </a-tab-pane>
+        <a-tab-pane :tab="'详细信息'" key="3">
           <info :daDiscoveryTaskDetail="dpModelDetail"></info>
-        </el-tab-pane>
-      </el-tabs>
+        </a-tab-pane>
+      </a-tabs>
     </div>
   </div>
 </template>

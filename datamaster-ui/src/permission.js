@@ -1,5 +1,5 @@
 ﻿import router from "./router";
-import { ElMessage } from "element-plus";
+import { message } from "ant-design-vue";
 import NProgress from "nprogress";
 import "nprogress/nprogress.css";
 import { getToken } from "@/utils/auth";
@@ -23,7 +23,7 @@ router.beforeEach((to, from, next) => {
     to.meta.title && useSettingsStore().setTitle(to.meta.title);
 
     if (to.path === "/login") {
-      next({ path: "/" });
+      next();
       NProgress.done();
     } else if (whiteList.indexOf(to.path) !== -1) {
       next();
@@ -50,7 +50,7 @@ router.beforeEach((to, from, next) => {
             useUserStore()
               .logOut()
               .then(() => {
-                ElMessage.error(err);
+                message.error(err);
                 next({ path: "/" });
               });
           });

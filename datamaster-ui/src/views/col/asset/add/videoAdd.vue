@@ -1,113 +1,112 @@
 <template>
     <!-- // 视频  -->
-    <el-row :gutter="20" v-if="form.type == '5'">
-        <el-col :span="12">
-            <el-form-item label="平台" prop="daAssetVideo.platform" :rules="[
+    <a-row :gutter="20" v-if="form.type == '5'">
+        <a-col :span="12">
+            <a-form-item label="平台" name="assetsAssetVideo.platform" :rules="[
                 {
                     required: true,
                     message: '请选择平台',
                     trigger: 'blur',
                 },
             ]">
-                <el-select v-model="form.daAssetVideo.platform" placeholder="请选择平台">
-                    <el-option v-for="dict in da_asset_video_platform" :key="dict.value" :label="dict.label"
+                <a-select v-model:value="form.assetsAssetVideo.platform" placeholder="请选择平台">
+                    <a-select-option v-for="dict in da_asset_video_platform" :key="dict.value" :label="dict.label"
                         :value="dict.value" />
-                </el-select>
-            </el-form-item>
-        </el-col>
-        <el-col :span="12">
-            <el-form-item label="平台ip" prop="daAssetVideo.ip" :rules="[
+                </a-select>
+            </a-form-item>
+        </a-col>
+        <a-col :span="12">
+            <a-form-item label="平台ip" name="assetsAssetVideo.ip" :rules="[
                 {
                     required: true,
                     message: '请输入平台IP',
                     trigger: 'blur',
                 },
             ]">
-                <el-input v-model="form.daAssetVideo.ip" placeholder="请输入平台ip" />
-            </el-form-item>
-        </el-col>
+                <a-input v-model:value="form.assetsAssetVideo.ip" placeholder="请输入平台ip" />
+            </a-form-item>
+        </a-col>
 
-    </el-row>
-    <el-row :gutter="20" v-if="form.type == '5'">
-        <el-col :span="12">
-            <el-form-item label="平台端口" prop="daAssetVideo.port" :rules="[
+    </a-row>
+    <a-row :gutter="20" v-if="form.type == '5'">
+        <a-col :span="12">
+            <a-form-item label="平台端口" name="assetsAssetVideo.port" :rules="[
                 {
                     required: true,
                     message: '请输入平台端口',
                     trigger: 'blur',
                 },
             ]">
-                <el-input v-model="localForm.daAssetVideo.port" placeholder="请输入平台端口" />
-            </el-form-item>
-        </el-col>
-        <el-col :span="12">
-            <el-form-item label="摄像头编码" prop="daAssetVideo.config.cameraCode" :rules="[
+                <a-input v-model:value="localForm.assetsAssetVideo.port" placeholder="请输入平台端口" />
+            </a-form-item>
+        </a-col>
+        <a-col :span="12">
+            <a-form-item label="摄像头编码" name="assetsAssetVideo.config.cameraCode" :rules="[
                 {
                     required: true,
                     message: '请输入摄像头编码',
                     trigger: 'blur',
                 },
             ]">
-                <el-input v-model="localForm.daAssetVideo.config.cameraCode" placeholder="请输入摄像头编码" />
-            </el-form-item>
-        </el-col>
-    </el-row>
-    <el-row :gutter="20" v-if="form.type == '5'">
-        <el-col :span="12">
-            <el-form-item label="摄像头名称" prop="daAssetVideo.config.cameraName" :rules="[
+                <a-input v-model:value="localForm.assetsAssetVideo.config.cameraCode" placeholder="请输入摄像头编码" />
+            </a-form-item>
+        </a-col>
+    </a-row>
+    <a-row :gutter="20" v-if="form.type == '5'">
+        <a-col :span="12">
+            <a-form-item label="摄像头名称" name="assetsAssetVideo.config.cameraName" :rules="[
                 {
                     required: true,
                     message: '请输入摄像头名称',
                     trigger: 'blur',
                 },
             ]">
-                <el-input v-model="localForm.daAssetVideo.config.cameraName" placeholder="请输入摄像头名称" />
-            </el-form-item>
-        </el-col>
-        <el-col :span="12">
-            <el-form-item label="服务上下文" prop="daAssetVideo.config.artemisPath" :rules="[
+                <a-input v-model:value="localForm.assetsAssetVideo.config.cameraName" placeholder="请输入摄像头名称" />
+            </a-form-item>
+        </a-col>
+        <a-col :span="12">
+            <a-form-item label="服务上下文" name="assetsAssetVideo.config.artemisPath" :rules="[
                 {
                     required: true,
                     message: '请输入服务上下文',
                     trigger: 'blur',
                 },
             ]">
-                <el-input v-model="localForm.daAssetVideo.config.artemisPath" placeholder="/artemis" />
-            </el-form-item>
-        </el-col>
+                <a-input v-model:value="localForm.assetsAssetVideo.config.artemisPath" placeholder="/artemis" />
+            </a-form-item>
+        </a-col>
 
-    </el-row>
-    <el-row :gutter="20" v-if="form.type == '5'">
-        <el-col :span="12">
-            <el-form-item label="公钥" prop="daAssetVideo.config.appkey" :rules="[
+    </a-row>
+    <a-row :gutter="20" v-if="form.type == '5'">
+        <a-col :span="12">
+            <a-form-item label="公钥" name="assetsAssetVideo.config.appkey" :rules="[
                 {
                     required: true,
                     message: '请输入公钥',
                     trigger: 'blur',
                 },
             ]">
-                <el-input v-model="localForm.daAssetVideo.config.appkey" placeholder="请输入公钥" />
-            </el-form-item>
-        </el-col>
-        <el-col :span="12">
-            <el-form-item label="私钥" prop="daAssetVideo.config.appSecret" :rules="[
+                <a-input v-model:value="localForm.assetsAssetVideo.config.appkey" placeholder="请输入公钥" />
+            </a-form-item>
+        </a-col>
+        <a-col :span="12">
+            <a-form-item label="私钥" name="assetsAssetVideo.config.appSecret" :rules="[
                 {
                     required: true,
                     message: '请输入私钥',
                     trigger: 'blur',
                 },
             ]">
-                <el-input v-model="localForm.daAssetVideo.config.appSecret" placeholder="请输入私钥" />
-            </el-form-item>
-        </el-col>
+                <a-input v-model:value="localForm.assetsAssetVideo.config.appSecret" placeholder="请输入私钥" />
+            </a-form-item>
+        </a-col>
 
-    </el-row>
+    </a-row>
     <!-- tableComment -->
 </template>
 
 <script setup>
 import { ref, watch, getCurrentInstance } from "vue";
-import { ElMessage } from "element-plus";
 import useUserStore from "@/store/system/user.js";
 import {
     getTablesByDataSourceId,

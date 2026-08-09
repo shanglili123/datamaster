@@ -1,17 +1,17 @@
 <template>
-    <el-dialog v-model="visible" :draggable="true" title="字段冲突处理" :show-close="false" destroy-on-close
-        class="MessageBox">
+    <a-modal v-model:open="visible" :draggable="true" title="字段冲突处理" :closable="false" :destroy-on-close="true"
+        :footer="null" class="MessageBox">
         <div style="padding: 10px 0;">
             已有 {{ existingFields.length }} 个字段，检测到
             {{ Math.max(0, newFields.length - existingFields.length) }} 个新字段，如何处理？
         </div>
         <template #footer>
-            <el-button type="warning" @click="handleClick('addNewOnly')">增加新的</el-button>
-            <el-button type="primary" @click="handleClick('addAll')">增加所有</el-button>
-            <el-button type="danger" @click="handleClick('clearAndAddAll')">清除并增加所有</el-button>
-            <el-button @click="onCancel">取消</el-button>
+            <a-button type="warning" @click="handleClick('addNewOnly')">增加新的</a-button>
+            <a-button type="primary" @click="handleClick('addAll')">增加所有</a-button>
+            <a-button type="primary" danger @click="handleClick('clearAndAddAll')">清除并增加所有</a-button>
+            <a-button @click="onCancel">取消</a-button>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>

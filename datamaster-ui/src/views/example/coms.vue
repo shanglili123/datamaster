@@ -1,6 +1,6 @@
-﻿<template>
-    <el-button @click="show1=!show1">测试基础组件</el-button>
-    <el-button @click="show2=!show2">测试衍生组件</el-button>
+<template>
+    <a-button @click="show1=!show1">测试基础组件</a-button>
+    <a-button @click="show2=!show2">测试衍生组件</a-button>
     <dp-detail-layout v-model="show1" :config="config" :menu="menu" />
 
     <dp-detail-pop-res v-if="show2">

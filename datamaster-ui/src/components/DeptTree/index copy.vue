@@ -1,71 +1,59 @@
 ﻿<template>
-    <el-aside :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
+    <a-layout-sider :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
         <div class="left-tree">
             <div class="head-container">
-                <el-input v-model="deptName" :placeholder="placeholder" clearable prefix-icon="Search"
-                    style="margin-bottom: 20px" />
+                <a-input v-model:value="deptName" :placeholder="placeholder" allow-clear
+                    style="margin-bottom: 20px">
+                    <template #prefix><SearchOutlined /></template>
+                </a-input>
             </div>
             <div class="head-container">
-                <el-tree :data="deptOptions" :props="{ label: 'name', children: 'children' }"
-                    :filter-node-method="filterNode" ref="deptTreeRef" node-key="id" highlight-current
-                    :default-expanded-keys="expandedKeys" @node-click="handleNodeClick"
+                <a-tree :tree-data="deptOptions" :field-names="{ title: 'name', children: 'children', value: 'id' }"
+                    :filter-node-method="filterNode" ref="deptTreeRef" highlight-current
+                    :expanded-keys="expandedKeys" @select="(keys, e) => handleNodeClick(e.node.data)"
                     :default-expand-all="defaultExpand">
-                    <template #default="{ node, data }">
+                    <template #title="{ data, expanded, selected }">
                         <span class="custom-tree-node">
                             <!-- 第一级 -->
-                            <el-icon class="iconimg colorxz" v-if="node.expanded && node.level === 1">
-                                <FolderOpened />
-                            </el-icon>
-                            <el-icon class="iconimg colorxz" v-if="!node.expanded && node.level === 1">
-                                <Folder />
-                            </el-icon>
-
-                            <!-- 有子节点的所有层级 -->
-                            <el-icon class="iconimg colorxz"
-                                v-if="node.expanded && node.childNodes.length && node.level > 1">
-                                <FolderOpened />
-                            </el-icon>
-                            <el-icon class="iconimg colorxz"
-                                v-if="!node.expanded && node.childNodes.length && node.level > 1">
-                                <Folder />
-                            </el-icon>
+                            <FolderOpenOutlined class="iconimg colorxz" v-if="expanded && data.children && data.children.length" />
+                            <FolderOutlined class="iconimg colorxz" v-else-if="!expanded && data.children && data.children.length" />
 
                             <!-- 无子节点的节点 -->
-                            <el-icon class="zjiconimg colorwxz"
-                                v-show="!node.isCurrent && (!node.childNodes.length || node.childNodes.length === 0)">
-                                <Tickets />
-                            </el-icon>
-                            <el-icon class="zjiconimg colorxz"
-                                v-show="node.isCurrent && (!node.childNodes.length || node.childNodes.length === 0)">
-                                <Tickets />
-                            </el-icon>
+                            <FileTextOutlined class="zjiconimg colorwxz"
+                                v-show="!selected && (!data.children || data.children.length === 0)" />
+                            <FileTextOutlined class="zjiconimg colorxz"
+                                v-show="selected && (!data.children || data.children.length === 0)" />
 
-                            <span class="treelable" @click="getNode(node)">
-                                {{ node.label }}
+                            <span class="treelable" @click="getNode(data)">
+                                {{ data.name }}
                             </span>
                         </span>
                     </template>
-                </el-tree>
+                </a-tree>
             </div>
         </div>
-    </el-aside>
+    </a-layout-sider>
 
     <!-- 拖拽栏 -->
     <div class="resize-bar" @mousedown="startResize">
         <div class="resize-handle-sx">
             <span class="zjsx"></span>
-            <el-icon v-if="leftWidth == 0" @click.stop="toggleCollapse" class="collapse-icon">
-                <ArrowRight />
-            </el-icon>
-            <el-icon v-else class="collapse-icon" @click.stop="toggleCollapse">
-                <ArrowLeft />
-            </el-icon>
+            <RightOutlined v-if="leftWidth == 0" @click.stop="toggleCollapse" class="collapse-icon" />
+            <LeftOutlined v-else class="collapse-icon" @click.stop="toggleCollapse" />
         </div>
     </div>
 </template>
 
 <script setup>
 import { ref, defineProps, defineEmits, watch, onMounted } from 'vue';
+import {
+  SearchOutlined,
+  FolderOpenOutlined,
+  FolderOutlined,
+  FileTextOutlined,
+  RightOutlined,
+  LeftOutlined,
+} from '@ant-design/icons-vue';
 const { proxy } = getCurrentInstance();
 const props = defineProps({
     deptOptions: Array,

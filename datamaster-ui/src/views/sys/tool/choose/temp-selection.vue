@@ -1,134 +1,106 @@
 <template>
-  <el-dialog
+  <a-modal
     title="多选-字典管理"
-    v-model="visible"
+    v-model:open="visible"
     width="1200px"
-    :append-to="$refs['app-container']"
     draggable
     destroy-on-close
     @close="cancel"
   >
-    <el-form
+    <a-form
       class="btn-style"
       :model="queryParams"
       ref="queryRef"
-      :inline="true"
+      layout="inline"
       v-show="showSearch"
-      label-width="68px"
+      :label-col="{ style: { width: '68px' } }"
     >
-      <el-form-item label="字典名称" prop="dictName">
-        <el-input
-          v-model="queryParams.dictName"
+      <a-form-item label="字典名称" name="dictName">
+        <a-input
+          v-model:value="queryParams.dictName"
           placeholder="请输入字典名称"
-          clearable
+          allow-clear
           class="el-form-input-width"
-          @keyup.enter="handleQuery"
+          @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="字典类型" prop="dictType">
-        <el-input
-          v-model="queryParams.dictType"
+      </a-form-item>
+      <a-form-item label="字典类型" name="dictType">
+        <a-input
+          v-model:value="queryParams.dictType"
           placeholder="请输入字典类型"
-          clearable
+          allow-clear
           class="el-form-input-width"
-          @keyup.enter="handleQuery"
+          @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-select
-          v-model="queryParams.status"
+      </a-form-item>
+      <a-form-item label="状态" name="status">
+        <a-select
+          v-model:value="queryParams.status"
           placeholder="字典状态"
-          clearable
+          allow-clear
           class="el-form-input-width"
         >
-          <el-option
+          <a-select-option
             v-for="dict in sys_normal_disable"
             :key="dict.value"
-            :label="dict.label"
             :value="dict.value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="创建时间">
-        <el-date-picker
+          >{{ dict.label }}</a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="创建时间">
+        <a-range-picker
           class="el-form-input-width"
-          v-model="dateRange"
-          value-format="YYYY-MM-DD"
-          type="daterange"
-          range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-        ></el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button
-          plain
+          v-model:value="dateRange"
+          valueFormat="YYYY-MM-DD"
+          :separator="'-'"
+          :placeholder="['开始日期', '结束日期']"
+        ></a-range-picker>
+      </a-form-item>
+      <a-form-item>
+        <a-button
           type="primary"
           @click="handleQuery"
           @mousedown="(e) => e.preventDefault()"
         >
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+        </a-button>
+        <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-      </el-form-item>
-    </el-form>
+        </a-button>
+      </a-form-item>
+    </a-form>
 
-    <el-table
+    <a-table
       ref="multipletableRef"
-      stripe
-      height="300px"
-      v-loading="loading"
-      :data="dataList"
-      reserve-selection
-      row-key="dictId"
-      @selection-change="handleSelectionChange"
+      striped
+      :scroll="{ y: 300 }"
+      :loading="loading"
+      :data-source="dataList"
+      :row-key="(record) => record.dictId"
+      :row-selection="{
+        selectedRowKeys: selectedRowKeys,
+        preserveSelectedRowKeys: true,
+        onChange: handleSelectionChange,
+      }"
+      :columns="tableColumns"
     >
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column
-        label="字典编号"
-        align="center"
-        prop="dictId"
-        width="85"
-      />
-      <el-table-column
-        label="字典名称"
-        align="center"
-        prop="dictName"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="字典类型"
-        align="center"
-        :show-overflow-tooltip="true"
-      >
-        <template #default="scope">
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'dictType'">
           <router-link
-            :to="'/system/dict-data/index/' + scope.row.dictId"
+            :to="'/system/dict-data/index/' + record.dictId"
             class="link-type"
           >
-            <span>{{ scope.row.dictType }}</span>
+            <span>{{ record.dictType }}</span>
           </router-link>
         </template>
-      </el-table-column>
-      <el-table-column label="状态" align="center" prop="status">
-        <template #default="scope">
-          <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
+        <template v-else-if="column.dataIndex === 'status'">
+          <dict-tag :options="sys_normal_disable" :value="record.status" />
         </template>
-      </el-table-column>
-      <el-table-column
-        label="备注"
-        align="center"
-        prop="remark"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column label="创建时间" align="center" prop="createTime">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime) }}</span>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          <span>{{ parseTime(record.createTime) }}</span>
         </template>
-      </el-table-column>
-    </el-table>
+      </template>
+    </a-table>
 
     <pagination
       v-show="total > 0"
@@ -139,13 +111,13 @@
     />
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">取 消</el-button>
-        <el-button type="primary" size="mini" @click="confirm">
+        <a-button size="small" @click="cancel">取 消</a-button>
+        <a-button type="primary" size="small" @click="confirm">
           确 定
-        </el-button>
+        </a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup name="Dict">
@@ -184,78 +156,40 @@ const { queryParams, form, rules } = toRefs(data);
 const visible = ref(false);
 // 定义多选数据
 const multiple = ref([]);
-// 定义上次勾选数据==用于对比删除
-const oldSelection = ref([]);
-// 是否分页切换
-const isAuto = ref(false);
 // 当前界面table
 const multipletableRef = ref();
 
+const tableColumns = [
+  { title: "字典编号", dataIndex: "dictId", width: 85, align: "center" },
+  { title: "字典名称", dataIndex: "dictName", align: "center", ellipsis: true },
+  { title: "字典类型", dataIndex: "dictType", align: "center", ellipsis: true },
+  { title: "状态", dataIndex: "status", align: "center" },
+  { title: "备注", dataIndex: "remark", align: "center", ellipsis: true },
+  { title: "创建时间", dataIndex: "createTime", align: "center", width: 180 },
+];
+
+const selectedRowKeys = computed(() => multiple.value.map((item) => item.dictId));
+
 const emit = defineEmits(["open", "confim", "cancel"]);
 
-/** 多选框选中事件 */
-function handleSelectionChange(selection) {
-  // console.log(selection, "===handleSelectionChange");
-  if (selection.length > 0) {
-    // 如果选中值不是空值且少选了一个值
-    if (oldSelection.value.length > selection.length) {
-      oldSelection.value.forEach((item) => {
-        let index = selection.findIndex((ece) => ece.dictId == item.dictId);
-        if (index == -1) {
-          multiple.value = multiple.value.filter(
-            (ece) => item.dictId != ece.dictId
-          );
-        }
-      });
-    }
-    if (multiple.value.length > 0) {
-      selection.forEach((item) => {
-        let index = multiple.value.findIndex(
-          (ece) => ece.dictId == item.dictId
-        );
-        if (index == -1) {
-          multiple.value.push(item);
-        }
-      });
-    } else {
-      multiple.value.push(...selection);
-    }
-  } else {
-    // 如果不是分页导致的
-    if (!isAuto.value) {
-      // 如果选中值，取消到没有选择任何值
-      oldSelection.value.forEach((item) => {
-        let index = selection.findIndex((ece) => ece.dictId == item.dictId);
-        if (index == -1) {
-          multiple.value = multiple.value.filter(
-            (ece) => item.dictId != ece.dictId
-          );
-        }
-      });
-    }
-  }
-  oldSelection.value = selection;
-}
-/**
- * 选中table的复选框
- * @param {Array} rows 选中的对象数组
- * @param {Boolean} ignoreSelectable 是否忽略可选
- */
-function setSelectionRow(rows, ignoreSelectable) {
-  // 选中数据
-  if (rows.length > 0) {
-    rows.forEach((row) => {
-      let data = dataList.value.filter((item) => item.dictId == row.dictId);
-      if (data.length > 0) {
-        multipletableRef.value.toggleRowSelection(data[0], undefined, ignoreSelectable);
+/** 多选框选中事件（跨页保留选中） */
+function handleSelectionChange(keys) {
+  // 新增选中的行对象写入缓存
+  keys.forEach((key) => {
+    if (!multiple.value.some((item) => item.dictId == key)) {
+      const row = dataList.value.find((item) => item.dictId == key);
+      if (row) {
+        multiple.value.push(row);
       }
-    });
-  }
+    }
+  });
+  // 移除取消选中的行
+  multiple.value = multiple.value.filter((item) => keys.includes(item.dictId));
 }
 function rest(){
   queryParams.value.pageNum = 1;
   proxy.resetForm("queryRef");
-  oldSelection.value = []
+  multiple.value = [];
 }
 /**
  * 打开选择框
@@ -291,15 +225,10 @@ function confirm() {
 function getList() {
   loading.value = true;
   listType(proxy.addDateRange(queryParams.value, dateRange.value)).then(
-    async (response) => {
+    (response) => {
       dataList.value = response.rows;
       total.value = response.total;
       loading.value = false;
-      // 初始化及分页切换选中逻辑
-      isAuto.value = true;
-      await nextTick();
-      setSelectionRow(multiple.value);
-      isAuto.value = false;
     }
   );
 }

@@ -1,47 +1,47 @@
 <template>
   <!--  字段前缀/后缀统一  -->
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <el-row>
-      <el-col :span="12">
-        <el-form-item
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-row>
+      <a-col :span="12">
+        <a-form-item
           label="标记值"
-          prop="stringValue"
+          name="stringValue"
           :rules="
             !falg
               ? [{ required: true, message: '请输入标记值', trigger: 'blur' }]
               : []
           "
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.stringValue"
+            v-model:value="form.stringValue"
             placeholder="请输入添加值"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.stringValue || "-" }}</div>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12" class="hasMsg">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+      <a-col :span="12" class="hasMsg">
+        <a-form-item
           label="处理方式"
-          prop="handleType"
+          name="handleType"
           :rules="
             !falg
               ? [{ required: true, message: '请选择处理方式', trigger: 'blur' }]
               : []
           "
         >
-          <el-radio-group v-model="form.handleType" :disabled="falg">
-            <el-radio :value="'1'">加前綴</el-radio>
-            <el-radio :value="'2'">加后綴</el-radio>
-            <el-radio :value="'3'">去除前缀</el-radio>
-            <el-radio :value="'4'">去除后缀</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-row> </el-row>
-  </el-form>
+          <a-radio-group v-model:value="form.handleType" :disabled="falg">
+            <a-radio :value="'1'">加前綴</a-radio>
+            <a-radio :value="'2'">加后綴</a-radio>
+            <a-radio :value="'3'">去除前缀</a-radio>
+            <a-radio :value="'4'">去除后缀</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+    </a-row>
+    <a-row> </a-row>
+  </a-form>
 </template>
 
 <script setup>

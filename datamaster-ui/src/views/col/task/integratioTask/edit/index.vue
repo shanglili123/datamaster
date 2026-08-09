@@ -2,18 +2,18 @@
   <div class="app-container" ref="app-container">
     <div class="head-container">
       <div class="head-title">
-        <el-tooltip :content="taskType" placement="top">
+        <a-tooltip :title="taskType" placement="top">
           <img
             :src="getDatasourceIcon(nodeData.draftJson)"
             alt=""
             style="width: 20px; margin-right: 5px; cursor: pointer"
           />
-        </el-tooltip>
+        </a-tooltip>
         {{ nodeData.name !== null ? nodeData.name : "集成任务" }}
       </div>
 
       <div class="head-btns">
-        <el-button
+        <a-button
           type="primary"
           size="small"
           :disabled="loading"
@@ -21,10 +21,9 @@
           v-if="!route.query.info"
         >
           <img src="@/assets/dpp/etl/title-act (1).svg" alt="" />任务保存
-        </el-button>
-        <el-button
+        </a-button>
+        <a-button
           type="primary"
-          plain
           size="small"
           :disabled="loading"
           @click="routeTo('/col/task/integratioTask', '')"
@@ -35,10 +34,9 @@
             src="@/assets/dpp/etl/title-act (3).svg"
             alt=""
           />任务取消
-        </el-button>
-        <el-button
+        </a-button>
+        <a-button
           type="primary"
-          plain
           size="small"
           :disabled="loading"
           @click="openTaskConfigDialog"
@@ -50,10 +48,9 @@
             src="@/assets/dpp/etl/title-act (4).svg"
             alt=""
           />任务配置
-        </el-button>
-        <el-button
+        </a-button>
+        <a-button
           type="primary"
-          plain
           size="small"
           :disabled="loading"
           @click="openTaskConfigDialog"
@@ -65,10 +62,9 @@
             src="@/assets/dpp/etl/title-act (4).svg"
             alt=""
           />任务详情
-        </el-button>
-        <el-button
+        </a-button>
+        <a-button
           type="primary"
-          plain
           :disabled="loading"
           v-if="!route.query.info"
           size="small"
@@ -80,26 +76,20 @@
             src="@/assets/dpp/etl/title-act (2).svg"
             alt=""
           />任务检查
-        </el-button>
-        <!-- <el-button type="primary" size="small" @click="selectTab('log')">执行一下</el-button> -->
+        </a-button>
       </div>
     </div>
     <div class="flex-container">
       <!-- 左侧树 -->
       <div class="left-pane" v-if="!route.query.info">
         <div class="left-tree">
-          <el-tree
-            :data="treeData"
-            :empty-text="''"
-            :props="{
-              label: 'label',
-              children: 'children',
-              disabled: 'disabled',
-            }"
+          <a-tree
+            :tree-data="treeData"
+            :field-names="{ title: 'label', children: 'children' }"
             ref="deptTreeRef"
             default-expand-all
           >
-            <template #default="{ node, data }">
+            <template #title="{ node, data }">
               <div
                 class="custom-tree-node"
                 @mousedown="startDrag($event, node, data)"
@@ -131,11 +121,12 @@
                 <span class="treelable"> {{ data.label }}</span>
               </div>
             </template>
-          </el-tree>
+          </a-tree>
         </div>
       </div>
       <!-- 右侧主内容 -->
-      <div class="right-pane" v-loading="loading">
+      <div class="right-pane">
+        <a-spin :spinning="loading">
         <div
           id="graphContainer"
           class="graph-container"
@@ -143,36 +134,33 @@
         ></div>
         <div class="toolbar">
           <template v-for="(item, index) in toolbar" :key="item.id">
-            <el-tooltip
+            <a-tooltip
               class="box-item"
-              effect="light"
-              :content="item.tip"
+              :title="item.tip"
               placement="bottom"
               v-if="!(route.query.info && item.tip == '重置')"
             >
               <div class="toolbar-item" @click="toolbarClick(item)">
                 <img :src="getAssetsFile(item.icon)" alt="" />
               </div>
-            </el-tooltip>
+            </a-tooltip>
           </template>
         </div>
         <div class="tabs-container" :style="tabAreaStyle">
-          <el-icon class="icon-right" @click="minimizeAction">
-            <Minus />
-          </el-icon>
-          <el-tabs v-model="activeTab" class="custom-tabs">
-            <el-tab-pane
+          <MinusOutlined class="icon-right" @click="minimizeAction" />
+          <a-tabs v-model:activeKey="activeTab" class="custom-tabs">
+            <a-tab-pane
               v-for="(tab, index) in tabs"
-              :key="index"
-              :name="tab.name"
+              :key="tab.name"
             >
               <template #label>
                 <span>{{ tab.label }}</span>
               </template>
               <div class="tab-content" v-html="tab.content"></div>
-            </el-tab-pane>
-          </el-tabs>
+            </a-tab-pane>
+          </a-tabs>
         </div>
+        </a-spin>
       </div>
     </div>
     <component
@@ -200,54 +188,85 @@
   </div>
 </template>
 <script setup>
+import { message, Modal } from 'ant-design-vue'
+import { MinusOutlined } from '@ant-design/icons-vue'
 import { Graph } from "@antv/x6";
+
 import { Dnd } from "@antv/x6-plugin-dnd";
+
 import { baseConfig, cuPort, typeList, toolbar } from "@/utils/graph";
+
 import { ref, computed, watch } from "vue";
+
 import { useRoute, useRouter } from "vue-router";
+
 import { usePageRefresh } from "@/composables/usePageRefresh";
+
 import FieldPreviewDialog from "@/views/col/task/integratioTask/components/fieldPreview.vue";
 // 输入组件
+
 import InputForm from "@/views/col/task/integratioTask/components/input/tableForm.vue";
+
 import excelInputForm from "@/views/col/task/integratioTask/components/input/excelForm.vue";
+
 import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vue";
 
 // 转换组件
+
 import DedupFilter from "@/views/col/task/integratioTask/components/transform/dedupFilter.vue";
+
 import AddConstants from "@/views/col/task/integratioTask/components/transform/addConstants.vue";
+
 import FieldSelectAndmodificat from "@/views/col/task/integratioTask/components/transform/fieldSelectAndmodificat.vue";
+
 import ValueMapping from "@/views/col/task/integratioTask/components/transform/valueMapping.vue";
 // 自定义SQL转换
+
 import TransformSql from "@/views/col/task/integratioTask/components/transform/transformSql.vue";
 
 // 清洗组件
+
 import TransformForm from "@/views/col/task/integratioTask/components/clean/cleanForm.vue";
 // 排序组件
+
 import OrderConfig from "@/views/col/task/integratioTask/components/transform/orderConfig.vue";
 // 字段派生期
+
 import FieldBuilder from "@/views/col/task/integratioTask/components/transform/fieldBuilder.vue";
 // 输出表组件
+
 import OutputForm from "@/views/col/task/integratioTask/components/output/tableForm.vue";
 
+
 import add from "../add//add.vue";
+
 import useUserStore from "@/store/system/user";
+
 import { deptUserTree } from "@/api/system/system/user.js";
+
 import { Export } from "@antv/x6-plugin-export";
+
 import { listAttTaskCat } from "@/api/tax/cat/taskCat/taskCat";
 const userStore = useUserStore();
+// import { message, Modal } from 'ant-design-vue'
 // import {
 //     createEtlTaskFrontPostposition,
 //     dppEtlTask,
 //     updateProcessDefinitions,
 // } from "@/api/col/task/etlTask";
+
 import {
   createEtlTaskFrontPostposition,
   etlTask,
   updateProcessDefinitions,
 } from "@/api/col/task/index.js";
+
 import { getTreeData } from "@/views/col/task/integratioTask/data.js";
+
 import { Selection } from "@antv/x6-plugin-selection";
+
 import { Keyboard } from "@antv/x6-plugin-keyboard";
+
 import {
   useHtmlNode,
   showPorts,
@@ -421,7 +440,7 @@ function getDeptTree() {
     var children = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "数据集成类目",
+        name: "数据集成目录",
         value: "",
         id: 0,
         children: children,
@@ -533,10 +552,17 @@ const handleFormSubmit = async (nodeData = {}) => {
     outputsChanged && oldOutputs.length > 0 && childNodes.length > 0;
   if (needConfirm && type == 1) {
     try {
-      await ElMessageBox.confirm(
-        "修改字段将会同时清空所有子节点的字段配置，是否确认继续？",
-        { type: "warning", distinguishCancelAndClose: true }
-      );
+      await new Promise((resolve, reject) => {
+        Modal.confirm({
+          title: "系统提示",
+          content: "修改字段将会同时清空所有子节点的字段配置，是否确认继续？",
+          okText: "确定",
+          cancelText: "取消",
+          onOk: () => resolve(),
+          onCancel: () => reject(new Error("cancel")),
+          onClose: () => reject(new Error("close")),
+        });
+      });
     } catch (e) {
       return (drawer.value = true);
     }
@@ -658,10 +684,10 @@ const hasTaskConfig = (nodeData) => {
 const handleSuccess = () => {
   taskConfigDialogVisible.value = false;
   hasUnsavedChanges.value = false;
-  const message = "操作成功";
+  const successMessage = "操作成功";
   setRefreshNeeded();
   router.push("/col/task/integratioTask");
-  proxy.$modal.msgSuccess(message);
+  proxy.$modal.msgSuccess(successMessage);
 };
 
 // 任务配置弹窗
@@ -867,7 +893,10 @@ function togglePortsVisibility(visible) {
  */
 function handleDeleteCells(graph, cells, menuController) {
   if (!cells || cells.length === 0) {
-    ElMessageBox.warning("操作失败，没有选中要删除的节点或连线");
+    Modal.warning({
+      title: "提示",
+      content: "操作失败，没有选中要删除的节点或连线",
+    });
     return;
   }
 
@@ -875,7 +904,8 @@ function handleDeleteCells(graph, cells, menuController) {
   const isEdge = target.isEdge?.();
   const isNode = target.isNode?.();
 
-  let message = "删除该连线将同时清空其所有子节点的字段配置，是否确认继续？";
+  let deleteMessage =
+    "删除该连线将同时清空其所有子节点的字段配置，是否确认继续？";
 
   let sourceNode = null;
 
@@ -885,7 +915,7 @@ function handleDeleteCells(graph, cells, menuController) {
     const childNodes = getAllChildNodes(sourceNode, graph);
     const hasChildNodes = childNodes.length > 0;
 
-    message = hasChildNodes
+    deleteMessage = hasChildNodes
       ? "删除该节点将同时清空其所有子节点的字段配置，是否确认继续？"
       : "是否确认删除该节点？";
   }
@@ -894,12 +924,12 @@ function handleDeleteCells(graph, cells, menuController) {
     sourceNode = target.getSourceCell?.();
   }
 
-  ElMessageBox.confirm(message, "确认删除", {
-    confirmButtonText: "确认",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
-    .then(() => {
+  Modal.confirm({
+    title: "确认删除",
+    content: deleteMessage,
+    okText: "确认",
+    cancelText: "取消",
+    onOk: () => {
       // 重置子节点配置（无论节点还是边）
       if (sourceNode) {
         const childNodes = getAllChildNodes(sourceNode, graph);
@@ -924,10 +954,11 @@ function handleDeleteCells(graph, cells, menuController) {
       });
 
       menuController?.hide?.();
-    })
-    .catch(() => {
+    },
+    onCancel: () => {
       menuController?.hide?.();
-    });
+    },
+  });
 }
 
 // 处理节点右键菜单事件
@@ -962,7 +993,7 @@ function handleNodeContextMenu({ e, node, edge, type = 0 }) {
       action: () => {
         const input = node.data.taskParams.inputFields;
         if (!Array.isArray(input) || input.length == 0) {
-          ElMessage.warning("无法找到输入字段");
+          message.warning("无法找到输入字段");
         } else {
           openDialog(input, node, "输入字段");
         }
@@ -976,7 +1007,7 @@ function handleNodeContextMenu({ e, node, edge, type = 0 }) {
     action: () => {
       const output = node.data.taskParams.outputFields;
       if (!Array.isArray(output) || output.length === 0) {
-        ElMessage.warning("无法找到输出字段");
+        message.warning("无法找到输出字段");
       } else {
         openDialog(output, node, "输出字段");
       }
@@ -1061,16 +1092,12 @@ function updateTargetNodeData(source, target, edge) {
     edge;
 
   if (needBindCleanRule) {
-    ElMessageBox.confirm(
-      "是否要给转换组件添加输入组件绑定的清洗规则？",
-      "提示",
-      {
-        confirmButtonText: "是",
-        cancelButtonText: "否",
-        type: "warning",
-      }
-    )
-      .then(() => {
+    Modal.confirm({
+      title: "提示",
+      content: "是否要给转换组件添加输入组件绑定的清洗规则？",
+      okText: "是",
+      cancelText: "否",
+      onOk: () => {
         // 调用方法生成规则配置
         const result = renameRuleToRuleConfig(
           target.data.taskParams.inputFields
@@ -1082,8 +1109,8 @@ function updateTargetNodeData(source, target, edge) {
           target.data.taskParams.tableFields = result;
           target.data = { ...target.data };
         }
-      })
-      .catch(() => {});
+      },
+    });
   }
 }
 
@@ -1177,24 +1204,21 @@ onMounted(async () => {
 onBeforeRouteLeave((to, from, next) => {
   // 检查是否有未保存的更改
   if (hasUnsavedChanges.value) {
-    ElMessageBox.confirm(
-      "您已经编辑部分任务内容，是否放弃已编辑内容？", // 提示信息
-      "提示", // 标题
-      {
-        confirmButtonText: "保存", // 确认按钮文本
-        cancelButtonText: "放弃", // 取消按钮文本
-        type: "warning", // 弹窗类型
-      }
-    )
-      .then(() => {
+    Modal.confirm({
+      title: "提示",
+      content: "您已经编辑部分任务内容，是否放弃已编辑内容？",
+      okText: "保存",
+      cancelText: "放弃",
+      onOk: () => {
         handleExportData();
         next(false);
         saveData();
-      })
-      .catch(() => {
+      },
+      onCancel: () => {
         next();
         saveData();
-      });
+      },
+    });
   } else {
     next();
   }
@@ -1250,20 +1274,20 @@ const selectTab = (tabName) => {
 };
 const isValidClick = (tab) => {
   const { isValid, errorMessages } = validateGraph(graph, true);
-  let message = "";
+  let checkMessage = "";
   if (!isValid && errorMessages.length != 0) {
-    message += "检查未通过:<br>" + errorMessages.join("<br>");
+    checkMessage += "检查未通过:<br>" + errorMessages.join("<br>");
   } else {
-    message += "检查通过";
+    checkMessage += "检查通过";
   }
   if (
     !nodeData.value?.taskConfig ||
     Object.keys(nodeData.value.taskConfig).length === 0
   ) {
-    message += "<br>任务配置未填写";
+    checkMessage += "<br>任务配置未填写";
   }
 
-  tabs.value[0].content = message;
+  tabs.value[0].content = checkMessage;
 };
 const getAssetsFile = (url) => {
   return new URL(`/src/assets/dpp/etl/${url}`, import.meta.url).href;
@@ -1328,7 +1352,7 @@ const getAssetsFile = (url) => {
         display: none;
       }
 
-      .el-button {
+      .ant-btn {
         height: 28px;
 
         &:hover {
@@ -1369,7 +1393,7 @@ const getAssetsFile = (url) => {
     scrollbar-width: none;
     -ms-overflow-style: none;
 
-    :deep .el-tree-node[aria-disabled="true"] {
+    :deep .ant-tree-treenode-disabled {
       display: none;
     }
   }

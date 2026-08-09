@@ -4,7 +4,7 @@ import request from '@/utils/request'
 // 查询质量探查任务列表
 export function listDppQualityTask(query) {
   return request({
-    url: '/col/qualityTask/list',
+    url: '/metadata/qualityTask/list',
     method: 'get',
     params: query
   })
@@ -13,7 +13,7 @@ export function listDppQualityTask(query) {
 // 查询质量探查任务详细
 export function getDppQualityTask(id) {
   return request({
-    url: '/col/qualityTask/' + id,
+    url: '/metadata/qualityTask/' + id,
     method: 'get'
   })
 }
@@ -21,7 +21,7 @@ export function getDppQualityTask(id) {
 // 新增质量探查任务
 export function addDppQualityTask(data) {
   return request({
-    url: '/col/qualityTask',
+    url: '/metadata/qualityTask',
     method: 'post',
     data: data
   })
@@ -30,7 +30,7 @@ export function addDppQualityTask(data) {
 // 修改质量探查任务
 export function updateDppQualityTask(data) {
   return request({
-    url: '/col/qualityTask',
+    url: '/metadata/qualityTask',
     method: 'put',
     data: data
   })
@@ -39,7 +39,7 @@ export function updateDppQualityTask(data) {
 // 删除质量探查任务
 export function delDppQualityTask(id) {
   return request({
-    url: '/col/qualityTask/' + id,
+    url: '/metadata/qualityTask/' + id,
     method: 'delete'
   })
 }
@@ -48,7 +48,7 @@ export function delDppQualityTask(id) {
 //检验接口
 export function verifyInterfaceValue(query) {
   return request({
-    url: '/col/qualityTaskEvaluate/verifyInterfaceValue',
+    url: '/metadata/qualityTaskEvaluate/verifyInterfaceValue',
     method: 'get',
     params: query
   })
@@ -56,7 +56,7 @@ export function verifyInterfaceValue(query) {
 //错误抽查功能
 export function validationErrorDataSql(data) {
   return request({
-    url: '/col/qualityTaskEvaluate/validationErrorDataSql',
+    url: '/metadata/qualityTaskEvaluate/validationErrorDataSql',
     method: 'post',
     data: data
   })
@@ -64,7 +64,7 @@ export function validationErrorDataSql(data) {
 // 成功抽查功能
 export function validationValidDataSql(data) {
   return request({
-    url: '/col/qualityTaskEvaluate/validationValidDataSql',
+    url: '/metadata/qualityTaskEvaluate/validationValidDataSql',
     method: 'post',
     data: data
   })
@@ -72,14 +72,14 @@ export function validationValidDataSql(data) {
 //执行一次
 export function startDppQualityTask(id) {
   return request({
-    url: `/col/qualityTask/startCollectorQualityTask/${id}`,
+    url: `/metadata/qualityTask/startQualityTask/${id}`,
     method: 'put',
   })
 }
 // 任务开关
 export function updateDppQualityTaskStatus(query) {
   return request({
-    url: '/col/qualityTask/updateCollectorQualityTaskStatus',
+    url: '/metadata/qualityTask/updateQualityTaskStatus',
     method: 'post',
     data: query
   })
@@ -89,7 +89,7 @@ export function updateDppQualityTaskStatus(query) {
 
 export function updateDaDiscoveryTaskCronExpression(query) {
   return request({
-    url: '/col/qualityTask/updateDaDiscoveryTaskCronExpression',
+    url: '/metadata/qualityTask/updateDaDiscoveryTaskCronExpression',
     method: 'post',
     data: query
   })
@@ -97,7 +97,7 @@ export function updateDaDiscoveryTaskCronExpression(query) {
 
 export function getQualityTaskAsset(query) {
   return request({
-    url: '/col/qualityTask/getQualityTaskAsset',
+    url: '/metadata/qualityTask/getQualityTaskAsset',
     method: 'get',
     params: query
   });
@@ -106,7 +106,7 @@ export function getQualityTaskAsset(query) {
 
 export function statisticsEvaluateAssetOne(query) {
   return request({
-    url: '/col/evaluateLog/statisticsEvaluateAssetOne',
+    url: '/metadata/evaluateLog/statisticsEvaluateAssetOne',
     method: 'get',
     params: query
   });
@@ -115,7 +115,7 @@ export function statisticsEvaluateAssetOne(query) {
 
 export function probeTaskInstanceLogDetail(query) {
   return request({
-    url: '/col/probeTaskInstance/logDetailCat',
+    url: '/metadata/probeTaskInstance/logDetailCat',
     method: 'get',
     params: query
   });

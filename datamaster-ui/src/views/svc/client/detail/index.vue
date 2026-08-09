@@ -5,59 +5,59 @@
         <div class="infotop-title mb15">
           {{ clientDetail.name }}
         </div>
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">编号</div>
               <div class="infotop-row-value">{{ clientDetail.id }}</div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">应用秘钥</div>
               <div class="infotop-row-value">
                 {{ clientDetail.secret || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">应用图标</div>
               <div class="infotop-row-value">
                 <image-preview :src="clientDetail.logo || noDataImg" :width="50" :height="50" />
               </div>
             </div>
-          </el-col>
-          <el-col :span="24" style="margin: 2px 0;">
+          </a-col>
+          <a-col :span="24" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">描述</div>
               <div class="infotop-row-value">
                 <span class="ellipsis-2" :title="clientDetail.description">{{ clientDetail.description || '-' }}</span>
               </div>
             </div>
-          </el-col>
-          <el-col :span="24">
+          </a-col>
+          <a-col :span="24">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">备注</div>
               <div class="infotop-row-value">
                 <span class="ellipsis" :title="clientDetail.remark">{{ clientDetail.remark || '-' }}</span>
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
 
       </div>
     </div>
 
     <div class="pagecont-bottom">
-      <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane label="API授权" name="1">
+      <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+        <a-tab-pane key="1" :tab="'API授权'">
           <api :clientDetail="clientDetail"></api>
-        </el-tab-pane>
-        <el-tab-pane label="详细信息" name="2">
+        </a-tab-pane>
+        <a-tab-pane key="2" :tab="'详细信息'">
           <info :clientDetail="clientDetail"></info>
-        </el-tab-pane>
-      </el-tabs>
+        </a-tab-pane>
+      </a-tabs>
 
     </div>
 

@@ -1,19 +1,18 @@
-﻿<template>
+<template>
   <qt-wrap
     :columns="tableStroe.columns"
     :tableRef="tableRef"
     :config="{ fullContent: false, actions: { table: { search: false } } }"
   >
     <template #actions-data v-if="route.query.table_status">
-      <el-button
+      <a-button
         type="primary"
-        plain
-        icon="Plus"
+        :icon="h(PlusOutlined)"
         @click="handleAddClick"
         v-hasPermi="['md:unreleased:structured:table:add']"
       >
         新增
-      </el-button>
+      </a-button>
     </template>
     <qt-table v-bind="tableStroe" ref="tableRef">
       <template #domain-name="scope">
@@ -21,25 +20,24 @@
       </template>
 
       <template #status="scope">
-        <el-switch
+        <a-switch
           v-if="scope.row.status != undefined"
-          v-model="scope.row.status"
-          active-value="1"
-          inactive-value="0"
+          v-model:checked="scope.row.status"
+          checked-value="1"
+          un-checked-value="0"
           @change="handleStatusChange(scope.row, $event)"
         />
       </template>
 
       <template #handle="{ row }">
-        <el-button
-          link
-          type="primary"
-          icon="view"
+        <a-button
+          type="link"
+          :icon="h(EyeOutlined)"
           @click="handleDetailClick(row)"
           v-hasPermi="['md:unreleased:structured:table:detail']"
         >
           详情
-        </el-button>
+        </a-button>
 
         <template
           v-if="
@@ -47,27 +45,25 @@
             detail.status == '0'
           "
         >
-          <el-button
-            link
-            type="primary"
+          <a-button
+            type="link"
             :disabled="row.status == '1'"
-            icon="Edit"
+            :icon="h(EditOutlined)"
             @click="handleEditClick(row)"
             v-hasPermi="['md:unreleased:structured:table:edit']"
           >
             修改
-          </el-button>
-          <el-popover
+          </a-button>
+          <a-popover
             placement="bottom"
-            :width="120"
-            popper-class="handle-popover"
+            :overlay-style="{ width: '120px' }"
+            overlayClassName="handle-popover"
             trigger="click"
           >
             <template #reference>
-              <el-button
-                link
-                type="primary"
-                icon="ArrowDown"
+              <a-button
+                type="link"
+                :icon="h(DownOutlined)"
                 v-hasPermi="[
                   'md:unreleased:structured:table:edit',
                   'md:unreleased:structured:table:remove',
@@ -75,58 +71,54 @@
                 ]"
               >
                 更多
-              </el-button>
+              </a-button>
             </template>
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
+            <a-button
+              type="link"
+              danger
+              :icon="h(DeleteOutlined)"
               :disabled="row.status == 1"
               @click="handleDeleteClick(row)"
               v-hasPermi="['md:unreleased:structured:table:remove']"
             >
               删除
-            </el-button>
-            <el-button
-              link
-              type="primary"
+            </a-button>
+            <a-button
+              type="link"
               @click="handleDetailClick(row, 'ColumnList')"
             >
               <svg-icon icon-class="meta-column" class="handle-svg-icon" />
               字段列表
-            </el-button>
+            </a-button>
 
-            <el-button
-              link
-              type="primary"
+            <a-button
+              type="link"
               @click="handleDetailClick(row, 'VersionManagement')"
               v-hasPermi="['md:unreleased:structured:table:detail']"
             >
               <svg-icon icon-class="meta-version" class="handle-svg-icon" />
               版本与变更
-            </el-button>
-          </el-popover>
+            </a-button>
+          </a-popover>
         </template>
 
         <template v-else>
-          <el-button
-            link
-            type="primary"
+          <a-button
+            type="link"
             @click="handleDetailClick(row, 'ColumnList')"
           >
             <svg-icon icon-class="meta-column" class="handle-svg-icon" />
             字段列表
-          </el-button>
+          </a-button>
 
-          <el-button
-            link
-            type="primary"
+          <a-button
+            type="link"
             @click="handleDetailClick(row, 'VersionManagement')"
             v-hasPermi="['md:unreleased:structured:table:edit']"
           >
             <svg-icon icon-class="meta-version" class="handle-svg-icon" />
             版本与变更
-          </el-button>
+          </a-button>
         </template>
       </template>
     </qt-table>
@@ -134,14 +126,20 @@
 </template>
 
 <script setup name="UnreleasedStructuredTable">
-import { reactive, ref, getCurrentInstance, computed } from "vue";
+import { message, Modal } from 'ant-design-vue'
+import { PlusOutlined, EyeOutlined, EditOutlined, DownOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { reactive, ref, getCurrentInstance, computed, h } from "vue";
+
 import { listDomain } from "@/api/tax/domain/domain.js";
+
 import { getParentLabelPath } from "@/utils/anivia.js";
+
 import {
   listTable,
   delTable,
   updateTableStatus,
 } from "@/api/cat/unreleased/table";
+
 import { useRoute, useRouter } from "vue-router";
 
 const props = defineProps({
@@ -359,39 +357,33 @@ function handleEditClick(row) {
 // 删除选中行
 function handleDeleteColumnClick() {
   if (!store.rows.length) return;
-  ElMessageBox.confirm(
-    `可删除${store.rows.length}个，不可删除0个，是否删除可删部分`,
-    "系统提示",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
-    .then(() => {
+  Modal.confirm({
+    title: "系统提示",
+    content: `可删除${store.rows.length}个，不可删除0个，是否删除可删部分`,
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
       const ids = store.rows.map((item) => item.id);
-      return delTable(ids);
-    })
-    .then(() => {
-      ElMessage.success("删除成功");
+      await delTable(ids);
+      message.success("删除成功");
       tableRef.value.getList();
-    });
+    },
+  });
 }
 
 // 删除
 function handleDeleteClick(row) {
-  ElMessageBox.confirm(`是否确认删除编号为${row.id}的数据项？`, "系统提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
-    .then(() => {
-      return delTable(row.id);
-    })
-    .then(() => {
-      ElMessage.success("删除成功");
+  Modal.confirm({
+    title: "系统提示",
+    content: `是否确认删除编号为${row.id}的数据项？`,
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
+      await delTable(row.id);
+      message.success("删除成功");
       tableRef.value.getList();
-    });
+    },
+  });
 }
 
 // 详情
@@ -407,32 +399,28 @@ function handleDetailClick(row, tab) {
 
 // 切换状态
 function handleStatusChange(row, status) {
-  ElMessageBox.confirm(
-    `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
+  Modal.confirm({
+    title: "系统提示",
+    content: `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
       row.id
     }的表元数据吗？`,
-    "系统提示",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
-    .then(() => {
-      return updateTableStatus({
-        id: row.id,
-        status,
-      });
-    })
-    .then(() => {
-      ElMessage.success(
-        `编号为${row.id}的表元数据${status == 1 ? "发布" : "取消发布"}成功!`
-      );
-      row.status = status;
-    })
-    .catch(() => {
-      row.status = status == "1" ? "0" : "1";
-    });
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
+      try {
+        await updateTableStatus({
+          id: row.id,
+          status,
+        });
+        message.success(
+          `编号为${row.id}的表元数据${status == 1 ? "发布" : "取消发布"}成功!`
+        );
+        row.status = status;
+      } catch (error) {
+        row.status = status == "1" ? "0" : "1";
+      }
+    },
+  });
 }
 
 // getDomains();

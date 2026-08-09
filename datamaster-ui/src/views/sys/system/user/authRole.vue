@@ -2,50 +2,52 @@
   <div class="app-container" ref="app-container">
     <div class="pagecont-top">
       <h4 class="form-header h4">基本信息</h4>
-      <el-form class="btn-style" :model="form" label-width="80px">
-        <el-row>
-          <el-col :span="8" :offset="2">
-            <el-form-item label="用户名称" prop="nickName">
-              <el-input v-model="form.nickName" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8" :offset="2">
-            <el-form-item label="登录账号" prop="userName">
-              <el-input v-model="form.userName" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+      <a-form class="btn-style" :model="form" :label-col="{ style: { width: '80px' } }">
+        <a-row>
+          <a-col :span="8" :offset="2">
+            <a-form-item label="用户名称" name="nickName">
+              <a-input v-model:value="form.nickName" disabled />
+            </a-form-item>
+          </a-col>
+          <a-col :span="8" :offset="2">
+            <a-form-item label="登录账号" name="userName">
+              <a-input v-model:value="form.userName" disabled />
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
     </div>
 
     <div class="pagecont-bottom">
       <h4 class="form-header h4">角色信息</h4>
-      <el-table stripe height="500px" v-loading="loading" :row-key="getRowKey" @row-click="clickRow" ref="roleRef"
-        @selection-change="handleSelectionChange" :data="roles.slice((pageNum - 1) * pageSize, pageNum * pageSize)">
-        <el-table-column label="序号" width="80" type="index" align="center">
-          <template #default="scope">
-            <span>{{ (pageNum - 1) * pageSize + scope.$index + 1 }}</span>
+      <a-table
+        :scroll="{ y: '500px' }"
+        :loading="loading"
+        :row-key="getRowKey"
+        @row-click="clickRow"
+        ref="roleRef"
+        :row-selection="{ onChange: (selectedRowKeys, selectedRows) => handleSelectionChange(selectedRows) }"
+        :data-source="roles.slice((pageNum - 1) * pageSize, pageNum * pageSize)"
+        :columns="columns"
+      >
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.key === 'index'">
+            <span>{{ (pageNum - 1) * pageSize + index + 1 }}</span>
           </template>
-        </el-table-column>
-        <el-table-column type="selection" :reserve-selection="true" width="55"></el-table-column>
-        <el-table-column label="角色编号" align="center" prop="roleId" />
-        <el-table-column label="角色名称" align="center" prop="roleName" />
-        <el-table-column label="权限字符" align="center" prop="roleKey" />
-        <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-          <template #default="scope">
-            <span>{{ parseTime(scope.row.createTime) }}</span>
+          <template v-else-if="column.key === 'createTime'">
+            <span>{{ parseTime(record.createTime) }}</span>
           </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </a-table>
 
       <pagination v-show="total > 0" :total="total" v-model:page="pageNum" v-model:limit="pageSize" />
 
-      <el-form label-width="100px">
+      <a-form :label-col="{ style: { width: '100px' } }">
         <div style="text-align: center; margin-left: -120px; margin-top: 30px">
-          <el-button type="primary" @click="submitForm()">提交</el-button>
-          <el-button @click="close()">返回</el-button>
+          <a-button type="primary" @click="submitForm()">提交</a-button>
+          <a-button @click="close()">返回</a-button>
         </div>
-      </el-form>
+      </a-form>
     </div>
   </div>
 </template>
@@ -67,6 +69,14 @@ const form = ref({
   userName: undefined,
   userId: undefined,
 });
+
+const columns = [
+  { title: '序号', key: 'index', width: 80, align: 'center' },
+  { title: '角色编号', dataIndex: 'roleId', key: 'roleId', align: 'center' },
+  { title: '角色名称', dataIndex: 'roleName', key: 'roleName', align: 'center' },
+  { title: '权限字符', dataIndex: 'roleKey', key: 'roleKey', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 180 },
+];
 
 /** 单击选中行数据 */
 function clickRow(row) {

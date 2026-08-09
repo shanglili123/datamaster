@@ -9,257 +9,203 @@
         />
       </template>
       <template #actions-data>
-        <el-button
+        <a-button
           type="primary"
-          plain
-          icon="Plus"
           @click="handleAdd"
           v-hasPermi="['mdl:dataDomain:add']"
         >
           新增
-        </el-button>
+        </a-button>
       </template>
 
       <qt-table v-bind="tableStore" ref="tableRef">
         <template #action="{ row }">
-          <el-button
-            link
-            type="primary"
-            icon="Edit"
+          <a-button
+            type="link"
+            size="small"
             @click="handleUpdate(row)"
             v-hasPermi="['mdl:dataDomain:edit']"
           >
             修改
-          </el-button>
-          <el-button
-            link
-            type="danger"
-            icon="Delete"
+          </a-button>
+          <a-button
+            type="link"
+            danger
+            size="small"
             @click="handleDelete(row)"
             v-hasPermi="['mdl:dataDomain:remove']"
           >
             删除
-          </el-button>
-          <el-button
-            link
-            type="primary"
-            icon="View"
+          </a-button>
+          <a-button
+            type="link"
+            size="small"
             @click="handleDetail(row)"
             v-hasPermi="['mdl:dataDomain:edit']"
           >
             详情
-          </el-button>
+          </a-button>
         </template>
       </qt-table>
     </qt-wrap>
 
     <!-- 添加或修改数据域管理对话框 -->
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="open"
-      :append-to="$refs['app-container']"
+      v-model:open="open"
       draggable
       width="800px"
+      destroy-on-close
     >
-      <template #header>
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form
+      <a-form
         ref="dataDomainRef"
         :model="form"
         :rules="rules"
-        label-width="110px"
+        :label-col="{ style: { width: '110px' } }"
         @submit.prevent
       >
-        <el-form-item label="数据域名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入数据域名称" />
-        </el-form-item>
-        <el-form-item label="英文缩写" prop="engName">
-          <el-input v-model="form.engName" placeholder="请输入英文缩写" />
-        </el-form-item>
-        <el-form-item label="负责人" prop="ownerUserId">
-          <el-select
-            v-model="form.ownerUserId"
-            filterable
-            placeholder="请选择负责人"
-            @change="handleContactChange"
-          >
-            <el-option
-              v-for="item in managerOptions"
-              :key="item.userId"
-              :label="item.nickName"
-              :value="item.userId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="负责人电话" prop="ownerUserPhoneNumber">
-          <el-input
-            v-model="form.ownerUserPhoneNumber"
-            placeholder="请输入负责人电话"
-            disabled
-          />
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="form.description"
-            type="textarea"
+        <a-form-item label="数据域名称" name="name">
+          <a-input v-model:value="form.name" placeholder="请输入数据域名称" />
+        </a-form-item>
+        <a-form-item label="英文缩写" name="engName">
+          <a-input v-model:value="form.engName" placeholder="请输入英文缩写" />
+        </a-form-item>
+        <a-form-item label="描述" name="description">
+          <a-textarea
+            v-model:value="form.description"
             placeholder="请输入描述"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 4, maxRows: 8 }"
+            show-count
+            :maxlength="500"
           />
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input
-            v-model="form.remark"
-            type="textarea"
+        </a-form-item>
+        <a-form-item label="备注" name="remark">
+          <a-textarea
+            v-model:value="form.remark"
             placeholder="请输入备注"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 4, maxRows: 8 }"
+            show-count
+            :maxlength="500"
           />
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancel">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 数据域管理详情对话框 -->
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="openDetail"
-      :append-to="$refs['app-container']"
+      v-model:open="openDetail"
       draggable
       width="800px"
+      destroy-on-close
     >
-      <template #header>
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form ref="dataDomainDetailRef" :model="form" label-width="110px">
-        <el-form-item label="编号:" prop="id">
+      <a-form ref="dataDomainDetailRef" :model="form" :label-col="{ style: { width: '110px' } }">
+        <a-form-item label="编号:" name="id">
           <div class="form-readonly">
             {{ form.id }}
           </div>
-        </el-form-item>
-        <el-form-item label="数据域" prop="name">
+        </a-form-item>
+        <a-form-item label="数据域" name="name">
           <div class="form-readonly">{{ form.name ?? "-" }}</div>
-        </el-form-item>
-        <el-form-item label="英文缩写" prop="engName">
+        </a-form-item>
+        <a-form-item label="英文缩写" name="engName">
           <div class="form-readonly">{{ form.engName ?? "-" }}</div>
-        </el-form-item>
-        <el-form-item label="负责人" prop="ownerUserId">
-          <div class="form-readonly">{{ form.ownerUserName || "-" }}</div>
-        </el-form-item>
-        <el-form-item label="负责人电话" prop="ownerUserPhoneNumber">
-          <div class="form-readonly">
-            {{ form.ownerUserPhoneNumber || "-" }}
-          </div>
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
+        </a-form-item>
+        <a-form-item label="描述" name="description">
           <div class="form-readonly textarea">
             {{ form.description ?? "-" }}
           </div>
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
+        </a-form-item>
+        <a-form-item label="备注" name="remark">
           <div class="form-readonly textarea">{{ form.remark ?? "-" }}</div>
-        </el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="创建人" prop="createBy">
+        </a-form-item>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="创建人" name="createBy">
               <div class="form-readonly">
                 {{ form.createBy }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="创建时间" prop="createTime">
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="创建时间" name="createTime">
               <div class="form-readonly">
                 {{ parseTime(form.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="更新人" prop="createBy">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="更新人" name="updateBy">
               <div class="form-readonly">
                 {{ form.updateBy }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="更新时间" prop="updateTime">
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="更新时间" name="updateTime">
               <div class="form-readonly">
                 {{ parseTime(form.updateTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancel">关 闭</el-button>
+          <a-button @click="cancel">关 闭</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 用户导入对话框 -->
-    <el-dialog
+    <a-modal
       :title="upload.title"
-      v-model="upload.open"
-      :append-to="$refs['app-container']"
+      v-model:open="upload.open"
       draggable
       destroy-on-close
     >
-      <el-upload
+      <a-upload-dragger
         ref="uploadRef"
-        :limit="1"
+        :max-count="1"
         accept=".xlsx, .xls"
         :headers="upload.headers"
         :action="upload.url + '?updateSupport=' + upload.updateSupport"
         :disabled="upload.isUploading"
-        :on-progress="handleFileUploadProgress"
-        :on-success="handleFileSuccess"
-        :auto-upload="false"
-        drag
+        @progress="handleFileUploadProgress"
+        @success="handleFileSuccess"
       >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-        <template #tip>
-          <div class="el-upload__tip text-center">
-            <div class="el-upload__tip">
-              <el-checkbox
-                v-model="upload.updateSupport"
-              />是否更新已经存在的数据域数据
-            </div>
-            <span>仅允许导入xls、xlsx格式文件。</span>
-            <el-link
-              type="primary"
-              :underline="false"
-              style="font-size: 12px; vertical-align: baseline"
-              @click="importTemplate"
-            >
-              下载模板
-            </el-link>
-          </div>
-        </template>
-      </el-upload>
+        <CloudUploadOutlined class="ant-upload-drag-icon" />
+        <p class="ant-upload-text">将文件拖到此处，或<em>点击上传</em></p>
+      </a-upload-dragger>
+      <div class="ant-upload-drag-hint">
+        <div>
+          <a-checkbox v-model:checked="upload.updateSupport" />是否更新已经存在的数据域数据
+        </div>
+        <span>仅允许导入xls、xlsx格式文件。</span>
+        <a-typography-link
+          type="primary"
+          style="font-size: 12px; vertical-align: baseline"
+          @click="importTemplate"
+        >
+          下载模板
+        </a-typography-link>
+      </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="upload.open = false">取 消</el-button>
-          <el-button type="primary" @click="submitFileForm">确 定</el-button>
+          <a-button @click="upload.open = false">取 消</a-button>
+          <a-button type="primary" @click="submitFileForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -271,16 +217,15 @@ import {
   listDataDomain,
   delDataDomain,
 } from "@/api/mdl/dataDomain/dataDomain.js";
-import { deptUserTree, getUser } from "@/api/system/system/user.js";
 import { getToken } from "@/utils/auth.js";
 import {
   computed,
   getCurrentInstance,
-  onMounted,
   reactive,
   ref,
   toRefs,
 } from "vue";
+import { CloudUploadOutlined } from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 
@@ -293,7 +238,6 @@ const multiple = ref(true);
 const open = ref(false);
 const openDetail = ref(false);
 const title = ref("");
-const managerOptions = ref([]);
 
 const tableStore = reactive({
   config: {
@@ -329,13 +273,6 @@ const tableStore = reactive({
       },
     },
     { label: "英文缩写", prop: "engName", align: "left" },
-    { label: "负责人", prop: "ownerUserName", align: "left" },
-    {
-      label: "负责人电话",
-      prop: "ownerUserPhoneNumber",
-      align: "left",
-      width: 140,
-    },
     {
       label: "创建人",
       prop: "createBy",
@@ -374,18 +311,6 @@ const searchStore = reactive({
       prop: "engName",
       component: { is: "input", placeholder: "请输入英文缩写" },
     },
-    {
-      label: "负责人",
-      prop: "ownerUserId",
-      component: {
-        is: "tree-select",
-        data: managerOptions,
-        props: { value: "userId", label: "nickName", children: "children" },
-        valueKey: "userId",
-        placeholder: "请选择负责人",
-        checkStrictly: true,
-      },
-    },
   ],
 });
 
@@ -413,23 +338,10 @@ const data = reactive({
       { required: true, message: "请输入英文缩写", trigger: "blur" },
       { pattern: /^[a-zA-Z]+$/, message: "只能输入英文字符", trigger: "blur" },
     ],
-    ownerUserId: [
-      { required: true, message: "负责人不能为空", trigger: "blur" },
-    ],
   },
 });
 
 const { form, rules } = toRefs(data);
-
-function getManagerOptions() {
-  deptUserTree().then((response) => {
-    managerOptions.value = response.data;
-  });
-}
-
-onMounted(() => {
-  getManagerOptions();
-});
 
 // 取消按钮
 function cancel() {
@@ -463,9 +375,6 @@ function reset() {
 /** 新增按钮操作 */
 function handleAdd() {
   reset();
-  getManagerOptions();
-  // 显式初始化负责人电话字段
-  form.value.ownerUserPhoneNumber = null;
   open.value = true;
   title.value = "添加数据域";
 }
@@ -473,7 +382,6 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row) {
   reset();
-  getManagerOptions();
   const _id = row?.id || ids.value[0];
   getDataDomain(_id).then((response) => {
     form.value = response.data;
@@ -486,7 +394,6 @@ function handleUpdate(row) {
 /** 详情按钮操作 */
 function handleDetail(row) {
   reset();
-  getManagerOptions();
   const _id = row?.id || ids.value[0];
   getDataDomain(_id).then((response) => {
     form.value = response.data;
@@ -498,8 +405,9 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["dataDomainRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["dataDomainRef"]
+    .validate()
+    .then(() => {
       if (form.value.id != null) {
         updateDataDomain(form.value)
           .then(() => {
@@ -517,17 +425,10 @@ function submitForm() {
           })
           .catch(() => {});
       }
-    }
-  });
+    })
+    .catch(() => {});
 }
 
-// 当负责人改变时，更新电话号码
-const handleContactChange = (selectedValue) => {
-  const selectedUser = managerOptions.value.find(
-    (user) => user.userId == selectedValue
-  );
-  form.value.ownerUserPhoneNumber = selectedUser?.phonenumber || "";
-};
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _ids = row?.id || ids.value;

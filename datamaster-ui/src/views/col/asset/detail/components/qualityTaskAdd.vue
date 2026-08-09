@@ -1,137 +1,129 @@
-﻿<template>
+<template>
     <!-- 资产质量的弹窗 -->
-    <el-dialog v-model="visible" :title="title" class="medium-dialog" @close="handleClose" destroy-on-close>
-        <div ref="app-container" v-loading="loadingInstance">
-            <!--            <div class="pagecont-top" v-loading="loading" v-show="showSearch" style="padding-bottom: 15px">-->
+    <a-modal v-model:open="visible" :title="title" class="medium-dialog" @close="handleClose" destroy-on-close>
+        <a-spin :spinning="loadingInstance">
+        <div ref="app-container">
+            <!--            <div class="pagecont-top" v-show="showSearch" style="padding-bottom: 15px">-->
             <!--                <div class="infotop">-->
             <!--                    <div class="main">-->
-            <div v-loading="loadingList">
-                <!-- <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true"
-                                label-width="75px" @submit.prevent>
-                                <el-form-item label="规则名称" prop="name">
-                                    <el-input class="el-form-input-width" v-model="queryParams.name"
-                                        placeholder="请输入规则名称" clearable @keyup.enter="handleQuery" />
-                                </el-form-item>
-                                <el-form-item label="质量维度" prop="dimensionType">
-                                    <el-select v-model="queryParams.dimensionType" placeholder="请选择质量维度"
+            <a-spin :spinning="loadingList">
+                <!-- <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline"
+                                :label-col="{ style: { width: '75px' } }" @submit.prevent>
+                                <a-form-item label="规则名称" name="name">
+                                    <a-input class="el-form-input-width" v-model:value="queryParams.name"
+                                        placeholder="请输入规则名称" allow-clear @pressEnter="handleQuery" />
+                                </a-form-item>
+                                <a-form-item label="质量维度" name="dimensionType">
+                                    <a-select v-model:value="queryParams.dimensionType" placeholder="请选择质量维度"
                                         style="width: 210px;">
-                                        <el-option v-for="dict in att_rule_audit_q_dimension" :key="dict.value"
-                                            :label="dict.label" :value="dict.value"></el-option>
-                                    </el-select>
-                                </el-form-item>
+                                        <a-select-option v-for="dict in att_rule_audit_q_dimension" :key="dict.value"
+                                            :label="dict.label" :value="dict.value">{{ dict.label }}</a-select-option>
+                                    </a-select>
+                                </a-form-item>
 
-                                <el-form-item label="状态" prop="publishStatus">
-                                    <el-select v-model="queryParams.publishStatus" placeholder="请选择状态" clearable
+                                <a-form-item label="状态" name="publishStatus">
+                                    <a-select v-model:value="queryParams.publishStatus" placeholder="请选择状态" allow-clear
                                         class="el-form-input-width">
-                                        <el-option label="上线" value="online" />
-                                        <el-option label="下线" value="offline" />
-                                    </el-select>
-                                </el-form-item>
-                                <el-form-item>
-                                    <el-button plain type="primary" @click="handleQuery"
+                                        <a-select-option label="上线" value="online" />
+                                        <a-select-option label="下线" value="offline" />
+                                    </a-select>
+                                </a-form-item>
+                                <a-form-item>
+                                    <a-button type="primary" @click="handleQuery"
                                         @mousedown="(e) => e.preventDefault()">
                                         <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-                                    </el-button>
-                                    <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+                                    </a-button>
+                                    <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                                         <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-                                    </el-button>
-                                </el-form-item>
-                            </el-form> -->
+                                    </a-button>
+                                </a-form-item>
+                            </a-form> -->
                 <div class="justify-between mb15">
-                    <el-row :gutter="15" class="btn-style">
-                        <el-col :span="1.5">
-                            <el-button type="primary" icon="Plus" @click="openRuleSelector(undefined)"
-                                v-if="!route.query.info">新增</el-button>
-                        </el-col>
-                        <el-col :span="1.5">
-                            <el-tooltip content="会自动获取资产关联的数据元中的稽查规则" placement="top">
-                                <el-button type="warning" @click="selectInspectionRule(undefined)"
-                                    v-if="!route.query.info">
-                                    <el-icon style="margin-right: 4px;">
-                                        <Refresh />
-                                    </el-icon>
+                    <a-row :gutter="15" class="btn-style">
+                        <a-col :span="1.5">
+                            <a-button type="primary" :icon="h(PlusOutlined)" @click="openRuleSelector(undefined)"
+                                v-if="!route.query.info"
+>新增</a-button>
+                        </a-col>
+                        <a-col :span="1.5">
+                            <a-tooltip title="会自动获取资产关联的数据元中的稽查规则" placement="top">
+                                <a-button @click="selectInspectionRule(undefined)"
+                                    v-if="!route.query.info"
+>
+                                    <ReloadOutlined style="margin-right: 4px;" />
                                     获取稽查规则
-                                </el-button>
-                            </el-tooltip>
-                        </el-col>
-                    </el-row>
+                                </a-button>
+                            </a-tooltip>
+                        </a-col>
+                    </a-row>
                 </div>
 
-                <el-table stripe height="550px" :data="dppQualityTaskEvaluateSaveReqVO">
-                    <el-table-column label="编号" type="index" align="left">
-                        <template #default="scope">
-                            {{ scope.row.id || '-' }}
+                <a-table striped :data-source="dppQualityTaskEvaluateSaveReqVO" :pagination="false" :scroll="{ y: 550 }" :columns="tableColumns">
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.dataIndex === 'id'">
+                            {{ record.id || '-' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="评测名称" align="left" prop="name" :show-overflow-tooltip="{ effect: 'light' }">
-                        <template #default="scope">
-                            {{ scope.row.name || '-' }}
+                        <template v-if="column.dataIndex === 'name'">
+                            {{ record.name || '-' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="评测字段" align="left" prop="evaColumn"
-                        :show-overflow-tooltip="{ effect: 'light' }">
-                        <template #default="scope">
-                            {{ scope.row.evaColumn || '-' }}
+                        <template v-if="column.dataIndex === 'evaColumn'">
+                            {{ record.evaColumn || '-' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="稽查规则" align="left" width="200" prop="ruleName"
-                        :show-overflow-tooltip="{ effect: 'light' }">
-                        <template #default="scope">
-                            {{ scope.row.ruleName || '-' }}
+                        <template v-if="column.dataIndex === 'ruleName'">
+                            {{ record.ruleName || '-' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="规则描述" align="left" prop="ruleDescription"
-                        :show-overflow-tooltip="{ effect: 'light' }">
-                        <template #default="scope">
-                            {{ scope.row.ruleDescription || '-' }}
+                        <template v-if="column.dataIndex === 'ruleDescription'">
+                            {{ record.ruleDescription || '-' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="质量维度" align="left" prop="dimensionType" width="100"
-                        :show-overflow-tooltip="{ effect: 'light' }">
-                        <template #default="scope">
-                            <dict-tag :options="att_rule_audit_q_dimension" :value="scope.row.dimensionType" />
+                        <template v-if="column.dataIndex === 'dimensionType'">
+                            <dict-tag :options="att_rule_audit_q_dimension" :value="record.dimensionType" />
                         </template>
-                    </el-table-column>
-
-                    <el-table-column label="状态" align="left" prop="status" width="80">
-                        <template #default="scope">
-                            {{ scope.row.status == '1' ? '上线' : '下线' }}
+                        <template v-if="column.dataIndex === 'status'">
+                            {{ record.status == '1' ? '上线' : '下线' }}
                         </template>
-                    </el-table-column>
-                    <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right"
-                        width="180" v-if="!route.query.info">
-                        <template #default="scope">
-                            <el-button link type="primary" icon="view"
-                                @click="openRuleDialog(scope.row, scope.$index + 1, true)">查看</el-button>
-                            <el-button link type="primary" icon="Edit"
-                                @click="openRuleDialog(scope.row, scope.$index + 1)">修改</el-button>
-                            <el-button link type="danger" icon="Delete"
-                                @click="handleRuleDelete(scope.$index + 1)">删除</el-button>
-
+                        <template v-if="column.key === 'actions'">
+                            <a-button type="link" size="small"
+                                @click="openRuleDialog(record, index + 1, true)"
+>查看</a-button>
+                            <a-button type="link" size="small"
+                                @click="openRuleDialog(record, index + 1)"
+>修改</a-button>
+                            <a-button type="link" danger size="small"
+                                @click="handleRuleDelete(index + 1)"
+>删除</a-button>
                         </template>
-                    </el-table-column>
-                </el-table>
+                    </template>
+                </a-table>
                 <!--                        </div>-->
                 <!--                    </div>-->
                 <!--                </div>-->
-            </div>
+            </a-spin>
         </div>
+        </a-spin>
         <RuleSelectorDialog ref="ruleSelectorDialog" @confirm="RuleSelectorconfirm" v-if="visible"
-            :dppQualityTaskObjSaveReqVO="dppQualityTaskObjSaveReqVO" :type="2" :tableName="formData?.tableName" />
+            :dppQualityTaskObjSaveReqVO="dppQualityTaskObjSaveReqVO" :type="2" :tableName="formData?.tableName"
+/>
         <template #footer>
-            <el-button @click="handleClose">取消</el-button>
-            <el-button type="primary" @click="submitForm" :loading="loadingOptions.loading">
+            <a-button @click="handleClose">取消</a-button>
+            <a-button type="primary" @click="submitForm" :loading="loadingOptions.loading">
                 确定
-            </el-button>
+            </a-button>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup name="qualityTask">
-import { ref, reactive, toRefs, onMounted } from 'vue';
+import { message } from 'ant-design-vue'
+import { ref, reactive, toRefs, onMounted, computed } from 'vue';
+import { h } from 'vue';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue';
+
 import { useRoute, useRouter } from 'vue-router';
+
 import RuleSelectorDialog from '@/views/ast/quality/qualityTask/components/ruleBase.vue';
+
 import { listAttQualityCat } from "@/api/tax/cat/qualityCat/qualityCat.js";
+
 import {
     addDppQualityTask,
     updateDppQualityTask
@@ -140,10 +132,13 @@ const { proxy } = getCurrentInstance();
 const route = useRoute();
 const loading = ref(false);
 const showSearch = ref(true);
+
 import moment from 'moment';
+
 import {
     getColumnByAssetId,
 } from '@/api/col/task/index.js';
+
 import useUserStore from '@/store/system/user';
 let id = route.query.id || '';
 const router = useRouter();
@@ -189,6 +184,21 @@ function getIconByValue(value) {
     return node ? node.icon : ''
 }
 const dppQualityTaskEvaluateSaveReqVO = ref([...originList.value]);
+const tableColumns = computed(() => {
+    const cols = [
+        { title: '编号', dataIndex: 'id', align: 'left' },
+        { title: '评测名称', dataIndex: 'name', align: 'left', ellipsis: true },
+        { title: '评测字段', dataIndex: 'evaColumn', align: 'left', ellipsis: true },
+        { title: '稽查规则', dataIndex: 'ruleName', align: 'left', width: 200, ellipsis: true },
+        { title: '规则描述', dataIndex: 'ruleDescription', align: 'left', ellipsis: true },
+        { title: '质量维度', dataIndex: 'dimensionType', align: 'left', width: 100, ellipsis: true },
+        { title: '状态', dataIndex: 'status', align: 'left', width: 80 },
+    ];
+    if (!route.query.info) {
+        cols.push({ title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 180 });
+    }
+    return cols;
+});
 
 let loadingList = ref(false)
 const handleQuery = () => {
@@ -231,7 +241,7 @@ function getDeptTree() {
         deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
         deptOptions.value = [
             {
-                name: "质量探查类目",
+                name: "质量探查目录",
                 value: "",
                 id: 0,
                 children: deptOptions.value,
@@ -366,9 +376,9 @@ async function selectInspectionRule() {
                     dppQualityTaskEvaluateSaveReqVO.value = [...originList.value];
 
                     if (addedCount > 0) {
-                        ElMessage.success(`已追加 ${addedCount} 条规则，来自表 ${item.tableName}`);
+                        message.success(`已追加 ${addedCount} 条规则，来自表 ${item.tableName}`);
                     } else {
-                        ElMessage.info(`表 ${item.tableName} 没有新规则追加`);
+                        message.info(`表 ${item.tableName} 没有新规则追加`);
                     }
                 }
             } catch (err) {
@@ -427,7 +437,7 @@ async function submitForm() {
     try {
         await formRef.value?.validate();
     } catch (err) {
-        ElMessage.warning("表单校验未通过，请检查必填项！");
+        message.warning("表单校验未通过，请检查必填项！");
         loadingInstance.value = false
         return;
     }
@@ -455,7 +465,7 @@ async function submitForm() {
             handleClose()
             emit('submit-success')
         } else {
-            ElMessage.error(res.msg || "提交失败！");
+            message.error(res.msg || "提交失败！");
         }
     } catch (err) {
 
@@ -468,7 +478,6 @@ function code(obj) {
     dppQualityTaskObjSaveReqVO.value = Array.isArray(obj) ? [...obj] : [];
     console.log("🚀 ~ code ~ dppQualityTaskObjSaveReqVO.value:", dppQualityTaskObjSaveReqVO.value)
 }
-
 
 function getDppQualityTaskinfo(data) {
     loadingInstance.value = true;

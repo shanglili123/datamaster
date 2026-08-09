@@ -1,7 +1,7 @@
 <template>
   <div class="skill-reference-panel" v-if="skills && skills.length > 0">
     <div class="panel-header">
-      <el-icon><Collection /></el-icon>
+      <FolderOutlined class="panel-icon" />
       <span>引用的Skill ({{ skills.length }})</span>
     </div>
     <div class="skill-list">
@@ -12,9 +12,9 @@
         @click="handleSkillClick(skill)"
       >
         <div class="skill-header">
-          <el-tag size="small" :type="getSkillTypeTag(skill.skillType)">
+          <a-tag size="small" :color="getSkillTypeTag(skill.skillType)">
             {{ getSkillTypeLabel(skill.skillType) }}
-          </el-tag>
+          </a-tag>
           <span class="skill-name">{{ skill.skillName }}</span>
           <span class="skill-version">v{{ skill.version }}</span>
         </div>
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { Collection } from '@element-plus/icons-vue'
+import { FolderOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps({
   skills: {
@@ -40,15 +40,15 @@ const emit = defineEmits(['on-skill-click'])
 
 const getSkillTypeTag = (type) => {
   const map = {
-    'PLATFORM_METADATA': 'primary',
+    'PLATFORM_METADATA': 'blue',
     'PLATFORM_QUALITY': 'success',
     'TABLE': 'warning',
-    'DATABASE': 'primary',
+    'DATABASE': 'blue',
     'MULTI_TABLE': 'success',
-    'REPORT_TEMPLATE': 'danger',
-    'METRIC': 'danger'
+    'REPORT_TEMPLATE': 'error',
+    'METRIC': 'error'
   }
-  return map[type] || 'info'
+  return map[type] || 'default'
 }
 
 const getSkillTypeLabel = (type) => {
@@ -94,7 +94,7 @@ const handleSkillClick = (skill) => {
     color: #606266;
     margin-bottom: 10px;
 
-    .el-icon {
+    .panel-icon {
       color: #409eff;
     }
   }

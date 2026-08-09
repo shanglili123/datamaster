@@ -1,135 +1,121 @@
 <template>
-  <el-dialog v-model="visibleDialog" draggable class="dialog" :title="title" destroy-on-close width="60%"
-    :append-to="$refs['app-container']">
-    <el-form ref="daDiscoveryTaskRef" :model="form" label-width="120px" @submit.prevent :disabled="title == '任务详情'">
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="任务名称" prop="name"
+  <a-modal v-model:open="visibleDialog" class="dialog" :title="title" destroy-on-close width="60%">
+    <a-form ref="daDiscoveryTaskRef" :model="form" :label-col="{ style: { width: '120px' } }" @submit.prevent
+      :disabled="title == '任务详情'">
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="任务名称" name="name"
             :rules="[{ required: title != '任务详情', message: '请输入任务名称', trigger: 'blur' }]">
-            <el-input v-if="title != '任务详情'" v-model="form.name" placeholder="请输入任务名称" />
+            <a-input v-if="title != '任务详情'" v-model:value="form.name" placeholder="请输入任务名称" />
             <div class="form-readonly" v-else>{{ form.name }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="数据开发类目" prop="catCode" :rules="[
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="数据开发目录" name="catCode" :rules="[
             {
               required: title != '任务详情',
-              message: '请选择数据开发类目',
+              message: '请选择数据开发目录',
               trigger: 'change',
             },
           ]">
-            <el-tree-select filterable v-model="form.catCode" :data="deptOptions"
-              :props="{ value: 'code', label: 'name', children: 'children' }" value-key="id" placeholder="请选择数据开发类目"
-              check-strictly />
-          </el-form-item>
-        </el-col>
-      </el-row>
+            <a-tree-select show-search v-model:value="form.catCode" :tree-data="deptOptions"
+              :field-names="{ value: 'code', label: 'name', children: 'children' }" placeholder="请选择数据开发目录" />
+          </a-form-item>
+        </a-col>
+      </a-row>
 
 
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="调度周期" prop="crontab">
-            <el-input v-if="title != '任务详情'" v-model="form.crontab" placeholder="请输入调度周期" readonly>
-              <template #append>
-                <el-button type="primary" @click="handleShowCron" style="background-color: #2666fb; color: #fff">
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="调度周期" name="crontab">
+            <a-input v-if="title != '任务详情'" v-model:value="form.crontab" placeholder="请输入调度周期" readonly>
+              <template #addonAfter>
+                <a-button type="primary" @click="handleShowCron" style="background-color: #2666fb; color: #fff">
                   配置
-                  <i class="el-icon-time el-icon--right"></i>
-                </el-button>
+                  <template #icon><ClockCircleOutlined /></template>
+                </a-button>
               </template>
-            </el-input>
+            </a-input>
             <div class="form-readonly" v-else>{{ form.crontab }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="执行引擎" prop="typaCode"
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="执行引擎" name="typaCode"
             :rules="[{ required: title != '任务详情', message: '请选择执行引擎', trigger: 'change' }]">
-            <el-tree-select filterable :disabled="info" v-model="form.typaCode" :data="treeData"
-              :props="{ value: 'value', label: 'label', children: 'children' }" value-key="label" check-strictly
+            <a-tree-select show-search :disabled="info" v-model:value="form.typaCode" :tree-data="treeData"
+              :field-names="{ value: 'value', label: 'label', children: 'children' }"
               @change="getDaDatasource(true)" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+          </a-form-item>
+        </a-col>
+      </a-row>
 
-      <el-row :gutter="20">
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述" prop="description">
-            <el-input v-if="title != '任务详情'" v-model="form.description" type="textarea" placeholder="请输入描述" />
+      <a-row :gutter="20">
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述" name="description">
+            <a-textarea v-if="title != '任务详情'" v-model:value="form.description" placeholder="请输入描述" />
             <div class="form-readonly" v-else>{{ form.description || '-' }}</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="任务状态" prop="releaseState"><el-radio-group style=" width: 100%"
-              v-model="form.releaseState" class="el-form-input-width" v-if="title != '任务详情'">
-              <el-radio v-for="dict in dpp_etl_task_status" :key="dict.value" :value="dict.value"
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="任务状态" name="releaseState"><a-radio-group style=" width: 100%"
+              v-model:value="form.releaseState" class="el-form-input-width" v-if="title != '任务详情'">
+              <a-radio v-for="dict in dpp_etl_task_status" :key="dict.value" :value="dict.value"
                 :disabled="dict.value == 1">
                 {{ dict.label }}
-              </el-radio>
-            </el-radio-group>
+              </a-radio>
+            </a-radio-group>
             <div class="form-readonly" v-else>{{dpp_etl_task_status.find(item => item.value ==
               form.releaseState)?.label ||
               '-'}}</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <!-- <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
-          </el-form-item>
-        </el-col>
-      </el-row> -->
+          </a-form-item>
+        </a-col>
+      </a-row>
       <div class="h2" @click="templateShow = !templateShow">> 使用模板</div>
       <template v-if="templateAct.id || templateShow">
-        <div class="h2-template" v-loading="tempLoading">
-          <div class="h2-item" :class="{ act: templateAct.id == item.id }" v-for="item in templateList" :key="item.id"
-            @click="handleTemplate(item)">
-            <div class="h2-item-title">{{ item.name }}</div>
-            <div class="h2-item-editor">
-              <CodeShow v-model="item.content" :config="{
-                renderSideBySide: false,
-                fontSize: 9,
-                scrollbar: {
-                  vertical: 'hidden',
-                  horizontal: 'hidden',
-                },
-              }" />
+        <a-spin :spinning="tempLoading">
+          <div class="h2-template">
+            <div class="h2-item" :class="{ act: templateAct.id == item.id }" v-for="item in templateList" :key="item.id"
+              @click="handleTemplate(item)">
+              <div class="h2-item-title">{{ item.name }}</div>
+              <div class="h2-item-editor">
+                <CodeShow v-model="item.content" :config="{
+                  renderSideBySide: false,
+                  fontSize: 9,
+                  scrollbar: {
+                    vertical: 'hidden',
+                    horizontal: 'hidden',
+                  },
+                }" />
+              </div>
             </div>
+            <a-empty style="width: 100%" v-if="total == 0" description="暂无数据" />
           </div>
-          <el-empty style="width: 100%" v-if="total == 0" description="暂无数据" />
-        </div>
+        </a-spin>
         <pagination layout="prev, pager, next" v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
           v-model:limit="queryParams.pageSize" @pagination="getList" />
       </template>
-    </el-form>
+    </a-form>
 
     <template #footer>
       <div style="text-align: right">
         <template v-if="info">
-          <el-button @click="closeDialog">关闭</el-button>
-          <el-button type="primary" @click="saveClose" v-if="!route.query.info">保存</el-button>
+          <a-button @click="closeDialog">关闭</a-button>
+          <a-button type="primary" @click="saveClose" v-if="!route.query.info">保存</a-button>
         </template>
         <template v-else>
-          <el-button @click="saveClose">仅保存</el-button>
-          <el-button type="primary" @click="saveData">保存并配置流程</el-button>
+          <a-button @click="saveClose">仅保存</a-button>
+          <a-button type="primary" @click="saveData">保存并配置流程</a-button>
         </template>
       </div>
     </template>
-  </el-dialog>
-  <el-dialog title="Cron表达式生成器" v-model="openCron" class="dialog" :append-to="$refs['app-container']" destroy-on-close>
+  </a-modal>
+  <a-modal title="Cron表达式生成器" v-model:open="openCron" class="dialog" destroy-on-close>
     <crontab ref="crontabRef" @hide="openCron = false" @fill="crontabFill" :expression="expression"> </crontab>
-    <!--    <crontab-->
-    <!--      ref="crontabRef"-->
-    <!--      @hide="openCron = false"-->
-    <!--      @fill="crontabFill"-->
-    <!--      :expression="expression"-->
-    <!--      :Crontab="false"-->
-    <!--    >-->
-    <!--    </crontab>-->
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
@@ -137,6 +123,7 @@ import { defineProps, defineEmits, ref, computed, watch } from "vue";
 import CodeShow from "@/components/SqlEditor/editorShow/index.vue";
 import Crontab from "@/components/Crontab/index.vue";
 import { useRoute, useRouter } from "vue-router";
+import { ClockCircleOutlined } from "@ant-design/icons-vue";
 const route = useRoute();
 const { proxy } = getCurrentInstance();
 import { dppEtlSqlTemp, getNodeUniqueKey } from "@/api/col/task/index.js";
@@ -159,8 +146,6 @@ const form = ref({
   // 表单数据
   name: "",
   catCode: "",
-  personCharge: "",
-  contactNumber: "",
   crontab: "",
   releaseState: "0",
   description: "",
@@ -283,8 +268,6 @@ const closeDialog = () => {
 const applyCurrentUserAsCreator = (target) => {
   target.creatorId = userStore.id;
   target.createBy = userStore.nickName || userStore.name;
-  target.personCharge = userStore.id;
-  target.contactNumber = userStore.phonenumber || "";
 };
 const saveClose = async () => {
   try {
@@ -358,13 +341,13 @@ function crontabFill(value) {
   color: #2666fb;
 }
 
-:deep(.el-select) {
-  .el-select__wrapper.is-disabled {
+:deep(.ant-select) {
+  &.ant-select-disabled {
     cursor: default;
     background-color: #fcfcfc;
-    --el-select-disabled-color: #333;
+    color: #333;
 
-    .el-select__suffix {
+    .ant-select-suffix {
       display: none;
     }
   }
@@ -374,10 +357,10 @@ function crontabFill(value) {
   user-select: none;
   cursor: pointer;
   font-size: 14px;
-  color: var(--el-color-primary);
+  color: #2666fb;
 
   &:hover {
-    color: var(--el-color-primary-light-3);
+    color: #4a86fc;
   }
 }
 

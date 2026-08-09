@@ -1,26 +1,26 @@
 ﻿<template>
   <div class="quality-risk-card" v-if="warning">
     <div class="card-header">
-      <el-icon><WarningFilled /></el-icon>
+      <WarningFilled class="header-icon" />
       <span>质量探查风险提示</span>
     </div>
     <div class="card-content">
       <div class="warning-message">{{ warning }}</div>
       <div class="risk-actions" v-if="showActions">
-        <el-button size="small" type="primary" plain @click="handleRefresh">
-          <el-icon><Refresh /></el-icon>
+        <a-button size="small" type="primary" @click="handleRefresh">
+          <template #icon><ReloadOutlined /></template>
           重新核检
-        </el-button>
-        <el-button size="small" type="info" plain @click="handleContact">
+        </a-button>
+        <a-button size="small" @click="handleContact">
           联系负责人
-        </el-button>
+        </a-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { WarningFilled, Refresh } from '@element-plus/icons-vue'
+import { WarningFilled, ReloadOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps({
   warning: {
@@ -59,7 +59,7 @@ const handleContact = () => {
     background: #fff1b8;
     border-bottom: 1px solid #ffd591;
 
-    .el-icon {
+    .header-icon {
       color: #fa8c16;
     }
 

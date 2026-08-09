@@ -1,46 +1,46 @@
-﻿
+
 import request from '@/utils/request.js'
 
-// 查询数据资产文档类目管理列表
+// 查询数据资产文档目录管理列表
 export function listAttDocCat(query) {
   return request({
-    url: '/tax/AttDocCat/list',
+    url: '/tax/category/list/DOCUMENT',
     method: 'get',
     params: query
   })
 }
 
-// 查询数据资产文档类目管理详细
+// 查询数据资产文档目录管理详细
 export function getAttDocCat(id) {
   return request({
-    url: '/tax/AttDocCat/' + id,
+    url: '/tax/category/' + id,
     method: 'get'
   })
 }
 
-// 新增数据资产文档类目管理
+// 新增数据资产文档目录管理
 export function addAttDocCat(data) {
   return request({
-    url: '/tax/AttDocCat',
+    url: '/tax/category',
     method: 'post',
-    data: data
+    data: { ...data, catType: 'DOCUMENT' }
   })
 }
 
-// 修改数据资产文档类目管理
+// 修改数据资产文档目录管理
 export function updateAttDocCat(data) {
   return request({
-    url: '/tax/AttDocCat',
+    url: '/tax/category',
     method: 'put',
-    data: data
+    data: { ...data, catType: 'DOCUMENT' }
   })
 }
 
-// 删除数据资产文档类目管理
+// 删除数据资产文档目录管理
 export function delAttDocCat(id) {
   return request({
-    url: '/tax/AttDocCat/' + id,
-    method: 'delete'
+    url: '/tax/category/' + id,
+    method: 'delete',
+    params: { catType: 'DOCUMENT' }
   })
 }
-

@@ -1,325 +1,290 @@
 <template>
     <!-- 属性字段  -->
     <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-            <el-col :span="1.5">
-                <el-button type="primary" plain @click="handleAdd" @mousedown="(e) => e.preventDefault()">
+        <a-row :gutter="15" class="btn-style">
+            <a-col :span="1.5">
+                <a-button type="primary" @click="handleAdd" @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-            </el-col>
-        </el-row>
+                </a-button>
+            </a-col>
+        </a-row>
         <div class="justify-end top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </div>
     </div>
-    <el-table stripe height="38.5vh" v-loading="loading" :data="dpModelColumnList"
-        @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
-        <el-table-column label="编号" type="index" width="60" align="left">
-            <template #default="scope">
-                <span>{{
-                    (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1
-                    }}</span>
-            </template>
-        </el-table-column>
-        <!-- <el-table-column label="编号" align="left" prop="index" /> -->
-        <el-table-column label="关联标准" align="left" prop="dataElemName">
-            <template #default="scope">
-                {{ scope.row.dataElemName || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="中文名称" :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="cnName">
-            <template #default="scope">
-                {{ scope.row.cnName || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="英文名称" :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="engName">
-            <template #default="scope">
-                {{ scope.row.engName || '-' }}
-            </template>
-        </el-table-column>
-
-        <el-table-column label="数据类型" align="left" prop="columnType">
-            <template #default="scope">
-                {{ scope.row.columnType || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="描述" align="left" prop="description" :show-overflow-tooltip="{ effect: 'light' }"
-            width="250">
-            <template #default="scope">
-                {{ scope.row.description || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="属性长度" align="left" prop="columnLength">
-            <template #default="scope">
-                {{ scope.row.columnLength || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="是否主键" align="left" prop="pkFlag">
-            <template #default="scope">
-                <el-switch v-model="scope.row.pkFlag" :active-value="'1'" :inactive-value="'0'" disabled />
-            </template>
-        </el-table-column>
-
-        <el-table-column label="创建人" align="left" prop="createBy" :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.createBy || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="创建时间" align="left" prop="createTime" :show-overflow-tooltip="{ effect: 'light' }"
-            width="150">
-            <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d} {h}:{i}') }}</span>
-            </template>
-        </el-table-column>
-        <el-table-column label="备注" align="left" prop="remark" :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.remark || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
-            <template #default="scope">
-                <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-                <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
-            </template>
-        </el-table-column>
-
-        <template #empty>
-            <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-            </div>
+    <a-table
+      stripe
+      :loading="loading"
+      :data-source="dpModelColumnList"
+      :columns="tableColumns"
+      :pagination="false"
+      :scroll="{ y: '38.5vh' }"
+      row-key="id"
+      :locale="{ emptyText: emptyContent }"
+      @change="handleSortChange"
+    >
+      <template #bodyCell="{ column, record, index }">
+        <template v-if="column.key === 'index'">
+          <span>{{
+            (queryParams.pageNum - 1) * queryParams.pageSize + index + 1
+          }}</span>
         </template>
-    </el-table>
+        <template v-else-if="column.dataIndex === 'dataElemName'">
+          {{ record.dataElemName || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'cnName'">
+          {{ record.cnName || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'engName'">
+          {{ record.engName || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'columnType'">
+          {{ record.columnType || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'description'">
+          {{ record.description || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'columnLength'">
+          {{ record.columnLength || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'pkFlag'">
+          <a-switch v-model:checked="record.pkFlag" checked-value="1" un-checked-value="0" disabled />
+        </template>
+        <template v-else-if="column.dataIndex === 'createBy'">
+          {{ record.createBy || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          <span>{{ parseTime(record.createTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+        </template>
+        <template v-else-if="column.dataIndex === 'remark'">
+          {{ record.remark || '-' }}
+        </template>
+        <template v-else-if="column.key === 'actions'">
+          <a-button type="link" size="small" @click="handleUpdate(record)">修改</a-button>
+          <a-button type="link" danger size="small" @click="handleDelete(record)">删除</a-button>
+        </template>
+      </template>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 新增或修改逻辑模型属性信息对话框 -->
-    <el-dialog class="autoHeight" :title="title" v-model="open" width="800px" :append-to="$refs['app-container']"
-        draggable>
-        <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
-                {{ title }}
-            </span>
-        </template>
-        <el-form ref="dpModelColumnRef" :model="form" :rules="rules" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="关联标准" prop="dataElemId">
-                        <el-select v-model="form.dataElemId" placeholder="请选择关联标准" @change="handleDatasourceChange"
-                            filterable>
-                            <el-option v-for="dict in DpData" :key="dict.id" :label="dict.name"
-                                :value="dict.id"></el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="中文名称" prop="cnName">
-                        <el-input v-model="form.cnName" placeholder="请输入中文名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="英文名称" prop="engName">
-                        <el-input v-model="form.engName" placeholder="请输入英文名称"
+    <a-modal class="autoHeight" :title="title" v-model:open="open" width="800px" draggable>
+        <a-form ref="dpModelColumnRef" :model="form" :rules="rules"
+            :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="关联标准" name="dataElemId">
+                        <a-select v-model:value="form.dataElemId" placeholder="请选择关联标准" @change="handleDatasourceChange"
+                            show-search>
+                            <a-select-option v-for="dict in DpData" :key="dict.id" :value="dict.id">{{ dict.name
+                            }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="中文名称" name="cnName">
+                        <a-input v-model:value="form.cnName" placeholder="请输入中文名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="英文名称" name="engName">
+                        <a-input v-model:value="form.engName" placeholder="请输入英文名称"
                             @input="convertToUpperCase('engName', form.engName)" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="数据类型" prop="columnType">
-                        <el-select v-model="form.columnType" placeholder="请选择数据类型">
-                            <el-option v-for="dict in column_type" :key="dict.value" :label="dict.label"
-                                :value="dict.value"></el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="数据类型" name="columnType">
+                        <a-select v-model:value="form.columnType" placeholder="请选择数据类型">
+                            <a-select-option v-for="dict in column_type" :key="dict.value" :value="dict.value">{{
+                                dict.label }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
 
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="属性长度" prop="columnLength">
-                        <el-input-number :step="1" step-strictly v-model="form.columnLength" style="width: 100%"
-                            controls-position="right" :min="1" :max="9999999999" placeholder="请输入属性长度" />
-                    </el-form-item>
-                </el-col>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="属性长度" name="columnLength">
+                        <a-input-number :step="1" v-model:value="form.columnLength" style="width: 100%"
+                            :min="1" :max="9999999999" placeholder="请输入属性长度" />
+                    </a-form-item>
+                </a-col>
 
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="描述" prop="modelComment">
-                        <el-input v-model="form.modelComment" type="textarea" placeholder="请输入描述" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="描述" name="modelComment">
+                        <a-textarea v-model:value="form.modelComment" placeholder="请输入描述" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
                     <!-- decimal、NUMERIC、number -->
-                    <el-form-item label="小数位数" prop="columnScale">
-                        <el-input-number :disabled="form.columnType !== 'DECIMAL' &&
+                    <a-form-item label="小数位数" name="columnScale">
+                        <a-input-number :disabled="form.columnType !== 'DECIMAL' &&
                             form.columnType !== 'NUMBER' &&
                             form.columnType !== 'NUMERIC' &&
                             form.columnType !== 'FLOAT' &&
                             form.columnType !== 'DOUBLE'
-                            " :step="1" step-strictly v-model="form.columnScale" style="width: 100%"
-                            controls-position="right" :min="0" :max="9999999999" placeholder="请输入小数长度" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="默认值" prop="defaultValue">
-                        <el-input v-model="form.defaultValue" placeholder="请输入默认值" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="是否主键" prop="pkFlag">
-                        <el-radio-group v-model="form.pkFlag" @change="handlePkFlagChange">
-                            <el-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value">{{
-                                dict.label }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="是否必填" prop="nullableFlag">
-                        <el-radio-group v-model="form.nullableFlag" :disabled="form.pkFlag == 1">
-                            <el-radio v-for="dict in dp_model_column_nullable_flag" :key="dict.value"
+                            " :step="1" v-model:value="form.columnScale" style="width: 100%"
+                            :min="0" :max="9999999999" placeholder="请输入小数长度" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="默认值" name="defaultValue">
+                        <a-input v-model:value="form.defaultValue" placeholder="请输入默认值" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="是否主键" name="pkFlag">
+                        <a-radio-group v-model:value="form.pkFlag" @change="handlePkFlagChange">
+                            <a-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value">{{
+                                dict.label }}</a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="是否必填" name="nullableFlag">
+                        <a-radio-group v-model:value="form.nullableFlag" :disabled="form.pkFlag == 1">
+                            <a-radio v-for="dict in dp_model_column_nullable_flag" :key="dict.value"
                                 :value="dict.value">{{
-                                    dict.label }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                                    dict.label }}</a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+            </a-row>
 
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="备注">
-                        <el-input type="textarea" placeholder="请输入备注" v-model="form.remark" :min-height="192" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="备注">
+                        <a-textarea placeholder="请输入备注" v-model:value="form.remark" :auto-size="{ minRows: 4 }" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="cancel">取 消</el-button>
-                <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+                <a-button size="small" @click="cancel">取 消</a-button>
+                <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 逻辑模型属性信息详情对话框 -->
-    <el-dialog :title="title" v-model="openDetail" width="800px" :append-to="$refs['app-container']" draggable>
-        <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
-                {{ title }}
-            </span>
-        </template>
-        <el-form ref="dpModelColumnRef" :model="form" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="关联数据标准" prop="dataElemId">
+    <a-modal :title="title" v-model:open="openDetail" width="800px" draggable>
+        <a-form ref="dpModelColumnRef" :model="form" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="关联数据标准" name="dataElemId">
                         <div>
                             {{ form.dataElemId }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="英文名称" prop="engName">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="英文名称" name="engName">
                         <div>
                             {{ form.engName }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="中文名称" prop="cnName">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="中文名称" name="cnName">
                         <div>
                             {{ form.cnName }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="数据类型" prop="columnType">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="数据类型" name="columnType">
                         <div>
                             {{ form.columnType }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="属性长度" prop="columnLength">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="属性长度" name="columnLength">
                         <div>
                             {{ form.columnLength }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="小数长度" prop="columnScale">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="小数长度" name="columnScale">
                         <div>
                             {{ form.columnScale }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="默认值" prop="defaultValue">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="默认值" name="defaultValue">
                         <div>
                             {{ form.defaultValue }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="是否主键" prop="pkFlag">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="是否主键" name="pkFlag">
                         <div>
                             {{ form.pkFlag }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="是否必填" prop="nullableFlag">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="是否必填" name="nullableFlag">
                         <div>
                             {{ form.nullableFlag }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="排序" prop="sortOrder">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="排序" name="sortOrder">
                         <div>
                             {{ form.sortOrder }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="数据元id" prop="dataElemId">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="数据元id" name="dataElemId">
                         <div>
                             {{ form.dataElemId }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="备注" prop="remark">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="备注" name="remark">
                         <div>
                             {{ form.remark }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="cancel">关 闭</el-button>
+                <a-button size="small" @click="cancel">关 闭</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup name="ComponentOne">
@@ -339,6 +304,30 @@ const { column_type, dp_model_column_pk_flag, dp_model_column_nullable_flag } = 
     'dp_model_column_nullable_flag'
 );
 const dpModelColumnList = ref([]);
+const tableColumns = [
+    { title: '编号', key: 'index', align: 'left', width: 60 },
+    { title: '关联标准', dataIndex: 'dataElemName', align: 'left' },
+    { title: '中文名称', dataIndex: 'cnName', align: 'left', ellipsis: true },
+    { title: '英文名称', dataIndex: 'engName', align: 'left', ellipsis: true },
+    { title: '数据类型', dataIndex: 'columnType', align: 'left' },
+    { title: '描述', dataIndex: 'description', align: 'left', width: 250, ellipsis: true },
+    { title: '属性长度', dataIndex: 'columnLength', align: 'left' },
+    { title: '是否主键', dataIndex: 'pkFlag', align: 'left' },
+    { title: '创建人', dataIndex: 'createBy', align: 'left', ellipsis: true },
+    { title: '创建时间', dataIndex: 'createTime', align: 'left', width: 150, ellipsis: true },
+    { title: '备注', dataIndex: 'remark', align: 'left', ellipsis: true },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 }
+];
+const emptyContent = h('div', { class: 'emptyBg' }, [
+    h('img', {
+        src: new URL(
+            '@/assets/system/images/no_data/noData.png',
+            import.meta.url
+        ).href,
+        alt: ''
+    }),
+    h('p', '暂无记录')
+]);
 const open = ref(false);
 const openDetail = ref(false);
 const loading = ref(true);
@@ -508,16 +497,24 @@ function resetQuery() {
 }
 
 // 多选框选中数据
-function handleSelectionChange(selection) {
-    ids.value = selection.map((item) => item.id);
-    single.value = selection.length != 1;
-    multiple.value = !selection.length;
+function handleSelectionChange(selectedRowKeys, selectedRows) {
+    ids.value = selectedRows.map((item) => item.id);
+    single.value = selectedRows.length != 1;
+    multiple.value = !selectedRows.length;
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-    queryParams.value.orderByColumn = column.prop;
-    queryParams.value.isAsc = column.order;
+function handleSortChange(pag, filters, sorter) {
+    const prop = sorter.field || sorter.column?.dataIndex;
+    const order =
+        sorter.order === 'ascend'
+            ? 'ascending'
+            : sorter.order === 'descend'
+                ? 'descending'
+                : null;
+    queryParams.value.orderByColumn =
+        prop == 'createTime' ? 'create_time' : prop;
+    queryParams.value.isAsc = order;
     getList();
 }
 
@@ -552,8 +549,9 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-    proxy.$refs['dpModelColumnRef'].validate((valid) => {
-        if (valid) {
+    proxy.$refs['dpModelColumnRef']
+        .validate()
+        .then(() => {
             form.value.modelId = modelId;
             if (form.value.id != null) {
                 updateDpModelColumns(form.value)
@@ -572,8 +570,8 @@ function submitForm() {
                     })
                     .catch((error) => { });
             }
-        }
-    });
+        })
+        .catch(() => { });
 }
 
 /** 删除按钮操作 */

@@ -1,66 +1,62 @@
 <template>
-  <el-dialog
-    v-model="visibleDialog"
-    draggable
+  <a-modal
+    v-model:open="visibleDialog"
     class="dialog"
     :title="title"
     destroy-on-close
-    :append-to="$refs['app-container']"
   >
-    <el-form
+    <a-form
       ref="daDiscoveryTaskRef"
       :model="form"
       :rules="title == '任务详情' ? {} : rules"
-      label-width="146px"
+      :label-col="{ style: { width: '146px' } }"
       @submit.prevent
       :disabled="title == '任务详情'"
     >
       <div class="h2-title">基本信息</div>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="任务名称" prop="name">
-            <el-input
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="任务名称" name="name">
+            <a-input
               v-if="title != '任务详情'"
-              v-model="form.name"
+              v-model:value="form.name"
               placeholder="请输入任务名称"
             />
             <div class="form-readonly" v-else>{{ form.name }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="任务类目" prop="catCode">
-            <el-tree-select
-              :default-expanded-keys="defaultExpandedCats"
-              filterable
-              v-model="form.catCode"
-              :data="deptOptions"
-              :props="{ value: 'code', label: 'name', children: 'children' }"
-              value-key="id"
-              placeholder="请选择任务类目"
-              check-strictly
-              @node-click="handleNodeClick"
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="任务目录" name="catCode">
+            <a-tree-select
+              :tree-default-expanded-keys="defaultExpandedCats"
+              show-search
+              v-model:value="form.catCode"
+              :tree-data="deptOptions"
+              :field-names="{ value: 'code', label: 'name', children: 'children' }"
+              placeholder="请选择任务目录"
+              @select="(value, node) => handleNodeClick(node)"
             />
-          </el-form-item>
-        </el-col>
-      </el-row>
+          </a-form-item>
+        </a-col>
+      </a-row>
 
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="执行策略" prop="executionType">
-            <el-select
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="执行策略" name="executionType">
+            <a-select
               v-if="title != '任务详情'"
               class="el-form-input-width"
-              v-model="form.executionType"
+              v-model:value="form.executionType"
               placeholder="请选择执行策略"
               style="width: 100%"
             >
-              <el-option
+              <a-select-option
                 v-for="dict in col_etl_task_execution_type"
                 :key="dict.value"
                 :label="dict.label"
                 :value="dict.value"
-              ></el-option>
-            </el-select>
+              >{{ dict.label }}</a-select-option>
+            </a-select>
             <div class="form-readonly" v-else>
               {{
                 col_etl_task_execution_type.find(
@@ -68,58 +64,56 @@
                 )?.label || "-"
               }}
             </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="调度周期" prop="crontab">
-            <el-input
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="调度周期" name="crontab">
+            <a-input
               v-if="title != '任务详情'"
-              v-model="form.crontab"
+              v-model:value="form.crontab"
               placeholder="请选择调度周期"
             >
-              <template #append>
-                <el-button
+              <template #addonAfter>
+                <a-button
                   type="primary"
                   @click="handleShowCron"
                   style="background-color: #2666fb; color: #fff"
                 >
                   配置
-                  <i class="el-icon-time el-icon--right"></i>
-                </el-button>
+                </a-button>
               </template>
-            </el-input>
+            </a-input>
             <div class="form-readonly" v-else>{{ form.crontab }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="描述" prop="description">
-            <el-input
+          </a-form-item>
+        </a-col>
+        <a-col :span="24">
+          <a-form-item label="描述" name="description">
+            <a-textarea
               v-if="title != '任务详情'"
-              v-model="form.description"
-              type="textarea"
+              v-model:value="form.description"
               placeholder="请输入描述"
             />
             <div class="form-readonly" v-else>
               {{ form.description || "-" }}
             </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="任务状态" prop="releaseState">
-            <el-radio-group
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="任务状态" name="releaseState">
+            <a-radio-group
               v-if="title != '任务详情'"
-              v-model="form.releaseState"
+              v-model:value="form.releaseState"
               class="el-form-input-width"
             >
-              <el-radio
+              <a-radio
                 v-for="dict in dpp_etl_task_status"
                 :key="dict.value"
-                :label="dict.value"
+                :value="dict.value"
                 :disabled="dict.value == 1"
               >
                 {{ dict.label }}
-              </el-radio>
-            </el-radio-group>
+              </a-radio>
+            </a-radio-group>
             <div class="form-readonly" v-else>
               {{
                 dpp_etl_task_status.find(
@@ -127,26 +121,26 @@
                 )?.label || "-"
               }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
+          </a-form-item>
+        </a-col>
+      </a-row>
       <div class="h2-title">属性信息</div>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="任务优先级" prop="taskPriority">
-            <el-select
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="任务优先级" name="taskPriority">
+            <a-select
               v-if="title != '任务详情'"
-              clearable
-              v-model="form.taskPriority"
+              allow-clear
+              v-model:value="form.taskPriority"
               placeholder="请选择任务优先级"
             >
-              <el-option
+              <a-select-option
                 v-for="(item, index) in col_etl_task_priority"
                 :key="index"
                 :label="item.label"
                 :value="item.value"
               />
-            </el-select>
+            </a-select>
             <div class="form-readonly" v-else>
               {{
                 col_etl_task_priority.find(
@@ -154,181 +148,174 @@
                 )?.label || "-"
               }}
             </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="Worker分组" prop="workerGroup">
-            <el-input
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="Worker分组" name="workerGroup">
+            <a-input
               v-if="title != '任务详情'"
-              v-model="form.workerGroup"
+              v-model:value="form.workerGroup"
               placeholder="请输入Worker分组"
               disabled
             />
             <div class="form-readonly" v-else>
               {{ form.workerGroup ?? "-" }}
             </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="失败重试次数" prop="failRetryTimes">
-            <el-input
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="失败重试次数" name="failRetryTimes">
+            <a-input
               v-if="title != '任务详情'"
               type="number"
-              v-model="form.failRetryTimes"
+              v-model:value="form.failRetryTimes"
               placeholder="请输入失败重试次数"
             >
-              <template #append>次</template>
-            </el-input>
+              <template #addonAfter>次</template>
+            </a-input>
             <div class="form-readonly" v-else>
               {{ form.failRetryTimes || "-" }}
             </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="失败重试间隔" prop="failRetryInterval">
-            <el-input
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="失败重试间隔" name="failRetryInterval">
+            <a-input
               v-if="title != '任务详情'"
               type="number"
-              v-model="form.failRetryInterval"
+              v-model:value="form.failRetryInterval"
               placeholder="请输入失败重试间隔"
             >
-              <template #append>分</template>
-            </el-input>
+              <template #addonAfter>分</template>
+            </a-input>
             <div class="form-readonly" v-else>
               {{ form.failRetryInterval || "-" }}
             </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="延迟执行时间" prop="delayTime">
-            <el-input
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="延迟执行时间" name="delayTime">
+            <a-input
               v-if="title != '任务详情'"
               type="number"
-              v-model="form.delayTime"
+              v-model:value="form.delayTime"
               placeholder="请输入延迟执行时间"
             >
-              <template #append>分</template>
-            </el-input>
+              <template #addonAfter>分</template>
+            </a-input>
             <div class="form-readonly" v-else>{{ form.delayTime || "-" }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="执行引擎" prop="taskType">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="执行引擎" name="taskType">
             <div class="form-readonly">FLINK (FlinkX)</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
+          </a-form-item>
+        </a-col>
+      </a-row>
 
-      <el-row :gutter="20">
+      <a-row :gutter="20">
         <template v-if="form.taskType == 'FLINK'">
-          <el-col :span="12">
-            <el-form-item label="JobManager内存" prop="jobManagerMemory">
-              <el-input v-if="title != '任务详情'" v-model="form.jobManagerMemory" placeholder="请输入JobManager内存，如 1G" />
+          <a-col :span="12">
+            <a-form-item label="JobManager内存" name="jobManagerMemory">
+              <a-input v-if="title != '任务详情'" v-model:value="form.jobManagerMemory" placeholder="请输入JobManager内存，如 1G" />
               <div class="form-readonly" v-else>{{ form.jobManagerMemory || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="TaskManager内存" prop="taskManagerMemory">
-              <el-input v-if="title != '任务详情'" v-model="form.taskManagerMemory" placeholder="请输入TaskManager内存，如 2G" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="TaskManager内存" name="taskManagerMemory">
+              <a-input v-if="title != '任务详情'" v-model:value="form.taskManagerMemory" placeholder="请输入TaskManager内存，如 2G" />
               <div class="form-readonly" v-else>{{ form.taskManagerMemory || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Slot数量" prop="slot">
-              <el-input-number v-if="title != '任务详情'" v-model="form.slot" controls-position="right" :min="1" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="Slot数量" name="slot">
+              <a-input-number v-if="title != '任务详情'" v-model:value="form.slot" :min="1" style="width: 100%" />
               <div class="form-readonly" v-else>{{ form.slot || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="TaskManager数量" prop="taskManager">
-              <el-input-number v-if="title != '任务详情'" v-model="form.taskManager" controls-position="right" :min="1" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="TaskManager数量" name="taskManager">
+              <a-input-number v-if="title != '任务详情'" v-model:value="form.taskManager" :min="1" style="width: 100%" />
               <div class="form-readonly" v-else>{{ form.taskManager || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="并行度" prop="parallelism">
-              <el-input-number v-if="title != '任务详情'" v-model="form.parallelism" controls-position="right" :min="1" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="并行度" name="parallelism">
+              <a-input-number v-if="title != '任务详情'" v-model:value="form.parallelism" :min="1" style="width: 100%" />
               <div class="form-readonly" v-else>{{ form.parallelism || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Yarn队列" prop="yarnQueue">
-              <el-input v-if="title != '任务详情'" v-model="form.yarnQueue" placeholder="请输入Yarn队列(选填)" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="Yarn队列" name="yarnQueue">
+              <a-input v-if="title != '任务详情'" v-model:value="form.yarnQueue" placeholder="请输入Yarn队列(选填)" />
               <div class="form-readonly" v-else>{{ form.yarnQueue || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="错误记录容忍" prop="errorLimitRecord">
-              <el-input-number v-if="title != '任务详情'" v-model="form.errorLimitRecord" controls-position="right" :min="0" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="错误记录容忍" name="errorLimitRecord">
+              <a-input-number v-if="title != '任务详情'" v-model:value="form.errorLimitRecord" :min="0" style="width: 100%" />
               <div class="form-readonly" v-else>{{ form.errorLimitRecord ?? "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="错误比例容忍" prop="errorLimitPercentage">
-              <el-input-number v-if="title != '任务详情'" v-model="form.errorLimitPercentage" controls-position="right" :min="0" :max="1" :step="0.01" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="错误比例容忍" name="errorLimitPercentage">
+              <a-input-number v-if="title != '任务详情'" v-model:value="form.errorLimitPercentage" :min="0" :max="1" :step="0.01" style="width: 100%" />
               <div class="form-readonly" v-else>{{ form.errorLimitPercentage ?? "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="断点续传" prop="isRestore">
-              <el-switch v-if="title != '任务详情'" v-model="form.isRestore" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="断点续传" name="isRestore">
+              <a-switch v-if="title != '任务详情'" v-model:checked="form.isRestore" />
               <div class="form-readonly" v-else>{{ form.isRestore ? "开启" : "关闭" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="Checkpoint行数" prop="maxRowNumForCheckpoint">
-              <el-input-number v-if="title != '任务详情'" v-model="form.maxRowNumForCheckpoint" controls-position="right" :min="0" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="Checkpoint行数" name="maxRowNumForCheckpoint">
+              <a-input-number v-if="title != '任务详情'" v-model:value="form.maxRowNumForCheckpoint" :min="0" style="width: 100%" />
               <div class="form-readonly" v-else>{{ form.maxRowNumForCheckpoint ?? "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="任务日志" prop="isLogger">
-              <el-switch v-if="title != '任务详情'" v-model="form.isLogger" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="任务日志" name="isLogger">
+              <a-switch v-if="title != '任务详情'" v-model:checked="form.isLogger" />
               <div class="form-readonly" v-else>{{ form.isLogger ? "开启" : "关闭" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="日志级别" prop="logLevel">
-              <el-select v-if="title != '任务详情'" v-model="form.logLevel" style="width: 100%">
-                <el-option label="INFO" value="info" />
-                <el-option label="DEBUG" value="debug" />
-                <el-option label="WARN" value="warn" />
-                <el-option label="ERROR" value="error" />
-              </el-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="日志级别" name="logLevel">
+              <a-select v-if="title != '任务详情'" v-model:value="form.logLevel" style="width: 100%">
+                <a-select-option label="INFO" value="info" />
+                <a-select-option label="DEBUG" value="debug" />
+                <a-select-option label="WARN" value="warn" />
+                <a-select-option label="ERROR" value="error" />
+              </a-select>
               <div class="form-readonly" v-else>{{ form.logLevel || "-" }}</div>
-            </el-form-item>
-          </el-col>
+            </a-form-item>
+          </a-col>
         </template>
-      </el-row>
-      <!-- <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
-          </el-form-item>
-        </el-col>
-      </el-row> -->
-    </el-form>
+      </a-row>
+    </a-form>
     <template #footer>
       <div style="text-align: right">
         <template v-if="info">
-          <el-button @click="closeDialog">关闭</el-button>
-          <el-button type="primary" v-if="!route.query.info" @click="saveClose"
-            >保存</el-button
+          <a-button @click="closeDialog">关闭</a-button>
+          <a-button type="primary" v-if="!route.query.info" @click="saveClose"
+            >保存</a-button
           >
         </template>
         <template v-else>
-          <el-button @click="saveClose" :disabled="saveLoading">仅保存</el-button>
-          <el-button type="primary" @click="saveData" :disabled="saveLoading">保存并配置流程</el-button>
+          <a-button @click="saveClose" :disabled="saveLoading">仅保存</a-button>
+          <a-button type="primary" @click="saveData" :disabled="saveLoading">保存并配置流程</a-button>
         </template>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 
-  <el-dialog
+  <a-modal
     title="Cron表达式生成器"
-    v-model="openCron"
+    v-model:open="openCron"
     class="dialog"
-    :append-to="$refs['app-container']"
+    :footer="null"
     destroy-on-close
   >
     <!--    <crontab ref="crontabRef" @hide="openCron = false" @fill="crontabFill" :expression="expression" :Crontab="false">-->
@@ -339,7 +326,7 @@
       :expression="expression"
     >
     </crontab>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
@@ -378,7 +365,7 @@ const saveLoading = ref(false);
 // 定义表单验证规则
 const rules = {
   name: [{ required: true, message: "任务名称不能为空", trigger: "change" }],
-  catCode: [{ required: true, message: "任务类目不能为空", trigger: "change" }],
+  catCode: [{ required: true, message: "任务目录不能为空", trigger: "change" }],
   executionType: [
     { required: true, message: "执行策略不能为空", trigger: "change" },
   ],
@@ -393,8 +380,6 @@ const form = ref({
   crontab: "",
   releaseState: "0",
   description: "",
-  contactNumber: "",
-  personCharge: "",
   // 新添加
   taskPriority: "",
   workerGroup: "default",
@@ -427,8 +412,6 @@ const reset = () => {
     crontab: "",
     releaseState: "0",
     description: "",
-    contactNumber: "",
-    personCharge: "",
     // 新添加
     taskPriority: "",
     workerGroup: "default",
@@ -474,7 +457,7 @@ watch(
   }
 );
 const handleNodeClick = (val) => {
-  console.log("任务类目改变了，当前值：", val);
+  console.log("任务目录改变了，当前值：", val);
   form.value.catId = val.id;
 };
 // 计算属性处理 v-model
@@ -493,42 +476,36 @@ const closeDialog = () => {
 const applyCurrentUserAsCreator = () => {
   form.value.creatorId = userStore.id;
   form.value.createBy = userStore.nickName || userStore.name;
-  form.value.personCharge = userStore.id;
-  form.value.contactNumber = userStore.phonenumber || "";
 };
 const saveClose = () => {
   if (saveLoading.value) return;
   console.log("🚀 saveClose called, saveLoading:", saveLoading.value);
-  daDiscoveryTaskRef.value.validate((valid) => {
-    console.log("🚀 validate callback, valid:", valid, "saveLoading:", saveLoading.value);
-    if (valid) {
-      saveLoading.value = true;
-      console.log("🚀 emitting save event");
-      normalizeFlinkSetting();
-      applyCurrentUserAsCreator();
-      emit("save", form.value);
-    }
-  });
+  daDiscoveryTaskRef.value.validate().then(() => {
+    console.log("🚀 validate callback, valid:", true, "saveLoading:", saveLoading.value);
+    saveLoading.value = true;
+    console.log("🚀 emitting save event");
+    normalizeFlinkSetting();
+    applyCurrentUserAsCreator();
+    emit("save", form.value);
+  }).catch(() => {});
 };
 // 保存数据的方法
 const saveData = () => {
   if (saveLoading.value) return;
-  daDiscoveryTaskRef.value.validate((valid) => {
-    if (valid) {
-      saveLoading.value = true;
-      normalizeFlinkSetting();
-      applyCurrentUserAsCreator();
-      emit("confirm", form.value);
-      // 发送回echo完成事件
-      emit("回echo完成", {
-        dataSourceId: props.savedDataSourceId,
-        dataSourceName: props.savedDataSourceName,
-        dataSourceType: props.savedDataSourceType,
-        assetTableId: props.savedAssetTableId
-      });
-    } else {
-      console.log("表单校验未通过");
-    }
+  daDiscoveryTaskRef.value.validate().then(() => {
+    saveLoading.value = true;
+    normalizeFlinkSetting();
+    applyCurrentUserAsCreator();
+    emit("confirm", form.value);
+    // 发送回echo完成事件
+    emit("回echo完成", {
+      dataSourceId: props.savedDataSourceId,
+      dataSourceName: props.savedDataSourceName,
+      dataSourceType: props.savedDataSourceType,
+      assetTableId: props.savedAssetTableId
+    });
+  }).catch(() => {
+    console.log("表单校验未通过");
   });
 };
 

@@ -1,197 +1,165 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
 
-    <el-container style="90%">
-      <DeptTree :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入质量探查类目名称'" ref="DeptTreeRef"
+    <a-layout style="90%">
+      <DeptTree :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入质量探查目录名称'" ref="DeptTreeRef"
         @node-click="handleNodeClick" />
-      <el-main>
+      <a-layout-content>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
+          <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline" :label-col="{ style: { width: '45px' } }"
             v-show="showSearch" @submit.prevent>
-             <el-form-item label="名称" prop="taskName">
-              <el-input v-model="queryParams.taskName" placeholder="请输入任务名称" clearable
-                @keyup.enter="handleQuery" style="width: 160px;" />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-              <el-select v-model="queryParams.status" placeholder="请选择任务状态" clearable
+             <a-form-item label="名称" name="taskName">
+              <a-input v-model:value="queryParams.taskName" placeholder="请输入任务名称" allow-clear
+                @pressEnter="handleQuery" style="width: 160px;" />
+            </a-form-item>
+            <a-form-item label="状态" name="status">
+              <a-select v-model:value="queryParams.status" placeholder="请选择任务状态" allow-clear
                 style="width: 160px;">
-                <el-option v-for="dict in ast_discovery_task_status" :key="dict.value" :label="dict.label"
-                  :value="dict.value" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="创建人" prop="contact">
-              <el-input v-model="queryParams.contact" placeholder="请输入创建人" clearable
-                style="width: 160px;" @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item>
-              <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+                <a-select-option v-for="dict in ast_discovery_task_status" :key="dict.value" :value="dict.value">{{
+                  dict.label }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="创建人" name="contact">
+              <a-input v-model:value="queryParams.contact" placeholder="请输入创建人" allow-clear
+                style="width: 160px;" @pressEnter="handleQuery" />
+            </a-form-item>
+            <a-form-item>
+              <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-              </el-button>
-              <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+              </a-button>
+              <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-              </el-button>
-            </el-form-item>
-          </el-form>
+              </a-button>
+            </a-form-item>
+          </a-form>
           <div class="data-action-btns">
-            <el-button type="primary" plain @click="routeTo('/ast/quality/qualityTask/add', { row: null, })"
+            <a-button type="primary" @click="routeTo('/ast/quality/qualityTask/add', { row: null, })"
               v-hasPermi="['ast:qualityTask:add']" @mousedown="(e) => e.preventDefault()">
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
-            <el-button plain @click="routeTo('/ast/quality/errorStorageConfig', {})"
+            </a-button>
+            <a-button @click="routeTo('/ast/quality/errorStorageConfig', {})"
               @mousedown="(e) => e.preventDefault()">
               <i class="iconfont-mini icon-shezhi mr5"></i>存储配置
-            </el-button>
+            </a-button>
           </div>
           <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
           </div>
         </div>
         <div>
-          <el-table ref="tableRef" stripe v-loading="loading" :data="DppQualityTaskEvaluateList" :default-sort="defaultSort"
-            @sort-change="handleSortChange">
-            <el-table-column v-if="getColumnVisibility(1)" label="编号" align="center" prop="id" width="105" />
-            <el-table-column v-if="getColumnVisibility(2)" label="任务名称" align="left" prop="taskName" width="200">
-              <template #default="scope">
-                <span class="link-text">{{ scope.row.taskName || '-' }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(3)" label="所属类目" align="left" prop="catName" width="130">
-              <template #default="scope">
-                {{ scope.row.catName || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(4)" label="描述" width="160" align="left" prop="description">
-              <template #default="scope">
-                {{ scope.row.description || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(5)" label="稽查对象数" align="center" prop="taskObjNum" width="90">
-              <template #default="scope">
-                {{ scope.row.taskObjNum || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(6)" label="稽查规则数" align="center" prop="taskEvaluateNum"
-              width="90">
-              <template #default="scope">
-                {{ scope.row.taskEvaluateNum || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(7)" label="执行策略" align="left" prop="strategy" width="110">
-              <template #default="scope">
-                <dict-tag :options="col_etl_task_execution_type" :value="scope.row.strategy" />
-              </template>
-            </el-table-column>
-
-            <el-table-column v-if="getColumnVisibility(8)" label="调度周期" align="left" prop="cycle" width="160">
-              <template #default="scope">
-                <span v-if="scope.row.cycle">
-                  <el-icon style="margin-right:4px"><Clock /></el-icon>
-                  {{ cronToZh(scope.row.cycle) }}
-                </span>
-                <el-tag v-else size="small">未设置</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(9)" label="上次执行" align="left" prop="lastExecuteTime"
-              width="160">
-              <template #default="scope">
-                <span v-if="scope.row.lastExecuteTime">{{
-                  parseTime(scope.row.lastExecuteTime, '{y}-{m}-{d} {h}:{i}')
-                }}</span>
-                <el-tag v-else size="small" type="info">未执行</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(10)" width="120" label="创建人" align="left" prop="createBy">
-              <template #default="scope">
-                {{ scope.row.createBy || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(11)" label="创建时间" align="left" prop="createTime" width="150"
-              sortable="custom" column-key="create_time" :sort-orders="['descending', 'ascending']">
-              <template #default="scope">
-                {{
-                  parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
-                }}
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(12)" align="left" prop="status" width="70">
-              <template #header>
-                <span>状态</span>
-              </template>
-              <template #default="scope">
-                <el-tag v-if="scope.row.status == 0" type="success" size="small">上</el-tag>
-                <el-tag v-else type="info" size="small">下</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(13)" label="备注" width="120" align="left" prop="remark"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                {{ scope.row.remark || '-' }}
-              </template>
-            </el-table-column>
-
-            <el-table-column v-if="getColumnVisibility(14)" label="操作" align="left" fixed="right" width="260">
-              <template #default="scope">
-                <div class="task-actions-col">
-                  <div class="action-row">
-                    <el-button link type="primary" icon="Edit" @click="routeTo('/ast/quality/qualityTask/edit', {
-                      ...scope.row,
-                    })" v-hasPermi="['ast:qualityTask:edit']" :disabled="scope.row.status == 0">
-                      配置</el-button>
-                    <el-button link type="primary" icon="view" @click="
-                      routeTo('/ast/quality/qualityTask/detail', {
-                        ...scope.row,
-                        info: true,
-                      })
-                      " v-hasPermi="['ast:qualityTask:info']">详情</el-button>
-                    <el-button link type="danger" icon="Delete" :disabled="scope.row.status == 0"
-                      @click="handleDelete(scope.row)" v-hasPermi="['ast:qualityTask:remove']">删除</el-button>
+          <a-spin :spinning="loading">
+            <a-table
+              :data-source="DppQualityTaskEvaluateList"
+              :columns="tableColumns"
+              :pagination="false"
+              striped
+              :scroll="{ y: '60vh', x: 1800 }"
+              row-key="id"
+              :locale="{ emptyText: emptyContent }"
+              @change="handleSortChange"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.dataIndex === 'taskName'">
+                  <span class="link-text">{{ record.taskName || '-' }}</span>
+                </template>
+                <template v-else-if="column.dataIndex === 'strategy'">
+                  <dict-tag :options="col_etl_task_execution_type" :value="record.strategy" />
+                </template>
+                <template v-else-if="column.dataIndex === 'cycle'">
+                  <span v-if="record.cycle">{{ cronToZh(record.cycle) }}</span>
+                  <a-tag v-else size="small">未设置</a-tag>
+                </template>
+                <template v-else-if="column.dataIndex === 'lastExecuteTime'">
+                  <span v-if="record.lastExecuteTime">{{ parseTime(record.lastExecuteTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+                  <a-tag v-else color="default" size="small">未执行</a-tag>
+                </template>
+                <template v-else-if="column.dataIndex === 'createTime'">
+                  {{ parseTime(record.createTime, '{y}-{m}-{d} {h}:{i}') || '-' }}
+                </template>
+                <template v-else-if="column.dataIndex === 'status'">
+                  <a-tag v-if="record.status == 0" color="success" size="small">上</a-tag>
+                  <a-tag v-else color="default" size="small">下</a-tag>
+                </template>
+                <template v-else-if="column.key === 'actions'">
+                  <div class="task-actions-col">
+                    <div class="action-row">
+                      <a-button type="link" size="small" @click="routeTo('/ast/quality/qualityTask/edit', { ...record })" v-hasPermi="['ast:qualityTask:edit']" :disabled="record.status == 0">配置</a-button>
+                      <a-button type="link" size="small" @click="routeTo('/ast/quality/qualityTask/detail', { ...record, info: true })" v-hasPermi="['ast:qualityTask:info']">详情</a-button>
+                      <a-button type="link" danger size="small" :disabled="record.status == 0" @click="handleDelete(record)" v-hasPermi="['ast:qualityTask:remove']">删除</a-button>
+                    </div>
+                    <div class="action-row">
+                      <a-button type="link" size="small" :disabled="record.status == 0" :loading="publishingId === record.id" @click="handlePublishClick(record)">发布</a-button>
+                      <a-button type="link" size="small" :disabled="record.status != 0" :loading="unpublishingId === record.id" @click="handleUnpublishClick(record)">卸载</a-button>
+                      <a-button type="link" size="small" @click="handleExecuteOnce(record)" v-hasPermi="['ast:qualityTask:once']" :disabled="record.status != 0">执行一次</a-button>
+                    </div>
                   </div>
-                  <div class="action-row">
-                    <el-button link type="success" icon="Upload" :disabled="scope.row.status == 0"
-                      :loading="publishingId === scope.row.id"
-                      @click="handlePublishClick(scope.row)">发布</el-button>
-                    <el-button link type="warning" icon="Download" :disabled="scope.row.status != 0"
-                      :loading="unpublishingId === scope.row.id"
-                      @click="handleUnpublishClick(scope.row)">卸载</el-button>
-                    <el-button link type="primary" icon="VideoPlay"
-                      @click="handleExecuteOnce(scope.row)" v-hasPermi="['ast:qualityTask:once']"
-                      :disabled="scope.row.status != 0">执行一次</el-button>
-                  </div>
-                </div>
+                </template>
+                <template v-else>
+                  <span>{{ record[column.dataIndex] || '-' }}</span>
+                </template>
               </template>
-            </el-table-column>
-            <template #empty>
-              <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-              </div>
-            </template>
-          </el-table>
+            </a-table>
+          </a-spin>
           <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
         </div>
-      </el-main>
-    </el-container>
+      </a-layout-content>
+    </a-layout>
     <DataViewDialog :visible="DataView" :taskType="3" @update:visible="DataView = $event" :data="form" title="执行记录" />
 
   </div>
 </template>
 
 <script setup name="QualityTask">
+
 import { treeData } from "./data.js";
+
 import {
   createEtlTaskFront
 } from "@/api/col/task/index.js";
+
 import { cronToZh } from "@/utils/cronUtils";
+
+import { h } from 'vue';
+
+const tableColumns = [
+  { title: '编号', dataIndex: 'id', align: 'center', width: 105 },
+  { title: '任务名称', dataIndex: 'taskName', align: 'left', width: 200 },
+  { title: '所属目录', dataIndex: 'catName', align: 'left', width: 130 },
+  { title: '描述', dataIndex: 'description', align: 'left', width: 160, ellipsis: true },
+  { title: '稽查对象数', dataIndex: 'taskObjNum', align: 'center', width: 90 },
+  { title: '稽查规则数', dataIndex: 'taskEvaluateNum', align: 'center', width: 90 },
+  { title: '执行策略', dataIndex: 'strategy', align: 'left', width: 110 },
+  { title: '调度周期', dataIndex: 'cycle', align: 'left', width: 160 },
+  { title: '上次执行', dataIndex: 'lastExecuteTime', align: 'left', width: 160 },
+  { title: '创建人', dataIndex: 'createBy', align: 'left', width: 120 },
+  { title: '创建时间', dataIndex: 'createTime', align: 'left', width: 150, sorter: true },
+  { title: '状态', dataIndex: 'status', align: 'left', width: 70 },
+  { title: '备注', dataIndex: 'remark', align: 'left', width: 120, ellipsis: true },
+  { title: '操作', key: 'actions', align: 'left', fixed: 'right', width: 260 },
+];
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
+
 import DataViewDialog from "./components/instance.vue";
 const userStore = useUserStore();
+
 import { useRoute, useRouter } from "vue-router";
+
 import useUserStore from "@/store/system/user";
+
 import DeptTree from "@/components/DeptTree";
+
 import { deptUserTree } from "@/api/system/system/user.js";
+
 import { ref, nextTick } from "vue";
+
 import { listAttQualityCat } from "@/api/tax/cat/qualityCat/qualityCat.js";
 const defaultSort = ref({ columnKey: 'create_time', order: 'desc' });
+
 import {
   listDppQualityTask,
   delDppQualityTask,
@@ -216,9 +184,11 @@ const typaOptions = treeData.map((item) => {
 })
 
 /** 排序触发事件 */
-function handleSortChange({ column, prop, order }) {
-  queryParams.value.orderByColumn = column?.columnKey || prop;
-  queryParams.value.isAsc = column.order;
+function handleSortChange(pag, filters, sorter) {
+  const prop = sorter.field || sorter.column?.dataIndex;
+  const order = sorter.order === 'ascend' ? 'ascending' : sorter.order === 'descend' ? 'descending' : null;
+  queryParams.value.orderByColumn = prop === 'createTime' ? 'create_time' : prop;
+  queryParams.value.isAsc = order;
   getList();
 }
 
@@ -264,7 +234,7 @@ function getDeptTree() {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "质量探查类目",
+        name: "质量探查目录",
         value: "",
         id: 0,
         children: deptOptions.value,
@@ -335,7 +305,7 @@ function handleDataView(row) {
 const columns = ref([
   { key: 1, label: "编号", visible: true },
   { key: 2, label: "任务名称", visible: true },
-  { key: 3, label: "所属类目", visible: true },
+  { key: 3, label: "所属目录", visible: true },
   { key: 4, label: "描述", visible: true },
   { key: 5, label: "稽查对象数", visible: true },
   { key: 6, label: "稽查规则数", visible: true },
@@ -474,7 +444,7 @@ getDeptTree();
 <style lang="scss" src="@/assets/system/styles/table-style-optimized.scss"></style>
 <style scoped lang="scss">
 ::v-deep {
-  .selectlist .el-tag.el-tag--info {
+  .selectlist .ant-tag.ant-tag-info {
     background: #f3f8ff !important;
     border: 0px solid #6ba7ff !important;
     color: #2666fb !important;
@@ -487,12 +457,12 @@ getDeptTree();
   align-items: center !important;
   gap: 8px;
 
-  .el-form {
+  .ant-form {
     display: flex !important;
     flex-wrap: nowrap !important;
     flex: 0 1 auto !important;
 
-    .el-form-item {
+    .ant-form-item {
       display: inline-flex !important;
       flex-shrink: 0 !important;
       margin-bottom: 0 !important;
@@ -516,7 +486,7 @@ getDeptTree();
   margin: 13px 15px;
 }
 
-.el-main {
+.ant-layout-content {
   padding: 2px 0px;
 }
 
@@ -529,7 +499,7 @@ getDeptTree();
     display: flex;
     justify-content: flex-start;
     gap: 0;
-    .el-button {
+    .ant-btn {
       font-size: 12px;
       padding: 0 2px;
     }

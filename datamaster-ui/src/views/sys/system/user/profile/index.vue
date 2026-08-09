@@ -1,9 +1,9 @@
 ﻿<template>
    <div class="app-container">
-      <el-row :gutter="15">
-         <el-col :span="6" :xs="24">
-            <el-card class="box-card">
-               <template v-slot:header>
+      <a-row :gutter="15">
+         <a-col :span="6" :xs="24">
+            <a-card class="box-card">
+               <template #title>
                   <div class="head-container">
                      <span class="head-title"></span>
                      <span>个人信息</span>
@@ -48,27 +48,27 @@
                      </li>
                   </ul>
                </div>
-            </el-card>
-         </el-col>
-         <el-col :span="18" :xs="24">
-            <el-card>
-               <template v-slot:header>
+            </a-card>
+         </a-col>
+         <a-col :span="18" :xs="24">
+            <a-card>
+               <template #title>
                   <div class="head-container">
                      <span class="head-title"></span>
                      <span>基本资料</span>
                   </div>
                </template>
-               <el-tabs v-model="activeTab">
-                  <el-tab-pane label="基本资料" name="userinfo">
+               <a-tabs v-model:activeKey="activeTab">
+                  <a-tab-pane key="userinfo" tab="基本资料">
                      <userInfo :user="state.user" />
-                  </el-tab-pane>
-                  <el-tab-pane label="修改密码" name="resetPwd">
+                  </a-tab-pane>
+                  <a-tab-pane key="resetPwd" tab="修改密码">
                      <resetPwd />
-                  </el-tab-pane>
-               </el-tabs>
-            </el-card>
-         </el-col>
-      </el-row>
+                  </a-tab-pane>
+               </a-tabs>
+            </a-card>
+         </a-col>
+      </a-row>
    </div>
 </template>
 
@@ -103,26 +103,26 @@ getUser();
 }
 
 :deep {
-   .el-tabs__item.is-active {
+   .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
       color: var(--el-color-primary);
    }
 
-   .el-tabs__item:hover {
+   .ant-tabs-tab:hover {
       background-color: transparent !important;
       /* 去掉背景色变化 */
       color: var(--el-color-primary);
       /* 字体颜色不变 */
    }
 
-   .el-tabs__active-bar {
+   .ant-tabs-ink-bar {
       background-color: var(--el-color-primary);
    }
 
-   .el-card {
+   .ant-card {
      height: 100%;
      border-radius: 2px !important;
-      .el-card__header {
-         padding: 14px !important;
+      .ant-card-head {
+         padding: 0 14px !important;
       }
    }
 }

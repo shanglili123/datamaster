@@ -1,53 +1,54 @@
 <template>
-  <el-dialog
-    v-model="visibleDialog"
-    draggable
+  <a-modal
+    v-model:open="visibleDialog"
+    :draggable="true"
     class="dialog"
     :title="title"
-    destroy-on-close
+    :destroy-on-close="true"
+    :footer="null"
   >
-    <el-form
+    <a-form
       ref="daDiscoveryTaskRef"
       :model="form"
-      label-width="120px"
+      :label-col="{ style: { width: '120px' } }"
       @submit.prevent
     >
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item
             label="字段名称"
-            prop="columnName"
+            name="columnName"
             :rules="[
               { required: true, message: '请输入字段名称', trigger: 'blur' },
             ]"
           >
-            <el-input v-model="form.columnName" placeholder="请输入字段名称" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item
+            <a-input v-model:value="form.columnName" placeholder="请输入字段名称" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item
             label="字段类型"
-            prop="columnType"
+            name="columnType"
             :rules="[
               { required: true, message: '请选择字段类型', trigger: 'change' },
             ]"
           >
-            <el-select v-model="form.columnType" placeholder="请选择字段类型">
-              <el-option
+            <a-select v-model:value="form.columnType" placeholder="请选择字段类型">
+              <a-select-option
                 v-for="dict in columntype"
                 :key="dict.value"
                 :label="dict.label"
                 :value="dict.value"
-              ></el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item
+              >{{ dict.label }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item
             label="JSON解析值"
-            prop="key"
+            name="key"
             :rules="[
               {
                 required: true,
@@ -56,27 +57,26 @@
               },
             ]"
           >
-            <el-input
-              v-model="form.key"
-              type="textarea"
-              maxlength="500个字符"
-              show-word-limit
+            <a-textarea
+              v-model:value="form.key"
+              :maxlength="500"
+              show-count
               placeholder="例如:info.aga"
             />
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </a-form>
 
     <template #footer>
       <div style="text-align: right">
         <!-- 关闭按钮 -->
-        <el-button @click="closeDialog">关闭</el-button>
+        <a-button @click="closeDialog">关闭</a-button>
         <!-- 保存按钮 -->
-        <el-button type="primary" @click="saveData">保存</el-button>
+        <a-button type="primary" @click="saveData">保存</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
@@ -107,9 +107,7 @@ const form = ref({
   crontab: "",
   releaseState: 0,
   description: "",
-  contactNumber: "",
   catCode: "",
-  personCharge: "",
 });
 
 watch(

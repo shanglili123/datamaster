@@ -19,92 +19,85 @@
             </div>
           </div>
         </div>
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建人</div>
               <div class="infotop-row-value">
-                {{ dppEtlTaskDetail?.personChargeName || '-' }}
+                {{ dppEtlTaskDetail?.createBy || '-' }}
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8">
-            <div class="infotop-row border-top">
-              <div class="infotop-row-lable">联系电话</div>
-              <div class="infotop-row-value">
-                {{ dppEtlTaskDetail.contactNumber || '-' }}
-              </div>
-            </div>
-          </el-col>
-
-          <el-col :span="8">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">任务状态</div>
               <div class="infotop-row-value">
-                <el-tag :type="dppEtlTaskDetail.status == '1' ? 'success' : 'danger'">
+                <a-tag :type="dppEtlTaskDetail.status == '1' ? 'success' : 'error'">
                   {{ dppEtlTaskDetail.status == '1' ? "开启" : "关闭" }}
-                </el-tag>
+                </a-tag>
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8" style="margin: 2px 0;">
+          <a-col :span="8" style="margin: 2px 0;">
             <div class="infotop-row border-top">
-              <div class="infotop-row-lable">数据集成类目</div>
+              <div class="infotop-row-lable">数据集成目录</div>
               <div class="infotop-row-value">
                 {{ dppEtlTaskDetail.catName || '-' }}
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8" style="margin: 2px 0;">
+          <a-col :span="8" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">调度状态</div>
               <div class="infotop-row-value">
-                <el-tag :type="dppEtlTaskDetail.schedulerState == '0' ? 'success' : 'danger'">
+                <a-tag :type="dppEtlTaskDetail.schedulerState == '0' ? 'success' : 'error'">
                   {{ dppEtlTaskDetail.schedulerState == '0' ? "开启" : "关闭" }}
-                </el-tag>
+                </a-tag>
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8" style="margin: 2px 0;">
+          <a-col :span="8" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建时间</div>
               <div class="infotop-row-value">
                 {{ parseTime(dppEtlTaskDetail.createTime, '{y}-{m}-{d} {h}:{i}') }}
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="24" style="margin: 2px 0;">
+          <a-col :span="24" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">描述</div>
               <div class="infotop-row-value">
                 {{ dppEtlTaskDetail.description || '-' }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </div>
     </div>
 
-    <div class="pagecont-bottom" v-loading="loading">
-      <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane label="任务流程" name="1" key="1">
+    <div class="pagecont-bottom">
+      <a-spin :spinning="loading">
+      <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+        <a-tab-pane tab="任务流程" key="1">
           <process ref="compRef" :dppEtlTaskDetail="dppEtlTaskDetail" />
-        </el-tab-pane>
-        <el-tab-pane label="详细信息" name="2" key="2">
+        </a-tab-pane>
+        <a-tab-pane tab="详细信息" key="2">
           <info :dppEtlTaskDetail="dppEtlTaskDetail" />
-        </el-tab-pane>
-        <el-tab-pane label="运维策略" name="3" key="3">
+        </a-tab-pane>
+        <a-tab-pane tab="运维策略" key="3">
           <opsPolicy :taskId="dppEtlTaskDetail.id" />
-        </el-tab-pane>
-        <el-tab-pane label="运维事件" name="4" key="4">
+        </a-tab-pane>
+        <a-tab-pane tab="运维事件" key="4">
           <opsEvent :taskId="dppEtlTaskDetail.id" />
-        </el-tab-pane>
-      </el-tabs>
+        </a-tab-pane>
+      </a-tabs>
+      </a-spin>
     </div>
   </div>
 </template>

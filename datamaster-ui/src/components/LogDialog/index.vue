@@ -1,34 +1,34 @@
 <template>
-    <el-dialog
+    <a-modal
         v-bind="config"
-        :modelValue="props.modelValue"
-        @update:modelValue="handleModelUpdate"
-        @close="handleClose"
+        :open="props.modelValue"
+        @update:open="handleModelUpdate"
+        @afterClose="handleClose"
     >
         <div class="actions-wrap">
-            <el-button
-                link
-                icon="copyDocument"
-                type="primary"
+            <a-button
+                type="link"
+                :icon="h(CopyOutlined)"
                 v-copyText="content"
                 v-copyText:callback="copyTextSuccess"
             >
                 复制
-            </el-button>
+            </a-button>
         </div>
         <div class="dialog-content" v-html="content"></div>
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="handleCancel">关闭</el-button>
+                <a-button @click="handleCancel">关闭</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup name="LogDialog">
-    import { defineProps, defineEmits, computed } from 'vue';
+    import { defineProps, defineEmits, computed, h } from 'vue';
     import { merge } from 'lodash-es';
-    import { ElMessage } from 'element-plus';
+    import { message } from 'ant-design-vue';
+    import { CopyOutlined } from '@ant-design/icons-vue';
 
     const DEFAULT_CONFIG = {
         title: '日志详情',
@@ -78,7 +78,7 @@
     };
 
     function copyTextSuccess() {
-        ElMessage.success('复制成功！');
+        message.success('复制成功！');
     }
 </script>
 

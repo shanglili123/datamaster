@@ -1,13 +1,13 @@
-﻿<template>
+<template>
   <div class="app-container ask-data-page" :class="{ fullscreen: isFullscreen }">
     <aside class="conversation-panel">
       <div class="panel-title">
         <strong>对话</strong>
         <span>AI问数</span>
       </div>
-      <el-button type="primary" :icon="Plus" class="new-chat" @click="createConversation">
+      <a-button type="primary" :icon="h(PlusOutlined)" class="new-chat" @click="createConversation">
         新对话
-      </el-button>
+      </a-button>
       <div class="conversation-list">
         <div
           v-for="item in conversations"
@@ -19,7 +19,7 @@
             <span>{{ item.title }}</span>
             <small>{{ item.datasourceName || '未选择数据源' }}</small>
           </button>
-          <el-button text class="conversation-delete" @click.stop="removeConversation(item.id)">删除</el-button>
+          <a-button type="text" class="conversation-delete" @click.stop="removeConversation(item.id)">删除</a-button>
         </div>
       </div>
     </aside>
@@ -31,75 +31,76 @@
           <p>{{ selectedDatasourceName() || '请选择数据源' }}</p>
         </div>
         <div class="datasource-box">
-          <el-segmented
-            v-model="form.mode"
+          <a-segmented
+            v-model:value="form.mode"
             :options="modeOptions"
             class="mode-switch"
           />
-          <el-select
-            v-model="form.datasourceId"
+          <a-select
+            v-model:value="form.datasourceId"
             placeholder="选择数据源"
-            filterable
-            clearable
+            show-search
+            allow-clear
             @change="handleDatasourceChange"
           >
-            <el-option
+            <a-select-option
               v-for="item in datasourceList"
               :key="item.id"
-              :label="item.datasourceName"
               :value="item.id"
             >
               <span>{{ item.datasourceName }}</span>
               <span class="option-meta">{{ item.datasourceType }} / {{ syncText(item.dbgptSyncStatus) }}</span>
-            </el-option>
-          </el-select>
-          <el-tag :type="syncTag(selectedDatasource?.dbgptSyncStatus)" effect="plain">
+            </a-select-option>
+          </a-select>
+          <a-tag :color="syncTag(selectedDatasource?.dbgptSyncStatus)">
             {{ syncText(selectedDatasource?.dbgptSyncStatus) }}
-          </el-tag>
-          <el-select
-            v-model="form.skillId"
+          </a-tag>
+          <a-select
+            v-model:value="form.skillId"
             placeholder="选择知识库"
-            filterable
-            clearable
+            show-search
+            allow-clear
             @change="handleSkillChange"
           >
-            <el-option
+            <a-select-option
               v-for="item in skillList"
               :key="item.id"
-              :label="item.skillName"
               :value="item.id"
-            />
-          </el-select>
+            >
+              {{ item.skillName }}
+            </a-select-option>
+          </a-select>
           <template v-if="form.mode === 'report'">
-            <el-select v-model="form.templateId" placeholder="选择报告模板" filterable clearable>
-              <el-option
+            <a-select v-model:value="form.templateId" placeholder="选择报告模板" show-search allow-clear>
+              <a-select-option
                 v-for="item in templateList"
                 :key="item.id"
-                :label="templateOptionLabel(item)"
                 :value="item.id"
-              />
-            </el-select>
-            <el-button icon="Document" @click="openTemplateFormat">
+              >
+                {{ templateOptionLabel(item) }}
+              </a-select-option>
+            </a-select>
+            <a-button :icon="h(FileTextOutlined)" @click="openTemplateFormat">
               模板格式
-            </el-button>
+            </a-button>
           </template>
-          <el-switch
-            v-model="form.returnSql"
-            active-text="返回SQL"
-            inactive-text=""
+          <a-switch
+            v-model:checked="form.returnSql"
+            checked-children="返回SQL"
+            un-checked-children=""
             class="sql-switch"
           />
-          <el-button :icon="isFullscreen ? 'Aim' : 'FullScreen'" @click="toggleFullscreen">
+          <a-button :icon="h(isFullscreen ? AimOutlined : FullscreenOutlined)" @click="toggleFullscreen">
             {{ isFullscreen ? '退出全屏' : '全屏' }}
-          </el-button>
+          </a-button>
         </div>
       </header>
 
       <section ref="messageScrollRef" class="message-list" @scroll="handleMessageScroll">
         <div v-if="messageWindow.hasBefore" class="history-loader">
-          <el-button text :loading="messageWindow.loadingBefore" @click="loadMoreMessages('before')">
+          <a-button type="text" :loading="messageWindow.loadingBefore" @click="loadMoreMessages('before')">
             加载更早5条
-          </el-button>
+          </a-button>
         </div>
         <div v-if="activeMessages.length === 0" class="empty-state">
           <h1>想查什么，直接问</h1>
@@ -119,21 +120,21 @@
         >
           <div class="avatar">{{ message.role === 'user' ? '我' : 'AI' }}</div>
           <div class="message-bubble" :class="{ 'html-report-bubble': isFullHtmlMessage(message) }">
-            <el-button
+            <a-button
               v-if="isExportableReportMessage(message)"
-              text
+              type="text"
               class="message-export"
               @click.stop="exportMessagePdf(message)"
             >
               导出PDF
-            </el-button>
-            <el-button
-              text
+            </a-button>
+            <a-button
+              type="text"
               class="message-delete"
               @click="removeMessage(message)"
             >
               删除
-            </el-button>
+            </a-button>
             <div v-if="message.agentSteps" class="agent-fold">
               <details>
                 <summary>执行步骤</summary>
@@ -167,19 +168,10 @@
               :data="message.reportData"
             />
             <div v-else-if="message.tableRows?.length" class="data-table-wrap">
-              <el-table :data="message.tableRows" border size="small" max-height="320">
-                <el-table-column
-                  v-for="column in message.tableColumns"
-                  :key="column.prop"
-                  :prop="column.prop"
-                  :label="column.label"
-                  min-width="130"
-                  show-overflow-tooltip
-                />
-              </el-table>
+              <a-table :data-source="message.tableRows" :columns="buildTableColumns(message.tableColumns)" :pagination="false" size="small" :scroll="{ y: 320 }" />
             </div>
             <div v-else-if="message.queryExecuted" class="data-empty-wrap">
-              <el-empty description="暂无查询结果" :image-size="56" />
+              <a-empty description="暂无查询结果" />
             </div>
             <MarkdownView
               v-if="!message.reportTemplate && !message.reportData && !message.tableRows?.length && (message.displayContent || message.content)"
@@ -198,61 +190,59 @@
           </div>
         </div>
         <div v-if="messageWindow.hasAfter" class="history-loader">
-          <el-button text :loading="messageWindow.loadingAfter" @click="loadMoreMessages('after')">
+          <a-button type="text" :loading="messageWindow.loadingAfter" @click="loadMoreMessages('after')">
             加载更新5条
-          </el-button>
+          </a-button>
         </div>
       </section>
 
       <footer class="composer-wrap">
         <div class="composer">
-          <el-input
-            v-model="prompt"
+          <a-input
+            v-model:value="prompt"
             type="textarea"
-            resize="none"
-            :autosize="{ minRows: 1, maxRows: 6 }"
+            :auto-size="{ minRows: 1, maxRows: 6 }"
             placeholder="输入你的数据问题"
             @keydown.enter.prevent="handleEnter"
             @keydown.shift.enter.stop
           />
-          <el-button
+          <a-button
             type="primary"
-            :icon="Promotion"
+            :icon="h(SendOutlined)"
             class="send-btn"
             :loading="sending"
             @click="sendMessage"
           />
-          <el-button class="clear-btn" :disabled="!activeMessages.length" @click="clearMessages">
+          <a-button class="clear-btn" :disabled="!activeMessages.length" @click="clearMessages">
             清空
-          </el-button>
+          </a-button>
         </div>
         <div class="composer-tip">Enter 发送，Shift+Enter 换行</div>
       </footer>
     </main>
 
-    <el-dialog v-model="templateFormatOpen" title="报告模板格式" width="960px" append-to-body>
+    <a-modal v-model:open="templateFormatOpen" title="报告模板格式" width="960px" destroy-on-close>
       <div class="template-format-header">
         <div>
           <strong>{{ selectedSkill?.skillName || '通用报告模板' }}</strong>
           <p>复制后按报告业务修改模板编码、字段、布局、样式和提示语，再到 Skill 模板中上传。</p>
         </div>
-        <el-button type="primary" icon="CopyDocument" @click="copyTemplateFormat">复制模板</el-button>
+        <a-button type="primary" :icon="h(CopyOutlined)" @click="copyTemplateFormat">复制模板</a-button>
       </div>
-      <el-input
-        v-model="templateFormatText"
+      <a-input
+        v-model:value="templateFormatText"
         type="textarea"
         :rows="26"
         readonly
-        resize="none"
       />
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import { Plus, Promotion } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed, h, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { AimOutlined, CopyOutlined, FileTextOutlined, FullscreenOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons-vue'
+import { message, Modal } from 'ant-design-vue'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import request from '@/utils/request'
@@ -432,9 +422,9 @@ function openTemplateFormat() {
 async function copyTemplateFormat() {
   try {
     await navigator.clipboard.writeText(templateFormatText.value)
-    ElMessage.success('模板格式已复制')
+    message.success('模板格式已复制')
   } catch (error) {
-    ElMessage.error('复制失败，请手动选择复制')
+    message.error('复制失败，请手动选择复制')
   }
 }
 
@@ -466,7 +456,18 @@ async function selectConversation(id) {
 }
 
 async function removeConversation(id) {
-  await ElMessageBox.confirm('确认删除该会话及全部聊天记录？', '删除会话', { type: 'warning' })
+  const confirmed = await new Promise((resolve) => {
+    Modal.confirm({
+      title: '删除会话',
+      content: '确认删除该会话及全部聊天记录？',
+      okText: '确定',
+      cancelText: '取消',
+      onOk: () => resolve(true),
+      onCancel: () => resolve(false),
+      onClose: () => resolve(false),
+    })
+  })
+  if (!confirmed) return
   await deleteAskSession(id, currentSpaceParams())
   conversations.value = conversations.value.filter((item) => item.id !== id)
   if (activeConversationId.value === id) {
@@ -539,7 +540,18 @@ async function removeMessage(message) {
 async function clearMessages() {
   const session = activeConversation.value
   if (!session) return
-  await ElMessageBox.confirm('确认清空当前会话的聊天记录？', '清空聊天记录', { type: 'warning' })
+  const confirmed = await new Promise((resolve) => {
+    Modal.confirm({
+      title: '清空聊天记录',
+      content: '确认清空当前会话的聊天记录？',
+      okText: '确定',
+      cancelText: '取消',
+      onOk: () => resolve(true),
+      onCancel: () => resolve(false),
+      onClose: () => resolve(false),
+    })
+  })
+  if (!confirmed) return
   await clearAskMessages(session.id, currentSpaceParams())
   session.messages = []
   messageWindow.hasBefore = false
@@ -644,7 +656,7 @@ async function exportMessagePdf(message) {
     const element = document.querySelector('.message-row.printing-report .message-bubble')
     await downloadElementAsPdf(element, reportFileName(message))
   } catch (error) {
-    ElMessage.error(error?.message || 'PDF导出失败')
+    message.error(error?.message || 'PDF导出失败')
   } finally {
     clearPrintingState()
   }
@@ -888,15 +900,15 @@ async function sendMessage() {
 
   const question = prompt.value.trim()
   if (!question) {
-    ElMessage.warning('请输入问题')
+    message.warning('请输入问题')
     return
   }
   if (!form.datasourceId) {
-    ElMessage.warning('请先选择数据源')
+    message.warning('请先选择数据源')
     return
   }
   if (form.mode === 'report' && !form.skillId) {
-    ElMessage.warning('请先选择知识库')
+    message.warning('请先选择知识库')
     return
   }
   if (!activeConversation.value) {
@@ -1223,7 +1235,11 @@ function parseStructuredContent(content) {
   columns = extractColumnsFromRaw(raw, rows)
 
   if (sql && !text.includes(sql)) {
-    text = `${text ? `${text}\n\n` : ''}\`\`\`sql\n${sql}\n\`\`\``
+    text = `${text ? `${text}
+
+` : ''}\`\`\`sql
+${sql}
+\`\`\``
   }
 
   if (!rows.length && !text && !sql && !agentSteps) return null
@@ -1597,11 +1613,21 @@ function syncText(status) {
   return '未同步'
 }
 
+function buildTableColumns(columns) {
+  return (columns || []).map(c => ({
+    title: c.label,
+    dataIndex: c.prop,
+    key: c.prop,
+    width: 130,
+    ellipsis: true,
+  }))
+}
+
 function syncTag(status) {
   if (status === 'SYNCED') return 'success'
-  if (status === 'FAILED') return 'danger'
+  if (status === 'FAILED') return 'error'
   if (status === 'SYNCING') return 'warning'
-  return 'info'
+  return 'default'
 }
 
 async function scrollToBottom() {
@@ -1790,7 +1816,7 @@ async function scrollToBottom() {
   min-width: 430px;
 }
 
-.datasource-box :deep(.el-select) {
+.datasource-box :deep(.ant-select) {
   flex: 1;
   min-width: 160px;
 }
@@ -1824,7 +1850,7 @@ async function scrollToBottom() {
   font-size: 13px;
 }
 
-:deep(.template-format-header + .el-textarea .el-textarea__inner) {
+:deep(.template-format-header + .ant-input) {
   font-family: Consolas, Monaco, monospace;
   line-height: 1.55;
 }
@@ -2005,7 +2031,7 @@ async function scrollToBottom() {
   overflow-x: auto;
 }
 
-.data-table-wrap :deep(.el-table) {
+.data-table-wrap :deep(.ant-table) {
   min-width: 520px;
 }
 
@@ -2180,7 +2206,7 @@ async function scrollToBottom() {
   border-color: #165dff;
 }
 
-.composer :deep(.el-textarea__inner) {
+.composer :deep(.ant-input) {
   min-height: 24px !important;
   padding: 6px 0;
   border: none !important;

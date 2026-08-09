@@ -1,351 +1,315 @@
 <template>
     <!-- 资产字段 tab -->
     <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-            <!--      <el-col :span="1.5">-->
-            <!--        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['ast:assetColumn:assetcolumn:add']"-->
+        <a-row :gutter="15" class="btn-style">
+            <!--      <a-col :span="1.5">-->
+            <!--        <a-button type="primary" @click="handleAdd" v-hasPermi="['ast:assetColumn:assetcolumn:add']"-->
             <!--                   @mousedown="(e) => e.preventDefault()">-->
             <!--          <i class="iconfont-mini icon-xinzeng mr5"></i>新增-->
-            <!--        </el-button>-->
-            <!--      </el-col>-->
-            <!--      <el-col :span="1.5">-->
-            <!--        <el-button type="warning" plain @click="handleExport" v-hasPermi="['ast:assetColumn:assetcolumn:export']"-->
+            <!--        </a-button>-->
+            <!--      </a-col>-->
+            <!--      <a-col :span="1.5">-->
+            <!--        <a-button type="primary" @click="handleExport" v-hasPermi="['ast:assetColumn:assetcolumn:export']"-->
             <!--                   @mousedown="(e) => e.preventDefault()">-->
             <!--          <i class="iconfont-mini icon-download-line mr5"></i>导出-->
-            <!--        </el-button>-->
-            <!--      </el-col>-->
-        </el-row>
+            <!--        </a-button>-->
+            <!--      </a-col>-->
+        </a-row>
         <div class="justify-end top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
         </div>
     </div>
-    <el-table stripe v-loading="loading" :data="daAssetColumnList" @selection-change="handleSelectionChange"
-        :default-sort="defaultSort" @sort-change="handleSortChange">
-        <!--        <el-table-column type="selection" width="55"  align="left" />-->
-        <el-table-column v-if="columns[0].visible" label="中文名称" align="left" prop="columnComment"
-            :show-overflow-tooltip="{ effect: 'light' }" width="185">
-            <template #default="scope">
-                {{ scope.row.columnComment || '-' }}
+    <a-table
+        striped
+        :loading="loading"
+        :data-source="daAssetColumnList"
+        :columns="tableColumns"
+        :pagination="false"
+        :locale="{ emptyText: '暂无记录' }"
+        @change="handleTableChange"
+    >
+        <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'columnComment'">
+                {{ record.columnComment || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[1].visible" label="英文名称" align="left" prop="columnName"
-            :show-overflow-tooltip="{ effect: 'light' }" width="180">
-            <template #default="scope">
-                {{ scope.row.columnName || '-' }}
+            <template v-if="column.dataIndex === 'columnName'">
+                {{ record.columnName || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[2].visible" label="字段类型" align="left" prop="columnType"
-            :show-overflow-tooltip="{ effect: 'light' }" width="140">
-            <template #default="scope">
-                {{ scope.row.columnType || '-' }}
+            <template v-if="column.dataIndex === 'columnType'">
+                {{ record.columnType || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[3].visible" label="字段长度" align="left" prop="columnLength"
-            :show-overflow-tooltip="{ effect: 'light' }" width="80">
-            <template #default="scope">
-                {{ scope.row.columnLength || '-' }}
+            <template v-if="column.dataIndex === 'columnLength'">
+                {{ record.columnLength || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[4].visible" label="小数位" align="left" prop="columnScale" width="80"
-            :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.columnScale || '-' }}
+            <template v-if="column.dataIndex === 'columnScale'">
+                {{ record.columnScale || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[5].visible" label="是否可空" align="left" prop="nullableFlag" width="80">
-            <template #default="scope">
-                <el-switch v-model="scope.row.nullableFlag" :active-value="'1'" :inactive-value="'0'" disabled />
+            <template v-if="column.dataIndex === 'nullableFlag'">
+                <a-switch v-model:checked="record.nullableFlag" checked-value="1" un-checked-value="0" disabled />
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[6].visible" label="是否主键" width="100" align="left" prop="pkFlag">
-            <template #default="scope">
-                <el-switch v-model="scope.row.pkFlag" :active-value="'1'" :inactive-value="'0'" disabled />
+            <template v-if="column.dataIndex === 'pkFlag'">
+                <a-switch v-model:checked="record.pkFlag" checked-value="1" un-checked-value="0" disabled />
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[7].visible" label="描述" align="left" prop="description" width="260"
-            :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.description || '-' }}
+            <template v-if="column.dataIndex === 'description'">
+                {{ record.description || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[8].visible" label="敏感等级" align="left" prop="sensitiveLevelName" width="100">
-            <template #default="scope">
-                {{ scope.row.sensitiveLevelName || '-' }}
+            <template v-if="column.dataIndex === 'sensitiveLevelName'">
+                {{ record.sensitiveLevelName || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[9].visible" label="关联代码表" width="200" align="left" prop="dataElemCodeFlag"
-            :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                <!--                  <el-switch v-show="!scope.row.dataElemCodeFlag" v-model="scope.row.dataElemCodeFlag" :active-value="'1'" :inactive-value="'0'" disabled />-->
-                <span v-show="scope.row.dataElemCodeFlag">
-                    {{ scope.row.dataElemCodeName || '-' }}
+            <template v-if="column.dataIndex === 'dataElemCodeFlag'">
+                <span v-show="record.dataElemCodeFlag">
+                    {{ record.dataElemCodeName || '-' }}
                 </span>
             </template>
-        </el-table-column>
-
-        <el-table-column v-if="columns[10].visible" label="关联数据元" align="left" prop="relDataElmeFlag" width="200"
-            :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                <span v-show="scope.row.dataElemCodeFlag">
-                    {{ scope.row.relDataElmeName || '-' }}
+            <template v-if="column.dataIndex === 'relDataElmeFlag'">
+                <span v-show="record.dataElemCodeFlag">
+                    {{ record.relDataElmeName || '-' }}
                 </span>
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[11].visible" width="120" label="创建人" align="left" prop="createBy"
-            :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.createBy || '-' }}
+            <template v-if="column.dataIndex === 'createBy'">
+                {{ record.createBy || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[12].visible" label="创建时间" align="left" prop="createTime" width="150"
-            sortable="custom" column-key="create_time" :sort-orders="['descending', 'ascending']">
-            <template #default="scope">
-                <span>{{
-                    parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
-                }}</span>
+            <template v-if="column.dataIndex === 'createTime'">
+                <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
             </template>
-        </el-table-column>
-        <el-table-column label="操作" v-if="columns[14].visible" align="left" class-name="small-padding fixed-width"
-            fixed="right" width="100">
-            <template #default="scope">
-                <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                    v-hasPermi="['ast:assetColumn:edit']">修改</el-button>
+            <template v-if="column.key === 'actions'">
+                <a-button type="link" size="small" @click="handleUpdate(record)"
+                    v-hasPermi="['ast:assetColumn:edit']"
+>修改</a-button>
             </template>
-        </el-table-column>
-
-        <template #empty>
-            <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-            </div>
         </template>
-    </el-table>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-        v-model:limit="queryParams.pageSize" @pagination="getList" />
+        v-model:limit="queryParams.pageSize" @pagination="getList"
+/>
 
     <!-- 新增或修改数据资产对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable>
+    <a-modal :title="title" v-model:open="open" width="800px" destroy-on-close>
         <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
+            <span role="heading" aria-level="2">
                 {{ title }}
             </span>
         </template>
-        <el-form ref="daAssetRef" :model="form" :rules="rules" label-width="100px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="中文名称" prop="columnComment">
-                        <el-input v-model="form.columnComment" placeholder="请输入中文名称" disabled />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="英文名称" prop="columnName">
-                        <el-input v-model="form.columnName" placeholder="请输入英文名称" disabled />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="字段类型" prop="columnType">
-                        <el-input v-model="form.columnType" placeholder="请输入字段类型" disabled />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="字段长度" prop="columnLength">
-                        <el-input v-model="form.columnLength" placeholder="请输入字段长度" disabled />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="小数位" prop="columnScale">
-                        <el-input-number :step="1" step-strictly v-model="form.columnScale" style="width: 100%"
-                            controls-position="right" :min="0" :max="100" placeholder="请输入小数长度" disabled />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="是否可空" prop="nullableFlag">
-                        <el-radio-group v-model="form.nullableFlag">
-                            <el-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value"
-                                disabled>{{ dict.label }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="描述" prop="description">
-                        <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="是否主键" prop="pkFlag">
-                        <el-radio-group v-model="form.pkFlag">
-                            <el-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value"
-                                disabled>
+        <a-form ref="daAssetRef" :model="form" :rules="rules" :label-col="{ style: { width: '100px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="中文名称" name="columnComment">
+                        <a-input v-model:value="form.columnComment" placeholder="请输入中文名称" disabled />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="英文名称" name="columnName">
+                        <a-input v-model:value="form.columnName" placeholder="请输入英文名称" disabled />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="字段类型" name="columnType">
+                        <a-input v-model:value="form.columnType" placeholder="请输入字段类型" disabled />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="字段长度" name="columnLength">
+                        <a-input v-model:value="form.columnLength" placeholder="请输入字段长度" disabled />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="小数位" name="columnScale">
+                        <a-input-number :step="1" v-model:value="form.columnScale" style="width: 100%"
+                            :min="0" :max="100" placeholder="请输入小数长度" disabled
+/>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="是否可空" name="nullableFlag">
+                        <a-radio-group v-model:value="form.nullableFlag">
+                            <a-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value"
+                                disabled
+>{{ dict.label }}</a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="描述" name="description">
+                        <a-textarea v-model:value="form.description" placeholder="请输入描述" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="是否主键" name="pkFlag">
+                        <a-radio-group v-model:value="form.pkFlag">
+                            <a-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value"
+                                disabled
+>
                                 {{ dict.label }}
-                            </el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="敏感等级" prop="sensitiveLevelId">
-                        <el-select v-model="form.sensitiveLevelId" filterable clearable placeholder="请选择敏感等级"
-                            @change="val => form.sensitiveLevelId = val ?? null">
-                            <el-option v-for="item in daSensitiveLevelList" :key="item.id" :label="item.sensitiveLevel"
-                                :value="item.id">
-                            </el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="关联代码表" prop="dataElemCodeFlag">
-                        <el-radio-group v-model="form.dataElemCodeFlag">
-                            <el-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value">
+                            </a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="敏感等级" name="sensitiveLevelId">
+                        <a-select v-model:value="form.sensitiveLevelId" show-search allow-clear placeholder="请选择敏感等级"
+                            @change="val => form.sensitiveLevelId = val ?? null"
+>
+                            <a-select-option v-for="item in daSensitiveLevelList" :key="item.id" :label="item.sensitiveLevel"
+                                :value="item.id"
+>{{ item.sensitiveLevel }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="关联代码表" name="dataElemCodeFlag">
+                        <a-radio-group v-model:value="form.dataElemCodeFlag">
+                            <a-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value">
                                 {{ dict.label }}
-                            </el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="选择代码表" prop="dataElemCodeId">
-                        <el-select v-model="form.dataElemCodeId" :disabled="form.dataElemCodeFlag == '0'" clearable
-                            filterable placeholder="选择代码表">
-                            <el-option v-for="item in codeTableList" :key="item.id" :label="item.name" :value="item.id">
-                            </el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                            </a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="选择代码表" name="dataElemCodeId">
+                        <a-select v-model:value="form.dataElemCodeId" :disabled="form.dataElemCodeFlag == '0'" allow-clear
+                            show-search placeholder="选择代码表"
+>
+                            <a-select-option v-for="item in codeTableList" :key="item.id" :label="item.name" :value="item.id">{{ item.name }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
 
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="关联数据元" prop="relDataElmeFlag">
-                        <el-radio-group v-model="form.relDataElmeFlag">
-                            <el-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="关联数据元" name="relDataElmeFlag">
+                        <a-radio-group v-model:value="form.relDataElmeFlag">
+                            <a-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value">
                                 {{ dict.label }}
-                            </el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="选择数据元" prop="elementId">
-                        <el-select v-model="form.elementId" multiple :disabled="form.relDataElmeFlag == '0'" clearable
-                            filterable placeholder="请选择数据元">
-                            <el-option v-for="item in elementList" :key="item.id" :label="item.name" :value="item.id">
-                            </el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                            </a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="选择数据元" name="elementId">
+                        <a-select v-model:value="form.elementId" mode="multiple" :disabled="form.relDataElmeFlag == '0'" allow-clear
+                            show-search placeholder="请选择数据元"
+>
+                            <a-select-option v-for="item in elementList" :key="item.id" :label="item.name" :value="item.id">{{ item.name }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="cancel">取 消</el-button>
-                <el-button type="primary" @click="submitForm">确 定</el-button>
+                <a-button @click="cancel">取 消</a-button>
+                <a-button type="primary" @click="submitForm">确 定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 数据资产详情对话框 -->
-    <el-dialog :title="title" v-model="openDetail" width="800px" :append-to="$refs['app-container']" draggable>
+    <a-modal :title="title" v-model:open="openDetail" width="800px" destroy-on-close>
         <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
+            <span role="heading" aria-level="2">
                 {{ title }}
             </span>
         </template>
-        <el-form ref="daAssetRef" :model="form" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="中文名称" prop="columnComment">
+        <a-form ref="daAssetRef" :model="form" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="中文名称" name="columnComment">
                         <div>
                             {{ form.columnComment }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="英文名称" prop="columnName">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="英文名称" name="columnName">
                         <div>
                             {{ form.columnName }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="字段类型" prop="columnType">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="字段类型" name="columnType">
                         <div>
                             {{ form.columnType }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="小数位" prop="columnScale">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="小数位" name="columnScale">
                         <div>
                             {{ form.columnScale }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="是否可空" prop="nullableFlag">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="是否可空" name="nullableFlag">
                         <div>
                             {{ form.nullableFlag }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="是否主键" prop="pkFlag">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="是否主键" name="pkFlag">
                         <div>
                             {{ form.pkFlag }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="敏感等级" prop="sensitiveLevelName">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="敏感等级" name="sensitiveLevelName">
                         <div>
                             {{ form.sensitiveLevelName }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="关联代码表" prop="dataElemCodeFlag">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="关联代码表" name="dataElemCodeFlag">
                         <div>
                             {{ form.dataElemCodeFlag }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="关联数据元" prop="relDataElmeFlag">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="关联数据元" name="relDataElmeFlag">
                         <div>
                             {{ form.relDataElmeFlag }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="描述" prop="description">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="描述" name="description">
                         <div>
                             {{ form.description }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="small" @click="cancel">关 闭</el-button>
+                <a-button size="small" @click="cancel">关 闭</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup name="ComponentOne">
@@ -364,7 +328,7 @@ import {
 import { listDaSensitiveLevel } from '@/api/ast/security/sensitiveLevel/sensitiveLevel';
 import { listDpDataElem } from '@/api/std/dataElem/dataElem';
 import { useRoute } from 'vue-router';
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 const { proxy } = getCurrentInstance();
 const { column_type, dp_model_column_pk_flag, dp_model_column_nullable_flag } = proxy.useDict(
@@ -396,6 +360,29 @@ const columns = ref([
     { key: 13, label: '备注', visible: true },
     { key: 14, label: '操作', visible: true },
 ]);
+
+const tableColumns = computed(() => {
+    const allCols = [
+        { title: '中文名称', dataIndex: 'columnComment', align: 'left', width: 185, ellipsis: true, colKey: 0 },
+        { title: '英文名称', dataIndex: 'columnName', align: 'left', width: 180, ellipsis: true, colKey: 1 },
+        { title: '字段类型', dataIndex: 'columnType', align: 'left', width: 140, ellipsis: true, colKey: 2 },
+        { title: '字段长度', dataIndex: 'columnLength', align: 'left', width: 80, ellipsis: true, colKey: 3 },
+        { title: '小数位', dataIndex: 'columnScale', align: 'left', width: 80, ellipsis: true, colKey: 4 },
+        { title: '是否可空', dataIndex: 'nullableFlag', align: 'left', width: 80, colKey: 5 },
+        { title: '是否主键', dataIndex: 'pkFlag', align: 'left', width: 100, colKey: 6 },
+        { title: '描述', dataIndex: 'description', align: 'left', width: 260, ellipsis: true, colKey: 7 },
+        { title: '敏感等级', dataIndex: 'sensitiveLevelName', align: 'left', width: 100, colKey: 8 },
+        { title: '关联代码表', dataIndex: 'dataElemCodeFlag', align: 'left', width: 200, ellipsis: true, colKey: 9 },
+        { title: '关联数据元', dataIndex: 'relDataElmeFlag', align: 'left', width: 200, ellipsis: true, colKey: 10 },
+        { title: '创建人', dataIndex: 'createBy', align: 'left', width: 120, ellipsis: true, colKey: 11 },
+        { title: '创建时间', dataIndex: 'createTime', align: 'left', width: 150, key: 'create_time', sorter: true, defaultSortOrder: 'descend', colKey: 12 },
+        { title: '操作', key: 'actions', align: 'left', fixed: 'right', width: 100, colKey: 14 },
+    ];
+    return allCols.filter(col => {
+        const colConfig = columns.value[col.colKey];
+        return colConfig ? colConfig.visible : true;
+    });
+});
 
 const open = ref(false);
 const openDetail = ref(false);
@@ -529,9 +516,11 @@ function handleSelectionChange(selection) {
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-    queryParams.value.orderByColumn = column?.columnKey || prop;
-    queryParams.value.isAsc = column.order;
+function handleTableChange(pagination, filters, sorter) {
+    const field = sorter.column?.key || sorter.field;
+    const orderMap = { ascend: 'asc', descend: 'desc' };
+    queryParams.value.orderByColumn = field;
+    queryParams.value.isAsc = sorter.order ? orderMap[sorter.order] : null;
     getList();
 }
 
@@ -566,29 +555,27 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-    proxy.$refs['daAssetRef'].validate((valid) => {
-        if (valid) {
-            if (form.value.id != null) {
-                delete form.value.updateTime;
+    proxy.$refs['daAssetRef'].validate().then(() => {
+        if (form.value.id != null) {
+            delete form.value.updateTime;
 
-                updateDaAssetColumn(form.value)
-                    .then((response) => {
-                        proxy.$modal.msgSuccess('修改成功');
-                        open.value = false;
-                        getList();
-                    })
-                    .catch((error) => { });
-            } else {
-                addDaAsset(form.value)
-                    .then((response) => {
-                        proxy.$modal.msgSuccess('新增成功');
-                        open.value = false;
-                        getList();
-                    })
-                    .catch((error) => { });
-            }
+            updateDaAssetColumn(form.value)
+                .then((response) => {
+                    proxy.$modal.msgSuccess('修改成功');
+                    open.value = false;
+                    getList();
+                })
+                .catch((error) => { });
+        } else {
+            addDaAsset(form.value)
+                .then((response) => {
+                    proxy.$modal.msgSuccess('新增成功');
+                    open.value = false;
+                    getList();
+                })
+                .catch((error) => { });
         }
-    });
+    }).catch(() => { });
 }
 
 /** 删除按钮操作 */

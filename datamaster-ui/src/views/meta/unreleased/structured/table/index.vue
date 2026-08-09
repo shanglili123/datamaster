@@ -1,13 +1,13 @@
 <template>
   <div class="app-container metadata-result-page">
     <div class="metadata-workspace">
-      <el-container class="metadata-layout">
+      <a-layout class="metadata-layout">
       <SourceSystemTree
         ref="sourceSystemTreeRef"
         @node-click="handleNodeClick"
         @data-loaded="handleTreeDataLoaded"
       />
-      <el-main class="main-content">
+      <a-layout-content class="main-content">
         <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
           <template #search>
             <qt-search-bar
@@ -19,15 +19,14 @@
             />
           </template>
           <template #actions-data>
-            <el-button
-              type="danger"
-              plain
-              icon="Delete"
+            <a-button
+              danger
+              :icon="h(DeleteOutlined)"
               :disabled="!store.rows.length"
               @click="handleDeleteColumnClick"
             >
               删除
-            </el-button>
+            </a-button>
           </template>
           <qt-table v-bind="tableStroe" ref="tableRef">
             <template #domain-name="scope">
@@ -35,84 +34,103 @@
             </template>
 
             <template #status="scope">
-              <el-switch
+              <a-switch
                 v-if="scope.row.status != undefined"
-                v-model="scope.row.status"
-                active-value="1"
-                inactive-value="0"
+                v-model:checked="scope.row.status"
+                checked-value="1"
+                un-checked-value="0"
                 @change="handleStatusChange(scope.row, $event)"
               />
             </template>
 
+            <template #qualitySummary="scope">
+              <a-typography-link
+                v-if="getQualitySummary(scope.row)"
+                @click="handleQualitySummaryClick(scope.row)"
+              >
+                <a-tag
+                  :color="getQualitySummary(scope.row).score == null ? 'default' : (getQualitySummary(scope.row).score >= 90 ? 'green' : (getQualitySummary(scope.row).score >= 60 ? 'orange' : 'red'))"
+                >
+                  {{ qualitySummaryText(scope.row) }}
+                </a-tag>
+              </a-typography-link>
+              <span v-else class="quality-none">未探查</span>
+            </template>
+
             <template #handle="{ row }">
-              <el-button
-                link
-                type="primary"
-                icon="view"
+              <a-button
+                type="link"
+                :icon="h(EyeOutlined)"
                 @click="handleDetailClick(row)"
               >
                 详情
-              </el-button>
-              <el-button
-                link
-                type="primary"
-                icon="Edit"
+              </a-button>
+              <a-button
+                type="link"
+                :icon="h(EditOutlined)"
                 :disabled="row.status == 1"
                 @click="handleEditClick(row)"
               >
                 修改
-              </el-button>
-              <el-popover
+              </a-button>
+              <a-popover
                 placement="bottom"
-                :width="120"
-                popper-class="handle-popover"
+                :overlay-style="{ width: '120px' }"
+                overlayClassName="handle-popover"
                 trigger="click"
               >
                 <template #reference>
-                  <el-button link type="primary" icon="ArrowDown">
+                  <a-button type="link" :icon="h(DownOutlined)">
                     更多
-                  </el-button>
+                  </a-button>
                 </template>
-                <el-button
-                  link
-                  type="danger"
-                  icon="Delete"
+                <a-button
+                  type="link"
+                  danger
+                  :icon="h(DeleteOutlined)"
                   :disabled="row.status == 1"
                   @click="handleDeleteClick(row)"
                 >
                   删除
-                </el-button>
-                <el-button
-                  link
-                  type="primary"
+                </a-button>
+                <a-button
+                  type="link"
                   @click="handleDetailClick(row, 'VersionManagement')"
                 >
                   <svg-icon icon-class="meta-version" class="handle-svg-icon" />
                   版本与变更
-                </el-button>
-              </el-popover>
+                </a-button>
+              </a-popover>
             </template>
           </qt-table>
         </qt-wrap>
-      </el-main>
-      </el-container>
+      </a-layout-content>
+      </a-layout>
     </div>
   </div>
 </template>
 
 <script setup name="UnreleasedStructuredTable">
-import { reactive, ref, getCurrentInstance, computed } from "vue";
-import { listDomain } from "@/api/tax/domain/domain.js";
+import { message, Modal } from 'ant-design-vue'
+import { DeleteOutlined, EyeOutlined, EditOutlined, DownOutlined } from '@ant-design/icons-vue'
+import { reactive, ref, getCurrentInstance, computed, h } from "vue";
+
 import { getParentLabelPath } from "@/utils/anivia.js";
+
 import {
   listTable,
   delTable,
   updateTableStatus,
   batchDeleteCheck,
 } from "@/api/cat/unreleased/table";
+
 import { useRoute, useRouter } from "vue-router";
+
 import { listDb } from "@/api/cat/unreleased/db";
-import SourceSystemTree from "@/views/cat/task/structured/components/SourceSystemTree.vue";
+
+import { batchQualitySummary } from "@/api/cat/task/quality";
+
+import SourceSystemTree from "@/views/meta/task/structured/components/SourceSystemTree.vue";
 
 const { proxy } = getCurrentInstance();
 
@@ -126,6 +144,57 @@ const store = reactive({
   metaDatabases: [],
   metaTables: [],
 });
+
+// 数据源表最近一次质量探查结果摘要，key 为 datasourceId:tableName
+const qualitySummaries = reactive({});
+
+function getQualitySummaryKey(row) {
+  return `${row.datasourceId}:${row.tableName}`;
+}
+
+function getQualitySummary(row) {
+  if (!row.datasourceId || !row.tableName) return null;
+  return qualitySummaries[getQualitySummaryKey(row)] || null;
+}
+
+function qualitySummaryText(row) {
+  const summary = getQualitySummary(row);
+  if (!summary) return "未探查";
+  if (summary.score != null) {
+    return `得分 ${summary.score}`;
+  }
+  return summary.successFlag == "1" ? "通过" : "已探查";
+}
+
+function handleQualitySummaryClick(row) {
+  const summary = getQualitySummary(row);
+  if (!summary || !summary.taskId) return;
+  router.push({
+    path: "/ast/quality/qualityTask/detail",
+    query: { id: summary.taskId, info: true },
+  });
+}
+
+// 批量加载质量结果摘要
+function loadQualitySummaries(rows) {
+  const queryList = rows
+    .filter((row) => row.datasourceId && row.tableName)
+    .map((row) => ({
+      datasourceId: row.datasourceId,
+      tableName: row.tableName,
+    }));
+  if (!queryList.length) return;
+  batchQualitySummary(queryList)
+    .then((res) => {
+      const map = res.data || {};
+      Object.keys(map).forEach((key) => {
+        qualitySummaries[key] = map[key];
+      });
+    })
+    .catch((err) => {
+      console.error("质量结果摘要加载失败", err);
+    });
+}
 
 const tableRef = ref(null);
 const tableStroe = reactive({
@@ -196,6 +265,13 @@ const tableStroe = reactive({
     },
 
     {
+      label: "质量结果",
+      width: 120,
+      slot: "qualitySummary",
+      align: "center",
+    },
+
+    {
       label: "版本号",
       prop: "version",
       width: 90,
@@ -246,6 +322,7 @@ const tableStroe = reactive({
       data.forEach((item) => {
         item.version = proxy.formatVersion(item.version);
       });
+      loadQualitySummaries(data);
       return data;
     },
   },
@@ -291,7 +368,7 @@ const getDomainPath = computed(() => {
   };
 });
 
-function handleTreeDataLoaded({ treeData, flatData }) {
+function handleTreeDataLoaded({ treeData }) {
   store.treeDomains = treeData;
 }
 
@@ -345,13 +422,6 @@ function getMetaDatabases() {
   });
 }
 
-// 新增
-function handleAddClick() {
-  router.push({
-    path: route.path + "/add",
-  });
-}
-
 // 修改
 function handleEditClick(row) {
   router.push({
@@ -370,44 +440,37 @@ function handleDeleteColumnClick() {
   batchDeleteCheck(ids).then((res) => {
     const { canDeleteCount, cannotDeleteCount, canDeleteIds } = res.data;
     store.loading = false;
-    ElMessageBox.confirm(
-      `可删除${canDeleteCount}个，不可删除${cannotDeleteCount}个，是否删除可删部分`,
-      "系统提示",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    )
-      .then(() => {
+    Modal.confirm({
+      title: "系统提示",
+      content: `可删除${canDeleteCount}个，不可删除${cannotDeleteCount}个，是否删除可删部分`,
+      okText: "确定",
+      cancelText: "取消",
+      onOk: async () => {
         if (!canDeleteIds.length) {
-          ElMessage.success("删除成功");
+          message.success("删除成功");
           return;
         }
-        return delTable(canDeleteIds.toString());
-      })
-      .then((res) => {
-        if (!res) return;
-        ElMessage.success("删除成功");
+        await delTable(canDeleteIds.toString());
+        message.success("删除成功");
         tableRef.value.getList();
-      });
+      },
+    });
   });
 }
 
 // 删除
 function handleDeleteClick(row) {
-  ElMessageBox.confirm(`是否确认删除编号为${row.id}的数据项？`, "系统提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
-    .then(() => {
-      return delTable(row.id);
-    })
-    .then(() => {
-      ElMessage.success("删除成功");
+  Modal.confirm({
+    title: "系统提示",
+    content: `是否确认删除编号为${row.id}的数据项？`,
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
+      await delTable(row.id);
+      message.success("删除成功");
       tableRef.value.getList();
-    });
+    },
+  });
 }
 
 // 详情
@@ -424,32 +487,28 @@ function handleDetailClick(row, tab) {
 
 // 切换状态
 function handleStatusChange(row, status) {
-  ElMessageBox.confirm(
-    `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
+  Modal.confirm({
+    title: "系统提示",
+    content: `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
       row.id
     }的表元数据吗？`,
-    "系统提示",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
-    .then(() => {
-      return updateTableStatus({
-        id: row.id,
-        status,
-      });
-    })
-    .then(() => {
-      ElMessage.success(
-        `编号为${row.id}的表元数据${status == 1 ? "发布" : "取消发布"}成功!`
-      );
-      row.status = status;
-    })
-    .catch(() => {
-      row.status = status == "1" ? "0" : "1";
-    });
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
+      try {
+        await updateTableStatus({
+          id: row.id,
+          status,
+        });
+        message.success(
+          `编号为${row.id}的表元数据${status == 1 ? "发布" : "取消发布"}成功!`
+        );
+        row.status = status;
+      } catch (error) {
+        row.status = status == "1" ? "0" : "1";
+      }
+    },
+  });
 }
 
 getMetaDatabases();
@@ -458,6 +517,11 @@ getMetaDatabases();
 <style lang="scss" scoped>
 .metadata-result-page {
   height: 100%;
+}
+
+.quality-none {
+  color: #a8b0bd;
+  font-size: 13px;
 }
 
 .metadata-workspace {

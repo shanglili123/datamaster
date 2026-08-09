@@ -1,129 +1,133 @@
 <template>
-    <el-form ref="form1" :model="form1" :rules="rules1" label-width="170px">
-        <!--        <el-row :gutter="20">-->
-        <!--            <el-col :span="12">-->
-        <!--                <el-form-item label="数据所属目录" prop="typeId" v-if="isChange">-->
-        <!--                    <el-tree-select filterable v-model="form1.catCode"  :data="deptOptions"-->
-        <!--                                    :props="{ value: 'code', label: 'name', children: 'children' }"   value-key="ID"-->
-        <!--                                    placeholder="请选择所属类目" check-strictly/>-->
-        <!--                </el-form-item>-->
-        <!--            </el-col>-->
-        <!--        </el-row>-->
-        <el-row :gutter="20">
-            <el-col :span="12">
-                <el-form-item label="API名称" prop="name">
-                    <el-input v-model="form1.name" placeholder="请输入API名称" />
-                </el-form-item>
-            </el-col>
-            <el-col :span="12">
-                <el-form-item label="API版本" prop="apiVersion">
-                    <el-input v-model="form1.apiVersion" placeholder="请输入API版本，如v1.0.0" />
-                </el-form-item>
-            </el-col>
-        </el-row>
-        <el-row :gutter="20">
-            <el-col :span="12">
-                <el-form-item label="API地址" prop="apiUrl">
-                    <el-input v-model="form1.apiUrl" placeholder="请输入API地址，只允许字母、数字、下划线、中划线和斜杠"
-                        @input="handleApiUrlInput" />
-                </el-form-item>
-            </el-col>
-            <el-col :span="12">
-                <el-form-item label="API类目" prop="catCode">
-                    <el-tree-select filterable v-model="form1.catCode" :data="deptOptions"
-                        :props="{ value: 'code', label: 'name', children: 'children' }" value-key="id"
-                        placeholder="请选择所属API类目" check-strictly @change="handleCatSelect" />
-                </el-form-item>
-            </el-col>
-        </el-row>
-        <el-row :gutter="20">
-            <el-col :span="12">
-                <el-form-item label="请求方式" prop="reqMethod">
-                    <el-select v-model="form1.reqMethod" placeholder="请选择请求方式">
-                        <el-option v-for="dict in ds_api_bas_info_api_method_type" :key="dict.value" :label="dict.label"
-                            :value="dict.value" />
-                    </el-select>
-                </el-form-item>
-            </el-col>
-            <el-col :span="12">
-                <el-form-item label="返回格式" prop="resDataType">
-                    <el-select v-model="form1.resDataType" placeholder="请选择返回格式">
-                        <el-option v-for="dict in ds_api_bas_info_res_data_type" :key="dict.value" :label="dict.label"
-                            :value="dict.value" />
-                    </el-select>
-                </el-form-item>
-            </el-col>
-        </el-row>
-        <el-row :gutter="20">
-            <el-col :span="24">
-                <el-form-item label="描述" prop="description">
-                    <el-input v-model="form1.description" type="textarea" placeholder="请输入描述" />
-                </el-form-item>
-            </el-col>
-        </el-row>
-        <!--        <el-form-item label="是否开启缓存：" prop="cacheSwitch">-->
-        <!--            <el-radio-group v-model="form1.cacheSwitch">-->
-        <!--                <el-radio v-for="dict in whetherOptions" :key="dict.id" :label="dict.itemText">{{ dict.itemValue-->
-        <!--                    }}</el-radio>-->
-        <!--            </el-radio-group>-->
-        <!--        </el-form-item>-->
-        <!--        <el-form-item label="是否显示JSON样例" prop="sortColumn">-->
-        <!--            <el-radio-group v-model="form1.sortColumn">-->
-        <!--                <el-radio v-for="dict in cacheOptions" :key="dict.id" :label="dict.itemValue">-->
+    <a-form ref="form1" :model="form1" :rules="rules1" :label-col="{ style: { width: '170px' } }">
+        <!--        <a-row :gutter="20">-->
+        <!--            <a-col :span="12">-->
+        <!--                <a-form-item label="数据所属目录" name="typeId" v-if="isChange">-->
+        <!--                    <a-tree-select show-search v-model:value="form1.catCode"  :tree-data="deptOptions"-->
+        <!--                                    :field-names="{ value: 'code', label: 'name', children: 'children' }"-->  
+        <!--                                    placeholder="请选择所属目录" tree-check-strictly/>-->
+        <!--                </a-form-item>-->
+        <!--            </a-col>-->
+        <!--        </a-row>-->
+        <a-row :gutter="20">
+            <a-col :span="12">
+                <a-form-item label="API名称" name="name">
+                    <a-input v-model:value="form1.name" placeholder="请输入API名称" />
+                </a-form-item>
+            </a-col>
+            <a-col :span="12">
+                <a-form-item label="API版本" name="apiVersion">
+                    <a-input v-model:value="form1.apiVersion" placeholder="请输入API版本，如v1.0.0" />
+                </a-form-item>
+            </a-col>
+        </a-row>
+        <a-row :gutter="20">
+            <a-col :span="12">
+                <a-form-item label="API地址" name="apiUrl">
+                    <a-input v-model:value="form1.apiUrl" placeholder="请输入API地址，只允许字母、数字、下划线、中划线和斜杠"
+                        @input="handleApiUrlInput"
+/>
+                </a-form-item>
+            </a-col>
+            <a-col :span="12">
+                <a-form-item label="API目录" name="catCode">
+                    <a-tree-select show-search v-model:value="form1.catCode" :tree-data="deptOptions"
+                        :field-names="{ value: 'code', label: 'name', children: 'children' }"
+                        placeholder="请选择所属API目录" @change="handleCatSelect"
+/>
+                </a-form-item>
+            </a-col>
+        </a-row>
+        <a-row :gutter="20">
+            <a-col :span="12">
+                <a-form-item label="请求方式" name="reqMethod">
+                    <a-select v-model:value="form1.reqMethod" placeholder="请选择请求方式">
+                        <a-select-option v-for="dict in ds_api_bas_info_api_method_type" :key="dict.value" :label="dict.label"
+                            :value="dict.value"
+/>
+                    </a-select>
+                </a-form-item>
+            </a-col>
+            <a-col :span="12">
+                <a-form-item label="返回格式" name="resDataType">
+                    <a-select v-model:value="form1.resDataType" placeholder="请选择返回格式">
+                        <a-select-option v-for="dict in ds_api_bas_info_res_data_type" :key="dict.value" :label="dict.label"
+                            :value="dict.value"
+/>
+                    </a-select>
+                </a-form-item>
+            </a-col>
+        </a-row>
+        <a-row :gutter="20">
+            <a-col :span="24">
+                <a-form-item label="描述" name="description">
+                    <a-textarea v-model:value="form1.description" placeholder="请输入描述" />
+                </a-form-item>
+            </a-col>
+        </a-row>
+        <!--        <a-form-item label="是否开启缓存：" name="cacheSwitch">-->
+        <!--            <a-radio-group v-model:value="form1.cacheSwitch">-->
+        <!--                <a-radio v-for="dict in whetherOptions" :key="dict.id" :value="dict.itemText">{{ dict.itemValue-->
+        <!--                    }}</a-radio>-->
+        <!--            </a-radio-group>-->
+        <!--        </a-form-item>-->
+        <!--        <a-form-item label="是否显示JSON样例" name="sortColumn">-->
+        <!--            <a-radio-group v-model:value="form1.sortColumn">-->
+        <!--                <a-radio v-for="dict in cacheOptions" :key="dict.id" :value="dict.itemValue">-->
         <!--                    {{ dict.itemText }}-->
-        <!--                </el-radio>-->
-        <!--            </el-radio-group>-->
-        <!--        </el-form-item>-->
-        <el-row :gutter="20">
-            <el-col :span="24">
-                <el-form-item label="IP黑名单" prop="deny">
-                    <el-input v-model="form1.deny" type="textarea" placeholder="请输入IP黑名单多个用英文,隔开" />
-                </el-form-item>
-            </el-col>
-        </el-row>
+        <!--                </a-radio>-->
+        <!--            </a-radio-group>-->
+        <!--        </a-form-item>-->
+        <a-row :gutter="20">
+            <a-col :span="24">
+                <a-form-item label="IP黑名单" name="deny">
+                    <a-textarea v-model:value="form1.deny" placeholder="请输入IP黑名单多个用英文,隔开" />
+                </a-form-item>
+            </a-col>
+        </a-row>
 
-        <el-row :gutter="20">
-            <el-col :span="12">
-                <el-form-item label="是否限流" prop="rateLimit">
-                    <el-radio-group v-model="form1.rateLimit.enable">
-                        <el-radio v-for="dict in ds_api_limit_status" :key="dict.value" :value="dict.value">{{
+        <a-row :gutter="20">
+            <a-col :span="12">
+                <a-form-item label="是否限流" name="rateLimit">
+                    <a-radio-group v-model:value="form1.rateLimit.enable">
+                        <a-radio v-for="dict in ds_api_limit_status" :key="dict.value" :value="dict.value">{{
                             dict.label
-                            }}</el-radio>
-                    </el-radio-group>
-                </el-form-item>
-            </el-col>
-            <el-col :span="12">
-                <el-form-item label="状态" prop="status">
-                    <el-radio-group v-model="form1.status">
-                        <el-radio v-for="dict in ds_api_status" :key="dict.value" :value="dict.value">{{
+                            }}</a-radio>
+                    </a-radio-group>
+                </a-form-item>
+            </a-col>
+            <a-col :span="12">
+                <a-form-item label="状态" name="status">
+                    <a-radio-group v-model:value="form1.status">
+                        <a-radio v-for="dict in ds_api_status" :key="dict.value" :value="dict.value">{{
                             dict.label
-                        }}</el-radio>
-                    </el-radio-group>
-                </el-form-item>
-            </el-col>
-        </el-row>
+                        }}</a-radio>
+                    </a-radio-group>
+                </a-form-item>
+            </a-col>
+        </a-row>
 
-        <el-row :gutter="20">
-            <el-col :span="24" style="color: #333333;">
+        <a-row :gutter="20">
+            <a-col :span="24" style="color: #333333;">
                 <!-- class="input-number" -->
-                <el-form-item v-if="form1.rateLimit.enable === '1'" label="限流配置">
+                <a-form-item v-if="form1.rateLimit.enable === '1'" label="限流配置">
                     每&nbsp;
-                    <el-input-number v-model="form1.rateLimit.seconds" :min="1" />
+                    <a-input-number v-model:value="form1.rateLimit.seconds" :min="1" />
                     &nbsp; 秒内限制请求 &nbsp;
-                    <el-input-number v-model="form1.rateLimit.times" :min="1" />
+                    <a-input-number v-model:value="form1.rateLimit.times" :min="1" />
                     &nbsp; 次
-                </el-form-item>
-            </el-col>
+                </a-form-item>
+            </a-col>
 
-        </el-row>
-        <el-row :gutter="20">
-            <el-col :span="24">
-                <el-form-item label="备注" prop="remark">
-                    <el-input v-model="form1.remark" type="textarea" placeholder="请输入内容" />
-                </el-form-item>
-            </el-col>
-        </el-row>
-    </el-form>
+        </a-row>
+        <a-row :gutter="20">
+            <a-col :span="24">
+                <a-form-item label="备注" name="remark">
+                    <a-textarea v-model:value="form1.remark" placeholder="请输入内容" />
+                </a-form-item>
+            </a-col>
+        </a-row>
+    </a-form>
 </template>
 
 <script setup name="base">
@@ -222,7 +226,7 @@ function getApiCatList() {
         deptOptions.value = proxy.handleTree(response.data, 'id', 'parentId');
         deptOptions.value = [
             {
-                name: 'API服务类目',
+                name: 'API服务目录',
                 value: '',
                 id: 0,
                 children: deptOptions.value
@@ -242,13 +246,9 @@ function normalizeOptions(node) {
     };
 }
 function validateFormBase(formName, callback) {
-    proxy.$refs[formName].validate((valid) => {
-        if (valid) {
-            callback(props.form1);
-        } else {
-            return false;
-        }
-    });
+    proxy.$refs[formName].validate().then(() => {
+        callback(props.form1);
+    }).catch(() => {});
 }
 getApiCatList();
 defineExpose({
@@ -267,9 +267,9 @@ const handleApiUrlInput = (value) => {
     }
 };
 
-// 处理类目选择
+// 处理目录选择
 const handleCatSelect = (value) => {
-    // 在所有选项中查找匹配的类目
+    // 在所有选项中查找匹配的目录
     const findCategory = (options, code) => {
         for (const option of options) {
             if (option.code === code) {

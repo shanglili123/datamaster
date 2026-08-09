@@ -1,89 +1,53 @@
 <template>
     <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-            <el-col :span="1.5">
-                <el-button type="primary" plain @click="openRuleSelector" @mousedown="(e) => e.preventDefault()">
+        <a-row :gutter="15" class="btn-style">
+            <a-col :span="1.5">
+                <a-button type="primary" @click="openRuleSelector" @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-xinzeng mr5"></i>关联
-                </el-button>
-            </el-col>
-        </el-row>
+                </a-button>
+            </a-col>
+        </a-row>
         <div class="justify-end top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </div>
     </div>
 
-    <el-table stripe height="400" v-loading="loading" :data="dataList">
-        <el-table-column label="编号" type="index" width="60" align="left">
-            <template #default="scope">
-                <span>{{
-                    (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1
-                    }}</span>
+    <a-table striped :loading="loading" :data-source="dataList" :pagination="false" :scroll="{ y: 400 }" :columns="tableColumns">
+        <template #bodyCell="{ column, record, index }">
+            <template v-if="column.key === 'index'">
+                <span>{{ (queryParams.pageNum - 1) * queryParams.pageSize + index + 1 }}</span>
             </template>
-        </el-table-column>
-        <el-table-column label="清洗名称" prop="name" align="left" width="200">
-            <template #default="scope">
-                {{ scope.row.name || '-' }}
+            <template v-if="column.dataIndex === 'name'">
+                {{ record.name || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="清洗规则" align="left" prop="ruleName" :show-overflow-tooltip="{ effect: 'light' }"
-            width="200">
-            <template #default="scope">
-                {{ scope.row.ruleName || '-' }}
+            <template v-if="column.dataIndex === 'ruleName'">
+                {{ record.ruleName || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="描述" prop="description" align="left" :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.ruleDescription || '-' }}
+            <template v-if="column.dataIndex === 'ruleDescription'">
+                {{ record.ruleDescription || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="维度" align="left" prop="dimensionTypeension" :show-overflow-tooltip="{ effect: 'light' }"
-            width="150">
-            <template #default="scope">
-                {{ scope.row.dimensionType || '-' }}
+            <template v-if="column.dataIndex === 'dimensionType'">
+                {{ record.dimensionType || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="状态" align="left" prop="status">
-            <template #default="scope">
-                {{ scope.row.status == '1' ? '上线' : '下线' }}
+            <template v-if="column.dataIndex === 'status'">
+                {{ record.status == '1' ? '上线' : '下线' }}
             </template>
-        </el-table-column>
-        <!-- <el-table-column label="规则级别" prop="level" align="left" width="100">
-            <template #default="scope">
-                {{ formatValue(scope.row.level, att_rule_level) || '-' }}
+            <template v-if="column.dataIndex === 'createBy'">
+                {{ record.createBy || "-" }}
             </template>
-        </el-table-column> -->
-        <!-- <el-table-column label="规则类型" prop="type" align="left" width="100">
-            <template #default="scope">
-                {{ formatValue(scope.row.type, att_rule_clean_type) || '-' }}
+            <template v-if="column.dataIndex === 'createTime'">
+                <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
             </template>
-        </el-table-column> -->
-        <el-table-column label="创建人" :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="createBy"
-            width="120">
-            <template #default="scope">
-                {{ scope.row.createBy || "-" }}
+            <template v-if="column.dataIndex === 'updateTime'">
+                <span>{{ parseTime(record.updateTime, '{y}-{m}-{d} {h}:{i}') || '-' }}</span>
             </template>
-        </el-table-column>
-        <!--  sortable="custom" column-key="create_time" :sort-orders="['descending', 'ascending']" -->
-        <el-table-column label="创建时间" align="left" prop="createTime" width="150">
-            <template #default="scope"> <span>{{ parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
-            }}</span>
+            <template v-if="column.key === 'actions'">
+                <a-button type="link" size="small"
+                    @click="openRuleDialog(record, index + 1)">修改</a-button>
+                <a-button type="link" danger size="small" @click="handleRuleDelete(record)">删除</a-button>
             </template>
-        </el-table-column>
-        <el-table-column label="更新时间" align="left" prop="updateTime" width="300">
-            <template #default="scope">
-                <span>{{ parseTime(scope.row.updateTime, '{y}-{m}-{d} {h}:{i}') || '-' }}</span>
-            </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="180">
-            <template #default="scope">
-                <!-- <el-button link type="primary" icon="view"
-                    @click="openRuleDialog(scope.row, scope.$index + 1, true)">查看</el-button> -->
-                <el-button link type="primary" icon="Edit"
-                    @click="openRuleDialog(scope.row, scope.$index + 1)">修改</el-button>
-                <el-button link type="danger" icon="Delete" @click="handleRuleDelete(scope.row)">删除</el-button>
-            </template>
-        </el-table-column>
-    </el-table>
+        </template>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize" @pagination="getList" />
@@ -91,8 +55,11 @@
 </template>
 
 <script setup name="dataElemClean">
+import { message } from 'ant-design-vue'
 import { ref, watch } from 'vue';
+
 import RuleSelectorDialog from '@/views/col/task/integratioTask/components/clean/rule/ruleBase.vue';
+
 import { listDpDataElemRuleRel, dpDataElemRuleRel, putDpDataElemRuleRel, DlEPutDpDataElemRuleRel } from '@/api/std/dataElem/dataElem';
 const { proxy } = getCurrentInstance();
 
@@ -117,6 +84,18 @@ const showSearch = ref(true);
 const total = ref(0);
 const dataList = ref([]);
 const typeName = ref(null);
+const tableColumns = [
+    { title: '编号', key: 'index', align: 'left', width: 60 },
+    { title: '清洗名称', dataIndex: 'name', align: 'left', width: 200 },
+    { title: '清洗规则', dataIndex: 'ruleName', align: 'left', width: 200, ellipsis: true },
+    { title: '描述', dataIndex: 'ruleDescription', align: 'left', ellipsis: true },
+    { title: '维度', dataIndex: 'dimensionType', align: 'left', width: 150, ellipsis: true },
+    { title: '状态', dataIndex: 'status', align: 'left' },
+    { title: '创建人', dataIndex: 'createBy', align: 'left', width: 120, ellipsis: true },
+    { title: '创建时间', dataIndex: 'createTime', align: 'left', width: 150 },
+    { title: '更新时间', dataIndex: 'updateTime', align: 'left', width: 300 },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 180 },
+];
 
 const data = reactive({
     form: {

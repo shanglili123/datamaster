@@ -1,24 +1,29 @@
-﻿<template>
+<template>
   <div class="upload-file">
-    <el-upload
+    <a-upload
       multiple
       :action="uploadFileUrl"
       :before-upload="handleBeforeUpload"
       :file-list="fileList"
-      :limit="limit"
-      :on-error="handleUploadError"
-      :on-exceed="handleExceed"
-      :on-success="handleUploadSuccess"
-      :show-file-list="false"
+      :max-count="limit"
+      :show-upload-list="false"
       :headers="headers"
       class="upload-file-uploader"
       ref="fileUpload"
       :data="uploadData"
-      :drag="dragFlag"
+      :type="dragFlag ? 'drag' : 'select'"
+      @change="(info) => {
+        const { file } = info;
+        if (file.status === 'done') {
+          handleUploadSuccess(file.response, file);
+        } else if (file.status === 'error') {
+          handleUploadError(file.error);
+        }
+      }"
     >
-      <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-      <div class="el-upload__text" style="width: 100%;">将文件拖到此处，或<em>点击上传</em></div>
-    </el-upload>
+      <UploadOutlined style="font-size: 40px; color: #8c939d; margin: 20px 0 8px" />
+      <div class="upload-drag-text" style="width: 100%;">将文件拖到此处，或<em>点击上传</em></div>
+    </a-upload>
     <!-- 上传提示 -->
 <!--    <div class="el-upload__tip" v-if="showTip">-->
 <!--      请上传-->
@@ -27,22 +32,22 @@
 <!--      的文件-->
 <!--    </div>-->
     <!-- 文件列表 -->
-    <transition-group class="upload-file-list el-upload-list el-upload-list--text" name="el-fade-in-linear" tag="ul">
-      <!-- <li :key="file.uid" class="el-upload-list__item ele-upload-list__item-content" v-for="(file, index) in fileList">
-        <el-link :href="`${baseUrl}${file.url}`" :underline="false" target="_blank">
-          <span class="el-icon-document"> {{ getFileName(file.name) }} </span>
-        </el-link>
-        <span class="el-icon-document"> {{ getFileName(file.name) }} </span>
+    <transition-group class="upload-file-list" name="fade" tag="ul">
+      <!-- <li :key="file.uid" class="ele-upload-list__item-content" v-for="(file, index) in fileList">
+        <a :href="`${baseUrl}${file.url}`" target="_blank">
+          <span><FileTextOutlined /> {{ getFileName(file.name) }} </span>
+        </a>
+        <span><FileTextOutlined /> {{ getFileName(file.name) }} </span>
         <div class="ele-upload-list__item-content-action">
-          <el-link :underline="false" @click="handleDelete(index)" type="danger">删除</el-link>
+          <a class="danger-link" @click="handleDelete(index)">删除</a>
         </div>
       </li> -->
       <li :key="file.uid" class="filelistcont" v-for="(file, index) in fileList">
         <div class="filelistcont-name">
-          <span class="el-icon-document"> {{ getFileName(file.name) }} </span>
+          <span><FileTextOutlined style="margin-right: 4px" />{{ getFileName(file.name) }} </span>
         </div>
         <div class="ele-upload-list__item-content-action">
-          <el-link :underline="false" @click="handleDelete(index)" type="danger">删除</el-link>
+          <a-typography-link :underline="false" @click="handleDelete(index)" type="danger">删除</a-typography-link>
         </div>
       </li>
     </transition-group>
@@ -50,7 +55,9 @@
 </template>
 
 <script setup>
+
 import { getToken } from "@/utils/auth";
+import { UploadOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
   modelValue: [String, Object, Array],
@@ -246,6 +253,15 @@ defineExpose({fileList,getFileName})
   align-items: center;
   .filelistcont-name{
     margin-right: 10px;
+  }
+}
+.upload-drag-text {
+  color: #606266;
+  font-size: 14px;
+  text-align: center;
+  em {
+    color: var(--el-color-primary);
+    font-style: normal;
   }
 }
 </style>

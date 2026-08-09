@@ -1,65 +1,64 @@
 <template>
     <!-- 稽查对象信息 新增修改弹窗 第二步 -->
-    <el-dialog v-model="dialogVisible" draggable class="dialog" :title="dialogTitle" destroy-on-close width="800px"
-        :append-to="$refs['app-container']">
-        <el-form ref="formRef" :model="form" :rules="formRules" label-width="120px" @submit.prevent>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="稽查对象名称" prop="name">
-                        <el-input v-model="form.name" placeholder="请输入稽查对象名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="源数据库连接" prop="datasourceId">
-                        <el-select v-model="form.datasourceId" placeholder="请选择源数据库连接" filterable
+    <a-modal v-model:open="dialogVisible" draggable class="dialog" :title="dialogTitle" destroy-on-close width="800px">
+        <a-form ref="formRef" :model="form" :rules="formRules" :label-col="{ style: { width: '120px' } }" @submit.prevent>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="稽查对象名称" name="name">
+                        <a-input v-model:value="form.name" placeholder="请输入稽查对象名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="源数据库连接" name="datasourceId">
+                        <a-select v-model:value="form.datasourceId" placeholder="请选择源数据库连接" show-search
                             @change="onDatasourceChange">
-                            <el-option v-for="ds in datasourceOptions" :key="ds.id" :label="ds.datasourceName"
-                                :value="ds.id" />
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                            <a-select-option v-for="ds in datasourceOptions" :key="ds.id" :value="ds.id">{{
+                                ds.datasourceName }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
 
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="数据连接类型">
-                        <el-input v-model="form.datasourceType" disabled placeholder="数据连接类型" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="数据连接实例">
-                        <el-input v-model="form.dbname" disabled placeholder="数据连接实例" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="数据连接类型">
+                        <a-input v-model:value="form.datasourceType" disabled placeholder="数据连接类型" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="数据连接实例">
+                        <a-input v-model:value="form.dbname" disabled placeholder="数据连接实例" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
 
-                    <el-form-item label="选择表" prop="tableName">
-                        <el-select v-model="form.tableName" filterable :loading="tableLoading" @change="onTableChange">
-                            <el-option v-for="item in tableOptions" :key="item.tableName" :label="item.tableName"
-                                :value="item.tableName" />
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                    <a-form-item label="选择表" name="tableName">
+                        <a-select v-model:value="form.tableName" show-search :loading="tableLoading" @change="onTableChange">
+                            <a-select-option v-for="item in tableOptions" :key="item.tableName" :value="item.tableName">{{
+                                item.tableName }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
 
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="closeDialog">取消</el-button>
-                <el-button type="primary" @click="saveData">确定</el-button>
+                <a-button @click="closeDialog">取消</a-button>
+                <a-button type="primary" @click="saveData">确定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 
-    <el-dialog title="Cron表达式生成器" v-model="cronDialogVisible" :append-to="$refs['app-container']" destroy-on-close>
+    <a-modal title="Cron表达式生成器" v-model:open="cronDialogVisible" destroy-on-close>
         <crontab ref="crontabRef" :expression="expression" @hide="cronDialogVisible = false" @fill="crontabFill" />
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
@@ -184,11 +183,9 @@ const openDialog = async (record, index) => {
 }
 
 const saveData = () => {
-    formRef.value.validate((valid) => {
-        if (valid) {
-            emit('confirm', JSON.parse(JSON.stringify(form.value)), mode.value);
-        }
-    })
+    formRef.value.validate().then(() => {
+        emit('confirm', JSON.parse(JSON.stringify(form.value)), mode.value);
+    }).catch(() => { })
 }
 
 const closeDialog = () => {

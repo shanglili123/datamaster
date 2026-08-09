@@ -1,53 +1,42 @@
 <template>
-  <el-dialog v-model="visibleDialog" draggable class="medium-dialog" :title="title" destroy-on-close @close="clearData">
+  <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="title" :destroy-on-close="true" @close="clearData">
     <div>
       <!-- 导出按钮 -->
-      <el-button :disabled="!callData.dataTotal > 0" type="warning" plain icon="Download"
-        @click="downloadMethodNotification" :loading="downloadLoading">导出</el-button>
+      <a-button :disabled="!callData.dataTotal > 0" type="warning" ghost @click="downloadMethodNotification"
+        :loading="downloadLoading">导出</a-button>
 
-      <el-table :data="callData.dataList" stripe border height="540" v-loading="loading"
-        style="width: 100%; margin: 15px 0">
-        <el-table-column label="序号" width="80" align="center" v-if="callData.dataTotal > 0">
-          <template #default="scope">
+      <a-table :data-source="callData.dataList" striped bordered :loading="loading"
+        :pagination="false" :scroll="{ y: 540 }" :columns="tableColumns"
+        style="width: 100%; margin: 15px 0"
+        :locale="{ emptyText: '暂无记录' }">
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.key === 'index'">
             <span>{{
-              (callData.pageNum - 1) * callData.pageSize + scope.$index + 1
+              (callData.pageNum - 1) * callData.pageSize + index + 1
             }}</span>
           </template>
-        </el-table-column>
-
-        <!-- 动态生成列 -->
-        <template v-for="column in callData.columnList" :key="column">
-          <el-table-column :label="column" align="center" :min-width="180" :show-overflow-tooltip="{effect: 'light'}">
-            <template #default="scope">
-              {{ formatCellValue(scope.row[column]) }}
-            </template>
-          </el-table-column>
+          <template v-else>
+            {{ formatCellValue(record[column.dataIndex]) }}
+          </template>
         </template>
-
-        <!-- 如果没有数据时，显示暂无记录 -->
-        <template #empty>
-          <div class="emptyBg">
-            <!-- <img src="@/assets/system/images/no_data/noData.png" alt="" /> -->
-            <p>暂无记录</p>
-          </div>
-        </template>
-      </el-table>
+      </a-table>
       <pagination v-show="callData.dataTotal > 0" :total="callData.dataTotal" v-model:page="callData.pageNum"
         v-model:limit="callData.pageSize" @pagination="handleQuery" />
     </div>
 
     <template #footer>
       <div style="text-align: right">
-        <el-button @click="closeDialog">关闭</el-button>
+        <a-button @click="closeDialog">关闭</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
 import { ref, computed, watch, getCurrentInstance } from "vue";
 import { encrypt } from "@/utils/aesEncrypt";
 import { executeSqlQuery } from "@/api/ast/dataSource/dataSource";
+import { Modal, notification } from "ant-design-vue";
 
 const { proxy } = getCurrentInstance();
 const props = defineProps({
@@ -65,6 +54,18 @@ const callData = ref({
   pageNum: 1,
   pageSize: 6, // 查询每页默认6条
   dataTotal: 0,
+});
+const tableColumns = computed(() => {
+  const cols = [];
+  if (callData.value.dataTotal > 0) {
+    cols.push({ title: '序号', key: 'index', width: 80, align: 'center' });
+  }
+  if (callData.value.columnList && callData.value.columnList.length > 0) {
+    callData.value.columnList.forEach(col => {
+      cols.push({ title: col, dataIndex: col, align: 'center', width: 180, ellipsis: true });
+    });
+  }
+  return cols;
 });
 
 const emit = defineEmits(["update:visible", "confirm"]);
@@ -158,11 +159,10 @@ const downloadMethod = () => {
   downloadLoading.value = true;
 
   if (total === 0) {
-    ElNotification({
-      title: "提示",
-      message: "该表没有数据",
-      type: "info",
-      duration: 2000,
+    notification.info({
+      message: "提示",
+      description: "该表没有数据",
+      duration: 2,
     });
     downloadLoading.value = false;
     return;
@@ -191,17 +191,14 @@ const downloadMethod = () => {
 const downloadMethodNotification = () => {
   const totalFilesCount = totalFiles.value;
 
-  ElMessageBox.confirm(
-    `是否导出总数为：<span style="color: rgb(0, 160, 233);">${callData.value.dataTotal}</span>，以每5000数据一份文件进行导出，总共导出 ${totalFilesCount} 份？`,
-    "提示",
-    {
-      dangerouslyUseHTMLString: true,
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  ).then(() => {
-    downloadMethod();
+  Modal.confirm({
+    title: "提示",
+    content: `是否导出总数为：${callData.value.dataTotal}，以每5000数据一份文件进行导出，总共导出 ${totalFilesCount} 份？`,
+    okText: "确定",
+    cancelText: "取消",
+    onOk: () => {
+      downloadMethod();
+    },
   });
 };
 </script>

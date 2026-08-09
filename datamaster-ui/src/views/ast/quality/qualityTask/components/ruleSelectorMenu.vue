@@ -1,7 +1,7 @@
 <template>
   <!--稽查规则信息 第一步的内容 是清洗规则的卡片  -->
-  <el-row>
-    <el-col :span="5">
+  <a-row>
+    <a-col :span="5">
       <DeptTree
         :deptOptions="processedData"
         :leftWidth="leftWidth"
@@ -10,11 +10,12 @@
         ref="DeptTreeRef"
         :default-expand="true"
       />
-    </el-col>
+    </a-col>
     <div class="divider"></div>
-    <el-col :span="18" class="content-col" v-loading="loading">
+    <a-col :span="18" class="content-col">
+      <a-spin :spinning="loading">
       <div class="content" ref="contentWrapper">
-        <el-row>
+        <a-row>
           <div class="cards-wrapper">
             <template v-if="attAuditRuleList.length">
               <div
@@ -24,22 +25,20 @@
                 :class="{ selected: selectedCard?.id === data.id }"
                 @click="cardClick(data)"
               >
-                <el-card
+                <a-card
                   class="box-card boxCard"
-                  shadow="never"
+                  :bordered="false"
                   :body-style="{ padding: '15px' }"
                 >
                   <div
                     class="card-icon"
                     :class="{ 'is-disabled': data.validFlag == false }"
                   >
-                    <el-icon>
-                      <Document />
-                    </el-icon>
+                    <FileTextOutlined />
                   </div>
                   <div class="card-title ellipsis-8">{{ data.name }}</div>
                   <div class="card-desc ellipsis-multi">{{ data.useCase }}</div>
-                </el-card>
+                </a-card>
               </div>
             </template>
 
@@ -47,21 +46,19 @@
               <div class="empty-wrapper">暂无数据</div>
             </template>
           </div>
-        </el-row>
+        </a-row>
       </div>
-    </el-col>
-  </el-row>
+      </a-spin>
+    </a-col>
+  </a-row>
 </template>
 
 <script setup>
-import {
-  Document,
-  Menu,
-  DataLine,
-  Files,
-  Monitor,
-} from "@element-plus/icons-vue";
+import { message } from 'ant-design-vue'
+import { FileTextOutlined } from "@ant-design/icons-vue";
+
 import { listAttAuditRule } from "@/api/tax/rule/auditRule.js";
+
 import DeptTree from "@/components/DeptTree/tree.vue";
 const { proxy } = getCurrentInstance();
 const { att_rule_audit_q_dimension } = proxy.useDict(
@@ -137,7 +134,7 @@ async function fetchRulesByDimension() {
 
 function cardClick(data) {
   if (data.validFlag == false) {
-    return ElMessage.info("开发中");
+    return message.info("开发中");
   }
   selectedCard.value = data;
   emit("card-click", data);
@@ -269,7 +266,7 @@ onMounted(() => {
   vertical-align: middle;
 }
 
-::v-deep .el-card__body {
+::v-deep .ant-card-body {
   padding: 0 !important;
 }
 

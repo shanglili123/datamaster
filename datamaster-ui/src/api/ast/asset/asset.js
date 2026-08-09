@@ -86,6 +86,15 @@ export function startDaDiscoveryTask(data) {
     });
 }
 
+// 资产元数据同步
+export function syncAsset(data) {
+    return request({
+        url: `/ast/asset/sync`,
+        method: 'post',
+        data: data
+    });
+}
+
 // 文件列表
 export function getFileList(query) {
     return request({
@@ -111,5 +120,4 @@ export function dataLineage(id) {
         method: 'get',
     });
 }
-
 

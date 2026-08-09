@@ -12,9 +12,8 @@ import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
-import com.datamaster.quality.QualityApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 启动程序
@@ -22,9 +21,8 @@ import com.datamaster.quality.QualityApplication;
  * @author dataMaster
  */
 @EnableFileStorage
-@ComponentScan(basePackages = {"com.datamaster"}, excludeFilters = {
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {QualityApplication.class})
-})
+@EnableScheduling
+@ComponentScan(basePackages = {"com.datamaster"})
 @ServletComponentScan(basePackages = {"com.datamaster"})
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class,
         MongoAutoConfiguration.class, MongoDataAutoConfiguration.class })

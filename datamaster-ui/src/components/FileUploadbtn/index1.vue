@@ -1,13 +1,21 @@
-﻿<template>
+<template>
     <div class="upload-file">
-        <el-upload :limit="limit" :action="uploadFileUrl" :before-upload="handleBeforeUpload"
-            :on-success="handleUploadSuccess" :on-error="handleUploadError" :on-exceed="handleExceed" :headers="headers"
-            :data="uploadData" :drag="dragFlag" :file-list="fileList"
-            :accept="fileType.map((ext) => '.' + ext).join(',')" :show-file-list="false" :on-remove="handleRemove">
-            <el-button type="primary" size="small" icon="Upload" plain>
+        <a-upload :max-count="limit" :action="uploadFileUrl" :before-upload="handleBeforeUpload"
+            :headers="headers"
+            :data="uploadData" :type="dragFlag ? 'drag' : 'select'" :file-list="fileList"
+            :accept="fileType.map((ext) => '.' + ext).join(',')" :show-upload-list="false" :on-remove="handleRemove"
+            @change="(info) => {
+                const { file } = info;
+                if (file.status === 'done') {
+                    handleUploadSuccess(file.response, file);
+                } else if (file.status === 'error') {
+                    handleUploadError(file.error);
+                }
+            }">
+            <a-button type="primary" size="small" :icon="h(UploadOutlined)">
                 选择文件
-            </el-button>
-        </el-upload>
+            </a-button>
+        </a-upload>
 
         <!-- 上传提示 -->
         <div class="el-upload__tip" v-if="isShowTip">
@@ -20,29 +28,23 @@
         <!-- 自定义文件展示 -->
         <ul class="custom-file-list">
             <li v-for="(file, index) in fileList" :key="file.uid" class="file-item">
-                <el-icon>
-                    <Document />
-                </el-icon>
+                <FileTextOutlined />
                 <span class="file-name" @click="handleView(file)">
                     {{ getFileName(file.name || file.url) }}
                 </span>
                 <span class="file-date">{{ file.uploadDate || formatDate(file.uid) }}</span>
-                <el-icon @click="handleDownload(file)" class="icon-btn">
-                    <Download />
-                </el-icon>
-                <el-icon v-if="showDelete" @click="handleRemove(file)" class="icon-btn">
-                    <Delete />
-                </el-icon>
+                <DownloadOutlined @click="handleDownload(file)" class="icon-btn" />
+                <DeleteOutlined v-if="showDelete" @click="handleRemove(file)" class="icon-btn" />
             </li>
         </ul>
     </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, watch, h } from 'vue'
+import { message } from 'ant-design-vue'
 import { getToken } from '@/utils/auth'
-import { Document, Download, Delete } from '@element-plus/icons-vue'
+import { FileTextOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps({
     modelValue: [Array, String],
@@ -92,12 +94,12 @@ watch(
 function handleBeforeUpload(file) {
     const ext = file.name.split('.').pop().toLowerCase()
     if (!props.fileType.includes(ext)) {
-        ElMessage.error(`文件格式不正确，请上传 ${props.fileType.join('/')} 格式文件`)
+        message.error(`文件格式不正确，请上传 ${props.fileType.join('/')} 格式文件`)
         return false
     }
     const size = file.size / 1024 / 1024
     if (size > props.fileSize) {
-        ElMessage.error(`文件大小不能超过 ${props.fileSize}MB`)
+        message.error(`文件大小不能超过 ${props.fileSize}MB`)
         return false
     }
     return true
@@ -126,11 +128,11 @@ function handleUploadSuccess(res, file) {
     }
 }
 function handleUploadError() {
-    ElMessage.error('上传文件失败')
+    message.error('上传文件失败')
 }
 
 function handleExceed() {
-    ElMessage.warning(`最多只能上传 ${props.limit} 个文件`)
+    message.warning(`最多只能上传 ${props.limit} 个文件`)
 }
 
 function handleDelete(index) {

@@ -11,7 +11,7 @@ import { cuPort } from "@/utils/graph";
 import useUserStore from "@/store/system/user";
 const userStore = useUserStore();
 import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/col/task/etlTask";
-import { ElMessage } from "element-plus";
+import { message } from "ant-design-vue";
 import { DagreLayout } from '@antv/layout';
 import { register } from '@antv/x6-vue-shape';
 import NodeView from "@/views/col/components/nodeView";
@@ -394,7 +394,7 @@ export const validateGraph = (graph, flag) => {
 
   if (nodes.length === 0) {
     const msg = "当前任务缺少输入、转换、输出组件，请设置相关组件";
-    if (!flag) ElMessage.warning(msg);
+    if (!flag) message.warning(msg);
     return { isValid: false, errorMessages: [msg] };
   }
 
@@ -475,7 +475,7 @@ export const validateGraph = (graph, flag) => {
 
 
   if (errorMessages.length > 0 && !flag) {
-    ElMessage.warning(errorMessages[0]);
+    message.warning(errorMessages[0]);
   }
 
   return { isValid: errorMessages.length === 0, errorMessages };

@@ -3,58 +3,80 @@
     <div class="flex-container">
 
       <!-- 右侧主内容 -->
-      <div class="right-pane" v-loading="loading">
-        <!-- <el-empty description=" 暂无任务流程" v-if="!nodeData?.locations || nodeData.locations.length === 0">
-        </el-empty> -->
+      <div class="right-pane">
+        <a-spin :spinning="loading">
+        <!-- <a-empty description=" 暂无任务流程" v-if="!nodeData?.locations || nodeData.locations.length === 0">
+        </a-empty> -->
         <div id="graphContainer" class="graph-container" ref="graphContainer"></div>
         <TeleportContainer />
         <!-- 工具栏 -->
         <div class="toolbar" v-if="nodeData?.locations">
           <template v-for="item in toolbar" :key="item.id">
-            <el-tooltip class="box-item" effect="light" :content="item.tip" placement="bottom"
-              v-if="item.tip !== '重置' && item.tip !== '导出'">
+            <a-tooltip class="box-item" :title="item.tip" placement="bottom"
+              v-if="item.tip !== '重置' && item.tip !== '导出'"
+>
               <div class="toolbar-item" @click="toolbarClick(item)">
                 <img :src="getAssetsFile(item.icon)" alt="" />
               </div>
-            </el-tooltip>
+            </a-tooltip>
           </template>
         </div>
+        </a-spin>
       </div>
     </div>
     <!-- 动态表单 -->
     <component :is="currentFormComponent" :visible="drawer" :key="currentNode?.id || Date.now()" :title="title"
-      @update="closeDialog" :currentNode="currentNode" :info="route.query.info" :graph="graph" />
+      @update="closeDialog" :currentNode="currentNode" :info="route.query.info" :graph="graph"
+/>
     <!-- 字段预览弹窗 -->
     <FieldPreviewDialog ref="fieldPreviewDialog" />
   </div>
 </template>
 <script setup>
+import { message } from 'ant-design-vue'
 import { Graph } from "@antv/x6";
+
 import { Dnd } from "@antv/x6-plugin-dnd";
+
 import { ref, computed, onMounted } from "vue";
+
 import { useRoute, useRouter } from "vue-router";
 /// 输入组件
+
 import InputForm from "@/views/col/task/integratioTask/components/input/tableForm.vue";
+
 import excelInputForm from "@/views/col/task/integratioTask/components/input/excelForm.vue";
+
 import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vue";
 // 转换组件
 // 清洗组件
+
 import TransformForm from "@/views/col/task/integratioTask/components/clean/cleanForm.vue";
 // 排序组件
+
 import OrderConfig from "@/views/col/task/integratioTask/components/transform/orderConfig.vue";
 // 字段派生期
+
 import FieldBuilder from "@/views/col/task/integratioTask/components/transform/fieldBuilder.vue";
 // 输出表组件
+
 import OutputForm from "@/views/col/task/integratioTask/components/output/tableForm.vue";
+
 import { getLogByTaskInstanceId, getTaskInfo } from "@/api/col/task/etlTask";
-// import taskConfigDialog from "@/views/col/etl/components//task.vue";
+// import { message } from 'ant-design-vue'
+
 import useUserStore from "@/store/system/user";
+
 import { toolbar } from "@/utils/graph";
+
 import { Export } from '@antv/x6-plugin-export'
 const userStore = useUserStore();
+
 import { getTeleport } from "@antv/x6-vue-shape";
 const TeleportContainer = defineComponent(getTeleport());
+
 import { Selection } from "@antv/x6-plugin-selection";
+
 import {
   usePlugins,
   fetchNodeUniqueKey,
@@ -69,7 +91,6 @@ let nodeData = ref();
 let graph = null;
 let dnd = null;
 const drawer = ref(false);
-const taskConfigDialogVisible = ref(false);
 const currentNode = ref({});
 const sourceNode = ref({});
 const currentFormComponent = computed(() => {
@@ -245,13 +266,11 @@ function bindGraphEvents() {
 
   graph.on("node:added", handleNodeAdded);
 
-
   graph.on("node:dblclick", handleNodeDblClick);
   if (route.query.info) {
     graph.getPlugin('keyboard')?.disable();
   }
 }
-
 
 // / 处理节点添加事件
 async function handleNodeAdded({ node }) {

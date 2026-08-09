@@ -1,13 +1,14 @@
 <template>
   <!-- 清洗规则基础页面   -->
-  <el-dialog
-    v-model="dialogVisible"
-    draggable
+  <a-modal
+    v-model:open="dialogVisible"
+    :draggable="true"
     class="medium-dialog"
     :class="{ 'max-dialogs-status0': dialogStatus === 0 }"
     :title="dialogTitle"
-    destroy-on-close
-    :append-to="$refs['app-container']"
+    :destroy-on-close="true"
+    :mask-closable="false"
+    :get-container="() => $refs['app-container'] || document.body"
   >
     <div class="content" v-if="dialogStatus == 0">
       <SideMenu
@@ -23,13 +24,13 @@
       v-show="dialogStatus == 1 || dialogStatus == 2"
       :disabled="dialogStatus == 2"
     >
-      <el-form ref="formRef" :model="form" label-width="130px">
+      <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }">
         <div class="h2-title">基础信息</div>
-        <el-row>
-          <el-col :span="8">
-            <el-form-item
+        <a-row>
+          <a-col :span="8">
+            <a-form-item
               label="清洗名称"
-              prop="name"
+              name="name"
               :rules="
                 !falg
                   ? [
@@ -42,88 +43,86 @@
                   : []
               "
             >
-              <el-input
+              <a-input
                 v-if="!falg"
-                v-model="form.name"
+                v-model:value="form.name"
                 placeholder="请输入清洗名称"
               />
               <div v-else class="form-readonly">{{ form.name || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="清洗规则编号" prop="ruleCode">
-              <el-input
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="清洗规则编号" name="ruleCode">
+              <a-input
                 v-if="!falg"
-                v-model="form.ruleCode"
+                v-model:value="form.ruleCode"
                 placeholder="请输入清洗规则编号"
                 disabled
               />
               <div v-else class="form-readonly">{{ form.ruleCode || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="清洗规则名称" prop="ruleName">
-              <el-input
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="清洗规则名称" name="ruleName">
+              <a-input
                 v-if="!falg"
-                v-model="form.ruleName"
+                v-model:value="form.ruleName"
                 placeholder="请输入清洗规则名称"
                 disabled
               />
               <div v-else class="form-readonly">{{ form.ruleName || "-" }}</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="8">
-            <el-form-item label="状态" prop="status">
-              <el-radio-group v-model="form.status" :disabled="falg">
-                <el-radio :value="'1'">上线</el-radio>
-                <el-radio :value="'0'">下线</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="规则描述" prop="ruleDesc">
-              <el-input
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="8">
+            <a-form-item label="状态" name="status">
+              <a-radio-group v-model:value="form.status" :disabled="falg">
+                <a-radio :value="'1'">上线</a-radio>
+                <a-radio :value="'0'">下线</a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="规则描述" name="ruleDesc">
+              <a-textarea
                 v-if="!falg"
-                type="textarea"
-                maxlength="500个字符"
-                show-word-limit
-                v-model="form.ruleDesc"
+                :maxlength="500"
+                show-count
+                v-model:value="form.ruleDesc"
                 placeholder="请输入规则描述"
               />
               <div v-else class="form-readonly textarea">
                 {{ form.ruleDesc ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="Where 条件" prop="whereClause">
-              <el-input
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="Where 条件" name="whereClause">
+              <a-textarea
                 v-if="!falg"
-                type="textarea"
-                maxlength="500个字符"
-                show-word-limit
-                v-model="form.whereClause"
+                :maxlength="500"
+                show-count
+                v-model:value="form.whereClause"
                 placeholder="请输入 Where 条件"
               />
               <div v-else class="form-readonly textarea">
                 {{ form?.whereClause ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
         <!-- 规则配置 -->
         <div class="h2-title">规则配置</div>
-        <el-row v-if="type != 3">
-          <el-col :span="24">
-            <el-form-item
+        <a-row v-if="type != 3">
+          <a-col :span="24">
+            <a-form-item
               label="清洗字段"
-              prop="columns"
+              name="columns"
               :rules="
                 !falg
                   ? [
@@ -137,39 +136,39 @@
               "
             >
               <template v-if="!falg">
-                <el-select
+                <a-select
                   v-if="isMultipleSelect"
-                  v-model="form.columns"
+                  v-model:value="form.columns"
                   placeholder="请选择清洗字段"
-                  multiple
-                  clearable
+                  mode="multiple"
+                  allow-clear
                 >
-                  <el-option
+                  <a-select-option
                     v-for="dict in processedFields"
                     :key="dict.columnName"
                     :label="dict.label"
                     :value="dict.columnName"
                   />
-                </el-select>
-                <el-select
+                </a-select>
+                <a-select
                   v-else
-                  v-model="form.columns"
+                  v-model:value="form.columns"
                   placeholder="请选择清洗字段"
-                  clearable
+                  allow-clear
                 >
-                  <el-option
+                  <a-select-option
                     v-for="dict in processedFields"
                     :key="dict.columnName"
                     :label="dict.label"
                     :value="dict.columnName"
                     :disabled="shouldDisableField(dict)"
                   />
-                </el-select>
+                </a-select>
               </template>
               <div v-else class="form-readonly">{{ columnsDisplayText }}</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
         <component
           :is="currentRuleComponent"
           ref="ruleComponentRef"
@@ -178,24 +177,27 @@
           :falg="falg"
           :columnList="columnList"
         />
-      </el-form>
+      </a-form>
     </div>
     <template #footer>
       <template v-if="dialogStatus == 1"
-        ><el-button type="primary" @click="handleSave" v-if="!falg"
-          >确定</el-button
+        ><a-button type="primary" @click="handleSave" v-if="!falg"
+          >确定</a-button
         >
-        <el-button @click="handleBack" v-if="!mode">返回</el-button>
-        <!-- <el-button type="warning" @click="handleSpotCheck">预览</el-button> -->
+        <a-button @click="handleBack" v-if="!mode">返回</a-button>
+        <!-- <a-button type="warning" @click="handleSpotCheck">预览</a-button> -->
       </template>
-      <el-button @click="closeDialog" v-else>关闭</el-button>
+      <a-button @click="closeDialog" v-else>关闭</a-button>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
 import SideMenu from "./ruleSelectorMenu.vue";
+
 import { getRuleConfig, getRuleComponent } from "./registry.js";
+
 
 import moment from "moment";
 let falg = ref(false);
@@ -501,7 +503,7 @@ defineExpose({ openDialog, closeDialog });
 
 <style scoped>
 .blue-text {
-  color: var(--el-color-primary);
+  color: #2666fb;
 }
 
 .medium-dialog {
@@ -509,7 +511,7 @@ defineExpose({ openDialog, closeDialog });
 }
 </style>
 <style>
-.el-dialog.max-dialogs-status0 .el-dialog__body {
+.ant-modal.max-dialogs-status0 .ant-modal-body {
   padding: 0 !important;
   padding-left: 10px !important;
 }

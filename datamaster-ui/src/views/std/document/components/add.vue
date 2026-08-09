@@ -1,133 +1,133 @@
 <template>
-    <el-dialog :title="title" v-model="visible" class="warn-dialog" :append-to="$refs['app-container']" draggable>
-        <el-form ref="formRef" :model="form" label-width="100px" @submit.prevent>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="标准号" prop="code" :rules="[
+    <a-modal :title="title" v-model:open="visible" class="warn-dialog" draggable>
+        <a-form ref="formRef" :model="form" :label-col="{ style: { width: '100px' } }" @submit.prevent>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="标准号" name="code" :rules="[
                         { required: true, message: '标准号不能为空', trigger: 'blur' }
                     ]">
-                        <el-input v-model="form.code" placeholder="请输入标准号" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="标准名称" prop="name" :rules="[
+                        <a-input v-model:value="form.code" placeholder="请输入标准号" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="标准名称" name="name" :rules="[
                         { required: true, message: '标准名称不能为空', trigger: 'blur' }
                     ]">
-                        <el-input v-model="form.name" placeholder="请输入标准名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                        <a-input v-model:value="form.name" placeholder="请输入标准名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
 
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="标准级别" prop="stdLevel" :rules="[
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="标准级别" name="stdLevel" :rules="[
                         { required: true, message: '标准级别不能为空', trigger: 'change' }
                     ]">
-                        <el-select style="width: 100%;" v-model="form.stdLevel"
+                        <a-select style="width: 100%;" v-model:value="form.stdLevel"
                             placeholder="请选择标准级别">
-                            <el-option label="国家标准" value="国家标准" />
-                            <el-option label="行业标准" value="行业标准" />
-                            <el-option label="地方标准" value="地方标准" />
-                            <el-option label="团体标准" value="团体标准" />
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="标准状态" prop="status" :rules="[
+                            <a-select-option label="国家标准" value="国家标准" />
+                            <a-select-option label="行业标准" value="行业标准" />
+                            <a-select-option label="地方标准" value="地方标准" />
+                            <a-select-option label="团体标准" value="团体标准" />
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="标准状态" name="status" :rules="[
                         { required: true, message: '标准状态不能为空', trigger: 'blur' }
                     ]">
-                        <el-select style="width: 100%;" class="el-form-input-width" v-model="form.status"
+                        <a-select style="width: 100%;" class="el-form-input-width" v-model:value="form.status"
                             placeholder="请选择标准状态">
-                            <el-option v-for="dict in dp_document_status" :key="dict.value" :label="dict.label"
-                                :value="dict.value"></el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="标准类目" prop="catCode" :rules="[
-                        { required: true, message: '标准类目不能为空', trigger: 'blur' }
+                            <a-select-option v-for="dict in dp_document_status" :key="dict.value" :label="dict.label"
+                                :value="dict.value">{{ dict.label }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="标准目录" name="catCode" :rules="[
+                        { required: true, message: '标准目录不能为空', trigger: 'blur' }
                     ]">
-                        <el-tree-select filterable v-model="form.catCode" :data="deptOptions"
-                            :props="{ value: 'code', label: 'name', children: 'children' }" value-key="code"
-                            placeholder="请选择标准类目" check-strictly />
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                        <a-tree-select show-search v-model:value="form.catCode" :tree-data="deptOptions"
+                            :field-names="{ value: 'code', label: 'name', children: 'children' }"
+                            placeholder="请选择标准目录" tree-check-strictly />
+                    </a-form-item>
+                </a-col>
+            </a-row>
 
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="文件" prop="fileUrl" :rules="[
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="文件" name="fileUrl" :rules="[
                         { required: true, message: '文件不能为空', trigger: 'change' }
                     ]">
                         <FileUploadbtn :limit="1" v-model:filename="form.fileName" v-model="form.fileUrl"
                             :dragFlag="false" :fileSize="100" @handleRemove="handleRemove" :isShowTip="false" />
-                    </el-form-item>
-                </el-col>
+                    </a-form-item>
+                </a-col>
 
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="描述" prop="description">
-                        <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="描述" name="description">
+                        <a-input v-model:value="form.description" type="textarea" placeholder="请输入描述" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
 
-                <el-col :span="12">
-                    <el-form-item label="发布机构名称" prop="issuingAgency">
-                        <el-input v-model="form.issuingAgency" placeholder="请输入发布机构名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="版本号" prop="version">
-                        <el-input v-model="form.version" placeholder="请输入版本号" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="发布日期" prop="releaseDate">
-                        <el-date-picker clearable style="width: 100%" v-model="form.releaseDate" type="date"
+                <a-col :span="12">
+                    <a-form-item label="发布机构名称" name="issuingAgency">
+                        <a-input v-model:value="form.issuingAgency" placeholder="请输入发布机构名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="版本号" name="version">
+                        <a-input v-model:value="form.version" placeholder="请输入版本号" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="发布日期" name="releaseDate">
+                        <a-date-picker allow-clear style="width: 100%" v-model:value="form.releaseDate"
                             value-format="YYYY-MM-DD" placeholder="请选择发布日期">
-                        </el-date-picker>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="实施日期" prop="implementationDate">
-                        <el-date-picker clearable style="width: 100%" v-model="form.implementationDate" type="date"
+                        </a-date-picker>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="实施日期" name="implementationDate">
+                        <a-date-picker allow-clear style="width: 100%" v-model:value="form.implementationDate"
                             value-format="YYYY-MM-DD" placeholder="请选择实施日期">
-                        </el-date-picker>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="废止日期" prop="abolitionDate">
-                        <el-date-picker clearable style="width: 100%" v-model="form.abolitionDate" type="date"
+                        </a-date-picker>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="废止日期" name="abolitionDate">
+                        <a-date-picker allow-clear style="width: 100%" v-model:value="form.abolitionDate"
                             value-format="YYYY-MM-DD" placeholder="请选择废止日期">
-                        </el-date-picker>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="备注" prop="remark">
-                        <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                        </a-date-picker>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="备注" name="remark">
+                        <a-input v-model:value="form.remark" type="textarea" placeholder="请输入备注" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
 
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="close">取消</el-button>
-                <el-button type="primary" size="mini" @click="submitForm" :loading="loading">确定</el-button>
+                <a-button size="small" @click="close">取消</a-button>
+                <a-button type="primary" size="small" @click="submitForm" :loading="loading">确定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
@@ -217,8 +217,7 @@ function clearForm() {
 }
 /** 提交表单 */
 function submitForm() {
-    formRef.value.validate((valid) => {
-        if (!valid) return;
+    formRef.value.validate().then(() => {
         loading.value = true;
 
         const apiCall = form.id ? updateDpDocument : addDpDocument;
@@ -232,7 +231,7 @@ function submitForm() {
             .finally(() => {
                 loading.value = false;
             });
-    });
+    }).catch(() => {});
 }
 
 /** 文件移除 */

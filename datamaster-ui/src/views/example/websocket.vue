@@ -1,15 +1,15 @@
-﻿<template>
+<template>
   <div>
-    <el-input v-model="url" type="text" style="width: 20%" /> &nbsp; &nbsp;
-    <el-button @click="join" type="primary">连接</el-button>
-    <el-button @click="exit" type="danger">断开</el-button>
+    <a-input v-model:value="url" type="text" style="width: 20%" /> &nbsp; &nbsp;
+    <a-button @click="join" type="primary">连接</a-button>
+    <a-button danger @click="exit">断开</a-button>
 
     <br />
-    <el-input type="textarea" v-model="message" :rows="9" />
-    <el-button type="info" @click="send">发送消息</el-button>
+    <a-textarea v-model:value="message" :rows="9" />
+    <a-button @click="send">发送消息</a-button>
     <br />
     <br />
-    <el-input type="textarea" v-model="text_content" :rows="9" /> 返回内容
+    <a-textarea v-model:value="text_content" :rows="9" /> 返回内容
     <br />
     <br />
   </div>

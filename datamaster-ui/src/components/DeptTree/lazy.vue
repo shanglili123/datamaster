@@ -1,36 +1,35 @@
 ﻿<template>
-    <el-aside :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
-        <div class="left-tree" v-loading="loading">
+    <a-layout-sider :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
+        <a-spin :spinning="loading">
+        <div class="left-tree">
             <!-- 搜索框 -->
-            <el-input class="filter-tree" size="large" v-model="deptName" :placeholder="placeholder" clearable
-                prefix-icon="Search" />
+            <a-input class="filter-tree" size="large" v-model:value="deptName" :placeholder="placeholder" allow-clear>
+                <template #prefix><SearchOutlined /></template>
+            </a-input>
 
             <!-- 树 -->
-            <el-tree class="dept-tree" ref="deptTreeRef" :data="deptOptions" node-key="id" highlight-current
-                :props="{ label: 'name', children: 'children', isLeaf: 'isLeaf' }" :lazy="true" :load="handleNodeLoad"
+            <a-tree class="dept-tree" ref="deptTreeRef" :tree-data="deptOptions" highlight-current
+                :field-names="{ title: 'name', children: 'children', isLeaf: 'isLeaf', value: 'id' }"
+                :load-data="(node) => { handleNodeLoad(node, (children) => { node.data.children = children; node.loaded = true; }, () => { node.data.loadError = true; node.loaded = true; }); return Promise.resolve(); }"
                 :default-expand-all="defaultExpand" :filter-node-method="filterNode"
-                @node-contextmenu="onNodeContextMenu">
-                <template #default="{ node, data }">
-                    <span class="custom-tree-node" @dblclick.stop="handleNodeClick(data, node, 'node')">
+                @right-click="(e) => onNodeContextMenu(e.event, e.node.data, e.node)">
+                <template #title="{ data, expanded, selected }">
+                    <span class="custom-tree-node" @dblclick.stop="handleNodeClick(data, data, 'node')">
                         <!-- 数据源/层级图标 -->
-                        <img v-if="node.level === 1" :src="getDatasourceIcon(data.datasourceType)" class="node-icon" />
-                        <img v-if="node.level === 2" src="@/assets/system/images/dpp/sr.png" class="node-icon" />
-                        <img v-if="node.level === 3" src="@/assets/system/images/dpp/zt.png" class="node-icon" />
+                        <img v-if="data.level === 1" :src="getDatasourceIcon(data.datasourceType)" class="node-icon" />
+                        <img v-if="data.level === 2" src="@/assets/system/images/dpp/sr.png" class="node-icon" />
+                        <img v-if="data.level === 3" src="@/assets/system/images/dpp/zt.png" class="node-icon" />
                         <!-- label -->
-                        <span class="treelable">{{ node.label }}</span>
+                        <span class="treelable">{{ data.name }}</span>
 
                         <!-- 状态图标 -->
-                        <el-icon v-if="data.loadSuccess" style="color: #22c55e; margin-left: 6px" class="iconimg"
-                            title="加载成功">
-                            <CircleCheckFilled />
-                        </el-icon>
-                        <el-icon v-if="data.loadError" style="color: #facc15; margin-left: 6px; cursor: pointer"
-                            class="iconimg" @click.stop="retryLoad(node)" title="加载失败，点击重试">
-                            <WarnTriangleFilled />
-                        </el-icon>
+                        <CheckCircleFilled v-if="data.loadSuccess" style="color: #22c55e; margin-left: 6px" class="iconimg"
+                            title="加载成功" />
+                        <WarningFilled v-if="data.loadError" style="color: #facc15; margin-left: 6px; cursor: pointer"
+                            class="iconimg" @click.stop="retryLoad(data)" title="加载失败，点击重试" />
                     </span>
                 </template>
-            </el-tree>
+            </a-tree>
 
             <!-- 右键菜单 -->
             <div v-if="contextMenuVisible" :style="{ top: `${contextMenuY}px`, left: `${contextMenuX}px` }"
@@ -40,18 +39,15 @@
                 </ul>
             </div>
         </div>
-    </el-aside>
+        </a-spin>
+    </a-layout-sider>
 
     <!-- 拖拽栏 -->
     <div class="resize-bar" @mousedown="startResize">
         <div class="resize-handle-sx">
             <span class="zjsx"></span>
-            <el-icon v-if="leftWidth == 0" @click.stop="toggleCollapse" class="collapse-icon">
-                <ArrowRight />
-            </el-icon>
-            <el-icon v-else class="collapse-icon" @click.stop="toggleCollapse">
-                <ArrowLeft />
-            </el-icon>
+            <RightOutlined v-if="leftWidth == 0" @click.stop="toggleCollapse" class="collapse-icon" />
+            <LeftOutlined v-else class="collapse-icon" @click.stop="toggleCollapse" />
         </div>
     </div>
 </template>
@@ -61,11 +57,12 @@
 import { ref, watch, onMounted, onBeforeUnmount, getCurrentInstance } from "vue";
 import { debounce } from "lodash-es";
 import {
-    ArrowLeft,
-    ArrowRight,
-    CircleCheckFilled,
-    WarnTriangleFilled,
-} from "@element-plus/icons-vue";
+    SearchOutlined,
+    RightOutlined,
+    LeftOutlined,
+    CheckCircleFilled,
+    WarningFilled,
+} from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 

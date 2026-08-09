@@ -1,133 +1,108 @@
 <template>
-  <el-dialog
+  <a-modal
     title="单选-字典管理"
-    v-model="visible"
+    v-model:open="visible"
     width="1200px"
-    :append-to="$refs['app-container']"
     draggable
     destroy-on-close
     @close="cancel"
   >
-    <el-form
+    <a-form
       class="btn-style"
       :model="queryParams"
       ref="queryRef"
-      :inline="true"
+      layout="inline"
       v-show="showSearch"
-      label-width="68px"
+      :label-col="{ style: { width: '68px' } }"
     >
-      <el-form-item label="字典名称" prop="dictName">
-        <el-input
-          v-model="queryParams.dictName"
+      <a-form-item label="字典名称" name="dictName">
+        <a-input
+          v-model:value="queryParams.dictName"
           placeholder="请输入字典名称"
-          clearable
+          allow-clear
           class="el-form-input-width"
-          @keyup.enter="handleQuery"
+          @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="字典类型" prop="dictType">
-        <el-input
-          v-model="queryParams.dictType"
+      </a-form-item>
+      <a-form-item label="字典类型" name="dictType">
+        <a-input
+          v-model:value="queryParams.dictType"
           placeholder="请输入字典类型"
-          clearable
+          allow-clear
           class="el-form-input-width"
-          @keyup.enter="handleQuery"
+          @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-select
-          v-model="queryParams.status"
+      </a-form-item>
+      <a-form-item label="状态" name="status">
+        <a-select
+          v-model:value="queryParams.status"
           placeholder="字典状态"
-          clearable
+          allow-clear
           class="el-form-input-width"
         >
-          <el-option
+          <a-select-option
             v-for="dict in sys_normal_disable"
             :key="dict.value"
-            :label="dict.label"
             :value="dict.value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="创建时间">
-        <el-date-picker
+          >{{ dict.label }}</a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="创建时间">
+        <a-range-picker
           class="el-form-input-width"
-          v-model="dateRange"
-          value-format="YYYY-MM-DD"
-          type="daterange"
-          range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-        ></el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button
-          plain
+          v-model:value="dateRange"
+          valueFormat="YYYY-MM-DD"
+          :separator="'-'"
+          :placeholder="['开始日期', '结束日期']"
+        ></a-range-picker>
+      </a-form-item>
+      <a-form-item>
+        <a-button
           type="primary"
           @click="handleQuery"
           @mousedown="(e) => e.preventDefault()"
         >
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+        </a-button>
+        <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-      </el-form-item>
-    </el-form>
+        </a-button>
+      </a-form-item>
+    </a-form>
 
-    <el-table
+    <a-table
       ref="tableRef"
-      stripe
-      height="300px"
-      v-loading="loading"
-      :data="dataList"
-      highlight-current-row
-      row-key="dictId"
-      @current-change="handleCurrentChange"
+      striped
+      :scroll="{ y: 300 }"
+      :loading="loading"
+      :data-source="dataList"
+      :row-key="(record) => record.dictId"
+      :row-selection="{
+        type: 'radio',
+        selectedRowKeys: selectedRowKeys,
+        onChange: handleCurrentChange,
+      }"
+      :custom-row="(record) => ({ onClick: () => handleRowClick(record) })"
+      :row-class-name="(record) => (single && single.dictId == record.dictId ? 'ant-table-row-selected' : '')"
+      :columns="tableColumns"
     >
-      <el-table-column
-        label="字典编号"
-        align="center"
-        prop="dictId"
-        width="85"
-      />
-      <el-table-column
-        label="字典名称"
-        align="center"
-        prop="dictName"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="字典类型"
-        align="center"
-        :show-overflow-tooltip="true"
-      >
-        <template #default="scope">
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'dictType'">
           <router-link
-            :to="'/system/dict-data/index/' + scope.row.dictId"
+            :to="'/system/dict-data/index/' + record.dictId"
             class="link-type"
           >
-            <span>{{ scope.row.dictType }}</span>
+            <span>{{ record.dictType }}</span>
           </router-link>
         </template>
-      </el-table-column>
-      <el-table-column label="状态" align="center" prop="status">
-        <template #default="scope">
-          <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
+        <template v-else-if="column.dataIndex === 'status'">
+          <dict-tag :options="sys_normal_disable" :value="record.status" />
         </template>
-      </el-table-column>
-      <el-table-column
-        label="备注"
-        align="center"
-        prop="remark"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column label="创建时间" align="center" prop="createTime">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime) }}</span>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          <span>{{ parseTime(record.createTime) }}</span>
         </template>
-      </el-table-column>
-    </el-table>
+      </template>
+    </a-table>
 
     <pagination
       v-show="total > 0"
@@ -138,13 +113,13 @@
     />
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">取 消</el-button>
-        <el-button type="primary" size="mini" @click="confirm">
+        <a-button size="small" @click="cancel">取 消</a-button>
+        <a-button type="primary" size="small" @click="confirm">
           确 定
-        </el-button>
+        </a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup name="Dict">
@@ -178,24 +153,28 @@ const single = ref();
 // 当前界面table
 const tableRef = ref();
 
+const tableColumns = [
+  { title: "字典编号", dataIndex: "dictId", width: 85, align: "center" },
+  { title: "字典名称", dataIndex: "dictName", align: "center", ellipsis: true },
+  { title: "字典类型", dataIndex: "dictType", align: "center", ellipsis: true },
+  { title: "状态", dataIndex: "status", align: "center" },
+  { title: "备注", dataIndex: "remark", align: "center", ellipsis: true },
+  { title: "创建时间", dataIndex: "createTime", align: "center", width: 180 },
+];
+
+const selectedRowKeys = computed(() => (single.value ? [single.value.dictId] : []));
+
 const emit = defineEmits(["open", "confim", "cancel"]);
 
 /** 单选选中事件 */
-function handleCurrentChange(selection) {
-  if (selection) {
-    single.value = selection;
+function handleCurrentChange(keys, rows) {
+  if (keys.length > 0) {
+    single.value = rows[0];
   }
 }
-/**
- * 设置当前行
- * @param {Object} row 行对象
- * @returns 更改选中对象
- */
-function setCurrentRow(row) {
-  if (row) {
-    let data = dataList.value.filter((item) => item.dictId == row.dictId);
-    tableRef.value?.setCurrentRow(data[0]);
-  }
+/** 行点击选中 */
+function handleRowClick(record) {
+  single.value = record;
 }
 /**
  * 打开选择框
@@ -232,13 +211,10 @@ function confirm() {
 function getList() {
   loading.value = true;
   listType(proxy.addDateRange(queryParams.value, dateRange.value)).then(
-    async (response) => {
+    (response) => {
       dataList.value = response.rows;
       total.value = response.total;
       loading.value = false;
-      // 初始化及分页切换选中逻辑
-      await nextTick();
-      setCurrentRow(single.value);
     }
   );
 }

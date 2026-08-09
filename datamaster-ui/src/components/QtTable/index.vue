@@ -1,135 +1,115 @@
-<!-- 
-    qt-table 组件
-    说明：基于element-plus的表格封装，集成了分页、排序、字典、图标、链接等功能
-    注意：不要私自修改本组件中的代码 有问题先联系wy
+<!--
+    QtTable 组件
+    说明：基于 Ant Design Vue 的表格封装，集成了分页、排序、字典、图标、链接等功能
+    作者：datamaster
 -->
 <template>
-  <div class="qt-table" v-loading="store.loading">
-    <div :class="['qt-table--main', config.table?.class]">
-      <el-table
-        :data="tableData"
-        v-bind="config.table"
-        :default-sort="defaultTableSort"
-        @sort-change="handleSortChange"
-        v-if="store.showTable"
-      >
-        <template v-for="(column, index) in props.columns" :key="index">
-          <el-table-column
-            v-bind="getElColumnData(column)"
-            v-if="!column.hide"
-            :align="column.align || 'center'"
-          >
-            <template #header>
-              <div class="tip-wrap" v-if="column.tip">
-                <div class="tip-label">
-                  {{ column.label }}
-                </div>
-                <el-tooltip
-                  v-bind="column.tip"
-                  :effect="column.tip.effect || 'light'"
-                  :placement="column.tip.placement || 'top'"
-                >
-                  <template #content v-if="column.tip.custom">
-                    <div class="tip-content" v-html="column.tip.content"></div>
-                  </template>
+  <div class="qt-table">
+    <a-spin :spinning="store.loading">
+      <div :class="['qt-table--main', config.table?.class]">
+        <a-table
+          v-if="store.showTable"
+          :data-source="tableData"
+          :columns="antColumns"
+          v-bind="antTableProps"
+          :row-key="rowKey"
+          :row-selection="antRowSelection"
+          :default-expand-all-rows="antDefaultExpandAll"
+          :tree="antTreeProps"
+          :pagination="false"
+          :locale="{ emptyText: emptyContent }"
+          @change="handleAntSortChange"
+        >
+          <template #headerCell="{ column }">
+            <div class="tip-wrap" v-if="column.tip">
+              <span class="tip-label">{{ column.label }}</span>
+              <a-tooltip v-bind="column.tip">
+                <template #title v-if="column.tip.custom">
+                  <div class="tip-content" v-html="column.tip.content"></div>
+                </template>
+                <span class="tip-icon-wrapper">
+                  <InfoFilled />
+                </span>
+              </a-tooltip>
+            </div>
+            <span v-else>{{ column.title }}</span>
+          </template>
 
-                  <slot :name="column.tip.slot || 'tip'">
-                    <el-icon><InfoFilled /></el-icon>
-                  </slot>
-                </el-tooltip>
-              </div>
-            </template>
-            <template #default="scope">
-              <!-- 空数据处理 -->
-              <template
-                v-if="
-                  column.prop &&
-                  [undefined, null].includes(scope.row[column.prop])
-                "
-              >
-                {{ getFormatValue(scope.row[column.prop]) }}
-              </template>
+          <template #bodyCell="{ column, record, index }">
+            <!-- 空数据处理 -->
+            <span v-if="column.prop && [undefined, null].includes(record[column.prop])">
+              {{ getFormatValue(record[column.prop]) }}
+            </span>
 
-              <!-- 字典 -->
-              <dict-tag
-                :options="getDictOptions(column.dict)"
-                v-if="column.dict"
-                :value="scope.row[column.prop]"
-              />
+            <!-- 字典 -->
+            <dict-tag
+              v-else-if="column.dict"
+              :options="getDictOptions(column.dict)"
+              :value="record[column.prop]"
+            />
 
-              <!-- 链接 -->
-              <el-link
-                v-bind="column.link"
-                :underline="column.link?.underline || 'never'"
-                :type="column.link?.type || 'primary'"
-                v-if="column.link"
-                @click="handleLinkClick(column, scope.row)"
-              >
-                {{ scope.row[column.prop] }}
-              </el-link>
+            <!-- 链接 -->
+            <a
+              v-else-if="column.link"
+              @click="handleLinkClick(column, record)"
+              style="cursor: pointer"
+            >
+              {{ record[column.prop] }}
+            </a>
 
-              <!-- 图标 -->
-              <svg-icon
-                v-bind="column.svg"
-                v-if="column.svg"
-                :icon-class="scope.row[column.prop]"
-              />
+            <!-- 图标 -->
+            <svg-icon
+              v-else-if="column.svg"
+              v-bind="column.svg"
+              :icon-class="record[column.prop]"
+            />
 
-              <!-- 统一处理时间 -->
-              <template v-if="column.date">
-                {{
-                  parseTime(
-                    scope.row[column.prop],
-                    column.date === true ? "{y}-{m}-{d} {h}:{i}" : column.date
-                  )
-                }}
-              </template>
+            <!-- 时间格式化 -->
+            <span v-else-if="column.date">
+              {{ parseTime(record[column.prop], column.date === true ? '{y}-{m}-{d} {h}:{i}' : column.date) }}
+            </span>
 
-              <!-- 自定义slot -->
-              <slot
-                v-if="scope.$index > -1 && column.slot"
-                :name="column.slot"
-                v-bind="scope"
-                :column_data="column"
-              />
-            </template>
-          </el-table-column>
-        </template>
+            <!-- 自定义 slot -->
+            <slot
+              v-else-if="column.slot"
+              :name="column.slot"
+              v-bind="{ row: record, $index: index, column_data: column }"
+            />
 
-        <template #empty>
-          <div class="emptyBg">
-            <img src="@/assets/system/images/no_data/noData.png" alt="" />
-            <p>暂无记录</p>
-          </div>
-        </template>
-      </el-table>
-    </div>
+            <!-- 序号列（el-table type="index" 兼容） -->
+            <span v-else-if="column.type === 'index'">{{ index + 1 }}</span>
+
+            <span v-else>{{ record[column.prop] ?? '' }}</span>
+          </template>
+        </a-table>
+      </div>
+    </a-spin>
+
     <div
       :class="['qt-table--pagination', config.pagination?.class]"
       v-if="!config.notPagination"
     >
-      <el-pagination
-        layout="total, sizes, prev, pager, next, jumper"
+      <a-pagination
         :total="store.total"
-        v-model:current-page="store.params.pageNum"
+        v-model:current="store.params.pageNum"
         v-model:page-size="store.params.pageSize"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        v-bind="config.pagination"
-        :page-sizes="config.pagination?.pageSizes || DEFAULT_PAGE_SIZES"
-        :background="config.pagination?.background || true"
-        :pager-count="config.pagination?.pagerCount || store.pagerCount"
-      >
-      </el-pagination>
+        :page-size-options="config.pagination?.pageSizes || DEFAULT_PAGE_SIZES"
+        show-size-changer
+        show-quick-jumper
+        :show-total="(total) => `共 ${total} 条`"
+        @change="handleAntPageChange"
+        @showSizeChange="handleAntSizeChange"
+      />
     </div>
   </div>
 </template>
 
 <script setup name="QtTable">
-import { reactive, computed, nextTick } from "vue";
-import { useRouter } from "vue-router";
-import SvgIcon from "@/components/SvgIcon/index.vue";
-import { scrollTo } from "@/utils/scroll-to";
+import { reactive, computed, nextTick, h } from 'vue';
+import { useRouter } from 'vue-router';
+import { InfoCircleFilled as InfoFilled } from '@ant-design/icons-vue';
+import SvgIcon from '@/components/SvgIcon/index.vue';
+import { scrollTo } from '@/utils/scroll-to';
 
 defineOptions({
   inheritAttrs: false,
@@ -139,37 +119,24 @@ defineOptions({
  * props
  * @param {columns} 表格项
  * @param {Function} 获取表格数据的方法 参数:params 需返回一个Promise
- * @param {Object} config.table 表格配置 具体请查看el-table
- * @param {Object} config.pagination 分页配置 具体请查看 el-pagination
- * @param {Bollean} config.pagination.notAutoScroll 关闭分页后指定的功能
- * @param {Bollean} config.initResquest 是否初始化请求
+ * @param {Object} config.table 表格配置（兼容 el-table 旧配置，内部自动适配 a-table）
+ * @param {Object} config.pagination 分页配置
+ * @param {Boolean} config.initResquest 是否初始化请求
  * @param {Boolean} config.notPagination 不使用分页
  * @param {Boolean} config.notPaginationParams 不使用默认的分页参数
  * @param {Boolean} config.autoPagination 前端分页
- * @param {Object|Boolean} config.sort 后端排序所需的key 如果为true则使用默认值
- * @param {Object|Boolean} config.sort.prop 排序字段的key 默认为：orderByColumn
- * @param {Object|Boolean} config.sort.order 排序方式的key 默认为：isAsc
+ * @param {Object|Boolean} config.sort 后端排序所需的key
  * @param {Array} column.dict 字典数据
  * @param {Object} column.svg svg图标数据
- * @param {String} column.svg.color 图标颜色
- * @param {String} column.svg.className 图标类名
- * @param {Object} column.link 跳转参数 具体参数整合了el-link+router.push
+ * @param {Object} column.link 跳转参数
  * @param {Object} column.slot 自定义插槽
- * @param {Object} column.date 时间参数 会自动格式化时间 也支持自定义格式化
+ * @param {Object} column.date 时间参数
  * @param {events} 事件回调
- * @param {Function} events.onLinkClick 点击link时触发
- * @param {Function} events.onPageSizeChange 分页-每页条数
- * @param {Function} events.onPageCurrentChange 分页-当前页
- * @param {Function} events.onSortChange 排序时触发
- * @param {Function} events.formatParams 请求前最后处理params必须有返回值
- * @param {Function} events.formatData 处理data必须有返回值
  */
 const props = defineProps({
   config: {
     type: Object,
-    default: () => {
-      return {};
-    },
+    default: () => ({}),
   },
   columns: {
     type: Array,
@@ -181,15 +148,11 @@ const props = defineProps({
   },
   params: {
     type: Object,
-    default: () => {
-      return {};
-    },
+    default: () => ({}),
   },
   events: {
     type: Object,
-    default: () => {
-      return {};
-    },
+    default: () => ({}),
   },
 });
 
@@ -210,25 +173,181 @@ const store = reactive({
   rows: [],
   defaultSort: {},
   sort: {
-    prop: "orderByColumn",
-    order: "isAsc",
+    prop: 'orderByColumn',
+    order: 'isAsc',
   },
   dict: {},
   showTable: true,
   pagerCount: document.body.clientWidth < 1300 ? 4 : 7,
 });
 
-const config = computed(() => {
-  // 留作后续收集合并默认配置项处理...
-  return props.config || {};
+const config = computed(() => props.config || {});
+
+// ─────────────────────────────────────────────
+// 适配层：el-table → a-table
+// ─────────────────────────────────────────────
+
+/**
+ * rowKey 提取
+ */
+const rowKey = computed(() => {
+  const table = config.value.table || {};
+  return table.rowKey || 'id';
 });
 
+/**
+ * 将 el-table columns 转换为 a-table columns
+ * {label, prop} → {title, dataIndex}
+ */
+const antColumns = computed(() => {
+  return props.columns
+    // el-table 的选择列由 a-table 的 row-selection prop 承担，映射成列会变成幽灵空列
+    .filter((c) => !c.hide && c.type !== 'selection')
+    .map((c) => {
+      const col = {
+        title: c.label,
+        dataIndex: c.prop,
+        key: c.prop || c.slot || c.label,
+        align: c.align || 'center',
+        width: c.width,
+        fixed: c.fixed,
+        ellipsis: c.showOverflowTooltip ? true : undefined,
+        sorter: c.sortable ? true : undefined,
+        tip: c.tip,
+        type: c.type,
+        prop: c.prop,
+        dict: c.dict,
+        link: c.link,
+        svg: c.svg,
+        date: c.date,
+        slot: c.slot,
+      };
+      Object.keys(col).forEach((k) => {
+        if (col[k] === undefined) delete col[k];
+      });
+      return col;
+    });
+});
+
+/**
+ * config.table 属性映射
+ * el-table props → a-table props
+ */
+const antTableProps = computed(() => {
+  const table = config.value.table || {};
+  const result = {};
+
+  // stripe → striped
+  if (table.stripe !== undefined) result.striped = table.stripe;
+
+  // border → bordered
+  if (table.border !== undefined) result.bordered = table.border;
+
+  // size 直接透传
+  if (table.size) result.size = table.size === 'default' ? 'middle' : table.size;
+
+  // 滚动配置（含自动计算的横向滚动）
+  const scroll = tableScroll.value;
+  if (scroll) result.scroll = scroll;
+
+  // onRowDblclick → customRow.dblclick
+  if (table.onRowDblclick) {
+    result.customRow = (record, index) => ({
+      dblclick: () => {
+        table.onRowDblclick(record, index);
+      },
+    });
+  }
+
+  return result;
+});
+
+/**
+ * 表格滚动配置
+ * - config.table.height → scroll.y
+ * - 列总宽超出时自动启用横向滚动 scroll.x，避免列被压缩、fixed 列失效
+ */
+const tableScroll = computed(() => {
+  const table = config.value.table || {};
+  const scroll = {};
+  if (table.height) scroll.y = table.height;
+  if (table.scroll && typeof table.scroll === 'object') {
+    Object.assign(scroll, table.scroll);
+  }
+  if (scroll.x === undefined) {
+    const cols = props.columns.filter((c) => !c.hide && c.type !== 'selection');
+    const totalWidth = cols.reduce(
+      (sum, c) => sum + (typeof c.width === 'number' ? c.width : 0),
+      0
+    );
+    const hasFixed = cols.some((c) => c.fixed);
+    const allHaveWidth = cols.length > 0 && cols.every((c) => typeof c.width === 'number');
+    if (totalWidth > 0 && (hasFixed || allHaveWidth)) {
+      // antd 将 scroll.x 作为表格最小宽度：容器更宽时列自动拉伸，更窄时出现横向滚动条
+      scroll.x = totalWidth;
+    }
+  }
+  return Object.keys(scroll).length ? scroll : undefined;
+});
+
+/**
+ * 树形表格配置
+ */
+const antTreeProps = computed(() => {
+  const table = config.value.table || {};
+  if (table.treeProps) {
+    return {
+      childrenColumnName: table.treeProps.children || 'children',
+    };
+  }
+  return undefined;
+});
+
+const antDefaultExpandAll = computed(() => {
+  const table = config.value.table || {};
+  return table.defaultExpandAll || false;
+});
+
+/**
+ * 行选择配置适配
+ * el-table: onSelectionChange(selection) → a-table: rowSelection.onChange(selectedRowKeys, selectedRows)
+ */
+const antRowSelection = computed(() => {
+  const table = config.value.table || {};
+  const hasSelection = props.columns.some((c) => c.type === 'selection');
+
+  if (!hasSelection && !table.onSelectionChange) return undefined;
+
+  return {
+    type: 'checkbox',
+    onChange: (selectedRowKeys, selectedRows) => {
+      if (table.onSelectionChange) {
+        table.onSelectionChange(selectedRows);
+      }
+    },
+  };
+});
+
+/**
+ * 默认排序适配
+ */
 const defaultTableSort = computed(() => {
   const { table } = config.value;
   return table?.defaultSort || store.defaultSort;
 });
 
-// 表格数据
+/**
+ * 空状态内容
+ */
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '暂无记录'),
+]);
+
+// ─────────────────────────────────────────────
+// 业务逻辑（保持不变）
+// ─────────────────────────────────────────────
+
 const tableData = computed(() => {
   const { notPagination, autoPagination } = config.value;
   if (notPagination) return store.data;
@@ -239,7 +358,6 @@ const tableData = computed(() => {
   return store.data;
 });
 
-// 获取数据
 function getList() {
   store.loading = true;
   const { formatParams, formatData } = props.events;
@@ -270,10 +388,7 @@ function getList() {
 function normalizePageData(res) {
   const data = res?.data ?? res ?? {};
   if (Array.isArray(data)) {
-    return {
-      rows: data,
-      total: data.length,
-    };
+    return { rows: data, total: data.length };
   }
   const rows = Array.isArray(data.rows)
     ? data.rows
@@ -285,25 +400,21 @@ function normalizePageData(res) {
           ? res.rows
           : [];
   const total = Number(data.total ?? data.totalCount ?? res?.total ?? rows.length);
-  return {
-    rows,
-    total: Number.isNaN(total) ? rows.length : total,
-  };
+  return { rows, total: Number.isNaN(total) ? rows.length : total };
 }
 
-// 重置数据
 function resetQuery() {
   setupDefaultPageParams();
   getList();
 }
 
-// 分页change-页数
-function handleSizeChange(pageSize) {
-  const { onPageSizeChange } = props.events;
+function handleAntSizeChange(current, pageSize) {
+  store.params.pageSize = pageSize;
   const { pageNum } = store.params;
   if (pageNum * pageSize > store.total) {
     store.params.pageNum = 1;
   }
+  const { onPageSizeChange } = props.events;
   const { pagination } = config.value;
   onPageSizeChange && onPageSizeChange({ ...store.params });
   getList();
@@ -311,8 +422,9 @@ function handleSizeChange(pageSize) {
   scrollTo(0, 800);
 }
 
-// 分页change-当前页
-function handleCurrentChange() {
+function handleAntPageChange(pageNum, pageSize) {
+  store.params.pageNum = pageNum;
+  store.params.pageSize = pageSize;
   const { onPageCurrentChange } = props.events;
   const { pagination } = config.value;
   onPageCurrentChange && onPageCurrentChange({ ...store.params });
@@ -321,26 +433,25 @@ function handleCurrentChange() {
   scrollTo(0, 800);
 }
 
-// 排序change
-function handleSortChange({ column, order, prop }) {
+function handleAntSortChange(pag, filters, sorter) {
   const { onSortChange } = props.events;
-  const index = column.getColumnIndex();
-  const data = props.columns[index];
   const sort = store.sort;
-  store.params[sort.prop] = data.sortableKey || prop;
-  store.params[sort.order] = order;
-  onSortChange &&
-    onSortChange({ ...store.params, ...props.params }, { ...sort });
+  const order = sorter.order === 'ascend' ? 'ascending' : sorter.order === 'descend' ? 'descending' : null;
+  const prop = sorter.field || sorter.column?.dataIndex;
+
+  if (order && prop) {
+    const colData = props.columns.find((c) => c.prop === prop);
+    store.params[sort.prop] = colData?.sortableKey || prop;
+    store.params[sort.order] = order;
+  } else {
+    store.params[sort.prop] = undefined;
+    store.params[sort.order] = undefined;
+  }
+
+  onSortChange && onSortChange({ ...store.params, ...props.params }, { ...sort });
   getList();
 }
 
-// 过滤Column数据
-function getElColumnData(column) {
-  const { hide, dict, link, ...otherData } = column;
-  return otherData;
-}
-
-// link点击事件
 function handleLinkClick(column, row) {
   const { onLinkClick } = props.events;
   const { type, path, name, external, ...other } = column.link;
@@ -348,15 +459,9 @@ function handleLinkClick(column, row) {
   if (external) return external(row);
   const params = other.params ? other.params(row) : undefined;
   const query = other.query ? other.query(row) : undefined;
-  router.push({
-    name,
-    path,
-    params,
-    query,
-  });
+  router.push({ name, path, params, query });
 }
 
-// 获取字典数据
 function getDictOptions(key) {
   if (store.dict[key]) return store.dict[key];
   const value = proxy.useDict(key)[key];
@@ -364,7 +469,10 @@ function getDictOptions(key) {
   return value;
 }
 
-// 重新加载
+function getFormatValue(val) {
+  return val === undefined || val === null ? '-' : val;
+}
+
 function reload() {
   store.showTable = false;
   nextTick(() => {
@@ -382,50 +490,39 @@ function updateRowByKey(keyField, keyValue, patch) {
   if (rowIndex < 0) {
     return false;
   }
-  store.data[rowIndex] = {
-    ...store.data[rowIndex],
-    ...patch,
-  };
+  store.data[rowIndex] = { ...store.data[rowIndex], ...patch };
   return true;
 }
 
-// 设置分页参数
 function setupDefaultPageParams() {
   const { notPagination, pagination } = config.value;
   if (pagination?.params) {
     const { notPaginationParams } = config.value;
     const defaultParams = notPaginationParams ? {} : { ...DEFAULT_PAGE_PARAMS };
-    const params = Object.assign(
-      {},
-      defaultParams,
-      config.value.pagination.params
-    );
+    const params = Object.assign({}, defaultParams, config.value.pagination.params);
     for (let key in params) {
       store.params[key] = params[key];
     }
     return;
   }
-
   if (notPagination) return;
-
   for (let key in DEFAULT_PAGE_PARAMS) {
     store.params[key] = DEFAULT_PAGE_PARAMS[key];
   }
 }
 
-// 初始化排序参数
+// 初始化
 setupDefaultPageParams();
 
-// 初始化排序参数
 if (config.value.sort) {
   let sort = config.value.sort;
-  if (typeof sort == "boolean") {
+  if (typeof sort == 'boolean') {
     sort = { ...store.sort };
   }
   store.sort = { ...sort };
   let defaultSort = defaultTableSort.value;
   if (!Object.keys(defaultSort).length) {
-    defaultSort = { prop: "createTime", order: "descending" };
+    defaultSort = { prop: 'createTime', order: 'descending' };
     store.defaultSort = { ...defaultSort };
   }
   store.params[sort.prop] = defaultSort.prop;
@@ -455,39 +552,23 @@ defineExpose({
   border-radius: 8px;
 }
 
-::v-deep(.el-table) {
-  --el-table-header-bg-color: #f7f9fc;
-  --el-table-header-text-color: #2f3a4a;
-  --el-table-border-color: #edf1f7;
-  --el-table-row-hover-bg-color: #f6faff;
-  color: #3f4a5a;
-  font-size: 13px;
-
-  .el-table__header-wrapper th,
-  .el-table__fixed-header-wrapper th {
-    height: 42px;
+:deep(.ant-table) {
+  .ant-table-thead > tr > th {
+    background: #f7f9fc;
     font-weight: 600;
-    background: #f7f9fc !important;
+    color: #2f3a4a;
+    font-size: 13px;
+    height: 42px;
   }
 
-  .el-table__cell {
-    padding: 10px 0;
+  .ant-table-tbody > tr > td {
+    color: #3f4a5a;
+    font-size: 13px;
+    padding: 10px 16px;
   }
 
-  .cell {
-    line-height: 20px;
-  }
-
-  .el-table__row {
-    transition: background-color 0.18s ease;
-  }
-
-  .el-table__inner-wrapper::before {
-    display: none;
-  }
-
-  .el-table__empty-block {
-    min-height: 240px;
+  .ant-table-tbody > tr:hover > td {
+    background: #f6faff !important;
   }
 }
 
@@ -497,31 +578,20 @@ defineExpose({
   gap: 6px;
 }
 
-.is-center.el-table__cell {
-  .tip-wrap {
-    justify-content: center;
-  }
+.tip-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: #909399;
 }
 
 .qt-table--pagination {
   padding: 14px 2px 2px;
   display: flex;
   justify-content: flex-end;
-
-  ::v-deep(.el-pagination) {
-    --el-pagination-button-bg-color: #f7f9fc;
-    --el-pagination-hover-color: var(--el-color-primary);
-
-    .btn-prev,
-    .btn-next,
-    .el-pager li {
-      border-radius: 6px;
-    }
-  }
 }
 
-.emptyBg,
-.empty-wrap {
+.emptyBg {
   padding: 28px 0;
 
   img {
@@ -537,4 +607,3 @@ defineExpose({
   }
 }
 </style>
-

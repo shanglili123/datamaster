@@ -1,99 +1,93 @@
 <template>
   <div class="app-container" ref="app-container">
     <div class="pagecont-top" v-show="showSearch">
-      <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="应用ID" prop="id">
-          <el-input
+      <a-form class="btn-style" :model="queryParams" ref="queryRef" :layout="inline" :label-col="{ style: { width: '68px' } }">
+        <a-form-item label="应用ID" name="id">
+          <a-input
               class="el-form-input-width"
-              v-model="queryParams.id"
+              v-model:value="queryParams.id"
               placeholder="请输入应用ID"
-              clearable
-              @keyup.enter="handleQuery"
+              allow-clear
+              @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="应用名称" prop="name">
-          <el-input
+        </a-form-item>
+        <a-form-item label="应用名称" name="name">
+          <a-input
               class="el-form-input-width"
-              v-model="queryParams.name"
+              v-model:value="queryParams.name"
               placeholder="请输入应用名称"
-              clearable
-              @keyup.enter="handleQuery"
+              allow-clear
+              @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="resetQuery" @mousedown="e => e.preventDefault()">
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="e => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </a-button>
+        </a-form-item>
+      </a-form>
     </div>
     <div  class="pagecont-bottom">
       <div class="justify-between mb15">
-        <el-row :gutter="10" class="btn-style">
-          <el-col :span="1.5">
-            <el-button
+        <a-row :gutter="10" class="btn-style">
+          <a-col :span="1.5">
+            <a-button
                 type="primary"
-                plain
-                icon="Plus"
+                :icon="h(PlusOutlined)"
                 @click="handleAdd"
                 v-hasPermi="['auth:client:add']"
-            >新增</el-button>
-          </el-col>
-        </el-row>
+            >新增</a-button>
+          </a-col>
+        </a-row>
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </div>
 
-      <el-table stripe height="60vh"  v-loading="loading" :data="clientList" @selection-change="handleSelectionChange">
-        <el-table-column label="应用ID" align="center" prop="id" />
-        <el-table-column label="应用秘钥" align="center" prop="secretKey"  width="300"/>
-        <el-table-column label="应用名称" align="center" prop="name" width="120"/>
-        <el-table-column label="应用类型" align="center" prop="type">
-          <template #default="scope">
-            <dict-tag :options="auth_app_type" :value="scope.row.type"/>
+      <a-spin :spinning="loading">
+        <a-table
+          :data-source="clientList"
+          :columns="tableColumns"
+          :pagination="false"
+          striped
+          :scroll="{ y: '60vh' }"
+          :row-selection="{ type: 'checkbox', onChange: handleSelectionChange }"
+          row-key="id"
+          :locale="{ emptyText: emptyContent }"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'type'">
+              <dict-tag :options="auth_app_type" :value="record.type" />
+            </template>
+            <template v-else-if="column.dataIndex === 'icon'">
+              <image-preview :src="record.icon" :width="50" :height="50" />
+            </template>
+            <template v-else-if="column.dataIndex === 'publicFlag'">
+              <dict-tag :options="auth_public" :value="record.publicFlag" />
+            </template>
+            <template v-else-if="column.dataIndex === 'validFlag'">
+              <dict-tag :options="sys_valid" :value="record.validFlag" />
+            </template>
+            <template v-else-if="column.dataIndex === 'createTime'">
+              <span>{{ parseTime(record.createTime, '{y}-{m}-{d}') }}</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'homeUrl'">
+              <span>{{ record.homeUrl || '-' }}</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'remark'">
+              <span>{{ record.remark || '-' }}</span>
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-button type="link" size="small" @click="handleUpdate(record)" v-hasPermi="['auth:client:edit']">修改</a-button>
+              <a-button type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['auth:client:remove']">删除</a-button>
+            </template>
+            <template v-else>
+              <span>{{ record[column.dataIndex] || '-' }}</span>
+            </template>
           </template>
-        </el-table-column>
-        <el-table-column label="应用图标" align="center" prop="icon" width="100">
-          <template #default="scope">
-            <image-preview :src="scope.row.icon" :width="50" :height="50"/>
-          </template>
-        </el-table-column>
-        <el-table-column label="应用首页" align="center" prop="homeUrl" >
-        <template #default="scope">
-            <span>{{ scope.row.homeUrl || "-" }}</span>
-          </template>
-        </el-table-column>
-  <!--      <el-table-column label="同步地址" align="center" prop="syncUrl" />-->
-        <el-table-column label="允许授权的url" align="center" prop="redirectUrl" width="150"/>
-        <el-table-column label="是否公开" align="center" prop="publicFlag">
-          <template #default="scope">
-            <dict-tag :options="auth_public" :value="scope.row.publicFlag"/>
-          </template>
-        </el-table-column>
-        <el-table-column label="是否有效" align="center" prop="validFlag">
-          <template #default="scope">
-            <dict-tag :options="sys_valid" :value="scope.row.validFlag"/>
-          </template>
-        </el-table-column>
-        <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-          <template #default="scope">
-            <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="备注" align="center" prop="remark">
-        <template #default="scope">
-            <span>{{ scope.row.remark || "-" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
-          <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['auth:client:edit']">修改</el-button>
-            <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['auth:client:remove']">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        </a-table>
+      </a-spin>
 
       <pagination
           v-show="total>0"
@@ -105,105 +99,127 @@
     </div>
 
     <!-- 添加或修改应用管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']"  draggable destroy-on-close>
-      <el-form ref="clientRef" :model="form" :rules="rules" label-width="110px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="应用首页" prop="homeUrl">
-              <el-input v-model="form.homeUrl" placeholder="请输入应用首页" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="同步地址" prop="syncUrl">
-              <el-input v-model="form.syncUrl" placeholder="请输入同步地址" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="应用名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入应用名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="应用类型" prop="type">
-              <el-select v-model="form.type" placeholder="请选择应用类型">
-                <el-option
+    <a-modal :title="title" v-model:open="open" width="800px" destroy-on-close>
+      <a-form ref="clientRef" :model="form" :rules="rules" :label-col="{ style: { width: '110px' } }">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="应用首页" name="homeUrl">
+              <a-input v-model:value="form.homeUrl" placeholder="请输入应用首页" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="同步地址" name="syncUrl">
+              <a-input v-model:value="form.syncUrl" placeholder="请输入同步地址" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="应用名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入应用名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="应用类型" name="type">
+              <a-select v-model:value="form.type" placeholder="请选择应用类型">
+                <a-select-option
                     v-for="dict in auth_app_type"
                     :key="dict.value"
-                    :label="dict.label"
                     :value="parseInt(dict.value)"
-                ></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="是否公开" prop="publicFlag">
-              <el-radio-group v-model="form.publicFlag">
-                <el-radio
+                >{{ dict.label }}</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="是否公开" name="publicFlag">
+              <a-radio-group v-model:value="form.publicFlag">
+                <a-radio
                     v-for="dict in auth_public"
                     :key="dict.value"
-                    :label="dict.value"
-                >{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否有效" prop="validFlag">
-              <el-radio-group v-model="form.validFlag">
-                <el-radio
+                    :value="dict.value"
+                >{{ dict.label }}</a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="是否有效" name="validFlag">
+              <a-radio-group v-model:value="form.validFlag">
+                <a-radio
                     v-for="dict in sys_valid"
                     :key="dict.value"
-                    :label="dict.value"
-                >{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="应用图标" prop="icon">
+                    :value="dict.value"
+                >{{ dict.label }}</a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="应用图标" name="icon">
               <div class="xgtpcont">
                   <ImageUpload class="sctplist" v-model="form.icon">
                   </ImageUpload>
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="允许授权的url" prop="redirectUrl">
-              <el-input v-model="form.redirectUrl" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="允许授权的url" name="redirectUrl">
+              <a-textarea v-model:value="form.redirectUrl" placeholder="请输入内容"></a-textarea>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
+              <a-textarea v-model:value="form.remark" placeholder="请输入内容" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancel">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup name="Client">
+
 import { listClient, getClient, delClient, addClient, updateClient } from "@/api/system/auth/client.js";
+import { PlusOutlined } from "@ant-design/icons-vue";
+import { h } from 'vue';
 
 const { proxy } = getCurrentInstance();
 const { auth_app_type } = proxy.useDict('auth_app_type');
 const { sys_valid } = proxy.useDict('sys_valid');
 const { auth_public } = proxy.useDict('auth_public');
+
+const tableColumns = [
+  { title: '应用ID', dataIndex: 'id', align: 'center' },
+  { title: '应用秘钥', dataIndex: 'secretKey', align: 'center', width: 300 },
+  { title: '应用名称', dataIndex: 'name', align: 'center', width: 120 },
+  { title: '应用类型', dataIndex: 'type', align: 'center' },
+  { title: '应用图标', dataIndex: 'icon', align: 'center', width: 100 },
+  { title: '应用首页', dataIndex: 'homeUrl', align: 'center' },
+  { title: '允许授权的url', dataIndex: 'redirectUrl', align: 'center', width: 150 },
+  { title: '是否公开', dataIndex: 'publicFlag', align: 'center' },
+  { title: '是否有效', dataIndex: 'validFlag', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180 },
+  { title: '备注', dataIndex: 'remark', align: 'center' },
+  { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
 
 const clientList = ref([]);
 const open = ref(false);
@@ -318,10 +334,10 @@ function resetQuery() {
 }
 
 // 多选框选中数据
-function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.id);
-  single.value = selection.length != 1;
-  multiple.value = !selection.length;
+function handleSelectionChange(selectedRowKeys, selectedRows) {
+  ids.value = selectedRows.map(item => item.id);
+  single.value = selectedRows.length != 1;
+  multiple.value = !selectedRows.length;
 }
 
 /** 新增按钮操作 */
@@ -344,23 +360,21 @@ function handleUpdate(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["clientRef"].validate(valid => {
-    if (valid) {
-      if (form.value.id != null) {
-        updateClient(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
-          open.value = false;
-          getList();
-        });
-      } else {
-        addClient(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
-          open.value = false;
-          getList();
-        });
-      }
+  proxy.$refs["clientRef"].validate().then(() => {
+    if (form.value.id != null) {
+      updateClient(form.value).then(response => {
+        proxy.$modal.msgSuccess("修改成功");
+        open.value = false;
+        getList();
+      });
+    } else {
+      addClient(form.value).then(response => {
+        proxy.$modal.msgSuccess("新增成功");
+        open.value = false;
+        getList();
+      });
     }
-  });
+  }).catch(() => {});
 }
 
 /** 删除按钮操作 */

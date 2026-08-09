@@ -1,149 +1,118 @@
 <template>
   <div class="app-container" ref="app-container">
     <div class="pagecont-top" v-show="showSearch">
-      <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="表名称" prop="tableName">
-          <el-input
-            v-model="queryParams.tableName"
+      <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline" :label-col="{ style: { width: '68px' } }">
+        <a-form-item label="表名称" name="tableName">
+          <a-input
+            v-model:value="queryParams.tableName"
             placeholder="请输入表名称"
-            clearable
+            allow-clear
             class="el-form-input-width"
-            @keyup.enter="handleQuery"
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="表描述" prop="tableComment">
-          <el-input
-            v-model="queryParams.tableComment"
+        </a-form-item>
+        <a-form-item label="表描述" name="tableComment">
+          <a-input
+            v-model:value="queryParams.tableComment"
             placeholder="请输入表描述"
-            clearable
+            allow-clear
             class="el-form-input-width"
-            @keyup.enter="handleQuery"
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="创建时间">
-          <el-date-picker
+        </a-form-item>
+        <a-form-item label="创建时间">
+          <a-range-picker
             class="el-form-input-width"
-            v-model="dateRange"
-            value-format="YYYY-MM-DD"
-            type="daterange"
-            range-separator="-"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-          ></el-date-picker>
-        </el-form-item>
-        <el-form-item>
-              <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+            v-model:value="dateRange"
+            valueFormat="YYYY-MM-DD"
+            :placeholder="['开始日期', '结束日期']"
+          />
+        </a-form-item>
+        <a-form-item>
+              <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-              </el-button>
-              <el-button @click="resetQuery" @mousedown="e => e.preventDefault()">
+              </a-button>
+              <a-button @click="resetQuery" @mousedown="e => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-              </el-button>
-        </el-form-item>
-      </el-form>
+              </a-button>
+        </a-form-item>
+      </a-form>
     </div>
     <div  class="pagecont-bottom">
 
       <div class="justify-between mb15">
-      <el-row :gutter="10" class="btn-style">
-        <el-col :span="1.5">
-          <el-button
+      <a-row :gutter="10" class="btn-style">
+        <a-col :span="1.5">
+          <a-button
             type="primary"
-            plain
-            icon="Download"
+            :icon="h(DownloadOutlined)"
             :disabled="multiple"
             @click="handleGenTable"
             v-hasPermi="['tool:gen:code']"
-          >生成</el-button>
-        </el-col>
-        <el-col :span="1.5">
-          <el-button
+          >生成</a-button>
+        </a-col>
+        <a-col :span="1.5">
+          <a-button
             type="primary"
-            plain
-            icon="Plus"
+            :icon="h(PlusOutlined)"
             @click="openCreateTable"
             v-hasRole="['admin']"
-          >创建</el-button>
-        </el-col>
-        <el-col :span="1.5">
-          <el-button
-            type="info"
-            plain
-            icon="Upload"
+          >创建</a-button>
+        </a-col>
+        <a-col :span="1.5">
+          <a-button
+            type="primary"
+            :icon="h(UploadOutlined)"
             @click="openImportTable"
             v-hasPermi="['tool:gen:import']"
-          >导入</el-button>
-        </el-col>
-        <el-col :span="1.5">
-          <el-button
+          >导入</a-button>
+        </a-col>
+        <a-col :span="1.5">
+          <a-button
             type="primary"
-            plain
-            icon="Edit"
+            :icon="h(EditOutlined)"
             :disabled="single"
             @click="handleEditTable"
             v-hasPermi="['tool:gen:edit']"
-          >修改</el-button>
-        </el-col>
-        <el-col :span="1.5">
-          <el-button
-            type="danger"
-            plain
-            icon="Delete"
+          >修改</a-button>
+        </a-col>
+        <a-col :span="1.5">
+          <a-button
+            type="primary"
+            danger
+            :icon="h(DeleteOutlined)"
             :disabled="multiple"
             @click="handleDelete"
             v-hasPermi="['tool:gen:remove']"
-          >删除</el-button>
-        </el-col>
-      </el-row>
+          >删除</a-button>
+        </a-col>
+      </a-row>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </div>
 
-      <el-table stripe height="60vh" v-loading="loading" :data="tableList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" align="center" width="55"></el-table-column>
-      <el-table-column label="序号" type="index" width="80" align="center">
-        <template #default="scope">
-          <span>{{(queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1}}</span>
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="表名称"
-        align="center"
-        prop="tableName"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="表描述"
-        align="center"
-        prop="tableComment"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column
-        label="实体"
-        align="center"
-        prop="className"
-        :show-overflow-tooltip="true"
-      />
-      <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
-      <el-table-column label="更新时间" align="center" prop="updateTime" width="160" />
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width"  fixed="right" width="240">
-        <template #default="scope">
-          <el-tooltip content="预览" placement="top">
-            <el-button link type="primary" icon="View" @click="handlePreview(scope.row)" v-hasPermi="['tool:gen:preview']"></el-button>
-          </el-tooltip>
-          <el-tooltip content="编辑" placement="top">
-            <el-button link type="primary" icon="Edit" @click="handleEditTable(scope.row)" v-hasPermi="['tool:gen:edit']"></el-button>
-          </el-tooltip>
-          <el-tooltip content="删除" placement="top">
-            <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['tool:gen:remove']"></el-button>
-          </el-tooltip>
-<!--          <el-tooltip content="同步" placement="top">-->
-<!--            <el-button link type="primary" icon="Refresh" @click="handleSynchDb(scope.row)" v-hasPermi="['tool:gen:edit']"></el-button>-->
-<!--          </el-tooltip>-->
-            <el-tooltip content="生成代码" placement="top">
-              <el-button link type="primary" icon="Download" @click="handleGenTable(scope.row)" v-hasPermi="['tool:gen:code']"></el-button>
-            </el-tooltip>
+      <a-table height="60vh" :loading="loading" :data-source="tableList" row-key="tableId"
+        :row-selection="{ selectedRowKeys: ids, onChange: handleSelectionChange }" :columns="columns"
+>
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'action'">
+          <a-tooltip title="预览" placement="top">
+            <a-button type="link" :icon="h(EyeOutlined)" @click="handlePreview(record)" v-hasPermi="['tool:gen:preview']"></a-button>
+          </a-tooltip>
+          <a-tooltip title="编辑" placement="top">
+            <a-button type="link" :icon="h(EditOutlined)" @click="handleEditTable(record)" v-hasPermi="['tool:gen:edit']"></a-button>
+          </a-tooltip>
+          <a-tooltip title="删除" placement="top">
+            <a-button type="link" danger :icon="h(DeleteOutlined)" @click="handleDelete(record)" v-hasPermi="['tool:gen:remove']"></a-button>
+          </a-tooltip>
+<!--          <a-tooltip title="同步" placement="top">-->
+<!--            <a-button type="link" :icon="h(ReloadOutlined)" @click="handleSynchDb(record)" v-hasPermi="['tool:gen:edit']"></a-button>-->
+<!--          </a-tooltip>-->
+            <a-tooltip title="生成代码" placement="top">
+              <a-button type="link" :icon="h(DownloadOutlined)" @click="handleGenTable(record)" v-hasPermi="['tool:gen:code']"></a-button>
+            </a-tooltip>
           </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </a-table>
       <pagination
         v-show="total>0"
         :total="total"
@@ -153,36 +122,42 @@
       />
     </div>
     <!-- 预览界面 -->
-    <el-dialog :title="preview.title" v-model="preview.open" width="80%" top="5vh" :append-to="$refs['app-container']" class="scrollbar" draggable destroy-on-close>
-      <el-tabs v-model="preview.activeName">
-        <el-tab-pane
+    <a-modal :title="preview.title" v-model:open="preview.open" width="80%" class="scrollbar" destroy-on-close>
+      <a-tabs v-model:activeKey="preview.activeName">
+        <a-tab-pane
           v-for="(value, key) in preview.data"
-          :label="key.substring(key.lastIndexOf('/')+1,key.indexOf('.vm'))"
-          :name="key.substring(key.lastIndexOf('/')+1,key.indexOf('.vm'))"
-          :key="value"
+          :tab="key.substring(key.lastIndexOf('/')+1,key.indexOf('.vm'))"
+          :key="key.substring(key.lastIndexOf('/')+1,key.indexOf('.vm'))"
         >
           <!-- <div class="justify-between mb15">
               <div class="justify-end top-right-btn">
-                  <el-link :underline="false" icon="DocumentCopy" v-copyText="value" v-copyText:callback="copyTextSuccess" style="float:right">&nbsp;复制</el-link>
+                  <a-button type="link" v-copyText="value" v-copyText:callback="copyTextSuccess" style="float:right">&nbsp;复制</a-button>
               </div>
           </div> -->
           <div class="precont">
-            <el-link :underline="false" icon="DocumentCopy" v-copyText="value" v-copyText:callback="copyTextSuccess" style="float:right">&nbsp;复制</el-link>
+            <a-button type="link" :icon="h(CopyOutlined)" v-copyText="value" v-copyText:callback="copyTextSuccess" style="float:right">&nbsp;复制</a-button>
             <pre >{{ value }}</pre>
           </div>
-        </el-tab-pane>
-      </el-tabs>
-    </el-dialog>
+        </a-tab-pane>
+      </a-tabs>
+    </a-modal>
     <import-table ref="importRef" @ok="handleQuery" />
     <create-table ref="createRef" @ok="handleQuery" />
   </div>
 </template>
 
 <script setup name="Gen">
+
+import { h } from 'vue'
 import { listTable, previewTable, delTable, genCode, synchDb } from "@/api/system/tool/gen.js";
+
 import router from "@/router/index.js";
+
 import importTable from "./importTable.vue";
+
 import createTable from "./createTable.vue";
+
+import { DownloadOutlined, PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CopyOutlined } from "@ant-design/icons-vue";
 
 const route = useRoute();
 const { proxy } = getCurrentInstance();
@@ -197,6 +172,16 @@ const total = ref(0);
 const tableNames = ref([]);
 const dateRange = ref([]);
 const uniqueId = ref("");
+
+const columns = [
+  { title: "序号", key: "index", width: 80, align: "center", customRender: ({ index }) => (queryParams.value.pageNum - 1) * queryParams.value.pageSize + index + 1 },
+  { title: "表名称", dataIndex: "tableName", align: "center", ellipsis: true },
+  { title: "表描述", dataIndex: "tableComment", align: "center", ellipsis: true },
+  { title: "实体", dataIndex: "className", align: "center", ellipsis: true },
+  { title: "创建时间", dataIndex: "createTime", align: "center", width: 160 },
+  { title: "更新时间", dataIndex: "updateTime", align: "center", width: 160 },
+  { title: "操作", key: "action", align: "center", fixed: "right", width: 240 }
+];
 
 const data = reactive({
   queryParams: {
@@ -300,11 +285,11 @@ function copyTextSuccess() {
 }
 
 // 多选框选中数据
-function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.tableId);
-  tableNames.value = selection.map(item => item.tableName);
-  single.value = selection.length != 1;
-  multiple.value = !selection.length;
+function handleSelectionChange(selectedRowKeys, selectedRows) {
+  ids.value = selectedRowKeys;
+  tableNames.value = selectedRows.map(item => item.tableName);
+  single.value = selectedRows.length != 1;
+  multiple.value = !selectedRows.length;
 }
 
 /** 修改按钮操作 */

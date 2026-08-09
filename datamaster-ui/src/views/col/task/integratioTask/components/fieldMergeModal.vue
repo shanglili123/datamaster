@@ -1,129 +1,130 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
-    draggable
+  <a-modal
+    v-model:open="dialogVisible"
+    :draggable="true"
     class="medium-dialog"
     :title="title"
-      destroy-on-close
+    :destroy-on-close="true"
+    :footer="null"
   >
-    <el-form
+    <a-form
       ref="formRef"
       :model="form.ruleConfig.fieldMerge"
       :rules="formRules"
-      label-width="150px"
+      :label-col="{ style: { width: '150px' } }"
     >
-      <el-row :gutter="20">
+      <a-row :gutter="20">
         <!-- 选择字段（单选） -->
-        <el-col :span="12">
-          <el-form-item
+        <a-col :span="12">
+          <a-form-item
             label="选择字段"
-            prop="sourceField"
+            name="sourceField"
           >
-            <el-select
-              v-model="form.ruleConfig.fieldMerge.sourceField"
+            <a-select
+              v-model:value="form.ruleConfig.fieldMerge.sourceField"
               placeholder="请选择字段名称"
-              filterable
+              show-search
               :disabled="row.columnName"
             >
-              <el-option
+              <a-select-option
                 v-for="dict in tableFields"
                 :key="dict.columnName"
                 :label="dict.columnName"
                 :value="dict.columnName"
-          :disabled="usedFields.includes(dict.columnName)"
+                :disabled="usedFields.includes(dict.columnName)"
               />
-            </el-select>
-          </el-form-item>
-        </el-col>
+            </a-select>
+          </a-form-item>
+        </a-col>
 
         <!-- 合并字段（多选） -->
-        <el-col :span="12">
-          <el-form-item
+        <a-col :span="12">
+          <a-form-item
             label="合并字段"
-            prop="sourceFields"
+            name="sourceFields"
           >
-            <el-select
-              v-model="form.ruleConfig.fieldMerge.sourceFields"
+            <a-select
+              v-model:value="form.ruleConfig.fieldMerge.sourceFields"
               placeholder="请选择字段名称"
-              filterable
-             collapse-tags multiple
+              show-search
+              mode="multiple"
             >
-              <el-option
+              <a-select-option
                 v-for="dict in tableFields"
                 :key="dict.columnName"
                 :label="dict.columnName"
                 :value="dict.columnName"
               />
-            </el-select>
-          </el-form-item>
-        </el-col>
+            </a-select>
+          </a-form-item>
+        </a-col>
 
         <!-- 分隔符 -->
-        <el-col :span="12">
-          <el-form-item
+        <a-col :span="12">
+          <a-form-item
             label="分隔符"
-            prop="separator"
+            name="separator"
           >
-            <el-input
-              v-model="form.ruleConfig.fieldMerge.separator"
+            <a-input
+              v-model:value="form.ruleConfig.fieldMerge.separator"
               placeholder="请输入分隔符（不能包含中文）"
             />
-          </el-form-item>
-        </el-col>
+          </a-form-item>
+        </a-col>
 
         <!-- 空值处理 -->
-        <el-col :span="12">
-          <el-form-item
+        <a-col :span="12">
+          <a-form-item
             label="空值处理"
-            prop="handleNull"
+            name="handleNull"
           >
-            <el-select
-              v-model="form.ruleConfig.fieldMerge.handleNull"
+            <a-select
+              v-model:value="form.ruleConfig.fieldMerge.handleNull"
               placeholder="请选择空值处理方式"
-              filterable
+              show-search
             >
-              <el-option label="保留为空" value="keep" />
-              <el-option label="替换为默认值" value="default" />
-              <el-option label="删除该条记录" value="remove" />
-            </el-select>
-          </el-form-item>
-        </el-col>
+              <a-select-option label="保留为空" value="keep" />
+              <a-select-option label="替换为默认值" value="default" />
+              <a-select-option label="删除该条记录" value="remove" />
+            </a-select>
+          </a-form-item>
+        </a-col>
 
         <!-- 默认值（仅在选择 default 时显示） -->
-        <el-col :span="12" v-if="form.ruleConfig.fieldMerge.handleNull === 'default'">
-          <el-form-item
+        <a-col :span="12" v-if="form.ruleConfig.fieldMerge.handleNull === 'default'">
+          <a-form-item
             label="默认值"
-            prop="defaultValue"
+            name="defaultValue"
           >
-            <el-input
-              v-model="form.ruleConfig.fieldMerge.defaultValue"
+            <a-input
+              v-model:value="form.ruleConfig.fieldMerge.defaultValue"
               placeholder="请输入默认值"
             />
-          </el-form-item>
-        </el-col>
+          </a-form-item>
+        </a-col>
 
         <!-- 是否去除空格 -->
-        <el-col :span="12">
-          <el-form-item
+        <a-col :span="12">
+          <a-form-item
             label="是否去除首尾空格"
-            prop="trimSpace"
+            name="trimSpace"
           >
-            <el-radio-group v-model="form.ruleConfig.fieldMerge.trimSpace">
-              <el-radio :label="true">是</el-radio>
-              <el-radio :label="false">否</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
+            <a-radio-group v-model:value="form.ruleConfig.fieldMerge.trimSpace">
+              <a-radio :value="true">是</a-radio>
+              <a-radio :value="false">否</a-radio>
+            </a-radio-group>
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </a-form>
 
     <template #footer>
       <div style="text-align: right">
-        <el-button @click="closeDialog">关闭</el-button>
-        <el-button type="primary" @click="submitForm">保存</el-button>
+        <a-button @click="closeDialog">关闭</a-button>
+        <a-button type="primary" @click="submitForm">保存</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>

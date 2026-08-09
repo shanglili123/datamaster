@@ -14,6 +14,8 @@
         <module>datamaster-common-datasource</module>
         <module>datamaster-common-mybatis</module>
         <module>datamaster-common-websocket</module>
+        <module>datamaster-common-category</module>
+        <module>datamaster-common-datasource-mgmt</module>
     </modules>
     <packaging>pom</packaging>
     <artifactId>datamaster-common</artifactId>

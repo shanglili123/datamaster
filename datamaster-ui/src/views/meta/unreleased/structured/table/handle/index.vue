@@ -1,308 +1,259 @@
 <template>
   <div class="app-container">
-    <el-form :model="store.form" :rules="rules" ref="formRef" label-width="110">
+    <a-form
+      :model="store.form"
+      :rules="rules"
+      ref="formRef"
+      :label-col="{ style: { width: '110px' } }"
+    >
       <div class="module-head">基础信息</div>
       <div class="module-body infotop column-form">
-        <el-form-item label="所属库名" prop="dbId">
-          <el-select
-            v-model="store.form.dbId"
+        <a-form-item label="所属库名" name="dbId">
+          <a-select
+            v-model:value="store.form.dbId"
             :disabled="!!route.query.id"
             placeholder="请选择所属库名"
             @change="handleMetaDBChange"
           >
-            <el-option
+            <a-select-option
               v-for="item in store.metaDatabases"
               :key="item.id"
-              :label="item.dbName"
               :value="item.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="来源系统" prop="sourceSystemName">
-          <el-input
-            v-model="store.form.sourceSystemName"
+            >
+              {{ item.dbName }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="来源系统" name="sourceSystemName">
+          <a-input
+            v-model:value="store.form.sourceSystemName"
             :disabled="!!route.query.id"
             placeholder="自动获取来源系统"
           />
-        </el-form-item>
-        <el-form-item label="表名称" prop="tableName">
-          <el-input
-            clearable
+        </a-form-item>
+        <a-form-item label="表名称" name="tableName">
+          <a-input
+            allow-clear
             :disabled="!!route.query.id"
-            v-model="store.form.tableName"
+            v-model:value="store.form.tableName"
             placeholder="请输入表名称"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="表注释" prop="tableComment">
-          <el-input
-            clearable
+        <a-form-item label="表注释" name="tableComment">
+          <a-input
+            allow-clear
             :disabled="!!route.query.id"
-            v-model="store.form.tableComment"
+            v-model:value="store.form.tableComment"
             placeholder="请输入表注释"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="所属分层">
-          <el-select
-            clearable
-            v-model="store.form.belongingLayer"
+        <a-form-item label="所属分层">
+          <a-select
+            allow-clear
+            v-model:value="store.form.belongingLayer"
             disabled
             placeholder="请选择所属分层"
           >
-            <el-option
+            <a-select-option
               v-for="dict in toValue(dicts.meta_dw_layers)"
               :key="dict.value"
-              :label="dict.label"
               :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
+            >
+              {{ dict.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
-        <el-form-item label="所属系统" prop="belongingSystem">
-          <el-input
-            clearable
-            v-model="store.form.belongingSystem"
+        <a-form-item label="所属系统" name="belongingSystem">
+          <a-input
+            allow-clear
+            v-model:value="store.form.belongingSystem"
             disabled
             placeholder="请输入所属系统"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <!-- <el-form-item label="安全等级" prop="safetyLevelId">
-          <el-select
-            clearable
-            v-model="store.form.safetyLevelId"
+        <!-- <a-form-item label="安全等级" name="safetyLevelId">
+          <a-select
+            allow-clear
+            v-model:value="store.form.safetyLevelId"
             placeholder="请选择安全等级"
           >
-            <el-option
+            <a-select-option
               v-for="item in store.sensitiveLevels"
               :key="item.id"
               :label="item.sensitiveLevel"
               :value="item.id"
             />
-          </el-select>
-        </el-form-item> -->
+          </a-select>
+        </a-form-item> -->
 
-        <!-- <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="store.form.status">
-            <el-radio
+        <!-- <a-form-item label="状态" name="status">
+          <a-radio-group v-model:value="store.form.status">
+            <a-radio
               v-for="dict in toValue(dicts.meta_task_status)"
               :key="dict.value"
               :value="dict.value"
             >
               {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item> -->
+            </a-radio>
+          </a-radio-group>
+        </a-form-item> -->
 
-        <el-form-item label="备注" class="row-full">
-          <el-input
-            v-model="store.form.remark"
-            type="textarea"
+        <a-form-item label="备注" class="row-full">
+          <a-textarea
+            v-model:value="store.form.remark"
             placeholder="请输入备注"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
+            show-count
           />
-        </el-form-item>
+        </a-form-item>
       </div>
 
       <div class="module-head">技术信息</div>
       <div class="module-body infotop column-form">
-        <el-form-item label="数据连接名称" prop="datasourceId">
-          <el-select
-            clearable
-            v-model="store.form.datasourceId"
+        <a-form-item label="数据连接名称" name="datasourceId">
+          <a-select
+            allow-clear
+            v-model:value="store.form.datasourceId"
             placeholder="请选择数据连接名称"
             @change="handleDatasourceChange"
             disabled
           >
-            <el-option
+            <a-select-option
               v-for="item in store.datasources"
               :key="item.id"
-              :label="item.datasourceName"
               :value="item.id"
             >
-            </el-option>
-          </el-select>
-        </el-form-item>
+              {{ item.datasourceName }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
-        <el-form-item label="数据库类型" prop="dbType">
-          <el-input
-            clearable
-            v-model="store.form.dbType"
+        <a-form-item label="数据库类型" name="dbType">
+          <a-input
+            allow-clear
+            v-model:value="store.form.dbType"
             disabled
             placeholder="请输入数据库类型"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="IP" prop="ip">
-          <el-input
-            clearable
-            v-model="store.form.ip"
+        <a-form-item label="IP" name="ip">
+          <a-input
+            allow-clear
+            v-model:value="store.form.ip"
             disabled
             placeholder="请输入ip"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="端口号" prop="port">
-          <el-input
-            clearable
-            v-model="store.form.port"
+        <a-form-item label="端口号" name="port">
+          <a-input
+            allow-clear
+            v-model:value="store.form.port"
             disabled
             placeholder="请输入端口号"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="账号" prop="username">
-          <el-input
-            clearable
-            v-model="store.form.username"
+        <a-form-item label="账号" name="username">
+          <a-input
+            allow-clear
+            v-model:value="store.form.username"
             disabled
             placeholder="请输入账号"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="存储类型" prop="storageType">
-          <el-input
-            clearable
-            v-model="store.form.storageType"
+        <a-form-item label="存储类型" name="storageType">
+          <a-input
+            allow-clear
+            v-model:value="store.form.storageType"
             placeholder="请输入存储类型"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <!-- <el-form-item label="存储大小" prop="storageSize">
-          <el-input-number
+        <!-- <a-form-item label="存储大小" name="storageSize">
+          <a-input-number
             :min="0"
-            v-model="store.form.storageSize"
+            v-model:value="store.form.storageSize"
             placeholder="请输入存储大小"
             :controls="false"
             class="number-input"
           />
-        </el-form-item> -->
+        </a-form-item> -->
 
-        <el-form-item label="技术负责人">
-          <el-tree-select
-            clearable
-            filterable
-            v-model="store.form.techLeader"
-            :data="store.userList"
-            :props="{
-              value: 'userId',
-              label: 'nickName',
-              children: 'children',
-            }"
-            value-key="userId"
-            placeholder="请选择技术负责人"
-            check-strictly
-            @change="handleUserChange($event, 'techLeaderPhone')"
-          />
-        </el-form-item>
-
-        <el-form-item label="技术负责人电话">
-          <el-input
-            clearable
-            v-model="store.form.techLeaderPhone"
-            placeholder="请输入技术负责人电话"
-          />
-        </el-form-item>
       </div>
 
       <div class="module-head">业务信息</div>
       <div class="module-body infotop column-form">
-        <el-form-item label="业务负责人">
-          <el-tree-select
-            clearable
-            filterable
-            v-model="store.form.businessLeader"
-            :data="store.userList"
-            :props="{
-              value: 'userId',
-              label: 'nickName',
-              children: 'children',
-            }"
-            value-key="userId"
-            placeholder="请选择业务负责人"
-            check-strictly
-            @change="handleUserChange($event, 'businessLeaderPhone')"
-          />
-        </el-form-item>
-
-        <el-form-item label="业务负责人电话">
-          <el-input
-            clearable
-            v-model="store.form.businessLeaderPhone"
-            placeholder="请输入业务负责人电话"
-          />
-        </el-form-item>
-
-        <el-form-item label="是否主表" prop="masterFlag">
-          <el-radio-group v-model="store.form.masterFlag">
-            <el-radio
+        <a-form-item label="是否主表" name="masterFlag">
+          <a-radio-group v-model:value="store.form.masterFlag">
+            <a-radio
               v-for="dict in toValue(dicts.table_yes_no)"
               :key="dict.value"
               :value="dict.value"
             >
               {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
 
-        <el-form-item label="是否临时表" prop="tempFlag">
-          <el-radio-group v-model="store.form.tempFlag">
-            <el-radio
+        <a-form-item label="是否临时表" name="tempFlag">
+          <a-radio-group v-model:value="store.form.tempFlag">
+            <a-radio
               v-for="dict in toValue(dicts.table_yes_no)"
               :key="dict.value"
               :value="dict.value"
             >
               {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
 
-        <el-form-item label="描述" class="row-full">
-          <el-input
-            v-model="store.form.description"
-            type="textarea"
+        <a-form-item label="描述" class="row-full">
+          <a-textarea
+            v-model:value="store.form.description"
             placeholder="请输入描述"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
+            show-count
           />
-        </el-form-item>
+        </a-form-item>
 
-        <!-- <el-form-item
+        <!-- <a-form-item
           label="变更说明"
-          prop="updateMsg"
+          name="updateMsg"
           class="row-full"
           v-if="store.form.id"
         >
-          <el-input
-            v-model="store.form.updateMsg"
-            type="textarea"
+          <a-textarea
+            v-model:value="store.form.updateMsg"
             placeholder="请输入变更说明"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
           />
-        </el-form-item> -->
+        </a-form-item> -->
       </div>
-    </el-form>
+    </a-form>
 
     <div class="button-style">
-      <el-button @click="handleDraftClick"> 暂存 </el-button>
-      <el-button
+      <a-button @click="handleDraftClick"> 暂存 </a-button>
+      <a-button
         type="primary"
-        plain
         class="fh_btn"
         @mousedown="(e) => e.preventDefault()"
         @click="router.back"
       >
         <svg-icon iconClass="fhs" />返回列表
-      </el-button>
-      <el-button type="primary" @click="handleConfirmClick">
+      </a-button>
+      <a-button type="primary" @click="handleConfirmClick">
         确认并退出
-      </el-button>
+      </a-button>
     </div>
   </div>
 </template>
@@ -310,7 +261,6 @@
 <script setup name="TableHandle">
 import { reactive, getCurrentInstance, toValue } from "vue";
 import { listDb, getDb } from "@/api/cat/unreleased/db";
-import { deptUserTree } from "@/api/system/system/user.js";
 import { listDaDatasource } from "@/api/cat/dataSource/dataSource";
 import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
 import {
@@ -384,7 +334,6 @@ const store = reactive({
   form: { ...DEFAULT_FORM },
   metaDatabases: [],
   sensitiveLevels: [],
-  userList: [],
   loading: false,
 });
 
@@ -420,14 +369,6 @@ function getDatasources() {
   });
 }
 
-// 获取用户列表
-function getUserList() {
-  return deptUserTree().then((res) => {
-    store.userList = res.data;
-    return res.data;
-  });
-}
-
 // 切换数据源
 function handleDatasourceChange(id) {
   const data = store.datasources?.find((item) => item.id === id);
@@ -435,12 +376,6 @@ function handleDatasourceChange(id) {
   store.form.port = data.port;
   store.form.username = data.datasourceConfig?.username;
   store.form.dbType = data.datasourceType;
-}
-
-// 切换用户
-function handleUserChange(id, key) {
-  const data = store.userList.find((item) => item.userId === id);
-  store.form[key] = data.phonenumber;
 }
 
 // 切换库元数据
@@ -504,7 +439,6 @@ async function getDetail() {
 getMetaDatabases();
 // getSensitiveLevel();
 getDatasources();
-getUserList();
 getDetail();
 </script>
 

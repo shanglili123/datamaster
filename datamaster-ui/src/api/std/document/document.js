@@ -46,7 +46,7 @@ export function delDpDocument(ID) {
 
 export function listAttDocumentCat(query) {
     return request({
-        url: '/tax/documentCat/getAttDocumentCatList',
+        url: '/tax/category/list/DOCUMENT',
         method: 'get',
         params: query
     })

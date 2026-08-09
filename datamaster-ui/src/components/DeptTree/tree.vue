@@ -1,35 +1,33 @@
 ﻿<template>
-    <el-aside :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px', }" class="left-pane">
+    <a-layout-sider :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px', }" class="left-pane">
         <div class="left-tree">
             <div class="head-container">
-                <el-tree class="dept-tree" :data="deptOptions" :props="{ label: 'name', children: 'children' }"
-                    :filter-node-method="filterNode" ref="deptTreeRef" node-key="id" highlight-current
-                    :default-expanded-keys="expandedKeys" @node-click="handleNodeClick"
+                <a-tree class="dept-tree" :tree-data="deptOptions" :field-names="{ title: 'name', children: 'children', value: 'id' }"
+                    :filter-node-method="filterNode" ref="deptTreeRef" highlight-current
+                    :expanded-keys="expandedKeys" @select="(keys, e) => handleNodeClick(e.node.data)"
                     :default-expand-all="defaultExpand">
-                    <template #default="{ node, data }">
+                    <template #title="{ data, selected }">
                         <span class="custom-tree-node">
                             <img class="node-icon" src="@/assets/da/asset/icon (3).png" alt=""
-                                v-if="node.childNodes.length" />
-                            <el-icon class="zjiconimg colorwxz" v-show="!node.isCurrent && node.childNodes.length == 0">
-                                <Tickets />
-                            </el-icon>
-                            <el-icon class="zjiconimg colorxz" v-show="node.isCurrent && node.childNodes.length == 0">
-                                <Tickets />
-                            </el-icon>
-                            <span class="treelable" @click="getNode(node)">
-                                {{ node.label }}
+                                v-if="data.children && data.children.length" />
+                            <FileTextOutlined class="zjiconimg colorwxz"
+                                v-show="!selected && (!data.children || data.children.length == 0)" />
+                            <FileTextOutlined class="zjiconimg colorxz"
+                                v-show="selected && (!data.children || data.children.length == 0)" />
+                            <span class="treelable" @click="getNode(data)">
+                                {{ data.name }}
                             </span>
                         </span>
                     </template>
-                </el-tree>
+                </a-tree>
             </div>
         </div>
-    </el-aside>
+    </a-layout-sider>
 </template>
 
 <script setup>
 import { ref, defineProps, defineEmits, watch, getCurrentInstance } from "vue";
-import { ArrowLeft, ArrowRight, Tickets } from "@element-plus/icons-vue";
+import { FileTextOutlined } from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 

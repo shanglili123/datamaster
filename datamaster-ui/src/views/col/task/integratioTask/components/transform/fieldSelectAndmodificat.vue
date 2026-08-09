@@ -1,284 +1,229 @@
 <template>
-  <el-dialog
-    v-model="visibleDialog"
-    :draggable="true"
+  <a-modal
+    v-model:open="visibleDialog"
     class="medium-dialog"
     :title="form.taskParams.typeName"
-    showCancelButton
-    :show-close="false"
-    destroy-on-close
+    :closable="false"
+    :destroy-on-close="true"
   >
-    <el-form
+    <a-spin :spinning="loading">
+    <a-form
       ref="dpModelRefs"
       :model="form"
-      label-width="110px"
+      :label-col="{ style: { width: '110px' } }"
       @submit.prevent
-      v-loading="loading"
       :disabled="info"
     >
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item
             label="节点名称"
-            prop="name"
+            name="name"
             :rules="[
               { required: true, message: '请输入节点名称', trigger: 'change' },
             ]"
           >
-            <el-input
+            <a-input
               v-if="!info"
-              v-model="form.name"
+              v-model:value="form.name"
               placeholder="请输入节点名称"
             />
             <div v-else class="form-readonly">{{ form.name }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="类型" prop="typeName">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="类型" name="typeName">
             <template v-if="!info">
-              <el-select
-                v-model="form.taskParams.typeName"
+              <a-select
+                v-model:value="form.taskParams.typeName"
                 placeholder="请输入类型"
-                filterable
+                show-search
                 disabled
               >
-                <el-option
+                <a-select-option
                   v-for="dict in typeList"
                   :key="dict.value"
                   :label="dict.label"
                   :value="dict.value"
                 />
-              </el-select>
+              </a-select>
             </template>
             <div v-else class="form-readonly">
               {{ form.taskParams.typeName }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述" prop="description">
-            <el-input
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述" name="description">
+            <a-input
               v-if="!info"
-              v-model="form.description"
+              v-model:value="form.description"
               type="textarea"
-              maxlength="500个字符"
-              show-word-limit
+              :maxlength="500"
+              show-count
               placeholder="请输入描述"
             />
             <div v-else class="form-readonly textarea">
               {{ form.description || "-" }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-divider content-position="center">
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-divider orientation="center">
         <span class="blue-text">需要选择与修改的字段</span>
-      </el-divider>
+      </a-divider>
       <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-          <el-col :span="1.5">
-            <el-button type="primary" plain @click="handleAddField">
+        <a-row :gutter="15" class="btn-style">
+          <a-col :span="1.5">
+            <a-button type="primary" @click="handleAddField">
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
-          </el-col>
-          <el-col :span="1.5">
-            <el-button
+            </a-button>
+          </a-col>
+          <a-col :span="1.5">
+            <a-button
               type="warning"
               @click="handleFetchFields"
               :disabled="info"
               v-if="!info"
-              >获取字段</el-button
+              >获取字段</a-button
             >
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </div>
-      <el-table
-        stripe
+      <a-table
         height="310px"
-        :data="tableFields"
-        v-loading="loadingList"
+        :data-source="tableFields"
+        :loading="loadingList"
+        :columns="tableColumns"
+        :row-key="'columnName'"
         ref="dragTable"
-        row-key="columnName"
       >
-        <el-table-column label="序号" width="80" align="left">
-          <template #default="scope">
-            <span>{{ scope.$index + 1 }}</span>
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.dataIndex === 'index'">
+            <span>{{ index + 1 }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="字段名称" align="left" prop="columnName">
-          <template #default="scope">
-            <el-select
-              v-model="scope.row.columnName"
+          <template v-else-if="column.dataIndex === 'columnName'">
+            <a-select
+              v-model:value="record.columnName"
               placeholder="请选择字段"
               style="flex: 1"
             >
-              <el-option
+              <a-select-option
                 v-for="item in inputFields"
                 :key="item.value"
                 :label="item.label"
                 :value="item.columnName"
-                :disabled="isOptionDisabled(item.columnName, scope.row)"
+                :disabled="isOptionDisabled(item.columnName, record)"
               />
-            </el-select>
+            </a-select>
           </template>
-        </el-table-column>
-        <el-table-column
-          label="字段别名"
-          align="left"
-          prop="outputField"
-          :show-overflow-tooltip="{ effect: 'light' }"
-        >
-          <template #default="scope">
-            <el-input
-              v-model="scope.row.outputField"
+          <template v-else-if="column.dataIndex === 'outputField'">
+            <a-input
+              v-model:value="record.outputField"
               placeholder="请输入新的字段名称"
               style="width: 100%"
             />
           </template>
-        </el-table-column>
-        <el-table-column label="字段类型" align="left" prop="type" width="150">
-          <template #default="scope">
-            <el-select
-              v-model="scope.row.type"
+          <template v-else-if="column.dataIndex === 'type'">
+            <a-select
+              v-model:value="record.type"
               placeholder="请选择字段类型"
               style="width: 100%"
-              clearable
+              allow-clear
             >
-              <el-option
+              <a-select-option
                 v-for="dict in columntype"
                 :key="dict.value"
                 :label="dict.label"
                 :value="dict.value"
               />
-            </el-select>
+            </a-select>
           </template>
-        </el-table-column>
-        <el-table-column
-          label="字段长度"
-          align="left"
-          prop="length"
-          width="150"
-        >
-          <template #default="scope">
-            <el-input-number
+          <template v-else-if="column.dataIndex === 'length'">
+            <a-input-number
               placeholder="请输入字段长度"
-              v-model="scope.row.length"
+              v-model:value="record.length"
               :min="0"
-              controls-position="right"
               style="width: 100%"
             />
           </template>
-        </el-table-column>
-        <el-table-column
-          label="字段精度"
-          align="left"
-          prop="precision"
-          width="150"
-        >
-          <template #default="scope">
-            <el-input-number
+          <template v-else-if="column.dataIndex === 'precision'">
+            <a-input-number
               placeholder="请输入字段精度"
-              v-model="scope.row.precision"
+              v-model:value="record.precision"
               :min="0"
-              controls-position="right"
               style="width: 100%"
             />
           </template>
-        </el-table-column>
-        <el-table-column
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-          fixed="right"
-          width="150"
-          v-if="!info"
-        >
-          <template #default="scope">
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleDelete(scope.row)"
-            >
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" danger @click="handleDelete(record)">
+              <template #icon><DeleteOutlined /></template>
               删除
-            </el-button>
+            </a-button>
           </template>
-        </el-table-column>
-      </el-table>
-      <el-divider content-position="center">
+        </template>
+      </a-table>
+      <a-divider orientation="center">
         <span class="blue-text">需要移除的字段</span>
-      </el-divider>
+      </a-divider>
       <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-          <el-col :span="1.5">
-            <el-button type="primary" plain @click="handleAddField2">
+        <a-row :gutter="15" class="btn-style">
+          <a-col :span="1.5">
+            <a-button type="primary" @click="handleAddField2">
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
-          </el-col>
-        </el-row>
+            </a-button>
+          </a-col>
+        </a-row>
       </div>
-      <el-table
-        stripe
+      <a-table
         height="310px"
-        :data="removeFields"
-        v-loading="loadingList"
+        :data-source="removeFields"
+        :loading="loadingList"
+        :columns="removeColumns"
+        :row-key="'columnName'"
         ref="dragTable"
-        row-key="columnName"
       >
-        <el-table-column label="序号" width="80" align="left">
-          <template #default="scope">
-            <span>{{ scope.$index + 1 }}</span>
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.dataIndex === 'index'">
+            <span>{{ index + 1 }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="字段名称" align="left" prop="columnName">
-          <template #default="scope">
-            <el-select
-              v-model="scope.row.columnName"
+          <template v-else-if="column.dataIndex === 'columnName'">
+            <a-select
+              v-model:value="record.columnName"
               placeholder="请选择字段"
               style="flex: 1"
             >
-              <el-option
+              <a-select-option
                 v-for="item in inputFields"
                 :key="item.value"
                 :label="item.label"
                 :value="item.columnName"
-                :disabled="isOptionDisabled(item.columnName, scope.row)"
+                :disabled="isOptionDisabled(item.columnName, record)"
               />
-            </el-select>
+            </a-select>
           </template>
-        </el-table-column>
-        <el-table-column
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-          fixed="right"
-          width="150"
-        >
-          <template #default="scope">
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleDelete2(scope.row)"
-            >
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" danger @click="handleDelete2(record)">
+              <template #icon><DeleteOutlined /></template>
               删除
-            </el-button>
+            </a-button>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-form>
+        </template>
+      </a-table>
+    </a-form>
+    </a-spin>
 
     <template #footer>
       <div style="text-align: right">
-        <el-button @click="closeDialog">关闭</el-button>
-        <el-button type="primary" @click="saveData" v-if="!info"
-          >保存</el-button
+        <a-button @click="closeDialog">关闭</a-button>
+        <a-button type="primary" @click="saveData" v-if="!info"
+          >保存</a-button
         >
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 
   <FieldConflictDialog
     v-model="showConflictDialog"
@@ -297,8 +242,12 @@
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
+import { DeleteOutlined } from "@ant-design/icons-vue";
 import CreateEditModal from "../fieldMergeModal.vue";
+
 import FieldConflictDialog from "../fieldDetection.vue";
+
 import {
   defineProps,
   defineEmits,
@@ -308,8 +257,11 @@ import {
   getCurrentInstance,
 } from "vue";
 
+
 import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/col/task/index.js";
+
 import useUserStore from "@/store/system/user.js";
+
 import { createNodeSelect } from "@/views/col/utils/opBase.js";
 const { proxy } = getCurrentInstance();
 const userStore = useUserStore();
@@ -331,6 +283,27 @@ const columntype = [
   { value: "Number", label: "Number" },
   { value: "String", label: "String" },
   { value: "Timestamp", label: "Timestamp" },
+];
+
+const tableColumns = computed(() => {
+  const cols = [
+    { title: '序号', dataIndex: 'index', width: 80, align: 'left' },
+    { title: '字段名称', dataIndex: 'columnName', align: 'left' },
+    { title: '字段别名', dataIndex: 'outputField', align: 'left', ellipsis: true },
+    { title: '字段类型', dataIndex: 'type', align: 'left', width: 150 },
+    { title: '字段长度', dataIndex: 'length', align: 'left', width: 150 },
+    { title: '字段精度', dataIndex: 'precision', align: 'left', width: 150 },
+  ];
+  if (!props.info) {
+    cols.push({ title: '操作', key: 'actions', align: 'center', className: 'small-padding fixed-width', fixed: 'right', width: 150 });
+  }
+  return cols;
+});
+
+const removeColumns = [
+  { title: '序号', dataIndex: 'index', width: 80, align: 'left' },
+  { title: '字段名称', dataIndex: 'columnName', align: 'left' },
+  { title: '操作', key: 'actions', align: 'center', className: 'small-padding fixed-width', fixed: 'right', width: 150 },
 ];
 
 let dragTable = ref(null);

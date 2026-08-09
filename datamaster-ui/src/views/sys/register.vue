@@ -1,59 +1,59 @@
 <template>
   <div class="register">
-    <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
+    <a-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
       <h3 class="title">DataMaster</h3>
-      <el-form-item prop="username">
-        <el-input
-          v-model="registerForm.username"
+      <a-form-item name="username">
+        <a-input
+          v-model:value="registerForm.username"
           type="text"
           size="large"
           auto-complete="off"
           placeholder="账号"
         >
           <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="password">
-        <el-input
-          v-model="registerForm.password"
+        </a-input>
+      </a-form-item>
+      <a-form-item name="password">
+        <a-input
+          v-model:value="registerForm.password"
           type="password"
           size="large"
           auto-complete="off"
           placeholder="密码"
-          @keyup.enter="handleRegister"
+          @pressEnter="handleRegister"
         >
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="confirmPassword">
-        <el-input
-          v-model="registerForm.confirmPassword"
+        </a-input>
+      </a-form-item>
+      <a-form-item name="confirmPassword">
+        <a-input
+          v-model:value="registerForm.confirmPassword"
           type="password"
           size="large"
           auto-complete="off"
           placeholder="确认密码"
-          @keyup.enter="handleRegister"
+          @pressEnter="handleRegister"
         >
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
-        <el-input
+        </a-input>
+      </a-form-item>
+      <a-form-item name="code" v-if="captchaEnabled">
+        <a-input
           size="large"
-          v-model="registerForm.code"
+          v-model:value="registerForm.code"
           auto-complete="off"
           placeholder="验证码"
           style="width: 63%"
-          @keyup.enter="handleRegister"
+          @pressEnter="handleRegister"
         >
           <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
-        </el-input>
+        </a-input>
         <div class="register-code">
           <img :src="codeUrl" @click="getCode" class="register-code-img"/>
         </div>
-      </el-form-item>
-      <el-form-item style="width:100%;">
-        <el-button
+      </a-form-item>
+      <a-form-item style="width:100%;">
+        <a-button
           :loading="loading"
           size="large"
           type="primary"
@@ -62,22 +62,21 @@
         >
           <span v-if="!loading">注 册</span>
           <span v-else>注 册 中...</span>
-        </el-button>
+        </a-button>
         <div style="float: right;">
           <router-link class="link-type" :to="'/login'">使用已有账户登录</router-link>
         </div>
-      </el-form-item>
-    </el-form>
+      </a-form-item>
+    </a-form>
 
   </div>
 </template>
 
 <script setup>
-import { ElMessageBox } from "element-plus";
+import { Modal } from "ant-design-vue";
 import { getCodeImg, register } from "@/api/system/login.js";
 
 const router = useRouter();
-const { proxy } = getCurrentInstance();
 
 const registerForm = ref({
   username: "",
@@ -86,6 +85,8 @@ const registerForm = ref({
   code: "",
   uuid: ""
 });
+
+const registerRef = ref(null);
 
 const equalToPassword = (rule, value, callback) => {
   if (registerForm.value.password !== value) {
@@ -117,25 +118,25 @@ const loading = ref(false);
 const captchaEnabled = ref(true);
 
 function handleRegister() {
-  proxy.$refs.registerRef.validate(valid => {
-    if (valid) {
-      loading.value = true;
-      register(registerForm.value).then(res => {
-        const username = registerForm.value.username;
-        ElMessageBox.alert("<font color='red'>恭喜你，您的账号 " + username + " 注册成功！</font>", "系统提示", {
-          dangerouslyUseHTMLString: true,
-          type: "success",
-        }).then(() => {
+  registerRef.value.validate().then(() => {
+    loading.value = true;
+    register(registerForm.value).then(() => {
+      const username = registerForm.value.username;
+      Modal.success({
+        title: "系统提示",
+        content: "恭喜您，您的账号 " + username + " 注册成功！",
+        okText: "确定",
+        onOk: () => {
           router.push("/login");
-        }).catch(() => {});
-      }).catch(() => {
-        loading.value = false;
-        if (captchaEnabled) {
-          getCode();
         }
       });
-    }
-  });
+    }).catch(() => {
+      loading.value = false;
+      if (captchaEnabled.value) {
+        getCode();
+      }
+    });
+  }).catch(() => {});
 }
 
 function getCode() {
@@ -171,8 +172,11 @@ getCode();
   background: #ffffff;
   width: 400px;
   padding: 25px 25px 5px 25px;
-  .el-input {
+  .ant-input-affix-wrapper,
+  .ant-input {
     height: 40px;
+  }
+  .ant-input {
     input {
       height: 40px;
     }

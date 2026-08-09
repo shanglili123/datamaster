@@ -1,14 +1,14 @@
 <template>
   <div class="basicInfo">
-    <el-descriptions title="" :column="2" border>
-      <el-descriptions-item v-for="(item, index) in fileDesc" :key="index" label-class-name="base-label"
-        :span="item.span" class-name="base-content">
+    <a-descriptions title="" :column="2" bordered>
+      <a-descriptions-item v-for="(item, index) in fileDesc" :key="index" :label-style="{ width: '200px' }"
+        :span="item.span">
         <template #label>
           <div class="cell-item">{{ item.label }}</div>
         </template>
         <div v-if="item.key == 'status'">
-          <el-tag :type="item.status == -1 ? 'warning' : 'success'">{{ item.status == -1 ? "草稿" : "完成"
-          }}</el-tag>
+          <a-tag :color="item.status == -1 ? 'orange' : 'green'">{{ item.status == -1 ? "草稿" : "完成"
+          }}</a-tag>
         </div>
         <div v-else-if="item.key == 'type'">
           <dict-tag :options="auth_app_type" :value="dppEtlTaskDetail.type" />
@@ -20,8 +20,8 @@
           {{ cronToZh(dppEtlTaskDetail.crontab) || "-" }}
         </div>
         <div v-else>{{ getDescValue(item) }}</div>
-      </el-descriptions-item>
-    </el-descriptions>
+      </a-descriptions-item>
+    </a-descriptions>
   </div>
 </template>
 <script setup name="BasicInfo">

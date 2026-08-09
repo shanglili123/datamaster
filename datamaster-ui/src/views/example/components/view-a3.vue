@@ -1,63 +1,64 @@
 ﻿<template>
     <dp-main>
         <template #header>
-            <el-form :model="params" ref="realForm" :inline="true">
-                <el-form-item label="开始时间：" prop="startDate">
-                    <el-date-picker
-                        v-model="params.startDate"
-                        type="date"
-                        value-format="YYYY-MM-DD"
+            <a-form :model="params" ref="realForm" :label-col="{ style: { width: '90px' } }" layout="inline">
+                <a-form-item label="开始时间：" name="startDate">
+                    <a-date-picker
+                        v-model:value="params.startDate"
+                        valueFormat="YYYY-MM-DD"
                         placeholder="开始时间"
-                        :clearable="false"
+                        :allow-clear="false"
                         style="width: 140px"
                     >
-                    </el-date-picker>
-                </el-form-item>
-                <el-form-item label="结束时间：" prop="endDate">
-                    <el-date-picker
-                        v-model="params.endDate"
-                        type="date"
-                        value-format="YYYY-MM-DD"
+                    </a-date-picker>
+                </a-form-item>
+                <a-form-item label="结束时间：" name="endDate">
+                    <a-date-picker
+                        v-model:value="params.endDate"
+                        valueFormat="YYYY-MM-DD"
                         placeholder="结束时间"
-                        :clearable="false"
+                        :allow-clear="false"
                         style="width: 140px"
                     >
-                    </el-date-picker>
-                </el-form-item>
-                <el-form-item label="比较年：" prop="years">
-                    <el-dropdown trigger="click" placement="bottom-start" :hide-on-click="false">
-                        <el-input style="width: 120px" v-model="params.years" readonly></el-input>
-                        <template #dropdown>
-                            <el-checkbox-group v-model="params.years" style="width: 120px">
-                                <el-dropdown-item
-                                    v-for="(item, index) in yearsOptions"
-                                    :key="index"
-                                >
-                                    <el-checkbox :value="item.label" style="width: 100%">
+                    </a-date-picker>
+                </a-form-item>
+                <a-form-item label="比较年：" name="years">
+                    <a-dropdown :trigger="['click']" placement="bottom-start">
+                        <a-input style="width: 120px" v-model:value="params.years" readonly></a-input>
+                        <template #overlay>
+                            <div style="padding: 6px 10px; width: 120px">
+                                <a-checkbox-group v-model:value="params.years">
+                                    <a-checkbox
+                                        v-for="(item, index) in yearsOptions"
+                                        :key="index"
+                                        :value="item.label"
+                                        style="width: 100%"
+                                        @click.stop
+                                    >
                                         {{ item.label }}
-                                    </el-checkbox>
-                                </el-dropdown-item>
-                            </el-checkbox-group>
+                                    </a-checkbox>
+                                </a-checkbox-group>
+                            </div>
                         </template>
-                    </el-dropdown>
-                </el-form-item>
-                <el-form-item label="" label-width="0px" prop="years">
-                    <el-radio-group v-model="params.radio">
-                        <el-radio
+                    </a-dropdown>
+                </a-form-item>
+                <a-form-item label="" name="years">
+                    <a-radio-group v-model:value="params.radio">
+                        <a-radio
                             :value="item.value"
                             :key="item.value"
                             v-for="item in radioOptions"
                         >
                             {{ item.label }}
-                        </el-radio>
-                    </el-radio-group>
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" :icon="Search" @click="getChartData">
+                        </a-radio>
+                    </a-radio-group>
+                </a-form-item>
+                <a-form-item>
+                    <a-button type="primary" :icon="SearchOutlined" @click="getChartData">
                         查询
-                    </el-button>
-                </el-form-item>
-            </el-form>
+                    </a-button>
+                </a-form-item>
+            </a-form>
         </template>
         <dp-shrink width="600px" placement="right" @change="handleShrinkChange">
             <template #flex>
@@ -78,7 +79,7 @@
 
 <script setup name="DetailPopResViewA3">
 
-    import { Search } from '@element-plus/icons-vue';
+    import { SearchOutlined } from '@ant-design/icons-vue';
     import moment from 'moment';
 
     const params = ref({

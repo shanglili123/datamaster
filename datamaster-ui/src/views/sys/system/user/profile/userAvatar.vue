@@ -1,9 +1,9 @@
 <template>
   <div class="user-info-head" @click="editCropper()">
     <img :src="options.img" title="点击上传头像" class="img-circle img-lg" />
-    <el-dialog :title="title" v-model="open" width="800px" append-to-body @opened="modalOpened" @close="closeDialog">
-      <el-row>
-        <el-col :xs="24" :md="12" :style="{ height: '350px' }">
+    <a-modal :title="title" v-model:open="open" width="800px" draggable destroy-on-close @close="closeDialog">
+      <a-row>
+        <a-col :xs="24" :md="12" :style="{ height: '350px' }">
           <vue-cropper
             ref="cropper"
             :img="options.img"
@@ -16,45 +16,45 @@
             @realTime="realTime"
             v-if="visible"
           />
-        </el-col>
-        <el-col :xs="24" :md="12" :style="{ height: '350px' }">
+        </a-col>
+        <a-col :xs="24" :md="12" :style="{ height: '350px' }">
           <div class="avatar-upload-preview">
             <img :src="options.previews.url" :style="options.previews.img" />
           </div>
-        </el-col>
-      </el-row>
+        </a-col>
+      </a-row>
       <br />
-      <el-row>
-        <el-col :lg="2" :md="2">
-          <el-upload
+      <a-row>
+        <a-col :lg="2" :md="2">
+          <a-upload
             action="#"
-            :http-request="requestUpload"
-            :show-file-list="false"
+            :custom-request="requestUpload"
+            :show-upload-list="false"
             :before-upload="beforeUpload"
           >
-            <el-button>
+            <a-button>
               选择
-              <el-icon class="el-icon--right"><Upload /></el-icon>
-            </el-button>
-          </el-upload>
-        </el-col>
-        <el-col :lg="{ span: 1, offset: 2 }" :md="2">
-          <el-button icon="Plus" @click="changeScale(1)"></el-button>
-        </el-col>
-        <el-col :lg="{ span: 1, offset: 1 }" :md="2">
-          <el-button icon="Minus" @click="changeScale(-1)"></el-button>
-        </el-col>
-        <el-col :lg="{ span: 1, offset: 1 }" :md="2">
-          <el-button icon="RefreshLeft" @click="rotateLeft()"></el-button>
-        </el-col>
-        <el-col :lg="{ span: 1, offset: 1 }" :md="2">
-          <el-button icon="RefreshRight" @click="rotateRight()"></el-button>
-        </el-col>
-        <el-col :lg="{ span: 2, offset: 6 }" :md="2">
-          <el-button type="primary" @click="uploadImg()">提 交</el-button>
-        </el-col>
-      </el-row>
-    </el-dialog>
+              <UploadOutlined />
+            </a-button>
+          </a-upload>
+        </a-col>
+        <a-col :lg="{ span: 1, offset: 2 }" :md="2">
+          <a-button @click="changeScale(1)"><PlusOutlined /></a-button>
+        </a-col>
+        <a-col :lg="{ span: 1, offset: 1 }" :md="2">
+          <a-button @click="changeScale(-1)"><MinusOutlined /></a-button>
+        </a-col>
+        <a-col :lg="{ span: 1, offset: 1 }" :md="2">
+          <a-button @click="rotateLeft()"><RotateLeftOutlined /></a-button>
+        </a-col>
+        <a-col :lg="{ span: 1, offset: 1 }" :md="2">
+          <a-button @click="rotateRight()"><RotateRightOutlined /></a-button>
+        </a-col>
+        <a-col :lg="{ span: 2, offset: 6 }" :md="2">
+          <a-button type="primary" @click="uploadImg()">提 交</a-button>
+        </a-col>
+      </a-row>
+    </a-modal>
   </div>
 </template>
 
@@ -63,6 +63,13 @@ import "vue-cropper/dist/index.css";
 import { VueCropper } from "vue-cropper";
 import { uploadAvatar } from "@/api/system/system/user.js";
 import useUserStore from "@/store/system/user.js";
+import {
+  UploadOutlined,
+  PlusOutlined,
+  MinusOutlined,
+  RotateLeftOutlined,
+  RotateRightOutlined,
+} from "@ant-design/icons-vue";
 
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
@@ -88,10 +95,14 @@ function editCropper() {
   open.value = true;
 }
 
-/** 打开弹出层结束时的回调 */
-function modalOpened() {
-  visible.value = true;
-}
+/** 弹窗打开后初始化裁剪器 */
+watch(open, (val) => {
+  if (val) {
+    nextTick(() => {
+      visible.value = true;
+    });
+  }
+});
 
 /** 覆盖默认上传行为 */
 function requestUpload() {}
@@ -116,6 +127,7 @@ function changeScale(num) {
 function beforeUpload(file) {
   if (file.type.indexOf("image/") == -1) {
     proxy.$modal.msgError("文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。");
+    return false;
   } else {
     const reader = new FileReader();
     reader.readAsDataURL(file);

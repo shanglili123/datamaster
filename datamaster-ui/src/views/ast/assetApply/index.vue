@@ -1,376 +1,345 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
 
-    <el-container style="90%">
-      <DeptTree :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入资产类目名称'" ref="DeptTreeRef"
+    <a-layout style="90%">
+      <DeptTree :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入资产目录名称'" ref="DeptTreeRef"
         @node-click="handleNodeClick" />
 
-      <el-main>
+      <a-layout-content>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
+          <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline" :label-col="{ style: { width: '45px' } }"
             v-show="showSearch" @submit.prevent>
-            <el-form-item label="名称" prop="assetName">
-              <el-input style="width: 140px" v-model="queryParams.assetName" placeholder="请输入资产名称" clearable
-                @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="主题" prop="themeName">
-              <el-input style="width: 140px" v-model="queryParams.themeName" placeholder="请输入主题名称" clearable
-                @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="申请人" prop="createBy">
-              <el-input style="width: 140px" v-model="queryParams.createBy" placeholder="请输入申请人" clearable
-                @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-              <el-select style="width: 140px" clearable v-model="queryParams.status" placeholder="请选择审核状态">
-                <el-option v-for="dict in da_asset_apply_status" :key="dict.value" :label="dict.label"
-                  :value="dict.value" />
-              </el-select>
-            </el-form-item>
+            <a-form-item label="名称" name="assetName">
+              <a-input style="width: 140px" v-model:value="queryParams.assetName" placeholder="请输入资产名称" allow-clear
+                @pressEnter="handleQuery" />
+            </a-form-item>
+            <a-form-item label="主题" name="themeName">
+              <a-input style="width: 140px" v-model:value="queryParams.themeName" placeholder="请输入主题名称" allow-clear
+                @pressEnter="handleQuery" />
+            </a-form-item>
+            <a-form-item label="申请人" name="createBy">
+              <a-input style="width: 140px" v-model:value="queryParams.createBy" placeholder="请输入申请人" allow-clear
+                @pressEnter="handleQuery" />
+            </a-form-item>
+            <a-form-item label="状态" name="status">
+              <a-select style="width: 140px" allow-clear v-model:value="queryParams.status" placeholder="请选择审核状态">
+                <a-select-option v-for="dict in da_asset_apply_status" :key="dict.value" :value="dict.value">{{ dict.label }}</a-select-option>
+              </a-select>
+            </a-form-item>
 
-            <el-form-item>
-              <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+            <a-form-item>
+              <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-              </el-button>
-              <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+              </a-button>
+              <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-              </el-button>
-            </el-form-item>
-          </el-form>
+              </a-button>
+            </a-form-item>
+          </a-form>
           <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
           </div>
         </div>
         <div>
-          <el-table stripe v-loading="loading" :data="assetApplyList" @selection-change="handleSelectionChange"
-            :default-sort="defaultSort" @sort-change="handleSortChange">
-            <el-table-column v-if="getColumnVisibility(1)" label="资产名称" align="left" prop="assetName" width="200"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                {{ scope.row.assetName || "-" }}
+          <a-table
+            striped
+            :loading="loading"
+            :data-source="assetApplyList"
+            :columns="tableColumns"
+            :pagination="false"
+            :locale="{ emptyText: '暂无记录' }"
+            @change="handleTableChange"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'assetName'">
+                {{ record.assetName || "-" }}
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(2)" label="英文名称" align="left" prop="assetTableName" width="280"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                {{ scope.row.assetTableName || "-" }}
+              <template v-if="column.dataIndex === 'assetTableName'">
+                {{ record.assetTableName || "-" }}
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(3)" label="资产类目" align="left" prop="catAssetName"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                {{ scope.row.catAssetName || "-" }}
+              <template v-if="column.dataIndex === 'catAssetName'">
+                {{ record.catAssetName || "-" }}
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(4)" label="主题名称" align="left" prop="themeName" width="150"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                {{ scope.row.themeName || "-" }}
+              <template v-if="column.dataIndex === 'themeName'">
+                {{ record.themeName || "-" }}
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(5)" label="申请空间" align="left" prop="spaceName" width="150"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                {{ scope.row.spaceName || "-" }}
+              <template v-if="column.dataIndex === 'spaceName'">
+                {{ record.spaceName || "-" }}
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(8)" label="申请时间" align="center" prop="createTime" width="160"
-              :show-overflow-tooltip="{ effect: 'light' }" sortable="custom" column-key="create_time"
-              :sort-orders="['descending', 'ascending']">
-              <template #default="scope">
-                <span>{{
-                  parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}")
-                }}</span>
+              <template v-if="column.dataIndex === 'createTime'">
+                <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") }}</span>
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(6)" label="申请人" align="center" prop="createBy" width="100"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                {{ scope.row.createBy || "-" }}
+              <template v-if="column.dataIndex === 'createBy'">
+                {{ record.createBy || "-" }}
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(7)" label="审核状态" align="center" prop="status" width="80"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                <dict-tag :options="da_asset_apply_status" :value="scope.row.status" />
+              <template v-if="column.dataIndex === 'status'">
+                <dict-tag :options="da_asset_apply_status" :value="record.status" />
               </template>
-            </el-table-column>
-            <el-table-column label="操作" v-if="getColumnVisibility(9)" align="center"
-              class-name="small-padding fixed-width" fixed="right" width="140">
-              <template #default="scope">
-                <el-button link v-if="scope.row.status == 1" type="primary" icon="Stamp"
-                  @click="handleUpdate(scope.row)" v-hasPermi="['ast:assetApply:edit']">审核</el-button>
-                <el-button link type="primary" icon="view" @click="handleDetail(scope.row)"
-                  v-hasPermi="['ast:assetApply:edit']">详情</el-button>
+              <template v-if="column.key === 'actions'">
+                <a-button v-if="record.status == 1" type="link" size="small"
+                  @click="handleUpdate(record)" v-hasPermi="['ast:assetApply:edit']">审核</a-button>
+                <a-button type="link" size="small" @click="handleDetail(record)"
+                  v-hasPermi="['ast:assetApply:edit']">详情</a-button>
               </template>
-            </el-table-column>
-
-            <template #empty>
-              <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-              </div>
             </template>
-          </el-table>
+          </a-table>
 
           <pagination :total="total || 0" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
         </div>
-      </el-main>
-    </el-container>
+      </a-layout-content>
+    </a-layout>
 
     <!-- 添加或修改数据资产申请对话框 -->
-    <el-dialog :title="title" v-model="open" width="1000px" :append-to="$refs['app-container']" draggable>
-      <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form ref="assetApplyRef" :model="form" :rules="rules" label-width="100px" @submit.prevent>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="资产名称">
+    <a-modal :title="title" v-model:open="open" width="1000px" draggable @ok="submitForm" @cancel="cancel">
+      <a-form ref="assetApplyRef" :model="form" :rules="rules" :label-col="{ style: { width: '100px' } }" @submit.prevent>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="资产名称">
               <div class="form-readonly">
                 {{ form.assetName }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="英文名称">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="英文名称">
               <div class="form-readonly">
                 {{ form.assetTableName }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="数据连接">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="数据连接">
               <div class="form-readonly">
                 {{ form.datasourceName ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="数据库地址">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="数据库地址">
               <div class="form-readonly">
                 {{ form.datasourceIp ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
 
-          <el-col :span="12">
-            <el-form-item label="数据库类型:" prop="datasourceType">
+          <a-col :span="12">
+            <a-form-item label="数据库类型:" name="datasourceType">
               <dict-tag :options="datasource_type" :value="form.datasourceType" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="资产描述">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="资产描述">
               <div class="form-readonly textarea">
                 {{ form.description ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="申请空间" prop="spaceCode">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="申请空间" name="spaceCode">
               <div class="form-readonly">
                 {{ form.spaceName }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="phonenumber">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="联系电话" name="phonenumber">
               <div class="form-readonly">
                 {{ form.phonenumber }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="申请理由:" prop="applyReason">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="申请理由:" name="applyReason">
               <div class="form-readonly textarea">
                 {{ form.applyReason ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="审核结果" prop="status">
-              <el-radio-group v-model="form.status" @change="handleStatusChange">
-                <el-radio :value="2">驳回</el-radio>
-                <el-radio :value="3">通过</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" v-if="form.status == 2">
-          <el-col :span="24">
-            <el-form-item label="驳回原因" prop="approvalReason">
-              <el-input type="textarea" :min-height="192" v-model="form.approvalReason" placeholder="请输入驳回原因" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="审核结果" name="status">
+              <a-radio-group v-model:value="form.status" @change="handleStatusChange">
+                <a-radio :value="2">驳回</a-radio>
+                <a-radio :value="3">通过</a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20" v-if="form.status == 2">
+          <a-col :span="24">
+            <a-form-item label="驳回原因" name="approvalReason">
+              <a-textarea :rows="12" v-model:value="form.approvalReason" placeholder="请输入驳回原因" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">取 消</el-button>
-          <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+          <a-button size="small" @click="cancel">取 消</a-button>
+          <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 数据资产申请详情对话框 -->
-    <el-dialog :title="title" v-model="openDetail" width="1000px" :append-to="$refs['app-container']" draggable>
-      <el-form :model="form" label-width="90px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="资产名称:" prop="assetName">
+    <a-modal :title="title" v-model:open="openDetail" width="1000px" draggable @ok="cancel" @cancel="cancel">
+      <a-form :model="form" :label-col="{ style: { width: '90px' } }">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="资产名称:" name="assetName">
               <div class="form-readonly">
                 {{ form.assetName }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="英文名称:" prop="assetTableName">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="英文名称:" name="assetTableName">
               <div class="form-readonly">
                 {{ form.assetTableName }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
 
-          <el-col :span="12">
-            <el-form-item label="数据连接:" prop="datasourceName">
+          <a-col :span="12">
+            <a-form-item label="数据连接:" name="datasourceName">
               <div class="form-readonly">
                 {{ form.datasourceName }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="数据库地址:" prop="datasourceIp">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="数据库地址:" name="datasourceIp">
               <div class="form-readonly">
                 {{ form.datasourceIp }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
 
-          <el-col :span="12">
-            <el-form-item label="数据库类型:" prop="datasourceType">
+          <a-col :span="12">
+            <a-form-item label="数据库类型:" name="datasourceType">
               <dict-tag :options="datasource_type" :value="form.datasourceType" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="资产描述:" prop="description">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="资产描述:" name="description">
               <div class="form-readonly textarea">
                 {{ form.description ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="申请空间:" prop="spaceName">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="申请空间:" name="spaceName">
               <div class="form-readonly">
                 {{ form.spaceName }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="申请状态:" prop="status">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="申请状态:" name="status">
               <dict-tag :options="da_asset_apply_status" :value="form.status" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="申请人:" prop="createBy">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="申请人:" name="createBy">
               <div class="form-readonly">
                 {{ form.createBy }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话:" prop="phonenumber">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="联系电话:" name="phonenumber">
               <div class="form-readonly">
                 {{ form.phonenumber }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="申请时间:" prop="createTime">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="申请时间:" name="createTime">
               <div class="form-readonly">
                 {{ form.createTime }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="申请理由:" prop="applyReason">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="申请理由:" name="applyReason">
               <div class="form-readonly textarea">
                 {{ form.applyReason ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="审批理由:" prop="approvalReason">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="审批理由:" name="approvalReason">
               <div class="form-readonly textarea">
                 {{ form.approvalReason ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">关 闭</el-button>
+          <a-button size="small" @click="cancel">关 闭</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 用户导入对话框 -->
-    <el-dialog :title="upload.title" v-model="upload.open" width="800px" :append-to="$refs['app-container']" draggable
-      destroy-on-close>
-      <el-upload ref="uploadRef" :limit="1" accept=".xlsx, .xls" :headers="upload.headers"
+    <a-modal :title="upload.title" v-model:open="upload.open" width="800px" draggable destroy-on-close
+      @ok="submitFileForm" @cancel="upload.open = false" :ok-button-props="{ disabled: upload.isUploading }">
+      <a-upload ref="uploadRef" :max-count="1" accept=".xlsx, .xls" :headers="upload.headers"
         :action="upload.url + '?updateSupport=' + upload.updateSupport" :disabled="upload.isUploading"
-        :on-progress="handleFileUploadProgress" :on-success="handleFileSuccess" :auto-upload="false" drag>
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        :before-upload="handleFileUploadProgress" :auto-upload="false" drag
+        @change="handleUploadChange">
+        <p class="ant-upload-drag-icon">
+          <UploadOutlined />
+        </p>
+        <p class="ant-upload-text">将文件拖到此处，或<em>点击上传</em></p>
         <template #tip>
-          <div class="el-upload__tip text-center">
-            <div class="el-upload__tip">
-              <el-checkbox v-model="upload.updateSupport" />是否更新已经存在的数据资产申请数据
+          <div class="ant-upload-tip text-center">
+            <div class="ant-upload-tip">
+              <a-checkbox v-model:checked="upload.updateSupport" />是否更新已经存在的数据资产申请数据
             </div>
             <span>仅允许导入xls、xlsx格式文件。</span>
-            <el-link type="primary" :underline="false" style="font-size: 12px; vertical-align: baseline"
-              @click="importTemplate">下载模板</el-link>
+            <a-typography-link type="primary" style="font-size: 12px; vertical-align: baseline"
+              @click="importTemplate">下载模板</a-typography-link>
           </div>
         </template>
-      </el-upload>
+      </a-upload>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="upload.open = false">取 消</el-button>
-          <el-button type="primary" @click="submitFileForm">确 定</el-button>
+          <a-button @click="upload.open = false">取 消</a-button>
+          <a-button type="primary" @click="submitFileForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -386,6 +355,7 @@ import { getToken } from "@/utils/auth.js";
 import { listAttAssetCat } from "@/api/tax/cat/assetCat/assetCat.js";
 import DeptTree from "@/components/DeptTree";
 import { normalizePage, pageRows } from "@/utils/page.js";
+import { UploadOutlined } from "@ant-design/icons-vue";
 const { proxy } = getCurrentInstance();
 const { da_asset_apply_status, datasource_type } = proxy.useDict(
   "da_asset_apply_status",
@@ -397,7 +367,7 @@ const assetApplyList = ref([]);
 const columns = ref([
   { key: 1, label: "资产名称", visible: true },
   { key: 2, label: "英文名称", visible: true },
-  { key: 3, label: "资产类目", visible: true },
+  { key: 3, label: "资产目录", visible: true },
   { key: 4, label: "主题名称", visible: true },
   { key: 5, label: "申请空间", visible: true },
   { key: 6, label: "申请时间", visible: true },
@@ -413,6 +383,21 @@ const getColumnVisibility = (key) => {
   // 如果找到对应列配置，根据visible属性来控制显示
   return column.visible;
 };
+
+const tableColumns = computed(() => {
+  const allCols = [
+    { title: '资产名称', dataIndex: 'assetName', align: 'left', width: 200, ellipsis: true, colKey: 1 },
+    { title: '英文名称', dataIndex: 'assetTableName', align: 'left', width: 280, ellipsis: true, colKey: 2 },
+    { title: '资产目录', dataIndex: 'catAssetName', align: 'left', ellipsis: true, colKey: 3 },
+    { title: '主题名称', dataIndex: 'themeName', align: 'left', width: 150, ellipsis: true, colKey: 4 },
+    { title: '申请空间', dataIndex: 'spaceName', align: 'left', width: 150, ellipsis: true, colKey: 5 },
+    { title: '申请时间', dataIndex: 'createTime', align: 'center', width: 160, ellipsis: true, key: 'create_time', sorter: true, defaultSortOrder: 'descend', colKey: 8 },
+    { title: '申请人', dataIndex: 'createBy', align: 'center', width: 100, ellipsis: true, colKey: 6 },
+    { title: '审核状态', dataIndex: 'status', align: 'center', width: 80, colKey: 7 },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 140, colKey: 9 },
+  ];
+  return allCols.filter(col => getColumnVisibility(col.colKey));
+});
 
 const open = ref(false);
 const openDetail = ref(false);
@@ -508,7 +493,7 @@ function getAssetCat() {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "资产类目",
+        name: "资产目录",
         value: "",
         id: 0,
         children: deptOptions.value,
@@ -583,9 +568,11 @@ function handleSelectionChange(selection) {
 }
 
 /** 排序触发事件 */
-function handleSortChange({ column, prop, order }) {
-  queryParams.value.orderByColumn = column?.columnKey || prop;
-  queryParams.value.isAsc = column.order;
+function handleTableChange(pagination, filters, sorter) {
+  const field = sorter.column?.key || sorter.field;
+  const orderMap = { ascend: 'asc', descend: 'desc' };
+  queryParams.value.orderByColumn = field;
+  queryParams.value.isAsc = sorter.order ? orderMap[sorter.order] : null;
   getList();
 }
 
@@ -617,8 +604,9 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["assetApplyRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["assetApplyRef"]
+    .validate()
+    .then(() => {
       if (form.value.id != null) {
         updateDaAssetApply(form.value)
           .then((response) => {
@@ -628,8 +616,8 @@ function submitForm() {
           })
           .catch((error) => { });
       }
-    }
-  });
+    })
+    .catch(() => { });
 }
 
 /** 删除按钮操作 */
@@ -684,6 +672,15 @@ const handleFileUploadProgress = (event, file, fileList) => {
   upload.isUploading = true;
 };
 
+/** antd a-upload @change 事件适配，复用原有上传回调 */
+const handleUploadChange = (info) => {
+  if (info.file.status === "uploading") {
+    handleFileUploadProgress(info.event, info.file, info.fileList);
+  } else if (info.file.status === "done") {
+    handleFileSuccess(info.file.response, info.file, info.fileList);
+  }
+};
+
 /** 文件上传成功处理 */
 const handleFileSuccess = (response, file, fileList) => {
   upload.open = false;
@@ -723,7 +720,7 @@ getList();
 </script>
 <style scoped lang="scss">
 ::v-deep {
-  .selectlist .el-tag.el-tag--info {
+  .selectlist .ant-tag {
     background: #f3f8ff !important;
     border: 0px solid #6ba7ff !important;
     color: #2666fb !important;
@@ -734,7 +731,7 @@ getList();
   margin: 13px 15px;
 }
 
-.el-main {
+.ant-layout-content {
   padding: 2px 0px;
   // box-shadow: 1px 1px 3px rgba(0, 0, 0, .2);
 }
@@ -745,7 +742,7 @@ getList();
   // .el-upload-list{
   //    display: flex;
   // }
-  .el-upload-list__item {
+  .ant-upload-list-item {
     width: 100%;
     height: 25px;
   }
@@ -757,12 +754,12 @@ getList();
   align-items: center !important;
   gap: 8px;
 
-  .el-form {
+  .ant-form {
     display: flex !important;
     flex-wrap: nowrap !important;
     flex: 0 1 auto !important;
 
-    .el-form-item {
+    .ant-form-item {
       display: inline-flex !important;
       flex-shrink: 0 !important;
       margin-bottom: 0 !important;

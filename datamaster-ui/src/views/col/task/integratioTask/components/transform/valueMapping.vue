@@ -1,112 +1,110 @@
 <template>
-  <el-dialog
-    v-model="visibleDialog"
-    :draggable="true"
+  <a-modal
+    v-model:open="visibleDialog"
     class="medium-dialog"
     :title="form.taskParams.typeName"
-    showCancelButton
-    :show-close="false"
-    destroy-on-close
+    :closable="false"
+    :destroy-on-close="true"
   >
-    <el-form
+    <a-spin :spinning="loading">
+    <a-form
       ref="dpModelRefs"
       :model="form"
-      label-width="180px"
+      :label-col="{ style: { width: '180px' } }"
       @submit.prevent
-      v-loading="loading"
     >
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item
             label="节点名称"
-            prop="name"
+            name="name"
             :rules="[
               { required: true, message: '请输入节点名称', trigger: 'change' },
             ]"
           >
-            <el-input
+            <a-input
               v-if="!info"
-              v-model="form.name"
+              v-model:value="form.name"
               placeholder="请输入节点名称"
             />
             <div v-else class="form-readonly">{{ form.name }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="类型" prop="typeName">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="类型" name="typeName">
             <template v-if="!info">
-              <el-select
-                v-model="form.taskParams.typeName"
+              <a-select
+                v-model:value="form.taskParams.typeName"
                 placeholder="请输入类型"
-                filterable
+                show-search
                 disabled
               >
-                <el-option
+                <a-select-option
                   v-for="dict in typeList"
                   :key="dict.value"
                   :label="dict.label"
                   :value="dict.value"
                 />
-              </el-select>
+              </a-select>
             </template>
             <div v-else class="form-readonly">
               {{ form.taskParams.typeName }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item
             label="使用字段"
-            prop="taskParams.inputField"
+            name="taskParams.inputField"
             :rules="[
               { required: true, message: '请选择使用字段', trigger: 'blur' },
             ]"
           >
             <template v-if="!info">
-              <el-select
-                v-model="form.taskParams.inputField"
+              <a-select
+                v-model:value="form.taskParams.inputField"
                 placeholder="请选择字段名称"
-                filterable
+                show-search
               >
-                <el-option
+                <a-select-option
                   v-for="dict in inputFields"
                   :key="dict.columnName"
                   :label="dict.columnName"
                   :value="dict.columnName"
                 />
-              </el-select>
+              </a-select>
             </template>
             <div v-else class="form-readonly">
               {{ form.taskParams.inputField }}
             </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item
             label="目标字段"
-            prop="taskParams.outputField"
+            name="taskParams.outputField"
             :rules="[
               { required: true, message: '请输入目标字段', trigger: 'change' },
             ]"
           >
-            <el-input
+            <a-input
               v-if="!info"
-              v-model="form.taskParams.outputField"
+              v-model:value="form.taskParams.outputField"
               placeholder="请输入目标字段"
             />
             <div v-else class="form-readonly">
               {{ form.taskParams.outputField }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item
             label="不匹配时的默认值"
-            prop="taskParams.defaultValue"
+            name="taskParams.defaultValue"
             :rules="[
               {
                 required: false,
@@ -118,50 +116,47 @@
             <template #label>
               <div class="justify-center">
                 <span>不匹配时的默认值</span>
-                <el-tooltip
-                  effect="light"
-                  content="若不填写时，则使用原值"
+                <a-tooltip
+                  title="若不填写时，则使用原值"
                   placement="top"
                 >
-                  <el-icon class="tip-icon">
-                    <InfoFilled />
-                  </el-icon>
-                </el-tooltip>
+                  <InfoCircleOutlined class="tip-icon" />
+                </a-tooltip>
               </div>
             </template>
-            <el-input
+            <a-input
               v-if="!info"
-              v-model="form.taskParams.defaultValue"
+              v-model:value="form.taskParams.defaultValue"
               placeholder="请选择不匹配时的默认值"
             />
             <div v-else class="form-readonly">
               {{ form.taskParams.defaultValue || "-" }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-divider content-position="center">
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-divider orientation="center">
         <span class="blue-text">字段值</span>
-      </el-divider>
+      </a-divider>
       <div class="justify-between mb15" v-if="!info">
-        <el-row :gutter="15" class="btn-style">
-          <el-col :span="1.5">
-            <el-button type="primary" plain @click="handleAddField">
+        <a-row :gutter="15" class="btn-style">
+          <a-col :span="1.5">
+            <a-button type="primary" @click="handleAddField">
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
-          </el-col>
-        </el-row>
+            </a-button>
+          </a-col>
+        </a-row>
       </div>
-      <el-table
-        stripe
+      <a-table
         height="310px"
-        :data="tableFields"
-        v-loading="loadingList"
+        :data-source="tableFields"
+        :loading="loadingList"
+        :columns="tableColumns"
+        :row-key="'columnName'"
         ref="dragTable"
-        row-key="columnName"
       >
-        <el-table-column label="序号" width="80" align="left">
-          <template #default="{ $index }">
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.dataIndex === 'index'">
             <div
               class="allowDrag"
               style="
@@ -171,54 +166,36 @@
                 align-items: center;
               "
             >
-              <el-icon>
-                <SortDescending />
-              </el-icon>
-              <span style="margin-left: 4px">{{ $index + 1 }}</span>
+              <SortDescendingOutlined />
+              <span style="margin-left: 4px">{{ index + 1 }}</span>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="原值" align="left" prop="source">
-          <template #default="scope">
-            <el-input v-model="scope.row.source" placeholder="请输入原值" />
+          <template v-else-if="column.dataIndex === 'source'">
+            <a-input v-model:value="record.source" placeholder="请输入原值" />
           </template>
-        </el-table-column>
-        <el-table-column label="目标值" align="left" prop="target">
-          <template #default="scope">
-            <el-input v-model="scope.row.target" placeholder="请输入目标值" />
+          <template v-else-if="column.dataIndex === 'target'">
+            <a-input v-model:value="record.target" placeholder="请输入目标值" />
           </template>
-        </el-table-column>
-        <el-table-column
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-          fixed="right"
-          width="250"
-          v-if="!info"
-        >
-          <template #default="scope">
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleDelete(scope.row)"
-            >
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" danger @click="handleDelete(record)">
+              <template #icon><DeleteOutlined /></template>
               删除
-            </el-button>
+            </a-button>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-form>
+        </template>
+      </a-table>
+    </a-form>
+    </a-spin>
 
     <template #footer>
       <div style="text-align: right">
-        <el-button @click="closeDialog">关闭</el-button>
-        <el-button type="primary" @click="saveData" v-if="!info"
-          >保存</el-button
+        <a-button @click="closeDialog">关闭</a-button>
+        <a-button type="primary" @click="saveData" v-if="!info"
+          >保存</a-button
         >
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 
   <FieldConflictDialog
     v-model="showConflictDialog"
@@ -237,8 +214,12 @@
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
+import { InfoCircleOutlined, SortDescendingOutlined, DeleteOutlined } from "@ant-design/icons-vue";
 import CreateEditModal from "../fieldMergeModal.vue";
+
 import FieldConflictDialog from "../fieldDetection.vue";
+
 import {
   defineProps,
   defineEmits,
@@ -248,10 +229,15 @@ import {
   getCurrentInstance,
 } from "vue";
 
+
 import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/col/task/index.js";
+
 import useUserStore from "@/store/system/user.js";
+
 import { createNodeSelect } from "@/views/col/utils/opBase.js";
+
 import { hasDuplicateObjects } from "@/utils/index.js";
+
 import Sortable from "sortablejs";
 const { proxy } = getCurrentInstance();
 const userStore = useUserStore();
@@ -265,10 +251,21 @@ const props = defineProps({
 
 let dragTable = ref(null);
 let sortableInstance = null;
+const tableColumns = computed(() => {
+  const cols = [
+    { title: '序号', dataIndex: 'index', width: 80, align: 'left' },
+    { title: '原值', dataIndex: 'source', align: 'left' },
+    { title: '目标值', dataIndex: 'target', align: 'left' },
+  ];
+  if (!props.info) {
+    cols.push({ title: '操作', key: 'actions', align: 'center', className: 'small-padding fixed-width', fixed: 'right', width: 250 });
+  }
+  return cols;
+});
 function setSort() {
   nextTick(() => {
     const tbody = dragTable.value?.$el.querySelector(
-      ".el-table__body-wrapper tbody"
+      ".ant-table-tbody"
     );
     if (!tbody) {
       console.warn("tbody 找不到，拖拽初始化失败");

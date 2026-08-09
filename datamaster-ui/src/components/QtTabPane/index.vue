@@ -1,31 +1,32 @@
 <template>
-    <el-tab-pane v-bind="$attrs">
+    <a-tab-pane v-bind="$attrs">
         <template #default="scope">
             <slot name="default" v-bind="scope" />
         </template>
 
-        <template #label>
+        <template #tab>
             <div class="label-wrap">
-                <slot name="label" >
+                <slot name="label">
                     {{ $attrs.label }}
                 </slot>
-                <el-tooltip
-                    v-bind="props.tip"
-                    :effect="props.tip.effect || 'light'"
+                <a-tooltip
+                    :title="props.tip.content"
                     :placement="props.tip.placement || 'top'"
                     v-if="props.tip && Object.keys(props.tip).length"
                 >
-                    <el-icon class="tip-icon"> <InfoFilled /> </el-icon>
-                    <template #content v-if="props.tip.custom">
+                    <InfoFilled class="tip-icon" />
+                    <template #title v-if="props.tip.custom">
                         <div class="tip-content" v-html="props.tip.content"></div>
                     </template>
-                </el-tooltip>
+                </a-tooltip>
             </div>
         </template>
-    </el-tab-pane>
+    </a-tab-pane>
 </template>
 
 <script setup name="QtTabPane">
+    import { InfoCircleFilled as InfoFilled } from '@ant-design/icons-vue';
+
     const props = defineProps({
         tip: {
             type: Object
@@ -38,7 +39,7 @@
         display: flex;
         align-items: center;
         gap: 2px;
-        .el-icon{
+        .tip-icon{
              color: #888;
         }
     }

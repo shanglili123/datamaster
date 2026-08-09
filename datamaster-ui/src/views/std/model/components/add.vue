@@ -1,184 +1,194 @@
 <template>
-  <el-dialog v-model="visibleDialog" draggable class="large-dialog" destroy-on-close>
-    <template #header="{ close, titleId, titleClass }">
-      <span role="heading" aria-level="2" class="el-dialog__title">
-        {{ title }}
-      </span>
-    </template>
-    <el-form ref="dpModelRef" :model="form" :rules="rules" label-width="110px" @submit.prevent>
-      <el-form-item v-if="!form.id" label="创建方式" prop="createType">
-        <el-radio-group v-model="form.createType">
-          <el-radio v-for="dict in dp_model_create_type" :key="dict.value" :value="dict.value">{{ dict.label
-          }}</el-radio>
-        </el-radio-group>
-      </el-form-item>
+  <a-modal
+    :title="title"
+    v-model:open="visibleDialog"
+    draggable
+    class="large-dialog"
+    :destroy-on-close="true"
+  >
+    <a-form
+      ref="dpModelRef"
+      :model="form"
+      :rules="rules"
+      :label-col="{ style: { width: '110px' } }"
+      @submit.prevent
+    >
+      <a-form-item v-if="!form.id" label="创建方式" name="createType">
+        <a-radio-group v-model:value="form.createType">
+          <a-radio v-for="dict in dp_model_create_type" :key="dict.value" :value="dict.value">{{ dict.label
+          }}</a-radio>
+        </a-radio-group>
+      </a-form-item>
       <div class="h2-title">基础信息</div>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="中文名称" prop="modelComment">
-            <el-input v-model="form.modelComment" placeholder="请输入中文名称" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="英文名称" prop="modelName">
-            <el-input v-model="form.modelName" placeholder="请输入英文名称"
-              @input="convertToUpperCase('modelName', form.modelName)" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="逻辑模型类目" prop="catCode">
-            <!-- <el-input v-model="form.contact" placeholder="请输入联系人" /> -->
-            <el-tree-select filterable v-model="form.catCode" :data="deptOptions"
-              :props="{ value: 'code', label: 'name', children: 'children' }" value-key="ID" placeholder="请选择逻辑模型类目"
-              check-strictly />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述" prop="description">
-            <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="联系人" prop="contact">
-            <el-tree-select filterable v-model="form.contact" :data="userList" :props="{
-              value: 'userId',
-              label: 'nickName',
-              children: 'children',
-            }" value-key="ID" placeholder="请选择联系人" check-strictly @change="handleContactChange" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="联系电话" prop="contactNumber">
-            <el-input v-model="form.contactNumber" placeholder="请输入联系电话" disabled />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20" v-if="type != 3">
-        <el-col :span="12">
-          <el-form-item label="标准类型" prop="description">
-            <el-select class="el-form-input-width" v-model="form.documentType" placeholder="请选择类型" clearable
-              @change="fetchSecondLevelDocs" style="width: 100%;">
-              <el-option v-for="dict in dp_document_type" :key="dict.value" :label="dict.label"
-                :value="dict.value"></el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="标准登记" prop="documentId">
-            <el-select class="el-form-input-width" v-model="form.documentId" placeholder="请选择标准进行绑定"
-              style="width: 100%;" clearable>
-              <el-option v-for="doc in secondLevelDocs" :key="doc.value" :label="doc.label" :value="doc.value">
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="状态" prop="status">
-            <el-radio-group v-model="form.status">
-              <el-radio v-for="dict in dp_model_status" :key="dict.value" :value="dict.value">{{ dict.label
-              }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="中文名称" name="modelComment">
+            <a-input v-model:value="form.modelComment" placeholder="请输入中文名称" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="英文名称" name="modelName">
+            <a-input v-model:value="form.modelName" placeholder="请输入英文名称"
+              @input="convertToUpperCase('modelName', form.modelName)"
+/>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="逻辑模型目录" name="catCode">
+            <!-- <a-input v-model:value="form.contact" placeholder="请输入联系人" /> -->
+            <a-tree-select show-search v-model:value="form.catCode" :tree-data="deptOptions"
+              :field-names="{ value: 'code', label: 'name', children: 'children' }" placeholder="请选择逻辑模型目录"
+              tree-check-strictly
+/>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述" name="description">
+            <a-textarea v-model:value="form.description" placeholder="请输入描述" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20" v-if="type != 3">
+        <a-col :span="12">
+          <a-form-item label="标准类型" name="description">
+            <a-select v-model:value="form.documentType" placeholder="请选择类型" allow-clear
+              @change="fetchSecondLevelDocs" style="width: 100%;"
+>
+              <a-select-option v-for="dict in dp_document_type" :key="dict.value" :value="dict.value">{{ dict.label
+              }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="标准登记" name="documentId">
+            <a-select v-model:value="form.documentId" placeholder="请选择标准进行绑定"
+              style="width: 100%;" allow-clear
+>
+              <a-select-option v-for="doc in secondLevelDocs" :key="doc.value" :value="doc.value">{{ doc.label
+              }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="状态" name="status">
+            <a-radio-group v-model:value="form.status">
+              <a-radio v-for="dict in dp_model_status" :key="dict.value" :value="dict.value">{{ dict.label
+              }}</a-radio>
+            </a-radio-group>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="备注" name="remark">
+            <a-textarea v-model:value="form.remark" placeholder="请输入备注" />
+          </a-form-item>
+        </a-col>
+      </a-row>
 
       <div v-if="form.createType == 2">
-        <el-divider content-position="center">
+        <a-divider orientation="center">
           <span class="blue-text">数据源</span>
-        </el-divider>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="数据库连接" prop="datasourceId" :rules="[
+        </a-divider>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="数据库连接" name="datasourceId" :rules="[
               {
                 required: true,
                 message: '请选择数据库连接',
                 trigger: 'change',
               },
-            ]">
-              <el-select v-model="form.datasourceId" placeholder="请选择数据连接" @change="handleDatasourceChange" filterable>
-                <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
-                  :value="dict.id"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="数据库类型" prop="datasourceType">
-              <el-input v-model="form.datasourceType" placeholder="请输入数据库类型" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="数据库地址" prop="ip">
-              <el-input v-model="form.ip" placeholder="请输入数据库类型" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="选择表" prop="tableName" :rules="[
+            ]"
+>
+              <a-select v-model:value="form.datasourceId" placeholder="请选择数据连接" @change="handleDatasourceChange"
+                show-search
+>
+                <a-select-option v-for="dict in createTypeList" :key="dict.id" :value="dict.id">{{ dict.datasourceName
+                }}</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="数据库类型" name="datasourceType">
+              <a-input v-model:value="form.datasourceType" placeholder="请输入数据库类型" disabled />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="数据库地址" name="ip">
+              <a-input v-model:value="form.ip" placeholder="请输入数据库类型" disabled />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="选择表" name="tableName" :rules="[
               { required: true, message: '表不能为空', trigger: 'change' },
-            ]">
-              <el-select v-model="form.tableName" placeholder="请选择表" @change="handleChange(true)" filterable>
-                <el-option v-for="item in TablesByDataSource" :key="item.tableName" :label="item.tableName"
-                  :value="item.tableName" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            ]"
+>
+              <a-select v-model:value="form.tableName" placeholder="请选择表" @change="handleChange(true)" show-search>
+                <a-select-option v-for="item in TablesByDataSource" :key="item.tableName" :value="item.tableName">{{
+                  item.tableName }}</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
       </div>
-    </el-form>
-
+    </a-form>
 
     <div class="h2-title">属性字段</div>
-    <el-button style="margin-bottom: 5px;margin-top: 10px;" type="primary" plain @click="handleAdd" size="small"
-      @mousedown="(e) => e.preventDefault()">
+    <a-button style="margin-bottom: 5px;margin-top: 10px;" type="primary" @click="handleAdd" size="small"
+      @mousedown="(e) => e.preventDefault()"
+>
       <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-    </el-button>
-    <el-table :data="tableData" style="width: 100%" v-loading="loading">
-      <el-table-column label="编号" type="index" align="left" width="60" />
-      <el-table-column v-for="column in columns" :key="column.prop" :prop="column.prop" :label="column.label"
-        :width="column.width" :align="column.align" :show-overflow-tooltip="{ effect: 'light' }">
-        <template v-if="column.prop === 'pkFlag'" #default="{ row }">
-          <el-switch v-model="row[column.prop]" :active-value="'1'" :inactive-value="'0'" disabled />
+    </a-button>
+    <a-spin :spinning="loading">
+      <a-table
+        :data-source="tableData"
+        :columns="tableColumns"
+        :pagination="false"
+        style="width: 100%"
+        :locale="{ emptyText: '暂无数据' }"
+      >
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.key === 'index'">
+            {{ index + 1 }}
+          </template>
+          <template v-else-if="column.dataIndex === 'pkFlag'">
+            <a-switch v-model:checked="record.pkFlag" :checked-value="'1'" :un-checked-value="'0'" disabled />
+          </template>
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="editRow(record, index)">编辑</a-button>
+            <a-button type="link" danger size="small" @click="deleteRow(record)">删除</a-button>
+          </template>
+          <template v-else>
+            <span>{{ record[column.dataIndex] || '-' }}</span>
+          </template>
         </template>
-        <template v-if="column.prop === 'authorityDept'" #default="{ row }">
-          {{ getDeptLabel(row) }}
-        </template>
-        <template v-else-if="column.type === 'button'" #default="{ row, $index }">
-          <el-button link type="primary" icon="Edit" @click="editRow(row, $index)">编辑</el-button>
-          <el-button link type="danger" icon="Delete" @click="deleteRow(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      </a-table>
+    </a-spin>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="closeDialog">取消</el-button>
-        <el-button type="primary" @click="confirmDialog">确认</el-button>
+        <a-button @click="closeDialog">取消</a-button>
+        <a-button type="primary" @click="confirmDialog">确认</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 
   <columnAdd :visible="addDialog" @update:dialogFormVisible="addDialog = $event" @confirm="handleFormSubmit"
-    :deptOptions="deptOptions" :userList="userList" :deptList="deptList" :row="selectedRow" :data="form" />
+    :deptOptions="deptOptions" :userList="userList" :deptList="deptList" :row="selectedRow" :data="form"
+/>
 </template>
 
 <script setup>
 const { proxy } = getCurrentInstance();
+import { message } from 'ant-design-vue'
 import {
   listDpDocument,
 } from "@/api/std/document/document";
@@ -188,8 +198,11 @@ import {
   tableList,
   columnsList,
 } from "@/api/std/model/model";
+
 import columnAdd from "./columnAdd";
+
 import { defineProps, defineEmits, ref, computed, watch } from "vue";
+
 import { getDpModelColumnList } from "@/api/std/model/model";
 const { dp_model_status, dp_model_create_type, dp_document_type } = proxy.useDict(
   "dp_model_status",
@@ -218,7 +231,6 @@ watch(
         Object.assign(form.value, props.dataList);
         form.value.documentId = Number(form.value.documentId) || '';
         fetchSecondLevelDocs(form.value.documentType, true);
-        form.value.contact = Number(form.value.contact) || '';
         form.value.createType = '1';
         if (form.value.createType == 2) {
           getTablesByDataSourceIdList();
@@ -238,8 +250,6 @@ watch(
           modelComment: "",
           createType: "1",
           catCode: props.catCode,
-          contact: "",
-          contactNumber: "",
           description: "",
           dataConnection: "",
           dbType: "",
@@ -297,7 +307,6 @@ const fetchSecondLevelDocs = async (type, preserveSelection = false) => {
     btnloading.value = false;
   }
 }
-
 
 let createTypeList = ref();
 const getDaDatasourceListList = async () => {
@@ -395,8 +404,6 @@ const form = ref({
   modelComment: "",
   catCode: "",
   createType: "1",
-  contact: "",
-  contactNumber: "",
   description: "",
   dataConnection: "",
   dbType: "",
@@ -404,6 +411,11 @@ const form = ref({
   dataTable: "",
   status: "0",
 });
+
+// 转换输入值为大写
+const convertToUpperCase = (key, value) => {
+  form.value[key] = String(value ?? '').replace(/[a-z]/g, (char) => char.toUpperCase());
+};
 
 const rules = ref({
   modelComment: [
@@ -418,7 +430,7 @@ const rules = ref({
     },
   ],
   // status: [{ required: true, message: "发布状态不能为空", trigger: "change" }],
-  catCode: [{ required: true, message: "逻辑模型类目不能为空", trigger: "change" }],
+  catCode: [{ required: true, message: "逻辑模型目录不能为空", trigger: "change" }],
   // documentType: [
   //   {
   //     validator: (rule, value, callback) => {
@@ -446,52 +458,17 @@ const rules = ref({
 });
 const tableData = ref([]);
 
-const columns = ref([
-  {
-    prop: "dataElemName",
-    label: "关联标准",
-    align: "left",
-    width: "250",
-    showOverflowTooltip: true,
-  },
-  {
-    prop: "cnName",
-    label: "中文名称",
-    align: "left",
-    width: "250",
-    showOverflowTooltip: true,
-  },
-  {
-    prop: "engName",
-    label: "英文名称",
-    align: "left",
-    width: "250",
-    showOverflowTooltip: true,
-  },
-  {
-    prop: "description",
-    label: "描述",
-    align: "left",
-    showOverflowTooltip: true,
-    width: "250",
-  },
-  {
-    prop: "columnType",
-    label: "数据类型",
-    align: "center",
-    width: "100",
-    showOverflowTooltip: true,
-  },
-  { prop: "columnLength", label: "属性长度", width: "80", align: "center" },
-  { prop: "pkFlag", label: "是否主键", width: "80", align: "center" },
-  { type: "button", label: "操作", width: "150", align: "center" },
-]);
-const handleContactChange = (selectedValue) => {
-  const selectedUser = props.userList.find(
-    (user) => user.userId == selectedValue
-  );
-  form.value.contactNumber = selectedUser?.phonenumber || "";
-};
+const tableColumns = [
+  { title: '编号', key: 'index', align: 'left', width: 60 },
+  { title: '关联标准', dataIndex: 'dataElemName', align: 'left', width: 250, ellipsis: true },
+  { title: '中文名称', dataIndex: 'cnName', align: 'left', width: 250, ellipsis: true },
+  { title: '英文名称', dataIndex: 'engName', align: 'left', width: 250, ellipsis: true },
+  { title: '描述', dataIndex: 'description', align: 'left', width: 250, ellipsis: true },
+  { title: '数据类型', dataIndex: 'columnType', align: 'center', width: 100, ellipsis: true },
+  { title: '属性长度', dataIndex: 'columnLength', align: 'center', width: 80 },
+  { title: '是否主键', dataIndex: 'pkFlag', align: 'center', width: 80 },
+  { title: '操作', key: 'actions', align: 'center', width: 150 },
+];
 function getDeptLabel(row) {
   // 递归查找树形结构中匹配的节点
   const findLabel = (tree) => {
@@ -559,8 +536,6 @@ const closeDialog = () => {
     modelComment: "",
     catCode: "",
     createType: "1",
-    contact: "",
-    contactNumber: "",
     description: "",
     dataConnection: "",
     dbType: "",
@@ -578,8 +553,9 @@ const confirmDialog = () => {
     return;
   }
 
-  proxy.$refs["dpModelRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["dpModelRef"]
+    .validate()
+    .then(() => {
       console.log('form.value', form.value);
       if (!form.value.id) {
 
@@ -596,8 +572,8 @@ const confirmDialog = () => {
         emit("confirm", { form: { ...form.value, documentId: form.value.documentId || -1, }, tableData: updatedTableData, modelId: form.value.id, });
       }
       closeDialog();
-    }
-  });
+    })
+    .catch(() => {});
 };
 </script>
 

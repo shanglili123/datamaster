@@ -1,7 +1,7 @@
 ﻿<!-- message 加载页面 -->
 <template>
   <div class="message-loading">
-    <el-skeleton animated />
+    <a-skeleton active />
   </div>
 </template>
 

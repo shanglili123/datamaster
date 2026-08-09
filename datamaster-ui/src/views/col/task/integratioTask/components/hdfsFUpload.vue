@@ -1,28 +1,28 @@
 <template>
-  <el-dialog v-model="visibleDialog" draggable class="dialog" :title="title" destroy-on-close>
-    <el-form ref="daDiscoveryTaskRef" :model="form" label-width="120px" @submit.prevent>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="字段名称" prop="columnName" :rules="[
+  <a-modal v-model:open="visibleDialog" :draggable="true" class="dialog" :title="title" :destroy-on-close="true" :footer="null">
+    <a-form ref="daDiscoveryTaskRef" :model="form" :label-col="{ style: { width: '120px' } }" @submit.prevent>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="字段名称" name="columnName" :rules="[
             { required: true, message: '请输入字段名称', trigger: 'blur' },
           ]">
-            <el-input v-model="form.columnName" placeholder="请输入字段名称" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="字段类型" prop="columnType" :rules="[
+            <a-input v-model:value="form.columnName" placeholder="请输入字段名称" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="字段类型" name="columnType" :rules="[
             { required: true, message: '请选择字段类型', trigger: 'change' },
           ]">
-            <el-select v-model="form.columnType" placeholder="请选择字段类型">
-              <el-option v-for="dict in columntype" :key="dict.value" :label="dict.label"
-                :value="dict.value"></el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20" v-if="type != 1">
-        <el-col :span="12">
-          <el-form-item label="索引" prop="index" :rules="[
+            <a-select v-model:value="form.columnType" placeholder="请选择字段类型">
+              <a-select-option v-for="dict in columntype" :key="dict.value" :label="dict.label"
+                :value="dict.value">{{ dict.label }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20" v-if="type != 1">
+        <a-col :span="12">
+          <a-form-item label="索引" name="index" :rules="[
             { required: true, message: '请输入索引', trigger: 'blur' },
             {
               validator: (_rule, value, callback) => {
@@ -35,23 +35,23 @@
               trigger: 'blur'
             }
           ]">
-            <el-input v-model.number="form.index" type="number" placeholder="请输入索引" :min="0" />
-          </el-form-item>
+            <a-input v-model:value="form.index" type="number" placeholder="请输入索引" :min="0" />
+          </a-form-item>
 
 
-        </el-col>
-      </el-row>
-    </el-form>
+        </a-col>
+      </a-row>
+    </a-form>
 
     <template #footer>
       <div style="text-align: right">
         <!-- 关闭按钮 -->
-        <el-button @click="closeDialog">关闭</el-button>
+        <a-button @click="closeDialog">关闭</a-button>
         <!-- 保存按钮 -->
-        <el-button type="primary" @click="saveData">保存</el-button>
+        <a-button type="primary" @click="saveData">保存</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
@@ -83,9 +83,7 @@ const form = ref({
   crontab: "",
   releaseState: 0,
   description: "",
-  contactNumber: "",
   catCode: "",
-  personCharge: "",
 });
 
 watch(

@@ -17,58 +17,43 @@
         <!-- 系統模块 -->
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-system-biz</artifactId>
+            <artifactId>datamaster-system</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-taxonomy-biz</artifactId>
+            <artifactId>datamaster-governance-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-assets-biz</artifactId>
+            <artifactId>datamaster-ai</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-assets-api</artifactId>
+            <artifactId>datamaster-assets-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-standards-biz</artifactId>
+            <artifactId>datamaster-collector-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-collector-biz</artifactId>
+            <artifactId>datamaster-service-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-service-biz</artifactId>
+            <artifactId>datamaster-api-ds</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
+        <!-- 元数据采集与质量探查模块 -->
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-api-ds-biz</artifactId>
-            <version>${dataMaster.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-modeling-biz</artifactId>
-            <version>${dataMaster.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-catalog-biz</artifactId>
-            <version>${dataMaster.version}</version>
-        </dependency>
-        <!-- 质量探查模块 -->
-        <dependency>
-            <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-quality</artifactId>
+            <artifactId>datamaster-metadata-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <!-- spring-boot-devtools -->

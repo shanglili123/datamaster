@@ -1,98 +1,88 @@
 <template>
   <div class="app-container" ref="app-container">
     <div class="pagecont-top" v-show="showSearch">
-      <el-form class="btn-style" :model="queryParams" ref="queryForm" :inline="true" v-show="showSearch" label-width="68px">
-        <el-form-item label="名称" prop="name">
-          <el-input
-            v-model="queryParams.name"
+      <a-form class="btn-style" :model="queryParams" ref="queryForm" :layout="inline" v-show="showSearch" :label-col="{ style: { width: '68px' } }">
+        <a-form-item label="名称" name="name">
+          <a-input
+            v-model:value="queryParams.name"
             placeholder="请输入名称"
-            clearable
+            allow-clear
             class="el-form-input-width"
-            @keyup.enter.native="handleQuery"
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="颁发者" prop="issuer">
-          <el-input
-            v-model="queryParams.issuer"
+        </a-form-item>
+        <a-form-item label="颁发者" name="issuer">
+          <a-input
+            v-model:value="queryParams.issuer"
             placeholder="请输入颁发者"
-            clearable
+            allow-clear
             class="el-form-input-width"
-            @keyup.enter.native="handleQuery"
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="所有者" prop="possessor">
-          <el-input
-            v-model="queryParams.possessor"
+        </a-form-item>
+        <a-form-item label="所有者" name="possessor">
+          <a-input
+            v-model:value="queryParams.possessor"
             placeholder="请输入所有者"
             class="el-form-input-width"
-            clearable
-            @keyup.enter.native="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="resetQuery" @mousedown="e => e.preventDefault()">
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="e => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </a-button>
+        </a-form-item>
+      </a-form>
     </div>
     <div  class="pagecont-bottom">
       <div class="justify-between mb15">
-      <el-row :gutter="10" class="btn-style">
-        <el-col :span="1.5">
-          <el-button
+      <a-row :gutter="10" class="btn-style">
+        <a-col :span="1.5">
+          <a-button
             type="primary"
-            plain
-            icon="plus"
-            size="mini"
+            :icon="h(PlusOutlined)"
+            size="small"
             @click="handleAdd"
             v-hasPermi="['ca:cert:add']"
-          >新增</el-button>
-        </el-col>
-      </el-row>
+          >新增</a-button>
+        </a-col>
+      </a-row>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
       </div>
 
-      <el-table  stripe height="60vh" v-loading="loading" :data="certList" @selection-change="handleSelectionChange">
-        <el-table-column label="ID" align="center" prop="id" />
-        <el-table-column label="名称" align="center" prop="name"  :show-overflow-tooltip="true" />
-        <el-table-column label="主体名称" align="center" prop="subjectName"  :show-overflow-tooltip="true" />
-        <el-table-column label="颁发者" align="center" prop="issuer"  :show-overflow-tooltip="true" />
-        <el-table-column label="所有者" align="center" prop="possessor" :show-overflow-tooltip="true"/>
-        <el-table-column label="有效期" align="center" prop="validTime">
-          <template #default="scope">
-            {{ scope.row.validTime }} 年
+      <a-spin :spinning="loading">
+        <a-table
+          :data-source="certList"
+          :columns="tableColumns"
+          :pagination="false"
+          striped
+          :scroll="{ y: '60vh' }"
+          :row-selection="{ type: 'checkbox', onChange: handleSelectionChange }"
+          row-key="id"
+          :locale="{ emptyText: emptyContent }"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'validTime'">
+              {{ record.validTime }} 年
+            </template>
+            <template v-else-if="column.dataIndex === 'remark'">
+              <span>{{ record.remark || '-' }}</span>
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-button type="link" size="small" @click="downloadFiles(record)" v-hasPermi="['ca:cert:edit']">下载</a-button>
+              <a-button type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['ca:cert:remove']">删除</a-button>
+            </template>
+            <template v-else>
+              <span>{{ record[column.dataIndex] || '-' }}</span>
+            </template>
           </template>
-        </el-table-column>
-        <el-table-column label="生效时间" align="center" prop="createTime" :show-overflow-tooltip="true"/>
-        <el-table-column label="备注" align="center" prop="remark"  :show-overflow-tooltip="true" >
-          <template #default="scope">
-            <span>{{ scope.row.remark || "-" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作"  align="center" class-name="small-padding fixed-width" fixed="right" width="240">
-          <template #default="scope">
-            <el-button
-              link
-              type="primary"
-              icon="download"
-              @click="downloadFiles(scope.row)"
-              v-hasPermi="['ca:cert:edit']"
-            >下载</el-button>
-            <el-button
-              link
-              type="danger"
-              style="color: red"
-              icon="Delete"
-              @click="handleDelete(scope.row)"
-              v-hasPermi="['ca:cert:remove']"
-            >删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        </a-table>
+      </a-spin>
 
       <pagination
         v-show="total>0"
@@ -104,64 +94,86 @@
     </div>
 
     <!-- 添加或修改证书对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable destroy-on-close>
-      <el-form ref="form" :model="form" :rules="rules" label-width="80px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="颁发主体" prop="issuer">
-              <el-select v-model="form.subjectId" placeholder="请选择颁发主体" @change="subjectChange" :style="'width:100%'">
-                <el-option
+    <a-modal :title="title" v-model:open="open" width="800px" destroy-on-close>
+      <a-form ref="form" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="颁发主体" name="subjectId">
+              <a-select v-model:value="form.subjectId" placeholder="请选择颁发主体" @change="subjectChange" :style="{ width: '100%' }">
+                <a-select-option
                   v-for="item in subjectList"
                   :key="item.id"
-                  :label="item.name"
-                  :value="item.id">
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="颁发者" prop="issuer">
-              <el-input v-model="form.issuer" disabled placeholder="请输入颁发者" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="所有者" prop="possessor">
-              <el-input v-model="form.possessor" placeholder="请输入所有者" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="有效期" prop="validTime">
-              <el-input v-model="form.validTime" type="number" :max="30" :min="1" placeholder="请输入有效期">
-                <el-button slot="append">年</el-button>
-              </el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+                  :value="item.id">{{ item.name }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="颁发者" name="issuer">
+              <a-input v-model:value="form.issuer" disabled placeholder="请输入颁发者" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="所有者" name="possessor">
+              <a-input v-model:value="form.possessor" placeholder="请输入所有者" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="有效期" name="validTime">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <a-input-number v-model:value="form.validTime" :max="30" :min="1" :controls="false" style="width: 100%" placeholder="请输入有效期" />
+                <span>年</span>
+              </div>
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
+              <a-textarea v-model:value="form.remark" placeholder="请输入内容" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancel">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script>
+
 import { listCert, getCert, delCert, addCert, updateCert } from "@/api/system/ca/cert.js";
+
 import {listSubject} from "@/api/system/ca/subject.js";
+
 import JSZip from "jszip";
+import { PlusOutlined } from "@ant-design/icons-vue";
+import { h } from 'vue';
+
+const tableColumns = [
+  { title: 'ID', dataIndex: 'id', align: 'center' },
+  { title: '名称', dataIndex: 'name', align: 'center', ellipsis: true },
+  { title: '主体名称', dataIndex: 'subjectName', align: 'center', ellipsis: true },
+  { title: '颁发者', dataIndex: 'issuer', align: 'center', ellipsis: true },
+  { title: '所有者', dataIndex: 'possessor', align: 'center', ellipsis: true },
+  { title: '有效期', dataIndex: 'validTime', align: 'center' },
+  { title: '生效时间', dataIndex: 'createTime', align: 'center', ellipsis: true },
+  { title: '备注', dataIndex: 'remark', align: 'center', ellipsis: true },
+  { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
 
 export default {
   name: "Cert",
@@ -297,10 +309,10 @@ export default {
       this.handleQuery();
     },
     // 多选框选中数据
-    handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.id)
-      this.single = selection.length!==1
-      this.multiple = !selection.length
+    handleSelectionChange(selectedRowKeys, selectedRows) {
+      this.ids = selectedRows.map(item => item.id)
+      this.single = selectedRows.length!==1
+      this.multiple = !selectedRows.length
     },
     /** 新增按钮操作 */
     handleAdd() {
@@ -320,23 +332,21 @@ export default {
     },
     /** 提交按钮 */
     submitForm() {
-      this.$refs["form"].validate(valid => {
-        if (valid) {
-          if (this.form.id != null) {
-            updateCert(this.form).then(response => {
-              this.$modal.msgSuccess("修改成功");
-              this.open = false;
-              this.getList();
-            });
-          } else {
-            addCert(this.form).then(response => {
-              this.$modal.msgSuccess("新增成功");
-              this.open = false;
-              this.getList();
-            });
-          }
+      this.$refs["form"].validate().then(() => {
+        if (this.form.id != null) {
+          updateCert(this.form).then(response => {
+            this.$modal.msgSuccess("修改成功");
+            this.open = false;
+            this.getList();
+          });
+        } else {
+          addCert(this.form).then(response => {
+            this.$modal.msgSuccess("新增成功");
+            this.open = false;
+            this.getList();
+          });
         }
-      });
+      }).catch(() => {});
     },
     /** 删除按钮操作 */
     handleDelete(row) {

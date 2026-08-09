@@ -1,5 +1,5 @@
 <template>
-  <el-aside
+  <a-layout-sider
     :style="{
       width: `${leftWidth}px`,
       marginLeft: leftWidth == 0 ? '-15px' : '0px',
@@ -8,99 +8,88 @@
   >
     <div class="left-tree">
       <div class="head-container" v-if="props.showFilter">
-        <el-input
+        <a-input
           class="filter-tree"
           size="large"
-          v-model="deptName"
+          v-model:value="deptName"
           :placeholder="placeholder"
-          clearable
-          prefix-icon="Search"
-        />
+          allow-clear
+        >
+          <template #prefix><SearchOutlined /></template>
+        </a-input>
       </div>
       <div class="head-container">
-        <el-tree
+        <a-tree
           class="dept-tree"
-          :data="deptOptions"
-          :props="{ label: 'name', children: 'children' }"
+          :tree-data="deptOptions"
+          :field-names="{ title: 'name', children: 'children', value: 'id' }"
           :filter-node-method="filterNode"
           ref="deptTreeRef"
           node-key="id"
           highlight-current
-          :default-expanded-keys="expandedKeys"
-          @node-click="handleNodeClick"
+          :expanded-keys="expandedKeys"
+          @select="(selectedKeys, e) => handleNodeClick(e.node.data)"
           :default-expand-all="defaultExpand"
         >
-          <template #default="{ node, data }">
+          <template #title="{ data, expanded, selected }">
             <span class="custom-tree-node">
               <!-- 第一级 -->
-              <!-- <el-icon class="iconimg colorxz" v-if="node.expanded && node.level === 1">
-                <FolderOpened />
-              </el-icon>
-              <el-icon class="iconimg colorxz" v-if="!node.expanded && node.level === 1">
-                <Folder />
-              </el-icon> -->
-              <!-- 第二级 -->
-              <!-- <el-icon class="iconimg colorxz" v-if="node.expanded && node.childNodes.length && node.level == 2">
-                <FolderOpened />
-              </el-icon>
-              <el-icon class="iconimg colorxz" v-if="!node.expanded && node.childNodes.length && node.level == 2">
-                <Folder />
-              </el-icon> -->
               <img
                 class="node-icon"
                 src="../../../../../../../assets/da/asset/folder.svg"
                 alt=""
-                v-if="node.expanded && node.childNodes.length"
+                v-if="expanded && data.children && data.children.length"
               />
               <img
                 class="node-icon"
                 src="../../../../../../../assets/da/asset/folder.svg"
                 alt=""
-                v-if="!node.expanded && node.childNodes.length"
+                v-if="!expanded && data.children && data.children.length"
               />
               <!-- 子级 -->
               <img
                 class="child-icon"
                 src="../../../../../../../assets/da/asset/file.svg"
                 alt=""
-                v-show="!node.isCurrent && node.childNodes.length == 0"
+                v-show="!selected && (!data.children || data.children.length == 0)"
               />
               <img
                 class="child-icon"
                 src="../../../../../../../assets/da/asset/file.svg"
                 alt=""
-                v-show="node.isCurrent && node.childNodes.length == 0"
+                v-show="selected && (!data.children || data.children.length == 0)"
               />
-              <span class="treelable" @click="getNode(node)">
-                {{ node.label }}
+              <span class="treelable" @click="getNode(data)">
+                {{ data.name }}
               </span>
             </span>
           </template>
-        </el-tree>
+        </a-tree>
       </div>
     </div>
-  </el-aside>
+  </a-layout-sider>
 
   <!-- 拖拽栏 -->
   <div class="resize-bar" @mousedown="startResize">
     <div class="resize-handle-sx">
       <span class="zjsx"></span>
-      <el-icon
+      <RightOutlined
         v-if="leftWidth == 0"
         @click.stop="toggleCollapse"
         class="collapse-icon"
-      >
-        <ArrowRight />
-      </el-icon>
-      <el-icon v-else class="collapse-icon" @click.stop="toggleCollapse">
-        <ArrowLeft />
-      </el-icon>
+      />
+      <LeftOutlined v-else class="collapse-icon" @click.stop="toggleCollapse" />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, defineProps, defineEmits, watch, onMounted } from "vue";
+import {
+  SearchOutlined,
+  RightOutlined,
+  LeftOutlined,
+} from "@ant-design/icons-vue";
 const { proxy } = getCurrentInstance();
 const props = defineProps({
   deptOptions: Array,
@@ -208,7 +197,7 @@ const getNode = (node) => {
 
 const resetTree = () => {
   if (deptTreeRef.value) {
-    proxy.$refs.deptTreeRef.setCurrentKey(null);
+    deptTreeRef.value.setCurrentKey(null);
   }
 };
 

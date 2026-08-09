@@ -1,110 +1,108 @@
-﻿<template>
+<template>
   <div class="app-container" ref="app-container">
 
-    <el-container style="90%">
+    <a-layout>
       <DeptTree
         :deptOptions="deptOptions"
         :leftWidth="leftWidth"
-        :placeholder="'请输入资产类目名称'"
+        :placeholder="'请输入资产目录名称'"
         ref="DeptTreeRef"
         @node-click="handleNodeClick"
       />
-      <el-main>
+      <a-layout-content>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form
+          <a-form
             class="btn-style"
             :model="queryParams"
             ref="queryRef"
-            :inline="true"
-            label-width="45px"
+            layout="inline"
+            :label-col="{ style: { width: '45px' } }"
             v-show="showSearch"
             @submit.prevent
           >
-            <el-form-item label="名称" prop="name">
-              <el-input
+            <a-form-item label="名称" name="name">
+              <a-input
                 style="width: 150px"
-                v-model="queryParams.name"
+                v-model:value="queryParams.name"
                 placeholder="请输入资产名称"
-                clearable
+                allow-clear
                 @keyup.enter="handleQuery"
               />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-              <el-select
+            </a-form-item>
+            <a-form-item label="状态" name="status">
+              <a-select
                 style="width: 150px"
-                v-model="queryParams.status"
+                v-model:value="queryParams.status"
                 placeholder="请选择发布状态"
-                clearable
+                allow-clear
               >
-                <el-option
+                <a-select-option
                   v-for="dict in da_assets_status"
                   :key="dict.value"
                   :label="dict.label"
                   :value="dict.value"
                 />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="主题" prop="themeIdList">
-              <el-select
+              </a-select>
+            </a-form-item>
+            <a-form-item label="主题" name="themeIdList">
+              <a-select
                 style="width: 150px"
-                v-model="queryParams.themeIdList"
-                collapse-tags
-                multiple
+                v-model:value="queryParams.themeIdList"
+                mode="multiple"
+                max-tag-count="responsive"
                 placeholder="请选择主题名称"
               >
-                <el-option
+                <a-select-option
                   v-for="dict in themeList"
                   :key="dict.id"
                   :label="dict.name"
                   :value="dict.id"
                 />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="类型" prop="status">
-              <el-select
+              </a-select>
+            </a-form-item>
+            <a-form-item label="类型" name="type">
+              <a-select
                 style="width: 150px"
-                v-model="queryParams.type"
+                v-model:value="queryParams.type"
                 placeholder="请选择资产类型"
-                clearable
+                allow-clear
               >
-                <el-option
+                <a-select-option
                   v-for="dict in da_asset_type"
                   :key="dict.value"
                   :label="dict.label"
                   :value="dict.value"
                 />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button
-                plain
+              </a-select>
+            </a-form-item>
+            <a-form-item>
+              <a-button
                 type="primary"
                 @click="handleQuery"
                 @mousedown="(e) => e.preventDefault()"
               >
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-              </el-button>
-              <el-button
+              </a-button>
+              <a-button
                 @click="resetQuery"
                 @mousedown="(e) => e.preventDefault()"
               >
                 <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-              </el-button>
-            </el-form-item>
-          </el-form>
+              </a-button>
+            </a-form-item>
+          </a-form>
           <div class="data-action-btns">
-            <el-button
+            <a-button
               type="primary"
-              plain
               @click="handleAdd"
               v-hasPermi="['ast:asset:add']"
               @mousedown="(e) => e.preventDefault()"
             >
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
+            </a-button>
           </div>
         </div>
-        <div class="pagecont-bottom pagecont-bottoms" v-loading="loading">
+        <a-spin :spinning="loading" wrapperClassName="pagecont-bottom pagecont-bottoms">
           <div class="page-list" v-if="total > 0">
             <div
               class="page-item"
@@ -122,21 +120,19 @@
                         item
                       )
                     "
-                    >{{ item.name }}</span
-                  >
+                    >{{ item.name }}</span>
                   <div v-for="btn in titleBtns" :key="btn.id">
-                    <el-tag
+                    <a-tag
                       v-if="item.type == btn.id"
                       style="margin-right: 10px"
-                      >{{ btn.name }}</el-tag
-                    >
+                      >{{ btn.name }}</a-tag>
                   </div>
-                  <el-tag v-if="!unregistered(item)" style="margin-right: 10px">
+                  <a-tag v-if="!unregistered(item)" style="margin-right: 10px">
                     未注册
-                  </el-tag>
-                  <el-tag :type="item.status == 2 ? 'success' : 'warning'">{{
+                  </a-tag>
+                  <a-tag :color="item.status == 2 ? 'success' : 'warning'">{{
                     item.status == 2 ? "已发布" : "未发布"
-                  }}</el-tag>
+                  }}</a-tag>
                 </div>
                 <div
                   class="item-title-right"
@@ -180,7 +176,7 @@
                     </div>
                   </div>
                   <div class="item-form item-form1">
-                    <div class="form-label">所属类目:</div>
+                    <div class="form-label">所属目录:</div>
                     <div class="form-value" :title="item.catName">
                       {{ item.catName }}
                     </div>
@@ -262,62 +258,53 @@
                           item.status == 2 ? "撤销发布" : "发布"
                         }}</span>
                       </div>
-                      <el-dropdown>
+                      <a-dropdown trigger="click">
                         <div class="form-btn">
                           <img src="@/assets/da/asset2/btn (3).svg" alt="" />
                           <span>更多</span>
                         </div>
-                        <template #dropdown>
-                          <el-dropdown-menu>
-                            <el-dropdown-item v-if="unregistered(item)">
-                              <el-text
-                                type="primary"
-                                @click="handleUpdate(item)"
-                              >
-                                <el-icon>
-                                  <Edit /> </el-icon
-                                >修改
-                              </el-text>
-                            </el-dropdown-item>
-                            <el-dropdown-item
+                        <template #overlay>
+                          <a-menu>
+                            <a-menu-item v-if="unregistered(item)" @click="handleUpdate(item)">
+                              <a-typography-text type="primary">
+                                <EditOutlined /> 修改
+                              </a-typography-text>
+                            </a-menu-item>
+                            <a-menu-item
                               v-if="unregistered(item) && item.type == 1"
+                              @click="handleRefresh(item)"
                             >
-                              <el-text
-                                type="primary"
-                                @click="handleRefresh(item)"
-                              >
-                                <el-icon>
-                                  <Refresh /> </el-icon
-                                >更新数据
-                              </el-text>
-                            </el-dropdown-item>
-                            <el-dropdown-item
+                              <a-typography-text type="primary">
+                                <ReloadOutlined /> 更新数据
+                              </a-typography-text>
+                            </a-menu-item>
+                            <a-menu-item
+                              v-if="item.type == 1"
+                              @click="handleSync(item)"
+                            >
+                              <a-typography-text type="primary">
+                                <ReloadOutlined /> 元数据同步
+                              </a-typography-text>
+                            </a-menu-item>
+                            <a-menu-item
                               v-if="unregistered(item) && false"
+                              @click="handleApply(item)"
                             >
-                              <el-text
-                                type="primary"
-                                @click="handleApply(item)"
-                              >
-                                <el-icon>
-                                  <EditPen /> </el-icon
-                                >申请
-                              </el-text>
-                            </el-dropdown-item>
-                            <el-dropdown-item
+                              <a-typography-text type="primary">
+                                <EditOutlined /> 申请
+                              </a-typography-text>
+                            </a-menu-item>
+                            <a-menu-item
                               v-if="item.sourceType == 1"
+                              @click="handleDelete(item)"
                             >
-                              <el-text
-                                type="danger"
-                                @click="handleDelete(item)"
-                              >
-                                <el-icon>
-                                  <Delete /> </el-icon
-                                >删除
-                              </el-text>
-                            </el-dropdown-item>
-                          </el-dropdown-menu>
+                              <a-typography-text type="danger">
+                                <DeleteOutlined /> 删除
+                              </a-typography-text>
+                            </a-menu-item>
+                          </a-menu>
                         </template>
-                      </el-dropdown>
+                      </a-dropdown>
                     </div>
                   </div>
                 </div>
@@ -335,169 +322,159 @@
             v-model:limit="queryParams.pageSize"
             @pagination="getList"
           />
-        </div>
-      </el-main>
-    </el-container>
+        </a-spin>
+      </a-layout-content>
+    </a-layout>
 
     <!-- 数据资产详情对话框 -->
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="openDetail"
+      v-model:open="openDetail"
       width="800px"
-      :append-to="$refs['app-container']"
-      draggable
     >
-      <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
+      <template #header>
+        <span role="heading" aria-level="2">
           {{ title }}
         </span>
       </template>
-      <el-form ref="daAssetRef" :model="form" label-width="80px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="资产名称" prop="name">
+      <a-form ref="daAssetRef" :model="form" :label-col="{ style: { width: '80px' } }">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="资产名称" name="name">
               <div>
                 {{ form.name }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="类目编码" prop="catCode">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="目录编码" name="catCode">
               <div>
                 {{ form.catCode }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="主题id" prop="themeId">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="主题id" name="themeId">
               <div>
                 {{ form.themeId }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="数据连接id" prop="datasourceId">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="数据连接id" name="datasourceId">
               <div>
                 {{ form.datasourceId }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="表名称" prop="tableName">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="表名称" name="tableName">
               <div>
                 {{ form.tableName }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="表描述" prop="tableComment">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="表描述" name="tableComment">
               <div>
                 {{ form.tableComment }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="数据量(条)" prop="dataCount">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="数据量(条)" name="dataCount">
               <div>
                 {{ form.dataCount }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="字段量" prop="fieldCount">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="字段量" name="fieldCount">
               <div>
                 {{ form.fieldCount }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="状态" prop="status">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="状态" name="status">
               <div>
                 {{ form.status }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="描述" prop="description">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="描述" name="description">
               <div>
                 {{ form.description }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="备注" prop="remark">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="备注" name="remark">
               <div>
                 {{ form.remark }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="small" @click="cancel">关 闭</el-button>
+          <a-button size="small" @click="cancel">关 闭</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 用户导入对话框 -->
-    <el-dialog
+    <a-modal
       :title="upload.title"
-      v-model="upload.open"
+      v-model:open="upload.open"
       width="800px"
-      :append-to="$refs['app-container']"
-      draggable
       destroy-on-close
     >
-      <el-upload
+      <a-upload-dragger
         ref="uploadRef"
-        :limit="1"
+        :max-count="1"
         accept=".xlsx, .xls"
         :headers="upload.headers"
         :action="upload.url + '?updateSupport=' + upload.updateSupport"
         :disabled="upload.isUploading"
-        :on-progress="handleFileUploadProgress"
-        :on-success="handleFileSuccess"
-        :auto-upload="false"
-        drag
+        @progress="handleFileUploadProgress"
+        @success="handleFileSuccess"
       >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-        <template #tip>
-          <div class="el-upload__tip text-center">
-            <div class="el-upload__tip">
-              <el-checkbox
-                v-model="upload.updateSupport"
-              />是否更新已经存在的数据资产数据
-            </div>
-            <span>仅允许导入xls、xlsx格式文件。</span>
-            <el-link
-              type="primary"
-              :underline="false"
-              style="font-size: 12px; vertical-align: baseline"
-              @click="importTemplate"
-              >下载模板</el-link
-            >
-          </div>
-        </template>
-      </el-upload>
+        <CloudUploadOutlined class="ant-upload-drag-icon" />
+        <p class="ant-upload-text">将文件拖到此处，或<em>点击上传</em></p>
+      </a-upload-dragger>
+      <div class="upload-hint text-center">
+        <div class="upload-hint">
+          <a-checkbox
+            v-model:checked="upload.updateSupport"
+          />是否更新已经存在的数据资产数据
+        </div>
+        <span>仅允许导入xls、xlsx格式文件。</span>
+        <a-typography-link
+          type="primary"
+          style="font-size: 12px; vertical-align: baseline"
+          @click="importTemplate"
+          >下载模板</a-typography-link>
+      </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="upload.open = false">取 消</el-button>
-          <el-button type="primary" @click="submitFileForm">确 定</el-button>
+          <a-button @click="upload.open = false">取 消</a-button>
+          <a-button type="primary" @click="submitFileForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
     <CreateEditModal
       :deptOptions="deptOptions"
       :visible="open"
@@ -510,190 +487,173 @@
     />
 
     <!-- 申请数据资产对话框 -->
-    <el-dialog
+    <a-modal
       :title="titleApply"
-      v-model="openApply"
+      v-model:open="openApply"
       width="800px"
-      :append-to="$refs['app-container']"
-      draggable
     >
-      <el-form
+      <a-form
         ref="assetApplyRef"
         :model="formApply"
         :rules="rulesApply"
-        label-width="100px"
+        :label-col="{ style: { width: '100px' } }"
       >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="资产名称">
-              <el-input v-model="formApply.name" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="英文名称">
-              <el-input v-model="formApply.tableName" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="主题名称">
-              <el-input v-model="formApply.themeName" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="数据连接">
-              <el-input v-model="formApply.datasourceName" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="数据库地址">
-              <el-input v-model="formApply.datasourceIp" disabled />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="数据库类型">
-              <el-input v-model="formApply.datasourceType" disabled />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="资产描述">
-              <el-input
-                type="textarea"
-                v-model="formApply.description"
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="资产名称">
+              <a-input v-model:value="formApply.name" disabled />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="英文名称">
+              <a-input v-model:value="formApply.tableName" disabled />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="主题名称">
+              <a-input v-model:value="formApply.themeName" disabled />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="数据连接">
+              <a-input v-model:value="formApply.datasourceName" disabled />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="数据库地址">
+              <a-input v-model:value="formApply.datasourceIp" disabled />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="数据库类型">
+              <a-input v-model:value="formApply.datasourceType" disabled />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="资产描述">
+              <a-textarea
+                v-model:value="formApply.description"
                 :rows="3"
                 disabled
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="申请空间" prop="spaceCode">
-              <el-select
-                v-model="formApply.spaceCode"
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="申请空间" name="spaceCode">
+              <a-select
+                v-model:value="formApply.spaceCode"
                 @change="handleSelectSpace"
                 placeholder="请选择申请空间"
               >
-                <el-option
+                <a-select-option
                   v-for="item in spaceOptions"
                   :key="item.code"
                   :label="item.name"
                   :value="item.code"
                 />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="phone">
-              <el-input
-                v-model="formApply.phone"
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="联系电话" name="phone">
+              <a-input
+                v-model:value="formApply.phone"
                 placeholder="请输入联系电话"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="申请事由" prop="applyReason">
-              <el-input
-                type="textarea"
-                v-model="formApply.applyReason"
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="申请事由" name="applyReason">
+              <a-textarea
+                v-model:value="formApply.applyReason"
                 :rows="3"
                 placeholder="请输入申请事由"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="openApply = false">取 消</el-button>
-          <el-button type="primary" @click="submitApplyForm">确 定</el-button>
+          <a-button @click="openApply = false">取 消</a-button>
+          <a-button type="primary" @click="submitApplyForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 <script setup name="DppAsset">
+import { message } from 'ant-design-vue'
 import {
-  listDaAsset,
+  EditOutlined,
+  ReloadOutlined,
+  DeleteOutlined,
+  CloudUploadOutlined
+} from '@ant-design/icons-vue'
+import {
   getDaAsset,
   delDaAsset,
-  addDaAsset,
   updateDaAsset,
   listDppAsset,
   startDaDiscoveryTask,
-  dataLineage,
+  syncAsset,
 } from "@/api/ast/asset/asset";
 
+
 import CreateEditModal from "./add/index.vue";
+
 import { currentUser } from "@/api/tax/space/space.js";
+
 import DeptTree from "@/components/DeptTree";
+
 import { listAttAssetCat } from "@/api/tax/cat/assetCat/assetCat.js";
+
 import { getToken } from "@/utils/auth.js";
+
 import { addDaAssetApply } from "@/api/ast/assetApply/assetApply";
+
 import useUserStore from "@/store/system/user";
+
 import { getThemeList } from "@/api/tax/theme/theme.js";
+
 import OverflowTooltip from "@/components/OverflowTooltip";
+
 import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
-const { da_assets_status, da_asset_source, da_asset_type } = proxy.useDict(
+const { da_assets_status, da_asset_type } = proxy.useDict(
   "da_assets_status",
   "da_asset_source",
   "da_asset_type"
 );
-const tagMultiple = ref(false);
-const assetId = ref(null);
-const tagIds = ref([]);
 const daAssetList = ref([]);
-const AttTagList = ref([]);
 const isRegister = ref(false);
 
 const unregistered = (item) => {
   return item.createType == undefined || item.createType == 2;
 };
-// 列显隐信息
-const columns = ref([
-  { key: 0, label: "编号", visible: true },
-  { key: 1, label: "资产名称", visible: true },
-  { key: 2, label: "资产描述", visible: true },
-  { key: 3, label: "资产类目", visible: true },
-  { key: 9, label: "资产类型", visible: true },
-  { key: 4, label: "主题名称", visible: true },
-  { key: 5, label: "数据量(条)", visible: true },
-  { key: 6, label: "状态", visible: true },
-  { key: 7, label: "创建时间", visible: true },
-  { key: 8, label: "更新时间", visible: true },
-]);
 let themeList = ref([]);
 async function getAssetThemeList() {
   const response = await getThemeList();
   themeList.value = response.data;
 }
-const getColumnVisibility = (key) => {
-  const column = columns.value.find((col) => col.key === key);
-  // 如果没有找到对应列配置，默认显示
-  if (!column) return true;
-  // 如果找到对应列配置，根据visible属性来控制显示
-  return column.visible;
-};
 const deptOptions = ref(undefined);
 const leftWidth = ref(300); // 初始左侧宽度
-const isResizing = ref(false); // 判断是否正在拖拽
-let startX = 0; // 鼠标按下时的初始位置// 初始左侧宽度
 const open = ref(false);
 const openDetail = ref(false);
 const openApply = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
 const ids = ref([]);
-const single = ref(true);
-const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 const titleApply = ref("");
@@ -701,41 +661,6 @@ const spaceOptions = ref([]);
 const defaultSort = ref({ prop: "create_time", order: "desc" });
 const router = useRouter();
 const userStore = useUserStore();
-// 图标
-const getDatasourceIcon = (type) => {
-  switch (type) {
-    case "DM8":
-      return new URL("@/assets/system/images/dpp/DM.png", import.meta.url).href;
-    case "Oracle11":
-      return new URL("@/assets/system/images/dpp/oracle.png", import.meta.url)
-        .href;
-    case "MySql":
-      return new URL("@/assets/system/images/dpp/mysql.png", import.meta.url)
-        .href;
-    case "Hive":
-      return new URL("@/assets/system/images/dpp/Hive.png", import.meta.url)
-        .href;
-    case "Sqlerver":
-      return new URL(
-        "@/assets/system/images/dpp/sqlServer.png",
-        import.meta.url
-      ).href;
-    case "Kafka":
-      return new URL("@/assets/system/images/dpp/kafka.png", import.meta.url)
-        .href;
-    case "HDFS":
-      return new URL("@/assets/system/images/dpp/hdfs.png", import.meta.url)
-        .href;
-    case "SHELL":
-      return new URL("@/assets/system/images/dpp/SHELL.png", import.meta.url)
-        .href;
-    case "Kingbase8":
-      return new URL("@/assets/system/images/dpp/kingBase.png", import.meta.url)
-        .href;
-    default:
-      return null;
-  }
-};
 /*** 用户导入参数 */
 const upload = reactive({
   // 是否显示弹出层（用户导入）
@@ -751,16 +676,6 @@ const upload = reactive({
   // 上传的地址
   url: import.meta.env.VITE_APP_BASE_API + "/ast/daAsset/importData",
 });
-const options = [
-  {
-    value: 0,
-    label: "申请资产",
-  },
-  {
-    value: 1,
-    label: "创建资产",
-  },
-];
 const data = reactive({
   form: {},
   formApply: {
@@ -790,7 +705,7 @@ const data = reactive({
   },
   rules: {
     name: [{ required: true, message: "资产名称不能为空", trigger: "blur" }],
-    catCode: [{ required: true, message: "类目编码不能为空", trigger: "blur" }],
+    catCode: [{ required: true, message: "目录编码不能为空", trigger: "blur" }],
     themeId: [{ required: true, message: "主题id不能为空", trigger: "blur" }],
     datasourceId: [
       { required: true, message: "数据连接id不能为空", trigger: "blur" },
@@ -805,11 +720,11 @@ const data = reactive({
   },
 });
 
-const { queryParams, form, formApply, rules, rulesApply } = toRefs(data);
+const { queryParams, form, formApply, rulesApply } = toRefs(data);
 
 watch(
   () => userStore.spaceCode,
-  (newCode) => {
+  () => {
     getList();
   },
   { immediate: true } // `immediate` 为 true 表示页面加载时也会立即执行一次 watch
@@ -824,7 +739,7 @@ function submitApplyForm() {
       formApply.value.updateTime = null;
       formApply.value.validFlag = null;
       formApply.value.delFlag = null;
-      addDaAssetApply(formApply.value).then((response) => {
+      addDaAssetApply(formApply.value).then(() => {
         proxy.$modal.msgSuccess("申请成功");
         openApply.value = false;
         getList();
@@ -928,39 +843,7 @@ function resetQuery() {
   handleQuery();
 }
 
-// 多选框选中数据
-function handleSelectionChange(selection) {
-  ids.value = selection.map((item) => item.id);
-  single.value = selection.length != 1;
-  multiple.value = !selection.length;
-}
-
-const startResize = (event) => {
-  isResizing.value = true;
-  startX = event.clientX;
-  document.addEventListener("mousemove", updateResize);
-  document.addEventListener("mouseup", stopResize);
-};
-const stopResize = () => {
-  isResizing.value = false;
-  document.removeEventListener("mousemove", updateResize);
-  document.removeEventListener("mouseup", stopResize);
-};
-const updateResize = (event) => {
-  if (isResizing.value) {
-    const delta = event.clientX - startX; // 计算鼠标移动距离
-    leftWidth.value += delta; // 修改左侧宽度
-    startX = event.clientX; // 更新起始位置
-    // 使用 requestAnimationFrame 来减少页面重绘频率
-    requestAnimationFrame(() => {});
-  }
-}; /** 查询部门下拉树结构 */
-/** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-  queryParams.value.orderByColumn = column.prop;
-  queryParams.value.isAsc = column.order;
-  getList();
-}
+/** 查询部门下拉树结构 */
 function getAssetCat() {
   listAttAssetCat({ validFlag: true }).then((response) => {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
@@ -974,7 +857,7 @@ function getAssetCat() {
       },
       {
         label: "",
-        name: "资产类目",
+        name: "资产目录",
         value: "",
         id: 0,
         children: deptOptions.value,
@@ -1033,27 +916,7 @@ function handleView(row) {
   console.log("直接跳转数据资产的详情页面");
   routeTo("/col/asset/detail", row);
 }
-function addAttTagData(row) {
-  assetId.value = row.id;
-  tagIds.value = row.tagIds;
-  tagMultiple.value = true;
-}
-/** 详情按钮操作 */
-function handleDetail(row) {
-  reset();
-  const _id = row.id || ids.value;
-  getDaAsset(_id).then((response) => {
-    form.value = response.data;
-    openDetail.value = true;
-    title.value = "数据资产详情";
-  });
-}
 const titleBtns = [
-  {
-    id: 2,
-    name: "API",
-    icon: "da-api",
-  },
   {
     id: 1,
     name: "库表",
@@ -1081,24 +944,24 @@ function handleRefresh(row) {
       loading.value = false;
     });
 }
-/** 导出按钮操作 */
-function handleExport() {
-  proxy.download(
-    "ast/asset/export",
-    {
-      ...queryParams.value,
-    },
-    `daAsset_${new Date().getTime()}.xlsx`
-  );
-}
 
+function handleSync(row) {
+  const _id = row.id;
+  loading.value = true;
+  syncAsset({ assetId: _id })
+    .then((res) => {
+      if (res.code == 200) {
+        proxy.$modal.msgSuccess(res.msg || "同步成功");
+        getList();
+      } else {
+        proxy.$modal.msgWarning(res.msg || "同步失败，请联系管理员");
+      }
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+}
 /** ---------------- 导入相关操作 -----------------**/
-/** 导入按钮操作 */
-function handleImport() {
-  upload.title = "数据资产导入";
-  upload.open = true;
-}
-
 /** 下载模板操作 */
 function importTemplate() {
   proxy.download(
@@ -1110,7 +973,8 @@ function importTemplate() {
 
 /** 提交上传文件 */
 function submitFileForm() {
-  proxy.$refs["uploadRef"].submit();
+  upload.open = false;
+  getList();
 }
 
 function handleNodeClick(data) {
@@ -1124,15 +988,14 @@ function handleNodeClick(data) {
 }
 
 /**文件上传中处理 */
-const handleFileUploadProgress = (event, file, fileList) => {
+const handleFileUploadProgress = () => {
   upload.isUploading = true;
 };
 
 /** 文件上传成功处理 */
-const handleFileSuccess = (response, file, fileList) => {
+const handleFileSuccess = (response, file) => {
   upload.open = false;
   upload.isUploading = false;
-  proxy.$refs["uploadRef"].handleRemove(file);
   proxy.$alert(
     "<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" +
       response.msg +
@@ -1192,12 +1055,12 @@ getAssetThemeList();
   align-items: center !important;
   gap: 8px;
 
-  .el-form {
+  .ant-form {
     display: flex !important;
     flex-wrap: nowrap !important;
     flex: 0 1 auto !important;
 
-    .el-form-item {
+    .ant-form-item {
       display: inline-flex !important;
       flex-shrink: 0 !important;
       margin-bottom: 0 !important;
@@ -1238,7 +1101,7 @@ getAssetThemeList();
 }
 
 ::v-deep {
-  .selectlist .el-tag.el-tag--info {
+  .selectlist .ant-tag.ant-tag {
     background: #f3f8ff !important;
     border: 0px solid #6ba7ff !important;
     color: #2666fb !important;
@@ -1249,7 +1112,7 @@ getAssetThemeList();
   margin: 13px 15px;
 }
 
-.el-main {
+.ant-layout-content {
   padding: 2px 0px;
   // box-shadow: 1px 1px 3px rgba(0, 0, 0, .2);
 }
@@ -1259,7 +1122,7 @@ getAssetThemeList();
   // .el-upload-list{
   //    display: flex;
   // }
-  .el-upload-list__item {
+  .ant-upload-list-item {
     width: 100%;
     height: 25px;
   }
@@ -1277,7 +1140,7 @@ getAssetThemeList();
     margin: 15px 0 0;
     padding: 14px 20px !important;
 
-    :deep(.el-pagination) {
+    :deep(.ant-pagination) {
       right: 20px;
     }
   }
@@ -1547,7 +1410,7 @@ getAssetThemeList();
     margin-top: 25vh !important;
   }
 
-  .el-dialog__body {
+  .ant-modal-body {
     height: 195px;
   }
 }
@@ -1580,5 +1443,4 @@ getAssetThemeList();
   }
 }
 </style>
-
 

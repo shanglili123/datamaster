@@ -1,134 +1,82 @@
 <template>
     <div class="app-container">
         <div class="pagecont-top" v-show="showSearch">
-            <el-form
+            <a-form
                 class="btn-style"
                 :model="queryParams"
                 ref="queryRef"
-                :inline="true"
-                label-width="68px"
+                layout="inline"
+                :label-col="{ style: { width: '68px' } }"
             >
-                <el-form-item label="消息类型" prop="category">
-                    <el-select
-                        v-model="queryParams.category"
+                <a-form-item label="消息类型" name="category">
+                    <a-select
+                        v-model:value="queryParams.category"
                         placeholder="消息类型"
-                        clearable
+                        allow-clear
                         class="el-form-input-width"
                     >
-                        <el-option
+                        <a-select-option
                             v-for="dict in message_category"
                             :key="dict.value"
-                            :label="dict.label"
-                            :value="dict.value"
-                        />
-                    </el-select>
-                </el-form-item>
+                            :value="dict.value">{{ dict.label }}</a-select-option>
+                    </a-select>
+                </a-form-item>
 
-                <el-form-item label="创建时间">
-                    <el-date-picker
+                <a-form-item label="创建时间">
+                    <a-range-picker
                         class="el-form-input-width"
-                        v-model="queryParams.dateRange"
-                        value-format="YYYY-MM-DD"
-                        type="daterange"
-                        range-separator="-"
+                        v-model:value="queryParams.dateRange"
+                        valueFormat="YYYY-MM-DD"
                         start-placeholder="开始日期"
                         end-placeholder="结束日期"
-                    ></el-date-picker>
-                </el-form-item>
-                <el-form-item>
-                    <el-button
-                        plain
+                    ></a-range-picker>
+                </a-form-item>
+                <a-form-item>
+                    <a-button
                         type="primary"
                         @click="handleQuery"
                         @mousedown="(e) => e.preventDefault()"
                     >
                         <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-                    </el-button>
-                    <el-button
+                    </a-button>
+                    <a-button
                         @click="resetQuery"
                         @mousedown="(e) => e.preventDefault()"
                     >
                         <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-                    </el-button>
-                </el-form-item>
-            </el-form>
+                    </a-button>
+                </a-form-item>
+            </a-form>
         </div>
         <div  class="pagecont-bottom">
 
             <div class="justify-between mb15">
-                <el-row :gutter="10" class="btn-style">
-                    <el-col :span="1.5">
-                        <el-button @click="readAllMsg" plain>
+                <a-row :gutter="10" class="btn-style">
+                    <a-col :span="1.5">
+                        <a-button @click="readAllMsg">
                             <i class="iconfont-mini icon-a-zu22378 mr5"></i>全部设为已读
-                        </el-button>
-                    </el-col>
-                </el-row>
+                        </a-button>
+                    </a-col>
+                </a-row>
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
             </div>
 
-            <el-table stripe v-loading="loading" :data="msgList">
-                <el-table-column
-                    label="消息标题"
-                    align="center"
-                    key="title"
-                    prop="title"
-                />
-                <el-table-column label="消息类型" align="center" key="category">
-                    <template #default="scope">
-                        <dict-tag
-                            :options="message_category"
-                            :value="scope.row.category"
-                        />
+            <a-table striped :loading="loading" :data-source="msgList" :columns="tableColumns" :pagination="false">
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'category'">
+                        <dict-tag :options="message_category" :value="record.category" />
                     </template>
-                </el-table-column>
-                <el-table-column label="是否已读" align="center" key="hasRead">
-                    <template #default="scope">
-                        <el-tag :type="scope.row.hasRead ? 'success' : 'danger'">
-                            {{ scope.row.hasRead ? "已读" : "未读" }}
-                        </el-tag>
+                    <template v-else-if="column.key === 'hasRead'">
+                        <a-tag :color="record.hasRead ? 'success' : 'error'">
+                            {{ record.hasRead ? "已读" : "未读" }}
+                        </a-tag>
                     </template>
-                </el-table-column>
-                <el-table-column
-                    label="消息内容"
-                    align="center"
-                    key="content"
-                    prop="content"
-                />
-
-                <el-table-column
-                    label="创建时间"
-                    align="center"
-                    key="createTime"
-                    prop="createTime"
-                />
-
-                <el-table-column
-                    label="操作"
-                    align="center"
-                    class-name="small-padding fixed-width"
-                    fixed="right"
-                    width="240"
-                >
-                    <template #default="scope">
-                        <el-button
-                            link
-                            type="primary"
-                            icon="View"
-                            @click="handleView(scope.row)"
-                        >
-                            详情
-                        </el-button>
-                        <el-button
-                            link
-                            type="danger"
-                            icon="Delete"
-                            @click="deleteMsg(scope.row.id)"
-                        >
-                            删除
-                        </el-button>
+                    <template v-else-if="column.key === 'actions'">
+                        <a-button type="link" size="small" @click="handleView(record)">详情</a-button>
+                        <a-button type="link" danger size="small" @click="deleteMsg(record.id)">删除</a-button>
                     </template>
-                </el-table-column>
-            </el-table>
+                </template>
+            </a-table>
             <pagination
                 v-show="total > 0"
                 :total="total"
@@ -138,74 +86,70 @@
             />
         </div>
 
-        <el-dialog
+        <a-modal
             title="消息详情"
-            v-model="openView"
+            v-model:open="openView"
             width="800px"
-            draggable
             destroy-on-close
             class="msg-dialog"
         >
-            <el-form label-width="100px">
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="消息标题：">
+            <a-form :label-col="{ style: { width: '100px' } }">
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="消息标题：">
                             <div class="form-value-ifon">
                                 {{ viewData.title }}
                             </div>
-                        </el-form-item>
-                    </el-col>
+                        </a-form-item>
+                    </a-col>
 
-                    <el-col :span="12">
-                        <el-form-item label="类型：">
+                    <a-col :span="12">
+                        <a-form-item label="类型：">
                             <div class="form-value-ifon">
                                 <dict-tag
                                     :options="message_category"
                                     :value="viewData.category"
                                 />
                             </div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="是否已读：">
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="是否已读：">
                             <div class="form-value-ifon">
-                                <el-tag
-                                    :type="
-                                        viewData.hasRead ? 'success' : 'danger'
-                                    "
-                                >
+                                <a-tag :color="viewData.hasRead ? 'success' : 'error'">
                                     {{ viewData.hasRead ? "已读" : "未读" }}
-                                </el-tag>
+                                </a-tag>
                             </div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="消息内容：">
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="消息内容：">
                             <div class="form-value-ifon">
                                 {{ viewData.content }}
                             </div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="24">
-                        <el-form-item label="创建时间：">
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="24">
+                        <a-form-item label="创建时间：">
                             <div class="form-value-ifon">
                                 {{ viewData.createTime }}
                             </div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+            </a-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button @click="openView = false">关 闭</el-button>
+                    <a-button @click="openView = false">关 闭</a-button>
                 </div>
             </template>
-        </el-dialog>
+        </a-modal>
     </div>
 </template>
 
 <script setup name="Message">
 import { getCurrentInstance, ref } from "vue";
+import { message, Modal } from "ant-design-vue";
 import useUserStore from "@/store/system/user";
 import { normalizePage, pageRows } from "@/utils/page.js";
 import {
@@ -215,6 +159,15 @@ import {
     readAll,
     updateMessage
 } from "@/api/system/system/message/message";
+
+const tableColumns = [
+    { title: '消息标题', dataIndex: 'title', align: 'center' },
+    { title: '消息类型', key: 'category', align: 'center' },
+    { title: '是否已读', key: 'hasRead', align: 'center' },
+    { title: '消息内容', dataIndex: 'content', align: 'center' },
+    { title: '创建时间', dataIndex: 'createTime', align: 'center' },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
 
 const openView = ref(false);
 const viewData = ref({});
@@ -279,28 +232,32 @@ getList();
 
 /** 全部已读 */
 function readAllMsg() {
-    ElMessageBox.confirm("确定全部设为已读吗？")
-        .then(() => {
-            return readAll();
-        })
-        .then((res) => {
-            console.log('------设置为已读----',res)
+    Modal.confirm({
+        title: "提示",
+        content: "确定全部设为已读吗？",
+        okText: "确定",
+        cancelText: "取消",
+        onOk: async () => {
+            await readAll();
+            console.log('------设置为已读----')
             getList();
-            ElMessage.success("操作成功");
-        })
-        .catch(() => {});
+            message.success("操作成功");
+        }
+    });
 }
 /** 删除 */
 function deleteMsg(id) {
-    ElMessageBox.confirm("确定删除改条消息吗？")
-        .then(() => {
-            return delMessage(id);
-        })
-        .then(() => {
+    Modal.confirm({
+        title: "提示",
+        content: "确定删除改条消息吗？",
+        okText: "确定",
+        cancelText: "取消",
+        onOk: async () => {
+            await delMessage(id);
             getList();
-            ElMessage.success("操作成功");
-        })
-        .catch(() => {});
+            message.success("操作成功");
+        }
+    });
 }
 
 // /**
@@ -315,7 +272,7 @@ function deleteMsg(id) {
 
 <style scoped lang="scss">
 .msg-dialog {
-    .el-dialog__body {
+    .ant-modal-body {
         height: 300px !important;
     }
 }

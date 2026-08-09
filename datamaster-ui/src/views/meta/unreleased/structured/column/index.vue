@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
@@ -11,26 +11,24 @@
         />
       </template>
       <template #actions-data>
-        <el-button
+        <a-button
           type="primary"
-          plain
-          icon="Plus"
+          :icon="h(PlusOutlined)"
           @click="handleAddClick"
           v-hasPermi="['md:unreleased:structured:column:add']"
         >
           新增
-        </el-button>
+        </a-button>
 
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
+        <a-button
+          type="primary"
+          danger
+          :icon="h(DeleteOutlined)"
           :disabled="!store.rows.length"
           @click="handleDeleteColumnClick"
-          "
         >
           删除
-        </el-button>
+        </a-button>
       </template>
       <qt-table v-bind="tableStroe" ref="tableRef">
         <template #domain-name="scope">
@@ -38,301 +36,288 @@
         </template>
 
         <template #status="scope">
-          <el-switch
+          <a-switch
             v-if="scope.row.status != undefined"
-            v-model="scope.row.status"
-            active-value="1"
-            inactive-value="0"
+            :checked="scope.row.status === '1'"
+            checked-value="1"
+            un-checked-value="0"
             @change="handleStatusChange(scope.row, $event)"
           />
         </template>
 
         <template #handle="{ row }">
-          <el-button
-            link
-            type="primary"
-            icon="view"
+          <a-button
+            type="link"
+            :icon="h(EyeOutlined)"
             @click="handleDetailClick(row)"
           >
             详情
-          </el-button>
-          <el-button
-            link
-            type="primary"
-            icon="Edit"
+          </a-button>
+          <a-button
+            type="link"
+            :icon="h(EditOutlined)"
             :disabled="row.status == 1"
             @click="handleEditClick(row)"
           >
             修改
-          </el-button>
-          <el-popover
-            placement="bottom"
-            :width="120"
-            popper-class="handle-popover"
-            trigger="click"
-          >
-            <template #reference>
-              <el-button
-                link
-                type="primary"
-                icon="ArrowDown"
-                v-hasPermi="[
-                  'md:unreleased:structured:column:edit',
-                  'md:unreleased:structured:column:remove',
-                  'md:unreleased:structured:column:detail',
-                ]"
+          </a-button>
+          <a-popover placement="bottom" trigger="click" :overlay-style="{ width: '120px' }">
+            <template #content>
+              <a-button
+                type="link"
+                danger
+                :icon="h(DeleteOutlined)"
+                :disabled="row.status == 1"
+                @click="handleDeleteClick(row)"
               >
-                更多
-              </el-button>
-            </template>
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              :disabled="row.status == 1"
-              @click="handleDeleteClick(row)"
-              "
-            >
-              删除
-            </el-button>
+                删除
+              </a-button>
 
-            <el-button
-              link
-              type="primary"
-              @click="handleDetailClick(row, 'VersionManagement')"
+              <a-button
+                type="link"
+                @click="handleDetailClick(row, 'VersionManagement')"
+              >
+                <svg-icon icon-class="meta-version" class="handle-svg-icon" />
+                版本与变更
+              </a-button>
+            </template>
+            <a-button
+              type="link"
+              :icon="h(DownOutlined)"
+              v-hasPermi="[
+                'md:unreleased:structured:column:edit',
+                'md:unreleased:structured:column:remove',
+                'md:unreleased:structured:column:detail',
+              ]"
             >
-              <svg-icon icon-class="meta-version" class="handle-svg-icon" />
-              版本与变更
-            </el-button>
-          </el-popover>
+              更多
+            </a-button>
+          </a-popover>
         </template>
       </qt-table>
     </qt-wrap>
 
-    <el-dialog
-      v-model="dialog.open"
+    <a-modal
+      v-model:open="dialog.open"
       title="修改字段元数据"
       width="1200"
-      draggable
+      destroy-on-close
     >
-      <el-form
+      <a-form
         :model="dialog.form"
         :rules="rules"
         ref="formRef"
         class="column-form"
-        label-width="110px"
+        :label-col="{ style: { width: '110px' } }"
       >
-        <el-form-item label="字段名称" prop="columnName">
-          <el-input
-            clearable
-            v-model="dialog.form.columnName"
+        <a-form-item label="字段名称" name="columnName">
+          <a-input
+            allow-clear
+            v-model:value="dialog.form.columnName"
             placeholder="请输入字段注释"
           />
-        </el-form-item>
-        <el-form-item label="字段注释" prop="columnComment">
-          <el-input
-            clearable
-            v-model="dialog.form.columnComment"
+        </a-form-item>
+        <a-form-item label="字段注释" name="columnComment">
+          <a-input
+            allow-clear
+            v-model:value="dialog.form.columnComment"
             placeholder="请输入字段注释"
           />
-        </el-form-item>
-        <!-- <el-form-item label="安全等级" prop="safetyLevelId">
-          <el-select
-            clearable
-            v-model="dialog.form.safetyLevelId"
+        </a-form-item>
+        <!-- <a-form-item label="安全等级" name="safetyLevelId">
+          <a-select
+            allow-clear
+            v-model:value="dialog.form.safetyLevelId"
             placeholder="请选择安全等级"
           >
-            <el-option
+            <a-select-option
               v-for="item in store.sensitiveLevels"
               :key="item.id"
               :label="item.sensitiveLevel"
               :value="item.id"
             />
-          </el-select>
-        </el-form-item> -->
-        <!-- <el-form-item label="标准数据元" prop="dataElemId">
-          <el-select
-            clearable
-            v-model="dialog.form.dataElemId"
+          </a-select>
+        </a-form-item> -->
+        <!-- <a-form-item label="标准数据元" name="dataElemId">
+          <a-select
+            allow-clear
+            v-model:value="dialog.form.dataElemId"
             placeholder="请选择标准数据元"
           >
-            <el-option
+            <a-select-option
               v-for="item in store.dataElemList"
               :key="item.id"
               :label="item.name"
               :value="item.id"
             />
-          </el-select>
-        </el-form-item> -->
-        <el-form-item label="字段类型" prop="columnType">
-          <el-select
-            clearable
-            v-model="dialog.form.columnType"
+          </a-select>
+        </a-form-item> -->
+        <a-form-item label="字段类型" name="columnType">
+          <a-select
+            allow-clear
+            v-model:value="dialog.form.columnType"
             placeholder="请选择字段类型"
           >
-            <el-option
+            <a-select-option
               v-for="dict in toValue(dicts.column_type)"
               :key="dict.value"
-              :label="dict.label"
               :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="字段长度" prop="columnLength">
-          <el-input-number
+            >
+              {{ dict.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="字段长度" name="columnLength">
+          <a-input-number
             :min="0"
-            v-model="dialog.form.columnLength"
+            v-model:value="dialog.form.columnLength"
             placeholder="请输入字段长度"
-            :controls="true"
             class="number-input"
-            controls-position="right"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="字段精度" prop="columnPrecision">
-          <el-input-number
+        <a-form-item label="字段精度" name="columnPrecision">
+          <a-input-number
             :min="0"
-            v-model="dialog.form.columnPrecision"
+            v-model:value="dialog.form.columnPrecision"
             placeholder="请输入字段精度"
-            :controls="true"
             class="number-input"
-            controls-position="right"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="字段小数位" prop="columnScale">
-          <el-input-number
+        <a-form-item label="字段小数位" name="columnScale">
+          <a-input-number
             :min="0"
-            v-model="dialog.form.columnScale"
+            v-model:value="dialog.form.columnScale"
             placeholder="请输入字段小数位"
-            :controls="true"
             class="number-input"
-            controls-position="right"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="业务定义" prop="businessDefinition">
-          <el-input
-            clearable
-            v-model="dialog.form.businessDefinition"
+        <a-form-item label="业务定义" name="businessDefinition">
+          <a-input
+            allow-clear
+            v-model:value="dialog.form.businessDefinition"
             placeholder="请输入业务定义"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="度量单位" prop="measuringUnit">
-          <el-input
-            clearable
-            v-model="dialog.form.measuringUnit"
+        <a-form-item label="度量单位" name="measuringUnit">
+          <a-input
+            allow-clear
+            v-model:value="dialog.form.measuringUnit"
             placeholder="请输入度量单位"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="是否必填" prop="nullableFlag">
-          <el-radio-group v-model="dialog.form.nullableFlag">
-            <el-radio
+        <a-form-item label="是否必填" name="nullableFlag">
+          <a-radio-group v-model:value="dialog.form.nullableFlag">
+            <a-radio
               v-for="dict in toValue(dicts.table_yes_no)"
               :key="dict.value"
               :value="dict.value"
             >
               {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
 
-        <el-form-item label="默认值" prop="defaultValue">
-          <el-input
-            clearable
-            v-model="dialog.form.defaultValue"
+        <a-form-item label="默认值" name="defaultValue">
+          <a-input
+            allow-clear
+            v-model:value="dialog.form.defaultValue"
             placeholder="请输入默认值"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="是否主键" prop="pkFlag">
-          <el-radio-group v-model="dialog.form.pkFlag">
-            <el-radio
+        <a-form-item label="是否主键" name="pkFlag">
+          <a-radio-group v-model:value="dialog.form.pkFlag">
+            <a-radio
               v-for="dict in toValue(dicts.table_yes_no)"
               :key="dict.value"
               :value="dict.value"
             >
               {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
 
-        <el-form-item label="是否外键" prop="fkFlag">
-          <el-radio-group v-model="dialog.form.fkFlag">
-            <el-radio
+        <a-form-item label="是否外键" name="fkFlag">
+          <a-radio-group v-model:value="dialog.form.fkFlag">
+            <a-radio
               v-for="dict in toValue(dicts.table_yes_no)"
               :key="dict.value"
               :value="dict.value"
             >
               {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
 
-        <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="dialog.form.status">
-            <el-radio
+        <a-form-item label="状态" name="status">
+          <a-radio-group v-model:value="dialog.form.status">
+            <a-radio
               v-for="dict in toValue(dicts.meta_task_status)"
               :key="dict.value"
               :value="dict.value"
             >
               {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
 
-        <el-form-item label="备注" class="row-full">
-          <el-input
-            v-model="dialog.form.remark"
-            type="textarea"
+        <a-form-item label="备注" class="row-full">
+          <a-textarea
+            v-model:value="dialog.form.remark"
             placeholder="请输入备注"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
+            show-count
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="描述" class="row-full">
-          <el-input
-            v-model="dialog.form.description"
-            type="textarea"
+        <a-form-item label="描述" class="row-full">
+          <a-textarea
+            v-model:value="dialog.form.description"
             placeholder="请输入描述"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
+            show-count
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="变更说明" class="row-full" prop="updateMsg">
-          <el-input
-            v-model="dialog.form.updateMsg"
-            type="textarea"
+        <a-form-item label="变更说明" class="row-full" name="updateMsg">
+          <a-textarea
+            v-model:value="dialog.form.updateMsg"
             placeholder="请输入变更说明"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
+            show-count
           />
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+      </a-form>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleCancelClick">取消</el-button>
-          <el-button type="primary" @click="handleConfirmClick">
+          <a-button @click="handleCancelClick">取消</a-button>
+          <a-button type="primary" @click="handleConfirmClick">
             确定
-          </el-button>
+          </a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup name="UnreleasedStructuredColumn">
-import { getCurrentInstance, reactive, ref, toValue } from "vue";
+import { message, Modal } from 'ant-design-vue'
+import { getCurrentInstance, h, reactive, ref, toValue } from "vue";
+import { PlusOutlined, DeleteOutlined, EyeOutlined, EditOutlined, DownOutlined } from '@ant-design/icons-vue';
+
 import { listDomain } from "@/api/tax/domain/domain.js";
+
 import { getParentLabelPath } from "@/utils/anivia.js";
+
 import {
   listColumn,
   delColumn,
@@ -341,9 +326,13 @@ import {
   updateColumnStatus,
   batchDeleteCheck,
 } from "@/api/cat/unreleased/column.js";
+
 import { listDb } from "@/api/cat/unreleased/db";
+
 import { listTable } from "@/api/cat/unreleased/table";
+
 import { useRoute, useRouter } from "vue-router";
+
 import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
 
 const rules = {
@@ -724,27 +713,21 @@ function handleDeleteColumnClick() {
   batchDeleteCheck(ids).then((res) => {
     const { canDeleteCount, cannotDeleteCount, canDeleteIds } = res.data;
     store.loading = false;
-    ElMessageBox.confirm(
-      `可删除${canDeleteCount}个，不可删除${cannotDeleteCount}个，是否删除可删部分`,
-      "系统提示",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    )
-      .then(() => {
+    Modal.confirm({
+      title: "系统提示",
+      content: `可删除${canDeleteCount}个，不可删除${cannotDeleteCount}个，是否删除可删部分`,
+      okText: "确定",
+      cancelText: "取消",
+      onOk: async () => {
         if (!canDeleteIds.length) {
-          ElMessage.success("删除成功");
+          message.success("删除成功");
           return;
         }
-        return delColumn(canDeleteIds.toString());
-      })
-      .then((res) => {
-        if (!res) return;
-        ElMessage.success("删除成功");
+        await delColumn(canDeleteIds.toString());
+        message.success("删除成功");
         tableRef.value.getList();
-      });
+      },
+    });
   });
 }
 
@@ -775,23 +758,24 @@ function handleCancelClick() {
 }
 
 // 确认新增/修改
-async function handleConfirmClick() {
-  dialog.loading = true;
-  const valid = await formRef.value.validate();
-  dialog.loading = false;
-  if (!valid) return;
-  dialog.loading = true;
-  if (dialog.form.safetyLevelId == undefined) {
-    dialog.form.safetyLevelId = null;
-    dialog.form.safetyLevelName = null;
-  }
-  await updateColumn(dialog.form);
-  dialog.loading = false;
-  proxy.$modal.msgSuccess(
-    `${dialog.form.id ? "修改" : "新增"}字段元数据成功！`
-  );
-  handleCancelClick();
-  tableRef.value.getList();
+function handleConfirmClick() {
+  formRef.value
+    .validate()
+    .then(() => {
+      if (dialog.form.safetyLevelId == undefined) {
+        dialog.form.safetyLevelId = null;
+        dialog.form.safetyLevelName = null;
+      }
+      return updateColumn(dialog.form);
+    })
+    .then(() => {
+      proxy.$modal.msgSuccess(
+        `${dialog.form.id ? "修改" : "新增"}字段元数据成功！`
+      );
+      handleCancelClick();
+      tableRef.value.getList();
+    })
+    .catch(() => {});
 }
 
 // 详情
@@ -807,48 +791,43 @@ function handleDetailClick(row, tab) {
 
 // 删除
 function handleDeleteClick(row) {
-  ElMessageBox.confirm(`是否确认删除编号为${row.id}的数据项？`, "系统提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
-    .then(() => {
-      return delColumn(row.id);
-    })
-    .then(() => {
-      ElMessage.success("删除成功");
+  Modal.confirm({
+    title: "系统提示",
+    content: `是否确认删除编号为${row.id}的数据项？`,
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
+      await delColumn(row.id);
+      message.success("删除成功");
       tableRef.value.getList();
-    });
+    },
+  });
 }
 
 // 切换状态
 function handleStatusChange(row, status) {
-  ElMessageBox.confirm(
-    `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
+  Modal.confirm({
+    title: "系统提示",
+    content: `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
       row.id
     }的字段元数据吗？`,
-    "系统提示",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
-    .then(() => {
-      return updateColumnStatus({
-        id: row.id,
-        status,
-      });
-    })
-    .then(() => {
-      ElMessage.success(
-        `编号为${row.id}的字段元数据${status == 1 ? "发布" : "取消发布"}成功!`
-      );
-      row.status = status;
-    })
-    .catch(() => {
-      row.status = status == "1" ? "0" : "1";
-    });
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
+      try {
+        await updateColumnStatus({
+          id: row.id,
+          status,
+        });
+        message.success(
+          `编号为${row.id}的字段元数据${status == 1 ? "发布" : "取消发布"}成功!`
+        );
+        row.status = status;
+      } catch (error) {
+        row.status = status == "1" ? "0" : "1";
+      }
+    },
+  });
 }
 
 // getDomains();

@@ -1,147 +1,136 @@
 <template>
-    <el-dialog v-model="visibleDialog" :draggable="true" class="medium-dialog" :title="currentNode?.data?.name"
-        showCancelButton :show-close="false" destroy-on-close>
-        <template #header>
+    <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name" :closable="false"
+        :destroy-on-close="true">
+        <template #title>
             <div class="justify">
-                <span class="el-dialog__title">{{ currentNode?.data?.name }}</span>
-                <el-tooltip effect="light" content="用于通过拼接多个字段值生成新字段，支持设置前缀、后缀和连接符，常用于构造唯一标识或业务编码" placement="top">
-                    <el-icon class="tip-icon">
-                        <InfoFilled />
-                    </el-icon>
-                </el-tooltip>
+                <span class="ant-modal-title">{{ currentNode?.data?.name }}</span>
+                <a-tooltip title="用于通过拼接多个字段值生成新字段，支持设置前缀、后缀和连接符，常用于构造唯一标识或业务编码" placement="top">
+                    <InfoCircleOutlined class="tip-icon" />
+                </a-tooltip>
             </div>
         </template>
-        <el-form ref="dpModelRefs" :model="form" label-width="140px" @submit.prevent v-loading="loading"
+        <a-spin :spinning="loading">
+        <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '140px' } }" @submit.prevent
             :disabled="info">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="节点名称" prop="name"
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="节点名称" name="name"
                         :rules="[{ required: true, message: '请输入节点名称', trigger: 'change' }]">
-                        <el-input v-model="form.name" placeholder="请输入节点名称" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="类型" prop="typeName">
-                        <el-select v-model="form.taskParams.typeName" placeholder="请输入类型" filterable disabled>
-                            <el-option v-for="dict in typeList" :key="dict.value" :label="dict.label"
+                        <a-input v-model:value="form.name" placeholder="请输入节点名称" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="类型" name="typeName">
+                        <a-select v-model:value="form.taskParams.typeName" placeholder="请输入类型" show-search disabled>
+                            <a-select-option v-for="dict in typeList" :key="dict.value" :label="dict.label"
                                 :value="dict.value" />
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="操作类型" prop="taskParams.fieldDerivationType" :rules="[
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="操作类型" name="taskParams.fieldDerivationType" :rules="[
                         { required: true, message: '请输入操作类型', trigger: 'change' }
                     ]">
-                        <el-select v-model="form.taskParams.fieldDerivationType" placeholder="请选择操作类型">
-                            <el-option v-for="item in deriveFieldTypes" :key="item.value" :label="item.label"
+                        <a-select v-model:value="form.taskParams.fieldDerivationType" placeholder="请选择操作类型">
+                            <a-select-option v-for="item in deriveFieldTypes" :key="item.value" :label="item.label"
                                 :value="item.value" :disabled="item.value !== 'FIELD_DERIVE_CONCAT'" />
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12" v-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_CONCAT'">
-                    <el-form-item label="新增字段名称" prop="taskParams.fieldDerivationName" :rules="[
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12" v-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_CONCAT'">
+                    <a-form-item label="新增字段名称" name="taskParams.fieldDerivationName" :rules="[
                         { required: true, message: '请输入新增字段名称', trigger: 'change' }]">
                         <template #label>
                             <div class="justify-center">
                                 <span>新增字段名称</span>
-                                <el-tooltip effect="light" content="生成结果将写入该字段，作为新列追加到数据中" placement="top">
-                                    <el-icon class="tip-icon">
-                                        <InfoFilled />
-                                    </el-icon>
-                                </el-tooltip>
+                                <a-tooltip title="生成结果将写入该字段，作为新列追加到数据中" placement="top">
+                                    <InfoCircleOutlined class="tip-icon" />
+                                </a-tooltip>
                             </div>
                         </template>
-                        <el-input v-model="form.taskParams.fieldDerivationName" placeholder="请输入新增字段名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="前缀" prop="taskParams.fieldDerivationPrefix">
-                        <el-input v-model="form.taskParams.fieldDerivationPrefix" placeholder="请输入后缀" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="后缀" prop="taskParams.fieldDerivationSuffix">
-                        <el-input v-model="form.taskParams.fieldDerivationSuffix" placeholder="请输入后缀" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="连接符" prop="taskParams.delimiter">
-                        <el-input v-model="form.taskParams.delimiter" placeholder="请输入连接符" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="描述" prop="description">
-                        <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                        <a-input v-model:value="form.taskParams.fieldDerivationName" placeholder="请输入新增字段名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="前缀" name="taskParams.fieldDerivationPrefix">
+                        <a-input v-model:value="form.taskParams.fieldDerivationPrefix" placeholder="请输入后缀" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="后缀" name="taskParams.fieldDerivationSuffix">
+                        <a-input v-model:value="form.taskParams.fieldDerivationSuffix" placeholder="请输入后缀" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="连接符" name="taskParams.delimiter">
+                        <a-input v-model:value="form.taskParams.delimiter" placeholder="请输入连接符" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="描述" name="description">
+                        <a-input v-model:value="form.description" type="textarea" placeholder="请输入描述" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
             <div class="mb10" v-if="tableFields.length > 0"
                 style="display: flex; align-items: flex-start; margin-left: 38px;">
                 <span style="font-weight: 500; white-space: nowrap; margin-right: 10px;">生成规则</span>
                 <div v-html="expressionPreviewHtml" style="flex: 1; white-space: pre-wrap;"></div>
             </div>
-            <el-divider content-position="center">
+            <a-divider orientation="center">
                 <span class="blue-text">字段值</span>
-            </el-divider>
+            </a-divider>
             <div class="justify-between mb15">
-                <el-row :gutter="15" class="btn-style">
-                    <el-col :span="1.5">
-                        <el-button type="primary" plain @click="handleAddField">
+                <a-row :gutter="15" class="btn-style">
+                    <a-col :span="1.5">
+                        <a-button type="primary" @click="handleAddField">
                             <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                        </el-button>
-                    </el-col>
-                </el-row>
+                        </a-button>
+                    </a-col>
+                </a-row>
             </div>
-            <el-table stripe height="310px" :data="tableFields" v-loading="loadingList" ref="dragTable"
-                row-key="columnName">
-                <el-table-column label="序号" width="80" align="left">
-                    <template #default="{ $index }">
+            <a-table :loading="loadingList" :data-source="tableFields" :columns="tableColumns"
+                :pagination="false" :scroll="{ y: 310 }" :row-key="'columnName'" ref="dragTable">
+                <template #bodyCell="{ column, record, index }">
+                    <template v-if="column.dataIndex === 'index'">
                         <div class="allowDrag"
                             style="cursor: move; display: flex; justify-content: center; align-items: center;">
-                            <el-icon>
-                                <Operation />
-                            </el-icon>
-                            <span style="margin-left: 4px;">{{ $index + 1 }}</span>
+                            <ControlOutlined />
+                            <span style="margin-left: 4px;">{{ index + 1 }}</span>
                         </div>
                     </template>
-                </el-table-column>
-                <el-table-column label="字段名称" align="left" prop="columnName">
-                    <template #default="scope">
-
-                        <el-select v-model="scope.row.columnName" placeholder="请选择字段" style="flex: 1">
-                            <el-option v-for="item in inputFields" :key="item.value" :label="item.label"
-                                :value="item.columnName" :disabled="isOptionDisabled(item.columnName, scope.row)" />
-                        </el-select>
-
+                    <template v-else-if="column.dataIndex === 'columnName'">
+                        <a-select v-model:value="record.columnName" placeholder="请选择字段" style="flex: 1">
+                            <a-select-option v-for="item in inputFields" :key="item.value" :label="item.label"
+                                :value="item.columnName" :disabled="isOptionDisabled(item.columnName, record)" />
+                        </a-select>
                     </template>
-                </el-table-column>
-                <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right"
-                    width="150">
-                    <template #default="scope">
-                        <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">
+                    <template v-else-if="column.key === 'actions'">
+                        <a-button type="link" danger size="small" @click="handleDelete(record)">
                             删除
-                        </el-button>
+                        </a-button>
                     </template>
-                </el-table-column>
-            </el-table>
-        </el-form>
+                </template>
+            </a-table>
+        </a-form>
+        </a-spin>
 
         <template #footer>
             <div style="text-align: right">
-                <el-button @click="closeDialog">关闭</el-button>
-                <el-button type="primary" @click="saveData" v-if="!info">保存</el-button>
-                <!--  <el-button type="warning" @click="handleFetchFields"  v-if="!info">获取字段</el-button> -->
+                <a-button @click="closeDialog">关闭</a-button>
+                <a-button type="primary" @click="saveData" v-if="!info">保存</a-button>
+                <!--  <a-button type="warning" @click="handleFetchFields"  v-if="!info">获取字段</a-button> -->
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 
     <FieldConflictDialog v-model="showConflictDialog" :existingFields="tableFields" :newFields="inputFields"
         @resolve="onResolveFields" />
@@ -150,17 +139,33 @@
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
+import { InfoCircleOutlined, ControlOutlined } from "@ant-design/icons-vue";
 import CreateEditModal from "../fieldMergeModal.vue";
+
 import FieldConflictDialog from "../fieldDetection.vue";
+
 import { defineProps, defineEmits, ref, computed, watchEffect, getCurrentInstance } from "vue";
+
 import { typeList } from "@/utils/graph.js";
+
 import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/col/task/index.js";
+
 import useUserStore from "@/store/system/user.js";
+
 import { createNodeSelect, getParentNode } from "@/views/col/utils/opBase.js";
+
 import draggable from "vuedraggable";
+
 import Sortable from "sortablejs";
 const { proxy } = getCurrentInstance();
 const userStore = useUserStore();
+
+const tableColumns = [
+    { title: '序号', dataIndex: 'index', width: 80, align: 'left' },
+    { title: '字段名称', dataIndex: 'columnName', align: 'left' },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 150 },
+];
 const expressionPreviewHtml = computed(() => {
     const prefix = form.value?.taskParams?.fieldDerivationPrefix || '';
     const suffix = form.value?.taskParams?.fieldDerivationSuffix || '';
@@ -215,7 +220,7 @@ let sortableInstance = null;
 function setSort() {
     nextTick(() => {
         const tbody = dragTable.value?.$el.querySelector(
-            ".el-table__body-wrapper tbody"
+            ".ant-table-tbody"
         );
         if (!tbody) {
             console.warn("tbody 找不到，拖拽初始化失败");

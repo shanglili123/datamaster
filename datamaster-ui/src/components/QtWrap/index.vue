@@ -8,52 +8,52 @@
       <div class="qt-wrap--search-inner">
         <slot name="search"></slot>
         <div class="search-query-btns" v-if="$slots.search">
-          <el-button plain type="primary" @click="handleQuery">
+          <a-button type="primary" @click="handleQuery">
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="handleReset">
+          </a-button>
+          <a-button @click="handleReset">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
+          </a-button>
         </div>
         <div class="data-actions" v-if="hasDataActions">
           <slot name="actions-data"></slot>
         </div>
         <div class="table-actions" v-if="config.actions.table.show">
-          <el-tooltip effect="dark" content="刷新" placement="top">
-            <el-button
-              circle
+          <a-tooltip title="刷新" placement="top">
+            <a-button
+              shape="circle"
               v-show="config.actions.table.refresh"
               @click="handleRefreshClick"
             >
               <i class="iconfont icon-a-shuaxinxianxing"></i>
-            </el-button>
-          </el-tooltip>
+            </a-button>
+          </a-tooltip>
 
-          <el-tooltip effect="dark" content="隐藏列" placement="top">
-            <el-dropdown
+          <a-tooltip title="隐藏列" placement="top">
+            <a-dropdown
               trigger="click"
-              :hide-on-click="false"
               v-show="config.actions.table.columns"
-              popper-class="columns-popper"
+              overlay-class-name="columns-popper"
             >
-              <el-button circle icon="Menu" />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item
+              <a-button shape="circle" :icon="h(MenuOutlined)" />
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item
                     v-for="item in props.columns"
                     :key="item.prop"
                   >
-                    <el-checkbox
+                    <a-checkbox
                       v-show="item?.type != 'selection'"
                       :checked="!item.hide"
-                      :label="item.label"
-                      @change="handleCheckboxChange($event, item)"
-                    />
-                  </el-dropdown-item>
-                </el-dropdown-menu>
+                      @change="(e) => handleCheckboxChange(e.target.checked, item)"
+                    >
+                      {{ item.label }}
+                    </a-checkbox>
+                  </a-menu-item>
+                </a-menu>
               </template>
-            </el-dropdown>
-          </el-tooltip>
+            </a-dropdown>
+          </a-tooltip>
         </div>
       </div>
     </div>
@@ -66,8 +66,9 @@
 </template>
 
 <script setup name="QtWrap">
-import { computed, useSlots, ref, provide } from "vue";
+import { computed, useSlots, ref, provide, h } from "vue";
 import { merge } from "lodash-es";
+import { MenuOutlined } from "@ant-design/icons-vue";
 
 const DEFAULT_CONFIG = {
   fullContent: true,
@@ -169,12 +170,12 @@ function handleCheckboxChange(checked, item) {
     flex: 0 1 auto;
   }
 
-  :deep(.qt-search-bar .el-form) {
+  :deep(.qt-search-bar .ant-form) {
     flex-wrap: nowrap !important;
     row-gap: 0;
   }
 
-  :deep(.qt-search-bar .el-form-item) {
+  :deep(.qt-search-bar .ant-form-item) {
     flex-shrink: 0;
     margin-bottom: 0;
   }
@@ -190,11 +191,16 @@ function handleCheckboxChange(checked, item) {
   gap: 8px;
   flex-shrink: 0;
 
-  .el-button {
+  :deep(.ant-btn) {
     height: 32px;
     padding: 8px 12px;
     font-size: 12px;
     border-radius: 6px;
+  }
+
+  // flex + gap 已控制间距，覆盖全局 .ant-btn + .ant-btn 的 margin-left
+  :deep(.ant-btn + .ant-btn) {
+    margin-left: 0;
   }
 }
 
@@ -230,7 +236,7 @@ function handleCheckboxChange(checked, item) {
 .data-actions {
   margin-left: auto;
 
-  ::v-deep(.el-button) {
+  :deep(.ant-btn) {
     height: 32px;
     padding: 8px 12px;
     font-size: 12px;
@@ -243,7 +249,9 @@ function handleCheckboxChange(checked, item) {
   display: flex;
   align-items: center;
   gap: 12px;
-  ::v-deep(.el-button + .el-button) {
+
+  // flex + gap 已控制间距，覆盖全局 .ant-btn + .ant-btn 的 margin-left
+  :deep(.ant-btn + .ant-btn) {
     margin-left: 0;
   }
 }
@@ -251,7 +259,7 @@ function handleCheckboxChange(checked, item) {
 .table-actions {
   gap: 8px;
 
-  ::v-deep(.el-button.is-circle) {
+  :deep(.ant-btn.ant-btn-circle) {
     width: 32px;
     height: 32px;
     border-radius: 6px;
@@ -262,7 +270,7 @@ function handleCheckboxChange(checked, item) {
     &:hover {
       background: #eef5ff;
       border-color: #c9dcff;
-      color: var(--el-color-primary);
+      color: #1677ff;
     }
   }
 }
@@ -270,7 +278,7 @@ function handleCheckboxChange(checked, item) {
 
 <style lang="scss">
 .columns-popper {
-  .el-dropdown-menu__item {
+  .ant-dropdown-menu-item {
     line-height: 30px;
     padding: 0px 17px;
   }

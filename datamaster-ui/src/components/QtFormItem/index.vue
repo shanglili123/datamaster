@@ -1,20 +1,20 @@
 <template>
     <!-- 不带！的 -->
-  <el-form-item v-bind="$attrs">
+  <a-form-item v-bind="$attrs">
     <template #default="scope">
       <div class="default-wrap">
         <slot name="default" v-bind="scope || {}" />
       </div>
     </template>
 
-    <template #label="scope">
+    <template #label>
       <div class="label-wrap">
-        <slot name="label" v-bind="scope">
-          {{ scope.label }}
+        <slot name="label">
+          {{ $attrs.label }}
         </slot>
       </div>
     </template>
-  </el-form-item>
+  </a-form-item>
 </template>
 
 <script setup name="QtFromItem">
@@ -53,16 +53,13 @@ const isString = computed(() => {
   display: flex;
   align-items: center;
   gap: 2px;
-  .el-icon {
-    color: #888;
-  }
 }
 
-::v-deep(.el-form-item__error) {
+::v-deep(.ant-form-item-explain-error) {
   padding-top: 6px;
 }
 
-.el-form-item.is-error {
+.ant-form-item-has-error {
   padding-bottom: 16px;
   .tip-content {
     display: none;

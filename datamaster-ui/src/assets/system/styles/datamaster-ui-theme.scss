@@ -38,6 +38,11 @@
   --el-color-danger: var(--dm-color-danger);
   --el-color-info: var(--dm-color-info);
   --el-border-radius-base: var(--dm-radius-base);
+  --el-border-radius-small: 2px;
+  --el-text-color: var(--dm-text-regular);
+  --el-text-color-secondary: var(--dm-text-secondary);
+  --el-fill-color: #f0f2f5;
+  --el-fill-color-light: #f5f7fa;
 }
 
 body {
@@ -791,4 +796,56 @@ label {
   color: var(--dm-text-secondary);
   font-size: 12px;
   line-height: 18px;
+}
+
+/* ===== antd 版 pagecont-top 统一布局：搜索表单靠左（放不下时字段在表单内折行）、操作按钮靠右 ===== */
+.pagecont-top {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start;
+  gap: 8px;
+
+  > .ant-form {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center;
+    row-gap: 8px;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+
+    .ant-form-item {
+      display: inline-flex !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+      margin-inline-end: 12px !important;
+    }
+  }
+
+  .data-action-btns {
+    margin-left: auto;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .top-right-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  /* 操作按钮与右侧工具栏成组贴右：仅保留一个 auto 边距，
+     避免两个 margin-left:auto 均分剩余空间导致按钮悬在中间 */
+  .data-action-btns + .top-right-btn {
+    margin-left: 0 !important;
+  }
+}
+
+/* 表格操作列：压缩 link 按钮横向内边距并禁止按钮内换行，减少操作按钮换行 */
+.ant-table-cell .ant-btn-link {
+  padding-inline: 5px !important;
+  white-space: nowrap;
 }

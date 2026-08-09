@@ -1,81 +1,69 @@
 <template>
   <div class="app-container">
-    <el-form ref="detailRef" :model="form" label-width="120px">
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="业务分类名称">
+    <a-form ref="detailRef" :model="form" :label-col="{ style: { width: '120px' } }">
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="业务分类名称">
             <div class="form-readonly">{{ form.name || "-" }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="英文缩写">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="英文缩写">
             <div class="form-readonly">{{ form.engName || "-" }}</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="层级编码">
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="层级编码">
             <div class="form-readonly">{{ form.code || "-" }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="上级分类">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="上级分类">
             <div class="form-readonly">{{ form.parentName || "-" }}</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="负责人">
-            <div class="form-readonly">{{ form.ownerName || "-" }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="负责人电话">
-            <div class="form-readonly">{{ form.ownerPhone || "-" }}</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="排序">
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="排序">
             <div class="form-readonly">{{ form.sortOrder ?? "-" }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="状态">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="状态">
             <dict-tag :options="sys_normal_disable" :value="form.validFlag ? '0' : '1'" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述">
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述">
             <div class="form-readonly textarea">{{ form.description || "-" }}</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="备注">
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="备注">
             <div class="form-readonly textarea">{{ form.remark || "-" }}</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="创建人">
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="创建人">
             <div class="form-readonly">{{ form.createBy || "-" }}</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="创建时间">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="创建时间">
             <div class="form-readonly">{{ parseTime(form.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </a-form>
   </div>
 </template>
 

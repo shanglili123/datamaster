@@ -1,30 +1,32 @@
 <template>
-    <el-dialog v-model="visible" title="任务执行日志" :draggable="true" class="medium-dialog" @close="handleClose">
-        <div class="task-log-container" ref="containerRef" v-loading="loading">
-            <div class="log-container">
-                <div class="log-toolbar">
-                    <span>{{ logStatusText }}</span>
-                    <div class="log-actions">
-                        <el-switch v-model="autoFollow" size="small" active-text="跟随" />
-                        <el-button link type="primary" @click="scrollLogToBottom">到底部</el-button>
+    <a-modal v-model:open="visible" title="任务执行日志" class="medium-dialog" @close="handleClose">
+        <div class="task-log-container" ref="containerRef">
+            <a-spin :spinning="loading" class="task-log-spin">
+                <div class="log-container">
+                    <div class="log-toolbar">
+                        <span>{{ logStatusText }}</span>
+                        <div class="log-actions">
+                            <a-switch v-model:checked="autoFollow" size="small" checked-children="跟随" />
+                            <a-button type="link" @click="scrollLogToBottom">到底部</a-button>
+                        </div>
+                    </div>
+                    <div class="log-scrollbar" ref="logScrollbarRef" @scroll.passive="handleLogScroll">
+                        <pre class="log-text">{{ logContent }}</pre>
                     </div>
                 </div>
-                <el-scrollbar ref="logScrollbarRef" class="log-scrollbar" @scroll="handleLogScroll">
-                    <pre class="log-text">{{ logContent }}</pre>
-                </el-scrollbar>
-            </div>
+            </a-spin>
         </div>
         <template #footer>
             <div style="text-align: right">
-                <el-button @click="handleClose">关闭</el-button>
+                <a-button @click="handleClose">关闭</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
 import { ref, onBeforeUnmount, nextTick, computed, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "ant-design-vue";
 import { getLogByTaskInstanceId } from "@/api/col/task/etlTask";
 
 // 状态变量
@@ -53,17 +55,17 @@ const clearPollTimer = () => {
 const scrollLogToBottom = () => {
     autoFollow.value = true;
     nextTick(() => {
-        const wrap = logScrollbarRef.value?.wrapRef;
+        const wrap = logScrollbarRef.value;
         if (wrap) {
-            logScrollbarRef.value.setScrollTop(wrap.scrollHeight);
+            wrap.scrollTop = wrap.scrollHeight;
         }
     });
 };
 
-const handleLogScroll = ({ scrollTop }) => {
-    const wrap = logScrollbarRef.value?.wrapRef;
+const handleLogScroll = (event) => {
+    const wrap = event.target || logScrollbarRef.value;
     if (!wrap) return;
-    autoFollow.value = wrap.scrollHeight - scrollTop - wrap.clientHeight < 24;
+    autoFollow.value = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 24;
 };
 
 watch(logContent, (value, oldValue) => {
@@ -99,7 +101,7 @@ const fetchLog = async (taskId) => {
         }
     } catch (error) {
         polling.value = false;
-        ElMessage.error("日志读取失败");
+        message.error("日志读取失败");
         return;
     }
     if (polling.value) {
@@ -157,6 +159,12 @@ defineExpose({ open });
 
 .log-scrollbar {
     height: calc(100% - 34px);
+    overflow-y: auto;
+}
+
+.task-log-spin,
+.task-log-spin ::v-deep .ant-spin-container {
+    height: 100%;
 }
 
 .log-toolbar {

@@ -8,28 +8,30 @@
       <div class="head-btns">
         <div class="head-select">
           <!-- 标题后附加下拉选择框 -->
-          <el-select v-model="queryParams.id" placeholder="请选择数据源" class="head-select-el" style="width: 300px;">
-            <el-option v-for="item in TablesByDataSource" :key="item.id" :label="item.name" :value="item.id" />
-          </el-select>
+          <a-select v-model:value="queryParams.id" placeholder="请选择数据源" class="head-select-el" style="width: 300px;">
+            <a-select-option v-for="item in TablesByDataSource" :key="item.id" :value="item.id">
+              {{ item.name }}
+            </a-select-option>
+          </a-select>
         </div>
-        <el-button plain type="primary" size="small" @click="handleQuery" :loading="loadings">
+        <a-button ghost type="primary" size="small" @click="handleQuery" :loading="loadings">
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button type="primary" size="small" @click="handleClear">清除</el-button>
+        </a-button>
+        <a-button type="primary" size="small" @click="handleClear">清除</a-button>
       </div>
     </div>
-    <el-container style="90%">
+    <a-layout style="90%">
       <!-- 树：数据源->表->字段 -->
       <DeptTree :deptOptions="TablesByDataSource" :leftWidth="leftWidth" :placeholder="'请输入数据源名称'" ref="DeptTreeRef"
         @node-click="handleTreeNodeClick" @nodeload-click="loadTreeData" :loading="loading" />
-      <el-main style="padding: 0;">
+      <a-layout-content style="padding: 0;">
         <div class="pagecont-bottom" style="padding: 0;">
           <!-- SQL 编辑器 -->
           <Editor ref="editorRef" :model-value="queryParams.sqlText" @update:model-value="handleChange"
             @query="handleQuery" />
         </div>
-      </el-main>
-    </el-container>
+      </a-layout-content>
+    </a-layout>
     <TableInfoDialog :visible="dialogVisible" title="查询结果" @update:visible="dialogVisible = $event"
       :queryParams="queryParams" :spl="spl" />
   </div>
@@ -37,7 +39,7 @@
 
 <script setup name="DataQuery">
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+import { message } from "ant-design-vue";
 import Editor from "@/components/SqlEditor/editor/index1.vue";
 import TableInfoDialog from ".//components/queryResult.vue";
 import DeptTree from "@/components/DeptTree/lazy";
@@ -212,7 +214,7 @@ async function handleQuery() {
     errors.push("请选择数据源！");
   }
   if (errors.length) {
-    ElMessage.warning(errors.join("，"));
+    message.warning(errors.join("，"));
     return;
   }
   // 执行 SQL 查询
@@ -227,7 +229,7 @@ async function handleQuery() {
     if (res.code === 200) {
       dialogVisible.value = true;
     } else {
-      ElMessage.warning(res.msg || "查询失败");
+      message.warning(res.msg || "查询失败");
     }
   } finally {
     loadings.value = false;
@@ -282,7 +284,7 @@ getDatasourcesTree();
         padding: 10px 0;
       }
 
-      .el-button {
+      .ant-btn {
         height: 28px;
         margin-left: 5px;
       }

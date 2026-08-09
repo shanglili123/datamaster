@@ -1,167 +1,133 @@
 <template>
-  <el-aside
+  <a-layout-sider
+    :width="leftWidth || 1"
+    :collapsed="leftWidth === 0"
+    :collapsed-width="0"
+    :trigger="null"
     :style="{
-      width: `${leftWidth}px`,
       marginLeft: leftWidth == 0 ? '-15px' : '0px',
       '--qt-wrap-height': qtWrapheight,
     }"
     class="left-pane"
   >
     <div class="left-tree">
-      <!-- <div class="tree-header">
-        <el-icon class="header-icon"><Histogram /></el-icon>
-        <span class="header-title">{{ title }}</span>
-      </div> -->
-      <div class="head-container mb10">
-        <el-input
+      <!-- 头部：第一行标题 + 刷新/收缩，第二行搜索框独占一行 -->
+      <div class="tree-header">
+        <span
+          class="header-title"
+          :class="{ 'is-active': selectedAll }"
+          @click="handleSelectAll"
+        >
+          <FolderOpenOutlined class="header-icon" />
+          <span class="header-text">{{ title }}</span>
+        </span>
+        <span class="header-actions">
+          <a-tooltip title="刷新目录">
+            <a-button type="text" size="small" class="header-btn" @click="handleRefresh">
+              <ReloadOutlined />
+            </a-button>
+          </a-tooltip>
+          <a-tooltip title="收起目录">
+            <a-button type="text" size="small" class="header-btn" @click="toggleCollapse">
+              <MenuFoldOutlined />
+            </a-button>
+          </a-tooltip>
+        </span>
+      </div>
+      <div class="tree-search">
+        <a-input
           class="filter-tree"
-          size="large"
-          v-model="deptName"
+          size="small"
+          v-model:value="deptName"
           :placeholder="placeholder"
-          clearable
-          prefix-icon="Search"
-        />
+          allow-clear
+        >
+          <template #prefix><SearchOutlined /></template>
+        </a-input>
       </div>
       <div class="head-container">
-        <el-tree
+        <a-tree
           class="dept-tree"
-          :data="processedData"
-          :props="{ label: 'name', children: 'children' }"
-          :filter-node-method="filterNode"
+          :tree-data="displayData"
+          :field-names="{ title: 'name', children: 'children', key: 'id' }"
           ref="deptTreeRef"
-          node-key="id"
-          highlight-current
-          :default-expanded-keys="expandedKeys"
-          @node-click="handleNodeClick"
-          @node-expand="handleNodeExpand"
-          @node-collapse="handleNodeCollapse"
-          :default-expand-all="defaultExpand"
+          :selected-keys="selectedKeys"
+          :expanded-keys="expandedKeys"
+          @select="handleTreeSelect"
+          @expand="handleTreeExpand"
         >
-          <template #default="{ node, data }">
+          <template #title="{ data, selected }">
             <span class="custom-tree-node">
-              <!-- 第一级 -->
-              <el-icon
+              <!-- 有子节点：文件夹图标 -->
+              <FolderOpenOutlined
                 class="iconimg colorxz"
-                v-if="node.expanded && node.level === 1"
-              >
-                <FolderOpened />
-              </el-icon>
-              <el-icon
+                v-if="isExpanded(data) && data.children && data.children.length"
+              />
+              <FolderOutlined
                 class="iconimg colorxz"
-                v-if="!node.expanded && node.level === 1"
-              >
-                <Folder />
-              </el-icon>
-
-              <!-- 有子节点的所有层级 -->
-              <el-icon
-                class="iconimg colorxz"
-                v-if="node.expanded && node.childNodes.length && node.level > 1"
-              >
-                <FolderOpened />
-              </el-icon>
-              <el-icon
-                class="iconimg colorxz"
-                v-if="
-                  !node.expanded && node.childNodes.length && node.level > 1
-                "
-              >
-                <Folder />
-              </el-icon>
+                v-else-if="data.children && data.children.length"
+              />
 
               <!-- 无子节点的节点 -->
-              <el-icon
+              <FileTextOutlined
                 class="zjiconimg colorwxz"
-                v-show="
-                  !node.isCurrent &&
-                  (!node.childNodes.length || node.childNodes.length === 0)
-                "
-              >
-                <Tickets />
-              </el-icon>
-              <el-icon
+                v-show="!selected && (!data.children || data.children.length === 0)"
+              />
+              <FileTextOutlined
                 class="zjiconimg colorxz"
-                v-show="
-                  node.isCurrent &&
-                  (!node.childNodes.length || node.childNodes.length === 0)
-                "
-              >
-                <Tickets />
-              </el-icon>
+                v-show="selected && (!data.children || data.children.length === 0)"
+              />
 
-              <el-tooltip
+              <a-tooltip
                 class="box-item"
-                effect="dark"
-                :content="node.label"
+                :title="data.name"
                 placement="top-start"
-                :disabled="node.label.length < 10"
+                :disabled="!data.name || data.name.length < 10"
               >
-                <span class="treelabel" @click="getNode(node)">
-                  {{ node.label }}
-                </span>
-              </el-tooltip>
+                <span class="treelabel">{{ data.name }}</span>
+              </a-tooltip>
 
               <!-- 操作入口 -->
-              <el-dropdown
+              <a-dropdown
                 v-if="editable"
                 trigger="click"
-                @command="(cmd) => handleCommand(cmd, data)"
-                @visible-change="(v) => handleDropdownVisibleChange(v, data.id)"
+                @openChange="(v) => handleDropdownVisibleChange(v, data.id)"
               >
                 <span
                   class="operation-trigger"
                   :class="{ 'is-active': activeDropdownNodeId === data.id }"
                   @click.stop
                 >
-                  <el-icon class="action-icon">
-                    <MoreFilled />
-                  </el-icon>
+                  <MoreOutlined class="action-icon" />
                 </span>
-                <template #dropdown>
-                  <el-dropdown-menu class="dept-tree-dropdown">
-                    <el-dropdown-item :icon="Plus" command="add"
-                      >新增子级</el-dropdown-item
-                    >
+                <template #overlay>
+                  <a-menu class="dept-tree-dropdown" @click="({ key }) => handleCommand(key, data)">
+                    <a-menu-item :icon="h(PlusOutlined)" key="add">新增子级</a-menu-item>
                     <template v-if="data.id != '0'">
-                      <el-dropdown-item
-                        :icon="CopyDocument"
-                        command="addSibling"
-                        >新增同级</el-dropdown-item
-                      >
-                      <el-dropdown-item :icon="Edit" command="edit"
-                        >编辑</el-dropdown-item
-                      >
-                      <el-dropdown-item
-                        :icon="Delete"
-                        command="delete"
-                        class="delete-item"
-                        >删除</el-dropdown-item
-                      >
+                      <a-menu-item :icon="h(CopyOutlined)" key="addSibling">新增同级</a-menu-item>
+                      <a-menu-item :icon="h(EditOutlined)" key="edit">编辑</a-menu-item>
+                      <a-menu-item :icon="h(DeleteOutlined)" key="delete" class="delete-item">删除</a-menu-item>
                     </template>
-                  </el-dropdown-menu>
+                  </a-menu>
                 </template>
-              </el-dropdown>
+              </a-dropdown>
             </span>
           </template>
-        </el-tree>
+        </a-tree>
       </div>
     </div>
-  </el-aside>
+  </a-layout-sider>
 
   <!-- 拖拽栏 -->
   <div class="resize-bar" @mousedown="startResize">
     <div class="resize-handle-sx">
       <span class="zjsx"></span>
-      <el-icon
+      <RightOutlined
         v-if="leftWidth == 0"
         @click.stop="toggleCollapse"
         class="collapse-icon"
-      >
-        <ArrowRight />
-      </el-icon>
-      <el-icon v-else class="collapse-icon" @click.stop="toggleCollapse">
-        <ArrowLeft />
-      </el-icon>
+      />
+      <LeftOutlined v-else class="collapse-icon" @click.stop="toggleCollapse" />
     </div>
   </div>
   <CatEditDialog ref="catEditDialogRef" @submit="handleCatSubmit" />
@@ -177,22 +143,23 @@ import {
   getCurrentInstance,
   onMounted,
   onUnmounted,
-  nextTick,
+  h,
 } from "vue";
 import {
-  Plus,
-  CopyDocument,
-  Edit,
-  Delete,
-  Operation,
-  MoreFilled,
-  FolderOpened,
-  Folder,
-  Tickets,
-  ArrowRight,
-  ArrowLeft,
-  Histogram,
-} from "@element-plus/icons-vue";
+  SearchOutlined,
+  PlusOutlined,
+  CopyOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  MoreOutlined,
+  FolderOpenOutlined,
+  FolderOutlined,
+  FileTextOutlined,
+  RightOutlined,
+  LeftOutlined,
+  ReloadOutlined,
+  MenuFoldOutlined,
+} from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 const props = defineProps({
@@ -215,7 +182,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: "类目",
+    default: "目录",
   },
   api: {
     type: Object,
@@ -252,6 +219,125 @@ const dialogTreeOptions = computed(() => {
   ];
 });
 
+// ===================== 树数据与展示 =====================
+// 合成根节点（id=0，标题在头部展示，树主体只显示其 children）
+const rootData = computed(() => {
+  const data = processedData.value || [];
+  if (
+    data.length === 1 &&
+    data[0] &&
+    String(data[0].id) === "0" &&
+    Array.isArray(data[0].children)
+  ) {
+    return data[0];
+  }
+  return null;
+});
+
+const headerNode = computed(() => {
+  if (rootData.value) return rootData.value;
+  return { id: "0", name: props.title, children: processedData.value || [] };
+});
+
+// 树主体展示数据：有合成根则展示其 children，否则原样展示
+const displaySource = computed(() => {
+  return rootData.value ? rootData.value.children || [] : processedData.value || [];
+});
+
+// 搜索过滤
+const deptName = ref("");
+const preFilterExpandedKeys = ref(null);
+
+function nodeMatches(node, keyword) {
+  return (node.name || "").indexOf(keyword) !== -1;
+}
+
+function filterTree(nodes, keyword) {
+  const result = [];
+  for (const node of nodes || []) {
+    const children = filterTree(node.children, keyword);
+    if (nodeMatches(node, keyword) || children.length) {
+      result.push({ ...node, children });
+    }
+  }
+  return result;
+}
+
+function collectKeysWithChildren(nodes, acc = []) {
+  for (const node of nodes || []) {
+    if (node.children && node.children.length) {
+      acc.push(node.id);
+      collectKeysWithChildren(node.children, acc);
+    }
+  }
+  return acc;
+}
+
+const displayData = computed(() => {
+  const keyword = (deptName.value || "").trim();
+  if (!keyword) return displaySource.value;
+  return filterTree(displaySource.value, keyword);
+});
+
+watch(deptName, (val) => {
+  const keyword = (val || "").trim();
+  if (keyword) {
+    if (preFilterExpandedKeys.value === null) {
+      preFilterExpandedKeys.value = [...expandedKeys.value];
+    }
+    expandedKeys.value = collectKeysWithChildren(displayData.value);
+  } else if (preFilterExpandedKeys.value !== null) {
+    expandedKeys.value = preFilterExpandedKeys.value;
+    preFilterExpandedKeys.value = null;
+  }
+  emit("update:deptName", val);
+});
+
+// ===================== 选中与展开 =====================
+const deptTreeRef = ref(null);
+const leftWidth = ref(props.leftWidth);
+const expandedKeys = ref([]);
+const selectedKeys = ref([]);
+const currentNodeKey = ref(null);
+const activeDropdownNodeId = ref(null);
+
+const selectedAll = computed(() => String(currentNodeKey.value) === "0");
+
+function isExpanded(data) {
+  return expandedKeys.value.includes(data.id);
+}
+
+function handleTreeExpand(keys) {
+  expandedKeys.value = keys;
+}
+
+function handleTreeSelect(keys, info) {
+  if (!info || !info.selected || !keys.length) return;
+  const node = findNodeByKey(keys[0]);
+  if (!node) return;
+  selectedKeys.value = [node.id];
+  currentNodeKey.value = node.id;
+  emit("node-click", node);
+}
+
+function handleSelectAll() {
+  selectedKeys.value = [];
+  currentNodeKey.value = headerNode.value.id;
+  emit("node-click", headerNode.value);
+}
+
+function findNodeByKey(key, nodes = displaySource.value) {
+  for (const node of nodes || []) {
+    if (String(node.id) === String(key)) return node;
+    if (node.children && node.children.length) {
+      const found = findNodeByKey(key, node.children);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// ===================== 目录增删改（editable） =====================
 function handleNodeAdd(data) {
   if (props.api.add) {
     catEditDialogRef.value.open({
@@ -331,8 +417,9 @@ function handleNodeDelete(data) {
       .then(() => {
         proxy.$modal.msgSuccess("删除成功");
         // 如果删除的是当前选中的节点，清空选中状态
-        if (currentNodeKey.value === data.id) {
+        if (String(currentNodeKey.value) === String(data.id)) {
           currentNodeKey.value = null;
+          selectedKeys.value = [];
           emit("node-click", {});
         }
         getDeptTree();
@@ -367,6 +454,11 @@ function handleCatSubmit(formData) {
   }
 }
 
+function handleDropdownVisibleChange(visible, nodeId) {
+  activeDropdownNodeId.value = visible ? nodeId : null;
+}
+
+// ===================== 数据加载 =====================
 function getDeptTree() {
   if (props.api.list) {
     props.api.list(props.extraParams).then((response) => {
@@ -385,14 +477,18 @@ function getDeptTree() {
       } else if (!expandedKeys.value.some((k) => String(k) === "0")) {
         expandedKeys.value.unshift(0);
       }
-      if (currentNodeKey.value) {
-        nextTick(() => {
-          deptTreeRef.value.setCurrentKey(currentNodeKey.value);
-        });
-      }
     });
   } else if (props.deptOptions && props.deptOptions.length > 0) {
     processedData.value = props.deptOptions;
+  }
+}
+
+function handleRefresh() {
+  if (props.api.list) {
+    getDeptTree();
+  } else {
+    // 无 api 时重新展开首层，给出刷新反馈
+    expandedKeys.value = getIdsByLevel(displaySource.value, 1);
   }
 }
 
@@ -412,7 +508,55 @@ onMounted(() => {
   }
 });
 
-// 高度监听逻辑
+function getIdsByLevel(nodes, level = 2, currentLevel = 1) {
+  let ids = [];
+  if (!nodes || currentLevel > level) return ids;
+
+  for (const node of nodes) {
+    ids.push(node.id);
+    if (node.children && node.children.length > 0) {
+      ids = ids.concat(getIdsByLevel(node.children, level, currentLevel + 1));
+    }
+  }
+  return ids;
+}
+
+watch(
+  () => props.deptOptions,
+  (val) => {
+    if (!props.api.list && Array.isArray(val)) {
+      processedData.value = val;
+    }
+    if (Array.isArray(val) && val.length > 0) {
+      if (
+        val.length === 1 &&
+        val[0] &&
+        String(val[0].id) === "0" &&
+        Array.isArray(val[0].children)
+      ) {
+        expandedKeys.value = props.defaultExpand
+          ? getIdsByLevel(val[0].children, 1)
+          : [val[0].id];
+      } else {
+        expandedKeys.value = getIdsByLevel(val, props.defaultExpand ? 2 : 1);
+      }
+      // 恢复选中节点在树中的高亮
+      if (currentNodeKey.value !== null && findNodeByKey(currentNodeKey.value)) {
+        selectedKeys.value = [currentNodeKey.value];
+      }
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.leftWidth,
+  (val) => {
+    leftWidth.value = val;
+  }
+);
+
+// ===================== 高度监听 =====================
 const getQtWrapHeight = () => {
   const element = document.querySelector(".qt-wrap");
   if (element) {
@@ -447,84 +591,7 @@ onUnmounted(() => {
   window.removeEventListener("resize", getQtWrapHeight);
 });
 
-const deptName = ref("");
-const deptTreeRef = ref(null);
-const leftWidth = ref(props.leftWidth);
-const expandedKeys = ref([]);
-const currentNodeKey = ref(null);
-const activeDropdownNodeId = ref(null);
-
-function handleDropdownVisibleChange(visible, nodeId) {
-  activeDropdownNodeId.value = visible ? nodeId : null;
-}
-
-function handleNodeExpand(data) {
-  if (!expandedKeys.value.includes(data.id)) {
-    expandedKeys.value.push(data.id);
-  }
-}
-
-function handleNodeCollapse(data) {
-  const index = expandedKeys.value.indexOf(data.id);
-  if (index > -1) {
-    expandedKeys.value.splice(index, 1);
-  }
-}
-
-function getIdsByLevel(nodes, level = 2, currentLevel = 1) {
-  let ids = [];
-  if (!nodes || currentLevel > level) return ids;
-
-  for (const node of nodes) {
-    ids.push(node.id);
-    if (node.children && node.children.length > 0) {
-      ids = ids.concat(getIdsByLevel(node.children, level, currentLevel + 1));
-    }
-  }
-  return ids;
-}
-
-watch(
-  () => props.deptOptions,
-  (val) => {
-    if (!props.api.list && Array.isArray(val)) {
-      processedData.value = val;
-    }
-    if (Array.isArray(val) && val.length > 0) {
-      if (
-        val.length === 1 &&
-        val[0] &&
-        String(val[0].id) === "0" &&
-        Array.isArray(val[0].children)
-      ) {
-        expandedKeys.value = [val[0].id];
-      } else {
-        expandedKeys.value = getIdsByLevel(val, 1);
-      }
-    }
-  },
-  { immediate: true }
-);
-
-const filterNode = (value, data) => {
-  if (!value) return true;
-  return data.name.indexOf(value) !== -1;
-};
-
-watch(deptName, (val) => {
-  if (deptTreeRef.value) {
-    deptTreeRef.value.filter(val);
-  }
-});
-
-watch(
-  () => props.leftWidth,
-  (val) => {
-    leftWidth.value = val;
-  }
-);
-
-// 拖拽逻辑
+// ===================== 拖拽与折叠 =====================
 const isResizing = ref(false);
 let startX = 0;
 const startResize = (event) => {
@@ -547,51 +614,39 @@ const updateResize = (event) => {
   }
 };
 
-// 折叠展开
 const toggleCollapse = () => {
   leftWidth.value = leftWidth.value === 0 ? 300 : 0;
   emit("update:leftWidth", leftWidth.value);
 };
 
-function handleNodeClick(data) {
-  currentNodeKey.value = data.id;
-  emit("node-click", data);
-}
-
-const getNode = (node) => {
-  console.log(node);
-};
-
+// ===================== 对外接口 =====================
 const resetTree = () => {
-  if (deptTreeRef.value) {
-    deptTreeRef.value.setCurrentKey(null);
-  }
+  currentNodeKey.value = null;
+  selectedKeys.value = [];
 };
 
 const setCurrentKey = (key) => {
-  if (deptTreeRef.value) {
-    deptTreeRef.value.setCurrentKey(key);
-    currentNodeKey.value = key;
-  }
+  currentNodeKey.value = key;
+  selectedKeys.value = key === null || key === undefined ? [] : [key];
 };
 
 defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
 </script>
 
 <style scoped lang="scss">
-.left-wrapper {
-  display: flex;
-  height: 100%;
-}
-
 .left-pane {
   background: transparent;
   overflow: hidden;
+  flex-shrink: 0;
+
+  :deep(.ant-layout-sider-children) {
+    width: 100%;
+  }
 }
 
-  .left-tree {
-    height: v-bind(qtWrapheight);
-    padding: 15px 15px 1px 15px;
+.left-tree {
+  height: v-bind(qtWrapheight);
+  padding: 12px;
   background: #ffffff;
   border: 1px solid #e8edf5;
   border-radius: 8px;
@@ -605,35 +660,71 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
 .tree-header {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
-  padding-left: 10px;
-
-  .header-icon {
-    font-size: 20px;
-    color: #409eff;
-    margin-right: 10px;
-    font-weight: bold;
-  }
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
 
   .header-title {
-    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+    font-size: 14px;
     font-weight: 600;
-    color: #333;
-    font-family: PingFang SC;
+    color: #1f2d3d;
+    white-space: nowrap;
+    overflow: hidden;
+
+    .header-icon {
+      font-size: 16px;
+      color: var(--ant-primary-color, #1677ff);
+    }
+
+    .header-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &.is-active {
+      color: var(--ant-primary-color, #1677ff);
+    }
+  }
+
+  .header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+
+    .header-btn {
+      flex-shrink: 0;
+      color: #7f8da3;
+
+      &:hover {
+        color: var(--ant-primary-color, #1677ff);
+      }
+    }
   }
 }
 
-.el-aside {
-  padding: 2px 0;
-  margin-bottom: 0px;
-  background: transparent;
+.tree-search {
+  margin-bottom: 10px;
+
+  .filter-tree {
+    width: 100%;
+  }
+}
+
+.head-container {
+  overflow: auto;
 }
 
 .custom-tree-node {
   width: 100%;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding-right: 6px;
   overflow: hidden;
   min-width: 0;
 
@@ -680,7 +771,7 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
 }
 
 .colorxz {
-  color: var(--el-color-primary);
+  color: var(--ant-primary-color, #1677ff);
 }
 
 .colorwxz {
@@ -692,7 +783,7 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
 }
 
 .resize-bar {
-  height: v-bind(qtWrapheight); /* 使用 CSS 变量绑定高度 */
+  height: v-bind(qtWrapheight);
   cursor: ew-resize;
   background: transparent;
   display: flex;
@@ -732,40 +823,51 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
   box-shadow: 0 4px 12px rgba(31, 45, 61, 0.08);
 
   &:hover {
-    color: var(--el-color-primary);
+    color: var(--ant-primary-color, #1677ff);
     border-color: #c9dcff;
   }
 }
 
-:deep(.filter-tree .el-input__wrapper) {
-  min-height: 34px;
-  border-radius: 6px;
-  background: #f8fafc;
-  box-shadow: 0 0 0 1px #e2e8f0 inset;
+:deep(.filter-tree) {
+  .ant-input-affix-wrapper {
+    border-radius: 6px;
+    background: #f8fafc;
+  }
 }
 
 :deep(.dept-tree) {
-  --el-tree-node-hover-bg-color: #f6faff;
   background: transparent;
   color: #3f4a5a;
 
-  .el-tree-node__content {
-    height: 34px;
-    border-radius: 6px;
-    margin: 2px 0;
-    transition: background-color 0.16s ease, color 0.16s ease;
+  .ant-tree-treenode {
+    padding: 2px 0;
+    width: 100%;
   }
 
-  &.el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content {
-    background: #eef5ff;
+  .ant-tree-node-content-wrapper {
+    flex: 1;
+    min-width: 0;
+    border-radius: 6px;
+    line-height: 30px;
+    transition: background-color 0.16s ease, color 0.16s ease;
 
-    .custom-tree-node .treelabel {
-      color: var(--el-color-primary);
+    &:hover {
+      background: #f6faff;
+    }
+
+    &.ant-tree-node-selected {
+      background: #eef5ff;
+
+      .custom-tree-node .treelabel {
+        color: var(--ant-primary-color, #1677ff);
+        font-weight: 500;
+      }
     }
   }
 
-  .el-tree-node__expand-icon {
+  .ant-tree-switcher {
     color: #9aa8ba;
+    line-height: 30px;
   }
 }
 </style>
@@ -777,7 +879,7 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
   padding: 4px 0 !important;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
 
-  .el-dropdown-menu__item {
+  .ant-dropdown-menu-item {
     color: #606266 !important;
     font-size: 14px !important;
     padding: 8px 16px !important;
@@ -799,14 +901,9 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
       }
     }
 
-    .el-icon {
+    .anticon {
       margin-right: 8px;
     }
-  }
-
-  .el-popper__arrow::before {
-    background-color: #ffffff !important;
-    border: 1px solid #ebeef5 !important;
   }
 }
 </style>

@@ -1,8 +1,8 @@
 ﻿<template>
   <div class="basicInfo">
-    <el-descriptions title="" :column="2" border>
-      <el-descriptions-item v-for="(item, index) in fileDesc" :key="index" label-class-name="base-label"
-        :span="item.span" class-name="base-content">
+    <a-descriptions title="" :column="2" bordered>
+      <a-descriptions-item v-for="(item, index) in fileDesc" :key="index" :label-style="{ width: '200px' }"
+        :span="item.span">
         <template #label>
           <div class="cell-item">{{ item.label }}</div>
         </template>
@@ -16,8 +16,8 @@
           <dict-tag :options="auth_public" :value="clientDetail.publicFlag" />
         </div>
         <div v-else>{{ getDescValue(item) }}</div>
-      </el-descriptions-item>
-    </el-descriptions>
+      </a-descriptions-item>
+    </a-descriptions>
   </div>
 </template>
 <script setup name="BasicInfo">

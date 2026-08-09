@@ -1,94 +1,92 @@
 <template>
   <div class="app-container" ref="app-container">
-    <el-container style="90%">
+    <a-layout style="90%">
       <DeptTree
         :deptOptions="deptOptions"
         :leftWidth="leftWidth"
-        :placeholder="'请输入标准类目'"
+        :placeholder="'请输入标准目录'"
         @node-click="handleNodeClick"
       />
-      <el-main>
+      <a-layout-content>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form
+          <a-form
             class="btn-style"
             :model="queryParams"
             ref="queryRef"
-            :inline="true"
-            label-width="75px"
+            layout="inline"
+            :label-col="{ style: { width: '75px' } }"
             v-show="showSearch"
             @submit.prevent
           >
-            <el-form-item label="标准号" prop="code">
-              <el-input
+            <a-form-item label="标准号" name="code">
+              <a-input
                 class="el-form-input-width"
-                v-model="queryParams.code"
+                v-model:value="queryParams.code"
                 placeholder="请输入标准号"
-                clearable
-                @keyup.enter="handleQuery"
+                allow-clear
+                @pressEnter="handleQuery"
               />
-            </el-form-item>
-            <el-form-item label="标准名称" prop="name">
-              <el-input
+            </a-form-item>
+            <a-form-item label="标准名称" name="name">
+              <a-input
                 class="el-form-input-width"
-                v-model="queryParams.name"
+                v-model:value="queryParams.name"
                 placeholder="请输入标准名称"
-                clearable
-                @keyup.enter="handleQuery"
+                allow-clear
+                @pressEnter="handleQuery"
               />
-            </el-form-item>
-            <el-form-item label="标准级别" prop="stdLevel">
-              <el-select
+            </a-form-item>
+            <a-form-item label="标准级别" name="stdLevel">
+              <a-select
                 class="el-form-input-width"
-                v-model="queryParams.stdLevel"
+                v-model:value="queryParams.stdLevel"
                 placeholder="请选择标准级别"
-                clearable
+                allow-clear
               >
-                <el-option label="国家标准" value="国家标准" />
-                <el-option label="行业标准" value="行业标准" />
-                <el-option label="地方标准" value="地方标准" />
-                <el-option label="团体标准" value="团体标准" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="标准状态" prop="status">
-              <el-select
+                <a-select-option label="国家标准" value="国家标准" />
+                <a-select-option label="行业标准" value="行业标准" />
+                <a-select-option label="地方标准" value="地方标准" />
+                <a-select-option label="团体标准" value="团体标准" />
+              </a-select>
+            </a-form-item>
+            <a-form-item label="标准状态" name="status">
+              <a-select
                 class="el-form-input-width"
-                v-model="queryParams.status"
+                v-model:value="queryParams.status"
                 placeholder="请选择标准状态"
               >
-                <el-option
+                <a-select-option
                   v-for="dict in dp_document_status"
                   :key="dict.value"
                   :label="dict.label"
                   :value="dict.value"
-                ></el-option>
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button
-                plain
+                >{{ dict.label }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item>
+              <a-button
                 type="primary"
                 @click="handleQuery"
                 @mousedown="(e) => e.preventDefault()"
               >
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-              </el-button>
-              <el-button
+              </a-button>
+              <a-button
                 @click="resetQuery"
                 @mousedown="(e) => e.preventDefault()"
               >
                 <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-              </el-button>
-            </el-form-item>
-          </el-form>
+              </a-button>
+            </a-form-item>
+          </a-form>
           <div class="data-action-btns">
-            <el-button
+            <a-button
               type="primary"
-              plain
               @click="handleAdd"
               @mousedown="(e) => e.preventDefault()"
             >
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
+            </a-button>
           </div>
           <div class="top-right-btn">
             <right-toolbar
@@ -99,197 +97,101 @@
           </div>
         </div>
         <div style="flex: 1; overflow-y: auto; min-height: 0;">
-          <el-table
-            stripe
-            v-loading="loading"
-            :data="dpDataElemList"
-            @selection-change="handleSelectionChange"
-            :default-sort="defaultSort"
-            @sort-change="handleSortChange"
-          >
-            <el-table-column
-              v-if="getColumnVisibility(0)"
-              label="编号"
-              align="left"
-              prop="id"
-              width="60"
-              sortable
-            />
-            <el-table-column
-              v-if="getColumnVisibility(1)"
-              label="标准号"
-              :show-overflow-tooltip="{ effect: 'light' }"
-              align="left"
-              prop="code"
+          <a-spin :spinning="loading">
+            <a-table
+              :data-source="dpDataElemList"
+              :columns="tableColumns"
+              :pagination="false"
+              striped
+              :scroll="{ y: '60vh' }"
+              :row-selection="{ type: 'checkbox', onChange: handleSelectionChange }"
+              row-key="id"
+              :locale="{ emptyText: emptyContent }"
+              @change="handleSortChange"
             >
-              <template #default="scope">
-                {{ scope.row.code || "-" }}
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.dataIndex === 'code'">
+                  {{ record.code || '-' }}
+                </template>
+                <template v-else-if="column.dataIndex === 'name'">
+                  {{ record.name || '-' }}
+                </template>
+                <template v-else-if="column.dataIndex === 'stdLevel'">
+                  <a-tag :type="getLevelTagType(record.stdLevel)" size="small">
+                    {{ record.stdLevel || '-' }}
+                  </a-tag>
+                </template>
+                <template v-else-if="column.dataIndex === 'description'">
+                  {{ record.description || '-' }}
+                </template>
+                <template v-else-if="column.dataIndex === 'catName'">
+                  {{ record.catName || '-' }}
+                </template>
+                <template v-else-if="column.dataIndex === 'createBy'">
+                  {{ record.createBy || '-' }}
+                </template>
+                <template v-else-if="column.dataIndex === 'createTime'">
+                  <span>{{
+                    parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
+                  }}</span>
+                </template>
+                <template v-else-if="column.dataIndex === 'status'">
+                  <dict-tag
+                    :options="dp_document_status"
+                    :value="record.status"
+                  />
+                </template>
+                <template v-else-if="column.dataIndex === 'remark'">
+                  {{ record.remark || '-' }}
+                </template>
+                <template v-else-if="column.key === 'actions'">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="handleUpdate(record)"
+                    >修改</a-button
+                  >
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="handleDetail(record)"
+                    >详情</a-button
+                  >
+                  <a-popover trigger="click" placement="bottom">
+                    <template #content>
+                      <div style="width: 100px" class="butgdlist">
+                        <a-button
+                          type="link"
+                          size="small"
+                          @click="handleFilePreview(record.fileUrl)"
+                          :disabled="!record.fileUrl"
+                          >预览</a-button
+                        >
+                        <a-button
+                          type="link"
+                          size="small"
+                          @click="handleDownload(record)"
+                          :disabled="!record.fileUrl"
+                          >下载</a-button
+                        >
+                        <a-button
+                          type="link"
+                          danger
+                          size="small"
+                          @click="handleDelete(record)"
+                          >删除</a-button
+                        >
+                      </div>
+                    </template>
+                    <a-button type="link" size="small">更多</a-button>
+                  </a-popover>
+                </template>
+                <template v-else>
+                  <span>{{ record[column.dataIndex] || '-' }}</span>
+                </template>
               </template>
-            </el-table-column>
-            <el-table-column
-              v-if="getColumnVisibility(2)"
-              label="标准名称"
-              :show-overflow-tooltip="{ effect: 'light' }"
-              align="left"
-              prop="name"
-            >
-              <template #default="scope">
-                {{ scope.row.name || "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-if="getColumnVisibility(8)"
-              label="标准级别"
-              align="left"
-              prop="stdLevel"
-              width="100"
-            >
-              <template #default="scope">
-                <el-tag
-                  :type="getLevelTagType(scope.row.stdLevel)"
-                  size="small"
-                >
-                  {{ scope.row.stdLevel || "-" }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-if="getColumnVisibility(7)"
-              width="240"
-              label="描述"
-              align="left"
-              prop="description"
-              :show-overflow-tooltip="{ effect: 'light' }"
-            >
-              <template #default="scope">
-                {{ scope.row.description || "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-if="getColumnVisibility(4)"
-              label="标准类目"
-              :show-overflow-tooltip="{ effect: 'light' }"
-              align="left"
-              prop="catCode"
-            >
-              <template #default="scope">
-                {{ scope.row.catName || "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-if="getColumnVisibility(10)"
-              label="创建人"
-              :show-overflow-tooltip="{ effect: 'light' }"
-              align="left"
-              prop="createBy"
-            >
-              <template #default="scope">
-                {{ scope.row.createBy || "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-if="getColumnVisibility(11)"
-              label="创建时间"
-              align="left"
-              prop="createTime"
-              width="150"
-              sortable
-            >
-              <template #default="scope">
-                <span>{{
-                  parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
-                }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column
-              v-if="getColumnVisibility(3)"
-              label="标准状态"
-              align="left"
-              prop="status"
-            >
-              <template #default="scope">
-                <dict-tag
-                  :options="dp_document_status"
-                  :value="scope.row.status"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column
-              label="备注"
-              align="left"
-              prop="remark"
-              :show-overflow-tooltip="{ effect: 'light' }"
-              v-if="getColumnVisibility(15)"
-            >
-              <template #default="scope">
-                {{ scope.row.remark || "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column
-              label="操作"
-              align="center"
-              class-name="small-padding fixed-width"
-              fixed="right"
-              width="200"
-            >
-              <template #default="scope">
-                <el-button
-                  link
-                  type="primary"
-                  icon="Edit"
-                  @click="handleUpdate(scope.row)"
-                  >修改
-                </el-button>
-                <el-button
-                  link
-                  type="primary"
-                  icon="view"
-                  @click="handleDetail(scope.row)"
-                  >详情
-                </el-button>
-                <el-popover placement="bottom" :width="150" trigger="click">
-                  <template #reference>
-                    <el-button link type="primary" icon="ArrowDown"
-                      >更多</el-button
-                    >
-                  </template>
-                  <div style="width: 100px" class="butgdlist">
-                    <el-button
-                      link
-                      style="padding-left: 14px"
-                      type="primary"
-                      icon="View"
-                      @click="handleFilePreview(scope.row.fileUrl)"
-                      :disabled="!scope.row.fileUrl"
-                      >预览</el-button
-                    >
-                    <el-button
-                      link
-                      type="primary"
-                      icon="Download"
-                      :disabled="!scope.row.fileUrl"
-                      @click="handleDownload(scope.row)"
-                      >下载</el-button
-                    >
-                    <el-button
-                      link
-                      type="danger"
-                      icon="Delete"
-                      @click="handleDelete(scope.row)"
-                      >删除
-                    </el-button>
-                  </div>
-                </el-popover>
-              </template>
-            </el-table-column>
-
-            <template #empty>
-              <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-              </div>
-            </template>
-          </el-table>
+            </a-table>
+          </a-spin>
         </div>
 
           <pagination
@@ -299,14 +201,15 @@
             v-model:limit="queryParams.pageSize"
             @pagination="getList"
           />
-      </el-main>
-    </el-container>
+      </a-layout-content>
+    </a-layout>
     <!-- 标准弹窗 -->
     <StandardModal ref="standardModalRef" @update-success="handleQuery" />
   </div>
 </template>
 
 <script setup name="DocumentList">
+import { h } from "vue";
 import DeptTree from "@/components/DeptTree";
 import {
   listDpDocument,
@@ -317,7 +220,6 @@ import {
 } from "@/api/std/document/document";
 import StandardModal from "../components/add";
 import handleFilePreview from "@/utils/filePreview.js";
-import { deptUserTree } from "@/api/system/system/user.js";
 
 import { getToken } from "@/utils/auth.js";
 const { proxy } = getCurrentInstance();
@@ -337,21 +239,40 @@ const columns = ref([
   { key: 2, label: "标准名称", visible: true },
   { key: 8, label: "标准级别", visible: true },
   { key: 7, label: "描述", visible: true },
-  { key: 4, label: "标准类目", visible: true },
+  { key: 4, label: "标准目录", visible: true },
   { key: 10, label: "创建人", visible: true },
   { key: 11, label: "创建时间", visible: true },
   { key: 3, label: "标准状态", visible: true },
   { key: 15, label: "备注", visible: true },
 ]);
 
+const tableColumns = [
+  { title: "编号", dataIndex: "id", align: "left", width: 60, sorter: true },
+  { title: "标准号", dataIndex: "code", align: "left", ellipsis: true },
+  { title: "标准名称", dataIndex: "name", align: "left", ellipsis: true },
+  { title: "标准级别", dataIndex: "stdLevel", align: "left", width: 100 },
+  { title: "描述", dataIndex: "description", align: "left", width: 240, ellipsis: true },
+  { title: "标准目录", dataIndex: "catName", align: "left", ellipsis: true },
+  { title: "创建人", dataIndex: "createBy", align: "left", ellipsis: true },
+  { title: "创建时间", dataIndex: "createTime", align: "left", width: 150, sorter: true },
+  { title: "标准状态", dataIndex: "status", align: "left" },
+  { title: "备注", dataIndex: "remark", align: "left", ellipsis: true },
+  { title: "操作", key: "actions", align: "center", fixed: "right", width: 200 },
+];
+
+const emptyContent = h("div", { class: "emptyBg" }, [
+  h("img", { src: new URL("@/assets/system/images/no_data/noData.png", import.meta.url).href, alt: "" }),
+  h("p", "暂无记录"),
+]);
+
 function getLevelTagType(level) {
   const map = {
-    "国家标准": "danger",
+    "国家标准": "error",
     "行业标准": "warning",
-    "地方标准": "",
-    "团体标准": "info",
+    "地方标准": "default",
+    "团体标准": "default",
   };
-  return map[level] || "";
+  return map[level] || "default";
 }
 
 function handleDownload(row) {
@@ -396,7 +317,6 @@ const data = reactive({
 });
 
 const { queryParams, form, rules } = toRefs(data);
-const managerOptions = ref([]);
 
 function getList() {
   loading.value = true;
@@ -454,16 +374,23 @@ function resetQuery() {
   handleQuery();
 }
 
-function handleSelectionChange(selection) {
-  ids.value = selection.map((item) => item.id);
-  single.value = selection.length != 1;
-  multiple.value = !selection.length;
+function handleSelectionChange(selectedRowKeys, selectedRows) {
+  ids.value = selectedRows.map((item) => item.id);
+  single.value = selectedRows.length != 1;
+  multiple.value = !selectedRows.length;
 }
 
-function handleSortChange(column, prop, order) {
+function handleSortChange(pag, filters, sorter) {
+  const prop = sorter.field || sorter.column?.dataIndex;
+  const order =
+    sorter.order === "ascend"
+      ? "ascending"
+      : sorter.order === "descend"
+        ? "descending"
+        : null;
   queryParams.value.orderByColumn =
-    column.prop == "createTime" ? "create_time" : column.prop;
-  queryParams.value.isAsc = column.order;
+    prop == "createTime" ? "create_time" : prop;
+  queryParams.value.isAsc = order;
   getList();
 }
 
@@ -472,7 +399,7 @@ function getDeptTree() {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "标准类目",
+        name: "标准目录",
         value: "",
         id: 0,
         children: deptOptions.value,
@@ -531,22 +458,27 @@ getList();
   margin: 13px 15px;
 }
 
-.el-main {
+.ant-layout-content {
   padding: 2px 0px;
   overflow: hidden;
 }
 
 .pagecont-top {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px;
 
   .data-action-btns {
-    margin-left: 10px;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
   .top-right-btn {
-    margin-left: auto;
+    flex-shrink: 0;
   }
 }
 

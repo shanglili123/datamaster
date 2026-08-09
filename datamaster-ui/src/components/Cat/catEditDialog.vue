@@ -1,102 +1,98 @@
 <template>
-  <el-dialog
-    v-model="visible"
+  <a-modal
+    v-model:open="visible"
     :title="title"
     width="800px"
-    draggable
     destroy-on-close
   >
-    <el-form
+    <a-form
       ref="formRef"
       :model="form"
       :rules="currentRules"
-      label-width="140px"
+      :label-col="{ style: { width: '140px' } }"
       @submit.prevent
     >
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="上级类目" prop="parentId">
-            <el-tree-select
-              filterable
-              v-model="form.parentId"
-              :data="treeOptions"
-              :props="{ value: 'id', label: 'name', children: 'children' }"
-              value-key="id"
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="上级目录" name="parentId">
+            <a-tree-select
+              show-search
+              v-model:value="form.parentId"
+              :tree-data="treeOptions"
+              :field-names="{ value: 'id', label: 'name', children: 'children' }"
               placeholder="请选择上级"
-              check-strictly
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item :label="effectiveNameLabel" prop="name">
-            <el-input
-              v-model="form.name"
+          </a-form-item>
+        </a-col>
+        <a-col :span="24">
+          <a-form-item :label="effectiveNameLabel" name="name">
+            <a-input
+              v-model:value="form.name"
               :placeholder="effectiveNamePlaceholder"
             />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-col :span="24">
-        <el-form-item label="状态" prop="validFlag">
-          <el-radio v-model="form.validFlag" :label="true">启用</el-radio>
-          <el-radio v-model="form.validFlag" :label="false">禁用</el-radio>
-        </el-form-item>
-      </el-col>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="排序" prop="sortOrder">
-            <el-input-number
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-col :span="24">
+        <a-form-item label="状态" name="validFlag">
+          <a-radio-group v-model:value="form.validFlag">
+            <a-radio :value="true">启用</a-radio>
+            <a-radio :value="false">禁用</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="排序" name="sortOrder">
+            <a-input-number
               style="width: 100%"
-              v-model="form.sortOrder"
-              controls-position="right"
+              v-model:value="form.sortOrder"
               :min="0"
             />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述" prop="description">
-            <el-input
-              type="textarea"
-              maxlength="500个字符"
-              show-word-limit
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述" name="description">
+            <a-textarea
+              :maxlength="500"
+              show-count
               placeholder="请输入描述"
-              v-model="form.description"
-              :min-height="192"
+              v-model:value="form.description"
+              style="min-height: 192px"
             />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input
-              type="textarea"
-              maxlength="500个字符"
-              show-word-limit
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="备注" name="remark">
+            <a-textarea
+              :maxlength="500"
+              show-count
               placeholder="请输入备注"
-              v-model="form.remark"
-              :min-height="192"
+              v-model:value="form.remark"
+              style="min-height: 192px"
             />
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </a-form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="onCancel">取 消</el-button>
-        <el-button type="primary" @click="onSubmit">确 定</el-button>
+        <a-button @click="onCancel">取 消</a-button>
+        <a-button type="primary" @click="onSubmit">确 定</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
 /**
  * CatEditDialog 组件使用说明
  *
- * 该组件用于类目（Category）的编辑和新增操作。
+ * 该组件用于目录（Category）的编辑和新增操作。
  * 不再使用 props 传递数据，而是通过 expose 出的 open 方法进行调用。
  *
  * 使用方法：
@@ -108,9 +104,9 @@
  *
  * 3. 调用 open 方法打开弹窗：
  *    catEditDialogRef.value.open({
- *      title: "新增类目",          // 弹窗标题
- *      nameLabel: "类目名称",      // 名称字段的 label
- *      treeOptions: [...],        // 上级类目树形数据
+ *      title: "新增目录",          // 弹窗标题
+ *      nameLabel: "目录名称",      // 名称字段的 label
+ *      treeOptions: [...],        // 上级目录树形数据
  *      form: { ... },             // 表单初始数据（如果是修改，传入当前行数据；如果是新增，传入默认值或部分预设值）
  *      rules: { ... }             // (可选) 表单校验规则，如果不传则使用默认规则
  *    });
@@ -132,7 +128,7 @@ const formRef = ref();
 
 // 组件内部状态
 const title = ref("");
-const nameLabel = ref("类目名称");
+const nameLabel = ref("目录名称");
 const treeOptions = ref([]);
 const customRules = ref(null);
 
@@ -154,7 +150,7 @@ const effectiveNamePlaceholder = computed(() => `请输入${nameLabel.value}`);
 // 默认校验规则
 const defaultRules = {
   name: [{ required: true, message: "名称不能为空", trigger: "blur" }],
-  parentId: [{ required: true, message: "上级类目不能为空", trigger: "blur" }],
+  parentId: [{ required: true, message: "上级目录不能为空", trigger: "blur" }],
   code: [{ required: true, message: "编码不能为空", trigger: "blur" }],
 };
 
@@ -177,7 +173,7 @@ const currentRules = computed(() => {
  */
 const open = (options = {}) => {
   title.value = options.title || "编辑";
-  nameLabel.value = "类目名称";
+  nameLabel.value = "目录名称";
   treeOptions.value = options.treeOptions || [];
   customRules.value = options.rules || null;
 

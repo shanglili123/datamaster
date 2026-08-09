@@ -47,7 +47,7 @@ export function delAttAuditRule(id) {
 // tree
 export function treeAttAuditRule(params) {
   return request({
-    url: '/tax/attAuditRule/tree',
+    url: '/tax/auditRule/tree',
     method: 'get',
     params
   })

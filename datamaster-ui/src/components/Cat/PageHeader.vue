@@ -3,55 +3,53 @@
 
     <!-- 左侧：搜索区域 -->
     <div class="search-section" style="flex-shrink: 0;">
-      <el-form
+      <a-form
         :model="queryParams"
         ref="queryRef"
-        :inline="true"
+        :layout="'inline'"
         v-show="showSearch"
-        label-width="125px"
+        :label-col="{ style: { width: '125px' } }"
       >
         <!-- 核心：使用默认插槽，让父页面自定义具体的搜索项 -->
         <slot name="searchForm"></slot>
 
         <!-- 固定的查询/重置按钮 -->
-        <el-form-item>
-          <el-button plain type="primary" @click="handleQuery">
+        <a-form-item>
+          <a-button type="primary" @click="handleQuery">
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="handleReset">
+          </a-button>
+          <a-button @click="handleReset">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </a-button>
+        </a-form-item>
+      </a-form>
     </div>
 
     <!-- 右侧：操作按钮组 -->
     <div class="actions-section" style="display: flex; gap: 10px; align-items: center;">
 
       <!-- 新增按钮：通过 prop 控制权限和显示 -->
-      <el-button
+      <a-button
         v-if="showAddBtn"
         type="primary"
-        plain
-        icon="Plus"
+        :icon="h(PlusOutlined)"
         @click="handleAdd"
         v-hasPermi="addPermission"
       >
         新增
-      </el-button>
+      </a-button>
 
       <!-- 展开/折叠按钮：通过 prop 控制显示 -->
-      <el-button
+      <a-button
         v-if="showToggleBtn"
         class="toggle-expand-all"
         type="primary"
-        plain
         @click="handleToggle"
       >
         <svg-icon v-if="isExpandAll" icon-class="toggle" />
         <svg-icon v-else icon-class="expand" />
         <span>{{ isExpandAll ? "折叠" : "展开" }}</span>
-      </el-button>
+      </a-button>
 
       <!-- 工具栏：通常每个页面都需要，直接放置 -->
       <right-toolbar :showSearch="showSearch" @update:showSearch="$emit('update:showSearch', $event)" @queryTable="emitQuery"></right-toolbar>
@@ -61,7 +59,8 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, h } from 'vue';
+import { PlusOutlined } from '@ant-design/icons-vue';
 
 const props = defineProps({
   // 查询参数对象，用于重置时清空
@@ -128,5 +127,10 @@ const emitQuery = () => {
 /* 如果需要额外的样式调整可以在这里添加 */
 .page-header-wrapper {
   min-height: 32px; /* 防止高度塌陷 */
+}
+
+/* flex + gap 已控制按钮间距，覆盖全局 .ant-btn + .ant-btn 的 margin-left */
+.actions-section :deep(.ant-btn + .ant-btn) {
+  margin-left: 0;
 }
 </style>

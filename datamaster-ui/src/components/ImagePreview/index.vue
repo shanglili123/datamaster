@@ -1,21 +1,21 @@
 ﻿<template>
-  <el-image
+  <a-image
     :src="`${realSrc}`"
     fit="cover"
-    :style="`width:${realWidth};height:${realHeight};`"
-    :preview-src-list="realSrcList"
-    preview-teleported
+    :style="{ width: realWidth, height: realHeight }"
+    :preview="{ src: realSrc }"
   >
-    <template #error>
+    <template #placeholder>
       <div class="image-slot">
-        <el-icon><picture-filled /></el-icon>
+        <PictureFilled />
       </div>
     </template>
-  </el-image>
+  </a-image>
 </template>
 
 <script setup>
 import { isExternal } from "@/utils/validate";
+import { PictureFilled } from "@ant-design/icons-vue";
 
 const props = defineProps({
   src: {
@@ -68,11 +68,11 @@ const realHeight = computed(() =>
 </script>
 
 <style lang="scss" scoped>
-.el-image {
+.ant-image {
   border-radius: 5px;
   background-color: #ebeef5;
   box-shadow: 0 0 5px 1px #ccc;
-  :deep(.el-image__inner) {
+  :deep(.ant-image-img) {
     transition: all 0.3s;
     cursor: pointer;
     &:hover {

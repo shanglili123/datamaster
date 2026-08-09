@@ -1,81 +1,61 @@
 <template>
   <div ref="app-container">
     <div class="justify-between mb15">
-      <el-row :gutter="15" class="btn-style">
-        <el-col :span="1.5">
-          <el-button type="primary" plain @click="handleAdd" @mousedown="(e) => e.preventDefault()">
+      <a-row :gutter="15" class="btn-style">
+        <a-col :span="1.5">
+          <a-button type="primary" @click="handleAdd" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-          </el-button>
-        </el-col>
-      </el-row>
+          </a-button>
+        </a-col>
+      </a-row>
     </div>
-    <el-table stripe v-loading="loading" :data="clientApiRelList" @selection-change="handleSelectionChange"
-      :default-sort="defaultSort" @sort-change="handleSortChange">
-      <el-table-column label="编号" type="index" align="center" width="75" :show-overflow-tooltip="{ effect: 'light' }" />
-      <el-table-column label="API编码" align="center" prop="apiId" :show-overflow-tooltip="{ effect: 'light' }" />
-      <el-table-column label="API名称" align="center" prop="apiName" :show-overflow-tooltip="{ effect: 'light' }"
-        width="150">
-        <template #default="scope">
-          {{ scope.row.apiName || "-" }}
+    <a-table stripe :loading="loading" :data-source="clientApiRelList" :columns="tableColumns"
+      :default-sort="defaultSort" @change="handleTableChange">
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'apiName'">
+          {{ record.apiName || "-" }}
         </template>
-      </el-table-column>
-      <el-table-column label="路径" align="center" prop="apiUrl" :show-overflow-tooltip="{ effect: 'light' }" width="150">
-        <template #default="scope">
-          {{ scope.row.apiUrl || "-" }}
+        <template v-else-if="column.dataIndex === 'apiUrl'">
+          {{ record.apiUrl || "-" }}
         </template>
-      </el-table-column>
-      <el-table-column label="请求方式" align="center" prop="reqMethod" :show-overflow-tooltip="{ effect: 'light' }">
-        <template #default="scope">
-          <dict-tag :options="ds_api_bas_info_api_method_type" :value="scope.row.reqMethod" />
+        <template v-else-if="column.dataIndex === 'reqMethod'">
+          <dict-tag :options="ds_api_bas_info_api_method_type" :value="record.reqMethod" />
         </template>
-      </el-table-column>
-      <el-table-column label="有效期" align="center" prop="startTime" width="260"
-        :show-overflow-tooltip="{ effect: 'light' }">
-        <template #default="scope">
-          <span v-if="scope.row.pvFlag == 1">永久</span>
+        <template v-else-if="column.dataIndex === 'startTime'">
+          <span v-if="record.pvFlag == 1">永久</span>
           <div v-else>
-            <span>{{ parseTime(scope.row.startTime, "{y}-{m}-{d} ") }}</span>
+            <span>{{ parseTime(record.startTime, "{y}-{m}-{d} ") }}</span>
             <span>- </span>
-            <span>{{ parseTime(scope.row.endTime, "{y}-{m}-{d} ") }}</span>
+            <span>{{ parseTime(record.endTime, "{y}-{m}-{d} ") }}</span>
           </div>
         </template>
-      </el-table-column>
-      <el-table-column label="描述" align="left" prop="description" :show-overflow-tooltip="{ effect: 'light' }"
-        width="250">
-        <template #default="scope">
-          {{ scope.row.description || '-' }}
+        <template v-else-if="column.dataIndex === 'description'">
+          {{ record.description || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="创建人" align="center" prop="createBy" :show-overflow-tooltip="{ effect: 'light' }">
-        <template #default="scope">
-          {{ scope.row.createBy || "-" }}
+        <template v-else-if="column.dataIndex === 'createBy'">
+          {{ record.createBy || "-" }}
         </template>
-      </el-table-column>
-      <el-table-column label="创建时间" align="center" prop="createTime" width="180"
-        :show-overflow-tooltip="{ effect: 'light' }">
-        <template #default="scope">
+        <template v-else-if="column.dataIndex === 'createTime'">
           <span>{{
-            parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}")
+            parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}")
           }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="授权状态" align="center" prop="status" :show-overflow-tooltip="{ effect: 'light' }">
-        <template #default="scope">
-          <el-switch v-model="scope.row.status" active-color="#13ce66" inactive-color="#ff4949" active-value="1"
-            inactive-value="0" @change="(e) => handleStatusChange(scope.row.id, scope.row, e)" />
+        <template v-else-if="column.dataIndex === 'status'">
+          <a-switch v-model:checked="record.status" checked-value="1" un-checked-value="0"
+            @change="(e) => handleStatusChange(record.id, record, e)" />
         </template>
-      </el-table-column>
-      <el-table-column label="备注" align="left" prop="remark" :show-overflow-tooltip="{ effect: 'light' }">
-        <template #default="scope">
-          {{ scope.row.remark || '-' }}
+        <template v-else-if="column.dataIndex === 'remark'">
+          {{ record.remark || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="140">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">修改</el-button>
-          <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+        <template v-else-if="column.key === 'actions'">
+          <a-button type="link" @click="handleUpdate(record)">
+            <template #icon><EditOutlined /></template>修改
+          </a-button>
+          <a-button type="link" danger @click="handleDelete(record)">
+            <template #icon><DeleteOutlined /></template>删除
+          </a-button>
         </template>
-      </el-table-column>
+      </template>
 
       <template #empty>
         <div class="emptyBg">
@@ -83,133 +63,140 @@
           <p>暂无记录</p>
         </div>
       </template>
-    </el-table>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
       v-model:limit="queryParams.pageSize" @pagination="getList" />
   </div>
 
   <!-- 添加或修改应用API服务关联对话框 -->
-  <el-dialog :title="title" v-model="open" class="dialog" :append-to="$refs['app-container']" draggable>
-    <template #header>
-      <span role="heading" aria-level="2" class="el-dialog__title">
-        {{ title }}
-      </span>
-    </template>
-    <el-form ref="clientApiRelRef" :model="form" :rules="rules" label-width="110px" @submit.prevent>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="API服务" prop="apiName">
-            <el-autocomplete :disabled="form.id" v-model="form.apiName" :fetch-suggestions="remoteMethod"
-              placeholder="请输入API服务名称" @select="handleApiIdSelect" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="是否永久有效" prop="pvFlag">
-            <el-radio-group v-model="form.pvFlag" @change="handlePvFlagChange">
-              <el-radio v-for="dict in sys_is_or_not" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12" v-if="form.pvFlag == 0">
-          <el-form-item label="有效期" prop="dateRange">
-            <el-date-picker class="el-form-input-width" v-model="form.dateRange" value-format="YYYY-MM-DD"
-              type="daterange" range-separator="-" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述">
-            <el-input type="textarea" placeholder="请输入描述" v-model="form.description" :min-height="192" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="备注">
-            <el-input type="textarea" placeholder="请输入备注" v-model="form.remark" :min-height="192" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
+  <a-modal :title="title" v-model:open="open" class="dialog">
+    <a-form ref="clientApiRelRef" :model="form" :rules="rules" :label-col="{ style: { width: '110px' } }" @submit.prevent>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="API服务" name="apiName">
+            <a-auto-complete :disabled="form.id" v-model:value="form.apiName" :options="apiOptions"
+              placeholder="请输入API服务名称" :filter-option="false" @search="remoteMethod"
+              @select="(value, option) => handleApiIdSelect(option)" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="是否永久有效" name="pvFlag">
+            <a-radio-group v-model:value="form.pvFlag" @change="handlePvFlagChange">
+              <a-radio v-for="dict in sys_is_or_not" :key="dict.value" :value="dict.value">{{ dict.label }}</a-radio>
+            </a-radio-group>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12" v-if="form.pvFlag == 0">
+          <a-form-item label="有效期" name="dateRange">
+            <a-range-picker class="el-form-input-width" v-model:value="form.dateRange" value-format="YYYY-MM-DD"
+              :placeholder="['开始日期', '结束日期']" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述">
+            <a-textarea placeholder="请输入描述" v-model:value="form.description" :auto-size="{ minRows: 7 }" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="备注">
+            <a-textarea placeholder="请输入备注" v-model:value="form.remark" :auto-size="{ minRows: 7 }" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </a-form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">取 消</el-button>
-        <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+        <a-button size="small" @click="cancel">取 消</a-button>
+        <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 
   <!-- 应用API服务关联详情对话框 -->
-  <el-dialog :title="title" v-model="openDetail" width="800px" :append-to="$refs['app-container']" draggable>
-    <template #header="{ close, titleId, titleClass }">
-      <span role="heading" aria-level="2" class="el-dialog__title">
-        {{ title }}
-      </span>
-    </template>
-    <el-form ref="clientApiRelRef" :model="form" label-width="80px">
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="应用ID" prop="clientId">
+  <a-modal :title="title" v-model:open="openDetail" width="800px">
+    <a-form ref="clientApiRelRef" :model="form" :label-col="{ style: { width: '80px' } }">
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="应用ID" name="clientId">
             <div>
               {{ form.clientId }}
             </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="API服务ID" prop="apiId">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="API服务ID" name="apiId">
             <div>
               {{ form.apiId }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="是否永久有效" prop="pvFlag">
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="是否永久有效" name="pvFlag">
             <dict-tag :options="sys_is_or_not" :value="form.pvFlag" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="开始时间" prop="startTime">
-            <el-date-picker clearable style="width: 100%" v-model="form.startTime" type="date" value-format="YYYY-MM-DD"
-              placeholder="请选择开始时间"> </el-date-picker>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="结束时间" prop="endTime">
-            <el-date-picker clearable style="width: 100%" v-model="form.endTime" type="date" value-format="YYYY-MM-DD"
-              placeholder="请选择结束时间"> </el-date-picker>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="授权状态" prop="status">
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="开始时间" name="startTime">
+            <a-date-picker allow-clear style="width: 100%" v-model:value="form.startTime" value-format="YYYY-MM-DD"
+              placeholder="请选择开始时间" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="结束时间" name="endTime">
+            <a-date-picker allow-clear style="width: 100%" v-model:value="form.endTime" value-format="YYYY-MM-DD"
+              placeholder="请选择结束时间" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="授权状态" name="status">
             <div>
               {{ form.status }}
             </div>
-          </el-form-item>
-        </el-col>
-      </el-row>
+          </a-form-item>
+        </a-col>
+      </a-row>
 
-    </el-form>
+    </a-form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">关 闭</el-button>
+        <a-button size="small" @click="cancel">关 闭</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup name="ClientApiRel">
 import { listClientApiRel, getClientApiRel, delClientApiRel, addClientApiRel, updateClientApiRel } from "@/api/svc/client/clientApiRel";
 import { selectByName } from "@/api/svc/api/api.js";
+import { EditOutlined, DeleteOutlined } from "@ant-design/icons-vue";
 import { status } from "nprogress";
 
 const { proxy } = getCurrentInstance();
 const { sys_is_or_not, ds_api_bas_info_api_method_type } = proxy.useDict("sys_is_or_not", "ds_api_bas_info_api_method_type");
+
+const tableColumns = [
+  { title: '编号', key: 'index', align: 'center', width: 75 },
+  { title: 'API编码', dataIndex: 'apiId', align: 'center', ellipsis: true },
+  { title: 'API名称', dataIndex: 'apiName', align: 'center', width: 150, ellipsis: true },
+  { title: '路径', dataIndex: 'apiUrl', align: 'center', width: 150, ellipsis: true },
+  { title: '请求方式', dataIndex: 'reqMethod', align: 'center', ellipsis: true },
+  { title: '有效期', dataIndex: 'startTime', align: 'center', width: 260, ellipsis: true },
+  { title: '描述', dataIndex: 'description', align: 'left', width: 250, ellipsis: true },
+  { title: '创建人', dataIndex: 'createBy', align: 'center', ellipsis: true },
+  { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180, key: 'createTime', sorter: true, ellipsis: true },
+  { title: '授权状态', dataIndex: 'status', align: 'center', ellipsis: true },
+  { title: '备注', dataIndex: 'remark', align: 'left', ellipsis: true },
+  { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 140 },
+];
 
 const props = defineProps({
   clientDetail: {
@@ -235,7 +222,7 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
-const defaultSort = ref({ prop: "createTime", order: "desc" });
+const defaultSort = ref({ columnKey: "createTime", order: "descend" });
 const router = useRouter();
 
 const data = reactive({
@@ -332,27 +319,28 @@ const handlePvFlagChange = (e) => {
   }
 };
 const apiIdloading = ref(false);
-const handleApiIdSelect = (row) => {
-  form.value.apiId = row.id;
-  form.value.reqMethod = row.reqMethod;
-  form.value.apiUrl = row.apiUrl;
+const apiOptions = ref([]);
+const handleApiIdSelect = (option) => {
+  if (!option) return;
+  form.value.apiId = option.id;
+  form.value.reqMethod = option.reqMethod;
+  form.value.apiUrl = option.apiUrl;
 };
-const remoteMethod = (queryString, cb) => {
+const remoteMethod = (queryString) => {
   apiIdloading.value = true;
   selectByName(queryString || "")
     .then((res) => {
       if (res.code === 200 && Array.isArray(res.data)) {
-        const results = res.data.map((item) => ({
+        apiOptions.value = res.data.map((item) => ({
           ...item,
           value: item.name,
         }));
-        cb(results);
       } else {
-        cb([]);
+        apiOptions.value = [];
       }
     })
     .catch(() => {
-      cb([]);
+      apiOptions.value = [];
     })
     .finally(() => {
       apiIdloading.value = false;
@@ -410,9 +398,11 @@ function handleSelectionChange(selection) {
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-  queryParams.value.orderByColumn = column.prop;
-  queryParams.value.isAsc = column.order;
+function handleTableChange(pagination, filters, sorter) {
+  const field = sorter.column?.key || sorter.field;
+  const orderMap = { ascend: 'asc', descend: 'desc' };
+  queryParams.value.orderByColumn = field;
+  queryParams.value.isAsc = sorter.order ? orderMap[sorter.order] : null;
   getList();
 }
 
@@ -445,30 +435,28 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["clientApiRelRef"].validate((valid) => {
-    if (valid) {
-      form.value.clientId = clientId.value;
-      form.value.startTime = form.value.dateRange[0];
-      form.value.endTime = form.value.dateRange[1];
-      if (form.value.id != null) {
-        updateClientApiRel(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess("修改成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
-      } else {
-        addClientApiRel(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess("新增成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
-      }
+  proxy.$refs["clientApiRelRef"].validate().then(() => {
+    form.value.clientId = clientId.value;
+    form.value.startTime = form.value.dateRange[0];
+    form.value.endTime = form.value.dateRange[1];
+    if (form.value.id != null) {
+      updateClientApiRel(form.value)
+        .then((response) => {
+          proxy.$modal.msgSuccess("修改成功");
+          open.value = false;
+          getList();
+        })
+        .catch((error) => { });
+    } else {
+      addClientApiRel(form.value)
+        .then((response) => {
+          proxy.$modal.msgSuccess("新增成功");
+          open.value = false;
+          getList();
+        })
+        .catch((error) => { });
     }
-  });
+  }).catch(() => { });
 }
 
 /** 删除按钮操作 */
@@ -505,5 +493,10 @@ function routeTo(link, row) {
   }
 }
 </script>
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+/* 操作按钮统一靠右，与其他列表页保持一致 */
+.justify-between {
+  justify-content: flex-end;
+}
+</style>
 

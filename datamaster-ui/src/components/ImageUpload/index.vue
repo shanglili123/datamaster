@@ -1,14 +1,21 @@
-﻿<template>
+<template>
     <div class="component-upload-image">
-        <el-upload multiple :action="uploadImgUrl" list-type="picture-card" :on-success="handleUploadSuccess"
-            :before-upload="handleBeforeUpload" :limit="limit" :on-error="handleUploadError" :on-exceed="handleExceed"
-            ref="imageUpload" :before-remove="handleDelete" :show-file-list="true" :headers="headers"
+        <a-upload multiple :action="uploadImgUrl" list-type="picture-card"
+            :before-upload="handleBeforeUpload" :max-count="limit"
+            ref="imageUpload" :before-remove="handleDelete" :show-upload-list="true" :headers="headers"
             :file-list="fileList" :on-preview="handlePictureCardPreview" :class="{ hide: fileList.length >= limit }"
-            :data="uploadData">
-            <el-icon class="avatar-uploader-icon">
-                <plus />
-            </el-icon>
-        </el-upload>
+            :data="uploadData"
+            @change="(info) => {
+                const { file } = info;
+                if (file.status === 'done') {
+                    file.url = file.response && file.response.url;
+                    handleUploadSuccess(file.response, file);
+                } else if (file.status === 'error') {
+                    handleUploadError(file.error);
+                }
+            }">
+            <PlusOutlined class="avatar-uploader-icon" />
+        </a-upload>
         <!-- 上传提示 -->
         <!-- <div class="el-upload__tip" v-if="showTip">
       请上传
@@ -21,15 +28,16 @@
 的文件
 </div> -->
 
-        <el-dialog v-model="dialogVisible" title="预览" width="800px" :append-to="$refs['app-container']" draggable
-            destroy-on-close>
+        <a-modal v-model:open="dialogVisible" title="预览" width="800px" destroy-on-close>
             <img :src="dialogImageUrl" style="display: block; max-width: 100%; margin: 0 auto" />
-        </el-dialog>
+        </a-modal>
     </div>
 </template>
 
 <script setup>
+
 import { getToken } from "@/utils/auth";
+import { PlusOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
     modelValue: [String, Object, Array],

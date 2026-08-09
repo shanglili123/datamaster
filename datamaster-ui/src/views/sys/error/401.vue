@@ -1,10 +1,10 @@
 ﻿<template>
   <div class="errPage-container">
-    <el-button icon="arrow-left" class="pan-back-btn" @click="back">
+    <a-button :icon="h(LeftOutlined)" class="pan-back-btn" @click="back">
       返回
-    </el-button>
-    <el-row>
-      <el-col :span="12">
+    </a-button>
+    <a-row>
+      <a-col :span="12">
         <h1 class="text-jumbo text-ginormous">
           401错误!
         </h1>
@@ -17,15 +17,17 @@
             </router-link>
           </li>
         </ul>
-      </el-col>
-      <el-col :span="12">
+      </a-col>
+      <a-col :span="12">
         <img :src="errGif" width="313" height="428" alt="Girl has dropped her ice cream.">
-      </el-col>
-    </el-row>
+      </a-col>
+    </a-row>
   </div>
 </template>
 
 <script setup>
+import { h } from 'vue'
+import { LeftOutlined } from '@ant-design/icons-vue';
 import errImage from "@/assets/system/401_images/401.gif";
 
 let { proxy } = getCurrentInstance();

@@ -1,21 +1,21 @@
 <template>
   <div class="app-container dpp-task-list-page" ref="app-container">
 
-    <el-container>
+    <a-layout>
       <DeptTree
         :api="api"
         :editable="true"
         :leftWidth="leftWidth"
-        :placeholder="'请输入数据集成类目名称'"
+        :placeholder="'请输入数据集成目录名称'"
         ref="DeptTreeRef"
-        title="数据集成类目"
+        title="数据集成目录"
         @node-click="handleNodeClick"
         :extraParams="{
           spaceCode: userStore.spaceCode,
           spaceId: userStore.spaceId,
         }"
       />
-      <el-main class="main-content">
+      <a-layout-content class="main-content">
         <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
           <template #search>
             <qt-search-bar
@@ -26,9 +26,9 @@
             />
           </template>
           <template #actions-data>
-            <el-button type="primary" plain @click="openTaskConfigDialog">
+            <a-button type="primary" @click="openTaskConfigDialog">
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-            </el-button>
+            </a-button>
           </template>
 
           <qt-table v-bind="tableStore" ref="tableRef">
@@ -49,22 +49,20 @@
                     class="datasource-icon"
                     v-if="getDatasourceIcon(row.draftJson)"
                   />
-                  <el-link
-                    type="primary"
+                  <a-typography-link
                     :underline="false"
                     class="task-name-text task-name-ellipsis"
                     :title="row.name"
                   >
                     {{ row.name || "-" }}
-                  </el-link>
-                  <el-tag
-                    type="primary"
-                    :underline="false"
+                  </a-typography-link>
+                  <a-tag
+                    color="blue"
                     class="task-cat-ellipsis"
                     :title="row.catName"
                   >
                     {{ row.catName || "-" }}
-                  </el-tag>
+                  </a-tag>
                 </div>
                 <div class="text-ellipsis desc-text" :title="row.description">
                   {{ row.description || "-" }}
@@ -75,22 +73,22 @@
               <div class="task-status-stack fz12">
                 <div class="flex-center">
                   <span class="black-label mr5">发布状态:</span>
-                  <el-tag :type="row.status == '1' ? 'success' : row.status == '-1' ? 'info' : 'warning'">
+                  <a-tag :type="row.status == '1' ? 'success' : row.status == '-1' ? 'default' : 'warning'">
                     {{ row.status == "1" ? "已发布" : row.status == "-1" ? "草稿" : "未发布" }}
-                  </el-tag>
+                  </a-tag>
                 </div>
                 <div class="flex-center">
                   <span class="black-label mr5">调度状态:</span>
-                  <el-tag :type="row.schedulerState == '1' ? 'success' : 'info'">
+                  <a-tag :type="row.schedulerState == '1' ? 'success' : 'default'">
                     {{ row.schedulerState == "1" ? "已上线" : "未上线" }}
-                  </el-tag>
+                  </a-tag>
                 </div>
               </div>
             </template>
             <template #cronExpression="{ row }">
               <div class="flex-column fz14 grey-black-text">
                 <div class="flex-center mb5">
-                  <el-icon class="mr5"><Clock /></el-icon>
+                  <ClockCircleOutlined class="mr5" />
                   <span
                     class="text-ellipsis cron-text"
                     :title="cronToZh(row.cronExpression)"
@@ -111,7 +109,7 @@
               <div class="flex-column fz14 last-execute-col">
                 <template v-if="row.lastExecuteTime">
                   <div class="mb5">
-                    <el-tag
+                    <a-tag
                       v-if="
                         row.lastExecuteStatus !== null &&
                         row.lastExecuteStatus !== undefined &&
@@ -120,7 +118,7 @@
                       :type="taskInstanceStatusType(row.lastExecuteStatus)"
                     >
                       {{ taskInstanceStatusLabel(row.lastExecuteStatus) }}
-                    </el-tag>
+                    </a-tag>
                     <span v-else>-</span>
                   </div>
                   <span>
@@ -129,32 +127,21 @@
                 </template>
                 <template v-else>
                   <div class="mb5">
-                    <el-tag type="info" class="not-executed-tag"
-                      >未执行</el-tag
+                    <a-tag class="not-executed-tag"
+                      >未执行</a-tag
                     >
                   </div>
                   <span>-</span>
                 </template>
               </div>
             </template>
-            <template #personChargeName="{ row }">
-              <div class="flex-column fz14">
-                <span
-                  class="text-ellipsis person-charge-ellipsis"
-                  :title="row.personCharge"
-                  >{{ row.personChargeName || "-" }}</span
-                >
-                <span>{{ row.contactNumber || "-" }}</span>
-              </div>
-            </template>
             <template #createBy="{ row }">
               <div class="flex-column fz14">
                 <span
                   class="text-ellipsis person-charge-ellipsis"
-                  :title="row.personCharge"
+                  :title="row.createBy"
                   >{{ row.createBy || "-" }}</span
                 >
-                <span>{{ row.createUserContactNumber || "-" }}</span>
               </div>
             </template>
             <template #executionType="{ row }">
@@ -165,94 +152,84 @@
             </template>
             <template #action="{ row }">
               <div class="task-actions">
-                <el-button
-                  link
-                  type="primary"
-                  icon="Edit"
+                <a-button
+                  type="link"
+                  :icon="h(EditOutlined)"
                   :disabled="isPublished(row)"
-                  @click="routeTo('/col/task/integratioTask/edit', row)">配置任务</el-button
+                  @click="routeTo('/col/task/integratioTask/edit', row)">配置任务</a-button
                 >
-                <el-button
-                  link
-                  type="primary"
-                  icon="view"
+                <a-button
+                  type="link"
+                  :icon="h(EyeOutlined)"
                   @click="
                     routeTo('/col/task/integratioTask/detail', {
                       ...row,
                       info: true,
                     })
-                  ">详情</el-button
+                  ">详情</a-button
                 >
-                <el-button
-                  link
-                  type="success"
-                  icon="Upload"
+                <a-button
+                  type="link"
+                  :icon="h(UploadOutlined)"
                   :disabled="isPublished(row)"
                   :loading="publishingTaskId === row.id"
-                  @click="handlePublish(row)">发布</el-button
+                  @click="handlePublish(row)">发布</a-button
                 >
-                <el-button
-                  link
-                  type="warning"
-                  icon="Download"
+                <a-button
+                  type="link"
+                  :icon="h(DownloadOutlined)"
                   :disabled="!isPublished(row)"
                   :loading="unpublishingTaskId === row.id"
-                  @click="handleUnpublish(row)">卸载</el-button
+                  @click="handleUnpublish(row)">卸载</a-button
                 >
-                <el-popover placement="bottom" :width="150" trigger="click">
-                  <template #reference>
-                    <el-button link type="primary" icon="ArrowDown">更多</el-button
-                    >
-                  </template>
+                <a-popover placement="bottom" :width="150" trigger="click">
+                  <template #content>
                   <div style="width: 100px" class="butgdlist">
-                    <el-button
-                      link
+                    <a-button
+                      type="link"
                       style="padding-left: 14px"
-                      type="primary"
-                      icon="Operation"
+                      :icon="h(ControlOutlined)"
                       @click="handleJobLog(row)"
-                      :disabled="row.schedulerState == '1'">调度周期</el-button
+                      :disabled="row.schedulerState == '1'">调度周期</a-button
                     >
-                    <el-button
-                      link
-                      type="primary"
-                      icon="Stopwatch"
-                      @click="handleDataView(row)">运行实例</el-button
+                    <a-button
+                      type="link"
+                      :icon="h(FieldTimeOutlined)"
+                      @click="handleDataView(row)">运行实例</a-button
                     >
-                    <el-button
-                      link
-                      type="primary"
-                      icon="VideoPlay"
+                    <a-button
+                      type="link"
+                      :icon="h(PlayCircleOutlined)"
                       :disabled="!isPublished(row)"
-                      @click="handleExecuteOnce(row)">执行一次</el-button
+                      @click="handleExecuteOnce(row)">执行一次</a-button
                     >
-                    <el-button
-                      link
-                      type="primary"
-                      icon="Monitor"
-                      @click="handleOpsPolicy(row)">运维托管</el-button
+                    <a-button
+                      type="link"
+                      :icon="h(MonitorOutlined)"
+                      @click="handleOpsPolicy(row)">运维托管</a-button
                     >
-                    <el-button
-                      link
-                      type="danger"
-                      icon="Delete"
+                    <a-button
+                      type="link"
+                      danger
+                      :icon="h(DeleteOutlined)"
                       :disabled="isPublished(row)"
-                      @click="handleDelete(row)">删除</el-button
+                      @click="handleDelete(row)">删除</a-button
                     >
-                    <el-button
-                      link
-                      type="primary"
-                      icon="CopyDocument"
+                    <a-button
+                      type="link"
+                      :icon="h(CopyOutlined)"
                       :disabled="isPublished(row)"
-                      @click="handleClone(row)">克隆</el-button>
+                      @click="handleClone(row)">克隆</a-button>
                   </div>
-                </el-popover>
+                  </template>
+                  <a-button type="link" :icon="h(DownOutlined)">更多</a-button>
+                </a-popover>
               </div>
             </template>
           </qt-table>
         </qt-wrap>
-      </el-main>
-    </el-container>
+      </a-layout-content>
+    </a-layout>
     <instance
       :visible="DataView"
       :taskType="1"
@@ -261,12 +238,11 @@
       :data="form"
       title="运行实例"
     />
-    <el-dialog
+    <a-modal
       title="调度周期"
-      v-model="openCron"
-      :append-to="$refs['app-container']"
+      v-model:open="openCron"
+      :footer="null"
       destroy-on-close
-      :appendTo="'#app'"
     >
       <crontab
         ref="crontabRef"
@@ -275,7 +251,7 @@
         :expression="expression"
       >
       </crontab>
-    </el-dialog>
+    </a-modal>
     <!-- 新增 -->
     <add
       :visible="taskConfigDialogVisible"
@@ -285,7 +261,6 @@
       @confirm="handleConfirm"
       @回echo完成="handle回echo完成"
       :data="nodeData"
-      :userList="userList"
       :info="route.query.info"
       :catCode="tableStore.params.catCode"
       :deptOptions="deptOptions"
@@ -294,48 +269,48 @@
       :savedDataSourceName="回echo数据.dataSourceName"
       :savedDataSourceType="回echo数据.dataSourceType"
     />
-    <el-dialog
+    <a-modal
       title="运维托管"
-      v-model="opsDialogVisible"
+      v-model:open="opsDialogVisible"
       width="560px"
       destroy-on-close
     >
-      <el-form :model="opsForm" label-width="120px">
-        <el-form-item label="任务名称">
+      <a-form :model="opsForm" :label-col="{ style: { width: '120px' } }">
+        <a-form-item label="任务名称">
           <span>{{ opsTask.name || "-" }}</span>
-        </el-form-item>
-        <el-form-item label="失败即停">
-          <el-switch v-model="opsForm.failStopEnabled" />
-        </el-form-item>
-        <el-form-item label="AI托管">
-          <el-switch v-model="opsForm.aiManaged" />
-        </el-form-item>
-        <el-form-item label="自动恢复">
-          <el-switch v-model="opsForm.autoRecoverEnabled" :disabled="!opsForm.aiManaged" />
-        </el-form-item>
-        <el-form-item label="恢复次数">
-          <el-input-number
-            v-model="opsForm.maxRecoverTimes"
+        </a-form-item>
+        <a-form-item label="失败即停">
+          <a-switch v-model:checked="opsForm.failStopEnabled" />
+        </a-form-item>
+        <a-form-item label="AI托管">
+          <a-switch v-model:checked="opsForm.aiManaged" />
+        </a-form-item>
+        <a-form-item label="自动恢复">
+          <a-switch v-model:checked="opsForm.autoRecoverEnabled" :disabled="!opsForm.aiManaged" />
+        </a-form-item>
+        <a-form-item label="恢复次数">
+          <a-input-number
+            v-model:value="opsForm.maxRecoverTimes"
             :min="0"
             :max="10"
             :disabled="!opsForm.autoRecoverEnabled"
           />
-        </el-form-item>
-        <el-form-item label="恢复策略">
-          <el-select v-model="opsForm.recoverStrategy">
-            <el-option label="安全自动恢复" value="SAFE_AUTO" />
-            <el-option label="只给建议" value="SUGGEST_ONLY" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="通知用户">
-          <el-input v-model="opsForm.notifyUsers" placeholder="多个用户用逗号分隔" />
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+        <a-form-item label="恢复策略">
+          <a-select v-model:value="opsForm.recoverStrategy">
+            <a-select-option label="安全自动恢复" value="SAFE_AUTO" />
+            <a-select-option label="只给建议" value="SUGGEST_ONLY" />
+          </a-select>
+        </a-form-item>
+        <a-form-item label="通知用户">
+          <a-input v-model:value="opsForm.notifyUsers" placeholder="多个用户用逗号分隔" />
+        </a-form-item>
+      </a-form>
       <template #footer>
-        <el-button @click="opsDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="opsSaving" @click="saveOpsPolicy">保存</el-button>
+        <a-button @click="opsDialogVisible = false">取消</a-button>
+        <a-button type="primary" :loading="opsSaving" @click="saveOpsPolicy">保存</a-button>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -371,14 +346,28 @@ import {
 } from "@/api/tax/cat/taskCat/taskCat";
 import DeptTree from "@/components/DeptTree";
 import add from "./add/add.vue";
-import { deptUserTree } from "@/api/system/system/user.js";
 import {
   ref,
   reactive,
+  h,
   getCurrentInstance,
   watch,
   onBeforeUnmount,
 } from "vue";
+import {
+  ClockCircleOutlined,
+  EditOutlined,
+  EyeOutlined,
+  UploadOutlined,
+  DownloadOutlined,
+  DownOutlined,
+  ControlOutlined,
+  FieldTimeOutlined,
+  PlayCircleOutlined,
+  MonitorOutlined,
+  DeleteOutlined,
+  CopyOutlined,
+} from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 
@@ -443,12 +432,6 @@ const tableStore = reactive({
 
     {
       label: "创建人",
-      width: 120,
-      slot: "personChargeName",
-      align: "left",
-    },
-    {
-      label: "创建人",
       slot: "createBy",
       width: 120,
       align: "left",
@@ -480,8 +463,6 @@ const tableStore = reactive({
   },
 });
 
-// User list for search
-let userList = ref([]);
 let deptOptions = ref([]);
 function getDeptTree() {
   listAttTaskCat({
@@ -493,15 +474,12 @@ function getDeptTree() {
     var children = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "数据集成类目",
+        name: "数据集成目录",
         value: "",
         id: 0,
         children: children,
       },
     ];
-  });
-  deptUserTree().then((res) => {
-    userList.value = res.data;
   });
 }
 
@@ -520,18 +498,6 @@ const searchStore = reactive({
         is: "select",
         placeholder: "请选择任务状态",
         options: dpp_etl_task_status,
-      },
-    },
-    {
-      label: "创建人",
-      prop: "personCharge",
-      component: {
-        is: "tree-select",
-        data: userList,
-        props: { value: "userId", label: "nickName", children: "children" },
-        valueKey: "ID",
-        placeholder: "请选择创建人",
-        checkStrictly: true,
       },
     },
   ],
@@ -882,18 +848,18 @@ const getStatus = (status) => {
 };
 
 const taskInstanceStatusMap = {
-  0: { label: "提交成功", type: "info" },
-  1: { label: "运行中", type: "primary" },
+  0: { label: "提交成功", type: "default" },
+  1: { label: "运行中", type: "processing" },
   2: { label: "准备暂停", type: "warning" },
   3: { label: "暂停", type: "warning" },
   4: { label: "准备停止", type: "warning" },
-  5: { label: "停止", type: "info" },
-  6: { label: "失败", type: "danger" },
+  5: { label: "停止", type: "default" },
+  6: { label: "失败", type: "error" },
   7: { label: "成功", type: "success" },
   8: { label: "需要容错", type: "warning" },
-  9: { label: "已杀死", type: "danger" },
-  10: { label: "等待线程", type: "info" },
-  11: { label: "等待依赖", type: "info" },
+  9: { label: "已杀死", type: "error" },
+  10: { label: "等待线程", type: "default" },
+  11: { label: "等待依赖", type: "default" },
 };
 
 function taskInstanceStatusLabel(status) {
@@ -901,7 +867,7 @@ function taskInstanceStatusLabel(status) {
 }
 
 function taskInstanceStatusType(status) {
-  return taskInstanceStatusMap[String(status)]?.type || "info";
+  return taskInstanceStatusMap[String(status)]?.type || "default";
 }
 
 async function handleOpsPolicy(row) {

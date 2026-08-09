@@ -1,14 +1,14 @@
 ﻿<template>
-    <el-dialog v-model="visible" title="问题数据详情" class="medium-dialog" @close="handleClose" destroy-on-close>
-        <el-descriptions v-if="parsedFields.length" :column="1" border label-class-name="desc-label">
-            <el-descriptions-item v-for="(item, index) in parsedFields" :key="index" :label="item.name">
+    <a-modal v-model:open="visible" title="问题数据详情" class="medium-dialog" @close="handleClose" :destroy-on-close="true">
+        <a-descriptions v-if="parsedFields.length" :column="1" bordered :label-style="{ width: '300px', whiteSpace: 'nowrap' }">
+            <a-descriptions-item v-for="(item, index) in parsedFields" :key="index" :label="item.name">
                 {{ item.value }}
-            </el-descriptions-item>
-        </el-descriptions>
+            </a-descriptions-item>
+        </a-descriptions>
         <template #footer>
-            <el-button @click="handleClose">关闭</el-button>
+            <a-button @click="handleClose">关闭</a-button>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
@@ -54,7 +54,7 @@ defineExpose({
 })
 </script>
 <style scoped lang="scss">
-:deep(.el-descriptions__label) {
+:deep(.ant-descriptions-item-label) {
     width: 300px !important;
     white-space: nowrap;
 }

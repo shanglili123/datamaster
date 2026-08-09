@@ -1,85 +1,98 @@
 <template>
     <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-            <el-col :span="1.5">
-                <el-button type="primary" plain @click="handleAdd" @mousedown="(e) => e.preventDefault()">
-                    <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-            </el-col>
-        </el-row>
+        <a-row :gutter="15" class="btn-style">
+            <a-col :span="1.5">
+                <a-button type="primary" @click="handleAdd" @mousedown="(e) => e.preventDefault()">
+                    <template #icon><PlusOutlined /></template>新增
+                </a-button>
+            </a-col>
+        </a-row>
     </div>
 
     <!-- 表格部分 -->
-    <el-table stripe height="300px" v-loading="loading" :data="dpCodeMapList">
-        <el-table-column label="原始值" :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="originalValue">
-            <template #default="scope">
-                {{ scope.row.originalValue || '-' }}
+    <a-table
+      striped
+      :scroll="{ y: '300px' }"
+      :loading="loading"
+      :data-source="dpCodeMapList"
+      :row-key="(record, index) => index"
+      :pagination="false"
+      size="middle"
+    >
+        <a-table-column title="原始值" align="left" data-index="originalValue" ellipsis>
+            <template #default="{ record }">
+                {{ record.originalValue || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="字典名" :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="dictName">
-            <template #default="scope">
-                {{ scope.row.dictName || '-' }}
+        </a-table-column>
+        <a-table-column title="字典名" align="left" data-index="dictName" ellipsis>
+            <template #default="{ record }">
+                {{ record.dictName || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="字典值" :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="dictValue">
-            <template #default="scope">
-                {{ scope.row.dictValue || '-' }}
+        </a-table-column>
+        <a-table-column title="字典值" align="left" data-index="dictValue" ellipsis>
+            <template #default="{ record }">
+                {{ record.dictValue || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right">
-            <template #default="scope">
+        </a-table-column>
+        <a-table-column title="操作" align="center" :width="150" fixed="right">
+            <template #default="{ record, index }">
                 <!-- 修改时传递行索引，用于后续的 local 编辑 -->
-                <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row, scope.$index)">修改</el-button>
-                <el-button link type="danger" icon="Delete" @click="handleDelete(scope.$index)">删除</el-button>
+                <a-button type="link" @click="handleUpdate(record, index)"
+                  ><template #icon><EditOutlined /></template>修改</a-button
+                >
+                <a-button type="link" danger @click="handleDelete(index)"
+                  ><template #icon><DeleteOutlined /></template>删除</a-button
+                >
             </template>
-        </el-table-column>
-        <template #empty>
+        </a-table-column>
+        <template #emptyText>
             <div class="emptyBg">
                 <p>无数据</p>
             </div>
         </template>
-    </el-table>
+    </a-table>
 
     <!-- 新增/修改对话框 -->
-    <el-dialog :title="title" v-model="open" :append-to="$refs['app-container']" draggable destroy-on-close>
-        <el-form ref="dpCodeMapRef" :model="form" :rules="rules" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="原始值" prop="originalValue">
-                        <el-input v-model="form.originalValue" placeholder="请输入原始值" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="字典名" prop="dictName">
-                        <el-input v-model="form.dictName" placeholder="请输入字典名" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="字典值" prop="dictValue">
-                        <el-input v-model="form.dictValue" placeholder="代码值" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+    <a-modal :title="title" v-model:open="open" :draggable="true" :destroy-on-close="true" :footer="null">
+        <a-form ref="dpCodeMapRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="原始值" name="originalValue">
+                        <a-input v-model:value="form.originalValue" placeholder="请输入原始值" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="字典名" name="dictName">
+                        <a-input v-model:value="form.dictName" placeholder="请输入字典名" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="字典值" name="dictValue">
+                        <a-input v-model:value="form.dictValue" placeholder="代码值" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="cancel">取 消</el-button>
-                <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+                <a-button size="small" @click="cancel">取 消</a-button>
+                <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
+import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons-vue";
 const { proxy } = getCurrentInstance();
 const props = defineProps({
     row: { type: Object, default: () => ({}) },
 });
+const dpCodeMapRef = ref(null);
 function cancel() {
     open.value = false;
-    openDetail.value = false;
     reset();
 }
 
@@ -153,7 +166,7 @@ function handleDelete(index) {
 
 /** 提交按钮：新增或修改 */
 function submitForm() {
-    proxy.$refs['dpCodeMapRef'].validate((valid) => {
+    dpCodeMapRef.value.validate((valid) => {
         if (valid) {
             // 检查 originalValue 是否已经存在
             const isDuplicate = dpCodeMapList.value.some(item => item.originalValue === form.value.originalValue);

@@ -2,41 +2,49 @@
   <div class="app-container" ref="app-container">
 
     <div class="pagecont-top" v-show="showSearch">
-      <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="75px"
-        v-show="showSearch" @submit.prevent>
-        <!-- <el-form-item label="编号" prop="id">
-          <el-input class="el-form-input-width" v-model="queryParams.id" placeholder="请输入编号" clearable
-            @keyup.enter="handleQuery" />
-        </el-form-item> -->
-        <el-form-item label="应用名称" prop="name">
-          <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入应用名称" clearable
-            @keyup.enter="handleQuery" />
-        </el-form-item>
-        <el-form-item label="应用类型" prop="type">
-          <el-select class="el-form-input-width" v-model="queryParams.type" placeholder="请选择应用类型" clearable>
-            <el-option v-for="dict in auth_app_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="是否公开" prop="publicFlag">
-          <el-select class="el-form-input-width" v-model="queryParams.publicFlag" placeholder="请选择是否公开" clearable>
-            <el-option v-for="dict in auth_public" :key="dict.value" :label="dict.label" :value="dict.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button plain type="primary" v-hasPermi="['svc:client:query']" @click="handleQuery"
-            @mousedown="(e) => e.preventDefault()">
+      <a-form class="btn-style" :model="queryParams" ref="queryRef" :layout="'inline'"
+        :label-col="{ style: { width: '75px' } }" v-show="showSearch" @submit.prevent
+>
+        <!-- <a-form-item label="编号" name="id">
+          <a-input class="el-form-input-width" v-model:value="queryParams.id" placeholder="请输入编号" allow-clear
+            @pressEnter="handleQuery" />
+        </a-form-item> -->
+        <a-form-item label="应用名称" name="name">
+          <a-input class="el-form-input-width" v-model:value="queryParams.name" placeholder="请输入应用名称" allow-clear
+            @pressEnter="handleQuery"
+/>
+        </a-form-item>
+        <a-form-item label="应用类型" name="type">
+          <a-select class="el-form-input-width" v-model:value="queryParams.type" placeholder="请选择应用类型" allow-clear>
+            <a-select-option v-for="dict in auth_app_type" :key="dict.value" :value="dict.value">
+              {{ dict.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="是否公开" name="publicFlag">
+          <a-select class="el-form-input-width" v-model:value="queryParams.publicFlag" placeholder="请选择是否公开" allow-clear>
+            <a-select-option v-for="dict in auth_public" :key="dict.value" :value="dict.value">
+              {{ dict.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" v-hasPermi="['svc:client:query']" @click="handleQuery"
+            @mousedown="(e) => e.preventDefault()"
+>
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </a-button>
+        </a-form-item>
+      </a-form>
       <div class="data-action-btns">
-        <el-button type="primary" plain @click="handleAdd" v-hasPermi="['svc:client:add']"
-          @mousedown="(e) => e.preventDefault()">
+        <a-button type="primary" @click="handleAdd" v-hasPermi="['svc:client:add']"
+          @mousedown="(e) => e.preventDefault()"
+>
           <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-        </el-button>
+        </a-button>
       </div>
       <div class="top-right-btn">
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
@@ -44,282 +52,241 @@
     </div>
 
     <div class="pagecont-bottom">
-      <el-table stripe v-loading="loading" :data="clientList" @selection-change="handleSelectionChange"
-        :default-sort="defaultSort" @sort-change="handleSortChange">
-        <el-table-column v-if="getColumnVisibility(0)" width="75" label="编号" align="center" prop="id" />
-        <el-table-column v-if="getColumnVisibility(1)" width="200" label="应用名称"
-          :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="name">
-          <template #default="scope">
-            {{ scope.row.name || "-" }}
+      <a-table
+        striped
+        :loading="loading"
+        :data-source="clientList"
+        :pagination="false"
+        :columns="tableColumns"
+        :locale="{ emptyText: '暂无记录' }"
+        @change="handleTableChange"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'name'">
+            {{ record.name || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column width="100" v-if="getColumnVisibility(3)" label="应用类型" align="center" prop="type">
-          <template #default="scope">
-            <dict-tag :options="auth_app_type" :value="scope.row.type" />
+          <template v-if="column.dataIndex === 'type'">
+            <dict-tag :options="auth_app_type" :value="record.type" />
           </template>
-        </el-table-column>
-        <el-table-column v-if="getColumnVisibility(2)" :show-overflow-tooltip="{ effect: 'light' }" label="描述"
-          align="left" prop="description" width="300">
-          <template #default="scope">
-            {{ scope.row.description || "-" }}
+          <template v-if="column.dataIndex === 'description'">
+            {{ record.description || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column v-if="getColumnVisibility(16)" width="80" label="应用图标"
-          :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="name">
-          <template #default="scope">
+          <template v-if="column.dataIndex === 'logo'">
             <div class="clientInfo">
               <div>
-                <image-preview :src="scope.row.logo || noDataImg" :width="50" :height="50" />
-
+                <image-preview :src="record.logo || noDataImg" :width="50" :height="50" />
               </div>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column width="100" v-if="getColumnVisibility(4)" label="是否公开" align="center" prop="publicFlag">
-          <template #default="scope">
-            <dict-tag :options="auth_public" :value="scope.row.publicFlag" />
+          <template v-if="column.dataIndex === 'publicFlag'">
+            <dict-tag :options="auth_public" :value="record.publicFlag" />
           </template>
-        </el-table-column>
-        <!--       <el-table-column v-if="getColumnVisibility(5)" label="允许授权的url" align="center" prop="allowUrl">
-         <template #default="scope">
-           {{ scope.row.allowUrl || '-' }}
-         </template>
-       </el-table-column>-->
-        <!--       <el-table-column v-if="getColumnVisibility(6)" label="同步地址" align="center" prop="syncUrl">
-         <template #default="scope">
-           {{ scope.row.syncUrl || '-' }}
-         </template>
-       </el-table-column>-->
-        <!--       <el-table-column v-if="getColumnVisibility(7)" label="应用图标" align="center" prop="logo" width="100">
-         <template #default="scope">
-           <image-preview :src="scope.row.logo" :width="50" :height="50"/>
-         </template>
-       </el-table-column>-->
-
-        <el-table-column v-if="getColumnVisibility(12)" label="创建人" align="center" prop="createBy">
-          <template #default="scope">
-            {{ scope.row.createBy || "-" }}
+          <template v-if="column.dataIndex === 'createBy'">
+            {{ record.createBy || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column v-if="getColumnVisibility(14)" label="创建时间" align="center" prop="createTime" width="150"
-          sortable="custom" column-key="create_time" :sort-orders="['descending', 'ascending']"> <template
-            #default="scope"> <span>{{ parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
+          <template v-if="column.dataIndex === 'createTime'">
+            <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="备注" align="left" prop="remark" :show-overflow-tooltip="{ effect: 'light' }"
-          v-if="getColumnVisibility(15)">
-          <template #default="scope">
-            {{ scope.row.remark || '-' }}
+          <template v-if="column.dataIndex === 'remark'">
+            {{ record.remark || '-' }}
           </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="280">
-          <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-              v-hasPermi="['svc:client:edit']">修改</el-button>
-            <el-button link type="primary" icon="view" @click="handleDetail(scope.row)"
-              v-hasPermi="['svc:client:query']">详情</el-button>
-            <el-popover placement="bottom" :width="150" trigger="click">
-              <template #reference>
-                <el-button link type="primary" icon="ArrowDown">更多</el-button>
+          <template v-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="handleUpdate(record)"
+              v-hasPermi="['svc:client:edit']"
+>修改</a-button>
+            <a-button type="link" size="small" @click="handleDetail(record)"
+              v-hasPermi="['svc:client:query']"
+>详情</a-button>
+            <a-popover placement="bottom" :overlay-inner-style="{ width: '150px' }" trigger="click">
+              <template #content>
+                <div style="width: 100px" class="butgdlist">
+                  <a-button type="link" size="small" @click="handleReset(record)"
+                    v-hasPermi="['svc:client:edit']"
+>重置秘钥</a-button>
+                  <a-button type="link" danger size="small" @click="handleDelete(record)"
+                    v-hasPermi="['svc:client:remove']"
+>删除</a-button>
+                </div>
               </template>
-              <div style="width: 100px" class="butgdlist">
-                <el-button link style="padding-left: 14px" type="primary" icon="Refresh" @click="handleReset(scope.row)"
-                  v-hasPermi="['svc:client:edit']">重置秘钥</el-button>
-                <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                  v-hasPermi="['svc:client:remove']">删除</el-button>
-              </div>
-            </el-popover>
+              <a-button type="link" size="small">更多</a-button>
+            </a-popover>
           </template>
-        </el-table-column>
-
-        <template #empty>
-          <div class="emptyBg">
-            <img src="@/assets/system/images/no_data/noData.png" alt="" />
-            <p>暂无记录</p>
-          </div>
         </template>
-      </el-table>
+      </a-table>
 
       <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-        v-model:limit="queryParams.pageSize" @pagination="getList" />
+        v-model:limit="queryParams.pageSize" @pagination="getList"
+/>
     </div>
 
     <!-- 新增或修改应用对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable>
-      <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form ref="clientRef" :model="form" :rules="rules" label-width="80px" @submit.prevent>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="应用名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入应用名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="应用类型" prop="type">
-              <el-select v-model="form.type" placeholder="请选择应用类型">
-                <el-option v-for="dict in auth_app_type" :key="dict.value" :label="dict.label"
-                  :value="dict.value"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
-              <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+    <a-modal :title="title" v-model:open="open" width="800px">
+      <a-form ref="clientRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }" @submit.prevent>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="应用名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入应用名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="应用类型" name="type">
+              <a-select v-model:value="form.type" placeholder="请选择应用类型">
+                <a-select-option v-for="dict in auth_app_type" :key="dict.value" :value="dict.value">
+                  {{ dict.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
+              <a-textarea v-model:value="form.description" placeholder="请输入描述" />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <!-- <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="主页地址" prop="homepageUrl">
-              <el-input v-model="form.homepageUrl" placeholder="请输入主页地址" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="同步地址" prop="syncUrl">
-              <el-input v-model="form.syncUrl" placeholder="请输入同步地址" />
-            </el-form-item>
-          </el-col>
-        </el-row> -->
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="应用图标" prop="logo">
+        <!-- <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="主页地址" name="homepageUrl">
+              <a-input v-model:value="form.homepageUrl" placeholder="请输入主页地址" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="同步地址" name="syncUrl">
+              <a-input v-model:value="form.syncUrl" placeholder="请输入同步地址" />
+            </a-form-item>
+          </a-col>
+        </a-row> -->
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="应用图标" name="logo">
               <image-upload v-model="form.logo" limit="1" :fileType="pdf" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="是否公开" prop="publicFlag">
-              <el-radio-group v-model="form.publicFlag">
-                <el-radio v-for="dict in auth_public" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="是否公开" name="publicFlag">
+              <a-radio-group v-model:value="form.publicFlag">
+                <a-radio v-for="dict in auth_public" :key="dict.value" :value="dict.value">{{ dict.label }}</a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
+              <a-textarea v-model:value="form.remark" placeholder="请输入备注" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">取 消</el-button>
-          <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+          <a-button size="small" @click="cancel">取 消</a-button>
+          <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
     <!-- 应用详情对话框 -->
-    <el-dialog :title="title" v-model="openDetail" width="800px" :append-to="$refs['app-container']" draggable>
-      <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form ref="clientRef" :model="form" label-width="100px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="编号" prop="id">
+    <a-modal :title="title" v-model:open="openDetail" width="800px">
+      <a-form ref="clientRef" :model="form" :label-col="{ style: { width: '100px' } }">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="编号" name="id">
               <div>{{ form.id || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="应用秘钥" prop="secret">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="应用秘钥" name="secret">
               <div>{{ form.secret || "-" }}</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="应用名称" prop="name">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="应用名称" name="name">
               <div>{{ form.name || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="应用图标" prop="logo">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="应用图标" name="logo">
               <image-preview :src="form.logo || noDataImg" :width="50" :height="50" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="应用类型" prop="type">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="应用类型" name="type">
               <dict-tag :options="auth_app_type" :value="form.type" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否公开" prop="publicFlag">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="是否公开" name="publicFlag">
               <dict-tag :options="auth_public" :value="form.publicFlag" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="主页地址" prop="homepageUrl">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="主页地址" name="homepageUrl">
               <div>{{ form.homepageUrl || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="同步地址" prop="syncUrl">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="同步地址" name="syncUrl">
               <div>{{ form.syncUrl || "-" }}</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="授权路径" prop="allowUrl">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="授权路径" name="allowUrl">
               <div>{{ form.allowUrl || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
               <div>{{ form.description || "-" }}</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">关 闭</el-button>
+          <a-button size="small" @click="cancel">关 闭</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 用户导入对话框 -->
-    <el-dialog :title="upload.title" v-model="upload.open" width="800px" :append-to="$refs['app-container']" draggable
-      destroy-on-close>
-      <el-upload ref="uploadRef" :limit="1" accept=".xlsx, .xls" :headers="upload.headers"
+    <a-modal :title="upload.title" v-model:open="upload.open" width="800px">
+      <a-upload-dragger ref="uploadRef" :max-count="1" accept=".xlsx, .xls" :headers="upload.headers"
         :action="upload.url + '?updateSupport=' + upload.updateSupport" :disabled="upload.isUploading"
-        :on-progress="handleFileUploadProgress" :on-success="handleFileSuccess" :auto-upload="false" drag>
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        @progress="handleFileUploadProgress" @success="handleFileSuccess"
+>
+        <CloudUploadOutlined style="font-size: 42px; color: #4096ff" />
+        <div class="ant-upload-text">将文件拖到此处，或<em>点击上传</em></div>
         <template #tip>
-          <div class="el-upload__tip text-center">
-            <div class="el-upload__tip">
-              <el-checkbox v-model="upload.updateSupport" />是否更新已经存在的应用数据
+          <div class="ant-upload-tip text-center">
+            <div class="ant-upload-tip">
+              <a-checkbox v-model:checked="upload.updateSupport" />是否更新已经存在的应用数据
             </div>
             <span>仅允许导入xls、xlsx格式文件。</span>
-            <el-link type="primary" :underline="false" style="font-size: 12px; vertical-align: baseline"
-              @click="importTemplate">下载模板</el-link>
+            <a-link type="primary" style="font-size: 12px; vertical-align: baseline"
+              @click="importTemplate"
+>下载模板</a-link>
           </div>
         </template>
-      </el-upload>
+      </a-upload-dragger>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="upload.open = false">取 消</el-button>
-          <el-button type="primary" @click="submitFileForm">确 定</el-button>
+          <a-button @click="upload.open = false">取 消</a-button>
+          <a-button type="primary" @click="submitFileForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -333,6 +300,7 @@ import {
   resetSecret,
 } from "@/api/svc/client/client";
 import { getToken } from "@/utils/auth.js";
+import { CloudUploadOutlined } from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 const { auth_public, auth_app_type } = proxy.useDict(
@@ -358,11 +326,25 @@ const columns = ref([
 
 const getColumnVisibility = (key) => {
   const column = columns.value.find((col) => col.key === key);
-  // 如果没有找到对应列配置，默认显示
   if (!column) return true;
-  // 如果找到对应列配置，根据visible属性来控制显示
   return column.visible;
 };
+
+const tableColumns = computed(() => {
+  const allCols = [
+    { title: '编号', dataIndex: 'id', align: 'center', width: 75, colKey: 0 },
+    { title: '应用名称', dataIndex: 'name', align: 'left', width: 200, ellipsis: true, colKey: 1 },
+    { title: '应用类型', dataIndex: 'type', align: 'center', width: 100, colKey: 3 },
+    { title: '描述', dataIndex: 'description', align: 'left', width: 300, ellipsis: true, colKey: 2 },
+    { title: '应用图标', dataIndex: 'logo', align: 'left', width: 80, ellipsis: true, colKey: 16 },
+    { title: '是否公开', dataIndex: 'publicFlag', align: 'center', width: 100, colKey: 4 },
+    { title: '创建人', dataIndex: 'createBy', align: 'center', colKey: 12 },
+    { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 150, key: 'create_time', sorter: true, defaultSortOrder: 'descend', colKey: 14 },
+    { title: '备注', dataIndex: 'remark', align: 'left', ellipsis: true, colKey: 15 },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 280 },
+  ];
+  return allCols.filter(col => col.colKey === undefined || getColumnVisibility(col.colKey));
+});
 
 const open = ref(false);
 const openDetail = ref(false);
@@ -438,12 +420,16 @@ function normalizePageData(response) {
 /** 查询应用列表 */
 function getList() {
   loading.value = true;
-  listClient(queryParams.value).then((response) => {
-    const pageData = normalizePageData(response);
-    clientList.value = pageData.rows;
-    total.value = pageData.total;
-    loading.value = false;
-  });
+  listClient(queryParams.value)
+    .then((response) => {
+      const pageData = normalizePageData(response);
+      clientList.value = pageData.rows;
+      total.value = pageData.total;
+    })
+    .catch((error) => { })
+    .finally(() => {
+      loading.value = false;
+    });
 }
 
 // 取消按钮
@@ -499,9 +485,11 @@ function handleSelectionChange(selection) {
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-  queryParams.value.orderByColumn = column.prop;
-  queryParams.value.isAsc = column.order;
+function handleTableChange(pagination, filters, sorter) {
+  const field = sorter.column?.key || sorter.field;
+  const orderMap = { ascend: 'asc', descend: 'desc' };
+  queryParams.value.orderByColumn = field;
+  queryParams.value.isAsc = sorter.order ? orderMap[sorter.order] : null;
   getList();
 }
 
@@ -553,27 +541,25 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["clientRef"].validate((valid) => {
-    if (valid) {
-      if (form.value.id != null) {
-        updateClient(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess("修改成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
-      } else {
-        addClient(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess("新增成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
-      }
+  proxy.$refs["clientRef"].validate().then(() => {
+    if (form.value.id != null) {
+      updateClient(form.value)
+        .then((response) => {
+          proxy.$modal.msgSuccess("修改成功");
+          open.value = false;
+          getList();
+        })
+        .catch((error) => { });
+    } else {
+      addClient(form.value)
+        .then((response) => {
+          proxy.$modal.msgSuccess("新增成功");
+          open.value = false;
+          getList();
+        })
+        .catch((error) => { });
     }
-  });
+  }).catch(() => { });
 }
 
 /** 删除按钮操作 */
@@ -620,11 +606,12 @@ function importTemplate() {
 
 /** 提交上传文件 */
 function submitFileForm() {
-  proxy.$refs["uploadRef"].submit();
+  upload.open = false;
+  upload.isUploading = false;
 }
 
 /**文件上传中处理 */
-const handleFileUploadProgress = (event, file, fileList) => {
+const handleFileUploadProgress = () => {
   upload.isUploading = true;
 };
 
@@ -632,7 +619,6 @@ const handleFileUploadProgress = (event, file, fileList) => {
 const handleFileSuccess = (response, file, fileList) => {
   upload.open = false;
   upload.isUploading = false;
-  proxy.$refs["uploadRef"].handleRemove(file);
   proxy.$alert(
     "<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" +
     response.msg +
@@ -681,5 +667,4 @@ getList();
 //     text-align: start;
 //   }
 // }</style>
-
 

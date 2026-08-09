@@ -157,6 +157,12 @@
                 <artifactId>datamaster-common</artifactId>
                 <version>${dataMaster.version}</version>
             </dependency>
+            <!-- 系统模块共享类型-->
+            <dependency>
+                <groupId>com.datamaster</groupId>
+                <artifactId>datamaster-system-api</artifactId>
+                <version>${dataMaster.version}</version>
+            </dependency>
             <!-- 系统模块-->
             <dependency>
                 <groupId>com.datamaster</groupId>
@@ -169,22 +175,32 @@
                 <artifactId>datamaster-common-common</artifactId>
                 <version>${dataMaster.version}</version>
             </dependency>
+            <!-- 分类管理核心-->
+            <dependency>
+                <groupId>com.datamaster</groupId>
+                <artifactId>datamaster-common-category</artifactId>
+                <version>${dataMaster.version}</version>
+            </dependency>
+            <!-- 数据源管理核心-->
+            <dependency>
+                <groupId>com.datamaster</groupId>
+                <artifactId>datamaster-common-datasource-mgmt</artifactId>
+                <version>${dataMaster.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <modules>
+        <module>datamaster-system-api</module>
         <module>datamaster-common</module>
         <module>datamaster-system</module>
-        <module>datamaster-taxonomy</module>
-        <module>datamaster-standards</module>
+        <module>datamaster-governance</module>
         <module>datamaster-assets</module>
+        <module>datamaster-ai</module>
         <module>datamaster-collector</module>
         <module>datamaster-service</module>
-        <module>datamaster-modeling</module>
-        <module>datamaster-catalog</module>
+        <module>datamaster-metadata</module>
         <module>datamaster-api-ds</module>
         <module>datamaster-server</module>
-        <module>datamaster-flinkx-core</module>
-        <module>datamaster-quality</module>
     </modules>
     <packaging>pom</packaging>
     <build>

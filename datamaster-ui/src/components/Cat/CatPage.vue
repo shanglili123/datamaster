@@ -1,8 +1,8 @@
 <template>
+  <a-spin :spinning="loading">
   <qt-wrap
     :columns="tableStore.columns"
     :tableRef="tableRef"
-    v-loading="loading"
   >
     <template #search>
       <qt-search-bar
@@ -12,73 +12,67 @@
       />
     </template>
     <template #actions-data>
-      <el-button
+      <a-button
         type="primary"
-        plain
-        icon="Plus"
+        :icon="h(PlusOutlined)"
         @click="handleAdd()"
         v-hasPermi="[`${permBase}:add`]"
-        >新增</el-button
+        >新增</a-button
       >
-      <el-button
-        type="danger"
-        plain
-        icon="Delete"
+      <a-button
+        danger
+        :icon="h(DeleteOutlined)"
         :disabled="!selection.rows.length"
         v-hasPermi="[`${permBase}:remove`]"
         @click="handleDeleteSelected"
       >
         删除
-      </el-button>
-      <el-button
+      </a-button>
+      <a-button
         class="toggle-expand-all"
         type="primary"
-        plain
         @click="toggleExpandAll"
       >
         <svg-icon v-if="defaultExpandAll" icon-class="toggle" />
         <svg-icon v-else icon-class="expand" />
         <span>{{ defaultExpandAll ? "折叠" : "展开" }}</span>
-      </el-button>
+      </a-button>
     </template>
     <qt-table v-bind="tableStore" :key="tableKey" ref="tableRef">
       <template #validFlag="{ row }">
-        <el-switch
-          v-model="row.validFlag"
-          active-color="#13ce66"
-          inactive-color="#ff4949"
+        <a-switch
+          v-model:checked="row.validFlag"
           @change="handleStatusChange(row)"
         />
       </template>
       <template #action="{ row }">
-        <el-button
-          link
-          type="primary"
-          icon="Edit"
+        <a-button
+          type="link"
+          :icon="h(EditOutlined)"
           @click="handleUpdate(row)"
           v-hasPermi="[`${permBase}:edit`]"
-          >修改</el-button
+          >修改</a-button
         >
-        <el-button
-          link
-          type="primary"
-          icon="Plus"
+        <a-button
+          type="link"
+          :icon="h(PlusOutlined)"
           @click="handleAdd(row)"
           v-hasPermi="[`${permBase}:add`]"
-          >新增</el-button
+          >新增</a-button
         >
-        <el-button
-          link
-          type="danger"
-          icon="Delete"
+        <a-button
+          type="link"
+          danger
+          :icon="h(DeleteOutlined)"
           @click="handleDelete(row)"
           v-hasPermi="[`${permBase}:remove`]"
           :disabled="row.validFlag"
-          >删除</el-button
+          >删除</a-button
         >
       </template>
     </qt-table>
   </qt-wrap>
+  </a-spin>
 
   <CatEditDialog
     ref="catEditDialogRef"
@@ -95,12 +89,15 @@ const props = defineProps({
   addFunc: { type: Function, required: true },
   updateFunc: { type: Function, required: true },
   batchDelCheckFunc: { type: Function, required: false },
-  nameLabel: { type: String, default: "类目名称" },
-  titleBase: { type: String, default: "类目" },
+  nameLabel: { type: String, default: "目录名称" },
+  titleBase: { type: String, default: "目录" },
   permBase: { type: String, required: true },
 });
 
-import { ref, reactive, toRefs, getCurrentInstance } from "vue";
+import { message, Modal } from 'ant-design-vue'
+import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons-vue'
+import { ref, reactive, toRefs, getCurrentInstance, h } from "vue";
+
 import CatEditDialog from "./catEditDialog.vue";
 
 const { proxy } = getCurrentInstance();
@@ -179,7 +176,7 @@ const searchStore = reactive({
   items: [
     { label: props.nameLabel, prop: "name", component: { is: "input" } },
     {
-      label: "上级类目",
+      label: "上级目录",
       prop: "code",
       component: {
         is: "tree-select",
@@ -329,38 +326,36 @@ function handleDeleteSelected() {
           canDeleteIds = [],
           canDeleteCount = 0,
         } = res?.data || {};
-        return ElMessageBox.confirm(
-          `可删除${canDeleteCount}个，不可删除${cannotDeleteCount}个，是否删除可删部分`,
-          "系统提示",
-          {
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
-            type: "warning",
-          }
-        ).then(() => {
-          if (canDeleteCount === 0) {
-            ElMessage.success("执行成功");
-            return;
-          } else {
-            return props.delFunc(canDeleteIds).then(() => {
-              ElMessage.success("删除成功");
+        return Modal.confirm({
+          title: "系统提示",
+          content: `可删除${canDeleteCount}个，不可删除${cannotDeleteCount}个，是否删除可删部分`,
+          okText: "确定",
+          cancelText: "取消",
+          onOk: async () => {
+            if (canDeleteCount === 0) {
+              message.success("执行成功");
+              return;
+            } else {
+              await props.delFunc(canDeleteIds);
+              message.success("删除成功");
               tableRef.value.getList();
-            });
-          }
+            }
+          },
         });
       })
       .finally(() => {});
   } else {
-    ElMessageBox.confirm(
-      `可删除${selection.rows.length}个，不可删除0个，是否删除可删部分`,
-      "系统提示",
-      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" }
-    )
-      .then(() => props.delFunc(ids))
-      .then(() => {
-        ElMessage.success("删除成功");
+    Modal.confirm({
+      title: "系统提示",
+      content: `可删除${selection.rows.length}个，不可删除0个，是否删除可删部分`,
+      okText: "确定",
+      cancelText: "取消",
+      onOk: async () => {
+        await props.delFunc(ids);
+        message.success("删除成功");
         tableRef.value.getList();
-      });
+      },
+    });
   }
 }
 
@@ -375,7 +370,7 @@ const data = reactive({
       },
     ],
     parentId: [
-      { required: true, message: "上级类目不能为空", trigger: "blur" },
+      { required: true, message: "上级目录不能为空", trigger: "blur" },
     ],
   },
 });

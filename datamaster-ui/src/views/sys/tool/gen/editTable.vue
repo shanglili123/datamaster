@@ -1,131 +1,104 @@
 <template>
   <div class="dataBody">
-    <el-card class="app-container">
-      <el-tabs v-model="activeName">
-        <el-tab-pane label="基本信息" name="basic">
+    <a-card class="app-container">
+      <a-tabs v-model:activeKey="activeName">
+        <a-tab-pane key="basic" tab="基本信息">
           <basic-info-form ref="basicInfo" :info="info" />
-        </el-tab-pane>
-        <el-tab-pane label="字段信息" name="columnInfo">
-          <el-table stripe ref="dragTable" height="650px" :data="columns" row-key="columnId" :max-height="tableHeight">
-            <el-table-column label="序号" type="index" width="80"/>
-            <el-table-column
-                    label="字段列名"
-                    prop="columnName"
-                    width="150"
-                    :show-overflow-tooltip="true"
-            />
-            <el-table-column label="字段描述" min-width="150" align="center">
-              <template #default="scope">
-                <el-input v-model="scope.row.columnComment"></el-input>
+        </a-tab-pane>
+        <a-tab-pane key="columnInfo" tab="字段信息">
+          <a-table
+            ref="dragTable"
+            striped
+            row-key="columnId"
+            :columns="tableColumns"
+            :data-source="columns"
+            :scroll="{ y: tableHeight }"
+            :pagination="false"
+          >
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'index'">{{ index + 1 }}</template>
+              <template v-else-if="column.dataIndex === 'columnComment'">
+                <a-input v-model:value="record.columnComment"></a-input>
               </template>
-            </el-table-column>
-            <el-table-column
-                    label="物理类型"
-                    prop="columnType"
-                    width="150"
-                    :show-overflow-tooltip="true"
-                    align="center"
-            />
-            <el-table-column label="Java类型" width="150" align="center">
-              <template #default="scope">
-                <el-select v-model="scope.row.javaType">
-                  <el-option label="Long" value="Long" />
-                  <el-option label="String" value="String" />
-                  <el-option label="Integer" value="Integer" />
-                  <el-option label="Double" value="Double" />
-                  <el-option label="BigDecimal" value="BigDecimal" />
-                  <el-option label="Date" value="Date" />
-                  <el-option label="Boolean" value="Boolean" />
-                </el-select>
+              <template v-else-if="column.dataIndex === 'javaType'">
+                <a-select v-model:value="record.javaType">
+                  <a-select-option value="Long">Long</a-select-option>
+                  <a-select-option value="String">String</a-select-option>
+                  <a-select-option value="Integer">Integer</a-select-option>
+                  <a-select-option value="Double">Double</a-select-option>
+                  <a-select-option value="BigDecimal">BigDecimal</a-select-option>
+                  <a-select-option value="Date">Date</a-select-option>
+                  <a-select-option value="Boolean">Boolean</a-select-option>
+                </a-select>
               </template>
-            </el-table-column>
-            <el-table-column label="java属性" width="150" align="center">
-              <template #default="scope">
-                <el-input v-model="scope.row.javaField"></el-input>
+              <template v-else-if="column.dataIndex === 'javaField'">
+                <a-input v-model:value="record.javaField"></a-input>
               </template>
-            </el-table-column>
-
-            <!--          <el-table-column label="插入" width="60" align="center">
-                        <template #default="scope">
-                          <el-checkbox true-label="1" false-label="0" v-model="scope.row.isInsert"></el-checkbox>
-                        </template>
-                      </el-table-column>-->
-            <el-table-column label="新增/编辑(saveReqVO)" width="120" align="center">
-              <template #default="scope">
-                <el-checkbox true-label="1" false-label="0" v-model="scope.row.isEdit"></el-checkbox>
+              <!--          插入列（已禁用）
+                          <template v-else-if="column.dataIndex === 'isInsert'">
+                            <a-checkbox checked-value="1" un-checked-value="0" v-model:checked="record.isInsert"></a-checkbox>
+                          </template>-->
+              <template v-else-if="column.dataIndex === 'isEdit'">
+                <a-checkbox checked-value="1" un-checked-value="0" v-model:checked="record.isEdit"></a-checkbox>
               </template>
-            </el-table-column>
-            <el-table-column label="列表(respVO)" width="120" align="center">
-              <template #default="scope">
-                <el-checkbox true-label="1" false-label="0" v-model="scope.row.isList"></el-checkbox>
+              <template v-else-if="column.dataIndex === 'isList'">
+                <a-checkbox checked-value="1" un-checked-value="0" v-model:checked="record.isList"></a-checkbox>
               </template>
-            </el-table-column>
-            <el-table-column label="查询(pageReqVO)" width="120" align="center">
-              <template #default="scope">
-                <el-checkbox true-label="1" false-label="0" v-model="scope.row.isQuery"></el-checkbox>
+              <template v-else-if="column.dataIndex === 'isQuery'">
+                <a-checkbox checked-value="1" un-checked-value="0" v-model:checked="record.isQuery"></a-checkbox>
               </template>
-            </el-table-column>
-            <el-table-column label="查询方式" width="150" align="center">
-              <template #default="scope">
-                <el-select v-model="scope.row.queryType">
-                  <el-option label="=" value="EQ" />
-                  <el-option label="!=" value="NE" />
-                  <el-option label=">" value="GT" />
-                  <el-option label=">=" value="GTE" />
-                  <el-option label="<" value="LT" />
-                  <el-option label="<=" value="LTE" />
-                  <el-option label="LIKE" value="LIKE" />
-                  <el-option label="BETWEEN" value="BETWEEN" />
-                </el-select>
+              <template v-else-if="column.dataIndex === 'queryType'">
+                <a-select v-model:value="record.queryType">
+                  <a-select-option value="EQ">=</a-select-option>
+                  <a-select-option value="NE">!=</a-select-option>
+                  <a-select-option value="GT">&gt;</a-select-option>
+                  <a-select-option value="GTE">&gt;=</a-select-option>
+                  <a-select-option value="LT">&lt;</a-select-option>
+                  <a-select-option value="LTE">&lt;=</a-select-option>
+                  <a-select-option value="LIKE">LIKE</a-select-option>
+                  <a-select-option value="BETWEEN">BETWEEN</a-select-option>
+                </a-select>
               </template>
-            </el-table-column>
-            <el-table-column label="必填" width="60" align="center">
-              <template #default="scope">
-                <el-checkbox true-label="1" false-label="0" v-model="scope.row.isRequired"></el-checkbox>
+              <template v-else-if="column.dataIndex === 'isRequired'">
+                <a-checkbox checked-value="1" un-checked-value="0" v-model:checked="record.isRequired"></a-checkbox>
               </template>
-            </el-table-column>
-            <el-table-column label="显示类型" min-width="150" align="center">
-              <template #default="scope">
-                <el-select v-model="scope.row.htmlType">
-                  <el-option label="文本框" value="input" />
-                  <el-option label="文本域" value="textarea" />
-                  <el-option label="下拉框" value="select" />
-                  <el-option label="单选框" value="radio" />
-                  <el-option label="复选框" value="checkbox" />
-                  <el-option label="日期控件" value="datetime" />
-                  <el-option label="图片上传" value="imageUpload" />
-                  <el-option label="文件上传" value="fileUpload" />
-                  <el-option label="富文本控件" value="editor" />
-                </el-select>
+              <template v-else-if="column.dataIndex === 'htmlType'">
+                <a-select v-model:value="record.htmlType">
+                  <a-select-option value="input">文本框</a-select-option>
+                  <a-select-option value="textarea">文本域</a-select-option>
+                  <a-select-option value="select">下拉框</a-select-option>
+                  <a-select-option value="radio">单选框</a-select-option>
+                  <a-select-option value="checkbox">复选框</a-select-option>
+                  <a-select-option value="datetime">日期控件</a-select-option>
+                  <a-select-option value="imageUpload">图片上传</a-select-option>
+                  <a-select-option value="fileUpload">文件上传</a-select-option>
+                  <a-select-option value="editor">富文本控件</a-select-option>
+                </a-select>
               </template>
-            </el-table-column>
-            <el-table-column label="字典类型" width="150" align="center">
-              <template #default="scope">
-                <el-select v-model="scope.row.dictType" clearable filterable placeholder="请选择">
-                  <el-option
+              <template v-else-if="column.dataIndex === 'dictType'">
+                <a-select v-model:value="record.dictType" allow-clear show-search option-filter-prop="label" placeholder="请选择">
+                  <a-select-option
                           v-for="dict in dictOptions"
                           :key="dict.dictType"
-                          :label="dict.dictName"
-                          :value="dict.dictType">
+                          :value="dict.dictType"
+                          :label="dict.dictName">
                     <span style="float: left">{{ dict.dictName }}</span>
                     <span style="float: right; color: #8492a6; font-size: 13px">{{ dict.dictType }}</span>
-                  </el-option>
-                </el-select>
+                  </a-select-option>
+                </a-select>
               </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-        <el-tab-pane label="生成信息" name="genInfo">
+            </template>
+          </a-table>
+        </a-tab-pane>
+        <a-tab-pane key="genInfo" tab="生成信息">
           <gen-info-form ref="genInfo" :info="info" :tables="tables" />
-        </el-tab-pane>
-      </el-tabs>
-      <el-form label-width="100px">
-        <div style="text-align: center;margin-left:-100px;margin-top:10px;">
-          <el-button @click="close()">返回</el-button>
-          <el-button type="primary" @click="submitForm()">提交</el-button>
-        </div>
-      </el-form>
-    </el-card>
+        </a-tab-pane>
+      </a-tabs>
+      <div style="text-align: center; margin-top: 10px">
+        <a-button @click="close()">返回</a-button>
+        <a-button type="primary" @click="submitForm()">提交</a-button>
+      </div>
+    </a-card>
   </div>
 
 </template>
@@ -145,6 +118,22 @@ const tables = ref([]);
 const columns = ref([]);
 const dictOptions = ref([]);
 const info = ref({});
+
+const tableColumns = [
+  { title: "序号", dataIndex: "index", width: 80, align: "center" },
+  { title: "字段列名", dataIndex: "columnName", width: 150, ellipsis: true },
+  { title: "字段描述", dataIndex: "columnComment", align: "center" },
+  { title: "物理类型", dataIndex: "columnType", width: 150, ellipsis: true, align: "center" },
+  { title: "Java类型", dataIndex: "javaType", width: 150, align: "center" },
+  { title: "java属性", dataIndex: "javaField", width: 150, align: "center" },
+  { title: "新增/编辑(saveReqVO)", dataIndex: "isEdit", width: 120, align: "center" },
+  { title: "列表(respVO)", dataIndex: "isList", width: 120, align: "center" },
+  { title: "查询(pageReqVO)", dataIndex: "isQuery", width: 120, align: "center" },
+  { title: "查询方式", dataIndex: "queryType", width: 150, align: "center" },
+  { title: "必填", dataIndex: "isRequired", width: 60, align: "center" },
+  { title: "显示类型", dataIndex: "htmlType", align: "center" },
+  { title: "字典类型", dataIndex: "dictType", width: 150, align: "center" }
+];
 
 /** 提交按钮 */
 function submitForm() {
@@ -174,11 +163,7 @@ function submitForm() {
 }
 
 function getFormPromise(form) {
-  return new Promise(resolve => {
-    form.validate(res => {
-      resolve(res);
-    });
-  });
+  return form.validate().then(() => true).catch(() => false);
 }
 
 function close() {

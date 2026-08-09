@@ -1,74 +1,44 @@
 ﻿<template>
   <div class="navbar" ref="navbar">
-    <logo
-      v-if="appStore.sidebar.hide && isOnlyLogoRoute"
-      :collapse="false"
-      class="navbar-logo"
-      :current-route="route.path"
-    />
-    <hamburger
-      v-if="showSidebarToggle"
-      id="hamburger-container"
-      :is-active="appStore.sidebar.opened"
-      class="hamburger-container"
-      @toggleClick="toggleSideBar"
-    />
-    <breadcrumb
-      id="breadcrumb-container"
-      class="breadcrumb-container"
-      v-if="!settingsStore.topNav"
-    />
-    <top-nav
-      ref="topNavRef"
-      id="topmenu-container"
-      class="topmenu-container"
-      v-if="settingsStore.topNav"
-      :class="{ 'has-navbar-logo': appStore.sidebar.hide && isOnlyLogoRoute }"
-    />
-    <div class="right-menu">
+    <div class="navbar-left">
+      <hamburger
+        v-if="showSidebarToggle"
+        id="hamburger-container"
+        :is-active="appStore.sidebar.opened"
+        class="hamburger-container"
+        @toggleClick="toggleSideBar"
+      />
+    </div>
+    <div class="navbar-right">
       <template v-if="appStore.device !== 'mobile'">
         <div style="display: flex; align-items: center; white-space: nowrap" v-if="showSpaceSelector">
           <span style="font-size: 13px; color: #ef4444; margin-right: 2px">*</span>
           <span style="font-size: 13px; color: #606266; margin-right: 8px">所属空间</span>
-          <el-select
+          <a-select
             style="width: 130px"
-                :fit-input-width="true"
-                v-model="userStore.spaceId"
-                @change="spaceIdChange"
-                placeholder="请选择所属空间"
-                clearable
-                popper-class="custom-option-style"
-              >
-                <el-option
-                  v-for="item in spaceOptions"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id"
-                >
-                  <template #default>
-                    <template v-if="item.name.length > 6">
-                      <el-tooltip
-                        placement="left"
-                        :content="item.name"
-                        effect="dark"
-                      >
-                        <div class="ellipsis-option">{{ item.name }}</div>
-                      </el-tooltip>
-                    </template>
-                    <template v-else>
-                      <div class="ellipsis-option">{{ item.name }}</div>
-                    </template>
-                  </template>
-                </el-option>
-              </el-select>
+            v-model:value="userStore.spaceId"
+            @change="spaceIdChange"
+            placeholder="请选择所属空间"
+            allow-clear
+            :get-popup-container="() => $el || document.body"
+          >
+            <a-select-option
+              v-for="item in spaceOptions"
+              :key="item.id"
+              :value="item.id"
+            >
+              <a-tooltip v-if="item.name.length > 6" :title="item.name">
+                <div class="ellipsis-option">{{ item.name }}</div>
+              </a-tooltip>
+              <template v-else>
+                <div class="ellipsis-option">{{ item.name }}</div>
+              </template>
+            </a-select-option>
+          </a-select>
         </div>
       </template>
       <div class="avatar-container">
-        <el-dropdown
-          @command="handleCommand"
-          class="right-menu-item hover-effect"
-          trigger="click"
-        >
+        <a-dropdown :trigger="['click']">
           <div class="avatar-wrapper">
             <img
               :src="userAvatar"
@@ -76,69 +46,32 @@
               alt="avatar"
             />
             <span class="nickName">{{ userStore.nickName }}</span>
+            <DownOutlined style="font-size: 12px; margin-left: 4px;" />
           </div>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <router-link to="/user/profile">
-                <el-dropdown-item>个人中心</el-dropdown-item>
-              </router-link>
-              <el-dropdown-item
-                command="setLayout"
-                v-if="settingsStore.showSettings"
-              >
-                <span>布局设置</span>
-              </el-dropdown-item>
-              <el-dropdown-item divided command="logout">
-                <span>退出登录</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
+          <template #overlay>
+            <a-menu @click="handleCommand">
+              <a-menu-item key="profile">
+                <router-link to="/user/profile">个人中心</router-link>
+              </a-menu-item>
+              <a-menu-item key="setLayout" v-if="settingsStore.showSettings">
+                布局设置
+              </a-menu-item>
+              <a-menu-divider />
+              <a-menu-item key="logout">
+                退出登录
+              </a-menu-item>
+            </a-menu>
           </template>
-        </el-dropdown>
+        </a-dropdown>
       </div>
     </div>
-
-    <el-dialog
-      title="关于我们"
-      class="about-dialog"
-      v-model="activeOpen"
-      append-to-body
-      align-center
-    >
-      <div class="about-content-wrapper">
-        <img
-          src="/datamaster-favicon.svg"
-          alt="dataMaster Logo"
-          class="logo"
-        />
-        <div class="about-title">
-          版本{{ currentVersion }}
-          <!-- <span class="version-badge"></span> -->
-        </div>
-
-      </div>
-
-      <template #footer>
-          <div class="about-footer">
-            <div v-if="!needUpdate" class="status-text">
-              版本{{ currentVersion }}已是最新版本。
-            </div>
-            <div v-else class="status-text">
-              最新版本{{ latestVersion }}
-            </div>
-          </div>
-        </template>
-      </el-dialog>
   </div>
 </template>
 
 <script setup name="Navbar">
 import { useWindowSize } from "@vueuse/core";
-import { ElMessageBox } from "element-plus";
-import Breadcrumb from "@/components/Breadcrumb";
-import TopNav from "@/components/TopNav";
+import { Modal } from "ant-design-vue";
 import Hamburger from "@/components/Hamburger";
-import Logo from "./Sidebar/Logo";
-import SizeSelect from "@/components/SizeSelect";
 import useAppStore from "@/store/system/app";
 import useUserStore from "@/store/system/user";
 import useSettingsStore from "@/store/system/settings";
@@ -150,7 +83,6 @@ import {
   readAll,
 } from "@/api/system/system/message/message";
 import { onMounted, ref, watch } from "vue";
-import moment from "moment";
 import { currentUser } from "@/api/tax/space/space";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
@@ -169,26 +101,13 @@ const isOnlyLogoRoute = computed(() => {
   const navbarLogoRoutes = defaultSettings.navbarLogoRoutes || [];
   return navbarLogoRoutes.some((logoPath) => route.path.startsWith(logoPath));
 });
-// 默认选择的消息类型
-const activeMsg = ref("first");
-const spaceId = ref("");
 const permissionStore = usePermissionStore();
-const userAvatar = computed(() => userStore.avatar);
+const userAvatar = computed(() => userStore.avatar || defaultAvatar);
 
 const needUpdate = ref(false);
 const currentVersion = ref("");
 const latestVersion = ref("");
-//-----------------------以下报工内容-------------------------
-const data = reactive({
-  form: {
-    reportExperience: null,
-  },
-  rules: {
-    reportExperience: [
-      { required: true, message: "工作心得不能为空", trigger: "blur" },
-    ],
-  },
-});
+
 const { width } = useWindowSize();
 const showSpaceSelector = computed(
   () =>
@@ -197,281 +116,7 @@ const showSpaceSelector = computed(
     spaceOptions.value.length > 0
 );
 const showSidebarToggle = computed(() => !isHomeShellPath(route.path));
-const open = ref(false);
-const title = ref(null);
-const form = ref({});
 const spaceOptions = ref([]);
-
-const tableData = ref([{ spaceId: null, duration: null }]);
-
-function resetFromWork() {
-  tableData.value = [{ spaceId: null, duration: null }];
-  form.value.reportExperience = null;
-}
-
-//请假了
-function offFromWork() {
-  proxy.$modal
-    .confirm("确认请假了？")
-    .then(function () {})
-    .then(() => {
-      const itemList = tableData.value;
-      const req = {
-        reportExperience: "我请假了",
-        status: 1,
-        reportTime: new Date(),
-        detailRespVOList: tableData.value,
-      };
-      console.log("---------提交-请假----req-------", req);
-      addReport(req)
-        .then((response) => {
-          proxy.$modal.msgSuccess("提交成功");
-          open.value = false;
-          getList();
-        })
-        .catch((error) => {});
-    })
-    .catch(() => {});
-  // form.value.reportExperience = '我请假了'
-}
-
-/** 提交按钮 */
-function submitForm() {
-  if (form.value.reportExperience == null) {
-    proxy.$modal.msgWarning("工作心得为空");
-    return;
-  }
-  proxy.$refs["reportRef"].validate((valid) => {
-    console.log("---------校验----", valid);
-    if (valid) {
-      const tempList = tableData.value;
-      if (tempList.length == 0) {
-        proxy.$modal.msgError("报工空间为空");
-        return;
-      }
-      let idStatus = false;
-      let timeStatus = false;
-      tempList.forEach((e) => {
-        if (e.spaceId == null) {
-          idStatus = true;
-        }
-        if (e.duration == null) {
-          timeStatus = true;
-        }
-      });
-      if (idStatus) {
-        proxy.$modal.msgWarning("报工空间为空");
-        return;
-      }
-      if (timeStatus) {
-        proxy.$modal.msgWarning("报工空间工作时长为空");
-        return;
-      }
-      // 提取所有非空的 spaceId 并用逗号连接
-      form.value.reportContent = tempList
-        .map((item) => item.spaceId)
-        .filter((id) => id != null) // 过滤掉 null 或 undefined 的值
-        .join(",");
-
-      if (form.value.id != null) {
-        const tempList = tableData.value.map((e) => {
-          const date = new Date(e.reportTime);
-          return {
-            ...e,
-            reportTime: isNaN(date.getTime()) ? null : date, // 如果无效，设置为 null
-          };
-        });
-        const req = {
-          ...form.value,
-          createTime: new Date(form.value.createTime),
-          reportTime: new Date(form.value.reportTime),
-          updateTime: new Date(),
-          detailRespVOList: tempList,
-        };
-        updateReport(req)
-          .then((response) => {
-            proxy.$modal.msgSuccess("修改成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => {});
-      } else {
-        const itemList = tableData.value;
-        const req = {
-          ...form.value,
-          status: 0,
-          reportTime: new Date(),
-          detailRespVOList: tableData.value,
-        };
-        console.log("---------提交-----req-------", req);
-        addReport(req)
-          .then((response) => {
-            proxy.$modal.msgSuccess("提交成功");
-            open.value = false;
-            getList();
-          })
-          .catch((error) => {});
-      }
-    }
-  });
-}
-
-// 删除操作
-const deleteItem = (index) => {
-  // 使用 splice 方法根据索引删除数据
-  tableData.value.splice(index, 1);
-  console.log("删除了索引为", index, "的项");
-};
-
-const addItem = () => {
-  tableData.value.push({ name: "aa" });
-};
-
-const popoverVisible = ref(false);
-
-const handleFocus = () => {
-  popoverVisible.value = true;
-};
-const handleBlur = () => {
-  popoverVisible.value = false;
-};
-const handleSelectChange = (value) => {
-  console.log("选中的选项:", value);
-};
-
-const handlePopoverClick = (value) => {
-  // 如果不想关闭 Popover，可以在这里处理额外的逻辑
-};
-
-//打开报工页面
-function openForWork() {
-  tableData.value = [{ spaceId: null, duration: null }];
-  form.value.reportExperience = null;
-  title.value = "新增报工";
-  open.value = true;
-}
-
-function cancel() {
-  open.value = false;
-}
-
-//报工管理
-function reportingForWork() {
-  router.push({ path: "/space/report" });
-}
-
-function spaceIdChange() {
-  const space = spaceOptions.value.find(
-    (item) => item.id === userStore.spaceId
-  );
-  if (space) {
-    userStore.spaceCode = space.code;
-  }
-  if (userStore.spaceId) {
-    localStorage.setItem("dataMasterSpaceId", userStore.spaceId);
-    location.reload();
-  } else {
-    userStore.spaceCode = "";
-    localStorage.removeItem("dataMasterSpaceId");
-  }
-}
-
-// 判断空间是否被禁用
-const isSpaceDisabled = (spaceId, currentRow) => {
-  // 判断当前空间是否已被选中，并且不是当前行
-  return tableData.value.some(
-    (row) => row.spaceId === spaceId && row !== currentRow
-  );
-};
-//-----------------------以上报工内容-------------------------
-
-// 消息通知数量
-const msgCount = ref(0);
-const messages = ref([]);
-const sessionValue = ref(null);
-getMessageNum(); // 第一次主要获取消息
-
-const wsUri =
-  import.meta.env.VITE_APP_WEBSOCKET_API +
-  "/websocket/message/" +
-  userStore.userId;
-// 建立socket连接
-const ws = new WebSocket(wsUri);
-
-const initWebSocket = () => {
-  console.log("---------initWebSocket-------------");
-
-  //查询未读消息通知
-  listMessage({
-    receiverId: userStore.userId,
-    hasRead: 0,
-    pageNum: 1,
-    pageSize: 1000,
-  }).then((response) => {
-    response.data.rows?.forEach((item) => {
-      item.time = item.updateTime;
-      item.entityType = item.category;
-      // item.title = item.title
-    });
-    messages.value = [...response.data.rows, ...messages.value];
-    msgCount.value = messages.value ? messages.value.length : 0;
-    console.log("------messages.value----", messages.value);
-  });
-  ws.onmessage = (event) => {
-    // 服务端推送数据
-    // console.log('===服务端推送数据=========>',event.data)
-    const messageData = JSON.parse(event.data);
-    console.log("===监测数据 messageData=========>", messageData);
-    if (messageData) {
-      messageData.time =
-        messageData.updateTime != undefined && messageData.updateTime != null
-          ? formatTimestamp(messageData.updateTime)
-          : formatTimestamp(messageData.createTime);
-      // messages.value.push(messageData)
-      messages.value = [messageData, ...messages.value];
-    }
-    console.log("===存储的数据 messages=========>", messages.value);
-    // 消息数量更新
-    msgCount.value = messages.value ? messages.value.length : 0;
-  };
-};
-const listSpace = () => {
-  if (userStore.id) {
-    currentUser().then((response) => {
-      console.log("---------- listSpaceUserRel-------------", response);
-      spaceOptions.value = response.data || [];
-      if (!spaceOptions.value.length) {
-        userStore.spaceId = null;
-        userStore.spaceCode = "";
-        localStorage.removeItem("dataMasterSpaceId");
-        return;
-      }
-
-      const dataMasterSpaceId = localStorage.getItem("dataMasterSpaceId");
-      if (!dataMasterSpaceId) {
-        userStore.spaceId = "";
-        userStore.spaceCode = "";
-        return;
-      }
-
-      const space = spaceOptions.value.find(
-        (item) => String(item.id) === String(dataMasterSpaceId)
-      );
-      if (!space) {
-        userStore.spaceId = "";
-        userStore.spaceCode = "";
-        localStorage.removeItem("dataMasterSpaceId");
-        return;
-      }
-
-      userStore.spaceId = space.id;
-      userStore.spaceCode = space.code;
-      if (isSpaceWorkspacePath(route.path)) {
-        loadSpaceMenus(space.id, { navigate: false });
-      }
-    });
-  }
-};
 
 function isSpaceWorkspacePath(path) {
   return isSpaceModuleRoute(path);
@@ -502,7 +147,7 @@ function loadSpaceMenus(spaceId, options = { navigate: true }) {
 
     if (!options.navigate) return;
 
-  const targetPath = isSpaceWorkspacePath(router.currentRoute.value.path)
+    const targetPath = isSpaceWorkspacePath(router.currentRoute.value.path)
       ? router.currentRoute.value.path
       : findFirstRoutePath(permissionStore.addRoutes);
 
@@ -542,21 +187,7 @@ function joinRoutePath(parentPath, path) {
 }
 
 onMounted(() => {
-  initWebSocket();
-  console.log(userStore);
-
   listSpace();
-
-  // getCurrentAppVersion().then((res) => {
-  //   if (res.data != null) {
-  //     // 是否最新版本
-  //     needUpdate.value = res.data.needUpdate;
-  //     // 本地版本号
-  //     currentVersion.value = res.data.currentVersion;
-  //     // 最新版本号
-  //     latestVersion.value = res.data.latestVersion;
-  //   }
-  // });
 });
 
 watch(
@@ -568,58 +199,73 @@ watch(
   },
   { immediate: true }
 );
-// 页面注销
-onBeforeUnmount(() => {
-  console.log("------页面注销----");
-  ws.close(); // 关闭socket
-});
 
-// 格式化时间戳为 YYYY-MM-DD HH:mm:ss 格式
-function formatTimestamp(timestamp) {
-  const date = new Date(timestamp);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0"); // 月份从0开始
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
+onBeforeUnmount(() => {});
 
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+function spaceIdChange() {
+  const space = spaceOptions.value.find(
+    (item) => item.id === userStore.spaceId
+  );
+  if (space) {
+    userStore.spaceCode = space.code;
+  }
+  if (userStore.spaceId) {
+    localStorage.setItem("dataMasterSpaceId", userStore.spaceId);
+    location.reload();
+  } else {
+    userStore.spaceCode = "";
+    localStorage.removeItem("dataMasterSpaceId");
+  }
 }
 
-// 消息查询
-function getMessageNum() {
-  getNum();
-}
+const listSpace = () => {
+  if (userStore.id) {
+    currentUser().then((response) => {
+      spaceOptions.value = response.data || [];
+      if (!spaceOptions.value.length) {
+        userStore.spaceId = null;
+        userStore.spaceCode = "";
+        localStorage.removeItem("dataMasterSpaceId");
+        return;
+      }
 
-// tab-click 事件处理函数
-const handleClick = (tab) => {
-  console.log("当前选中的 tab:", tab.props); // tab 是一个对象，包含当前被点击的 tab 的信息
-  const label = tab.props.label;
-  activeMsg.value = tab.props.name;
+      const dataMasterSpaceId = localStorage.getItem("dataMasterSpaceId");
+      if (!dataMasterSpaceId) {
+        userStore.spaceId = "";
+        userStore.spaceCode = "";
+        return;
+      }
+
+      const space = spaceOptions.value.find(
+        (item) => String(item.id) === String(dataMasterSpaceId)
+      );
+      if (!space) {
+        userStore.spaceId = "";
+        userStore.spaceCode = "";
+        localStorage.removeItem("dataMasterSpaceId");
+        return;
+      }
+
+      userStore.spaceId = space.id;
+      userStore.spaceCode = space.code;
+      if (isSpaceWorkspacePath(route.path)) {
+        loadSpaceMenus(space.id, { navigate: false });
+      }
+    });
+  }
 };
+
 function toggleSideBar() {
   appStore.toggleSideBar();
 }
 
-const activeOpen = ref(false);
-
-function handleAboutUs() {
-  activeOpen.value = true;
-}
-
-function handleCommand(command) {
-  switch (command) {
+function handleCommand({ key }) {
+  switch (key) {
     case "setLayout":
       setLayout();
       break;
     case "logout":
       logout();
-      break;
-    case "about":
-      // 跳转到关于我们页面
-      // window.open('https://qiantong.tech/', '_blank');
-      handleAboutUs();
       break;
     default:
       break;
@@ -627,41 +273,23 @@ function handleCommand(command) {
 }
 
 function logout() {
-  ElMessageBox.confirm("确定注销并退出系统吗？", "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
-    .then(() => {
+  Modal.confirm({
+    title: '提示',
+    content: '确定注销并退出系统吗？',
+    okText: '确定',
+    cancelText: '取消',
+    onOk: () => {
       userStore.logOut().then(() => {
         location.href = "/index";
       });
-    })
-    .catch(() => {});
+    }
+  });
 }
 
 const emits = defineEmits(["setLayout"]);
 
 function setLayout() {
   emits("setLayout");
-}
-
-function handleRefreshClick() {
-  const activeView = visitedViews.value.find(
-    (view) => view.path === route.path
-  );
-  proxy.$tab.refreshPage(activeView);
-  if (route.meta.link) {
-    useTagsViewStore().delIframeView(route);
-  }
-}
-
-function clearNotification() {
-  readAll().then(() => {
-    messages.value = [];
-    msgCount.value = 0;
-    ElMessage.success("已全部已读！");
-  });
 }
 </script>
 
@@ -673,218 +301,47 @@ function clearNotification() {
   width: 100%;
 }
 
-.custom-option-style .el-select-dropdown__item {
-  display: flex;
-  align-items: center;
-}
-
-::v-deep {
-  .el-select__wrapper {
-    box-shadow: 0 0 0 1px #dcdfe6 inset;
-    border-radius: 2px !important;
-  }
-}
-
-.message-list {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.msg-item {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 10px 16px;
-  margin-bottom: 10px;
-  background: #f9f9f9;
-  border-radius: 4px;
-}
-
-.icon {
-  width: 34px;
-  height: 34px;
-  margin-right: 12px;
-}
-
-.content {
-  .title {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.85);
-    margin-bottom: 6px;
-  }
-
-  .time {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.45);
-  }
-}
-
 .navbar {
   height: 60px;
-  overflow: visible;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: #fff;
   border-bottom: 1px solid var(--dm-border-light, #edf1f5);
-  box-shadow: none;
-  text-align: center;
-  line-height: 60px;
+  padding-right: 8px;
 
-  .navbar-logo {
-    float: left;
-    width: 236px !important;
-    height: 100% !important;
-    background-color: transparent !important;
-
-    ::v-deep.sidebar-logo-link {
-      padding: 0 16px !important;
-      background-color: transparent !important;
-    }
-
-    ::v-deep.sidebar-logo-full {
-      flex: 0 1 204px !important;
-      width: 100% !important;
-      max-width: 204px !important;
-      height: 42px !important;
-      margin-top: 16px !important;
-      transform: translateY(4px) !important;
-    }
-  }
-
-  ::v-deep .size-icon--style {
-    line-height: 60px;
-  }
-
-  .hamburger-container {
-    display: inline-flex;
+  .navbar-left {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    line-height: 40px;
-    float: left;
-    margin: 10px 8px 0 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s;
-    -webkit-tap-highlight-color: transparent;
-
-    &:hover {
-      background: #f3f6fb;
-    }
+    flex: 1;
+    overflow: hidden;
   }
 
-  .breadcrumb-container {
-    float: left;
-  }
-
-  .topmenu-container {
-    position: absolute;
-    left: 66px;
-
-    &.has-navbar-logo {
-      left: 286px;
-    }
-  }
-
-  .errLog-container {
-    display: inline-block;
-    vertical-align: top;
-  }
-
-  .right-menu {
-    float: right;
-    height: 100%;
+  .navbar-right {
     display: flex;
     align-items: center;
     gap: 2px;
-    padding-right: 8px;
-    position: relative;
-    z-index: 10;
-
-    ::v-deep .el-form-item__label {
-      color: var(--el-text-color-regular) !important;
-    }
-
-    ::v-deep .el-form-item__label:before {
-      content: "*";
-      color: red !important;
-      margin-top: 3px !important;
-    }
-
-    &:focus {
-      outline: none;
-    }
-
-    .right-menu-item {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 36px;
-      height: 36px;
-      padding: 0 8px;
-      border-radius: 8px;
-      font-size: 18px;
-      color: var(--dm-text-secondary, #6b7280);
-
-      &.hover-effect {
-        cursor: pointer;
-        transition: color 0.16s ease, background-color 0.16s ease;
-
-        &:hover {
-          color: var(--dm-color-primary, #2563eb);
-          background: #f3f6fb;
-        }
-      }
-    }
-
-    .rwgl-item {
-      display: flex !important;
-      align-items: center;
-
-      img {
-        height: 18px;
-        display: block;
-      }
-    }
+    flex-shrink: 0;
 
     .avatar-container {
-      margin: 0;
       display: flex;
       align-items: center;
       height: 100%;
-
-      ::v-deep .el-dropdown {
-        display: flex;
-        align-items: center;
-        height: 100%;
-      }
 
       .avatar-wrapper {
         display: flex;
         align-items: center;
         height: 36px;
-        margin-top: 0;
         padding: 0 6px 0 4px;
-        border: 1px solid transparent;
         border-radius: 18px;
-        position: relative;
+        cursor: pointer;
         transition: border-color 0.16s ease, background-color 0.16s ease;
 
         &:hover {
-          border-color: var(--dm-border-color, #e5e7eb);
           background: #f8fafc;
         }
 
         .user-avatar {
-          cursor: pointer;
           width: 28px;
           height: 28px;
           border-radius: 14px;
@@ -905,245 +362,25 @@ function clearNotification() {
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-
-        i {
-          cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
-          font-size: 12px;
-        }
       }
     }
   }
 
-  .flash ::v-deep .el-badge__content.is-fixed {
-    animation: twinkle 1s infinite;
-    /*margin-top: 16px;*/
-    margin-right: 6px;
-  }
-
-  /* 定义闪烁的动画 */
-  @keyframes twinkle {
-    0% {
-      opacity: 1;
-      /* 完全可见 */
-    }
-
-    50% {
-      opacity: 0.3;
-      /* 半透明 */
-    }
-
-    100% {
-      opacity: 1;
-      /* 完全可见 */
-    }
-  }
-
-  .item {
-    height: 60px;
-    line-height: 60px;
-    display: inline-block;
+  .hamburger-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    margin: 10px 8px 0 10px;
+    border-radius: 8px;
     cursor: pointer;
-  }
-
-  .badge :deep(.el-badge__content.is-fixed) {
-    top: 20px;
-    transform: translateY(-50%) translateX(64%);
-  }
-}
-
-.mag-tabs {
-  height: calc(100% - 50px);
-
-  ::v-deep .el-tabs__item {
-    height: 50px;
-    line-height: 50px;
-  }
-
-  ::v-deep .el-tabs__header {
-    margin-bottom: 6px;
-  }
-
-  ::v-deep .el-tabs__content {
-    height: calc(100% - 56px);
-
-    .el-tab-pane {
-      height: 100%;
-    }
-  }
-}
-
-.msg-btns {
-  display: flex;
-  height: 50px;
-  line-height: 50px;
-  border-top: 1px solid #e6e6e6;
-
-  .btn-item {
-    width: 50%;
-    text-align: center;
-    cursor: pointer;
-    color: rgba(0, 0, 0, 0.85);
-
-    &:last-child {
-      border-left: 1px solid #e6e6e6;
-    }
-  }
-}
-
-#custom-header {
-  background-color: rgb(248, 248, 248);
-}
-
-.el-dialog__header.show-close {
-  text-align: left !important;
-  padding: 9px 620px 9px 20px !important;
-  background: rgb(248, 248, 248) !important;
-}
-
-.el-dialog__body {
-  height: 500px;
-}
-
-/* 确保样式生效，增加选择器的优先级 */
-.rounded-button,
-.rounded-button .el-button {
-  border-radius: 2px !important;
-}
-
-.about-content-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  //padding: 27px 0;
-  //gap: 16px;
-
-  .logo {
-    height: 34px;
-    width: 146px;
-    margin-top: 27px;
-  }
-
-  .about-title {
-    margin-top: 20px;
-    font-family: PingFang SC;
-    font-weight: 600;
-    font-size: 22px;
-    color: #333333;
-
-    .version-badge {
-      background-color: #409eff;
-      color: white;
-      padding: 2px 8px;
-      border-radius: 4px;
-      margin-left: 6px;
-    }
-  }
-
-
-}
-
-.about-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 35px;
-  border-top: 1px solid var(--el-border-color-light); // 使用 Element Plus 主题变量
-
-  .status-text {
-    font-family: PingFang SC;
-    font-weight: 600;
-    font-size: 18px;
-    color: #333333;
-  }
-  .update-link {
-    color: #126bed; // Element Plus 主色，也可以用 var(--el-color-primary)
-    text-decoration: underline;
-    cursor: pointer;
-    font-size: 18px;
-    transition: color 0.2s;
+    transition: background 0.3s;
 
     &:hover {
-      color: #66b1ff; // 鼠标悬停时颜色变亮
+      background: #f3f6fb;
     }
-
-    &:active {
-      color: #3a8ee6; // 点击时颜色更深一点
-    }
-  }
-  .head-btns {
-    img {
-      margin-right: 6px;
-    }
-    .currImg {
-      display: inline-block;
-    }
-
-    .act {
-      display: none;
-    }
-
-    .el-button {
-      height: 34px;
-      width: 114px;
-      border-radius: 4px !important;
-      font-size: 18px;
-      font-family: PingFang SC;
-      font-weight: 600;
-      color: #ffffff;
-
-      &:hover {
-        .act {
-          display: inline-block;
-        }
-
-        .currImg {
-          display: none;
-        }
-      }
-    }
-  }
-}
-.markdown-content {
-  padding: 0 15px 15px 15px;
-}
-</style>
-
-<style lang="scss">
-.about-dialog:not(.is-fullscreen) {
-  margin: auto !important;
-  width: 600px;
-  height: 300px;
-  padding: 0;
-  .el-dialog__header {
-    height: 47px !important;
-    background: #f8f8f8 !important;
-    line-height: 47px;
-    padding-left: 27px;
-    color: #333333;
-    padding-bottom: 0px;
-    font-family: PingFang SC;
-    .el-dialog__close {
-      font-size: 18px;
-      color: #6a6a6a;
-      font-weight: bold;
-    }
-
-    .el-dialog__title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333333;
-    }
-  }
-  .el-dialog__footer {
-    padding-top: 0px;
-  }
-  .about-footer {
-    padding: 11px 32px;
   }
 }
 </style>

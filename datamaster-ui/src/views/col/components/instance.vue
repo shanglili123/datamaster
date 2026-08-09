@@ -1,108 +1,65 @@
 <template>
-  <el-dialog v-model="visibleDialog" draggable class="medium-dialog" :title="title" destroy-on-close>
-    <el-table
-      stripe
-      height="580px"
-      v-loading="loading"
-      :data="jobLogList"
-      :default-sort="defaultSort"
-      @sort-change="handleSortChange"
+  <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="title" destroyOnClose>
+    <a-table
+      :loading="loading"
+      :data-source="jobLogList"
+      :columns="columns"
+      :scroll="{ y: 580 }"
+      :pagination="false"
+      row-key="id"
+      @change="handleTableChange"
     >
-      <el-table-column width="225" label="编号" align="left" prop="id" />
-      <el-table-column
-        :show-overflow-tooltip="{ effect: 'light' }"
-        label="任务名称"
-        align="left"
-        width="300"
-        prop="taskInstanceName"
-      >
-        <template #default="scope">
-          {{ scope.row.name || "-" }}
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'taskInstanceName'">
+          {{ record.name || "-" }}
         </template>
-      </el-table-column>
-      <el-table-column width="100" label="执行类型" align="left" prop="commandType">
-        <template #default="scope">
+        <template v-else-if="column.key === 'commandType'">
           <dict-tag
-            v-if="scope.row.commandType !== null && scope.row.commandType !== undefined && scope.row.commandType !== ''"
+            v-if="record.commandType !== null && record.commandType !== undefined && record.commandType !== ''"
             :options="dpp_etl_task_instance_command_type"
-            :value="String(scope.row.commandType).trim()"
+            :value="String(record.commandType).trim()"
           />
           <span v-else>-</span>
         </template>
-      </el-table-column>
-      <el-table-column width="100" label="执行状态" align="left" prop="status">
-        <template #default="scope">
+        <template v-else-if="column.key === 'status'">
           <dict-tag
-            v-if="scope.row.status !== null && scope.row.status !== undefined && scope.row.status !== ''"
+            v-if="record.status !== null && record.status !== undefined && record.status !== ''"
             :options="dpp_etl_node_instance"
-            :value="String(scope.row.status).trim()"
+            :value="String(record.status).trim()"
           />
           <span v-else>-</span>
         </template>
-      </el-table-column>
-      <el-table-column
-        width="160"
-        label="开始时间"
-        align="left"
-        prop="startTime"
-        sortable="custom"
-        column-key="start_time"
-        :sort-orders="['descending', 'ascending']"
-        :show-overflow-tooltip="{ effect: 'light' }"
-      >
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.startTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
+        <template v-else-if="column.key === 'start_time'">
+          <span>{{ parseTime(record.startTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
         </template>
-      </el-table-column>
-      <el-table-column
-        width="160"
-        label="结束时间"
-        align="left"
-        prop="endTime"
-        sortable="custom"
-        column-key="end_time"
-        :sort-orders="['descending', 'ascending']"
-        :show-overflow-tooltip="{ effect: 'light' }"
-      >
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.endTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
+        <template v-else-if="column.key === 'end_time'">
+          <span>{{ parseTime(record.endTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="抽取量" align="left" prop="extractionCount" width="80">
-        <template #default>
+        <template v-else-if="column.key === 'extractionCount'">
           {{ "-" }}
         </template>
-      </el-table-column>
-      <el-table-column label="写入量" align="left" prop="writeCount" width="80">
-        <template #default>
+        <template v-else-if="column.key === 'writeCount'">
           {{ "-" }}
         </template>
-      </el-table-column>
-      <el-table-column label="创建人" align="left" prop="personChargeName" width="80">
-        <template #default="scope">
-          {{ scope.row.personChargeName || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="200">
-        <template #default="scope">
-          <el-button link type="primary" icon="View" @click="logDetailCatList(scope.row)">查看日志</el-button>
-          <el-button
-            link
-            type="warning"
-            icon="Download"
-            @click="handleExport(scope.row)"
+        <template v-else-if="column.key === 'operation'">
+          <a-button type="link" :icon="h(EyeOutlined)" @click="logDetailCatList(record)">查看日志</a-button>
+          <a-button
+            type="link"
+            style="color: #faad14"
+            :icon="h(DownloadOutlined)"
+            @click="handleExport(record)"
             @mousedown="(e) => e.preventDefault()"
           >
             下载日志
-          </el-button>
+          </a-button>
         </template>
-      </el-table-column>
-      <template #empty>
+      </template>
+      <template #emptyText>
         <div class="emptyBg">
           <p>暂无记录</p>
         </div>
       </template>
-    </el-table>
+    </a-table>
     <pagination
       v-show="total > 0"
       :total="total"
@@ -112,17 +69,18 @@
     />
     <template #footer>
       <div style="text-align: right">
-        <el-button @click="visibleDialog = false">关闭</el-button>
+        <a-button @click="visibleDialog = false">关闭</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
   <TaskLogDialog ref="logDialogRef" />
 </template>
 
 <script setup>
-import { computed, getCurrentInstance, ref, watch } from "vue";
+import { computed, getCurrentInstance, h, ref, watch } from "vue";
 import { listDppEtlTaskInstance } from "@/api/col/instance/job";
 import TaskLogDialog from "@/views/col/components/taskLog.vue";
+import { EyeOutlined, DownloadOutlined } from "@ant-design/icons-vue";
 
 const { proxy } = getCurrentInstance();
 const { dpp_etl_node_instance } = proxy.useDict("dpp_etl_node_instance");
@@ -136,7 +94,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:visible", "confirm"]);
-const defaultSort = ref({ prop: "startTime", order: "descending" });
 const logDialogRef = ref(null);
 const total = ref(0);
 const jobLogList = ref([]);
@@ -158,6 +115,63 @@ const visibleDialog = computed({
     emit("update:visible", newValue);
   },
 });
+
+const columns = [
+  { title: "编号", dataIndex: "id", key: "id", width: 225, align: "left" },
+  {
+    title: "任务名称",
+    dataIndex: "taskInstanceName",
+    key: "taskInstanceName",
+    width: 300,
+    align: "left",
+    ellipsis: true,
+  },
+  { title: "执行类型", dataIndex: "commandType", key: "commandType", width: 100, align: "left" },
+  { title: "执行状态", dataIndex: "status", key: "status", width: 100, align: "left" },
+  {
+    title: "开始时间",
+    dataIndex: "startTime",
+    key: "start_time",
+    width: 160,
+    align: "left",
+    ellipsis: true,
+    sorter: true,
+    sorterKey: "start_time",
+    defaultSortOrder: "descend",
+  },
+  {
+    title: "结束时间",
+    dataIndex: "endTime",
+    key: "end_time",
+    width: 160,
+    align: "left",
+    ellipsis: true,
+    sorter: true,
+    sorterKey: "end_time",
+  },
+  { title: "抽取量", dataIndex: "extractionCount", key: "extractionCount", width: 80, align: "left" },
+  { title: "写入量", dataIndex: "writeCount", key: "writeCount", width: 80, align: "left" },
+  { title: "创建人", dataIndex: "createBy", key: "createBy", width: 80, align: "left" },
+  {
+    title: "操作",
+    key: "operation",
+    width: 200,
+    align: "center",
+    className: "small-padding fixed-width",
+    fixed: "right",
+  },
+];
+
+function handleTableChange(pagination, filters, sorter) {
+  if (!sorter || Array.isArray(sorter)) {
+    return;
+  }
+  handleSortChange({
+    column: { columnKey: sorter.key },
+    prop: sorter.field,
+    order: sorter.order === "ascend" ? "ascending" : sorter.order === "descend" ? "descending" : sorter.order,
+  });
+}
 
 function handleSortChange({ column, prop, order }) {
   queryParams.value.orderByColumn = column?.columnKey || prop;

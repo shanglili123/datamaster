@@ -1,43 +1,43 @@
 <template>
-    <el-dialog v-model="visibleDialog" draggable width="500px" class="excelUploadDialog-2025-03-28-17-05" :title="title"
-        destroy-on-close>
-        <el-form ref="daDiscoveryTaskRef" :model="form" label-width="90px" @submit.prevent>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="字段名称" prop="columnName"
+    <a-modal v-model:open="visibleDialog" :draggable="true" width="500px" class="excelUploadDialog-2025-03-28-17-05" :title="title"
+        :destroy-on-close="true" :footer="null">
+        <a-form ref="daDiscoveryTaskRef" :model="form" :label-col="{ style: { width: '90px' } }" @submit.prevent>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="字段名称" name="columnName"
                         :rules="[{ required: true, message: '请输入字段名称', trigger: 'blur' }]">
-                        <el-input v-model="form.columnName" placeholder="请输入字段名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="字段类型" prop="columnType"
+                        <a-input v-model:value="form.columnName" placeholder="请输入字段名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="字段类型" name="columnType"
                         :rules="[{ required: true, message: '请选择字段类型', trigger: 'change' }]">
-                        <el-select v-model="form.columnType" placeholder="请选择字段类型">
-                            <el-option v-for="dict in columntype" :key="dict.value" :label="dict.label"
-                                :value="dict.value"></el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24" v-if="form.columnType == 'date'">
-                    <el-form-item label="日期格式" prop="format"
+                        <a-select v-model:value="form.columnType" placeholder="请选择字段类型">
+                            <a-select-option v-for="dict in columntype" :key="dict.value" :label="dict.label"
+                                :value="dict.value">{{ dict.label }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24" v-if="form.columnType == 'date'">
+                    <a-form-item label="日期格式" name="format"
                         :rules="[{ required: true, message: '请输入日期格式', trigger: 'change' }]">
-                        <el-input v-model="form.format" placeholder="日期格式如yyyy/MM/dd" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                        <a-input v-model:value="form.format" placeholder="日期格式如yyyy/MM/dd" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
 
         <template #footer>
             <div style="text-align: right">
-                <el-button @click="closeDialog">关闭</el-button>
-                <el-button type="primary" @click="saveData">保存</el-button>
+                <a-button @click="closeDialog">关闭</a-button>
+                <a-button type="primary" @click="saveData">保存</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
@@ -67,9 +67,7 @@ const form = ref({
     crontab: '',
     releaseState: 0,
     description: '',
-    contactNumber: '',
-    catCode: '',
-    personCharge: ''
+    catCode: ''
 });
 
 watch(
@@ -118,7 +116,7 @@ const saveData = () => {
 </script>
 <style lang="scss">
 .excelUploadDialog-2025-03-28-17-05 {
-    .el-dialog__body {
+    .ant-modal-body {
         overflow: auto;
         height: 250px !important;
         padding: 20px 40px !important;

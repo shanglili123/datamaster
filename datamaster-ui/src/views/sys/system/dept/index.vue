@@ -1,29 +1,29 @@
-﻿<template>
+<template>
    <div class="app-container" ref="app-container">
       <div class="pagecont-top" v-show="showSearch">
-         <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-            <el-form-item label="部门名称" prop="deptName">
-               <el-input v-model="queryParams.deptName" placeholder="请输入部门名称" clearable class="el-form-input-width"
-                  @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-               <el-select v-model="queryParams.status" placeholder="部门状态" clearable class="el-form-input-width">
-                  <el-option v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.label"
-                     :value="dict.value" />
-               </el-select>
-            </el-form-item>
-            <el-form-item>
-               <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+         <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline" :label-col="{ style: { width: '68px' } }">
+            <a-form-item label="部门名称" name="deptName">
+               <a-input v-model:value="queryParams.deptName" placeholder="请输入部门名称" allow-clear class="el-form-input-width"
+                  @pressEnter="handleQuery" />
+            </a-form-item>
+            <a-form-item label="状态" name="status">
+               <a-select v-model:value="queryParams.status" placeholder="部门状态" allow-clear class="el-form-input-width">
+                  <a-select-option v-for="dict in sys_normal_disable" :key="dict.value"
+                     :value="dict.value">{{ dict.label }}</a-select-option>
+               </a-select>
+            </a-form-item>
+            <a-form-item>
+               <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                   <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-               </el-button>
-               <el-button @click="resetQuery" @mousedown="e => e.preventDefault()">
+               </a-button>
+               <a-button @click="resetQuery" @mousedown="e => e.preventDefault()">
                   <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-               </el-button>
-            </el-form-item>
-         </el-form>
+               </a-button>
+            </a-form-item>
+         </a-form>
          <div class="data-action-btns">
-            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['system:dept:add']">新增</el-button>
-            <el-button type="info" plain icon="Sort" @click="toggleExpandAll">展开/折叠</el-button>
+            <a-button type="primary" :icon="h(PlusOutlined)" @click="handleAdd" v-hasPermi="['system:dept:add']">新增</a-button>
+            <a-button :icon="h(SwitcherOutlined)" @click="toggleExpandAll">展开/折叠</a-button>
          </div>
          <div class="top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
@@ -31,96 +31,106 @@
       </div>
       <div class="pagecont-bottom">
 
-         <el-table v-if="refreshTable" height="60vh" v-loading="loading" :data="deptList" row-key="deptId"
-            :default-expand-all="isExpandAll" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
-            <el-table-column prop="deptName" label="部门名称" :show-overflow-tooltip="true"></el-table-column>
-            <el-table-column prop="orderNum" label="排序"></el-table-column>
-            <el-table-column prop="status" label="状态">
-               <template #default="scope">
-                  <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
-               </template>
-            </el-table-column>
-            <el-table-column label="创建时间" align="center" prop="createTime" width="160">
-               <template #default="scope">
-                  <span>{{ parseTime(scope.row.createTime) }}</span>
-               </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
-               <template #default="scope">
-                  <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                     v-hasPermi="['system:dept:edit']">修改</el-button>
-                  <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)"
-                     v-hasPermi="['system:dept:add']">新增</el-button>
-                  <el-button v-if="scope.row.parentId != 0" link type="danger" icon="Delete"
-                     @click="handleDelete(scope.row)" v-hasPermi="['system:dept:remove']">删除</el-button>
-               </template>
-            </el-table-column>
-         </el-table>
+         <a-spin :spinning="loading">
+            <a-table
+              v-if="refreshTable"
+              :data-source="deptList"
+              :columns="tableColumns"
+              :pagination="false"
+              :scroll="{ y: '60vh' }"
+              row-key="deptId"
+              :default-expand-all-rows="isExpandAll"
+              :children-column-name="'children'"
+              :locale="{ emptyText: emptyContent }"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.dataIndex === 'status'">
+                  <dict-tag :options="sys_normal_disable" :value="record.status" />
+                </template>
+                <template v-else-if="column.dataIndex === 'createTime'">
+                  <span>{{ parseTime(record.createTime) }}</span>
+                </template>
+                <template v-else-if="column.key === 'actions'">
+                  <a-button type="link" size="small" @click="handleUpdate(record)" v-hasPermi="['system:dept:edit']">修改</a-button>
+                  <a-button type="link" size="small" @click="handleAdd(record)" v-hasPermi="['system:dept:add']">新增</a-button>
+                  <a-button v-if="record.parentId != 0" type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['system:dept:remove']">删除</a-button>
+                </template>
+                <template v-else>
+                  <span>{{ record[column.dataIndex] || '-' }}</span>
+                </template>
+              </template>
+            </a-table>
+         </a-spin>
          <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
       </div>
 
       <!-- 添加或修改部门对话框 -->
-      <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable
-         destroy-on-close>
-         <el-form ref="deptRef" :model="form" :rules="rules" label-width="80px">
-            <el-row :gutter="20">
-               <el-col :span="24" v-if="form.parentId !== 0">
-                  <el-form-item label="上级部门" prop="parentId">
-                     <el-tree-select v-model="form.parentId" :data="deptOptions"
-                        :props="{ value: 'deptId', label: 'deptName', children: 'children' }" value-key="deptId"
-                        placeholder="选择上级部门" check-strictly />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="部门名称" prop="deptName">
-                     <el-input v-model="form.deptName" placeholder="请输入部门名称" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="显示排序" prop="orderNum">
-                     <el-input-number style="width:100%" v-model="form.orderNum" controls-position="right" :min="0" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="负责人" prop="leader">
-                     <el-input v-model="form.leader" placeholder="请输入负责人" maxlength="20" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="联系电话" prop="phone">
-                     <el-input v-model="form.phone" placeholder="请输入联系电话" maxlength="11" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="邮箱" prop="email">
-                     <el-input v-model="form.email" placeholder="请输入邮箱" maxlength="50" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="部门状态">
-                     <el-radio-group v-model="form.status">
-                        <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
-                           }}</el-radio>
-                     </el-radio-group>
-                  </el-form-item>
-               </el-col>
-            </el-row>
-         </el-form>
+      <a-modal :title="title" v-model:open="open" width="800px" destroy-on-close>
+         <a-form ref="deptRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+               <a-col :span="24" v-if="form.parentId !== 0">
+                  <a-form-item label="上级部门" name="parentId">
+                     <a-tree-select v-model:value="form.parentId" :tree-data="deptOptions"
+                        :field-names="{ value: 'deptId', label: 'deptName', children: 'children' }"
+                        placeholder="选择上级部门" />
+                  </a-form-item>
+               </a-col>
+               <a-col :span="12">
+                  <a-form-item label="部门名称" name="deptName">
+                     <a-input v-model:value="form.deptName" placeholder="请输入部门名称" />
+                  </a-form-item>
+               </a-col>
+               <a-col :span="12">
+                  <a-form-item label="显示排序" name="orderNum">
+                     <a-input-number style="width:100%" v-model:value="form.orderNum" :min="0" />
+                  </a-form-item>
+               </a-col>
+               <a-col :span="12">
+                  <a-form-item label="邮箱" name="email">
+                     <a-input v-model:value="form.email" placeholder="请输入邮箱" :maxlength="50" />
+                  </a-form-item>
+               </a-col>
+               <a-col :span="12">
+                  <a-form-item label="部门状态" name="status">
+                     <a-radio-group v-model:value="form.status">
+                        <a-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{ dict.label
+                           }}</a-radio>
+                     </a-radio-group>
+                  </a-form-item>
+               </a-col>
+            </a-row>
+         </a-form>
          <template #footer>
             <div class="dialog-footer">
-               <el-button @click="cancel">取 消</el-button>
-               <el-button type="primary" @click="submitForm">确 定</el-button>
+               <a-button @click="cancel">取 消</a-button>
+               <a-button type="primary" @click="submitForm">确 定</a-button>
             </div>
          </template>
-      </el-dialog>
+      </a-modal>
    </div>
 </template>
 
 <script setup name="Dept">
+
 import { listDept, getDept, delDept, addDept, updateDept, listDeptExcludeChild } from "@/api/system/system/dept.js";
+import { h } from 'vue';
+import { PlusOutlined, SwitcherOutlined } from "@ant-design/icons-vue";
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
+
+const tableColumns = [
+  { title: '部门名称', dataIndex: 'deptName', align: 'left', ellipsis: true },
+  { title: '排序', dataIndex: 'orderNum', align: 'center' },
+  { title: '状态', dataIndex: 'status', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 160 },
+  { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
 
 const deptList = ref([]);
 const open = ref(false);
@@ -239,23 +249,21 @@ function handleUpdate(row) {
 
 /** 提交按钮 */
 function submitForm() {
-   proxy.$refs["deptRef"].validate(valid => {
-      if (valid) {
-         if (form.value.deptId != undefined) {
-            updateDept(form.value).then(response => {
-               proxy.$modal.msgSuccess("修改成功");
-               open.value = false;
-               getList();
-            });
-         } else {
-            addDept(form.value).then(response => {
-               proxy.$modal.msgSuccess("新增成功");
-               open.value = false;
-               getList();
-            });
-         }
+   proxy.$refs["deptRef"].validate().then(() => {
+      if (form.value.deptId != undefined) {
+         updateDept(form.value).then(response => {
+            proxy.$modal.msgSuccess("修改成功");
+            open.value = false;
+            getList();
+         });
+      } else {
+         addDept(form.value).then(response => {
+            proxy.$modal.msgSuccess("新增成功");
+            open.value = false;
+            getList();
+         });
       }
-   });
+   }).catch(() => {});
 }
 
 /** 删除按钮操作 */

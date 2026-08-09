@@ -1,70 +1,73 @@
 <template>
    <!--  逻辑物化的弹窗  -->
-  <el-dialog v-model="localVisible" :title="title" draggable class="warn-dialog" destroy-on-close>
+  <a-modal v-model:open="localVisible" :title="title" draggable class="warn-dialog" :destroy-on-close="true">
     <!-- <div class="centered-text">
       您将对选择的{{
         ids?.length
       }}个逻辑模型进行逻辑物化，请选择数据资产的数据连接
     </div> -->
-    <el-form ref="dpModelRefs" :model="form" :rules="rules" label-width="100px" @submit.prevent>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="数据库连接" prop="datasourceId" :rules="[
+    <a-form ref="dpModelRefs" :model="form" :rules="rules" :label-col="{ style: { width: '100px' } }" @submit.prevent>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="数据库连接" name="datasourceId" :rules="[
             {
               required: true,
               message: '请选择数据库连接',
               trigger: 'change',
             },
           ]">
-            <el-select v-model="form.datasourceId" placeholder="请选择数据连接" @change="handleDatasourceChange" filterable>
-              <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
-                :value="dict.id"></el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="数据库类型" prop="datasourceType">
-            <el-input v-model="form.datasourceType" placeholder="请输入数据库类型" disabled />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="数据库地址" prop="ip">
-            <el-input v-model="form.ip" placeholder="请输入数据库类型" disabled />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述">
-            <el-input type="textarea" placeholder="请输入描述" v-model="form.description" :min-height="192" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="备注">
-            <el-input type="textarea" placeholder="请输入备注" v-model="form.remark" :min-height="192" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
+            <a-select v-model:value="form.datasourceId" placeholder="请选择数据连接" @change="handleDatasourceChange"
+              show-search>
+              <a-select-option v-for="dict in createTypeList" :key="dict.id" :value="dict.id">{{ dict.datasourceName
+              }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="数据库类型" name="datasourceType">
+            <a-input v-model:value="form.datasourceType" placeholder="请输入数据库类型" disabled />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="数据库地址" name="ip">
+            <a-input v-model:value="form.ip" placeholder="请输入数据库类型" disabled />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述">
+            <a-textarea placeholder="请输入描述" v-model:value="form.description" :auto-size="{ minRows: 4 }" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="备注">
+            <a-textarea placeholder="请输入备注" v-model:value="form.remark" :auto-size="{ minRows: 4 }" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </a-form>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="closeDialog">取消</el-button>
-        <el-button type="primary" @click="confirmDialog"> 确认 </el-button>
+        <a-button @click="closeDialog">取消</a-button>
+        <a-button type="primary" @click="confirmDialog"> 确认 </a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
 import {
   createMaterializedTable,
   getDaDatasourceList,
 } from "@/api/std/model/model";
+
 import { defineProps, defineEmits, ref, computed, watch } from "vue";
 const { proxy } = getCurrentInstance();
 const props = defineProps({
@@ -150,15 +153,7 @@ const closeDialog = () => {
 const confirmDialog = async () => {
   try {
     // 使用 Promise 进行表单验证
-    const isValid = await new Promise((resolve, reject) => {
-      proxy.$refs["dpModelRefs"].validate((valid) => {
-        if (valid) {
-          resolve(true); // 表单验证通过
-        } else {
-          reject("表单验证失败"); // 验证失败时拒绝
-        }
-      });
-    });
+    const isValid = await proxy.$refs["dpModelRefs"].validate();
 
     if (isValid) {
       // 创建物化表格
@@ -185,7 +180,7 @@ const confirmDialog = async () => {
 </script>
 
 <style scoped lang="less">
-.warn-dialog .el-dialog__body {
+.warn-dialog .ant-modal-body {
   max-height: 500px;
   overflow-y: auto;
 }
@@ -194,7 +189,7 @@ const confirmDialog = async () => {
   text-align: right;
 }
 
-.dialog-footer .el-button {
+.dialog-footer .ant-btn {
   margin-left: 10px;
 }
 

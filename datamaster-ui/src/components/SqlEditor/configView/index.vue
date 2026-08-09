@@ -4,85 +4,85 @@
     <div class="container-header">
       <span class="title">{{ props.currValue.name }}</span>
       <!-- <div class="icon">
-        <el-icon><Operation /></el-icon>
+        <Operation />
         <span>{{ props.currValue.name }}</span>
       </div> -->
       <span class="close" @click="closeCurrDialog">
-        <el-icon>
-          <Minus />
-        </el-icon>
+        <MinusOutlined />
       </span>
     </div>
     <div class="container-content">
       <template v-if="props.currValue.type == 'attrConfig'">
-        <el-form ref="configRef" :model="form" :rules="rules" label-width="142px" @submit.prevent :disabled="readOnly">
+        <a-form ref="configRef" :model="form" :rules="rules" label-width="142px" @submit.prevent :disabled="readOnly">
           <div class="h2"><img class="icon" src="@/assets/da/asset/h2 (1).svg" alt="" />基础配置</div>
-          <el-form-item label="任务优先级:" prop="taskPriority">
-            <el-select v-model="form.taskPriority" placeholder="请选择任务优先级">
-              <el-option v-for="(item, index) in col_etl_task_priority" :key="index" :label="item.label"
-                :value="item.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Worker分组:" prop="workerGroup">
-            <el-input v-model="form.workerGroup" placeholder="请输入Worker分组" disabled />
-          </el-form-item>
-          <el-form-item label="失败重试次数:" prop="failRetryTimes">
-            <el-input-number style="width: 85%; margin-right: 5px" controls-position="right" :min="0"
-              v-model="form.failRetryTimes" placeholder="请输入失败重试次数"> </el-input-number>
+          <a-form-item label="任务优先级:" name="taskPriority">
+            <a-select v-model:value="form.taskPriority" placeholder="请选择任务优先级">
+              <a-select-option v-for="(item, index) in col_etl_task_priority" :key="index" :label="item.label"
+                :value="item.value"
+/>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="Worker分组:" name="workerGroup">
+            <a-input v-model:value="form.workerGroup" placeholder="请输入Worker分组" disabled />
+          </a-form-item>
+          <a-form-item label="失败重试次数:" name="failRetryTimes">
+            <a-input-number style="width: 85%; margin-right: 5px" :min="0"
+              v-model:value="form.failRetryTimes" placeholder="请输入失败重试次数"
+> </a-input-number>
             <span>次</span>
-          </el-form-item>
-          <el-form-item label="失败重试间隔:" prop="failRetryInterval">
-            <el-input-number style="width: 85%; margin-right: 5px" controls-position="right" :min="0"
-              v-model="form.failRetryInterval" placeholder="请输入失败重试间隔"> </el-input-number>
+          </a-form-item>
+          <a-form-item label="失败重试间隔:" name="failRetryInterval">
+            <a-input-number style="width: 85%; margin-right: 5px" :min="0"
+              v-model:value="form.failRetryInterval" placeholder="请输入失败重试间隔"
+> </a-input-number>
             <span>分</span>
-          </el-form-item>
-          <el-form-item label="延迟执行时间:" prop="delayTime">
-            <el-input-number style="width: 85%; margin-right: 5px" controls-position="right"
-              :min="isShowWithTypeName('SQL,存储过程') ? 1 : 0" v-model="form.delayTime"
-              placeholder="请输入延迟执行时间">
-            </el-input-number>
+          </a-form-item>
+          <a-form-item label="延迟执行时间:" name="delayTime">
+            <a-input-number style="width: 85%; margin-right: 5px"
+              :min="isShowWithTypeName('SQL,存储过程') ? 1 : 0" v-model:value="form.delayTime"
+              placeholder="请输入延迟执行时间"
+>
+            </a-input-number>
             <span>分</span>
-          </el-form-item>
+          </a-form-item>
 
           <div class="h2"><img class="icon" src="@/assets/da/asset/h2 (1).svg" alt="" />其他配置</div>
-          <el-form-item label="数据连接类型:" prop="typaCode"> {{ typaName }} </el-form-item>
-          <el-form-item label="数据源连接:" prop="datasourceId" v-if="isShowWithTypeName('SQL,存储过程')">
-            <el-select v-model="form.datasourceId" placeholder="请选择数据源连接" @change="handleDatasourceChange" filterable>
-              <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
-                :value="dict.id"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="SQL类型:" prop="sqlType" v-if="typaName == 'SQL'">
-            <el-radio-group v-model="form.sqlType" inline>
-              <el-radio v-for="option in visibleRadioOptions" :key="option.id" :value="option.id">
+          <a-form-item label="数据连接类型:" name="typaCode"> {{ typaName }} </a-form-item>
+          <a-form-item label="数据源连接:" name="datasourceId" v-if="isShowWithTypeName('SQL,存储过程')">
+            <a-select v-model:value="form.datasourceId" placeholder="请选择数据源连接" @change="handleDatasourceChange" :show-search="true">
+              <a-select-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
+                :value="dict.id"
+>{{ dict.datasourceName }}</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="SQL类型:" name="sqlType" v-if="typaName == 'SQL'">
+            <a-radio-group v-model:value="form.sqlType">
+              <a-radio v-for="option in visibleRadioOptions" :key="option.id" :value="option.id">
                 {{ option.label }}
-              </el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="分段执行符号:" prop="segm">
-            <el-input v-model="form.segm" placeholder="请输入分段执行符号"></el-input>
-          </el-form-item>
+              </a-radio>
+            </a-radio-group>
+          </a-form-item>
+          <a-form-item label="分段执行符号:" name="segm">
+            <a-input v-model:value="form.segm" placeholder="请输入分段执行符号"></a-input>
+          </a-form-item>
           <div class="h2"><img class="icon" src="@/assets/da/asset/h2 (1).svg" alt="" />参数配置</div>
-          <el-form-item label="自定义参数:" prop="localParams"> </el-form-item>
+          <a-form-item label="自定义参数:" name="localParams"> </a-form-item>
           <div class="wrap" v-for="(item, index) in form.localParams" :key="index">
-            <el-input style="width: 30%" v-model="item.prop" placeholder="参数名称"></el-input>
-            <el-select style="width: 40%; margin: 0 4px" v-model="item.type" placeholder="请选择参数类型">
-              <el-option v-for="dict in columnType" :key="dict.value" :label="dict.label"
-                :value="dict.value"></el-option>
-            </el-select>
-            <el-input style="width: 30%; margin-right: 4px" v-model="item.value" placeholder="值"></el-input>
+            <a-input style="width: 30%" v-model:value="item.prop" placeholder="参数名称"></a-input>
+            <a-select style="width: 40%; margin: 0 4px" v-model:value="item.type" placeholder="请选择参数类型">
+              <a-select-option v-for="dict in columnType" :key="dict.value" :label="dict.label"
+                :value="dict.value"
+>{{ dict.label }}</a-select-option>
+            </a-select>
+            <a-input style="width: 30%; margin-right: 4px" v-model:value="item.value" placeholder="值"></a-input>
             <div class="del-btn" @click="handleDelDiy(index)">
-              <el-icon class="icon">
-                <Delete />
-              </el-icon>
+              <DeleteOutlined class="icon" />
             </div>
           </div>
           <div class="add-btn" @click="handleAddDiy">
-            <el-icon class="icon">
-              <Plus />
-            </el-icon> 添加配置项
+            <PlusOutlined class="icon" /> 添加配置项
           </div>
-        </el-form>
+        </a-form>
       </template>
     </div>
   </div>
@@ -91,6 +91,7 @@
 //
 import { treeData } from "@/views/col/task/developTask/data";
 import { listDaDatasourceNoKafkaBySpaceCode } from "@/api/ast/dataSource/dataSource";
+import { MinusOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons-vue";
 const { proxy } = getCurrentInstance();
 const { col_etl_task_priority } = proxy.useDict("col_etl_task_priority");
 import useUserStore from "@/store/system/user";
@@ -165,7 +166,7 @@ const typaName = computed(() => {
 const configRef = ref();
 const createTypeList = ref([]);
 function getDaDatasource() {
-  var needDatasource = (form.value.typaCode == "SQL" || form.value.typaCode == "PROCEDURE");
+  let needDatasource = (form.value.typaCode == "SQL" || form.value.typaCode == "PROCEDURE");
   if (!needDatasource) {
     createTypeList.value = [];
     return;

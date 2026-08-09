@@ -24,113 +24,113 @@
         <div class="infotop-title mb15">
           {{ studentDetail.id }}
         </div>
-        <el-row :gutter="20">
-          <el-col :span="8">
+        <a-row :gutter="20">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">ID</div>
               <div class="infotop-row-value">{{ studentDetail.id }}</div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">姓名</div>
               <div class="infotop-row-value">
                 {{ studentDetail.name || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">学生照</div>
               <div class="infotop-row-value">
                 <image-preview :src="studentDetail.pictureUrl" :width="50" :height="50"/>
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">教育经历</div>
               <div class="infotop-row-value">
                 {{ studentDetail.experience || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">性别</div>
               <div class="infotop-row-value">
                 <dict-tag :options="sys_user_sex" :value="studentDetail.sex "/>
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">年龄</div>
               <div class="infotop-row-value">
                 {{ studentDetail.age || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">学号</div>
               <div class="infotop-row-value">
                 {{ studentDetail.studentNumber || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">班级</div>
               <div class="infotop-row-value">
                 {{ studentDetail.grade || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">爱好</div>
               <div class="infotop-row-value">
                 <dict-tag :options="message_level" :value="studentDetail.hobby "/>
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建人</div>
               <div class="infotop-row-value">
                 {{ studentDetail.createBy || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建时间</div>
               <div class="infotop-row-value">{{ parseTime(studentDetail.createTime, '{y}-{m}-{d}') }}</div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">备注</div>
               <div class="infotop-row-value">
                 {{ studentDetail.remark || '-' }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
 
       </div>
     </div>
 
     <div  class="pagecont-bottom">
-      <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane label="组件一" name="1">
+      <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+        <a-tab-pane :tab="'组件一'" key="1">
           <component-one ></component-one>
-        </el-tab-pane>
-        <el-tab-pane label="组件二" name="2">
+        </a-tab-pane>
+        <a-tab-pane :tab="'组件二'" key="2">
           <component-two ></component-two>
-        </el-tab-pane>
-      </el-tabs>
+        </a-tab-pane>
+      </a-tabs>
     </div>
 
 
@@ -148,8 +148,8 @@ const { sys_user_sex, message_level } = proxy.useDict('sys_user_sex', 'message_l
 
 const activeName = ref('1')
 
-const handleClick = (tab, event) => {
-  console.log(tab, event)
+const handleClick = (key) => {
+  console.log(key)
 }
 
 const showSearch = ref(true);

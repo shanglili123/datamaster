@@ -124,13 +124,6 @@ export function cancelDataApi(ID) {
         method: 'get'
     });
 }
-export function queryServiceForwarding(data) {
-    return request({
-        url: '/svc/api/queryServiceForwarding',
-        method: 'post',
-        data: withSpace(data)
-    });
-}
 
 export function selectByName(data) {
     return request({

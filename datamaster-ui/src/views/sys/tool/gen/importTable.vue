@@ -1,34 +1,34 @@
 <template>
   <!-- 导入表 -->
-  <el-dialog title="导入表" v-model="visible" width="800px" top="5vh" :append-to="$refs['app-container']"  draggable destroy-on-close>
-    <el-form :model="queryParams" ref="queryRef" :inline="true">
-      <el-form-item label="表名称" prop="tableName">
-        <el-input
-          v-model="queryParams.tableName"
+  <a-modal :title="'导入表'" v-model:open="visible" width="800px" destroy-on-close>
+    <a-form :model="queryParams" ref="queryRef" layout="inline">
+      <a-form-item label="表名称" name="tableName">
+        <a-input
+          v-model:value="queryParams.tableName"
           placeholder="请输入表名称"
-          clearable
+          allow-clear
           class="el-form-input-width"
-          @keyup.enter="handleQuery"
+          @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item>
-        <!-- <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button> -->
-        <el-button plain type="primary" @click="handleQuery">
+      </a-form-item>
+      <a-form-item>
+        <a-button type="primary" @click="handleQuery">
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="resetQuery">
+        </a-button>
+        <a-button @click="resetQuery">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-      </el-form-item>
-    </el-form>
-      <el-table @row-click="clickRow" ref="table" :data="dbTableList" @selection-change="handleSelectionChange" height="380px">
-        <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="tableName" label="表名称" :show-overflow-tooltip="true"></el-table-column>
-        <el-table-column prop="tableComment" label="表描述" :show-overflow-tooltip="true"></el-table-column>
-        <el-table-column prop="createTime" label="创建时间"></el-table-column>
-        <el-table-column prop="updateTime" label="更新时间"></el-table-column>
-      </el-table>
+        </a-button>
+      </a-form-item>
+    </a-form>
+      <a-table
+        @row-click="clickRow"
+        ref="table"
+        :data-source="dbTableList"
+        :row-key="'tableName'"
+        :row-selection="{ onChange: (selectedRowKeys, selectedRows) => handleSelectionChange(selectedRows) }"
+        :scroll="{ y: '380px' }"
+        :columns="columns"
+      />
       <pagination
         v-show="total>0"
         :total="total"
@@ -38,11 +38,11 @@
       />
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">取 消</el-button>
-        <el-button type="primary" @click="handleImportTable">确 定</el-button>
+        <a-button @click="visible = false">取 消</a-button>
+        <a-button type="primary" @click="handleImportTable">确 定</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
@@ -53,6 +53,13 @@ const visible = ref(false);
 const tables = ref([]);
 const dbTableList = ref([]);
 const { proxy } = getCurrentInstance();
+
+const columns = [
+  { title: '表名称', dataIndex: 'tableName', key: 'tableName', ellipsis: true },
+  { title: '表描述', dataIndex: 'tableComment', key: 'tableComment', ellipsis: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
+  { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime' },
+];
 
 const queryParams = reactive({
   pageNum: 1,

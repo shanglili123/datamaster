@@ -1,54 +1,56 @@
 <template>
     <!-- 申请服务弹框 -->
-    <el-dialog title="步骤里的字段和其来源" v-model="open" width="800px" :append-to="$refs['app-container']" draggable
-        destroy-on-close>
+    <a-modal title="步骤里的字段和其来源" v-model:open="open" width="800px" :draggable="true"
+        :destroy-on-close="true" :footer="null">
         <div class="info-line">
             <span class="label">步骤名称：</span>
             <span class="value">{{ form.name || '-' }}</span>
         </div>
-        <el-divider content-position="center">
+        <a-divider orientation="center">
             <span class="blue-text">{{ title }}</span>
-        </el-divider>
-        <el-table stripe height="420px" :data="tableFields">
-            <el-table-column label="序号" type="index" width="80" align="left">
-                <template #default="scope">
-                    <span>{{ scope.$index + 1 }}</span>
+        </a-divider>
+        <a-table
+          striped
+          :scroll="{ y: '420px' }"
+          :data-source="tableFields"
+          :row-key="(record, index) => index"
+          :pagination="false"
+          size="middle"
+        >
+            <a-table-column title="序号" align="left" :width="80">
+                <template #default="{ index }">
+                    <span>{{ index + 1 }}</span>
                 </template>
-            </el-table-column>
-            <el-table-column label="字段名称" align="left" prop="columnName" :show-overflow-tooltip="{ effect: 'light' }" />
-            <!-- <el-table-column label="字段注释"  align="left" prop="description" :show-overflow-tooltip="{effect: 'light'}">
-                <template #default="scope">
-                    {{ scope.row.description || "-" }}
+            </a-table-column>
+            <a-table-column title="字段名称" align="left" data-index="columnName" ellipsis />
+            <a-table-column title="字段类型" align="left" data-index="columnType" ellipsis>
+                <template #default="{ record }">
+                    {{ record.columnType || "-" }}
                 </template>
-            </el-table-column> -->
-            <el-table-column label="字段类型" align="left" prop="columnType" :show-overflow-tooltip="{ effect: 'light' }">
-                <template #default="scope">
-                    {{ scope.row.columnType || "-" }}
+            </a-table-column>
+            <a-table-column title="字段长度" align="left" data-index="length" :width="70">
+                <template #default="{ record }">
+                    {{ record.length || "-" }}
                 </template>
-            </el-table-column>
-            <el-table-column label="字段长度" align="left" prop="length" width="70">
-                <template #default="scope">
-                    {{ scope.row.length || "-" }}
+            </a-table-column>
+            <a-table-column title="字段精度" align="left" data-index="precision" :width="70">
+                <template #default="{ record }">
+                    {{ record.precision || "-" }}
                 </template>
-            </el-table-column>
-            <el-table-column label="字段精度" align="left" prop="precision" width="70">
-                <template #default="scope">
-                    {{ scope.row.precision || "-" }}
+            </a-table-column>
+            <a-table-column title="步骤来源" align="left" data-index="source" ellipsis>
+                <template #default="{ record }">
+                    {{ record.source || "-" }}
                 </template>
-            </el-table-column>
-            <el-table-column label="步骤来源" align="left" prop="source" :show-overflow-tooltip="{ effect: 'light' }">
-                <template #default="scope">
-                    {{ scope.row.source || "-" }}
-                </template>
-            </el-table-column>
-        </el-table>
+            </a-table-column>
+        </a-table>
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="cancel">关 闭</el-button>
-                <!-- <el-button type="primary" @click="submitForm">确 定</el-button> -->
+                <a-button @click="cancel">关 闭</a-button>
+                <!-- <a-button type="primary" @click="submitForm">确 定</a-button> -->
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup name="RpApplyDialog">

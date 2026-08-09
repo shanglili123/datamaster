@@ -2,34 +2,34 @@
   <div class="app-containers" ref="app-container">
     <div class="flex-container">
       <!-- 右侧主内容 -->
-      <div class="right-pane" v-loading="loading">
-        <el-empty
-          description=" 暂无任务流程"
-          v-if="!nodeData?.locations || nodeData.locations.length === 0"
-        >
-        </el-empty>
-        <div
-          id="graphContainers"
-          class="graph-container"
-          ref="graphContainers"
-        ></div>
-        <TeleportContainer />
-        <!-- 工具栏 -->
-        <div class="toolbar" v-if="nodeData?.locations">
-          <template v-for="item in toolbar" :key="item.id">
-            <el-tooltip
-              class="box-item"
-              effect="light"
-              :content="item.tip"
-              placement="bottom"
-              v-if="item.tip !== '重置' && item.tip !== '导出'"
-            >
-              <div class="toolbar-item" @click="toolbarClick(item)">
-                <img :src="getAssetsFile(item.icon)" alt="" />
-              </div>
-            </el-tooltip>
-          </template>
-        </div>
+      <div class="right-pane">
+        <a-spin :spinning="loading">
+          <a-empty
+            description=" 暂无任务流程"
+            v-if="!nodeData?.locations || nodeData.locations.length === 0"
+          />
+          <div
+            id="graphContainers"
+            class="graph-container"
+            ref="graphContainers"
+          ></div>
+          <TeleportContainer />
+          <!-- 工具栏 -->
+          <div class="toolbar" v-if="nodeData?.locations">
+            <template v-for="item in toolbar" :key="item.id">
+              <a-tooltip
+                class="box-item"
+                :title="item.tip"
+                placement="bottom"
+                v-if="item.tip !== '重置' && item.tip !== '导出'"
+              >
+                <div class="toolbar-item" @click="toolbarClick(item)">
+                  <img :src="getAssetsFile(item.icon)" alt="" />
+                </div>
+              </a-tooltip>
+            </template>
+          </div>
+        </a-spin>
       </div>
     </div>
     <!-- 动态表单 -->
@@ -48,31 +48,49 @@
   </div>
 </template>
 <script setup name="process">
+import { message } from 'ant-design-vue'
 import { Graph } from "@antv/x6";
+
 import { Dnd } from "@antv/x6-plugin-dnd";
+
 import { ref, computed, watch } from "vue";
+
 import { useRoute, useRouter } from "vue-router";
 // 输入组件
+
 import InputForm from "@/views/col/task/integratioTask/components/input/tableForm.vue";
+
 import excelInputForm from "@/views/col/task/integratioTask/components/input/excelForm.vue";
+
 import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vue";
 // 转换组件
 // 清洗组件
+
 import TransformForm from "@/views/col/task/integratioTask/components/clean/cleanForm.vue";
 // 排序组件
+
 import OrderConfig from "@/views/col/task/integratioTask/components/transform/orderConfig.vue";
 // 自定义SQL转换
+
 import TransformSql from "@/views/col/task/integratioTask/components/transform/transformSql.vue";
 // 字段派生期
+
 import FieldBuilder from "@/views/col/task/integratioTask/components/transform/fieldBuilder.vue";
 // 输出表组件
+
 import OutputForm from "@/views/col/task/integratioTask/components/output/tableForm.vue";
+
 import useUserStore from "@/store/system/user";
+
 import { Export } from "@antv/x6-plugin-export";
+
 import { etlTask } from "@/api/col/task/index.js";
+
 import { register, getTeleport } from "@antv/x6-vue-shape";
 const TeleportContainer = defineComponent(getTeleport());
+
 import { Selection } from "@antv/x6-plugin-selection";
+
 import {
   usePlugins,
   fetchNodeUniqueKey,
@@ -401,6 +419,14 @@ defineExpose({ updateFlow });
   .graph-container {
     flex: 1;
     box-shadow: 0 5px 8px rgba(128, 145, 165, 0.1);
+  }
+
+  :deep(.ant-spin-nested-loading),
+  :deep(.ant-spin-container) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   .toolbar {

@@ -15,37 +15,35 @@
             >
                 {{ tag.title }}
                 <span v-if="!isAffix(tag)" @click.prevent.stop="closeSelectedTag(tag)">
-                    <close
-                        class="el-icon-close"
-                        style="width: 1em; height: 1em; vertical-align: middle"
-                    />
+                    <CloseOutlined style="width: 1em; height: 1em; vertical-align: middle" />
                 </span>
             </router-link>
         </scroll-pane>
         <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu">
             <li @click="refreshSelectedTag(selectedTag)">
-                <refresh-right style="width: 1em; height: 1em" /> 刷新页面
+                <ReloadOutlined style="width: 1em; height: 1em" /> 刷新页面
             </li>
             <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">
-                <close style="width: 1em; height: 1em" /> 关闭当前
+                <CloseOutlined style="width: 1em; height: 1em" /> 关闭当前
             </li>
             <li @click="closeOthersTags">
-                <circle-close style="width: 1em; height: 1em" /> 关闭其他
+                <MinusOutlined style="width: 1em; height: 1em" /> 关闭其他
             </li>
             <li v-if="!isFirstView()" @click="closeLeftTags">
-                <back style="width: 1em; height: 1em" /> 关闭左侧
+                <LeftOutlined style="width: 1em; height: 1em" /> 关闭左侧
             </li>
             <li v-if="!isLastView()" @click="closeRightTags">
-                <right style="width: 1em; height: 1em" /> 关闭右侧
+                <RightOutlined style="width: 1em; height: 1em" /> 关闭右侧
             </li>
             <li @click="closeAllTags(selectedTag)">
-                <circle-close style="width: 1em; height: 1em" /> 全部关闭
+                <MinusOutlined style="width: 1em; height: 1em" /> 全部关闭
             </li>
         </ul>
     </div>
 </template>
 
 <script setup>
+    import { CloseOutlined, ReloadOutlined, MinusOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons-vue'
     import ScrollPane from './ScrollPane';
     import { getNormalPath } from '@/utils/anivia.js';
     import useTagsViewStore from '@/store/system/tagsView';
@@ -149,7 +147,6 @@
         const res = filterAffixTags(routes.value);
         affixTags.value = res;
         for (const tag of res) {
-            // Must have tag name
             if (tag.name) {
                 useTagsViewStore().addVisitedView(tag);
             }
@@ -172,7 +169,6 @@
             for (const r of visitedViews.value) {
                 if (r.path === route.path) {
                     scrollPaneRef.value.moveToTarget(r);
-                    // when query is different then update
                     if (r.fullPath !== route.fullPath) {
                         useTagsViewStore().updateVisitedView(route);
                     }
@@ -239,10 +235,7 @@
         if (latestView) {
             router.push(latestView.fullPath);
         } else {
-            // now the default is to redirect to the home page if there is no tags-view,
-            // you can adjust it according to your needs.
             if (view.name === 'Dashboard') {
-                // to reload home page
                 router.replace({ path: '/redirect' + view.fullPath });
             } else {
                 router.push('/');
@@ -252,10 +245,10 @@
 
     function openMenu(tag, e) {
         const menuMinWidth = 105;
-        const offsetLeft = proxy.$el.getBoundingClientRect().left; // container margin left
-        const offsetWidth = proxy.$el.offsetWidth; // container width
-        const maxLeft = offsetWidth - menuMinWidth; // left boundary
-        const l = e.clientX - offsetLeft + 15; // 15: margin right
+        const offsetLeft = proxy.$el.getBoundingClientRect().left;
+        const offsetWidth = proxy.$el.offsetWidth;
+        const maxLeft = offsetWidth - menuMinWidth;
+        const l = e.clientX - offsetLeft + 15;
 
         if (l > maxLeft) {
             left.value = maxLeft;
@@ -344,32 +337,3 @@
         }
     }
 </style>
-
-<style lang="scss">
-    //reset element css of el-icon-close
-    .tags-view-wrapper {
-        .tags-view-item {
-            .el-icon-close {
-                width: 16px;
-                height: 16px;
-                vertical-align: 2px;
-                border-radius: 50%;
-                text-align: center;
-                transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
-                transform-origin: 100% 50%;
-                &:before {
-                    transform: scale(0.6);
-                    display: inline-block;
-                    vertical-align: -3px;
-                }
-                &:hover {
-                    background-color: #b4bccc;
-                    color: #fff;
-                    width: 12px !important;
-                    height: 12px !important;
-                }
-            }
-        }
-    }
-</style>
-

@@ -1,89 +1,100 @@
 <template>
-    <el-dialog v-model="visibleDialog" :draggable="true" class="medium-dialog" :title="currentNode?.data?.name"
-        showCancelButton :show-close="false" destroy-on-close
+    <a-modal
+        v-model:open="visibleDialog"
+        class="medium-dialog"
+        :title="currentNode?.data?.name"
+        :closable="false"
+        :destroy-on-close="true"
 >
-        <template #header>
+        <template #title>
             <div class="justify">
-                <span class="el-dialog__title">{{ currentNode?.data?.name }}</span>
-                <el-tooltip effect="light" content="编写自定义SQL作为FlinkX转换逻辑(transformSql)" placement="top">
-                    <el-icon class="tip-icon">
-                        <InfoFilled />
-                    </el-icon>
-                </el-tooltip>
+                <span class="ant-modal-title">{{ currentNode?.data?.name }}</span>
+                <a-tooltip title="编写自定义SQL作为FlinkX转换逻辑(transformSql)" placement="top">
+                    <InfoCircleOutlined class="tip-icon" />
+                </a-tooltip>
             </div>
         </template>
-        <el-form ref="dpModelRefs" :model="form" label-width="110px" @submit.prevent v-loading="loading"
-            :disabled="info"
+        <a-spin :spinning="loading">
+            <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
+                :disabled="info"
 >
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="节点名称" prop="name"
-                        :rules="[{ required: true, message: '请输入节点名称', trigger: 'change' }]"
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="节点名称" name="name"
+                            :rules="[{ required: true, message: '请输入节点名称', trigger: 'change' }]"
 >
-                        <el-input v-model="form.name" placeholder="请输入节点名称" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="类型" prop="typeName">
-                        <el-select v-model="form.taskParams.typeName" placeholder="请输入类型" filterable disabled>
-                            <el-option v-for="dict in typeList" :key="dict.value" :label="dict.label"
-                                :value="dict.value"
+                            <a-input v-model:value="form.name" placeholder="请输入节点名称" />
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="类型" name="typeName">
+                            <a-select v-model:value="form.taskParams.typeName" placeholder="请输入类型" show-search disabled>
+                                <a-select-option v-for="dict in typeList" :key="dict.value" :label="dict.label"
+                                    :value="dict.value"
 />
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                            </a-select>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
 
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="描述" prop="description">
-                        <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                <a-row :gutter="20">
+                    <a-col :span="24">
+                        <a-form-item label="描述" name="description">
+                            <a-input v-model:value="form.description" type="textarea" placeholder="请输入描述" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
 
-            <el-divider content-position="center">
-                <span class="blue-text">源表字段</span>
-            </el-divider>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <div v-if="sourceTableName" class="mb10">
-                        <span class="info-label">源表：</span>
-                        <el-tag type="info">{{ sourceTableName }}</el-tag>
-                        <el-button link type="primary" @click="generateSql">重新生成</el-button>
-                    </div>
-                    <el-table stripe height="160px" :data="inputFields" v-loading="loadingList" max-height="200">
-                        <el-table-column label="字段名称" align="left" prop="columnName" />
-                        <el-table-column label="类型" align="left" prop="columnType" width="120" />
-                    </el-table>
-                </el-col>
-            </el-row>
+                <a-divider orientation="center">
+                    <span class="blue-text">源表字段</span>
+                </a-divider>
+                <a-row :gutter="20">
+                    <a-col :span="24">
+                        <div v-if="sourceTableName" class="mb10">
+                            <span class="info-label">源表：</span>
+                            <a-tag>{{ sourceTableName }}</a-tag>
+                            <a-button type="link" @click="generateSql">重新生成</a-button>
+                        </div>
+                        <a-table
+                            :data-source="inputFields"
+                            :columns="[
+                                { title: '字段名称', dataIndex: 'columnName', align: 'left' },
+                                { title: '类型', dataIndex: 'columnType', align: 'left', width: 120 },
+                            ]"
+                            :pagination="false"
+                            :loading="loadingList"
+                            :scroll="{ y: 160 }"
+                        />
+                    </a-col>
+                </a-row>
 
-            <el-divider content-position="center">
-                <span class="blue-text">自定义 SQL</span>
-            </el-divider>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="SQL" prop="taskParams.sql">
-                        <el-input v-model="form.taskParams.sql" type="textarea" :rows="10"
-                            placeholder="SELECT `col1`, `col2`, ... FROM `source_table` WHERE ..."
+                <a-divider orientation="center">
+                    <span class="blue-text">自定义 SQL</span>
+                </a-divider>
+                <a-row :gutter="20">
+                    <a-col :span="24">
+                        <a-form-item label="SQL" name="taskParams.sql">
+                            <a-input v-model:value="form.taskParams.sql" type="textarea" :rows="10"
+                                placeholder="SELECT `col1`, `col2`, ... FROM `source_table` WHERE ..."
 />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+            </a-form>
+        </a-spin>
 
         <template #footer>
             <div style="text-align: right">
-                <el-button @click="closeDialog">关闭</el-button>
-                <el-button type="primary" @click="saveData" v-if="!info">保存</el-button>
+                <a-button @click="closeDialog">关闭</a-button>
+                <a-button type="primary" @click="saveData" v-if="!info">保存</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
 import { defineProps, defineEmits, ref, computed, watch, getCurrentInstance } from "vue";
+import { InfoCircleOutlined } from "@ant-design/icons-vue";
 import { typeList } from "@/utils/graph.js";
 import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/col/task/index.js";
 import useUserStore from "@/store/system/user.js";

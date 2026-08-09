@@ -1,78 +1,79 @@
 <template>
   <div class="app-container" :loading="store.loading">
-    <el-form
+    <a-form
       :model="store.form"
       ref="baseFormRef"
       :rules="rules"
-      label-width="110"
+      :label-col="{ style: { width: '110px' } }"
     >
       <div class="module-head">基础信息</div>
       <div class="module-body infotop column-form">
-        <el-form-item label="所属库名" prop="dbId">
-          <el-select
-            clearable
-            v-model="store.form.dbId"
+        <a-form-item label="所属库名" name="dbId">
+          <a-select
+            allow-clear
+            v-model:value="store.form.dbId"
             placeholder="请选择所属库名"
             @change="handleMetaDBChange"
           >
-            <el-option
+            <a-select-option
               v-for="item in store.metaDatabases"
               :key="item.id"
-              :label="item.dbName"
               :value="item.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="所属表名" prop="tableId">
-          <el-select
-            clearable
-            v-model="store.form.tableId"
+            >
+              {{ item.dbName }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="所属表名" name="tableId">
+          <a-select
+            allow-clear
+            v-model:value="store.form.tableId"
             placeholder="请选择所属表名"
           >
-            <el-option
+            <a-select-option
               v-for="item in store.metaTables"
               :key="item.id"
-              :label="item.tableName"
               :value="item.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="业务域" prop="domainId">
-          <el-tree-select
-            filterable
-            v-model="store.form.domainId"
-            :data="store.treeDomains"
-            :props="{ value: 'id', label: 'name', children: 'children' }"
-            value-key="id"
+            >
+              {{ item.tableName }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="业务域" name="domainId">
+          <a-tree-select
+            show-search
+            v-model:value="store.form.domainId"
+            :tree-data="store.treeDomains"
+            :field-names="{ value: 'id', label: 'name', children: 'children' }"
             placeholder="请选择业务域"
-            check-strictly
-            default-expand-all
+            :tree-default-expand-all="true"
             disabled
           />
-        </el-form-item>
-        <el-form-item label="所属分层">
-          <el-select
-            v-model="store.form.belongingLayer"
+        </a-form-item>
+        <a-form-item label="所属分层">
+          <a-select
+            v-model:value="store.form.belongingLayer"
             disabled
             placeholder="请选择所属分层"
           >
-            <el-option
+            <a-select-option
               v-for="dict in toValue(dicts.meta_dw_layers)"
               :key="dict.value"
-              :label="dict.label"
               :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="所属系统" prop="belongingSystem">
-          <el-input
-            v-model="store.form.belongingSystem"
+            >
+              {{ dict.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="所属系统" name="belongingSystem">
+          <a-input
+            v-model:value="store.form.belongingSystem"
             disabled
             placeholder="请输入所属系统"
           />
-        </el-form-item>
+        </a-form-item>
       </div>
-    </el-form>
+    </a-form>
 
     <div class="field-wrap">
       <div class="module-head">技术信息</div>
@@ -100,13 +101,13 @@
                     class="close-btn"
                     @click="handleCloseFieldClick(item.field, index)"
                   >
-                    <el-icon><CircleClose /></el-icon>
+                    <CloseCircleFilled />
                   </div>
                 </div>
-                <el-input
+                <a-input
                   v-if="item.input"
-                  clearable
-                  v-model="item.newField"
+                  allow-clear
+                  v-model:value="item.newField"
                   placeholder="请输入字段名称"
                   @keyup.enter="handleConfirmUpdateField(item, $event)"
                   @blur="handleConfirmUpdateField(item, $event)"
@@ -114,9 +115,9 @@
                 />
               </template>
             </template>
-            <el-input
-              clearable
-              v-model="store.addInputValue"
+            <a-input
+              allow-clear
+              v-model:value="store.addInputValue"
               placeholder="请输入字段名称"
               @keyup.enter="handleConfirmAddField"
               @blur="handleConfirmAddField"
@@ -124,14 +125,14 @@
               ref="addInputRef"
               v-show="!store.fieldList.length || store.showInput"
             />
-            <el-button
+            <a-button
               type="primary"
               class="field-btn"
-              icon="Plus"
+              :icon="h(PlusOutlined)"
               @click="handleAddFieldClick"
             >
               新增字段
-            </el-button>
+            </a-button>
           </div>
         </div>
 
@@ -139,219 +140,211 @@
           <div class="box-title">字段设置</div>
           <div class="box-content" v-if="activeForm">
             <!--  待优化 Vue渲染机制导致会重复触发. 后续应抽离成组件 做隔离 -->
-            <el-form
+            <a-form
               v-for="form in store.formList"
               :key="form.columnName"
               :class="[
                 'field-form',
                 form.columnName == store.activeField ? 'active' : '',
               ]"
-              label-width="100"
+              :label-col="{ style: { width: '100px' } }"
               :rules="rules"
               :model="form"
               :ref="(el) => setupFormRefs(form.columnName, el)"
             >
               <div class="form-title">基础信息</div>
               <div class="column-form">
-                <el-form-item label="字段注释" prop="columnComment">
-                  <el-input
-                    clearable
-                    v-model="form.columnComment"
+                <a-form-item label="字段注释" name="columnComment">
+                  <a-input
+                    allow-clear
+                    v-model:value="form.columnComment"
                     placeholder="请输入字段注释"
                   />
-                </el-form-item>
+                </a-form-item>
 
-                <!-- <el-form-item label="安全等级" prop="safetyLevelId">
-                  <el-select
-                    clearable
-                    v-model="form.safetyLevelId"
+                <!-- <a-form-item label="安全等级" name="safetyLevelId">
+                  <a-select
+                    allow-clear
+                    v-model:value="form.safetyLevelId"
                     placeholder="请选择安全等级"
                   >
-                    <el-option
+                    <a-select-option
                       v-for="item in store.sensitiveLevels"
                       :key="item.id"
                       :label="item.sensitiveLevel"
                       :value="item.id"
                     />
-                  </el-select>
-                </el-form-item> -->
+                  </a-select>
+                </a-form-item> -->
 
-                <!-- <el-form-item label="标准数据元" prop="dataElemId">
-                  <el-select
-                    clearable
-                    v-model="form.dataElemId"
+                <!-- <a-form-item label="标准数据元" name="dataElemId">
+                  <a-select
+                    allow-clear
+                    v-model:value="form.dataElemId"
                     placeholder="请选择标准数据元"
                   >
-                    <el-option
+                    <a-select-option
                       v-for="item in store.dataElemList"
                       :key="item.id"
                       :label="item.name"
                       :value="item.id"
                     />
-                  </el-select>
-                </el-form-item> -->
+                  </a-select>
+                </a-form-item> -->
 
-                <!-- <el-form-item label="状态" prop="status">
-                  <el-radio-group v-model="form.status">
-                    <el-radio
+                <!-- <a-form-item label="状态" name="status">
+                  <a-radio-group v-model:value="form.status">
+                    <a-radio
                       v-for="dict in toValue(dicts.meta_task_status)"
                       :key="dict.value"
                       :value="dict.value"
                     >
                       {{ dict.label }}
-                    </el-radio>
-                  </el-radio-group>
-                </el-form-item> -->
+                    </a-radio>
+                  </a-radio-group>
+                </a-form-item> -->
 
-                <el-form-item label="备注" class="row-full">
-                  <el-input
-                    v-model="form.remark"
-                    type="textarea"
+                <a-form-item label="备注" class="row-full">
+                  <a-textarea
+                    v-model:value="form.remark"
                     placeholder="请输入备注"
-                    :min-height="192"
-                    show-word-limit
-                    maxlength="500个字符"
+                    :auto-size="{ minRows: 8 }"
+                    :maxlength="500"
+                    show-count
                   />
-                </el-form-item>
+                </a-form-item>
               </div>
               <div class="form-title">技术信息</div>
               <div class="column-form">
-                <el-form-item label="字段类型" prop="columnType">
-                  <el-select
-                    clearable
-                    v-model="form.columnType"
+                <a-form-item label="字段类型" name="columnType">
+                  <a-select
+                    allow-clear
+                    v-model:value="form.columnType"
                     placeholder="请选择字段类型"
                   >
-                    <el-option
+                    <a-select-option
                       v-for="dict in toValue(dicts.column_type)"
                       :key="dict.value"
-                      :label="dict.label"
                       :value="dict.value"
-                    />
-                  </el-select>
-                </el-form-item>
+                    >
+                      {{ dict.label }}
+                    </a-select-option>
+                  </a-select>
+                </a-form-item>
 
-                <el-form-item label="字段长度" prop="columnLength">
-                  <el-input-number
+                <a-form-item label="字段长度" name="columnLength">
+                  <a-input-number
                     :min="0"
-                    v-model="form.columnLength"
+                    v-model:value="form.columnLength"
                     placeholder="请输入字段长度"
-                    :controls="true"
                     class="number-input"
-                    controls-position="right"
                   />
-                </el-form-item>
+                </a-form-item>
 
-                <el-form-item label="字段精度" prop="columnPrecision">
-                  <el-input-number
+                <a-form-item label="字段精度" name="columnPrecision">
+                  <a-input-number
                     :min="0"
-                    v-model="form.columnPrecision"
+                    v-model:value="form.columnPrecision"
                     placeholder="请输入字段精度"
-                    :controls="true"
                     class="number-input"
-                    controls-position="right"
                   />
-                </el-form-item>
+                </a-form-item>
 
-                <el-form-item label="字段小数位" prop="columnScale">
-                  <el-input-number
+                <a-form-item label="字段小数位" name="columnScale">
+                  <a-input-number
                     :min="0"
-                    v-model="form.columnScale"
+                    v-model:value="form.columnScale"
                     placeholder="请输入字段小数位"
-                    :controls="true"
                     class="number-input"
-                    controls-position="right"
                   />
-                </el-form-item>
+                </a-form-item>
 
-                <el-form-item label="是否必填" prop="nullableFlag">
-                  <el-radio-group v-model="form.nullableFlag">
-                    <el-radio
+                <a-form-item label="是否必填" name="nullableFlag">
+                  <a-radio-group v-model:value="form.nullableFlag">
+                    <a-radio
                       v-for="dict in toValue(dicts.table_yes_no)"
                       :key="dict.value"
                       :value="dict.value"
                     >
                       {{ dict.label }}
-                    </el-radio>
-                  </el-radio-group>
-                </el-form-item>
+                    </a-radio>
+                  </a-radio-group>
+                </a-form-item>
 
-                <el-form-item label="默认值" prop="defaultValue">
-                  <el-input
-                    clearable
-                    v-model="form.defaultValue"
+                <a-form-item label="默认值" name="defaultValue">
+                  <a-input
+                    allow-clear
+                    v-model:value="form.defaultValue"
                     placeholder="请输入默认值"
                   />
-                </el-form-item>
+                </a-form-item>
 
-                <el-form-item label="是否主键" prop="pkFlag">
-                  <el-radio-group v-model="form.pkFlag">
-                    <el-radio
+                <a-form-item label="是否主键" name="pkFlag">
+                  <a-radio-group v-model:value="form.pkFlag">
+                    <a-radio
                       v-for="dict in toValue(dicts.table_yes_no)"
                       :key="dict.value"
                       :value="dict.value"
                     >
                       {{ dict.label }}
-                    </el-radio>
-                  </el-radio-group>
-                </el-form-item>
+                    </a-radio>
+                  </a-radio-group>
+                </a-form-item>
 
-                <el-form-item label="是否外键" prop="fkFlag">
-                  <el-radio-group v-model="form.fkFlag">
-                    <el-radio
+                <a-form-item label="是否外键" name="fkFlag">
+                  <a-radio-group v-model:value="form.fkFlag">
+                    <a-radio
                       v-for="dict in toValue(dicts.table_yes_no)"
                       :key="dict.value"
                       :value="dict.value"
                     >
                       {{ dict.label }}
-                    </el-radio>
-                  </el-radio-group>
-                </el-form-item>
+                    </a-radio>
+                  </a-radio-group>
+                </a-form-item>
               </div>
 
               <div class="form-title">业务信息</div>
               <div class="column-form">
-                <el-form-item label="业务定义" prop="businessDefinition">
-                  <el-input
-                    clearable
-                    v-model="form.businessDefinition"
+                <a-form-item label="业务定义" name="businessDefinition">
+                  <a-input
+                    allow-clear
+                    v-model:value="form.businessDefinition"
                     placeholder="请输入业务定义"
                   />
-                </el-form-item>
+                </a-form-item>
 
-                <el-form-item label="度量单位" prop="measuringUnit">
-                  <el-input
-                    clearable
-                    v-model="form.measuringUnit"
+                <a-form-item label="度量单位" name="measuringUnit">
+                  <a-input
+                    allow-clear
+                    v-model:value="form.measuringUnit"
                     placeholder="请输入度量单位"
                   />
-                </el-form-item>
+                </a-form-item>
 
-                <el-form-item label="描述" class="row-full">
-                  <el-input
-                    v-model="form.description"
-                    type="textarea"
+                <a-form-item label="描述" class="row-full">
+                  <a-textarea
+                    v-model:value="form.description"
                     placeholder="请输入描述"
-                    :min-height="192"
-                    show-word-limit
-                    maxlength="500个字符"
+                    :auto-size="{ minRows: 8 }"
+                    :maxlength="500"
+                    show-count
                   />
-                </el-form-item>
+                </a-form-item>
               </div>
-            </el-form>
+            </a-form>
             <div class="button-style">
-              <el-button @click="handleDraftClick"> 暂存 </el-button>
-              <el-button
+              <a-button @click="handleDraftClick"> 暂存 </a-button>
+              <a-button
                 type="primary"
-                plain
                 class="fh_btn"
                 @mousedown="(e) => e.preventDefault()"
               >
                 <svg-icon iconClass="fhs" />返回列表
-              </el-button>
-              <el-button type="primary" @click="handleConfirmClick">
+              </a-button>
+              <a-button type="primary" @click="handleConfirmClick">
                 确认并退出
-              </el-button>
+              </a-button>
             </div>
           </div>
           <div class="emptyBg" v-else>
@@ -365,6 +358,8 @@
 </template>
 
 <script setup name="AddColumn">
+import { message } from 'ant-design-vue'
+import { PlusOutlined, CloseCircleFilled } from '@ant-design/icons-vue';
 import {
   reactive,
   getCurrentInstance,
@@ -372,12 +367,19 @@ import {
   computed,
   nextTick,
   shallowRef,
+  h,
 } from "vue";
+
 import { listDb, getDb } from "@/api/cat/unreleased/db";
+
 import { listTable } from "@/api/cat/unreleased/table";
+
 import { addColumn, draftColumn } from "@/api/cat/unreleased/column";
+
 import { listDomain } from "@/api/tax/domain/domain.js";
+
 import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
+
 import { useRouter } from "vue-router";
 
 const BASE_URL = "/meta/unreleased/structured/column";
@@ -518,7 +520,7 @@ function validateItemField(field, event) {
     const regex = /^[a-zA-Z][a-zA-Z0-9_]*$/;
     const valid = regex.test(field);
     if (!valid) {
-      ElMessage.error("字段名只能包含字母、数字和下划线，且必须以字母开头");
+      message.error("字段名只能包含字母、数字和下划线，且必须以字母开头");
       event.target.focus();
       return resolve(false);
     }
@@ -538,7 +540,7 @@ async function handleConfirmAddField(event) {
   if (!valid) return;
   const hasField = store.fieldList.find((item) => item.field == field);
   if (hasField) {
-    ElMessage.error("字段名已存在");
+    message.error("字段名已存在");
     event.target.focus();
     return;
   }
@@ -585,7 +587,7 @@ async function handleConfirmUpdateField(row, event) {
     (item) => item.field == field && item.field != row.field
   );
   if (hasField) {
-    ElMessage.error("字段名已存在");
+    message.error("字段名已存在");
     event.target.focus();
     return;
   }
@@ -642,15 +644,17 @@ function validateGlobalForm() {
     if (!depend) return resolve(true);
   };
   return new Promise((resolve) => {
-    baseFormRef.value.validate((vaild) => {
-      change(vaild, resolve);
-    });
+    baseFormRef.value
+      .validate()
+      .then(() => change(true, resolve))
+      .catch(() => change(false, resolve));
     for (let i = 0; i < store.fieldList.length; i++) {
       const key = store.fieldList[i].field;
       nextTick(() => {
-        formRefs.value[key].validate((vaild) => {
-          change(vaild, resolve);
-        });
+        formRefs.value[key]
+          .validate()
+          .then(() => change(true, resolve))
+          .catch(() => change(false, resolve));
       });
     }
   });
@@ -813,7 +817,7 @@ getMetaDatabases();
       align-items: center;
       height: 100%;
       cursor: pointer;
-      .el-icon {
+      .anticon-close-circle {
         display: block;
       }
     }

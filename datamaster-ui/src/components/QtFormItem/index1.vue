@@ -1,39 +1,39 @@
 <template>
     <!-- 带！号的  -->
-    <el-form-item v-bind="$attrs">
+    <a-form-item v-bind="$attrs">
         <template #default="scope">
             <div class="default-wrap">
                 <slot name="default" v-bind="scope || {}" />
                 <div class="tip-content" v-if="isString && props.tip">
-                    <el-icon> <InfoFilled /> </el-icon>
+                    <InfoFilled />
                     <span v-html="props.tip"></span>
                 </div>
             </div>
         </template>
 
-        <template #label="scope">
+        <template #label>
             <div class="label-wrap">
-                <slot name="label" v-bind="scope">
-                    {{ scope.label }}
+                <slot name="label">
+                    {{ $attrs.label }}
                 </slot>
-                <el-tooltip
+                <a-tooltip
                     v-if="!isString"
-                    v-bind="props.tip"
-                    :effect="props.tip.effect || 'light'"
+                    :title="props.tip.content"
                     :placement="props.tip.placement || 'top'"
                 >
-                    <el-icon class="tip-icon"> <InfoFilled /> </el-icon>
-                    <template #content v-if="props.tip.custom">
+                    <InfoFilled class="tip-icon" />
+                    <template #title v-if="props.tip.custom">
                         <div class="tip-content" v-html="props.tip.content"></div>
                     </template>
-                </el-tooltip>
+                </a-tooltip>
             </div>
         </template>
-    </el-form-item>
+    </a-form-item>
 </template>
 
 <script setup name="QtFromItem">
     import { computed } from 'vue';
+    import { InfoCircleFilled as InfoFilled } from '@ant-design/icons-vue';
 
     const props = defineProps({
         tip: {
@@ -68,16 +68,16 @@
         display: flex;
         align-items: center;
         gap: 2px;
-        .el-icon{
+        .tip-icon{
              color: #888;
         }
     }
 
-    ::v-deep(.el-form-item__error) {
+    ::v-deep(.ant-form-item-explain-error) {
         padding-top: 6px;
     }
 
-    .el-form-item.is-error {
+    .ant-form-item-has-error {
         padding-bottom: 16px;
         .tip-content {
             display: none;

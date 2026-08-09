@@ -1,158 +1,118 @@
 <template>
-  <el-dialog
+  <a-modal
       title="学生-单选"
-      v-model="visible"
+      v-model:open="visible"
       width="1200px"
-      :append-to="$refs['app-container']"
       draggable
       destroy-on-close
-      @close="cancel"
+      @cancel="cancel"
   >
-    <el-form
+    <a-form
         class="btn-style"
         :model="queryParams"
         ref="queryRef"
-        :inline="true"
+        layout="inline"
         v-show="showSearch"
-        label-width="68px"
+        :label-col="{ style: { width: '68px' } }"
     >
-      <el-form-item label="姓名" prop="name">
-        <el-input
+      <a-form-item label="姓名" name="name">
+        <a-input
             style="width:240px"
-            v-model="queryParams.name"
+            v-model:value="queryParams.name"
             placeholder="请输入姓名"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="性别" prop="sex">
-        <el-select style="width:240px" v-model="queryParams.sex" placeholder="请选择性别" clearable>
-          <el-option
+      </a-form-item>
+      <a-form-item label="性别" name="sex">
+        <a-select style="width:240px" v-model:value="queryParams.sex" placeholder="请选择性别" allow-clear>
+          <a-select-option
               v-for="dict in sys_user_sex"
               :key="dict.value"
-              :label="dict.label"
               :value="dict.value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="年龄" prop="age">
-        <el-input
+          >
+            {{ dict.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="年龄" name="age">
+        <a-input
             style="width:240px"
-            v-model="queryParams.age"
+            v-model:value="queryParams.age"
             placeholder="请输入年龄"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="学号" prop="studentNumber">
-        <el-input
+      </a-form-item>
+      <a-form-item label="学号" name="studentNumber">
+        <a-input
             style="width:240px"
-            v-model="queryParams.studentNumber"
+            v-model:value="queryParams.studentNumber"
             placeholder="请输入学号"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="班级" prop="grade">
-        <el-input
+      </a-form-item>
+      <a-form-item label="班级" name="grade">
+        <a-input
             style="width:240px"
-            v-model="queryParams.grade"
+            v-model:value="queryParams.grade"
             placeholder="请输入班级"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="创建时间" prop="createTime">
-        <el-date-picker style="width:240px"
-                        clearable
-                        v-model="queryParams.createTime"
-                        type="date"
-                        value-format="YYYY-MM-DD"
+      </a-form-item>
+      <a-form-item label="创建时间" name="createTime">
+        <a-date-picker style="width:240px"
+                        allow-clear
+                        v-model:value="queryParams.createTime"
+                        valueFormat="YYYY-MM-DD"
                         placeholder="请选择创建时间">
-        </el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button
-            plain
+        </a-date-picker>
+      </a-form-item>
+      <a-form-item>
+        <a-button
             type="primary"
             @click="handleQuery"
             @mousedown="(e) => e.preventDefault()"
         >
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+        </a-button>
+        <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-      </el-form-item>
-    </el-form>
+        </a-button>
+      </a-form-item>
+    </a-form>
 
-    <el-table
-        ref="tableRef"
-        stripe
+    <a-table
+        striped
         height="300px"
-        v-loading="loading"
-        :data="dataList"
-        highlight-current-row
+        :loading="loading"
+        :data-source="dataList"
+        :columns="tableColumns"
+        :pagination="false"
         row-key="id"
-        @current-change="handleCurrentChange"
+        :row-selection="rowSelection"
+        :locale="{ emptyText: '暂无数据' }"
     >
-      <el-table-column label="ID" align="center" prop="id" />
-      <el-table-column label="姓名" align="center" prop="name">
-        <template #default="scope">
-          {{ scope.row.name || '-' }}
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'pictureUrl'">
+          <image-preview :src="record.pictureUrl" :width="50" :height="50"/>
         </template>
-      </el-table-column>
-      <el-table-column label="学生照" align="center" prop="pictureUrl" width="100">
-        <template #default="scope">
-          <image-preview :src="scope.row.pictureUrl" :width="50" :height="50"/>
+        <template v-else-if="column.dataIndex === 'sex'">
+              <dict-tag :options="sys_user_sex" :value="record.sex"/>
         </template>
-      </el-table-column>
-      <el-table-column label="教育经历" align="center" prop="experience">
-        <template #default="scope">
-          {{ scope.row.experience || '-' }}
+        <template v-else-if="column.dataIndex === 'hobby'">
+              <dict-tag :options="message_level" :value="record.hobby ? record.hobby.split(',') : []"/>
         </template>
-      </el-table-column>
-      <el-table-column label="性别" align="center" prop="sex">
-        <template #default="scope">
-              <dict-tag :options="sys_user_sex" :value="scope.row.sex"/>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          <span>{{ parseTime(record.createTime, '{y}-{m}-{d}') }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="年龄" align="center" prop="age">
-        <template #default="scope">
-          {{ scope.row.age || '-' }}
+        <template v-else>
+          {{ record[column.dataIndex] || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="学号" align="center" prop="studentNumber">
-        <template #default="scope">
-          {{ scope.row.studentNumber || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="班级" align="center" prop="grade">
-        <template #default="scope">
-          {{ scope.row.grade || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="爱好" align="center" prop="hobby">
-        <template #default="scope">
-              <dict-tag :options="message_level" :value="scope.row.hobby ? scope.row.hobby.split(',') : []"/>
-        </template>
-      </el-table-column>
-      <el-table-column label="创建人" align="center" prop="createBy">
-        <template #default="scope">
-          {{ scope.row.createBy || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark">
-        <template #default="scope">
-          {{ scope.row.remark || '-' }}
-        </template>
-      </el-table-column>
-    </el-table>
+      </template>
+    </a-table>
 
     <pagination
         v-show="total > 0"
@@ -164,13 +124,13 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">取 消</el-button>
-        <el-button type="primary" size="mini" @click="confirm">
+        <a-button size="small" @click="cancel">取 消</a-button>
+        <a-button type="primary" size="small" @click="confirm">
           确 定
-        </el-button>
+        </a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup name="StudentSingle">
@@ -206,15 +166,38 @@
   const visible = ref(false);
   // 定义单选数据
   const single = ref();
-  // 当前界面table
-  const tableRef = ref();
+  // antd 单选选中行 key
+  const currentRowKey = ref([]);
 
   const emit = defineEmits(["open", "confirm", "cancel"]);
 
+  const tableColumns = [
+    { title: 'ID', dataIndex: 'id', align: 'center' },
+    { title: '姓名', dataIndex: 'name', align: 'center' },
+    { title: '学生照', dataIndex: 'pictureUrl', align: 'center', width: 100 },
+    { title: '教育经历', dataIndex: 'experience', align: 'center' },
+    { title: '性别', dataIndex: 'sex', align: 'center' },
+    { title: '年龄', dataIndex: 'age', align: 'center' },
+    { title: '学号', dataIndex: 'studentNumber', align: 'center' },
+    { title: '班级', dataIndex: 'grade', align: 'center' },
+    { title: '爱好', dataIndex: 'hobby', align: 'center' },
+    { title: '创建人', dataIndex: 'createBy', align: 'center' },
+    { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180 },
+    { title: '备注', dataIndex: 'remark', align: 'center' },
+  ];
+
+  const rowSelection = {
+    type: 'radio',
+    selectedRowKeys: currentRowKey,
+    onChange: handleCurrentChange,
+  };
+
   /** 单选选中事件 */
-  function handleCurrentChange(selection) {
-    if (selection) {
-      single.value = selection;
+  function handleCurrentChange(keys, rows) {
+    if (rows.length > 0) {
+      single.value = rows[0];
+    } else {
+      single.value = undefined;
     }
   }
 
@@ -226,7 +209,10 @@
   function setCurrentRow(row) {
     if (row) {
       let data = dataList.value.filter((item) => item.id == row.id);
-      tableRef.value?.setCurrentRow(data[0]);
+      if (data.length > 0) {
+        currentRowKey.value = [data[0].id];
+        single.value = data[0];
+      }
     }
   }
 

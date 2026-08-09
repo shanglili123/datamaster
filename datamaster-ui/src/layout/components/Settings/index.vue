@@ -1,5 +1,5 @@
 ﻿<template>
-  <el-drawer v-model="showSettings" :withHeader="false" direction="rtl" size="300px">
+  <a-drawer v-model:open="showSettings" placement="right" :width="300" :closable="true">
     <div class="setting-drawer-title">
       <h3 class="drawer-title">主题风格设置</h3>
     </div>
@@ -7,81 +7,70 @@
       <div class="setting-drawer-block-checbox-item" @click="handleTheme('theme-dark')">
         <img src="@/assets/system/images/dark.svg" alt="dark" />
         <div v-if="sideTheme === 'theme-dark'" class="setting-drawer-block-checbox-selectIcon" style="display: block;">
-          <i aria-label="图标: check" class="anticon anticon-check">
-            <svg viewBox="64 64 896 896" data-icon="check" width="1em" height="1em" :fill="theme" aria-hidden="true" focusable="false" class>
-              <path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 0 0-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z" />
-            </svg>
-          </i>
+          <CheckOutlined :style="{ color: theme }" />
         </div>
       </div>
       <div class="setting-drawer-block-checbox-item" @click="handleTheme('theme-light')">
         <img src="@/assets/system/images/light.svg" alt="light" />
         <div v-if="sideTheme === 'theme-light'" class="setting-drawer-block-checbox-selectIcon" style="display: block;">
-          <i aria-label="图标: check" class="anticon anticon-check">
-            <svg viewBox="64 64 896 896" data-icon="check" width="1em" height="1em" :fill="theme" aria-hidden="true" focusable="false" class>
-              <path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 0 0-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z" />
-            </svg>
-          </i>
+          <CheckOutlined :style="{ color: theme }" />
         </div>
       </div>
     </div>
     <div class="drawer-item">
       <span>主题颜色</span>
       <span class="comp-style">
-        <el-color-picker v-model="theme" :predefine="predefineColors" @change="themeChange"/>
+        <a-color-picker v-model:value="theme" :preset="presetColors" @change="themeChange" />
       </span>
     </div>
-    <el-divider />
+    <a-divider />
 
     <h3 class="drawer-title">系统布局配置</h3>
-
-<!--    <div class="drawer-item">
-      <span>开启 TopNav</span>
-      <span class="comp-style">
-        <el-switch v-model="settingsStore.topNav" @change="topNavChange" class="drawer-switch" />
-      </span>
-    </div>-->
 
     <div class="drawer-item">
       <span>开启 Tags-Views</span>
       <span class="comp-style">
-        <el-switch v-model="settingsStore.tagsView" class="drawer-switch" />
+        <a-switch v-model:checked="settingsStore.tagsView" />
       </span>
     </div>
 
     <div class="drawer-item">
       <span>固定 Header</span>
       <span class="comp-style">
-        <el-switch v-model="settingsStore.fixedHeader" class="drawer-switch" />
+        <a-switch v-model:checked="settingsStore.fixedHeader" />
       </span>
     </div>
 
     <div class="drawer-item">
       <span>显示 Logo</span>
       <span class="comp-style">
-        <el-switch v-model="settingsStore.sidebarLogo" class="drawer-switch" />
+        <a-switch v-model:checked="settingsStore.sidebarLogo" />
       </span>
     </div>
 
     <div class="drawer-item">
       <span>动态标题</span>
       <span class="comp-style">
-        <el-switch v-model="settingsStore.dynamicTitle" class="drawer-switch" />
+        <a-switch v-model:checked="settingsStore.dynamicTitle" />
       </span>
     </div>
 
-    <el-divider />
+    <a-divider />
 
-    <el-button type="primary" plain icon="DocumentAdd" @click="saveSetting">保存配置</el-button>
-    <el-button plain icon="Refresh" @click="resetSetting">重置配置</el-button>
-  </el-drawer>
-
+    <a-button type="primary" ghost @click="saveSetting">
+      <template #icon><SaveOutlined /></template>
+      保存配置
+    </a-button>
+    <a-button ghost @click="resetSetting" style="margin-left: 8px;">
+      <template #icon><ReloadOutlined /></template>
+      重置配置
+    </a-button>
+  </a-drawer>
 </template>
 
 <script setup>
-import variables from '@/assets/system/styles/variables.module.scss'
-import axios from 'axios'
-import { ElLoading, ElMessage } from 'element-plus'
+import { CheckOutlined, SaveOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import { useDynamicTitle } from '@/utils/dynamicTitle'
 import useAppStore from '@/store/system/app'
 import useSettingsStore from '@/store/system/settings'
@@ -96,15 +85,7 @@ const showSettings = ref(false);
 const theme = ref(settingsStore.theme);
 const sideTheme = ref(settingsStore.sideTheme);
 const storeSettings = computed(() => settingsStore);
-const predefineColors = ref(["#2666FB", "#ff4500", "#ff8c00", "#ffd700", "#90ee90", "#00ced1", "#1e90ff", "#c71585"]);
-
-/** 是否需要topnav */
-function topNavChange(val) {
-  if (!val) {
-    appStore.toggleSideBarHide(false);
-    permissionStore.setSidebarRouters(permissionStore.defaultRoutes);
-  }
-}
+const presetColors = ref(["#2666FB", "#ff4500", "#ff8c00", "#ffd700", "#90ee90", "#00ced1", "#1e90ff", "#c71585"]);
 
 function themeChange(val) {
   settingsStore.theme = val;
@@ -117,9 +98,7 @@ function handleTheme(val) {
 }
 
 function saveSetting() {
-  proxy.$modal.loading("正在保存到本地，请稍候...");
   let layoutSetting = {
-    "topNav": storeSettings.value.topNav,
     "tagsView": storeSettings.value.tagsView,
     "fixedHeader": storeSettings.value.fixedHeader,
     "sidebarLogo": storeSettings.value.sidebarLogo,
@@ -128,13 +107,12 @@ function saveSetting() {
     "theme": storeSettings.value.theme
   };
   localStorage.setItem("layout-setting", JSON.stringify(layoutSetting));
-  setTimeout(proxy.$modal.closeLoading(), 1000)
+  message.success('配置已保存')
 }
 
 function resetSetting() {
-  proxy.$modal.loading("正在清除设置缓存并刷新，请稍候...");
   localStorage.removeItem("layout-setting")
-  setTimeout("window.location.reload()", 1000)
+  window.location.reload()
 }
 
 function openSetting() {
@@ -174,13 +152,6 @@ defineExpose({
       height: 48px;
     }
 
-    .custom-img {
-      width: 48px;
-      height: 38px;
-      border-radius: 5px;
-      box-shadow: 1px 1px 2px #898484;
-    }
-
     .setting-drawer-block-checbox-selectIcon {
       position: absolute;
       top: 0;
@@ -189,7 +160,6 @@ defineExpose({
       height: 100%;
       padding-top: 15px;
       padding-left: 24px;
-      color: #1890ff;
       font-weight: 700;
       font-size: 14px;
     }
@@ -207,4 +177,3 @@ defineExpose({
   }
 }
 </style>
-

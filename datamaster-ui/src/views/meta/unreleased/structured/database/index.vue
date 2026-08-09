@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="app-container">
 
     <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
@@ -11,25 +11,24 @@
         />
       </template>
       <template #actions-data>
-        <el-button
+        <a-button
           type="primary"
-          plain
-          icon="Plus"
+          :icon="h(PlusOutlined)"
           @click="handleAddClick"
           v-hasPermi="['md:unreleased:structured:db:add']"
         >
           新增
-        </el-button>
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
+        </a-button>
+        <a-button
+          type="primary"
+          danger
+          :icon="h(DeleteOutlined)"
           :disabled="!store.rows.length"
           @click="handleDeleteColumnClick"
           v-hasPermi="['md:unreleased:structured:db:remove']"
         >
           删除
-        </el-button>
+        </a-button>
       </template>
       <qt-table v-bind="tableStroe" ref="tableRef">
         <template #domain-name="scope">
@@ -37,314 +36,254 @@
         </template>
 
         <template #status="scope">
-          <el-switch
+          <a-switch
             v-if="scope.row.status != undefined"
-            v-model="scope.row.status"
-            active-value="1"
-            inactive-value="0"
+            :checked="scope.row.status === '1'"
+            checked-value="1"
+            un-checked-value="0"
             @change="handleStatusChange(scope.row, $event)"
           />
         </template>
 
         <template #handle="{ row }">
-          <el-button
-            link
-            type="primary"
-            icon="view"
+          <a-button
+            type="link"
+            :icon="h(EyeOutlined)"
             @click="handleDetailClick(row)"
             v-hasPermi="['md:unreleased:structured:db:detail']"
           >
             详情
-          </el-button>
-          <el-button
-            link
-            type="primary"
-            icon="Edit"
+          </a-button>
+          <a-button
+            type="link"
+            :icon="h(EditOutlined)"
             :disabled="row.status == 1"
             @click="handleEditClick(row)"
             v-hasPermi="['md:unreleased:structured:db:edit']"
           >
             修改
-          </el-button>
-          <el-popover
-            placement="bottom"
-            :width="107"
-            popper-class="handle-popover"
-            trigger="click"
-          >
-            <template #reference>
-              <el-button
-                link
-                type="primary"
-                icon="ArrowDown"
-                v-hasPermi="[
-                  'md:unreleased:structured:db:remove',
-                  'md:unreleased:structured:db:edit',
-                ]"
+          </a-button>
+          <a-popover placement="bottom" trigger="click" :overlay-style="{ width: '107px' }">
+            <template #content>
+              <a-button
+                type="link"
+                danger
+                :icon="h(DeleteOutlined)"
+                :disabled="row.status == 1"
+                @click="handleDeleteClick(row)"
+                v-hasPermi="['md:unreleased:structured:db:remove']"
               >
-                更多
-              </el-button>
+                删除
+              </a-button>
             </template>
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              :disabled="row.status == 1"
-              @click="handleDeleteClick(row)"
-              v-hasPermi="['md:unreleased:structured:db:remove']"
+            <a-button
+              type="link"
+              :icon="h(DownOutlined)"
+              v-hasPermi="[
+                'md:unreleased:structured:db:remove',
+                'md:unreleased:structured:db:edit',
+              ]"
             >
-              删除
-            </el-button>
-          </el-popover>
+              更多
+            </a-button>
+          </a-popover>
         </template>
       </qt-table>
     </qt-wrap>
 
     <!-- 新增/修改弹窗 -->
-    <el-dialog
-      v-model="dialog.open"
+    <a-modal
+      v-model:open="dialog.open"
       :title="dialog.title"
       width="1200"
-      draggable
+      destroy-on-close
     >
-      <el-form
+      <a-form
         :model="dialog.form"
         :rules="rules"
         ref="formRef"
         class="column-form"
-        label-width="110px"
+        :label-col="{ style: { width: '110px' } }"
       >
-        <el-form-item label="业务域" prop="domainId">
-          <el-tree-select
-            filterable
-            v-model="dialog.form.domainId"
-            :data="store.treeDomains"
-            :props="{ value: 'id', label: 'name', children: 'children' }"
-            value-key="id"
+        <a-form-item label="业务域" name="domainId">
+          <a-tree-select
+            show-search
+            v-model:value="dialog.form.domainId"
+            :tree-data="store.treeDomains"
+            :field-names="{ value: 'id', label: 'name', children: 'children' }"
             placeholder="请选择业务域"
-            check-strictly
+            :tree-default-expand-all="true"
             @change="handleDomainChange"
-            default-expand-all
-            clearable
+            allow-clear
           />
-        </el-form-item>
-        <el-form-item label="数据连接名称" prop="datasourceId">
-          <el-select
-            clearable
-            v-model="dialog.form.datasourceId"
+        </a-form-item>
+        <a-form-item label="数据连接名称" name="datasourceId">
+          <a-select
+            allow-clear
+            v-model:value="dialog.form.datasourceId"
             placeholder="请选择数据连接名称"
             @change="handleDatasourceChange"
           >
-            <el-option
+            <a-select-option
               v-for="item in store.datasources"
               :key="item.id"
-              :label="item.datasourceName"
               :value="item.id"
             >
-            </el-option>
-          </el-select>
-        </el-form-item>
+              {{ item.datasourceName }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
-        <el-form-item label="数据库类型" prop="dbType">
-          <el-input
-            v-model="dialog.form.dbType"
+        <a-form-item label="数据库类型" name="dbType">
+          <a-input
+            v-model:value="dialog.form.dbType"
             disabled
             placeholder="请输入数据库类型"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="库名" prop="dbName">
-          <el-select
-            clearable
-            v-model="dialog.form.dbName"
+        <a-form-item label="库名" name="dbName">
+          <a-select
+            allow-clear
+            v-model:value="dialog.form.dbName"
             placeholder="请选择库名"
           >
-            <el-option
+            <a-select-option
               v-for="(item, index) in store.databases"
               :key="item.dbName + '_' + index"
-              :label="item.dbName"
               :value="item.dbName"
             >
-            </el-option>
-          </el-select>
-        </el-form-item>
+              {{ item.dbName }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
-        <el-form-item label="IP" prop="ip">
-          <el-input v-model="dialog.form.ip" disabled placeholder="请输入ip" />
-        </el-form-item>
+        <a-form-item label="IP" name="ip">
+          <a-input v-model:value="dialog.form.ip" disabled placeholder="请输入ip" />
+        </a-form-item>
 
-        <el-form-item label="端口号" prop="port">
-          <el-input
-            v-model="dialog.form.port"
+        <a-form-item label="端口号" name="port">
+          <a-input
+            v-model:value="dialog.form.port"
             disabled
             placeholder="请输入端口号"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="账号" prop="username">
-          <el-input
-            v-model="dialog.form.username"
+        <a-form-item label="账号" name="username">
+          <a-input
+            v-model:value="dialog.form.username"
             disabled
             placeholder="请输入账号"
           />
-        </el-form-item>
+        </a-form-item>
 
-        <!-- <el-form-item label="安全等级">
-          <el-select
-            clearable
-            v-model="dialog.form.safetyLevelId"
+        <!-- <a-form-item label="安全等级">
+          <a-select
+            allow-clear
+            v-model:value="dialog.form.safetyLevelId"
             placeholder="请选择安全等级"
           >
-            <el-option
+            <a-select-option
               v-for="item in store.sensitiveLevels"
               :key="item.id"
               :label="item.sensitiveLevel"
               :value="item.id"
             />
-          </el-select>
-        </el-form-item> -->
+          </a-select>
+        </a-form-item> -->
 
-        <el-form-item label="所属分层">
-          <el-select
-            clearable
-            v-model="dialog.form.belongingLayer"
+        <a-form-item label="所属分层">
+          <a-select
+            allow-clear
+            v-model:value="dialog.form.belongingLayer"
             placeholder="请选择所属分层"
           >
-            <el-option
+            <a-select-option
               v-for="dict in toValue(dicts.meta_dw_layers)"
               :key="dict.value"
-              :label="dict.label"
               :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="所属系统">
-          <el-input
-            clearable
-            v-model="dialog.form.belongingSystem"
-            placeholder="请输入所属系统"
-            maxlength="50"
-          />
-        </el-form-item>
-
-        <el-form-item label="技术负责人">
-          <el-tree-select
-            clearable
-            filterable
-            v-model="dialog.form.techLeader"
-            :data="store.userList"
-            :props="{
-              value: 'userId',
-              label: 'nickName',
-              children: 'children',
-            }"
-            value-key="userId"
-            placeholder="请选择技术负责人"
-            check-strictly
-            @change="handleUserChange($event, 'techLeaderPhone')"
-          />
-        </el-form-item>
-
-        <el-form-item label="技术负责人电话">
-          <el-input
-            clearable
-            v-model="dialog.form.techLeaderPhone"
-            placeholder="请输入技术负责人电话"
-          />
-        </el-form-item>
-
-        <el-form-item label="业务负责人">
-          <el-tree-select
-            clearable
-            filterable
-            v-model="dialog.form.businessLeader"
-            :data="store.userList"
-            :props="{
-              value: 'userId',
-              label: 'nickName',
-              children: 'children',
-            }"
-            value-key="userId"
-            placeholder="请选择业务负责人"
-            check-strictly
-            @change="handleUserChange($event, 'businessLeaderPhone')"
-          />
-        </el-form-item>
-
-        <el-form-item label="业务负责人电话">
-          <el-input
-            clearable
-            v-model="dialog.form.businessLeaderPhone"
-            placeholder="请输入业务负责人电话"
-          />
-        </el-form-item>
-
-        <el-form-item label="状态" class="row-full">
-          <el-radio-group v-model="dialog.form.status">
-            <el-radio
-              v-for="dict in toValue(dicts.meta_task_status)"
-              :key="dict.value"
-              :label="dict.value"
             >
               {{ dict.label }}
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
+            </a-select-option>
+          </a-select>
+        </a-form-item>
 
-        <el-form-item label="描述" class="row-full">
-          <el-input
-            v-model="dialog.form.description"
-            type="textarea"
+        <a-form-item label="所属系统">
+          <a-input
+            allow-clear
+            v-model:value="dialog.form.belongingSystem"
+            placeholder="请输入所属系统"
+            :maxlength="50"
+          />
+        </a-form-item>
+
+        <a-form-item label="状态" class="row-full">
+          <a-radio-group v-model:value="dialog.form.status">
+            <a-radio
+              v-for="dict in toValue(dicts.meta_task_status)"
+              :key="dict.value"
+              :value="dict.value"
+            >
+              {{ dict.label }}
+            </a-radio>
+          </a-radio-group>
+        </a-form-item>
+
+        <a-form-item label="描述" class="row-full">
+          <a-textarea
+            v-model:value="dialog.form.description"
             placeholder="请输入描述"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
+            show-count
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item label="备注" class="row-full">
-          <el-input
-            v-model="dialog.form.remark"
-            type="textarea"
+        <a-form-item label="备注" class="row-full">
+          <a-textarea
+            v-model:value="dialog.form.remark"
             placeholder="请输入备注"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
+            show-count
           />
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item
+        <a-form-item
           label="变更说明"
           class="row-full"
-          prop="updateMsg"
+          name="updateMsg"
           v-if="dialog.form.id"
         >
-          <el-input
-            v-model="dialog.form.updateMsg"
-            type="textarea"
+          <a-textarea
+            v-model:value="dialog.form.updateMsg"
             placeholder="请输入变更说明"
-            :min-height="192"
-            show-word-limit
-            maxlength="500个字符"
+            :auto-size="{ minRows: 8 }"
+            :maxlength="500"
+            show-count
           />
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleCancelClick">取消</el-button>
-          <el-button type="primary" @click="handleConfirmClick">
+          <a-button @click="handleCancelClick">取消</a-button>
+          <a-button type="primary" @click="handleConfirmClick">
             确定
-          </el-button>
+          </a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup name="UnreleasedStructuredDatabase">
-import { reactive, ref, getCurrentInstance, toValue } from "vue";
+import { message, Modal } from 'ant-design-vue'
+import { reactive, ref, getCurrentInstance, toValue, h } from "vue";
+import { PlusOutlined, DeleteOutlined, EyeOutlined, EditOutlined, DownOutlined } from '@ant-design/icons-vue';
+
 import { listDomain } from "@/api/tax/domain/domain.js";
+
 import {
   listDb,
   addDb,
@@ -354,11 +293,15 @@ import {
   delDb,
   batchDeleteCheck,
 } from "@/api/cat/unreleased/db.js";
+
 import { getParentLabelPath } from "@/utils/anivia.js";
+
 import { listDaDatasource } from "@/api/cat/dataSource/dataSource";
-import { deptUserTree } from "@/api/system/system/user.js";
+
 import { useRoute, useRouter } from "vue-router";
+
 import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
+
 import { getRealtimeMcTaskScopeList } from "@/api/cat/task/task.js";
 
 // 表单验证规则
@@ -607,13 +550,6 @@ const getDomainPath = computed(() => {
   };
 });
 
-// 获取用户列表
-function getUserList() {
-  deptUserTree().then((res) => {
-    store.userList = res.data;
-  });
-}
-
 // 获取业务域列表
 function getDomains() {
   listDomain().then((res) => {
@@ -661,12 +597,6 @@ function handleDatasourceChange(id) {
   });
 }
 
-// 切换用户
-function handleUserChange(id, key) {
-  const data = store.userList.find((item) => item.userId === id);
-  dialog.form[key] = data.phonenumber;
-}
-
 // 切换业务域
 function handleDomainChange(id) {
   const data = store.domains.find((item) => item.id === id);
@@ -684,21 +614,22 @@ function handleCancelClick() {
 }
 
 // 确认新增/修改
-async function handleConfirmClick() {
-  dialog.loading = true;
-  const valid = await formRef.value.validate();
-  dialog.loading = false;
-  if (!valid) return;
-  dialog.loading = true;
-  if (dialog.form.safetyLevelId == undefined) {
-    dialog.form.safetyLevelId = null;
-    dialog.form.safetyLevelName = null;
-  }
-  await dialog.func(dialog.form);
-  dialog.loading = false;
-  proxy.$modal.msgSuccess(`${dialog.form.id ? "修改" : "新增"}库元数据成功！`);
-  handleCancelClick();
-  tableRef.value.getList();
+function handleConfirmClick() {
+  formRef.value
+    .validate()
+    .then(() => {
+      if (dialog.form.safetyLevelId == undefined) {
+        dialog.form.safetyLevelId = null;
+        dialog.form.safetyLevelName = null;
+      }
+      return dialog.func(dialog.form);
+    })
+    .then(() => {
+      proxy.$modal.msgSuccess(`${dialog.form.id ? "修改" : "新增"}库元数据成功！`);
+      handleCancelClick();
+      tableRef.value.getList();
+    })
+    .catch(() => {});
 }
 
 // 点击新增
@@ -732,32 +663,28 @@ function handleEditClick(row) {
 
 // 切换状态
 function handleStatusChange(row, status) {
-  ElMessageBox.confirm(
-    `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
+  Modal.confirm({
+    title: "系统提示",
+    content: `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
       row.id
     }的库元数据吗？`,
-    "系统提示",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
-    .then(() => {
-      return updateDbStatus({
-        id: row.id,
-        status,
-      });
-    })
-    .then(() => {
-      ElMessage.success(
-        `编号为${row.id}的库元数据${status == 1 ? "发布" : "取消发布"}成功!`
-      );
-      row.status = status;
-    })
-    .catch(() => {
-      row.status = status == "1" ? "0" : "1";
-    });
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
+      try {
+        await updateDbStatus({
+          id: row.id,
+          status,
+        });
+        message.success(
+          `编号为${row.id}的库元数据${status == 1 ? "发布" : "取消发布"}成功!`
+        );
+        row.status = status;
+      } catch (error) {
+        row.status = status == "1" ? "0" : "1";
+      }
+    },
+  });
 }
 
 // 删除选中行
@@ -768,27 +695,21 @@ function handleDeleteColumnClick() {
   batchDeleteCheck(ids).then((res) => {
     const { canDeleteCount, cannotDeleteCount, canDeleteIds } = res.data;
     store.loading = false;
-    ElMessageBox.confirm(
-      `可删除${canDeleteCount}个，不可删除${cannotDeleteCount}个，是否删除可删部分`,
-      "系统提示",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    )
-      .then(() => {
+    Modal.confirm({
+      title: "系统提示",
+      content: `可删除${canDeleteCount}个，不可删除${cannotDeleteCount}个，是否删除可删部分`,
+      okText: "确定",
+      cancelText: "取消",
+      onOk: async () => {
         if (!canDeleteIds.length) {
-          ElMessage.success("删除成功");
+          message.success("删除成功");
           return;
         }
-        return delDb(canDeleteIds.toString());
-      })
-      .then((res) => {
-        if (!res) return;
-        ElMessage.success("删除成功");
+        await delDb(canDeleteIds.toString());
+        message.success("删除成功");
         tableRef.value.getList();
-      });
+      },
+    });
   });
 }
 
@@ -805,21 +726,19 @@ function handleDetailClick(row) {
 
 // 删除
 function handleDeleteClick(row) {
-  ElMessageBox.confirm(`是否确认删除编号为${row.id}的数据项？`, "系统提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
-    .then(() => {
-      return delDb(row.id);
-    })
-    .then(() => {
-      ElMessage.success("删除成功");
+  Modal.confirm({
+    title: "系统提示",
+    content: `是否确认删除编号为${row.id}的数据项？`,
+    okText: "确定",
+    cancelText: "取消",
+    onOk: async () => {
+      await delDb(row.id);
+      message.success("删除成功");
       tableRef.value.getList();
-    });
+    },
+  });
 }
 
-getUserList();
 // getDomains();
 // getSensitiveLevel();
 getDatasources();

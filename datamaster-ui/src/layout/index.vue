@@ -1,30 +1,46 @@
-
 <template>
-  <div :class="classObj" class="app-wrapper">
-    <div
-      v-if="device === 'mobile' && sidebar.opened"
-      class="drawer-bg"
-      @click="handleClickOutside"
-    />
-    <sidebar v-if="!sidebarHide" class="sidebar-container" />
-    <div
-      :class="{ hasTagsView: needTagsView, sidebarHide: sidebarHide }"
-      class="main-container"
+  <a-layout class="app-wrapper">
+    <a-drawer
+      v-if="device === 'mobile'"
+      :open="sidebar.opened"
+      placement="left"
+      :width="248"
+      :closable="false"
+      @close="handleClickOutside"
     >
-      <div :class="{ 'fixed-header': fixedHeader }">
+      <sidebar />
+    </a-drawer>
+    <a-layout-sider
+      v-if="!sidebarHide && device !== 'mobile'"
+      :width="248"
+      :collapsed="!sidebar.opened"
+      :collapsed-width="72"
+      :trigger="null"
+      collapsible
+      class="sidebar-container"
+      :style="{ background: sideTheme === 'theme-dark' ? '#001529' : '#fff' }"
+    >
+      <sidebar />
+    </a-layout-sider>
+    <a-layout>
+      <div :class="{ 'fixed-header': fixedHeader }" class="layout-header-wrapper">
         <navbar @setLayout="setLayout" />
         <tags-view v-if="needTagsView" />
       </div>
-      <app-main />
+      <a-layout-content class="main-container" :class="{ 'sidebarHide': sidebarHide }">
+        <sub-menu-tabs v-if="!sidebarHide" />
+        <app-main />
+      </a-layout-content>
       <settings ref="settingRef" />
-    </div>
-  </div>
+    </a-layout>
+  </a-layout>
 </template>
 
 <script setup>
 import { useRoute } from "vue-router";
 import { useWindowSize } from "@vueuse/core";
 import Sidebar from "./components/Sidebar/index.vue";
+import SubMenuTabs from "./components/SubMenuTabs/index.vue";
 import { AppMain, Navbar, Settings, TagsView } from "./components";
 import defaultSettings from "@/settings";
 
@@ -47,42 +63,26 @@ watch(
   [() => route.path, () => permissionStore.topbarRouters],
   () => {
     const sidebarRoutes = getSidebarRoutesForCurrentTopMenu();
-    if (sidebarRoutes.length > 0) {
-      permissionStore.setSidebarRouters(sidebarRoutes);
-      appStore.toggleSideBarHide(false);
-      if (!appStore.sidebar.opened) {
-        appStore.toggleSideBar(false);
-      }
+    permissionStore.setSidebarRouters(sidebarRoutes);
+    appStore.toggleSideBarHide(false);
+    if (!appStore.sidebar.opened) {
+      appStore.toggleSideBar(false);
     }
   },
   { immediate: true, deep: true }
 );
 
-// 是否隐藏侧边栏：防止首次加载闪烁
 const sidebarHide = computed(() => {
   const path = route.path;
-  // 首页始终隐藏侧边栏
   if (path === "/index") return true;
-  // 1. 如果是明确不需要侧边栏的页面（如配置中的 Logo 路由），直接隐藏
   const navbarLogoRoutes = defaultSettings.navbarLogoRoutes || [];
   if (navbarLogoRoutes.some((p) => path.startsWith(p))) return true;
-  // 2. 如果已经有菜单数据了，按数据来
-  if (permissionStore.sidebarRouters.length > 0) return false;
-  // 3. 如果当前路由不是首页且有二级匹配，先假设有侧边栏，防止初始渲染时 v-if 销毁组件
   if (route.matched.length > 1) return false;
-
   return true;
 });
 
-const classObj = computed(() => ({
-  hideSidebar: !sidebar.value.opened,
-  openSidebar: sidebar.value.opened,
-  withoutAnimation: sidebar.value.withoutAnimation,
-  mobile: device.value === "mobile",
-}));
-
 const { width, height } = useWindowSize();
-const WIDTH = 992; // refer to Bootstrap's responsive design
+const WIDTH = 992;
 
 watch(
   () => device.value,
@@ -116,14 +116,33 @@ function getSidebarRoutesForCurrentTopMenu() {
   if (!topPath) return [];
   const topRoute = (permissionStore.topbarRouters || []).find((item) => normalizePath(item.path) === topPath);
   if (!topRoute || !topRoute.children || topRoute.children.length === 0) return [];
-  return topRoute.children.map((child) => {
+
+  const currentL2 = findCurrentL2(topRoute, route.path);
+  if (!currentL2 || !currentL2.children || currentL2.children.length === 0) return [];
+
+  const l2Path = `${normalizePath(topRoute.path)}/${currentL2.path}`.replace(/\/+/g, "/");
+  return currentL2.children.map((child) => {
     const routeItem = JSON.parse(JSON.stringify(child));
-    routeItem.parentPath = normalizePath(topRoute.path);
+    routeItem.parentPath = l2Path;
     if (routeItem.path && !routeItem.path.startsWith("/") && !/^https?:/i.test(routeItem.path)) {
-      routeItem.path = `${normalizePath(topRoute.path)}/${routeItem.path}`.replace(/\/+/g, "/");
+      routeItem.path = `${l2Path}/${routeItem.path}`.replace(/\/+/g, "/");
     }
     return routeItem;
   });
+}
+
+function findCurrentL2(topRoute, currentPath) {
+  const topPath = normalizePath(topRoute.path);
+  for (const child of topRoute.children || []) {
+    if (child.hidden) continue;
+    const childResolved = child.path
+      ? (child.path.startsWith('/') ? child.path : `${topPath}/${child.path}`)
+      : '';
+    if (currentPath === childResolved || currentPath.startsWith(childResolved + '/')) {
+      return child;
+    }
+  }
+  return null;
 }
 
 function getTopPath(path) {
@@ -143,46 +162,25 @@ function normalizePath(path) {
 @import "@/assets/system/styles/variables.module.scss";
 
 .app-wrapper {
-  @include clearfix;
-  position: relative;
-  height: 100%;
-  width: 100%;
-
-  &.mobile.openSidebar {
-    position: fixed;
-    top: 0;
-  }
+  height: 100vh;
 }
 
-.drawer-bg {
-  background: #000;
-  opacity: 0.3;
-  width: 100%;
+.sidebar-container {
+  overflow: auto;
+  border-right: 1px solid #f0f0f0;
+}
+
+.layout-header-wrapper {
+  position: sticky;
   top: 0;
-  height: 100%;
-  position: absolute;
-  z-index: 999;
+  z-index: 10;
+  background: #fff;
 }
 
-.fixed-header {
-  position: fixed;
-  top: 0;
-  right: 0;
-  z-index: 9;
-  width: calc(100% - #{$base-sidebar-width});
-  transition: width 0.28s;
-}
-
-.hideSidebar .fixed-header {
-  width: calc(100% - 72px);
-}
-
-.sidebarHide .fixed-header {
-  width: 100%;
-}
-
-.mobile .fixed-header {
-  width: 100%;
+.main-container {
+  background-color: var(--dm-bg-layout, #eef3f8);
+  min-height: calc(100vh - 60px);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>
-

@@ -1,15 +1,12 @@
 <template>
     <Test ref="test" :isChange="false" :form="form1" :resTypeOptions="resTypeOptions" :whetherOptions="whetherOptions"
-        :statusOptions="statusOptions" v-if="form1.apiServiceType != '3'" />
-    <testapi ref="test" :isChange="false" :data="form1" :resTypeOptions="resTypeOptions"
-        v-if="form1.apiServiceType == '3'" :whetherOptions="whetherOptions" :statusOptions="statusOptions" />
+        :statusOptions="statusOptions" />
     <!-- 添加或修改详情对话框 -->
 
 </template>
 
 <script setup name="ComponentTwo">
 import Test from '@/views/svc/api/edit/components/simulation.vue';
-import testapi from '@/views/svc/api/edit/components/testApi.vue';
 const components = { Test };
 const { proxy } = getCurrentInstance();
 const detailsList = ref([]);

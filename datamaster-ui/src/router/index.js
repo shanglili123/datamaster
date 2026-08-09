@@ -38,9 +38,9 @@ import colRouter from './col/index.js';
 import dPdocument from './std/document/index.js';
 
 /* 元数据采集*/
-import mcPublicRouter from './cat/public/index.js';
+import mcPublicRouter from './meta/public/index.js';
 /* 元数据采集 */
-import mcDynamicRouter from './cat/dynamic/index.js';
+import mcDynamicRouter from './meta/dynamic/index.js';
 
 /* 智能问数公共路由 */
 import aiRouter from './ai/index.js';

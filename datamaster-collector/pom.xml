@@ -6,15 +6,17 @@
         <artifactId>dataMaster</artifactId>
         <groupId>com.datamaster</groupId>
         <version>${dataMaster.version}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <modules>
-        <module>datamaster-collector-api</module>
-        <module>datamaster-collector-biz</module>
-    </modules>
-    <packaging>pom</packaging>
     <artifactId>datamaster-collector</artifactId>
+    <packaging>pom</packaging>
     <description>
-        datamaster-collector 数据采集
+        datamaster-collector 数据采集/数据开发父模块
     </description>
+    <modules>
+        <module>datamaster-collector-interface</module>
+        <module>datamaster-collector-core</module>
+        <module>datamaster-collector-flinkx</module>
+    </modules>
 </project>

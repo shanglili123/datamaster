@@ -1,52 +1,44 @@
-﻿<template>
+<template>
   <div class="ai-report-card">
     <div class="ai-report-header">
       <div class="ai-report-title">
-        <el-icon><Cpu /></el-icon>
+        <ThunderboltOutlined />
         <span>{{ data?.header || "智能洞察" }}</span>
       </div>
     </div>
     <div class="ai-report-summary" v-if="data?.summary || data?.code == 500">
-      <el-icon v-if="data?.isLoading && data?.code !== 500" class="is-loading"
-        ><Loading
-      /></el-icon>
+      <LoadingOutlined v-if="data?.isLoading && data?.code !== 500" class="is-loading" />
       <span
         :style="data?.isLoading && data?.code !== 500 ? 'margin-left: 8px' : ''"
         >{{ data.summary }}</span
       >
     </div>
-    <el-tabs
+    <a-tabs
       v-if="data?.code !== 500 && data?.tabs?.length > 0"
-      v-model="activeTab"
+      v-model:activeKey="activeTab"
       class="ai-report-tabs"
     >
-      <el-tab-pane
+      <a-tab-pane
         v-for="tab in data?.tabs || []"
         :key="tab.key"
-        :name="tab.key"
-        :label="tab.label"
-        lazy
+        :tab="tab.label"
       >
-        <div
-          class="ai-report-tab-content"
-          v-loading="data?.isLoading"
-          element-loading-text="加载中..."
-        >
-          <div v-if="!data?.isLoading" class="ai-report-tab-body">
+        <a-spin :spinning="data?.isLoading" tip="加载中...">
+          <div class="ai-report-tab-content">
+            <div v-if="!data?.isLoading" class="ai-report-tab-body">
             <div
               v-if="tab.chart && activeTab == tab.key"
               class="ai-report-chart-container"
             >
               <div class="ai-report-chart-header">
                 <div class="ai-report-chart-actions">
-                  <el-button
-                    link
-                    type="primary"
-                    :icon="Download"
+                  <a-button
+                    type="link"
+                    size="small"
                     @click="handleDownloadChart"
                   >
                     下载图表
-                  </el-button>
+                  </a-button>
                 </div>
               </div>
               <div class="ai-report-chart" ref="chartEl" />
@@ -54,45 +46,33 @@
             <div v-else-if="tab.table" class="ai-report-table-wrap">
               <template v-if="tab.table.rows && tab.table.rows.length > 0">
                 <div class="ai-report-table-header">
-                  <el-button
-                    link
-                    type="primary"
-                    :icon="Download"
+                  <a-button
+                    type="link"
+                    size="small"
                     @click="handleExport"
                     v-if="data?.conversationId && data?.messageId"
                   >
                     导出
-                  </el-button>
+                  </a-button>
                 </div>
-                <el-table :data="getCurrentPageData(tab.table)">
-                  <el-table-column
-                    v-for="col in tab.table.columns || []"
-                    :key="col.prop || col.label"
-                    :prop="col.prop"
-                    :label="col.label"
-                    :min-width="col.minWidth || 100"
-                    show-overflow-tooltip
-                    align="center"
-                  />
-                </el-table>
+                <a-table :data-source="getCurrentPageData(tab.table)" :columns="buildTableColumns(tab.table.columns)" :pagination="false" size="small" />
                 <div
                   class="ai-report-table-pagination"
                   v-if="tab.table.rows?.length > pageSize"
                 >
-                  <el-pagination
-                    v-model:current-page="currentPage"
-                    v-model:page-size="pageSize"
+                  <a-pagination
+                    v-model:current="currentPage"
+                    v-model:pageSize="pageSize"
                     :total="tab.table.rows.length"
-                    :page-sizes="[6, 8, 10, 20, 50]"
-                    layout="total, sizes, prev, pager, next"
+                    :page-size-options="['6', '8', '10', '20', '50']"
+                    show-size-changer
                     size="small"
-                    background
-                    @current-change="handlePageChange"
-                    @size-change="handleSizeChange"
+                    @change="handlePageChange"
+                    @showSizeChange="(current, size) => handleSizeChange(size)"
                   />
                 </div>
               </template>
-              <el-empty v-else description="暂无明细数据" :image-size="60" />
+              <a-empty v-else description="暂无明细数据" />
             </div>
             <div
               v-else-if="tab.code && activeTab == tab.key"
@@ -100,9 +80,7 @@
             >
               <div class="ai-report-code-header">
                 <div class="ai-report-code-actions">
-                  <el-button link type="primary" @click="handleCopySql"
-                    >复制</el-button
-                  >
+                  <a-button type="link" size="small" @click="handleCopySql">复制</a-button>
                 </div>
               </div>
               <div class="ai-report-sql-container">
@@ -114,18 +92,19 @@
               </div>
             </div>
             <div v-else class="ai-report-empty">
-              <el-empty description="暂无数据" :image-size="60" />
+              <a-empty description="暂无数据" />
             </div>
           </div>
-        </div>
-      </el-tab-pane>
-    </el-tabs>
+          </div>
+        </a-spin>
+      </a-tab-pane>
+    </a-tabs>
   </div>
 </template>
 
 <script setup>
-import { Cpu, Loading, Download } from "@element-plus/icons-vue";
-import { ElLoading } from "element-plus";
+import { ThunderboltOutlined, LoadingOutlined } from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 import * as echarts from "echarts";
 import { useClipboard } from "@vueuse/core";
 import { ChatMessageApi } from "@/api/ai/chat/message";
@@ -140,7 +119,7 @@ const props = defineProps({
 });
 
 const { proxy } = getCurrentInstance();
-const message = proxy?.$modal;
+const modalRef = proxy?.$modal;
 const { copy } = useClipboard();
 
 const activeTab = ref(
@@ -168,6 +147,17 @@ const handlePageChange = (val) => {
 const handleSizeChange = (val) => {
   pageSize.value = val;
   currentPage.value = 1;
+};
+
+const buildTableColumns = (columns) => {
+  return (columns || []).map(c => ({
+    title: c.label,
+    dataIndex: c.prop,
+    key: c.prop || c.label,
+    width: c.minWidth || 100,
+    ellipsis: true,
+    align: 'center',
+  }));
 };
 
 // 监听数据变化
@@ -404,7 +394,7 @@ const handleCopySql = async () => {
   const code = tab?.code;
   if (!code) return;
   await copy(code);
-  message?.msgSuccess?.("复制成功！");
+  modalRef?.msgSuccess?.("复制成功！");
 };
 
 /** 下载图表 */
@@ -426,10 +416,9 @@ const handleExport = async () => {
   const { conversationId, messageId } = props.data;
   if (!conversationId || !messageId) return;
 
-  const loading = ElLoading.service({
-    lock: true,
-    text: "正在导出，请稍候...",
-    background: "rgba(0, 0, 0, 0.7)",
+  const loading = message.loading({
+    content: "正在导出，请稍候...",
+    duration: 0,
   });
 
   try {
@@ -441,12 +430,12 @@ const handleExport = async () => {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     saveAs(blob, `明细数据_${new Date().getTime()}.xlsx`);
-    message?.msgSuccess?.("导出成功！");
+    modalRef?.msgSuccess?.("导出成功！");
   } catch (err) {
     console.error("Export failed:", err);
-    message?.msgError?.("导出失败，请重试！");
+    modalRef?.msgError?.("导出失败，请重试！");
   } finally {
-    loading.close();
+    loading();
   }
 };
 
@@ -553,11 +542,7 @@ onBeforeUnmount(() => {
   min-height: 240px;
 }
 
-:deep(.el-table) {
-  --el-table-header-bg-color: #f8f8f9;
-  --el-table-header-text-color: #515a6e;
-  --el-table-row-hover-bg-color: #f5f7fa;
-
+:deep(.ant-table) {
   thead th {
     font-weight: 600;
     height: 36px;

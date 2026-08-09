@@ -1,27 +1,27 @@
 <template>
-  <el-dialog
-    v-model="visibleDialog"
+  <a-modal
+    v-model:open="visibleDialog"
     :draggable="true"
     class="medium-dialog"
     :title="form.taskParams.typeName"
-    showCancelButton
-    :show-close="false"
-    destroy-on-close
+    :closable="false"
+    :destroy-on-close="true"
+    :mask-closable="false"
   >
-    <el-form
+    <a-spin :spinning="loading">
+    <a-form
       ref="dpModelRefs"
       :model="form"
-      label-width="110px"
+      :label-col="{ style: { width: '110px' } }"
       @submit.prevent
-      v-loading="loading"
       :disabled="info"
     >
       <template v-if="!info">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item
               label="节点名称"
-              prop="name"
+              name="name"
               :rules="[
                 {
                   required: true,
@@ -30,129 +30,127 @@
                 },
               ]"
             >
-              <el-input v-model="form.name" placeholder="请输入节点名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="类型" prop="typeName">
-              <el-select
-                v-model="form.taskParams.typeName"
+              <a-input v-model:value="form.name" placeholder="请输入节点名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="类型" name="typeName">
+              <a-select
+                v-model:value="form.taskParams.typeName"
                 placeholder="请输入类型"
-                filterable
+                show-search
                 disabled
               >
-                <el-option
+                <a-select-option
                   v-for="dict in typeList"
                   :key="dict.value"
                   :label="dict.label"
                   :value="dict.value"
-                ></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
-              <el-input
-                v-model="form.description"
-                type="textarea"
-                maxlength="500个字符"
-                show-word-limit
+                >{{ dict.label }}</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
+              <a-textarea
+                v-model:value="form.description"
+                :maxlength="500"
+                show-count
                 placeholder="请输入描述"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="where条件" prop="where">
-              <el-input
-                v-model="form.taskParams.where"
-                type="textarea"
-                maxlength="500个字符"
-                show-word-limit
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="where条件" name="where">
+              <a-textarea
+                v-model:value="form.taskParams.where"
+                :maxlength="500"
+                show-count
                 placeholder="请输入where条件"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
       </template>
       <template v-else>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="节点名称:" prop="id">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="节点名称:" name="id">
               <div class="form-readonly">
                 {{ form.name }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="类型" prop="typeName">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="类型" name="typeName">
               <div class="form-readonly">
                 {{ form.taskParams.typeName }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
               <div class="form-readonly textarea">
                 {{ form.description ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="where条件" prop="where">
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="where条件" name="where">
               <div class="form-readonly textarea">
                 {{ form.where ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
       </template>
       <div class="h2-title">规则设置</div>
 
       <div class="justify-between mb15" style="margin-top: 10px" v-if="!info">
-        <el-row :gutter="15" class="btn-style">
-          <el-col :span="1.5">
-            <el-button
+        <a-row :gutter="15" class="btn-style">
+          <a-col :span="1.5">
+            <a-button
               type="primary"
-              icon="Plus"
               @click="openRuleSelector(undefined)"
-              >新增规则</el-button
+              ><template #icon><PlusOutlined /></template>新增规则</a-button
             >
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </div>
-      <el-table
-        stripe
-        height="350px"
-        :data="tableFields"
-        v-loading="loadingList"
-        ref="dragTable"
+      <a-table
+        striped
+        :pagination="false"
+        :data-source="tableFields"
+        :loading="loadingList"
+        :scroll="{ y: 350 }"
         row-key="name"
+        :columns="tableColumns"
+        ref="dragTable"
       >
-        <el-table-column label="序号" width="80" align="left">
-          <template #header>
+        <template #headerCell="{ column }">
+          <template v-if="column.key === 'index'">
             <div class="justify-center">
               <span>序号</span>
-              <el-tooltip
-                effect="light"
-                content="清洗规则按照下面配置的列表顺序，依次执行"
+              <a-tooltip
+                title="清洗规则按照下面配置的列表顺序，依次执行"
                 placement="top"
               >
-                <el-icon class="tip-icon">
-                  <InfoFilled />
-                </el-icon>
-              </el-tooltip>
+                <InfoCircleOutlined class="tip-icon" />
+              </a-tooltip>
             </div>
           </template>
-          <template #default="{ $index }">
+        </template>
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.key === 'index'">
             <div
               class="allowDrag"
               style="
@@ -162,126 +160,70 @@
                 align-items: center;
               "
             >
-              <el-icon>
-                <Operation />
-              </el-icon>
-              <span style="margin-left: 4px">{{ $index + 1 }}</span>
+              <ControlOutlined />
+              <span style="margin-left: 4px">{{ index + 1 }}</span>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column
-          label="清洗名称"
-          align="left"
-          prop="name"
-          :show-overflow-tooltip="{ effect: 'light' }"
-          width="300"
-        >
-          <template #default="scope">
-            {{ scope.row.name || "-" }}
+          <template v-else-if="column.key === 'name'">
+            {{ record.name || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="清洗字段"
-          align="left"
-          prop="columns"
-          :show-overflow-tooltip="{ effect: 'light' }"
-          width="300"
-        >
-          <template #default="scope">
+          <template v-else-if="column.key === 'columns'">
             {{
-              scope.row.columns && scope.row.columns.length
-                ? scope.row.columns.join(", ")
+              record.columns && record.columns.length
+                ? record.columns.join(", ")
                 : "-"
             }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="清洗规则"
-          align="left"
-          prop="ruleName"
-          :show-overflow-tooltip="{ effect: 'light' }"
-          width="300"
-        >
-          <template #default="scope">
-            {{ scope.row.ruleName || "-" }}
+          <template v-else-if="column.key === 'ruleName'">
+            {{ record.ruleName || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="规则描述"
-          align="left"
-          prop="ruleDescription"
-          :show-overflow-tooltip="{ effect: 'light' }"
-        >
-          <template #default="scope">
-            {{ scope.row.ruleDescription || "-" }}
+          <template v-else-if="column.key === 'ruleDescription'">
+            {{ record.ruleDescription || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="维度"
-          align="left"
-          prop="parentName"
-          :show-overflow-tooltip="{ effect: 'light' }"
-          width="150"
-        >
-          <template #default="scope">
-            {{ scope.row.parentName || "-" }}
+          <template v-else-if="column.key === 'parentName'">
+            {{ record.parentName || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column label="状态" align="left" prop="status">
-          <template #default="scope">
-            {{ scope.row.status == "1" ? "上线" : "下线" }}
+          <template v-else-if="column.key === 'status'">
+            {{ record.status == "1" ? "上线" : "下线" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-          fixed="right"
-          width="180"
-          v-if="!info"
-        >
-          <template #default="scope">
-            <!-- <el-button link type="primary" icon="view"
-              @click="openRuleDialog(scope.row, scope.$index + 1, true)">查看</el-button> -->
-            <el-button
-              link
-              type="primary"
-              icon="Edit"
-              @click="openRuleDialog(scope.row, scope.$index + 1)"
-              >修改</el-button
+          <template v-else-if="column.key === 'actions' && !info">
+            <a-button
+              type="link"
+              size="small"
+              @click="openRuleDialog(record, index + 1)"
+              >修改</a-button
             >
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleRuleDelete(scope.$index + 1)"
-              >删除</el-button
+            <a-button
+              type="link"
+              size="small"
+              danger
+              @click="handleRuleDelete(index + 1)"
+              ><template #icon><DeleteOutlined /></template>删除</a-button
             >
           </template>
-        </el-table-column>
-      </el-table>
-    </el-form>
+        </template>
+      </a-table>
+    </a-form>
+    </a-spin>
     <template #footer>
       <div style="text-align: right">
-        <el-button @click="closeDialog">关闭</el-button>
-        <el-button type="primary" @click="saveData" v-if="!info"
-          >保存</el-button
+        <a-button @click="closeDialog">关闭</a-button>
+        <a-button type="primary" @click="saveData" v-if="!info"
+          >保存</a-button
         >
-        <el-tooltip
-          content="会自动获取资产关联的数据元中的清洗规则"
+        <a-tooltip
+          title="会自动获取资产关联的数据元中的清洗规则"
           placement="top"
           v-if="!info"
         >
-          <el-button type="warning" @click="renameRuleToRule">
-            <el-icon style="margin-right: 4px">
-              <Refresh />
-            </el-icon>
+          <a-button type="warning" @click="renameRuleToRule">
+            <template #icon><ReloadOutlined /></template>
             获取清洗规则
-          </el-button>
-        </el-tooltip>
+          </a-button>
+        </a-tooltip>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
   <RuleSelectorDialog
     ref="ruleSelectorDialog"
     @confirm="RuleSelectorconfirm"
@@ -289,17 +231,24 @@
   />
 </template>
 <script setup>
+import { message } from 'ant-design-vue'
+import { InfoCircleOutlined, ControlOutlined, DeleteOutlined, ReloadOutlined, PlusOutlined } from "@ant-design/icons-vue";
 import { defineProps, defineEmits, ref, computed, watch } from "vue";
+
 
 import { getLocalNodeUniqueKey as getNodeUniqueKey } from "@/api/col/task/index.js";
 const { proxy } = getCurrentInstance();
+
 import Sortable from "sortablejs";
+
 import useUserStore from "@/store/system/user.js";
+
 import {
   createNodeSelect,
   getParentNode,
   renameRuleToRuleConfig,
 } from "@/views/col/utils/opBase.js";
+
 import RuleSelectorDialog from "./rule/ruleBase.vue";
 const userStore = useUserStore();
 const {
@@ -320,10 +269,25 @@ const props = defineProps({
 });
 let dragTable = ref(null);
 let sortableInstance = null;
+const tableColumns = computed(() => {
+    const cols = [
+        { title: '序号', key: 'index', width: 80, align: 'left' },
+        { title: '清洗名称', key: 'name', align: 'left', ellipsis: true, width: 300 },
+        { title: '清洗字段', key: 'columns', align: 'left', ellipsis: true, width: 300 },
+        { title: '清洗规则', key: 'ruleName', align: 'left', ellipsis: true, width: 300 },
+        { title: '规则描述', key: 'ruleDescription', align: 'left', ellipsis: true },
+        { title: '维度', key: 'parentName', align: 'left', ellipsis: true, width: 150 },
+        { title: '状态', key: 'status', align: 'left' },
+    ];
+    if (!props.info) {
+        cols.push({ title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 180 });
+    }
+    return cols;
+});
 function setSort() {
   nextTick(() => {
     const tbody = dragTable.value?.$el.querySelector(
-      ".el-table__body-wrapper tbody"
+      ".ant-table-tbody"
     );
     if (!tbody) {
       console.warn("tbody 找不到，拖拽初始化失败");

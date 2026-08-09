@@ -1,7 +1,7 @@
 ﻿<template>
-    <el-tooltip effect="dark" :content="text" placement="top-start" :disabled="!isOverflow">
+    <a-tooltip :title="isOverflow ? text : ''" placement="topLeft">
         <span ref="textRef" class="overflow-text" :style="{ maxWidth }">{{ text }}</span>
-    </el-tooltip>
+    </a-tooltip>
 </template>
 
 <script setup>

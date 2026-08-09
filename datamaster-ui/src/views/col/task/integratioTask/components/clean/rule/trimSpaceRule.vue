@@ -1,16 +1,16 @@
 <template>
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <el-row>
-      <el-col :span="12">
-        <el-form-item label="去除空格规则" prop="handleType">
-          <el-radio-group v-model="form.handleType" :disabled="falg">
-            <el-radio :value="'1'">去除前后空格</el-radio>
-            <el-radio :value="'2'">去除所有空格</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-row>
+      <a-col :span="12">
+        <a-form-item label="去除空格规则" name="handleType">
+          <a-radio-group v-model:value="form.handleType" :disabled="falg">
+            <a-radio :value="'1'">去除前后空格</a-radio>
+            <a-radio :value="'2'">去除所有空格</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script setup>

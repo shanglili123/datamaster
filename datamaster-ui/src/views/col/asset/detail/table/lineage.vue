@@ -1,8 +1,8 @@
 <template>
   <!-- 资产血缘 tab -->
   <div class="containerServer" v-loding="loding">
-    <el-empty description=" 暂无资产血缘" v-if="noData">
-    </el-empty>
+    <a-empty description=" 暂无资产血缘" v-if="noData">
+    </a-empty>
     <div id="containerServer-container" ref="graphContainer"></div>
     <TeleportContainer />
   </div>

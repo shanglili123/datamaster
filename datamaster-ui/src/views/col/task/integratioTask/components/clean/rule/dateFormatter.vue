@@ -1,11 +1,11 @@
 <!-- 日期格式统一 -->
 <template>
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <el-row>
-      <el-col :span="12">
-        <el-form-item
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-row>
+      <a-col :span="12">
+        <a-form-item
           label="日期格式"
-          prop="selectedOption"
+          name="selectedOption"
           :rules="
             !falg
               ? [
@@ -19,30 +19,30 @@
           "
         >
           <template v-if="!falg">
-            <el-select
-              v-model="form.selectedOption"
+            <a-select
+              v-model:value="form.selectedOption"
               placeholder="请选择日期格式"
               class="rule-half"
             >
-              <el-option label="yyyy" value="yyyy" />
-              <el-option label="yyyy-MM" value="yyyy-MM" />
-              <el-option label="yyyy-MM-dd" value="yyyy-MM-dd" />
-              <el-option label="yy-MM-dd" value="yy-MM-dd" />
-              <el-option
+              <a-select-option label="yyyy" value="yyyy" />
+              <a-select-option label="yyyy-MM" value="yyyy-MM" />
+              <a-select-option label="yyyy-MM-dd" value="yyyy-MM-dd" />
+              <a-select-option label="yy-MM-dd" value="yy-MM-dd" />
+              <a-select-option
                 label="yyyy-MM-dd HH:mm:ss"
                 value="yyyy-MM-dd HH:mm:ss"
               />
-            </el-select>
+            </a-select>
           </template>
           <div v-else class="form-readonly">{{ selectedOptionText }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-col :span="12" v-if="form.selectedOption == '1'">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+    </a-row>
+    <a-row>
+      <a-col :span="12" v-if="form.selectedOption == '1'">
+        <a-form-item
           label="日期格式"
-          prop="targetFormat"
+          name="targetFormat"
           :rules="
             !falg
               ? [
@@ -55,17 +55,17 @@
               : []
           "
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.targetFormat"
+            v-model:value="form.targetFormat"
             placeholder="请输入日期格式，例如：YY-MM-DD"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.targetFormat || "-" }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script setup>

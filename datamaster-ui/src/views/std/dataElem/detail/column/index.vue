@@ -5,92 +5,92 @@
         <div class="infotop-title mb15">
           {{ form.name || "-" }}
         </div>
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">编号</div>
               <div class="infotop-row-value">
                 {{ form.id || "-" }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">英文名称</div>
               <div class="infotop-row-value">
                 {{ form.engName || "-" }}
               </div>
             </div>
-          </el-col>
-          <!-- <el-col :span="8">
+          </a-col>
+          <!-- <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">中文名称</div>
               <div class="infotop-row-value">
                 {{ form.name || "-" }}
               </div>
             </div>
-          </el-col> -->
-          <el-col :span="8">
+          </a-col> -->
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">类型</div>
               <div class="infotop-row-value">
                 <dict-tag :options="dp_data_elem_code_type" :value="form.type" />
               </div>
             </div>
-          </el-col>
-          <el-col :span="24" style="margin: 2px 0;">
+          </a-col>
+          <a-col :span="24" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">描述</div>
               <div class="infotop-row-value">
                 {{ form.description || "-" }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
-              <div class="infotop-row-lable">数据元类目</div>
+              <div class="infotop-row-lable">数据元目录</div>
               <div class="infotop-row-value">
                 {{ form.catName || "-" }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">字段类型</div>
               <div class="infotop-row-value">
                 <dict-tag :options="column_type" :value="form.columnType" />
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">状态</div>
               <div class="infotop-row-value">
                 <dict-tag :options="sys_disable" :value="form.status" />
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-        </el-row>
+        </a-row>
       </div>
     </div>
     <!-- 标签页部分 -->
     <div class="pagecont-bottom">
-      <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane label="关联清洗规则" name="1" lazy>
+      <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+        <a-tab-pane tab="关联清洗规则" key="1" lazy>
           <cleanRule :dataElemId="dataElemId" dataType="2" />
-        </el-tab-pane>
-        <el-tab-pane label="关联稽查规则" name="2" lazy>
+        </a-tab-pane>
+        <a-tab-pane tab="关联稽查规则" key="2" lazy>
           <auditRule :dataElemId="dataElemId" dataType="1" />
-        </el-tab-pane>
-        <el-tab-pane label="关联信息" name="3" lazy>
+        </a-tab-pane>
+        <a-tab-pane tab="关联信息" key="3" lazy>
           <asset />
-        </el-tab-pane>
-        <el-tab-pane label="详细信息" name="5" lazy>
+        </a-tab-pane>
+        <a-tab-pane tab="详细信息" key="5" lazy>
           <info :daDiscoveryTaskDetail="form" />
 
-        </el-tab-pane>
-      </el-tabs>
+        </a-tab-pane>
+      </a-tabs>
     </div>
   </div>
 </template>

@@ -1,12 +1,14 @@
 <template>
-    <div class="shape-content" v-loading="!store.shape.loaded">
-        <LineageShape
-            :origins="store.shape.origins"
-            :target="store.shape.target"
-            :type="store.shape.type"
-            v-if="store.shape.loaded"
-        />
-    </div>
+    <a-spin :spinning="!store.shape.loaded" wrapper-class-name="shape-spin">
+        <div class="shape-content">
+            <LineageShape
+                :origins="store.shape.origins"
+                :target="store.shape.target"
+                :type="store.shape.type"
+                v-if="store.shape.loaded"
+            />
+        </div>
+    </a-spin>
 </template>
 
 <script setup name="LineageAnalysis">

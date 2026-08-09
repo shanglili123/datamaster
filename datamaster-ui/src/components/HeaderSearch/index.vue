@@ -2,11 +2,11 @@
   <div :class="{ 'show': show }" class="header-search">
     <!--    <svg-icon class-name="search-icon" icon-class="search_new_icon" @click.stop="click" />-->
     <i class="iconfont icon-a-chaxunxianxing" style="font-size: 20px" @click.stop="click"></i>
-    <el-select ref="headerSearchSelectRef" v-model="search" :remote-method="querySearch" filterable default-first-option
-      remote placeholder="请输入菜单内容" class="header-search-select" @change="change">
-      <el-option v-for="option in options" :key="option.item.path" :value="option.item"
+    <a-select ref="headerSearchSelectRef" v-model:value="search" show-search :filter-option="false"
+      placeholder="请输入菜单内容" class="header-search-select" @search="querySearch" @change="change">
+      <a-select-option v-for="option in options" :key="option.item.path" :value="option.item"
         :label="option.item.title.join(' > ')" />
-    </el-select>
+    </a-select>
   </div>
 </template>
 

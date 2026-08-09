@@ -48,6 +48,12 @@
             <groupId>com.datamaster</groupId>
             <artifactId>datamaster-common-common</artifactId>
         </dependency>
+        <!-- 系统模块 mybatis -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-mybatis</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
         <!-- system-api模块 -->
         <dependency>
             <groupId>com.datamaster</groupId>

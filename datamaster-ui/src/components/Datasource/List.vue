@@ -1,11 +1,11 @@
 <template>
-    <el-select 
+    <a-select 
         v-bind="$attrs" 
         @change="handleDatasourceChange"
-        :model-value="modelValue"
-        @update:model-value="handleUpdateModelValue"
+        :value="modelValue"
+        @update:value="handleUpdateModelValue"
     >
-        <el-option
+        <a-select-option
             v-for="source in store.datasources"
             :key="source.id"
             :label="source.datasourceName"
@@ -15,13 +15,13 @@
         
         <!--回echo fallback when selected value not in list-->
         <template v-if="modelValue && !store.datasources.some(item => item.id === modelValue)">
-            <el-option 
+            <a-select-option 
                 :value="modelValue"
                 :label="modelValue + ' (回echo - 可能已被删除)'" 
                 disabled
             />
         </template>
-    </el-select>
+    </a-select>
 </template>
 
 <script setup name="DatasourceList">

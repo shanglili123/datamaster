@@ -1,15 +1,14 @@
 ﻿<template>
   <div :class="{ 'hidden': hidden }" class="pagination-container">
-    <el-pagination
-      :background="background"
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      :layout="layout"
-      :page-sizes="pageSizes"
-      :pager-count="pagerCount"
+    <a-pagination
+      v-model:current="currentPage"
+      v-model:pageSize="pageSize"
       :total="total"
-      @size-change="handleSizeChange"
-      @current-change="handleCurrentChange"
+      :pageSizeOptions="pageSizeOptions"
+      :showSizeChanger="true"
+      :showQuickJumper="true"
+      :showTotal="(total) => `共 ${total} 条`"
+      @change="handleChange"
     />
   </div>
 </template>
@@ -35,19 +34,6 @@ const props = defineProps({
     default() {
       return [4, 6, 8, 10, 20, 30, 50]
     }
-  },
-  // 移动端页码按钮的数量端默认值5
-  pagerCount: {
-    type: Number,
-    default: document.body.clientWidth < 992 ? 5 : 7
-  },
-  layout: {
-    type: String,
-    default: 'total, sizes, prev, pager, next, jumper'
-  },
-  background: {
-    type: Boolean,
-    default: true
   },
   autoScroll: {
     type: Boolean,
@@ -76,31 +62,32 @@ const pageSize = computed({
     emit('update:limit', val)
   }
 })
-function handleSizeChange(val) {
-  if (currentPage.value * val > props.total) {
-    currentPage.value = 1
-  }
-  emit('pagination', { page: currentPage.value, limit: val })
-  if (props.autoScroll) {
-    scrollTo(0, 800)
-  }
-}
-function handleCurrentChange(val) {
-  emit('pagination', { page: val, limit: pageSize.value })
-  if (props.autoScroll) {
-    scrollTo(0, 800)
-  }
-}
 
+const pageSizeOptions = computed(() => {
+  return props.pageSizes.map(String)
+})
+
+function handleChange(page, size) {
+  if (size !== pageSize.value) {
+    if (page * size > props.total) {
+      page = 1
+    }
+  }
+  emit('pagination', { page, limit: size })
+  if (props.autoScroll) {
+    scrollTo(0, 800)
+  }
+}
 </script>
 
 <style scoped>
 .pagination-container {
   background: #fff;
   padding: 32px 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 .pagination-container.hidden {
   display: none;
 }
 </style>
-

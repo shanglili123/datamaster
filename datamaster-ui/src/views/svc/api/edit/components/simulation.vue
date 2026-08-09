@@ -5,145 +5,118 @@
                 <div class="blue-bar"></div>
                 API调用
             </div>
-            <el-button  size="mini" style="border-radius: 30px !important" round
-                       @click="handleCall">
+            <a-button type="primary" style="border-radius: 30px !important" @click="handleCall">
                 接口调用
-            </el-button>
+            </a-button>
         </div>
         <div class="body-wrapper">
-            <el-form v-if="isChange" ref="form" :model="form" label-width="100px" :disabled="true">
-                <el-row>
-                    <el-col :span="12">
-                        <el-form-item label="API名称">
-                            <el-input v-model="form.name" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="API版本">
-                            <el-input v-model="form.apiVersion" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row>
-                    <el-col :span="12">
-                        <el-form-item label="请求类型">
-                            <!--                            <el-input v-model="form.reqMethod"/>-->
+            <a-form v-if="isChange" ref="form" :model="form" :label-col="{ style: { width: '100px' } }" :disabled="true">
+                <a-row>
+                    <a-col :span="12">
+                        <a-form-item label="API名称">
+                            <a-input v-model:value="form.name" />
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="API版本">
+                            <a-input v-model:value="form.apiVersion" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row>
+                    <a-col :span="12">
+                        <a-form-item label="请求类型">
+                            <!--                            <a-input v-model:value="form.reqMethod"/>-->
                             <dict-tag :options="ds_api_bas_info_api_method_type" :value="form.reqMethod" />
-                        </el-form-item>
-                        <!--                        <el-table-column v-if="getColumnVisibility(4)" label="请求方式" align="center" prop="reqMethod">-->
-                        <!--                            <template #default="scope">-->
-                        <!--                                <dict-tag :options="ds_api_bas_info_api_method_type" :value="scope.row.reqMethod"/>-->
-                        <!--                            </template>-->
-                        <!--                        </el-table-column>-->
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="返回格式" prop="resDataType">
+                        </a-form-item>
+                        <!--                        原请求方式列（table-column 形式），迁移后由 tableColumns + bodyCell 模式实现 -->
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="返回格式" name="resDataType">
                             <dict-tag :options="ds_api_bas_info_res_data_type" :value="form.resDataType" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row>
-                    <el-col :span="24">
-                        <el-form-item label="调用地址">
-                            <el-input v-model="form.apiUrl" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row>
+                    <a-col :span="24">
+                        <a-form-item label="调用地址">
+                            <a-input v-model:value="form.apiUrl" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+            </a-form>
             <div class="header-container">
                 <div class="header-left">
                     <div class="blue-bar"></div>
                     请求数据
                 </div>
             </div>
-            <el-row>
-                <el-col :span="24">
-                    <el-table class="tableStyle" :data="form.reqParams" stripe :max-height="250"
-                        style="width: 100%; margin: 15px 0">
-                        <el-table-column label="序号" width="80" align="center">
-                            <template #default="scope">
-                                <span>{{ scope.$index + 1 }}</span>
+            <a-row>
+                <a-col :span="24">
+                    <a-table class="tableStyle" :data-source="form.reqParams" :columns="reqParamColumns" :pagination="false" striped :scroll="{ y: 250 }" style="width: 100%; margin: 15px 0" size="small">
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'index'">
+                                <span>{{ index + 1 }}</span>
                             </template>
-                        </el-table-column>
-                        <el-table-column prop="paramName" label="参数名称" align="center" :show-overflow-tooltip="{effect: 'light'}" />
-                        <el-table-column prop="nullable" label="是否允许为空" align="center" :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">
-                                <el-checkbox v-model="scope.row.nullable" true-label="1" false-label="0" disabled />
+                            <template v-else-if="column.dataIndex === 'nullable'">
+                                <a-checkbox :checked="record.nullable === '1'" disabled />
                             </template>
-                        </el-table-column>
-                        <el-table-column prop="paramComment" label="描述" align="center" :show-overflow-tooltip="{effect: 'light'}" />
-                        <el-table-column prop="paramType" label="参数类型" align="center" :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">
-                                <dict-tag :options="ds_api_param_type" :value="scope.row.paramType" />
-                                <!--                                <el-select v-model="scope.row.paramType" placeholder="请选择参数类型" disabled>-->
-                                <!--                                    <el-option v-for="dict in paramTypeOptions" :key="dict.id" :label="dict.itemValue"-->
-                                <!--                                               :value="dict.itemText"/>-->
-                                <!--                                </el-select>-->
+                            <template v-else-if="column.dataIndex === 'paramType'">
+                                <dict-tag :options="ds_api_param_type" :value="record.paramType" />
                             </template>
-                        </el-table-column>
-                        <el-table-column prop="whereType" label="操作符" align="center" :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">
-                                <el-select v-model="scope.row.whereType" placeholder="请选择操作符" disabled>
-                                  <el-option
-                                      v-for="dict in da_api_param_operator"
-                                      :key="dict.id"
-                                      :label="dict.label"
-                                      :value="dict.value"
-                                  />
-                                </el-select>
+                            <template v-else-if="column.dataIndex === 'whereType'">
+                                <a-select v-model:value="record.whereType" placeholder="请选择操作符" disabled>
+                                    <a-select-option v-for="dict in da_api_param_operator" :key="dict.id" :value="dict.value">{{ dict.label }}</a-select-option>
+                                </a-select>
                             </template>
-                        </el-table-column>
-                        <el-table-column prop="paramValue" label="参数值" align="center" :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">
-                                <el-input v-if="scope.row.paramType != '2'" v-model="scope.row.paramValue"
-                                    placeholder="请输入参数值" />
-                                <el-input v-else-if="scope.row.paramType === '2'" v-model="scope.row.paramValue"
-                                    placeholder="请输入参数值" type="number" />
+                            <template v-else-if="column.dataIndex === 'paramValue'">
+                                <a-input v-if="record.paramType != '2'" v-model:value="record.paramValue" placeholder="请输入参数值" />
+                                <a-input v-else-if="record.paramType === '2'" v-model:value="record.paramValue" placeholder="请输入参数值" type="number" />
                             </template>
-                        </el-table-column>
-                    </el-table>
-                </el-col>
-            </el-row>
+                        </template>
+                    </a-table>
+                </a-col>
+            </a-row>
             <div class="header-container">
                 <div class="header-left">
                     <div class="blue-bar"></div>
                     返回数据
                 </div>
             </div>
-            <el-row>
-                <el-col :span="24">
+            <a-row>
+                <a-col :span="24">
                     <div v-if="apiExecuting">
-                        <el-table :data="callData.dataList" stripe border :max-height="250"
-                            style="width: 100%; margin: 15px 0">
-                            <el-table-column label="序号" width="80" align="center">
-                                <template #default="scope">
-                                    <span>{{ scope.$index + 1 }}</span>
+                        <a-table :data-source="callData.dataList" :columns="callDataColumns" :pagination="false" striped :scroll="{ y: 250 }" style="width: 100%; margin: 15px 0" size="small">
+                            <template #bodyCell="{ column, index }">
+                                <template v-if="column.key === 'index'">
+                                    <span>{{ index + 1 }}</span>
                                 </template>
-                            </el-table-column>
-                            <template v-for="(column, index) in callData.columnList" :key="index">
-                                <el-table-column :prop="column" :label="column" align="center" :min-width="180"
-                                    :show-overflow-tooltip="{effect: 'light'}" />
                             </template>
-                        </el-table>
+                        </a-table>
                         <div style="display: flex; justify-content: flex-end; margin-top: 20px;"
-                            v-if="callData.dataTotal">
-                            <el-pagination v-if="form.resDataType == '1' || form.resDataType == '3'"
-                                :page-sizes="[6, 8, 10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper"
-                                v-model:current-page="callData.pageNum" v-model:page-size="callData.pageSize"
-                                :total="callData.dataTotal" @size-change="handleSizeChange"
-                                @current-change="handleCurrentChange" />
+                            v-if="callData.dataTotal"
+>
+                            <a-pagination v-if="form.resDataType == '1' || form.resDataType == '3'"
+                                :page-size-options="['6', '8', '10', '20', '50', '100']"
+                                v-model:current="callData.pageNum" v-model:pageSize="callData.pageSize"
+                                :total="callData.dataTotal" show-size-changer show-quick-jumper
+                                @change="handleCurrentChange"
+                                @showSizeChange="(current, size) => handleSizeChange(size)"
+/>
                         </div>
 
                     </div>
                     <div v-else class="no-data">暂无数据</div>
-                </el-col>
-            </el-row>
+                </a-col>
+            </a-row>
         </div>
     </div>
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
 import { serviceTesting } from '@/api/svc/api/api.js';
+
 import useUserStore from '@/store/system/user';
 const { proxy } = getCurrentInstance();
 const userStore = useUserStore();
@@ -229,6 +202,24 @@ const {
     callData,
     bashUrl
 } = toRefs(data);
+
+const reqParamColumns = [
+    { title: '序号', key: 'index', align: 'center', width: 80 },
+    { title: '参数名称', dataIndex: 'paramName', align: 'center', ellipsis: true },
+    { title: '是否允许为空', dataIndex: 'nullable', align: 'center', ellipsis: true },
+    { title: '描述', dataIndex: 'paramComment', align: 'center', ellipsis: true },
+    { title: '参数类型', dataIndex: 'paramType', align: 'center', ellipsis: true },
+    { title: '操作符', dataIndex: 'whereType', align: 'center', ellipsis: true },
+    { title: '参数值', dataIndex: 'paramValue', align: 'center', ellipsis: true },
+];
+
+const callDataColumns = computed(() => {
+    const cols = [{ title: '序号', key: 'index', align: 'center', width: 80 }];
+    (callData.value.columnList || []).forEach((col) => {
+        cols.push({ title: col, dataIndex: col, align: 'center', width: 180, ellipsis: true });
+    });
+    return cols;
+});
 
 function showCard() {
     this.$emit('showCard', this.showOptions);
@@ -447,57 +438,26 @@ function handleCall() {
         font-style: normal;
     }
 
-    .el-form {
+    .ant-form {
         margin-top: 20px;
     }
 
-    .el-form-item {
+    .ant-form-item {
         margin-bottom: 15px;
     }
 
-    .el-input,
-    .el-select {
+    .ant-input,
+    .ant-select {
         width: 100%;
     }
 
-    .el-button {
+    .ant-btn {
         transition: background-color 0.3s;
-
-        &:hover {
-            background-color: #2666fb;
-            color: #ffffff;
-        }
     }
 
     .tableStyle {
         font-size: 14px;
         margin: 0px !important;
-
-        ::v-deep {
-            th.el-table__cell>.cell {
-                padding: 0 5px !important;
-                font-style: normal;
-                text-transform: none;
-                background-color: #f0f2f5;
-                color: #333;
-                white-space: nowrap;
-            }
-
-            .el-table__row {
-                .el-table__cell {
-                    padding: 4px 0 !important;
-                    transition: background-color 0.3s;
-
-                    &:hover {
-                        background-color: #f5f7fa;
-                    }
-                }
-            }
-
-            .el-table__header-wrapper th {
-                padding: 4px 0;
-            }
-        }
     }
 
     .no-data {

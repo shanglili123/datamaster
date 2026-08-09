@@ -1,194 +1,150 @@
 <template>
-  <el-dialog
-      title="用户类型-多选"
-      v-model="visible"
+  <a-modal
+      :title="'用户类型-多选'"
+      v-model:open="visible"
       width="1200px"
-      :append-to="$refs['app-container']"
-      draggable
       destroy-on-close
       @close="cancel"
   >
-    <el-form
+    <a-form
         class="btn-style"
         :model="queryParams"
         ref="queryRef"
         :inline="true"
         v-show="showSearch"
-        label-width="68px"
+        :label-col="{ style: { width: '68px' } }"
     >
-      <el-form-item label="ID" prop="id">
-        <el-input
+      <a-form-item label="ID" name="id">
+        <a-input
             style="width:240px"
-            v-model="queryParams.id"
+            v-model:value="queryParams.id"
             placeholder="请输入ID"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="类型名称" prop="name">
-        <el-input
+      </a-form-item>
+      <a-form-item label="类型名称" name="name">
+        <a-input
             style="width:240px"
-            v-model="queryParams.name"
+            v-model:value="queryParams.name"
             placeholder="请输入类型名称"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="是否有效" prop="validFlag">
-        <el-input
+      </a-form-item>
+      <a-form-item label="是否有效" name="validFlag">
+        <a-input
             style="width:240px"
-            v-model="queryParams.validFlag"
+            v-model:value="queryParams.validFlag"
             placeholder="请输入是否有效"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="删除标志" prop="delFlag">
-        <el-input
+      </a-form-item>
+      <a-form-item label="删除标志" name="delFlag">
+        <a-input
             style="width:240px"
-            v-model="queryParams.delFlag"
+            v-model:value="queryParams.delFlag"
             placeholder="请输入删除标志"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="创建人" prop="createBy">
-        <el-input
+      </a-form-item>
+      <a-form-item label="创建人" name="createBy">
+        <a-input
             style="width:240px"
-            v-model="queryParams.createBy"
+            v-model:value="queryParams.createBy"
             placeholder="请输入创建人"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="创建人id" prop="creatorId">
-        <el-input
+      </a-form-item>
+      <a-form-item label="创建人id" name="creatorId">
+        <a-input
             style="width:240px"
-            v-model="queryParams.creatorId"
+            v-model:value="queryParams.creatorId"
             placeholder="请输入创建人id"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="创建时间" style="width: 308px">
-        <el-date-picker
+      </a-form-item>
+      <a-form-item label="创建时间" style="width: 308px">
+        <a-range-picker
             style="width:240px"
-            v-model="daterangeCreateTime"
-            value-format="YYYY-MM-DD"
-            type="daterange"
-            range-separator="-"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-        ></el-date-picker>
-      </el-form-item>
-      <el-form-item label="更新人" prop="updateBy">
-        <el-input
+            v-model:value="daterangeCreateTime"
+            valueFormat="YYYY-MM-DD"
+            :separator="'-'"
+            :placeholder="['开始日期', '结束日期']"
+        ></a-range-picker>
+      </a-form-item>
+      <a-form-item label="更新人" name="updateBy">
+        <a-input
             style="width:240px"
-            v-model="queryParams.updateBy"
+            v-model:value="queryParams.updateBy"
             placeholder="请输入更新人"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="更新人id" prop="updaterId">
-        <el-input
+      </a-form-item>
+      <a-form-item label="更新人id" name="updaterId">
+        <a-input
             style="width:240px"
-            v-model="queryParams.updaterId"
+            v-model:value="queryParams.updaterId"
             placeholder="请输入更新人id"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
         />
-      </el-form-item>
-      <el-form-item label="更新时间" style="width: 308px">
-        <el-date-picker
+      </a-form-item>
+      <a-form-item label="更新时间" style="width: 308px">
+        <a-range-picker
             style="width:240px"
-            v-model="daterangeUpdateTime"
-            value-format="YYYY-MM-DD"
-            type="daterange"
-            range-separator="-"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-        ></el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button
-            plain
+            v-model:value="daterangeUpdateTime"
+            valueFormat="YYYY-MM-DD"
+            :separator="'-'"
+            :placeholder="['开始日期', '结束日期']"
+        ></a-range-picker>
+      </a-form-item>
+      <a-form-item>
+        <a-button
             type="primary"
             @click="handleQuery"
             @mousedown="(e) => e.preventDefault()"
         >
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+        </a-button>
+        <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-      </el-form-item>
-    </el-form>
+        </a-button>
+      </a-form-item>
+    </a-form>
 
-    <el-table
+    <a-table
         ref="multipletableRef"
-        stripe
-        height="300px"
-        v-loading="loading"
-        :data="dataList"
-        reserve-selection
-        row-key="id"
-        @selection-change="handleSelectionChange"
+        :scroll="{ y: '300px' }"
+        :loading="loading"
+        :data-source="dataList"
+        :row-key="'id'"
+        :row-selection="{ onChange: (selectedRowKeys, selectedRows) => handleSelectionChange(selectedRows) }"
         @row-click="handleRowClick"
+        :columns="tableColumns"
     >
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="ID" align="center" prop="id" />
-      <el-table-column label="类型名称" align="center" prop="name">
-        <template #default="scope">
-          {{ scope.row.name || '-' }}
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'name'">{{ record.name || '-' }}</template>
+        <template v-else-if="column.key === 'validFlag'">{{ record.validFlag || '-' }}</template>
+        <template v-else-if="column.key === 'delFlag'">{{ record.delFlag || '-' }}</template>
+        <template v-else-if="column.key === 'createBy'">{{ record.createBy || '-' }}</template>
+        <template v-else-if="column.key === 'creatorId'">{{ record.creatorId || '-' }}</template>
+        <template v-else-if="column.key === 'createTime'">
+          <span>{{ parseTime(record.createTime, '{y}-{m}-{d}') }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="是否有效" align="center" prop="validFlag">
-        <template #default="scope">
-          {{ scope.row.validFlag || '-' }}
+        <template v-else-if="column.key === 'updateBy'">{{ record.updateBy || '-' }}</template>
+        <template v-else-if="column.key === 'updaterId'">{{ record.updaterId || '-' }}</template>
+        <template v-else-if="column.key === 'updateTime'">
+          <span>{{ parseTime(record.updateTime, '{y}-{m}-{d}') }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="删除标志" align="center" prop="delFlag">
-        <template #default="scope">
-          {{ scope.row.delFlag || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="创建人" align="center" prop="createBy">
-        <template #default="scope">
-          {{ scope.row.createBy || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="创建人id" align="center" prop="creatorId">
-        <template #default="scope">
-          {{ scope.row.creatorId || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="更新人" align="center" prop="updateBy">
-        <template #default="scope">
-          {{ scope.row.updateBy || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="更新人id" align="center" prop="updaterId">
-        <template #default="scope">
-          {{ scope.row.updaterId || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="更新时间" align="center" prop="updateTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.updateTime, '{y}-{m}-{d}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark">
-        <template #default="scope">
-          {{ scope.row.remark || '-' }}
-        </template>
-      </el-table-column>
-    </el-table>
+        <template v-else-if="column.key === 'remark'">{{ record.remark || '-' }}</template>
+      </template>
+    </a-table>
 
     <pagination
         v-show="total > 0"
@@ -199,13 +155,13 @@
     />
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">取 消</el-button>
-        <el-button type="primary" size="mini" @click="confirm">
+        <a-button size="small" @click="cancel">取 消</a-button>
+        <a-button type="primary" size="small" @click="confirm">
           确 定
-        </el-button>
+        </a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup name="UserTypeMultiple">
@@ -250,6 +206,20 @@ const oldSelection = ref([]);
 const isAuto = ref(false);
 // 当前界面table
 const multipletableRef = ref();
+
+const tableColumns = [
+  { title: 'ID', dataIndex: 'id', key: 'id', align: 'center' },
+  { title: '类型名称', dataIndex: 'name', key: 'name', align: 'center' },
+  { title: '是否有效', dataIndex: 'validFlag', key: 'validFlag', align: 'center' },
+  { title: '删除标志', dataIndex: 'delFlag', key: 'delFlag', align: 'center' },
+  { title: '创建人', dataIndex: 'createBy', key: 'createBy', align: 'center' },
+  { title: '创建人id', dataIndex: 'creatorId', key: 'creatorId', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center', width: 180 },
+  { title: '更新人', dataIndex: 'updateBy', key: 'updateBy', align: 'center' },
+  { title: '更新人id', dataIndex: 'updaterId', key: 'updaterId', align: 'center' },
+  { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', align: 'center', width: 180 },
+  { title: '备注', dataIndex: 'remark', key: 'remark', align: 'center' },
+];
 
 const emit = defineEmits(["open", "confim", "cancel"]);
 

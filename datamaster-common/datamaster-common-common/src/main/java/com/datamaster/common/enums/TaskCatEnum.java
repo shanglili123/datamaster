@@ -1,36 +1,29 @@
-
-
 package com.datamaster.common.enums;
 
 import lombok.Getter;
 
 import java.util.Locale;
 
-/**
- * <P>
- * 用途:类目表枚举
- * </p>
- *
- * @author: FXB
- * @create: 2025-03-11 16:00
- **/
-
 public enum TaskCatEnum {
 
-    TAX_TASK_CAT("1", "离线数据集成任务"),
-    CAT("2", "实时任务"),
-    TAX_DATA_DEV_CAT("3", "数据开发任务"),
-
-    TAX_JOB_CAT("4", "作业任务");
-    @Getter
-    private String type;
+    TAX_TASK_CAT("1", "离线数据集成任务", CatType.TASK),
+    CAT("2", "实时任务", CatType.TASK),
+    TAX_DATA_DEV_CAT("3", "数据开发任务", CatType.DATA_DEV),
+    TAX_JOB_CAT("4", "作业任务", CatType.DATA_DEV);
 
     @Getter
-    private String name;
+    private final String type;
 
-    TaskCatEnum(String type, String name) {
+    @Getter
+    private final String name;
+
+    @Getter
+    private final CatType catType;
+
+    TaskCatEnum(String type, String name, CatType catType) {
         this.type = type;
         this.name = name;
+        this.catType = catType;
     }
 
     public static TaskCatEnum findEnumByType(String type) {

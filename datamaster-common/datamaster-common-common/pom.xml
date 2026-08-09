@@ -130,6 +130,12 @@
             <artifactId>lombok</artifactId>
             <version>1.18.36</version>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok-mapstruct-binding</artifactId>
+            <version>0.2.0</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- mybatis-plus 增强CRUD -->
         <dependency>
             <groupId>com.baomidou</groupId>

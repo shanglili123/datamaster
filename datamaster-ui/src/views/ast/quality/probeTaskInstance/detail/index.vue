@@ -1,9 +1,10 @@
 <template>
-    <div class="app-container stagingIndex" v-loading="loading">
+    <div class="app-container stagingIndex">
+        <a-spin :spinning="loading">
         <!-- 顶部区域：评分 + 折线图 -->
-        <el-row gutter="20" class="top-section">
+        <a-row :gutter="20" class="top-section">
             <!-- 左侧评分 -->
-            <el-col :xs="24" :sm="24" :md="12" class="stats-panel">
+            <a-col :xs="24" :sm="24" :md="12" class="stats-panel">
                 <div class="module-8 border-item">
                     <div class="border-item-head">
                         <span class="head-title">质量探查维度统计 </span>
@@ -15,116 +16,108 @@
                                 {{ overallScore || '-' }}
                             </span>
                         </div>
-                        <el-table :data="summaryList" border size="small" style="margin-top: 12px" height="246">
-                            <el-table-column prop="dimensionType" label="质量维度" align="center">
-                                <template #default="scope">
-                                    <dict-tag :options="att_rule_audit_q_dimension" :value="scope.row.dimensionType" />
+                        <a-table
+                            :data-source="summaryList"
+                            :columns="[
+                                { title: '质量维度', dataIndex: 'dimensionType', align: 'center' },
+                                { title: '规则数', dataIndex: 'succesTotal', align: 'center' },
+                                { title: '问题数占比', dataIndex: 'proportion', align: 'center' },
+                                { title: '趋势', key: 'trend', align: 'center' },
+                            ]"
+                            :bordered="true"
+                            size="small"
+                            :pagination="false"
+                            :scroll="{ y: 246 }"
+                            style="margin-top: 12px"
+                        >
+                            <template #bodyCell="{ column, record }">
+                                <template v-if="column.dataIndex === 'dimensionType'">
+                                    <dict-tag :options="att_rule_audit_q_dimension" :value="record.dimensionType" />
                                 </template>
-
-                            </el-table-column>
-                            <el-table-column prop="succesTotal" label="规则数" align="center">
-                                <template #default="scope">{{ scope.row.succesTotal || '-' }}</template>
-                            </el-table-column>
-                            <el-table-column prop="proportion" label="问题数占比" align="center">
-                                <template #default="scope">
-                                    {{ scope.row.proportion != null ? scope.row.proportion + '%' : '-' }}
+                                <template v-if="column.dataIndex === 'succesTotal'">
+                                    {{ record.succesTotal || '-' }}
                                 </template>
-
-                            </el-table-column>
-                            <el-table-column label="趋势" align="center">
-                                <template #default="{ row }">
-                                    <template v-if="row.trendType == '-3'">
-                                        -
-                                    </template>
-                                    <template v-else-if="row.trendType == '1'">
-                                        <el-icon color="green">
-                                            <ArrowUp />
-                                        </el-icon>
+                                <template v-if="column.dataIndex === 'proportion'">
+                                    {{ record.proportion != null ? record.proportion + '%' : '-' }}
+                                </template>
+                                <template v-if="column.key === 'trend'">
+                                    <template v-if="record.trendType == '-3'">-</template>
+                                    <template v-else-if="record.trendType == '1'">
+                                        <ArrowUpOutlined style="color: green" />
                                     </template>
                                     <template v-else>
-                                        <el-icon color="red">
-                                            <ArrowDown />
-                                        </el-icon>
+                                        <ArrowDownOutlined style="color: red" />
                                     </template>
                                 </template>
-                            </el-table-column>
-
-                        </el-table>
+                            </template>
+                        </a-table>
                     </div>
                 </div>
-            </el-col>
+            </a-col>
 
             <!-- 右侧折线图 -->
-            <el-col :xs="24" :sm="24" :md="12" class="trend-chart-panel">
+            <a-col :xs="24" :sm="24" :md="12" class="trend-chart-panel">
                 <div class="module-8 border-item">
                     <div class="border-item-head">
                         <span class="head-title">治理数据量变化趋势</span>
-                        <el-select v-model="selectedRange" size="small" placeholder="选择时间范围" style="width: 120px"
-                            @change="onRangeChange">
-                            <el-option v-for="item in rangeOptions" :key="item.value" :label="item.label"
-                                :value="item.value" />
-                        </el-select>
+                        <a-select v-model:value="selectedRange" size="small" placeholder="选择时间范围"
+                            style="width: 120px" @change="onRangeChange">
+                            <a-select-option v-for="item in rangeOptions" :key="item.value" :value="item.value">
+                                {{ item.label }}
+                            </a-select-option>
+                        </a-select>
                     </div>
                     <div class="border-item-body">
                         <div ref="chartRef" class="echart-container"></div>
                     </div>
                 </div>
-            </el-col>
-        </el-row>
+            </a-col>
+        </a-row>
 
         <!-- 规则列表 -->
-        <el-row>
+        <a-row>
             <div class="module-8 border-item" style="width: 100%">
                 <div class="border-item-head">
                     <span class="head-title">规则列表</span>
                 </div>
                 <div class="border-item-body" style="height: 360px;">
-                    <el-table stripe height="300px" v-loading="loading" :data="pagedRuleList" lazy :show-overflow-tooltip="{effect: 'light'}">
-                        <el-table-column v-if="getColumnVisibility(8)" label="评测名称" align="center"
-                            :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">
-                                {{ getEvaluateName(scope.row) }}
+                    <a-table
+                        striped
+                        :loading="loading"
+                        :data-source="pagedRuleList"
+                        :columns="ruleTableColumns"
+                        :pagination="false"
+                        :scroll="{ y: 300 }"
+                        :locale="{ emptyText: '暂无记录' }"
+                    >
+                        <template #bodyCell="{ column, record }">
+                            <template v-if="column.key === 'evaluateName'">
+                                {{ getEvaluateName(record) }}
                             </template>
-                        </el-table-column>
-
-                        <el-table-column v-if="getColumnVisibility(1)" label="数据库名称" align="center" prop="name"
-                            :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">{{ scope.row.datasourceName || '-' }}</template>
-                        </el-table-column>
-                        <el-table-column v-if="getColumnVisibility(2)" label="字段名/中文名" align="center" prop="name"
-                            :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope"> {{ scope.row.columnLabel || '-' }}</template>
-                        </el-table-column>
-                        <el-table-column v-if="getColumnVisibility(3)" label="质量维度" align="center" prop="dimensionType"
-                            :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">
-                                <dict-tag :options="att_rule_audit_q_dimension" :value="scope.row.dimensionType" />
-
+                            <template v-if="column.dataIndex === 'datasourceName'">
+                                {{ record.datasourceName || '-' }}
                             </template>
-                        </el-table-column>
-                        <el-table-column v-if="getColumnVisibility(5)" label="稽查名称" align="center" prop="ruleName"
-                            :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">{{ scope.row.ruleName || '-' }}</template>
-                        </el-table-column>
-
-                        <el-table-column v-if="getColumnVisibility(7)" label="问题数据量占比" align="center" prop="proportion"
-                            :show-overflow-tooltip="{effect: 'light'}">
-                            <template #default="scope">
+                            <template v-if="column.dataIndex === 'columnLabel'">
+                                {{ record.columnLabel || '-' }}
+                            </template>
+                            <template v-if="column.dataIndex === 'dimensionType'">
+                                <dict-tag :options="att_rule_audit_q_dimension" :value="record.dimensionType" />
+                            </template>
+                            <template v-if="column.dataIndex === 'ruleName'">
+                                {{ record.ruleName || '-' }}
+                            </template>
+                            <template v-if="column.dataIndex === 'proportion'">
                                 {{
-                                    (scope.row.problemTotal != -1 && scope.row.problemTotal != null)
-                                        ? `${scope.row.problemTotal} /条 ${scope.row.proportion ?? '-'}%`
+                                    (record.problemTotal != -1 && record.problemTotal != null)
+                                        ? `${record.problemTotal} /条 ${record.proportion ?? '-'}%`
                                         : '-'
                                 }}
                             </template>
-
-                        </el-table-column>
-                        <el-table-column label="操作" fixed="right" width="140" align="center">
-                            <template #default="scope">
-                                <el-button link type="primary" icon="View"
-                                    @click="openDialog(scope.row)">查看问题数据</el-button>
+                            <template v-if="column.key === 'actions'">
+                                <a-button type="link" size="small" @click="openDialog(record)">查看问题数据</a-button>
                             </template>
-                        </el-table-column>
-                    </el-table>
+                        </template>
+                    </a-table>
                     <pagination
                         v-show="ruleList.length > 0"
                         :total="ruleList.length"
@@ -133,10 +126,11 @@
                     />
                 </div>
             </div>
-        </el-row>
+        </a-row>
 
         <!-- 问题数据弹窗 -->
         <ProblemDialog ref="problemDialogRef" />
+        </a-spin>
     </div>
 </template>
 
@@ -146,7 +140,7 @@ import { useRoute } from 'vue-router';
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import moment from 'moment';
 const { proxy } = getCurrentInstance();
-import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
+import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons-vue';
 import ProblemDialog from '../components/problemData.vue';
 import {
     statisticsEvaluateOne,
@@ -237,6 +231,19 @@ const getColumnVisibility = (key) => {
     const column = columns.value.find((col) => col.key === key);
     return column ? column.visible : true;
 };
+
+const ruleTableColumns = computed(() => {
+    const allCols = [
+        { title: '评测名称', key: 'evaluateName', align: 'center', ellipsis: true, colKey: 8 },
+        { title: '数据库名称', dataIndex: 'datasourceName', align: 'center', ellipsis: true, colKey: 1 },
+        { title: '字段名/中文名', dataIndex: 'columnLabel', align: 'center', ellipsis: true, colKey: 2 },
+        { title: '质量维度', dataIndex: 'dimensionType', align: 'center', ellipsis: true, colKey: 3 },
+        { title: '稽查名称', dataIndex: 'ruleName', align: 'center', ellipsis: true, colKey: 5 },
+        { title: '问题数据量占比', dataIndex: 'proportion', align: 'center', ellipsis: true, colKey: 7 },
+        { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 140, colKey: 'actions' },
+    ];
+    return allCols.filter(col => getColumnVisibility(col.colKey));
+});
 
 const loadChartWithData = (data = []) => {
     let { title = [], value = [] } = data;

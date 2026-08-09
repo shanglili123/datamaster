@@ -44,10 +44,7 @@ const usePermissionStore = defineStore('permission', {
         },
         setTopbarRoutes(routes) {
             this.topbarRouters = routes;
-            const sidebarRoutes = buildSidebarRoutesForCurrentPath(routes);
-            if (sidebarRoutes.length > 0) {
-                this.sidebarRouters = sidebarRoutes;
-            }
+            this.sidebarRouters = buildSidebarRoutesForCurrentPath(routes);
         },
         setSidebarRouters(routes) {
             this.sidebarRouters = routes;
@@ -224,14 +221,32 @@ function buildSidebarRoutesForCurrentPath(routes) {
         return [];
     }
 
-    return matchedTopRoute.children.map((child) => {
-        const cloned = cloneRouteRecord(child, toChildSidebarPath(matchedTopRoute.path, child.path));
-        cloned.parentPath = normalizeRoutePath(matchedTopRoute.path);
+    const currentL2 = findMatchingL2(matchedTopRoute, currentPath);
+    if (!currentL2 || !currentL2.children || !currentL2.children.length) return [];
+
+    const l2Path = normalizeRoutePath(matchedTopRoute.path) + '/' + currentL2.path;
+    return currentL2.children.map((child) => {
+        const cloned = cloneRouteRecord(child, toChildSidebarPath(l2Path, child.path));
+        cloned.parentPath = l2Path;
         if (child.children && child.children.length) {
             cloned.children = child.children;
         }
         return cloned;
     });
+}
+
+function findMatchingL2(topRoute, currentPath) {
+    const topPath = normalizeRoutePath(topRoute.path);
+    for (const child of topRoute.children || []) {
+        if (child.hidden) continue;
+        const childResolved = child.path
+            ? (child.path.startsWith('/') ? child.path : `${topPath}/${child.path}`)
+            : '';
+        if (currentPath === childResolved || currentPath.startsWith(childResolved + '/')) {
+            return child;
+        }
+    }
+    return null;
 }
 
 function getCurrentBrowserPath() {
@@ -432,7 +447,7 @@ function createDevelopmentCategoryRoute(sourceRoute) {
         redirect: 'noRedirect',
         alwaysShow: true,
         meta: {
-            title: '研发类目管理',
+            title: '研发目录管理',
             icon: sourceRoute && sourceRoute.meta ? sourceRoute.meta.icon : 'briefcase-2-line'
         },
         children: []
@@ -558,7 +573,7 @@ function moveQualityCatUnderQualityMenu(routes) {
             (child) => isQualityParentMenu(child)
         );
         const qualityCatIndex = metadataRoute.children.findIndex(
-            (child) => child.meta && child.meta.title === '质量探查类目'
+            (child) => child.meta && child.meta.title === '质量探查目录'
         );
         if (qualityRoute) {
             if (qualityCatIndex !== -1) {
@@ -577,12 +592,12 @@ function moveQualityCatUnderQualityMenu(routes) {
     if (!basicRoute || !basicRoute.children) return;
 
     const catRoute = basicRoute.children.find(
-        (child) => child.meta && child.meta.title === '类目管理'
+        (child) => child.meta && child.meta.title === '目录管理'
     );
     if (!catRoute || !catRoute.children) return;
 
     const qualityCatIndex = catRoute.children.findIndex(
-        (child) => child.meta && child.meta.title === '质量探查类目'
+        (child) => child.meta && child.meta.title === '质量探查目录'
     );
     if (qualityCatIndex === -1) return;
 
@@ -600,7 +615,7 @@ function moveQualityCatUnderQualityMenu(routes) {
 
 function addQualityCatAsFirstChild(qualityRoute, qualityCatRoute) {
     qualityRoute.children = (qualityRoute.children || []).filter(
-        (child) => !(child.meta && child.meta.title === '质量探查类目')
+        (child) => !(child.meta && child.meta.title === '质量探查目录')
     );
     qualityCatRoute.path = 'qualityCat';
     normalizeQualityCatRoute(qualityCatRoute);
@@ -616,8 +631,8 @@ function normalizeQualityCatRoute(qualityCatRoute) {
     qualityCatRoute.name = 'QualityCatSpace';
     qualityCatRoute.component = loadView('tax/cat/qualityCat/index');
     qualityCatRoute.meta = qualityCatRoute.meta || {};
-    qualityCatRoute.meta.title = '质量探查类目';
-    qualityCatRoute.meta.activeMenu = '/cat/quality/qualityCat';
+    qualityCatRoute.meta.title = '质量探查目录';
+    qualityCatRoute.meta.activeMenu = '/meta/quality/qualityCat';
     delete qualityCatRoute.children;
     delete qualityCatRoute.redirect;
 }
@@ -788,13 +803,13 @@ function isRuleManagement(route) {
 
 function isCategoryManagement(route) {
     const title = route.meta && route.meta.title;
-    return title === '类目管理';
+    return title === '目录管理';
 }
 
 function isDevelopmentCategoryManagement(route) {
     const title = route.meta && route.meta.title;
     const name = route.name || '';
-    return title === '研发类目管理' || name === 'ColDevelopmentCategory';
+    return title === '研发目录管理' || name === 'ColDevelopmentCategory';
 }
 
 function isMemberRoleManagement(route) {
@@ -806,19 +821,19 @@ function isMemberRoleManagement(route) {
 function isIntegrationTaskCat(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
-    return title === '数据集成类目' || path === 'taskCat' || path.endsWith('/taskCat');
+    return title === '数据集成目录' || path === 'taskCat' || path.endsWith('/taskCat');
 }
 
 function isDataDevCat(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
-    return title === '数据开发类目' || path === 'dataDevCat' || path.endsWith('/dataDevCat');
+    return title === '数据开发目录' || path === 'dataDevCat' || path.endsWith('/dataDevCat');
 }
 
 function isQualityCat(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
-    return title === '质量探查类目' || path === 'qualityCat' || path.endsWith('/qualityCat');
+    return title === '质量探查目录' || path === 'qualityCat' || path.endsWith('/qualityCat');
 }
 
 function isBasicManagement(route) {
@@ -840,11 +855,11 @@ function isCatalogMetadataManagement(route) {
     const title = route.meta && route.meta.title;
     const path = route.path || '';
     return title === '元数据管理' && (
-        path === 'cat' ||
-        path === '/cat' ||
-        path === 'dg/cat' ||
-        path === '/dg/cat' ||
-        path.endsWith('/cat')
+        path === 'catalog' ||
+        path === '/catalog' ||
+        path === 'meta/catalog' ||
+        path === '/meta/catalog' ||
+        path.endsWith('/catalog')
     );
 }
 
@@ -861,8 +876,8 @@ function isQualityParentMenu(route) {
         title === '质量探查' ||
         path === 'quality' ||
         path === '/quality' ||
-        path === '/cat/quality' ||
-        path === 'cat/quality'
+        path === '/meta/quality' ||
+        path === 'meta/quality'
     );
 }
 

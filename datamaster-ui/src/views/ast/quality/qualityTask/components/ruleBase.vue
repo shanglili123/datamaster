@@ -1,13 +1,12 @@
 <template>
   <!-- 新增评测规则的 每个规则的配置 -->
-  <el-dialog
-    v-model="dialogVisible"
+  <a-modal
+    v-model:open="dialogVisible"
     draggable
     class="medium-dialog"
     :class="{ 'max-dialogs-status0': dialogStatus === 0 }"
     :title="dialogTitle"
     destroy-on-close
-    :append-to="$refs['app-container']"
   >
     <div class="content" v-if="dialogStatus == 0">
       <SideMenu
@@ -23,64 +22,64 @@
       v-show="dialogStatus == 1 || dialogStatus == 2"
       :disabled="dialogStatus == 2"
     >
-      <el-form ref="formRef" :model="form" label-width="130px">
+      <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }">
         <div class="h2-title">基础信息</div>
-        <el-row>
-          <el-col :span="8">
-            <el-form-item
+        <a-row>
+          <a-col :span="8">
+            <a-form-item
               label="评测名称"
-              prop="name"
+              name="name"
               v-if="type != 3"
               :rules="[
                 { required: true, message: '请输入评测名称', trigger: 'blur' },
               ]"
             >
               <template v-if="!falg">
-                <el-input v-model="form.name" placeholder="请输入评测名称" />
+                <a-input v-model:value="form.name" placeholder="请输入评测名称" />
               </template>
               <div v-else class="form-readonly">{{ form.name || "-" }}</div>
-            </el-form-item>
-            <el-form-item
+            </a-form-item>
+            <a-form-item
               label="稽查名称"
-              prop="name"
+              name="name"
               v-else
               :rules="[
                 { required: true, message: '请输入稽查名称', trigger: 'blur' },
               ]"
             >
               <template v-if="!falg">
-                <el-input v-model="form.name" placeholder="请输入稽查名称" />
+                <a-input v-model:value="form.name" placeholder="请输入稽查名称" />
               </template>
               <div v-else class="form-readonly">{{ form.name || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="稽查规则编号" prop="ruleCode">
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="稽查规则编号" name="ruleCode">
               <div class="form-readonly">{{ form.ruleCode || "-" }}</div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="稽查规则名称" prop="ruleName">
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="稽查规则名称" name="ruleName">
               <div class="form-readonly">{{ form.ruleName || "-" }}</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="8">
-            <el-form-item label="告警等级" prop="warningLevel">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="8">
+            <a-form-item label="告警等级" name="warningLevel">
               <template v-if="!falg">
-                <el-select
-                  v-model="form.warningLevel"
+                <a-select
+                  v-model:value="form.warningLevel"
                   placeholder="请选择质量维度"
                   style="width: 290px"
                 >
-                  <el-option
+                  <a-select-option
                     v-for="dict in quality_warning_status"
                     :key="dict.value"
-                    :label="dict.label"
                     :value="dict.value"
-                  ></el-option>
-                </el-select>
+                    >{{ dict.label }}</a-select-option
+                  >
+                </a-select>
               </template>
               <div v-else class="form-readonly">
                 {{
@@ -89,96 +88,92 @@
                   )?.label || "-"
                 }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="状态" prop="status">
-              <el-radio-group v-model="form.status" :disabled="falg">
-                <el-radio :value="'1'">上线</el-radio>
-                <el-radio :value="'0'">下线</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="规则描述" prop="ruleDescription">
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="状态" name="status">
+              <a-radio-group v-model:value="form.status" :disabled="falg">
+                <a-radio :value="'1'">上线</a-radio>
+                <a-radio :value="'0'">下线</a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="规则描述" name="ruleDescription">
               <template v-if="!falg">
-                <el-input
-                  type="textarea"
-                  maxlength="500个字符"
-                  show-word-limit
-                  v-model="form.ruleDescription"
+                <a-textarea
+                  :maxlength="500"
+                  :show-count="true"
+                  v-model:value="form.ruleDescription"
                   placeholder="请输入规则描述"
                 />
               </template>
               <div v-else class="form-readonly textarea">
                 {{ form.ruleDescription || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="错误示例" prop="errDescription">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="错误示例" name="errDescription">
               <template v-if="!falg">
-                <el-input
-                  type="textarea"
-                  maxlength="500个字符"
-                  show-word-limit
-                  v-model="form.errDescription"
+                <a-textarea
+                  :maxlength="500"
+                  :show-count="true"
+                  v-model:value="form.errDescription"
                   placeholder="请输入错误示例"
                 />
               </template>
               <div v-else class="form-readonly textarea">
                 {{ form.errDescription || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="修复建议" prop="suggestion">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="修复建议" name="suggestion">
               <template v-if="!falg">
-                <el-input
-                  type="textarea"
-                  maxlength="500个字符"
-                  show-word-limit
-                  v-model="form.suggestion"
+                <a-textarea
+                  :maxlength="500"
+                  :show-count="true"
+                  v-model:value="form.suggestion"
                   placeholder="请输入修复建议"
                 />
               </template>
               <div v-else class="form-readonly textarea">
                 {{ form.suggestion || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="Where 条件" prop="whereClause">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="Where 条件" name="whereClause">
               <template v-if="!falg">
-                <el-input
-                  type="textarea"
-                  maxlength="500个字符"
-                  show-word-limit
-                  v-model="form.whereClause"
+                <a-textarea
+                  :maxlength="500"
+                  :show-count="true"
+                  v-model:value="form.whereClause"
                   placeholder="请输入 Where 条件"
                 />
               </template>
               <div v-else class="form-readonly textarea">
                 {{ form.whereClause || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
         <!-- 规则配置 -->
         <div class="h2-title">规则配置</div>
-        <el-row>
-          <el-col :span="12" class="hasMsg" v-if="type != 3">
-            <el-form-item
+        <a-row>
+          <a-col :span="12" class="hasMsg" v-if="type != 3">
+            <a-form-item
               label="评测对象"
-              prop="tableName"
+              name="tableName"
               :rules="[
                 {
                   required: true,
@@ -188,41 +183,39 @@
               ]"
             >
               <template v-if="!falg">
-                <el-select
-                  v-model="form.tableName"
+                <a-select
+                  v-model:value="form.tableName"
                   placeholder="请选择评测对象"
-                  filterable
-                  clearable
+                  show-search
+                  allow-clear
                   :disabled="type == 2"
                   @change="handleTargetObjectChange"
                 >
-                  <el-option
+                  <a-select-option
                     v-for="item in dppQualityTaskObjSaveReqVO"
                     :key="item.tableName"
-                    :label="item.name"
                     :value="item.tableName"
-                  />
-                </el-select>
+                    >{{ item.name }}</a-select-option
+                  >
+                </a-select>
               </template>
               <div v-else class="form-readonly">
                 {{ selectedRef?.name || "-" }}
               </div>
               <span class="msg" v-if="selectedRef">
-                <el-icon>
-                  <InfoFilled />
-                </el-icon>
+                <InfoFilled />
                 {{ selectedRef?.datasourceType || "" }} /
                 {{ selectedRef?.tableName || "" }}
               </span>
-            </el-form-item>
-          </el-col>
-          <el-col
+            </a-form-item>
+          </a-col>
+          <a-col
             :span="12"
             v-if="form.ruleType != 'TIME_ORDER_VALIDATION' && type != 3"
           >
-            <el-form-item
+            <a-form-item
               label="检查字段"
-              prop="evaColumn"
+              name="evaColumn"
               :rules="[
                 {
                   required: true,
@@ -232,45 +225,45 @@
               ]"
             >
               <template v-if="!falg">
-                <el-select
+                <a-select
                   v-if="isMultipleRuleType"
-                  v-model="form.evaColumn"
-                  multiple
+                  v-model:value="form.evaColumn"
+                  mode="multiple"
                   placeholder="请选择检查字段"
-                  filterable
-                  clearable
+                  show-search
+                  allow-clear
                   :loading="loading"
-                  collapse-tags
+                  max-tag-count="responsive"
                 >
-                  <el-option
+                  <a-select-option
                     v-for="col in columnList"
                     :key="col.columnName"
-                    :label="col.label"
                     :value="col.columnName"
-                  />
-                </el-select>
-                <el-select
+                    >{{ col.label }}</a-select-option
+                  >
+                </a-select>
+                <a-select
                   v-else
-                  v-model="form.evaColumn"
+                  v-model:value="form.evaColumn"
                   placeholder="请选择检查字段"
-                  filterable
-                  clearable
+                  show-search
+                  allow-clear
                   :loading="loading"
                 >
-                  <el-option
+                  <a-select-option
                     v-for="col in columnList"
                     :key="col.columnName"
-                    :label="col.label"
                     :value="col.columnName"
-                  />
-                </el-select>
+                    >{{ col.label }}</a-select-option
+                  >
+                </a-select>
               </template>
               <div v-else class="form-readonly">
                 {{ evaColumnLabel || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
         <component
           :is="currentRuleComponent"
           :key="ruleComponentKey"
@@ -284,55 +277,64 @@
         <div class="h2-title" v-if="form.ruleType == 'CHARACTER_VALIDATION'">
           样例监测
         </div>
-        <el-row v-if="form.ruleType == 'CHARACTER_VALIDATION'">
-          <el-col :span="12">
-            <el-form-item label="样例数据" prop="sampleData">
-              <el-input v-model="title" placeholder="请输入样例数据" />
+        <a-row v-if="form.ruleType == 'CHARACTER_VALIDATION'">
+          <a-col :span="12">
+            <a-form-item label="样例数据" name="sampleData">
+              <a-input v-model:value="title" placeholder="请输入样例数据" />
               <!-- <span class="msg">样例必须符合规则，如不符合不能包含特殊字符</span> -->
               <div style="margin-top: 6px; display: inline-block">
-                <el-tag
+                <a-tag
                   v-if="sampleCheckMsg"
                   closable
-                  type="warning"
+                  color="warning"
                   @close="sampleCheckMsg = ''"
                 >
                   {{ sampleCheckMsg }}
-                </el-tag>
+                </a-tag>
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="11" :offset="1">
-            <el-button plain type="primary" @click="handleSampleCheck">
+            </a-form-item>
+          </a-col>
+          <a-col :span="11" :offset="1">
+            <a-button type="primary" @click="handleSampleCheck">
               <i class="iconfont-mini icon-a-zu22377 mr5"></i>监测
-            </el-button>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-button>
+          </a-col>
+        </a-row>
+      </a-form>
       <SpotCheckDialog ref="spotCheckRef" />
     </div>
     <template #footer>
       <template v-if="dialogStatus == 1">
-        <el-button type="warning" v-if="type != 3" @click="handleSpotCheck"
-          >抽查</el-button
+        <a-button type="warning" v-if="type != 3" @click="handleSpotCheck"
+          >抽查</a-button
         >
-        <el-button @click="handleBack" v-if="!mode">取消</el-button>
-        <el-button type="primary" @click="handleSave" v-if="!falg"
-          >确定</el-button
+        <a-button @click="handleBack" v-if="!mode">取消</a-button>
+        <a-button type="primary" @click="handleSave" v-if="!falg"
+          >确定</a-button
         >
       </template>
-      <el-button @click="closeDialog" v-else>取消</el-button>
+      <a-button @click="closeDialog" v-else>取消</a-button>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
 import { ref, reactive, watch, toRefs } from "vue";
+
+import { InfoCircleFilled as InfoFilled } from "@ant-design/icons-vue";
+
 import SideMenu from "./ruleSelectorMenu.vue";
+
 import SpotCheckDialog from "./spotCheckResult.vue";
+
 import { getColumnByAssetId } from "@/api/col/task/index.js";
+
 import useUserStore from "@/store/system/user";
-// 通过注册中心按需加载规则子组件，减少静态 import 带来的首屏体积
+// 通过注册中心按需加载规则子组件，减少静态导入带来的首屏体积
+
 import { getRuleConfig, getRuleComponent } from "./rule/registry.js";
+
 import { verifyInterfaceValue } from "@/api/ast/quality/qualityTask";
 let falg = ref(false);
 const userStore = useUserStore();
@@ -802,7 +804,7 @@ defineExpose({ openDialog, closeDialog });
 }
 </style>
 <style>
-.el-dialog.max-dialogs-status0 .el-dialog__body {
+.ant-modal.max-dialogs-status0 .ant-modal-body {
   padding: 0 !important;
   padding-left: 10px !important;
 }

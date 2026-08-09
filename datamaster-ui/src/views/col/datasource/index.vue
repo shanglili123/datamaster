@@ -1,64 +1,63 @@
-﻿<template>
+<template>
   <div class="app-container datasource-list-page" ref="app-container">
 
     <div class="pagecont-top" v-show="showSearch">
-      <el-form
+      <a-form
           class="btn-style"
           :model="queryParams"
           ref="queryRef"
-          :inline="true"
-          label-width="45px"
+          layout="inline"
+          :label-col="{ style: { width: '45px' } }"
           v-show="showSearch"
           @submit.prevent
       >
-        <el-form-item label="名称" prop="datasourceName">
-          <el-input
-              v-model="queryParams.datasourceName"
+        <a-form-item label="名称" name="datasourceName">
+          <a-input
+              v-model:value="queryParams.datasourceName"
               placeholder="请输入数据源名称"
-              clearable
+              allow-clear
               style="width: 150px;"
-              @keyup.enter="handleQuery"
+              @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="类型" prop="datasourceType">
-          <el-select
-              v-model="queryParams.datasourceType"
+        </a-form-item>
+        <a-form-item label="类型" name="datasourceType">
+          <a-select
+              v-model:value="queryParams.datasourceType"
               placeholder="请选择数据源类型"
-              clearable
+              allow-clear
               style="width: 150px;"
           >
-            <el-option
+            <a-select-option
                   v-for="dict in datasourceTypeOptions"
                 :key="dict.value"
-                :label="dict.label"
                 :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button
-              plain
+            >
+              {{ dict.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item>
+          <a-button
               type="primary"
               @click="handleQuery"
               @mousedown="(e) => e.preventDefault()"
           >
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </a-button>
+        </a-form-item>
+      </a-form>
       <div class="data-action-btns">
-        <el-button
+        <a-button
             type="primary"
-            plain
             @click="handleAdd"
             v-hasPermi="['ast:dataSource:add']"
             @mousedown="(e) => e.preventDefault()"
         >
           <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-        </el-button>
+        </a-button>
       </div>
       <div class="top-right-btn">
         <right-toolbar
@@ -70,197 +69,104 @@
     </div>
 
     <div>
-      <el-table
-          stripe
-          v-loading="loading"
-          :data="daDatasourceList"
-          @selection-change="handleSelectionChange"
-          :default-sort="defaultSort"
-          @sort-change="handleSortChange"
+      <a-table
+          :loading="loading"
+          :data-source="daDatasourceList"
+          :columns="tableColumns"
+          :scroll="tableScroll"
+          :row-key="(record) => record.id"
+          :pagination="false"
+          @change="handleTableChange"
       >
-        <el-table-column
-            v-if="getColumnVisibility(1)"
-            width="120"
-            label="编号"
-            align="center"
-            prop="id"
-            :show-overflow-tooltip="{ effect: 'light' }"
-        >
-          <template #default="scope">
-            {{ scope.row.id || "-" }}
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'id'">
+            {{ record.id || "-" }}
           </template>
-        </el-table-column>
-        <!--       <el-table-column type="selection" width="55" align="center" />-->
-        <el-table-column
-            v-if="getColumnVisibility(2)"
-            width="250"
-            label="数据源名称"
-            align="left"
-            prop="datasourceName"
-            :show-overflow-tooltip="{ effect: 'light' }"
-        >
-          <template #default="scope">
-            {{ scope.row.datasourceName || "-" }}
+          <template v-else-if="column.key === 'datasourceName'">
+            {{ record.datasourceName || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-            v-if="getColumnVisibility(3)"
-            label="描述"
-            width="240"
-            align="left"
-            prop="description"
-            :show-overflow-tooltip="{ effect: 'light' }"
-        >
-          <template #default="scope">
-            {{ scope.row.description || "-" }}
+          <template v-else-if="column.key === 'description'">
+            {{ record.description || "-" }}
           </template>
-        </el-table-column>
-
-        <el-table-column
-            v-if="getColumnVisibility(4)"
-            width="140"
-            label="数据源类型"
-            align="center"
-            prop="datasourceType"
-        >
-          <template #default="scope">
+          <template v-else-if="column.key === 'datasourceType'">
             <dict-tag
                 :options="datasourceTypeOptions"
-                :value="scope.row.datasourceType"
+                :value="record.datasourceType"
             />
           </template>
-        </el-table-column>
-        <!-- <el-table-column
-            v-if="getColumnVisibility(2) && type == 1"
-            width="120"
-            label="所属空间"
-            align="center"
-            prop="spaceName"
-        >
-            <template #default="scope">
-                {{ scope.row.spaceName || '-' }}
-            </template>
-        </el-table-column> -->
-        <el-table-column
-            v-if="getColumnVisibility(5)"
-            label="创建人"
-            width="120"
-            align="center"
-            prop="createBy"
-            :show-overflow-tooltip="{ effect: 'light' }"
-        >
-          <template #default="scope">
-            {{ scope.row.createBy || "-" }}
+          <template v-else-if="column.key === 'createBy'">
+            {{ record.createBy || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-            v-if="getColumnVisibility(6)"
-            label="创建时间"
-            align="center"
-            prop="createTime"
-            width="160"
-            sortable="custom"
-            :sort-orders="['descending', 'ascending']"
-        >
-          <template #default="scope">
+          <template v-else-if="column.key === 'createTime'">
             <span>{{
-                parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}")
+                parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}")
               }}</span>
           </template>
-        </el-table-column>
-        <el-table-column
-            v-if="getColumnVisibility(7)"
-            label="状态"
-            align="center"
-            prop="validFlag"
-            width="100"
-        >
-          <template #default="scope">
-            <!--              <dict-tag :options="sys_valid" :value="scope.row.validFlag"/>-->
-
-            <el-switch
-                v-model="scope.row.validFlag"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-                @change="handleStatusChange(scope.row)"
+          <template v-else-if="column.key === 'validFlag'">
+            <a-switch
+                v-model:checked="record.validFlag"
+                @change="handleStatusChange(record)"
             >
-            </el-switch>
+            </a-switch>
           </template>
-        </el-table-column>
-        <el-table-column
-            v-if="getColumnVisibility(9)"
-            label="操作"
-            align="center"
-            class-name="small-padding fixed-width"
-            fixed="right"
-            width="220"
-        >
-          <template #default="scope">
-            <el-button
-                link
-                type="primary"
-                icon="Connection"
-                @click="handleTestConnection(scope.row)"
+          <template v-else-if="column.key === 'operation'">
+            <a-button
+                type="link"
+                :icon="h(ApiOutlined)"
+                @click="handleTestConnection(record)"
                 v-hasPermi="['ast:dataSource:edit']"
             >测试连接
-            </el-button>
+            </a-button>
 
-            <el-button
-                link
-                type="primary"
-                icon="view"
-                @click="handleDetail(scope.row)"
+            <a-button
+                type="link"
+                :icon="h(EyeOutlined)"
+                @click="handleDetail(record)"
                 v-hasPermi="['ast:dataSource:edit']"
             >详情
-            </el-button>
-            <el-popover placement="bottom" :width="100" trigger="click">
-              <template #reference>
-                <el-button
-                    link
-                    type="primary"
-                    :disabled="scope.row.isAdminAddTo == false"
-                    icon="ArrowDown"
-                >
-                  <el-tooltip
-                      class="box-item"
-                      effect="dark"
-                      content="暂无权限"
-                      placement="top"
-                      :disabled="scope.row.isAdminAddTo != false"
-                  >
-                    更多
-                  </el-tooltip>
-                </el-button>
+            </a-button>
+            <a-popover placement="bottom" :overlay-style="{ width: '100px' }" trigger="click">
+              <template #content>
+                <div class="butgdlist">
+                  <a-button
+                      type="link"
+                      :icon="h(EditOutlined)"
+                      @click="handleUpdate(record)"
+                      v-hasPermi="['ast:dataSource:edit']"
+                  >修改
+                  </a-button>
+                  <a-button
+                      type="link"
+                      danger
+                      :icon="h(DeleteOutlined)"
+                      @click="handleDelete(record)"
+                      v-hasPermi="['ast:dataSource:remove']"
+                  >删除
+                  </a-button>
+                </div>
               </template>
-              <div class="butgdlist">
-                <el-button
-                    link
-                    type="primary"
-                    icon="Edit"
-                    @click="handleUpdate(scope.row)"
-                    v-hasPermi="['ast:dataSource:edit']"
-                >修改
-                </el-button>
-                <el-button
-                    link
-                    type="danger"
-                    icon="Delete"
-                    @click="handleDelete(scope.row)"
-                    v-hasPermi="['ast:dataSource:remove']"
-                >删除
-                </el-button>
-              </div>
-            </el-popover>
+              <a-button
+                  type="link"
+                  :disabled="record.isAdminAddTo == false"
+                  :icon="h(DownOutlined)"
+              >
+                <a-tooltip
+                    :title="record.isAdminAddTo == false ? '暂无权限' : ''"
+                    placement="top"
+                >
+                  更多
+                </a-tooltip>
+              </a-button>
+            </a-popover>
           </template>
-        </el-table-column>
-
-        <template #empty>
+        </template>
+        <template #emptyText>
           <div class="emptyBg">
             <img src="@/assets/system/images/no_data/noData.png" alt="" />
             <p>暂无记录</p>
           </div>
         </template>
-      </el-table>
+      </a-table>
 
       <pagination
           v-show="total > 0"
@@ -272,163 +178,161 @@
     </div>
 
     <!-- 新增或修改数据源对话框 -->
-    <el-dialog
+    <a-modal
         :title="title"
-        v-model="open"
+        v-model:open="open"
         width="1000px"
-        :append-to="$refs['app-container']"
-        draggable
+        :get-container="() => $refs['app-container']"
     >
       <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
+        <span role="heading" aria-level="2">
           {{ title }}
         </span>
       </template>
-      <el-form
+      <a-form
           ref="daDatasourceRef"
           :model="form"
           :rules="rules"
-          label-width="110px"
+          :label-col="{ style: { width: '110px' } }"
           @submit.prevent
           :disabled="title == '数据源详情'"
       >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="数据源名称" prop="datasourceName">
-              <el-input
-                  v-model="form.datasourceName"
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="数据源名称" name="datasourceName">
+              <a-input
+                  v-model:value="form.datasourceName"
                   placeholder="请输入数据源名称"
               />
-            </el-form-item>
-          </el-col>
+            </a-form-item>
+          </a-col>
 
-          <el-col :span="12">
-            <el-form-item label="数据源类型" prop="datasourceType">
-              <el-select
-                  v-model="form.datasourceType"
+          <a-col :span="12">
+            <a-form-item label="数据源类型" name="datasourceType">
+              <a-select
+                  v-model:value="form.datasourceType"
                   placeholder="请选择数据源类型"
                   @change="handleDatasourceChange"
                   :disabled="form.id"
               >
-                <el-option
+                <a-select-option
                     v-for="dict in datasourceTypeOptions"
                     :key="dict.value"
-                    :label="dict.label"
                     :value="dict.value"
-                ></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" v-if="form.datasourceType !== 'OSS-ALIYUN'">
-          <el-col :span="12">
-            <el-form-item label="IP" prop="ip">
-              <el-input v-model="form.ip" placeholder="请输入IP" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="端口号" prop="port">
-              <el-input v-model="form.port" placeholder="请输入端口号" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row
+                >{{ dict.label }}</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20" v-if="form.datasourceType !== 'OSS-ALIYUN'">
+          <a-col :span="12">
+            <a-form-item label="IP" name="ip">
+              <a-input v-model:value="form.ip" placeholder="请输入IP" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="端口号" name="port">
+              <a-input v-model:value="form.port" placeholder="请输入端口号" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row
             :gutter="20"
             v-if="
             showCredentialFields(form.datasourceType)
           "
         >
-          <el-col :span="12">
-            <el-form-item label="账号" :prop="isCredentialRequired(form.datasourceType) ? 'username' : ''">
-              <el-input v-model="form.username" placeholder="请输入账号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="密码" :prop="isCredentialRequired(form.datasourceType) ? 'password' : ''">
-              <el-input
+          <a-col :span="12">
+            <a-form-item label="账号" :name="isCredentialRequired(form.datasourceType) ? 'username' : ''">
+              <a-input v-model:value="form.username" placeholder="请输入账号" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="密码" :name="isCredentialRequired(form.datasourceType) ? 'password' : ''">
+              <a-input
                   type="password"
-                  v-model="form.password"
+                  v-model:value="form.password"
                   placeholder="请输入密码"
                   v-if="title === '新增数据源'"
               />
-              <el-input
+              <a-input
                   type="password"
-                  v-model="form.password"
+                  v-model:value="form.password"
                   placeholder="请输入密码"
                   v-if="title !== '新增数据源'"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
         <template v-if="form.datasourceType === 'OSS-ALIYUN'">
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="keyID" prop="keyId">
-                <el-input v-model="form.keyId" placeholder="请输入keyID" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="keySecret" prop="keySecret">
-                <el-input
-                    v-model="form.keySecret"
+          <a-row :gutter="20">
+            <a-col :span="12">
+              <a-form-item label="keyID" name="keyId">
+                <a-input v-model:value="form.keyId" placeholder="请输入keyID" />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="keySecret" name="keySecret">
+                <a-input
+                    v-model:value="form.keySecret"
                     placeholder="请输入keySecret"
                     v-if="title === '新增数据源'"
                 />
-                <el-input
+                <a-input
                     type="password"
-                    v-model="form.keySecret"
+                    v-model:value="form.keySecret"
                     placeholder="请输入keySecret"
                     v-if="title !== '新增数据源'"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="bucket" prop="bucket">
-                <el-input
-                    v-model="form.bucket"
+              </a-form-item>
+            </a-col>
+          </a-row>
+          <a-row :gutter="20">
+            <a-col :span="12">
+              <a-form-item label="bucket" name="bucket">
+                <a-input
+                    v-model:value="form.bucket"
                     placeholder="请输入bucket，例如：test"
                 />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="endpoint" prop="endpoint">
-                <el-input
-                    v-model="form.endpoint"
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="endpoint" name="endpoint">
+                <a-input
+                    v-model:value="form.endpoint"
                     placeholder="请输入endpoint,例如：oss-cn-beijing.aliyuncs.com"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="24">
-              <el-form-item label="域名" prop="domain">
-                <el-input
-                    v-model="form.domain"
+              </a-form-item>
+            </a-col>
+          </a-row>
+          <a-row :gutter="20">
+            <a-col :span="24">
+              <a-form-item label="域名" name="domain">
+                <a-input
+                    v-model:value="form.domain"
                     placeholder="请输入域名,可空，例如test.oss-cn-beijing.aliyuncs.com"
                 />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </a-form-item>
+            </a-col>
+          </a-row>
         </template>
-        <el-row
+        <a-row
             :gutter="20"
             v-if="
             showDbNameField(form.datasourceType)
           "
         >
-          <el-col :span="12" v-if="form.datasourceType !== null">
-            <el-form-item label="数据库名称" :prop="isDbNameRequired(form.datasourceType) ? 'dbname' : ''">
-              <el-input
-                  v-model="form.dbname"
+          <a-col :span="12" v-if="form.datasourceType !== null">
+            <a-form-item label="数据库名称" :name="isDbNameRequired(form.datasourceType) ? 'dbname' : ''">
+              <a-input
+                  v-model:value="form.dbname"
                   placeholder="请输入数据库名称"
                   :disabled="form.id"
               />
-            </el-form-item>
-          </el-col>
-          <el-col
+            </a-form-item>
+          </a-col>
+          <a-col
               :span="12"
               v-if="
               form.datasourceType !== null &&
@@ -440,231 +344,228 @@
                 form.datasourceType == 'PostgreSQL')
             "
           >
-            <el-form-item label="模式名称" prop="sid">
-              <el-input
-                  v-model="form.sid"
+            <a-form-item label="模式名称" name="sid">
+              <a-input
+                  v-model:value="form.sid"
                   placeholder="请输入模式名称"
                   :disabled="form.id"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-row
+        <a-row
             :gutter="20"
             v-if="
             form.datasourceType !== null &&
             (form.datasourceType === 'Kafka' || form.datasourceType === 'HDFS')
           "
         >
-          <el-col :span="24">
-            <el-form-item label="配置参数" prop="config">
-              <el-input
-                  type="textarea"
-                  :autosize="{ minRows: 2, maxRows: 4 }"
-                  v-model="form.config"
+          <a-col :span="24">
+            <a-form-item label="配置参数" name="config">
+              <a-textarea
+                  :auto-size="{ minRows: 2, maxRows: 4 }"
+                  v-model:value="form.config"
                   :placeholder="
                   form.datasourceType === 'Kafka'
                     ? '例如: {&quot;security.protocol&quot;&colon;&quot;SASL_PLAINTEXT&quot;}'
                     : '例如: {&quot;kerberosKeytabFilePath&quot;&colon;&quot;/path/to/keytab/file&quot;}'
                 "
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
-              <el-input
-                  type="textarea"
-                  :min-height="192"
-                  v-model="form.description"
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
+              <a-textarea
+                  :auto-size="{ minRows: 8 }"
+                  v-model:value="form.description"
                   placeholder="请输入描述"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="所属空间" prop="spaceNameList">
-              <el-input
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="所属空间" name="spaceNameList">
+              <a-input
                   style="width: 83.5%"
-                  v-model="form.spaceNameList"
+                  v-model:value="form.spaceNameList"
                   placeholder="请选择空间"
                   disabled
               >
-              </el-input>
-              <el-button
+              </a-input>
+              <a-button
                   style="margin-left: 11px"
                   type="primary"
                   @click="getListSpace"
-              >选择空间</el-button
+              >选择空间</a-button
               >
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="状态" prop="validFlag">
-              <el-radio-group v-model="form.validFlag">
-                <el-radio
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="状态" name="validFlag">
+              <a-radio-group v-model:value="form.validFlag">
+                <a-radio
                     v-for="dict in sys_disable"
                     :key="dict.value"
-                    :label="dict.value === '1'"
+                    :value="dict.value === '1'"
                 >
                   {{ dict.label }}
-                </el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+                </a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">取 消</el-button>
-          <el-button
+          <a-button size="small" @click="cancel">取 消</a-button>
+          <a-button
               type="primary"
-              size="mini"
+              size="small"
               :loading="btnLoading"
               @click="submitForm"
-          >确 定</el-button
+          >确 定</a-button
           >
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 详情 -->
-    <el-dialog
+    <a-modal
         :title="title"
-        v-model="openDetail"
+        v-model:open="openDetail"
         width="1000px"
-        :append-to="$refs['app-container']"
-        draggable
+        :get-container="() => $refs['app-container']"
     >
       <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
+        <span role="heading" aria-level="2">
           {{ title }}
         </span>
       </template>
-      <el-form
+      <a-form
           ref="daDatasourceRef"
           :model="form"
           :rules="rules"
-          label-width="110px"
+          :label-col="{ style: { width: '110px' } }"
       >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="数据源名称">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="数据源名称">
               <div class="form-readonly">
                 {{ form.datasourceName || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
+            </a-form-item>
+          </a-col>
 
-          <el-col :span="12">
-            <el-form-item label="数据源类型">
+          <a-col :span="12">
+            <a-form-item label="数据源类型">
               <div>
                 <dict-tag
                     :options="datasourceTypeOptions"
                     :value="form.datasourceType"
                 />
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20" v-if="form.datasourceType !== 'OSS-ALIYUN'">
-          <el-col :span="12">
-            <el-form-item label="IP">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20" v-if="form.datasourceType !== 'OSS-ALIYUN'">
+          <a-col :span="12">
+            <a-form-item label="IP">
               <div class="form-readonly">
                 {{ form.ip || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="端口号">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="端口号">
               <div class="form-readonly">
                 {{ form.port || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row
             :gutter="20"
             v-if="
             showCredentialFields(form.datasourceType)
           "
         >
-          <el-col :span="12">
-            <el-form-item label="账号">
+          <a-col :span="12">
+            <a-form-item label="账号">
               <div class="form-readonly">
                 {{ form.username || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="密码">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="密码">
               <div class="form-readonly">***********</div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
         <template v-if="form.datasourceType === 'OSS-ALIYUN'">
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="keyID">
+          <a-row :gutter="20">
+            <a-col :span="12">
+              <a-form-item label="keyID">
                 <div class="form-readonly">
                   {{ form.keyId || "-" }}
                 </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="keySecret">
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="keySecret">
                 <div class="form-readonly">
                   {{ form.keyIkeySecretd || "-" }}
                 </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="bucket">
+              </a-form-item>
+            </a-col>
+          </a-row>
+          <a-row :gutter="20">
+            <a-col :span="12">
+              <a-form-item label="bucket">
                 <div class="form-readonly">
                   {{ form.bucket || "-" }}
                 </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="endpoint">
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="endpoint">
                 <div class="form-readonly">
                   {{ form.endpoint || "-" }}
                 </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="24">
-              <el-form-item label="域名">
+              </a-form-item>
+            </a-col>
+          </a-row>
+          <a-row :gutter="20">
+            <a-col :span="24">
+              <a-form-item label="域名">
                 <div class="form-readonly">
                   {{ form.domain || "-" }}
                 </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
+              </a-form-item>
+            </a-col>
+          </a-row>
         </template>
-        <el-row
+        <a-row
             :gutter="20"
             v-if="
             showDbNameField(form.datasourceType)
           "
         >
-          <el-col :span="12" v-if="form.datasourceType !== null">
-            <el-form-item label="数据库名称">
+          <a-col :span="12" v-if="form.datasourceType !== null">
+            <a-form-item label="数据库名称">
               <div class="form-readonly">
                 {{ form.dbname || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col
+            </a-form-item>
+          </a-col>
+          <a-col
               :span="12"
               v-if="
               form.datasourceType !== null &&
@@ -676,155 +577,124 @@
                 form.datasourceType == 'PostgreSQL')
             "
           >
-            <el-form-item label="模式名称">
+            <a-form-item label="模式名称">
               <div class="form-readonly">
                 {{ form.sid || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-row
+        <a-row
             :gutter="20"
             v-if="
             form.datasourceType !== null &&
             (form.datasourceType === 'Kafka' || form.datasourceType === 'HDFS')
           "
         >
-          <el-col :span="24">
-            <el-form-item label="配置参数">
+          <a-col :span="24">
+            <a-form-item label="配置参数">
               <div class="form-readonly">
                 {{ form.config || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="描述">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="描述">
               <div class="form-readonly textarea">
                 {{ form.description || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="所属空间">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="所属空间">
               <div class="form-readonly">
                 {{ form.spaceNameListStr || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="状态">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="状态">
               <dict-tag
                   :options="sys_disable"
                   :value="form.validFlag ? '1' : '0'"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">关 闭</el-button>
+          <a-button size="small" @click="cancel">关 闭</a-button>
         </div>
       </template>
-    </el-dialog>
-    <el-dialog title="空间选择" v-model="openSpace" width="1000px" draggable>
-      <template>
-        <span role="heading" aria-level="2" class="el-dialog__title">
+    </a-modal>
+    <a-modal title="空间选择" v-model:open="openSpace" width="1000px">
+      <template #header="{ close, titleId, titleClass }">
+        <span role="heading" aria-level="2">
           空间选择
         </span>
       </template>
       <!--用户数据-->
-      <el-form
+      <a-form
           class="btn-style"
           :model="queryParamsSpace"
           ref="queryRef"
-          :inline="true"
-          label-width="68px"
+          layout="inline"
+          :label-col="{ style: { width: '68px' } }"
       >
-        <el-form-item label="空间名称" prop="name">
-          <el-input
+        <a-form-item label="空间名称" name="name">
+          <a-input
               class="el-form-input-width"
-              v-model="queryParamsSpace.name"
+              v-model:value="queryParamsSpace.name"
               placeholder="请输入空间名称"
-              clearable
-              @keyup.enter="handleQuery"
+              allow-clear
+              @pressEnter="handleQuerySpace"
           />
-        </el-form-item>
-        <el-form-item label="负责人" prop="managerId">
-          <el-select
-              v-model="queryParamsSpace.managerId"
-              class="el-form-input-width"
-              filterable
-              placeholder="请选择"
-          >
-            <el-option
-                v-for="item in spaceOptions"
-                :key="item.userId"
-                :label="item.nickName"
-                :value="item.userId"
-            >
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button
-              plain
+        </a-form-item>
+        <a-form-item>
+          <a-button
               type="primary"
               @click="handleQuerySpace"
               @mousedown="(e) => e.preventDefault()"
           >
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button
+          </a-button>
+          <a-button
               @click="resetQuerySpace"
               @mousedown="(e) => e.preventDefault()"
           >
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
-      <el-table
-          ref="spaceTableRef"
-          stripe
-          v-loading="loadingSpace"
-          :data="spaceList"
-          @selection-change="handleSelectionChangeSpace"
+          </a-button>
+        </a-form-item>
+      </a-form>
+      <a-table
+          :loading="loadingSpace"
+          :data-source="spaceList"
+          :columns="spaceColumns"
+          :row-key="(record) => record.id"
+          :pagination="false"
+          :row-selection="{
+            selectedRowKeys: spaceSelectedKeys,
+            onChange: handleRowSelectChange,
+            getCheckboxProps: (record) => ({ disabled: !selectable(record) }),
+          }"
       >
-        <el-table-column
-            type="selection"
-            width="55"
-            :selectable="selectable"
-            align="center"
-        />
-        <el-table-column label="编号" prop="id" width="120">
-          <template #default="scope">
-            {{ scope.row.id || "-" }}
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'id'">
+            {{ record.id || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column label="空间名称" align="center" prop="name">
-          <template #default="scope">
-            {{ scope.row.name || "-" }}
+          <template v-else-if="column.key === 'name'">
+            {{ record.name || "-" }}
           </template>
-        </el-table-column>
-
-        <el-table-column label="负责人" align="center" prop="managerId">
-          <template #default="scope">
-            {{ scope.row.nickName || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column label="联系方式" align="center" prop="managerPhone">
-          <template #default="scope">
-            {{ scope.row.managerPhone || "-" }}
-          </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </a-table>
       <pagination
           v-show="totalSpace > 0"
           :total="totalSpace"
@@ -834,13 +704,13 @@
       />
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="openSpace = false">取 消</el-button>
-          <el-button type="primary" size="mini" @click="submitFormSpace"
-          >确 定</el-button
+          <a-button size="small" @click="openSpace = false">取 消</a-button>
+          <a-button type="primary" size="small" @click="submitFormSpace"
+          >确 定</a-button
           >
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -858,10 +728,11 @@ import {
   noDppAdd,
 } from "@/api/ast/dataSource/dataSource";
 import { encrypt, isDecrypted } from "@/utils/aesEncrypt";
-import { deptUserTree } from "@/api/system/system/user.js";
 import { getToken } from "@/utils/auth.js";
 import useUserStore from "@/store/system/user";
 import { getDatasourceTypes } from "@/components/Datasource/utils";
+import { h } from "vue";
+import { ApiOutlined, DownOutlined, EditOutlined, EyeOutlined, DeleteOutlined } from "@ant-design/icons-vue";
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
 const { sys_disable } = proxy.useDict("sys_disable");
@@ -888,6 +759,53 @@ const getColumnVisibility = (key) => {
   return column.visible;
 };
 
+const tableColumns = computed(() => [
+  { key: "id", title: "编号", dataIndex: "id", width: 120, align: "center", ellipsis: true, hidden: !getColumnVisibility(1) },
+  { key: "datasourceName", title: "数据源名称", dataIndex: "datasourceName", width: 250, align: "left", ellipsis: true, hidden: !getColumnVisibility(2) },
+  { key: "description", title: "描述", dataIndex: "description", width: 240, align: "left", ellipsis: true, hidden: !getColumnVisibility(3) },
+  { key: "datasourceType", title: "数据源类型", dataIndex: "datasourceType", width: 140, align: "center", hidden: !getColumnVisibility(4) },
+  { key: "createBy", title: "创建人", dataIndex: "createBy", width: 120, align: "center", ellipsis: true, hidden: !getColumnVisibility(5) },
+  {
+    key: "createTime",
+    title: "创建时间",
+    dataIndex: "createTime",
+    width: 160,
+    align: "center",
+    sorter: true,
+    sorterKey: "createTime",
+    defaultSortOrder: "descend",
+    hidden: !getColumnVisibility(6),
+  },
+  { key: "validFlag", title: "状态", dataIndex: "validFlag", width: 100, align: "center", hidden: !getColumnVisibility(7) },
+  {
+    key: "operation",
+    title: "操作",
+    align: "center",
+    className: "small-padding fixed-width",
+    fixed: "right",
+    width: 420,
+    hidden: !getColumnVisibility(9),
+  },
+].filter((col) => !col.hidden));
+// 列总宽超出容器时启用横向滚动，保证 fixed 列与内容完整展示
+const tableScroll = computed(() => {
+  const totalWidth = tableColumns.value.reduce(
+    (sum, c) => sum + (typeof c.width === "number" ? c.width : 0),
+    0
+  );
+  return totalWidth > 0 ? { x: totalWidth } : undefined;
+});
+
+function handleTableChange(pagination, filters, sorter) {
+  if (!sorter || Array.isArray(sorter)) {
+    return;
+  }
+  handleSortChange({
+    prop: sorter.field,
+    order: sorter.order === "ascend" ? "ascending" : sorter.order === "descend" ? "descending" : sorter.order,
+  });
+}
+
 const open = ref(false);
 const openSpace = ref(false);
 const openDetail = ref(false);
@@ -900,12 +818,16 @@ const total = ref(0);
 const title = ref("");
 const defaultSort = ref({ prop: "createTime", order: "desc" });
 const router = useRouter();
-const spaceOptions = ref([]);
 const spaceList = ref([]);
 const totalSpace = ref(0);
-const spaceTableRef = ref(null);
+const spaceSelectedKeys = ref([]);
 const loadingSpace = ref(false);
 const spaceIdAndCodeList = ref([]);
+
+const spaceColumns = [
+  { key: "id", title: "编号", dataIndex: "id", width: 120, align: "left" },
+  { key: "name", title: "空间名称", dataIndex: "name", align: "center" },
+];
 
 /*** 用户导入参数 */
 const upload = reactive({
@@ -934,7 +856,6 @@ const data = reactive({
     pageNum: 1,
     pageSize: 6,
     name: null,
-    managerId: null,
     datasourceId: null,
   },
   queryParams: {
@@ -1041,11 +962,6 @@ watch(
     { immediate: true } // `immediate` 为 true 表示页面加载时也会立即执行一次 watch
 );
 
-function getSpaceOptions() {
-  deptUserTree().then((response) => {
-    spaceOptions.value = response.data;
-  });
-}
 
 // 数据源类型 change 事件
 function handleDatasourceChange(type) {
@@ -1114,15 +1030,26 @@ function getListSpace() {
 
     // 在表格加载完成后，设置之前选中的空间
     nextTick(() => {
+      const keys = [];
       spaceList.value.forEach((space) => {
         form.value.spaceList.forEach((item) => {
           if (item.spaceId === space.id) {
-            proxy.$refs.spaceTableRef.toggleRowSelection(space, true);
+            keys.push(space.id);
           }
         });
       });
+      spaceSelectedKeys.value = keys;
+      const selectedRows = spaceList.value.filter((space) => keys.includes(space.id));
+      if (selectedRows.length) {
+        handleSelectionChangeSpace(selectedRows);
+      }
     });
   });
+}
+
+function handleRowSelectChange(selectedRowKeys, selectedRows) {
+  spaceSelectedKeys.value = selectedRowKeys;
+  handleSelectionChangeSpace(selectedRows);
 }
 
 function handleSelectionChangeSpace(selection) {
@@ -1153,7 +1080,6 @@ function resetQuerySpace() {
   queryParamsSpace.value.pageNum = 1;
   queryParamsSpace.value.pageSize = 6;
   queryParamsSpace.value.name = null;
-  queryParamsSpace.value.managerId = null;
   getListSpace();
 }
 
@@ -1345,8 +1271,9 @@ function handleTestConnection(row) {
 const btnLoading = ref(false);
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["daDatasourceRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["daDatasourceRef"]
+    .validate()
+    .then(() => {
       btnLoading.value = true;
       if (!showCredentialFields(form.value.datasourceType)) {
         form.value.username = null;
@@ -1414,8 +1341,8 @@ function submitForm() {
               btnLoading.value = false;
             });
       }
-    }
-  });
+    })
+    .catch(() => {});
 }
 
 /** 删除按钮操作 */
@@ -1526,7 +1453,6 @@ function handleStatusChange(row) {
 queryParams.value.orderByColumn = defaultSort.value.prop;
 queryParams.value.isAsc = defaultSort.value.order;
 getList();
-getSpaceOptions();
 </script>
 
 <style scoped lang="scss">
@@ -1536,12 +1462,12 @@ getSpaceOptions();
   align-items: center !important;
   gap: 8px;
 
-  .el-form {
+  .ant-form {
     display: flex !important;
     flex-wrap: nowrap !important;
     flex: 0 1 auto !important;
 
-    .el-form-item {
+    .ant-form-item {
       display: inline-flex !important;
       flex-shrink: 0 !important;
       margin-bottom: 0 !important;

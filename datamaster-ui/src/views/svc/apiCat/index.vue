@@ -2,37 +2,37 @@
     <div class="app-container" ref="app-container">
 
         <div class="pagecont-top" v-show="showSearch">
-            <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="130px"
-                v-show="showSearch" @submit.prevent>
-                <el-form-item label="数据服务类目" prop="name">
-                    <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入数据服务类目" clearable
-                        @keyup.enter="handleQuery" />
-                </el-form-item>
-                <el-form-item label="上级类目" prop="code">
-                    <el-tree-select filterable class="el-form-input-width" v-model="queryParams.code"
-                        :data="attApiCatOptions" :props="{ value: 'code', label: 'name', children: 'children' }"
-                        value-key="id" placeholder="请选择上级" check-strictly />
-                </el-form-item>
-                <el-form-item>
-                    <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()"
+            <a-form class="btn-style" :model="queryParams" ref="queryRef" :layout="'inline'"
+                :label-col="{ style: { width: '130px' } }" v-show="showSearch" @submit.prevent>
+                <a-form-item label="数据服务目录" name="name">
+                    <a-input class="el-form-input-width" v-model:value="queryParams.name" placeholder="请输入数据服务目录" allow-clear
+                        @pressEnter="handleQuery" />
+                </a-form-item>
+                <a-form-item label="上级目录" name="code">
+                    <a-tree-select show-search class="el-form-input-width" v-model:value="queryParams.code"
+                        :tree-data="attApiCatOptions" :field-names="{ value: 'code', label: 'name', children: 'children' }"
+                        placeholder="请选择上级" />
+                </a-form-item>
+                <a-form-item>
+                    <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()"
                         v-hasPermi="['svc:apiCat:query']">
                         <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-                    </el-button>
-                    <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+                    </a-button>
+                    <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                         <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-                    </el-button>
-                </el-form-item>
-            </el-form>
+                    </a-button>
+                </a-form-item>
+            </a-form>
             <div class="data-action-btns">
-                <el-button type="primary" plain @click="handleAdd" v-hasPermi="['svc:apiCat:add']"
+                <a-button type="primary" @click="handleAdd" v-hasPermi="['svc:apiCat:add']"
                     @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-                <el-button class="toggle-expand-all" type="primary" plain @click="toggleExpandAll">
+                </a-button>
+                <a-button class="toggle-expand-all" @click="toggleExpandAll">
                     <svg-icon v-if="isExpandAll" icon-class="toggle" />
                     <svg-icon v-else icon-class="expand" />
                     <span>{{ isExpandAll ? "折叠" : "展开" }}</span>
-                </el-button>
+                </a-button>
             </div>
             <div class="top-right-btn">
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"
@@ -41,228 +41,186 @@
         </div>
 
         <div class="pagecont-bottom">
-            <el-table v-if="refreshTable" v-loading="loading" :data="AttApiCatList" row-key="id"
-                :default-expand-all="isExpandAll" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
-                <el-table-column label="数据服务类目" align="left" prop="name" width="200"
-                    :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        {{ scope.row.name || '-' }}
+            <a-table v-if="refreshTable" :data-source="AttApiCatList" :columns="tableColumns" row-key="id"
+                :defaultExpandAllRows="isExpandAll" :loading="loading" :pagination="false">
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.dataIndex === 'name'">
+                        {{ record.name || '-' }}
                     </template>
-                </el-table-column>
-
-                <el-table-column label="描述" align="left" prop="description" :show-overflow-tooltip="{ effect: 'light' }"
-                    width="300">
-                    <template #default="scope">
-                        {{ scope.row.description || '-' }}
+                    <template v-else-if="column.dataIndex === 'description'">
+                        {{ record.description || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column label="排序" align="left" prop="sortOrder" :show-overflow-tooltip="{ effect: 'light' }"
-                    width="50">
-                    <template #default="scope">
-                        {{ scope.row.sortOrder }}
+                    <template v-else-if="column.dataIndex === 'sortOrder'">
+                        {{ record.sortOrder }}
                     </template>
-                </el-table-column>
-                <el-table-column label="创建人" align="center" prop="createBy">
-                    <template #default="scope">
-                        {{ scope.row.createBy || "-" }}
+                    <template v-else-if="column.dataIndex === 'createBy'">
+                        {{ record.createBy || "-" }}
                     </template>
-                </el-table-column>
-                <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-                    <template #default="scope">
-                        <span>{{
-                            parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}")
-                        }}</span>
+                    <template v-else-if="column.dataIndex === 'createTime'">
+                        <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") }}</span>
                     </template>
-                </el-table-column>
-                <el-table-column label="状态" align="center" prop="validFlag">
-                    <template #default="scope">
-                        <!--              <dict-tag :options="sys_valid" :value="scope.row.validFlag"/>-->
-
-                        <el-switch v-model="scope.row.validFlag" active-color="#13ce66" inactive-color="#ff4949"
-                            @change="handleStatusChange(scope.row)">
-                        </el-switch>
+                    <template v-else-if="column.dataIndex === 'validFlag'">
+                        <a-switch v-model:checked="record.validFlag" @change="() => handleStatusChange(record)" />
                     </template>
-                </el-table-column>
-
-                <el-table-column label="备注" align="left" prop="remark" :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        {{ scope.row.remark || '-' }}
+                    <template v-else-if="column.dataIndex === 'remark'">
+                        {{ record.remark || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right"
-                    width="240">
-                    <template #default="scope">
-                        <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-                            v-hasPermi="['svc:apiCat:edit']">修改</el-button>
-                        <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)"
-                            v-hasPermi="['svc:apiCat:add']">新增</el-button>
-                        <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-                            v-hasPermi="['svc:apiCat:remove']">删除</el-button>
+                    <template v-else-if="column.key === 'actions'">
+                        <a-button type="link" size="small" @click="handleUpdate(record)"
+                            v-hasPermi="['svc:apiCat:edit']">修改</a-button>
+                        <a-button type="link" size="small" @click="handleAdd(record)"
+                            v-hasPermi="['svc:apiCat:add']">新增</a-button>
+                        <a-button type="link" danger size="small" @click="handleDelete(record)"
+                            v-hasPermi="['svc:apiCat:remove']">删除</a-button>
                     </template>
-                </el-table-column>
-            </el-table>
-
-            <!-- <pagination
-                v-show="total > 0"
-                :total="total"
-                v-model:page="queryParams.pageNum"
-                v-model:limit="queryParams.pageSize"
-                @pagination="getList"
-            /> -->
+                </template>
+            </a-table>
         </div>
 
-        <!-- 添加或修改数据服务类目管理对话框 -->
-        <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable>
-            <template #header="{ close, titleId, titleClass }">
-                <span role="heading" aria-level="2" class="el-dialog__title">
-                    {{ title }}
-                </span>
-            </template>
-            <el-form ref="AttApiCatRef" :model="form" :rules="rules" label-width="80px" @submit.prevent>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="类目名称" prop="name">
-                            <el-input v-model="form.name" placeholder="请输入数据服务类目" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="上级类目" prop="parentId">
-                            <el-tree-select filterable :disabled="form.id" v-model="form.parentId"
-                                :data="attApiCatOptions" :props="{ value: 'id', label: 'name', children: 'children' }"
-                                value-key="id" placeholder="请选择上级" check-strictly />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20"> </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="排序" prop="sortOrder">
-                            <el-input-number style="width: 100%" v-model="form.sortOrder" controls-position="right"
-                                :min="0" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="状态" prop="validFlag">
-                            <el-radio v-model="form.validFlag" :label="true">启用</el-radio>
-                            <el-radio v-model="form.validFlag" :label="false">禁用</el-radio>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="24">
-                        <el-form-item label="描述">
-                            <el-input type="textarea" v-model="form.description" placeholder="请输入描述"
-                                :min-height="192" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
+        <!-- 添加或修改数据服务目录管理对话框 -->
+        <a-modal :title="title" v-model:open="open" width="800px">
+            <a-form ref="AttApiCatRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }"
+                @submit.prevent>
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="目录名称" name="name">
+                            <a-input v-model:value="form.name" placeholder="请输入数据服务目录" />
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="上级目录" name="parentId">
+                            <a-tree-select show-search :disabled="form.id" v-model:value="form.parentId"
+                                :tree-data="attApiCatOptions"
+                                :field-names="{ value: 'id', label: 'name', children: 'children' }"
+                                placeholder="请选择上级" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20"> </a-row>
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="排序" name="sortOrder">
+                            <a-input-number style="width: 100%" v-model:value="form.sortOrder" :min="0" />
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="状态" name="validFlag">
+                            <a-radio-group v-model:value="form.validFlag">
+                                <a-radio :value="true">启用</a-radio>
+                                <a-radio :value="false">禁用</a-radio>
+                            </a-radio-group>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20">
+                    <a-col :span="24">
+                        <a-form-item label="描述">
+                            <a-textarea v-model:value="form.description" placeholder="请输入描述"
+                                :auto-size="{ minRows: 7 }" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
 
-                <el-row :gutter="20">
-                    <el-col :span="24">
-                        <el-form-item label="备注">
-                            <el-input type="textarea" placeholder="请输入备注" v-model="form.remark" :min-height="192" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
+                <a-row :gutter="20">
+                    <a-col :span="24">
+                        <a-form-item label="备注">
+                            <a-textarea placeholder="请输入备注" v-model:value="form.remark" :auto-size="{ minRows: 7 }" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+            </a-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button size="mini" @click="cancel">取 消</el-button>
-                    <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+                    <a-button size="small" @click="cancel">取 消</a-button>
+                    <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
                 </div>
             </template>
-        </el-dialog>
+        </a-modal>
 
-        <!-- 数据服务类目管理详情对话框 -->
-        <el-dialog :title="title" v-model="openDetail" width="800px" :append-to="$refs['app-container']" draggable>
-            <template #header="{ close, titleId, titleClass }">
-                <span role="heading" aria-level="2" class="el-dialog__title">
-                    {{ title }}
-                </span>
-            </template>
-            <el-form ref="AttApiCatRef" :model="form" label-width="80px">
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="类别名称" prop="name">
+        <!-- 数据服务目录管理详情对话框 -->
+        <a-modal :title="title" v-model:open="openDetail" width="800px">
+            <a-form ref="AttApiCatRef" :model="form" :label-col="{ style: { width: '80px' } }">
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="类别名称" name="name">
                             <div>
                                 {{ form.name }}
                             </div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="关联上级ID" prop="parentId">
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="关联上级ID" name="parentId">
                             <div>
                                 {{ form.parentId }}
                             </div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="类别排序" prop="sortOrder">
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="类别排序" name="sortOrder">
                             <div>
                                 {{ form.sortOrder }}
                             </div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="描述" prop="description">
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="描述" name="description">
                             <div>
                                 {{ form.description }}
                             </div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="层级编码" prop="code">
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="层级编码" name="code">
                             <div>
                                 {{ form.code }}
                             </div>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="备注" prop="remark">
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="备注" name="remark">
                             <div>
                                 {{ form.remark }}
                             </div>
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+            </a-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button size="mini" @click="cancel">关 闭</el-button>
+                    <a-button size="small" @click="cancel">关 闭</a-button>
                 </div>
             </template>
-        </el-dialog>
+        </a-modal>
 
         <!-- 用户导入对话框 -->
-        <el-dialog :title="upload.title" v-model="upload.open" width="800px" :append-to="$refs['app-container']"
-            draggable destroy-on-close>
-            <el-upload ref="uploadRef" :limit="1" accept=".xlsx, .xls" :headers="upload.headers"
+        <a-modal :title="upload.title" v-model:open="upload.open" width="800px">
+            <a-upload-dragger ref="uploadRef" :max-count="1" accept=".xlsx, .xls" :headers="upload.headers"
                 :action="upload.url + '?updateSupport=' + upload.updateSupport" :disabled="upload.isUploading"
-                :on-progress="handleFileUploadProgress" :on-success="handleFileSuccess" :auto-upload="false" drag>
-                <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                @progress="handleFileUploadProgress" @success="handleFileSuccess">
+                <CloudUploadOutlined style="font-size: 42px; color: #4096ff" />
+                <div class="ant-upload-text">将文件拖到此处，或<em>点击上传</em></div>
                 <template #tip>
-                    <div class="el-upload__tip text-center">
-                        <div class="el-upload__tip">
-                            <el-checkbox v-model="upload.updateSupport" />是否更新已经存在的数据服务类目管理数据
+                    <div class="ant-upload-tip text-center">
+                        <div class="ant-upload-tip">
+                            <a-checkbox v-model:checked="upload.updateSupport" />是否更新已经存在的数据服务目录管理数据
                         </div>
                         <span>仅允许导入xls、xlsx格式文件。</span>
-                        <el-link type="primary" :underline="false" style="font-size: 12px; vertical-align: baseline"
-                            @click="importTemplate">下载模板</el-link>
+                        <a-link type="primary" style="font-size: 12px; vertical-align: baseline"
+                            @click="importTemplate">下载模板</a-link>
                     </div>
                 </template>
-            </el-upload>
+            </a-upload-dragger>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button @click="upload.open = false">取 消</el-button>
-                    <el-button type="primary" @click="submitFileForm">确 定</el-button>
+                    <a-button @click="upload.open = false">取 消</a-button>
+                    <a-button type="primary" @click="submitFileForm">确 定</a-button>
                 </div>
             </template>
-        </el-dialog>
+        </a-modal>
     </div>
 </template>
 
@@ -275,8 +233,20 @@ import {
     updateAttApiCat
 } from '@/api/svc/apiCat/apiCat';
 import { getToken } from '@/utils/auth.js';
+import { CloudUploadOutlined } from '@ant-design/icons-vue';
 
 const { proxy } = getCurrentInstance();
+
+const tableColumns = [
+    { title: '数据服务目录', dataIndex: 'name', align: 'left', width: 200, ellipsis: true },
+    { title: '描述', dataIndex: 'description', align: 'left', width: 300, ellipsis: true },
+    { title: '排序', dataIndex: 'sortOrder', align: 'left', width: 50, ellipsis: true },
+    { title: '创建人', dataIndex: 'createBy', align: 'center' },
+    { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180 },
+    { title: '状态', dataIndex: 'validFlag', align: 'center' },
+    { title: '备注', dataIndex: 'remark', align: 'left', ellipsis: true },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
 
 const AttApiCatList = ref([]);
 
@@ -327,7 +297,7 @@ const upload = reactive({
     // 设置上传的请求头部
     headers: { Authorization: 'Bearer ' + getToken() },
     // 上传的地址
-    url: import.meta.env.VITE_APP_BASE_API + '/tax/AttApiCat/importData'
+    url: import.meta.env.VITE_APP_BASE_API + '/tax/category/importData'
 });
 
 const data = reactive({
@@ -343,8 +313,8 @@ const data = reactive({
         createTime: null
     },
     rules: {
-        name: [{ required: true, message: '数据服务类目不能为空', trigger: 'blur' }],
-        parentId: [{ required: true, message: '上级类目不能为空', trigger: 'blur' }]
+        name: [{ required: true, message: '数据服务目录不能为空', trigger: 'blur' }],
+        parentId: [{ required: true, message: '上级目录不能为空', trigger: 'blur' }]
     }
 });
 
@@ -359,19 +329,23 @@ function toggleExpandAll() {
     });
 }
 
-/** 查询数据服务类目管理列表 */
+/** 查询数据服务目录管理列表 */
 function getList() {
     loading.value = true;
-    listAttApiCat(queryParams.value).then((response) => {
-        AttApiCatList.value = proxy.handleTree(response.data, 'id', 'parentId');
-        // total.value = response.data.total;
-        loading.value = false;
+    listAttApiCat(queryParams.value)
+        .then((response) => {
+            AttApiCatList.value = proxy.handleTree(response.data, 'id', 'parentId');
+            // total.value = response.data.total;
 
-        attApiCatOptions.value = [];
-        const data = { id: 0, name: '顶级节点', children: [] };
-        data.children = proxy.handleTree(response.data, 'id', 'parentId');
-        attApiCatOptions.value.push(data);
-    });
+            attApiCatOptions.value = [];
+            const data = { id: 0, name: '顶级节点', children: [] };
+            data.children = proxy.handleTree(response.data, 'id', 'parentId');
+            attApiCatOptions.value.push(data);
+        })
+        .catch((error) => { })
+        .finally(() => {
+            loading.value = false;
+        });
 }
 
 // 取消按钮
@@ -438,7 +412,7 @@ function handleAdd(row) {
         form.value.parentId = 0;
     }
     open.value = true;
-    title.value = '新增数据服务类目';
+    title.value = '新增数据服务目录';
 }
 
 /** 修改按钮操作 */
@@ -448,7 +422,7 @@ function handleUpdate(row) {
     getAttApiCat(_id).then((response) => {
         form.value = response.data;
         open.value = true;
-        title.value = '修改数据服务类目';
+        title.value = '修改数据服务目录';
     });
 }
 
@@ -459,40 +433,38 @@ function handleDetail(row) {
     getAttApiCat(_id).then((response) => {
         form.value = response.data;
         openDetail.value = true;
-        title.value = '数据服务类目详情';
+        title.value = '数据服务目录详情';
     });
 }
 
 /** 提交按钮 */
 function submitForm() {
-    proxy.$refs['AttApiCatRef'].validate((valid) => {
-        if (valid) {
-            if (form.value.id != null) {
-                updateAttApiCat(form.value)
-                    .then((response) => {
-                        proxy.$modal.msgSuccess('修改成功');
-                        open.value = false;
-                        getList();
-                    })
-                    .catch((error) => { });
-            } else {
-                addAttApiCat(form.value)
-                    .then((response) => {
-                        proxy.$modal.msgSuccess('新增成功');
-                        open.value = false;
-                        getList();
-                    })
-                    .catch((error) => { });
-            }
+    proxy.$refs['AttApiCatRef'].validate().then(() => {
+        if (form.value.id != null) {
+            updateAttApiCat(form.value)
+                .then((response) => {
+                    proxy.$modal.msgSuccess('修改成功');
+                    open.value = false;
+                    getList();
+                })
+                .catch((error) => { });
+        } else {
+            addAttApiCat(form.value)
+                .then((response) => {
+                    proxy.$modal.msgSuccess('新增成功');
+                    open.value = false;
+                    getList();
+                })
+                .catch((error) => { });
         }
-    });
+    }).catch(() => { });
 }
 
 /** 改变启用状态值 */
 function handleStatusChange(row) {
     const text = row.validFlag === true ? '启用' : '禁用';
     proxy.$modal
-        .confirm('确认要"' + text + '","' + row.name + '"API类目吗？')
+        .confirm('确认要"' + text + '","' + row.name + '"API目录吗？')
         .then(function () {
             updateAttApiCat({ id: row.id, validFlag: row.validFlag }).then((response) => {
                 proxy.$modal.msgSuccess(text + '成功');
@@ -508,7 +480,7 @@ function handleStatusChange(row) {
 function handleDelete(row) {
     const _ids = row.id || ids.value;
     proxy.$modal
-        .confirm('是否确认删除数据服务类目编号为"' + _ids + '"的数据项？')
+        .confirm('是否确认删除数据服务目录编号为"' + _ids + '"的数据项？')
         .then(function () {
             return delAttApiCat(_ids);
         })
@@ -522,7 +494,7 @@ function handleDelete(row) {
 /** 导出按钮操作 */
 function handleExport() {
     proxy.download(
-        'tax/apiCat/export',
+        'tax/category/export/API',
         {
             ...queryParams.value
         },
@@ -533,7 +505,7 @@ function handleExport() {
 /** ---------------- 导入相关操作 -----------------**/
 /** 导入按钮操作 */
 function handleImport() {
-    upload.title = '数据服务类目导入';
+    upload.title = '数据服务目录导入';
     upload.open = true;
 }
 
@@ -548,11 +520,12 @@ function importTemplate() {
 
 /** 提交上传文件 */
 function submitFileForm() {
-    proxy.$refs['uploadRef'].submit();
+    upload.open = false;
+    upload.isUploading = false;
 }
 
 /**文件上传中处理 */
-const handleFileUploadProgress = (event, file, fileList) => {
+const handleFileUploadProgress = () => {
     upload.isUploading = true;
 };
 
@@ -560,7 +533,6 @@ const handleFileUploadProgress = (event, file, fileList) => {
 const handleFileSuccess = (response, file, fileList) => {
     upload.open = false;
     upload.isUploading = false;
-    proxy.$refs['uploadRef'].handleRemove(file);
     proxy.$alert(
         "<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" +
         response.msg +

@@ -1,8 +1,8 @@
 <template>
   <div class="basicInfo">
-    <el-descriptions title="" :column="2" border>
-      <el-descriptions-item v-for="(item, index) in fileDesc" :key="index" label-class-name="base-label"
-        :span="item.span" class-name="base-content">
+    <a-descriptions title="" :column="2" bordered>
+      <a-descriptions-item v-for="(item, index) in fileDesc" :key="index" :label-style="{ width: '200px' }"
+        :span="item.span">
         <template #label>
           <div class="cell-item">{{ item.label }}</div>
         </template>
@@ -34,8 +34,8 @@
           }}
         </div>
         <div v-else>{{ getDescValue(item) }}</div>
-      </el-descriptions-item>
-    </el-descriptions>
+      </a-descriptions-item>
+    </a-descriptions>
   </div>
 </template>
 <script setup name="BasicInfo">
@@ -59,7 +59,7 @@ const fileDesc = computed(() => {
 const table = ref([
   {
     key: "catName",
-    label: "逻辑模型类目",
+    label: "逻辑模型目录",
     value: "",
   },
   // {
@@ -67,17 +67,6 @@ const table = ref([
   //   label: "创建方式",
   //   value: "",
   // },
-  {
-    key: "contact",
-    label: "联系人",
-    value: "",
-  },
-  {
-    key: "contactNumber",
-    label: "联系电话",
-    value: "",
-  },
-
   {
     key: "createBy",
     label: "创建人",

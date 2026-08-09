@@ -1,174 +1,166 @@
 <template>
     <div class="app-container" ref="app-container">
         <div class="pagecont-top" v-show="showSearch">
-            <el-form
+            <a-form
                 class="btn-style"
                 :model="queryParams"
                 ref="queryRef"
-                :inline="true"
-                label-width="75px"
+                layout="inline"
+                :label-col="{ style: { width: '75px' } }"
             >
-                <el-form-item label="ID" prop="id">
-                    <el-input
+                <a-form-item label="ID" name="id">
+                    <a-input
                         class="el-form-input-width"
-                        v-model="queryParams.id"
+                        v-model:value="queryParams.id"
                         placeholder="请输入ID"
-                        clearable
-                        @keyup.enter="handleQuery"
+                        allow-clear
+                        @pressEnter="handleQuery"
                     />
-                </el-form-item>
-                <el-form-item label="类型名称" prop="name">
-                    <el-input
+                </a-form-item>
+                <a-form-item label="类型名称" name="name">
+                    <a-input
                         class="el-form-input-width"
-                        v-model="queryParams.name"
+                        v-model:value="queryParams.name"
                         placeholder="请输入类型名称"
-                        clearable
-                        @keyup.enter="handleQuery"
+                        allow-clear
+                        @pressEnter="handleQuery"
                     />
-                </el-form-item>
-                <el-form-item label="是否有效" prop="validFlag">
-                    <el-input
+                </a-form-item>
+                <a-form-item label="是否有效" name="validFlag">
+                    <a-input
                         class="el-form-input-width"
-                        v-model="queryParams.validFlag"
+                        v-model:value="queryParams.validFlag"
                         placeholder="请输入是否有效"
-                        clearable
-                        @keyup.enter="handleQuery"
+                        allow-clear
+                        @pressEnter="handleQuery"
                     />
-                </el-form-item>
-                <el-form-item label="删除标志" prop="delFlag">
-                    <el-input
+                </a-form-item>
+                <a-form-item label="删除标志" name="delFlag">
+                    <a-input
                         class="el-form-input-width"
-                        v-model="queryParams.delFlag"
+                        v-model:value="queryParams.delFlag"
                         placeholder="请输入删除标志"
-                        clearable
-                        @keyup.enter="handleQuery"
+                        allow-clear
+                        @pressEnter="handleQuery"
                     />
-                </el-form-item>
-                <el-form-item label="创建人" prop="createBy">
-                    <el-input
+                </a-form-item>
+                <a-form-item label="创建人" name="createBy">
+                    <a-input
                         class="el-form-input-width"
-                        v-model="queryParams.createBy"
+                        v-model:value="queryParams.createBy"
                         placeholder="请输入创建人"
-                        clearable
-                        @keyup.enter="handleQuery"
+                        allow-clear
+                        @pressEnter="handleQuery"
                     />
-                </el-form-item>
-                <el-form-item label="创建人id" prop="creatorId">
-                    <el-input
+                </a-form-item>
+                <a-form-item label="创建人id" name="creatorId">
+                    <a-input
                         class="el-form-input-width"
-                        v-model="queryParams.creatorId"
+                        v-model:value="queryParams.creatorId"
                         placeholder="请输入创建人id"
-                        clearable
-                        @keyup.enter="handleQuery"
+                        allow-clear
+                        @pressEnter="handleQuery"
                     />
-                </el-form-item>
-                <el-form-item label="创建时间" prop="createTime">
-                    <el-date-picker
+                </a-form-item>
+                <a-form-item label="创建时间" name="createTime">
+                    <a-date-picker
                         class="el-form-input-width"
-                        clearable
-                        v-model="queryParams.createTime"
-                        type="date"
-                        value-format="YYYY-MM-DD"
+                        allow-clear
+                        v-model:value="queryParams.createTime"
+                        valueFormat="YYYY-MM-DD"
                         placeholder="请选择创建时间"
                     >
-                    </el-date-picker>
-                </el-form-item>
-                <el-form-item label="更新人" prop="updateBy">
-                    <el-input
+                    </a-date-picker>
+                </a-form-item>
+                <a-form-item label="更新人" name="updateBy">
+                    <a-input
                         class="el-form-input-width"
-                        v-model="queryParams.updateBy"
+                        v-model:value="queryParams.updateBy"
                         placeholder="请输入更新人"
-                        clearable
-                        @keyup.enter="handleQuery"
+                        allow-clear
+                        @pressEnter="handleQuery"
                     />
-                </el-form-item>
-                <el-form-item label="更新人id" prop="updaterId">
-                    <el-input
+                </a-form-item>
+                <a-form-item label="更新人id" name="updaterId">
+                    <a-input
                         class="el-form-input-width"
-                        v-model="queryParams.updaterId"
+                        v-model:value="queryParams.updaterId"
                         placeholder="请输入更新人id"
-                        clearable
-                        @keyup.enter="handleQuery"
+                        allow-clear
+                        @pressEnter="handleQuery"
                     />
-                </el-form-item>
-                <el-form-item label="更新时间" prop="updateTime">
-                    <el-date-picker
+                </a-form-item>
+                <a-form-item label="更新时间" name="updateTime">
+                    <a-date-picker
                         class="el-form-input-width"
-                        clearable
-                        v-model="queryParams.updateTime"
-                        type="date"
-                        value-format="YYYY-MM-DD"
+                        allow-clear
+                        v-model:value="queryParams.updateTime"
+                        valueFormat="YYYY-MM-DD"
                         placeholder="请选择更新时间"
                     >
-                    </el-date-picker>
-                </el-form-item>
+                    </a-date-picker>
+                </a-form-item>
 
-                <el-form-item>
-                    <el-button
-                        plain
+                <a-form-item>
+                    <a-button
                         type="primary"
                         @click="handleQuery"
                         @mousedown="(e) => e.preventDefault()"
                     >
                         <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-                    </el-button>
-                    <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+                    </a-button>
+                    <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                         <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-                    </el-button>
-                </el-form-item>
-            </el-form>
+                    </a-button>
+                </a-form-item>
+            </a-form>
         </div>
 
         <div class="pagecont-bottom">
             <div class="justify-between mb15">
-                <el-row :gutter="15" class="btn-style">
-                    <el-col :span="1.5">
-                        <el-button
+                <a-row :gutter="15" class="btn-style">
+                    <a-col :span="1.5">
+                        <a-button
                             type="primary"
-                            plain
                             @click="handleAdd"
                             v-hasPermi="['user:userType:add']"
                             @mousedown="(e) => e.preventDefault()"
                         >
                             <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                        </el-button>
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button
+                        </a-button>
+                    </a-col>
+                    <a-col :span="1.5">
+                        <a-button
                             type="primary"
-                            plain
                             :disabled="single"
                             @click="handleUpdate"
                             v-hasPermi="['user:userType:edit']"
                             @mousedown="(e) => e.preventDefault()"
                         >
                             <i class="iconfont-mini icon-xiugai--copy mr5"></i>修改
-                        </el-button>
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button
-                            type="danger"
-                            plain
+                        </a-button>
+                    </a-col>
+                    <a-col :span="1.5">
+                        <a-button
+                            danger
                             :disabled="multiple"
                             @click="handleDelete"
                             v-hasPermi="['user:userType:remove']"
                             @mousedown="(e) => e.preventDefault()"
                         >
                             <i class="iconfont-mini icon-shanchu-huise mr5"></i>删除
-                        </el-button>
-                    </el-col>
-                    <el-col :span="1.5">
-                        <el-button
-                            type="warning"
-                            plain
+                        </a-button>
+                    </a-col>
+                    <a-col :span="1.5">
+                        <a-button
                             @click="handleExport"
                             v-hasPermi="['user:userType:export']"
                             @mousedown="(e) => e.preventDefault()"
                         >
                             <i class="iconfont-mini icon-download-line mr5"></i>导出
-                        </el-button>
-                    </el-col>
-                </el-row>
+                        </a-button>
+                    </a-col>
+                </a-row>
                 <div class="justify-end top-right-btn">
                     <right-toolbar
                         v-model:showSearch="showSearch"
@@ -177,156 +169,66 @@
                     ></right-toolbar>
                 </div>
             </div>
-            <el-table
-                stripe
+            <a-table
+                striped
                 height="498px"
-                v-loading="loading"
-                :data="userTypeList"
-                @selection-change="handleSelectionChange"
-                :default-sort="{ prop: 'createTime', order: 'descending' }"
+                :loading="loading"
+                :data-source="userTypeList"
+                :columns="tableColumns"
+                row-key="id"
+                :row-selection="{ selectedRowKeys, onChange: handleSelectionChange }"
+                :locale="{ emptyText: '暂无记录' }"
             >
-                <el-table-column type="selection" width="55" align="center" />
-                <el-table-column v-if="columns[0].visible" label="ID" align="center" prop="id" />
-                <el-table-column
-                    v-if="columns[1].visible"
-                    label="类型名称"
-                    align="center"
-                    prop="name"
-                >
-                    <template #default="scope">
-                        {{ scope.row.name || '-' }}
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.dataIndex === 'name'">
+                        {{ record.name || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[2].visible"
-                    label="是否有效"
-                    align="center"
-                    prop="validFlag"
-                >
-                    <template #default="scope">
-                        {{ scope.row.validFlag || '-' }}
+                    <template v-else-if="column.dataIndex === 'validFlag'">
+                        {{ record.validFlag || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[3].visible"
-                    label="删除标志"
-                    align="center"
-                    prop="delFlag"
-                >
-                    <template #default="scope">
-                        {{ scope.row.delFlag || '-' }}
+                    <template v-else-if="column.dataIndex === 'delFlag'">
+                        {{ record.delFlag || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[4].visible"
-                    label="创建人"
-                    align="center"
-                    prop="createBy"
-                >
-                    <template #default="scope">
-                        {{ scope.row.createBy || '-' }}
+                    <template v-else-if="column.dataIndex === 'createBy'">
+                        {{ record.createBy || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[5].visible"
-                    label="创建人id"
-                    align="center"
-                    prop="creatorId"
-                >
-                    <template #default="scope">
-                        {{ scope.row.creatorId || '-' }}
+                    <template v-else-if="column.dataIndex === 'creatorId'">
+                        {{ record.creatorId || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[6].visible"
-                    label="创建时间"
-                    align="center"
-                    prop="createTime"
-                    width="180"
-                    sortable
-                >
-                    <template #default="scope">
-                        <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
+                    <template v-else-if="column.dataIndex === 'createTime'">
+                        <span>{{ parseTime(record.createTime, '{y}-{m}-{d}') }}</span>
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[7].visible"
-                    label="更新人"
-                    align="center"
-                    prop="updateBy"
-                >
-                    <template #default="scope">
-                        {{ scope.row.updateBy || '-' }}
+                    <template v-else-if="column.dataIndex === 'updateBy'">
+                        {{ record.updateBy || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[8].visible"
-                    label="更新人id"
-                    align="center"
-                    prop="updaterId"
-                >
-                    <template #default="scope">
-                        {{ scope.row.updaterId || '-' }}
+                    <template v-else-if="column.dataIndex === 'updaterId'">
+                        {{ record.updaterId || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[9].visible"
-                    label="更新时间"
-                    align="center"
-                    prop="updateTime"
-                    width="180"
-                    sortable
-                >
-                    <template #default="scope">
-                        <span>{{ parseTime(scope.row.updateTime, '{y}-{m}-{d}') }}</span>
+                    <template v-else-if="column.dataIndex === 'updateTime'">
+                        <span>{{ parseTime(record.updateTime, '{y}-{m}-{d}') }}</span>
                     </template>
-                </el-table-column>
-                <el-table-column
-                    v-if="columns[10].visible"
-                    label="备注"
-                    align="center"
-                    prop="remark"
-                >
-                    <template #default="scope">
-                        {{ scope.row.remark || '-' }}
+                    <template v-else-if="column.dataIndex === 'remark'">
+                        {{ record.remark || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column
-                    label="操作"
-                    align="center"
-                    class-name="small-padding fixed-width"
-                    fixed="right"
-                    width="240"
-                >
-                    <template #default="scope">
-                        <!--            <el-button link type="primary" icon="View" @click="handleView(scope.row)"-->
-                        <!--                       v-hasPermi="['monitor:operlog:query']">详细</el-button>-->
-                        <el-button
-                            link
-                            type="primary"
-                            icon="Edit"
-                            @click="handleUpdate(scope.row)"
+                    <template v-else-if="column.key === 'actions'">
+                        <!--            <a-button type="link" size="small" @click="handleView(record)"-->
+                        <!--                       v-hasPermi="['monitor:operlog:query']"><EyeOutlined />详细</a-button>-->
+                        <a-button
+                            type="link"
+                            :icon="h(EditOutlined)"
+                            @click="handleUpdate(record)"
                             v-hasPermi="['user:userType:edit']"
-                            >修改</el-button
-                        >
-                        <el-button
-                            link
-                            type="danger"
-                            icon="Delete"
-                            @click="handleDelete(scope.row)"
+                        >修改</a-button>
+                        <a-button
+                            type="link"
+                            danger
+                            :icon="h(DeleteOutlined)"
+                            @click="handleDelete(record)"
                             v-hasPermi="['user:userType:remove']"
-                            >删除</el-button
-                        >
+                        >删除</a-button>
                     </template>
-                </el-table-column>
-
-                <template #empty>
-                    <div class="emptyBg">
-                        <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                        <p>暂无记录</p>
-                    </div>
                 </template>
-            </el-table>
+            </a-table>
 
             <pagination
                 v-show="total > 0"
@@ -338,56 +240,49 @@
         </div>
 
         <!-- 添加或修改用户类型对话框 -->
-        <el-dialog
+        <a-modal
             :title="title"
-            v-model="open"
+            v-model:open="open"
             width="800px"
-            :append-to="$refs['app-container']"
             draggable
             destroy-on-close
         >
-            <template #header="{ close, titleId, titleClass }">
-                <span role="heading" aria-level="2" class="el-dialog__title">
-                    {{ title }}
-                </span>
-            </template>
-            <el-form ref="userTypeRef" :model="form" :rules="rules" label-width="80px">
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="类型名称" prop="name">
-                            <el-input v-model="form.name" placeholder="请输入类型名称" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="是否有效" prop="validFlag">
-                            <el-input v-model="form.validFlag" placeholder="请输入是否有效" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="12">
-                        <el-form-item label="删除标志" prop="delFlag">
-                            <el-input v-model="form.delFlag" placeholder="请输入删除标志" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="24">
-                        <el-form-item label="备注" prop="remark">
-                            <el-input
-                                v-model="form.remark"
-                                type="textarea"
+            <a-form ref="userTypeRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="类型名称" name="name">
+                            <a-input v-model:value="form.name" placeholder="请输入类型名称" />
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item label="是否有效" name="validFlag">
+                            <a-input v-model:value="form.validFlag" placeholder="请输入是否有效" />
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row :gutter="20">
+                    <a-col :span="12">
+                        <a-form-item label="删除标志" name="delFlag">
+                            <a-input v-model:value="form.delFlag" placeholder="请输入删除标志" />
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="24">
+                        <a-form-item label="备注" name="remark">
+                            <a-textarea
+                                v-model:value="form.remark"
                                 placeholder="请输入内容"
                             />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+            </a-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button size="mini" @click="cancel">取 消</el-button>
-                    <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+                    <a-button size="small" @click="cancel">取 消</a-button>
+                    <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
                 </div>
             </template>
-        </el-dialog>
+        </a-modal>
     </div>
 </template>
 
@@ -399,6 +294,8 @@
         addUserType,
         updateUserType
     } from '@/api/example/user/userType';
+    import { h } from 'vue';
+    import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 
     const { proxy } = getCurrentInstance();
 
@@ -419,6 +316,56 @@
         { key: 10, label: '备注', visible: true }
     ]);
 
+    const getColumnVisibility = (key) => {
+        const column = columns.value.find((col) => col.key === key);
+        // 如果没有找到对应列配置，默认显示
+        if (!column) return true;
+        // 如果找到对应列配置，根据visible属性来控制显示
+        return column.visible;
+    };
+
+    const tableColumns = [
+        { key: 'id', title: 'ID', dataIndex: 'id', align: 'center', hidden: !getColumnVisibility(0) },
+        { key: 'name', title: '类型名称', dataIndex: 'name', align: 'center', hidden: !getColumnVisibility(1) },
+        { key: 'validFlag', title: '是否有效', dataIndex: 'validFlag', align: 'center', hidden: !getColumnVisibility(2) },
+        { key: 'delFlag', title: '删除标志', dataIndex: 'delFlag', align: 'center', hidden: !getColumnVisibility(3) },
+        { key: 'createBy', title: '创建人', dataIndex: 'createBy', align: 'center', hidden: !getColumnVisibility(4) },
+        { key: 'creatorId', title: '创建人id', dataIndex: 'creatorId', align: 'center', hidden: !getColumnVisibility(5) },
+        {
+            key: 'createTime',
+            title: '创建时间',
+            dataIndex: 'createTime',
+            align: 'center',
+            width: 180,
+            sorter: true,
+            sorterKey: 'createTime',
+            defaultSortOrder: 'descend',
+            hidden: !getColumnVisibility(6)
+        },
+        { key: 'updateBy', title: '更新人', dataIndex: 'updateBy', align: 'center', hidden: !getColumnVisibility(7) },
+        { key: 'updaterId', title: '更新人id', dataIndex: 'updaterId', align: 'center', hidden: !getColumnVisibility(8) },
+        {
+            key: 'updateTime',
+            title: '更新时间',
+            dataIndex: 'updateTime',
+            align: 'center',
+            width: 180,
+            sorter: true,
+            sorterKey: 'updateTime',
+            hidden: !getColumnVisibility(9)
+        },
+        { key: 'remark', title: '备注', dataIndex: 'remark', align: 'center', hidden: !getColumnVisibility(10) },
+        {
+            key: 'actions',
+            title: '操作',
+            align: 'center',
+            className: 'small-padding fixed-width',
+            fixed: 'right',
+            width: 240,
+            hidden: false
+        }
+    ];
+
     const open = ref(false);
     const loading = ref(true);
     const showSearch = ref(true);
@@ -427,6 +374,7 @@
     const multiple = ref(true);
     const total = ref(0);
     const title = ref('');
+    const selectedRowKeys = ref([]);
 
     const data = reactive({
         form: {},
@@ -454,7 +402,7 @@
     function getList() {
         loading.value = true;
         // listUserType(queryParams.value).then(response => {
-        var response = {
+        let response = {
             data: {}
         };
         (response.data = {
@@ -537,10 +485,11 @@
     }
 
     // 多选框选中数据
-    function handleSelectionChange(selection) {
-        ids.value = selection.map((item) => item.id);
-        single.value = selection.length != 1;
-        multiple.value = !selection.length;
+    function handleSelectionChange(selectedKeys, selectedRows) {
+        selectedRowKeys.value = selectedKeys;
+        ids.value = selectedRows.map((item) => item.id);
+        single.value = selectedRows.length != 1;
+        multiple.value = !selectedRows.length;
     }
 
     /** 新增按钮操作 */
@@ -568,23 +517,21 @@
 
     /** 提交按钮 */
     function submitForm() {
-        proxy.$refs['userTypeRef'].validate((valid) => {
-            if (valid) {
-                if (form.value.id != null) {
-                    updateUserType(form.value).then((response) => {
-                        proxy.$modal.msgSuccess('修改成功');
-                        open.value = false;
-                        getList();
-                    });
-                } else {
-                    addUserType(form.value).then((response) => {
-                        proxy.$modal.msgSuccess('新增成功');
-                        open.value = false;
-                        getList();
-                    });
-                }
+        proxy.$refs['userTypeRef'].validate().then(() => {
+            if (form.value.id != null) {
+                updateUserType(form.value).then((response) => {
+                    proxy.$modal.msgSuccess('修改成功');
+                    open.value = false;
+                    getList();
+                });
+            } else {
+                addUserType(form.value).then((response) => {
+                    proxy.$modal.msgSuccess('新增成功');
+                    open.value = false;
+                    getList();
+                });
             }
-        });
+        }).catch(() => {});
     }
 
     /** 删除按钮操作 */

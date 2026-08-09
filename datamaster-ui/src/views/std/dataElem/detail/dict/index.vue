@@ -5,103 +5,95 @@
                 <div class="infotop-title mb15">
                     {{ dpDataElemDetail.name || '-' }}
                 </div>
-                <el-row :gutter="20">
-                    <el-col :span="8">
+                <a-row :gutter="20">
+                    <a-col :span="8">
                         <div class="infotop-row border-top">
                             <div class="infotop-row-lable">英文名称</div>
                             <div class="infotop-row-value">
                                 {{ dpDataElemDetail.engName || '-' }}
                             </div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row border-top">
-                            <div class="infotop-row-lable">类目编码</div>
+                            <div class="infotop-row-lable">目录编码</div>
                             <div class="infotop-row-value">
                                 {{ dpDataElemDetail.catName || '-' }}
                             </div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row border-top">
                             <div class="infotop-row-lable">类型</div>
                             <div class="infotop-row-value">
                                 <dict-tag :options="dp_data_elem_code_type" :value="dpDataElemDetail.type" />
                             </div>
                         </div>
-                    </el-col>
-                    <el-col :span="8">
-                        <div class="infotop-row border-top">
-                            <div class="infotop-row-lable">创建人</div>
-                            <div class="infotop-row-value">
-                                {{ dpDataElemDetail.personCharge || '-' }}
-                            </div>
-                        </div>
-                    </el-col>
-                    <el-col :span="8">
-                        <div class="infotop-row border-top">
-                            <div class="infotop-row-lable">联系电话</div>
-                            <div class="infotop-row-value">
-                                {{ dpDataElemDetail.contactNumber || '-' }}
-                            </div>
-                        </div>
-                    </el-col>
-                    <el-col :span="8">
-                        <div class="infotop-row border-top">
-                            <div class="infotop-row-lable">字段类型</div>
-                            <div class="infotop-row-value">
-                                <dict-tag :options="column_type" :value="dpDataElemDetail.columnType" />
-                            </div>
-                        </div>
-                    </el-col>
-                    <el-col :span="8">
-                        <div class="infotop-row border-top">
-                            <div class="infotop-row-lable">状态</div>
-                            <div class="infotop-row-value">
-                                <dict-tag :options="sys_disable" :value="dpDataElemDetail.status" />
-                            </div>
-                        </div>
-                    </el-col>
-                    <el-col :span="8">
-                        <div class="infotop-row border-top">
-                            <div class="infotop-row-lable">创建时间</div>
-                            <div class="infotop-row-value">
-                                {{ parseTime(dpDataElemDetail.createTime, '{y}-{m}-{d}') }}
-                            </div>
-                        </div>
-                    </el-col>
-                    <el-col :span="8">
+                    </a-col>
+                    <a-col :span="8">
                         <div class="infotop-row border-top">
                             <div class="infotop-row-lable">创建人</div>
                             <div class="infotop-row-value">
                                 {{ dpDataElemDetail.createBy || '-' }}
                             </div>
                         </div>
-                    </el-col>
-                    <el-col :span="24">
+                    </a-col>
+                    <a-col :span="8">
+                        <div class="infotop-row border-top">
+                            <div class="infotop-row-lable">字段类型</div>
+                            <div class="infotop-row-value">
+                                <dict-tag :options="column_type" :value="dpDataElemDetail.columnType" />
+                            </div>
+                        </div>
+                    </a-col>
+                    <a-col :span="8">
+                        <div class="infotop-row border-top">
+                            <div class="infotop-row-lable">状态</div>
+                            <div class="infotop-row-value">
+                                <dict-tag :options="sys_disable" :value="dpDataElemDetail.status" />
+                            </div>
+                        </div>
+                    </a-col>
+                    <a-col :span="8">
+                        <div class="infotop-row border-top">
+                            <div class="infotop-row-lable">创建时间</div>
+                            <div class="infotop-row-value">
+                                {{ parseTime(dpDataElemDetail.createTime, '{y}-{m}-{d}') }}
+                            </div>
+                        </div>
+                    </a-col>
+                    <a-col :span="8">
+                        <div class="infotop-row border-top">
+                            <div class="infotop-row-lable">创建人</div>
+                            <div class="infotop-row-value">
+                                {{ dpDataElemDetail.createBy || '-' }}
+                            </div>
+                        </div>
+                    </a-col>
+                    <a-col :span="24">
                         <div class="infotop-row border-top">
                             <div class="infotop-row-lable">描述</div>
                             <div class="infotop-row-value">
                                 {{ dpDataElemDetail.description || '-' }}
                             </div>
                         </div>
-                    </el-col>
-                </el-row>
+                    </a-col>
+                </a-row>
             </div>
         </div>
 
         <div class="pagecont-bottom">
-            <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-                <el-tab-pane label="代码字典" name="1">
+            <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+                <a-tab-pane tab="代码字典" key="1">
                     <codeDict />
-                </el-tab-pane>
-                <el-tab-pane label="代码映射" name="2">
+                </a-tab-pane>
+                <a-tab-pane tab="代码映射" key="2">
                     <codeMap />
-                </el-tab-pane>
-                <el-tab-pane label="关联信息" name="3">
+                </a-tab-pane>
+                <a-tab-pane tab="关联信息" key="3">
                     <asset />
-                </el-tab-pane>
-            </el-tabs>
+                </a-tab-pane>
+            </a-tabs>
         </div>
     </div>
 </template>

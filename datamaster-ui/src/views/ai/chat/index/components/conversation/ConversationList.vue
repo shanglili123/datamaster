@@ -1,199 +1,188 @@
 ﻿<!--  dataMaster 智能问数对话  -->
 <template>
-  <el-aside width="260px" class="conversation-container h-100%">
+  <aside style="width: 260px; flex-shrink: 0" class="conversation-container h-100%">
     <!-- 左顶部：对话 -->
     <div class="h-100%">
-      <el-button
+      <a-button
         class="w-1/1 btn-new-conversation"
         type="primary"
         @click="handleNewButtonClick"
       >
-        <el-icon class="icon-plus" :size="14"><Plus /></el-icon>
+        <template #icon><PlusOutlined /></template>
         <span class="btn-text">新建对话</span>
-      </el-button>
+      </a-button>
 
       <!-- 左顶部：搜索对话 -->
-      <el-input
-        v-model="searchName"
+      <a-input
+        v-model:value="searchName"
         size="large"
         class="mt-10px search-input"
         placeholder="搜索历史记录"
         @keyup="searchConversation"
       >
         <template #prefix>
-          <el-icon><Search /></el-icon>
+          <SearchOutlined />
         </template>
-      </el-input>
+      </a-input>
 
       <!-- 左中间：对话列表 -->
-      <div
-        class="conversation-list"
-        v-loading="loading && conversationList.length === 0"
-      >
-        <!-- 情况一：加载中且没有任何数据时才显示空状态 -->
-        <el-empty
-          v-if="!loading && conversationList.length === 0"
-          description="暂无历史记录"
-        />
-        <!-- 情况二：按照 group 分组，展示聊天会话 list 列表 -->
-        <div
-          v-for="conversationKey in Object.keys(conversationMap)"
-          :key="conversationKey"
-        >
+      <a-spin :spinning="loading && conversationList.length === 0">
+        <div class="conversation-list">
+          <!-- 情况一：加载中且没有任何数据时才显示空状态 -->
+          <a-empty
+            v-if="!loading && conversationList.length === 0"
+            description="暂无历史记录"
+          />
+          <!-- 情况二：按照 group 分组，展示聊天会话 list 列表 -->
           <div
-            class="conversation-item classify-title"
-            v-if="conversationMap[conversationKey].length"
-          >
-            <el-text class="mx-1" size="small" tag="b">{{
-              conversationKey
-            }}</el-text>
-          </div>
-          <div
-            class="conversation-item"
-            v-for="conversation in conversationMap[conversationKey]"
-            :key="conversation.id"
-            @click="handleConversationClick(conversation.id)"
-            @mouseover="hoverConversationId = conversation.id"
-            @mouseout="hoverConversationId = ''"
+            v-for="conversationKey in Object.keys(conversationMap)"
+            :key="conversationKey"
           >
             <div
-              :class="
-                conversation.id === activeConversationId
-                  ? 'conversation active'
-                  : 'conversation'
-              "
+              class="conversation-item classify-title"
+              v-if="conversationMap[conversationKey].length"
             >
-              <div class="title-wrapper">
-                <img
-                  class="avatar"
-                  :src="
-                    conversation.id === activeConversationId
-                      ? roleAvatartActiveImg
-                      : roleAvatarDefaultImg
-                  "
-                />
-                <span class="title">{{ conversation.title }}</span>
-              </div>
+              <b class="mx-1">{{ conversationKey }}</b>
+            </div>
+            <div
+              class="conversation-item"
+              v-for="conversation in conversationMap[conversationKey]"
+              :key="conversation.id"
+              @click="handleConversationClick(conversation.id)"
+              @mouseover="hoverConversationId = conversation.id"
+              @mouseout="hoverConversationId = ''"
+            >
               <div
-                class="button-wrapper"
-                v-show="hoverConversationId === conversation.id"
+                :class="
+                  conversation.id === activeConversationId
+                    ? 'conversation active'
+                    : 'conversation'
+                "
               >
-                <el-button
-                  class="btn"
-                  link
-                  @click.stop="handleTop(conversation)"
-                >
+                <div class="title-wrapper">
                   <img
-                    height="14"
-                    src="@/assets/ai/topC.png"
-                    alt="置顶"
-                    v-if="
-                      !conversation.pinned &&
+                    class="avatar"
+                    :src="
                       conversation.id === activeConversationId
+                        ? roleAvatartActiveImg
+                        : roleAvatarDefaultImg
                     "
                   />
-                  <img
-                    height="14"
-                    src="@/assets/ai/top.png"
-                    alt="置顶"
-                    v-else-if="!conversation.pinned"
-                  />
-                  <img
-                    height="14"
-                    src="@/assets/ai/bottomC.png"
-                    alt="取消置顶"
-                    v-if="
-                      conversation.pinned &&
-                      conversation.id === activeConversationId
-                    "
-                  />
-                  <img
-                    height="14"
-                    src="@/assets/ai/bottom.png"
-                    alt="取消置顶"
-                    v-else-if="conversation.pinned"
-                  />
-                </el-button>
-                <el-button
-                  class="btn"
-                  link
-                  @click.stop="updateConversationTitle(conversation)"
+                  <span class="title">{{ conversation.title }}</span>
+                </div>
+                <div
+                  class="button-wrapper"
+                  v-show="hoverConversationId === conversation.id"
                 >
-                  <img
-                    height="14"
-                    src="@/assets/ai/editC.png"
-                    v-if="conversation.id === activeConversationId"
-                  />
-                  <img height="14" src="@/assets/ai/edit.png" v-else />
-                </el-button>
-                <el-button
-                  class="btn"
-                  link
-                  @click.stop="deleteChatConversation(conversation)"
-                >
-                  <img
-                    height="14"
-                    src="@/assets/ai/deleteC.png"
-                    v-if="conversation.id === activeConversationId"
-                  />
-                  <img height="14" src="@/assets/ai/delete.png" v-else />
-                </el-button>
+                  <a-button
+                    class="btn"
+                    type="link"
+                    @click.stop="handleTop(conversation)"
+                  >
+                    <img
+                      height="14"
+                      src="@/assets/ai/topC.png"
+                      alt="置顶"
+                      v-if="
+                        !conversation.pinned &&
+                        conversation.id === activeConversationId
+                      "
+                    />
+                    <img
+                      height="14"
+                      src="@/assets/ai/top.png"
+                      alt="置顶"
+                      v-else-if="!conversation.pinned"
+                    />
+                    <img
+                      height="14"
+                      src="@/assets/ai/bottomC.png"
+                      alt="取消置顶"
+                      v-if="
+                        conversation.pinned &&
+                        conversation.id === activeConversationId
+                      "
+                    />
+                    <img
+                      height="14"
+                      src="@/assets/ai/bottom.png"
+                      alt="取消置顶"
+                      v-else-if="conversation.pinned"
+                    />
+                  </a-button>
+                  <a-button
+                    class="btn"
+                    type="link"
+                    @click.stop="updateConversationTitle(conversation)"
+                  >
+                    <img
+                      height="14"
+                      src="@/assets/ai/editC.png"
+                      v-if="conversation.id === activeConversationId"
+                    />
+                    <img height="14" src="@/assets/ai/edit.png" v-else />
+                  </a-button>
+                  <a-button
+                    class="btn"
+                    type="link"
+                    @click.stop="deleteChatConversation(conversation)"
+                  >
+                    <img
+                      height="14"
+                      src="@/assets/ai/deleteC.png"
+                      v-if="conversation.id === activeConversationId"
+                    />
+                    <img height="14" src="@/assets/ai/delete.png" v-else />
+                  </a-button>
+                </div>
               </div>
             </div>
           </div>
+          <!-- 底部占位  -->
+          <div class="h-160px w-100%"></div>
         </div>
-        <!-- 底部占位  -->
-        <div class="h-160px w-100%"></div>
-      </div>
+      </a-spin>
     </div>
-  </el-aside>
-  <el-dialog
-    v-model="renameDialogVisible"
+  </aside>
+  <a-modal
+    v-model:open="renameDialogVisible"
     title="修改标题"
     width="600px"
-    :append-to="dialogAppendTo"
-    :close-on-click-modal="false"
-    :show-close="!renameLoading"
-    @closed="handleRenameDialogClosed"
+    :mask-closable="false"
+    :closable="!renameLoading"
+    @after-close="handleRenameDialogClosed"
   >
-    <template #header="{ titleId }">
-      <span
-        :id="titleId"
-        role="heading"
-        aria-level="2"
-        class="el-dialog__title"
-      >
-        修改标题
-      </span>
-    </template>
-    <el-form label-width="60px" v-loading="renameLoading">
-      <el-form-item label="标题">
-        <el-input
-          v-model="renameTitle"
-          placeholder="请输入标题"
-          show-word-limit
-          @keyup.enter="handleRenameConfirm"
-          :disabled="renameLoading"
-        />
-      </el-form-item>
-    </el-form>
+    <a-spin :spinning="renameLoading">
+      <a-form :label-col="{ style: { width: '60px' } }">
+        <a-form-item label="标题">
+          <a-input
+            v-model:value="renameTitle"
+            placeholder="请输入标题"
+            show-count
+            @keyup.enter="handleRenameConfirm"
+            :disabled="renameLoading"
+          />
+        </a-form-item>
+      </a-form>
+    </a-spin>
     <template #footer>
-      <el-button @click="renameDialogVisible = false" :disabled="renameLoading"
-        >取消</el-button
+      <a-button @click="renameDialogVisible = false" :disabled="renameLoading"
+        >取消</a-button
       >
-      <el-button
+      <a-button
         type="primary"
         @click="handleRenameConfirm"
         :loading="renameLoading"
       >
         确定
-      </el-button>
+      </a-button>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
 import { ChatConversationApi } from "@/api/ai/chat/conversation";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons-vue";
 import roleAvatarDefaultImg from "@/assets/ai/gpt-new.svg";
 import roleAvatartActiveImg from "@/assets/ai/gpt-new.svg";
 import useUserStore from "@/store/system/user";
@@ -215,7 +204,6 @@ const renameDialogVisible = ref(false);
 const renameConversationId = ref("");
 const renameTitle = ref("");
 const renameLoading = ref(false);
-const dialogAppendTo = ref(document.body);
 
 // 定义组件 props
 const props = defineProps({
@@ -516,8 +504,6 @@ defineExpose({ createConversation, getChatConversationList });
 
 /** 初始化 */
 onMounted(async () => {
-  dialogAppendTo.value =
-    document.querySelector(".app-container") || document.body;
   // 获取 对话列表
   await getChatConversationList();
   // 默认选中
@@ -571,8 +557,7 @@ onMounted(async () => {
     margin-top: 15px;
     height: 36px;
 
-    :deep(.el-select__wrapper),
-    :deep(.el-input__wrapper) {
+    :deep(.ant-input-affix-wrapper) {
       border-radius: 2px;
     }
   }

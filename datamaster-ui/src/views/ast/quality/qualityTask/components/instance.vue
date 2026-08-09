@@ -1,95 +1,98 @@
 <template>
   <!-- 列表的 执行记录 -->
-  <el-dialog v-model="visibleDialog" draggable class="dialog" :title="title" style="width: 1200px" destroy-on-close>
-    <el-table stripe height="380px" v-loading="loading" :data="jobLogList" :default-sort="defaultSort"
-      @sort-change="handleSortChange">
-      <el-table-column label="编号" align="center" prop="id" width="120" />
-      <el-table-column label="任务名称" align="center" prop="name">
-        <template #default="scope">
-          {{ scope.row.name || '-' }}
+  <a-modal v-model:open="visibleDialog" class="dialog" :title="title" style="width: 1200px" :destroy-on-close="true">
+    <a-spin :spinning="loading">
+      <a-table
+        :data-source="jobLogList"
+        :columns="tableColumns"
+        :pagination="false"
+        striped
+        :scroll="{ y: 380 }"
+        row-key="id"
+        :locale="{ emptyText: emptyContent }"
+        @change="handleSortChange"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'name'">
+            {{ record.name || '-' }}
+          </template>
+          <template v-else-if="column.dataIndex === 'score'">
+            {{ record.score || '-' }}
+          </template>
+          <template v-else-if="column.dataIndex === 'successFlag'">
+            <dict-tag :options="quality_log_success_flag" :value="record.successFlag" />
+          </template>
+          <template v-else-if="column.dataIndex === 'problemData'">
+            {{ record.problemData || '-' }}
+          </template>
+          <template v-else-if="column.dataIndex === 'startTime'">
+            <span>{{ parseTime(record.startTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+          </template>
+          <template v-else-if="column.dataIndex === 'endTime'">
+            <span>{{ parseTime(record.endTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+          </template>
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="logDetailCatList(record)" v-hasPermi="['ast:qualityTask:query']">查看</a-button>
+            <a-button type="link" size="small" @click="routeTo('/ast/quality/probeTaskInstance/detail', { ...record, info: true })">详情</a-button>
+          </template>
+          <template v-else>
+            <span>{{ record[column.dataIndex] || '-' }}</span>
+          </template>
         </template>
-      </el-table-column>
-      <el-table-column label="质量评分" align="center" prop="score" width="80">
-        <template #default="scope">
-          {{ scope.row.score || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="执行状态" align="center" prop="successFlag">
-        <template #default="scope">
-          <dict-tag :options="quality_log_success_flag" :value="scope.row.successFlag" />
-
-        </template>
-      </el-table-column>
-      <el-table-column label="问题数据" align="center" prop="problemData">
-        <template #default="scope">
-          {{ scope.row.problemData || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="开始时间" align="center" prop="startTime" width="160" sortable="custom"
-        column-key="start_time" :sort-orders="['descending', 'ascending']">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.startTime, '{y}-{m}-{d} {h}:{i}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="结束时间" align="center" prop="endTime" width="160" sortable="custom" column-key="end_time"
-        :sort-orders="['descending', 'ascending']">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.endTime, '{y}-{m}-{d} {h}:{i}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="200">
-        <template #default="scope">
-          <el-button link type="primary" icon="View" @click="logDetailCatList(scope.row)"
-            v-hasPermi="['ast:qualityTask:query']">查看</el-button>
-          <!-- <el-button link type="warning" @click="handleExport(scope.row)" @mousedown="(e) => e.preventDefault()">
-            <i class="iconfont-mini icon-download-line mr5"></i>下载
-          </el-button> -->
-          <el-button link type="primary" icon="view" @click="
-            routeTo('/ast/quality/probeTaskInstance/detail', {
-              ...scope.row,
-              info: true,
-            })
-            ">详情</el-button>
-        </template>
-      </el-table-column>
-
-      <template #empty>
-        <div class="emptyBg">
-          <img src="@/assets/system/images/no_data/noData.png" alt="" />
-          <p>暂无记录</p>
-        </div>
-      </template>
-    </el-table>
+      </a-table>
+    </a-spin>
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize" @pagination="getList" />
+      v-model:limit="queryParams.pageSize" @pagination="getList"
+/>
     <!-- <template #footer>
             <div style="text-align: right">
-        <el-button @click="closeDialog">关闭</el-button>
-        <el-button type="primary" @click="saveData">保存</el-button>
+        <a-button @click="closeDialog">关闭</a-button>
+        <a-button type="primary" @click="saveData">保存</a-button>
         </div>
 </template> -->
-  </el-dialog>
+  </a-modal>
   <!-- 探查任务实例执行明细 -->
-  <el-dialog title="查看实例明细" v-model="open" width="800px" :append-to="$refs['app-container']" draggable destroy-on-close>
+  <a-modal title="查看实例明细" v-model:open="open" width="800px" :destroy-on-close="true">
     <div v-html="formattedText"></div>
     <!-- <template #footer>
             <div class="dialog-footer">
-                <el-button @click="open = false">关 闭</el-button>
+                <a-button @click="open = false">关 闭</a-button>
             </div>
         </template> -->
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
 import { defineProps, defineEmits, ref, computed, watch } from 'vue';
+import { h } from 'vue';
+
+const tableColumns = [
+  { title: '编号', dataIndex: 'id', align: 'center', width: 120 },
+  { title: '任务名称', dataIndex: 'name', align: 'center' },
+  { title: '质量评分', dataIndex: 'score', align: 'center', width: 80 },
+  { title: '执行状态', dataIndex: 'successFlag', align: 'center' },
+  { title: '问题数据', dataIndex: 'problemData', align: 'center' },
+  { title: '开始时间', dataIndex: 'startTime', align: 'center', width: 160, sorter: true },
+  { title: '结束时间', dataIndex: 'endTime', align: 'center', width: 160, sorter: true },
+  { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 200 },
+];
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
 
 const { proxy } = getCurrentInstance();
 const defaultSort = ref({ prop: 'startTime', order: 'descending' });
+
 import { useRoute, useRouter } from "vue-router"
 const { quality_log_success_flag } = proxy.useDict(
   'quality_log_success_flag'
 );
+
 import { listProbeTaskInstance } from "@/api/ast/quality/probeTaskInstance";
+
 import {
   probeTaskInstanceLogDetail
 } from "@/api/ast/quality/qualityTask";;
@@ -114,8 +117,10 @@ const formattedText = computed(() => {
 const router = useRouter();
 
 /** 排序触发事件 */
-function handleSortChange({ column, prop, order }) {
-  queryParams.value.orderByColumn = column?.columnKey || prop;
+function handleSortChange(pag, filters, sorter) {
+  const prop = sorter.field || sorter.column?.dataIndex;
+  const order = sorter.order === 'ascend' ? 'ascending' : sorter.order === 'descend' ? 'descending' : null;
+  queryParams.value.orderByColumn = prop === 'startTime' ? 'start_time' : prop === 'endTime' ? 'end_time' : prop;
   queryParams.value.isAsc = order;
   queryParams.value.pageNum = 1;
   getList();

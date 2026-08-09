@@ -1,57 +1,61 @@
 ﻿<template>
   <div class="top-right-btn" :style="style">
-    <el-row>
-      <el-tooltip class="item" effect="dark" content="刷新" placement="top">
-        <el-button circle @click="refresh()">
-          <i class="iconfont icon-a-shuaxinxianxing"></i>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip class="item" effect="dark" content="隐藏列" placement="top" v-if="columns">
-        <el-button circle icon="Menu" @click="showColumn()" v-if="showColumnsType == 'transfer'" />
-        <el-dropdown trigger="click" :hide-on-click="false" style="padding-left: 12px"
-          v-if="showColumnsType == 'checkbox'">
-          <el-button circle icon="Menu" />
-          <template #dropdown>
-            <el-dropdown-menu>
-              <template v-for="item in columns" :key="item.key">
-                <el-dropdown-item>
-                  <el-checkbox :checked="item.visible" @change="checkboxChange($event, item.label)"
-                    :label="item.label" />
-                </el-dropdown-item>
-              </template>
-            </el-dropdown-menu>
+    <a-space>
+      <a-tooltip title="刷新">
+        <a-button shape="circle" @click="refresh()">
+          <template #icon><ReloadOutlined /></template>
+        </a-button>
+      </a-tooltip>
+      <a-tooltip title="隐藏列" v-if="columns">
+        <a-button shape="circle" @click="showColumn()" v-if="showColumnsType == 'transfer'">
+          <template #icon><MenuOutlined /></template>
+        </a-button>
+        <a-dropdown v-if="showColumnsType == 'checkbox'" :trigger="['click']">
+          <a-button shape="circle">
+            <template #icon><MenuOutlined /></template>
+          </a-button>
+          <template #overlay>
+            <a-menu>
+              <a-menu-item v-for="item in columns" :key="item.key">
+                <a-checkbox :checked="item.visible" @change="checkboxChange($event, item.label)">
+                  {{ item.label }}
+                </a-checkbox>
+              </a-menu-item>
+            </a-menu>
           </template>
-        </el-dropdown>
-      </el-tooltip>
-    </el-row>
-    <el-dialog :title="title" v-model="open" append-to-body>
-      <el-transfer :titles="['显示', '隐藏']" v-model="value" :data="columns" @change="dataChange"></el-transfer>
-    </el-dialog>
+        </a-dropdown>
+      </a-tooltip>
+    </a-space>
+    <a-modal :title="title" v-model:open="open" :footer="null">
+      <a-transfer
+        :titles="['显示', '隐藏']"
+        v-model:target-keys="value"
+        :data-source="columns"
+        @change="dataChange"
+      />
+    </a-modal>
   </div>
 </template>
 
 <script setup>
+import { ReloadOutlined, MenuOutlined } from '@ant-design/icons-vue'
+
 const props = defineProps({
-  /* 是否显示检索条件 */
   showSearch: {
     type: Boolean,
     default: true,
   },
-  /* 隐藏列信息 */
   columns: {
     type: Array,
   },
-  /* 是否显示检索图标 */
   search: {
     type: Boolean,
     default: true,
   },
-  /* 隐藏列类型（transfer穿梭框、checkbox复选框） */
   showColumnsType: {
     type: String,
     default: "checkbox",
   },
-  /* 右外边距 */
   gutter: {
     type: Number,
     default: 10,
@@ -60,11 +64,8 @@ const props = defineProps({
 
 const emits = defineEmits(['update:showSearch', 'queryTable']);
 
-// 显隐数据
 const value = ref([]);
-// 弹出层标题
 const title = ref("显示/隐藏");
-// 是否显示弹出层
 const open = ref(false);
 
 const style = computed(() => {
@@ -75,54 +76,30 @@ const style = computed(() => {
   return ret;
 });
 
-// 刷新
 function refresh() {
   emits("queryTable");
 }
 
-// 右侧列表元素变化
-function dataChange(data) {
+function dataChange(nextTargetKeys, direction, moveKeys) {
   for (let item in props.columns) {
-    const key = props.columns[item].key;
-    props.columns[item].visible = !data.includes(key);
+    const key = String(props.columns[item].key);
+    props.columns[item].visible = !nextTargetKeys.includes(key);
   }
 }
 
-// 打开隐藏列dialog
 function showColumn() {
   open.value = true;
 }
 
 if (props.showColumnsType == 'transfer') {
-  // 隐藏列初始默认隐藏列
   for (let item in props.columns) {
     if (props.columns[item].visible === false) {
-      value.value.push(parseInt(item));
+      value.value.push(String(props.columns[item].key));
     }
   }
 }
 
-// 勾选
 function checkboxChange(event, label) {
-  props.columns.filter(item => item.label == label)[0].visible = event;
+  props.columns.filter(item => item.label == label)[0].visible = event.target.checked;
 }
-
 </script>
-
-<style lang='scss' scoped>
-:deep(.el-transfer__button) {
-  border-radius: 50%;
-  display: block;
-  margin-left: 0px;
-}
-
-:deep(.el-transfer__button:first-child) {
-  margin-bottom: 10px;
-}
-
-:deep(.el-dropdown-menu__item) {
-  line-height: 30px;
-  padding: 0 17px;
-}
-</style>
-

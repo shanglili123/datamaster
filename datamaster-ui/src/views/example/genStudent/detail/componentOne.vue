@@ -1,29 +1,26 @@
 <template>
     <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-            <el-col :span="1.5">
-                <el-button
+        <a-row :gutter="15" class="btn-style">
+            <a-col :span="1.5">
+                <a-button
                     type="primary"
-                    plain
                     @click="handleAdd"
                     v-hasPermi="['genStudent:student:add']"
                     @mousedown="(e) => e.preventDefault()"
                 >
                     <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                </el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button
-                    type="warning"
-                    plain
+                </a-button>
+            </a-col>
+            <a-col :span="1.5">
+                <a-button
                     @click="handleExport"
                     v-hasPermi="['genStudent:student:export']"
                     @mousedown="(e) => e.preventDefault()"
                 >
                     <i class="iconfont-mini icon-download-line mr5"></i>导出
-                </el-button>
-            </el-col>
-        </el-row>
+                </a-button>
+            </a-col>
+        </a-row>
         <div class="justify-end top-right-btn">
             <right-toolbar
                 v-model:showSearch="showSearch"
@@ -32,136 +29,63 @@
             ></right-toolbar>
         </div>
     </div>
-    <el-table
-        stripe
+    <a-table
+        striped
         height="374px"
-        v-loading="loading"
-        :data="studentList"
-        @selection-change="handleSelectionChange"
-        :default-sort="defaultSort"
-        @sort-change="handleSortChange"
+        :loading="loading"
+        :data-source="studentList"
+        :columns="tableColumns"
+        :pagination="false"
+        row-key="id"
+        :row-selection="{ selectedRowKeys, onChange: handleSelectionChange }"
+        @change="handleTableChange"
+        :locale="{ emptyText: emptyContent }"
     >
-        <el-table-column type="selection" width="55" align="center" />
-        <el-table-column v-if="columns[0].visible" label="ID" align="center" prop="id" />
-        <el-table-column v-if="columns[1].visible" label="姓名" align="center" prop="name">
-            <template #default="scope">
-                {{ scope.row.name || '-' }}
+        <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'pictureUrl'">
+                <image-preview :src="record.pictureUrl" :width="50" :height="50" />
             </template>
-        </el-table-column>
-        <el-table-column
-            v-if="columns[2].visible"
-            label="学生照"
-            align="center"
-            prop="pictureUrl"
-            width="100"
-        >
-            <template #default="scope">
-                <image-preview :src="scope.row.pictureUrl" :width="50" :height="50" />
+            <template v-else-if="column.dataIndex === 'sex'">
+                <dict-tag :options="sys_user_sex" :value="record.sex" />
             </template>
-        </el-table-column>
-        <el-table-column
-            v-if="columns[3].visible"
-            label="教育经历"
-            align="center"
-            prop="experience"
-        >
-            <template #default="scope">
-                {{ scope.row.experience || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[4].visible" label="性别" align="center" prop="sex">
-            <template #default="scope">
-                <dict-tag :options="sys_user_sex" :value="scope.row.sex" />
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[5].visible" label="年龄" align="center" prop="age">
-            <template #default="scope">
-                {{ scope.row.age || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[6].visible" label="学号" align="center" prop="studentNumber">
-            <template #default="scope">
-                {{ scope.row.studentNumber || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[7].visible" label="班级" align="center" prop="grade">
-            <template #default="scope">
-                {{ scope.row.grade || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[8].visible" label="爱好" align="center" prop="hobby">
-            <template #default="scope">
+            <template v-else-if="column.dataIndex === 'hobby'">
                 <dict-tag
                     :options="message_level"
-                    :value="scope.row.hobby ? scope.row.hobby.split(',') : []"
+                    :value="record.hobby ? record.hobby.split(',') : []"
                 />
             </template>
-        </el-table-column>
-        <el-table-column v-if="columns[11].visible" label="创建人" align="center" prop="createBy">
-            <template #default="scope">
-                {{ scope.row.createBy || '-' }}
+            <template v-else-if="column.dataIndex === 'createTime'">
+                <span>{{ parseTime(record.createTime, '{y}-{m}-{d}') }}</span>
             </template>
-        </el-table-column>
-        <el-table-column
-            v-if="columns[13].visible"
-            label="创建时间"
-            align="center"
-            prop="createTime"
-            width="180"
-            sortable="custom"
-            :sort-orders="['descending', 'ascending']"
-        >
-            <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[17].visible" label="备注" align="center" prop="remark">
-            <template #default="scope">
-                {{ scope.row.remark || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column
-            label="操作"
-            align="center"
-            class-name="small-padding fixed-width"
-            fixed="right"
-            width="240"
-        >
-            <template #default="scope">
-                <el-button
-                    link
-                    type="primary"
-                    icon="Edit"
-                    @click="handleUpdate(scope.row)"
+            <template v-else-if="column.key === 'actions'">
+                <a-button
+                    type="link"
+                    :icon="h(EditOutlined)"
+                    @click="handleUpdate(record)"
                     v-hasPermi="['genStudent:student:edit']"
-                    >修改</el-button
+                    >修改</a-button
                 >
-                <el-button
-                    link
-                    type="danger"
-                    icon="Delete"
-                    @click="handleDelete(scope.row)"
+                <a-button
+                    type="link"
+                    danger
+                    :icon="h(DeleteOutlined)"
+                    @click="handleDelete(record)"
                     v-hasPermi="['genStudent:student:remove']"
-                    >删除</el-button
+                    >删除</a-button
                 >
-                <el-button
-                    link
-                    type="primary"
-                    icon="view"
-                    @click="handleDetail(scope.row)"
+                <a-button
+                    type="link"
+                    :icon="h(EyeOutlined)"
+                    @click="handleDetail(record)"
                     v-hasPermi="['genStudent:student:edit']"
-                    >详情</el-button
+                    >详情</a-button
                 >
             </template>
-        </el-table-column>
-
-        <template #empty>
-            <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-            </div>
+            <template v-else>
+                <span>{{ record[column.dataIndex] || '-' }}</span>
+            </template>
         </template>
-    </el-table>
+    </a-table>
 
     <pagination
         v-show="total > 0"
@@ -172,184 +96,171 @@
     />
 
     <!-- 添加或修改学生对话框 -->
-    <el-dialog
+    <a-modal
         :title="title"
-        v-model="open"
+        v-model:open="open"
         width="800px"
-        :append-to="$refs['app-container']"
         draggable
     >
-        <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
-                {{ title }}
-            </span>
-        </template>
-        <el-form ref="studentRef" :model="form" :rules="rules" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="姓名" prop="name">
-                        <el-input v-model="form.name" placeholder="请输入姓名" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="24">
-                    <el-form-item label="学生照" prop="pictureUrl">
+        <a-form ref="studentRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="姓名" name="name">
+                        <a-input v-model:value="form.name" placeholder="请输入姓名" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="24">
+                    <a-form-item label="学生照" name="pictureUrl">
                         <image-upload v-model="form.pictureUrl" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="教育经历">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="教育经历">
                         <editor v-model="form.experience" :min-height="192" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="性别" prop="sex">
-                        <el-select v-model="form.sex" placeholder="请选择性别">
-                            <el-option
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="性别" name="sex">
+                        <a-select v-model:value="form.sex" placeholder="请选择性别">
+                            <a-select-option
                                 v-for="dict in sys_user_sex"
                                 :key="dict.value"
-                                :label="dict.label"
                                 :value="parseInt(dict.value)"
-                            ></el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="年龄" prop="age">
-                        <el-input v-model="form.age" placeholder="请输入年龄" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="学号" prop="studentNumber">
-                        <el-input v-model="form.studentNumber" placeholder="请输入学号" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="班级" prop="grade">
-                        <el-input v-model="form.grade" placeholder="请输入班级" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="爱好" prop="hobby">
-                        <el-checkbox-group v-model="form.hobby">
-                            <el-checkbox
+                            >{{ dict.label }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="年龄" name="age">
+                        <a-input v-model:value="form.age" placeholder="请输入年龄" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="学号" name="studentNumber">
+                        <a-input v-model:value="form.studentNumber" placeholder="请输入学号" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="班级" name="grade">
+                        <a-input v-model:value="form.grade" placeholder="请输入班级" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="爱好" name="hobby">
+                        <a-checkbox-group v-model:value="form.hobby">
+                            <a-checkbox
                                 v-for="dict in message_level"
                                 :key="dict.value"
-                                :label="dict.value"
+                                :value="dict.value"
                             >
                                 {{ dict.label }}
-                            </el-checkbox>
-                        </el-checkbox-group>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="备注" prop="remark">
-                        <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                            </a-checkbox>
+                        </a-checkbox-group>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="备注" name="remark">
+                        <a-input v-model:value="form.remark" type="textarea" placeholder="请输入内容" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="cancel">取 消</el-button>
-                <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+                <a-button @click="cancel">取 消</a-button>
+                <a-button type="primary" @click="submitForm">确 定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 学生详情对话框 -->
-    <el-dialog
+    <a-modal
         :title="title"
-        v-model="openDetail"
+        v-model:open="openDetail"
         width="800px"
-        :append-to="$refs['app-container']"
         draggable
     >
-        <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
-                {{ title }}
-            </span>
-        </template>
-        <el-form ref="studentRef" :model="form" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="姓名" prop="name">
+        <a-form ref="studentRef" :model="form" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="姓名" name="name">
                         <div>
                             {{ form.name }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="学生照" prop="pictureUrl">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="学生照" name="pictureUrl">
                         <image-preview :src="form.pictureUrl" :width="50" :height="50" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="教育经历">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="教育经历">
                         <div v-html="form.experience"></div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="性别" prop="sex">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="性别" name="sex">
                         <dict-tag :options="sys_user_sex" :value="form.sex" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="年龄" prop="age">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="年龄" name="age">
                         <div>
                             {{ form.age }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="学号" prop="studentNumber">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="学号" name="studentNumber">
                         <div>
                             {{ form.studentNumber }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="班级" prop="grade">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="班级" name="grade">
                         <div>
                             {{ form.grade }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="爱好" prop="hobby">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="爱好" name="hobby">
                         <dict-tag :options="message_level" :value="form.hobby" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="备注" prop="remark">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="备注" name="remark">
                         <div>
                             {{ form.remark }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="cancel">关 闭</el-button>
+                <a-button @click="cancel">关 闭</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup name="ComponentOne">
@@ -360,6 +271,8 @@
         addStudent,
         updateStudent
     } from '@/api/example/genStudent/student';
+    import { h } from 'vue';
+    import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons-vue';
 
     const { proxy } = getCurrentInstance();
     const { sys_user_sex, message_level } = proxy.useDict('sys_user_sex', 'message_level');
@@ -388,11 +301,50 @@
         { key: 17, label: '备注', visible: true }
     ]);
 
+    const tableColumns = [
+        { key: 'id', title: 'ID', dataIndex: 'id', align: 'center', hidden: !columns.value[0].visible },
+        { key: 'name', title: '姓名', dataIndex: 'name', align: 'center', hidden: !columns.value[1].visible },
+        { key: 'pictureUrl', title: '学生照', dataIndex: 'pictureUrl', align: 'center', width: 100, hidden: !columns.value[2].visible },
+        { key: 'experience', title: '教育经历', dataIndex: 'experience', align: 'center', hidden: !columns.value[3].visible },
+        { key: 'sex', title: '性别', dataIndex: 'sex', align: 'center', hidden: !columns.value[4].visible },
+        { key: 'age', title: '年龄', dataIndex: 'age', align: 'center', hidden: !columns.value[5].visible },
+        { key: 'studentNumber', title: '学号', dataIndex: 'studentNumber', align: 'center', hidden: !columns.value[6].visible },
+        { key: 'grade', title: '班级', dataIndex: 'grade', align: 'center', hidden: !columns.value[7].visible },
+        { key: 'hobby', title: '爱好', dataIndex: 'hobby', align: 'center', hidden: !columns.value[8].visible },
+        { key: 'createBy', title: '创建人', dataIndex: 'createBy', align: 'center', hidden: !columns.value[11].visible },
+        {
+            key: 'createTime',
+            title: '创建时间',
+            dataIndex: 'createTime',
+            align: 'center',
+            width: 180,
+            sorter: true,
+            sorterKey: 'createTime',
+            defaultSortOrder: 'descend',
+            hidden: !columns.value[13].visible
+        },
+        { key: 'remark', title: '备注', dataIndex: 'remark', align: 'center', hidden: !columns.value[17].visible },
+        {
+            key: 'actions',
+            title: '操作',
+            align: 'center',
+            className: 'small-padding fixed-width',
+            fixed: 'right',
+            width: 240
+        }
+    ];
+
+    const emptyContent = h('div', { class: 'emptyBg' }, [
+        h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+        h('p', '暂无记录'),
+    ]);
+
     const open = ref(false);
     const openDetail = ref(false);
     const loading = ref(true);
     const showSearch = ref(true);
     const ids = ref([]);
+    const selectedRowKeys = ref([]);
     const single = ref(true);
     const multiple = ref(true);
     const total = ref(0);
@@ -482,14 +434,25 @@
     }
 
     // 多选框选中数据
-    function handleSelectionChange(selection) {
-        ids.value = selection.map((item) => item.id);
-        single.value = selection.length != 1;
-        multiple.value = !selection.length;
+    function handleSelectionChange(selectedKeys, selectedRows) {
+        selectedRowKeys.value = selectedKeys;
+        ids.value = selectedRows.map((item) => item.id);
+        single.value = selectedRows.length != 1;
+        multiple.value = !selectedRows.length;
     }
 
     /** 排序触发事件 */
-    function handleSortChange(column, prop, order) {
+    function handleTableChange(pagination, filters, sorter) {
+        if (!sorter || Array.isArray(sorter)) {
+            return;
+        }
+        handleSortChange({
+            prop: sorter.field,
+            order: sorter.order === "ascend" ? "ascending" : sorter.order === "descend" ? "descending" : sorter.order
+        });
+    }
+
+    function handleSortChange(column) {
         queryParams.value.orderByColumn = column.prop;
         queryParams.value.isAsc = column.order;
         getList();
@@ -528,32 +491,30 @@
 
     /** 提交按钮 */
     function submitForm() {
-        proxy.$refs['studentRef'].validate((valid) => {
-            if (valid) {
-                form.value.hobby = form.value.hobby.join(',');
-                if (form.value.id != null) {
-                    updateStudent(form.value)
-                        .then((response) => {
-                            proxy.$modal.msgSuccess('修改成功');
-                            open.value = false;
-                            getList();
-                        })
-                        .catch((error) => {
-                            form.value.hobby = form.value.hobby.split(',').map(String);
-                        });
-                } else {
-                    addStudent(form.value)
-                        .then((response) => {
-                            proxy.$modal.msgSuccess('新增成功');
-                            open.value = false;
-                            getList();
-                        })
-                        .catch((error) => {
-                            form.value.hobby = form.value.hobby.split(',').map(String);
-                        });
-                }
+        proxy.$refs['studentRef'].validate().then(() => {
+            form.value.hobby = form.value.hobby.join(',');
+            if (form.value.id != null) {
+                updateStudent(form.value)
+                    .then((response) => {
+                        proxy.$modal.msgSuccess('修改成功');
+                        open.value = false;
+                        getList();
+                    })
+                    .catch((error) => {
+                        form.value.hobby = form.value.hobby.split(',').map(String);
+                    });
+            } else {
+                addStudent(form.value)
+                    .then((response) => {
+                        proxy.$modal.msgSuccess('新增成功');
+                        open.value = false;
+                        getList();
+                    })
+                    .catch((error) => {
+                        form.value.hobby = form.value.hobby.split(',').map(String);
+                    });
             }
-        });
+        }).catch(() => {});
     }
 
     /** 删除按钮操作 */
@@ -582,6 +543,8 @@
         );
     }
 
+    queryParams.value.orderByColumn = defaultSort.value.prop;
+    queryParams.value.isAsc = defaultSort.value.order;
     getList();
 </script>
 

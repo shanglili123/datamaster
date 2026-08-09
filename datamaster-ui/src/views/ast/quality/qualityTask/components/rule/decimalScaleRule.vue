@@ -1,26 +1,26 @@
 <template>
   <!-- 数值精度校验 -->
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <el-row>
-      <el-col :span="12">
-        <el-form-item label="小数位数" prop="scale">
-          <el-input
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-row>
+      <a-col :span="12">
+        <a-form-item label="小数位数" name="scale">
+          <a-input
             v-if="!falg"
-            v-model="form.scale"
+            v-model:value="form.scale"
             placeholder="请输入小数位数"
             type="number"
-            min="0"
+            :min="0"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.scale ?? "-" }}</div>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
-        <el-form-item label="忽略整数值" prop="skipInteger">
-          <el-radio-group v-if="!falg" v-model="form.skipInteger">
-            <el-radio :value="'1'">是</el-radio>
-            <el-radio :value="'0'">否</el-radio>
-          </el-radio-group>
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item label="忽略整数值" name="skipInteger">
+          <a-radio-group v-if="!falg" v-model:value="form.skipInteger">
+            <a-radio :value="'1'">是</a-radio>
+            <a-radio :value="'0'">否</a-radio>
+          </a-radio-group>
           <div v-else class="form-readonly">
             {{
               form.skipInteger === "1"
@@ -30,16 +30,16 @@
                 : "-"
             }}
           </div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-col :span="12">
-        <el-form-item label="忽略空值" prop="ignoreNullValue">
-          <el-radio-group v-if="!falg" v-model="form.ignoreNullValue">
-            <el-radio :value="'1'">是</el-radio>
-            <el-radio :value="'0'">否</el-radio>
-          </el-radio-group>
+        </a-form-item>
+      </a-col>
+    </a-row>
+    <a-row>
+      <a-col :span="12">
+        <a-form-item label="忽略空值" name="ignoreNullValue">
+          <a-radio-group v-if="!falg" v-model:value="form.ignoreNullValue">
+            <a-radio :value="'1'">是</a-radio>
+            <a-radio :value="'0'">否</a-radio>
+          </a-radio-group>
           <div v-else class="form-readonly">
             {{
               form.ignoreNullValue === "1"
@@ -49,10 +49,10 @@
                 : "-"
             }}
           </div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script setup>
@@ -75,15 +75,13 @@ const exposedFields = ["scale", "skipInteger", "ignoreNullValue"];
 
 function validate() {
   return new Promise((resolve) => {
-    formRef.value.validate((valid) => {
-      if (valid) {
-        const result = Object.fromEntries(
-          exposedFields.map((key) => [key, form[key]])
-        );
-        resolve({ valid: true, data: result });
-      } else {
-        resolve({ valid: false });
-      }
+    formRef.value.validate().then(() => {
+      const result = Object.fromEntries(
+        exposedFields.map((key) => [key, form[key]])
+      );
+      resolve({ valid: true, data: result });
+    }).catch(() => {
+      resolve({ valid: false });
     });
   });
 }

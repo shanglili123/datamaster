@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div ref="messageContainer" class="h-100% overflow-y-auto relative">
     <!-- 10001：关联关系无法自动识别提示 -->
     <div
@@ -8,7 +8,7 @@
     >
       <div class="left-message message-item">
         <div class="avatar">
-          <el-avatar
+          <a-avatar
             :src="roleAvatar"
             :size="46"
             style="background-color: transparent"
@@ -16,7 +16,7 @@
         </div>
         <div class="message">
           <div>
-            <el-text class="time">系统提示</el-text>
+            <span class="time">系统提示</span>
           </div>
           <div class="left-text-container">
             <div class="left-text">关联关系无法自动识别</div>
@@ -32,7 +32,7 @@
           v-if="toNumber(item.type) === 2 || toNumber(item.type) === 0"
         >
           <div class="avatar">
-            <el-avatar
+            <a-avatar
               :src="roleAvatar"
               :size="46"
               style="background-color: transparent"
@@ -40,7 +40,7 @@
           </div>
           <div class="message">
             <div style="text-align: left;">
-              <el-text class="time">{{ parseTime(item.createTime) }}</el-text>
+              <span class="time">{{ parseTime(item.createTime) }}</span>
             </div>
             <div
               :class="[
@@ -69,19 +69,19 @@
             </div>
             <div class="left-btns">
               <template v-if="true">
-                <el-button class="btn-cus" link @click="copyContent(index)">
+                <a-button class="btn-cus" type="link" @click="copyContent(index)">
                   <img class="btn-image" src="@/assets/ai/copy.png" />
-                </el-button>
-                <el-divider direction="vertical" class="btn-divider" />
+                </a-button>
+                <a-divider type="vertical" class="btn-divider" />
               </template>
-              <el-button
+              <a-button
                 v-if="item.id > 0"
                 class="btn-cus"
-                link
+                type="link"
                 @click="onDelete(item.id)"
               >
                 <img class="btn-image h-17px" src="@/assets/ai/delete.png" />
-              </el-button>
+              </a-button>
             </div>
           </div>
         </div>
@@ -91,77 +91,88 @@
           v-if="toNumber(item.type) === 1"
         >
           <div class="avatar">
-            <el-avatar :src="userAvatar" :size="50" />
+            <a-avatar :src="userAvatar" :size="50" />
           </div>
           <div class="message">
             <div>
-              <el-text class="time">{{ parseTime(item.createTime) }}</el-text>
+              <span class="time">{{ parseTime(item.createTime) }}</span>
             </div>
             <div class="right-text-container">
               <div class="right-text">{{ getDisplayContent(item) }}</div>
             </div>
             <div class="right-btns">
-              <el-button
+              <a-button
                 style="margin-left: 12px"
                 class="btn-cus"
-                link
+                type="link"
                 @click="copyContent(getDisplayContent(item))"
               >
                 <img class="btn-image" src="@/assets/ai/copy.png" />
-              </el-button>
-              <el-divider direction="vertical" class="btn-divider" />
-              <el-button class="btn-cus" link @click="onDelete(item.id)">
+              </a-button>
+              <a-divider type="vertical" class="btn-divider" />
+              <a-button class="btn-cus" type="link" @click="onDelete(item.id)">
                 <img
                   class="btn-image h-17px mr-12px"
                   src="@/assets/ai/delete.png"
                 />
-              </el-button>
-              <el-divider direction="vertical" class="btn-divider" v-if="isLastUserMessage(index)" />
-              <el-button class="btn-cus" link @click="onRefresh(item)" v-if="isLastUserMessage(index)">
+              </a-button>
+              <a-divider type="vertical" class="btn-divider" v-if="isLastUserMessage(index)" />
+              <a-button class="btn-cus" type="link" @click="onRefresh(item)" v-if="isLastUserMessage(index)">
                 <img
                   class="btn-image h-17px mr-12px"
                   src="@/assets/ai/refresh.png"
                 />
-              </el-button>
-              <el-divider direction="vertical" class="btn-divider" v-if="isLastUserMessage(index)" />
-              <el-button class="btn-cus" link @click="onEdit(item)" v-if="isLastUserMessage(index)">
+              </a-button>
+              <a-divider type="vertical" class="btn-divider" v-if="isLastUserMessage(index)" />
+              <a-button class="btn-cus" type="link" @click="onEdit(item)" v-if="isLastUserMessage(index)">
                 <img
                   class="btn-image h-17px mr-12px"
                   src="@/assets/ai/edit.png"
                 />
-              </el-button>
+              </a-button>
             </div>
           </div>
         </div>
       </div>
     </template>
-    <el-divider
-      content-position="center"
+    <a-divider
+      dashed
       v-show="suggestedList.length > 0"
-      border-style="dotted"
-      >试着问问</el-divider
+      >试着问问</a-divider
     >
     <div class="suggested-list" v-show="suggestedList.length > 0">
-      <el-check-tag
+      <a-tag
         @click="handlerSuggested(item + '?')"
-        type="info"
+        color="default"
         v-for="item in suggestedList"
-        >{{ item }}</el-check-tag
+        class="suggested-tag"
+        >{{ item }}</a-tag
       >
     </div>
   </div>
   <!-- 回到底部 -->
   <div v-if="isScrolling" class="to-bottom" @click="handleGoBottom">
-    <el-button icon="ArrowDownBold" circle />
+    <a-button :icon="h(DownOutlined)" circle />
   </div>
 </template>
 <script setup>
+
+import { h } from "vue";
+
+import { DownOutlined } from "@ant-design/icons-vue";
+
 import MarkdownView from "@/components/MarkdownView/index.vue";
+
 import AssistantReportCard from "./AssistantReportCard.vue";
+
 import { ChatMessageApi } from "@/api/ai/chat/message";
+
 import useUserStore from "@/store/system/user";
+
 import userAvatarDefaultImg from "@/assets/images/defaultAvatar.svg";
+
 import roleAvatarDefaultImg from "@/assets/ai/gpt-new.svg";
+
 import { useClipboard } from "@vueuse/core";
 
 const { proxy } = getCurrentInstance();
@@ -721,6 +732,10 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   gap: 20px;
+}
+
+.suggested-tag {
+  cursor: pointer;
 }
 
 .left-text-loading {

@@ -1,42 +1,34 @@
-﻿<template>
-    <el-dialog :title="dialogTitle" v-model="dialogVisible" width="70%" style="min-height:600px;"
-        :close-on-click-modal="false" append-to-body @close="handleClose">
-        <el-table :height="tableHeight" :data="tableData" ref="multipleTable" stripe tooltip-effect="dark"
-            style="width: 100%; margin: 15px 0;" @selection-change="handleSelectionChange" show-selection>
-            <el-table-column type="selection" width="55" :reserve-selection="true">
-            </el-table-column>
-            <el-table-column prop="sortOrder" label="序号" width="80" align="center" />
-            <el-table-column prop="engName" label="列名" align="center" width="200" :show-overflow-tooltip="{effect: 'light'}" />
-            <el-table-column prop="columnType" label="数据类型" align="center" width="120" :show-overflow-tooltip="{effect: 'light'}" />
-            <el-table-column prop="columnLength" label="数据长度" width="90" align="center" :show-overflow-tooltip="{effect: 'light'}" />
-            <!--            <el-table-column prop="dataPrecision" label="数据精度" align="center" :show-overflow-tooltip="{effect: 'light'}" />-->
-            <el-table-column prop="columnScale" label="数据小数位" width="100" align="center" :show-overflow-tooltip="{effect: 'light'}" />
-            <el-table-column prop="pkFlag" label="主键" align="center" width="100" :show-overflow-tooltip="{effect: 'light'}">
-                <template #default="scope">
-                    <span v-if="scope.row.pkFlag === '1'">是</span>
-                    <span v-if="scope.row.pkFlag === '0'">否</span>
+<template>
+    <a-modal :title="dialogTitle" v-model:open="dialogVisible" width="70%" style="min-height:600px;"
+        :mask-closable="false" @close="handleClose"
+>
+        <a-table :height="tableHeight" :data-source="tableData" ref="multipleTable" stripe
+            style="width: 100%; margin: 15px 0;" :row-key="'id'"
+            :row-selection="{ onChange: (selectedRowKeys, selectedRows) => handleSelectionChange(selectedRows) }"
+            :columns="tableColumns"
+>
+            <!--            原数据精度列（table-column 形式），迁移后由 tableColumns + bodyCell 模式实现：data-index="dataPrecision" title="数据精度" ellipsis -->
+            <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'pkFlag'">
+                    <span v-if="record.pkFlag === '1'">是</span>
+                    <span v-if="record.pkFlag === '0'">否</span>
                 </template>
-            </el-table-column>
-            <el-table-column prop="nullableFlag" label="允许为空" align="center" width="100" :show-overflow-tooltip="{effect: 'light'}">
-                <template #default="scope">
-                    <span v-if="scope.row.nullableFlag === '1'">是</span>
-                    <span v-if="scope.row.nullableFlag === '0'">否</span>
+                <template v-else-if="column.key === 'nullableFlag'">
+                    <span v-if="record.nullableFlag === '1'">是</span>
+                    <span v-if="record.nullableFlag === '0'">否</span>
                 </template>
-            </el-table-column>
-            <el-table-column prop="defaultValue" label="列默认值" width="100" align="center" :show-overflow-tooltip="{effect: 'light'}" >
-                <template #default="scope">
-                    {{scope.row.defaultValue || "-"}}
+                <template v-else-if="column.key === 'defaultValue'">
+                    {{ record.defaultValue || "-" }}
                 </template>
-            </el-table-column>
-            <el-table-column prop="cnName" label="列备注" align="center" :show-overflow-tooltip="{effect: 'light'}" />
-        </el-table>
+            </template>
+        </a-table>
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="handleClose">取消</el-button>
-                <el-button type="primary" @click="confirm">确定</el-button>
+                <a-button @click="handleClose">取消</a-button>
+                <a-button type="primary" @click="confirm">确定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup name="AddList">
@@ -60,6 +52,18 @@ const props = defineProps({
         default: () => [],
     },
 })
+
+const tableColumns = [
+    { title: '序号', dataIndex: 'sortOrder', key: 'sortOrder', width: 80, align: 'center', ellipsis: true },
+    { title: '列名', dataIndex: 'engName', key: 'engName', align: 'center', width: 200, ellipsis: true },
+    { title: '数据类型', dataIndex: 'columnType', key: 'columnType', align: 'center', width: 120, ellipsis: true },
+    { title: '数据长度', dataIndex: 'columnLength', key: 'columnLength', width: 90, align: 'center', ellipsis: true },
+    { title: '数据小数位', dataIndex: 'columnScale', key: 'columnScale', width: 100, align: 'center', ellipsis: true },
+    { title: '主键', key: 'pkFlag', align: 'center', width: 100, ellipsis: true },
+    { title: '允许为空', key: 'nullableFlag', align: 'center', width: 100, ellipsis: true },
+    { title: '列默认值', key: 'defaultValue', width: 100, align: 'center', ellipsis: true },
+    { title: '列备注', dataIndex: 'cnName', key: 'cnName', align: 'center', ellipsis: true },
+];
 
 const data = reactive({
     isInitialized: false, // 标识是否已初始化选中项
@@ -114,7 +118,6 @@ function echoSelected() { // 回显选中
         isInitialized.value = true;
     });
 }
-
 
 function confirm() {
     proxy.$emit("confirm", AddListRows.value);

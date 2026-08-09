@@ -16,14 +16,14 @@
     >
       <!-- 核心：在 searchForm 插槽中填入当前页面特有的搜索项 -->
       <template #searchForm>
-        <el-form-item label="清洗规则类目名称" prop="name">
-          <el-input v-model="queryParams.name" placeholder="请输入名称" clearable @keyup.enter="handleQuery" style="width: 200px;" />
-        </el-form-item>
-        <el-form-item label="上级类目" prop="code" label-width="70px">
-          <el-tree-select v-model="queryParams.code" :data="attAssetCatOptions"
-            :props="{ value: 'code', label: 'name', children: 'children' }"
-            value-key="id" placeholder="请选择" check-strictly style="width: 200px;" />
-        </el-form-item>
+        <a-form-item label="清洗规则目录名称" name="name" :label-col="{ style: { width: '120px' } }">
+          <a-input v-model:value="queryParams.name" placeholder="请输入名称" allow-clear @pressEnter="handleQuery" style="width: 200px;" />
+        </a-form-item>
+        <a-form-item label="上级目录" name="code">
+          <a-tree-select v-model:value="queryParams.code" :tree-data="attAssetCatOptions"
+            :field-names="{ value: 'code', label: 'name', children: 'children' }"
+            placeholder="请选择" allow-clear style="width: 200px;" />
+        </a-form-item>
       </template>
     </PageHeader>
 
@@ -31,134 +31,130 @@
     <div class="pagecont-bottom">
 
 
-      <el-table height="60vh" v-if="refreshTable" v-loading="loading" :data="AttCleanCatList" row-key="id"
-        :default-expand-all="isExpandAll" :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
-        <el-table-column label="清洗规则类目名称" align="left" prop="name" width="200"
-          :show-overflow-tooltip="{ effect: 'light' }">
-          <template #default="scope">
-            {{ scope.row.name || '-' }}
+      <a-spin :spinning="loading">
+        <a-table
+          v-if="refreshTable"
+          :data-source="AttCleanCatList"
+          :columns="tableColumns"
+          :pagination="false"
+          :scroll="{ y: '60vh' }"
+          row-key="id"
+          :default-expand-all-rows="isExpandAll"
+          :children-column-name="'children'"
+          :locale="{ emptyText: emptyContent }"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'validFlag'">
+              <a-switch v-model:checked="record.validFlag" @change="handleStatusChange(record)" />
+            </template>
+            <template v-else-if="column.dataIndex === 'createTime'">
+              <span>{{ parseTime(record.createTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-button type="link" size="small" @click="handleUpdate(record)" v-hasPermi="['tax:cleanCat:edit']">修改</a-button>
+              <a-button type="link" size="small" @click="handleAdd(record)" v-hasPermi="['tax:cleanCat:add']">新增</a-button>
+              <a-button type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['tax:cleanCat:remove']">删除</a-button>
+            </template>
+            <template v-else>
+              <span>{{ record[column.dataIndex] || '-' }}</span>
+            </template>
           </template>
-        </el-table-column>
-
-        <el-table-column label="描述" align="left" prop="description" :show-overflow-tooltip="{ effect: 'light' }"
-          width="250">
-          <template #default="scope">
-            {{ scope.row.description || '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="排序" align="left" prop="sortOrder" :show-overflow-tooltip="{ effect: 'light' }">
-          <template #default="scope">
-            {{ scope.row.sortOrder }}
-          </template>
-        </el-table-column>
-        <el-table-column label="创建人" align="center" prop="createBy">
-          <template #default="scope">
-            {{ scope.row.createBy || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-          <template #default="scope">
-            <span>{{
-              parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}")
-            }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" align="center" prop="validFlag">
-          <template #default="scope">
-            <!--              <dict-tag :options="sys_valid" :value="scope.row.validFlag"/>-->
-
-            <el-switch v-model="scope.row.validFlag" active-color="#13ce66" inactive-color="#ff4949"
-              @change="handleStatusChange(scope.row)">
-            </el-switch>
-          </template>
-        </el-table-column>
-        <el-table-column label="备注" align="left" prop="remark" :show-overflow-tooltip="{ effect: 'light' }">
-          <template #default="scope">
-            {{ scope.row.remark || '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
-          <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-              v-hasPermi="['tax:cleanCat:edit']">修改</el-button>
-            <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)"
-              v-hasPermi="['tax:cleanCat:add']">新增</el-button>
-            <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-              v-hasPermi="['tax:cleanCat:remove']">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        </a-table>
+      </a-spin>
       <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize"
         @pagination="getList" />
     </div>
 
-    <!-- 新增或修改清洗规则类目管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable
+    <!-- 新增或修改清洗规则目录管理对话框 -->
+    <a-modal :title="title" v-model:open="open" width="800px" draggable
       destroy-on-close>
-      <el-form ref="attCleanCatRef" :model="form" :rules="rules" label-width="80px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="类目名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入清洗规则类目名称" />
-            </el-form-item>
-          </el-col>
-          <!--            <el-form-item label="类别排序" prop="sortOrder">-->
-          <!--&lt;!&ndash;              <el-input v-model="form.sortOrder" placeholder="请输入类别排序" />&ndash;&gt;-->
-          <!--              <el-input-number v-model="form.sortOrder"  steps="1" :min="0"  placeholder="请输入类别排序" />-->
-          <!--            </el-form-item>-->
-          <el-col :span="12">
-            <el-form-item label="上级类目" prop="parentId">
-              <el-tree-select :disabled="form.id" v-model="form.parentId" :data="attAssetCatOptions"
-                :props="{ value: 'id', label: 'name', children: 'children' }" value-key="id" placeholder="请选择上级"
-                check-strictly />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="描述">
-              <el-input type="textarea" placeholder="请输入描述" v-model="form.description" :min-height="192" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="排序" prop="sortOrder">
-              <el-input-number style="width: 100%" v-model="form.sortOrder" controls-position="right" :min="0" />
-            </el-form-item>
-          </el-col>
+      <a-form ref="attCleanCatRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="目录名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入清洗规则目录名称" />
+            </a-form-item>
+          </a-col>
+          <!--            <a-form-item label="类别排序" name="sortOrder">-->
+          <!--&lt;!&ndash;              <a-input v-model:value="form.sortOrder" placeholder="请输入类别排序" />&ndash;&gt;-->
+          <!--              <a-input-number v-model:value="form.sortOrder"  steps="1" :min="0"  placeholder="请输入类别排序" />-->
+          <!--            </a-form-item>-->
+          <a-col :span="12">
+            <a-form-item label="上级目录" name="parentId">
+              <a-tree-select allow-clear :disabled="form.id" v-model:value="form.parentId" :tree-data="attAssetCatOptions"
+                :field-names="{ value: 'id', label: 'name', children: 'children' }" placeholder="请选择上级" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="描述">
+              <a-textarea placeholder="请输入描述" v-model:value="form.description" :auto-size="{ minRows: 4, maxRows: 8 }" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="排序" name="sortOrder">
+              <a-input-number style="width: 100%" v-model:value="form.sortOrder" :min="0" />
+            </a-form-item>
+          </a-col>
 
-          <el-col :span="12">
-            <el-form-item label="状态" prop="validFlag">
-              <el-radio v-model="form.validFlag" :label="true">启用</el-radio>
-              <el-radio v-model="form.validFlag" :label="false">禁用</el-radio>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="备注">
-              <el-input type="textarea" placeholder="请输入备注" v-model="form.remark" :min-height="192" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+          <a-col :span="12">
+            <a-form-item label="状态" name="validFlag">
+              <a-radio-group v-model:value="form.validFlag">
+                <a-radio :value="true">启用</a-radio>
+                <a-radio :value="false">禁用</a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="备注">
+              <a-textarea placeholder="请输入备注" v-model:value="form.remark" :auto-size="{ minRows: 4, maxRows: 8 }" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancel">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup name="CleanCat">
+
 import PageHeader from '@/components/Cat/PageHeader.vue';
+
 import { listAttCleanCat, getAttCleanCat, delAttCleanCat, addAttCleanCat, updateAttCleanCat } from "@/api/tax/cat/cleanCat/cleanCat.js";
+
 import { getToken } from "@/utils/auth.js";
+
 import { normalizePage, pageRows } from "@/utils/page.js";
+import { h } from 'vue';
 const { proxy } = getCurrentInstance();
+
+const tableColumns = [
+  { title: '清洗规则目录名称', dataIndex: 'name', align: 'left', width: 200, ellipsis: true },
+  { title: '描述', dataIndex: 'description', align: 'left', width: 250, ellipsis: true },
+  { title: '排序', dataIndex: 'sortOrder', align: 'left', ellipsis: true },
+  { title: '创建人', dataIndex: 'createBy', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180 },
+  { title: '状态', dataIndex: 'validFlag', align: 'center' },
+  { title: '备注', dataIndex: 'remark', align: 'left', ellipsis: true },
+  { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
+
 const AttCleanCatList = ref([]);
 const attAssetCatOptions = ref([]);
 // 列显隐信息
@@ -208,7 +204,7 @@ const upload = reactive({
   // 设置上传的请求头部
   headers: { Authorization: "Bearer " + getToken() },
   // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + "/tax/attCleanCat/importData"
+  url: import.meta.env.VITE_APP_BASE_API + "/tax/category/importData"
 });
 
 const data = reactive({
@@ -224,14 +220,14 @@ const data = reactive({
     createTime: null,
   },
   rules: {
-    name: [{ required: true, message: '清洗规则类目名称不能为空', trigger: 'blur' }],
-    parentId: [{ required: true, message: '上级类目不能为空', trigger: 'blur' }]
+    name: [{ required: true, message: '清洗规则目录名称不能为空', trigger: 'blur' }],
+    parentId: [{ required: true, message: '上级目录不能为空', trigger: 'change' }]
   }
 });
 
 const { queryParams, form, rules } = toRefs(data);
 
-/** 查询清洗规则类目列表 */
+/** 查询清洗规则目录列表 */
 function getList() {
   loading.value = true;
   listAttCleanCat(queryParams.value).then(response => {
@@ -295,7 +291,7 @@ function handleSelectionChange(selection) {
 function handleStatusChange(row) {
   const text = row.validFlag === true ? '启用' : '禁用';
   proxy.$modal
-    .confirm('确认要"' + text + '","' + row.name + '"清洗规则类目吗？')
+    .confirm('确认要"' + text + '","' + row.name + '"清洗规则目录吗？')
     .then(function () {
       updateAttCleanCat({ id: row.id, validFlag: row.validFlag }).then((response) => {
         proxy.$modal.msgSuccess(text + '成功');
@@ -340,7 +336,7 @@ function handleAdd(row) {
     form.value.parentId = 0;
   }
   open.value = true;
-  title.value = "添加清洗规则类目";
+  title.value = "添加清洗规则目录";
 }
 
 function getDataTree() {
@@ -371,7 +367,7 @@ async function handleUpdate(row) {
   getAttCleanCat(row.id).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改清洗规则类目";
+    title.value = "修改清洗规则目录";
   });
 }
 
@@ -383,37 +379,35 @@ function handleDetail(row) {
   getAttCleanCat(_ID).then(response => {
     form.value = response.data;
     openDetail.value = true;
-    title.value = "清洗规则类目详情";
+    title.value = "清洗规则目录详情";
   });
 }
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["attCleanCatRef"].validate(valid => {
-    if (valid) {
-      if (form.value.id != null) {
-        updateAttCleanCat(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功");
-          open.value = false;
-          getList();
-        }).catch(error => {
-        });
-      } else {
-        addAttCleanCat(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功");
-          open.value = false;
-          getList();
-        }).catch(error => {
-        });
-      }
+  proxy.$refs["attCleanCatRef"].validate().then(() => {
+    if (form.value.id != null) {
+      updateAttCleanCat(form.value).then(response => {
+        proxy.$modal.msgSuccess("修改成功");
+        open.value = false;
+        getList();
+      }).catch(error => {
+      });
+    } else {
+      addAttCleanCat(form.value).then(response => {
+        proxy.$modal.msgSuccess("新增成功");
+        open.value = false;
+        getList();
+      }).catch(error => {
+      });
     }
-  });
+  }).catch(() => { });
 }
 
 /** 删除按钮操作 */
 function handleDelete(row) {
   const ids = row.id || ids.value;
-  proxy.$modal.confirm('是否确认删除清洗规则类目编号为"' + ids + '"的数据项？').then(function () {
+  proxy.$modal.confirm('是否确认删除清洗规则目录编号为"' + ids + '"的数据项？').then(function () {
     return delAttCleanCat(ids);
   }).then(() => {
     getList();
@@ -423,7 +417,7 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
-  proxy.download('tax/cleanCat/export', {
+  proxy.download('tax/category/export/CLEAN', {
     ...queryParams.value
   }, `AttCleanCat_${new Date().getTime()}.xlsx`)
 }
@@ -431,7 +425,7 @@ function handleExport() {
 /** ---------------- 导入相关操作 -----------------**/
 /** 导入按钮操作 */
 function handleImport() {
-  upload.title = "清洗规则类目导入";
+  upload.title = "清洗规则目录导入";
   upload.open = true;
 }
 

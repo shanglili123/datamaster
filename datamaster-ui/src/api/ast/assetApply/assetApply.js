@@ -1,15 +1,5 @@
 ﻿
 import request from '@/utils/request'
-import useUserStore from '@/store/system/user'
-
-function withSpace(data = {}) {
-  const userStore = useUserStore()
-  return {
-    ...data,
-    spaceId: data.spaceId || userStore.spaceId || null,
-    spaceCode: data.spaceCode || userStore.spaceCode || ''
-  }
-}
 
 // 查询数据资产申请列表
 export function listDaAssetApply(query) {
@@ -53,12 +43,5 @@ export function delDaAssetApply(id) {
     method: 'delete'
   })
 }
-// 請求
-export function queryServiceForwarding(data) {
-  return request({
-    url: '/ast/api/queryServiceForwarding',
-    method: 'post',
-    data: withSpace(data)
-  })
-}
+
 

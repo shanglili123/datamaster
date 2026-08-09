@@ -2,14 +2,14 @@ import request from '@/utils/request'
 
 export function getErrorStorageConfig() {
   return request({
-    url: '/col/errorStorageConfig/getConfig',
+    url: '/metadata/errorStorageConfig/getConfig',
     method: 'get'
   })
 }
 
 export function setErrorStorageConfig(datasourceId, tableName) {
   return request({
-    url: '/col/errorStorageConfig/setConfig',
+    url: '/metadata/errorStorageConfig/setConfig',
     method: 'post',
     params: { datasourceId, tableName }
   })

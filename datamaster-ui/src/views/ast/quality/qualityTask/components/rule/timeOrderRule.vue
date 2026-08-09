@@ -1,73 +1,76 @@
-﻿<template>
+<template>
   <!-- 时间字段先后顺序校验 -->
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="falg">
-    <el-form-item label="">
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="falg">
+    <a-form-item label="">
       <div
         class="field-line"
         style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px"
       >
-        <el-select
+        <a-select
           v-if="form.conditions.length > 0"
-          v-model="form.conditions[0].leftField"
+          v-model:value="form.conditions[0].leftField"
           placeholder="字段"
           style="width: 120px"
           @change="onLeftFieldChange($event, 0)"
         >
-          <el-option
+          <a-select-option
             v-for="col in timeColumns"
             :key="col.columnName"
-            :label="col.columnName"
             :value="col.columnName"
-          />
-        </el-select>
+            >{{ col.columnName }}</a-select-option
+          >
+        </a-select>
         <div v-else style="width: 120px"></div>
         <template v-for="(cond, index) in form.conditions" :key="index">
-          <el-select
-            v-model="cond.operator"
+          <a-select
+            v-model:value="cond.operator"
             placeholder="符号"
             style="width: 50px"
           >
-            <el-option label="<" value="<" />
-            <el-option label="≤" value="<=" />
-          </el-select>
+            <a-select-option value="<">&lt;</a-select-option>
+            <a-select-option value="<=">≤</a-select-option>
+          </a-select>
 
-          <el-select
-            v-model="cond.rightField"
+          <a-select
+            v-model:value="cond.rightField"
             placeholder="字段"
             style="width: 120px"
           >
-            <el-option
+            <a-select-option
               v-for="col in timeColumns"
               :key="col.columnName"
-              :label="col.columnName"
               :value="col.columnName"
-            />
-          </el-select>
-          <el-button
+              >{{ col.columnName }}</a-select-option
+            >
+          </a-select>
+          <a-button
             v-if="!falg && index === form.conditions.length - 1"
-            icon="Delete"
+            :icon="h(DeleteOutlined)"
             type="danger"
-            circle
+            shape="circle"
             @click="removeLastGroup"
             :disabled="form.conditions.length === 0"
           />
         </template>
 
         <!-- 添加按钮 -->
-        <el-button
+        <a-button
           v-if="!falg"
-          icon="Plus"
+          :icon="h(PlusOutlined)"
           type="primary"
-          circle
+          shape="circle"
           @click="addGroup"
         />
       </div>
-    </el-form-item>
-  </el-form>
+    </a-form-item>
+  </a-form>
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch, onMounted } from "vue";
+import { message } from 'ant-design-vue'
+import { reactive, ref, computed, watch, onMounted, h } from "vue";
+
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
   form: Object,
@@ -155,21 +158,21 @@ watch(
 
 function validateCalculationGroups() {
   if (form.conditions.length === 0) {
-    ElMessage.warning("校验未通过，请至少添加一组计算条件");
+    message.warning("校验未通过，请至少添加一组计算条件");
     return false;
   }
   for (let i = 0; i < form.conditions.length; i++) {
     const group = form.conditions[i];
     if (!group.leftField) {
-      ElMessage.warning(`校验未通过，请填写第 ${i + 1} 个计算组的左字段`);
+      message.warning(`校验未通过，请填写第 ${i + 1} 个计算组的左字段`);
       return false;
     }
     if (!group.operator || !["<", "<="].includes(group.operator)) {
-      ElMessage.warning(`校验未通过，第 ${i + 1} 个计算组的符号无效`);
+      message.warning(`校验未通过，第 ${i + 1} 个计算组的符号无效`);
       return false;
     }
     if (!group.rightField) {
-      ElMessage.warning(`校验未通过，请填写第 ${i + 1} 个计算组的右字段`);
+      message.warning(`校验未通过，请填写第 ${i + 1} 个计算组的右字段`);
       return false;
     }
   }
@@ -178,12 +181,7 @@ function validateCalculationGroups() {
 
 function validate() {
   return new Promise((resolve) => {
-    formRef.value.validate((valid) => {
-      if (!valid) {
-        ElMessage.warning("校验未通过，请完善表单必填项");
-        resolve({ valid: false });
-        return;
-      }
+    formRef.value.validate().then(() => {
       if (!validateCalculationGroups()) {
         resolve({ valid: false });
         return;
@@ -206,6 +204,9 @@ function validate() {
           evaColumn: fieldsArray, // 直接返回字段数组，用于赋值给父组件的evaColumn
         },
       });
+    }).catch(() => {
+      message.warning("校验未通过，请完善表单必填项");
+      resolve({ valid: false });
     });
   });
 }

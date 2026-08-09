@@ -1,66 +1,62 @@
 ﻿<template>
     <div class="justify-between mb15">
-        <el-row :gutter="10" class="btn-style">
-            <el-col :span="1.5">
-                <el-button type="primary" plain icon="Plus">新增</el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="info" plain icon="Sort" @click="toggleExpandAll"
-                    >展开/折叠</el-button
+        <a-row :gutter="10" class="btn-style">
+            <a-col :span="1.5">
+                <a-button type="primary" :icon="h(PlusOutlined)">新增</a-button>
+            </a-col>
+            <a-col :span="1.5">
+                <a-button :icon="h(SwitcherOutlined)" @click="toggleExpandAll"
+                    >展开/折叠</a-button
                 >
-            </el-col>
-        </el-row>
+            </a-col>
+        </a-row>
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </div>
 
-    <el-table
+    <a-table
         height="60vh"
         v-if="refreshTable"
-        v-loading="loading"
-        :data="detailsList"
+        :loading="loading"
+        :data-source="detailsList"
+        :columns="tableColumns"
+        :pagination="false"
         row-key="id"
-        :default-expand-all="isExpandAll"
-        :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+        :default-expand-all-rows="isExpandAll"
+        :children-column-name="'children'"
+        :locale="{ emptyText: '暂无数据' }"
     >
-        <el-table-column label="ID" align="center" prop="parentId">
-            <template #default="scope">
-                {{ scope.row.id || '-' }}
+        <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'createTime'">
+                <span>{{ parseTime(record.createTime, '{y}-{m}-{d}') }}</span>
             </template>
-        </el-table-column>
-        <el-table-column label="标题" prop="title" />
-        <el-table-column label="内容" align="center" prop="content">
-            <template #default="scope">
-                {{ scope.row.content || '-' }}
+            <template v-else-if="column.key === 'actions'">
+                <a-button type="link" :icon="h(EditOutlined)">修改</a-button>
+                <a-button type="link" :icon="h(PlusOutlined)">新增</a-button>
+                <a-button type="link" danger :icon="h(DeleteOutlined)">删除</a-button>
             </template>
-        </el-table-column>
-        <el-table-column label="创建人" align="center" prop="createBy">
-            <template #default="scope">
-                {{ scope.row.createBy || '-' }}
+            <template v-else>
+                <span>{{ record[column.dataIndex] || '-' }}</span>
             </template>
-        </el-table-column>
-        <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-            <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
-            </template>
-        </el-table-column>
-        <el-table-column label="备注" align="center" prop="remark">
-            <template #default="scope">
-                {{ scope.row.remark || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-            <template #default="scope">
-                <el-button link type="primary" icon="Edit">修改</el-button>
-                <el-button link type="primary" icon="Plus">新增</el-button>
-                <el-button link type="danger" icon="Delete">删除</el-button>
-            </template>
-        </el-table-column>
-    </el-table>
+        </template>
+    </a-table>
     <!-- 添加或修改详情对话框 -->
 </template>
 
 <script setup name="ComponentTwo">
+    import { h } from 'vue';
+    import { PlusOutlined, SwitcherOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue';
+
     const { proxy } = getCurrentInstance();
+
+    const tableColumns = [
+        { title: 'ID', dataIndex: 'id', align: 'center' },
+        { title: '标题', dataIndex: 'title', align: 'left' },
+        { title: '内容', dataIndex: 'content', align: 'center' },
+        { title: '创建人', dataIndex: 'createBy', align: 'center' },
+        { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180 },
+        { title: '备注', dataIndex: 'remark', align: 'center' },
+        { title: '操作', key: 'actions', align: 'center', className: 'small-padding fixed-width', width: 200 },
+    ];
 
     const detailsList = ref([]);
     const open = ref(false);

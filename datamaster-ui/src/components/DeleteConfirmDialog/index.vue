@@ -1,12 +1,11 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
+  <a-modal
+    v-model:open="dialogVisible"
     class="deleteConfirmDialog"
     :title="'删除' + (deleTitle ? deleTitle : '')"
     width="520px"
-    :close-on-click-modal="false"
-    @close="handleClose"
-    draggable
+    :mask-closable="false"
+    @afterClose="handleClose"
   >
     <div class="confirm-content">
       <!-- 警告信息 -->
@@ -28,10 +27,10 @@
       </div>
 
       <div class="input-section">
-        <el-input
-          v-model="inputValue"
+        <a-input
+          v-model:value="inputValue"
           :placeholder="`请输入${verificationText}以确认继续操作`"
-          clearable
+          allow-clear
           @input="handleInput"
           class="input-field"
         />
@@ -43,17 +42,17 @@
     </div>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button
+        <a-button @click="dialogVisible = false">取消</a-button>
+        <a-button
           type="primary"
           @click="confirmDelete"
           :disabled="!isInputValid"
         >
           确认删除
-        </el-button>
+        </a-button>
       </span>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>

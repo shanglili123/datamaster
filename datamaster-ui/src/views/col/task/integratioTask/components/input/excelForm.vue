@@ -1,113 +1,123 @@
 <template>
-  <el-dialog v-model="visibleDialog" :draggable="true" class="medium-dialog" :title="currentNode?.data?.name"
-    showCancelButton :show-close="false" destroy-on-close :close-on-click-modal="false">
-    <el-form ref="dpModelRefs" :model="form" label-width="110px" @submit.prevent v-loading="loading" :disabled="info">
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="节点名称" prop="name" :rules="[
+  <a-modal v-model:open="visibleDialog" :draggable="true" class="medium-dialog" :title="currentNode?.data?.name"
+    :closable="false" :destroy-on-close="true" :mask-closable="false">
+    <a-spin :spinning="loading">
+    <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
+      :disabled="info">
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="节点名称" name="name" :rules="[
             { required: true, message: '请输入节点名称', trigger: 'change' },
           ]">
-            <el-input v-model="form.name" placeholder="请输入节点名称" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="类型" prop="typeName">
-            <el-select v-model="form.taskParams.typeName" placeholder="请输入类型" filterable disabled>
-              <el-option v-for="dict in typeList" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="24">
-          <el-form-item label="描述" prop="description">
-            <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="上传附件" prop="taskParams.excelFile" :rules="[
+            <a-input v-model:value="form.name" placeholder="请输入节点名称" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="类型" name="typeName">
+            <a-select v-model:value="form.taskParams.typeName" placeholder="请输入类型" show-search disabled>
+              <a-select-option v-for="dict in typeList" :key="dict.value" :label="dict.label" :value="dict.value">{{ dict.label }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="24">
+          <a-form-item label="描述" name="description">
+            <a-textarea v-model:value="form.description" placeholder="请输入描述" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="上传附件" name="taskParams.excelFile" :rules="[
             { required: true, message: '请上传附件', trigger: 'change' },
           ]">
             <!-- <FileUploadbtn :limit="1" v-model="form.taskParams.excelFile" :dragFlag="false" :file-type="['xlsx', 'xls']"
               :fileSize="50" @handleRemove="handleRemove" /> -->
             <FileUploadbtn :limit="1" v-model="form.taskParams.excelFile" :dragFlag="false" :fileSize="50"
               @handleRemove="handleRemove" :file-type="['xlsx', 'xls']" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="起始行" prop="taskParams.startData" :rules="[
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="起始行" name="taskParams.startData" :rules="[
             { required: true, message: '请输入起始行', trigger: 'change' },
           ]">
-            <el-input-number :step="1" step-strictly placeholder="请输入起始行" v-model="form.taskParams.startData"
-              style="width: 100%" controls-position="right" :min="1" value-on-clear="min" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="起始列" prop="taskParams.startColumn" :rules="[
+            <a-input-number :step="1" placeholder="请输入起始行" v-model:value="form.taskParams.startData"
+              style="width: 100%" :min="1" />
+          </a-form-item>
+        </a-col>
+      </a-row>
+      <a-row :gutter="20">
+        <a-col :span="12">
+          <a-form-item label="起始列" name="taskParams.startColumn" :rules="[
             { required: true, message: '请输入起始列', trigger: 'change' },
           ]">
-            <el-input-number :step="1" step-strictly placeholder="请输入起始列" v-model="form.taskParams.startColumn"
-              style="width: 100%" controls-position="right" :min="1" value-on-clear="min" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-button type="primary" plain @click="parseExcel" style="margin-left: 60px" :disabled="isButtonDisabled">
+            <a-input-number :step="1" placeholder="请输入起始列" v-model:value="form.taskParams.startColumn"
+              style="width: 100%" :min="1" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-button type="primary" @click="parseExcel" style="margin-left: 60px" :disabled="isButtonDisabled">
             解析Excel
-          </el-button>
-        </el-col>
-      </el-row>
-      <el-divider content-position="center">
+          </a-button>
+        </a-col>
+      </a-row>
+      <a-divider orientation="center">
         <span class="blue-text">属性字段</span>
-      </el-divider>
-      <el-table stripe height="310px" v-loading="loadingList" :data="ColumnByAssettab">
-        <el-table-column label="序号" type="index" width="80" align="left">
-          <template #default="scope">
-            <span>{{ scope.$index + 1 }}</span>
+      </a-divider>
+      <a-table striped :loading="loadingList" :data-source="ColumnByAssettab" :columns="tableColumns"
+        :pagination="false" :scroll="{ y: 310 }">
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.dataIndex === 'index'">
+            <span>{{ index + 1 }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="字段名称" align="left" prop="columnName" :show-overflow-tooltip="{ effect: 'light' }">
-          <template #default="scope">
-            {{ scope.row.columnName || "-" }}
+          <template v-else-if="column.dataIndex === 'columnName'">
+            {{ record.columnName || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column label="字段类型" align="left" prop="columnType">
-          <template #default="scope">
-            {{ scope.row.columnType || "-" }}
+          <template v-else-if="column.dataIndex === 'columnType'">
+            {{ record.columnType || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column label="日期格式" align="left" prop="format">
-          <template #default="scope">
-            {{ scope.row.format || "-" }}
+          <template v-else-if="column.dataIndex === 'format'">
+            {{ record.format || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
-          <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="openDialog(scope.row)">修改</el-button>
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="openDialog(record)">修改</a-button>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-form>
+        </template>
+      </a-table>
+    </a-form>
+    </a-spin>
     <template #footer>
       <div style="text-align: right">
-        <el-button @click="closeDialog">关闭</el-button>
-        <el-button type="primary" @click="saveData" v-if="!info">保存</el-button>
+        <a-button @click="closeDialog">关闭</a-button>
+        <a-button type="primary" @click="saveData" v-if="!info">保存</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
   <excelUploadDialog :visible="open" title="属性字段编辑" @update:visible="open = $event" @confirm="handletaskConfig"
     :data="row" />
 </template>
 <script setup>
+import { message } from 'ant-design-vue'
 import { getToken } from "@/utils/auth.js";
+
 import { typeList } from "@/utils/graph.js";
+
 import { getLocalNodeUniqueKey as getNodeUniqueKey, getExcelColumn } from "@/api/col/task/index.js";
+
 import excelUploadDialog from "../excelUpload.vue";
+
 import FileUploadbtn from '@/components/FileUploadbtn/index1.vue'
 const { proxy } = getCurrentInstance();
+
+const tableColumns = [
+    { title: '序号', dataIndex: 'index', width: 80, align: 'left' },
+    { title: '字段名称', dataIndex: 'columnName', align: 'left', ellipsis: true },
+    { title: '字段类型', dataIndex: 'columnType', align: 'left' },
+    { title: '日期格式', dataIndex: 'format', align: 'left' },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
+
 import useUserStore from "@/store/system/user.js";
 const userStore = useUserStore();
 const props = defineProps({
@@ -163,15 +173,15 @@ const isButtonDisabled = computed(() => {
 // 获取列数据
 const parseExcel = async (id) => {
   if (!form.value.taskParams.startData) {
-    ElMessage.warning("解析失败，请添加起始行");
+    message.warning("解析失败，请添加起始行");
     return;
   }
   if (!form.value.taskParams.startColumn) {
-    ElMessage.warning("解析失败，请添加起始列");
+    message.warning("解析失败，请添加起始列");
     return;
   }
   if (!form.value.taskParams.excelFile) {
-    ElMessage.warning("解析失败，请添加附件");
+    message.warning("解析失败，请添加附件");
     return;
   }
   loadingList.value = true;
@@ -190,13 +200,13 @@ const parseExcel = async (id) => {
         columnType: "string",
       }));
 
-      ElMessage.success("Excel解析成功，请确认属性字段类型！");
+      message.success("Excel解析成功，请确认属性字段类型！");
     } else {
-      ElMessage.warning("Excel解析失败，未获取到有效数据！");
+      message.warning("Excel解析失败，未获取到有效数据！");
     }
   } catch (error) {
     if (response.code == 200)
-      ElMessage.warning("Excel解析失败，请检查文件格式或内容！");
+      message.warning("Excel解析失败，请检查文件格式或内容！");
   } finally {
     loadingList.value = false;
   }

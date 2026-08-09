@@ -1,53 +1,56 @@
 ﻿<template>
     <dp-main>
         <template #header>
-            <el-form :model="params" ref="realForm" :inline="true">
-                <el-form-item label="年份：" prop="years">
-                    <el-dropdown trigger="click" placement="bottom-start" :hide-on-click="false">
-                        <el-input style="width: 120px" v-model="params.years" readonly></el-input>
-                        <template #dropdown>
-                            <el-checkbox-group v-model="params.years" style="width: 120px">
-                                <el-dropdown-item
-                                    v-for="(item, index) in yearsOptions"
-                                    :key="index"
-                                >
-                                    <el-checkbox :value="item.label" style="width: 100%">
+            <a-form :model="params" ref="realForm" :label-col="{ style: { width: '90px' } }" layout="inline">
+                <a-form-item label="年份：" name="years">
+                    <a-dropdown :trigger="['click']" placement="bottom-start">
+                        <a-input style="width: 120px" v-model:value="params.years" readonly></a-input>
+                        <template #overlay>
+                            <div style="padding: 6px 10px; width: 120px">
+                                <a-checkbox-group v-model:value="params.years">
+                                    <a-checkbox
+                                        v-for="(item, index) in yearsOptions"
+                                        :key="index"
+                                        :value="item.label"
+                                        style="width: 100%"
+                                        @click.stop
+                                    >
                                         {{ item.label }}
-                                    </el-checkbox>
-                                </el-dropdown-item>
-                            </el-checkbox-group>
+                                    </a-checkbox>
+                                </a-checkbox-group>
+                            </div>
                         </template>
-                    </el-dropdown>
-                </el-form-item>
-                <el-form-item label="时段选择：" prop="avgTypeId">
-                    <el-select style="width: 80px" v-model="params.avgTypeId" placeholder="请选择">
-                        <el-option
+                    </a-dropdown>
+                </a-form-item>
+                <a-form-item label="时段选择：" name="avgTypeId">
+                    <a-select style="width: 80px" v-model:value="params.avgTypeId" placeholder="请选择">
+                        <a-select-option
                             v-for="item in avgTypeIdOptions"
                             :key="item.value"
-                            :label="item.label"
                             :value="item.value"
                         >
-                        </el-option>
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="极值类型" prop="sizeType">
-                    <el-radio-group v-model="params.sizeType">
-                        <el-radio value="极大值">极大值</el-radio>
-                        <el-radio value="极小值">极小值</el-radio>
-                    </el-radio-group>
-                </el-form-item>
-                <el-form-item label="图表类型" prop="chartType">
-                    <el-radio-group v-model="params.chartType">
-                        <el-radio value="bar">柱状图</el-radio>
-                        <el-radio value="line">折线图</el-radio>
-                    </el-radio-group>
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" :icon="Search" @click="getChartData">
+                            {{ item.label }}
+                        </a-select-option>
+                    </a-select>
+                </a-form-item>
+                <a-form-item label="极值类型" name="sizeType">
+                    <a-radio-group v-model:value="params.sizeType">
+                        <a-radio value="极大值">极大值</a-radio>
+                        <a-radio value="极小值">极小值</a-radio>
+                    </a-radio-group>
+                </a-form-item>
+                <a-form-item label="图表类型" name="chartType">
+                    <a-radio-group v-model:value="params.chartType">
+                        <a-radio value="bar">柱状图</a-radio>
+                        <a-radio value="line">折线图</a-radio>
+                    </a-radio-group>
+                </a-form-item>
+                <a-form-item>
+                    <a-button type="primary" :icon="SearchOutlined" @click="getChartData">
                         查询
-                    </el-button>
-                </el-form-item>
-            </el-form>
+                    </a-button>
+                </a-form-item>
+            </a-form>
         </template>
         <dp-shrink width="600px" placement="right" @change="handleShrinkChange">
             <template #flex>
@@ -68,7 +71,7 @@
 
 <script setup name="DetailPopResViewA4">
 
-    import { Search } from '@element-plus/icons-vue';
+    import { SearchOutlined } from '@ant-design/icons-vue';
 
     const params = ref({
         avgTypeId: '1',

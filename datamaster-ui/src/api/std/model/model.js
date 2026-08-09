@@ -66,10 +66,10 @@ export function delDpModelColumn(ID) {
         method: 'delete'
     });
 }
-// 查询逻辑模型类目管理列表
+// 查询逻辑模型目录管理列表
 export function listAttModelCat(query) {
     return request({
-        url: '/tax/modelCat/list',
+        url: '/tax/category/list/MODEL',
         method: 'get',
         params: query
     });
@@ -93,7 +93,7 @@ export function updateDpModelColumn(data) {
 // 物化
 export function createMaterializedTable(data) {
     return request({
-        url: '/std/modelMaterialized/createMaterializedTable',
+        url: '/assets/materialized/createMaterializedTable',
         method: 'post',
         data: data
     });

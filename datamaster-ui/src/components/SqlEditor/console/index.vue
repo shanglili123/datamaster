@@ -4,30 +4,28 @@
     <div class="container-header">
       <span class="title">{{ currItem.name }}</span>
       <span class="close" @click="closeCurrDialog">
-        <el-icon>
-          <Minus />
-        </el-icon>
+        <MinusOutlined />
       </span>
     </div>
     <div class="container-content">
       <template v-if="currItem.type == 'console'">
         <div class="console-view">
           <div class="leftTree" :style="`width: calc(100% - ${consoleWidth}px);`">
-            <el-tree class="console-tree" style="min-width: 240px" :data="treeData" :props="{
+            <a-tree class="console-tree" style="min-width: 240px" :tree-data="treeData" :field-names="{
               children: 'children',
-              label: 'label',
-            }" default-expand-all highlight-current :expand-on-click-node="false" @node-click="handleNodeClick">
-              <template #default="{ node, data }">
+              title: 'label',
+              key: 'value',
+            }" default-expand-all :expand-action="false" @select="(keys, e) => handleNodeClick(e.node.data)"
+>
+              <template #title="{ data }">
                 <span class="custom-tree-node">
-                  <el-icon class="icon">
-                    <CircleCheckFilled />
-                  </el-icon>
-                  <!-- <el-icon class="icon"><CircleCloseFilled /></el-icon> -->
-                  <span class="label">{{ node.label }}</span>
+                  <CheckCircleFilled class="icon" />
+                  <!-- <CircleCloseFilled class="icon" /> -->
+                  <span class="label">{{ data.label }}</span>
                   <span class="value">{{ data.value }}{{ data.unit }}</span>
                 </span>
               </template>
-            </el-tree>
+            </a-tree>
           </div>
           <div class="codeEdit" :style="`width: ${consoleWidth}px;`">
 
@@ -38,21 +36,23 @@
       </template>
       <template v-if="currItem.type == 'result'">
         <div class="result-view">
-          <el-button class="result-icon" type="primary" @click="handleSearch" icon="Search">获取最新数据</el-button>
-          <el-empty description="暂无数据" />
+          <a-button class="result-icon" type="primary" @click="handleSearch" :icon="h(SearchOutlined)">获取最新数据</a-button>
+          <a-empty description="暂无数据" />
         </div>
       </template>
       <template v-if="currItem.type == 'history'">
         <div class="history-view">
-          <el-empty description="暂无数据" />
+          <a-empty description="暂无数据" />
         </div>
       </template>
     </div>
   </div>
 </template>
 <script setup name="EditorConsole">
+import { h } from 'vue'
 import CodeShow from "@/components/SqlEditor/editorShow/index.vue";
 import { getRunTaskInstance, getLogByTaskInstanceId } from "@/api/col/task/index.js";
+import { MinusOutlined, CheckCircleFilled, SearchOutlined } from "@ant-design/icons-vue";
 // #region curr弹框拖拽
 const currHeight = ref(345); // 初始左侧宽度
 const isCurrResizing = ref(false); // 判断是否正在拖拽

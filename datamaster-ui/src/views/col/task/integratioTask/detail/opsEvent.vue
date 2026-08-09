@@ -1,68 +1,51 @@
 <template>
   <div class="ops-event">
-    <el-table stripe height="500px" v-loading="loading" :data="list">
-      <el-table-column width="180" label="事件类型" align="left" prop="eventType">
-        <template #default="scope">
-          <el-tag :type="scope.row.eventType === 'TASK_FAILED' ? 'danger' : 'warning'">
-            {{ scope.row.eventType || '-' }}
-          </el-tag>
+    <a-table height="500px" :loading="loading" :data-source="list" :columns="columns">
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'eventType'">
+          <a-tag :type="record.eventType === 'TASK_FAILED' ? 'error' : 'warning'">
+            {{ record.eventType || '-' }}
+          </a-tag>
         </template>
-      </el-table-column>
-      <el-table-column width="110" label="执行类型" align="left" prop="taskType">
-        <template #default="scope">
-          {{ taskTypeLabel(scope.row.taskType) }}
+        <template v-else-if="column.key === 'taskType'">
+          {{ taskTypeLabel(record.taskType) }}
         </template>
-      </el-table-column>
-      <el-table-column width="110" label="执行状态" align="left" prop="instanceStatus">
-        <template #default="scope">
-          <el-tag
-            v-if="scope.row.instanceStatus"
-            :type="taskInstanceStatusType(scope.row.instanceStatus)"
-            size="small"
+        <template v-else-if="column.key === 'instanceStatus'">
+          <a-tag
+            v-if="record.instanceStatus"
+            :type="taskInstanceStatusType(record.instanceStatus)"
           >
-            {{ taskInstanceStatusLabel(scope.row.instanceStatus) }}
-          </el-tag>
+            {{ taskInstanceStatusLabel(record.instanceStatus) }}
+          </a-tag>
           <span v-else>-</span>
         </template>
-      </el-table-column>
-      <el-table-column width="120" label="失败类型" align="left" prop="failureType">
-        <template #default="scope">
-          {{ scope.row.failureType || '-' }}
+        <template v-else-if="column.key === 'failureType'">
+          {{ record.failureType || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column width="90" label="风险等级" align="left" prop="riskLevel">
-        <template #default="scope">
-          <el-tag v-if="scope.row.riskLevel === 'HIGH'" type="danger" size="small">高</el-tag>
-          <el-tag v-else-if="scope.row.riskLevel === 'MEDIUM'" type="warning" size="small">中</el-tag>
-          <el-tag v-else-if="scope.row.riskLevel === 'LOW'" type="info" size="small">低</el-tag>
-          <span v-else>{{ scope.row.riskLevel || '-' }}</span>
+        <template v-else-if="column.key === 'riskLevel'">
+          <a-tag v-if="record.riskLevel === 'HIGH'" type="error">高</a-tag>
+          <a-tag v-else-if="record.riskLevel === 'MEDIUM'" type="warning">中</a-tag>
+          <a-tag v-else-if="record.riskLevel === 'LOW'">低</a-tag>
+          <span v-else>{{ record.riskLevel || '-' }}</span>
         </template>
-      </el-table-column>
-      <el-table-column width="110" label="执行动作" align="left" prop="action">
-        <template #default="scope">
-          {{ actionLabel(scope.row.action) }}
+        <template v-else-if="column.key === 'action'">
+          {{ actionLabel(record.action) }}
         </template>
-      </el-table-column>
-      <el-table-column width="90" label="动作状态" align="left" prop="actionStatus">
-        <template #default="scope">
-          <el-tag :type="scope.row.actionStatus === 'SUCCESS' ? 'success' : scope.row.actionStatus === 'FAILED' ? 'danger' : 'info'" size="small">
-            {{ scope.row.actionStatus || '-' }}
-          </el-tag>
+        <template v-else-if="column.key === 'actionStatus'">
+          <a-tag :type="record.actionStatus === 'SUCCESS' ? 'success' : record.actionStatus === 'FAILED' ? 'error' : 'default'">
+            {{ record.actionStatus || '-' }}
+          </a-tag>
         </template>
-      </el-table-column>
-      <el-table-column label="原因" align="left" prop="reason" min-width="200" show-overflow-tooltip />
-      <el-table-column label="建议" align="left" prop="suggestion" min-width="200" show-overflow-tooltip />
-      <el-table-column width="160" label="发生时间" align="left" prop="createTime">
-        <template #default="scope">
-          {{ parseTime(scope.row.createTime, '{y}-{m}-{d} {h}:{i}') || '-' }}
+        <template v-else-if="column.key === 'createTime'">
+          {{ parseTime(record.createTime, '{y}-{m}-{d} {h}:{i}') || '-' }}
         </template>
-      </el-table-column>
+      </template>
       <template #empty>
         <div class="emptyBg">
           <p>暂无运维事件</p>
         </div>
       </template>
-    </el-table>
+    </a-table>
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
       v-model:limit="queryParams.pageSize" @pagination="getList" />
   </div>
@@ -84,6 +67,19 @@ const queryParams = reactive({
   pageSize: 6,
 });
 
+const columns = [
+  { title: '事件类型', dataIndex: 'eventType', key: 'eventType', width: 180, align: 'left' },
+  { title: '执行类型', dataIndex: 'taskType', key: 'taskType', width: 110, align: 'left' },
+  { title: '执行状态', dataIndex: 'instanceStatus', key: 'instanceStatus', width: 110, align: 'left' },
+  { title: '失败类型', dataIndex: 'failureType', key: 'failureType', width: 120, align: 'left' },
+  { title: '风险等级', dataIndex: 'riskLevel', key: 'riskLevel', width: 90, align: 'left' },
+  { title: '执行动作', dataIndex: 'action', key: 'action', width: 110, align: 'left' },
+  { title: '动作状态', dataIndex: 'actionStatus', key: 'actionStatus', width: 90, align: 'left' },
+  { title: '原因', dataIndex: 'reason', key: 'reason', minWidth: 200, align: 'left', ellipsis: true },
+  { title: '建议', dataIndex: 'suggestion', key: 'suggestion', minWidth: 200, align: 'left', ellipsis: true },
+  { title: '发生时间', dataIndex: 'createTime', key: 'createTime', width: 160, align: 'left' },
+];
+
 function actionLabel(action) {
   const map = {
     UNLOAD_TASK: "下线任务",
@@ -104,18 +100,18 @@ function taskTypeLabel(taskType) {
 }
 
 const taskInstanceStatusMap = {
-  0: { label: "提交成功", type: "info" },
-  1: { label: "运行中", type: "primary" },
+  0: { label: "提交成功", type: "default" },
+  1: { label: "运行中", type: "processing" },
   2: { label: "准备暂停", type: "warning" },
   3: { label: "暂停", type: "warning" },
   4: { label: "准备停止", type: "warning" },
-  5: { label: "停止", type: "info" },
-  6: { label: "失败", type: "danger" },
+  5: { label: "停止", type: "default" },
+  6: { label: "失败", type: "error" },
   7: { label: "成功", type: "success" },
   8: { label: "需要容错", type: "warning" },
-  9: { label: "已杀死", type: "danger" },
-  10: { label: "等待线程", type: "info" },
-  11: { label: "等待依赖", type: "info" },
+  9: { label: "已杀死", type: "error" },
+  10: { label: "等待线程", type: "default" },
+  11: { label: "等待依赖", type: "default" },
 };
 
 function taskInstanceStatusLabel(status) {
@@ -123,7 +119,7 @@ function taskInstanceStatusLabel(status) {
 }
 
 function taskInstanceStatusType(status) {
-  return taskInstanceStatusMap[String(status)]?.type || "info";
+  return taskInstanceStatusMap[String(status)]?.type || "default";
 }
 
 async function getList() {

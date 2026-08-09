@@ -1,80 +1,64 @@
 <template>
   <div class="app-container" ref="app-container">
     <div class="pagecont-top" v-show="showSearch">
-      <el-form class="btn-style" :model="queryParams" ref="queryForm" :inline="true" label-width="68px">
-        <el-form-item label="主体名称" prop="name">
-          <el-input
-            v-model="queryParams.name"
+      <a-form class="btn-style" :model="queryParams" ref="queryForm" :layout="inline" :label-col="{ style: { width: '68px' } }">
+        <a-form-item label="主体名称" name="name">
+          <a-input
+            v-model:value="queryParams.name"
             placeholder="请输入主体名称"
             class="el-form-input-width"
-            clearable
-            @keyup.enter.native="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item>
-              <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+        </a-form-item>
+        <a-form-item>
+              <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-              </el-button>
-              <el-button @click="resetQuery" @mousedown="e => e.preventDefault()">
+              </a-button>
+              <a-button @click="resetQuery" @mousedown="e => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-              </el-button>
-        </el-form-item>
-      </el-form>
+              </a-button>
+        </a-form-item>
+      </a-form>
     </div>
     <div  class="pagecont-bottom">
 
       <div class="justify-between mb15">
-      <el-row :gutter="10" class="btn-style">
-        <el-col :span="1.5">
-          <el-button
+      <a-row :gutter="10" class="btn-style">
+        <a-col :span="1.5">
+          <a-button
             type="primary"
-            plain
-            icon="plus"
+            :icon="h(PlusOutlined)"
             @click="handleAdd"
             v-hasPermi="['ca:subject:add']"
-          >新增</el-button>
-        </el-col>
-      </el-row>
+          >新增</a-button>
+        </a-col>
+      </a-row>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
       </div>
 
-      <el-table stripe height="60vh" v-loading="loading" :data="subjectList" @selection-change="handleSelectionChange">
-        <el-table-column label="ID" align="center" prop="id" />
-        <el-table-column label="主体名称" align="center" prop="name" :show-overflow-tooltip="true" />
-        <el-table-column label="通用名称" align="center" prop="cn" :show-overflow-tooltip="true" />
-        <el-table-column label="组织部门" align="center" prop="ou" />
-        <el-table-column label="组织名称" align="center" prop="o" />
-        <el-table-column label="城市名称" align="center" prop="l" />
-        <el-table-column label="省名称" align="center" prop="st" />
-        <el-table-column label="国家" align="center" prop="c" />
-  <!--      <el-table-column label="备注" align="center" prop="remark" />-->
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width"  fixed="right" width="240">
-          <template #default="scope">
-            <el-button
-                link
-                type="primary"
-                icon="download"
-                @click="downloadFiles(scope.row)"
-                v-hasPermi="['ca:subject:remove']"
-            >下载</el-button>
-  <!--          <el-button-->
-  <!--            size="mini"-->
-  <!--            type="text"-->
-  <!--            icon="el-icon-edit"-->
-  <!--            @click="handleUpdate(scope.row)"-->
-  <!--            v-hasPermi="['ca:subject:edit']"-->
-  <!--          >修改</el-button>-->
-            <el-button
-                link
-                type="primary"
-                style="color: red"
-                icon="Delete"
-                @click="handleDelete(scope.row)"
-                v-hasPermi="['ca:subject:remove']"
-            >删除</el-button>
+      <a-spin :spinning="loading">
+        <a-table
+          :data-source="subjectList"
+          :columns="tableColumns"
+          :pagination="false"
+          striped
+          :scroll="{ y: '60vh' }"
+          :row-selection="{ type: 'checkbox', onChange: handleSelectionChange }"
+          row-key="id"
+          :locale="{ emptyText: emptyContent }"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'actions'">
+              <a-button type="link" size="small" @click="downloadFiles(record)" v-hasPermi="['ca:subject:remove']">下载</a-button>
+              <a-button type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['ca:subject:remove']">删除</a-button>
+            </template>
+            <template v-else>
+              <span>{{ record[column.dataIndex] || '-' }}</span>
+            </template>
           </template>
-        </el-table-column>
-      </el-table>
+        </a-table>
+      </a-spin>
 
       <pagination
         v-show="total>0"
@@ -86,60 +70,82 @@
     </div>
 
     <!-- 添加或修改主体管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']"   draggable destroy-on-close>
-      <el-form ref="form" :model="form" :rules="rules" label-width="80px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="主体名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入主体名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="通用名称" prop="cn">
-              <el-input v-model="form.cn" placeholder="请输入通用名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="部门名称" prop="ou">
-              <el-input v-model="form.ou" placeholder="请输入部门名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="组织名称" prop="o">
-              <el-input v-model="form.o" placeholder="请输入组织名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="城市名称" prop="l">
-              <el-input v-model="form.l" placeholder="请输入城市名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="省份名称" prop="st">
-              <el-input v-model="form.st" placeholder="请输入省名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="国家名称" prop="c">
-              <el-input v-model="form.c" placeholder="请输入国家" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+    <a-modal :title="title" v-model:open="open" width="800px" destroy-on-close>
+      <a-form ref="form" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="主体名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入主体名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="通用名称" name="cn">
+              <a-input v-model:value="form.cn" placeholder="请输入通用名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="部门名称" name="ou">
+              <a-input v-model:value="form.ou" placeholder="请输入部门名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="组织名称" name="o">
+              <a-input v-model:value="form.o" placeholder="请输入组织名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="城市名称" name="l">
+              <a-input v-model:value="form.l" placeholder="请输入城市名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="省份名称" name="st">
+              <a-input v-model:value="form.st" placeholder="请输入省名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="国家名称" name="c">
+              <a-input v-model:value="form.c" placeholder="请输入国家" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancel">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script>
+
 import { listSubject, getSubject, delSubject, addSubject, updateSubject } from "@/api/system/ca/subject.js";
+
 import JSZip from 'jszip';
+
 import {red} from "chalk";
+import { PlusOutlined } from "@ant-design/icons-vue";
+import { h } from 'vue';
+
+const tableColumns = [
+  { title: 'ID', dataIndex: 'id', align: 'center' },
+  { title: '主体名称', dataIndex: 'name', align: 'center', ellipsis: true },
+  { title: '通用名称', dataIndex: 'cn', align: 'center', ellipsis: true },
+  { title: '组织部门', dataIndex: 'ou', align: 'center' },
+  { title: '组织名称', dataIndex: 'o', align: 'center' },
+  { title: '城市名称', dataIndex: 'l', align: 'center' },
+  { title: '省名称', dataIndex: 'st', align: 'center' },
+  { title: '国家', dataIndex: 'c', align: 'center' },
+  { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 },
+];
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
 
 export default {
   name: "Subject",
@@ -279,10 +285,10 @@ export default {
       this.handleQuery();
     },
     // 多选框选中数据
-    handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.id)
-      this.single = selection.length!==1
-      this.multiple = !selection.length
+    handleSelectionChange(selectedRowKeys, selectedRows) {
+      this.ids = selectedRows.map(item => item.id)
+      this.single = selectedRows.length!==1
+      this.multiple = !selectedRows.length
     },
     /** 新增按钮操作 */
     handleAdd() {
@@ -302,23 +308,21 @@ export default {
     },
     /** 提交按钮 */
     submitForm() {
-      this.$refs["form"].validate(valid => {
-        if (valid) {
-          if (this.form.id != null) {
-            updateSubject(this.form).then(response => {
-              this.$modal.msgSuccess("修改成功");
-              this.open = false;
-              this.getList();
-            });
-          } else {
-            addSubject(this.form).then(response => {
-              this.$modal.msgSuccess("新增成功");
-              this.open = false;
-              this.getList();
-            });
-          }
+      this.$refs["form"].validate().then(() => {
+        if (this.form.id != null) {
+          updateSubject(this.form).then(response => {
+            this.$modal.msgSuccess("修改成功");
+            this.open = false;
+            this.getList();
+          });
+        } else {
+          addSubject(this.form).then(response => {
+            this.$modal.msgSuccess("新增成功");
+            this.open = false;
+            this.getList();
+          });
         }
-      });
+      }).catch(() => {});
     },
     /** 删除按钮操作 */
     handleDelete(row) {

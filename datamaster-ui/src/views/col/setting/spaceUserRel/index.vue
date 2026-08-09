@@ -1,13 +1,13 @@
 <template>
     <div class="app-container" ref="app-container">
-        <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-            <el-tab-pane label="空间成员" name="first">
+        <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+            <a-tab-pane key="first" tab="空间成员">
                 <User ref="userRef"></User>
-            </el-tab-pane>
-            <el-tab-pane label="空间角色" name="second">
+            </a-tab-pane>
+            <a-tab-pane key="second" tab="空间角色">
                 <Role ref="roleRef"></Role>
-            </el-tab-pane>
-        </el-tabs>
+            </a-tab-pane>
+        </a-tabs>
     </div>
 </template>
 
@@ -19,7 +19,7 @@ const activeName = ref('first');
 </script>
 
 <style scoped lang="less">
-::v-deep(.el-tabs__header) {
+::v-deep(.ant-tabs-nav) {
     margin: 0 0 0px;
     padding: 0px 15px 0px 15px;
     position: relative;

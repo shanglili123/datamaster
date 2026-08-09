@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="dm-page workspace-home">
     <div class="dm-page__header">
       <div>
@@ -8,38 +8,39 @@
         </div>
       </div>
       <div class="workspace-home__actions">
-        <el-button :icon="Refresh" @click="loadSpaces">刷新</el-button>
-        <el-button
+        <a-button :icon="h(ReloadOutlined)" @click="loadSpaces">刷新</a-button>
+        <a-button
           v-if="canCreateSpace"
           type="primary"
-          :icon="Plus"
+          :icon="h(PlusOutlined)"
           @click="goCreateSpace"
         >
           新增空间
-        </el-button>
+        </a-button>
       </div>
     </div>
 
-    <el-row :gutter="16" class="workspace-home__main">
-      <el-col :xs="24" :lg="15">
+    <a-row :gutter="16" class="workspace-home__main">
+      <a-col :xs="24" :lg="15">
         <div class="dm-card workspace-home__spaces">
           <div class="dm-card__header">
             <div class="workspace-home__card-title">
               <span class="dm-card__title">空间列表</span>
-              <el-tag size="small" type="info">{{ spaceList.length }} 个</el-tag>
+              <a-tag size="small">{{ spaceList.length }} 个</a-tag>
               <span class="workspace-home__hint">仅展示当前登录人有权限的空间</span>
             </div>
-            <el-input
-              v-model="keyword"
-              clearable
-              :prefix-icon="Search"
+            <a-input
+              v-model:value="keyword"
+              allow-clear
               placeholder="搜索空间名称或编码"
               class="workspace-home__search"
-            />
+            >
+              <template #prefix><SearchOutlined /></template>
+            </a-input>
           </div>
           <div class="dm-card__body">
-            <el-skeleton v-if="loading" :rows="6" animated />
-            <el-empty
+            <a-skeleton v-if="loading" :paragraph="{ rows: 6 }" active />
+            <a-empty
               v-else-if="filteredSpaces.length === 0"
               description="暂无可进入的空间"
             />
@@ -55,9 +56,9 @@
               >
                 <div class="space-card__top">
                   <div class="space-card__icon">
-                    <el-icon><FolderOpened /></el-icon>
+                    <FolderOpenOutlined />
                   </div>
-                  <el-tag size="small" effect="plain">空间</el-tag>
+                  <a-tag size="small">空间</a-tag>
                 </div>
                 <div class="space-card__name" :title="space.name">
                   {{ space.name || "未命名空间" }}
@@ -67,42 +68,41 @@
                 </div>
                 <div class="space-card__footer">
                   <span>点击查看统计，双击进入</span>
-                  <el-button
-                    link
-                    type="primary"
+                  <a-button
+                    type="link"
                     @click.stop="enterSpace(space)"
                   >
                     进入
-                  </el-button>
+                  </a-button>
                 </div>
               </button>
             </div>
           </div>
         </div>
-      </el-col>
+      </a-col>
 
-      <el-col :xs="24" :lg="9">
+      <a-col :xs="24" :lg="9">
         <div class="workspace-home__side">
           <template v-if="!activeSpace">
             <div class="dm-card workspace-home__summary workspace-home__summary--empty">
               <div class="dm-card__body">
-                <el-empty description="请选择空间查看统计" :image-size="72" />
+                <a-empty description="请选择空间查看统计" :image-style="{ height: '72px' }" />
               </div>
             </div>
           </template>
           <template v-else>
-            <el-skeleton v-if="statsLoading" :rows="8" animated />
+            <a-skeleton v-if="statsLoading" :paragraph="{ rows: 8 }" active />
             <template v-else>
               <div class="dm-card workspace-home__summary">
                 <div class="dm-card__header">
                   <span class="dm-card__title">资源概览</span>
-                  <el-tag size="small" type="success">{{ activeSpace?.name }}</el-tag>
+                  <a-tag size="small" color="success">{{ activeSpace?.name }}</a-tag>
                 </div>
                 <div class="dm-card__body">
                   <div class="dm-metric-grid workspace-home__metrics-resource">
                     <div v-for="item in resourceCards" :key="item.label" class="dm-metric-card dm-metric-card--sm">
                       <div class="dm-metric-card__label">
-                        <el-icon><component :is="item.icon" /></el-icon>
+                        <component :is="item.icon" />
                         <span>{{ item.label }}</span>
                       </div>
                       <div class="dm-metric-card__value">{{ item.value }}</div>
@@ -118,7 +118,7 @@
                   <div class="dm-metric-grid workspace-home__metrics-task">
                     <div v-for="item in taskCards" :key="item.label" class="dm-metric-card">
                       <div class="dm-metric-card__label">
-                        <el-icon><component :is="item.icon" /></el-icon>
+                        <component :is="item.icon" />
                         <span>{{ item.label }}</span>
                       </div>
                       <div class="dm-metric-card__value">{{ item.value }}</div>
@@ -136,49 +136,47 @@
               <span class="workspace-home__hint">当前空间各表行数</span>
             </div>
             <div class="dm-card__body">
-              <el-table
+              <a-table
                 v-if="tableRows.length > 0"
-                :data="tableRows"
-                stripe
+                :data-source="tableRows"
+                :columns="tableColumns"
+                :pagination="false"
+                :row-key="(record) => record.tableName + '-' + record.schemaName"
+                size="small"
                 height="100%"
-              >
-                <el-table-column prop="datasourceName" label="数据源" min-width="140" />
-                <el-table-column prop="schemaName" label="库/Schema" min-width="120" />
-                <el-table-column prop="tableName" label="表名" min-width="150" />
-                <el-table-column prop="rowCount" label="数据量" width="100" align="right" />
-              </el-table>
-              <el-empty
+              />
+              <a-empty
                 v-else
                 description="暂无表数据量统计"
-                :image-size="72"
+                :image-style="{ height: '72px' }"
               />
             </div>
           </div>
         </div>
-      </el-col>
-    </el-row>
+      </a-col>
+    </a-row>
   </div>
 </template>
 
 <script setup name="Index">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, h } from "vue";
 import { useRouter } from "vue-router";
 import {
-  Coin,
-  Collection,
-  Connection,
-  DataAnalysis,
-  DataBoard,
-  DataLine,
-  Document,
-  FolderOpened,
-  Plus,
-  Refresh,
-  Search,
-  Tickets,
+  ApiOutlined,
+  BookOutlined,
+  CodeOutlined,
+  DollarOutlined,
+  FileTextOutlined,
+  FolderOpenOutlined,
+  FolderOutlined,
+  LineChartOutlined,
+  PlusOutlined,
+  ProfileOutlined,
+  ReloadOutlined,
+  SearchOutlined,
   WarningFilled,
-} from "@element-plus/icons-vue";
-import { ElMessage } from "element-plus";
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 import { currentUser } from "@/api/tax/space/space";
 import { getRoutersDpp } from "@/api/system/menu";
 import { homeList } from "@/api/system/home";
@@ -234,12 +232,12 @@ const filteredSpaces = computed(() => {
 });
 
 const resourceCards = computed(() => [
-  { label: "数据源", value: stats.datasourceTotal, icon: Coin },
-  { label: "采集表", value: stats.catalogTableTotal, icon: Collection },
-  { label: "API服务", value: stats.apiTotal, icon: Tickets },
-  { label: "数据标准", value: stats.dataElemTotal, icon: DataBoard },
-  { label: "数据模型", value: stats.modelTotal, icon: DataAnalysis },
-  { label: "标签", value: stats.tagTotal, icon: Document },
+  { label: "数据源", value: stats.datasourceTotal, icon: DollarOutlined },
+  { label: "采集表", value: stats.catalogTableTotal, icon: FolderOutlined },
+  { label: "API服务", value: stats.apiTotal, icon: ProfileOutlined },
+  { label: "数据标准", value: stats.dataElemTotal, icon: BookOutlined },
+  { label: "数据模型", value: stats.modelTotal, icon: LineChartOutlined },
+  { label: "标签", value: stats.tagTotal, icon: FileTextOutlined },
 ]);
 
 const taskCards = computed(() => [
@@ -247,19 +245,19 @@ const taskCards = computed(() => [
     label: "数据集成任务",
     value: stats.integrationTotal,
     sub: `失败 ${stats.integrationFailed}`,
-    icon: Connection,
+    icon: ApiOutlined,
   },
   {
     label: "数据开发任务",
     value: stats.developTotal,
     sub: `失败 ${stats.developFailed}`,
-    icon: DataLine,
+    icon: CodeOutlined,
   },
   {
     label: "API 调用",
     value: stats.apiCalls,
     sub: `异常 ${stats.apiErrors}`,
-    icon: Tickets,
+    icon: ProfileOutlined,
   },
   {
     label: "风险任务",
@@ -268,6 +266,13 @@ const taskCards = computed(() => [
     icon: WarningFilled,
   },
 ]);
+
+const tableColumns = [
+  { title: "数据源", dataIndex: "datasourceName", key: "datasourceName", minWidth: 140 },
+  { title: "库/Schema", dataIndex: "schemaName", key: "schemaName", minWidth: 120 },
+  { title: "表名", dataIndex: "tableName", key: "tableName", minWidth: 150 },
+  { title: "数据量", dataIndex: "rowCount", key: "rowCount", width: 100, align: "right" },
+];
 
 const riskTaskCount = computed(() => {
   const values = [stats.integrationFailed, stats.developFailed, stats.apiErrors]
@@ -314,7 +319,7 @@ async function loadSpaces() {
     spaceList.value = [];
     activeSpace.value = null;
     resetStats();
-    ElMessage.error("空间列表加载失败");
+    message.error("空间列表加载失败");
   } finally {
     loading.value = false;
   }
@@ -375,7 +380,7 @@ async function enterSpace(space) {
     const targetPath = findFirstRoutePath(permissionStore.addRoutes);
     router.push(targetPath || "/index");
   } catch {
-    ElMessage.error("空间菜单加载失败");
+    message.error("空间菜单加载失败");
   }
 }
 
@@ -436,7 +441,7 @@ onMounted(() => {
     min-height: 0;
     row-gap: 16px;
 
-    :deep(.el-col) {
+    :deep(.ant-col) {
       display: flex;
       min-height: 0;
     }
@@ -639,7 +644,7 @@ onMounted(() => {
     }
 
     .workspace-home__main {
-      :deep(.el-col) {
+      :deep(.ant-col) {
         display: block;
       }
     }

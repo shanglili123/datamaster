@@ -2,67 +2,48 @@
   <div class="app-container" ref="app-container">
 
     <div class="pagecont-top" v-show="showSearch">
-      <el-form
+      <a-form
         class="btn-style"
         :model="queryParams"
         ref="queryRef"
-        :inline="true"
-        label-width="45px"
+        layout="inline"
+        :label-col="{ style: { width: '45px' } }"
         v-show="showSearch"
         @submit.prevent
       >
-        <el-form-item label="名称" prop="name">
-          <el-input
+        <a-form-item label="名称" name="name">
+          <a-input
             style="width: 150px;"
-            v-model="queryParams.name"
+            v-model:value="queryParams.name"
             placeholder="请输入空间名称"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item label="负责人" prop="managerId">
-          <el-select
-            style="width: 150px;"
-            v-model="queryParams.managerId"
-            @change="handleChange"
-            filterable
-            placeholder="请选择负责人"
-          >
-            <el-option
-              v-for="item in managerOptions"
-              :key="item.userId"
-              :label="item.nickName"
-              :value="item.userId"
-            >
-            </el-option>
-          </el-select>
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item>
-          <el-button
-            plain
+        <a-form-item>
+          <a-button
             type="primary"
             @click="handleQuery"
             @mousedown="(e) => e.preventDefault()"
             v-hasPermi="['tax:space:query']"
           >
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </a-button>
+        </a-form-item>
+      </a-form>
       <div class="data-action-btns">
-        <el-button
+        <a-button
           type="primary"
-          plain
           @click="handleAdd"
           v-hasPermi="['tax:space:add']"
           @mousedown="(e) => e.preventDefault()"
         >
           <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-        </el-button>
+        </a-button>
       </div>
       <div class="top-right-btn">
         <right-toolbar
@@ -74,163 +55,72 @@
     </div>
 
     <div>
-      <el-table
-        stripe
-        v-loading="loading"
-        :data="spaceList"
-        :default-sort="defaultSort"
-        @sort-change="handleSortChange"
+      <a-table
+        striped
+        row-key="id"
+        :loading="loading"
+        :data-source="spaceList"
+        :columns="tableColumns"
+        :scroll="tableScroll"
+        :pagination="false"
+        @change="handleTableChange"
       >
-        <!-- <el-table-column type="selection" width="55" align="center" /> -->
-        <!--       <el-table-column v-if="getColumnVisibility(0)" label="编号" align="center" prop="id" />-->
-        <el-table-column
-          label="编号"
-          prop="id"
-          width="80"
-          align="center"
-          v-if="getColumnVisibility(1)"
-        >
-          <template #default="scope">
-            {{ scope.row.id || "-" }}
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'id'">
+            {{ record.id || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="空间名称"
-          align="left"
-          prop="name"
-          v-if="getColumnVisibility(2)"
-          width="200"
-        >
-          <template #default="scope">
-            {{ scope.row.name || "-" }}
+          <template v-else-if="column.dataIndex === 'name'">
+            {{ record.name || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="描述"
-          align="left"
-          prop="description"
-          :show-overflow-tooltip="{ effect: 'light' }"
-          v-if="getColumnVisibility(3)"
-          width="300"
-        >
-          <template #default="scope">
-            {{ scope.row.description || "-" }}
+          <template v-else-if="column.dataIndex === 'description'">
+            {{ record.description || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="负责人"
-          align="center"
-          prop="managerId"
-          v-if="getColumnVisibility(4)"
-        >
-          <template #default="scope">
-            {{ scope.row.nickName || "-" }}
+          <template v-else-if="column.dataIndex === 'createBy'">
+            {{ record.createBy || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="联系方式"
-          align="center"
-          prop="managerPhone"
-          v-if="getColumnVisibility(5)"
-        >
-          <template #default="scope">
-            {{ scope.row.managerPhone || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="getColumnVisibility(7)"
-          label="创建人"
-          :show-overflow-tooltip="{ effect: 'light' }"
-          align="left"
-          prop="createBy"
-        >
-          <template #default="scope">
-            {{ scope.row.createBy || "-" }}
-          </template>
-        </el-table-column>
-        <!--   sortable="custom" column-key="create_time" :sort-orders="['descending', 'ascending']" -->
-        <el-table-column
-          v-if="getColumnVisibility(6)"
-          label="创建时间"
-          align="center"
-          prop="createTime"
-          width="150"
-        >
-          <template #default="scope">
+          <template v-else-if="column.dataIndex === 'createTime'">
             <span>{{
-              parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
+              parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
             }}</span>
           </template>
-        </el-table-column>
-        <el-table-column
-          label="状态"
-          align="center"
-          prop="validFlag"
-          v-if="getColumnVisibility(8)"
-        >
-          <template #default="scope">
-            <el-switch
-              v-model="scope.row.validFlag"
-              active-color="#13ce66"
-              inactive-color="#ff4949"
-              @change="handleStatusChange(scope.row)"
-            >
-            </el-switch>
+          <template v-else-if="column.dataIndex === 'validFlag'">
+            <a-switch
+              v-model:checked="record.validFlag"
+              @change="() => handleStatusChange(record)"
+            />
           </template>
-        </el-table-column>
-        <el-table-column
-          label="备注"
-          align="left"
-          width="200"
-          prop="remark"
-          :show-overflow-tooltip="{ effect: 'light' }"
-          v-if="getColumnVisibility(9)"
-        >
-          <template #default="scope">
-            {{ scope.row.remark || "-" }}
+          <template v-else-if="column.dataIndex === 'remark'">
+            {{ record.remark || "-" }}
           </template>
-        </el-table-column>
-        <el-table-column
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-          fixed="right"
-          width="240"
-        >
-          <template #default="scope">
-            <el-button
-              link
-              type="primary"
-              icon="Edit"
-              @click="handleUpdate(scope.row)"
+          <template v-else-if="column.key === 'actions'">
+            <a-button
+              type="link"
+              size="small"
+              @click="handleUpdate(record)"
               v-hasPermi="['tax:space:edit']"
-              >修改</el-button
-            >
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleDelete(scope.row)"
+              >修改</a-button>
+            <a-button
+              type="link"
+              danger
+              size="small"
+              @click="handleDelete(record)"
               v-hasPermi="['tax:space:remove']"
-              >删除</el-button
-            >
-            <el-button
-              link
-              type="primary"
-              icon="view"
+              >删除</a-button>
+            <a-button
+              type="link"
+              size="small"
               v-hasPermi="['tax:space:query']"
-              @click="handleDetail(scope.row)"
-              >详情</el-button
-            >
+              @click="handleDetail(record)"
+              >详情</a-button>
           </template>
-        </el-table-column>
+        </template>
         <template #empty>
           <div class="emptyBg">
             <img src="@/assets/system/images/no_data/noData.png" alt="" />
             <p>暂无记录</p>
           </div>
         </template>
-      </el-table>
+      </a-table>
 
       <pagination
         v-show="total > 0"
@@ -242,216 +132,167 @@
     </div>
 
     <!-- 新增或修改空间对话框 -->
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="open"
+      v-model:open="open"
       width="800px"
-      :append-to="$refs['app-container']"
       draggable
+      destroy-on-close
     >
-      <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form
+      <a-form
         ref="spaceRef"
         :model="form"
         :rules="rules"
-        label-width="80px"
+        :label-col="{ style: { width: '80px' } }"
         @submit.prevent
       >
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="空间名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入空间名称" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="负责人" prop="managerId">
-              <!--                <el-input v-model="form.managerId" placeholder="请选择负责人" />-->
-              <el-select
-                v-model="form.managerId"
-                @change="handleChange"
-                filterable
-                placeholder="请选择负责人"
-              >
-                <el-option
-                  v-for="item in managerOptions"
-                  :key="item.userId"
-                  :label="item.nickName"
-                  :value="item.userId"
-                >
-                </el-option>
-              </el-select>
-              <!--                <el-cascader :options="managerOptions" :show-all-levels="false"></el-cascader>-->
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系方式" prop="managerPhone">
-              <el-input
-                v-model="form.managerPhone"
-                placeholder="请输入联系方式"
-                disabled
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
-              <el-input
-                v-model="form.description"
-                type="textarea"
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="空间名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入空间名称" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
+              <a-textarea
+                v-model:value="form.description"
                 placeholder="请输入描述"
-                :min-height="192"
-                show-word-limit
-                maxlength="500个字符"
+                :maxlength="500"
+                show-count
+                :auto-size="{ minRows: 6, maxRows: 10 }"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="状态" prop="validFlag">
-              <el-radio-group v-model="form.validFlag">
-                <el-radio :label="true">启用</el-radio>
-                <el-radio :label="false">禁用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input
-                type="textarea"
-                v-model="form.remark"
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="状态" name="validFlag">
+              <a-radio-group v-model:value="form.validFlag">
+                <a-radio :value="true">启用</a-radio>
+                <a-radio :value="false">禁用</a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
+              <a-textarea
+                v-model:value="form.remark"
                 placeholder="请输入备注"
+                :auto-size="{ minRows: 2, maxRows: 4 }"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">取 消</el-button>
-          <el-button type="primary" size="mini" @click="submitForm"
-            >确 定</el-button
-          >
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
-    <el-dialog
+    </a-modal>
+
+    <!-- 空间详情对话框 -->
+    <a-modal
       :title="title"
-      v-model="openDetail"
+      v-model:open="openDetail"
       width="1000px"
-      :append-to="$refs['app-container']"
       draggable
+      destroy-on-close
     >
-      <el-form ref="assetApplyRef" :model="form" label-width="90px">
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="编号:" prop="id">
+      <a-form
+        ref="assetApplyRef"
+        :model="form"
+        :label-col="{ style: { width: '90px' } }"
+      >
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="编号:" name="id">
               <div class="form-readonly">
                 {{ form.id }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="空间名称:" prop="name">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="空间名称:" name="name">
               <div class="form-readonly">
                 {{ form.name }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="负责人:" prop="assetTableName">
-              <div class="form-readonly">
-                {{ form.nickName }}
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系方式:" prop="managerPhone">
-              <div class="form-readonly">
-                {{ form.managerPhone ?? "-" }}
-              </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
               <div class="form-readonly textarea">
                 {{ form.description ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="创建人:" prop="createBy">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="创建人:" name="createBy">
               <div class="form-readonly">
                 {{ form.createBy }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="创建时间:" prop="createTime">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="创建时间:" name="createTime">
               <div class="form-readonly">
                 {{ parseTime(form.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="更新人:" prop="createBy">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="更新人:" name="updateBy">
               <div class="form-readonly">
                 {{ form.updateBy }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="更新时间:" prop="updateTime">
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="更新时间:" name="updateTime">
               <div class="form-readonly">
                 {{ parseTime(form.updateTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="状态:" prop="validFlag">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="12">
+            <a-form-item label="状态:" name="validFlag">
               <div class="form-readonly">
                 {{ form.validFlag ? "启用" : "禁用" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
               <div class="form-readonly textarea">
                 {{ form.remark ?? "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="openDetail = false">关闭 </el-button>
+          <a-button @click="openDetail = false">关闭</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -464,9 +305,7 @@ import {
   updateSpace,
   editSpaceStatus,
 } from "@/api/tax/space/space.js";
-// import { deptUserTree } from "@/api/system/system/user.js";
 import { getToken } from "@/utils/auth.js";
-import { deptUserTree } from "@/api/system/system/user.js";
 import { normalizePage, pageRows } from "@/utils/page.js";
 
 const { proxy } = getCurrentInstance();
@@ -479,8 +318,6 @@ const columns = ref([
   { key: 1, label: "编号", visible: true },
   { key: 2, label: "空间名称", visible: true },
   { key: 3, label: "空间描述", visible: true },
-  { key: 4, label: "负责人", visible: true },
-  { key: 5, label: "联系方式", visible: true },
   { key: 6, label: "创建时间", visible: true },
   { key: 7, label: "创建人", visible: true },
   { key: 8, label: "状态", visible: true },
@@ -495,6 +332,28 @@ const getColumnVisibility = (key) => {
   return column.visible;
 };
 
+const tableColumns = computed(() => {
+  const allCols = [
+    { title: "编号", dataIndex: "id", align: "center", width: 80, ellipsis: true, colKey: 1 },
+    { title: "空间名称", dataIndex: "name", align: "left", width: 200, ellipsis: true, colKey: 2 },
+    { title: "描述", dataIndex: "description", align: "left", width: 300, ellipsis: true, colKey: 3 },
+    { title: "创建人", dataIndex: "createBy", align: "left", ellipsis: true, colKey: 7 },
+    { title: "创建时间", dataIndex: "createTime", align: "center", width: 150, ellipsis: true, colKey: 6 },
+    { title: "状态", dataIndex: "validFlag", align: "center", colKey: 8 },
+    { title: "备注", dataIndex: "remark", align: "left", width: 200, ellipsis: true, colKey: 9 },
+    { title: "操作", key: "actions", align: "center", fixed: "right", width: 240 },
+  ];
+  return allCols.filter((col) => !col.colKey || getColumnVisibility(col.colKey));
+});
+// 列总宽超出容器时启用横向滚动，保证 fixed 列与内容完整展示
+const tableScroll = computed(() => {
+  const totalWidth = tableColumns.value.reduce(
+    (sum, c) => sum + (typeof c.width === 'number' ? c.width : 0),
+    0
+  );
+  return totalWidth > 0 ? { x: totalWidth } : undefined;
+});
+
 const open = ref(false);
 const openDetail = ref(false);
 const loading = ref(true);
@@ -504,9 +363,7 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
-const defaultSort = ref({ prop: "createTime", order: "desc" });
 const router = useRouter();
-const managerOptions = ref([]);
 
 /*** 用户导入参数 */
 const upload = reactive({
@@ -521,7 +378,7 @@ const upload = reactive({
   // 设置上传的请求头部
   headers: { Authorization: "Bearer " + getToken() },
   // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + "/tax/attSpace/importData",
+  url: import.meta.env.VITE_APP_BASE_API + "/tax/space/importData",
 });
 
 const data = reactive({
@@ -532,7 +389,6 @@ const data = reactive({
     name: null,
   },
   rules: {
-    managerId: [{ required: true, message: "负责人不能为空", trigger: "blur" }],
     name: [{ required: true, message: "空间名称不能为空", trigger: "blur" }],
     // managerId: [{ required: true, message: "创建人不能为空", trigger: "blur" }],
     // validFlag: [{ required: true, message: '是否有效不能为空', trigger: 'change' }]
@@ -550,21 +406,7 @@ function getList() {
     spaceList.value = pageRows(page.rows, page.total, queryParams.value);
     loading.value = false;
   });
-  deptUserTree().then((response) => {
-    managerOptions.value = response.data;
-  });
 }
-function handleChange(value) {
-  const selectedManager = managerOptions.value.find(
-    (item) => item.userId === form.value.managerId
-  );
-  form.value.managerPhone = selectedManager.phonenumber; // 将完整对象存储到 form 中
-}
-// function getUserTree(){
-//    deptUserTree().then(response => {
-//     managerOptions.value = response.data;
-//   })
-// }
 
 // 取消按钮
 function cancel() {
@@ -594,8 +436,6 @@ function reset() {
   form.value = {
     id: null,
     name: null,
-    managerId: null,
-    managerPhone: null,
     description: null,
     validFlag: true,
     delFlag: null,
@@ -630,9 +470,11 @@ function handleSelectionChange(selection) {
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-  queryParams.value.orderByColumn = column.prop;
-  queryParams.value.isAsc = column.order;
+function handleTableChange(pagination, filters, sorter) {
+  const field = sorter.column?.key || sorter.field;
+  const orderMap = { ascend: "asc", descend: "desc" };
+  queryParams.value.orderByColumn = field;
+  queryParams.value.isAsc = sorter.order ? orderMap[sorter.order] : null;
   getList();
 }
 
@@ -670,8 +512,9 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["spaceRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["spaceRef"]
+    .validate()
+    .then(() => {
       if (form.value.id != null) {
         updateSpace(form.value)
           .then((response) => {
@@ -692,8 +535,8 @@ function submitForm() {
           })
           .catch((error) => {});
       }
-    }
-  });
+    })
+    .catch(() => {});
 }
 
 /** 删除按钮操作 */
@@ -794,12 +637,12 @@ getList();
   align-items: center !important;
   gap: 8px;
 
-  .el-form {
+  .ant-form {
     display: flex !important;
     flex-wrap: nowrap !important;
     flex: 0 1 auto !important;
 
-    .el-form-item {
+    .ant-form-item {
       display: inline-flex !important;
       flex-shrink: 0 !important;
       margin-bottom: 0 !important;

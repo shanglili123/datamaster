@@ -1,222 +1,191 @@
-﻿<template>
+<template>
   <div class="pagecont-top" v-show="showSearch">
-    <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="68" v-show="showSearch"
-      @submit.prevent>
-      <el-form-item label="用户姓名" prop="nickName">
-        <el-input class="el-form-input-width" v-model="queryParams.nickName" placeholder="请输入用户姓名" clearable
-          @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="手机号码" prop="phoneNumber">
-        <el-input v-model="queryParams.phoneNumber" placeholder="请输入手机号码" clearable class="el-form-input-width"
-          @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="创建时间">
-        <el-date-picker @change="handleDateChange" class="el-form-input-width" v-model="createTime"
-          value-format="YYYY-MM-DD" type="daterange" range-separator="-" start-placeholder="开始日期"
-          end-placeholder="结束日期"></el-date-picker>
-      </el-form-item>
+    <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline" v-show="showSearch"
+      :label-col="{ style: { width: '68px' } }" @submit.prevent>
+      <a-form-item label="用户姓名" name="nickName">
+        <a-input class="el-form-input-width" v-model:value="queryParams.nickName" placeholder="请输入用户姓名" allow-clear
+          @pressEnter="handleQuery" />
+      </a-form-item>
+      <a-form-item label="手机号码" name="phoneNumber">
+        <a-input v-model:value="queryParams.phoneNumber" placeholder="请输入手机号码" allow-clear class="el-form-input-width"
+          @pressEnter="handleQuery" />
+      </a-form-item>
+      <a-form-item label="创建时间">
+        <a-range-picker @change="handleDateChange" class="el-form-input-width" v-model:value="createTime"
+          valueFormat="YYYY-MM-DD" />
+      </a-form-item>
 
-      <el-form-item>
-        <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+      <a-form-item>
+        <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+        </a-button>
+        <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-      </el-form-item>
-    </el-form>
+        </a-button>
+      </a-form-item>
+    </a-form>
   </div>
 
   <div class="pagecont-bottom">
     <div class="justify-between mb15">
-      <el-row :gutter="15" class="btn-style">
-        <el-col :span="1.5">
-          <el-button type="primary" plain @click="handleAdd" v-hasPermi="['col:spaceUserRel:add']"
+      <a-row :gutter="15" class="btn-style">
+        <a-col :span="1.5">
+          <a-button type="primary" @click="handleAdd" v-hasPermi="['col:spaceUserRel:add']"
             @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-          </el-button>
-        </el-col>
-        <el-col :span="1.5">
-          <el-button type="danger" plain :disabled="multiple" @click="handleDelete"
+          </a-button>
+        </a-col>
+        <a-col :span="1.5">
+          <a-button danger :disabled="multiple" @click="handleDelete"
             v-hasPermi="['col:spaceUserRel:remove']" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-shanchu-huise mr5"></i>移除
-          </el-button>
-        </el-col>
-      </el-row>
+          </a-button>
+        </a-col>
+      </a-row>
       <div class="justify-end top-right-btn">
         <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </div>
     </div>
-    <el-table stripe v-loading="loading" :data="spaceUserRelList" @selection-change="handleSelectionChange"
-      :default-sort="defaultSort" @sort-change="handleSortChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <!--       <el-table-column v-if="getColumnVisibility(0)" label="ID" align="center" prop="id" />-->
-      <el-table-column label="编号" width="80" align="center" prop="userId">
-        <template #default="scope">
-          {{ scope.row.userId || '-' }}
+    <a-table striped :loading="loading" :data-source="spaceUserRelList" :columns="mainTableColumns"
+      row-key="id" :pagination="false"
+      :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onMainSelectionChange }"
+      @change="handleTableChange"
+      :locale="{ emptyText: emptyContent }">
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'userId'">
+          {{ record.userId || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="用户姓名" align="center" prop="nickName">
-        <template #default="scope">
-          {{ scope.row.nickName || '-' }}
+        <template v-else-if="column.dataIndex === 'nickName'">
+          {{ record.nickName || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="角色" align="center" prop="roleStr" :show-overflow-tooltip="{ effect: 'light' }">
-        <template #default="scope">
-          {{ scope.row.roleStr || '-' }}
+        <template v-else-if="column.dataIndex === 'roleStr'">
+          {{ record.roleStr || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="部门" align="center" prop="deptName">
-        <template #default="scope">
-          {{ scope.row.deptName || '-' }}
+        <template v-else-if="column.dataIndex === 'deptName'">
+          {{ record.deptName || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="手机号" align="center" prop="phoneNumber">
-        <template #default="scope">
-          {{ scope.row.phoneNumber || '-' }}
+        <template v-else-if="column.dataIndex === 'phoneNumber'">
+          {{ record.phoneNumber || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="创建人" align="center" prop="createBy">
-        <template #default="scope">
-          {{ scope.row.createBy || "-" }}
+        <template v-else-if="column.dataIndex === 'createBy'">
+          {{ record.createBy || "-" }}
         </template>
-      </el-table-column>
-      <el-table-column v-if="getColumnVisibility(14)" label="创建时间" align="center" prop="create_time" width="150"
-        sortable="custom" column-key="create_time" :sort-orders="['descending', 'ascending']"> <template
-          #default="scope"> <span>{{ parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="240">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
-            v-hasPermi="['col:spaceUserRel:edit']">修改</el-button>
-          <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)"
-            v-hasPermi="['col:spaceUserRel:remove']">移除</el-button>
+        <template v-else-if="column.key === 'actions'">
+          <a-button type="link" size="small" @click="handleUpdate(record)"
+            v-hasPermi="['col:spaceUserRel:edit']">修改</a-button>
+          <a-button type="link" danger size="small" @click="handleDelete(record)"
+            v-hasPermi="['col:spaceUserRel:remove']">移除</a-button>
         </template>
-      </el-table-column>
-
-      <template #empty>
-        <div class="emptyBg">
-          <img src="@/assets/system/images/no_data/noData.png" alt="" />
-          <p>暂无记录</p>
-        </div>
       </template>
-    </el-table>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
       v-model:limit="queryParams.pageSize" @pagination="getList" />
   </div>
 
   <!-- 新增或修改空间与用户关联关系对话框 -->
-  <el-dialog :title="title" v-model="open" :append-to-body="false" class="warn-dialog-23012" width="700px"
-    :append-to="$refs['app-container']" draggable>
+  <a-modal :title="title" v-model:open="open" class="warn-dialog-23012" width="700px" draggable>
     <template #header="{ close, titleId, titleClass }">
-      <span role="heading" aria-level="2" class="el-dialog__title">
+      <span role="heading" aria-level="2" class="ant-modal-title">
         {{ title }}
       </span>
     </template>
-    <el-form ref="spaceUserRelRef" :model="form" :rules="rules" label-width="80px" @submit.prevent>
-      <el-row :gutter="20">
-        <el-col :span="24" v-if="form.id == null">
+    <a-form ref="spaceUserRelRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }"
+      @submit.prevent>
+      <a-row :gutter="20">
+        <a-col :span="24" v-if="form.id == null">
           <div class="hint-div">
-            <el-icon color="#2A7BFD" size="16px">
-              <InfoFilled />
-            </el-icon>
+            <InfoCircleOutlined style="color: #2A7BFD" />
             <span>
-              如需添加新用户，请先点击‘‘<a href="/system/user" style="color: #2a7bfd">用户管理</a>’’进行添加。
+              如需添加新用户，请先点击``<a href="/system/user" style="color: #2a7bfd">用户管理</a>``进行添加。
             </span>
           </div>
-        </el-col>
-        <el-col :span="24" v-if="form.id == null">
-          <el-form-item label="系统用户" prop="userNameList">
-            <el-input style="width: 76%" v-model="form.userNameList" placeholder="请选择用户" disabled>
-            </el-input>
-            <el-button style="margin-left: 12px" type="primary" @click="getListUser">选择用户</el-button>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24" v-if="form.id != null">
-          <el-form-item label="系统用户" prop="nickName">
-            <el-input v-model="form.nickName" placeholder="请选择用户" disabled>
-            </el-input>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="用户角色" prop="roleIdList">
-            <el-checkbox-group v-model="form.roleIdList" class="checkbox-vertical">
+        </a-col>
+        <a-col :span="24" v-if="form.id == null">
+          <a-form-item label="系统用户" name="userNameList">
+            <a-input style="width: 76%" v-model:value="form.userNameList" placeholder="请选择用户" disabled>
+            </a-input>
+            <a-button style="margin-left: 12px" type="primary" @click="getListUser">选择用户</a-button>
+          </a-form-item>
+        </a-col>
+        <a-col :span="24" v-if="form.id != null">
+          <a-form-item label="系统用户" name="nickName">
+            <a-input v-model:value="form.nickName" placeholder="请选择用户" disabled>
+            </a-input>
+          </a-form-item>
+        </a-col>
+        <a-col :span="24">
+          <a-form-item label="用户角色" name="roleIdList">
+            <a-checkbox-group v-model:value="form.roleIdList" class="checkbox-vertical">
               <div v-for="item in roleList" :key="item.roleId" style="margin-bottom: 15px;height: 40px;">
-                <el-checkbox :label="item.roleId">
+                <a-checkbox :value="item.roleId">
                   {{ item.roleName }}
-                </el-checkbox>
+                </a-checkbox>
                 <p
                   style="display: flex;align-items: center;line-height:1;font-size: 12px;color: #888;margin-left: 23px;margin-top: 10px;">
                   {{ item.remark }}</p>
               </div>
-            </el-checkbox-group>
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
+            </a-checkbox-group>
+          </a-form-item>
+        </a-col>
+      </a-row>
+    </a-form>
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">取 消</el-button>
-        <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+        <a-button size="small" @click="cancel">取 消</a-button>
+        <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 
-  <el-dialog title="用户选择" v-model="openTwo" width="1000px" class="user-select-tatble" draggable>
+  <a-modal title="用户选择" v-model:open="openTwo" width="1000px" class="user-select-tatble" draggable>
     <template>
-      <span role="heading" aria-level="2" class="el-dialog__title"> 用户选择 </span>
+      <span role="heading" aria-level="2" class="ant-modal-title"> 用户选择 </span>
     </template>
     <!--用户数据-->
-    <el-form class="btn-style" :model="queryParamsUser" ref="queryRef" :inline="true" label-width="68px">
-      <el-form-item label="登录账号" prop="userName">
-        <el-input v-model="queryParamsUser.userName" placeholder="请输入登录账号" clearable class="el-form-input-width"
-          @keyup.enter="handleQueryUser" />
-      </el-form-item>
-      <el-form-item label="手机号码" prop="phonenumber">
-        <el-input v-model="queryParamsUser.phonenumber" placeholder="请输入手机号码" clearable class="el-form-input-width"
-          @keyup.enter="handleQueryUser" />
-      </el-form-item>
-      <el-form-item>
-        <el-button plain type="primary" @click="handleQueryUser" @mousedown="(e) => e.preventDefault()">
+    <a-form class="btn-style" :model="queryParamsUser" ref="queryRef" layout="inline"
+      :label-col="{ style: { width: '68px' } }">
+      <a-form-item label="登录账号" name="userName">
+        <a-input v-model:value="queryParamsUser.userName" placeholder="请输入登录账号" allow-clear class="el-form-input-width"
+          @pressEnter="handleQueryUser" />
+      </a-form-item>
+      <a-form-item label="手机号码" name="phonenumber">
+        <a-input v-model:value="queryParamsUser.phonenumber" placeholder="请输入手机号码" allow-clear
+          class="el-form-input-width" @pressEnter="handleQueryUser" />
+      </a-form-item>
+      <a-form-item>
+        <a-button type="primary" @click="handleQueryUser" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="resetQueryUser" @mousedown="(e) => e.preventDefault()">
+        </a-button>
+        <a-button @click="resetQueryUser" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-      </el-form-item>
-    </el-form>
-    <el-table ref="userTableRef" stripe v-loading="loadingUser" :data="userList"
-      @selection-change="handleSelectionChangeUser">
-      <el-table-column type="selection" width="70" align="center" />
-      <el-table-column label="编号" width="80" align="center" key="userId" prop="userId" />
-      <el-table-column label="登录账号" align="center" key="userName" prop="userName"
-        :show-overflow-tooltip="{ effect: 'light' }" />
-      <el-table-column label="用户姓名" align="center" key="nickName" prop="nickName"
-        :show-overflow-tooltip="{ effect: 'light' }" />
-      <el-table-column label="部门" width="180" align="center" key="deptName" prop="dept.deptName"
-        :show-overflow-tooltip="{ effect: 'light' }" />
-      <el-table-column label="手机号码" width="180" align="center" key="phonenumber" prop="phonenumber" />
-      <el-table-column label="创建人" :show-overflow-tooltip="true" align="left" prop="createBy">
-        <template #default="scope">
-          {{ scope.row.createBy || "-" }}
+        </a-button>
+      </a-form-item>
+    </a-form>
+    <a-table ref="userTableRef" striped :loading="loadingUser" :data-source="userList" :columns="userTableColumns"
+      row-key="userId" :pagination="false"
+      :row-selection="{ selectedRowKeys: selectedUserRowKeys, onChange: onUserSelectionChange }">
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'createBy'">
+          {{ record.createBy || "-" }}
         </template>
-      </el-table-column>
-      <el-table-column label="创建时间" align="center" prop="createTime" width="150"> <template #default="scope"> <span>{{
-        parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
         </template>
-      </el-table-column>
-    </el-table>
+      </template>
+    </a-table>
     <pagination v-show="totalUser > 0" :total="totalUser" v-model:page="queryParamsUser.pageNum"
       v-model:limit="queryParamsUser.pageSize" @pagination="getListUser" />
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="openTwo = false">取 消</el-button>
-        <el-button type="primary" size="mini" @click="submitFormUser">确 定</el-button>
+        <a-button size="small" @click="openTwo = false">取 消</a-button>
+        <a-button type="primary" size="small" @click="submitFormUser">确 定</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup name="SpaceUserRel">
@@ -235,13 +204,48 @@ import {
 import { getToken } from '@/utils/auth.js';
 import useUserStore from '@/store/system/user';
 import { checkSpaceManagePermission, noSpaceUser } from '@/api/tax/space/space.js';
-import { ref } from 'vue';
+import { ref, h, computed } from 'vue';
+import { InfoCircleOutlined } from '@ant-design/icons-vue';
 import { normalizePage, pageRows } from "@/utils/page.js";
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_user_sex } = proxy.useDict(
   'sys_normal_disable',
   'sys_user_sex'
 );
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '暂无记录'),
+]);
+
+const mainTableColumns = computed(() => {
+  const cols = [
+    { title: '编号', dataIndex: 'userId', align: 'center', width: 80 },
+    { title: '用户姓名', dataIndex: 'nickName', align: 'center' },
+    { title: '角色', dataIndex: 'roleStr', align: 'center', ellipsis: true },
+    { title: '部门', dataIndex: 'deptName', align: 'center' },
+    { title: '手机号', dataIndex: 'phoneNumber', align: 'center' },
+    { title: '创建人', dataIndex: 'createBy', align: 'center' },
+  ];
+  if (getColumnVisibility(14)) {
+    cols.push({ title: '创建时间', dataIndex: 'createTime', align: 'center', width: 150, sorter: true, key: 'create_time' });
+  }
+  cols.push({ title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240 });
+  return cols;
+});
+
+const userTableColumns = [
+  { title: '编号', dataIndex: 'userId', align: 'center', width: 80 },
+  { title: '登录账号', dataIndex: 'userName', align: 'center', ellipsis: true },
+  { title: '用户姓名', dataIndex: 'nickName', align: 'center', ellipsis: true },
+  { title: '部门', dataIndex: 'dept.deptName', align: 'center', width: 180, ellipsis: true },
+  { title: '手机号码', dataIndex: 'phonenumber', align: 'center', width: 180 },
+  { title: '创建人', dataIndex: 'createBy', align: 'left', ellipsis: true },
+  { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 150 },
+];
+
+const selectedRowKeys = ref([]);
+const selectedUserRowKeys = ref([]);
+
 const spaceUserRelList = ref([]);
 const size = (ref < 'default') | 'large' | ('small' > 'default');
 const value1 = ref('');
@@ -292,7 +296,7 @@ const upload = reactive({
   // 设置上传的请求头部
   headers: { Authorization: 'Bearer ' + getToken() },
   // 上传的地址
-  url: import.meta.env.VITE_APP_BASE_API + '/tax/SpaceUserRel/importData'
+  url: import.meta.env.VITE_APP_BASE_API + '/tax/spaceUserRel/importData'
 });
 const createTime = ref(null);
 const data = reactive({
@@ -373,11 +377,9 @@ function getListUser() {
 
     // 在表格加载完成后，设置之前选中的用户
     nextTick(() => {
-      userList.value.forEach((user) => {
-        if (form.value.userIdList.includes(user.userId)) {
-          proxy.$refs.userTableRef.toggleRowSelection(user, true);
-        }
-      });
+      selectedUserRowKeys.value = userList.value
+        .filter((user) => form.value.userIdList.includes(user.userId))
+        .map((user) => user.userId);
     });
   });
 }
@@ -406,6 +408,11 @@ function submitFormUser() {
   openTwo.value = false;
 }
 // 多选框选中数据
+function onUserSelectionChange(keys, rows) {
+  selectedUserRowKeys.value = keys;
+  idsUser.value = keys;
+  userName.value = rows.map((item) => item.nickName);
+}
 function handleSelectionChangeUser(selection) {
   idsUser.value = selection.map((item) => item.userId);
   userName.value = selection.map((item) => item.nickName);
@@ -471,6 +478,12 @@ function resetQuery() {
 }
 
 // 多选框选中数据
+function onMainSelectionChange(keys, rows) {
+  selectedRowKeys.value = keys;
+  ids.value = keys;
+  single.value = rows.length != 1;
+  multiple.value = !rows.length;
+}
 function handleSelectionChange(selection) {
   ids.value = selection.map((item) => item.id);
   single.value = selection.length != 1;
@@ -482,6 +495,13 @@ function handleSortChange(column, prop, order) {
   queryParams.value.orderByColumn = column.prop;
   queryParams.value.isAsc = column.order;
   getList();
+}
+function handleTableChange(pagination, filters, sorter) {
+  if (sorter && sorter.field) {
+    queryParams.value.orderByColumn = sorter.field;
+    queryParams.value.isAsc = sorter.order === 'ascend' ? 'ascending' : 'descending';
+    getList();
+  }
 }
 
 /** 新增按钮操作 */
@@ -518,33 +538,31 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs['spaceUserRelRef'].validate((valid) => {
-    if (valid) {
-      if (form.value.id != null) {
-        editUserListAndRoleList(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess('修改成功');
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
-      } else {
-        // 新增时增加额外验证
-        if (!form.value.userIdList || form.value.userIdList.length === 0) {
-          proxy.$modal.msgWarning('未选择用户，请选择用户后重试');
-          return;
-        }
-        form.value.spaceId = userStore.spaceId;
-        addUserListAndRoleList(form.value)
-          .then((response) => {
-            proxy.$modal.msgSuccess('新增成功');
-            open.value = false;
-            getList();
-          })
-          .catch((error) => { });
+  proxy.$refs['spaceUserRelRef'].validate().then(() => {
+    if (form.value.id != null) {
+      editUserListAndRoleList(form.value)
+        .then((response) => {
+          proxy.$modal.msgSuccess('修改成功');
+          open.value = false;
+          getList();
+        })
+        .catch((error) => { });
+    } else {
+      // 新增时增加额外验证
+      if (!form.value.userIdList || form.value.userIdList.length === 0) {
+        proxy.$modal.msgWarning('未选择用户，请选择用户后重试');
+        return;
       }
+      form.value.spaceId = userStore.spaceId;
+      addUserListAndRoleList(form.value)
+        .then((response) => {
+          proxy.$modal.msgSuccess('新增成功');
+          open.value = false;
+          getList();
+        })
+        .catch((error) => { });
     }
-  });
+  }).catch(() => { });
 }
 
 /** 删除按钮操作 */
@@ -667,7 +685,7 @@ function routeTo(link, row) {
 </style>
 <style lang="scss">
 .warn-dialog-23012 {
-  .el-dialog__body {
+  .ant-modal-body {
     overflow: auto;
     height: 500px !important;
     padding: 20px 40px !important;
@@ -675,7 +693,7 @@ function routeTo(link, row) {
 }
 
 .user-select-tatble {
-  .el-dialog__body {
+  .ant-modal-body {
     height: 600px !important;
   }
 }
@@ -687,7 +705,7 @@ function routeTo(link, row) {
   margin-top: 8px;
 }
 
-.checkbox-vertical .el-checkbox {
+.checkbox-vertical .ant-checkbox {
   display: block;
   margin-bottom: 0px;
   height: 15px !important;

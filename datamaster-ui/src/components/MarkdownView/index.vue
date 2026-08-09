@@ -20,39 +20,38 @@
       class="quote"
       v-if="documentIdList != null && documentIdList.length > 0"
     >
-      <el-divider content-position="left">引用</el-divider>
-      <el-popover
+      <a-divider orientation="left">引用</a-divider>
+      <a-popover
         placement="top"
-        :width="400"
         trigger="click"
-        popper-class="popover"
-        popper-style="padding: 0;border-radius: 4px"
+        overlayClassName="popover"
+        :overlay-style="{ width: '400px', padding: '0', borderRadius: '4px' }"
       >
-        <template #reference>
-          <div
-            class="content"
-            ref="quoteRef"
-            v-for="(item, index) in documentIdList"
-            @click="showDetail(item, index)"
-          >
-            <img :src="getFileType(documentNameList[index])" />
-            <span>{{ documentNameList[index] }}</span>
+        <div
+          class="content"
+          ref="quoteRef"
+          v-for="(item, index) in documentIdList"
+          @click="showDetail(item, index)"
+        >
+          <img :src="getFileType(documentNameList[index])" />
+          <span>{{ documentNameList[index] }}</span>
+        </div>
+        <template #content>
+          <div class="title">
+            <img :src="getFileType(title)" />
+            <span>{{ title }}</span>
+          </div>
+          <div class="content-body">
+            <div class="item" v-for="(item, index) in resourcesList">
+              <div class="segment"># {{ item.segmentPosition }}</div>
+              <div class="content">
+                {{ item.content }}
+              </div>
+              <a-divider v-if="index + 1 < resourcesList.length" />
+            </div>
           </div>
         </template>
-        <div class="title">
-          <img :src="getFileType(title)" />
-          <span>{{ title }}</span>
-        </div>
-        <div class="content-body">
-          <div class="item" v-for="(item, index) in resourcesList">
-            <div class="segment"># {{ item.segmentPosition }}</div>
-            <div class="content">
-              {{ item.content }}
-            </div>
-            <el-divider v-if="index + 1 < resourcesList.length" />
-          </div>
-        </div>
-      </el-popover>
+      </a-popover>
     </div>
   </div>
 </template>
@@ -445,7 +444,7 @@ defineExpose({ copyContent }); // 提供方法给 parent 调用
 
   //  引用
   .quote {
-    :deep(.el-divider__text) {
+    :deep(.ant-divider-inner-text) {
       background-color: #f0f0f6;
       padding: 0 10px;
     }
@@ -469,7 +468,7 @@ defineExpose({ copyContent }); // 提供方法给 parent 调用
   :deep(.system-resources),
   :deep(.other-resources) {
     cursor: pointer;
-    color: var(--el-color-primary);
+    color: var(--ant-primary-color);
     &:hover {
       text-decoration: underline;
     }

@@ -7,89 +7,87 @@
     >
       <qt-table v-bind="tableStroe" ref="tableRef">
         <template #handle="{ row }">
-          <el-button
-            link
-            type="primary"
-            icon="view"
+          <a-button
+            type="link"
+            :icon="h(EyeOutlined)"
             :disabled="!row.dataElemId"
             @click="handleDataElemClick(row)"
           >
             查看标准数据元
-          </el-button>
+          </a-button>
 
-          <el-button
-            link
-            type="primary"
-            icon="view"
+          <a-button
+            type="link"
+            :icon="h(EyeOutlined)"
             @click="handleSensitiveLevelClick(row)"
             :disabled="!row.safetyLevelId"
           >
             查看安全等级
-          </el-button>
+          </a-button>
         </template>
       </qt-table>
     </qt-wrap>
 
-    <el-dialog
+    <a-modal
       title="安全等级详情"
-      v-model="dialog.open"
-      width="800px"
-      draggable
+      v-model:open="dialog.open"
+      width="800"
+      destroy-on-close
     >
-      <el-form label-width="100px" class="column-form">
-        <el-form-item label="编号" prop="id">
+      <a-form :label-col="{ style: { width: '100px' } }" class="column-form">
+        <a-form-item label="编号">
           <div class="form-readonly">
             {{ getFormatValue(dialog.form.id) }}
           </div>
-        </el-form-item>
-        <el-form-item label="级别名称" prop="sensitiveLevel">
+        </a-form-item>
+        <a-form-item label="级别名称">
           <div class="form-readonly">
             {{ getFormatValue(dialog.form.sensitiveLevel) }}
           </div>
-        </el-form-item>
-        <el-form-item label="替换规则" prop="sensitiveRule">
+        </a-form-item>
+        <a-form-item label="替换规则">
           <dict-tag
             :options="toValue(dicts.da_sensitive_level_rule)"
             :value="dialog.form.sensitiveRule"
           />
-        </el-form-item>
-        <el-form-item label="状态" prop="onlineFlag">
+        </a-form-item>
+        <a-form-item label="状态">
           <dict-tag
             :options="toValue(dicts.da_sensitive_status)"
             :value="dialog.form.onlineFlag"
           />
-        </el-form-item>
-        <el-form-item label="起始字符位置" prop="startCharLoc">
+        </a-form-item>
+        <a-form-item label="起始字符位置">
           <div class="form-readonly">
             {{ getFormatValue(dialog.form.startCharLoc) }}
           </div>
-        </el-form-item>
-        <el-form-item label="截止字符位置" prop="endCharLoc">
+        </a-form-item>
+        <a-form-item label="截止字符位置">
           <div class="form-readonly">
             {{ getFormatValue(dialog.form.endCharLoc) }}
           </div>
-        </el-form-item>
-        <el-form-item label="替换内容" prop="maskCharacter">
+        </a-form-item>
+        <a-form-item label="替换内容">
           <div class="form-readonly">
             {{ getFormatValue(dialog.form.maskCharacter) }}
           </div>
-        </el-form-item>
-        <el-form-item label="描述" prop="description" class="row-full">
+        </a-form-item>
+        <a-form-item label="描述" class="row-full">
           <div class="form-readonly textarea">
             {{ getFormatValue(dialog.form.description) }}
           </div>
-        </el-form-item>
-        <el-form-item label="备注" prop="remark" class="row-full">
+        </a-form-item>
+        <a-form-item label="备注" class="row-full">
           <div class="form-readonly textarea">
             {{ getFormatValue(dialog.form.remark) }}
           </div>
-        </el-form-item>
-        <el-form-item label="创建人" prop="createBy">
+        </a-form-item>
+        <a-form-item label="创建人">
           <div class="form-readonly">
             {{ getFormatValue(dialog.form.createBy) }}
           </div>
-        </el-form-item>
-        <el-form-item label="创建时间" prop="createTime">
+        </a-form-item>
+        <a-form-item label="创建时间">
           <div class="form-readonly">
             {{
               getFormatValue(
@@ -97,13 +95,13 @@
               )
             }}
           </div>
-        </el-form-item>
-        <el-form-item label="更新人" prop="updateBy">
+        </a-form-item>
+        <a-form-item label="更新人">
           <div class="form-readonly">
             {{ getFormatValue(dialog.form.updateBy) }}
           </div>
-        </el-form-item>
-        <el-form-item label="更新时间" prop="updateTime">
+        </a-form-item>
+        <a-form-item label="更新时间">
           <div class="form-readonly">
             {{
               getFormatValue(
@@ -111,19 +109,20 @@
               )
             }}
           </div>
-        </el-form-item>
-      </el-form>
+        </a-form-item>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="dialog.open = false">关 闭</el-button>
+          <a-button @click="dialog.open = false">关 闭</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup name="DataGovern">
-import { reactive, ref, toValue, getCurrentInstance } from "vue";
+import { reactive, ref, toValue, getCurrentInstance, h } from "vue";
+import { EyeOutlined } from '@ant-design/icons-vue';
 import { listColumn } from "@/api/cat/unreleased/column.js";
 import { useRouter } from "vue-router";
 import { listDgSensitiveLevel, getDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";

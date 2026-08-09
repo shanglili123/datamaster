@@ -4,21 +4,27 @@
 
 This repository is a Java 8 multi-module Maven project with a Vue 3 frontend. The root `pom.xml` aggregates backend modules such as `datamaster-common`, `datamaster-system`, `datamaster-assets`, `datamaster-collector`, `datamaster-service`, `datamaster-catalog`, `datamaster-quality`, `datamaster-etl`, and `datamaster-server`. The backend entry point is `datamaster-server/src/main/java/com/datamaster/server/DataMasterApplication.java`.
 
-Backend source follows Maven layout: `src/main/java`, `src/main/resources`, and `src/test`. Frontend code lives in `datamaster-view/src`; Vite configuration is in `datamaster-view/vite.config.js` and plugins are under `datamaster-view/vite`. Database scripts are under `sql/`, deployment assets under `docker/`, and runtime uploads under `upload/`.
+Backend source follows Maven layout: `src/main/java`, `src/main/resources`, and `src/test`. Frontend code lives in `datamaster-ui/src`; Vite configuration is in `datamaster-ui/vite.config.js` and plugins are under `datamaster-ui/vite`. Database scripts are under `sql/`, deployment assets under `docker/`, and runtime uploads under `upload/`.
 
-## Build, Test, and Development Commands
+## Module Layout
+
+The repository now has 17 Maven modules plus `datamaster-common` sub-modules. In addition to the modules listed above:
+
+- `datamaster-ai` — AI ask-data module, extracted from `datamaster-assets`. Contains AiSkill, AiAsk, and DB-GPT integration.
+
+Build, Test, and Development Commands
 
 - `mvn clean package`: build all Maven modules from the repository root.
 - `mvn test`: run backend tests across modules.
 - `mvn -pl datamaster-server -am package`: build the server and required dependencies.
 - `mvn -pl datamaster-etl test`: run ETL tests, including JUnit 5 tests configured there.
-- `cd datamaster-view && npm run dev`: start the Vite frontend dev server.
-- `cd datamaster-view && npm run build:prod`: produce the production frontend build.
-- `cd datamaster-view && npm run eslint:lint`: lint frontend JavaScript and Vue files.
+- `cd datamaster-ui && npm run dev`: start the Vite frontend dev server.
+- `cd datamaster-ui && npm run build:prod`: produce the production frontend build.
+- `cd datamaster-ui && npm run eslint:lint`: lint frontend JavaScript and Vue files.
 
 ## Coding Style & Naming Conventions
 
-Use UTF-8 and Java 8-compatible code. Keep Java package names under `com.datamaster`, matching the owning module. Follow existing suffixes: `*Controller`, `*Service`, `*Mapper`, `*Convert`, and `*DO`. Vue files use the established style in `datamaster-view/src`; run ESLint before submitting frontend changes.
+Use UTF-8 and Java 8-compatible code. Keep Java package names under `com.datamaster`, matching the owning module. Follow existing suffixes: `*Controller`, `*Service`, `*Mapper`, `*Convert`, and `*DO`. Vue files use the established style in `datamaster-ui/src`; run ESLint before submitting frontend changes.
 
 ## Testing Guidelines
 

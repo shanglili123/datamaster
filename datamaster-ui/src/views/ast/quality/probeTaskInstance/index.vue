@@ -1,96 +1,72 @@
 <template>
     <div class="app-container" ref="app-container">
         <div class="pagecont-top" v-show="showSearch">
-            <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="45px"
+            <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline" :label-col="{ style: { width: '45px' } }"
                 v-show="showSearch" @submit.prevent>
-                <el-form-item label="名称" prop="name">
-                    <el-input v-model="queryParams.name" placeholder="请输入任务名称" clearable
-                        @keyup.enter="handleQuery" style="width: 150px;" />
-                </el-form-item>
-                <el-form-item label="状态" prop="successFlag">
-                    <el-select v-model="queryParams.successFlag" placeholder="请选择执行状态" clearable
+                <a-form-item label="名称" name="name">
+                    <a-input v-model:value="queryParams.name" placeholder="请输入任务名称" allow-clear
+                        @pressEnter="handleQuery" style="width: 150px;" />
+                </a-form-item>
+                <a-form-item label="状态" name="successFlag">
+                    <a-select v-model:value="queryParams.successFlag" placeholder="请选择执行状态" allow-clear
                         style="width: 150px;">
-                        <el-option v-for="dict in quality_log_success_flag" :key="dict.value" :label="dict.label"
-                            :value="dict.value" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item>
-                    <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+                        <a-select-option v-for="dict in quality_log_success_flag" :key="dict.value" :value="dict.value">{{
+                            dict.label }}</a-select-option>
+                    </a-select>
+                </a-form-item>
+                <a-form-item>
+                    <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                         <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-                    </el-button>
-                    <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+                    </a-button>
+                    <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                         <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-                    </el-button>
-                </el-form-item>
-            </el-form>
+                    </a-button>
+                </a-form-item>
+            </a-form>
             <div class="top-right-btn">
                 <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"
                     :columns="columns"></right-toolbar>
             </div>
         </div>
         <div>
-            <el-table stripe v-loading="loading" :data="ProbeTaskInstanceList" :default-sort="defaultSort"
-                @sort-change="handleSortChange">
-                <el-table-column v-if="getColumnVisibility(0)" label="编号" align="center" prop="id" width="120" />
-                <el-table-column v-if="getColumnVisibility(1)" label="任务名称" align="center" prop="name">
-                    <template #default="scope">
-                        {{ scope.row.name || '-' }}
+            <a-table
+                striped
+                :loading="loading"
+                :data-source="ProbeTaskInstanceList"
+                :pagination="false"
+                :columns="tableColumns"
+                :locale="{ emptyText: '暂无记录' }"
+                @change="handleTableChange"
+            >
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.dataIndex === 'name'">
+                        {{ record.name || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column v-if="getColumnVisibility(2)" label="质量评分" align="center" prop="score"
-                    sortable="custom" column-key="score" :sort-orders="['descending', 'ascending']">
-                    <template #default="scope">
-                        {{ scope.row.score }}
+                    <template v-if="column.dataIndex === 'score'">
+                        {{ record.score }}
                     </template>
-                </el-table-column>
-                <el-table-column v-if="getColumnVisibility(3)" label="问题数据" align="center" prop="problemData"
-                    :show-overflow-tooltip="{ effect: 'light' }" width="300">
-                    <template #default="scope">
-                        {{ scope.row.problemData || '-' }}
+                    <template v-if="column.dataIndex === 'problemData'">
+                        {{ record.problemData || '-' }}
                     </template>
-                </el-table-column>
-                <el-table-column v-if="getColumnVisibility(4)" label="执行状态" align="center" prop="successFlag">
-                    <template #default="scope">
-                        <dict-tag :options="quality_log_success_flag" :value="scope.row.successFlag" />
+                    <template v-if="column.dataIndex === 'successFlag'">
+                        <dict-tag :options="quality_log_success_flag" :value="record.successFlag" />
                     </template>
-                </el-table-column>
-                <el-table-column v-if="getColumnVisibility(5)" label="开始时间" align="center" prop="startTime" width="160"
-                    sortable="custom" column-key="start_time" :sort-orders="['descending', 'ascending']"
-                    :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        <span>{{ parseTime(scope.row.startTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+                    <template v-if="column.dataIndex === 'startTime'">
+                        <span>{{ parseTime(record.startTime, '{y}-{m}-{d} {h}:{i}') }}</span>
                     </template>
-                </el-table-column>
-                <el-table-column v-if="getColumnVisibility(6)" label="结束时间" align="center" prop="endTime" width="160"
-                    sortable="custom" column-key="end_time" :sort-orders="['descending', 'ascending']"
-                    :show-overflow-tooltip="{ effect: 'light' }">
-                    <template #default="scope">
-                        <span>{{ parseTime(scope.row.endTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+                    <template v-if="column.dataIndex === 'endTime'">
+                        <span>{{ parseTime(record.endTime, '{y}-{m}-{d} {h}:{i}') }}</span>
                     </template>
-                </el-table-column>
-                <el-table-column label="操作" v-if="getColumnVisibility(7)" align="center"
-                    class-name="small-padding fixed-width" fixed="right" width="240">
-                    <template #default="scope">
-                        <el-button link type="primary" icon="view" @click="
+                    <template v-if="column.key === 'actions'">
+                        <a-button type="link" size="small" @click="
                             routeTo('/ast/quality/probeTaskInstance/detail', {
-                                ...scope.row,
+                                ...record,
                                 info: true,
                             })
-                            " v-hasPermi="['ast:probeTaskInstance:detail']">详情</el-button>
-                        <!-- <el-button link type="primary" style="padding-left: 14px" @click="sendMessage(scope.row)"
-                            v-hasPermi="['ast:probeTaskInstance:detail']" :disabled="scope.row.status == 1">
-                            <svg-icon iconClass="damessage" style="margin-right: 6px;" />通知处理
-                        </el-button> -->
+                            " v-hasPermi="['ast:probeTaskInstance:detail']">详情</a-button>
                     </template>
-                </el-table-column>
-
-                <template #empty>
-                    <div class="emptyBg">
-                        <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                        <p>暂无记录</p>
-                    </div>
                 </template>
-            </el-table>
+            </a-table>
 
             <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
                 v-model:limit="queryParams.pageSize" @pagination="getList" />
@@ -125,6 +101,20 @@ const getColumnVisibility = (key) => {
     if (!column) return true;
     return column.visible;
 };
+
+const tableColumns = computed(() => {
+    const allCols = [
+        { title: '编号', dataIndex: 'id', align: 'center', width: 120, colKey: 0 },
+        { title: '任务名称', dataIndex: 'name', align: 'center', colKey: 1 },
+        { title: '质量评分', dataIndex: 'score', align: 'center', key: 'score', sorter: true, colKey: 2 },
+        { title: '问题数据', dataIndex: 'problemData', align: 'center', width: 300, ellipsis: true, colKey: 3 },
+        { title: '执行状态', dataIndex: 'successFlag', align: 'center', colKey: 4 },
+        { title: '开始时间', dataIndex: 'startTime', align: 'center', width: 160, key: 'start_time', sorter: true, defaultSortOrder: 'descend', ellipsis: true, colKey: 5 },
+        { title: '结束时间', dataIndex: 'endTime', align: 'center', width: 160, key: 'end_time', sorter: true, ellipsis: true, colKey: 6 },
+        { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 240, colKey: 7 },
+    ];
+    return allCols.filter(col => getColumnVisibility(col.colKey));
+});
 const loading = ref(false);
 const showSearch = ref(true);
 const total = ref(0);
@@ -150,9 +140,11 @@ const data = reactive({
 const { queryParams, } = toRefs(data);
 
 /** 排序触发事件 */
-function handleSortChange({ column, prop, order }) {
-    queryParams.value.orderByColumn = column?.columnKey || prop;
-    queryParams.value.isAsc = order;
+function handleTableChange(pagination, filters, sorter) {
+    const field = sorter.column?.key || sorter.field;
+    const orderMap = { ascend: 'ascending', descend: 'descending' };
+    queryParams.value.orderByColumn = field;
+    queryParams.value.isAsc = sorter.order ? orderMap[sorter.order] : null;
     queryParams.value.pageNum = 1;
     getList();
 }
@@ -221,12 +213,12 @@ getList();
   align-items: center !important;
   gap: 8px;
 
-  .el-form {
+  .ant-form {
     display: flex !important;
     flex-wrap: nowrap !important;
     flex: 0 1 auto !important;
 
-    .el-form-item {
+    .ant-form-item {
       display: inline-flex !important;
       flex-shrink: 0 !important;
       margin-bottom: 0 !important;

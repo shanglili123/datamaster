@@ -1,10 +1,11 @@
 <template>
-  <el-dialog
+  <a-modal
     :title="title"
-    v-model="visible"
+    v-model:open="visible"
     class="medium-dialog max-dialogs-status0"
-    draggable
+    :draggable="true"
     width="90%"
+    :footer="null"
   >
     <div class="flex-row">
       <!-- 左侧树 -->
@@ -12,7 +13,7 @@
         <DeptTree
           :deptOptions="deptOptions"
           :leftWidth="leftWidth"
-          placeholder="请输入标准数据元类目"
+          placeholder="请输入标准数据元目录"
           @node-click="handleNodeClick"
           ref="DeptTreeRef"
           :showFilter="false"
@@ -25,83 +26,82 @@
       <div class="divider"></div>
 
       <!-- 右侧表格 + 分页 -->
-      <div class="content-col" v-loading="loading">
+      <div class="content-col">
         <!-- 表格 -->
-        <el-table
-          :data="dpDataElemList"
-          stripe
+        <a-table
+          :data-source="dpDataElemList"
+          striped
+          :loading="loading"
           @row-click="handleRowClick"
-          :highlight-current-row="true"
-          ref="tableRef"
-          border
-          height="62vh"
+          :row-class-name="rowClassName"
+          :row-key="(record) => record.id"
+          :pagination="false"
+          bordered
+          :scroll="{ y: '62vh' }"
         >
-          <el-table-column
+          <a-table-column
             v-if="getColumnVisibility(0)"
-            label="编号"
+            title="编号"
             align="left"
-            prop="id"
-            width="80"
+            data-index="id"
+            :width="80"
           />
-          <el-table-column
+          <a-table-column
             v-if="getColumnVisibility(1)"
-            label="中文名称"
-            :show-overflow-tooltip="{ effect: 'light' }"
-            width="80"
+            title="中文名称"
             align="left"
-            prop="name"
+            data-index="name"
+            :width="80"
+            ellipsis
           >
-            <template #default="scope">{{ scope.row.name || "-" }}</template>
-          </el-table-column>
-          <el-table-column
+            <template #default="{ record }">{{ record.name || "-" }}</template>
+          </a-table-column>
+          <a-table-column
             v-if="getColumnVisibility(2)"
-            label="英文名称"
-            :show-overflow-tooltip="{ effect: 'light' }"
-            width="80"
+            title="英文名称"
             align="left"
-            prop="engName"
+            data-index="engName"
+            :width="80"
+            ellipsis
           >
-            <template #default="scope">{{ scope.row.engName || "-" }}</template>
-          </el-table-column>
-          <el-table-column
+            <template #default="{ record }">{{ record.engName || "-" }}</template>
+          </a-table-column>
+          <a-table-column
             v-if="getColumnVisibility(3)"
-            label="类型"
+            title="类型"
             align="left"
-            prop="type"
+            data-index="type"
           >
-            <template #default="scope">{{ typeFormat(scope.row) }}</template>
-          </el-table-column>
-          <el-table-column
+            <template #default="{ record }">{{ typeFormat(record) }}</template>
+          </a-table-column>
+          <a-table-column
             v-if="getColumnVisibility(6)"
-            width="140"
-            label="元描述"
+            :width="140"
+            title="元描述"
             align="left"
-            prop="description"
-            :show-overflow-tooltip="{ effect: 'light' }"
+            data-index="description"
+            ellipsis
           >
-            <template #default="scope">{{
-              scope.row.description || "-"
+            <template #default="{ record }">{{
+              record.description || "-"
             }}</template>
-          </el-table-column>
-          <el-table-column
-            label="操作"
+          </a-table-column>
+          <a-table-column
+            title="操作"
             align="center"
-            class-name="small-padding fixed-width"
+            :width="240"
             fixed="right"
-            width="240"
           >
-            <template #default="scope">
-              <el-button
-                link
-                type="primary"
-                icon="view"
-                @click="showDialog(scope.row)"
+            <template #default="{ record }">
+              <a-button
+                type="link"
+                @click="showDialog(record)"
                 v-hasPermi="['dp:dataElem:dataelem:edit']"
-                >查看
-              </el-button>
+                ><template #icon><EyeOutlined /></template>查看
+              </a-button>
             </template>
-          </el-table-column>
-          <template #empty>
+          </a-table-column>
+          <template #emptyText>
             <div class="emptyBg">
               <img
                 src="../../../../../../../../assets/system/images/no_data/noData.png"
@@ -110,7 +110,7 @@
               <p>无数据</p>
             </div>
           </template>
-        </el-table>
+        </a-table>
         <!-- 分页 -->
         <div
           class="pagination-wrapper"
@@ -129,28 +129,28 @@
     <!-- 底部按钮 -->
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleCancel">取 消</el-button>
-        <el-button
+        <a-button @click="handleCancel">取 消</a-button>
+        <a-button
           type="primary"
           @click="handleConfirm"
           :disabled="!selectedRow"
           :loading="loading"
         >
           保 存
-        </el-button>
+        </a-button>
       </div>
     </template>
     <CodeValueInput ref="dialogRef" @confirm="handleConfirm" />
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
 import { ref, reactive } from "vue";
+import { EyeOutlined } from "@ant-design/icons-vue";
 const emit = defineEmits(["confirm"]);
 import DeptTree from "@/components/DeptTree/tree.vue";
 import { listDpDataElem } from "@/api/std/dataElem/dataElem.js";
 import { listDpDataElemCode } from "@/api/std/dataElem/dataElem.js";
-import { deptUserTree } from "@/api/system/system/user.js";
 import { listAttDataElemCat } from "@/api/tax/cat/dataElemCat/dataElemCat.js";
 const { proxy } = getCurrentInstance();
 const { dp_data_elem_code_type } = proxy.useDict("dp_data_elem_code_type");
@@ -172,7 +172,7 @@ const columns = ref([
   { key: 1, label: "中文名称", visible: true },
   { key: 2, label: "英文名称", visible: true },
   { key: 3, label: "类型", visible: true },
-  { key: 4, label: "标准数据元类目", visible: true },
+  { key: 4, label: "标准数据元目录", visible: true },
   { key: 5, label: "当前状态", visible: true },
   { key: 6, label: "元描述", visible: true },
 ]);
@@ -213,7 +213,6 @@ const data = reactive({
 });
 
 const { queryParams, form } = toRefs(data);
-const managerOptions = ref([]);
 /** 查询数据元列表 */
 function getList() {
   loading.value = true;
@@ -221,9 +220,6 @@ function getList() {
     dpDataElemList.value = response.data.rows;
     total.value = response.data.total;
     loading.value = false;
-  });
-  deptUserTree().then((response) => {
-    managerOptions.value = response.data;
   });
 }
 // 树组件 传值
@@ -241,8 +237,6 @@ function reset() {
     engName: null,
     catCode: null,
     type: "1",
-    personCharge: null,
-    contactNumber: null,
     columnType: null,
     status: "0",
     description: null,
@@ -278,7 +272,7 @@ function getDeptTree() {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "标准数据元类目",
+        name: "标准数据元目录",
         value: "",
         id: 0,
         children: deptOptions.value,
@@ -300,11 +294,14 @@ function openDialog(dialogTitle = "选择数据") {
 }
 const selectedRow = ref(null);
 const tableRef = ref(null);
+/** 选中行高亮 */
+function rowClassName(record) {
+  return selectedRow.value && selectedRow.value.id === record.id
+    ? "selected-row"
+    : "";
+}
 function handleRowClick(row) {
   selectedRow.value = row;
-  if (tableRef.value) {
-    tableRef.value.setCurrentRow(row); // 高亮选中
-  }
   console.log("选中行数据:", row);
 }
 /**
@@ -312,9 +309,7 @@ function handleRowClick(row) {
  */
 function handleCancel() {
   visible.value = false;
-  if (tableRef.value) {
-    tableRef.value.setCurrentRow(null); // 清除表格选中行高亮
-  }
+  selectedRow.value = null;
   resetQuery();
 }
 async function ElemCode(id) {
@@ -395,6 +390,10 @@ defineExpose({ openDialog });
   align-items: center;
   justify-content: center;
   padding: 20px;
+}
+
+:deep(.selected-row) > td {
+  background: #e6f4ff !important;
 }
 </style>
 

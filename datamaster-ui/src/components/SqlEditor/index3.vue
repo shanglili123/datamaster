@@ -3,9 +3,7 @@
     <div class="sideConfig">
       <div class="icon" :class="{ act: activeValue.name == item.name }" v-for="item in iconList" :key="item"
         @click="handleIcon(item)" :title="item.name">
-        <el-icon>
-          <component :is="item.icon" />
-        </el-icon>
+        <component :is="item.icon" />
       </div>
     </div>
     <div class="editor-con" :style="`width: calc(100% - ${configWidth}px);`">
@@ -22,9 +20,7 @@
     <div class="sideConfig sideConfig-r">
       <div class="icon" :class="{ act: activeValueR.name == item.name }" v-for="item in iconListR" :key="item"
         @click="handleIconR(item)" :title="item.name">
-        <el-icon>
-          <component :is="item.icon" />
-        </el-icon>
+        <component :is="item.icon" />
       </div>
     </div>
   </div>

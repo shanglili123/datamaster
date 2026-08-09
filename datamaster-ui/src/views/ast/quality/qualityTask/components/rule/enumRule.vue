@@ -1,44 +1,44 @@
 <template>
   <!-- 枚举值校验 -->
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="falg">
-    <el-row>
-      <el-col :span="8">
-        <el-form-item label="关联代码表" prop="useCodeTable">
-          <el-radio-group
-            v-model="form.useCodeTable"
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="falg">
+    <a-row>
+      <a-col :span="8">
+        <a-form-item label="关联代码表" name="useCodeTable">
+          <a-radio-group
+            v-model:value="form.useCodeTable"
             @change="handleUseCodeTableChange"
           >
-            <el-radio :value="'1'">是</el-radio>
-            <el-radio :value="'0'">否</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
+            <a-radio :value="'1'">是</a-radio>
+            <a-radio :value="'0'">否</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
 
-      <el-col :span="8">
-        <el-form-item label="忽略空值" prop="ignoreNullValue">
-          <el-radio-group v-model="form.ignoreNullValue">
-            <el-radio :value="'1'">是</el-radio>
-            <el-radio :value="'0'">否</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
+      <a-col :span="8">
+        <a-form-item label="忽略空值" name="ignoreNullValue">
+          <a-radio-group v-model:value="form.ignoreNullValue">
+            <a-radio :value="'1'">是</a-radio>
+            <a-radio :value="'0'">否</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
 
-      <el-col :span="8">
-        <el-form-item label="是否区分大小写" prop="ignoreCase">
-          <el-radio-group v-model="form.ignoreCase">
-            <el-radio :value="'1'">是</el-radio>
-            <el-radio :value="'0'">否</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
-    </el-row>
+      <a-col :span="8">
+        <a-form-item label="是否区分大小写" name="ignoreCase">
+          <a-radio-group v-model:value="form.ignoreCase">
+            <a-radio :value="'1'">是</a-radio>
+            <a-radio :value="'0'">否</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
     <!-- 👇 当选择了“关联代码表”为“是”时展示 -->
-    <el-row v-if="form.useCodeTable == '1'">
-      <el-col :span="8">
-        <el-form-item
+    <a-row v-if="form.useCodeTable == '1'">
+      <a-col :span="8">
+        <a-form-item
           label="选择代码表"
-          prop="codeTableId"
+          name="codeTableId"
           :rules="
             !falg
               ? [{ required: true, message: '选择代码表', trigger: 'change' }]
@@ -46,109 +46,127 @@
           "
         >
           <template v-if="!falg">
-            <el-select
-              v-model="form.codeTableId"
+            <a-select
+              v-model:value="form.codeTableId"
               placeholder="请选择代码表"
-              filterable
-              clearable
+              show-search
+              allow-clear
               @change="handleCodeTableChange"
               class="rule-half"
             >
-              <el-option
+              <a-select-option
                 v-for="item in dpDataElemList"
                 :key="item.id"
-                :label="item.name"
                 :value="item.id"
-              />
-            </el-select>
+                >{{ item.name }}</a-select-option
+              >
+            </a-select>
           </template>
           <div v-else class="form-readonly">
             {{
               dpDataElemList.find((i) => i.id === form.codeTableId)?.name || "-"
             }}
           </div>
-        </el-form-item>
-      </el-col>
-    </el-row>
+        </a-form-item>
+      </a-col>
+    </a-row>
 
-    <div v-loading="loadingList">
+    <a-spin :spinning="loadingList">
       <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
+        <a-row :gutter="15" class="btn-style">
           <template v-if="!falg && form.useCodeTable == 0">
-            <el-col :span="1.5">
-              <el-button
+            <a-col :span="1.5">
+              <a-button
                 type="primary"
-                icon="Plus"
+                :icon="h(PlusOutlined)"
                 @click="opencodeDialog(undefined)"
-                >新增</el-button
+                >新增</a-button
               >
-            </el-col>
+            </a-col>
           </template>
-        </el-row>
+        </a-row>
       </div>
-      <el-table stripe height="200px" :data="pagedCodeList">
-        <el-table-column label="代码值" align="center" prop="codeValue">
-          <template #default="scope">
+      <a-table
+        striped
+        :scroll="{ y: 200 }"
+        :data-source="pagedCodeList"
+        :columns="tableColumns"
+        :pagination="false"
+        row-key="codeValue"
+        size="small"
+        :locale="{ emptyText: emptyContent }"
+      >
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.dataIndex === 'codeValue'">
             <template v-if="!falg && form.useCodeTable == 0">
-              <el-input
-                v-model="scope.row.codeValue"
+              <a-input
+                v-model:value="record.codeValue"
                 style="width: 100%"
                 placeholder="请输入代码值"
               />
             </template>
             <template v-else>
-              {{ scope.row.codeValue || "-" }}
+              {{ record.codeValue || "-" }}
             </template>
           </template>
-        </el-table-column>
-
-        <el-table-column label="代码名称" align="center" prop="codeName">
-          <template #default="scope">
+          <template v-else-if="column.dataIndex === 'codeName'">
             <template v-if="!falg && form.useCodeTable == 0">
-              <el-input
-                v-model="scope.row.codeName"
+              <a-input
+                v-model:value="record.codeName"
                 style="width: 100%"
                 placeholder="请输入代码名称"
               />
             </template>
             <template v-else>
-              {{ scope.row.codeName || "-" }}
+              {{ record.codeName || "-" }}
             </template>
           </template>
-        </el-table-column>
-        <el-table-column
-          v-if="!falg && form.useCodeTable == 0"
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-          fixed="right"
-          width="150"
-        >
-          <template #default="scope">
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleDelete(scope.row)"
-              >删除</el-button
+          <template v-else-if="column.key === 'actions'">
+            <a-button
+              type="link"
+              danger
+              size="small"
+              @click="handleDelete(record)"
+              >删除</a-button
             >
           </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </a-table>
       <pagination
         v-show="form.codeList.length > 0"
         :total="form.codeList.length"
         v-model:page="codeQueryParams.pageNum"
         v-model:limit="codeQueryParams.pageSize"
       />
-    </div>
-    <el-row> </el-row>
-  </el-form>
+    </a-spin>
+    <a-row> </a-row>
+  </a-form>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { message } from 'ant-design-vue'
+import { computed, onMounted, reactive, ref, watch, h } from "vue";
+
+import { PlusOutlined } from "@ant-design/icons-vue";
+
+const tableColumns = computed(() => {
+  const cols = [
+    { title: '代码值', dataIndex: 'codeValue', align: 'center' },
+    { title: '代码名称', dataIndex: 'codeName', align: 'center' },
+  ];
+  if (!props.falg && form.useCodeTable == 0) {
+    cols.push({ title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 150 });
+  }
+  return cols;
+});
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+  h('img', { src: new URL('@/assets/system/images/no_data/noData.png', import.meta.url).href, alt: '' }),
+  h('p', '没有记录哦~'),
+]);
+
 import { listDpDataElem } from "@/api/std/dataElem/dataElem";
+
 import { listDpDataElemCode } from "@/api/std/dataElem/dataElem";
 const props = defineProps({
   form: Object,
@@ -245,15 +263,10 @@ onMounted(() => {
 });
 function validate() {
   return new Promise((resolve) => {
-    formRef.value.validate((valid) => {
-      if (!valid) {
-        resolve({ valid: false });
-        return;
-      }
-
+    formRef.value.validate().then(() => {
       if (form.useCodeTable === "0") {
         if (!form.codeList || form.codeList.length === 0) {
-          ElMessage.warning("校验未通过，请至少添加一条代码项");
+          message.warning("校验未通过，请至少添加一条代码项");
           resolve({ valid: false });
           return;
         }
@@ -263,7 +276,7 @@ function validate() {
           .filter((v) => v !== "");
         const hasEmpty = values.length !== form.codeList.length;
         if (hasEmpty) {
-          ElMessage.warning("校验未通过，代码值不能为空");
+          message.warning("校验未通过，代码值不能为空");
           resolve({ valid: false });
           return;
         }
@@ -272,7 +285,7 @@ function validate() {
           (val, idx) => values.indexOf(val) !== idx
         );
         if (duplicates.length > 0) {
-          ElMessage.warning("校验未通过，代码值不能重复");
+          message.warning("校验未通过，代码值不能重复");
           resolve({ valid: false });
           return;
         }
@@ -290,7 +303,7 @@ function validate() {
       };
 
       resolve({ valid: true, data: result });
-    });
+    }).catch(() => {});
   });
 }
 

@@ -1,120 +1,112 @@
 <template>
-  <el-dialog title="应用管理-单选" v-model="visible" width="1200px" :append-to="$refs['app-container']" draggable
-    destroy-on-close @close="cancel">
-    <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch"
-      label-width="68px">
-      <el-form-item label="ID" prop="id">
-        <el-input style="width:240px" v-model="queryParams.id" placeholder="请输入ID" clearable
-          @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="应用名称" prop="name">
-        <el-input style="width:240px" v-model="queryParams.name" placeholder="请输入应用名称" clearable
-          @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="应用类型" prop="type">
-        <el-select style="width:240px" v-model="queryParams.type" placeholder="请选择应用类型" clearable>
-          <el-option v-for="dict in auth_app_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="应用秘钥" prop="secret">
-        <el-input style="width:240px" v-model="queryParams.secret" placeholder="请输入应用秘钥" clearable
-          @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="主页地址" prop="homepageUrl">
-        <el-input style="width:240px" v-model="queryParams.homepageUrl" placeholder="请输入主页地址" clearable
-          @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="同步地址" prop="syncUrl">
-        <el-input style="width:240px" v-model="queryParams.syncUrl" placeholder="请输入同步地址" clearable
-          @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item label="是否公开" prop="publicFlag">
-        <el-select style="width:240px" v-model="queryParams.publicFlag" placeholder="请选择是否公开" clearable>
-          <el-option v-for="dict in auth_public" :key="dict.value" :label="dict.label" :value="dict.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="创建时间" prop="createTime">
-        <el-date-picker style="width:240px" clearable v-model="queryParams.createTime" type="date"
-          value-format="YYYY-MM-DD" placeholder="请选择创建时间">
-        </el-date-picker>
-      </el-form-item>
-      <el-form-item>
-        <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+  <a-modal title="应用管理-单选" v-model:open="visible" width="1200px" @cancel="cancel">
+    <a-form class="btn-style" :model="queryParams" ref="queryRef" :layout="'inline'" v-show="showSearch"
+      :label-col="{ style: { width: '68px' } }">
+      <a-form-item label="ID" name="id">
+        <a-input style="width:240px" v-model:value="queryParams.id" placeholder="请输入ID" allow-clear
+          @pressEnter="handleQuery" />
+      </a-form-item>
+      <a-form-item label="应用名称" name="name">
+        <a-input style="width:240px" v-model:value="queryParams.name" placeholder="请输入应用名称" allow-clear
+          @pressEnter="handleQuery" />
+      </a-form-item>
+      <a-form-item label="应用类型" name="type">
+        <a-select style="width:240px" v-model:value="queryParams.type" placeholder="请选择应用类型" allow-clear>
+          <a-select-option v-for="dict in auth_app_type" :key="dict.value" :value="dict.value">
+            {{ dict.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="应用秘钥" name="secret">
+        <a-input style="width:240px" v-model:value="queryParams.secret" placeholder="请输入应用秘钥" allow-clear
+          @pressEnter="handleQuery" />
+      </a-form-item>
+      <a-form-item label="主页地址" name="homepageUrl">
+        <a-input style="width:240px" v-model:value="queryParams.homepageUrl" placeholder="请输入主页地址" allow-clear
+          @pressEnter="handleQuery" />
+      </a-form-item>
+      <a-form-item label="同步地址" name="syncUrl">
+        <a-input style="width:240px" v-model:value="queryParams.syncUrl" placeholder="请输入同步地址" allow-clear
+          @pressEnter="handleQuery" />
+      </a-form-item>
+      <a-form-item label="是否公开" name="publicFlag">
+        <a-select style="width:240px" v-model:value="queryParams.publicFlag" placeholder="请选择是否公开" allow-clear>
+          <a-select-option v-for="dict in auth_public" :key="dict.value" :value="dict.value">
+            {{ dict.label }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="创建时间" name="createTime">
+        <a-date-picker style="width:240px" allow-clear v-model:value="queryParams.createTime" value-format="YYYY-MM-DD"
+          placeholder="请选择创建时间" />
+      </a-form-item>
+      <a-form-item>
+        <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-        </el-button>
-        <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+        </a-button>
+        <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
           <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-        </el-button>
-      </el-form-item>
-    </el-form>
+        </a-button>
+      </a-form-item>
+    </a-form>
 
-    <el-table ref="tableRef" stripe height="300px" v-loading="loading" :data="dataList" highlight-current-row
-      row-key="id" @current-change="handleCurrentChange">
-      <el-table-column label="ID" align="center" prop="id" />
-      <el-table-column label="应用名称" align="center" prop="name">
-        <template #default="scope">
-          {{ scope.row.name || '-' }}
+    <a-table
+      size="middle"
+      :loading="loading"
+      :data-source="dataList"
+      :pagination="false"
+      :scroll="{ y: 300 }"
+      :row-key="(record) => record.id"
+      :row-selection="{ type: 'radio', selectedRowKeys: selectedRowKeys, onChange: handleSelectionChange }"
+      :columns="tableColumns"
+      @row-click="handleRowClick"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'name'">
+          {{ record.name || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="应用类型" align="center" prop="type">
-        <template #default="scope">
-          <dict-tag :options="auth_app_type" :value="scope.row.type" />
+        <template v-else-if="column.dataIndex === 'type'">
+          <dict-tag :options="auth_app_type" :value="record.type" />
         </template>
-      </el-table-column>
-      <el-table-column label="允许授权的url" align="center" prop="allowUrl">
-        <template #default="scope">
-          {{ scope.row.allowUrl || '-' }}
+        <template v-else-if="column.dataIndex === 'allowUrl'">
+          {{ record.allowUrl || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="同步地址" align="center" prop="syncUrl">
-        <template #default="scope">
-          {{ scope.row.syncUrl || '-' }}
+        <template v-else-if="column.dataIndex === 'syncUrl'">
+          {{ record.syncUrl || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="应用图标" align="center" prop="logo" width="100">
-        <template #default="scope">
-          <image-preview :src="scope.row.logo" :width="50" :height="50" />
+        <template v-else-if="column.dataIndex === 'logo'">
+          <image-preview :src="record.logo" :width="50" :height="50" />
         </template>
-      </el-table-column>
-      <el-table-column label="描述" align="center" prop="description">
-        <template #default="scope">
-          {{ scope.row.description || '-' }}
+        <template v-else-if="column.dataIndex === 'description'">
+          {{ record.description || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="是否公开" align="center" prop="publicFlag">
-        <template #default="scope">
-          <dict-tag :options="auth_public" :value="scope.row.publicFlag" />
+        <template v-else-if="column.dataIndex === 'publicFlag'">
+          <dict-tag :options="auth_public" :value="record.publicFlag" />
         </template>
-      </el-table-column>
-      <el-table-column label="创建人" align="center" prop="createBy">
-        <template #default="scope">
-          {{ scope.row.createBy || '-' }}
+        <template v-else-if="column.dataIndex === 'createBy'">
+          {{ record.createBy || '-' }}
         </template>
-      </el-table-column>
-      <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          <span>{{ parseTime(record.createTime, '{y}-{m}-{d}') }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="备注" align="center" prop="remark">
-        <template #default="scope">
-          {{ scope.row.remark || '-' }}
+        <template v-else-if="column.dataIndex === 'remark'">
+          {{ record.remark || '-' }}
         </template>
-      </el-table-column>
-    </el-table>
+      </template>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
       v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">取 消</el-button>
-        <el-button type="primary" size="mini" @click="confirm">
+        <a-button size="small" @click="cancel">取 消</a-button>
+        <a-button type="primary" size="small" @click="confirm">
           确 定
-        </el-button>
+        </a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup name="ClientSingle">
@@ -123,6 +115,20 @@ import { ref } from "vue";
 const { proxy } = getCurrentInstance();
 
 const { auth_public, auth_app_type } = proxy.useDict('auth_public', 'auth_app_type');
+
+const tableColumns = [
+  { title: 'ID', dataIndex: 'id', align: 'center' },
+  { title: '应用名称', dataIndex: 'name', align: 'center' },
+  { title: '应用类型', dataIndex: 'type', align: 'center' },
+  { title: '允许授权的url', dataIndex: 'allowUrl', align: 'center' },
+  { title: '同步地址', dataIndex: 'syncUrl', align: 'center' },
+  { title: '应用图标', dataIndex: 'logo', align: 'center', width: 100 },
+  { title: '描述', dataIndex: 'description', align: 'center' },
+  { title: '是否公开', dataIndex: 'publicFlag', align: 'center' },
+  { title: '创建人', dataIndex: 'createBy', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', align: 'center', width: 180 },
+  { title: '备注', dataIndex: 'remark', align: 'center' },
+];
 
 const dataList = ref([]);
 const loading = ref(true);
@@ -152,16 +158,27 @@ const { queryParams, form } = toRefs(data);
 const visible = ref(false);
 // 定义单选数据
 const single = ref();
-// 当前界面table
-const tableRef = ref();
+// 当前选中行的 key（驱动 antd 表格单选高亮）
+const selectedRowKeys = computed(() => (single.value ? [single.value.id] : []));
 
 const emit = defineEmits(["open", "confirm", "cancel"]);
 
 /** 单选选中事件 */
-function handleCurrentChange(selection) {
-  if (selection) {
-    single.value = selection;
+function handleSelectionChange(keys, rows) {
+  if (rows.length > 0) {
+    single.value = rows[0];
+  } else {
+    single.value = null;
   }
+}
+
+/** 行点击选中 */
+function handleRowClick(row, event) {
+  // 点击单选列不重复处理
+  if (event && event.target && event.target.closest && event.target.closest('.ant-table-selection-column')) {
+    return;
+  }
+  single.value = row;
 }
 
 /**
@@ -172,7 +189,7 @@ function handleCurrentChange(selection) {
 function setCurrentRow(row) {
   if (row) {
     let data = dataList.value.filter((item) => item.id == row.id);
-    tableRef.value?.setCurrentRow(data[0]);
+    single.value = data[0];
   }
 }
 
@@ -231,17 +248,19 @@ function normalizePageData(response) {
 /** 查询字典类型列表 */
 function getList() {
   loading.value = true;
-  listClient(proxy.addDateRange(queryParams.value, daterangeCreateTime.value)).then(
-    async (response) => {
+  listClient(proxy.addDateRange(queryParams.value, daterangeCreateTime.value))
+    .then(async (response) => {
       const pageData = normalizePageData(response);
       dataList.value = pageData.rows;
       total.value = pageData.total;
-      loading.value = false;
       // 初始化及分页切换选中逻辑
       await nextTick();
       setCurrentRow(single.value);
-    }
-  );
+    })
+    .catch((error) => { })
+    .finally(() => {
+      loading.value = false;
+    });
 }
 
 /** 搜索按钮操作 */

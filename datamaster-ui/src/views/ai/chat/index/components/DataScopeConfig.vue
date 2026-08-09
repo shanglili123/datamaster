@@ -10,12 +10,12 @@
       </div>
       <div class="summary-middle-col">
         <!-- 维表数量展示 -->
-        <el-tooltip
+        <a-tooltip
           v-if="dimensionTableNames?.length"
-          effect="light"
           placement="top"
+          :color="'#fff'"
         >
-          <template #content>
+          <template #title>
             <div
               v-for="name in dimensionTableNames"
               :key="name"
@@ -31,12 +31,12 @@
           <div class="dim-tag" @click="showConfig = !showConfig">
             + {{ dimensionTableNames.length }}张维表
           </div>
-        </el-tooltip>
+        </a-tooltip>
 
-        <el-form inline :disabled="disabled" class="summary-form">
-          <el-form-item label="数据范围" required>
-            <el-input
-              :model-value="
+        <a-form :layout="'inline'" :disabled="disabled" class="summary-form">
+          <a-form-item label="数据范围" required>
+            <a-input
+              :value="
                 factTableName
                   ? factTableComment
                     ? `${factTableName}(${factTableComment})`
@@ -50,13 +50,11 @@
               @click="showConfig = !showConfig"
             >
               <template #suffix>
-                <el-icon class="arrow-icon">
-                  <component :is="showConfig ? ArrowUp : ArrowDown" />
-                </el-icon>
+                <component :is="showConfig ? UpOutlined : DownOutlined" class="arrow-icon" />
               </template>
-            </el-input>
-          </el-form-item>
-        </el-form>
+            </a-input>
+          </a-form-item>
+        </a-form>
 
         <!-- 外部按钮插槽 (清空/上下滚动等) -->
         <div class="extra-slot">
@@ -66,15 +64,15 @@
     </div>
 
     <!-- 2. 配置面板 (3-step selection) -->
-    <el-collapse-transition>
+    <div>
       <div class="config-panel" v-show="showConfig">
-        <el-form
+        <a-form
           class="steps-container"
           :disabled="disabled"
-          label-width="auto"
+          :label-col="{ style: { width: 'auto' } }"
         >
           <!-- Step 1: 数据源 -->
-          <el-form-item label=" 数据源" required>
+          <a-form-item label=" 数据源" required>
             <DatasourceList
               v-model="internalDatasourceId"
               :disabled="disabled"
@@ -84,70 +82,69 @@
               flag="daQuality"
               class="config-select"
             />
-          </el-form-item>
+          </a-form-item>
 
           <!-- Step 2: 事实表 -->
-          <el-form-item label="事实表" required>
-            <el-select
-              v-model="internalFactTableName"
+          <a-form-item label="事实表" required>
+            <a-select
+              v-model:value="internalFactTableName"
               :disabled="disabled"
-              filterable
-              remote
-              remote-show-suffix
-              :remote-method="remoteSearchFactTables"
+              show-search
+              :filter-option="false"
               :loading="factTableLoading"
-              @visible-change="handleFactTableSelectVisible"
+              @search="remoteSearchFactTables"
+              @dropdown-visible-change="handleFactTableSelectVisible"
               placeholder="请选择事实表"
               @change="onFactTableChange"
               class="config-select"
             >
-              <el-option
+              <a-select-option
                 v-for="item in factTableOptions"
                 :key="item.tableName"
-                :label="
+                :value="item.tableName"
+              >
+                {{
                   item.tableComment
                     ? `${item.tableName}(${item.tableComment})`
                     : item.tableName
-                "
-                :value="item.tableName"
-              />
-            </el-select>
-          </el-form-item>
+                }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
 
           <!-- Step 3: 关联维表 -->
-          <el-form-item label="关联维表" required>
-            <el-select
-              v-model="internalDimensionTableNames"
+          <a-form-item label="关联维表" required>
+            <a-select
+              v-model:value="internalDimensionTableNames"
               :disabled="disabled"
-              filterable
-              remote
-              remote-show-suffix
-              multiple
-              collapse-tags
-              collapse-tags-tooltip
-              :remote-method="remoteSearchDimensionTables"
+              show-search
+              :filter-option="false"
+              :mode="'multiple'"
+              :max-tag-count="'responsive'"
               :loading="dimensionTableLoading"
-              @visible-change="handleDimensionTableSelectVisible"
+              @search="remoteSearchDimensionTables"
+              @dropdown-visible-change="handleDimensionTableSelectVisible"
               placeholder="请选择关联维表"
               @change="onDimensionTableChange"
               class="config-select"
             >
-              <el-option
+              <a-select-option
                 v-for="item in dimensionTableOptions"
                 :key="item.tableName"
-                :label="
+                :value="item.tableName"
+              >
+                {{
                   item.tableComment
                     ? `${item.tableName}(${item.tableComment})`
                     : item.tableName
-                "
-                :value="item.tableName"
-              />
-            </el-select>
-          </el-form-item>
-        </el-form>
+                }}
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+        </a-form>
 
         <div class="panel-footer">
-          <el-button
+          <a-button
             v-if="!disabled"
             type="primary"
             @click="handleConfirm"
@@ -158,59 +155,57 @@
             "
           >
             确认范围并开始问答
-          </el-button>
-          <el-button
+          </a-button>
+          <a-button
             v-if="
               joinConditionMatchFlag === false ||
               joinConditionMatchFlag === 0 ||
               joinConditionMatchFlag === null
             "
             type="primary"
-            plain
             @click="openAssociationDialog(conversationId)"
           >
             设置关联关系
-          </el-button>
+          </a-button>
         </div>
       </div>
-    </el-collapse-transition>
+    </div>
 
     <!-- 3. 设置关联关系弹窗 -->
-    <el-dialog
-      v-model="associationVisible"
+    <a-modal
+      v-model:open="associationVisible"
       title="设置关联关系"
       width="1200px"
-      :append-to="$refs['app-container']"
-      draggable
       destroy-on-close
-      @closed="handleCloseAssociationDialog"
+      @after-close="handleCloseAssociationDialog"
     >
       <qt-table v-bind="associationTableStore" ref="associationTableRef">
         <template #selectedDimensionTable="scope">
-          <el-select
-            v-model="scope.row.selectedDimensionTable"
+          <a-select
+            v-model:value="scope.row.selectedDimensionTable"
             placeholder="请选择维度表"
-            clearable
+            allow-clear
             @change="onRowDimensionTableChange(scope.row)"
             style="width: 100%"
           >
-            <el-option
+            <a-select-option
               v-for="name in internalDimensionTableNames"
               :key="name"
-              :label="
+              :value="name"
+            >
+              {{
                 mergedTableCommentMap[name]
                   ? `${name}(${mergedTableCommentMap[name]})`
                   : name
-              "
-              :value="name"
-            />
-          </el-select>
+              }}
+            </a-select-option>
+          </a-select>
         </template>
         <template #selectedDimensionColumn="scope">
-          <el-select
-            v-model="scope.row.selectedDimensionColumn"
+          <a-select
+            v-model:value="scope.row.selectedDimensionColumn"
             placeholder="请选择维表字段"
-            clearable
+            allow-clear
             :disabled="!scope.row.selectedDimensionTable"
             style="width: 100%"
             :class="{
@@ -219,50 +214,51 @@
                 !scope.row.selectedDimensionColumn,
             }"
           >
-            <el-option
+            <a-select-option
               v-for="col in dimensionTableColumnsMap[
                 scope.row.selectedDimensionTable
               ] || []"
               :key="col.columnName"
-              :label="
+              :value="col.columnName"
+            >
+              {{
                 col.columnComment
                   ? `${col.columnName}(${col.columnComment})`
                   : col.columnName
-              "
-              :value="col.columnName"
-            />
-          </el-select>
+              }}
+            </a-select-option>
+          </a-select>
         </template>
       </qt-table>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="associationVisible = false"
-            >取 消</el-button
+          <a-button size="small" @click="associationVisible = false"
+            >取 消</a-button
           >
-          <el-button
+          <a-button
             type="primary"
-            size="mini"
+            size="small"
             @click="handleSaveAssociations"
             :loading="savingAssociations"
           >
             确 定
-          </el-button>
+          </a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, computed, nextTick } from "vue";
-import { Coin, ArrowDown, ArrowUp, Setting } from "@element-plus/icons-vue";
+import { UpOutlined, DownOutlined } from "@ant-design/icons-vue";
 import DatasourceList from "@/components/Datasource/List.vue";
 import {
   getTablesByDataSourceId,
   getColumnByAssetId,
 } from "@/api/col/task/index.js";
 import { ChatConversationApi } from "@/api/ai/chat/conversation/index.js";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { message, Modal } from "ant-design-vue";
 
 const props = defineProps({
   title: {
@@ -328,22 +324,16 @@ const handleOpenAssociationConfirm = (conversationId) => {
     console.warn("未提供有效的会话 ID，无法打开确认框");
     return;
   }
-  ElMessageBox.confirm(
-    "关联关系无法自动识别，是否需要手动设置关联关系？",
-    "提示",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
-    .then(() => {
+  Modal.confirm({
+    title: "提示",
+    content: "关联关系无法自动识别，是否需要手动设置关联关系？",
+    okText: "确定",
+    cancelText: "取消",
+    onOk: () => {
       // 直接触发弹窗显示逻辑
       openAssociationDialog(id);
-    })
-    .catch(() => {
-      // 用户取消，不执行任何操作
-    });
+    },
+  });
 };
 // props.initialShowConfig
 const showConfig = ref(false);
@@ -670,7 +660,7 @@ const openAssociationDialog = async (conversationId) => {
       : props.conversationId || currentConversationId.value;
 
   if (!id) {
-    ElMessage.warning("无法确定当前会话 ID，请先保存配置并开始问答。");
+    message.warning("无法确定当前会话 ID，请先保存配置并开始问答。");
     return;
   }
   currentConversationId.value = id;
@@ -694,7 +684,7 @@ const handleSaveAssociations = async () => {
     (row) => row.selectedDimensionTable && !row.selectedDimensionColumn
   );
   if (invalidRow) {
-    ElMessage.warning(
+    message.warning(
       `字段 [${invalidRow.columnName}] 已选择维度表，请选择对应的维表字段`
     );
     return;
@@ -710,7 +700,7 @@ const handleSaveAssociations = async () => {
     }));
 
   if (associations.length === 0) {
-    ElMessage.warning("请至少设置一个关联关系");
+    message.warning("请至少设置一个关联关系");
     return;
   }
 
@@ -720,7 +710,7 @@ const handleSaveAssociations = async () => {
       id: currentConversationId.value,
       associations: JSON.stringify(associations),
     });
-    ElMessage.success("设置关联关系成功");
+    message.success("设置关联关系成功");
     associationVisible.value = false;
     // 触发确认，重新开始问答（或者由父组件处理）
     emit("confirm-associations");
@@ -827,20 +817,20 @@ onMounted(() => {
 
     .summary-form {
       margin: 0;
-      :deep(.el-form-item) {
+      :deep(.ant-form-item) {
         margin-bottom: 0;
         margin-right: 0;
         display: flex;
         align-items: center;
       }
-      :deep(.el-form-item__label) {
+      :deep(.ant-form-item-label) {
         font-weight: 500;
         color: #333;
         padding-right: 8px;
         height: 32px;
         line-height: 32px;
       }
-      :deep(.el-form-item__content) {
+      :deep(.ant-form-item-control) {
         height: 32px;
         line-height: 32px;
         display: flex;
@@ -850,13 +840,13 @@ onMounted(() => {
 
     .scope-input {
       width: 240px;
-      :deep(.el-input__wrapper) {
+      :deep(.ant-input-affix-wrapper) {
         cursor: pointer;
         padding-right: 8px;
         height: 32px;
         box-sizing: border-box;
       }
-      :deep(.el-input__inner) {
+      :deep(.ant-input) {
         cursor: pointer;
         font-size: 13px;
         color: #333;
@@ -940,14 +930,14 @@ onMounted(() => {
     margin-bottom: 16px;
     flex-wrap: wrap;
 
-    :deep(.el-form-item) {
+    :deep(.ant-form-item) {
       flex: 1;
       min-width: 280px;
       margin-bottom: 10px;
       margin-right: 0;
     }
 
-    :deep(.el-form-item__label) {
+    :deep(.ant-form-item-label) {
       font-size: 14px;
       font-weight: 600;
       color: #303133;
@@ -956,7 +946,7 @@ onMounted(() => {
 
   .config-select {
     width: 100% !important;
-    :deep(.el-input__wrapper) {
+    :deep(.ant-select-selector) {
       background: #fff;
     }
   }
@@ -988,7 +978,7 @@ onMounted(() => {
   .config-panel {
     .steps-container {
       gap: 20px;
-      :deep(.el-form-item) {
+      :deep(.ant-form-item) {
         flex: 1;
         min-width: calc(33.33% - 20px);
       }
@@ -999,14 +989,14 @@ onMounted(() => {
 @media screen and (max-width: 768px) {
   .config-panel {
     .steps-container {
-      :deep(.el-form-item) {
+      :deep(.ant-form-item) {
         min-width: 100%;
       }
     }
   }
 }
 
-:deep(.el-select .el-select__tags .el-tag) {
+:deep(.ant-select-selection-overflow-item .ant-tag) {
   background-color: #f4f4f5;
   border-color: #e9e9eb;
   color: #909399;
@@ -1018,11 +1008,11 @@ onMounted(() => {
   font-weight: 600;
 }
 
-:deep(.el-dialog__body) {
+:deep(.ant-modal-body) {
   padding: 10px 20px;
 }
 
-:deep(.el-select.is-error .el-input__wrapper) {
+:deep(.ant-select.is-error .ant-select-selector) {
   box-shadow: 0 0 0 1px #f56c6c inset !important;
 }
 </style>

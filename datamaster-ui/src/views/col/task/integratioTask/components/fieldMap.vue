@@ -1,34 +1,34 @@
 <template>
 <!-- 输出组件的字段映射   -->
   <div class="container">
-    <el-form label-position="left" label-width="80px" :model="readerForm">
-      <el-row>
+    <a-form label-position="left" :label-col="{ style: { width: '80px' } }" :model="readerForm">
+      <a-row>
         <!-- 左侧拖拽列表 -->
-        <el-col :span="8" :offset="3">
+        <a-col :span="8" :offset="3">
           <p>来源表字段：</p>
           <!-- 全选复选框 -->
-          <el-checkbox style="margin-top: -20px" v-model="leftSelectAll" :disabled="info"
-            v-if="readerForm.tableFields.length > 0">全选</el-checkbox>
+          <a-checkbox style="margin-top: -20px" v-model:checked="leftSelectAll" :disabled="info"
+            v-if="readerForm.tableFields.length > 0">全选</a-checkbox>
           <draggable tag="div" class="draggable-list" :list="readerForm.tableFields" animation="300" item-key="id" :disabled="info">
             <template v-slot:item="{ element, index }">
               <div class="draggable-item fixed-height">
                 <div class="custom-draggable-item">
-                  <el-checkbox v-model="element.isChecked" @change="handleCheckedChange(index)"
+                  <a-checkbox v-model:checked="element.isChecked" @change="handleCheckedChange(index)"
                     :disabled="info" class="checkbox-left" />
-                  <el-input v-if="!info" v-model="element.columnName" size="small" class="name-input" />
+                  <a-input v-if="!info" v-model:value="element.columnName" size="small" class="name-input" />
                   <span v-else class="column-name">{{ element.columnName }}</span>
-                  <el-button v-if="!info" type="danger" link size="small" @click.stop="deleteRow(index)">
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
+                  <a-button v-if="!info" type="primary" danger size="small" @click.stop="deleteRow(index)">
+                    <template #icon><DeleteOutlined /></template>
+                  </a-button>
                   <img src="../../../../../assets/system/images/dpp/mop.png" class="icon" />
                 </div>
               </div>
             </template>
           </draggable>
-        </el-col>
+        </a-col>
 
         <!-- 中间箭头列 -->
-        <el-col :span="4">
+        <a-col :span="4">
           <div class="arrow-container">
             <div v-for="(arrow, index) in arrowRows" :key="index" class="arrow-row fixed-height">
               <div class="circle"></div>
@@ -36,33 +36,33 @@
               <div class="circle"></div>
             </div>
           </div>
-        </el-col>
+        </a-col>
 
         <!-- 右侧拖拽列表 -->
-        <el-col :span="8">
+        <a-col :span="8">
           <p>目标字段：</p>
           <!-- 全选复选框，仅当不是 hdfs 且有字段时显示 -->
-          <el-checkbox v-if="readerForm.toColumnsList.length > 0" :disabled="type == 'hdfs' || info"
-            v-model="rightSelectAll" style="margin-top: -20px">
+          <a-checkbox v-if="readerForm.toColumnsList.length > 0" :disabled="type == 'hdfs' || info"
+            v-model:checked="rightSelectAll" style="margin-top: -20px">
             全选
-          </el-checkbox>
+          </a-checkbox>
           <!-- 拖拽区域 -->
           <draggable tag="div" class="draggable-list" :list="readerForm.toColumnsList" animation="300" item-key="id" :disabled="info">
             <template v-slot:item="{ element, index }">
               <div class="draggable-item fixed-height">
                 <div class="custom-draggable-item">
                   <!-- 使用 tooltip 提示禁用原因 -->
-                  <el-tooltip v-if="type === 'hdfs'" content="HDFS 类型不可勾选" placement="top">
-                    <el-checkbox v-model="element.isChecked" :disabled="true" class="checkbox-left" />
-                  </el-tooltip>
+                  <a-tooltip v-if="type === 'hdfs'" title="HDFS 类型不可勾选" placement="top">
+                    <a-checkbox v-model:checked="element.isChecked" :disabled="true" class="checkbox-left" />
+                  </a-tooltip>
                   <!-- 正常复选框 -->
-                  <el-checkbox v-else v-model="element.isChecked" @change="handleCheckedChange(index)"
+                  <a-checkbox v-else v-model:checked="element.isChecked" @change="handleCheckedChange(index)"
                     :disabled="info" class="checkbox-left" />
-                  <el-input v-if="!info" v-model="element.columnName" size="small" class="name-input" />
+                  <a-input v-if="!info" v-model:value="element.columnName" size="small" class="name-input" />
                   <span v-else class="column-name">{{ element.columnName }}</span>
-                  <el-button v-if="!info" type="danger" link size="small" @click.stop="deleteRow(index)">
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
+                  <a-button v-if="!info" type="primary" danger size="small" @click.stop="deleteRow(index)">
+                    <template #icon><DeleteOutlined /></template>
+                  </a-button>
 
                   <!-- 图标 -->
                   <img src="../../../../../assets/system/images/dpp/mop.png" class="icon" />
@@ -70,21 +70,22 @@
               </div>
             </template>
           </draggable>
-        </el-col>
+        </a-col>
 
-        <el-col :span="24">
+        <a-col :span="24">
           <div style="text-align:center;margin-top:12px">
-            <el-button v-if="!info" type="primary" size="small" native-type="button" @click="addRow">+ 添加一行</el-button>
+            <a-button v-if="!info" type="primary" size="small" html-type="button" @click="addRow">+ 添加一行</a-button>
           </div>
-        </el-col>
-      </el-row>
-    </el-form>
+        </a-col>
+      </a-row>
+    </a-form>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, computed, defineExpose } from "vue";
 import draggable from "vuedraggable";
+import { DeleteOutlined } from "@ant-design/icons-vue";
 
 // 定义 props
 const props = defineProps({

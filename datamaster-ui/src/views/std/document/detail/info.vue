@@ -1,16 +1,16 @@
-﻿<template>
+<template>
   <div class="basicInfo">
-    <el-descriptions title="" :column="2" border>
-      <el-descriptions-item v-for="(item, index) in fileDesc" :key="index" label-class-name="base-label"
-        :span="item.span || 1" class-name="base-content">
+    <a-descriptions title="" :column="2" bordered>
+      <a-descriptions-item v-for="(item, index) in fileDesc" :key="index" :label-style="{ width: '200px' }"
+        :span="item.span || 1">
         <template #label>
           <div class="cell-item">{{ item.label }}</div>
         </template>
         <span v-if="item.key == 'tags'">
           <template v-if="item.value.length != 0">
-            <el-tag v-for="tag in item.value" :key="tag" class="mr10">
+            <a-tag v-for="tag in item.value" :key="tag" class="mr10">
               {{ tag }}
-            </el-tag>
+            </a-tag>
           </template>
           <template v-else>-</template>
         </span>
@@ -62,8 +62,8 @@
         </div>
         <span v-else-if="item.key == 'createType'">{{ item.value == 1 ? "虚拟资产创建" : "完整资产创建" }}</span>
         <span v-else>{{ getDescValue(item) }}</span>
-      </el-descriptions-item>
-    </el-descriptions>
+      </a-descriptions-item>
+    </a-descriptions>
   </div>
 </template>
 <script setup name="BasicInfo">
@@ -102,9 +102,6 @@ const fileDesc = ref([
 const getDescValue = (row) => {
   let detail = { ...props.form1 };
   if (props.form1) {
-    if (props.form1.type == 2) {
-      detail = { ...detail, ...props.form1.daAssetApi };
-    }
     if (props.form1.type == 7) {
       detail = {
         ...detail,

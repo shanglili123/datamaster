@@ -2,14 +2,16 @@
   <!-- 数据血缘节点 -->
   <div class="data-processing-dag-node">
     <div class="main-area" :class="{ act: nodeData.active }" @mouseenter="onMainMouseEnter"
-      @mouseleave="onMainMouseLeave">
+      @mouseleave="onMainMouseLeave"
+>
       <div class="main-info">
         <!-- {/* 节点类型icon */} -->
         <!-- <i class="node-logo" :style="{ backgroundImage: `url(${NODE_TYPE_LOGO[nodeData.type]})` }" /> -->
         <img class="node-logo" :src="NODE_TYPE_LOGO[nodeData.type]" alt="" />
-        <el-popover :disabled="!currentNode.name && !currentNode.status" width="auto" title="" content=""
-          placement="top">
-          <template #default>
+        <a-popover :disabled="!currentNode.name && !currentNode.status" width="auto" title="" content=""
+          placement="top"
+>
+          <template #content>
             <template v-if="nodeData.name == currentNode.name && currentNode.type === 'TABLE'">
               <div class="pop-class" @mouseenter="currentNode = nodeData" @mouseleave="currentNode = {}">
                 <div class="li">数据表名称：{{ nodeData.name || '-' }}</div>
@@ -32,20 +34,18 @@
               </div>
             </template>
           </template>
-          <template #reference>
-            <div class="main-text" @mouseenter="currentNode = nodeData" @mouseleave="currentNode = {}">
-              <div class="ellipsis-row node-name">{{ nodeData.name }}</div>
-              <div class="ellipsis-row node-desc" v-if="nodeData.type == 'TABLE'">{{ nodeData.dbName }}</div>
-            </div>
-          </template>
-        </el-popover>
+          <div class="main-text" @mouseenter="currentNode = nodeData" @mouseleave="currentNode = {}">
+            <div class="ellipsis-row node-name">{{ nodeData.name }}</div>
+            <div class="ellipsis-row node-desc" v-if="nodeData.type == 'TABLE'">{{ nodeData.dbName }}</div>
+          </div>
+        </a-popover>
       </div>
       <!-- {/* 节点状态信息 */} -->
       <div class="status-action">
         <template v-if="nodeData.taskStatus == '6'">
-          <el-tooltip class="box-item" effect="dark" :content="nodeData.statusMsg" placement="top">
+          <a-tooltip class="box-item" :title="nodeData.statusMsg" placement="top">
             <i class="status-icon status-icon-error" />
-          </el-tooltip>
+          </a-tooltip>
         </template>
         <template v-if="nodeData.taskStatus == '7'">
           <i class="status-icon status-icon-success" />
@@ -59,32 +59,29 @@
     </div>
     <template v-if="nodeData.leaf">
       <div class="plus-dag">
-        <el-icon @click="handleCollapse(nodeData)" v-show="nodeData.collapsed">
-          <Remove />
-        </el-icon>
-        <el-icon @click="handleCollapse(nodeData)" v-show="!nodeData.collapsed">
-          <CirclePlus />
-        </el-icon>
+        <MinusCircleOutlined @click="handleCollapse(nodeData)" v-show="nodeData.collapsed" />
+        <PlusCircleOutlined @click="handleCollapse(nodeData)" v-show="!nodeData.collapsed" />
       </div>
     </template>
     <!-- {/* 添加下游节点 nodeData.type !== NodeType.OUTPUT*/} -->
-    <!-- <el-dropdown popper-class="processing-node-menu" trigger="click">
+    <!-- <a-dropdown overlay-class-name="processing-node-menu" trigger="click">
           <span class="el-dropdown-link">
-            <el-icon><CirclePlus /></el-icon>
+            <CirclePlusOutlined />
           </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item v-for="item in PROCESSING_TYPE_LIST" @click="clickPlusDragMenu(item.type)" :key="item.value">
+          <template #overlay>
+            <a-menu>
+              <a-menu-item v-for="item in PROCESSING_TYPE_LIST" @click="clickPlusDragMenu(item.type)" :key="item.value">
                 <i class="node-mini-logo" :style="{ backgroundImage: `url(${NODE_TYPE_LOGO[item.type]})` }" />
                 <span>{{ item.name }}</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
+              </a-menu-item>
+            </a-menu>
           </template>
-        </el-dropdown> -->
+        </a-dropdown> -->
   </div>
 </template>
 <script setup name="DataProcessingDagNode">
 import { StringExt } from "@antv/x6";
+import { MinusCircleOutlined, PlusCircleOutlined } from "@ant-design/icons-vue";
 // 状态映射表
 const statusMap = {
   0: '提交成功',
@@ -495,9 +492,9 @@ const onMainMouseLeave = () => {
   height: 48px;
   display: flex;
   align-items: center;
-  color: var(--el-color-primary);
+  color: #2666fb;
 
-  .el-icon {
+  .anticon {
     border-radius: 50%;
     background: #fff;
   }

@@ -1,6 +1,6 @@
 ﻿
 import axios from 'axios'
-import { ElNotification, ElMessageBox, ElMessage, ElLoading } from 'element-plus'
+import { message, Modal, notification } from 'ant-design-vue'
 import { getToken } from '@/utils/auth'
 import errorCode from '@/utils/errorCode'
 import { tansParams, blobValidate } from '@/utils/anivia.js'
@@ -106,13 +106,20 @@ service.interceptors.response.use(res => {
   if (code === 401) {
     if (!isRelogin.show) {
       isRelogin.show = true;
-      ElMessageBox.confirm('登录状态已过期，您可以继续留在该页面，或者重新登录', '系统提示', { confirmButtonText: '重新登录', cancelButtonText: '取消', type: 'warning' }).then(() => {
-        isRelogin.show = false;
-        useUserStore().logOut().then(() => {
-          location.href = '/index';
-        })
-      }).catch(() => {
-        isRelogin.show = false;
+      Modal.confirm({
+        title: '系统提示',
+        content: '登录状态已过期，您可以继续留在该页面，或者重新登录',
+        okText: '重新登录',
+        cancelText: '取消',
+        onOk() {
+          isRelogin.show = false;
+          useUserStore().logOut().then(() => {
+            location.href = '/index';
+          })
+        },
+        onCancel() {
+          isRelogin.show = false;
+        }
       });
     }
     return Promise.reject('无效的会话，或者会话已过期，请重新登录。')
@@ -120,16 +127,16 @@ service.interceptors.response.use(res => {
     if (isInWhitelist(res.config?.url)) {
       return Promise.reject(res.data)
     }
-    ElMessage({ message: msg, type: 'error' })
+    message.error(msg)
     return Promise.reject(new Error(msg))
   } else if (code === 601) {
-    ElMessage({ message: msg, type: 'warning' })
+    message.warning(msg)
     return Promise.reject(new Error(msg))
   } else if (code !== 200) {
     if (isInWhitelist(res.config?.url)) {
       return Promise.reject(res.data)
     }
-    ElNotification.warning({ title: msg })
+    notification.warning({ message: msg })
     return Promise.reject('error')
   } else {
     return Promise.resolve(res.data)
@@ -137,32 +144,32 @@ service.interceptors.response.use(res => {
 },
   error => {
     console.log('err' + error)
-    let { message } = error;
+    let { message: errorMessage } = error;
 
-    if (message == "Network Error") {
-      message = "后端接口连接异常";
-    } else if (message.includes("timeout")) {
-      message = "系统接口请求超时";
-    } else if (message.includes("Request failed with status code")) {
-      message = "系统接口" + message.substr(message.length - 3) + "异常";
-    } else if ((message.includes('Route change: Request canceled'))) {
+    if (errorMessage == "Network Error") {
+      errorMessage = "后端接口连接异常";
+    } else if (errorMessage.includes("timeout")) {
+      errorMessage = "系统接口请求超时";
+    } else if (errorMessage.includes("Request failed with status code")) {
+      errorMessage = "系统接口" + errorMessage.substr(errorMessage.length - 3) + "异常";
+    } else if ((errorMessage.includes('Route change: Request canceled'))) {
       return null
     } else if (error.isRepeatSubmit) {
       // 只弹 warning，不弹 error
-      ElMessage({ message: error.message, type: 'warning' });
+      message.warning(error.message);
       return Promise.reject(error);
     }
     if (isInWhitelist(error?.config?.url)) {
       return Promise.reject(error)
     }
-    ElMessage({ message: message, type: 'error', duration: 5 * 1000 })
+    message.error(errorMessage, 5)
     return Promise.reject(error)
   }
 )
 
 // 通用下载方法
 export function download(url, params, filename, config) {
-  downloadLoadingInstance = ElLoading.service({ text: "正在下载数据，请稍候", background: "rgba(0, 0, 0, 0.7)", })
+  downloadLoadingInstance = message.loading({ content: "正在下载数据，请稍候", duration: 0 })
   return service.post(url, params, {
     transformRequest: [(params) => { return tansParams(params) }],
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -177,17 +184,17 @@ export function download(url, params, filename, config) {
       const resText = await data.text();
       const rspObj = JSON.parse(resText);
       const errMsg = errorCode[rspObj.code] || rspObj.msg || errorCode['default']
-      ElMessage.warning(errMsg);
+      message.warning(errMsg);
     }
-    downloadLoadingInstance.close();
+    downloadLoadingInstance();
   }).catch((r) => {
     console.error(r)
-    ElMessage.warning('下载文件出现错误，请联系管理员！')
-    downloadLoadingInstance.close();
+    message.warning('下载文件出现错误，请联系管理员！')
+    downloadLoadingInstance();
   })
 }
 export function download2(url, params, filename, config) {
-  downloadLoadingInstance = ElLoading.service({ text: "正在下载数据，请稍候", background: "rgba(0, 0, 0, 0.7)" });
+  downloadLoadingInstance = message.loading({ content: "正在下载数据，请稍候", duration: 0 });
 
   return service.get(url, {
     params: params, // 使用 GET 请求时，参数作为查询参数传递
@@ -203,13 +210,13 @@ export function download2(url, params, filename, config) {
       const resText = await data.text();
       const rspObj = JSON.parse(resText);
       const errMsg = errorCode[rspObj.code] || rspObj.msg || errorCode['default'];
-      ElMessage.warning(errMsg);  // 显示错误消息
+      message.warning(errMsg);  // 显示错误消息
     }
-    downloadLoadingInstance.close();  // 关闭加载动画
+    downloadLoadingInstance();  // 关闭加载动画
   }).catch((r) => {
     console.error(r);
-    ElMessage.warning('下载文件出现错误，请联系管理员！');  // 错误提示
-    downloadLoadingInstance.close();  // 关闭加载动画
+    message.warning('下载文件出现错误，请联系管理员！');  // 错误提示
+    downloadLoadingInstance();  // 关闭加载动画
   });
 }
 

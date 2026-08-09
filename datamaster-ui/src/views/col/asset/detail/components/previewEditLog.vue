@@ -1,89 +1,70 @@
 <template>
     <!-- 数据预览的修改记录弹窗 -->
-    <el-dialog v-model="visible" class="dialog" width="1200px" draggable destroy-on-close>
+    <a-modal v-model:open="visible" class="dialog" width="1200px" destroy-on-close>
         <template #header="{ close, titleId, titleClass }">
-            <span role="heading" aria-level="2" class="el-dialog__title">
+            <span role="heading" aria-level="2">
                 {{ title }}
             </span>
         </template>
-        <el-form ref="queryForm" :model="queryParams" inline>
-            <el-form-item label="时间" prop="dataTime">
-                <el-date-picker v-model="queryParams.dataTime" style="width: 250px" :clearable="false" type="daterange"
-                    align="right" unlink-panels range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"
-                    @change="handleDateChange" />
-            </el-form-item>
-            <el-form-item label="创建人" prop="createBy">
-                <el-input v-model="queryParams.createBy" placeholder="请输入创建人" style="width: 180px; margin-right: 10px"
+        <a-form ref="queryForm" :model="queryParams" layout="inline">
+            <a-form-item label="时间" name="dataTime">
+                <a-range-picker v-model:value="queryParams.dataTime" style="width: 250px" :allow-clear="false"
+                    valueFormat="YYYY-MM-DD" @change="handleRangeChange" />
+            </a-form-item>
+            <a-form-item label="创建人" name="createBy">
+                <a-input v-model:value="queryParams.createBy" placeholder="请输入创建人" style="width: 180px; margin-right: 10px"
                     class="filter-item" />
-            </el-form-item>
-            <el-form-item>
-                <el-button style="margin-left: 7px" plain type="primary" @click="fetchData"
+            </a-form-item>
+            <a-form-item>
+                <a-button style="margin-left: 7px" type="primary" @click="fetchData"
                     @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-                </el-button>
-                <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+                </a-button>
+                <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-                </el-button>
-            </el-form-item>
-        </el-form>
-        <el-table v-loading="loading" :data="list" stripe :default-sort="defaultSort" @sort-change="handleSortChange"
-            tooltip-effect="dark" :size="tableSize" :height="tableHeight" style="width: 100%; margin: 15px 0;">
-            <el-table-column v-if="tableColumns.length > 0" label="编号" width="75" align="left">
-                <!--                <template #default="{ $index }">-->
-                <!--                    <span>{{ $index + 1 }}</span>-->
-                <!--                </template>-->
-                <template #default="scope">
-                    <div>{{ scope.row.id || '-' }}</div>
+                </a-button>
+            </a-form-item>
+        </a-form>
+        <a-table :loading="loading" :data-source="list" :columns="columns" @change="handleTableChange"
+            :size="tableSize === 'medium' ? 'middle' : tableSize" :scroll="{ y: tableHeight }"
+            style="width: 100%; margin: 15px 0;">
+            <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'id'">
+                    <div>{{ record.id || '-' }}</div>
                 </template>
-            </el-table-column>
-
-            <!-- <el-table-column v-for="(item, index) in tableColumns" :key="index" :prop="item.prop" :label="item.label"
-                :show-overflow-tooltip="{effect: 'light'}"  align="left" /> -->
-
-            <el-table-column label="创建人" align="left">
-                <template #default="scope">
-                    <div>{{ scope.row.createBy || '-' }}</div>
+                <template v-else-if="column.key === 'createBy'">
+                    <div>{{ record.createBy || '-' }}</div>
                 </template>
-            </el-table-column>
-            <el-table-column label="创建时间" align="left" sortable="custom" column-key="create_time"
-                :sort-orders="['descending', 'ascending']">
-                <template #default="scope">
-                    <div>{{ parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || '-' }}</div>
+                <template v-else-if="column.key === 'createTime'">
+                    <div>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || '-' }}</div>
                 </template>
-            </el-table-column>
-            <el-table-column label="更新人" align="left">
-                <template #default="scope">
-                    <div>{{ scope.row.updateBy || '-' }}</div>
+                <template v-else-if="column.key === 'updateBy'">
+                    <div>{{ record.updateBy || '-' }}</div>
                 </template>
-            </el-table-column>
-            <el-table-column label="更新时间" align="left" sortable="custom" column-key="update_time"
-                :sort-orders="['descending', 'ascending']">
-                <template #default="scope">
-                    <div>{{ parseTime(scope.row.updateTime, "{y}-{m}-{d} {h}:{i}") || '-' }}</div>
+                <template v-else-if="column.key === 'updateTime'">
+                    <div>{{ parseTime(record.updateTime, "{y}-{m}-{d} {h}:{i}") || '-' }}</div>
                 </template>
-            </el-table-column>
-            <el-table-column label="状态" align="left">
-                <template #default="scope">
-                    <dict-tag :options="da_asset_operate_status" :value="scope.row.status" />
+                <template v-else-if="column.key === 'status'">
+                    <dict-tag :options="da_asset_operate_status" :value="record.status" />
                 </template>
-            </el-table-column>
-            <el-table-column label="查看前后对比" align="left" width="150px">
-                <template #default="{ row }">
-                    <el-button link v-if="row.updateBefore" type="primary" icon="view"
-                        @click="showDataDialog(row.id, row.updateBefore, row.updateAfter)">查看</el-button>
-                    <el-button link icon="Stopwatch" :disabled="row.status == 5" type="primary"
-                        @click="rollBackrollBack(row)">回滚</el-button>
+                <template v-else-if="column.key === 'action'">
+                    <a-button type="link" v-if="record.updateBefore" :icon="h(EyeOutlined)"
+                        @click="showDataDialog(record.id, record.updateBefore, record.updateAfter)">查看</a-button>
+                    <a-button type="link" :icon="h(RollbackOutlined)" :disabled="record.status == 5"
+                        @click="rollBackrollBack(record)">回滚</a-button>
                 </template>
-            </el-table-column>
-        </el-table>
+            </template>
+        </a-table>
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
         <dataDiffDialog ref="dataDiff" @ok="ok" />
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
 import { ref, reactive, watch } from "vue";
+import { h } from 'vue';
+import { EyeOutlined, RollbackOutlined } from '@ant-design/icons-vue';
 // import { page } from "@/api/metadata/contentsTypeTaUp";
 import dataDiffDialog from "./previewEditDiff.vue";
 import { getDaAssetList, rollBack } from '@/api/ast/assetchild/operate/daAssetOperateLog.js';
@@ -114,6 +95,15 @@ const tableColumns = reactive([
     { prop: "createBy ", label: "修改人", show: true, width: 150 },
 ]);
 const defaultSort = ref({ columnKey: 'create_time', order: 'desc' });
+const columns = [
+    { title: '编号', key: 'id', width: 75, align: 'left' },
+    { title: '创建人', key: 'createBy', align: 'left' },
+    { title: '创建时间', key: 'createTime', align: 'left', sorter: true, sorterKey: 'create_time', defaultSortOrder: 'descend' },
+    { title: '更新人', key: 'updateBy', align: 'left' },
+    { title: '更新时间', key: 'updateTime', align: 'left', sorter: true, sorterKey: 'update_time' },
+    { title: '状态', key: 'status', align: 'left' },
+    { title: '查看前后对比', key: 'action', align: 'left', width: 150 }
+];
 
 const queryParams = reactive({
     startTime: null,
@@ -130,6 +120,26 @@ function handleSortChange({ column, prop, order }) {
     queryParams.orderByColumn = column?.columnKey || prop;
     queryParams.isAsc = column.order;
     getList();
+}
+
+/** antd 表格 change 适配：将 sorter 转为原 handleSortChange 期望的 { column, prop, order } 结构 */
+function handleTableChange(pagination, filters, sorter) {
+    const column = (sorter && sorter.column) || {};
+    handleSortChange({
+        column: { columnKey: column.sorterKey || column.dataIndex, order: sorter && sorter.order ? (sorter.order === 'descend' ? 'descending' : 'ascending') : undefined },
+        prop: column.dataIndex
+    });
+}
+
+/** antd 范围日期选择 change 适配：dateStrings 为格式化后的字符串 */
+function handleRangeChange(dates, dateStrings) {
+    if (dateStrings && dateStrings.length === 2) {
+        queryParams.startTime = dateStrings[0] + " 00:00:00";
+        queryParams.endTime = dateStrings[1] + " 23:59:59";
+    } else {
+        queryParams.startTime = "";
+        queryParams.endTime = "";
+    }
 }
 
 function formatDateTime(date) {

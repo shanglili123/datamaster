@@ -1,17 +1,17 @@
 <template>
   <!-- 正则表达式替换   -->
-  <el-form
+  <a-form
     ref="formRef"
     :model="form"
     :rules="rules"
-    label-width="130px"
+    :label-col="{ style: { width: '130px' } }"
     :disabled="false"
   >
-    <el-row>
-      <el-col :span="12">
-        <el-form-item
+    <a-row>
+      <a-col :span="12">
+        <a-form-item
           label="正则表达式"
-          prop="regex"
+          name="regex"
           :rules="
             !falg
               ? [
@@ -24,36 +24,36 @@
               : []
           "
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.regex"
+            v-model:value="form.regex"
             placeholder="请输入正则表达式"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.regex || "-" }}</div>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item
           label="替换为"
-          prop="replacement"
+          name="replacement"
           :rules="
             !falg
               ? [{ required: true, message: '请输入替换内容', trigger: 'blur' }]
               : []
           "
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.replacement"
+            v-model:value="form.replacement"
             placeholder="请输入替换内容"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.replacement || "-" }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script setup>

@@ -1,44 +1,42 @@
 ﻿<template>
     <dp-main>
         <template #header>
-            <el-form :model="params" ref="realForm" :inline="true">
-                <el-form-item label="时段选择：" prop="avgTypeId">
-                    <el-select style="width: 80px" v-model="params.avgTypeId" placeholder="请选择">
-                        <el-option
+            <a-form :model="params" ref="realForm" :label-col="{ style: { width: '90px' } }" layout="inline">
+                <a-form-item label="时段选择：" name="avgTypeId">
+                    <a-select style="width: 80px" v-model:value="params.avgTypeId" placeholder="请选择">
+                        <a-select-option
                             v-for="item in avgTypeIdOptions"
                             :key="item.value"
-                            :label="item.label"
                             :value="item.value"
                         >
-                        </el-option>
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="开始时间：" prop="startDate">
-                    <el-date-picker
-                        v-model="params.startDate"
-                        type="date"
-                        value-format="YYYY-MM-DD"
+                            {{ item.label }}
+                        </a-select-option>
+                    </a-select>
+                </a-form-item>
+                <a-form-item label="开始时间：" name="startDate">
+                    <a-date-picker
+                        v-model:value="params.startDate"
+                        valueFormat="YYYY-MM-DD"
                         placeholder="开始时间"
-                        :clearable="false"
+                        :allow-clear="false"
                         style="width: 140px"
                     >
-                    </el-date-picker>
-                </el-form-item>
-                <el-form-item label="结束时间：" prop="endDate">
-                    <el-date-picker
-                        v-model="params.endDate"
-                        type="date"
-                        value-format="YYYY-MM-DD"
+                    </a-date-picker>
+                </a-form-item>
+                <a-form-item label="结束时间：" name="endDate">
+                    <a-date-picker
+                        v-model:value="params.endDate"
+                        valueFormat="YYYY-MM-DD"
                         placeholder="结束时间"
-                        :clearable="false"
+                        :allow-clear="false"
                         style="width: 140px"
                     >
-                    </el-date-picker>
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" :icon="Search"> 查询 </el-button>
-                </el-form-item>
-            </el-form>
+                    </a-date-picker>
+                </a-form-item>
+                <a-form-item>
+                    <a-button type="primary" :icon="SearchOutlined"> 查询 </a-button>
+                </a-form-item>
+            </a-form>
         </template>
         <dp-shrink width="600px" placement="right" @change="handleShrinkChange">
             <template #flex>
@@ -54,7 +52,7 @@
 
 <script setup name="DetailPopResViewA2">
     import ViewA2Chart from './view-a2-chart.vue';
-    import { Search } from '@element-plus/icons-vue';
+    import { SearchOutlined } from '@ant-design/icons-vue';
     import moment from 'moment';
 
     const params = ref({

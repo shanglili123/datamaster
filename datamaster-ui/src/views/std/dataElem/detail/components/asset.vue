@@ -4,61 +4,42 @@
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </div>
     </div>
-    <el-table stripe height="360" v-loading="loading" :data="dpDataElemAssetRelList"
-        @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
-        <el-table-column label="编号" align="left" prop="id" width="50" />
-        <el-table-column label="资产名称" :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="assetName"
-            width="300">
-            <template #default="scope">
-                {{ scope.row.assetName || '-' }}
+    <a-table stripe :loading="loading" :data-source="dpDataElemAssetRelList" :columns="tableColumns"
+        :pagination="false" :scroll="{ y: 360 }"
+        :row-selection="{ type: 'checkbox', onChange: handleSelectionChange }" row-key="id"
+        :locale="{ emptyText: emptyContent }" @change="handleSortChange">
+        <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'assetName'">
+                {{ record.assetName || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="描述" :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="description"
-            width="380">
-            <template #default="scope">
-                {{ scope.row.description || '-' }}
+            <template v-else-if="column.dataIndex === 'description'">
+                {{ record.description || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="数据表" align="left" prop="tableName" width="290">
-            <template #default="scope">
-                {{ scope.row.tableName || '-' }}
+            <template v-else-if="column.dataIndex === 'tableName'">
+                {{ record.tableName || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="关联字段" align="left" prop="columnName" width="300">
-            <template #default="scope">
-                {{ scope.row.columnName || '-' }}
+            <template v-else-if="column.dataIndex === 'columnName'">
+                {{ record.columnName || '-' }}
             </template>
-        </el-table-column>
-        <el-table-column label="创建人" :show-overflow-tooltip="{ effect: 'light' }" align="left" width="120"
-            prop="createBy">
-            <template #default="scope">
-                {{ scope.row.createBy || "-" }}
+            <template v-else-if="column.dataIndex === 'createBy'">
+                {{ record.createBy || "-" }}
             </template>
-        </el-table-column>
-        <el-table-column label="创建时间" align="left" prop="createTime" width="150">
-            <template #default="scope"> <span>{{ parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
-            }}</span>
+            <template v-else-if="column.dataIndex === 'createTime'">
+                <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
+                }}</span>
             </template>
-        </el-table-column>
-        <el-table-column label="更新时间" align="left" prop="updateTime" width="300">
-            <template #default="scope">
-                <span>{{ parseTime(scope.row.updateTime, '{y}-{m}-{d} {h}:{i}') || '-' }}</span>
+            <template v-else-if="column.dataIndex === 'updateTime'">
+                <span>{{ parseTime(record.updateTime, '{y}-{m}-{d} {h}:{i}') || '-' }}</span>
             </template>
-        </el-table-column>
-
-        <template #empty>
-            <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-            </div>
         </template>
-    </el-table>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize" @pagination="getList" />
 </template>
 
 <script setup name="ComponentOne">
+import { h } from "vue";
 import {
     listDpDataElemAssetRel,
     getDpDataElemAssetRel,
@@ -82,6 +63,22 @@ const multiple = ref(true);
 const total = ref(0);
 const title = ref('');
 const defaultSort = ref({ prop: 'createTime', order: 'desc' });
+
+const tableColumns = [
+    { title: "编号", dataIndex: "id", align: "left", width: 60, sorter: true },
+    { title: "资产名称", dataIndex: "assetName", align: "left", width: 300, ellipsis: true },
+    { title: "描述", dataIndex: "description", align: "left", width: 380, ellipsis: true },
+    { title: "数据表", dataIndex: "tableName", align: "left", width: 290 },
+    { title: "关联字段", dataIndex: "columnName", align: "left", width: 300 },
+    { title: "创建人", dataIndex: "createBy", align: "left", width: 120, ellipsis: true },
+    { title: "创建时间", dataIndex: "createTime", align: "left", width: 150, sorter: true },
+    { title: "更新时间", dataIndex: "updateTime", align: "left", width: 300 },
+];
+
+const emptyContent = h("div", { class: "emptyBg" }, [
+    h("img", { src: new URL("@/assets/system/images/no_data/noData.png", import.meta.url).href, alt: "" }),
+    h("p", "暂无记录"),
+]);
 
 const data = reactive({
     dpDataElemAssetRelDetail: {},
@@ -165,16 +162,23 @@ function resetQuery() {
 }
 
 // 多选框选中数据
-function handleSelectionChange(selection) {
-    ids.value = selection.map((item) => item.id);
-    single.value = selection.length != 1;
-    multiple.value = !selection.length;
+function handleSelectionChange(selectedRowKeys, selectedRows) {
+    ids.value = selectedRows.map((item) => item.id);
+    single.value = selectedRows.length != 1;
+    multiple.value = !selectedRows.length;
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-    queryParams.value.orderByColumn = column.prop;
-    queryParams.value.isAsc = column.order;
+function handleSortChange(pag, filters, sorter) {
+    const prop = sorter.field || sorter.column?.dataIndex;
+    const order =
+        sorter.order === "ascend"
+            ? "ascending"
+            : sorter.order === "descend"
+                ? "descending"
+                : null;
+    queryParams.value.orderByColumn = prop;
+    queryParams.value.isAsc = order;
     getList();
 }
 

@@ -1,34 +1,34 @@
 <template>
   <div class="app-container">
-    <el-card shadow="never">
-      <template #header>
+    <a-card :bordered="false">
+      <template #title>
         <span class="card-title">错误明细存储配置</span>
       </template>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-        <el-form-item label="数据源" prop="datasourceId">
-          <el-select v-model="form.datasourceId" filterable placeholder="请选择数据源" style="width: 400px">
-            <el-option v-for="item in datasourceList" :key="item.id" :label="item.datasourceName" :value="item.id">
+      <a-form ref="formRef" :model="form" :rules="rules" :label-col="{ style: { width: '120px' } }">
+        <a-form-item label="数据源" name="datasourceId">
+          <a-select v-model:value="form.datasourceId" show-search placeholder="请选择数据源" style="width: 400px">
+            <a-select-option v-for="item in datasourceList" :key="item.id" :value="item.id">
               <span>{{ item.datasourceName }}</span>
               <span class="datasource-type-tag">[{{ item.datasourceType }}]</span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="表名" prop="tableName">
-          <el-input v-model="form.tableName" placeholder="默认 quality_error_data" style="width: 400px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSave" :loading="saving" @mousedown="e => e.preventDefault()">
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="表名" name="tableName">
+          <a-input v-model:value="form.tableName" placeholder="默认 quality_error_data" style="width: 400px" />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" @click="handleSave" :loading="saving" @mousedown="e => e.preventDefault()">
             保存
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+          </a-button>
+        </a-form-item>
+      </a-form>
+    </a-card>
   </div>
 </template>
 
 <script setup name="ErrorStorageConfig">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { message } from 'ant-design-vue'
 import { getErrorStorageConfig, setErrorStorageConfig } from '@/api/ast/quality/errorStorageConfig'
 import { listDaDatasource } from '@/api/ast/dataSource/dataSource'
 
@@ -65,17 +65,16 @@ function fetchConfig() {
 }
 
 function handleSave() {
-  formRef.value.validate(valid => {
-    if (!valid) return
+  formRef.value.validate().then(() => {
     saving.value = true
     setErrorStorageConfig(form.datasourceId, form.tableName).then(() => {
-      ElMessage.success('配置成功')
+      message.success('配置成功')
     }).catch(err => {
-      ElMessage.error(err.msg || '操作失败')
+      message.error(err.msg || '操作失败')
     }).finally(() => {
       saving.value = false
     })
-  })
+  }).catch(() => { })
 }
 
 onMounted(() => {

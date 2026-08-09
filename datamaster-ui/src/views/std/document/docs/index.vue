@@ -2,38 +2,37 @@
   <div class="app-container" ref="app-container">
 
     <div class="pagecont-top" v-show="showSearch">
-      <el-form
+      <a-form
         class="btn-style"
         :model="queryParams"
         ref="queryRef"
-        :inline="true"
-        label-width="75px"
+        layout="inline"
+        :label-col="{ style: { width: '75px' } }"
         v-show="showSearch"
         @submit.prevent
       >
-        <el-form-item label="标准名称" prop="search">
-          <el-input
+        <a-form-item label="标准名称" name="search">
+          <a-input
             class="el-form-input-width"
-            v-model="queryParams.search"
+            v-model:value="queryParams.search"
             placeholder="请输入标准名称"
-            clearable
-            @keyup.enter="handleQuery"
+            allow-clear
+            @pressEnter="handleQuery"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button
-            plain
+        </a-form-item>
+        <a-form-item>
+          <a-button
             type="primary"
             @click="handleQuery"
             @mousedown="(e) => e.preventDefault()"
           >
             <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </el-button>
-          <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+          </a-button>
+          <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
             <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </a-button>
+        </a-form-item>
+      </a-form>
       <div class="list-title">
         共
         <span style="color: #ff9800"> {{ total }} </span>
@@ -47,10 +46,11 @@
       </div>
     </div>
 
-    <div class="pagecont-bottom" v-loading="loading">
+    <a-spin :spinning="loading">
+    <div class="pagecont-bottom">
       <div class="page-list" v-if="total > 0">
-        <el-row :gutter="15">
-          <el-col :span="12" v-for="(item, index) in searchList" :key="index">
+        <a-row :gutter="15">
+          <a-col :span="12" v-for="(item, index) in searchList" :key="index">
             <div class="page-item">
               <div class="item-title">
                 <div class="item-title-left">
@@ -112,8 +112,8 @@
                 </div>
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </div>
       <div class="empty" v-else>
         <img src="@/assets/da/asset/empty.png" alt="" />
@@ -127,6 +127,7 @@
         @pagination="getList"
       />
     </div>
+    </a-spin>
   </div>
 </template>
 <script setup name="DocumentDocs">

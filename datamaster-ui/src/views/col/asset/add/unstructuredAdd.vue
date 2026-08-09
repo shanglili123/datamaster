@@ -1,117 +1,119 @@
 <template>
   <!-- 非结构化数据 -->
-  <el-row :gutter="20">
-    <el-col :span="12">
-      <el-form-item label="数据连接名称" prop="datasourceId"
+  <a-row :gutter="20">
+    <a-col :span="12">
+      <a-form-item label="数据连接名称" name="datasourceId"
         :rules="[{ required: true, message: '请选择数据连接名称', trigger: 'change' }]">
-        <el-select v-model="localForm.datasourceId" placeholder="请选择数据连接名称" @change="handleDatasourceChange" filterable
-          :loading="loading" :disabled="!props.isRegister && localForm.id && localForm.createType == '2'">
-          <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName" :value="dict.id" />
-        </el-select>
-      </el-form-item>
-    </el-col>
+        <a-select v-model:value="localForm.datasourceId" placeholder="请选择数据连接名称" @change="handleDatasourceChange"
+          show-search :loading="loading" :disabled="!props.isRegister && localForm.id && localForm.createType == '2'">
+          <a-select-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
+            :value="dict.id" />
+        </a-select>
+      </a-form-item>
+    </a-col>
 
-    <el-col :span="12">
-      <el-form-item label="数据连接类型" prop="datasourceType">
-        <el-input v-model="localForm.datasourceType" disabled />
-      </el-form-item>
-    </el-col>
-  </el-row>
+    <a-col :span="12">
+      <a-form-item label="数据连接类型" name="datasourceType">
+        <a-input v-model:value="localForm.datasourceType" disabled />
+      </a-form-item>
+    </a-col>
+  </a-row>
 
-  <el-row :gutter="20">
-    <el-col :span="24">
-      <el-form-item label="文件路径" prop="filePath" :rules="[{ required: true, message: '请选择文件路径', trigger: 'blur' }]">
-        <el-input style="width: 92%" v-model="localForm.filePath" placeholder="请输入文件路径" disabled />
-        <el-button type="primary" @click="handleSearch" icon="Search">搜索</el-button>
-      </el-form-item>
-    </el-col>
-  </el-row>
+  <a-row :gutter="20">
+    <a-col :span="24">
+      <a-form-item label="文件路径" name="filePath"
+        :rules="[{ required: true, message: '请选择文件路径', trigger: 'blur' }]">
+        <a-input style="width: 92%" v-model:value="localForm.filePath" placeholder="请输入文件路径" disabled />
+        <a-button type="primary" @click="handleSearch" :icon="h(SearchOutlined)">搜索</a-button>
+      </a-form-item>
+    </a-col>
+  </a-row>
 
-  <el-row :gutter="20" v-if="localForm.filePath">
-    <el-col :span="24">
-      <el-descriptions title="" :column="2" border>
-        <el-descriptions-item v-for="(item, index) in fileDesc" :key="index" label-class-name="base-label"
-          class-name="base-content">
+  <a-row :gutter="20" v-if="localForm.filePath">
+    <a-col :span="24">
+      <a-descriptions title="" :column="2" bordered>
+        <a-descriptions-item v-for="(item, index) in fileDesc" :key="index">
           <template #label>
             <div class="cell-item">{{ item.label }}</div>
           </template>
           <span v-if="item.key == 'size'">{{ (item.value / 1024).toFixed(2) + "KB" }}</span>
           <span v-else>{{ item.value }}</span>
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-col>
-  </el-row>
+        </a-descriptions-item>
+      </a-descriptions>
+    </a-col>
+  </a-row>
 
-  <el-dialog class="file-dialog" title="选择文件" width="900px" v-model="visibleDialog" draggable destroy-on-close
-    :append-to="$refs['app-container']">
-    <div class="file-main" v-loading="upload.isUploading">
+  <a-modal class="file-dialog" title="选择文件" width="900px" v-model:open="visibleDialog" destroy-on-close>
+    <div class="file-main">
+      <a-spin :spinning="upload.isUploading">
       <div class="head">
-        <el-upload ref="uploadRef" :limit="1" :headers="upload.headers" :action="upload.url"
+        <a-upload ref="uploadRef" :max-count="1" :headers="upload.headers" :action="upload.url"
           :disabled="upload.isUploading" :data="uploadData" :before-upload="handleBeforeUpload"
-          :on-progress="handleFileUploadProgress" :on-success="handleFileSuccess" :on-error="handleUploadError"
-          :show-file-list="false">
-          <el-button type="primary" size="small">上传文件</el-button>
-        </el-upload>
+          @progress="handleFileUploadProgress" @success="handleFileSuccess" @error="handleUploadError"
+          :show-upload-list="false">
+          <a-button type="primary" size="small">上传文件</a-button>
+        </a-upload>
         <div class="back">
-          <el-text class="back-btn" type="primary" @click="handleBack">
-            <el-icon>
-              <Back />
-            </el-icon>
+          <a-typography-text class="back-btn" type="primary" @click="handleBack">
+            <RollbackOutlined />
             <span style="margin-left: 5px">返回</span>
-          </el-text>
+          </a-typography-text>
           <div class="catalogue">
             <!-- 默认展示根目录 -->
-            <el-text type="primary" @click="handleCatalogue('/')">
+            <a-typography-text type="primary" @click="handleCatalogue('/')">
               <span class="catalogue-text">{{ localForm.datasourceName }}</span>
-            </el-text>
+            </a-typography-text>
             <span class="catalogue-split" v-if="catalogues.length != 0"> / </span>
-            <el-text type="primary" @click="handleCatalogue(item)" v-for="(item, index) in catalogues" :key="item">
+            <a-typography-text type="primary" @click="handleCatalogue(item)" v-for="(item, index) in catalogues"
+              :key="item">
               <span class="catalogue-text">{{ item }}</span> <span class="catalogue-split"
                 v-if="index != catalogues.length - 1"> / </span>
-            </el-text>
+            </a-typography-text>
           </div>
         </div>
       </div>
       <!-- :tree-props="{ children: 'children', hasChildren: 'hasChildren' }" -->
-      <el-table height="380px" v-loading="fileListLoading" :data="currentPageData" row-key="id"
-        @selection-change="handleSelectionChange" @row-click="handleRowClick">
-        <el-table-column type="selection" width="55" :selectable="selectable" />
-        <el-table-column label="文件名" prop="name" :show-overflow-tooltip="{ effect: 'light' }">
-          <template #default="scope">
+      <a-table height="380px" :loading="fileListLoading" :data-source="currentPageData" row-key="id" :columns="columns"
+        :pagination="false"
+        :row-selection="{
+          getCheckboxProps: (record) => ({ disabled: !selectable(record) }),
+          onChange: (keys, rows) => handleSelectionChange(rows)
+        }" @row-click="handleRowClick">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'name'">
             <div class="fileName">
-              <img v-if="scope.row.directory" src="../../../../assets/da/asset/folder.svg" alt="" />
+              <img v-if="record.directory" src="../../../../assets/da/asset/folder.svg" alt="" />
               <img v-else src="../../../../assets/da/asset/file.svg" alt="" style="width: 12px;height: 12px;margin-right: 5px;" />
-              <span>{{ scope.row.name || "-" }}</span>
+              <span>{{ record.name || "-" }}</span>
             </div>
           </template>
-        </el-table-column>
-        <el-table-column label="文件大小" prop="size" :show-overflow-tooltip="{ effect: 'light' }" align="left">
-          <template #default="scope">
-            <span>{{ scope.row.directory ? "-" : (scope.row.size / 1024).toFixed(2) + "KB" || "-" }}</span>
+          <template v-else-if="column.key === 'size'">
+            <span>{{ record.directory ? "-" : (record.size / 1024).toFixed(2) + "KB" || "-" }}</span>
           </template>
-        </el-table-column>
-        <el-table-column label="更新时间" prop="lastModified" :show-overflow-tooltip="{ effect: 'light' }" align="left">
-          <template #default="scope">
-            {{ scope.row.lastModified || "-" }}
+          <template v-else-if="column.key === 'lastModified'">
+            {{ record.lastModified || "-" }}
           </template>
-        </el-table-column>
-      </el-table>
+        </template>
+      </a-table>
       <pagination v-show="fileList.length > 0" :total="fileList.length" v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize" />
+      </a-spin>
     </div>
     <template #footer>
       <div class="dialog-footer">
-        <el-button size="mini" @click="cancel">取 消</el-button>
-        <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+        <a-button size="small" @click="cancel">取 消</a-button>
+        <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
       </div>
     </template>
-  </el-dialog>
+  </a-modal>
 </template>
 
 <script setup>
+import { h } from 'vue'
 import { listDaDatasourceNoKafkaBySpaceCode } from "@/api/ast/dataSource/dataSource.js";
 import { getFileList } from "@/api/ast/asset/asset.js";
 import { getToken } from "@/utils/auth.js";
+import { SearchOutlined, RollbackOutlined } from '@ant-design/icons-vue'
 import useUserStore from "@/store/system/user.js";
 const userStore = useUserStore();
 const emit = defineEmits(["update:form"]);
@@ -126,6 +128,11 @@ const currentPageData = computed(() => {
   const endIndex = startIndex + queryParams.pageSize;
   return fileList.value.slice(startIndex, endIndex);
 });
+const columns = [
+  { title: '文件名', dataIndex: 'name', key: 'name', ellipsis: true },
+  { title: '文件大小', dataIndex: 'size', key: 'size', align: 'left', ellipsis: true },
+  { title: '更新时间', dataIndex: 'lastModified', key: 'lastModified', align: 'left', ellipsis: true }
+];
 
 /*** 上传文件参数 */
 const upload = reactive({
@@ -164,7 +171,6 @@ function handleUploadError(err) {
 const handleFileSuccess = (response, file) => {
   console.log(response, "response");
   upload.isUploading = false;
-  proxy.$refs["uploadRef"].handleRemove(file);
   if (response.code == 200) {
     proxy.$modal.msgSuccess("上传结果：" + response.msg);
   } else {
@@ -384,7 +390,7 @@ defineExpose({ fileDesc });
     }
 
     .catalogue {
-      color: var(--el-color-primary);
+      color: #2666fb;
       max-width: 500px;
       overflow: auto hidden;
       white-space: nowrap;
@@ -424,22 +430,16 @@ defineExpose({ fileDesc });
     width: 18px;
     margin-right: 5px;
   }
-
-  .el-icon {
-    font-size: 12px;
-    color: var(--el-color-primary);
-    margin-right: 5px;
-  }
 }
 
 // 隐藏表头全选选择框
-:deep(.el-table__header .el-checkbox) {
+:deep(.ant-table-thead .ant-checkbox) {
   display: none;
 }
 </style>
 <style lang="scss">
-.app-container .el-dialog.file-dialog {
-  .el-dialog__body {
+.app-container .ant-modal.file-dialog {
+  .ant-modal-body {
     height: 500px;
 
     .file-main {

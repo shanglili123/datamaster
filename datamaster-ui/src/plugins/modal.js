@@ -1,84 +1,72 @@
-﻿
-import { ElMessage, ElMessageBox, ElNotification, ElLoading } from 'element-plus'
+﻿import { message, Modal, notification } from 'ant-design-vue'
 
 let loadingInstance;
 
 export default {
-  // 消息提示
   msg(content) {
-    ElMessage.info(content)
+    message.info(content)
   },
-  // 错误消息
   msgError(content) {
-    ElMessage.error(content)
+    message.error(content)
   },
-  // 成功消息
   msgSuccess(content) {
-    ElMessage.success(content)
+    message.success(content)
   },
-  // 警告消息
   msgWarning(content) {
-    ElMessage.warning(content)
+    message.warning(content)
   },
-  // 弹出提示
   alert(content) {
-    ElMessageBox.alert(content, "系统提示")
+    Modal.info({ title: '系统提示', content })
   },
-  // 错误提示
   alertError(content) {
-    ElMessageBox.alert(content, "系统提示", { type: 'error' })
+    Modal.error({ title: '系统提示', content })
   },
-  // 成功提示
   alertSuccess(content) {
-    ElMessageBox.alert(content, "系统提示", { type: 'success' })
+    Modal.success({ title: '系统提示', content })
   },
-  // 警告提示
   alertWarning(content) {
-    ElMessageBox.alert(content, "系统提示", { type: 'warning' })
+    Modal.warning({ title: '系统提示', content })
   },
-  // 通知提示
   notify(content) {
-    ElNotification.info(content)
+    notification.info({ message: '通知', description: content })
   },
-  // 错误通知
   notifyError(content) {
-    ElNotification.error(content);
+    notification.error({ message: '错误', description: content })
   },
-  // 成功通知
   notifySuccess(content) {
-    ElNotification.success(content)
+    notification.success({ message: '成功', description: content })
   },
-  // 警告通知
   notifyWarning(content) {
-    ElNotification.warning(content)
+    notification.warning({ message: '警告', description: content })
   },
-  // 确认窗体
-  confirm(content) {
-    return ElMessageBox.confirm(content, "系统提示", {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: "warning",
+  confirm(content, okText, cancelText) {
+    return new Promise((resolve, reject) => {
+      Modal.confirm({
+        title: '系统提示',
+        content,
+        okText: okText || '确定',
+        cancelText: cancelText || '取消',
+        onOk: () => resolve(true),
+        onCancel: () => reject(new Error('cancel'))
+      })
     })
   },
-  // 提交内容
-  prompt(content) {
-    return ElMessageBox.prompt(content, "系统提示", {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: "warning",
+  prompt(content, okText, cancelText) {
+    return new Promise((resolve, reject) => {
+      Modal.confirm({
+        title: '系统提示',
+        content,
+        okText: okText || '确定',
+        cancelText: cancelText || '取消',
+        onOk: () => resolve(true),
+        onCancel: () => reject(new Error('cancel'))
+      })
     })
   },
-  // 打开遮罩层
   loading(content) {
-    loadingInstance = ElLoading.service({
-      lock: true,
-      text: content,
-      background: "rgba(0, 0, 0, 0.7)",
-    })
+    loadingInstance = message.loading(content || '加载中...', 0)
   },
-  // 关闭遮罩层
   closeLoading() {
-    loadingInstance.close();
+    if (loadingInstance) loadingInstance()
   }
 }
-

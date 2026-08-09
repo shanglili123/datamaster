@@ -2,203 +2,205 @@
   <div class="base-info">
     <div class="module-head">
       <span>基础信息</span>
-      <el-button
+      <a-button
         v-if="!isEditing"
         type="primary"
         link
         @click="handleEdit"
       >
         编辑
-      </el-button>
+      </a-button>
       <template v-else>
-        <el-button type="primary" link @click="handleSave" :loading="saving">
+        <a-button type="primary" link @click="handleSave" :loading="saving">
           保存
-        </el-button>
-        <el-button type="primary" link @click="handleCancel">
+        </a-button>
+        <a-button type="primary" link @click="handleCancel">
           取消
-        </el-button>
+        </a-button>
       </template>
     </div>
     <div class="module-body infotop">
-      <el-form
+      <a-form
         v-if="isEditing"
         :model="editForm"
         :rules="rules"
         ref="formRef"
-        label-width="110"
+        :label-col="{ style: { width: '110px' } }"
       >
-        <el-row :gutter="2">
-          <el-col :span="8">
-            <el-form-item label="所属分层" prop="belongingLayer">
-              <el-select
-                v-model="editForm.belongingLayer"
+        <a-row :gutter="2">
+          <a-col :span="8">
+            <a-form-item label="所属分层" name="belongingLayer">
+              <a-select
+                v-model:value="editForm.belongingLayer"
                 placeholder="请选择所属分层"
                 disabled
               >
-                <el-option
+                <a-select-option
                   v-for="dict in toValue(dicts.meta_dw_layers)"
                   :key="dict.value"
-                  :label="dict.label"
                   :value="dict.value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="所属系统" prop="belongingSystem">
-              <el-input
-                v-model="editForm.belongingSystem"
+                >
+                  {{ dict.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="所属系统" name="belongingSystem">
+              <a-input
+                v-model:value="editForm.belongingSystem"
                 placeholder="请输入所属系统"
                 disabled
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="2">
-          <el-col :span="8">
-            <el-form-item label="字段注释" prop="columnComment">
-              <el-input
-                v-model="editForm.columnComment"
+        <a-row :gutter="2">
+          <a-col :span="8">
+            <a-form-item label="字段注释" name="columnComment">
+              <a-input
+                v-model:value="editForm.columnComment"
                 placeholder="请输入字段注释"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="字段类型" prop="columnType">
-              <el-input
-                v-model="editForm.columnType"
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="字段类型" name="columnType">
+              <a-input
+                v-model:value="editForm.columnType"
                 placeholder="字段类型"
                 disabled
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="字段长度" prop="columnLength">
-              <el-input
-                v-model="editForm.columnLength"
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="字段长度" name="columnLength">
+              <a-input
+                v-model:value="editForm.columnLength"
                 placeholder="字段长度"
                 disabled
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="2">
-          <el-col :span="8">
-            <el-form-item label="字段精度" prop="columnPrecision">
-              <el-input
-                v-model="editForm.columnPrecision"
+        <a-row :gutter="2">
+          <a-col :span="8">
+            <a-form-item label="字段精度" name="columnPrecision">
+              <a-input
+                v-model:value="editForm.columnPrecision"
                 placeholder="字段精度"
                 disabled
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="字段小数位" prop="columnScale">
-              <el-input
-                v-model="editForm.columnScale"
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="字段小数位" name="columnScale">
+              <a-input
+                v-model:value="editForm.columnScale"
                 placeholder="字段小数位"
                 disabled
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="是否必填" prop="nullableFlag">
-              <el-select
-                v-model="editForm.nullableFlag"
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="是否必填" name="nullableFlag">
+              <a-select
+                v-model:value="editForm.nullableFlag"
                 placeholder="请选择"
                 disabled
               >
-                <el-option
+                <a-select-option
                   v-for="dict in toValue(dicts.table_yes_no)"
                   :key="dict.value"
-                  :label="dict.label"
                   :value="dict.value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
+                >
+                  {{ dict.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="2">
-          <el-col :span="8">
-            <el-form-item label="默认值" prop="defaultValue">
-              <el-input
-                v-model="editForm.defaultValue"
+        <a-row :gutter="2">
+          <a-col :span="8">
+            <a-form-item label="默认值" name="defaultValue">
+              <a-input
+                v-model:value="editForm.defaultValue"
                 placeholder="默认值"
                 disabled
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="是否主键" prop="pkFlag">
-              <el-select
-                v-model="editForm.pkFlag"
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="是否主键" name="pkFlag">
+              <a-select
+                v-model:value="editForm.pkFlag"
                 placeholder="请选择"
                 disabled
               >
-                <el-option
+                <a-select-option
                   v-for="dict in toValue(dicts.table_yes_no)"
                   :key="dict.value"
-                  :label="dict.label"
                   :value="dict.value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="是否外键" prop="fkFlag">
-              <el-select
-                v-model="editForm.fkFlag"
+                >
+                  {{ dict.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="是否外键" name="fkFlag">
+              <a-select
+                v-model:value="editForm.fkFlag"
                 placeholder="请选择"
                 disabled
               >
-                <el-option
+                <a-select-option
                   v-for="dict in toValue(dicts.table_yes_no)"
                   :key="dict.value"
-                  :label="dict.label"
                   :value="dict.value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
+                >
+                  {{ dict.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="2">
-          <el-col :span="24">
-            <el-form-item label="字段描述" prop="description">
-              <el-input
-                v-model="editForm.description"
-                type="textarea"
+        <a-row :gutter="2">
+          <a-col :span="24">
+            <a-form-item label="字段描述" name="description">
+              <a-textarea
+                v-model:value="editForm.description"
                 placeholder="请输入字段描述"
-                :min-height="192"
-                show-word-limit
-                maxlength="500"
+                :auto-size="{ minRows: 8 }"
+                :maxlength="500"
+                show-count
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="2">
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input
-                v-model="editForm.remark"
-                type="textarea"
+        <a-row :gutter="2">
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
+              <a-textarea
+                v-model:value="editForm.remark"
                 placeholder="请输入备注"
-                :min-height="192"
-                show-word-limit
-                maxlength="500"
+                :auto-size="{ minRows: 8 }"
+                :maxlength="500"
+                show-count
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
 
       <template v-else>
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">所属分层</div>
               <div class="infotop-row-value">
@@ -208,113 +210,113 @@
                 />
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">所属系统</div>
               <div class="infotop-row-value">
                 {{ getFormatValue(detail.dbRespVO?.belongingSystem) }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">更新人</div>
               <div class="infotop-row-value">
                 {{ getFormatValue(detail.updateBy) }}
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">更新时间</div>
               <div class="infotop-row-value">
                 {{ getFormatValue(detail.updateTime) }}
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建人</div>
               <div class="infotop-row-value">
                 {{ getFormatValue(detail.createBy) }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">创建时间</div>
               <div class="infotop-row-value">
                 {{ getFormatValue(detail.createTime) }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
 
-        <el-row :gutter="2">
-          <el-col :span="24">
+        <a-row :gutter="2">
+          <a-col :span="24">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">备注</div>
               <div class="infotop-row-value">
                 {{ getFormatValue(detail.remark) }}
               </div>
             </div>
-          </el-col>
-        </el-row>
+          </a-col>
+        </a-row>
       </template>
     </div>
 
     <div class="module-head">技术信息</div>
     <div class="module-body infotop">
-      <el-row :gutter="2">
-        <el-col :span="8">
+      <a-row :gutter="2">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">数据源名称</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.dbRespVO?.dbName) }}
             </div>
           </div>
-        </el-col>
+        </a-col>
 
-        <el-col :span="8">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">IP</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.dbRespVO?.ip) }}
             </div>
           </div>
-        </el-col>
+        </a-col>
 
-        <el-col :span="8">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">端口号</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.dbRespVO?.port) }}
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </a-col>
+      </a-row>
 
-      <el-row :gutter="2">
-        <el-col :span="8">
+      <a-row :gutter="2">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">账号</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.username) }}
             </div>
           </div>
-        </el-col>
+        </a-col>
 
-        <el-col :span="8">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">字段类型</div>
             <div class="infotop-row-value">
@@ -324,38 +326,38 @@
               />
             </div>
           </div>
-        </el-col>
+        </a-col>
 
-        <el-col :span="8">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">字段长度</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.columnLength) }}
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </a-col>
+      </a-row>
 
-      <el-row :gutter="2">
-        <el-col :span="8">
+      <a-row :gutter="2">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">字段精度</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.columnPrecision) }}
             </div>
           </div>
-        </el-col>
+        </a-col>
 
-        <el-col :span="8">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">字段小数位</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.columnScale) }}
             </div>
           </div>
-        </el-col>
+        </a-col>
 
-        <el-col :span="8">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">是否必填</div>
             <div class="infotop-row-value">
@@ -365,20 +367,20 @@
               />
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </a-col>
+      </a-row>
 
-      <el-row :gutter="2">
-        <el-col :span="8">
+      <a-row :gutter="2">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">默认值</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.defaultValue) }}
             </div>
           </div>
-        </el-col>
+        </a-col>
 
-        <el-col :span="8">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">是否主键</div>
             <div class="infotop-row-value">
@@ -388,9 +390,9 @@
               />
             </div>
           </div>
-        </el-col>
+        </a-col>
 
-        <el-col :span="8">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">是否外键</div>
             <div class="infotop-row-value">
@@ -400,73 +402,33 @@
               />
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </a-col>
+      </a-row>
 
-      <el-row :gutter="2">
-        <el-col :span="8">
-          <div class="infotop-row border-top">
-            <div class="infotop-row-lable">技术负责人</div>
-            <div class="infotop-row-value">
-              {{ getFormatValue(detail.dbRespVO?.techLeaderName) }}
-            </div>
-          </div>
-        </el-col>
-
-        <el-col :span="8">
-          <div class="infotop-row border-top">
-            <div class="infotop-row-lable">技术负责人电话</div>
-            <div class="infotop-row-value">
-              {{ getFormatValue(detail.dbRespVO?.techLeaderPhone) }}
-            </div>
-          </div>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="2">
-        <el-col :span="24">
+      <a-row :gutter="2">
+        <a-col :span="24">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">字段描述</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.description) }}
             </div>
           </div>
-        </el-col>
-      </el-row>
+        </a-col>
+      </a-row>
     </div>
 
     <div class="module-head">业务信息</div>
     <div class="module-body infotop">
-      <el-row :gutter="2">
-        <el-col :span="8">
+      <a-row :gutter="2">
+        <a-col :span="8">
           <div class="infotop-row border-top">
             <div class="infotop-row-lable">标准数据元</div>
             <div class="infotop-row-value">
               {{ getFormatValue(detail.dataElemName) }}
             </div>
           </div>
-        </el-col>
-
-        <el-col :span="8">
-          <div class="infotop-row border-top">
-            <div class="infotop-row-lable">业务负责人</div>
-            <div class="infotop-row-value">
-              {{ getFormatValue(detail.dbRespVO?.businessLeaderName) }}
-            </div>
-          </div>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="2">
-        <el-col :span="8">
-          <div class="infotop-row border-top">
-            <div class="infotop-row-lable">业务负责人电话</div>
-            <div class="infotop-row-value">
-              {{ getFormatValue(detail.dbRespVO?.businessLeaderPhone) }}
-            </div>
-          </div>
-        </el-col>
-      </el-row>
+        </a-col>
+      </a-row>
     </div>
   </div>
 </template>

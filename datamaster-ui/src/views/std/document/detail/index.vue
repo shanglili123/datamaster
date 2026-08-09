@@ -5,87 +5,88 @@
         <div class="infotop-title mb15">
           {{ dpDocumentDetail.name }}
         </div>
-        <el-row :gutter="2">
-          <el-col :span="8">
+        <a-row :gutter="2">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">编号</div>
               <div class="infotop-row-value">{{ dpDocumentDetail.id }}</div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">标准号</div>
               <div class="infotop-row-value">
                 {{ dpDocumentDetail.code || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
-              <div class="infotop-row-lable">标准类目</div>
+              <div class="infotop-row-lable">标准目录</div>
               <div class="infotop-row-value">
                 {{ dpDocumentDetail.catName || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="24" style="margin: 2px 0;">
+          </a-col>
+          <a-col :span="24" style="margin: 2px 0;">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">描述</div>
               <div class="infotop-row-value">
                 {{ dpDocumentDetail.description || "-" }}
               </div>
             </div>
-          </el-col>
+          </a-col>
 
-          <el-col :span="8">
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">发布机构名称</div>
               <div class="infotop-row-value">
                 {{ dpDocumentDetail.issuingAgency || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">版本号</div>
               <div class="infotop-row-value">
                 {{ dpDocumentDetail.version || '-' }}
               </div>
             </div>
-          </el-col>
-          <el-col :span="8">
+          </a-col>
+          <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">标准状态</div>
               <dict-tag :options="dp_document_status" :value="dpDocumentDetail.status" />
             </div>
-          </el-col>
-          <!-- <el-col :span="24">
+          </a-col>
+          <!-- <a-col :span="24">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">备注</div>
               <div class="infotop-row-value">
                 {{ dpDocumentDetail.remark || "-" }}
               </div>
             </div>
-          </el-col> -->
-          <!-- <el-col :span="8">
+          </a-col> -->
+          <!-- <a-col :span="8">
             <div class="infotop-row border-top">
               <div class="infotop-row-lable">标准名称</div>
               <div class="infotop-row-value">
                 {{ dpDocumentDetail.name || '-' }}
               </div>
             </div>
-          </el-col> -->
-        </el-row>
+          </a-col> -->
+        </a-row>
 
       </div>
     </div>
     <div class="pagecont-bottom">
-      <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-        <el-tab-pane v-for="pane in tabPanes" :key="pane.name" :label="pane.label" :name="pane.name">
+      <a-tabs v-model:activeKey="activeName" class="demo-tabs" @change="handleClick">
+        <a-tab-pane v-for="pane in tabPanes" :key="pane.name" :tab="pane.label">
           <component v-if="activeName === pane.name" :is="pane.component" :form1="dpDocumentDetail"
-            :activeName="activeName" />
-        </el-tab-pane>
-      </el-tabs>
+            :activeName="activeName"
+/>
+        </a-tab-pane>
+      </a-tabs>
     </div>
   </div>
 </template>

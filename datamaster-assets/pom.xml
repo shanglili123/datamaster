@@ -6,15 +6,16 @@
         <artifactId>dataMaster</artifactId>
         <groupId>com.datamaster</groupId>
         <version>${dataMaster.version}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <modules>
-        <module>datamaster-assets-api</module>
-        <module>datamaster-assets-biz</module>
-    </modules>
-    <packaging>pom</packaging>
     <artifactId>datamaster-assets</artifactId>
+    <packaging>pom</packaging>
     <description>
-        datamaster-assets 数据资产
+        datamaster-assets 数据资产父模块
     </description>
+    <modules>
+        <module>datamaster-assets-interface</module>
+        <module>datamaster-assets-core</module>
+    </modules>
 </project>

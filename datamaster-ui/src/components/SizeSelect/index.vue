@@ -1,21 +1,22 @@
-﻿<template>
+<template>
   <div>
-    <el-dropdown trigger="click" @command="handleSetSize">
+    <a-dropdown trigger="click" @click="(e) => handleSetSize(e.key)">
       <div class="size-icon--style">
         <svg-icon class-name="size-icon" icon-class="size" />
       </div>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item v-for="item of sizeOptions" :key="item.value" :disabled="size === item.value" :command="item.value">
+      <template #overlay>
+        <a-menu>
+          <a-menu-item v-for="item of sizeOptions" :key="item.value" :disabled="size === item.value">
             {{ item.label }}
-          </el-dropdown-item>
-        </el-dropdown-menu>
+          </a-menu-item>
+        </a-menu>
       </template>
-    </el-dropdown>
+    </a-dropdown>
   </div>
 </template>
 
 <script setup>
+
 import useAppStore from "@/store/system/app";
 
 const appStore = useAppStore();

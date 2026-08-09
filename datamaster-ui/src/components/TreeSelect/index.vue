@@ -1,30 +1,51 @@
 ﻿<template>
   <div class="el-tree-select">
-    <el-select
+    <a-select
       style="width: 100%"
-      v-model="valueId"
+      v-model:value="valueId"
       ref="treeSelect"
-      :filterable="true"
-      :clearable="true"
+      :show-search="true"
+      :allow-clear="true"
       @clear="clearHandle"
-      :filter-method="selectFilterData"
+      @search="selectFilterData"
       :placeholder="placeholder"
     >
-      <el-option :value="valueId" :label="valueTitle">
-        <el-tree
+      <a-select-option :value="valueId" :label="valueTitle">
+        <a-tree
           id="tree-option"
-          ref="selectTree"
+          :ref="(el) => {
+            if (el) {
+              proxy.$refs.selectTree = el;
+              if (!el.getNode) {
+                el.setCurrentKey = () => {};
+                el.filter = () => {};
+                el.getNode = (key) => {
+                  const walk = (list) => {
+                    if (!Array.isArray(list)) return null;
+                    for (const n of list) {
+                      if (String(n[objMap.value]) === String(key)) return { data: n };
+                      if (Array.isArray(n[objMap.children])) {
+                        const r = walk(n[objMap.children]);
+                        if (r) return r;
+                      }
+                    }
+                    return null;
+                  };
+                  return walk(options);
+                };
+              }
+            }
+          }"
           :accordion="accordion"
-          :data="options"
-          :props="objMap"
-          :node-key="objMap.value"
-          :expand-on-click-node="false"
-          :default-expanded-keys="defaultExpandedKey"
+          :tree-data="options"
+          :field-names="{ key: objMap.value, title: objMap.label, children: objMap.children }"
+          :expand-action="false"
+          :expanded-keys="defaultExpandedKey"
           :filter-node-method="filterNode"
-          @node-click="handleNodeClick"
-        ></el-tree>
-      </el-option>
-    </el-select>
+          @select="(keys, e) => handleNodeClick(e.node.data)"
+        ></a-tree>
+      </a-select-option>
+    </a-select>
   </div>
 </template>
 

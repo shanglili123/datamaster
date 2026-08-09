@@ -1,19 +1,20 @@
-﻿<template>
-    <el-dialog v-model="visible" title="修改问题数据" class="medium-dialog" @close="handleClose" destroy-on-close>
-        <el-form :model="formData" label-width="240px">
-            <el-form-item v-for="item in parsedFields" :key="item.name" :label="item.name">
-                <el-input v-model="formData[item.name]" :disabled="!item.editable" />
-            </el-form-item>
-        </el-form>
+<template>
+    <a-modal v-model:open="visible" title="修改问题数据" class="medium-dialog" @close="handleClose" :destroy-on-close="true">
+        <a-form :model="formData" :label-col="{ style: { width: '240px' } }">
+            <a-form-item v-for="item in parsedFields" :key="item.name" :label="item.name">
+                <a-input v-model:value="formData[item.name]" :disabled="!item.editable" />
+            </a-form-item>
+        </a-form>
 
         <template #footer>
-            <el-button @click="handleClose">关闭</el-button>
-            <el-button type="primary" @click="handleok">保存</el-button>
+            <a-button @click="handleClose">关闭</a-button>
+            <a-button type="primary" @click="handleok">保存</a-button>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
 import { ref, defineExpose, defineEmits } from 'vue'
 
 const emit = defineEmits(['ok'])
@@ -92,7 +93,7 @@ function handleok() {
     }
 
     if (Object.keys(keyWordData).length === 0) {
-        ElMessage.warning('未修改任何字段，无法保存')
+        message.warning('未修改任何字段，无法保存')
         return
     }
 
@@ -120,7 +121,7 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-.el-form-item {
+.ant-form-item {
     margin-bottom: 20px;
 }
 </style>

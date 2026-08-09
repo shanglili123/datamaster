@@ -1,265 +1,248 @@
 <template>
     <!-- 逻辑模型 物化 -->
     <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
-            <el-col :span="1.5">
-                <el-button type="primary" plain :disabled="row.status == 0" @click="handleMaterialization"
+        <a-row :gutter="15" class="btn-style">
+            <a-col :span="1.5">
+                <a-button type="primary" :disabled="row.status == 0" @click="handleMaterialization"
                     v-hasPermi="['dp:model:edit']" @mousedown="(e) => e.preventDefault()">
                     <svg-icon iconClass="wh" style="font-size: 14px; margin-right: 6px;" :class="{
                         'icon-disabled': single,
                         'icon-normal': !single
                     }" />物化
-                </el-button>
+                </a-button>
 
-            </el-col>
-        </el-row>
+            </a-col>
+        </a-row>
         <div class="justify-end top-right-btn">
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </div>
     </div>
-    <el-table stripe height="38.5vh" v-loading="loading" :data="dpModelMaterializedList"
-        @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
-        <el-table-column label="编号" align="left" prop="id" width="50" />
-        <el-table-column v-if="columns[1].visible" label="模型编码" align="left" prop="modelName" width="265">
-            <template #default="scope">
-                {{ scope.row.modelName || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[2].visible" :show-overflow-tooltip="{ effect: 'light' }" label="模型名称"
-            align="left" prop="modelAlias" width="180">
-            <template #default="scope">
-                {{ scope.row.modelAlias || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column label="描述" align="left" prop="description" :show-overflow-tooltip="{ effect: 'light' }"
-            width="250">
-            <template #default="scope">
-                {{ scope.row.description || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[5].visible" :label="columns[5].label"
-            :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="message" width="220">
-            <template #default="scope">
-                {{ scope.row.message || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[8].visible" label="数据连接类型" align="left" prop="datasourceType" width="160">
-            <template #default="scope">
-                {{ scope.row.datasourceType || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[9].visible" label="数据连接名称" :show-overflow-tooltip="{ effect: 'light' }"
-            align="left" prop="datasourceName" width="265">
-            <template #default="scope">
-                {{ scope.row.datasourceName || '-' }}
-            </template>
-        </el-table-column>
-
-        <el-table-column v-if="columns[13].visible" label="创建人" align="left" prop="createBy" width="120">
-            <template #default="scope">
-                {{ scope.row.createBy || '-' }}
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[15].visible" label="创建时间" align="left" prop="createTime" width="265">
-            <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d} {h}:{i}') }}</span>
-            </template>
-        </el-table-column>
-        <el-table-column v-if="columns[4].visible" label="状态" align="left" prop="status" width="80">
-            <template #default="scope">
-                <dict-tag :options="dp_template_build_log_build_status" :value="scope.row.status" />
-            </template>
-        </el-table-column>
-        <el-table-column label="备注" align="left" prop="remark" :show-overflow-tooltip="{ effect: 'light' }">
-            <template #default="scope">
-                {{ scope.row.remark || '-' }}
-            </template>
-        </el-table-column>
-        <template #empty>
-            <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-            </div>
+    <a-table
+      stripe
+      :loading="loading"
+      :data-source="dpModelMaterializedList"
+      :columns="tableColumns"
+      :pagination="false"
+      :scroll="{ y: '38.5vh' }"
+      row-key="id"
+      :locale="{ emptyText: emptyContent }"
+      @change="handleSortChange"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'id'">
+          {{ record.id }}
         </template>
-    </el-table>
+        <template v-else-if="column.dataIndex === 'modelName'">
+          {{ record.modelName || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'modelAlias'">
+          {{ record.modelAlias || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'description'">
+          {{ record.description || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'message'">
+          {{ record.message || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'datasourceType'">
+          {{ record.datasourceType || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'datasourceName'">
+          {{ record.datasourceName || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'createBy'">
+          {{ record.createBy || '-' }}
+        </template>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          <span>{{ parseTime(record.createTime, '{y}-{m}-{d} {h}:{i}') }}</span>
+        </template>
+        <template v-else-if="column.dataIndex === 'status'">
+          <dict-tag :options="dp_template_build_log_build_status" :value="record.status" />
+        </template>
+        <template v-else-if="column.dataIndex === 'remark'">
+          {{ record.remark || '-' }}
+        </template>
+      </template>
+    </a-table>
 
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
         v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 新增或修改物化模型记录对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" :append-to="$refs['app-container']" draggable>
-        <el-form ref="dpModelMaterializedRef" :model="form" :rules="rules" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="模型编码" prop="modelName">
-                        <el-input v-model="form.modelName" placeholder="请输入模型编码" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="模型名称" prop="modelAlias">
-                        <el-input v-model="form.modelAlias" placeholder="请输入模型名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="模型表id" prop="modelId">
-                        <el-input v-model="form.modelId" placeholder="请输入模型表id" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="状态" prop="status">
-                        <el-radio-group v-model="form.status">
-                            <el-radio v-for="dict in dp_template_build_log_build_status" :key="dict.value"
-                                :label="dict.value">{{ dict.label }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="执行日志信息" prop="message">
-                        <el-input v-model="form.message" type="textarea" placeholder="请输入内容" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="执行sql备份" prop="sqlCommand">
-                        <el-input v-model="form.sqlCommand" placeholder="请输入执行sql备份" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="数据源id" prop="datasourceId">
-                        <el-input v-model="form.datasourceId" placeholder="请输入数据源id" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="数据连接名称" prop="datasourceName">
-                        <el-input v-model="form.datasourceName" placeholder="请输入数据连接名称" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="资产表id" prop="assetId">
-                        <el-input v-model="form.assetId" placeholder="请输入资产表id" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="备注" prop="remark">
-                        <el-input v-model="form.remark" placeholder="请输入备注" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+    <a-modal :title="title" v-model:open="open" width="800px" draggable>
+        <a-form ref="dpModelMaterializedRef" :model="form" :rules="rules"
+            :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="模型编码" name="modelName">
+                        <a-input v-model:value="form.modelName" placeholder="请输入模型编码" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="模型名称" name="modelAlias">
+                        <a-input v-model:value="form.modelAlias" placeholder="请输入模型名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="模型表id" name="modelId">
+                        <a-input v-model:value="form.modelId" placeholder="请输入模型表id" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="状态" name="status">
+                        <a-radio-group v-model:value="form.status">
+                            <a-radio v-for="dict in dp_template_build_log_build_status" :key="dict.value"
+                                :value="dict.value">{{ dict.label }}</a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="执行日志信息" name="message">
+                        <a-textarea v-model:value="form.message" placeholder="请输入内容" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="执行sql备份" name="sqlCommand">
+                        <a-input v-model:value="form.sqlCommand" placeholder="请输入执行sql备份" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="数据源id" name="datasourceId">
+                        <a-input v-model:value="form.datasourceId" placeholder="请输入数据源id" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="数据连接名称" name="datasourceName">
+                        <a-input v-model:value="form.datasourceName" placeholder="请输入数据连接名称" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="资产表id" name="assetId">
+                        <a-input v-model:value="form.assetId" placeholder="请输入资产表id" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="备注" name="remark">
+                        <a-input v-model:value="form.remark" placeholder="请输入备注" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="cancel">取 消</el-button>
-                <el-button type="primary" size="mini" @click="submitForm">确 定</el-button>
+                <a-button size="small" @click="cancel">取 消</a-button>
+                <a-button type="primary" size="small" @click="submitForm">确 定</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 物化模型记录详情对话框 -->
-    <el-dialog :title="title" v-model="openDetail" width="800px" :append-to="$refs['app-container']" draggable>
-        <el-form ref="dpModelMaterializedRef" :model="form" label-width="80px">
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="模型编码" prop="modelName">
+    <a-modal :title="title" v-model:open="openDetail" width="800px" draggable>
+        <a-form ref="dpModelMaterializedRef" :model="form" :label-col="{ style: { width: '80px' } }">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="模型编码" name="modelName">
                         <div>
                             {{ form.modelName }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="模型名称" prop="modelAlias">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="模型名称" name="modelAlias">
                         <div>
                             {{ form.modelAlias }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="模型表id" prop="modelId">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="模型表id" name="modelId">
                         <div>
                             {{ form.modelId }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="状态" prop="status">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="状态" name="status">
                         <dict-tag :options="dp_template_build_log_build_status" :value="form.status" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="执行日志信息" prop="message">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="执行日志信息" name="message">
                         <div>
                             {{ form.message }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="执行sql备份" prop="sqlCommand">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="执行sql备份" name="sqlCommand">
                         <div>
                             {{ form.sqlCommand }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="数据源id" prop="datasourceId">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="数据源id" name="datasourceId">
                         <div>
                             {{ form.datasourceId }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="数据连接类型" prop="datasourceType">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="数据连接类型" name="datasourceType">
                         <div>
                             {{ form.datasourceType }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="数据连接名称" prop="datasourceName">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="数据连接名称" name="datasourceName">
                         <div>
                             {{ form.datasourceName }}
                         </div>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="资产表id" prop="assetId">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="资产表id" name="assetId">
                         <div>
                             {{ form.assetId }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="备注" prop="remark">
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="备注" name="remark">
                         <div>
                             {{ form.remark }}
                         </div>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+        </a-form>
         <template #footer>
             <div class="dialog-footer">
-                <el-button size="mini" @click="cancel">关 闭</el-button>
+                <a-button size="small" @click="cancel">关 闭</a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 
     <MaterializationDialog :title="title" :visible="Materialization"
         @update:dialogFormVisible="Materialization = $event" :ids="modelIds" @confirm="getList" />
@@ -304,6 +287,35 @@ const columns = ref([
     { key: 17, label: '更新人id', visible: true },
     { key: 18, label: '更新时间', visible: true },
     { key: 19, label: '备注', visible: true }
+]);
+
+const tableColumns = computed(() =>
+    [
+        { title: '编号', dataIndex: 'id', align: 'left', width: 50 },
+        { title: '模型编码', dataIndex: 'modelName', align: 'left', width: 265, colKey: 1 },
+        { title: '模型名称', dataIndex: 'modelAlias', align: 'left', width: 180, ellipsis: true, colKey: 2 },
+        { title: '描述', dataIndex: 'description', align: 'left', width: 250, ellipsis: true },
+        { title: '执行日志信息', dataIndex: 'message', align: 'left', width: 220, ellipsis: true, colKey: 5 },
+        { title: '数据连接类型', dataIndex: 'datasourceType', align: 'left', width: 160, colKey: 8 },
+        { title: '数据连接名称', dataIndex: 'datasourceName', align: 'left', width: 265, ellipsis: true, colKey: 9 },
+        { title: '创建人', dataIndex: 'createBy', align: 'left', width: 120, colKey: 13 },
+        { title: '创建时间', dataIndex: 'createTime', align: 'left', width: 265, colKey: 15 },
+        { title: '状态', dataIndex: 'status', align: 'left', width: 80, colKey: 4 },
+        { title: '备注', dataIndex: 'remark', align: 'left', ellipsis: true }
+    ].filter((col) =>
+        col.colKey === undefined ? true : columns.value[col.colKey].visible
+    )
+);
+
+const emptyContent = h('div', { class: 'emptyBg' }, [
+    h('img', {
+        src: new URL(
+            '@/assets/system/images/no_data/noData.png',
+            import.meta.url
+        ).href,
+        alt: ''
+    }),
+    h('p', '暂无记录')
 ]);
 
 const open = ref(false);
@@ -412,16 +424,24 @@ function resetQuery() {
 }
 
 // 多选框选中数据
-function handleSelectionChange(selection) {
-    ids.value = selection.map((item) => item.id);
-    single.value = selection.length != 1;
-    multiple.value = !selection.length;
+function handleSelectionChange(selectedRowKeys, selectedRows) {
+    ids.value = selectedRows.map((item) => item.id);
+    single.value = selectedRows.length != 1;
+    multiple.value = !selectedRows.length;
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-    queryParams.value.orderByColumn = column.prop;
-    queryParams.value.isAsc = column.order;
+function handleSortChange(pag, filters, sorter) {
+    const prop = sorter.field || sorter.column?.dataIndex;
+    const order =
+        sorter.order === 'ascend'
+            ? 'ascending'
+            : sorter.order === 'descend'
+                ? 'descending'
+                : null;
+    queryParams.value.orderByColumn =
+        prop == 'createTime' ? 'create_time' : prop;
+    queryParams.value.isAsc = order;
     getList();
 }
 let modelIds = [];
@@ -458,8 +478,9 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-    proxy.$refs['dpModelMaterializedRef'].validate((valid) => {
-        if (valid) {
+    proxy.$refs['dpModelMaterializedRef']
+        .validate()
+        .then(() => {
             if (form.value.id != null) {
                 updateDpModelMaterialized(form.value)
                     .then((response) => {
@@ -477,8 +498,8 @@ function submitForm() {
                     })
                     .catch((error) => { });
             }
-        }
-    });
+        })
+        .catch(() => { });
 }
 
 /** 删除按钮操作 */

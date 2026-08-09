@@ -1,7 +1,7 @@
 <template>
   <div class="app-container" ref="app-container">
 
-    <el-container>
+    <a-layout>
       <!-- 左侧树 -->
       <DeptTree
         :deptOptions="layerTreeOptions"
@@ -14,7 +14,7 @@
       </DeptTree>
 
       <!-- 右侧列表 -->
-      <el-main class="main-content">
+      <a-layout-content class="main-content">
         <!-- 顶部信息卡片 -->
         <layerInfoCard v-if="currentLayer" class="mb15" :layer="currentLayer" />
 
@@ -27,239 +27,191 @@
             />
           </template>
           <template #actions-data>
-            <el-button
+            <a-button
               type="primary"
-              plain
-              icon="Plus"
               @click="handleAdd"
               v-hasPermi="['mdl:dataLayer:add']"
             >
               新增
-            </el-button>
+            </a-button>
           </template>
 
           <qt-table v-bind="tableStore" ref="tableRef">
             <template #action="{ row }">
-              <el-button
-                link
-                type="primary"
-                icon="Edit"
+              <a-button
+                type="link"
+                size="small"
                 @click="handleUpdate(row)"
                 v-hasPermi="['mdl:dataLayer:edit']"
               >
                 修改
-              </el-button>
-              <el-button
-                link
-                type="danger"
-                icon="Delete"
+              </a-button>
+              <a-button
+                type="link"
+                danger
+                size="small"
                 @click="handleDelete(row)"
                 v-hasPermi="['mdl:dataLayer:remove']"
               >
                 删除
-              </el-button>
-              <el-button
-                link
-                type="primary"
-                icon="View"
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
                 @click="handleDetail(row)"
                 v-hasPermi="['mdl:dataLayer:edit']"
               >
                 详情
-              </el-button>
+              </a-button>
             </template>
 
             <template #status="{ row }">
-              <el-switch
-                v-model="row.status"
-                active-value="1"
-                inactive-value="0"
-                active-color="#13ce66"
-                inactive-color="#ff4949"
-                @change="handleStatusChange(row)"
+              <a-switch
+                v-model:checked="row.status"
+                checked-value="1"
+                un-checked-value="0"
+                @change="() => handleStatusChange(row)"
               />
             </template>
           </qt-table>
         </qt-wrap>
-      </el-main>
-    </el-container>
+      </a-layout-content>
+    </a-layout>
 
     <!-- 添加或修改规范对话框 -->
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="open"
-      :append-to="$refs['app-container']"
+      v-model:open="open"
       draggable
       width="800px"
+      destroy-on-close
     >
-      <template #header>
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form
+      <a-form
         ref="specificationRef"
         :model="form"
         :rules="rules"
-        label-width="140px"
+        :label-col="{ style: { width: '140px' } }"
         @submit.prevent
       >
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="表前缀" prop="prefixName">
-              <el-input v-model="form.prefixName" placeholder="请输入表前缀" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="业务英文缩写" prop="businessEngName">
-              <el-input
-                v-model="form.businessEngName"
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="表前缀" name="prefixName">
+              <a-input v-model:value="form.prefixName" placeholder="请输入表前缀" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="业务英文缩写" name="businessEngName">
+              <a-input
+                v-model:value="form.businessEngName"
                 placeholder="请输入业务英文缩写"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="负责人" prop="ownerUserId">
-              <el-select
-                v-model="form.ownerUserId"
-                filterable
-                placeholder="请选择负责人"
-                @change="handleOwnerChange"
-              >
-                <el-option
-                  v-for="item in managerOptions"
-                  :key="item.userId"
-                  :label="item.nickName"
-                  :value="item.userId"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="负责人电话" prop="ownerUserPhoneNumber">
-              <el-input
-                v-model="form.ownerUserPhoneNumber"
-                placeholder="请输入负责人电话"
-                disabled
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="状态" prop="status">
-              <el-radio-group v-model="form.status">
-                <el-radio
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="状态" name="status">
+              <a-radio-group v-model:value="form.status">
+                <a-radio
                   v-for="dict in sys_normal_disable"
                   :key="dict.value"
-                  :label="dict.value"
+                  :value="dict.value"
                 >
                   {{ dict.label }}
-                </el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
-              <el-input
-                v-model="form.description"
-                type="textarea"
+                </a-radio>
+              </a-radio-group>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
+              <a-textarea
+                v-model:value="form.description"
                 placeholder="请输入描述"
-                :min-height="192"
-                show-word-limit
-                maxlength="500个字符"
+                :auto-size="{ minRows: 4, maxRows: 8 }"
+                show-count
+                :maxlength="500"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancel">取 消</el-button>
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm">确 定</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
 
     <!-- 规范详情对话框 -->
-    <el-dialog
+    <a-modal
       title="规范详情"
-      v-model="openDetail"
-      :append-to="$refs['app-container']"
+      v-model:open="openDetail"
       draggable
       width="800px"
+      destroy-on-close
     >
-      <el-form ref="specificationDetailRef" :model="form" label-width="140px">
-        <el-form-item label="编号:" prop="id">
+      <a-form ref="specificationDetailRef" :model="form" :label-col="{ style: { width: '140px' } }">
+        <a-form-item label="编号:" name="id">
           <div class="form-readonly">
             {{ form.id }}
           </div>
-        </el-form-item>
-        <el-form-item label="表前缀" prop="prefixName">
+        </a-form-item>
+        <a-form-item label="表前缀" name="prefixName">
           <div class="form-readonly">{{ form.prefixName ?? "-" }}</div>
-        </el-form-item>
-        <el-form-item label="业务英文缩写" prop="businessEngName">
+        </a-form-item>
+        <a-form-item label="业务英文缩写" name="businessEngName">
           <div class="form-readonly">{{ form.businessEngName ?? "-" }}</div>
-        </el-form-item>
-        <el-form-item label="负责人" prop="ownerUserName">
-          <div class="form-readonly">{{ form.ownerUserName || "-" }}</div>
-        </el-form-item>
-        <el-form-item label="负责人电话" prop="ownerUserPhoneNumber">
-          <div class="form-readonly">
-            {{ form.ownerUserPhoneNumber || "-" }}
-          </div>
-        </el-form-item>
-        <el-form-item label="状态" prop="status">
+        </a-form-item>
+        <a-form-item label="状态" name="status">
           <dict-tag :options="sys_normal_disable" :value="form.status" />
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
+        </a-form-item>
+        <a-form-item label="描述" name="description">
           <div class="form-readonly textarea">
             {{ form.description ?? "-" }}
           </div>
-        </el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="创建人" prop="createBy">
+        </a-form-item>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="创建人" name="createBy">
               <div class="form-readonly">
                 {{ form.createBy }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="创建时间" prop="createTime">
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="创建时间" name="createTime">
               <div class="form-readonly">
                 {{ parseTime(form.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="更新人" prop="createBy">
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="更新人" name="updateBy">
               <div class="form-readonly">
                 {{ form.updateBy }}
               </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="更新时间" prop="updateTime">
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="更新时间" name="updateTime">
               <div class="form-readonly">
                 {{ parseTime(form.updateTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancelDetail">关 闭</el-button>
+          <a-button @click="cancelDetail">关 闭</a-button>
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -273,7 +225,6 @@ import {
   delDataLayerSpecification,
 } from "@/api/mdl/dataLayerSpecification/dataLayerSpecification.js";
 import DeptTree from "@/components/DeptTree";
-import { deptUserTree, getUser } from "@/api/system/system/user.js";
 import layerInfoCard from "./components/layerInfoCard.vue";
 import {
   computed,
@@ -285,33 +236,14 @@ import {
   toRefs,
 } from "vue";
 
-// 导入必要的图标组件
-import { FolderOpened, Folder, Tickets } from "@element-plus/icons-vue";
-
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
 const leftWidth = ref(300); // 初始左侧宽度
 const layerTreeOptions = ref([]);
 const currentLayer = ref(null);
 const layerTreeRef = ref(null);
-const managerOptions = ref([]);
 const tableRef = ref(null);
 const activeDropdownNodeId = ref(null);
-
-function getManagerOptions() {
-  deptUserTree().then((response) => {
-    managerOptions.value = response.data;
-  });
-}
-
-function handleOwnerChange(val) {
-  const selected = managerOptions.value.find((item) => item.userId === val);
-  if (selected) {
-    form.value.ownerUserName = selected.nickName;
-    // 更新负责人电话
-    form.value.ownerUserPhoneNumber = selected.phonenumber || "";
-  }
-}
 
 const ids = ref([]);
 const single = ref(true);
@@ -363,13 +295,6 @@ const tableStore = reactive({
       width: 100,
       slot: "status",
     },
-    { label: "负责人", prop: "ownerUserName", align: "left", width: 120 },
-    {
-      label: "负责人电话",
-      prop: "ownerUserPhoneNumber",
-      align: "left",
-      width: 140,
-    },
 
     {
       label: "创建人",
@@ -412,18 +337,6 @@ const searchStore = reactive({
       prop: "businessEngName",
       component: { is: "input", placeholder: "请输入业务英文缩写" },
     },
-    {
-      label: "负责人",
-      prop: "ownerUserId",
-      component: {
-        is: "tree-select",
-        data: managerOptions,
-        props: { value: "userId", label: "nickName", children: "children" },
-        valueKey: "ID",
-        placeholder: "请选择负责人",
-        checkStrictly: true,
-      },
-    },
   ],
 });
 
@@ -440,9 +353,6 @@ const data = reactive({
     businessEngName: [
       { required: true, message: "业务英文缩写不能为空", trigger: "blur" },
       { pattern: /^[a-zA-Z]+$/, message: "只能输入英文字符", trigger: "blur" },
-    ],
-    ownerUserId: [
-      { required: true, message: "负责人不能为空", trigger: "blur" },
     ],
   },
 });
@@ -554,14 +464,6 @@ function handleUpdate(row) {
   const _id = row?.id || ids.value[0];
   getDataLayerSpecification(_id).then((response) => {
     form.value = response.data;
-    if (form.value.ownerUserName && !form.value.ownerUserId) {
-      const selected = managerOptions.value.find(
-        (item) => item.nickName === form.value.ownerUserName
-      );
-      if (selected) {
-        form.value.ownerUserId = selected.userId;
-      }
-    }
     open.value = true;
     title.value = "修改规范";
   });
@@ -579,8 +481,9 @@ function handleDetail(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["specificationRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["specificationRef"]
+    .validate()
+    .then(() => {
       if (form.value.id != null) {
         updateDataLayerSpecification(form.value).then(() => {
           proxy.$modal.msgSuccess("修改成功");
@@ -594,8 +497,8 @@ function submitForm() {
           tableRef.value?.getList();
         });
       }
-    }
-  });
+    })
+    .catch(() => {});
 }
 
 /** 删除按钮操作 */
@@ -632,7 +535,6 @@ function handleStatusChange(row) {
 
 onMounted(() => {
   getTree();
-  getManagerOptions();
 });
 </script>
 

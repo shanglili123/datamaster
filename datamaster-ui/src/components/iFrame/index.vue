@@ -1,6 +1,8 @@
 ﻿<template>
-  <div v-loading="loading" :style="'height:' + height">
-    <iframe ref="frameRef" :src="url" frameborder="0" scrolling="auto" height="100%" width="100%" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>
+  <div :style="'height:' + height">
+    <a-spin :spinning="loading" class="iframe-loading">
+      <iframe ref="frameRef" :src="url" frameborder="0" scrolling="auto" height="100%" width="100%" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>
+    </a-spin>
   </div>
 </template>
 
@@ -25,4 +27,11 @@ onMounted(() => {
   };
 });
 </script>
+
+<style scoped>
+.iframe-loading,
+.iframe-loading .ant-spin-container {
+  height: 100%;
+}
+</style>
 

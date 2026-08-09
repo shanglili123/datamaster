@@ -2,63 +2,58 @@
     <div class="dp-chart">
         <div class="dp-chart--title">察布查尔锡伯自治县-加格斯台水库水情过程</div>
         <div class="dp-chart--actions">
-            <el-dropdown trigger="click" placement="bottom-start" :hide-on-click="false">
+            <a-dropdown :trigger="['click']" placement="bottom-start">
                 <span class="el-dropdown-link">
                     汛限水位
-                    <el-icon class="el-icon--right">
-                        <arrow-down />
-                    </el-icon>
+                    <DownOutlined style="font-size: 12px" />
                 </span>
-                <template #dropdown>
-                    <el-dropdown-menu>
-                        <el-dropdown-item
+                <template #overlay>
+                    <div class="dp-chart-dropdown-panel">
+                        <a-checkbox
                             v-for="(item, index) in floodControlLevelList"
                             :key="index"
+                            v-model:checked="item.checked"
+                            :disabled="!item.val"
+                            style="width: 100%"
+                            @click.stop
+                            @change="handleFloodControlLevelChange(item)"
                         >
-                            <template #default>
-                                <el-checkbox
-                                    v-model="item.checked"
-                                    :disabled="!item.val"
-                                    style="width: 100%"
-                                    @change="handleFloodControlLevelChange(item)"
-                                >
-                                    {{ item.val }}(01月01日 ~ 08月20日,主汛期)
-                                </el-checkbox>
-                            </template>
-                        </el-dropdown-item>
-                    </el-dropdown-menu>
+                            {{ item.val }}(01月01日 ~ 08月20日,主汛期)
+                        </a-checkbox>
+                    </div>
                 </template>
-            </el-dropdown>
+            </a-dropdown>
 
-            <el-dropdown trigger="click" placement="bottom-start" :hide-on-click="false">
+            <a-dropdown :trigger="['click']" placement="bottom-start">
                 <span class="select-item-link">
                     其他特征值
-                    <el-icon class="el-icon--right">
-                        <arrow-down />
-                    </el-icon>
+                    <DownOutlined style="font-size: 12px" />
                 </span>
-                <template #dropdown>
-                    <el-checkbox-group v-model="features" style="width: 400px">
-                        <el-dropdown-item v-for="(item, index) in featuresList" :key="index">
-                            <el-checkbox
+                <template #overlay>
+                    <div class="dp-chart-dropdown-panel" style="width: 400px">
+                        <a-checkbox-group v-model:value="features">
+                            <a-checkbox
+                                v-for="(item, index) in featuresList"
+                                :key="index"
                                 :value="item"
                                 :disabled="!item.val"
                                 style="width: 100%"
-                                @change="handleFeaturesChange($event, item)"
+                                @click.stop
+                                @change="handleFeaturesChange($event.target.checked, item)"
                             >
                                 {{ item.label }}：{{ item.val }}
-                            </el-checkbox>
-                        </el-dropdown-item>
-                    </el-checkbox-group>
+                            </a-checkbox>
+                        </a-checkbox-group>
+                    </div>
                 </template>
-            </el-dropdown>
+            </a-dropdown>
         </div>
         <div class="dp-chart--main" ref="chartRef"></div>
     </div>
 </template>
 
 <script setup name="ViewA1Chart">
-    import { ArrowDown } from '@element-plus/icons-vue';
+    import { DownOutlined } from '@ant-design/icons-vue';
     import * as echarts from 'echarts';
     const chartRef = ref(null);
     /**

@@ -1,37 +1,37 @@
 <template>
   <div class="app-container" ref="app-container">
-    <el-container style="90%">
-      <DeptTree ref="DeptTreeRef" :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入数据开发类目名称'"
+    <a-layout>
+      <DeptTree ref="DeptTreeRef" :deptOptions="deptOptions" :leftWidth="leftWidth" :placeholder="'请输入数据开发目录名称'"
         @node-click="handleNodeClick" />
 
-      <el-main>
+      <a-layout-content>
         <div class="pagecont-top" v-show="showSearch">
-          <el-form class="btn-style" :model="queryParams" ref="queryRef" :inline="true" label-width="100px"
-            v-show="showSearch" @submit.prevent>
-            <el-form-item label="任务实例名称" prop="name">
-              <el-input class="el-form-input-width" v-model="queryParams.name" placeholder="请输入任务实例名称" clearable
+          <a-form class="btn-style" :model="queryParams" ref="queryRef" layout="inline"
+            :label-col="{ style: { width: '100px' } }" v-show="showSearch" @submit.prevent>
+            <a-form-item label="任务实例名称" name="name">
+              <a-input class="el-form-input-width" v-model:value="queryParams.name" placeholder="请输入任务实例名称" allow-clear
                 @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="执行状态" prop="status">
-              <el-select v-model="queryParams.status" placeholder="请选择执行状态" clearable class="el-form-input-width">
-                <el-option v-for="item in taskInstanceStatusOptions" :key="item.value" :label="item.label"
-                  :value="item.value" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="执行时间" prop="time">
-              <el-date-picker class="el-form-input-width" v-model="queryParams.time" @change="handleTimeChange"
-                value-format="YYYY-MM-DD" type="daterange" range-separator="-" start-placeholder="开始日期"
-                end-placeholder="结束日期"></el-date-picker>
-            </el-form-item>
-            <el-form-item>
-              <el-button plain type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
+            </a-form-item>
+            <a-form-item label="执行状态" name="status">
+              <a-select v-model:value="queryParams.status" placeholder="请选择执行状态" allow-clear class="el-form-input-width">
+                <a-select-option v-for="item in taskInstanceStatusOptions" :key="item.value" :value="item.value">
+                  {{ item.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="执行时间" name="time">
+              <a-range-picker class="el-form-input-width" v-model:value="queryParams.time" @change="handleRangeChange"
+                valueFormat="YYYY-MM-DD" :allow-clear="false" />
+            </a-form-item>
+            <a-form-item>
+              <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-              </el-button>
-              <el-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
+              </a-button>
+              <a-button @click="resetQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-              </el-button>
-            </el-form-item>
-          </el-form>
+              </a-button>
+            </a-form-item>
+          </a-form>
         </div>
 
         <div class="pagecont-bottom">
@@ -40,117 +40,60 @@
               <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
             </div>
           </div>
-          <el-table stripe v-loading="loading" :data="dppEtlTaskLogList"
-            @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
-            <el-table-column v-if="getColumnVisibility(0)" width="225" label="编号" align="left" prop="id" />
-            <el-table-column v-if="getColumnVisibility(1)" :show-overflow-tooltip="{ effect: 'light' }" label="任务实例名称"
-              align="left" prop="name" width="200">
-              <template #default="scope">
-                {{ scope.row.name || "-" }}
+          <a-table
+            striped
+            :loading="loading"
+            :data-source="dppEtlTaskLogList"
+            :columns="tableColumns"
+            :scroll="tableScroll"
+            :pagination="false"
+            :locale="{ emptyText: '暂无记录' }"
+            @change="handleTableChange"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'name'">
+                {{ record.name || "-" }}
               </template>
-            </el-table-column>
-
-            <el-table-column v-if="getColumnVisibility(3)" label="执行类型" width="120"
-              :show-overflow-tooltip="{ effect: 'light' }" align="left" prop="commandType">
-              <template #default="scope">
-                {{ commandTypeLabel(scope.row.commandType) }}
+              <template v-if="column.dataIndex === 'commandType'">
+                {{ commandTypeLabel(record.commandType) }}
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(4)" width="100" label="执行状态" align="left" prop="status">
-              <template #default="scope">
-                <el-tag v-if="scope.row.status !== null && scope.row.status !== undefined && scope.row.status !== ''"
-                  :type="taskInstanceStatusType(scope.row.status)" size="small">
-                  {{ taskInstanceStatusLabel(scope.row.status) }}
-                </el-tag>
+              <template v-if="column.dataIndex === 'status'">
+                <a-tag v-if="record.status !== null && record.status !== undefined && record.status !== ''"
+                  :color="taskInstanceStatusColor(record.status)" size="small">
+                  {{ taskInstanceStatusLabel(record.status) }}
+                </a-tag>
                 <span v-else>-</span>
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(5)" width="160" label="开始时间" align="left" prop="startTime"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                <span>{{
-                  parseTime(scope.row.startTime, "{y}-{m}-{d} {h}:{i}") || "-"
-                }}</span>
+              <template v-if="column.dataIndex === 'startTime'">
+                <span>{{ parseTime(record.startTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(6)" width="160" label="结束时间" align="left" prop="endTime"
-              :show-overflow-tooltip="{ effect: 'light' }">
-              <template #default="scope">
-                <span>{{
-                  parseTime(scope.row.endTime, "{y}-{m}-{d} {h}:{i}") || "-"
-                }}</span>
+              <template v-if="column.dataIndex === 'endTime'">
+                <span>{{ parseTime(record.endTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
               </template>
-            </el-table-column>
-
-            <!--            <el-table-column-->
-            <!--                v-if="getColumnVisibility(7)"-->
-            <!--                width="90"-->
-            <!--                label="抽取量"-->
-            <!--                 align="left"-->
-            <!--                prop="extractionCount"-->
-            <!--            >-->
-            <!--                <template #default="scope">-->
-            <!--                    {{ '-' }}-->
-            <!--                </template>-->
-            <!--            </el-table-column>-->
-            <!--            <el-table-column-->
-            <!--                v-if="getColumnVisibility(8)"-->
-            <!--                width="90"-->
-            <!--                label="写入量"-->
-            <!--                 align="left"-->
-            <!--                prop="writeCount"-->
-            <!--            >-->
-            <!--                <template #default="scope">-->
-            <!--                    {{ '-' }}-->
-            <!--                </template>-->
-            <!--            </el-table-column>-->
-            <el-table-column v-if="getColumnVisibility(9)" width="100" label="创建人" align="left" prop="createBy">
-              <template #default="scope">
-                {{ scope.row.personChargeName || "-" }}
+              <template v-if="column.dataIndex === 'createBy'">
+                {{ record.createBy || "-" }}
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(10)" label="创建人" :show-overflow-tooltip="true" align="left"
-              prop="createBy">
-              <template #default="scope">
-                {{ scope.row.createBy || "-" }}
+              <template v-if="column.dataIndex === 'createTime'">
+                <span>{{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}</span>
               </template>
-            </el-table-column>
-            <el-table-column v-if="getColumnVisibility(11)" label="创建时间" align="left" prop="create_time" width="150"
-              sortable="custom" column-key="create_time" :sort-orders="['descending', 'ascending']">
-              <template #default="scope">
-                <span>{{
-                  parseTime(scope.row.createTime, "{y}-{m}-{d} {h}:{i}") || "-"
-                }}</span>
+              <template v-if="column.key === 'actions'">
+                <a-button type="link" size="small" @click="logDetailCatList(record)">查看日志</a-button>
+                <a-button type="link" size="small" @click="handleExport(record)"
+                  @mousedown="(e) => e.preventDefault()">下载日志</a-button>
               </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center" class-name="small-padding fixed-width" fixed="right" width="160">
-              <template #default="scope">
-                <el-button link type="primary" icon="View" @click="logDetailCatList(scope.row)">查看日志</el-button>
-                <el-button link type="warning" icon="Download" @click="handleExport(scope.row)"
-                  @mousedown="(e) => e.preventDefault()">
-                  下载日志
-                </el-button>
-              </template>
-            </el-table-column>
-
-            <template #empty>
-              <div class="emptyBg">
-                <img src="@/assets/system/images/no_data/noData.png" alt="" />
-                <p>暂无记录</p>
-              </div>
             </template>
-          </el-table>
+          </a-table>
           <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum"
             v-model:limit="queryParams.pageSize" @pagination="getList" />
         </div>
-      </el-main>
-    </el-container>
+      </a-layout-content>
+    </a-layout>
     <TaskLogDialog ref="logDialogRef" />
   </div>
 </template>
 
 <script setup name="Develop">
-import { defineEmits, defineProps } from "vue";
+import { defineEmits, defineProps, computed } from "vue";
 import { listAttDataDevCat } from "@/api/tax/cat/dataDevCat/dataDevCat";
 import TaskLogDialog from "@/views/col/components/taskLog.vue";
 import { listDppEtlTaskInstance } from "@/api/col/instance/job";
@@ -206,6 +149,13 @@ function taskInstanceStatusType(status) {
   return taskInstanceStatusMap[normalizeCode(status)]?.type || "info";
 }
 
+/** antd a-tag color 适配：将 el-tag type 映射为 antd 预设色 */
+function taskInstanceStatusColor(status) {
+  const type = taskInstanceStatusType(status);
+  const colorMap = { info: "default", primary: "processing", warning: "warning", danger: "error", success: "success" };
+  return colorMap[type] || "default";
+}
+
 function commandTypeLabel(commandType) {
   const code = normalizeCode(commandType);
   return commandTypeMap[code] || code || "-";
@@ -219,7 +169,6 @@ const columns = ref([
   { key: 4, label: "执行状态", visible: true },
   { key: 5, label: "开始时间", visible: true },
   { key: 6, label: "结束时间", visible: true },
-  { key: 9, label: "创建人", visible: true },
   { key: 10, label: "创建人", visible: true },
   { key: 11, label: "创建时间", visible: true },
 ]);
@@ -231,6 +180,29 @@ const getColumnVisibility = (key) => {
   // 如果找到对应列配置，根据visible属性来控制显示
   return column.visible;
 };
+
+const tableColumns = computed(() => {
+  const allCols = [
+    { title: '编号', dataIndex: 'id', align: 'left', width: 225, colKey: 0 },
+    { title: '任务实例名称', dataIndex: 'name', align: 'left', width: 200, ellipsis: true, colKey: 1 },
+    { title: '执行类型', dataIndex: 'commandType', align: 'left', width: 120, ellipsis: true, colKey: 3 },
+    { title: '执行状态', dataIndex: 'status', align: 'left', width: 100, colKey: 4 },
+    { title: '开始时间', dataIndex: 'startTime', align: 'left', width: 160, ellipsis: true, colKey: 5 },
+    { title: '结束时间', dataIndex: 'endTime', align: 'left', width: 160, ellipsis: true, colKey: 6 },
+    { title: '创建人', dataIndex: 'createBy', align: 'left', ellipsis: true, colKey: 10 },
+    { title: '创建时间', dataIndex: 'createTime', align: 'left', width: 150, key: 'create_time', sorter: true, defaultSortOrder: 'descend', colKey: 11 },
+    { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 160, colKey: 'actions' },
+  ];
+  return allCols.filter(col => getColumnVisibility(col.colKey));
+});
+// 列总宽超出容器时启用横向滚动，保证 fixed 列与内容完整展示
+const tableScroll = computed(() => {
+  const totalWidth = tableColumns.value.reduce(
+    (sum, c) => sum + (typeof c.width === 'number' ? c.width : 0),
+    0
+  );
+  return totalWidth > 0 ? { x: totalWidth } : undefined;
+});
 const userStore = useUserStore();
 const loading = ref(true);
 const showSearch = ref(true);
@@ -251,7 +223,6 @@ const data = reactive({
     version: null,
     spaceId: null,
     spaceCode: null,
-    personCharge: null,
     locations: null,
     description: null,
     timeout: null,
@@ -289,13 +260,14 @@ function normalizePageData(response) {
   return { rows, total: Number.isNaN(total) ? rows.length : total };
 }
 
-function handleTimeChange(value) {
-  if (!value) {
+/** antd 范围日期选择 change 适配：dateStrings 为格式化后的字符串 */
+function handleRangeChange(dates, dateStrings) {
+  if (dateStrings && dateStrings.length === 2) {
+    queryParams.value.startTime = dateStrings[0] + " 00:00:00";
+    queryParams.value.endTime = dateStrings[1] + " 23:59:59";
+  } else {
     handleTimeClear();
-    return;
   }
-  queryParams.value.startTime = value[0] + " 00:00:00";
-  queryParams.value.endTime = value[1] + " 23:59:59";
 }
 function handleTimeClear() {
   queryParams.value.startTime = null;
@@ -340,7 +312,7 @@ function getDeptTree() {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "数据开发类目",
+        name: "数据开发目录",
         value: "",
         id: 0,
         children: deptOptions.value,
@@ -377,9 +349,11 @@ function handleSelectionChange(selection) {
 }
 
 /** 排序触发事件 */
-function handleSortChange(column, prop, order) {
-  queryParams.value.orderByColumn = column.prop;
-  queryParams.value.isAsc = column.order;
+function handleTableChange(pagination, filters, sorter) {
+  const field = sorter.column?.key || sorter.field;
+  const orderMap = { ascend: 'asc', descend: 'desc' };
+  queryParams.value.orderByColumn = field;
+  queryParams.value.isAsc = sorter.order ? orderMap[sorter.order] : null;
   getList();
 }
 
@@ -398,7 +372,7 @@ getList();
 </script>
 <style scoped lang="scss">
 ::v-deep {
-  .selectlist .el-tag.el-tag--info {
+  .selectlist .ant-tag.ant-tag {
     background: #f3f8ff !important;
     border: 0px solid #6ba7ff !important;
     color: #2666fb !important;
@@ -413,7 +387,7 @@ getList();
   min-height: auto;
 }
 
-.el-main {
+.ant-layout-content {
   padding: 2px 0px;
   // box-shadow: 1px 1px 3px rgba(0, 0, 0, .2);
 }

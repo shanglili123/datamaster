@@ -1,86 +1,76 @@
 <template>
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <div v-loading="loadingList">
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-spin :spinning="loadingList">
       <div class="justify-between mb15">
-        <el-row :gutter="15" class="btn-style">
+        <a-row :gutter="15" class="btn-style">
           <template v-if="!falg">
-            <el-col :span="1.5">
-              <el-button
+            <a-col :span="1.5">
+              <a-button
                 type="primary"
-                icon="Plus"
                 @click="opencodeDialog(undefined)"
-                >新增规则</el-button
+                ><template #icon><PlusOutlined /></template>新增规则</a-button
               >
-            </el-col>
-            <el-col :span="1.5">
-              <el-button
+            </a-col>
+            <a-col :span="1.5">
+              <a-button
                 type="primary"
-                icon="Plus"
                 @click="showDialog(undefined)"
-                >导入规则</el-button
+                ><template #icon><PlusOutlined /></template>导入规则</a-button
               >
-            </el-col>
+            </a-col>
           </template>
-        </el-row>
+        </a-row>
       </div>
-      <el-table stripe :data="form.stringValue" v-loading="loading">
-        <el-table-column label="原值" align="left" prop="value">
-          <template #default="scope">
+      <a-table striped :loading="loading" :data-source="form.stringValue" :columns="tableColumns"
+        :pagination="false">
+        <template #bodyCell="{ column, record, index }">
+          <template v-if="column.dataIndex === 'value'">
             <template v-if="!falg">
-              <el-input
-                v-model="scope.row.value"
+              <a-input
+                v-model:value="record.value"
                 style="width: 100%"
                 placeholder="请输入原值"
               />
             </template>
-            <div v-else class="form-readonly">{{ scope.row.value || "-" }}</div>
+            <div v-else class="form-readonly">{{ record.value || "-" }}</div>
           </template>
-        </el-table-column>
-
-        <el-table-column label="标准值" align="left" prop="name">
-          <template #default="scope">
+          <template v-else-if="column.dataIndex === 'name'">
             <template v-if="!falg">
-              <el-input
-                v-model="scope.row.name"
+              <a-input
+                v-model:value="record.name"
                 style="width: 100%"
                 placeholder="请输入标准值"
               />
             </template>
-            <div v-else class="form-readonly">{{ scope.row.name || "-" }}</div>
+            <div v-else class="form-readonly">{{ record.name || "-" }}</div>
           </template>
-        </el-table-column>
-
-        <el-table-column
-          v-if="!falg"
-          label="操作"
-          align="center"
-          class-name="small-padding fixed-width"
-          fixed="right"
-          width="150"
-        >
-          <template #default="scope">
-            <el-button
-              link
-              type="danger"
-              icon="Delete"
-              @click="handleDelete(scope.$index + 1)"
-              >删除</el-button
+          <template v-else-if="column.key === 'actions'">
+            <a-button
+              type="link"
+              danger
+              size="small"
+              @click="handleDelete(index + 1)"
+              >删除</a-button
             >
           </template>
-        </el-table-column>
-      </el-table>
-    </div>
-    <el-row> </el-row>
+        </template>
+      </a-table>
+    </a-spin>
+    <a-row> </a-row>
     <singleSelectTableDialog ref="dialogRef" @confirm="handleConfirm" />
-  </el-form>
+  </a-form>
 </template>
 
 <script setup>
+import { message } from 'ant-design-vue'
 import { reactive, ref, watch } from "vue";
+import { PlusOutlined } from "@ant-design/icons-vue";
+
 import {
   listDpDataElem,
   listDpDataElemCode,
 } from "@/api/std/dataElem/dataElem.js";
+
 import singleSelectTableDialog from "./dataElem.vue";
 const props = defineProps({
   form: Object,
@@ -93,6 +83,17 @@ let loading = ref(false);
 const formRef = ref(null);
 const { proxy } = getCurrentInstance();
 const form = reactive({ ...props.form });
+
+const tableColumns = computed(() => {
+  const cols = [
+    { title: '原值', dataIndex: 'value', align: 'left' },
+    { title: '标准值', dataIndex: 'name', align: 'left' },
+  ];
+  if (!props.falg) {
+    cols.push({ title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 150 });
+  }
+  return cols;
+});
 let dpDataElemstringValue = ref([]);
 let dpDataElemList = ref([]);
 
@@ -137,7 +138,7 @@ function opencodeDialog() {
   );
 
   if (hasIncomplete) {
-    ElMessage.warning("请先填写完整所有项");
+    message.warning("请先填写完整所有项");
     return;
   }
 

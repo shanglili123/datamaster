@@ -10,192 +10,149 @@
         />
       </template>
       <template #actions-data>
-        <el-button
+        <a-button
           type="primary"
-          plain
-          icon="Plus"
           @click="handleAdd"
           v-hasPermi="['mdl:themeDomain:add']"
         >
           新增
-        </el-button>
-        <el-button
+        </a-button>
+        <a-button
           class="extend-btn"
           type="primary"
-          plain
           @click="toggleExpandAll"
         >
           <svg-icon v-if="defaultExpandAll" icon-class="toggle" />
           <svg-icon v-else icon-class="expand" />
           <span>{{ defaultExpandAll ? "折叠" : "展开" }}</span>
-        </el-button>
+        </a-button>
       </template>
 
       <qt-table v-bind="tableStore" ref="tableRef">
         <template #action="{ row }">
-          <el-button
-            link
-            type="primary"
-            icon="Edit"
+          <a-button
+            type="link"
+            size="small"
             @click="handleUpdate(row)"
             v-hasPermi="['mdl:themeDomain:edit']"
           >
             修改
-          </el-button>
-          <el-button
-            link
-            type="primary"
-            icon="Plus"
+          </a-button>
+          <a-button
+            type="link"
+            size="small"
             @click="handleAdd(row)"
             v-hasPermi="['mdl:themeDomain:add']"
           >
             新增
-          </el-button>
-          <el-button
-            link
-            type="danger"
-            icon="Delete"
+          </a-button>
+          <a-button
+            type="link"
+            danger
+            size="small"
             @click="handleDelete(row)"
             v-hasPermi="['mdl:themeDomain:remove']"
           >
             删除
-          </el-button>
+          </a-button>
         </template>
 
         <template #validFlag="{ row }">
-          <el-switch
-            v-model="row.validFlag"
-            active-color="#13ce66"
-            inactive-color="#ff4949"
-            @change="handleStatusChange(row)"
+          <a-switch
+            v-model:checked="row.validFlag"
+            @change="() => handleStatusChange(row)"
           >
-          </el-switch>
+          </a-switch>
         </template>
       </qt-table>
     </qt-wrap>
-    <el-dialog
+    <a-modal
       :title="title"
-      v-model="open"
+      v-model:open="open"
       width="800px"
-      :append-to="$refs['app-container']"
       draggable
+      destroy-on-close
     >
-      <template #header="{ close, titleId, titleClass }">
-        <span role="heading" aria-level="2" class="el-dialog__title">
-          {{ title }}
-        </span>
-      </template>
-      <el-form
+      <a-form
         ref="themeDomainRef"
         :model="form"
         :rules="rules"
-        label-width="130px"
+        :label-col="{ style: { width: '130px' } }"
         @submit.prevent
       >
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="主题域名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入主题域名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="上级主题域" prop="parentId">
-              <el-tree-select
-                filterable
-                v-model="form.parentId"
-                :data="attDataElemCatOptions"
-                :props="{ value: 'id', label: 'name', children: 'children' }"
-                value-key="id"
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="主题域名称" name="name">
+              <a-input v-model:value="form.name" placeholder="请输入主题域名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="上级主题域" name="parentId">
+              <a-tree-select
+                show-search
+                allow-clear
+                v-model:value="form.parentId"
+                :tree-data="attDataElemCatOptions"
+                :field-names="{ value: 'id', label: 'name', children: 'children' }"
                 placeholder="请选择上级主题域"
-                check-strictly
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="数仓分层" prop="dataLayerId">
-              <el-tree-select
-                filterable
-                default-expand-all
-                v-model="form.dataLayerId"
-                :data="dataLayerOptions"
-                :props="{ value: 'id', label: 'name', children: 'children' }"
-                value-key="id"
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="数仓分层" name="dataLayerId">
+              <a-tree-select
+                show-search
+                allow-clear
+                :treeDefaultExpandAll="true"
+                v-model:value="form.dataLayerId"
+                :tree-data="dataLayerOptions"
+                :field-names="{ value: 'id', label: 'name', children: 'children' }"
                 placeholder="请选择数仓分层"
-                check-strictly
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="英文缩写" prop="engName">
-              <el-input v-model="form.engName" placeholder="请输入英文缩写" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="负责人" prop="ownerUserId">
-              <el-select
-                v-model="form.ownerUserId"
-                filterable
-                placeholder="请选择负责人"
-                @change="handleOwnerChange"
-              >
-                <el-option
-                  v-for="item in managerOptions"
-                  :key="item.userId"
-                  :label="item.nickName"
-                  :value="item.userId"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="负责人电话" prop="ownerUserPhoneNumber">
-              <el-input
-                v-model="form.ownerUserPhoneNumber"
-                placeholder="请输入负责人电话"
-                disabled
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="描述" prop="description">
-              <el-input
-                v-model="form.description"
-                type="textarea"
-                maxlength="256个字符"
-                :min-height="256"
-                show-word-limit
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="英文缩写" name="engName">
+              <a-input v-model:value="form.engName" placeholder="请输入英文缩写" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="20">
+          <a-col :span="24">
+            <a-form-item label="描述" name="description">
+              <a-textarea
+                v-model:value="form.description"
+                :maxlength="256"
+                :auto-size="{ minRows: 4, maxRows: 8 }"
+                show-count
                 placeholder="请输入描述"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="备注" prop="remark">
-              <el-input
-                v-model="form.remark"
-                type="textarea"
-                maxlength="500个字符"
-                show-word-limit
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="备注" name="remark">
+              <a-textarea
+                v-model:value="form.remark"
+                :maxlength="500"
+                show-count
+                :auto-size="{ minRows: 2, maxRows: 4 }"
                 placeholder="请输入备注"
               />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
+            </a-form-item>
+          </a-col>
+        </a-row>
+      </a-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="mini" @click="cancel">取 消</el-button>
-          <el-button type="primary" size="mini" @click="submitForm"
-            >确 定</el-button
+          <a-button @click="cancel">取 消</a-button>
+          <a-button type="primary" @click="submitForm"
+            >确 定</a-button
           >
         </div>
       </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
@@ -207,7 +164,6 @@ import {
   listThemeDomain,
   delThemeDomain,
 } from "@/api/mdl/themeDomain/themeDomain.js";
-import { deptUserTree, getUser } from "@/api/system/system/user.js";
 import { treeDataLayer } from "@/api/mdl/dataLayer/dataLayer.js";
 import QtWrap from "@/components/QtWrap";
 import QtTable from "@/components/QtTable";
@@ -215,7 +171,6 @@ import QtSearchBar from "@/components/QtSearchBar";
 
 const { proxy } = getCurrentInstance();
 const attDataElemCatOptions = ref([]);
-const managerOptions = ref([]);
 const dataLayerOptions = ref([]);
 const open = ref(false);
 const title = ref("");
@@ -237,22 +192,18 @@ const data = reactive({
     name: null,
     code: null,
     dataLayerId: null,
-    ownerUserId: null,
   },
   rules: {
     name: [{ required: true, message: "主题域名称不能为空", trigger: "blur" }],
     parentId: [
-      { required: true, message: "上级主题域不能为空", trigger: "blur" },
+      { required: true, message: "上级主题域不能为空", trigger: "change" },
     ],
     engName: [
       { required: true, message: "英文缩写不能为空", trigger: "blur" },
       { pattern: /^[a-zA-Z]+$/, message: "只能输入英文字符", trigger: "blur" },
     ],
-    ownerUserId: [
-      { required: true, message: "负责人不能为空", trigger: "blur" },
-    ],
     dataLayerId: [
-      { required: true, message: "数仓分层不能为空", trigger: "blur" },
+      { required: true, message: "数仓分层不能为空", trigger: "change" },
     ],
   },
 });
@@ -296,13 +247,6 @@ const tableStore = reactive({
       showOverflowTooltip: { effect: "light" },
     },
     { label: "数仓分层", prop: "dataLayerName", align: "left", width: 140 },
-    { label: "负责人", prop: "ownerUserName", align: "left" },
-    {
-      label: "负责人电话",
-      prop: "ownerUserPhoneNumber",
-      width: 140,
-      align: "left",
-    },
     { label: "状态", prop: "validFlag", slot: "validFlag", width: 100 },
     { label: "备注", prop: "remark", align: "left" },
 
@@ -354,20 +298,6 @@ const searchStore = reactive({
         checkStrictly: true,
       },
     },
-    {
-      label: "负责人",
-      prop: "ownerUserId",
-      component: {
-        is: "select",
-        options: computed(() =>
-          managerOptions.value.map((item) => ({
-            label: item.nickName,
-            value: item.userId,
-          }))
-        ),
-        placeholder: "请选择负责人",
-      },
-    },
   ],
 });
 
@@ -382,12 +312,6 @@ function getDataTree() {
     const data = { id: 0, name: "顶级节点", children: [] };
     data.children = proxy.handleTree(response.data, "id", "parentId");
     attDataElemCatOptions.value.push(data);
-  });
-}
-
-function getManagerOptions() {
-  deptUserTree().then((response) => {
-    managerOptions.value = response.data;
   });
 }
 
@@ -476,14 +400,6 @@ function resetQuery() {
   handleQuery();
 }
 
-/** 当负责人改变时，更新电话号码 */
-const handleOwnerChange = (selectedValue) => {
-  const selectedUser = managerOptions.value.find(
-    (user) => user.userId == selectedValue
-  );
-  form.value.ownerUserPhoneNumber = selectedUser?.phonenumber || "";
-};
-
 /** 新增按钮操作 */
 function handleAdd(row) {
   reset();
@@ -542,8 +458,9 @@ async function handleUpdate(row) {
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["themeDomainRef"].validate((valid) => {
-    if (valid) {
+  proxy.$refs["themeDomainRef"]
+    .validate()
+    .then(() => {
       if (form.value.id != null) {
         updateThemeDomain(form.value).then((response) => {
           proxy.$modal.msgSuccess("修改成功");
@@ -557,8 +474,8 @@ function submitForm() {
           getList();
         });
       }
-    }
-  });
+    })
+    .catch(() => {});
 }
 
 /** 删除按钮操作 */
@@ -578,7 +495,6 @@ function handleDelete(row) {
 // 初始化数据
 onMounted(() => {
   getDataTree();
-  getManagerOptions();
   getDataLayerTree();
 });
 </script>

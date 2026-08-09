@@ -1,103 +1,103 @@
 <template>
-    <el-dialog v-model="localVisible" :title="title" draggable class="warn-dialog" destroy-on-close>
-        <el-form ref="dpModelRefs" :model="form" :rules="rules" label-width="100px" @submit.prevent>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="关联标准" prop="dataElemId">
-                        <el-select v-model="form.dataElemId" placeholder="请选择关联标准" @change="handleDatasourceChange"
-                            filterable clearable>
-                            <el-option v-for="dict in DpData" :key="dict.id" :label="dict.name"
-                                :value="dict.id"></el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="中文名称" prop="cnName">
-                        <el-input v-model="form.cnName" placeholder="请输入中文名称" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="英文名称" prop="engName">
-                        <el-input v-model="form.engName" placeholder="请输入英文名称"
+    <a-modal v-model:open="localVisible" :title="title" draggable class="warn-dialog" :destroy-on-close="true">
+        <a-form ref="dpModelRefs" :model="form" :rules="rules" :label-col="{ style: { width: '100px' } }" @submit.prevent>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="关联标准" name="dataElemId">
+                        <a-select v-model:value="form.dataElemId" placeholder="请选择关联标准" @change="handleDatasourceChange"
+                            show-search allow-clear>
+                            <a-select-option v-for="dict in DpData" :key="dict.id" :value="dict.id">{{ dict.name
+                            }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="中文名称" name="cnName">
+                        <a-input v-model:value="form.cnName" placeholder="请输入中文名称" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="英文名称" name="engName">
+                        <a-input v-model:value="form.engName" placeholder="请输入英文名称"
                             @input="convertToUpperCase('engName', form.engName)" />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="数据类型" prop="columnType">
-                        <el-select v-model="form.columnType" placeholder="请选择数据类型">
-                            <el-option v-for="dict in column_type" :key="dict.value" :label="dict.label"
-                                :value="dict.value"></el-option>
-                        </el-select>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="数据类型" name="columnType">
+                        <a-select v-model:value="form.columnType" placeholder="请选择数据类型">
+                            <a-select-option v-for="dict in column_type" :key="dict.value" :value="dict.value">{{
+                                dict.label }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
 
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="属性长度" prop="columnLength"
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="属性长度" name="columnLength"
                         :rules="form.columnType === 'DATE' ? [] : [{ required: true, message: '请输入属性长度', trigger: 'change' }]">
-                        <el-input-number :step="1" step-strictly v-model="form.columnLength" style="width: 100%"
-                            controls-position="right" :min="1" :max="9999999999" placeholder="请输入属性长度" />
+                        <a-input-number :step="1" v-model:value="form.columnLength" style="width: 100%"
+                            :min="1" :max="9999999999" placeholder="请输入属性长度" />
 
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
                     <!-- DECIMAL  NUMBER  NUMERIC -->
-                    <el-form-item label="小数位数" prop="columnScale">
-                        <el-input-number :step="1" :disabled="form.columnType !== 'DECIMAL' &&
+                    <a-form-item label="小数位数" name="columnScale">
+                        <a-input-number :step="1" :disabled="form.columnType !== 'DECIMAL' &&
                             form.columnType !== 'NUMBER' &&
                             form.columnType !== 'NUMERIC' &&
                             form.columnType !== 'FLOAT' &&
                             form.columnType !== 'DOUBLE'
-                            " step-strictly v-model="form.columnScale" style="width: 100%" controls-position="right"
+                            " v-model:value="form.columnScale" style="width: 100%"
                             :min="0" :max="9999999999" placeholder="请输入小数长度" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="24">
-                    <el-form-item label="描述" prop="modelComment">
-                        <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="默认值" prop="defaultValue">
-                        <el-input v-model="form.defaultValue" placeholder="请输入默认值" />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item label="是否主键" prop="pkFlag">
-                        <el-radio-group v-model="form.pkFlag" @change="handlePkFlagChange">
-                            <el-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value">{{
-                                dict.label }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item label="是否必填" prop="nullableFlag">
-                        <el-radio-group v-model="form.nullableFlag" :disabled="form.pkFlag == 1">
-                            <el-radio v-for="dict in dp_model_column_nullable_flag" :key="dict.value"
-                                :value="dict.value">{{ dict.label }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="描述" name="modelComment">
+                        <a-textarea v-model:value="form.description" placeholder="请输入描述" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="默认值" name="defaultValue">
+                        <a-input v-model:value="form.defaultValue" placeholder="请输入默认值" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="是否主键" name="pkFlag">
+                        <a-radio-group v-model:value="form.pkFlag" @change="handlePkFlagChange">
+                            <a-radio v-for="dict in dp_model_column_pk_flag" :key="dict.value" :value="dict.value">{{
+                                dict.label }}</a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="是否必填" name="nullableFlag">
+                        <a-radio-group v-model:value="form.nullableFlag" :disabled="form.pkFlag == 1">
+                            <a-radio v-for="dict in dp_model_column_nullable_flag" :key="dict.value"
+                                :value="dict.value">{{ dict.label }}</a-radio>
+                        </a-radio-group>
+                    </a-form-item>
+                </a-col>
+            </a-row>
 
-        </el-form>
+        </a-form>
 
         <template #footer>
             <div class="dialog-footer">
-                <el-button @click="closeDialog">取消</el-button>
-                <el-button type="primary" @click="confirmDialog"> 确认 </el-button>
+                <a-button @click="closeDialog">取消</a-button>
+                <a-button type="primary" @click="confirmDialog"> 确认 </a-button>
             </div>
         </template>
-    </el-dialog>
+    </a-modal>
 </template>
 
 <script setup>
@@ -272,7 +272,7 @@ watch(
     (newVal) => {
         // 当属性长度改变时，触发默认值的校验
         if (form.value.defaultValue) {
-            proxy.$refs['dpModelRefs']?.validateField('defaultValue');
+            proxy.$refs['dpModelRefs']?.validateFields(['defaultValue']);
         }
     }
 );
@@ -307,19 +307,20 @@ const convertToUpperCase = (key, value) => {
 
 // 确认操作
 const confirmDialog = () => {
-    proxy.$refs['dpModelRefs'].validate((valid) => {
-        if (valid) {
+    proxy.$refs['dpModelRefs']
+        .validate()
+        .then(() => {
             emit('confirm', form.value);
             closeDialog();
-        } else {
+        })
+        .catch(() => {
             console.log('表单验证失败');
-        }
-    });
+        });
 };
 </script>
 
 <style scoped lang="less">
-.warn-dialog .el-dialog__body {
+.warn-dialog .ant-modal-body {
     max-height: 500px;
     overflow-y: auto;
 }
@@ -328,7 +329,7 @@ const confirmDialog = () => {
     text-align: right;
 }
 
-.dialog-footer .el-button {
+.dialog-footer .ant-btn {
     margin-left: 10px;
 }
 </style>

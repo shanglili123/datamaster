@@ -19,7 +19,7 @@
         <span class="layer-info-card-label layer-info-card-label--long">
           命名核心标准：
         </span>
-        <el-tag ype="info"> 表名前缀固定为 {{ layer.engName }}_ </el-tag>
+        <a-tag> 表名前缀固定为 {{ layer.engName }}_ </a-tag>
       </div>
     </div>
   </div>

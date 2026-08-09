@@ -1,74 +1,66 @@
 <template>
     <!-- // 数据库表 -->
-    <el-row :gutter="20">
-        <el-col :span="12">
-            <el-form-item label="数据连接名称" prop="datasourceId"
+    <a-row :gutter="20">
+        <a-col :span="12">
+            <a-form-item label="数据连接名称" name="datasourceId"
                 :rules="[{ required: true, message: '请选择数据连接名称', trigger: 'change' }]">
-                <el-select v-model="localForm.datasourceId" placeholder="请选择数据连接名称" @change="handleDatasourceChange"
-                    filterable :loading="loading"
+                <a-select v-model:value="localForm.datasourceId" placeholder="请选择数据连接名称"
+                    @change="handleDatasourceChange" show-search :loading="loading"
                     :disabled="!props.isRegister && localForm.id && localForm.createType == '2'">
-                    <el-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
+                    <a-select-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
                         :value="dict.id" />
-                </el-select>
-            </el-form-item>
-        </el-col>
+                </a-select>
+            </a-form-item>
+        </a-col>
 
-        <el-col :span="12">
-            <el-form-item label="数据连接类型" prop="datasourceType">
-                <el-input v-model="localForm.datasourceType" disabled />
-            </el-form-item>
-        </el-col>
-    </el-row>
+        <a-col :span="12">
+            <a-form-item label="数据连接类型" name="datasourceType">
+                <a-input v-model:value="localForm.datasourceType" disabled />
+            </a-form-item>
+        </a-col>
+    </a-row>
 
-    <el-row :gutter="20">
-        <el-col :span="12">
-            <el-form-item label="数据连接实例" prop="dbname">
-                <el-input v-model="localForm.dbname" disabled />
-            </el-form-item>
-        </el-col>
+    <a-row :gutter="20">
+        <a-col :span="12">
+            <a-form-item label="数据连接实例" name="dbname">
+                <a-input v-model:value="localForm.dbname" disabled />
+            </a-form-item>
+        </a-col>
 
-        <el-col :span="12">
-            <el-form-item label="选择表" prop="tableName"
+        <a-col :span="12">
+            <a-form-item label="选择表" name="tableName"
                 :rules="[{ required: true, message: '请选择表', trigger: 'change' }]">
-                <el-select v-model="localForm.tableName" filterable @change="handleTableChange" :loading="loadingList"
-                    :disabled="!props.isRegister && localForm.id && localForm.createType == '2'">
-                    <el-option v-for="item in tablesByDataSource" :key="item.id || item.tableName"
+                <a-select v-model:value="localForm.tableName" show-search @change="handleTableChange"
+                    :loading="loadingList" :disabled="!props.isRegister && localForm.id && localForm.createType == '2'">
+                    <a-select-option v-for="item in tablesByDataSource" :key="item.id || item.tableName"
                         :label="item.tableName" :value="item.tableName">
                         <span>{{ item.tableName }}</span>
-                        <el-tag v-if="item.assetCreatedFlag" size="small" type="warning" style="margin-left: 8px">
+                        <a-tag v-if="item.assetCreatedFlag" size="small" color="warning" style="margin-left: 8px">
                             已创建资产
-                        </el-tag>
-                    </el-option>
-                </el-select>
-            </el-form-item>
-        </el-col>
-    </el-row>
-    <el-row :gutter="20" v-if="columnsByAssetTable.length">
-        <el-col :span="24">
-            <el-form-item label="字段配置">
-                <el-table :data="columnsByAssetTable" border height="260">
-                    <el-table-column label="字段名称" prop="columnName" min-width="140" show-overflow-tooltip />
-                    <el-table-column label="字段注释" prop="columnComment" min-width="160" show-overflow-tooltip />
-                    <el-table-column label="字段类型" prop="columnType" width="120" show-overflow-tooltip />
-                    <el-table-column label="长度" prop="columnLength" width="80" />
-                    <el-table-column label="主键" prop="pkFlag" width="70">
-                        <template #default="{ row }">{{ row.pkFlag == '1' ? '是' : '否' }}</template>
-                    </el-table-column>
-                    <el-table-column label="可空" prop="nullableFlag" width="70">
-                        <template #default="{ row }">{{ row.nullableFlag == '1' ? '是' : '否' }}</template>
-                    </el-table-column>
-                    <el-table-column label="敏感等级" min-width="160">
-                        <template #default="{ row }">
-                            <el-select v-model="row.sensitiveLevelId" clearable placeholder="请选择">
-                                <el-option v-for="item in sensitiveLevelList" :key="item.id"
+                        </a-tag>
+                    </a-select-option>
+                </a-select>
+            </a-form-item>
+        </a-col>
+    </a-row>
+    <a-row :gutter="20" v-if="columnsByAssetTable.length">
+        <a-col :span="24">
+            <a-form-item label="字段配置">
+                <a-table :data-source="columnsByAssetTable" bordered height="260" :columns="columns" :pagination="false">
+                    <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'pkFlag'">{{ record.pkFlag == '1' ? '是' : '否' }}</template>
+                        <template v-else-if="column.key === 'nullableFlag'">{{ record.nullableFlag == '1' ? '是' : '否' }}</template>
+                        <template v-else-if="column.key === 'sensitiveLevel'">
+                            <a-select v-model:value="record.sensitiveLevelId" allow-clear placeholder="请选择">
+                                <a-select-option v-for="item in sensitiveLevelList" :key="item.id"
                                     :label="item.sensitiveLevel" :value="String(item.id)" />
-                            </el-select>
+                            </a-select>
                         </template>
-                    </el-table-column>
-                </el-table>
-            </el-form-item>
-        </el-col>
-    </el-row>
+                    </template>
+                </a-table>
+            </a-form-item>
+        </a-col>
+    </a-row>
 </template>
 
 <script setup>
@@ -113,6 +105,15 @@ const getPublicSensitiveLevelId = () => {
 const loadingList = ref(false);
 const columnsByAssetTable = ref([]);
 const tablesByDataSource = ref([]);
+const columns = [
+    { title: '字段名称', dataIndex: 'columnName', key: 'columnName', minWidth: 140, ellipsis: true },
+    { title: '字段注释', dataIndex: 'columnComment', key: 'columnComment', minWidth: 160, ellipsis: true },
+    { title: '字段类型', dataIndex: 'columnType', key: 'columnType', width: 120, ellipsis: true },
+    { title: '长度', dataIndex: 'columnLength', key: 'columnLength', width: 80 },
+    { title: '主键', key: 'pkFlag', width: 70 },
+    { title: '可空', key: 'nullableFlag', width: 70 },
+    { title: '敏感等级', key: 'sensitiveLevel', minWidth: 160 }
+];
 
 const localForm = ref({ ...props.form });
 

@@ -1,21 +1,21 @@
 <template>
   <!-- 清理过期数据 -->
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <el-row>
-      <el-col :span="12">
-        <el-form-item label="时间范围">
-          <el-radio-group
-            v-model="form.dataRange"
-            @change="handleDataRangeChange"
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-row>
+      <a-col :span="12">
+        <a-form-item label="时间范围">
+          <a-radio-group
+            v-model:value="form.dataRange"
+            @change="(e) => handleDataRangeChange(e.target.value)"
             :disabled="falg"
           >
-            <el-radio label="0">最近时间范围</el-radio>
-            <el-radio label="1">具体日期</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
-        <el-form-item
+            <a-radio :value="'0'">最近时间范围</a-radio>
+            <a-radio :value="'1'">具体日期</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item
           v-if="form.dataRange == '0'"
           label="维持时间范围"
           :rules="
@@ -29,24 +29,24 @@
                 ]
               : []
           "
-          prop="dataRangeValue"
+          name="dataRangeValue"
         >
           <template v-if="!falg">
-            <el-input-number
-              v-model="form.dataRangeValue"
+            <a-input-number
+              v-model:value="form.dataRangeValue"
               :min="1"
               class="rule-half"
             />
-            <el-select v-model="form.dataRangeType" class="rule-half">
-              <el-option label="天前" value="1" />
-              <el-option label="月前" value="2" />
-              <el-option label="年前" value="3" />
-            </el-select>
+            <a-select v-model:value="form.dataRangeType" class="rule-half">
+              <a-select-option label="天前" value="1" />
+              <a-select-option label="月前" value="2" />
+              <a-select-option label="年前" value="3" />
+            </a-select>
           </template>
           <div v-else class="form-readonly">{{ rangeValueText }}</div>
-        </el-form-item>
+        </a-form-item>
 
-        <el-form-item
+        <a-form-item
           v-if="form.dataRange == '1'"
           label="具体日期"
           :rules="
@@ -60,37 +60,36 @@
                 ]
               : []
           "
-          prop="dataRangeValue"
+          name="dataRangeValue"
         >
           <template v-if="!falg">
-            <el-date-picker
-              v-model="form.dataRangeValue"
-              type="date"
+            <a-date-picker
+              v-model:value="form.dataRangeValue"
               format="YYYY/MM/DD"
               class="rule-half"
               value-format="YYYY-MM-DD"
               placeholder="选择日期"
             />
-            <el-select v-model="form.dataRangeType" class="rule-half">
-              <el-option label="之前" value="1" />
-              <el-option label="之后" value="2" />
-            </el-select>
+            <a-select v-model:value="form.dataRangeType" class="rule-half">
+              <a-select-option label="之前" value="1" />
+              <a-select-option label="之后" value="2" />
+            </a-select>
           </template>
           <div v-else class="form-readonly">{{ dateValueText }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-col :span="12">
-        <el-form-item label="处理方式">
-          <el-radio-group v-model="form.handleType" :disabled="falg">
-            <el-radio label="0">标记为过期</el-radio>
-            <el-radio label="1">删除记录</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+    </a-row>
+    <a-row>
+      <a-col :span="12">
+        <a-form-item label="处理方式">
+          <a-radio-group v-model:value="form.handleType" :disabled="falg">
+            <a-radio :value="'0'">标记为过期</a-radio>
+            <a-radio :value="'1'">删除记录</a-radio>
+          </a-radio-group>
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item
           label="标记字段"
           v-if="form.handleType == '0'"
           :rules="
@@ -106,27 +105,27 @@
           "
         >
           <template v-if="!falg">
-            <el-select
-              v-model="form.handleColumns"
+            <a-select
+              v-model:value="form.handleColumns"
               placeholder="请选择清洗字段"
-              clearable
+              allow-clear
               class="rule-half"
             >
-              <el-option
+              <a-select-option
                 v-for="dict in inputFields"
                 :key="dict.columnName"
                 :label="dict.label"
                 :value="dict.columnName"
               />
-            </el-select>
+            </a-select>
           </template>
           <div v-else class="form-readonly">{{ handleColumnsText }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-col :span="12">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+    </a-row>
+    <a-row>
+      <a-col :span="12">
+        <a-form-item
           label="标记值"
           v-if="form.handleType == '0'"
           :rules="
@@ -135,17 +134,17 @@
               : []
           "
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.handleValue"
+            v-model:value="form.handleValue"
             placeholder="请输入标记值"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.handleValue || "-" }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script setup>

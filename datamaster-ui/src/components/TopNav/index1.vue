@@ -1,24 +1,24 @@
 ﻿<template>
-    <el-menu :default-active="activeMenu" mode="horizontal" @select="handleSelect" :ellipsis="false">
+    <a-menu :selected-keys="[activeMenu]" mode="horizontal" @click="handleSelect($event.key, $event.keyPath)">
         <template v-for="(item, index) in topMenus">
-            <el-menu-item :style="{ '--theme': theme }" :index="item.path" :key="index" v-if="index < visibleNumber">
+            <a-menu-item :style="{ '--theme': theme }" :key="item.path" v-if="index < visibleNumber">
                 <svg-icon v-if="item.meta && item.meta.icon && item.meta.icon !== '#'" :icon-class="item.meta.icon" />
                 {{ item.meta.title }}
-            </el-menu-item>
+            </a-menu-item>
         </template>
 
         <!-- 顶部菜单超出数量折叠 -->
-        <el-sub-menu :style="{ '--theme': theme }" index="more" v-if="topMenus.length > visibleNumber">
+        <a-sub-menu :style="{ '--theme': theme }" key="more" v-if="topMenus.length > visibleNumber">
             <template #title>更多菜单</template>
             <template v-for="(item, index) in topMenus">
-                <el-menu-item :index="item.path" :key="index" v-if="index >= visibleNumber">
+                <a-menu-item :key="item.path" v-if="index >= visibleNumber">
                     <svg-icon v-if="item.meta && item.meta.icon && item.meta.icon !== '#'"
                         :icon-class="item.meta.icon" />
                     {{ item.meta.title }}
-                </el-menu-item>
+                </a-menu-item>
             </template>
-        </el-sub-menu>
-    </el-menu>
+        </a-sub-menu>
+    </a-menu>
 </template>
 
 <script setup>
@@ -187,13 +187,15 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-.el-menu--horizontal>.el-menu-item,
-.el-menu--horizontal>.el-sub-menu.is-active .el-sub-menu__title {
+.ant-menu-horizontal>.ant-menu-item,
+.ant-menu-horizontal>.ant-menu-submenu .ant-menu-submenu-title,
+.ant-menu-horizontal>.ant-menu-item::after,
+.ant-menu-horizontal>.ant-menu-submenu .ant-menu-submenu-title::after {
     border-bottom: none !important;
     border-top: 2px solid transparent;
 }
 
-.topmenu-container.el-menu--horizontal>.el-menu-item {
+.topmenu-container.ant-menu-horizontal>.ant-menu-item {
     float: left;
     // height: 50px !important;
     // line-height: 50px !important;
@@ -203,7 +205,7 @@ onMounted(() => {
 }
 
 /* sub-menu item */
-.topmenu-container.el-menu--horizontal>.el-sub-menu .el-sub-menu__title {
+.topmenu-container.ant-menu-horizontal>.ant-menu-submenu .ant-menu-submenu-title {
     float: left;
     // height: 50px !important;
     // line-height: 50px !important;
@@ -213,22 +215,21 @@ onMounted(() => {
 }
 
 
-.topmenu-container.el-menu--horizontal>.el-menu-item.is-active,
-.el-menu--horizontal>.el-sub-menu.is-active .el-submenu__title,
-.el-menu--horizontal>.el-sub-menu.is-active .el-sub-menu__title {
+.topmenu-container.ant-menu-horizontal>.ant-menu-item-selected,
+.ant-menu-horizontal>.ant-menu-submenu.ant-menu-submenu-selected .ant-menu-submenu-title {
     border-top: 2px solid #{'var(--theme)'} !important;
     color: #303133;
-    background-color: var(--el-menu-hover-bg-color);
+    background-color: #f5f7fa;
 }
 
 
 /* 背景色隐藏 */
-.topmenu-container.el-menu--horizontal>.el-menu-item:not(.is-disabled):focus,
-.topmenu-container.el-menu--horizontal>.el-menu-item:not(.is-disabled):hover,
-.topmenu-container.el-menu--horizontal>.el-submenu .el-submenu__title:hover {
+.topmenu-container.ant-menu-horizontal>.ant-menu-item:not(.ant-menu-item-disabled):focus,
+.topmenu-container.ant-menu-horizontal>.ant-menu-item:not(.ant-menu-item-disabled):hover,
+.topmenu-container.ant-menu-horizontal>.ant-menu-submenu .ant-menu-submenu-title:hover {
     border-top: 2px solid #{'var(--theme)'} !important;
     color: #303133;
-    background-color: var(--el-menu-hover-bg-color);
+    background-color: #f5f7fa;
 }
 
 /* 图标右间距 */
@@ -237,7 +238,7 @@ onMounted(() => {
 }
 
 /* topmenu more arrow */
-.topmenu-container .el-sub-menu .el-sub-menu__icon-arrow {
+.topmenu-container .ant-menu-submenu .ant-menu-submenu-title .ant-menu-submenu-arrow {
     position: static;
     vertical-align: middle;
     margin-left: 8px;

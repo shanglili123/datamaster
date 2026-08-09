@@ -1,10 +1,10 @@
-﻿<template>
+<template>
   <div
     class="app-container"
     ref="app-container"
-    v-loading="loadingInstance"
     style="background-color: #f0f2f5"
   >
+    <a-spin :spinning="loadingInstance">
     <div class="custom-card">
       <div class="steps-inner">
         <ul class="zl-step">
@@ -36,26 +36,26 @@
 
     <div
       class="pagecont-top"
-      v-loading="loading"
       v-show="showSearch"
       style="padding-bottom: 15px"
     >
+      <a-spin :spinning="loading" style="display: block">
       <div class="infotop">
         <div class="main">
-          <el-form
+          <a-form
             ref="formRef"
             :model="form"
-            label-width="170px"
+            :label-col="{ style: { width: '170px' } }"
             v-show="activeReult == 0"
             style="padding-right: 90px"
             :disabled="route.query.info"
           >
             <div class="h2-titles">基础信息</div>
-            <el-row :gutter="20">
-              <el-col :span="11">
-                <el-form-item
+            <a-row :gutter="20">
+              <a-col :span="11">
+                <a-form-item
                   label="任务名称"
-                  prop="taskName"
+                  name="taskName"
                   :rules="[
                     {
                       required: true,
@@ -64,17 +64,17 @@
                     },
                   ]"
                 >
-                  <el-input
-                    v-model="form.taskName"
+                  <a-input
+                    v-model:value="form.taskName"
                     placeholder="请输入任务名称"
                   />
-                </el-form-item>
-              </el-col>
-              <el-col :span="2"> </el-col>
-              <el-col :span="11">
-                <el-form-item
+                </a-form-item>
+              </a-col>
+              <a-col :span="2"> </a-col>
+              <a-col :span="11">
+                <a-form-item
                   label="任务分类"
-                  prop="catCode"
+                  name="catCode"
                   :rules="[
                     {
                       required: true,
@@ -83,27 +83,27 @@
                     },
                   ]"
                 >
-                  <el-tree-select
-                    filterable
-                    v-model="form.catCode"
-                    :data="deptOptions"
-                    :props="{
+                  <a-tree-select
+                    show-search
+                    v-model:value="form.catCode"
+                    :tree-data="deptOptions"
+                    :field-names="{
                       value: 'code',
                       label: 'name',
                       children: 'children',
                     }"
-                    value-key="ID"
                     placeholder="请选择任务分类"
-                    check-strictly
+                    tree-check-strictly
+                    style="width: 100%"
                   />
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-row :gutter="20">
-              <el-col :span="11">
-                <el-form-item
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-row :gutter="20">
+              <a-col :span="11">
+                <a-form-item
                   label="执行策略"
-                  prop="strategy"
+                  name="strategy"
                   :rules="[
                     {
                       required: true,
@@ -112,76 +112,74 @@
                     },
                   ]"
                 >
-                  <el-select
+                  <a-select
                     class="el-form-input-width"
-                    v-model="form.strategy"
+                    v-model:value="form.strategy"
                     placeholder="请选择执行策略"
                     style="width: 100%"
                   >
-                    <el-option
+                    <a-select-option
                       v-for="dict in col_etl_task_execution_type"
                       :key="dict.value"
-                      :label="dict.label"
                       :value="dict.value"
-                    ></el-option>
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="2"> </el-col>
-            </el-row>
+                    >{{ dict.label }}</a-select-option>
+                  </a-select>
+                </a-form-item>
+              </a-col>
+              <a-col :span="2"> </a-col>
+            </a-row>
 
-            <el-row :gutter="20">
-              <el-col :span="11">
-                <el-form-item
+            <a-row :gutter="20">
+              <a-col :span="11">
+                <a-form-item
                   label="调度周期"
-                  prop="cycle"
+                  name="cycle"
                 >
-                  <el-input v-model="form.cycle" placeholder="请选择调度周期">
-                    <template #append>
-                      <el-button
+                  <a-input v-model:value="form.cycle" placeholder="请选择调度周期">
+                    <template #addonAfter>
+                      <a-button
                         type="primary"
                         @click="handleShowCron"
                         style="background-color: #2666fb; color: #fff"
                       >
                         配置
-                        <i class="el-icon-time el-icon--right"></i>
-                      </el-button>
+                        <ClockCircleOutlined style="margin-left: 4px" />
+                      </a-button>
                     </template>
-                  </el-input>
-                </el-form-item>
-              </el-col>
-              <el-col :span="2"> </el-col>
-              <el-col :span="11">
-                <el-form-item label="任务状态" prop="status">
-                  <el-radio-group
-                    v-model="form.status"
+                  </a-input>
+                </a-form-item>
+              </a-col>
+              <a-col :span="2"> </a-col>
+              <a-col :span="11">
+                <a-form-item label="任务状态" name="status">
+                  <a-radio-group
+                    v-model:value="form.status"
                     class="el-form-input-width"
                   >
-                    <el-radio
+                    <a-radio
                       v-for="dict in ast_discovery_task_status"
                       :key="dict.value"
-                      :label="dict.value"
+                      :value="dict.value"
                     >
                       {{ dict.label }}
-                    </el-radio>
-                  </el-radio-group>
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-row :gutter="20">
-              <el-col :span="24">
-                <el-form-item label="任务描述" prop="description">
-                  <el-input
-                    v-model="form.description"
-                    type="textarea"
+                    </a-radio>
+                  </a-radio-group>
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-row :gutter="20">
+              <a-col :span="24">
+                <a-form-item label="任务描述" name="description">
+                  <a-textarea
+                    v-model:value="form.description"
                     placeholder="请输入任务描述"
                   />
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <!--                        <el-divider content-position="center">-->
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <!--                        <a-divider>-->
             <!--                            <span class="blue-text">属性信息</span>-->
-            <!--                        </el-divider>-->
+            <!--                        </a-divider>-->
             <!-- <div class="clearfix header-text">
                             <div class="header-left">
                                 <div class="blue-bar"></div>
@@ -189,11 +187,11 @@
                             </div>
                         </div> -->
             <div class="h2-titles">属性信息</div>
-            <el-row :gutter="20">
-              <el-col :span="11">
-                <el-form-item
+            <a-row :gutter="20">
+              <a-col :span="11">
+                <a-form-item
                   label="任务优先级"
-                  prop="priority"
+                  name="priority"
                   :rules="[
                     {
                       required: true,
@@ -202,24 +200,23 @@
                     },
                   ]"
                 >
-                  <el-select
-                    v-model="form.priority"
+                  <a-select
+                    v-model:value="form.priority"
                     placeholder="请选择任务优先级"
                   >
-                    <el-option
+                    <a-select-option
                       v-for="dict in priorityOptions"
                       :key="dict.value"
-                      :label="dict.label"
                       :value="dict.value"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="2"> </el-col>
-              <el-col :span="11">
-                <el-form-item
+                    >{{ dict.label }}</a-select-option>
+                  </a-select>
+                </a-form-item>
+              </a-col>
+              <a-col :span="2"> </a-col>
+              <a-col :span="11">
+                <a-form-item
                   label="Worker分组"
-                  prop="workerGroup"
+                  name="workerGroup"
                   :rules="[
                     {
                       required: true,
@@ -228,370 +225,271 @@
                     },
                   ]"
                 >
-                  <el-input
-                    v-model="form.workerGroup"
+                  <a-input
+                    v-model:value="form.workerGroup"
                     placeholder="请输入Worker分组"
                   />
-                </el-form-item>
-              </el-col>
-              <el-col :span="11">
-                <el-form-item label="失败重试次数" prop="retryTimes">
-                  <el-input
+                </a-form-item>
+              </a-col>
+              <a-col :span="11">
+                <a-form-item label="失败重试次数" name="retryTimes">
+                  <a-input
                     type="number"
-                    v-model="form.retryTimes"
+                    v-model:value="form.retryTimes"
                     placeholder="请输入失败重试次数"
                   >
-                    <template #append>次</template>
-                  </el-input>
-                </el-form-item>
-              </el-col>
-              <el-col :span="2"> </el-col>
-              <el-col :span="11">
-                <el-form-item label="延迟执行时间" prop="delayTime">
-                  <el-input
+                    <template #addonAfter>次</template>
+                  </a-input>
+                </a-form-item>
+              </a-col>
+              <a-col :span="2"> </a-col>
+              <a-col :span="11">
+                <a-form-item label="延迟执行时间" name="delayTime">
+                  <a-input
                     type="number"
-                    v-model="form.delayTime"
+                    v-model:value="form.delayTime"
                     placeholder="请输入延迟执行时间"
                   >
-                    <template #append>分</template>
-                  </el-input>
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-form-item label="备注" prop="remark">
-              <el-input
-                v-model="form.remark"
-                type="textarea"
+                    <template #addonAfter>分</template>
+                  </a-input>
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-form-item label="备注" name="remark">
+              <a-textarea
+                v-model:value="form.remark"
                 placeholder="请输入备注"
               />
-            </el-form-item>
-          </el-form>
+            </a-form-item>
+          </a-form>
 
-          <div v-loading="loadingList" v-show="activeReult == 1">
+          <div v-show="activeReult == 1">
+            <a-spin :spinning="loadingList" style="display: block">
             <div class="h2-titles">稽查对象信息</div>
             <div class="justify-between mb15">
-              <el-row :gutter="15" class="btn-style">
-                <el-col :span="1.5">
-                  <el-button
+              <a-row :gutter="15" class="btn-style">
+                <a-col :span="1.5">
+                  <a-button
                     type="primary"
-                    icon="Plus"
+                    :icon="h(PlusOutlined)"
                     @click="openDialog(undefined)"
                     v-if="!route.query.info"
-                    >新增</el-button
-                  >
-                </el-col>
-              </el-row>
+                    >新增</a-button>
+                </a-col>
+              </a-row>
             </div>
-            <el-table stripe height="500px" :data="pagedQualityTaskObjects">
-              <el-table-column label="序号" type="index" align="center" />
-              <el-table-column
-                label="稽查对象名称"
-                align="center"
-                prop="name"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
-                  {{ scope.row.name }}
+            <a-table striped :data-source="pagedQualityTaskObjects" :pagination="false" :scroll="{ y: 500 }" :columns="objTableColumns">
+              <template #bodyCell="{ column, record, index }">
+                <template v-if="column.dataIndex === 'name'">
+                  {{ record.name }}
                 </template>
-              </el-table-column>
-              <el-table-column
-                label="数据连接名称"
-                align="center"
-                prop="type"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
+                <template v-if="column.dataIndex === 'datasourceType'">
                   <img
-                    :src="getDatasourceIcon(scope.row.datasourceType)"
+                    :src="getDatasourceIcon(record.datasourceType)"
                     class="iconimg"
                   />
-                  {{ scope.row.datasourceType }}
+                  {{ record.datasourceType }}
                 </template>
-              </el-table-column>
-              <el-table-column
-                label="模式名称"
-                align="center"
-                prop="type"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
-                  <template v-if="scope.row.datasourceConfig">
+                <template v-if="column.dataIndex === 'dbname'">
+                  <template v-if="record.datasourceConfig">
                     <template
-                      v-if="JSON.parse(scope.row.datasourceConfig).dbname"
+                      v-if="JSON.parse(record.datasourceConfig).dbname"
                     >
-                      {{ JSON.parse(scope.row.datasourceConfig).dbname }}
+                      {{ JSON.parse(record.datasourceConfig).dbname }}
                     </template>
                   </template>
                 </template>
-              </el-table-column>
-
-              <el-table-column
-                label="表名称"
-                align="center"
-                prop="tableName"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
-                  {{ scope.row.tableName }}
+                <template v-if="column.dataIndex === 'tableName'">
+                  {{ record.tableName }}
                 </template>
-              </el-table-column>
-              <el-table-column
-                label="操作"
-                align="center"
-                class-name="small-padding fixed-width"
-                fixed="right"
-                width="200"
-                v-if="!route.query.info"
-              >
-                <template #default="scope">
-                  <el-button
-                    link
-                    type="primary"
-                    icon="Edit"
-                    @click="openDialog(scope.row, getObjectGlobalIndex(scope.$index) + 1)"
-                    >修改</el-button
-                  >
-                  <el-button
-                    link
-                    type="danger"
-                    icon="Delete"
-                    @click="handleDelete(scope.row)"
-                    >删除</el-button
-                  >
+                <template v-if="column.key === 'actions'">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="openDialog(record, getObjectGlobalIndex(index) + 1)"
+                    >修改</a-button>
+                  <a-button
+                    type="link"
+                    danger
+                    size="small"
+                    @click="handleDelete(record)"
+                    >删除</a-button>
                 </template>
-              </el-table-column>
-            </el-table>
+              </template>
+            </a-table>
             <pagination
               v-show="dppQualityTaskObjSaveReqVO.length > 0"
               :total="dppQualityTaskObjSaveReqVO.length"
               v-model:page="objectQueryParams.pageNum"
               v-model:limit="objectQueryParams.pageSize"
             />
+            </a-spin>
           </div>
-          <div v-loading="loadingList" v-show="activeReult == 2">
+          <div v-show="activeReult == 2">
+            <a-spin :spinning="loadingList" style="display: block">
             <div class="clearfix header-text" style="margin-top: 10px">
               <div class="header-left">
                 <div class="blue-bar"></div>
                 稽查规则信息
               </div>
             </div>
-            <el-form
+            <a-form
               class="btn-style"
               :model="queryParams"
               ref="queryRef"
-              :inline="true"
-              label-width="75px"
+              layout="inline"
+              :label-col="{ style: { width: '75px' } }"
               @submit.prevent
             >
-              <el-form-item label="规则名称" prop="name">
-                <el-input
+              <a-form-item label="规则名称" name="name">
+                <a-input
                   class="el-form-input-width"
-                  v-model="queryParams.name"
+                  v-model:value="queryParams.name"
                   placeholder="请输入规则名称"
-                  clearable
-                  @keyup.enter="handleQuery"
+                  allow-clear
+                  @pressEnter="handleQuery"
                 />
-              </el-form-item>
-              <el-form-item label="质量维度" prop="dimensionType">
-                <el-select
-                  v-model="queryParams.dimensionType"
+              </a-form-item>
+              <a-form-item label="质量维度" name="dimensionType">
+                <a-select
+                  v-model:value="queryParams.dimensionType"
                   placeholder="请选择质量维度"
                   style="width: 210px"
                 >
-                  <el-option
+                  <a-select-option
                     v-for="dict in att_rule_audit_q_dimension"
                     :key="dict.value"
-                    :label="dict.label"
                     :value="dict.value"
-                  ></el-option>
-                </el-select>
-              </el-form-item>
+                  >{{ dict.label }}</a-select-option>
+                </a-select>
+              </a-form-item>
 
-              <el-form-item label="状态" prop="publishStatus">
-                <el-select
-                  v-model="queryParams.publishStatus"
+              <a-form-item label="状态" name="publishStatus">
+                <a-select
+                  v-model:value="queryParams.publishStatus"
                   placeholder="请选择状态"
-                  clearable
+                  allow-clear
                   class="el-form-input-width"
                 >
-                  <el-option label="上线" value="online" />
-                  <el-option label="下线" value="offline" />
-                </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button
-                  plain
+                  <a-select-option label="上线" value="online" />
+                  <a-select-option label="下线" value="offline" />
+                </a-select>
+              </a-form-item>
+              <a-form-item>
+                <a-button
                   type="primary"
                   @click="handleQuery"
                   @mousedown="(e) => e.preventDefault()"
                 >
                   <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-                </el-button>
-                <el-button
+                </a-button>
+                <a-button
                   @click="resetQuery"
                   @mousedown="(e) => e.preventDefault()"
                 >
                   <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-                </el-button>
-              </el-form-item>
-            </el-form>
+                </a-button>
+              </a-form-item>
+            </a-form>
             <div class="justify-between mb15">
-              <el-row :gutter="15" class="btn-style">
-                <el-col :span="1.5">
-                  <el-button
+              <a-row :gutter="15" class="btn-style">
+                <a-col :span="1.5">
+                  <a-button
                     type="primary"
-                    icon="Plus"
+                    :icon="h(PlusOutlined)"
                     @click="openRuleSelector(undefined)"
                     v-if="!route.query.info"
-                    >新增</el-button
-                  >
-                </el-col>
-                <el-col :span="1.5">
-                  <el-tooltip
-                    content="会自动获取资产关联的数据元中的稽查规则"
+                    >新增</a-button>
+                </a-col>
+                <a-col :span="1.5">
+                  <a-tooltip
+                    title="会自动获取资产关联的数据元中的稽查规则"
                     placement="top"
                   >
-                    <el-button
+                    <a-button
                       type="warning"
                       @click="selectInspectionRule(undefined)"
                       v-if="!route.query.info"
                     >
-                      <el-icon style="margin-right: 4px">
-                        <Refresh />
-                      </el-icon>
+                      <template #icon>
+                        <ReloadOutlined />
+                      </template>
                       获取稽查规则
-                    </el-button>
-                  </el-tooltip>
-                </el-col>
-              </el-row>
+                    </a-button>
+                  </a-tooltip>
+                </a-col>
+              </a-row>
             </div>
-            <el-table
-              stripe
-              height="450px"
-              :data="pagedQualityTaskEvaluates"
+            <a-table
+              striped
+              :data-source="pagedQualityTaskEvaluates"
+              :pagination="false"
+              :scroll="{ y: 450 }"
+              :columns="ruleTableColumns"
             >
-              <el-table-column label="序号" type="index" align="center" />
-              <el-table-column
-                label="评测名称"
-                align="center"
-                prop="name"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
-                  {{ scope.row.name || "-" }}
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.dataIndex === 'name'">
+                  {{ record.name || "-" }}
                 </template>
-              </el-table-column>
-              <el-table-column
-                label="评测字段"
-                align="center"
-                prop="evaColumn"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
-                  {{ scope.row.evaColumn || "-" }}
+                <template v-if="column.dataIndex === 'evaColumn'">
+                  {{ record.evaColumn || "-" }}
                 </template>
-              </el-table-column>
-              <el-table-column
-                label="稽查规则"
-                align="center"
-                prop="ruleName"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
-                  {{ scope.row.ruleName || "-" }}
+                <template v-if="column.dataIndex === 'ruleName'">
+                  {{ record.ruleName || "-" }}
                 </template>
-              </el-table-column>
-              <el-table-column
-                label="规则描述"
-                align="center"
-                prop="ruleDescription"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
-                  {{ scope.row.ruleDescription || "-" }}
+                <template v-if="column.dataIndex === 'ruleDescription'">
+                  {{ record.ruleDescription || "-" }}
                 </template>
-              </el-table-column>
-              <el-table-column
-                label="质量维度"
-                align="center"
-                prop="dimensionType"
-                width="120"
-                :show-overflow-tooltip="{ effect: 'light' }"
-              >
-                <template #default="scope">
+                <template v-if="column.dataIndex === 'dimensionType'">
                   <dict-tag
                     :options="att_rule_audit_q_dimension"
-                    :value="scope.row.dimensionType"
+                    :value="record.dimensionType"
                   />
                 </template>
-              </el-table-column>
-
-              <el-table-column
-                label="状态"
-                align="center"
-                prop="status"
-                width="100"
-              >
-                <template #default="scope">
-                  {{ scope.row.status == "1" ? "上线" : "下线" }}
+                <template v-if="column.dataIndex === 'status'">
+                  {{ record.status == "1" ? "上线" : "下线" }}
                 </template>
-              </el-table-column>
-              <el-table-column
-                label="操作"
-                align="center"
-                class-name="small-padding fixed-width"
-                fixed="right"
-                width="200"
-                v-if="!route.query.info"
-              >
-                <template #default="scope">
-                  <!--                                    <el-button link type="primary" icon="view"-->
-                  <!--                                        @click="openRuleDialog(scope.row, scope.$index + 1, true)">查看</el-button>-->
-                  <el-button
-                    link
-                    type="primary"
-                    icon="Edit"
-                    @click="openRuleDialog(scope.row, getRuleOriginIndex(scope.row) + 1)"
-                    >修改</el-button
-                  >
-                  <el-button
-                    link
-                    type="danger"
-                    icon="Delete"
-                    @click="handleRuleDelete(scope.row)"
-                    >删除</el-button
-                  >
+                <template v-if="column.key === 'actions'">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="openRuleDialog(record, getRuleOriginIndex(record) + 1)"
+                    >修改</a-button>
+                  <a-button
+                    type="link"
+                    danger
+                    size="small"
+                    @click="handleRuleDelete(record)"
+                    >删除</a-button>
                 </template>
-              </el-table-column>
-            </el-table>
+              </template>
+            </a-table>
             <pagination
               v-show="dppQualityTaskEvaluateSaveReqVO.length > 0"
               :total="dppQualityTaskEvaluateSaveReqVO.length"
               v-model:page="queryParams.pageNum"
               v-model:limit="queryParams.pageSize"
             />
+            </a-spin>
           </div>
         </div>
         <div class="button-style">
-          <el-button type="primary" @click="handleSuccess">返回列表</el-button>
-          <el-button v-if="activeReult != 0" @click="handleLastStep"
-            >上一步</el-button
-          >
-          <el-button
+          <a-button type="primary" @click="handleSuccess">返回列表</a-button>
+          <a-button v-if="activeReult != 0" @click="handleLastStep">上一步</a-button>
+          <a-button
             type="primary"
             v-if="activeReult === 2 && !route.query.info"
             @click="submitForm"
             :loading="loadingOptions.loading"
           >
             确定并退出
-          </el-button>
-          <el-button v-if="activeReult !== 2" @click="handleNextStep"
-            >下一步</el-button
-          >
+          </a-button>
+          <a-button v-if="activeReult !== 2" @click="handleNextStep">下一步</a-button>
         </div>
       </div>
+      </a-spin>
     </div>
-    <el-dialog title="Cron表达式生成器" v-model="openCron" destroy-on-close>
+    <a-modal title="Cron表达式生成器" v-model:open="openCron" destroy-on-close :footer="null">
       <crontab
         ref="crontabRef"
         @hide="openCron = false"
@@ -599,7 +497,7 @@
         :expression="expression"
       >
       </crontab>
-    </el-dialog>
+    </a-modal>
     <InspectionTargetDialog
       ref="inspectionTargetDialog"
       @confirm="Inspectionconfirm"
@@ -609,23 +507,35 @@
       @confirm="RuleSelectorconfirm"
       :dppQualityTaskObjSaveReqVO="dppQualityTaskObjSaveReqVO"
     />
+    </a-spin>
   </div>
 </template>
 
 <script setup name="qualityTask">
-import { ref, reactive, toRefs, onMounted, computed } from "vue";
+import { message } from 'ant-design-vue'
+import { ref, reactive, toRefs, onMounted, computed, h } from "vue";
+import { PlusOutlined, ReloadOutlined } from "@ant-design/icons-vue";
+
 import { useRoute, useRouter } from "vue-router";
+
 import InspectionTargetDialog from "../components/inspectionTarget.vue";
+
 import RuleSelectorDialog from "../components/ruleBase.vue";
+
 import { listAttQualityCat } from "@/api/tax/cat/qualityCat/qualityCat.js";
+
 import {
   addDppQualityTask,
   updateDppQualityTask,
   getDppQualityTask,
 } from "@/api/ast/quality/qualityTask";
+
 import Crontab from "@/components/Crontab/index.vue";
+
 import { getColumnByAssetId } from "@/api/col/task/index.js";
+
 import useUserStore from "@/store/system/user";
+
 import { treeData } from "../data.js";
 const { proxy } = getCurrentInstance();
 const route = useRoute();
@@ -702,6 +612,34 @@ const pagedQualityTaskEvaluates = computed(() => {
     start,
     start + queryParams.value.pageSize
   );
+});
+const objTableColumns = computed(() => {
+  const cols = [
+    { title: '序号', key: 'index', align: 'center', width: 80, customRender: ({ index }) => index + 1 },
+    { title: '稽查对象名称', dataIndex: 'name', align: 'center', ellipsis: true },
+    { title: '数据连接名称', dataIndex: 'datasourceType', align: 'center', ellipsis: true },
+    { title: '模式名称', dataIndex: 'dbname', align: 'center', ellipsis: true },
+    { title: '表名称', dataIndex: 'tableName', align: 'center', ellipsis: true },
+  ];
+  if (!route.query.info) {
+    cols.push({ title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 200 });
+  }
+  return cols;
+});
+const ruleTableColumns = computed(() => {
+  const cols = [
+    { title: '序号', key: 'index', align: 'center', width: 80, customRender: ({ index }) => index + 1 },
+    { title: '评测名称', dataIndex: 'name', align: 'center', ellipsis: true },
+    { title: '评测字段', dataIndex: 'evaColumn', align: 'center', ellipsis: true },
+    { title: '稽查规则', dataIndex: 'ruleName', align: 'center', ellipsis: true },
+    { title: '规则描述', dataIndex: 'ruleDescription', align: 'center', ellipsis: true },
+    { title: '质量维度', dataIndex: 'dimensionType', align: 'center', width: 120, ellipsis: true },
+    { title: '状态', dataIndex: 'status', align: 'center', width: 100 },
+  ];
+  if (!route.query.info) {
+    cols.push({ title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 200 });
+  }
+  return cols;
 });
 function getObjectGlobalIndex(pageIndex) {
   return (
@@ -811,11 +749,11 @@ async function selectInspectionRule() {
           applyRuleFilter();
 
           if (addedCount > 0) {
-            ElMessage.success(
+            message.success(
               `已追加 ${addedCount} 条规则，来自表 ${item.tableName}`
             );
           } else {
-            // ElMessage.info(`表 ${item.tableName} 没有新规则追加`);
+            // message.info(`表 ${item.tableName} 没有新规则追加`);
           }
         }
       } catch (err) {
@@ -860,7 +798,7 @@ function getDeptTree() {
     deptOptions.value = proxy.handleTree(response.data, "id", "parentId");
     deptOptions.value = [
       {
-        name: "质量探查类目",
+        name: "质量探查目录",
         value: "",
         id: 0,
       children: deptOptions.value,
@@ -941,7 +879,7 @@ async function handleNextStep() {
     await formRef.value?.validate();
   } catch (err) {
     console.warn("表单校验未通过：", err);
-    ElMessage.warning("校验未通过，请检查必填项");
+    message.warning("校验未通过，请检查必填项");
     loadingInstance.value = false;
     return;
   }
@@ -1016,7 +954,7 @@ async function submitForm() {
     await formRef.value?.validate();
   } catch (err) {
     console.warn("表单校验未通过：", err);
-    ElMessage.warning("校验未通过，请检查必填项");
+    message.warning("校验未通过，请检查必填项");
     loadingInstance.value = false;
     return;
   }
@@ -1043,7 +981,7 @@ async function submitForm() {
       proxy.$modal.msgSuccess(res.msg);
       handleSuccess();
     } else {
-      ElMessage.warning(res.msg || "提交失败！");
+      message.warning(res.msg || "提交失败！");
     }
   } catch (err) {
   } finally {
@@ -1121,8 +1059,8 @@ async function getDppQualityTaskinfo() {
     }
   } catch (error) {
     console.error("获取质量任务失败:", error);
-    const message = error?.message || error || "未知错误";
-    ElMessage.warning(`获取质量任务信息失败：${message}`);
+    const errMsg = error?.message || error || "未知错误";
+    message.warning(`获取质量任务信息失败：${errMsg}`);
   } finally {
     loadingInstance.value = false;
   }

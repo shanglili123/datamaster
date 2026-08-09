@@ -1,6 +1,6 @@
 ﻿<template>
   <div>
-    <el-upload
+    <a-upload
       :action="uploadUrl"
       :before-upload="handleBeforeUpload"
       :on-success="handleUploadSuccess"
@@ -12,7 +12,7 @@
       v-if="type == 'url'"
     >
       <i ref="uploadRef" class="editor-img-uploader"></i>
-    </el-upload>
+    </a-upload>
   </div>
   <div class="editor">
     <quill-editor

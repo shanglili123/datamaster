@@ -1,11 +1,11 @@
 <template>
   <!-- 小数位统一 -->
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <el-row>
-      <el-col :span="12" class="hasMsg">
-        <el-form-item
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-row>
+      <a-col :span="12" class="hasMsg">
+        <a-form-item
           label="小数位数"
-          prop="stringValue"
+          name="stringValue"
           :rules="
             !falg
               ? [
@@ -18,29 +18,26 @@
               : []
           "
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.stringValue"
+            v-model:value="form.stringValue"
             placeholder="请输入小数位数"
             type="number"
             min="0"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.stringValue ?? "-" }}</div>
-          <span class="msg"
-            ><el-icon>
-              <InfoFilled /> </el-icon
-            >如“2”表示保留两位小数</span
-          >
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-row> </el-row>
-  </el-form>
+          <span class="msg"><InfoCircleOutlined />如“2”表示保留两位小数</span>
+        </a-form-item>
+      </a-col>
+    </a-row>
+    <a-row> </a-row>
+  </a-form>
 </template>
 
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { InfoCircleOutlined } from "@ant-design/icons-vue";
 import { getColumnByAssetId } from "@/api/col/task/index.js";
 
 const props = defineProps({

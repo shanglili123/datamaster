@@ -31,16 +31,7 @@
 
       <div v-else-if="section.type === 'table'" class="report-section">
         <h3>{{ section.title }}</h3>
-        <el-table :data="arrayOf(section.bind)" border size="small">
-          <el-table-column
-            v-for="col in section.columns || []"
-            :key="col.prop"
-            :prop="col.prop"
-            :label="col.label"
-            min-width="120"
-            show-overflow-tooltip
-          />
-        </el-table>
+        <a-table :data-source="arrayOf(section.bind)" :columns="tableColumns(section)" :pagination="false" size="small" bordered />
       </div>
 
       <div v-else-if="['insightList', 'warningList'].includes(section.type)" class="report-section">
@@ -194,6 +185,16 @@ function valueOf(path) {
 function arrayOf(path) {
   const value = valueOf(path)
   return Array.isArray(value) ? value : []
+}
+
+function tableColumns(section) {
+  return (section.columns || []).map((col) => ({
+    title: col.label,
+    dataIndex: col.prop,
+    key: col.prop,
+    minWidth: 120,
+    ellipsis: true
+  }))
 }
 
 function formatValue(value, item) {

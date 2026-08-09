@@ -1,25 +1,25 @@
 <template>
-  <el-form ref="userRef" :model="form" :rules="rules" label-width="80px">
-    <el-form-item label="用户昵称" prop="nickName">
-      <el-input v-model="form.nickName" maxlength="30" />
-    </el-form-item>
-    <el-form-item label="手机号码" prop="phonenumber">
-      <el-input v-model="form.phonenumber" maxlength="11" />
-    </el-form-item>
-    <el-form-item label="邮箱" prop="email">
-      <el-input v-model="form.email" maxlength="50" />
-    </el-form-item>
-    <el-form-item label="性别">
-      <el-radio-group v-model="form.sex">
-        <el-radio value="0">男</el-radio>
-        <el-radio value="1">女</el-radio>
-      </el-radio-group>
-    </el-form-item>
-    <el-form-item>
-      <el-button type="primary" @click="submit">保存</el-button>
-      <el-button type="danger" @click="close">关闭</el-button>
-    </el-form-item>
-  </el-form>
+  <a-form ref="userRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+    <a-form-item label="用户昵称" name="nickName">
+      <a-input v-model:value="form.nickName" :maxlength="30" />
+    </a-form-item>
+    <a-form-item label="手机号码" name="phonenumber">
+      <a-input v-model:value="form.phonenumber" :maxlength="11" />
+    </a-form-item>
+    <a-form-item label="邮箱" name="email">
+      <a-input v-model:value="form.email" :maxlength="50" />
+    </a-form-item>
+    <a-form-item label="性别">
+      <a-radio-group v-model:value="form.sex">
+        <a-radio value="0">男</a-radio>
+        <a-radio value="1">女</a-radio>
+      </a-radio-group>
+    </a-form-item>
+    <a-form-item>
+      <a-button type="primary" @click="submit">保存</a-button>
+      <a-button danger @click="close">关闭</a-button>
+    </a-form-item>
+  </a-form>
 </template>
 
 <script setup>
@@ -42,15 +42,13 @@ const rules = ref({
 
 /** 提交按钮 */
 function submit() {
-  proxy.$refs.userRef.validate(valid => {
-    if (valid) {
-      updateUserProfile(form.value).then(response => {
-        proxy.$modal.msgSuccess("修改成功");
-        props.user.phonenumber = form.value.phonenumber;
-        props.user.email = form.value.email;
-      });
-    }
-  });
+  proxy.$refs.userRef.validate().then(() => {
+    updateUserProfile(form.value).then(response => {
+      proxy.$modal.msgSuccess("修改成功");
+      props.user.phonenumber = form.value.phonenumber;
+      props.user.email = form.value.email;
+    });
+  }).catch(() => { });
 };
 
 /** 关闭按钮 */

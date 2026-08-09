@@ -1,80 +1,79 @@
 <template>
   <!--  数值边界调整  -->
-  <el-form ref="formRef" :model="form" label-width="130px" :disabled="false">
-    <el-row>
-      <el-col :span="12">
-        <el-form-item
+  <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }" :disabled="false">
+    <a-row>
+      <a-col :span="12">
+        <a-form-item
           label="最小值"
-          prop="min"
+          name="min"
           :rules="
             !falg
               ? [{ required: true, message: '请输入最小值', trigger: 'blur' }]
               : []
           "
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.min"
+            v-model:value="form.min"
             placeholder="不填写表示不限制最小值"
             type="number"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.min ?? "-" }}</div>
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+      <a-col :span="12">
+        <a-form-item
           label="最大值"
-          prop="max"
+          name="max"
           :rules="
             !falg
               ? [{ required: true, message: '请输入最大值', trigger: 'blur' }]
               : []
           "
         >
-          <el-input
+          <a-input
             v-if="!falg"
-            v-model="form.max"
+            v-model:value="form.max"
             placeholder="不填写表示不限制最大值"
             type="number"
             class="rule-half"
           />
           <div v-else class="form-readonly">{{ form.max ?? "-" }}</div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-col :span="24" class="hasMsg">
-        <el-form-item
+        </a-form-item>
+      </a-col>
+    </a-row>
+    <a-row>
+      <a-col :span="24" class="hasMsg">
+        <a-form-item
           label="处理方式"
-          prop="handleType"
+          name="handleType"
           :rules="
             !falg
               ? [{ required: true, message: '请选择处理方式', trigger: 'blur' }]
               : []
           "
         >
-          <el-radio-group v-model="form.handleType" :disabled="falg">
-            <el-radio :value="'3'">超出最大值时调整为最大值</el-radio>
-            <el-radio :value="'2'">超出最小值时调整为最小值</el-radio>
-            <el-radio :value="'1'">两种情况都调整到对应的边界值</el-radio>
-          </el-radio-group>
+          <a-radio-group v-model:value="form.handleType" :disabled="falg">
+            <a-radio :value="'3'">超出最大值时调整为最大值</a-radio>
+            <a-radio :value="'2'">超出最小值时调整为最小值</a-radio>
+            <a-radio :value="'1'">两种情况都调整到对应的边界值</a-radio>
+          </a-radio-group>
           <div class="msg">
             <div v-for="(msg, index) in boundaryExamples" :key="index">
-              <el-icon>
-                <InfoFilled />
-              </el-icon>
+              <InfoCircleOutlined />
               <span>{{ msg }}</span>
             </div>
           </div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-  </el-form>
+        </a-form-item>
+      </a-col>
+    </a-row>
+  </a-form>
 </template>
 
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { InfoCircleOutlined } from "@ant-design/icons-vue";
 const props = defineProps({
   form: Object,
   inputFields: Array,
