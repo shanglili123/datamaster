@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.datamaster.common.category.dal.mapper.TaxonomyCategoryMapper">
+
+    <resultMap type="TaxonomyCategoryDO" id="TaxonomyCategoryResult">
+        <result property="id"         column="ID"/>
+        <result property="catType"    column="CAT_TYPE"/>
+        <result property="name"       column="NAME"/>
+        <result property="parentId"   column="PARENT_ID"/>
+        <result property="sortOrder"  column="SORT_ORDER"/>
+        <result property="description" column="DESCRIPTION"/>
+        <result property="code"       column="CODE"/>
+        <result property="spaceId"    column="SPACE_ID"/>
+        <result property="spaceCode"  column="SPACE_CODE"/>
+        <result property="validFlag"  column="VALID_FLAG"/>
+        <result property="delFlag"    column="DEL_FLAG"/>
+        <result property="createBy"   column="CREATE_BY"/>
+        <result property="creatorId"  column="CREATOR_ID"/>
+        <result property="createTime" column="CREATE_TIME"/>
+        <result property="updateBy"   column="UPDATE_BY"/>
+        <result property="updaterId"  column="UPDATER_ID"/>
+        <result property="updateTime" column="UPDATE_TIME"/>
+    </resultMap>
+
+    <select id="getCatIdByCatTypeAndCode" resultType="java.lang.Long">
+        SELECT ID FROM TAX_CATEGORY
+        WHERE CAT_TYPE = #{catType} AND CODE = #{catCode} AND DEL_FLAG = '0'
+    </select>
+
+</mapper>

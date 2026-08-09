@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>datamaster-assets</artifactId>
+        <groupId>com.datamaster</groupId>
+        <version>${dataMaster.version}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>datamaster-assets-interface</artifactId>
+    <description>
+        datamaster-assets-interface 数据资产接口与共享类型模块
+    </description>
+    <dependencies>
+        <!-- 通用工具-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-common</artifactId>
+        </dependency>
+        <!-- 核心模块 config-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-config</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系統模块 websocket-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-websocket</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系统模块 datasource -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-datasource</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系统模块 mybatis -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-mybatis</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- common基础模块(包含redis, file, neo4j) -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-base</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-datasource-mgmt</artifactId>
+        </dependency>
+        <!-- 共享治理标准类型（AssetsAssetColumnDO 等依赖） -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-governance-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 共享元数据探查类型（AssetsAssetColumnDO / AssetsAssetPageReqVO 等依赖） -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-metadata-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

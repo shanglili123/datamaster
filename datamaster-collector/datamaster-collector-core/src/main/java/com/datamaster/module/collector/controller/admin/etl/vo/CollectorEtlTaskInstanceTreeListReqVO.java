@@ -1,0 +1,43 @@
+
+
+package com.datamaster.module.collector.controller.admin.etl.vo;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import com.datamaster.common.core.page.PageParam;
+
+/**
+ * <P>
+ * 用途:
+ * </p>
+ *
+ * @author: FXB
+ * @create: 2025-03-26 15:27
+ **/
+@Data
+public class CollectorEtlTaskInstanceTreeListReqVO extends PageParam {
+
+    @Schema(description = "空间编码", example = "")
+    private String spaceCode;
+
+    @Schema(description = "任务类型", example = "1：离线任务 2：实时任务 3：数据开发任务 4：作业任务")
+    private String taskType;
+
+    @Schema(description = "类目编码", example = "")
+    private String catCode;
+
+    @Schema(description = "任务实例名称", example = "")
+    private String name;
+
+    @Schema(description = "右查询名称", example = "")
+    private String jobName;
+
+    @Schema(description = "执行状态", example = "")
+    private String status;
+
+    @Schema(description = "执行开始时间(格式 yyyy-MM-dd)", example = "")
+    private String startTime;
+
+    @Schema(description = "执行结束时间(格式 yyyy-MM-dd)", example = "")
+    private String endTime;
+}

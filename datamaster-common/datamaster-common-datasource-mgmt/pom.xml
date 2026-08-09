@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>datamaster-common</artifactId>
+        <groupId>com.datamaster</groupId>
+        <version>${dataMaster.version}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>datamaster-common-datasource-mgmt</artifactId>
+    <description>
+        datamaster-common-datasource-mgmt 数据源管理核心
+    </description>
+    <dependencies>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-mybatis</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-base</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.8.31</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

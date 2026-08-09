@@ -1,0 +1,71 @@
+// Ant Design overrides
+
+// Fix drawer z-index
+.ant-drawer {
+  z-index: 1001;
+}
+
+// Fix dropdowns
+.ant-dropdown-menu {
+  a {
+    display: block;
+  }
+}
+
+// Fix table styles
+.ant-table-wrapper {
+  .ant-table {
+    background: #fff;
+  }
+}
+
+// Fix card styles
+.ant-card {
+  border-radius: 6px;
+}
+
+// Menu overrides
+.ant-menu-inline {
+  border-inline-end: none !important;
+}
+
+// Button spacing
+.ant-btn + .ant-btn {
+  margin-left: 8px;
+}
+
+// Fix color picker
+.ant-color-picker {
+  vertical-align: middle;
+}
+
+// Switch alignment
+.ant-switch {
+  vertical-align: middle;
+}
+
+// Popup parent fix for modal
+.ant-popup-parent-hidden {
+  .fixed-header {
+    padding-right: 6px;
+  }
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}

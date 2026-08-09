@@ -1,0 +1,24 @@
+package com.datamaster.module.assets.api.governance.dto;
+
+import lombok.Data;
+
+import java.io.Serializable;
+import java.util.List;
+
+@Data
+public class AssetsTableGovernanceReqDTO implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private Long datasourceId;
+
+    private String tableName;
+
+    private Long spaceId;
+
+    private String spaceCode;
+
+    private List<String> columnNames;
+
+    private String entrance;
+}

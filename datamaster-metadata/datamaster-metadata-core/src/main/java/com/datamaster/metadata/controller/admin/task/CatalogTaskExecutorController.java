@@ -1,0 +1,52 @@
+package com.datamaster.metadata.controller.admin.task;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import com.datamaster.common.core.controller.BaseController;
+import com.datamaster.common.core.domain.CommonResult;
+import com.datamaster.common.exception.enums.GlobalErrorCodeConstants;
+import com.datamaster.metadata.service.task.ICatalogTaskService;
+
+import javax.annotation.Resource;
+
+/**
+ * 采集任务执行器Controller
+ * 用于DolphinScheduler回调执行采集任务
+ *
+ * @author DATAMASTER
+ * @date 2026-05-11
+ */
+@Tag(name = "采集任务执行器")
+@RestController
+@RequestMapping("/cat/taskExecutor")
+@Validated
+public class CatalogTaskExecutorController extends BaseController {
+
+    @Resource
+    private ICatalogTaskService CatalogTaskService;
+
+    /**
+     * DolphinScheduler回调执行采集任务
+     *
+     * @param id 任务ID
+     * @return 执行结果
+     */
+    @RequestMapping(value = "/runExecuteTask/{id}", method = {RequestMethod.GET, RequestMethod.PUT, RequestMethod.POST})
+    public CommonResult<String> runExecuteTask(@PathVariable("id") Long id) {
+        try {
+            boolean success = CatalogTaskService.runDaDiscoveryTask(id);
+            if (!success) {
+                return CommonResult.error(GlobalErrorCodeConstants.ERROR.getCode(), "任务id:" + id + "执行失败");
+            }
+            return CommonResult.success("任务id:" + id + "执行成功");
+        } catch (NumberFormatException e) {
+            return CommonResult.error( GlobalErrorCodeConstants.ERROR.getCode(),"任务ID格式错误：" + id);
+        } catch (Exception e) {
+            return CommonResult.error( GlobalErrorCodeConstants.ERROR.getCode(),"任务执行失败：" + e.getMessage());
+        }
+    }
+}

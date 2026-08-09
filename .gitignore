@@ -38,6 +38,14 @@ deploy/.runtime/
 .DS_Store
 Thumbs.db
 
+# Local AI tooling state and temp inspection scripts
+.omo/
+.workbuddy/
+.debug-journal.md
+tmp/
+__pycache__/
+*.pyc
+
 # Local inspection output
 package-inspect-current.json
 package-network-current.json

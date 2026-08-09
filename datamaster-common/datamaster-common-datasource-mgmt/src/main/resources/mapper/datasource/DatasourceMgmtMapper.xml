@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.datamaster.common.datasource.mgmt.mapper.DatasourceMgmtMapper">
+    <resultMap type="com.datamaster.common.core.domain.entity.DatasourceDO" id="DatasourceResult">
+        <result property="id"    column="ID"    />
+        <result property="datasourceName"    column="DATASOURCE_NAME"    />
+        <result property="datasourceType"    column="DATASOURCE_TYPE"    />
+        <result property="datasourceConfig"    column="DATASOURCE_CONFIG"    />
+        <result property="ip"    column="IP"    />
+        <result property="port"    column="PORT"    />
+        <result property="listCount"    column="LIST_COUNT"    />
+        <result property="syncCount"    column="SYNC_COUNT"    />
+        <result property="dataSize"    column="DATA_SIZE"    />
+        <result property="description"    column="DESCRIPTION"    />
+        <result property="validFlag"    column="VALID_FLAG"    />
+        <result property="dsDatasourceId"    column="DS_DATASOURCE_ID"    />
+        <result property="dbgptDatasourceId"    column="DBGPT_DATASOURCE_ID"    />
+        <result property="dbgptSyncStatus"    column="DBGPT_SYNC_STATUS"    />
+        <result property="dbgptSyncMessage"    column="DBGPT_SYNC_MESSAGE"    />
+        <result property="createBy"    column="CREATE_BY"    />
+        <result property="creatorId"    column="CREATOR_ID"    />
+        <result property="createTime"    column="CREATE_TIME"    />
+        <result property="updateBy"    column="UPDATE_BY"    />
+        <result property="updaterId"    column="UPDATER_ID"    />
+        <result property="updateTime"    column="UPDATE_TIME"    />
+    </resultMap>
+</mapper>

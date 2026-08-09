@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>datamaster-assets</artifactId>
+        <groupId>com.datamaster</groupId>
+        <version>${dataMaster.version}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>datamaster-assets-core</artifactId>
+    <description>
+        datamaster-assets-core 数据资产核心模块
+    </description>
+    <dependencies>
+        <!-- 资产接口与共享类型 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-assets-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 核心模块 config-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-config</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- common基础模块(包含redis, file, neo4j) -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-base</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系統模块 websocket-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-websocket</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系统模块 datasource -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-datasource</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 系统模块 mybatis -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-mybatis</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 通用工具-->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.hikvision.ga</groupId>
+            <artifactId>artemis-http-client</artifactId>
+            <version>1.1.8</version>
+            <systemPath>${project.basedir}/src/lib/artemis-http-client-1.1.8.jar</systemPath>
+            <scope>system</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-governance-core</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-metadata-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-api-ds</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-governance-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-collector-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-datasource-mgmt</artifactId>
+        </dependency>
+    </dependencies>
+</project>

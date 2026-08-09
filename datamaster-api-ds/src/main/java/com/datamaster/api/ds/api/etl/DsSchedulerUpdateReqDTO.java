@@ -1,0 +1,61 @@
+
+
+package com.datamaster.api.ds.api.etl;
+
+import com.alibaba.fastjson2.annotation.JSONField;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * <P>
+ * 用途:调度器新增请求参数DTO
+ * </p>
+ *
+ * @author: FXB
+ * @create: 2025-02-21 10:11
+ **/
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class DsSchedulerUpdateReqDTO {
+
+    /**
+     * 调度id（对应是咱们调度表中的ds_id）
+     */
+    private Long id;
+
+    /**
+     * {
+     * "startTime":"2025-02-21 00:00:00",//开始时间直接默认当前时间 格式yyyy-MM-dd HH:mm:ss
+     * "endTime":"2125-02-21 00:00:00",//结束时间直接默认当前时间的100年后 格式yyyy-MM-dd HH:mm:ss
+     * "crontab":"0 0 * * * ? *",//cron表达式（必填）
+     * "timezoneId":"Asia/Shanghai"//时区直接默认为 Asia/Shanghai
+     * }
+     */
+    private String schedule;
+
+    /**
+     * 任务编码（必填）
+     */
+    @JSONField(name = "workflowDefinitionCode", alternateNames = {"processDefinitionCode"})
+    private String processDefinitionCode;
+
+    /**
+     * 失败策略默认为 CONTINUE
+     */
+    private String failureStrategy;
+
+    /**
+     * 默认 default
+     */
+    private String workerGroup;
+
+    /**
+     * DS 租户编码，对应 Worker 执行任务时使用的操作系统用户
+     */
+    private String tenantCode;
+
+}
