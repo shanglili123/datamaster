@@ -70,11 +70,11 @@ oracle:
   password: ANIVIA
 
 ds:
-  base_url: http://127.0.0.1:12345/dolphinscheduler
-  quality_url: http://127.0.0.1:8989/quality/qualityTaskExecutor/runExecuteTask
-  incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://127.0.0.1:8989/col/etlTask/incremental/prepare}
-  incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://127.0.0.1:8989/col/etlTask/incremental/complete}
-  collector_url: http://localhost:8989/cat/taskExecutor/runExecuteTask
+  base_url: http://192.168.93.175:12345/dolphinscheduler
+  quality_url: http://192.168.93.175:8989/quality/qualityTaskExecutor/runExecuteTask
+  incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://192.168.93.175:8989/col/etlTask/incremental/prepare}
+  incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://192.168.93.175:8989/col/etlTask/incremental/complete}
+  collector_url: http://192.168.93.175:8989/cat/taskExecutor/runExecuteTask
   token: b07f0e57c4818043a57ba05a28da291a
   tenant_code: ${DS_TENANT_CODE:default}
   resource_url: /dolphinscheduler/

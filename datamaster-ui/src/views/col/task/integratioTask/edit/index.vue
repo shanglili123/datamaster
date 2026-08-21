@@ -87,27 +87,27 @@
             :tree-data="treeData"
             :field-names="{ title: 'label', children: 'children' }"
             ref="deptTreeRef"
-            default-expand-all
+            v-model:expandedKeys="expandedKeys"
           >
-            <template #title="{ node, data }">
+            <template #title="{ data }">
               <div
                 class="custom-tree-node"
-                @mousedown="startDrag($event, node, data)"
+                @mousedown="startDrag($event, data, data)"
               >
                 <img
-                  v-if="node.level === 1 && data.type == '1'"
+                  v-if="data.level === 1 && data.type == '1'"
                   src="@/assets/system/images/dpp/srz.svg"
                   alt="icon"
                   class="icon-img"
                 />
                 <img
-                  v-if="node.level === 1 && data.type == '3'"
+                  v-if="data.level === 1 && data.type == '3'"
                   src="@/assets/system/images/dpp/zh1.svg"
                   alt="icon"
                   class="icon-img"
                 />
                 <img
-                  v-if="node.level === 1 && data.type == '2'"
+                  v-if="data.level === 1 && data.type == '2'"
                   src="@/assets/system/images/dpp/sc.svg"
                   alt="icon"
                   class="icon-img"
@@ -118,7 +118,9 @@
                   alt="icon"
                   class="icon-img"
                 />
-                <span class="treelable"> {{ data.label }}</span>
+                <a-tooltip :title="data.label" placement="top-start" :disabled="!data.label">
+                  <span class="treelable"> {{ data.label }}</span>
+                </a-tooltip>
               </div>
             </template>
           </a-tree>
@@ -211,6 +213,8 @@ import excelInputForm from "@/views/col/task/integratioTask/components/input/exc
 
 import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vue";
 
+import tableMerge from "@/views/col/task/integratioTask/components/input/tableMerge.vue";
+
 // 转换组件
 
 import DedupFilter from "@/views/col/task/integratioTask/components/transform/dedupFilter.vue";
@@ -233,9 +237,15 @@ import OrderConfig from "@/views/col/task/integratioTask/components/transform/or
 // 字段派生期
 
 import FieldBuilder from "@/views/col/task/integratioTask/components/transform/fieldBuilder.vue";
+
+import fieldSplit from "@/views/col/task/integratioTask/components/transform/fieldSplit.vue";
+
+import fieldMerge from "@/views/col/task/integratioTask/components/transform/fieldMerge.vue";
 // 输出表组件
 
 import OutputForm from "@/views/col/task/integratioTask/components/output/tableForm.vue";
+
+import tableSplit from "@/views/col/task/integratioTask/components/output/tableSplit.vue";
 
 
 import add from "../add//add.vue";
@@ -368,6 +378,12 @@ const currentFormComponent = computed(() => {
       return OrderConfig;
     case "35":
       return fieldSplit;
+    case "36":
+      return fieldMerge;
+    case "37":
+      return tableSplit;
+    case "38":
+      return tableMerge;
     case "21":
       return StringReplace;
     case "50":
@@ -410,6 +426,21 @@ const currentFormComponent = computed(() => {
 });
 //左侧组件数据
 const treeData = ref([]);
+// 左侧组件树展开的节点（异步加载后默认全展开，ant-design-vue 4.x 的 default-expand-all 对异步 treeData 不生效）
+const expandedKeys = ref([]);
+// 收集所有节点 key（与 vc-tree getKey 规则一致：节点无 key 时用位置路径）
+function collectAllKeys(list, parentPos = "0") {
+  const keys = [];
+  list.forEach((node, index) => {
+    const pos = `${parentPos}-${index}`;
+    const mergedKey = node.key !== undefined && node.key !== null ? node.key : pos;
+    keys.push(mergedKey);
+    if (node.children && node.children.length) {
+      keys.push(...collectAllKeys(node.children, pos));
+    }
+  });
+  return keys;
+}
 // 撤销按钮
 const undoDisabled = ref(null);
 // 导出的数据
@@ -425,6 +456,7 @@ function getList() {
     };
     renderGraph(graph, nodeData.value);
     treeData.value = [...getTreeData(getTaskType(nodeData.value.draftJson))];
+    expandedKeys.value = collectAllKeys(treeData.value);
     loading.value = false;
   });
 }
@@ -842,7 +874,7 @@ async function handleNodeAdded({ node }) {
     const nodeData = graph.getNodes();
     const nodeType = node.data.taskParams.type;
 
-    if (nodeType == "1" || nodeType == "2") {
+    if (nodeType == "1") {
       const existingNode = nodeData.find(
         (item) => item.data.taskParams.type === nodeType && item.id !== node.id
       );
@@ -863,9 +895,7 @@ async function handleNodeAdded({ node }) {
 
 // 处理已有节点的情况
 function handleExistingNode(node) {
-  if (node.data.taskParams.type == 2) {
-    proxy.$message.warning(`只能有一个输出组件！`);
-  } else if (node.data.taskParams.type == "1") {
+  if (node.data.taskParams.type == "1") {
     proxy.$message.warning(`只能有一个输入组件！`);
   }
   graph.removeNode(node.id);

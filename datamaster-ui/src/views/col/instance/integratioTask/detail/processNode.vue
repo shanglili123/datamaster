@@ -48,6 +48,8 @@ import InputForm from "@/views/col/task/integratioTask/components/input/tableFor
 import excelInputForm from "@/views/col/task/integratioTask/components/input/excelForm.vue";
 
 import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vue";
+
+import tableMerge from "@/views/col/task/integratioTask/components/input/tableMerge.vue";
 // 转换组件
 // 清洗组件
 
@@ -58,9 +60,15 @@ import OrderConfig from "@/views/col/task/integratioTask/components/transform/or
 // 字段派生期
 
 import FieldBuilder from "@/views/col/task/integratioTask/components/transform/fieldBuilder.vue";
+
+import fieldSplit from "@/views/col/task/integratioTask/components/transform/fieldSplit.vue";
+
+import fieldMerge from "@/views/col/task/integratioTask/components/transform/fieldMerge.vue";
 // 输出表组件
 
 import OutputForm from "@/views/col/task/integratioTask/components/output/tableForm.vue";
+
+import tableSplit from "@/views/col/task/integratioTask/components/output/tableSplit.vue";
 
 import { getLogByTaskInstanceId, getTaskInfo } from "@/api/col/task/etlTask";
 // import { message } from 'ant-design-vue'
@@ -119,6 +127,12 @@ const currentFormComponent = computed(() => {
       return OrderConfig;
     case "35":
       return fieldSplit;
+    case "36":
+      return fieldMerge;
+    case "37":
+      return tableSplit;
+    case "38":
+      return tableMerge;
     case "21":
       return StringReplace;
     case "50":

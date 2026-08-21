@@ -432,7 +432,7 @@ const tableColumns = computed(() => {
 });
 
 const deptOptions = ref(undefined);
-const leftWidth = ref(300); // 初始左侧宽度
+const leftWidth = ref(240); // 初始左侧宽度
 const isResizing = ref(false); // 判断是否正在拖拽
 let startX = 0; // 鼠标按下时的初始位置// 初始左侧宽度
 const open = ref(false);

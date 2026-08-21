@@ -23,6 +23,8 @@ public class TransformSqlBuilder {
         register(new AddConstantHandler());
         register(new SortRecordHandler());
         register(new SparkCleanHandler());
+        register(new FieldSplitHandler());
+        register(new FieldMergeHandler());
     }
 
     public static void register(TransitionHandler handler) {
@@ -241,11 +243,15 @@ public class TransformSqlBuilder {
             String fieldDerivationName = param.getString("fieldDerivationName");
             String direction = param.getString("direction");
             Integer startIndex = param.getInteger("startIndex");
+            if (startIndex == null) {
+                // 前端预览默认 0（从第 1 位开始），后端保持一致，避免字段派生静默丢失
+                startIndex = 0;
+            }
             Integer endIndex = param.getInteger("endIndex");
             JSONArray tableFields = param.getJSONArray("tableFields");
             if (fieldDerivationName == null || tableFields == null || tableFields.isEmpty()) return;
             String columnName = tableFields.getJSONObject(0).getString("columnName");
-            if (columnName == null || startIndex == null) return;
+            if (columnName == null) return;
 
             StringBuilder expr = new StringBuilder();
             if ("2".equalsIgnoreCase(direction)) {
@@ -795,6 +801,144 @@ public class TransformSqlBuilder {
                         + " THEN SUBSTRING(" + colExpr + ", 1, " + maxLength + ")"
                         + " ELSE " + colExpr + " END");
             }
+        }
+    }
+
+    // ========================================================================
+    // FIELD_SPLIT
+    // ========================================================================
+
+    /**
+     * 字段拆分:将源字段按分隔符/位置/正则拆分为多个输出字段。
+     *
+     * <p>parameter 结构:
+     * <pre>
+     * {
+     *   "splitField": "NAME",        // 被拆分的源字段
+     *   "splitType": "delimiter",    // delimiter(按分隔符) / position(按位置) / regex(按正则)
+     *   "delimiter": ",",            // splitType=delimiter 时的分隔符
+     *   "regex": "",                 // splitType=regex 时的正则
+     *   "tableFields": [             // 输出字段列表
+     *     { "columnName": "FIRST", "index": 1 },          // delimiter/regex: 第几段(从1开始)
+     *     { "columnName": "PART2", "index": 2,
+     *       "startIndex": 0, "endIndex": 5 }              // position: 0-based 起止位置
+     *   ]
+     * }
+     * </pre>
+     *
+     * <p>SQL 函数说明:Flink SPLIT_INDEX 为 zero-based(越界/NULL 返回 NULL),前端 index 从 1 开始,故 -1 对齐。
+     */
+    private static class FieldSplitHandler implements TransitionHandler {
+        @Override
+        public String componentType() { return "FIELD_SPLIT"; }
+
+        @Override
+        public void apply(Map<String, String> colExprs, List<String> orderByClauses,
+                          List<String> dedupPartitions, List<String> whereClauses,
+                          JSONObject param) {
+            String splitField = param.getString("splitField");
+            if (splitField == null) return;
+            String splitType = param.getString("splitType");
+            if (splitType == null) splitType = "delimiter";
+            String delimiter = param.getString("delimiter");
+            String regex = param.getString("regex");
+            JSONArray tableFields = param.getJSONArray("tableFields");
+            if (tableFields == null) return;
+
+            String srcExpr = "CAST(" + quoteId(splitField) + " AS VARCHAR)";
+            for (int i = 0; i < tableFields.size(); i++) {
+                JSONObject field = tableFields.getJSONObject(i);
+                String columnName = field.getString("columnName");
+                if (columnName == null) continue;
+
+                String expr;
+                if ("position".equalsIgnoreCase(splitType)) {
+                    Integer startIndex = field.getInteger("startIndex");
+                    Integer endIndex = field.getInteger("endIndex");
+                    if (startIndex == null) startIndex = 0;
+                    if (endIndex != null && endIndex > startIndex) {
+                        expr = "SUBSTRING(" + srcExpr + ", " + (startIndex + 1) + ", " + (endIndex - startIndex) + ")";
+                    } else {
+                        expr = "SUBSTRING(" + srcExpr + ", " + (startIndex + 1) + ")";
+                    }
+                } else if ("regex".equalsIgnoreCase(splitType)) {
+                    Integer index = field.getInteger("index");
+                    if (regex == null || index == null) continue;
+                    // SPLIT_INDEX 底层按正则切分(zero-based)
+                    expr = "SPLIT_INDEX(" + srcExpr + ", '" + escapeSql(regex) + "', " + Math.max(0, index - 1) + ")";
+                } else {
+                    Integer index = field.getInteger("index");
+                    if (delimiter == null || index == null) continue;
+                    expr = "SPLIT_INDEX(" + srcExpr + ", '" + escapeSql(delimiter) + "', " + Math.max(0, index - 1) + ")";
+                }
+                colExprs.put(columnName, expr);
+            }
+        }
+    }
+
+    // ========================================================================
+    // FIELD_MERGE
+    // ========================================================================
+
+    /**
+     * 字段合并:将多个源字段按分隔符合并为一个输出字段。
+     *
+     * <p>parameter 结构:
+     * <pre>
+     * {
+     *   "mergeFieldName": "FULL_NAME",  // 合并后的输出字段
+     *   "delimiter": " ",               // 合并分隔符(可空)
+     *   "handleNull": "1",              // 1忽略(NULL字段跳过) 2保留(NULL输出空串) 默认1
+     *   "trimSpace": "1",               // 1去除首尾空格 2保留 默认1
+     *   "tableFields": [                // 参与合并的源字段
+     *     { "columnName": "FIRST_NAME" },
+     *     { "columnName": "LAST_NAME" }
+     *   ]
+     * }
+     * </pre>
+     */
+    private static class FieldMergeHandler implements TransitionHandler {
+        @Override
+        public String componentType() { return "FIELD_MERGE"; }
+
+        @Override
+        public void apply(Map<String, String> colExprs, List<String> orderByClauses,
+                          List<String> dedupPartitions, List<String> whereClauses,
+                          JSONObject param) {
+            String mergeFieldName = param.getString("mergeFieldName");
+            if (mergeFieldName == null) return;
+            String delimiter = param.getString("delimiter");
+            if (delimiter == null) delimiter = "";
+            String handleNull = param.getString("handleNull");
+            if (handleNull == null) handleNull = "1";
+            String trimSpace = param.getString("trimSpace");
+            if (trimSpace == null) trimSpace = "1";
+            JSONArray tableFields = param.getJSONArray("tableFields");
+            if (tableFields == null) return;
+
+            List<String> parts = new ArrayList<>();
+            for (int i = 0; i < tableFields.size(); i++) {
+                String columnName = tableFields.getJSONObject(i).getString("columnName");
+                if (columnName == null) continue;
+                String part = "CAST(" + quoteId(columnName) + " AS VARCHAR)";
+                if ("1".equals(trimSpace)) {
+                    part = "TRIM(" + part + ")";
+                }
+                if ("2".equals(handleNull)) {
+                    part = "COALESCE(" + part + ", '')";
+                }
+                parts.add(part);
+            }
+            if (parts.isEmpty()) return;
+
+            String expr;
+            if (delimiter.isEmpty()) {
+                expr = "CONCAT(" + String.join(", ", parts) + ")";
+            } else {
+                // CONCAT_WS 自动跳过 NULL 参数,配合 handleNull=1(忽略)使用
+                expr = "CONCAT_WS('" + escapeSql(delimiter) + "', " + String.join(", ", parts) + ")";
+            }
+            colExprs.put(mergeFieldName, expr);
         }
     }
 }

@@ -16,9 +16,9 @@
         title="数据开发目录"
       />
       <a-layout-content class="main-content">
-        <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
+        <dm-wrap :columns="tableStore.columns" :tableRef="tableRef">
           <template #search>
-            <qt-search-bar
+            <dm-search-bar
               v-bind="searchStore"
               :params="tableStore.params"
               @query="handleQuery"
@@ -31,7 +31,7 @@
             </a-button>
           </template>
 
-          <qt-table v-bind="tableStore" ref="tableRef">
+          <dm-table v-bind="tableStore" ref="tableRef">
             <template #name="{ row }">
               <div class="name-label task-title">
                 <div
@@ -236,8 +236,8 @@
                 </a-popover>
               </div>
             </template>
-          </qt-table>
-        </qt-wrap>
+          </dm-table>
+        </dm-wrap>
       </a-layout-content>
     </a-layout>
     <instance
@@ -467,7 +467,7 @@ const handleConfirm = (form) => {
   });
 };
 
-const leftWidth = ref(300); // 初始左侧宽度
+const leftWidth = ref(240); // 初始左侧宽度
 const isResizing = ref(false); // 判断是否正在拖拽
 
 let startX = 0; // 鼠标按下时的初始位置// 初始左侧宽度

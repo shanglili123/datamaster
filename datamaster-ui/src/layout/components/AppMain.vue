@@ -23,21 +23,20 @@ const tagsViewStore = useTagsViewStore()
 
 <style lang="scss" scoped>
 .app-main {
-  /* 50= navbar  50  */
-  //min-height: calc(100vh - 50px);
-  //width: 100%;
-  //position: relative;
-  //overflow: hidden;
   background-color: var(--dm-bg-layout, #eef3f8);
-  min-height: calc(100vh) !important;
   width: 100%;
   position: relative;
+  /* 由 main-container 撑满剩余高度：header(100px) 与 submenu-tabs 占用的空间已由 flex 布局扣除，
+     不能再写死 min-height: calc(100vh)（会导致内容溢出产生页面级滚动条） */
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   .app-main-inner{
     width: 100%;
     height: 100%;
     padding: 16px;
+    box-sizing: border-box;
   }
 }
 

@@ -1,20 +1,11 @@
 <template>
   <div class="container">
-    <qt-wrap
+    <dm-wrap
       :columns="tableStroe.columns"
       :tableRef="tableRef"
       :config="{ fullContent: false, actions: { table: { search: false } } }"
     >
-      <qt-table v-bind="tableStroe" ref="tableRef">
-        <template #status="scope">
-          <a-switch
-            v-if="scope.row.status != undefined"
-            :checked="scope.row.status === '1'"
-            checked-value="1"
-            un-checked-value="0"
-            @change="handleStatusChange(scope.row, $event)"
-          />
-        </template>
+      <dm-table v-bind="tableStroe" ref="tableRef">
         <template #handle="{ row }">
           <a-button
             type="link"
@@ -23,28 +14,24 @@
           >
             详情
           </a-button>
-          <template v-if="detail.status == '1' && route.query.table_status">
-            <a-button
-              type="link"
-              :disabled="row.status == 1"
-              :icon="h(EditOutlined)"
-              @click="handleEditClick(row)"
-            >
-              修改
-            </a-button>
-            <a-button
-              type="link"
-              danger
-              :icon="h(DeleteOutlined)"
-              :disabled="row.status == 1"
-              @click="handleDeleteClick(row)"
-            >
-              删除
-            </a-button>
-          </template>
+          <a-button
+            type="link"
+            :icon="h(EditOutlined)"
+            @click="handleEditClick(row)"
+          >
+            修改
+          </a-button>
+          <a-button
+            type="link"
+            danger
+            :icon="h(DeleteOutlined)"
+            @click="handleDeleteClick(row)"
+          >
+            删除
+          </a-button>
         </template>
-      </qt-table>
-    </qt-wrap>
+      </dm-table>
+    </dm-wrap>
 
     <a-modal
       v-model:open="dialog.open"
@@ -205,18 +192,6 @@
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item label="状态" name="status">
-          <a-radio-group v-model:value="dialog.form.status">
-            <a-radio
-              v-for="dict in toValue(dicts.meta_task_status)"
-              :key="dict.value"
-              :value="dict.value"
-            >
-              {{ dict.label }}
-            </a-radio>
-          </a-radio-group>
-        </a-form-item>
-
         <a-form-item label="备注" class="row-full">
           <a-textarea
             v-model:value="dialog.form.remark"
@@ -284,10 +259,7 @@ import {
   delColumn,
   getColumn,
   updateColumn,
-  updateColumnStatus,
 } from "@/api/cat/unreleased/column.js";
-
-import { useRoute, useRouter } from "vue-router";
 
 import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
 
@@ -340,14 +312,10 @@ const props = defineProps({
 
 const { proxy } = getCurrentInstance();
 const dicts = proxy.useDict(
-  "meta_task_status",
   "meta_dw_layers",
   "table_yes_no",
   "column_type"
 );
-
-const router = useRouter();
-const route = useRoute();
 
 const store = reactive({});
 
@@ -369,6 +337,7 @@ const tableStroe = reactive({
       prop: "id",
       sortable: true,
       width: 105,
+      fixed: "left",
     },
     {
       label: "字段名称",
@@ -376,7 +345,9 @@ const tableStroe = reactive({
       showOverflowTooltip: {
         effect: "light",
       },
-      minWidth: 140,
+      width: 140,
+      fixed: "left",
+      noHide: true,
       link: {
         external: handleDetailClick,
       },
@@ -439,13 +410,6 @@ const tableStroe = reactive({
       width: 90,
       dict: "table_yes_no",
     },
-    {
-      label: "状态",
-      prop: "status",
-      width: 90,
-      slot: "status",
-      invisible: route.query.released,
-    },
 
     {
       label: "更新人",
@@ -481,8 +445,15 @@ const tableStroe = reactive({
   func: listColumn,
   params: {
     tableId: props.detail.id,
-    status: route.query.table_status ? "" : props.detail.status,
-    dataType: 1,
+  },
+  events: {
+    // 兼容旧采集结果返回的 fieldName/name，保证字段名始终可展示。
+    formatData(data) {
+      return data.map((item) => ({
+        ...item,
+        columnName: item.columnName || item.fieldName || item.name || "-",
+      }));
+    },
   },
 });
 
@@ -501,8 +472,6 @@ function getSensitiveLevel() {
 function refreshColumnList() {
   Object.assign(tableStroe.params, {
     tableId: props.detail.id,
-    status: route.query.table_status ? "" : props.detail.status,
-    dataType: 1,
   });
   nextTick(() => {
     if (tableRef.value && tableRef.value.getList) {
@@ -512,7 +481,7 @@ function refreshColumnList() {
 }
 
 watch(
-  () => [props.detail.id, props.detail.status, route.query.table_status],
+  () => props.detail.id,
   () => {
     refreshColumnList();
   }
@@ -572,16 +541,6 @@ async function handleConfirmClick() {
   tableRef.value.getList();
 }
 
-// 详情页面
-function handleDetailPageClick(row) {
-  router.push({
-    path: BASE_URL + "/detail",
-    query: {
-      id: row.id,
-    },
-  });
-}
-
 // 详情
 function handleDetailClick(row) {
   handleEditClick(row);
@@ -600,32 +559,6 @@ function handleDeleteClick(row) {
       await delColumn(row.id);
       message.success("删除成功");
       tableRef.value.getList();
-    },
-  });
-}
-
-// 切换状态
-function handleStatusChange(row, status) {
-  Modal.confirm({
-    title: "系统提示",
-    content: `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
-      row.id
-    }的字段元数据吗？`,
-    okText: "确定",
-    cancelText: "取消",
-    onOk: async () => {
-      try {
-        await updateColumnStatus({
-          id: row.id,
-          status,
-        });
-        message.success(
-          `编号为${row.id}的字段元数据${status == 1 ? "发布" : "取消发布"}成功!`
-        );
-        row.status = status;
-      } catch (error) {
-        row.status = status == "1" ? "0" : "1";
-      }
     },
   });
 }

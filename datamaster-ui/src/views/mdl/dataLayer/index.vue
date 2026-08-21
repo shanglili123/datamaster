@@ -18,9 +18,9 @@
         <!-- 顶部信息卡片 -->
         <layerInfoCard v-if="currentLayer" class="mb15" :layer="currentLayer" />
 
-        <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
+        <dm-wrap :columns="tableStore.columns" :tableRef="tableRef">
           <template #search>
-            <qt-search-bar
+            <dm-search-bar
               v-bind="searchStore"
               :params="tableStore.params"
               :tableRef="tableRef"
@@ -36,7 +36,7 @@
             </a-button>
           </template>
 
-          <qt-table v-bind="tableStore" ref="tableRef">
+          <dm-table v-bind="tableStore" ref="tableRef">
             <template #action="{ row }">
               <a-button
                 type="link"
@@ -73,8 +73,8 @@
                 @change="() => handleStatusChange(row)"
               />
             </template>
-          </qt-table>
-        </qt-wrap>
+          </dm-table>
+        </dm-wrap>
       </a-layout-content>
     </a-layout>
 

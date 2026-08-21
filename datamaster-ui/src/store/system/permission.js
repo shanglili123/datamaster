@@ -469,7 +469,7 @@ function createSpaceBaseRoute() {
         redirect: 'noRedirect',
         alwaysShow: true,
         meta: {
-            title: '空间基础管理',
+            title: '空间管理',
             icon: 'lifebuoy-line'
         },
         children: []
@@ -483,7 +483,7 @@ function normalizeSpaceBaseRoute(spaceBaseRoute) {
     spaceBaseRoute.redirect = getSpaceBaseRedirect(spaceBaseRoute);
     spaceBaseRoute.alwaysShow = true;
     spaceBaseRoute.meta = spaceBaseRoute.meta || {};
-    spaceBaseRoute.meta.title = '空间基础管理';
+    spaceBaseRoute.meta.title = '空间管理';
     spaceBaseRoute.meta.icon = spaceBaseRoute.meta.icon || 'lifebuoy-line';
 }
 
@@ -782,12 +782,12 @@ function isDevelopmentManagement(route) {
 
 function isSpaceBaseManagement(route) {
     const title = route.meta && route.meta.title;
-    return title === '空间基础管理';
+    return title === '空间管理';
 }
 
 function isSpaceManagement(route) {
     const title = route.meta && route.meta.title;
-    return title === '空间管理';
+    return title === '空间列表';
 }
 
 function isSpaceAssetManagement(route) {

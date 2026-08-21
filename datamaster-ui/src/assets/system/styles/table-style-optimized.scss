@@ -124,12 +124,12 @@
         padding: 2px 0;
     }
 
-    .qt-wrap {
+    .dm-wrap {
         display: flex;
         flex-direction: column;
     }
 
-    .qt-table--main {
+    .dm-table--main {
         overflow: hidden;
         border-radius: 6px;
     }
@@ -203,7 +203,7 @@
         border-radius: 4px;
     }
 
-    .qt-table--pagination {
+    .dm-table--pagination {
         padding: 18px 4px 4px;
     }
 }

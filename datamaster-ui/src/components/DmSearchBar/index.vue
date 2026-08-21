@@ -1,5 +1,5 @@
 <template>
-  <div class="qt-search-bar">
+  <div class="dm-search-bar">
     <a-form
       ref="formRef"
       :model="props.params"
@@ -91,7 +91,7 @@
   </div>
 </template>
 
-<script setup name="QtSearchBar">
+<script setup name="DmSearchBar">
 import { reactive, ref, inject, onMounted, getCurrentInstance } from "vue";
 
 const props = defineProps({
@@ -155,8 +155,8 @@ function handleResetClick() {
 
 defineExpose({ handleQueryClick, handleResetClick, formRef });
 
-// 注册到 QtWrap 以便重置功能
-const registerSearchBar = inject('qtWrapRegisterSearchBar', null);
+// 注册到 DmWrap 以便重置功能
+const registerSearchBar = inject('dmWrapRegisterSearchBar', null);
 const instance = getCurrentInstance();
 onMounted(() => {
   registerSearchBar?.(instance?.proxy);
@@ -164,7 +164,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.qt-search-bar {
+.dm-search-bar {
   :deep(.ant-form-inline) {
     display: flex !important;
     flex-wrap: nowrap !important;

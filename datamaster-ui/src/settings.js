@@ -1,6 +1,6 @@
 export default {
   title: import.meta.env.VITE_APP_TITLE,
-  sideTheme: 'theme-dark',
+  sideTheme: 'theme-light',
   showSettings: true,
   topNav: false,
   tagsView: true,

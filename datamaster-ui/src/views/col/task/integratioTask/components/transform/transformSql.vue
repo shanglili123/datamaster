@@ -5,6 +5,7 @@
         :title="currentNode?.data?.name"
         :closable="false"
         :destroy-on-close="true"
+        :width="1200"
 >
         <template #title>
             <div class="justify">
@@ -142,6 +143,10 @@ function extractSourceTableName() {
         const parentNode = getParentNode(props.currentNode, props.graph);
         if (!parentNode) return "";
         const taskParams = parentNode.data?.taskParams || {};
+        // 自定义 SQL 模式（clmt == '2'）：connection 无真实表名，
+        // 后端使用固定虚拟别名 sourceTable 作为 reader.table.tableName，
+        // transformSql 的 FROM 必须引用同一名称。
+        if (taskParams.clmt == '2') return "sourceTable";
         return taskParams.table_name || taskParams.asset_id || "";
     } catch {
         return "";
@@ -156,10 +161,18 @@ const off = () => {
 
 const saveData = async () => {
     try {
-        const valid = await dpModelRefs.value.validate();
-        if (!valid) return;
-        if (!form.value.code) {
-            loading.value = true;
+      // 手动检查关键字段
+      if (!form.value?.code) {
+        // 代码生成逻辑
+      }
+      // 等待 DOM 更新
+      await nextTick();
+      // 直接检查关键字段（避免 a-form dot-notation path 校验失效）
+      if (!form.value?.code) {
+        return proxy.$message.warning('请配置代码');
+      }
+      // 保留原有的 code 生成逻辑
+      if (!form.value.code) {
             const response = await getNodeUniqueKey({
                 spaceCode: userStore.spaceCode || "133545087166112",
                 spaceId: userStore.spaceId,
@@ -195,7 +208,10 @@ watch(
             off();
             return;
         }
-        form.value = deepCopy(newNode?.data || {});
+        const copy = deepCopy(newNode?.data || {});
+        // 原地更新而非替换 ref，保持 a-form 内部字段注册的响应式代理不被断开
+        Object.keys(form.value).forEach(k => { delete form.value[k]; });
+        Object.assign(form.value, copy);
         if (!form.value.taskParams) {
             form.value.taskParams = {};
         }
@@ -207,6 +223,10 @@ watch(
         if (!sql || /^SELECT\s+\*/i.test(sql)) {
             generateSql();
         }
+        // 等待 DOM 更新后清除旧的校验状态，避免残留红字
+nextTick(() => {
+    dpModelRefs.value?.clearValidate();
+});
     },
     { immediate: true }
 );

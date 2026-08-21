@@ -59,9 +59,11 @@
                 alt=""
                 v-show="selected && (!data.children || data.children.length == 0)"
               />
-              <span class="treelable" @click="getNode(data)">
-                {{ data.name }}
-              </span>
+              <a-tooltip :title="data.name" placement="top-start" :disabled="!data.name">
+                <span class="treelable" @click="getNode(data)">
+                  {{ data.name }}
+                </span>
+              </a-tooltip>
             </span>
           </template>
         </a-tree>

@@ -8,6 +8,7 @@
         class="hamburger-container"
         @toggleClick="toggleSideBar"
       />
+      <breadcrumb v-if="showBreadcrumb" />
     </div>
     <div class="navbar-right">
       <template v-if="appStore.device !== 'mobile'">
@@ -72,6 +73,7 @@
 import { useWindowSize } from "@vueuse/core";
 import { Modal } from "ant-design-vue";
 import Hamburger from "@/components/Hamburger";
+import Breadcrumb from "@/components/Breadcrumb/index.vue";
 import useAppStore from "@/store/system/app";
 import useUserStore from "@/store/system/user";
 import useSettingsStore from "@/store/system/settings";
@@ -116,6 +118,9 @@ const showSpaceSelector = computed(
     spaceOptions.value.length > 0
 );
 const showSidebarToggle = computed(() => !isHomeShellPath(route.path));
+const showBreadcrumb = computed(
+  () => !isHomeShellPath(route.path) && route.path !== "/"
+);
 const spaceOptions = ref([]);
 
 function isSpaceWorkspacePath(path) {

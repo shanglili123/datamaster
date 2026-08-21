@@ -1,5 +1,5 @@
 <template>
-  <qt-wrap
+  <dm-wrap
     :columns="tableStroe.columns"
     :tableRef="tableRef"
     :config="{ fullContent: false, actions: { table: { search: false } } }"
@@ -14,7 +14,7 @@
         新增
       </a-button>
     </template>
-    <qt-table v-bind="tableStroe" ref="tableRef">
+    <dm-table v-bind="tableStroe" ref="tableRef">
       <template #domain-name="scope">
         {{ getDomainPath(scope.row.domainId) }}
       </template>
@@ -90,15 +90,6 @@
               <svg-icon icon-class="meta-column" class="handle-svg-icon" />
               字段列表
             </a-button>
-
-            <a-button
-              type="link"
-              @click="handleDetailClick(row, 'VersionManagement')"
-              v-hasPermi="['md:unreleased:structured:table:detail']"
-            >
-              <svg-icon icon-class="meta-version" class="handle-svg-icon" />
-              版本与变更
-            </a-button>
           </a-popover>
         </template>
 
@@ -110,19 +101,10 @@
             <svg-icon icon-class="meta-column" class="handle-svg-icon" />
             字段列表
           </a-button>
-
-          <a-button
-            type="link"
-            @click="handleDetailClick(row, 'VersionManagement')"
-            v-hasPermi="['md:unreleased:structured:table:edit']"
-          >
-            <svg-icon icon-class="meta-version" class="handle-svg-icon" />
-            版本与变更
-          </a-button>
         </template>
       </template>
-    </qt-table>
-  </qt-wrap>
+    </dm-table>
+  </dm-wrap>
 </template>
 
 <script setup name="UnreleasedStructuredTable">

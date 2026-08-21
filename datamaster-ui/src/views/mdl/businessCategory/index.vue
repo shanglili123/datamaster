@@ -1,8 +1,8 @@
 <template>
   <div class="app-container" ref="app-container">
-    <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
+    <dm-wrap :columns="tableStore.columns" :tableRef="tableRef">
       <template #search>
-        <qt-search-bar
+        <dm-search-bar
           v-bind="searchStore"
           :params="tableStore.params"
           :tableRef="tableRef"
@@ -28,7 +28,7 @@
         </a-button>
       </template>
 
-      <qt-table v-bind="tableStore" ref="tableRef">
+      <dm-table v-bind="tableStore" ref="tableRef">
         <template #action="{ row }">
           <a-button
             type="link"
@@ -63,8 +63,8 @@
             @change="() => handleStatusChange(row)"
           />
         </template>
-      </qt-table>
-    </qt-wrap>
+      </dm-table>
+    </dm-wrap>
 
     <a-modal
       :title="title"
@@ -154,9 +154,9 @@ import {
   updateBusinessCategory,
   delBusinessCategory,
 } from "@/api/mdl/businessCategory/businessCategory.js";
-import QtWrap from "@/components/QtWrap";
-import QtTable from "@/components/QtTable";
-import QtSearchBar from "@/components/QtSearchBar";
+import DmWrap from "@/components/DmWrap";
+import DmTable from "@/components/DmTable";
+import DmSearchBar from "@/components/DmSearchBar";
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");

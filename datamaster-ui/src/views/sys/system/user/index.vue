@@ -2,7 +2,8 @@
   <div class="app-container" ref="app-container">
     <a-layout style="90%">
       <!-- 左侧可调整的部分 -->
-      <a-layout-sider :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
+      <a-layout-sider :width="leftWidth || 1" :collapsed="leftWidth === 0" :collapsed-width="0" :trigger="null"
+        :style="{ marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
         <div class="left-tree">
           <div class="head-container">
             <a-input v-model:value="deptName" placeholder="请输入部门名称" allow-clear
@@ -25,7 +26,9 @@
                   <FileTextOutlined class="zjiconimg colorxz"
                     v-show="selected && (!data.children || data.children.length == 0)" />
 
-                  <span class="treelable" @click="getNode(data)">{{ data.label }}</span>
+                  <a-tooltip :title="data.label" placement="top-start">
+                    <span class="treelable" @click="getNode(data)">{{ data.label }}</span>
+                  </a-tooltip>
                 </span>
               </template>
             </a-tree>

@@ -86,6 +86,14 @@ export function sourceSystemTree(query) {
     params: query
   })
 }
+// 获取库表两级树（元数据结果页使用）
+export function dbTableTree(query) {
+  return request({
+    url: '/cat/task/dbTableTree',
+    method: 'get',
+    params: query
+  })
+}
 // 批量删除采集任务
 export function batchDeleteCheck(id) {
   return request({

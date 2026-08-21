@@ -165,7 +165,7 @@ public class AccessPolicy
         String path = lower(menu.getPath());
         String perms = lower(menu.getPerms());
         String name = menu.getMenuName();
-        return "空间基础管理".equals(name)
+        return "空间管理".equals(name)
                 || "成员角色管理".equals(name)
                 || "setting".equals(path)
                 || "spaceuserrel".equals(path)

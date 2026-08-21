@@ -16,7 +16,7 @@ import exampleDynamicRouter from './example/dynamic/index.js';
 import daPublicRouter from './ast/public/index.js';
 /* 示例模块动态路由 */
 import daDynamicRouter from './ast/dynamic/index.js';
-/* 数据资产资产地图 */
+/* 数据资产资产数据 */
 import daAssetRouter from './ast/asset/index.js';
 /* 质量探查 */
 import daQualityRouter from './ast/quality/index.js';

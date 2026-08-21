@@ -179,7 +179,7 @@
       destroy-on-close
       @after-close="handleCloseAssociationDialog"
     >
-      <qt-table v-bind="associationTableStore" ref="associationTableRef">
+      <dm-table v-bind="associationTableStore" ref="associationTableRef">
         <template #selectedDimensionTable="scope">
           <a-select
             v-model:value="scope.row.selectedDimensionTable"
@@ -229,7 +229,7 @@
             </a-select-option>
           </a-select>
         </template>
-      </qt-table>
+      </dm-table>
       <template #footer>
         <div class="dialog-footer">
           <a-button size="small" @click="associationVisible = false"

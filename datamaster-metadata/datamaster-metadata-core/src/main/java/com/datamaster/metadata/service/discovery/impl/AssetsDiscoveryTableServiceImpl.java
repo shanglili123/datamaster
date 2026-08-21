@@ -271,7 +271,7 @@ public class AssetsDiscoveryTableServiceImpl  extends ServiceImpl<AssetsDiscover
         List<AssetsDiscoveryColumnDO> AssetsDiscoveryColumnList = IAssetsDiscoveryColumnService.getDaDiscoveryColumnList(reqVO);
 
         AssetsAssetReqDTO assetsAssetReqDTO = BeanUtils.toBean(AssetsDiscoveryTableById, AssetsAssetReqDTO.class);
-        //兼容表的备注为空时候，导致的资产地图为空
+        //兼容表的备注为空时候，导致的资产数据为空
         assetsAssetReqDTO.setName(AssetsDiscoveryTable.getAssetName());
         assetsAssetReqDTO.setDatasourceId(AssetsDiscoveryTaskById.getDatasourceId());
         assetsAssetReqDTO.setCatCode(AssetsDiscoveryTable.getCatCode());

@@ -22,6 +22,7 @@ public enum TaskComponentTypeEnum {
     EXCEL_READER("2", "Excel输入"),
     KAFKA_READER("3", "Kafka输入"),
     CSV_READER("4", "csv输入"),
+    TABLE_MERGE("38", "合表"),
 
     //清洗
     SELECT_FIELDS("22", "字段选择"),
@@ -32,6 +33,8 @@ public enum TaskComponentTypeEnum {
     VALUE_MAP("47", "值映射"),
     ADD_CONSTANT("48", "增加常量"),
     TRANSFORM_SQL("32", "自定义SQL转换"),
+    FIELD_SPLIT("35", "字段拆分"),
+    FIELD_MERGE("36", "字段合并"),
 
     //开发
     SQL_DEV("51", "SQL开发"),
@@ -43,7 +46,8 @@ public enum TaskComponentTypeEnum {
     SUB_PROCESS("71", "子任务"),
 
     //输出
-    DB_WRITER("91", "数据库输出");
+    DB_WRITER("91", "数据库输出"),
+    TABLE_SPLIT("37", "拆表");
 
     @Getter
     private String code;

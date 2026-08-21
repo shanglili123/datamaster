@@ -54,7 +54,7 @@ export const config = {
     datasource: {
         ...globalConfig
     },
-    // 资产地图
+    // 资产数据
     daAsset: {
         Phoenix: 2,
         MongoDB: 2,
@@ -67,7 +67,7 @@ export const config = {
         ...globalConfig,
         ClickHouse: 1
     },
-    // 资产地图-非结构化
+    // 资产数据-非结构化
     daAssetUnstructured: {
         Oracle11: 3,
         MySql: 3,

@@ -63,6 +63,8 @@ import InputForm from "@/views/col/task/integratioTask/components/input/tableFor
 import excelInputForm from "@/views/col/task/integratioTask/components/input/excelForm.vue";
 
 import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vue";
+
+import tableMerge from "@/views/col/task/integratioTask/components/input/tableMerge.vue";
 // 转换组件
 // 清洗组件
 
@@ -76,9 +78,15 @@ import TransformSql from "@/views/col/task/integratioTask/components/transform/t
 // 字段派生期
 
 import FieldBuilder from "@/views/col/task/integratioTask/components/transform/fieldBuilder.vue";
+
+import fieldSplit from "@/views/col/task/integratioTask/components/transform/fieldSplit.vue";
+
+import fieldMerge from "@/views/col/task/integratioTask/components/transform/fieldMerge.vue";
 // 输出表组件
 
 import OutputForm from "@/views/col/task/integratioTask/components/output/tableForm.vue";
+
+import tableSplit from "@/views/col/task/integratioTask/components/output/tableSplit.vue";
 
 import useUserStore from "@/store/system/user";
 
@@ -134,6 +142,12 @@ const currentFormComponent = computed(() => {
       return OrderConfig;
     case "35":
       return fieldSplit;
+    case "36":
+      return fieldMerge;
+    case "37":
+      return tableSplit;
+    case "38":
+      return tableMerge;
     case "21":
       return StringReplace;
     case "50":
@@ -286,7 +300,7 @@ async function handleNodeAdded({ node }) {
     const nodeData = graph.getNodes();
     const nodeType = node.data.taskParams.type;
 
-    if (nodeType == "1" || nodeType == "2") {
+    if (nodeType == "1") {
       const existingNode = nodeData.find(
         (item) => item.data.taskParams.type === nodeType && item.id !== node.id
       );
@@ -307,9 +321,7 @@ async function handleNodeAdded({ node }) {
 
 // 处理已有节点的情况
 function handleExistingNode(node) {
-  if (node.data.taskParams.type == 2) {
-    proxy.$message.warning(`只能有一个输出组件！`);
-  } else if (node.data.taskParams.type == "1") {
+  if (node.data.taskParams.type == "1") {
     proxy.$message.warning(`只能有一个输入组件！`);
   }
   graph.removeNode(node.id);

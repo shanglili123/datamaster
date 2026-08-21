@@ -8,9 +8,9 @@
         @data-loaded="handleTreeDataLoaded"
       />
       <a-layout-content class="main-content">
-        <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
+        <dm-wrap :columns="tableStore.columns" :tableRef="tableRef">
           <template #search>
-            <qt-search-bar
+            <dm-search-bar
               v-bind="searchStore"
               :params="tableStore.params"
               @query="handleQueryClick"
@@ -30,7 +30,7 @@
               删除
             </a-button>
           </template>
-          <qt-table v-bind="tableStore" ref="tableRef">
+          <dm-table v-bind="tableStore" ref="tableRef">
             <template #name="{ row }">
               <div class="name-label task-title">
                 <div class="justify task-title-row" @click="handleDetailClick(row)">
@@ -158,8 +158,8 @@
                 </div>
               </div>
             </template>
-          </qt-table>
-        </qt-wrap>
+          </dm-table>
+        </dm-wrap>
       </a-layout-content>
     </a-layout>
 
@@ -181,7 +181,9 @@
     <a-modal
       v-model:open="dialog.open"
       :title="dialog.title"
-      width="1200"
+      :width="1200"
+      centered
+      :body-style="{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }"
       @cancel="handleCancelClick"
     >
       <a-tabs v-model:activeKey="dialog.activeTab" class="task-form-tabs">
@@ -256,7 +258,7 @@
           />
         </a-form-item>
 
-        <qt-form-item
+        <dm-form-item
           label="调度周期"
           name="cronExpression"
           :tip="{
@@ -278,7 +280,7 @@
               </a-button>
             </template>
           </a-input>
-        </qt-form-item>
+        </dm-form-item>
 
         <a-form-item
           label="采集模式"
@@ -350,8 +352,8 @@
         </a-form-item>
           </a-form>
         </a-tab-pane>
-        <a-tab-pane :tab="'质量规则'" key="quality" :disabled="!dialog.form.id">
-          <div v-if="dialog.form.id" class="quality-tab">
+        <a-tab-pane :tab="'质量规则'" key="quality">
+          <div class="quality-tab">
             <!-- 稽查对象 -->
             <div class="quality-section">
               <div class="quality-section-header">
@@ -380,7 +382,7 @@
             <div class="quality-section" style="margin-top: 16px;">
               <div class="quality-section-header">
                 <span class="quality-section-title">评测规则</span>
-                <a-button type="primary" size="small" :icon="h(PlusOutlined)" @click="openEvalDialog()">添加评测规则</a-button>
+                <a-button type="primary" size="small" :icon="h(PlusOutlined)" @click="openRuleSelector()">添加评测规则</a-button>
               </div>
               <a-table :data-source="dialog.form.qualityEvaluates" striped bordered size="small" :pagination="false" :locale="{ emptyText: '暂无评测规则' }" :columns="[
                 { title: '规则名称', dataIndex: 'name', ellipsis: true },
@@ -392,14 +394,13 @@
               ]">
                 <template #bodyCell="{ column, record, index }">
                   <template v-if="column.key === 'actions'">
-                    <a-button type="link" size="small" @click="openEvalDialog(record, index)">编辑</a-button>
+                    <a-button type="link" size="small" @click="openRuleDialog(record, index)">编辑</a-button>
                     <a-button type="link" danger size="small" @click="removeEval(index)">删除</a-button>
                   </template>
                 </template>
               </a-table>
             </div>
           </div>
-          <a-empty v-else description="请先保存基础配置，再配置质量规则" />
         </a-tab-pane>
       </a-tabs>
       <template #footer>
@@ -413,13 +414,19 @@
     </a-modal>
 
     <!-- 稽查对象编辑弹窗 -->
-    <a-modal v-model:open="objDialog.open" :title="objDialog.title" width="600" destroy-on-close>
+    <a-modal v-model:open="objDialog.open" :title="objDialog.title" :width="600" destroy-on-close>
       <a-form ref="objFormRef" :model="objDialog.form" :rules="objRules" :label-col="{ style: { width: '120px' } }">
         <a-form-item label="对象名称" name="name">
           <a-input v-model:value="objDialog.form.name" placeholder="请输入稽查对象名称" />
         </a-form-item>
         <a-form-item label="数据源" name="datasourceId">
-          <a-select v-model:value="objDialog.form.datasourceId" placeholder="请选择数据源" show-search @change="onObjDatasourceChange">
+          <a-select
+            v-model:value="objDialog.form.datasourceId"
+            placeholder="请选择数据源"
+            show-search
+            :disabled="objDialog.editIndex < 0"
+            @change="onObjDatasourceChange"
+          >
             <a-select-option v-for="ds in store.datasources" :key="ds.id" :value="ds.id">{{ ds.datasourceName }}</a-select-option>
           </a-select>
         </a-form-item>
@@ -435,69 +442,12 @@
       </template>
     </a-modal>
 
-    <!-- 评测规则编辑弹窗 -->
-    <a-modal v-model:open="evalDialog.open" :title="evalDialog.title" width="700" destroy-on-close>
-      <a-form ref="evalFormRef" :model="evalDialog.form" :rules="evalRules" :label-col="{ style: { width: '120px' } }">
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="规则名称" name="name">
-              <a-input v-model:value="evalDialog.form.name" placeholder="请输入规则名称" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="规则编号" name="ruleCode">
-              <a-input v-model:value="evalDialog.form.ruleCode" placeholder="请输入规则编号" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="关联稽查对象" name="objId">
-              <a-select v-model:value="evalDialog.form.objId" placeholder="请选择稽查对象" @change="onEvalObjChange">
-                <a-select-option v-for="obj in dialog.form.qualityObjs" :key="obj.id || obj._tempId" :value="obj.id || obj._tempId">{{ obj.name }}</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="告警等级" name="warningLevel">
-              <a-select v-model:value="evalDialog.form.warningLevel" placeholder="请选择告警等级">
-                <a-select-option value="1">低</a-select-option>
-                <a-select-option value="2">中</a-select-option>
-                <a-select-option value="3">高</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="检查表名" name="tableName">
-              <a-input v-model:value="evalDialog.form.tableName" placeholder="自动带出" disabled />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="检查字段" name="evaColumn">
-              <a-input v-model:value="evalDialog.form.evaColumn" placeholder="多个字段逗号隔开" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item label="规则类型" name="ruleType">
-          <a-input v-model:value="evalDialog.form.ruleType" placeholder="如：not_null, unique, length等" />
-        </a-form-item>
-        <a-form-item label="规则配置" name="rule">
-          <a-textarea v-model:value="evalDialog.form.rule" :rows="3" placeholder='JSON格式，如 {"min":1,"max":100}' />
-        </a-form-item>
-        <a-form-item label="where条件" name="whereClause">
-          <a-textarea v-model:value="evalDialog.form.whereClause" :rows="2" placeholder="可选，SQL where条件" />
-        </a-form-item>
-        <a-form-item label="规则描述" name="ruleDescription">
-          <a-textarea v-model:value="evalDialog.form.ruleDescription" :rows="2" placeholder="规则描述" />
-        </a-form-item>
-      </a-form>
-      <template #footer>
-        <a-button @click="evalDialog.open = false">取消</a-button>
-        <a-button type="primary" @click="confirmEvalDialog">确定</a-button>
-      </template>
-    </a-modal>
+    <!-- 评测规则选择弹窗(复用规则库三步向导) -->
+    <RuleSelectorDialog
+      ref="ruleSelectorDialog"
+      :dppQualityTaskObjSaveReqVO="dialog.form.qualityObjs"
+      @confirm="handleEvalConfirm"
+    />
   </div>
 </template>
 
@@ -526,6 +476,9 @@ import {
 import Crontab from "@/components/Crontab/index.vue";
 
 import SourceSystemTree from "./components/SourceSystemTree.vue";
+
+// 评测规则选择弹窗:复用质量任务的规则库三步向导
+import RuleSelectorDialog from "@/views/ast/quality/qualityTask/components/ruleBase.vue";
 
 import { cronToZh } from "@/utils/cronUtils";
 
@@ -799,6 +752,10 @@ function openObjDialog(row, index) {
   objDialog.title = index !== undefined ? "编辑稽查对象" : "新增稽查对象";
   objDialog.form = row ? JSON.parse(JSON.stringify(row)) : { name: "", datasourceId: null, tableName: "" };
   objDialog.tableOptions = [];
+  if (objDialog.editIndex < 0) {
+    // 新增:数据源继承基础配置已选的数据连接,无需重复选择
+    objDialog.form.datasourceId = dialog.form.datasourceId || null;
+  }
   if (objDialog.form.datasourceId) {
     loadObjTables(objDialog.form.datasourceId);
   }
@@ -841,51 +798,29 @@ function removeObj(index) {
   dialog.form.qualityObjs.splice(index, 1);
 }
 
-// 评测规则编辑弹窗
-const evalDialog = reactive({
-  open: false,
-  title: "",
-  editIndex: -1,
-  form: {},
-});
-const evalRules = {
-  name: [{ required: true, message: "请输入规则名称", trigger: "blur" }],
-  objId: [{ required: true, message: "请选择稽查对象", trigger: "change" }],
-};
-const evalFormRef = ref();
+// 评测规则:复用质量任务的规则库三步向导(ruleBase.vue)
+const ruleSelectorDialog = ref();
 
-function openEvalDialog(row, index) {
-  evalDialog.editIndex = index !== undefined ? index : -1;
-  evalDialog.title = index !== undefined ? "编辑评测规则" : "新增评测规则";
-  evalDialog.form = row ? JSON.parse(JSON.stringify(row)) : {
-    name: "", ruleCode: "", objId: null, warningLevel: "", tableName: "",
-    evaColumn: "", ruleType: "", rule: "", whereClause: "", ruleDescription: "",
-  };
-  evalDialog.open = true;
+// 新增评测规则:打开规则库选择器
+function openRuleSelector() {
+  ruleSelectorDialog.value.openDialog(undefined);
 }
 
-function onEvalObjChange(objId) {
-  const obj = dialog.form.qualityObjs.find((o) => (o.id || o._tempId) === objId);
-  if (obj) {
-    evalDialog.form.tableName = obj.tableName;
-    evalDialog.form.datasourceId = obj.datasourceId;
-    evalDialog.form.objName = obj.name;
+// 编辑评测规则:index 为 0 基下标,ruleBase 以 mode(1 基)区分新增/编辑
+function openRuleDialog(record, index) {
+  ruleSelectorDialog.value.openDialog(record, index + 1);
+}
+
+// 规则弹窗确认:mode 为 ruleBase 传入的 1 基下标
+function handleEvalConfirm(obj, mode) {
+  const index = Number(mode) - 1;
+  const list = dialog.form.qualityEvaluates;
+  if (!isNaN(index) && index >= 0 && index < list.length) {
+    list.splice(index, 1, obj);
+  } else {
+    list.push(obj);
   }
-}
-
-function confirmEvalDialog() {
-  evalFormRef.value
-    .validate()
-    .then(() => {
-      const data = JSON.parse(JSON.stringify(evalDialog.form));
-      if (evalDialog.editIndex >= 0) {
-        dialog.form.qualityEvaluates[evalDialog.editIndex] = data;
-      } else {
-        dialog.form.qualityEvaluates.push(data);
-      }
-      evalDialog.open = false;
-    })
-    .catch(() => {});
+  ruleSelectorDialog.value.closeDialog();
 }
 
 function removeEval(index) {

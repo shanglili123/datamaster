@@ -26,7 +26,7 @@
   --dm-radius-large: 8px;
 
   --dm-header-height: 64px;
-  --dm-sidebar-width: 248px;
+  --dm-sidebar-width: 280px;
   --dm-content-padding-x: 22px;
   --dm-content-padding-y: 16px;
 
@@ -353,13 +353,24 @@ body,
 }
 
 .app-container {
-  min-height: calc(100vh - 132px);
+  /* 由 app-main flex 撑满剩余高度，min-height:100% 自适应（含 submenu-tabs 占位） */
+  min-height: 100%;
   padding: 0 !important;
+}
+
+/* left-pane 卡片页（a-layout + left-pane 结构）：整页固定高度、去掉 anivia 的 15px 外边距，
+   避免卡片内容（表格+分页）超出可视区产生页面级滚动条；表格高度由下方 flex 链约束、内部滚动
+   注：用「> .ant-layout > .left-pane」相对选择器，避免嵌套 :has() 导致 Sass 编译丢失该规则 */
+.app-container:has(> .ant-layout > .left-pane) {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .app-container .el-container:has(> .left-pane),
 .app-container .el-container:has(> .el-aside.left-pane) {
-  min-height: calc(100vh - 132px);
+  min-height: 100%;
   padding: 14px;
   background: #ffffff;
   border: 1px solid var(--dm-border-light);
@@ -392,35 +403,35 @@ body,
   padding: 0 0 0 14px !important;
 }
 
-.app-container .el-container:has(> .left-pane) .qt-wrap,
-.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap {
+.app-container .el-container:has(> .left-pane) .dm-wrap,
+.app-container .el-container:has(> .el-aside.left-pane) .dm-wrap {
   gap: 0;
 }
 
-.app-container .el-container:has(> .left-pane) .qt-wrap--search,
-.app-container .el-container:has(> .left-pane) .qt-wrap--actions-bar,
-.app-container .el-container:has(> .left-pane) .qt-wrap--content,
-.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--search,
-.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--actions-bar,
-.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--content {
+.app-container .el-container:has(> .left-pane) .dm-wrap--search,
+.app-container .el-container:has(> .left-pane) .dm-wrap--actions-bar,
+.app-container .el-container:has(> .left-pane) .dm-wrap--content,
+.app-container .el-container:has(> .el-aside.left-pane) .dm-wrap--search,
+.app-container .el-container:has(> .el-aside.left-pane) .dm-wrap--actions-bar,
+.app-container .el-container:has(> .el-aside.left-pane) .dm-wrap--content {
   border: none !important;
   box-shadow: none !important;
 }
 
-.app-container .el-container:has(> .left-pane) .qt-wrap--search,
-.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--search {
+.app-container .el-container:has(> .left-pane) .dm-wrap--search,
+.app-container .el-container:has(> .el-aside.left-pane) .dm-wrap--search {
   padding: 15px 0 4px !important;
   border-radius: 0 !important;
 }
 
-.app-container .el-container:has(> .left-pane) .qt-wrap--actions-bar,
-.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--actions-bar {
+.app-container .el-container:has(> .left-pane) .dm-wrap--actions-bar,
+.app-container .el-container:has(> .el-aside.left-pane) .dm-wrap--actions-bar {
   padding: 8px 0;
   border-bottom: 1px solid var(--dm-border-light) !important;
 }
 
-.app-container .el-container:has(> .left-pane) .qt-wrap--content.full,
-.app-container .el-container:has(> .el-aside.left-pane) .qt-wrap--content.full {
+.app-container .el-container:has(> .left-pane) .dm-wrap--content.full,
+.app-container .el-container:has(> .el-aside.left-pane) .dm-wrap--content.full {
   padding: 0 0 0 !important;
 }
 
@@ -491,9 +502,142 @@ body,
   flex: none;
 }
 
+/* ===== antd 版（a-layout + left-pane）：与上方 el-container 版保持视觉一致，整页统一为一张卡片 ===== */
+.app-container .ant-layout:has(> .left-pane) {
+  height: 100%;
+  min-height: 100%;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid var(--dm-border-light);
+  border-radius: var(--dm-radius-large);
+  box-shadow: var(--dm-shadow-card);
+  box-sizing: border-box;
+}
+
+.app-container .ant-layout:has(> .left-pane) > .left-pane {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.app-container .ant-layout:has(> .left-pane) .resize-bar {
+  background: transparent !important;
+  /* 覆盖页面本地固定高度（如 height:86vh），改为撑满卡片内容区，避免超出可视区产生滚动条 */
+  height: auto !important;
+  align-self: stretch;
+}
+
+.app-container .ant-layout:has(> .left-pane) .left-tree {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.app-container .ant-layout:has(> .left-pane) > .main-content {
+  position: relative;
+  padding: 0 0 0 14px !important;
+}
+
+/* main-content 内直接包含 dm-wrap 时改为纵向 flex：左侧若有其它块（如 layerInfoCard），
+   dm-wrap 用 flex:1 吃掉剩余高度，避免 DmWrap 自带 height:100% 叠加在上方兄弟块之后溢出卡片 */
+.app-container .ant-layout:has(> .left-pane) > .main-content:has(> .dm-wrap) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-container .ant-layout:has(> .left-pane) > .main-content > .dm-wrap {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+.app-container .ant-layout:has(> .left-pane) .dm-wrap {
+  gap: 0;
+}
+
+.app-container .ant-layout:has(> .left-pane) .dm-wrap--search,
+.app-container .ant-layout:has(> .left-pane) .dm-wrap--actions-bar,
+.app-container .ant-layout:has(> .left-pane) .dm-wrap--content {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.app-container .ant-layout:has(> .left-pane) .dm-wrap--search {
+  padding: 15px 0 4px !important;
+  border-radius: 0 !important;
+}
+
+.app-container .ant-layout:has(> .left-pane) .dm-wrap--actions-bar {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--dm-border-light) !important;
+}
+
+.app-container .ant-layout:has(> .left-pane) .dm-wrap--content.full {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 0 !important;
+}
+
+/* 内容区 flex 链内部滚动：整页固定高度，表格数据区内部滚动、分页固定在底部可见 */
+.app-container .ant-layout:has(> .left-pane) .dm-wrap--main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container .ant-layout:has(> .left-pane) .dm-table {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container .ant-layout:has(> .left-pane) .ant-spin-nested-loading,
+.app-container .ant-layout:has(> .left-pane) .ant-spin-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container .ant-layout:has(> .left-pane) .dm-table--main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app-container .ant-layout:has(> .left-pane) .dm-table--pagination {
+  flex-shrink: 0;
+}
+
+.app-container .ant-layout:has(> .left-pane) .pagecont-top {
+  min-height: 46px;
+  margin-bottom: 0 !important;
+  padding: 15px 0 4px 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--dm-border-light) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.app-container .ant-layout:has(> .left-pane) .pagecont-bottom {
+  padding: 0 0 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
 .app-container:has(> .pagecont-top):has(> .pagecont-bottom):not(:has(> .el-container)) {
   position: relative;
-  min-height: calc(100vh - 132px);
+  min-height: 100%;
   padding: 14px !important;
   background: #ffffff !important;
   border: 1px solid var(--dm-border-light);
@@ -565,7 +709,7 @@ body,
 
 .app-container.datasource-list-page {
   position: relative;
-  min-height: calc(100vh - 132px);
+  min-height: 100%;
   padding: 14px !important;
   background: #ffffff !important;
   border: 1px solid var(--dm-border-light);

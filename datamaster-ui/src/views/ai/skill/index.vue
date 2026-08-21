@@ -83,7 +83,7 @@
       @pagination="getList"
     />
 
-    <a-modal v-model:open="editorOpen" :title="editorTitle" width="900" destroy-on-close>
+    <a-modal v-model:open="editorOpen" :title="editorTitle" :width="900" destroy-on-close>
       <a-form ref="skillFormRef" :model="form" :rules="rules" :label-col="{ style: { width: '90px' } }">
         <a-row :gutter="16">
           <a-col :span="12">
@@ -139,7 +139,7 @@
       </template>
     </a-modal>
 
-    <a-modal v-model:open="tableGenerateOpen" title="生成问数Skill" width="560" destroy-on-close>
+    <a-modal v-model:open="tableGenerateOpen" title="生成问数Skill" :width="560" destroy-on-close>
       <a-form :model="tableGenerateForm" :label-col="{ style: { width: '90px' } }">
         <a-form-item label="生成范围">
           <a-segmented
@@ -251,7 +251,7 @@
       />
     </a-drawer>
 
-    <a-modal v-model:open="templateEditorOpen" :title="templateEditorTitle" width="980" destroy-on-close>
+    <a-modal v-model:open="templateEditorOpen" :title="templateEditorTitle" :width="980" destroy-on-close>
       <a-form ref="templateFormRef" :model="templateForm" :rules="templateRules" :label-col="{ style: { width: '90px' } }">
         <a-row :gutter="16">
           <a-col :span="12">

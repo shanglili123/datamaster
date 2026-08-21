@@ -247,6 +247,10 @@ export const handleType2TaskParams = (fromColumns, toColumns) => {
   const target_columns = [];
   const columns = [];
 
+  if (!fromColumns || !toColumns || !fromColumns.length || !toColumns.length) {
+    return { target_columns, columns };
+  }
+
   // 获取最短的数组长度，避免索引越界
   const minLength = Math.min(fromColumns.length, toColumns.length);
 
@@ -410,7 +414,8 @@ export const validateGraph = (graph, flag) => {
     if (!taskParams.tableFields || taskParams.tableFields.length === 0) {
       valid = false;
       addErrorMessage(`${node.data.name} 表输出组件未进行字段映射，请设置字段映射`);
-    } else {
+    } else if (Array.isArray(taskParams.toColumnsList) && taskParams.toColumnsList.length > 0) {
+      // 仅当 toColumnsList 存在且非空时才校验字段映射（旧数据可能没有此字段）
       let { target_columns = [], columns = [] } = handleType2TaskParams(taskParams.tableFields, taskParams.toColumnsList);
       if (target_columns.length === 0 || columns.length === 0) {
         valid = false;
@@ -956,19 +961,37 @@ export const getDefaultTaskParams = (data) => {
     return {
       ...base,
       splitField: "",
-      address: "",
       splitType: "delimiter",
       delimiter: "",
       regex: "",
       enclosure: "",
     };
   }
-  if (data.componentType == 35) {
+  if (data.componentType == 36) {
     return {
       ...base,
-      selectedSourceField: "", //字段名称
-      targetFieldName: "", //目标字段
-      defaultValueWhenUnmatched: "", //不匹配时的默认值
+      mergeFieldName: "",
+      delimiter: "",
+      handleNull: "1",
+      trimSpace: "1",
+    };
+  }
+  if (data.componentType == 37) {
+    return {
+      ...base,
+      targetTables: [],
+    };
+  }
+  if (data.componentType == 38) {
+    return {
+      ...base,
+      readerDatasource: {
+        datasourceId: "",
+        datasourceType: "",
+        dbname: "",
+      },
+      sourceTables: [],
+      batchSize: 1000,
     };
   }
   if (data.componentType == 34) {

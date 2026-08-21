@@ -27,6 +27,11 @@ public class QualityLogSaveReqVO extends BaseEntity {
         this.name = task.getTaskName();
         this.qualityId = task.getId();
         this.startTime = new Date();
+        // 创建日志即视为“进行中”（字典 quality_log_success_flag：0成功/1失败/2进行中），
+        // 结束时由 updateQualityLog 更新为 0/1 并填写真实的 endTime。
+        // 注意：success_flag/end_time 在 DB 中均为 NOT NULL 且无默认值，此处必须显式赋值。
+        this.successFlag = "2";
+        this.endTime = this.startTime;
     }
 
     @Schema(description = "ID")

@@ -46,82 +46,45 @@
       </div>
     </div>
 
-    <a-spin :spinning="loading">
     <div class="pagecont-bottom">
-      <div class="page-list" v-if="total > 0">
-        <a-row :gutter="15">
-          <a-col :span="12" v-for="(item, index) in searchList" :key="index">
-            <div class="page-item">
-              <div class="item-title">
-                <div class="item-title-left">
-                  <img :src="getFileIcon(item.fileUrl)" alt="" />
-                  <div class="item-name">
-                    <span class="item-name-title" :title="item.name">{{
-                      item.name
-                    }}</span>
-                    <span
-                      class="item-name-code ellipsis"
-                      :title="item.fileName"
-                      >{{ item.fileName }}</span
-                    >
-                  </div>
-                </div>
-                <div class="item-title-right">
-                  <div
-                    class="form-btn"
-                    @click="handleFilePreview(item.fileUrl)"
-                  >
-                    <!-- <img src="@/assets/dp/standardSearch/icon (2).svg" alt="" /> -->
-                    <span>查看</span>
-                  </div>
-                  <div class="form-btn" @click="handleView(item)">
-                    <!-- <img src="@/assets/dp/standardSearch/icon (1).svg" alt="" /> -->
-                    <span>详情</span>
-                  </div>
-                </div>
-              </div>
-              <div class="item-con">
-                <div class="item-form">
-                  <div class="form-label">标准分类:</div>
-                  <div class="form-value">
-                    <!-- <dict-tag :options="dp_document_type" :value="item.type" /> -->
-                    <div :class="['value-tag', 'type' + item.type]">
-                      {{ typeFormat1(item) }}
-                    </div>
-                  </div>
-                </div>
-                <div class="item-form">
-                  <div class="form-label">实施状态:</div>
-                  <div class="form-value">
-                    <dict-tag
-                      :options="dp_document_status"
-                      :value="item.status"
-                    />
-                  </div>
-                </div>
-                <div class="item-form">
-                  <div class="form-label">发布日期:</div>
-                  <div class="form-value">
-                    <div class="ellipsis">{{ item.releaseDate || "-" }}</div>
-                  </div>
-                </div>
-                <div class="item-form">
-                  <div class="form-label">实施日期:</div>
-                  <div class="form-value">
-                    <div class="ellipsis">
-                      {{ item.implementationDate || "-" }}
-                    </div>
-                  </div>
-                </div>
+      <a-table
+        striped
+        :loading="loading"
+        :data-source="searchList"
+        :columns="tableColumns"
+        :pagination="false"
+        :scroll="{ x: 1100 }"
+        :locale="{ emptyText: '暂无搜索内容～' }"
+        row-key="id"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'name'">
+            <div class="doc-name-cell">
+              <img :src="getFileIcon(record.fileUrl)" alt="" />
+              <div class="doc-name">
+                <span class="doc-name-title" :title="record.name">{{ record.name }}</span>
+                <span class="doc-name-code ellipsis" :title="record.fileName">{{ record.fileName }}</span>
               </div>
             </div>
-          </a-col>
-        </a-row>
-      </div>
-      <div class="empty" v-else>
-        <img src="@/assets/da/asset/empty.png" alt="" />
-        <span>暂无搜索内容～</span>
-      </div>
+          </template>
+          <template v-else-if="column.dataIndex === 'type'">
+            <div :class="['value-tag', 'type' + record.type]">{{ typeFormat1(record) }}</div>
+          </template>
+          <template v-else-if="column.dataIndex === 'status'">
+            <dict-tag :options="dp_document_status" :value="record.status" />
+          </template>
+          <template v-else-if="column.dataIndex === 'releaseDate'">
+            {{ record.releaseDate || "-" }}
+          </template>
+          <template v-else-if="column.dataIndex === 'implementationDate'">
+            {{ record.implementationDate || "-" }}
+          </template>
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="handleFilePreview(record.fileUrl)">查看</a-button>
+            <a-button type="link" size="small" @click="handleView(record)">详情</a-button>
+          </template>
+        </template>
+      </a-table>
       <pagination
         v-show="total > 0"
         :total="total"
@@ -130,7 +93,6 @@
         @pagination="getList"
       />
     </div>
-    </a-spin>
   </div>
 </template>
 <script setup name="Search">
@@ -145,6 +107,20 @@ const { dp_document_standard_type, dp_document_type, dp_document_status } =
     "dp_document_status"
   );
 const searchList = ref([]);
+const loading = ref(false);
+const showSearch = ref(true);
+const total = ref(0);
+const router = useRouter();
+
+const tableColumns = [
+  { title: "标准名称", dataIndex: "name", key: "name", width: 300, ellipsis: true },
+  { title: "标准分类", dataIndex: "type", key: "type", width: 120 },
+  { title: "实施状态", dataIndex: "status", key: "status", width: 120 },
+  { title: "发布日期", dataIndex: "releaseDate", key: "releaseDate", width: 150 },
+  { title: "实施日期", dataIndex: "implementationDate", key: "implementationDate", width: 150 },
+  { title: "操作", key: "actions", width: 130, fixed: "right" },
+];
+
 const column1 = ref([
   {
     label: "标准分类",
@@ -226,10 +202,6 @@ const column4 = ref([
     prop: "implementationDate",
   },
 ]);
-const loading = ref(false);
-const showSearch = ref(true);
-const total = ref(0);
-const router = useRouter();
 
 const data = reactive({
   queryParams: {
@@ -340,332 +312,84 @@ getList();
   }
 }
 
-.searchlist {
-  padding: 15px;
-  // height: 64vh;
-  overflow-y: auto;
-
-  &::-webkit-scrollbar {
-    width: 2px;
-  }
-
-  .search-item {
-    height: 146px;
-    background: #ffffff;
-    border-radius: 2px;
-    margin-bottom: 16px;
-    padding: 15px;
-    border: 1px solid #ebeef5;
-
-    .item-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-
-      .item-title-left {
-        display: flex;
-        align-items: center;
-
-        span {
-          margin-left: 15px;
-          font-size: 14px;
-          font-family: PingFang SC;
-          font-weight: 500;
-          color: var(--el-color-primary);
-        }
-      }
-
-      .item-title-right {
-        display: flex;
-        align-items: center;
-
-        .form-btn {
-          cursor: pointer;
-          min-width: 50px;
-          height: 24px;
-          padding: 0 10px;
-          border-radius: 2px;
-          margin-left: 10px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          border: 1px solid var(--el-color-primary);
-
-          &.warn {
-            border: 1px solid #ffab47;
-
-            span {
-              color: #ffab47;
-            }
-          }
-
-          &.error {
-            border: 1px solid #ff5353;
-
-            span {
-              color: #ff5353;
-            }
-          }
-
-          img {
-            width: 14px;
-            height: 14px;
-            margin-right: 6px;
-          }
-
-          span {
-            font-family: PingFangSC, PingFang SC;
-            font-weight: 500;
-            font-size: 12px;
-            color: var(--el-color-primary);
-          }
-
-          .el-icon {
-            font-size: 14px;
-            color: var(--el-color-primary);
-            margin-right: 6px;
-          }
-        }
-      }
-    }
-
-    .item-con {
-      padding: 10px;
-      background-color: #f5f7f9;
-      height: calc(100% - 34px);
-
-      .form-item {
-        width: calc(25% - 15px);
-        display: inline-flex;
-        align-items: center;
-        line-height: 30px;
-        font-family: PingFang SC;
-        font-weight: 400;
-        font-size: 14px;
-        margin-right: 20px;
-
-        &:nth-child(4n) {
-          margin-right: 0;
-        }
-
-        .form-label {
-          color: rgba(0, 0, 0, 0.45);
-        }
-
-        .form-value {
-          color: rgba(0, 0, 0, 0.85);
-          flex: 1;
-        }
-      }
-    }
-  }
-}
-
 .pagecont-bottom {
   padding: 0;
   background-color: transparent;
   box-shadow: none;
 }
 
-.page-list {
-  height: 69.8vh;
-  height: auto;
-  /* 或者直接删掉这行 */
-  max-height: none;
-  /* 保证不被限制高度 */
-  overflow: visible;
+.doc-name-cell {
+  display: flex;
+  align-items: center;
 
-  /* 不产生内部滚动条 */
-  &::-webkit-scrollbar {
-    width: 2px;
+  img {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+    flex-shrink: 0;
   }
 
-  .page-item {
-    padding: 18px 30px;
-    background: #fff;
-    margin-bottom: 15px;
-    border-radius: 2px;
+  .doc-name {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 
-    .item-title {
-      display: flex;
-      padding-bottom: 15px;
-      margin-bottom: 5px;
-      border-bottom: 1px solid #eeeeee;
-
-      .item-title-left {
-        display: flex;
-        align-items: center;
-        width: 66%;
-
-        img {
-          width: 40px;
-          height: 40px;
-          margin-right: 20px;
-        }
-
-        .item-name {
-          width: calc(100% - 72px);
-          display: flex;
-          flex-direction: column;
-
-          .item-name-title {
-            display: block;
-            font-family: PingFang SC;
-            font-weight: 600;
-            font-size: 16px;
-            color: #3d446e;
-            line-height: 24px;
-          }
-
-          .item-name-code {
-            display: block;
-            font-family: PingFang SC;
-            // font-weight: bold;
-            font-size: 14px;
-            color: rgba(88, 88, 88, 0.85);
-            line-height: 22px;
-          }
-        }
-      }
-
-      .item-title-right {
-        margin: 5px 0 0 auto;
-        display: flex;
-
-        .form-btn {
-          cursor: pointer;
-          min-width: 50px;
-          height: 24px;
-          padding: 0 12px;
-          border-radius: 2px;
-          margin-left: 12px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background: #e6f4ff;
-
-          img {
-            margin-right: 5px;
-          }
-
-          span {
-            font-family: PingFang SC;
-            font-weight: 500;
-            font-size: 12px;
-            color: #2666fb;
-          }
-        }
-      }
+    .doc-name-title {
+      display: block;
+      font-family: PingFang SC;
+      font-weight: 600;
+      font-size: 14px;
+      color: #3d446e;
+      line-height: 22px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .item-con {
-      display: flex;
-      flex-wrap: wrap;
-
-      .item-form {
-        width: 50%;
-        display: flex;
-        align-items: center;
-        margin-top: 10px;
-
-        .form-label {
-          width: 76px;
-          font-family: PingFang SC;
-          font-weight: 400;
-          font-size: 14px;
-          color: #717171;
-        }
-
-        .form-value {
-          width: calc(100% - 76px);
-          font-family: PingFang SC;
-          font-weight: 400;
-          font-size: 14px;
-          color: #262626;
-        }
-
-        .value-tag {
-          width: 67px;
-          height: 22px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          font-family: PingFang SC;
-          font-weight: 400;
-          font-size: 13px;
-          color: #ffffff;
-          border-radius: 10px 10px 10px 0;
-
-          &.type1 {
-            background: #e23d3d;
-          }
-
-          &.type2 {
-            background: #ff9800;
-          }
-
-          &.type3 {
-            background: #3062f2;
-          }
-
-          &.type4 {
-            background: #05a5a0;
-          }
-        }
-
-        .value-tag2 {
-          min-width: 56px;
-          max-width: max-content;
-          height: 24px;
-          padding: 0 6px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          font-family: PingFang SC;
-          font-weight: 400;
-          font-size: 13px;
-          border-radius: 2px;
-
-          &.status1 {
-            background: #f8f2d9;
-            color: #ff6f00;
-            border: 1px solid #fca75e;
-          }
-
-          &.status2 {
-            background: #e7f7f9;
-            color: #05a5a0;
-            border: 1px solid #85e5e2;
-          }
-
-          &.status3 {
-            background: #e6f7ff;
-            color: #1890ff;
-            border: 1px solid #7ac3ff;
-          }
-
-          &.status4 {
-            background: #fff1f0;
-            color: #cf1322;
-            border: 1px solid #ffa39e;
-          }
-
-          &.status5 {
-            background: #e1f8e3;
-            color: #219f09;
-            border: 1px solid #82cb77;
-          }
-
-          &.status6 {
-            background: #f4f4f5;
-            color: #565656;
-            border: 1px solid #cfcece;
-          }
-        }
-      }
+    .doc-name-code {
+      display: block;
+      font-family: PingFang SC;
+      font-size: 12px;
+      color: rgba(88, 88, 88, 0.85);
+      line-height: 18px;
+      max-width: 220px;
     }
   }
+}
+
+.value-tag {
+  width: 67px;
+  height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: PingFang SC;
+  font-weight: 400;
+  font-size: 13px;
+  color: #ffffff;
+  border-radius: 10px 10px 10px 0;
+
+  &.type1 {
+    background: #e23d3d;
+  }
+
+  &.type2 {
+    background: #ff9800;
+  }
+
+  &.type3 {
+    background: #3062f2;
+  }
+
+  &.type4 {
+    background: #05a5a0;
+  }
+}
+
+.pagecont-bottom .ant-table-wrapper {
+  background: #ffffff;
+  border-radius: 2px;
+  padding: 12px;
 }
 
 .pagination-container {
@@ -675,30 +399,8 @@ getList();
   margin: 0px 0 0;
   padding: 14px 20px !important;
 
-  :deep(.el-pagination) {
+  :deep(.ant-pagination) {
     right: 20px;
-  }
-}
-
-.empty {
-  min-height: calc(100vh - 250px);
-  background: #ffffff;
-  border-radius: 2px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  img {
-    width: 200px;
-    height: 180px;
-    margin: 240px 0 40px;
-  }
-
-  span {
-    font-family: PingFang SC;
-    font-weight: 400;
-    font-size: 18px;
-    color: rgba(0, 0, 0, 0.65);
   }
 }
 </style>

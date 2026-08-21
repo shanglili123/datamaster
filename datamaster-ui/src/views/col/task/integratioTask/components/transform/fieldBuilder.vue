@@ -1,6 +1,6 @@
 <template>
     <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name" :closable="false"
-        :destroy-on-close="true">
+        :destroy-on-close="true" :width="1200">
         <template #title>
             <div class="justify">
                 <span class="ant-modal-title">{{ currentNode?.data?.name }}</span>
@@ -35,11 +35,11 @@
                     ]">
                         <a-select v-model:value="form.taskParams.fieldDerivationType" placeholder="请选择操作类型">
                             <a-select-option v-for="item in deriveFieldTypes" :key="item.value" :label="item.label"
-                                :value="item.value" :disabled="item.value !== 'FIELD_DERIVE_CONCAT'" />
+                                :value="item.value" :disabled="!['FIELD_DERIVE_CONCAT', 'FIELD_DERIVE_SUBSTRING'].includes(item.value)" />
                         </a-select>
                     </a-form-item>
                 </a-col>
-                <a-col :span="12" v-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_CONCAT'">
+                <a-col :span="12" v-if="['FIELD_DERIVE_CONCAT', 'FIELD_DERIVE_SUBSTRING'].includes(form.taskParams.fieldDerivationType)">
                     <a-form-item label="新增字段名称" name="taskParams.fieldDerivationName" :rules="[
                         { required: true, message: '请输入新增字段名称', trigger: 'change' }]">
                         <template #label>
@@ -54,6 +54,7 @@
                     </a-form-item>
                 </a-col>
             </a-row>
+            <template v-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_CONCAT'">
             <a-row :gutter="20">
                 <a-col :span="12">
                     <a-form-item label="前缀" name="taskParams.fieldDerivationPrefix">
@@ -73,6 +74,40 @@
                     </a-form-item>
                 </a-col>
             </a-row>
+            </template>
+            <template v-else-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_SUBSTRING'">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="截取方向" name="taskParams.direction">
+                        <a-select v-model:value="form.taskParams.direction" placeholder="请选择截取方向">
+                            <a-select-option value="1">从左截取</a-select-option>
+                            <a-select-option value="2">从右截取</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="起始位置" name="taskParams.startIndex">
+                        <a-input-number v-model:value="form.taskParams.startIndex" :min="0" style="width: 100%"
+                            placeholder="0 表示从第 1 位开始"
+                        />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="结束位置" name="taskParams.endIndex">
+                        <a-input-number v-model:value="form.taskParams.endIndex" :min="0" style="width: 100%"
+                            placeholder="留空表示截取到末尾"
+                        />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="生成规则预览" name="preview">
+                        <a-input :value="substringPreview" readonly />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            </template>
             <a-row :gutter="20">
                 <a-col :span="24">
                     <a-form-item label="描述" name="description">
@@ -167,6 +202,21 @@ const tableColumns = [
     { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 150 },
 ];
 const expressionPreviewHtml = computed(() => {
+    if (form.value?.taskParams?.fieldDerivationType === 'FIELD_DERIVE_SUBSTRING') {
+        const field = tableFields.value.map(f => f.columnName).filter(Boolean)[0];
+        if (!field) return '';
+        const direction = form.value?.taskParams?.direction || '1';
+        const start = form.value?.taskParams?.startIndex ?? 0;
+        const end = form.value?.taskParams?.endIndex;
+        if (direction === '2') {
+            return end != null
+                ? `<span class="var">SUBSTRING(${field}, LENGTH(${field}) - ${start} + 1, ${Math.max(1, end - start)})</span>`
+                : `<span class="var">SUBSTRING(${field}, LENGTH(${field}) - ${start} + 1)</span>`;
+        }
+        return end != null
+            ? `<span class="var">SUBSTRING(${field}, ${start + 1}, ${Math.max(1, end - start)})</span>`
+            : `<span class="var">SUBSTRING(${field}, ${start + 1})</span>`;
+    }
     const prefix = form.value?.taskParams?.fieldDerivationPrefix || '';
     const suffix = form.value?.taskParams?.fieldDerivationSuffix || '';
     const delimiter = form.value?.taskParams?.delimiter || '';
@@ -197,6 +247,23 @@ const expressionPreviewHtml = computed(() => {
     }
 
     return parts.join('');
+});
+
+const substringPreview = computed(() => {
+    if (form.value?.taskParams?.fieldDerivationType !== 'FIELD_DERIVE_SUBSTRING') return '';
+    const field = tableFields.value.map(f => f.columnName).filter(Boolean)[0];
+    if (!field) return '请先选择字段';
+    const direction = form.value?.taskParams?.direction || '1';
+    const start = form.value?.taskParams?.startIndex ?? 0;
+    const end = form.value?.taskParams?.endIndex;
+    if (direction === '2') {
+        return end != null
+            ? `SUBSTRING(${field}, LENGTH(${field}) - ${start} + 1, ${Math.max(1, end - start)})`
+            : `SUBSTRING(${field}, LENGTH(${field}) - ${start} + 1)`;
+    }
+    return end != null
+        ? `SUBSTRING(${field}, ${start + 1}, ${Math.max(1, end - start)})`
+        : `SUBSTRING(${field}, ${start + 1})`;
 });
 
 const props = defineProps({
@@ -247,6 +314,11 @@ function setSort() {
 function handleAddField() {
     if (!Array.isArray(inputFields.value) || inputFields.value.length === 0) {
         proxy.$message.warning("输入字段为空，无法添加字段");
+        return;
+    }
+    // SUBSTRING 截取只支持单字段
+    if (form.value?.taskParams?.fieldDerivationType === 'FIELD_DERIVE_SUBSTRING' && tableFields.value.length > 0) {
+        proxy.$message.warning("截取操作仅支持选择一个字段");
         return;
     }
     // 已添加的字段名
@@ -439,41 +511,44 @@ const off = () => {
 };
 
 const saveData = async () => {
-    try {
-        const valid = await dpModelRefs.value.validate();
-        if (!valid) return;
-        // 判断表格是否为空
-        if (!tableFields.value || tableFields.value.length === 0) {
-            proxy.$message.warning("校验未通过，请至少添加一个字段");
-            return;
-        }
-        if (!form.value.code) {
-            loading.value = true;
-            const response = await getNodeUniqueKey({
-                spaceCode: userStore.spaceCode || "133545087166112",
-                spaceId: userStore.spaceId,
-            });
-            loading.value = false;
-            form.value.code = response.data;
-        }
-        const taskParams = form.value?.taskParams || {};
-        taskParams.tableFields = tableFields.value;
-        console.log("🚀 ~ saveData ~  form.value.taskParams.fieldDerivationName:", form.value.taskParams.fieldDerivationName)
-        // 输出字段拼接目标字段
-        taskParams.outputFields = [
-            ...inputFields.value,
-            {
-                columnName: form.value.taskParams.fieldDerivationName,
-                source: form.value.name
-            }
-        ];
-        console.log("保存数据 - outputFields:", taskParams.outputFields);
-        emit("confirm", form.value);
-
-    } catch (error) {
-        console.error("保存数据失败:", error);
-        loading.value = false;
+  try {
+    // 等待 DOM 更新
+    await nextTick();
+    // 直接检查关键字段（避免 a-form dot-notation path 校验失效）
+    if (!form.value?.code) {
+      return proxy.$message.warning('请配置代码');
     }
+    // 判断表格是否为空
+    if (!tableFields.value || tableFields.value.length === 0) {
+      proxy.$message.warning("校验未通过，请至少添加一个字段");
+      return;
+    }
+    if (!form.value.code) {
+      loading.value = true;
+      const response = await getNodeUniqueKey({
+        spaceCode: userStore.spaceCode || "133545087166112",
+        spaceId: userStore.spaceId,
+      });
+      loading.value = false;
+      form.value.code = response.data;
+    }
+    const taskParams = form.value?.taskParams || {};
+    taskParams.tableFields = tableFields.value;
+    console.log("🚀 ~ saveData ~  form.value.taskParams.fieldDerivationName:", form.value.taskParams.fieldDerivationName)
+    // 输出字段拼接目标字段
+    taskParams.outputFields = [
+      ...inputFields.value,
+      {
+        columnName: form.value.taskParams.fieldDerivationName,
+        source: form.value.name
+      }
+    ];
+    console.log("保存数据 - outputFields:", taskParams.outputFields);
+    emit("confirm", form.value);
+  } catch (error) {
+    console.error("保存数据失败:", error);
+    loading.value = false;
+  }
 };
 
 
@@ -499,7 +574,10 @@ watchEffect(() => {
         off();
         return;
     }
-    form.value = deepCopy(props.currentNode?.data || {});
+    const copy = deepCopy(props.currentNode?.data || {});
+    // 原地更新而非替换 ref，保持 a-form 内部字段注册的响应式代理不被断开
+    Object.keys(form.value).forEach(k => { delete form.value[k]; });
+    Object.assign(form.value, copy);
     nodeOptions.value = createNodeSelect(props.graph, props.currentNode.id);
     // 备份初始表字段，避免被篡改
     originalTableFieldsBackup.value = deepCopy(
@@ -508,6 +586,10 @@ watchEffect(() => {
     inputFields.value = props.currentNode?.data?.taskParams?.inputFields;
     tableFields.value = props.currentNode?.data?.taskParams?.tableFields || [];
     setSort()
+    // 等待 DOM 更新后清除旧的校验状态，避免残留红字
+    nextTick(() => {
+        dpModelRefs.value?.clearValidate();
+    });
 
 });
 </script>

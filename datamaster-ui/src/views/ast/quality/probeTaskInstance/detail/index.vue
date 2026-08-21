@@ -203,7 +203,11 @@ const columns = ref([
     { key: 7, label: "问题数据量占比", visible: true },
 ]);
 function getLabelsByColumnName(row, columnName) {
-    if (!row.rule || !columnName) return '-';
+    if (!columnName) return '-';
+    const names = String(columnName).split(',').map(n => n.trim()).filter(Boolean);
+    if (!names.length) return '-';
+    // 旧执行记录可能没有保留规则 JSON，此时至少展示原始字段名称。
+    if (!row.rule) return names.join(' , ');
     let evaColumns = [];
     try {
         const ruleObj = typeof row.rule === 'string' ? JSON.parse(row.rule) : row.rule;
@@ -212,12 +216,11 @@ function getLabelsByColumnName(row, columnName) {
             : Object.values(ruleObj.evaColumns || {});
     } catch (err) {
         console.warn('规则字段解析失败', err);
-        return '-';
+        return names.join(' , ');
     }
 
-    if (!Array.isArray(evaColumns)) return '-';
+    if (!Array.isArray(evaColumns)) return names.join(' , ');
 
-    const names = columnName.split(',').map(n => n.trim());
     const labels = names.map(name => {
         const match = evaColumns.find(col => col.name === name);
         return match?.label || name;

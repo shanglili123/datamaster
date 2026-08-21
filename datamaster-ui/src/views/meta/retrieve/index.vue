@@ -1,9 +1,9 @@
 <template>
   <div class="app-container">
 
-    <qt-wrap :config="{ fullContent: false, actions: { show: false } }">
+    <dm-wrap :config="{ fullContent: false, actions: { show: false } }">
       <template #search>
-        <qt-search-bar
+        <dm-search-bar
           v-bind="searchStore"
           @query="getList"
           @reset="getList"
@@ -173,20 +173,6 @@
                     <svg-icon icon-class="meta-table"></svg-icon>
                     表列表
                   </div>
-
-                  <div
-                    class="btn-item"
-                    @click="
-                      go('db/detail', {
-                        id: meta.id,
-                        tab: 'VersionManagement',
-                      })
-                    "
-                    v-hasPermi="['md:unreleased:structured:db:detail']"
-                  >
-                    <svg-icon icon-class="meta-version"></svg-icon>
-                    版本与变更
-                  </div>
                 </template>
 
                 <!-- 表 -->
@@ -252,20 +238,6 @@
                             血缘分析
                           </a-typography-text>
                         </a-menu-item>
-                        <a-menu-item
-                          @click="
-                            go('table/detail', {
-                              id: meta.id,
-                              tab: 'VersionManagement',
-                            })
-                          "
-                          v-hasPermi="['md:unreleased:structured:table:detail']"
-                        >
-                          <a-typography-text type="primary">
-                            <svg-icon icon-class="meta-version"> </svg-icon>
-                            版本与变更
-                          </a-typography-text>
-                        </a-menu-item>
                       </a-menu>
                     </template>
                   </a-dropdown>
@@ -275,71 +247,11 @@
                 <template v-if="meta.mdColumnDO">
                   <div
                     class="btn-item"
-                    @click="
-                      go('column/detail', {
-                        id: meta.id,
-                      })
-                    "
+                    @click="go('column')"
                   >
-                    <EyeOutlined style="color: var(--el-color-primary)" />
-                    详情
+                    <EditOutlined style="color: var(--el-color-primary)" />
+                    修改
                   </div>
-
-                  <div
-                    class="btn-item"
-                    @click="
-                      go('column/detail', {
-                        id: meta.id,
-                        tab: 'LineageAnalysis',
-                      })
-                    "
-                  >
-                    <svg-icon icon-class="meta-lineage"></svg-icon>
-                    血缘分析
-                  </div>
-
-                  <a-dropdown :popup-class-name="'more-dropdown'">
-                    <div class="btn-item">
-                      <svg-icon icon-class="arrow-down"> </svg-icon>
-                      <span>更多</span>
-                    </div>
-                    <template #overlay>
-                      <a-menu>
-                        <a-menu-item
-                          @click="
-                            go('column/detail', {
-                              id: meta.id,
-                              tab: 'ImpactAnalysis',
-                            })
-                          "
-                          v-hasPermi="[
-                            'md:unreleased:structured:column:detail',
-                          ]"
-                        >
-                          <a-typography-text type="primary">
-                            <svg-icon icon-class="meta-impact"> </svg-icon>
-                            影响分析
-                          </a-typography-text>
-                        </a-menu-item>
-                        <a-menu-item
-                          @click="
-                            go('column/detail', {
-                              id: meta.id,
-                              tab: 'VersionManagement',
-                            })
-                          "
-                          v-hasPermi="[
-                            'md:unreleased:structured:column:detail',
-                          ]"
-                        >
-                          <a-typography-text type="primary">
-                            <svg-icon icon-class="meta-version"> </svg-icon>
-                            版本与变更
-                          </a-typography-text>
-                        </a-menu-item>
-                      </a-menu>
-                    </template>
-                  </a-dropdown>
                 </template>
               </div>
             </div>
@@ -359,13 +271,13 @@
         </div>
         </a-spin>
       </div>
-    </qt-wrap>
+    </dm-wrap>
   </div>
 </template>
 
 <script setup name="MetaRetrieve">
 import { getCurrentInstance, reactive, toValue } from "vue";
-import { EyeOutlined } from "@ant-design/icons-vue";
+import { EyeOutlined, EditOutlined } from "@ant-design/icons-vue";
 import { listMeta } from "@/api/cat/retrieve.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
 import { listDomain } from "@/api/tax/domain/domain.js";
@@ -631,7 +543,7 @@ getList();
 </script>
 
 <style lang="scss" scoped>
-::v-deep(.qt-wrap--content) {
+::v-deep(.dm-wrap--content) {
   background-color: transparent;
 }
 

@@ -1,5 +1,6 @@
 ﻿<template>
-    <a-layout-sider :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px', }" class="left-pane">
+    <a-layout-sider :width="leftWidth || 1" :collapsed="leftWidth === 0" :collapsed-width="0" :trigger="null"
+        :style="{ marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
         <div class="left-tree">
             <div class="head-container">
                 <a-tree class="dept-tree" :tree-data="deptOptions" :field-names="{ title: 'name', children: 'children', value: 'id' }"
@@ -14,9 +15,11 @@
                                 v-show="!selected && (!data.children || data.children.length == 0)" />
                             <FileTextOutlined class="zjiconimg colorxz"
                                 v-show="selected && (!data.children || data.children.length == 0)" />
-                            <span class="treelable" @click="getNode(data)">
-                                {{ data.name }}
-                            </span>
+                            <a-tooltip :title="data.name" placement="top-start" :disabled="!data.name">
+                                <span class="treelable" @click="getNode(data)">
+                                    {{ data.name }}
+                                </span>
+                            </a-tooltip>
                         </span>
                     </template>
                 </a-tree>

@@ -26059,15 +26059,15 @@ CREATE TABLE IF NOT EXISTS "cat_task_scheduler" (
     "update_by" character varying,
     "updater_id" bigint,
     "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "project_id" bigint,
-    "project_code" character varying
+    "space_id" bigint,
+    "space_code" character varying
 );
 
 COMMENT ON TABLE "cat_task_scheduler" IS 'cat_task_scheduler';
-COMMENT ON COLUMN "cat_task_scheduler"."project_id" IS '项目ID';
-COMMENT ON COLUMN "cat_task_scheduler"."project_code" IS '项目编码';
+COMMENT ON COLUMN "cat_task_scheduler"."space_id" IS '空间ID';
+COMMENT ON COLUMN "cat_task_scheduler"."space_code" IS '空间编码';
 
-INSERT INTO "cat_task_scheduler" ("id", "task_id", "job_id", "task_code", "start_time", "end_time", "timezone_id", "cron_expression", "failure_strategy", "status", "remark", "valid_flag", "del_flag", "create_by", "creator_id", "create_time", "update_by", "updater_id", "update_time", "project_id", "project_code") VALUES
+INSERT INTO "cat_task_scheduler" ("id", "task_id", "job_id", "task_code", "start_time", "end_time", "timezone_id", "cron_expression", "failure_strategy", "status", "remark", "valid_flag", "del_flag", "create_by", "creator_id", "create_time", "update_by", "updater_id", "update_time", "space_id", "space_code") VALUES
 (2068993453237436417, 2068993451274502145, NULL, 176856663923520, '2026-06-22 17:44:13.94', '2126-05-29 17:44:13.94', 'Asia/Shanghai', '', 0, 0, NULL, 'true', 0, '超级管理员', 1, '2026-06-22 17:44:13.949', '超级管理员', 1, '2026-06-23 10:33:18.436', 1, 174954643786848),
 (2073041068156260355, 2073041068156260354, NULL, 177823811196192, '2026-07-03 21:48:00.551', '2126-06-09 21:48:00.551', 'Asia/Shanghai', '', 0, 0, NULL, 'true', 0, '超级管理员', 1, '2026-07-03 21:48:00.554', '超级管理员', 1, '2026-07-04 12:13:52.253', 1, 174954643786848),
 (2073259500655104001, 2073259500571217921, NULL, 177885345867872, '2026-07-04 12:15:58.897', '2126-06-10 12:15:58.897', 'Asia/Shanghai', '', 0, 0, NULL, 'true', 0, '超级管理员', 1, '2026-07-04 12:15:58.916', '超级管理员', 1, '2026-07-04 17:56:17.476', 1, 174954643786848),
@@ -26094,15 +26094,15 @@ CREATE TABLE IF NOT EXISTS "cat_task_scope" (
     "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "remark" character varying,
     "description" character varying,
-    "project_id" bigint,
-    "project_code" character varying
+    "space_id" bigint,
+    "space_code" character varying
 );
 
 COMMENT ON TABLE "cat_task_scope" IS 'cat_task_scope';
-COMMENT ON COLUMN "cat_task_scope"."project_id" IS '项目ID';
-COMMENT ON COLUMN "cat_task_scope"."project_code" IS '项目编码';
+COMMENT ON COLUMN "cat_task_scope"."space_id" IS '空间ID';
+COMMENT ON COLUMN "cat_task_scope"."space_code" IS '空间编码';
 
-INSERT INTO "cat_task_scope" ("id", "task_id", "db_name", "schema_name", "valid_flag", "del_flag", "create_by", "creator_id", "create_time", "update_by", "updater_id", "update_time", "remark", "description", "project_id", "project_code") VALUES
+INSERT INTO "cat_task_scope" ("id", "task_id", "db_name", "schema_name", "valid_flag", "del_flag", "create_by", "creator_id", "create_time", "update_by", "updater_id", "update_time", "remark", "description", "space_id", "space_code") VALUES
 (2077688436260687873, 2077688435874811905, 'sakila', NULL, 1, 0, '超级管理员', 1, '2026-07-16 17:34:59.454', '超级管理员', 1, '2026-07-16 17:34:59.454', NULL, NULL, 1, 174954643786848),
 (2073040790430420994, 2068993451274502145, 'datamaster_test', 'public', 1, 0, '超级管理员', 1, '2026-07-03 21:46:54.343', '超级管理员', 1, '2026-07-03 21:46:54.343', NULL, NULL, 1, 174954643786848);
 

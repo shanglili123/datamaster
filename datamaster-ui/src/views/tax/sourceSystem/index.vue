@@ -1,8 +1,8 @@
 <template>
   <div class="app-container" ref="app-container">
-    <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
+    <dm-wrap :columns="tableStore.columns" :tableRef="tableRef">
       <template #search>
-        <qt-search-bar
+        <dm-search-bar
           v-bind="searchStore"
           :params="tableStore.params"
           @query="handleQueryClick"
@@ -21,7 +21,7 @@
           删除
         </a-button>
       </template>
-      <qt-table v-bind="tableStore" ref="tableRef">
+      <dm-table v-bind="tableStore" ref="tableRef">
         <template #type="scope">
           <dict-tag :options="sys_source_system_type" :value="scope.row.type" />
         </template>
@@ -53,8 +53,8 @@
             >详情</a-button
           >
         </template>
-      </qt-table>
-    </qt-wrap>
+      </dm-table>
+    </dm-wrap>
 
     <!-- 添加或修改来源系统对话框 -->
     <a-modal

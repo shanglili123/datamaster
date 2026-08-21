@@ -161,6 +161,13 @@ public class CatalogTaskController extends BaseController {
         return CommonResult.success(treeList);
     }
 
+    @Operation(summary = "获取库表两级树形结构（元数据结果页使用）")
+    @GetMapping("/dbTableTree")
+    public CommonResult<List<CatalogTaskSourceTreeRespVO>> getDbTableTree(CatalogTaskPageReqVO reqVO) {
+        List<CatalogTaskSourceTreeRespVO> treeList = CatalogTaskService.getDbTableTree(reqVO.getSpaceId());
+        return CommonResult.success(treeList);
+    }
+
     @GetMapping("/test")
     public void test() {
         System.out.println("33333333333333");

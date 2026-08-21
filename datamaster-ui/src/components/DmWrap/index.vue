@@ -1,11 +1,11 @@
-﻿<template>
-  <div class="qt-wrap">
+<template>
+  <div class="dm-wrap">
     <div
-      :class="[config.search ? '' : 'qt-wrap--search']"
+      :class="[config.search ? '' : 'dm-wrap--search']"
       v-if="$slots.search || hasDataActions || config.actions.table.show"
       ref="searchSectionRef"
     >
-      <div class="qt-wrap--search-inner">
+      <div class="dm-wrap--search-inner">
         <slot name="search"></slot>
         <div class="search-query-btns" v-if="$slots.search">
           <a-button type="primary" @click="handleQuery">
@@ -43,7 +43,7 @@
                     :key="item.prop"
                   >
                     <a-checkbox
-                      v-show="item?.type != 'selection'"
+                      v-show="item?.type != 'selection' && !item?.noHide"
                       :checked="!item.hide"
                       @change="(e) => handleCheckboxChange(e.target.checked, item)"
                     >
@@ -57,15 +57,15 @@
         </div>
       </div>
     </div>
-    <div :class="['qt-wrap--content', config.fullContent ? 'full' : '']">
-      <div class="qt-wrap--main" v-if="$slots.default">
+    <div :class="['dm-wrap--content', config.fullContent ? 'full' : '']">
+      <div class="dm-wrap--main" v-if="$slots.default">
         <slot name="default" />
       </div>
     </div>
   </div>
 </template>
 
-<script setup name="QtWrap">
+<script setup name="DmWrap">
 import { computed, useSlots, ref, provide, h } from "vue";
 import { merge } from "lodash-es";
 import { MenuOutlined } from "@ant-design/icons-vue";
@@ -116,8 +116,8 @@ const hasDataActions = computed(() => {
   return Boolean(slots["actions-data"]);
 });
 
-// 提供注册方法给 QtSearchBar
-provide('qtWrapRegisterSearchBar', (instance) => {
+// 提供注册方法给 DmSearchBar
+provide('dmWrapRegisterSearchBar', (instance) => {
   searchBarRef.value = instance;
 });
 
@@ -144,7 +144,7 @@ function handleCheckboxChange(checked, item) {
 </script>
 
 <style lang="scss" scoped>
-.qt-wrap {
+.dm-wrap {
   width: 100%;
   height: 100%;
   display: flex;
@@ -152,7 +152,7 @@ function handleCheckboxChange(checked, item) {
   gap: 12px;
 }
 
-.qt-wrap--search {
+.dm-wrap--search {
   padding: 14px 16px 2px;
   background: #ffffff;
   border: 1px solid #e8edf5;
@@ -160,27 +160,27 @@ function handleCheckboxChange(checked, item) {
   box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
 }
 
-.qt-wrap--search-inner {
+.dm-wrap--search-inner {
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-start;
   gap: 8px;
 
-  :deep(.qt-search-bar) {
+  :deep(.dm-search-bar) {
     flex: 0 1 auto;
   }
 
-  :deep(.qt-search-bar .ant-form) {
+  :deep(.dm-search-bar .ant-form) {
     flex-wrap: nowrap !important;
     row-gap: 0;
   }
 
-  :deep(.qt-search-bar .ant-form-item) {
+  :deep(.dm-search-bar .ant-form-item) {
     flex-shrink: 0;
     margin-bottom: 0;
   }
 
-  :deep(.qt-search-bar .search-btns) {
+  :deep(.dm-search-bar .search-btns) {
     display: none !important;
   }
 }
@@ -204,14 +204,14 @@ function handleCheckboxChange(checked, item) {
   }
 }
 
-.qt-wrap--actions-bar {
+.dm-wrap--actions-bar {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 12px;
 }
 
-.qt-wrap--content {
+.dm-wrap--content {
   background-color: #ffffff;
   border: 1px solid #e8edf5;
   border-radius: 8px;
@@ -219,13 +219,15 @@ function handleCheckboxChange(checked, item) {
   overflow: hidden;
 }
 
-.qt-wrap--content.full {
+.dm-wrap--content.full {
   flex: 1;
   padding: 14px 16px;
-  min-height: calc(100vh - 250px);
+  /* 高度由外层 flex 布局撑满（app-main 已按剩余空间分配），
+     不再依赖 calc(100vh - 250px)，避免 submenu-tabs 占位后内容溢出产生页面滚动条 */
+  min-height: 0;
 }
 
-.qt-wrap--actions {
+.dm-wrap--actions {
   display: flex;
   justify-content: space-between;
   align-items: center;

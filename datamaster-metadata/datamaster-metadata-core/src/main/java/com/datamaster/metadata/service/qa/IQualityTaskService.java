@@ -8,6 +8,7 @@ import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.metadata.api.qa.dto.QualitySummaryRespDTO;
 import com.datamaster.metadata.controller.qa.vo.*;
+import com.datamaster.metadata.dal.dataobject.qa.QualityLogDO;
 import com.datamaster.metadata.dal.dataobject.qa.QualityTaskDO;
 
 import java.util.Collection;
@@ -29,6 +30,15 @@ public interface IQualityTaskService extends IService<QualityTaskDO> {
      * @return 质量结果摘要
      */
     QualitySummaryRespDTO getLatestQualitySummary(Long datasourceId, String tableName);
+
+    /**
+     * 获取数据源表的全部探查历史记录（多次探查结果，按开始时间倒序）
+     *
+     * @param datasourceId 数据源ID
+     * @param tableName    表名
+     * @return 探查历史记录列表
+     */
+    List<QualityLogDO> getQualityLogListByTable(Long datasourceId, String tableName);
 
     /**
      * 获得质量探查任务分页列表

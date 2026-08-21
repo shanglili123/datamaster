@@ -1,9 +1,9 @@
 <template>
   <a-spin :spinning="store.loading">
     <div class="app-container">
-      <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
+      <dm-wrap :columns="tableStroe.columns" :tableRef="tableRef">
         <template #search>
-          <qt-search-bar
+          <dm-search-bar
             v-bind="searchStore"
             :params="tableStroe.params"
             :tableRef="tableRef"
@@ -37,7 +37,7 @@
             <span>{{ defaultExpandAll ? "折叠" : "展开" }}</span>
           </a-button>
         </template>
-        <qt-table v-bind="tableStroe" ref="tableRef">
+        <dm-table v-bind="tableStroe" ref="tableRef">
           <template #valid-flag="{ row }">
             <a-switch
               v-model:checked="row.validFlag"
@@ -72,8 +72,8 @@
               删除
             </a-button>
           </template>
-        </qt-table>
-      </qt-wrap>
+        </dm-table>
+      </dm-wrap>
     </div>
 
     <!-- 新增/修改弹窗 -->

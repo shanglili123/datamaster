@@ -1,21 +1,19 @@
 <template>
   <!-- 表输出 -->
   <a-modal v-model:open="visibleDialog" :draggable="true" :title="currentNode?.data?.name"
-    :closable="false" :destroy-on-close="true" class="medium-dialog" :mask-closable="false">
+    :closable="false" :destroy-on-close="true" class="medium-dialog" :mask-closable="false" :width="1200">
     <a-spin :spinning="loading">
-    <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
+    <a-form :model="form" :label-col="{ style: { width: '110px' } }"
       :disabled="info">
       <a-row :gutter="20">
         <a-col :span="12">
-          <a-form-item label="节点名称" name="name" :rules="[
-            { required: true, message: '请输入节点名称', trigger: 'change' },
-          ]">
+          <a-form-item label="节点名称">
             <a-input v-if="!info" v-model:value="form.name" placeholder="请输入节点名称" />
             <div v-else class="form-readonly">{{ form.name }}</div>
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item label="类型" name="typeName">
+          <a-form-item label="类型">
             <a-select v-if="!info" v-model:value="form.taskParams.typeName" placeholder="请输入类型" show-search disabled>
               <a-select-option v-for="dict in typeList" :key="dict.value" :label="dict.label" :value="dict.value">{{ dict.label }}</a-select-option>
             </a-select>
@@ -25,7 +23,7 @@
       </a-row>
       <a-row :gutter="20">
         <a-col :span="24">
-          <a-form-item label="描述" name="description">
+          <a-form-item label="描述">
             <a-textarea v-if="!info" v-model:value="form.description" placeholder="请输入描述" />
             <div v-else class="form-readonly">{{ form.description || '-' }}</div>
           </a-form-item>
@@ -33,13 +31,7 @@
       </a-row>
       <a-row :gutter="20">
         <a-col :span="12">
-          <a-form-item label="目标数据连接" name="taskParams.writerDatasource.datasourceId" :rules="[
-            {
-              required: true,
-              message: '请选择目标数据连接',
-              trigger: 'change',
-            },
-          ]">
+          <a-form-item label="目标数据连接">
             <a-select v-if="!info" v-model:value="form.taskParams.writerDatasource.datasourceId" placeholder="请选择目标数据连接"
               @change="handleDatasourceChange" show-search>
               <a-select-option v-for="dict in createTypeList" :key="dict.id" :label="dict.datasourceName"
@@ -50,7 +42,7 @@
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item label="数据连接类型" name="taskParams.writerDatasource.datasourceType">
+          <a-form-item label="数据连接类型">
             <a-input v-if="!info" v-model:value="form.taskParams.writerDatasource.datasourceType" placeholder="请输入数据连接类型"
               disabled />
             <div v-else class="form-readonly">{{ form.taskParams.writerDatasource.datasourceType || '-' }}</div>
@@ -59,15 +51,13 @@
       </a-row>
       <a-row :gutter="20">
         <a-col :span="12">
-          <a-form-item label="数据连接实例" name="taskParams.writerDatasource.dbname">
+          <a-form-item label="数据连接实例">
             <a-input v-if="!info" v-model:value="form.taskParams.writerDatasource.dbname" placeholder="请输入数据连接实例" disabled />
             <div v-else class="form-readonly">{{ form.taskParams.writerDatasource.dbname || '-' }}</div>
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item label="选择表" name="taskParams.target_asset_id" :rules="[
-            { required: true, message: '请选择表', trigger: 'change' },
-          ]">
+          <a-form-item label="选择表">
             <a-select v-if="!info" v-model:value="form.taskParams.target_asset_id" placeholder="请选择表" @change="handleChange"
               show-search :loading="loadingTables" style="width:100%">
               <a-select-option v-for="item in TablesByDataSource" :key="item.tableName" :label="item.tableName"
@@ -84,7 +74,7 @@
 
       <a-row :gutter="20">
         <a-col :span="24">
-          <a-form-item label="where条件" name="where">
+          <a-form-item label="where条件">
             <a-textarea v-if="!info" v-model:value="form.taskParams.where" placeholder="请输入where条件" />
             <div v-else class="form-readonly">{{ form.taskParams.where || '-' }}</div>
           </a-form-item>
@@ -103,7 +93,7 @@
 
       <a-row :gutter="20">
         <a-col :span="24" class=" hasMsg">
-          <a-form-item label="前置SQL" name="preSql">
+          <a-form-item label="前置SQL">
             <a-textarea v-if="!info" v-model:value="form.preSql" placeholder="请输入前置SQL" />
             <div v-else class="form-readonly">{{ form.preSql || '-' }}</div>
             <span class="msg"><InfoCircleOutlined />数据写入之前执行的SQL</span>
@@ -112,13 +102,7 @@
       </a-row>
       <a-row :gutter="20">
         <a-col :span="12">
-          <a-form-item label="写入模式" name="taskParams.writeModeType" :rules="[
-            {
-              required: true,
-              message: '请选择写入模式',
-              trigger: 'change',
-            },
-          ]">
+          <a-form-item label="写入模式">
             <a-radio-group v-if="!info" v-model:value="form.taskParams.writeModeType">
               <a-radio :value="2">追加</a-radio>
               <a-radio :value="1">全量</a-radio>
@@ -130,7 +114,7 @@
           </a-form-item>
         </a-col>
         <a-col :span="12" class=" hasMsg">
-          <a-form-item label="单次写入数据" name="taskParams.description">
+          <a-form-item label="单次写入数据">
             <a-input v-if="!info" v-model:value="form.taskParams.description" placeholder="请输入单次写入数据条数"
               type="number" addon-after="条" />
             <div v-else class="form-readonly">{{ form.taskParams.description ? form.taskParams.description + '条' : '-'
@@ -142,13 +126,7 @@
       <a-row :gutter="20"
         v-if="form.taskParams.writeModeType == 3 && form.taskParams.writerDatasource.datasourceType !== 'Doris'">
         <a-col :span="24">
-          <a-form-item label="更新主键字段" name="taskParams.selectedColumns" :rules="[
-            {
-              required: true,
-              message: '请选择更新主键字段',
-              trigger: 'change',
-            },
-          ]">
+          <a-form-item label="更新主键字段">
             <a-checkbox-group v-if="!info" v-model:value="form.taskParams.selectedColumns">
               <a-checkbox v-for="item in ColumnByAssettab" :key="item.id" :value="item.columnName">
                 {{ item.columnName }}
@@ -160,7 +138,7 @@
       </a-row>
       <a-row :gutter="20">
         <a-col :span="24" class=" hasMsg">
-          <a-form-item label="后置SQL" name="taskParams.postSql">
+          <a-form-item label="后置SQL">
             <a-textarea v-if="!info" v-model:value="form.taskParams.postSql" placeholder="请输入后置SQL" />
             <div v-else class="form-readonly">{{ form.taskParams.postSql || '-' }}</div>
             <span class="msg"><InfoCircleOutlined />数据同步完成后执行的SQL</span>
@@ -223,7 +201,6 @@ let opens = ref(false);
 let row = ref();
 let TablesByDataSource = ref([]);
 let ColumnByAssettab = ref([]);
-let dpModelRefs = ref();
 let form = ref({});
 let loadingTables = ref(false)
 let newTableName = ref('')
@@ -266,24 +243,28 @@ const getDatasourceList = async () => {
 };
 
 // 获取表列表
-const getTablesByDatasourceId = async (id) => {
-  TablesByDataSource.value = await fetchData(
-    getTablesByDataSourceId,
-    { datasourceId: id },
-    loadingTables
-  );
+const fetchTablesByDatasourceId = async (id) => {
+  try {
+    loadingTables.value = true;
+    const response = await getTablesByDataSourceId({ datasourceId: id });
+    TablesByDataSource.value = response.data || [];
+  } finally {
+    loadingTables.value = false;
+  }
 };
 
 // 获取列数据
-const getColumnByAssetIdList = async (id) => {
-  ColumnByAssettab.value = await fetchData(
-    getColumnByAssetId,
-    {
+const getColumnByAssetIdList = async () => {
+  try {
+    loadingList.value = true;
+    const response = await getColumnByAssetId({
       id: form.value.taskParams.writerDatasource.datasourceId,
       tableName: form.value.taskParams.target_asset_id,
-    },
-    loadingList
-  );
+    });
+    ColumnByAssettab.value = response.data || [];
+  } finally {
+    loadingList.value = false;
+  }
 };
 
 // 获取列数据
@@ -291,24 +272,15 @@ const getColumns = () => {
   return childComponent.value?.getColumns();
 };
 
-// 通用的获取数据的函数
-const fetchData = async (requestFn, params, loadingState) => {
-  try {
-    loadingState.value = true;
-    const response = await requestFn(params);
-    return response.data;
-  } finally {
-    loadingState.value = false;
-  }
-};
-
 // 处理数据源变化
 const resetAndFetchTables = async (selectedDatasource) => {
   TablesByDataSource.value = [];
   ColumnByAssettab.value = [];
   let { datasourceType, datasourceConfig, ip, port, id } = selectedDatasource;
-  let code = JSON.parse(datasourceConfig);
-  form.value.taskParams.target_datasource_id = "";
+  let code = {};
+  try { code = JSON.parse(datasourceConfig); } catch (e) { code = {}; }
+  form.value.taskParams.target_asset_id = "";
+  form.value.taskParams.target_table_name = "";
   form.value.taskParams.writerDatasource = {
     datasourceType,
     datasourceConfig,
@@ -317,9 +289,10 @@ const resetAndFetchTables = async (selectedDatasource) => {
     dbname: code.dbname,
     target_asset_id: String(id),
     datasourceId: String(id),
+    datasourceName: selectedDatasource.datasourceName,
   };
 
-  await getTablesByDatasourceId(id);
+  await fetchTablesByDatasourceId(id);
 };
 
 // 处理数据源变化
@@ -344,12 +317,11 @@ const handleChange = (value) => {
   if (selectedDatasource) {
     setTableName(selectedDatasource);
     ColumnByAssettab.value = [];
-    getColumnByAssetIdList(selectedDatasource.id);
+    getColumnByAssetIdList();
   }
 };
 
 const off = () => {
-  proxy.resetForm("dpModelRefs");
   // 清空表格字段数据
   ColumnByAssettab.value = [];
   TablesByDataSource.value = [];
@@ -358,8 +330,25 @@ const off = () => {
 // 保存数据
 const saveData = async () => {
   try {
-    const valid = await dpModelRefs.value?.validate();
-    if (!valid) return;
+    await nextTick();
+    // 手动校验必填字段（避免 a-form dot-notation path 校验失效）
+    if (!form.value?.name) {
+      return proxy.$message.warning('请输入节点名称');
+    }
+    if (!form.value?.taskParams?.writerDatasource?.datasourceId) {
+      return proxy.$message.warning('请选择目标数据连接');
+    }
+    if (!form.value?.taskParams?.target_asset_id) {
+      return proxy.$message.warning('请选择表');
+    }
+    if (!form.value?.taskParams?.writeModeType && form.value?.taskParams?.writeModeType !== 0) {
+      return proxy.$message.warning('请选择写入模式');
+    }
+    if (form.value?.taskParams?.writeModeType === 3 &&
+        form.value?.taskParams?.writerDatasource?.datasourceType !== 'Doris' &&
+        (!form.value?.taskParams?.selectedColumns || !form.value.taskParams.selectedColumns.length)) {
+      return proxy.$message.warning('请选择更新主键字段');
+    }
 
     // 没有 code 时生成唯一 code
     if (!form.value.code) {
@@ -432,7 +421,7 @@ const handleCreateTable = async () => {
       })),
     });
     proxy.$modal.msgSuccess('创建成功');
-    await getTablesByDatasourceId(writer.datasourceId);
+    await fetchTablesByDatasourceId(writer.datasourceId);
     form.value.taskParams.target_asset_id = newTableName.value;
     form.value.taskParams.target_table_name = newTableName.value;
     // 自动获取新建表的字段并回显
@@ -454,48 +443,60 @@ const closeDialog = () => {
 // 监听属性变化
 function deepCopy(data) {
   if (data === undefined || data === null) {
-    return {}; // 或者返回一个默认值
+    return {};
   }
   try {
     return JSON.parse(JSON.stringify(data));
   } catch (e) {
-    return {}; // 或者返回一个默认值
+    return {};
   }
 }
 
 // 处理数据源和列操作的共用函数
 const handleDatasource = (datasource, assetId) => {
   if (datasource?.datasourceId) {
-    getTablesByDatasourceId(datasource.datasourceId);
-    // 如果需要处理 assetId，可以在此调用
-    // getColumnByAssetIdList(assetId);
+    fetchTablesByDatasourceId(datasource.datasourceId);
   } else {
     console.warn("无效的数据源信息", datasource);
   }
 };
-// 监听属性变化
-watchEffect(() => {
-  if (!props.visible) {
-    off();
-    return;
-  }
-  getDatasourceList();
+// 监听属性变化 — 使用 watch 限定依赖，避免表单字段变化触发回调覆盖用户操作
+watch(
+  () => [props.visible, props.currentNode?.id],
+  ([visible]) => {
+    if (!visible) {
+      off();
+      return;
+    }
+    getDatasourceList();
 
-  const nodeData = props.currentNode?.getProp?.("data") || {};
-  form.value = deepCopy(nodeData);
+    const nodeData = props.currentNode?.getProp?.("data") || {};
+    const copy = deepCopy(nodeData);
+    // 原地更新而非替换 ref，保持 a-form 内部字段注册的响应式代理不被断开
+    Object.keys(form.value).forEach(k => { delete form.value[k]; });
+    Object.assign(form.value, copy);
 
-  const taskParams = form.value?.taskParams || {};
-  const savedTableFields = taskParams.tableFields?.length
-    ? deepCopy(taskParams.tableFields)
-    : deepCopy(taskParams.inputFields);
-  tableFields.value = Array.isArray(savedTableFields) ? savedTableFields : [];
-  // 尝试从上游输入节点获取源表名
-  const parentNode = getParentNode(props.currentNode, props.graph);
-  const sourceTableName = parentNode?.getProp?.("data")?.taskParams?.asset_id || '';
-  newTableName.value = sourceTableName;
-  ColumnByAssettab.value = Array.isArray(taskParams.toColumnsList) ? taskParams.toColumnsList : [];
-});
-handleDatasource(form.value?.taskParams.writerDatasource || "");
+    // 确保嵌套对象存在
+    form.value.taskParams = form.value.taskParams || {};
+    form.value.taskParams.writerDatasource = form.value.taskParams.writerDatasource || {};
+    form.value.taskParams.selectedColumns = form.value.taskParams.selectedColumns || [];
+
+    const taskParams = form.value.taskParams;
+    const savedTableFields = taskParams.tableFields?.length
+      ? deepCopy(taskParams.tableFields)
+      : deepCopy(taskParams.inputFields);
+    tableFields.value = Array.isArray(savedTableFields) ? savedTableFields : [];
+    // 尝试从上游输入节点获取源表名
+    const parentNode = getParentNode(props.currentNode, props.graph);
+    const sourceTableName = parentNode?.getProp?.("data")?.taskParams?.asset_id || '';
+    newTableName.value = sourceTableName;
+    ColumnByAssettab.value = Array.isArray(taskParams.toColumnsList) ? taskParams.toColumnsList : [];
+
+    // 加载当前数据源对应的表列表
+    handleDatasource(form.value.taskParams.writerDatasource);
+  },
+  { immediate: true }
+);
 </script>
 
 
@@ -504,4 +505,3 @@ handleDatasource(form.value?.taskParams.writerDatasource || "");
   color: #2666fb;
 }
 </style>
-

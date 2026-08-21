@@ -11,19 +11,20 @@
             <div class="task-name">
               {{ getFormatValue(form.tableName) }}
             </div>
-            <div>
-              <dict-tag
-                :options="toValue(dicts.meta_task_status)"
-                :value="form.status"
-              />
-            </div>
           </div>
           <div class="btn-style">
             <a-button
               type="primary"
               class="fh_btn"
+              @click="goProbeHistory"
+            >
+              查看质量报告
+            </a-button>
+            <a-button
+              type="primary"
+              class="fh_btn"
               @mousedown="(e) => e.preventDefault()"
-              @click="router.back"
+              @click="handleBack"
             >
               <svg-icon iconClass="fhs" />返回
             </a-button>
@@ -102,10 +103,12 @@
   </a-spin>
 </template>
 <script setup name="DatabaseDetail">
-import { computed, getCurrentInstance, nextTick, reactive, toValue } from "vue";
+import { computed, getCurrentInstance, reactive, toValue } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { message } from "ant-design-vue";
 import { getTable } from "@/api/cat/unreleased/table";
 import { listDomain } from "@/api/tax/domain/domain.js";
+import { listProbeHistoryByTable } from "@/api/ast/quality/probeTaskInstance";
 import { getParentLabelPath } from "@/utils/anivia.js";
 
 const tabData = [
@@ -117,37 +120,22 @@ const tabData = [
     key: "ColumnList",
     label: "字段列表",
   },
-  // {
-  //   key: "DataGovern",
-  //   label: "数据治理",
-  // },
-  // {
-  //   key: "LineageAnalysis",
-  //   label: "血缘分析",
-  // },
-  // {
-  //   key: "ImpactAnalysis",
-  //   label: "影响分析",
-  // },
   {
-    key: "VersionManagement",
-    label: "版本与变更",
+    key: "ProbeHistory",
+    label: "任务历史",
   },
 ];
 const tabComponent = {
   BaseInfo: defineAsyncComponent(() => import("./BaseInfo.vue")),
   ColumnList: defineAsyncComponent(() => import("./ColumnList.vue")),
-  VersionManagement: defineAsyncComponent(() =>
-    import("./VersionManagement.vue")
-  ),
+  ProbeHistory: defineAsyncComponent(() => import("./ProbeHistory.vue")),
 };
 
 const { proxy } = getCurrentInstance();
 const dicts = proxy.useDict(
   "datasource_type",
   "mc_collect_scope",
-  "mc_collect_mode",
-  "meta_task_status"
+  "mc_collect_mode"
 );
 
 const router = useRouter();
@@ -195,18 +183,36 @@ function getDomains() {
 }
 
 // 获取详情
-async function getDetail() {
+function getDetail() {
   store.loading = true;
-  // await getDomains();
-  getTable(route.query.id).then((res) => {
-    const datasource = res.data?.dbRespVO?.datasource;
-    if (datasource?.datasourceConfig) {
-      datasource.datasourceConfig = JSON.parse(datasource.datasourceConfig);
-    }
-    res.data.username = datasource?.datasourceConfig?.username;
-    store.form = res.data;
-    store.loading = false;
-  });
+  getTable(route.query.id)
+    .then((res) => {
+      if (!res?.data) {
+        store.form = {};
+        return;
+      }
+      const datasource = res.data?.dbRespVO?.datasource;
+      if (
+        datasource?.datasourceConfig &&
+        typeof datasource.datasourceConfig === "string"
+      ) {
+        try {
+          datasource.datasourceConfig = JSON.parse(datasource.datasourceConfig);
+        } catch (e) {
+          // 配置串非法时保持原样，避免阻塞详情展示
+        }
+      }
+      res.data.username = datasource?.datasourceConfig?.username;
+      store.form = res.data;
+    })
+    .catch((err) => {
+      console.error("表详情加载失败", err);
+      store.form = {};
+      message.error("表详情加载失败，请稍后重试");
+    })
+    .finally(() => {
+      store.loading = false;
+    });
 }
 
 // 切换tab
@@ -217,6 +223,37 @@ function handleTabChange(tab) {
       tab,
     },
   });
+}
+
+// 直接打开详情页时没有可返回的路由记录，回退到元数据结果列表。
+function handleBack() {
+  router.push({ path: "/meta/probeResult" });
+}
+
+// 查看质量报告：直接跳转该表最近一次探查报告
+function goProbeHistory() {
+  const { datasourceId, tableName } = store.form || {};
+  if (!datasourceId || !tableName) {
+    message.warning("该表暂无质量报告，请先执行带质量规则的探查任务");
+    return;
+  }
+  listProbeHistoryByTable({ datasourceId, tableName })
+    .then((res) => {
+      const records = res.data || [];
+      if (!records.length) {
+        message.warning("该表暂无质量报告，请先执行带质量规则的探查任务");
+        return;
+      }
+      // 后端按开始时间倒序，第一条即最近一次探查结果
+      const latest = records[0];
+      router.push({
+        path: "/ast/quality/probeTaskInstance/detail",
+        query: { id: latest.id, score: latest.score },
+      });
+    })
+    .catch(() => {
+      message.error("质量报告加载失败，请稍后重试");
+    });
 }
 
 getDetail();

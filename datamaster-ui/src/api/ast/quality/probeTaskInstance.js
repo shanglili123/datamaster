@@ -10,6 +10,15 @@ export function listProbeTaskInstance(query) {
   })
 }
 
+// 按表查询探查历史记录（多次探查结果）
+export function listProbeHistoryByTable(query) {
+  return request({
+    url: '/metadata/probeTaskInstance/listByTable',
+    method: 'get',
+    params: query
+  })
+}
+
 // 查询探查任务实例详细
 export function getProbeTaskInstance(id) {
   return request({

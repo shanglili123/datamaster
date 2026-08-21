@@ -81,8 +81,7 @@ let queryParams = ref({
   qualityDim: "",
   // validFlag: '1'
 });
-const processedData = ref([]);
-processedData.value = computed(() => {
+const processedData = computed(() => {
   return [
     {
       name: "质量维度",

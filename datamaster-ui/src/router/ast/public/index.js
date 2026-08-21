@@ -13,7 +13,7 @@ export default [
                 path: '',
                 component: () => import('@/views/col/asset/detail/index.vue'),
                 name: 'daDaAssetDetail',
-                meta: { title: '资产地图详情', activeMenu: '/ast/asset' }
+                meta: { title: '资产数据详情', activeMenu: '/ast/asset' }
             }
         ]
     },

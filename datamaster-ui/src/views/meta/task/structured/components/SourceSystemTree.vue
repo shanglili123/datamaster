@@ -6,7 +6,6 @@
     :trigger="null"
     :style="{
       marginLeft: leftWidth == 0 ? '-15px' : '0px',
-      '--qt-wrap-height': qtWrapheight,
     }"
     class="left-pane"
   >
@@ -35,7 +34,7 @@
           class="filter-tree"
           size="small"
           v-model:value="filterText"
-          placeholder="来源系统/数据源/库名"
+          :placeholder="treeType === 'dbTable' ? '库名/表名' : '来源系统/数据源/库名'"
           allow-clear
         >
           <template #prefix><SearchOutlined /></template>
@@ -50,34 +49,40 @@
             :tree-data="visibleTreeData"
             :field-names="{ title: 'name', key: 'nodeKey', children: 'children' }"
             :selected-keys="selectedKeys"
-            :default-expanded-keys="defaultExpandedKeys"
+            :expanded-keys="expandedKeys"
             @select="handleSelect"
+            @expand="handleExpand"
           >
             <template #title="{ data }">
               <span class="custom-tree-node">
-                <!-- 1级节点 - 使用自定义 zoom 图标 -->
+                <!-- 来源系统节点 - 使用自定义 zoom 图标 -->
                 <svg-icon
-                  v-if="getNodeLevel(data.nodeKey) === 1"
+                  v-if="data.type === 'SOURCE'"
                   icon-class="zoom"
                   class="node-icon colorwxz"
                 />
-                <!-- 2级节点 - 使用 type 对应的图标 -->
+                <!-- 数据源/数据库节点(带类型时) - 使用 type 对应的图标 -->
                 <img
-                  v-else-if="getNodeLevel(data.nodeKey) === 2"
+                  v-else-if="
+                    (data.type === 'DATASOURCE' || data.type === 'DATABASE') &&
+                    data.datasourceType
+                  "
                   :src="getDatasourceIcon(data.datasourceType)"
                   class="node-icon"
                 />
 
-                <!-- 3级及以后节点 - 使用叶子节点图标 -->
+                <!-- 表节点/无类型的数据库节点 - 使用叶子节点图标 -->
                 <svg-icon v-else icon-class="zbzc" class="node-icon colorwxz" />
 
-                <span class="treelabel"> {{ data.name }} </span>
+                <a-tooltip :title="data.name" placement="top-start" :disabled="!data.name">
+                  <span class="treelabel"> {{ data.name }} </span>
+                </a-tooltip>
               </span>
             </template>
           </a-tree>
           <a-empty
             v-else-if="!loading"
-            description="暂无来源系统数据"
+            :description="treeType === 'dbTable' ? '暂无库表数据' : '暂无来源系统数据'"
             :image="Empty.PRESENTED_IMAGE_SIMPLE"
           />
         </a-spin>
@@ -100,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { Empty } from "ant-design-vue";
 import {
   LeftOutlined,
@@ -110,13 +115,18 @@ import {
   ReloadOutlined,
   MenuFoldOutlined,
 } from "@ant-design/icons-vue";
-import { sourceSystemTree } from "@/api/cat/task/task";
+import { sourceSystemTree, dbTableTree } from "@/api/cat/task/task";
 import { getDatasourceIcon } from "@/utils/datasource";
 
 const props = defineProps({
   initialLeftWidth: {
     type: Number,
     default: 300,
+  },
+  // 树形模式: sourceSystem-来源系统三级树(默认), dbTable-库表两级树
+  treeType: {
+    type: String,
+    default: "sourceSystem",
   },
 });
 
@@ -126,12 +136,32 @@ const treeRef = ref(null);
 const filterText = ref("");
 const treeData = ref([]);
 const flatData = ref([]);
-const defaultExpandedKeys = ref([]);
+const expandedKeys = ref([]);
 const selectedKeys = ref([]);
 const loading = ref(false);
 const leftWidth = ref(props.initialLeftWidth);
-const qtWrapheight = ref("86vh");
-let resizeObserver = null;
+
+// 折叠/展开状态持久化：按树类型分别存储，刷新或重新进入页面时保持用户的手动折叠状态
+const STORAGE_PREFIX = "dm-source-system-tree";
+const storageKey = `${STORAGE_PREFIX}-${props.treeType}-expanded`;
+const storageWidthKey = `${STORAGE_PREFIX}-${props.treeType}-width`;
+
+function restoreState() {
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const keys = JSON.parse(saved);
+      if (Array.isArray(keys)) expandedKeys.value = keys;
+    }
+    const savedWidth = localStorage.getItem(storageWidthKey);
+    if (savedWidth !== null) {
+      leftWidth.value = Number(savedWidth) || props.initialLeftWidth;
+    }
+  } catch (e) {
+    // 忽略异常，使用默认折叠状态
+  }
+}
+restoreState();
 
 // 过滤树数据（保留匹配节点及其祖先）
 function filterTreeData(list, keyword) {
@@ -150,18 +180,6 @@ function filterTreeData(list, keyword) {
 const visibleTreeData = computed(() =>
   filterTreeData(treeData.value, filterText.value)
 );
-
-// 计算节点层级（1级/2级/更深）
-function getNodeLevel(nodeKey, list = treeData.value, level = 1) {
-  for (const item of list) {
-    if (item.nodeKey === nodeKey) return level;
-    if (item.children && item.children.length) {
-      const res = getNodeLevel(nodeKey, item.children, level + 1);
-      if (res) return res;
-    }
-  }
-  return null;
-}
 
 // 拖拽逻辑
 const isResizing = ref(false);
@@ -188,27 +206,35 @@ const updateResize = (event) => {
 // 折叠展开
 const toggleCollapse = () => {
   leftWidth.value = leftWidth.value === 0 ? 300 : 0;
-  emit("update:leftWidth", leftWidth.value);
-};
-
-// 高度监听逻辑
-const getQtWrapHeight = () => {
-  const element = document.querySelector(".qt-wrap");
-  if (element) {
-    qtWrapheight.value = element.offsetHeight + "px";
-  } else {
-    qtWrapheight.value = "86vh";
+  try {
+    localStorage.setItem(storageWidthKey, String(leftWidth.value));
+  } catch (e) {
+    // 忽略存储异常
   }
+  emit("update:leftWidth", leftWidth.value);
 };
 
 const handleSelect = (keys, e) => {
   selectedKeys.value = keys;
-  emit("node-click", e.node.data);
+  // ant-design-vue 4.x 的 select 事件节点对象上原始数据在 dataRef，没有 .data 属性
+  const nodeData = e.node?.dataRef ?? e.node ?? null;
+  emit("node-click", nodeData);
+};
+
+// 用户手动展开/折叠节点时记录状态，避免数据刷新后被强制重置
+const handleExpand = (keys) => {
+  expandedKeys.value = keys;
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(keys));
+  } catch (e) {
+    // 忽略存储异常
+  }
 };
 
 const getTreeData = () => {
   loading.value = true;
-  sourceSystemTree()
+  const fetchApi = props.treeType === "dbTable" ? dbTableTree : sourceSystemTree;
+  fetchApi()
     .then((res) => {
       loading.value = false;
       if (!res || !res.data) {
@@ -231,22 +257,6 @@ const getTreeData = () => {
       };
       treeData.value = formatData(res.data);
 
-      // 获取第1级节点的key用于默认展开
-      const getExpandedKeys = (list, level = 1) => {
-        if (!Array.isArray(list)) return [];
-        let keys = [];
-        list.forEach((item) => {
-          if (level === 1) {
-            keys.push(item.nodeKey);
-          }
-          if (item.children && item.children.length > 0) {
-            keys = keys.concat(getExpandedKeys(item.children, level + 1));
-          }
-        });
-        return keys;
-      };
-      defaultExpandedKeys.value = getExpandedKeys(treeData.value);
-
       // 扁平化数据用于查找
       const flatten = (list) => {
         if (!Array.isArray(list)) return [];
@@ -259,7 +269,13 @@ const getTreeData = () => {
         });
         return result;
       };
-      flatData.value = flatten(treeData.value);
+      const flat = flatten(treeData.value);
+      flatData.value = flat;
+
+      // 保留用户手动展开的节点，剔除已不存在的节点 key，避免误展开
+      const existKeys = new Set(flat.map((item) => item.nodeKey));
+      expandedKeys.value = expandedKeys.value.filter((key) => existKeys.has(key));
+
       emit("data-loaded", {
         treeData: treeData.value,
         flatData: flatData.value,
@@ -273,28 +289,6 @@ const getTreeData = () => {
 
 onMounted(() => {
   getTreeData();
-  getQtWrapHeight();
-
-  const targetElement = document.querySelector(".qt-wrap");
-  if (targetElement) {
-    resizeObserver = new ResizeObserver(() => {
-      getQtWrapHeight();
-    });
-    resizeObserver.observe(targetElement);
-  }
-
-  window.addEventListener("resize", getQtWrapHeight);
-});
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    const targetElement = document.querySelector(".qt-wrap");
-    if (targetElement) {
-      resizeObserver.unobserve(targetElement);
-    }
-    resizeObserver.disconnect();
-  }
-  window.removeEventListener("resize", getQtWrapHeight);
 });
 
 const resetTree = () => {
@@ -317,11 +311,12 @@ defineExpose({
 
   :deep(.ant-layout-sider-children) {
     width: 100%;
+    height: 100%;
   }
 }
 
 .left-tree {
-  height: v-bind(qtWrapheight);
+  height: 100%;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -434,7 +429,8 @@ defineExpose({
 }
 
 .resize-bar {
-  height: v-bind(qtWrapheight);
+  /* 高度由 flex 行布局拉伸（ant-layout 高度由内容决定，height:100% 会解析为 0） */
+  align-self: stretch;
   cursor: ew-resize;
   background: transparent;
   display: flex;

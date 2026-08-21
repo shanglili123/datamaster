@@ -46,79 +46,45 @@
       </div>
     </div>
 
-    <a-spin :spinning="loading">
     <div class="pagecont-bottom">
-      <div class="page-list" v-if="total > 0">
-        <a-row :gutter="15">
-          <a-col :span="12" v-for="(item, index) in searchList" :key="index">
-            <div class="page-item">
-              <div class="item-title">
-                <div class="item-title-left">
-                  <img :src="getFileIcon(item.fileUrl)" alt="" />
-                  <div class="item-name">
-                    <span class="item-name-title" :title="item.name">{{
-                      item.name
-                    }}</span>
-                    <span
-                      class="item-name-code ellipsis"
-                      :title="item.fileName"
-                      >{{ item.fileName }}</span
-                    >
-                  </div>
-                </div>
-                <div class="item-title-right">
-                  <div
-                    class="form-btn"
-                    @click="handleFilePreview(item.fileUrl)"
-                  >
-                    <span>查看</span>
-                  </div>
-                  <div class="form-btn" @click="handleView(item)">
-                    <span>详情</span>
-                  </div>
-                </div>
-              </div>
-              <div class="item-con">
-                <div class="item-form">
-                  <div class="form-label">标准分类:</div>
-                  <div class="form-value">
-                    <div :class="['value-tag', 'type' + item.type]">
-                      {{ typeFormat1(item) }}
-                    </div>
-                  </div>
-                </div>
-                <div class="item-form">
-                  <div class="form-label">实施状态:</div>
-                  <div class="form-value">
-                    <dict-tag
-                      :options="dp_document_status"
-                      :value="item.status"
-                    />
-                  </div>
-                </div>
-                <div class="item-form">
-                  <div class="form-label">发布日期:</div>
-                  <div class="form-value">
-                    <div class="ellipsis">{{ item.releaseDate || "-" }}</div>
-                  </div>
-                </div>
-                <div class="item-form">
-                  <div class="form-label">实施日期:</div>
-                  <div class="form-value">
-                    <div class="ellipsis">
-                      {{ item.implementationDate || "-" }}
-                    </div>
-                  </div>
-                </div>
+      <a-table
+        striped
+        :loading="loading"
+        :data-source="searchList"
+        :columns="tableColumns"
+        :pagination="false"
+        :scroll="{ x: 1100 }"
+        :locale="{ emptyText: '暂无搜索内容～' }"
+        row-key="id"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'name'">
+            <div class="doc-name-cell">
+              <img :src="getFileIcon(record.fileUrl)" alt="" />
+              <div class="doc-name">
+                <span class="doc-name-title" :title="record.name">{{ record.name }}</span>
+                <span class="doc-name-code ellipsis" :title="record.fileName">{{ record.fileName }}</span>
               </div>
             </div>
-          </a-col>
-        </a-row>
-      </div>
-      <div class="empty" v-else>
-        <img src="@/assets/da/asset/empty.png" alt="" />
-        <span>暂无搜索内容～</span>
-      </div>
+          </template>
+          <template v-else-if="column.dataIndex === 'type'">
+            <div :class="['value-tag', 'type' + record.type]">{{ typeFormat1(record) }}</div>
+          </template>
+          <template v-else-if="column.dataIndex === 'status'">
+            <dict-tag :options="dp_document_status" :value="record.status" />
+          </template>
+          <template v-else-if="column.dataIndex === 'releaseDate'">
+            {{ record.releaseDate || "-" }}
+          </template>
+          <template v-else-if="column.dataIndex === 'implementationDate'">
+            {{ record.implementationDate || "-" }}
+          </template>
+          <template v-else-if="column.key === 'actions'">
+            <a-button type="link" size="small" @click="handleFilePreview(record.fileUrl)">查看</a-button>
+            <a-button type="link" size="small" @click="handleView(record)">详情</a-button>
+          </template>
+        </template>
+      </a-table>
       <pagination
         v-show="total > 0"
         :total="total"
@@ -127,7 +93,6 @@
         @pagination="getList"
       />
     </div>
-    </a-spin>
   </div>
 </template>
 <script setup name="DocumentDocs">
@@ -146,6 +111,15 @@ const loading = ref(false);
 const showSearch = ref(true);
 const total = ref(0);
 const router = useRouter();
+
+const tableColumns = [
+  { title: "标准名称", dataIndex: "name", key: "name", width: 300, ellipsis: true },
+  { title: "标准分类", dataIndex: "type", key: "type", width: 120 },
+  { title: "实施状态", dataIndex: "status", key: "status", width: 120 },
+  { title: "发布日期", dataIndex: "releaseDate", key: "releaseDate", width: 150 },
+  { title: "实施日期", dataIndex: "implementationDate", key: "implementationDate", width: 150 },
+  { title: "操作", key: "actions", width: 130, fixed: "right" },
+];
 
 const data = reactive({
   queryParams: {
@@ -260,144 +234,78 @@ getList();
   box-shadow: none;
 }
 
-.page-list {
-  height: auto;
-  overflow: visible;
+.doc-name-cell {
+  display: flex;
+  align-items: center;
 
-  &::-webkit-scrollbar {
-    width: 2px;
+  img {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+    flex-shrink: 0;
   }
 
-  .page-item {
-    padding: 18px 30px;
-    background: #fff;
-    margin-bottom: 15px;
-    border-radius: 2px;
+  .doc-name {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 
-    .item-title {
-      display: flex;
-      padding-bottom: 15px;
-      margin-bottom: 5px;
-      border-bottom: 1px solid #eeeeee;
-
-      .item-title-left {
-        display: flex;
-        align-items: center;
-        width: 66%;
-
-        img {
-          width: 40px;
-          height: 40px;
-          margin-right: 20px;
-        }
-
-        .item-name {
-          width: calc(100% - 72px);
-          display: flex;
-          flex-direction: column;
-
-          .item-name-title {
-            display: block;
-            font-family: PingFang SC;
-            font-weight: 600;
-            font-size: 16px;
-            color: #3d446e;
-            line-height: 24px;
-          }
-
-          .item-name-code {
-            display: block;
-            font-family: PingFang SC;
-            font-size: 14px;
-            color: rgba(88, 88, 88, 0.85);
-            line-height: 22px;
-          }
-        }
-      }
-
-      .item-title-right {
-        margin: 5px 0 0 auto;
-        display: flex;
-
-        .form-btn {
-          cursor: pointer;
-          min-width: 50px;
-          height: 24px;
-          padding: 0 12px;
-          border-radius: 2px;
-          margin-left: 12px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background: #e6f4ff;
-
-          span {
-            font-family: PingFang SC;
-            font-weight: 500;
-            font-size: 12px;
-            color: #2666fb;
-          }
-        }
-      }
+    .doc-name-title {
+      display: block;
+      font-family: PingFang SC;
+      font-weight: 600;
+      font-size: 14px;
+      color: #3d446e;
+      line-height: 22px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .item-con {
-      display: flex;
-      flex-wrap: wrap;
-
-      .item-form {
-        width: 50%;
-        display: flex;
-        align-items: center;
-        margin-top: 10px;
-
-        .form-label {
-          width: 76px;
-          font-family: PingFang SC;
-          font-weight: 400;
-          font-size: 14px;
-          color: #717171;
-        }
-
-        .form-value {
-          width: calc(100% - 76px);
-          font-family: PingFang SC;
-          font-weight: 400;
-          font-size: 14px;
-          color: #262626;
-
-          .value-tag {
-            width: 67px;
-            height: 22px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: PingFang SC;
-            font-weight: 400;
-            font-size: 13px;
-            color: #ffffff;
-            border-radius: 10px 10px 10px 0;
-
-            &.type1 {
-              background: #e23d3d;
-            }
-
-            &.type2 {
-              background: #ff9800;
-            }
-
-            &.type3 {
-              background: #3062f2;
-            }
-
-            &.type4 {
-              background: #05a5a0;
-            }
-          }
-        }
-      }
+    .doc-name-code {
+      display: block;
+      font-family: PingFang SC;
+      font-size: 12px;
+      color: rgba(88, 88, 88, 0.85);
+      line-height: 18px;
+      max-width: 220px;
     }
   }
+}
+
+.value-tag {
+  width: 67px;
+  height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: PingFang SC;
+  font-weight: 400;
+  font-size: 13px;
+  color: #ffffff;
+  border-radius: 10px 10px 10px 0;
+
+  &.type1 {
+    background: #e23d3d;
+  }
+
+  &.type2 {
+    background: #ff9800;
+  }
+
+  &.type3 {
+    background: #3062f2;
+  }
+
+  &.type4 {
+    background: #05a5a0;
+  }
+}
+
+.pagecont-bottom .ant-table-wrapper {
+  background: #ffffff;
+  border-radius: 2px;
+  padding: 12px;
 }
 
 .pagination-container {
@@ -407,30 +315,8 @@ getList();
   margin: 0px 0 0;
   padding: 14px 20px !important;
 
-  :deep(.el-pagination) {
+  :deep(.ant-pagination) {
     right: 20px;
-  }
-}
-
-.empty {
-  min-height: calc(100vh - 250px);
-  background: #ffffff;
-  border-radius: 2px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  img {
-    width: 200px;
-    height: 180px;
-    margin: 240px 0 40px;
-  }
-
-  span {
-    font-family: PingFang SC;
-    font-weight: 400;
-    font-size: 18px;
-    color: rgba(0, 0, 0, 0.65);
   }
 }
 </style>

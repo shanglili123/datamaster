@@ -98,7 +98,7 @@
     </div>
 
     <!-- 详情弹窗 -->
-    <a-modal title="任务实例详情" v-model:open="detailDialog.open" width="720" destroy-on-close>
+    <a-modal title="任务实例详情" v-model:open="detailDialog.open" :width="720" destroy-on-close>
       <a-spin :spinning="detailDialog.loading">
       <a-descriptions :column="2" bordered size="small">
         <a-descriptions-item label="编号">{{ detailDialog.form.id }}</a-descriptions-item>
@@ -143,7 +143,7 @@
     </a-modal>
 
     <!-- 日志弹窗 -->
-    <a-modal title="任务实例日志" v-model:open="logDialog.open" width="900" destroy-on-close>
+    <a-modal title="任务实例日志" v-model:open="logDialog.open" :width="900" destroy-on-close>
       <div class="log-meta" v-if="logDialog.form.taskName">
         <a-tag>任务名称：{{ logDialog.form.taskName }}</a-tag>
         <a-tag color="success">开始时间：{{ parseTime(logDialog.form.startTime, '{y}-{m}-{d} {h}:{i}') }}</a-tag>

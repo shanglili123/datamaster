@@ -1,6 +1,6 @@
 <template>
   <a-modal v-model:open="visibleDialog" :draggable="true" class="medium-dialog" :title="currentNode?.data?.name"
-    :closable="false" :destroy-on-close="true" :mask-closable="false">
+    :closable="false" :destroy-on-close="true" :mask-closable="false" :width="1200">
     <a-spin :spinning="loading">
     <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
       :disabled="info">
@@ -222,9 +222,16 @@ const off = () => {
 // 保存数据
 const saveData = async () => {
   try {
-    // 异步验证表单
-    const valid = await dpModelRefs.value.validate();
-    if (!valid) return;
+    // 手动检查关键必填字段
+    if (!form.value?.taskParams?.readerDatasource?.datasourceId) {
+      return proxy.$message.warning('请选择源数据库连接');
+    }
+    if (!form.value?.taskParams?.asset_id) {
+      return proxy.$message.warning('请选择表');
+    }
+    // 等待 DOM 更新
+    await nextTick();
+    // 保留原有的其它校验逻辑
     if (
       form.value?.taskParams.type == "1" &&
       (!ColumnByAssettab.value || ColumnByAssettab.value.length == 0)
@@ -282,8 +289,16 @@ function deepCopy(data) {
 watchEffect(() => {
   if (props.visible) {
     // 数据源
-    form.value = deepCopy(props.currentNode.data);
+    const copy = deepCopy(props.currentNode.data);
+    // 原地更新而非替换 ref，保持 a-form 内部字段注册的响应式代理不被断开
+    Object.keys(form.value).forEach(k => { delete form.value[k]; });
+    Object.assign(form.value, copy);
     ColumnByAssettab.value = props.currentNode?.data.taskParams.tableFields;
+    // 等待 DOM 更新后清除旧的校验状态，避免残留红字
+    nextTick(() => {
+      dpModelRefs.value?.clearValidate();
+      
+    });
   } else {
     off();
   }

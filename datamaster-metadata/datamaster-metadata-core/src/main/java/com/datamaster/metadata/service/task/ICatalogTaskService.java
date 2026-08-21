@@ -127,4 +127,16 @@ public interface ICatalogTaskService extends IService<CatalogTaskDO> {
      * @return 树形结构列表
      */
     List<CatalogTaskSourceTreeRespVO> getSourceSystemTree(Long spaceId);
+
+    /**
+     * 获取库表两级树形结构（元数据结果页使用）。
+     * 一级: 数据库（按库ID去重）
+     * 二级: 表
+     * 相比 {@link #getSourceSystemTree(Long)}，该结构聚焦库与表，
+     * 同一库无论被多少个采集任务采集都只出现一次，表挂载在其所属库下。
+     *
+     * @param spaceId 空间ID
+     * @return 树形结构列表
+     */
+    List<CatalogTaskSourceTreeRespVO> getDbTableTree(Long spaceId);
 }

@@ -193,6 +193,39 @@ public class QualityTaskServiceImpl  extends ServiceImpl<QualityTaskMapper,Quali
     }
 
     @Override
+    public List<QualityLogDO> getQualityLogListByTable(Long datasourceId, String tableName) {
+        if (datasourceId == null || StringUtils.isBlank(tableName)) {
+            return new ArrayList<>();
+        }
+        // 1. 按数据源+表名查询质量探查任务对象（先精确匹配，再大小写不敏感兜底）
+        List<QualityTaskObjDO> objects = QualityTaskObjMapper.selectList(Wrappers.lambdaQuery(QualityTaskObjDO.class)
+                .eq(QualityTaskObjDO::getDatasourceId, datasourceId)
+                .eq(QualityTaskObjDO::getTableName, tableName)
+                .orderByDesc(BaseEntity::getCreateTime));
+        if (CollectionUtils.isEmpty(objects)) {
+            objects = QualityTaskObjMapper.selectList(Wrappers.lambdaQuery(QualityTaskObjDO.class)
+                    .eq(QualityTaskObjDO::getDatasourceId, datasourceId)
+                    .apply("LOWER(TABLE_NAME) = LOWER({0})", tableName)
+                    .orderByDesc(BaseEntity::getCreateTime));
+        }
+        if (CollectionUtils.isEmpty(objects)) {
+            return new ArrayList<>();
+        }
+        // 2. 收集关联的质量任务ID
+        Set<Long> taskIds = objects.stream()
+                .map(QualityTaskObjDO::getTaskId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (CollectionUtils.isEmpty(taskIds)) {
+            return new ArrayList<>();
+        }
+        // 3. 查询该表全部探查日志，按开始时间倒序（多次探查结果）
+        return QualityLogMapper.selectList(Wrappers.lambdaQuery(QualityLogDO.class)
+                .in(QualityLogDO::getQualityId, taskIds)
+                .orderByDesc(QualityLogDO::getStartTime, QualityLogDO::getEndTime, QualityLogDO::getUpdateTime, QualityLogDO::getId));
+    }
+
+    @Override
     public Long createQualityTask(QualityTaskSaveReqVO createReqVO) {
         String assetFlag = createReqVO.getAssetFlag();
         if(StringUtils.equals("1",assetFlag)){

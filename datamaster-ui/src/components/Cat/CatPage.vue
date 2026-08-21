@@ -1,11 +1,11 @@
 <template>
   <a-spin :spinning="loading">
-  <qt-wrap
+  <dm-wrap
     :columns="tableStore.columns"
     :tableRef="tableRef"
   >
     <template #search>
-      <qt-search-bar
+      <dm-search-bar
         v-bind="searchStore"
         :params="tableStore.params"
         :tableRef="tableRef"
@@ -38,7 +38,7 @@
         <span>{{ defaultExpandAll ? "折叠" : "展开" }}</span>
       </a-button>
     </template>
-    <qt-table v-bind="tableStore" :key="tableKey" ref="tableRef">
+    <dm-table v-bind="tableStore" :key="tableKey" ref="tableRef">
       <template #validFlag="{ row }">
         <a-switch
           v-model:checked="row.validFlag"
@@ -70,8 +70,8 @@
           >删除</a-button
         >
       </template>
-    </qt-table>
-  </qt-wrap>
+    </dm-table>
+  </dm-wrap>
   </a-spin>
 
   <CatEditDialog

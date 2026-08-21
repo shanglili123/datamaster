@@ -6,6 +6,7 @@
     class="medium-dialog"
     :class="{ 'max-dialogs-status0': dialogStatus === 0 }"
     :title="dialogTitle"
+    :width="dialogStatus === 0 ? 1100 : 900"
     destroy-on-close
   >
     <div class="content" v-if="dialogStatus == 0">
@@ -192,15 +193,15 @@
                   @change="handleTargetObjectChange"
                 >
                   <a-select-option
-                    v-for="item in dppQualityTaskObjSaveReqVO"
+                    v-for="item in objectOptions"
                     :key="item.tableName"
                     :value="item.tableName"
-                    >{{ item.name }}</a-select-option
+                    >{{ item.name || item.tableName }}</a-select-option
                   >
                 </a-select>
               </template>
               <div v-else class="form-readonly">
-                {{ selectedRef?.name || "-" }}
+                {{ selectedRef?.name || selectedRef?.tableName || "-" }}
               </div>
               <span class="msg" v-if="selectedRef">
                 <InfoFilled />
@@ -376,6 +377,7 @@ let form = reactive({
   dimensionType: "",
   evaColumn: [],
   tableName: "",
+  objName: "",
 
   rule: {
     // 字符串类型校验
@@ -413,11 +415,25 @@ const isMultipleRuleType = computed(
     form.ruleType == "COMPOSITE_UNIQUENESS_VALIDATION" ||
     form.ruleType == "GROUP_FIELD_COMPLETENESS"
 );
+// 评测对象下拉选项：对象列表 + 已保存但不在列表中的历史对象（保证之前选过的表可回显）
+const objectOptions = computed(() => {
+  const list = [...(dppQualityTaskObjSaveReqVO.value || [])];
+  if (
+    form.tableName &&
+    !list.some((item) => item.tableName === form.tableName)
+  ) {
+    list.unshift({
+      name: form.objName || form.tableName,
+      tableName: form.tableName,
+      datasourceId: form.datasourceId,
+    });
+  }
+  return list;
+});
 const selectedRef = computed(() => {
   return (
-    dppQualityTaskObjSaveReqVO.value.find(
-      (item) => item.tableName == form.tableName
-    ) || null
+    objectOptions.value.find((item) => item.tableName == form.tableName) ||
+    null
   );
 });
 const evaColumnLabel = computed(() => {
@@ -502,7 +518,7 @@ async function handleSpotCheck() {
   spotCheckRef.value.openDialog(obj);
 }
 function handleTargetObjectChange(tableName) {
-  const selected = dppQualityTaskObjSaveReqVO.value.find(
+  const selected = objectOptions.value.find(
     (item) => item.tableName == tableName
   );
   console.log("🚀 ~ handleTargetObjectChange ~ selected:", selected);
@@ -663,6 +679,8 @@ function handleCardClick(data) {
   form.ruleCode = data?.code;
   form.ruleType = data?.strategyKey;
   form.dimensionType = data?.qualityDim;
+  // 从规则库自动带出规则描述,避免手动输入
+  form.ruleDescription = data?.description || data?.useCase || "";
   const prefix = props?.type == 3 ? "新增稽查规则" : "新增评测规则";
   dialogTitle.value = `${prefix}${data?.name ? "-" + data.name : ""}`;
   if (form.tableName) {
@@ -734,6 +752,7 @@ const initialForm = () => ({
   dimensionType: "",
   evaColumn: undefined,
   tableName: "",
+  objName: "",
   rule: {
     // 字符串类型校验
     allowedChars: ["1"], // 允许字符类型
@@ -797,10 +816,6 @@ defineExpose({ openDialog, closeDialog });
 <style scoped>
 .blue-text {
   color: var(--el-color-primary);
-}
-
-.medium-dialog {
-  width: 800px;
 }
 </style>
 <style>

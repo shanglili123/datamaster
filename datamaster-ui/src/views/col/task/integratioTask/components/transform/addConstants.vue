@@ -5,6 +5,7 @@
     :title="form.taskParams.typeName"
     :closable="false"
     :destroy-on-close="true"
+    :width="1200"
   >
     <a-spin :spinning="loading">
     <a-form
@@ -372,8 +373,17 @@ const off = () => {
 
 const saveData = async () => {
   try {
-    const valid = await dpModelRefs.value.validate();
-    if (!valid) return;
+    // 手动检查关键字段
+    if (!form.value?.code) {
+      // 代码生成逻辑
+    }
+    // 等待 DOM 更新
+    await nextTick();
+    // 直接检查关键字段（避免 a-form dot-notation path 校验失效）
+    if (!form.value?.code) {
+      return proxy.$message.warning('请配置代码');
+    }
+    // 校验 tableFields 不为空
 
     // 校验 tableFields 不为空
     if (!Array.isArray(tableFields.value) || tableFields.value.length === 0) {
@@ -455,7 +465,10 @@ watchEffect(() => {
     off();
     return;
   }
-  form.value = deepCopy(props.currentNode?.data || {});
+  const copy = deepCopy(props.currentNode?.data || {});
+  // 原地更新而非替换 ref，保持 a-form 内部字段注册的响应式代理不被断开
+  Object.keys(form.value).forEach(k => { delete form.value[k]; });
+  Object.assign(form.value, copy);
   nodeOptions.value = createNodeSelect(props.graph, props.currentNode.id);
   let taskParams = deepCopy(props.currentNode?.data?.taskParams || {});
   originalTableFieldsBackup.value = deepCopy(
@@ -463,6 +476,10 @@ watchEffect(() => {
   );
   inputFields.value = taskParams?.inputFields || [];
   tableFields.value = taskParams?.tableFields || [];
+  // 等待 DOM 更新后清除旧的校验状态，避免残留红字
+nextTick(() => {
+    dpModelRefs.value?.clearValidate();
+});
 });
 </script>
 

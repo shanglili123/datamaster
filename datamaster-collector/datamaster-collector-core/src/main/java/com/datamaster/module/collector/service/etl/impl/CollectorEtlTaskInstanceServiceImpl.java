@@ -100,6 +100,9 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     @Lazy
     private ICollectorEtlTaskOpsService collectorEtlTaskOpsService;
 
+    @Resource
+    private CollectorEtlTaskStatusPushService collectorEtlTaskStatusPushService;
+
     @Override
     public PageResult<CollectorEtlTaskInstanceDO> getCollectorEtlTaskInstancePage(CollectorEtlTaskInstancePageReqVO pageReqVO) {
         return CollectorEtlTaskInstanceMapper.selectPage(pageReqVO);
@@ -321,6 +324,12 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
         old.setStatusHistory(collectorEtlTaskInstanceDO.getStatusHistory());
         old.setEndTime(collectorEtlTaskInstanceDO.getEndTime());
         old.setRunTimes(collectorEtlTaskInstanceDO.getRunTimes());
+        // 推送任务状态到前端 WebSocket
+        try {
+            collectorEtlTaskStatusPushService.pushTaskInstanceStatus(collectorEtlTaskInstanceDO);
+        } catch (Exception e) {
+            log.warn("推送ETL任务状态WebSocket消息失败，instanceId={}", old.getId(), e);
+        }
         triggerOpsIfFinished(processInstance, old);
         return saved;
     }

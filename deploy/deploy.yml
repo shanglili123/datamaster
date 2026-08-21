@@ -123,7 +123,7 @@ soft_package_src: "packages/soft"
 # * 必须确认：DataMaster 服务端口。
 # * Change these if the target host already uses 8080.
 # * 如果目标机器已经占用 8080，就修改这里。
-datamaster_server_port: 8080
+datamaster_server_port: 8989
 dbgpt_port: 5670
 nginx_port: 80
 

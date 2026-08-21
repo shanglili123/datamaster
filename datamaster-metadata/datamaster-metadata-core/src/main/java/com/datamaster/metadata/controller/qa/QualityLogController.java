@@ -34,6 +34,7 @@ import com.datamaster.metadata.controller.qa.vo.LogResult;
 import com.datamaster.metadata.convert.qa.QualityLogConvert;
 import com.datamaster.metadata.dal.dataobject.qa.QualityLogDO;
 import com.datamaster.metadata.service.qa.IQualityLogService;
+import com.datamaster.metadata.service.qa.IQualityTaskService;
 
 /**
  * 探查任务实例 Controller
@@ -48,12 +49,21 @@ import com.datamaster.metadata.service.qa.IQualityLogService;
 public class QualityLogController extends BaseController {
     @Resource
     private IQualityLogService QualityLogService;
+    @Resource
+    private IQualityTaskService qualityTaskService;
 
     @Operation(summary = "查询探查任务实例列表")
     @GetMapping("/list")
     public CommonResult<PageResult<QualityLogRespVO>> list(QualityLogPageReqVO QualityLog) {
         PageResult<QualityLogDO> page = QualityLogService.getQualityLogPage(QualityLog);
         return CommonResult.success(BeanUtils.toBean(page, QualityLogRespVO.class));
+    }
+
+    @Operation(summary = "按表查询探查历史记录(多次探查结果)")
+    @GetMapping("/listByTable")
+    public CommonResult<List<QualityLogDO>> listByTable(@RequestParam("datasourceId") Long datasourceId,
+                                                        @RequestParam("tableName") String tableName) {
+        return CommonResult.success(qualityTaskService.getQualityLogListByTable(datasourceId, tableName));
     }
 
     @Operation(summary = "导出探查任务实例列表")

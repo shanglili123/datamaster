@@ -6,6 +6,7 @@
     :title="title"
     :destroy-on-close="true"
     :footer="null"
+    :width="1200"
   >
     <a-form
       ref="formRef"

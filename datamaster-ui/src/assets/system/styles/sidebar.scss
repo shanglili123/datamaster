@@ -1,9 +1,13 @@
 #app {
 
-  .main-container {
-    height: 100%;
+  .main-container,
+  .layout-header-wrapper {
     transition: margin-left .28s;
     margin-left: $base-sidebar-width;
+  }
+
+  .main-container {
+    height: 100%;
     position: relative;
   }
 
@@ -159,6 +163,31 @@
     & .theme-dark .el-sub-menu.is-active {
       background-color: transparent !important;
     }
+
+    // antd light menu: align with project primary color
+    .ant-menu-light {
+      background: transparent !important;
+
+      .ant-menu-item,
+      .ant-menu-submenu-title {
+        color: #475569;
+
+        &:hover {
+          color: #2563eb !important;
+          background: #f8fafc !important;
+        }
+      }
+
+      .ant-menu-item-selected {
+        color: #2563eb !important;
+        background: #eff6ff !important;
+        box-shadow: inset 3px 0 0 #2563eb;
+      }
+
+      .ant-menu-submenu-selected > .ant-menu-submenu-title {
+        color: #2563eb !important;
+      }
+    }
   }
 
   .el-submenu.is-opened > .el-submenu__title .el-submenu__icon-arrow {
@@ -170,7 +199,8 @@
       width: 72px !important;
     }
 
-    .main-container {
+    .main-container,
+    .layout-header-wrapper {
       margin-left: 72px;
     }
 

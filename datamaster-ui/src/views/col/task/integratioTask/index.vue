@@ -16,9 +16,9 @@
         }"
       />
       <a-layout-content class="main-content">
-        <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
+        <dm-wrap :columns="tableStore.columns" :tableRef="tableRef">
           <template #search>
-            <qt-search-bar
+            <dm-search-bar
               v-bind="searchStore"
               :params="tableStore.params"
               @query="handleQuery"
@@ -31,7 +31,7 @@
             </a-button>
           </template>
 
-          <qt-table v-bind="tableStore" ref="tableRef">
+          <dm-table v-bind="tableStore" ref="tableRef">
             <template #name="{ row }">
               <div class="name-label task-title">
                 <div
@@ -226,8 +226,8 @@
                 </a-popover>
               </div>
             </template>
-          </qt-table>
-        </qt-wrap>
+          </dm-table>
+        </dm-wrap>
       </a-layout-content>
     </a-layout>
     <instance
@@ -523,7 +523,7 @@ function resetQuery() {
 }
 
 // 部门树
-const leftWidth = ref(300);
+const leftWidth = ref(240);
 const DeptTreeRef = ref(null);
 function handleNodeClick(data) {
   tableStore.params.catCode = data.code;
@@ -1010,7 +1010,7 @@ onBeforeUnmount(() => {
 
 <style lang="scss" src="@/assets/system/styles/table-style-optimized.scss"></style>
 <style scoped lang="scss">
-:deep(.qt-search-bar) {
+:deep(.dm-search-bar) {
   .el-form {
     flex-wrap: nowrap !important;
   }

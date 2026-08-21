@@ -4,13 +4,14 @@
       <a-layout class="metadata-layout">
       <SourceSystemTree
         ref="sourceSystemTreeRef"
+        tree-type="dbTable"
         @node-click="handleNodeClick"
         @data-loaded="handleTreeDataLoaded"
       />
       <a-layout-content class="main-content">
-        <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
+        <dm-wrap :columns="tableStroe.columns" :tableRef="tableRef">
           <template #search>
-            <qt-search-bar
+            <dm-search-bar
               v-bind="searchStore"
               :params="tableStroe.params"
               @query="handleQueryClick"
@@ -28,19 +29,9 @@
               删除
             </a-button>
           </template>
-          <qt-table v-bind="tableStroe" ref="tableRef">
+          <dm-table v-bind="tableStroe" ref="tableRef">
             <template #domain-name="scope">
               {{ getDomainPath(scope.row.domainId) }}
-            </template>
-
-            <template #status="scope">
-              <a-switch
-                v-if="scope.row.status != undefined"
-                v-model:checked="scope.row.status"
-                checked-value="1"
-                un-checked-value="0"
-                @change="handleStatusChange(scope.row, $event)"
-              />
             </template>
 
             <template #qualitySummary="scope">
@@ -68,7 +59,6 @@
               <a-button
                 type="link"
                 :icon="h(EditOutlined)"
-                :disabled="row.status == 1"
                 @click="handleEditClick(row)"
               >
                 修改
@@ -88,22 +78,14 @@
                   type="link"
                   danger
                   :icon="h(DeleteOutlined)"
-                  :disabled="row.status == 1"
                   @click="handleDeleteClick(row)"
                 >
                   删除
                 </a-button>
-                <a-button
-                  type="link"
-                  @click="handleDetailClick(row, 'VersionManagement')"
-                >
-                  <svg-icon icon-class="meta-version" class="handle-svg-icon" />
-                  版本与变更
-                </a-button>
               </a-popover>
             </template>
-          </qt-table>
-        </qt-wrap>
+          </dm-table>
+        </dm-wrap>
       </a-layout-content>
       </a-layout>
     </div>
@@ -120,22 +102,22 @@ import { getParentLabelPath } from "@/utils/anivia.js";
 import {
   listTable,
   delTable,
-  updateTableStatus,
   batchDeleteCheck,
 } from "@/api/cat/unreleased/table";
 
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 
 import { listDb } from "@/api/cat/unreleased/db";
 
 import { batchQualitySummary } from "@/api/cat/task/quality";
+
+import { listProbeHistoryByTable } from "@/api/ast/quality/probeTaskInstance";
 
 import SourceSystemTree from "@/views/meta/task/structured/components/SourceSystemTree.vue";
 
 const { proxy } = getCurrentInstance();
 
 const router = useRouter();
-const route = useRoute();
 const sourceSystemTreeRef = ref();
 const store = reactive({
   domains: [],
@@ -167,12 +149,8 @@ function qualitySummaryText(row) {
 }
 
 function handleQualitySummaryClick(row) {
-  const summary = getQualitySummary(row);
-  if (!summary || !summary.taskId) return;
-  router.push({
-    path: "/ast/quality/qualityTask/detail",
-    query: { id: summary.taskId, info: true },
-  });
+  // 质量结果标签点击：直接跳转该表最近一次探查报告
+  handleProbeReportClick(row);
 }
 
 // 批量加载质量结果摘要
@@ -277,12 +255,6 @@ const tableStroe = reactive({
       width: 90,
     },
     {
-      label: "状态",
-      prop: "status",
-      width: 90,
-      slot: "status",
-    },
-    {
       label: "更新人",
       prop: "updateBy",
       width: 120,
@@ -308,15 +280,13 @@ const tableStroe = reactive({
     },
     {
       label: "操作",
-      width: 220,
+      width: 310,
       fixed: "right",
       slot: "handle",
     },
   ],
   func: listTable,
-  params: {
-    dataType: 1,
-  },
+  params: {},
   events: {
     formatData: function (data) {
       data.forEach((item) => {
@@ -379,16 +349,20 @@ function handleNodeClick(data) {
   tableStroe.params.datasourceId = undefined;
   tableStroe.params.taskId = undefined;
   tableStroe.params.dbId = undefined;
+  tableStroe.params.dbName = undefined;
+  tableStroe.params.tableName = undefined;
 
-  if (data.type === "SOURCE") {
-    tableStroe.params.sourceSystemId = data.id;
-  } else if (data.type === "DATASOURCE") {
-    tableStroe.params.datasourceId = data.id;
-  } else if (data.type === "DATABASE") {
-    tableStroe.params.taskId = data.taskId;
-    tableStroe.params.dbId = data.id;
+  if (data.type === "DATABASE") {
+    // 库节点按数据源和库名筛选，兼容历史采集产生的重复库记录。
+    tableStroe.params.datasourceId = data.datasourceId;
+    tableStroe.params.dbName = data.name;
+    tableRef.value.getList();
+  } else if (data.type === "TABLE") {
+    // 表节点只加载对应的元数据结果列表；由列表中的“详情”再进入详情页。
+    tableStroe.params.datasourceId = data.datasourceId;
+    tableStroe.params.tableName = data.name;
+    tableRef.value.getList();
   }
-  tableRef.value.getList();
 }
 
 // 搜索按钮操作
@@ -405,6 +379,8 @@ function handleResetQueryClick() {
   tableStroe.params.datasourceId = null;
   tableStroe.params.taskId = null;
   tableStroe.params.dbId = null;
+  tableStroe.params.dbName = null;
+  tableStroe.params.tableName = null;
   tableRef.value?.resetQuery();
 }
 
@@ -425,7 +401,7 @@ function getMetaDatabases() {
 // 修改
 function handleEditClick(row) {
   router.push({
-    path: route.path + "/edit",
+    path: "/meta/unreleased/structured/table/edit",
     query: {
       id: row.id,
     },
@@ -476,39 +452,38 @@ function handleDeleteClick(row) {
 // 详情
 function handleDetailClick(row, tab) {
   router.push({
-    path: route.path + "/detail",
+    path: "/meta/unreleased/structured/table/detail",
     query: {
       id: row.id,
       tab: typeof tab === "string" ? tab : undefined,
-      table_status: 1,
     },
   });
 }
 
-// 切换状态
-function handleStatusChange(row, status) {
-  Modal.confirm({
-    title: "系统提示",
-    content: `是否确认${status == 1 ? "发布" : "取消发布"}数据编号为${
-      row.id
-    }的表元数据吗？`,
-    okText: "确定",
-    cancelText: "取消",
-    onOk: async () => {
-      try {
-        await updateTableStatus({
-          id: row.id,
-          status,
-        });
-        message.success(
-          `编号为${row.id}的表元数据${status == 1 ? "发布" : "取消发布"}成功!`
-        );
-        row.status = status;
-      } catch (error) {
-        row.status = status == "1" ? "0" : "1";
+// 查看质量报告：直接跳转该表最近一次探查报告
+function handleProbeReportClick(row) {
+  const { datasourceId, tableName } = row || {};
+  if (!datasourceId || !tableName) {
+    message.warning("该表暂无质量报告，请先执行带质量规则的探查任务");
+    return;
+  }
+  listProbeHistoryByTable({ datasourceId, tableName })
+    .then((res) => {
+      const records = res.data || [];
+      if (!records.length) {
+        message.warning("该表暂无质量报告，请先执行带质量规则的探查任务");
+        return;
       }
-    },
-  });
+      // 后端按开始时间倒序，第一条即最近一次探查结果
+      const latest = records[0];
+      router.push({
+        path: "/ast/quality/probeTaskInstance/detail",
+        query: { id: latest.id, score: latest.score },
+      });
+    })
+    .catch(() => {
+      message.error("质量报告加载失败，请稍后重试");
+    });
 }
 
 getMetaDatabases();
@@ -557,23 +532,23 @@ getMetaDatabases();
   margin: 0 2px;
 }
 
-:deep(.qt-wrap) {
+:deep(.dm-wrap) {
   gap: 0;
 }
 
-:deep(.qt-wrap--search),
-:deep(.qt-wrap--content) {
+:deep(.dm-wrap--search),
+:deep(.dm-wrap--content) {
   border: none;
   box-shadow: none;
 }
 
-:deep(.qt-wrap--search) {
+:deep(.dm-wrap--search) {
   padding: 0 0 14px;
   border-bottom: 1px solid #edf1f7;
   border-radius: 0;
 }
 
-:deep(.qt-wrap--content.full) {
+:deep(.dm-wrap--content.full) {
   min-height: calc(100vh - 230px);
   padding: 14px 0 0;
 }

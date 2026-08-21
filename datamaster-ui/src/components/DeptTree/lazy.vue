@@ -1,5 +1,6 @@
 ﻿<template>
-    <a-layout-sider :style="{ width: `${leftWidth}px`, marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
+    <a-layout-sider :width="leftWidth || 1" :collapsed="leftWidth === 0" :collapsed-width="0" :trigger="null"
+        :style="{ marginLeft: leftWidth == 0 ? '-15px' : '0px' }" class="left-pane">
         <a-spin :spinning="loading">
         <div class="left-tree">
             <!-- 搜索框 -->
@@ -20,7 +21,9 @@
                         <img v-if="data.level === 2" src="@/assets/system/images/dpp/sr.png" class="node-icon" />
                         <img v-if="data.level === 3" src="@/assets/system/images/dpp/zt.png" class="node-icon" />
                         <!-- label -->
-                        <span class="treelable">{{ data.name }}</span>
+                        <a-tooltip :title="data.name" placement="top-start" :disabled="!data.name">
+                            <span class="treelable">{{ data.name }}</span>
+                        </a-tooltip>
 
                         <!-- 状态图标 -->
                         <CheckCircleFilled v-if="data.loadSuccess" style="color: #22c55e; margin-left: 6px" class="iconimg"

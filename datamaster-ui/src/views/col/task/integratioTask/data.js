@@ -40,6 +40,17 @@ export const treeData = [
                 icon: new URL('@/assets/system/images/dpp/scv.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/csv.png'
             },
+            {
+                label: '合表输入组件',
+                key: 'input-table-merge',
+                type: 1,
+                level: 2,
+                componentType: '38',
+                taskType: 'FLINK',
+                engine: ['FLINK'],
+                icon: new URL('@/assets/system/images/dpp/bsr.svg', import.meta.url).href, // 动态获取路径
+                icons: '@/assets/system/images/dpp/sr.png'
+            },
           
         ]
     },
@@ -137,6 +148,28 @@ export const treeData = [
                 icon: new URL('@/assets/system/images/dpp/zh.svg', import.meta.url).href, // 动态获取路径
                 form: 'transform/transformSql.vue',
             },
+            {
+                label: '字段拆分',
+                key: 'transform-field-split',
+                type: 4,
+                level: 2,
+                taskType: 'FIELD_SPLIT',
+                componentType: '35',
+                engine: ['FLINK'],
+                icon: new URL('@/assets/system/images/dpp/zdpf.svg', import.meta.url).href, // 动态获取路径
+                form: 'transform/fieldSplit.vue',
+            },
+            {
+                label: '字段合并',
+                key: 'transform-field-merge',
+                type: 4,
+                level: 2,
+                taskType: 'FIELD_MERGE',
+                componentType: '36',
+                engine: ['FLINK'],
+                icon: new URL('@/assets/system/images/dpp/zdpf.svg', import.meta.url).href, // 动态获取路径
+                form: 'transform/fieldMerge.vue',
+            },
         ]
     },
     {
@@ -155,6 +188,17 @@ export const treeData = [
                 engine: ['FLINK'],
                 icon: new URL('@/assets/system/images/dpp/bsc.svg', import.meta.url).href, // 动态获取路径
                 icons: '@/assets/system/images/dpp/sc.png'
+            },
+            {
+                label: '拆表输出组件',
+                key: 'output-table-split',
+                type: 2,
+                level: 2,
+                componentType: '37',
+                taskType: 'TABLE_SPLIT',
+                engine: ['FLINK'],
+                icon: new URL('@/assets/system/images/dpp/bsc.svg', import.meta.url).href, // 动态获取路径
+                form: 'output/tableSplit.vue',
             },
         ]
     }

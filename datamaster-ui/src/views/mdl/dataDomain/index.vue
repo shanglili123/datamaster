@@ -1,8 +1,8 @@
 <template>
   <div class="app-container" ref="app-container">
-    <qt-wrap :columns="tableStore.columns" :tableRef="tableRef">
+    <dm-wrap :columns="tableStore.columns" :tableRef="tableRef">
       <template #search>
-        <qt-search-bar
+        <dm-search-bar
           v-bind="searchStore"
           :params="tableStore.params"
           :tableRef="tableRef"
@@ -18,7 +18,7 @@
         </a-button>
       </template>
 
-      <qt-table v-bind="tableStore" ref="tableRef">
+      <dm-table v-bind="tableStore" ref="tableRef">
         <template #action="{ row }">
           <a-button
             type="link"
@@ -46,8 +46,8 @@
             详情
           </a-button>
         </template>
-      </qt-table>
-    </qt-wrap>
+      </dm-table>
+    </dm-wrap>
 
     <!-- 添加或修改数据域管理对话框 -->
     <a-modal

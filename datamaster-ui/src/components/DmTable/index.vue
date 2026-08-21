@@ -1,12 +1,12 @@
 <!--
-    QtTable 组件
+    DmTable 组件
     说明：基于 Ant Design Vue 的表格封装，集成了分页、排序、字典、图标、链接等功能
     作者：datamaster
 -->
 <template>
-  <div class="qt-table">
+  <div class="dm-table">
     <a-spin :spinning="store.loading">
-      <div :class="['qt-table--main', config.table?.class]">
+      <div :class="['dm-table--main', config.table?.class]">
         <a-table
           v-if="store.showTable"
           :data-source="tableData"
@@ -86,7 +86,7 @@
     </a-spin>
 
     <div
-      :class="['qt-table--pagination', config.pagination?.class]"
+      :class="['dm-table--pagination', config.pagination?.class]"
       v-if="!config.notPagination"
     >
       <a-pagination
@@ -104,8 +104,8 @@
   </div>
 </template>
 
-<script setup name="QtTable">
-import { reactive, computed, nextTick, h } from 'vue';
+<script setup name="DmTable">
+import { reactive, computed, nextTick, h, toValue } from 'vue';
 import { useRouter } from 'vue-router';
 import { InfoCircleFilled as InfoFilled } from '@ant-design/icons-vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
@@ -202,7 +202,8 @@ const rowKey = computed(() => {
 const antColumns = computed(() => {
   return props.columns
     // el-table 的选择列由 a-table 的 row-selection prop 承担，映射成列会变成幽灵空列
-    .filter((c) => !c.hide && c.type !== 'selection')
+    // noHide 列强制展示（隐藏列下拉里不可取消勾选，如"字段名称"）
+    .filter((c) => (!c.hide || c.noHide) && c.type !== 'selection')
     .map((c) => {
       const col = {
         title: c.label,
@@ -275,7 +276,7 @@ const tableScroll = computed(() => {
     Object.assign(scroll, table.scroll);
   }
   if (scroll.x === undefined) {
-    const cols = props.columns.filter((c) => !c.hide && c.type !== 'selection');
+    const cols = props.columns.filter((c) => (!c.hide || c.noHide) && c.type !== 'selection');
     const totalWidth = cols.reduce(
       (sum, c) => sum + (typeof c.width === 'number' ? c.width : 0),
       0
@@ -464,7 +465,7 @@ function handleLinkClick(column, row) {
 
 function getDictOptions(key) {
   if (store.dict[key]) return store.dict[key];
-  const value = proxy.useDict(key)[key];
+  const value = toValue(proxy.useDict(key)[key]);
   store.dict[key] = value;
   return value;
 }
@@ -542,11 +543,11 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.qt-table {
+.dm-table {
   width: 100%;
 }
 
-.qt-table--main {
+.dm-table--main {
   overflow: hidden;
   border: 1px solid #edf1f7;
   border-radius: 8px;
@@ -585,7 +586,7 @@ defineExpose({
   color: #909399;
 }
 
-.qt-table--pagination {
+.dm-table--pagination {
   padding: 14px 2px 2px;
   display: flex;
   justify-content: flex-end;

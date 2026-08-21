@@ -6,7 +6,6 @@
     :trigger="null"
     :style="{
       marginLeft: leftWidth == 0 ? '-15px' : '0px',
-      '--qt-wrap-height': qtWrapheight,
     }"
     class="left-pane"
   >
@@ -82,7 +81,7 @@
                 class="box-item"
                 :title="data.name"
                 placement="top-start"
-                :disabled="!data.name || data.name.length < 10"
+                :disabled="!data.name"
               >
                 <span class="treelabel">{{ data.name }}</span>
               </a-tooltip>
@@ -142,7 +141,6 @@ import {
   computed,
   getCurrentInstance,
   onMounted,
-  onUnmounted,
   h,
 } from "vue";
 import {
@@ -202,9 +200,6 @@ const emit = defineEmits([
   "node-delete",
 ]);
 
-// 1. 初始化高度
-const qtWrapheight = ref("86vh");
-let resizeObserver = null;
 import CatEditDialog from "@/components/Cat/catEditDialog";
 const catEditDialogRef = ref(null);
 const processedData = ref([]);
@@ -556,41 +551,6 @@ watch(
   }
 );
 
-// ===================== 高度监听 =====================
-const getQtWrapHeight = () => {
-  const element = document.querySelector(".qt-wrap");
-  if (element) {
-    qtWrapheight.value = element.offsetHeight + "px";
-  } else {
-    qtWrapheight.value = "86vh";
-  }
-};
-
-onMounted(() => {
-  getQtWrapHeight();
-
-  const targetElement = document.querySelector(".qt-wrap");
-  if (targetElement) {
-    resizeObserver = new ResizeObserver(() => {
-      getQtWrapHeight();
-    });
-    resizeObserver.observe(targetElement);
-  }
-
-  window.addEventListener("resize", getQtWrapHeight);
-});
-
-onUnmounted(() => {
-  if (resizeObserver) {
-    const targetElement = document.querySelector(".qt-wrap");
-    if (targetElement) {
-      resizeObserver.unobserve(targetElement);
-    }
-    resizeObserver.disconnect();
-  }
-  window.removeEventListener("resize", getQtWrapHeight);
-});
-
 // ===================== 拖拽与折叠 =====================
 const isResizing = ref(false);
 let startX = 0;
@@ -615,7 +575,7 @@ const updateResize = (event) => {
 };
 
 const toggleCollapse = () => {
-  leftWidth.value = leftWidth.value === 0 ? 300 : 0;
+  leftWidth.value = leftWidth.value === 0 ? props.leftWidth || 300 : 0;
   emit("update:leftWidth", leftWidth.value);
 };
 
@@ -641,11 +601,12 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
 
   :deep(.ant-layout-sider-children) {
     width: 100%;
+    height: 100%;
   }
 }
 
 .left-tree {
-  height: v-bind(qtWrapheight);
+  height: 100%;
   padding: 12px;
   background: #ffffff;
   border: 1px solid #e8edf5;
@@ -783,7 +744,8 @@ defineExpose({ resetTree, getDeptTree, setCurrentKey, deptTreeRef });
 }
 
 .resize-bar {
-  height: v-bind(qtWrapheight);
+  /* 高度由 flex 行布局拉伸（ant-layout 高度由内容决定，height:100% 会解析为 0） */
+  align-self: stretch;
   cursor: ew-resize;
   background: transparent;
   display: flex;

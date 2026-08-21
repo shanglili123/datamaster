@@ -2131,59 +2131,14 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         }
         // 自定义库 (1-自定义库)
         else if (CollectionScopeEnum.isCustom(collectionScope)) {
-            // 1. 检查是否存在全部库模式且相同数据源
+            // 检查是否存在全部库模式且相同数据源
             boolean hasAllScope = CatalogTaskMapper.existsByDatasourceAndScope(datasourceId, CollectionScopeEnum.ALL.getScope(), excludeTaskId);
             if (hasAllScope) {
                 throw new ServiceException("该数据源已被全量采集任务使用，无法创建增量任务", HttpStatus.CONFLICT);
             }
-
-            // 2. 检查是否有相同数据源的自定义库任务，且采集范围有重复的库
-            List<CatalogTaskDO> existCustomTasks = CatalogTaskMapper.selectByDatasourceAndScope(datasourceId, CollectionScopeEnum.CUSTOM.getScope(), excludeTaskId);
-            if (!CollectionUtils.isEmpty(existCustomTasks)) {
-                // 获取当前任务的采集范围
-                List<CatalogTaskScopeSaveReqVO> currentScopes = reqVO.getScopeSaveReqVOS();
-                if (CollectionUtils.isEmpty(currentScopes)) {
-                    return;
-                }
-
-                for (CatalogTaskDO existTask : existCustomTasks) {
-                    // 获取已存在任务的采集范围
-                    List<CatalogTaskScopeDO> existScopes = CatalogTaskScopeService.getCatalogTaskScopeListBytaskId(existTask.getId());
-                    if (CollectionUtils.isEmpty(existScopes)) {
-                        continue;
-                    }
-
-                    // 检查是否有重复的库
-                    for (CatalogTaskScopeSaveReqVO currentScope : currentScopes) {
-                        for (CatalogTaskScopeDO existScope : existScopes) {
-                            if (isSameDatabase(currentScope, existScope)) {
-                                String dbName = currentScope.getDbName();
-                                String schemaName = currentScope.getSchemaName();
-                                String dbInfo = StringUtils.isNotBlank(schemaName)
-                                        ? dbName + "." + schemaName
-                                        : dbName;
-                                throw new ServiceException("采集范围中的数据库 [" + dbInfo + "] 已被其他任务使用", HttpStatus.CONFLICT);
-                            }
-                        }
-                    }
-                }
-            }
+            // 说明:2026-08-10 起放开"自定义库任务之间采集相同库"的限制,
+            // 允许同一数据源下的多个自定义库任务重复采集同一数据库。
         }
-    }
-
-    /**
-     * 判断两个采集范围是否指向同一个数据库
-     *
-     * @param scope1 采集范围1
-     * @param scope2 采集范围2
-     * @return 是否相同
-     */
-    private boolean isSameDatabase(CatalogTaskScopeSaveReqVO scope1, CatalogTaskScopeDO scope2) {
-        if (scope1 == null || scope2 == null) {
-            return false;
-        }
-        return Objects.equals(scope1.getDbName(), scope2.getDbName()) &&
-                Objects.equals(scope1.getSchemaName(), scope2.getSchemaName());
     }
 
     @Override
@@ -2267,6 +2222,82 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
             sourceNode.setChildren(datasourceChildren);
             treeList.add(sourceNode);
+        }
+
+        return treeList;
+    }
+
+    @Override
+    public List<CatalogTaskSourceTreeRespVO> getDbTableTree(Long spaceId) {
+        // 1. 查询空间下所有任务，收集其涉及的数据源ID
+        List<CatalogTaskDO> allTasks = CatalogTaskMapper.selectListBySpaceId(spaceId);
+        Set<Long> datasourceIds = allTasks.stream()
+                .map(CatalogTaskDO::getDatasourceId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (CollectionUtils.isEmpty(datasourceIds)) {
+            return Lists.newArrayList();
+        }
+
+        // 2. 查询这些数据源下的所有库。历史多次采集可能生成同一数据源下同名库的多条记录，
+        //    目录按“数据源 + 库名 + schema”合并，避免左侧目录重复。
+        List<CatalogDbDO> allDbs = CatalogDbMapper.selectList(
+                new QueryWrapper<CatalogDbDO>()
+                        .in("DATASOURCE_ID", datasourceIds)
+                        .eq("DEL_FLAG", "0")
+        );
+        if (CollectionUtils.isEmpty(allDbs)) {
+            return Lists.newArrayList();
+        }
+        Map<String, List<CatalogDbDO>> dbGroups = new LinkedHashMap<>();
+        for (CatalogDbDO db : allDbs) {
+            String dbKey = String.valueOf(db.getDatasourceId()) + "|" + db.getDbName()
+                    + "|" + (db.getSchemaName() == null ? "" : db.getSchemaName());
+            dbGroups.computeIfAbsent(dbKey, key -> new ArrayList<>()).add(db);
+        }
+
+        // 3. 查询这些库下的所有表，按库ID分组
+        List<CatalogTableDO> allTables = CatalogTableMapper.selectList(
+                new QueryWrapper<CatalogTableDO>()
+                        .in("DB_ID", allDbs.stream().map(CatalogDbDO::getId).collect(Collectors.toList()))
+                        .eq("DEL_FLAG", "0")
+        );
+        Map<Long, List<CatalogTableDO>> tablesByDbId = allTables.stream()
+                .filter(table -> table.getDbId() != null)
+                .collect(Collectors.groupingBy(CatalogTableDO::getDbId));
+
+        // 4. 构建一级节点：数据库（去重）；二级节点：表
+        List<CatalogTaskSourceTreeRespVO> treeList = Lists.newArrayList();
+        for (List<CatalogDbDO> sameDatabases : dbGroups.values()) {
+            CatalogDbDO db = sameDatabases.get(0);
+            CatalogTaskSourceTreeRespVO dbNode = new CatalogTaskSourceTreeRespVO();
+            dbNode.setId(db.getId());
+            dbNode.setName(db.getDbName());
+            dbNode.setType("DATABASE");
+            dbNode.setDatasourceType(db.getDbType());
+            dbNode.setDatasourceId(db.getDatasourceId());
+
+            Map<String, CatalogTableDO> uniqueTables = new LinkedHashMap<>();
+            for (CatalogDbDO sameDatabase : sameDatabases) {
+                List<CatalogTableDO> tables = tablesByDbId.getOrDefault(sameDatabase.getId(), Lists.newArrayList());
+                for (CatalogTableDO table : tables) {
+                    String tableKey = String.valueOf(table.getDatasourceId()) + "|" + table.getTableName();
+                    uniqueTables.putIfAbsent(tableKey, table);
+                }
+            }
+            List<CatalogTaskSourceTreeRespVO> tableChildren = Lists.newArrayList();
+            for (CatalogTableDO table : uniqueTables.values()) {
+                CatalogTaskSourceTreeRespVO tableNode = new CatalogTaskSourceTreeRespVO();
+                tableNode.setId(table.getId());
+                tableNode.setName(table.getTableName());
+                tableNode.setType("TABLE");
+                tableNode.setDbId(db.getId());
+                tableNode.setDatasourceId(table.getDatasourceId());
+                tableNode.setTaskId(table.getTaskId());
+                tableChildren.add(tableNode);
+            }
+            dbNode.setChildren(tableChildren);
+            treeList.add(dbNode);
         }
 
         return treeList;
@@ -2382,8 +2413,9 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             qt.setAssetFlag("0");
             qt.setSpaceId(spaceId);
             qt.setSpaceCode(spaceCode);
-            qt.setDelFlag(Boolean.FALSE);
-            qt.setValidFlag(Boolean.TRUE);
+            // 注意：不设置 delFlag/validFlag，让 DB 默认值（'0'/'1'）生效。
+            // 若传入 Boolean，PostgreSQL 会写入字符串 'false'/'true'，
+            // 与 MyBatis-Plus @TableLogic 的 del_flag='0' 查询条件不匹配，导致任务查不到。
             qualityTaskMapper.insert(qt);
             qualityTaskId = qt.getId();
             // 建立关联
@@ -2418,13 +2450,26 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             for (QualityTaskEvaluateSaveReqVO evalReq : qualityEvaluates) {
                 evalReq.setId(null);
                 evalReq.setTaskId(qualityTaskId);
-                // 关联稽查对象
+                // 关联稽查对象：优先匹配已保存的对象；匹配不到时按数据源+表自动补建，
+                // 保证质量规则执行链路（objId -> 数据源/表）始终有对象可用
                 if (evalReq.getObjId() == null && evalReq.getDatasourceId() != null) {
                     String key = evalReq.getDatasourceId() + "_" + (evalReq.getTableName() == null ? "" : evalReq.getTableName());
                     Long objId = objMap.get(key);
                     if (objId != null) {
                         evalReq.setObjId(objId);
+                    } else if (StringUtils.isNotBlank(evalReq.getTableName())) {
+                        QualityTaskObjSaveReqVO newObj = new QualityTaskObjSaveReqVO();
+                        newObj.setTaskId(qualityTaskId);
+                        newObj.setName(StringUtils.isNotBlank(evalReq.getObjName())
+                                ? evalReq.getObjName() : evalReq.getTableName());
+                        newObj.setDatasourceId(evalReq.getDatasourceId());
+                        newObj.setTableName(evalReq.getTableName());
+                        Long newObjId = qualityTaskObjService.createQualityTaskObj(newObj);
+                        evalReq.setObjId(newObjId);
+                        objMap.put(key, newObjId);
                     }
+                } else if (evalReq.getObjId() == null) {
+                    throw new ServiceException("评测规则「" + evalReq.getRuleName() + "」缺少稽查对象信息（未关联对象且缺少数据源），无法保存");
                 }
                 qualityTaskEvaluateService.createQualityTaskEvaluate(evalReq);
             }

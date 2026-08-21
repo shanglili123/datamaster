@@ -21,6 +21,7 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeLogDO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskDO;
 import com.datamaster.module.collector.utils.datax.FlinkxJson;
 import com.datamaster.module.collector.utils.ds.component.ComponentFactory;
+import com.datamaster.module.collector.utils.ds.component.DBWriterComponent;
 import com.datamaster.module.collector.utils.model.DsResource;
 import com.datamaster.module.collector.utils.model.FlinkxIncrementalConfig;
 
@@ -1672,6 +1673,8 @@ public class TaskConverter {
     public static Map<String, Object> buildEtlTaskParams(String taskDefinitionList, Map<String, CollectorEtlNodeSaveReqVO> nodeMap, Map<String, Object> taskInfo, List<DsResource> resourceList) {
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> transitionList = new ArrayList<>();
+        List<Map<String, Object>> readerList = new ArrayList<>();
+        List<Map<String, Object>> writerList = new ArrayList<>();
         List<CollectorEtlNodeSaveReqVO> nodeList = JSON.parseArray(taskDefinitionList, CollectorEtlNodeSaveReqVO.class);
         for (CollectorEtlNodeSaveReqVO CollectorEtlNodeSaveReqVO : nodeList) {
             Integer version = 1;
@@ -1689,7 +1692,8 @@ public class TaskConverter {
                 case DB_READER:
                 case EXCEL_READER:
                 case CSV_READER:
-                    result.put("reader", data);
+                case TABLE_MERGE:
+                    readerList.add(data);
                     break;
                 case SORT_RECORD:
                 case FIELD_DERIVATION:
@@ -1698,10 +1702,29 @@ public class TaskConverter {
                 case ADD_CONSTANT:
                 case SELECT_FIELDS:
                 case TRANSFORM_SQL:
+                case FIELD_SPLIT:
+                case FIELD_MERGE:
                     transitionList.add(data);
                     break;
                 case DB_WRITER:
-                    result.put("writer", data);
+                    writerList.add(data);
+                    break;
+                case TABLE_SPLIT:
+                    // 拆表:遍历 parameter.targetTables,每个目标表展开为一个 DB_WRITER
+                    Object targetTablesObj = data.get("parameter") == null ? null : ((Map<String, Object>) data.get("parameter")).get("targetTables");
+                    if (targetTablesObj instanceof List) {
+                        for (Object targetTable : (List<?>) targetTablesObj) {
+                            if (!(targetTable instanceof Map)) {
+                                continue;
+                            }
+                            Map<String, Object> writerData = new DBWriterComponent().parse2(
+                                    CollectorEtlNodeSaveReqVO.getCode(), version, TaskComponentTypeEnum.DB_WRITER,
+                                    (Map<String, Object>) targetTable, resourceUrl, resourceList);
+                            writerData.put("nodeName", data.get("nodeName"));
+                            writerData.put("spaceCode", data.get("spaceCode"));
+                            writerList.add(writerData);
+                        }
+                    }
                     break;
                 case SHELL_DEV:
                 case SQL_DEV:
@@ -1717,6 +1740,15 @@ public class TaskConverter {
         config.put("taskInfo", taskInfo);
         config.put("redis", dsRedisConfig);
         config.put("resourceUrl", resourceUrl);
+        // 兼容旧的单 reader/writer 结构：取第一个作为主 reader/writer，全量放入 readerList/writerList
+        if (!readerList.isEmpty()) {
+            result.put("reader", readerList.get(0));
+        }
+        result.put("readerList", readerList);
+        if (!writerList.isEmpty()) {
+            result.put("writer", writerList.get(0));
+        }
+        result.put("writerList", writerList);
         result.put("transition", transitionList);
         result.put("config", config);
         return result;

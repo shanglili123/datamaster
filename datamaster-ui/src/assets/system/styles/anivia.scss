@@ -1310,12 +1310,9 @@
   }
 
   .el-dialog.medium-dialog {
-    // width: 1000px !important;
     width: 1200px !important;
 
     .el-dialog__body {
-      // height: 700px;
-      // border: 1px solid red;
       max-height: 80vh;
     }
   }
@@ -1718,3 +1715,4 @@ input:-internal-autofill-selected {
     display: none;
   }
 }
+

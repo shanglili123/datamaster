@@ -1,5 +1,5 @@
 <template>
-  <a-layout class="app-wrapper">
+  <a-layout class="app-wrapper" :class="{ hideSidebar: !sidebar.opened, mobile: device === 'mobile' }">
     <a-drawer
       v-if="device === 'mobile'"
       :open="sidebar.opened"
@@ -23,9 +23,8 @@
       <sidebar />
     </a-layout-sider>
     <a-layout>
-      <div :class="{ 'fixed-header': fixedHeader }" class="layout-header-wrapper">
+      <div :class="{ 'fixed-header': fixedHeader, 'sidebarHide': sidebarHide }" class="layout-header-wrapper">
         <navbar @setLayout="setLayout" />
-        <tags-view v-if="needTagsView" />
       </div>
       <a-layout-content class="main-container" :class="{ 'sidebarHide': sidebarHide }">
         <sub-menu-tabs v-if="!sidebarHide" />
@@ -41,7 +40,7 @@ import { useRoute } from "vue-router";
 import { useWindowSize } from "@vueuse/core";
 import Sidebar from "./components/Sidebar/index.vue";
 import SubMenuTabs from "./components/SubMenuTabs/index.vue";
-import { AppMain, Navbar, Settings, TagsView } from "./components";
+import { AppMain, Navbar, Settings } from "./components";
 import defaultSettings from "@/settings";
 
 import useAppStore from "@/store/system/app";
@@ -56,7 +55,6 @@ const theme = computed(() => settingsStore.theme);
 const sideTheme = computed(() => settingsStore.sideTheme);
 const sidebar = computed(() => appStore.sidebar);
 const device = computed(() => useAppStore().device);
-const needTagsView = computed(() => settingsStore.tagsView);
 const fixedHeader = computed(() => settingsStore.fixedHeader);
 
 watch(
@@ -179,7 +177,12 @@ function normalizePath(path) {
 
 .main-container {
   background-color: var(--dm-bg-layout, #eef3f8);
-  min-height: calc(100vh - 60px);
+  /* 撑满 header(100px) 之后的剩余高度：submenu-tabs 与 app-main 竖向排列，
+     app-main flex:1 自动扣减 submenu-tabs 高度，页面不再溢出、不再产生页面级滚动条 */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
 }

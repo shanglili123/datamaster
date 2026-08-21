@@ -24,7 +24,7 @@
     </a-tab-pane>
 </template>
 
-<script setup name="QtTabPane">
+<script setup name="DmTabPane">
     import { InfoCircleFilled as InfoFilled } from '@ant-design/icons-vue';
 
     const props = defineProps({

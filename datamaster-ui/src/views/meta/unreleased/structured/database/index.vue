@@ -1,9 +1,9 @@
 <template>
   <div class="app-container">
 
-    <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
+    <dm-wrap :columns="tableStroe.columns" :tableRef="tableRef">
       <template #search>
-        <qt-search-bar
+        <dm-search-bar
           v-bind="searchStore"
           :params="tableStroe.params"
           :tableRef="tableRef"
@@ -30,7 +30,7 @@
           删除
         </a-button>
       </template>
-      <qt-table v-bind="tableStroe" ref="tableRef">
+      <dm-table v-bind="tableStroe" ref="tableRef">
         <template #domain-name="scope">
           {{ getDomainPath(scope.row.domainId) }}
         </template>
@@ -88,8 +88,8 @@
             </a-button>
           </a-popover>
         </template>
-      </qt-table>
-    </qt-wrap>
+      </dm-table>
+    </dm-wrap>
 
     <!-- 新增/修改弹窗 -->
     <a-modal

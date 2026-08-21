@@ -106,10 +106,25 @@ public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,Cata
         if (datasourceId == null) {
             return new ArrayList<>();
         }
+        // 同一库表可能被多次采集任务重复采集，在 CAT_TABLE 中产生多行记录（version 不递增，靠 create_time 区分新旧）。
+        // 按 version、create_time 降序取每张表的最新一行，避免下游（如 AI 多表 Skill 生成）对同一库表重复处理。
         List<CatalogTableDO> tables = CatalogTableMapper.selectList(Wrappers.lambdaQuery(CatalogTableDO.class)
                 .eq(CatalogTableDO::getDatasourceId, datasourceId)
-                .orderByAsc(CatalogTableDO::getTableName));
-        return BeanUtils.toBean(tables, CatalogTableRespDTO.class);
+                .orderByDesc(CatalogTableDO::getVersion, BaseEntity::getCreateTime));
+        if (CollectionUtils.isEmpty(tables)) {
+            return new ArrayList<>();
+        }
+        Map<String, CatalogTableDO> latestByTable = new LinkedHashMap<>();
+        for (CatalogTableDO table : tables) {
+            if (table == null || StringUtils.isBlank(table.getTableName())) {
+                continue;
+            }
+            String key = table.getDatasourceId() + "|" + table.getTableName().toLowerCase(Locale.ROOT);
+            latestByTable.putIfAbsent(key, table);
+        }
+        List<CatalogTableDO> distinctTables = new ArrayList<>(latestByTable.values());
+        distinctTables.sort(Comparator.comparing(CatalogTableDO::getTableName, String.CASE_INSENSITIVE_ORDER));
+        return BeanUtils.toBean(distinctTables, CatalogTableRespDTO.class);
     }
 
     @Override

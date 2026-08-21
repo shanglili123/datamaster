@@ -22,7 +22,8 @@ public class CatalogTaskSourceTreeRespVO implements Serializable {
      * 节点ID
      * - SOURCE节点: 来源系统ID
      * - DATASOURCE节点: 数据源ID
-     * - DATABASE节点: 任务ID(统一使用任务ID,方便后续查询)
+     * - DATABASE节点: 库ID
+     * - TABLE节点: 表ID
      */
     @Schema(description = "节点ID", example = "1")
     private Long id;
@@ -34,9 +35,9 @@ public class CatalogTaskSourceTreeRespVO implements Serializable {
     private String name;
 
     /**
-     * 节点类型: SOURCE-来源系统, DATASOURCE-数据源, DATABASE-数据库
+     * 节点类型: SOURCE-来源系统, DATASOURCE-数据源, DATABASE-数据库, TABLE-表
      */
-    @Schema(description = "节点类型: SOURCE-来源系统, DATASOURCE-数据源, DATABASE-数据库", example = "SOURCE")
+    @Schema(description = "节点类型: SOURCE-来源系统, DATASOURCE-数据源, DATABASE-数据库, TABLE-表", example = "SOURCE")
     private String type;
 
     @Schema(description = "数据源类型")
@@ -45,6 +46,18 @@ public class CatalogTaskSourceTreeRespVO implements Serializable {
 
     @Schema(description = "采集任务ID")
     private Long taskId;
+
+    /**
+     * 库ID（TABLE节点关联的库）
+     */
+    @Schema(description = "库ID")
+    private Long dbId;
+
+    /**
+     * 数据源ID（TABLE节点所属数据源）
+     */
+    @Schema(description = "数据源ID")
+    private Long datasourceId;
 
     /**
      * 子节点列表

@@ -130,7 +130,7 @@ public class FieldDerivationTransitionComponent implements ComponentItem {
         parameter.put("tableFields",taskParams.get("tableFields"));
         parameter.put("startIndex",taskParams.get("startIndex"));
         parameter.put("endIndex",taskParams.get("endIndex"));
-        return null;
+        return parameter;
     }
 
     private Map<String, Object> handleConcat(Map<String, Object> taskParams) {

@@ -38,11 +38,11 @@ import TreeSelect from '@/components/TreeSelect'
 import DictTag from '@/components/DictTag'
 import '@/assets/iconfont/font_new/iconfont.css'
 
-import QtSearchBar from '@/components/QtSearchBar/index.vue';
-import QtWrap from '@/components/QtWrap/index.vue';
-import QtTable from '@/components/QtTable/index.vue';
-import QtTabPane from '@/components/QtTabPane/index.vue';
-import QtFormItem from '@/components/QtFormItem/index.vue';
+import DmSearchBar from '@/components/DmSearchBar/index.vue';
+import DmWrap from '@/components/DmWrap/index.vue';
+import DmTable from '@/components/DmTable/index.vue';
+import DmTabPane from '@/components/DmTabPane/index.vue';
+import DmFormItem from '@/components/DmFormItem/index.vue';
 
 const app = createApp(App)
 
@@ -70,11 +70,11 @@ app.component('ImagePreview', ImagePreview)
 app.component('RightToolbar', RightToolbar)
 app.component('RightToolbar2', RightToolbar2)
 app.component('Editor', Editor)
-app.component('QtSearchBar', QtSearchBar)
-app.component('QtWrap', QtWrap)
-app.component('QtTable', QtTable)
-app.component('QtTabPane', QtTabPane)
-app.component('QtFormItem', QtFormItem)
+app.component('DmSearchBar', DmSearchBar)
+app.component('DmWrap', DmWrap)
+app.component('DmTable', DmTable)
+app.component('DmTabPane', DmTabPane)
+app.component('DmFormItem', DmFormItem)
 app.use(router)
 app.use(store)
 app.use(plugins)

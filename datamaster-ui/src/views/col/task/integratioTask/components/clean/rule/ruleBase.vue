@@ -9,6 +9,7 @@
     :destroy-on-close="true"
     :mask-closable="false"
     :get-container="() => $refs['app-container'] || document.body"
+    :width="1200"
   >
     <div class="content" v-if="dialogStatus == 0">
       <SideMenu

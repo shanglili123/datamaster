@@ -1,9 +1,9 @@
 <template>
   <div class="app-container">
 
-    <qt-wrap :columns="tableStroe.columns" :tableRef="tableRef">
+    <dm-wrap :columns="tableStroe.columns" :tableRef="tableRef">
       <template #search>
-        <qt-search-bar
+        <dm-search-bar
           v-bind="searchStore"
           :params="tableStroe.params"
           :tableRef="tableRef"
@@ -30,7 +30,7 @@
           删除
         </a-button>
       </template>
-      <qt-table v-bind="tableStroe" ref="tableRef">
+      <dm-table v-bind="tableStroe" ref="tableRef">
         <template #domain-name="scope">
           {{ getDomainPath(scope.row.domainId) }}
         </template>
@@ -46,13 +46,6 @@
         </template>
 
         <template #handle="{ row }">
-          <a-button
-            type="link"
-            :icon="h(EyeOutlined)"
-            @click="handleDetailClick(row)"
-          >
-            详情
-          </a-button>
           <a-button
             type="link"
             :icon="h(EditOutlined)"
@@ -72,14 +65,6 @@
               >
                 删除
               </a-button>
-
-              <a-button
-                type="link"
-                @click="handleDetailClick(row, 'VersionManagement')"
-              >
-                <svg-icon icon-class="meta-version" class="handle-svg-icon" />
-                版本与变更
-              </a-button>
             </template>
             <a-button
               type="link"
@@ -94,8 +79,8 @@
             </a-button>
           </a-popover>
         </template>
-      </qt-table>
-    </qt-wrap>
+      </dm-table>
+    </dm-wrap>
 
     <a-modal
       v-model:open="dialog.open"
@@ -312,7 +297,7 @@
 <script setup name="UnreleasedStructuredColumn">
 import { message, Modal } from 'ant-design-vue'
 import { getCurrentInstance, h, reactive, ref, toValue } from "vue";
-import { PlusOutlined, DeleteOutlined, EyeOutlined, EditOutlined, DownOutlined } from '@ant-design/icons-vue';
+import { PlusOutlined, DeleteOutlined, EditOutlined, DownOutlined } from '@ant-design/icons-vue';
 
 import { listDomain } from "@/api/tax/domain/domain.js";
 
@@ -404,7 +389,6 @@ const tableStroe = reactive({
       onSelectionChange: function (rows) {
         store.rows = rows;
       },
-      onRowDblclick: handleDetailClick,
     },
   },
   columns: [
@@ -447,9 +431,6 @@ const tableStroe = reactive({
         effect: "light",
       },
       minWidth: 240,
-      link: {
-        external: handleDetailClick,
-      },
     },
     {
       label: "字段注释",
@@ -776,17 +757,6 @@ function handleConfirmClick() {
       tableRef.value.getList();
     })
     .catch(() => {});
-}
-
-// 详情
-function handleDetailClick(row, tab) {
-  router.push({
-    path: route.path + "/detail",
-    query: {
-      id: row.id,
-      tab: typeof tab === "string" ? tab : undefined,
-    },
-  });
 }
 
 // 删除

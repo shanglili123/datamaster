@@ -438,6 +438,17 @@ public class EvaluateLogServiceImpl  extends ServiceImpl<EvaluateLogMapper,Evalu
             QualityTaskObjRespVO QualityTaskObjRespVO = collect.get(QualityTaskEvaluateById.getObjId());
 
             EvaluateLogRespVO bean = BeanUtils.toBean(EvaluateLogDO, EvaluateLogRespVO.class);
+            // 旧的执行日志未必保存了字段名和规则配置；用任务中的评测配置回填，
+            // 使历史质量报告也能显示被校验的字段。
+            if (StringUtils.isBlank(bean.getColumnName())) {
+                bean.setColumnName(QualityTaskEvaluateById.getEvaColumn());
+            }
+            if (StringUtils.isBlank(bean.getRule())) {
+                bean.setRule(QualityTaskEvaluateById.getRule());
+            }
+            if (StringUtils.isBlank(bean.getTableName())) {
+                bean.setTableName(QualityTaskEvaluateById.getTableName());
+            }
             Long total = bean.getTotal();
             Long problemTotal = bean.getProblemTotal();
             bean.setProportion(BigDecimal.ZERO);

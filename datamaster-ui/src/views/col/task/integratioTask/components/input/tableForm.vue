@@ -1,6 +1,6 @@
 <template>
     <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name"
-        :closable="false" :destroy-on-close="true" :mask-closable="false">
+        :closable="false" :destroy-on-close="true" :mask-closable="false" :width="1200">
         <a-spin :spinning="loading">
         <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
             :disabled="info">
@@ -1180,10 +1180,16 @@ const off = () => {
 // 保存数据
 const saveData = async () => {
     try {
-        // 异步验证表单
-        const valid = await dpModelRefs.value.validate();
-        if (!valid) return;
-        ensureStreamConfigs();
+      // 手动检查关键必填字段（避免 a-form dot-notation path 校验失效）
+      if (!form.value?.taskParams?.readerDatasource?.datasourceId) {
+        return proxy.$message.warning('请选择源数据库连接');
+      }
+      if (!form.value?.taskParams?.asset_id) {
+        return proxy.$message.warning('请选择表');
+      }
+      // 校验通过，继续后续逻辑
+      await nextTick();
+      ensureStreamConfigs();
         if (typeof form.value.taskParams.topic === 'string') {
             form.value.taskParams.topic = form.value.taskParams.topic.trim();
         }
@@ -1297,7 +1303,10 @@ watch(
             getDatasourceList();
         }
         const nodeData = props.currentNode?.getProp?.("data") || props.currentNode?.data || {};
-        form.value = deepCopy(nodeData);
+        const copy = deepCopy(nodeData);
+        // 原地更新而非替换 ref，保持 a-form 内部字段注册的响应式代理不被断开
+        Object.keys(form.value).forEach(k => { delete form.value[k]; });
+        Object.assign(form.value, copy);
         form.value.taskParams = form.value.taskParams || {};
         normalizeReaderDatasource(form.value.taskParams);
         ensureStreamConfigs();
@@ -1466,6 +1475,12 @@ watch(
 
         // 处理回echo - 确保数据源和资产表回echo
         handle回echo();
+
+        // 等待 DOM 更新后同步表单内部状态，避免校验时报"请选择xxx"但实际已有值
+        nextTick(() => {
+            dpModelRefs.value?.clearValidate();
+            
+        });
     } else {
         off();
     }

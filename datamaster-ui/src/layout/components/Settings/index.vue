@@ -28,13 +28,6 @@
     <h3 class="drawer-title">系统布局配置</h3>
 
     <div class="drawer-item">
-      <span>开启 Tags-Views</span>
-      <span class="comp-style">
-        <a-switch v-model:checked="settingsStore.tagsView" />
-      </span>
-    </div>
-
-    <div class="drawer-item">
       <span>固定 Header</span>
       <span class="comp-style">
         <a-switch v-model:checked="settingsStore.fixedHeader" />

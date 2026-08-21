@@ -3,6 +3,7 @@ import Layout from '@/layout/index.vue';
 
 const tableHandleComponent = () => import('@/views/meta/unreleased/structured/table/handle/index.vue');
 const tableDetailComponent = () => import('@/views/meta/unreleased/structured/table/detail/index.vue');
+const probeTaskInstanceDetailComponent = () => import('@/views/ast/quality/probeTaskInstance/detail/index.vue');
 
 function tableRoute(path, name, title, permission, component) {
     return {
@@ -72,6 +73,19 @@ export default [
         tableDetailComponent
     ),
     {
+        path: '/meta/probeResult/detail',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: '',
+                component: probeTaskInstanceDetailComponent,
+                name: 'ProbeResultDetail',
+                meta: { title: '质量探查报告', activeMenu: '/meta/probeResult' }
+            }
+        ]
+    },
+    {
         path: '/meta/unreleased/structured/column/add',
         component: Layout,
         hidden: true,
@@ -82,20 +96,6 @@ export default [
                 component: () => import('@/views/meta/unreleased/structured/column/add/index.vue'),
                 name: 'UnreleasedStructuredColumnAdd',
                 meta: { title: '新增字段元数据', activeMenu: '/meta/catalog/management' }
-            }
-        ]
-    },
-    {
-        path: '/meta/unreleased/structured/column/detail',
-        component: Layout,
-        hidden: true,
-        permissions: ['cat:table:detail'],
-        children: [
-            {
-                path: '',
-                component: () => import('@/views/meta/unreleased/structured/column/detail/index.vue'),
-                name: 'UnreleasedStructuredColumnDetail',
-                meta: { title: '字段元数据详情', activeMenu: '/meta/catalog/management' }
             }
         ]
     }

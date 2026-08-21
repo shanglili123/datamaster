@@ -14,9 +14,16 @@ import java.util.Map;
 
 public class FlinkxEtlTaskConverter {
 
+    /**
+     * 自定义 SQL 模式（connection.querySql 非空）下 reader 的虚拟表别名。
+     * ChunJun 在存在 transformer 时通过 reader.table.tableName 创建临时视图，
+     * transformSql 的 FROM 必须引用同一名称，故自定义 SQL 模式下使用固定别名。
+     */
+    private static final String CUSTOM_SQL_TABLE_ALIAS = "sourceTable";
+
     public static String convertToFlinkxJobJson(Map<String, Object> mainArgs) {
         Map<String, Object> readerMap = (Map<String, Object>) mainArgs.get("reader");
-        Map<String, Object> writerMap = (Map<String, Object>) mainArgs.get("writer");
+        List<Map<String, Object>> writerList = resolveWriterList(mainArgs);
         List<Map<String, Object>> transitionList = (List<Map<String, Object>>) mainArgs.get("transition");
         JSONObject config = mainArgs.get("config") instanceof Map
                 ? jsonObjectFromMap((Map<String, Object>) mainArgs.get("config"))
@@ -30,17 +37,31 @@ public class FlinkxEtlTaskConverter {
         JSONObject job = new JSONObject();
 
         JSONArray content = new JSONArray();
-        if (readerMap != null || writerMap != null) {
-            JSONObject contentItem = new JSONObject();
-            if (readerMap != null) {
+        if (readerMap != null && !writerList.isEmpty()) {
+            for (Map<String, Object> writerMap : writerList) {
+                JSONObject contentItem = new JSONObject();
                 if (isExcelOrCsvReader(readerMap)) {
                     contentItem.put("reader", buildFileReader(readerMap));
                 } else {
                     contentItem.put("reader", buildReader(readerMap));
                 }
-            }
-            if (writerMap != null) {
                 contentItem.put("writer", buildWriter(writerMap));
+                if (transitionList != null && !transitionList.isEmpty()) {
+                    String transformSql = buildTransformSql(transitionList, readerMap);
+                    if (transformSql != null) {
+                        JSONObject transformer = new JSONObject();
+                        transformer.put("transformSql", transformSql);
+                        contentItem.put("transformer", transformer);
+                    }
+                }
+                content.add(contentItem);
+            }
+        } else if (readerMap != null) {
+            JSONObject contentItem = new JSONObject();
+            if (isExcelOrCsvReader(readerMap)) {
+                contentItem.put("reader", buildFileReader(readerMap));
+            } else {
+                contentItem.put("reader", buildReader(readerMap));
             }
             if (transitionList != null && !transitionList.isEmpty()) {
                 String transformSql = buildTransformSql(transitionList, readerMap);
@@ -57,6 +78,29 @@ public class FlinkxEtlTaskConverter {
         job.put("setting", buildSetting(config));
         root.put("job", job);
         return root.toJSONString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> resolveWriterList(Map<String, Object> mainArgs) {
+        Object writerList = mainArgs.get("writerList");
+        if (writerList instanceof List && !((List<?>) writerList).isEmpty()) {
+            List<Map<String, Object>> writers = new ArrayList<>();
+            for (Object item : (List<?>) writerList) {
+                if (item instanceof Map) {
+                    writers.add((Map<String, Object>) item);
+                }
+            }
+            if (!writers.isEmpty()) {
+                return writers;
+            }
+        }
+        Map<String, Object> singleWriter = (Map<String, Object>) mainArgs.get("writer");
+        if (singleWriter != null) {
+            List<Map<String, Object>> writers = new ArrayList<>();
+            writers.add(singleWriter);
+            return writers;
+        }
+        return new ArrayList<>();
     }
 
     private static boolean isExcelOrCsvReader(Map<String, Object> readerMap) {
@@ -102,6 +146,16 @@ public class FlinkxEtlTaskConverter {
             rp.put("where", param.getOrDefault("where", ""));
             rp.put("column", normalizeFieldColumns(param.get("column")));
             rp.put("splitPk", param.getOrDefault("splitPk", ""));
+
+            Object querySql = connectionQuery(param);
+            if (querySql != null && StringUtils.isNotBlank(String.valueOf(querySql))) {
+                // 自定义 SQL 模式：ChunJun 顶层 customSql 优先于 connection.table / where / splitPk。
+                // 注意：不能使用 querySql 键——JdbcInputFormat.open() 会用内置 SQL 覆盖 querySql，
+                // 且空 table 数组会让 getTable() 抛 IndexOutOfBoundsException；customSql 才是输入键。
+                rp.put("customSql", String.valueOf(querySql));
+                rp.put("where", "");
+                rp.put("splitPk", "");
+            }
 
             Map<String, Object> rawConn = (Map<String, Object>) param.get("connection");
             if (rawConn != null) {
@@ -530,6 +584,13 @@ public class FlinkxEtlTaskConverter {
                 tableName = first.toString();
             }
         }
+        // 自定义 SQL 模式：connection.table 为空，但 transformer 路径要求
+        // reader.table.tableName 存在（checkTableConfig 校验），使用固定虚拟别名。
+        Object querySql = connectionQuery(param);
+        if ((tableName == null || tableName.isEmpty()) && querySql != null
+                && StringUtils.isNotBlank(String.valueOf(querySql))) {
+            tableName = CUSTOM_SQL_TABLE_ALIAS;
+        }
         if (tableName != null && !tableName.isEmpty()) {
             JSONObject tableObj = new JSONObject();
             tableObj.put("tableName", tableName);
@@ -950,11 +1011,11 @@ public class FlinkxEtlTaskConverter {
 
     @SuppressWarnings("unchecked")
     private static String extractSourceTableName(Map<String, Object> readerMap) {
-        if (readerMap == null) return "source";
+        if (readerMap == null) return CUSTOM_SQL_TABLE_ALIAS;
         Map<String, Object> param = (Map<String, Object>) readerMap.get("parameter");
-        if (param == null) return "source";
+        if (param == null) return CUSTOM_SQL_TABLE_ALIAS;
         Object rawConn = param.get("connection");
-        if (!(rawConn instanceof Map)) return "source";
+        if (!(rawConn instanceof Map)) return CUSTOM_SQL_TABLE_ALIAS;
         Object table = ((Map<String, Object>) rawConn).get("table");
         String tableName = null;
         if (table instanceof String) {
@@ -965,7 +1026,9 @@ public class FlinkxEtlTaskConverter {
                 tableName = first.toString();
             }
         }
-        return tableName != null && !tableName.isEmpty() ? tableName : "source";
+        // 自定义 SQL 模式（connection.table 为空）：transformSql FROM 必须引用
+        // reader.table.tableName 相同的虚拟别名，统一使用 CUSTOM_SQL_TABLE_ALIAS。
+        return tableName != null && !tableName.isEmpty() ? tableName : CUSTOM_SQL_TABLE_ALIAS;
     }
 
     private static JSONObject buildSetting(JSONObject config) {

@@ -83,6 +83,7 @@
 <script setup name="DatabaseDetail">
 import { computed, getCurrentInstance, reactive, toValue } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { message } from "ant-design-vue";
 import { getDb } from "@/api/cat/unreleased/db.js";
 import { listDomain } from "@/api/tax/domain/domain.js";
 import { getParentLabelPath } from "@/utils/anivia.js";
@@ -96,17 +97,10 @@ const tabData = [
     key: "TableList",
     label: "表列表",
   },
-  {
-    key: "VersionManagement",
-    label: "版本与变更",
-  },
 ];
 const tabComponent = {
   BaseInfo: defineAsyncComponent(() => import("./BaseInfo.vue")),
   TableList: defineAsyncComponent(() => import("./TableList.vue")),
-  VersionManagement: defineAsyncComponent(() =>
-    import("./VersionManagement.vue")
-  ),
 };
 
 const { proxy } = getCurrentInstance();
@@ -134,17 +128,33 @@ const form = computed(() => store.form);
 // 获取详情
 function getDetail() {
   store.loading = true;
-  getDb(route.query.id).then((res) => {
-    const datasource = res.data?.datasource;
-    if (datasource !== null) {
-      if (datasource.datasourceConfig) {
-        datasource.datasourceConfig = JSON.parse(datasource.datasourceConfig);
+  getDb(route.query.id)
+    .then((res) => {
+      if (!res?.data) {
+        store.form = {};
+        return;
       }
-      res.data.username = datasource?.datasourceConfig?.username;
-    }
-    store.form = res.data;
-    store.loading = false;
-  });
+      const datasource = res.data?.datasource;
+      if (datasource?.datasourceConfig) {
+        if (typeof datasource.datasourceConfig === "string") {
+          try {
+            datasource.datasourceConfig = JSON.parse(datasource.datasourceConfig);
+          } catch (e) {
+            // 配置串非法时保持原样，避免阻塞详情展示
+          }
+        }
+        res.data.username = datasource.datasourceConfig?.username;
+      }
+      store.form = res.data;
+    })
+    .catch((err) => {
+      console.error("库详情加载失败", err);
+      store.form = {};
+      message.error("库详情加载失败，请稍后重试");
+    })
+    .finally(() => {
+      store.loading = false;
+    });
 }
 
 // 获取业务域路径
