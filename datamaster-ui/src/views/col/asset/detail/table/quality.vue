@@ -168,7 +168,7 @@
         <qualityTaskDialog ref="qualityDialog" @submit-success="fetchData" />
         <DataViewDialog :visible="DataView" :taskType="3" @update:visible="DataView = $event" :data="form"
             title="执行记录" />
-        <a-modal title="调度周期" v-model:open="openCron" destroy-on-close>
+        <a-modal title="调度周期" v-model:open="openCron" destroy-on-close :width="700">
             <crontab ref="crontabRef" @hide="openCron = false" @fill="crontabFill" :expression="expression">
             </crontab>
             <!--      <crontab-->

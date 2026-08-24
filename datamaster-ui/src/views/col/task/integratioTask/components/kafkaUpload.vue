@@ -6,6 +6,7 @@
     :title="title"
     :destroy-on-close="true"
     :footer="null"
+    :width="800"
   >
     <a-form
       ref="daDiscoveryTaskRef"

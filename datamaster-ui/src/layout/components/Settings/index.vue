@@ -20,7 +20,7 @@
     <div class="drawer-item">
       <span>主题颜色</span>
       <span class="comp-style">
-        <a-color-picker v-model:value="theme" :preset="presetColors" @change="themeChange" />
+        <input type="color" class="native-color-input" :value="theme" @change="themeChange($event.target.value)" />
       </span>
     </div>
     <a-divider />
@@ -78,9 +78,9 @@ const showSettings = ref(false);
 const theme = ref(settingsStore.theme);
 const sideTheme = ref(settingsStore.sideTheme);
 const storeSettings = computed(() => settingsStore);
-const presetColors = ref(["#2666FB", "#ff4500", "#ff8c00", "#ffd700", "#90ee90", "#00ced1", "#1e90ff", "#c71585"]);
 
 function themeChange(val) {
+  theme.value = val;
   settingsStore.theme = val;
   handleThemeStyle(val);
 }
@@ -167,6 +167,16 @@ defineExpose({
   .comp-style {
     float: right;
     margin: -3px 8px 0px 0px;
+  }
+
+  .native-color-input {
+    width: 32px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    vertical-align: middle;
   }
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
     <!-- 资产质量的弹窗 -->
-    <a-modal v-model:open="visible" :title="title" class="medium-dialog" @close="handleClose" destroy-on-close>
+    <a-modal v-model:open="visible" :title="title" class="medium-dialog" @close="handleClose" destroy-on-close :width="1200">
         <a-spin :spinning="loadingInstance">
         <div ref="app-container">
             <!--            <div class="pagecont-top" v-show="showSearch" style="padding-bottom: 15px">-->

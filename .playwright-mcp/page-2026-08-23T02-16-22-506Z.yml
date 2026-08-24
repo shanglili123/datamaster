@@ -1,0 +1,180 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e3]:
+    - complementary [ref=f2e4]:
+      - generic [ref=f2e6]:
+        - link [ref=f2e8] [cursor=pointer]:
+          - /url: /
+          - img "DataMaster" [ref=f2e9]
+        - menu [ref=f2e10]:
+          - generic [ref=f2e11] [cursor=pointer]: 数据探查
+          - generic [ref=f2e16] [cursor=pointer]: 标准建模
+          - generic [ref=f2e21] [cursor=pointer]: 数据资产
+          - generic [ref=f2e26] [cursor=pointer]: 空间管理
+          - generic [ref=f2e31] [cursor=pointer]: 数据研发
+          - generic [ref=f2e36] [cursor=pointer]: 数据服务
+          - generic [ref=f2e41] [cursor=pointer]: 智能问数
+          - generic [ref=f2e46] [cursor=pointer]: 本体模型
+          - generic [ref=f2e50] [cursor=pointer]: 系统管理
+          - generic [ref=f2e55] [cursor=pointer]: 监控运维
+    - generic [ref=f2e60]:
+      - generic [ref=f2e62]:
+        - generic [ref=f2e63]:
+          - button "收起侧边栏" [ref=f2e64] [cursor=pointer]
+          - navigation [ref=f2e68]:
+            - list [ref=f2e69]:
+              - listitem [ref=f2e70]:
+                - generic [ref=f2e71]: 首页
+                - text: /
+              - listitem [ref=f2e73]:
+                - generic [ref=f2e74]: 本体模型
+                - text: /
+              - listitem [ref=f2e76]:
+                - generic [ref=f2e77]: 本体工作台
+        - generic [ref=f2e79]:
+          - generic [ref=f2e80]:
+            - generic [ref=f2e81]: "*"
+            - generic [ref=f2e82]: 所属空间
+            - generic [ref=f2e84] [cursor=pointer]:
+              - combobox [ref=f2e86]
+              - generic [ref=f2e87]: 客户与账户数据空间
+          - generic [ref=f2e94] [cursor=pointer]:
+            - img "avatar" [ref=f2e95]
+            - generic [ref=f2e96]: 超级管理员
+            - img "down" [ref=f2e97]
+      - main [ref=f2e100]:
+        - generic [ref=f2e103]:
+          - generic [ref=f2e104]:
+            - button "arrow-left 返回" [ref=f2e105] [cursor=pointer]:
+              - img "arrow-left" [ref=f2e106]
+              - generic [ref=f2e109]: 返回
+            - separator [ref=f2e110]
+            - generic [ref=f2e111]:
+              - generic "搜索" [ref=f2e112]
+              - generic [ref=f2e113]: 草稿
+          - generic [ref=f2e115]:
+            - tablist [ref=f2e116]:
+              - generic [ref=f2e118]:
+                - tab "概念管理" [ref=f2e120] [cursor=pointer]
+                - tab "属性管理" [selected] [ref=f2e122] [cursor=pointer]
+                - tab "关系管理" [ref=f2e124] [cursor=pointer]
+                - tab "动作管理" [ref=f2e126] [cursor=pointer]
+                - tab "可视化图谱" [ref=f2e128] [cursor=pointer]
+            - tabpanel "属性管理" [ref=f2e227]:
+              - generic [ref=f2e228]:
+                - generic [ref=f2e229]:
+                  - generic [ref=f2e230]: 概念目录
+                  - generic [ref=f2e232]:
+                    - img "search" [ref=f2e234]
+                    - textbox "搜索概念" [ref=f2e237]
+                  - generic [ref=f2e239]:
+                    - generic [ref=f2e240] [cursor=pointer]: 公司
+                    - generic [ref=f2e241] [cursor=pointer]: 人物
+                - generic [ref=f2e242]:
+                  - generic [ref=f2e243]:
+                    - generic [ref=f2e244]: 人物
+                    - textbox "请输入属性名称" [ref=f2e246]
+                    - button "查 询" [ref=f2e248] [cursor=pointer]
+                    - button "重 置" [ref=f2e250] [cursor=pointer]
+                    - button "plus 新增属性" [ref=f2e252] [cursor=pointer]:
+                      - img "plus" [ref=f2e253]
+                      - generic [ref=f2e257]: 新增属性
+                  - table [ref=f2e264]:
+                    - rowgroup [ref=f2e274]:
+                      - row [ref=f2e275]:
+                        - columnheader "属性名称" [ref=f2e276]
+                        - columnheader "数据类型" [ref=f2e277]
+                        - columnheader "主键" [ref=f2e278]
+                        - columnheader "必填" [ref=f2e279]
+                        - columnheader "默认值" [ref=f2e280]
+                        - columnheader "排序" [ref=f2e281]
+                        - columnheader "描述" [ref=f2e282]
+                        - columnheader "操作" [ref=f2e283]
+                    - rowgroup [ref=f2e284]:
+                      - row [ref=f2e285]:
+                        - cell "年龄" [ref=f2e286]
+                        - cell "integer" [ref=f2e287]
+                        - cell "否" [ref=f2e289]
+                        - cell "否" [ref=f2e292]
+                        - cell "-" [ref=f2e295]
+                        - cell "0" [ref=f2e296]
+                        - cell "-" [ref=f2e297]
+                        - cell [ref=f2e298]:
+                          - button "绑定字段" [ref=f2e299] [cursor=pointer]
+                          - button "修改" [ref=f2e301] [cursor=pointer]
+                          - button "删除" [ref=f2e303] [cursor=pointer]
+                  - list [ref=f2e306]:
+                    - listitem [ref=f2e307]: 共 1 条
+                    - listitem "Previous Page" [ref=f2e308]:
+                      - button [disabled] [ref=f2e309]:
+                        - img "left" [ref=f2e310]
+                    - listitem "1" [ref=f2e313] [cursor=pointer]
+                    - listitem "Next Page" [ref=f2e315]:
+                      - button [disabled] [ref=f2e316]:
+                        - img "right" [ref=f2e317]
+                    - listitem [ref=f2e320]:
+                      - generic [ref=f2e322] [cursor=pointer]:
+                        - combobox [ref=f2e324]
+                        - generic [ref=f2e325]: 10 / page
+  - img:
+    - generic "account-box-2-line"
+    - generic "account-pin-box-line"
+    - generic "archive-2-line"
+    - generic "archive-drawer-line"
+    - generic "archive-line"
+    - generic "article-line"
+    - generic "bnb-line"
+    - generic "book-2-line"
+    - generic "book-3-line"
+    - generic "book-line"
+    - generic "book-marked-line"
+    - generic "book-read-line"
+    - generic "box-3-line"
+    - generic "briefcase-2-line"
+    - generic "calendar-2-line"
+    - generic "calendar-todo-line"
+    - generic "chrome-line"
+    - generic "code-box-line"
+    - generic "color-filter-line"
+    - generic "contacts-book-2-line"
+    - generic "contacts-book-line"
+    - generic "copper-coin-line"
+    - generic "currency-line"
+    - generic "dashboard-3-line"
+    - generic "equalizer-line"
+    - generic "exchange-dollar-line"
+    - generic "exchange-funds-line"
+    - generic "file-copy-2-line"
+    - generic "file-edit-line"
+    - generic "file-list-2-line"
+    - generic "file-list-line"
+    - generic "group-3-line"
+    - generic "hard-drive-3-line"
+    - generic "hourglass-line"
+    - generic "instance-line"
+    - generic "lifebuoy-line"
+    - generic "list-view"
+    - generic "mail-line"
+    - generic "map-2-line"
+    - generic "megaphone-line"
+    - generic "microsoft-line"
+    - generic "mind-map"
+    - generic "money-dollar-box-line"
+    - generic "news-line"
+    - generic "newspaper-line"
+    - generic "node-tree"
+    - generic "openai-line"
+    - generic "organization-chart"
+    - generic "rainbow-line"
+    - generic "safe-line"
+    - generic "settings-line"
+    - generic "shield-check-line"
+    - generic "shuffle-line"
+    - generic "slideshow-2-line"
+    - generic "slideshow-3-line"
+    - generic "slideshow-4-line"
+    - generic "slideshow-line"
+    - generic "smartphone-line"
+    - generic "stack-line"
+    - generic "telegram-line"
+    - generic "user-3-line"
+    - generic "user-line"

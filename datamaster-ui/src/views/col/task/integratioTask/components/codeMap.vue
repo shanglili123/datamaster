@@ -53,7 +53,7 @@
     </a-table>
 
     <!-- 新增/修改对话框 -->
-    <a-modal :title="title" v-model:open="open" :draggable="true" :destroy-on-close="true" :footer="null">
+    <a-modal :title="title" v-model:open="open" :draggable="true" :destroy-on-close="true" :footer="null" :width="800">
         <a-form ref="dpCodeMapRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
             <a-row :gutter="20">
                 <a-col :span="12">

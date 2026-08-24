@@ -1,6 +1,6 @@
 <template>
     <a-modal v-model:open="visible" :draggable="true" title="字段冲突处理" :closable="false" :destroy-on-close="true"
-        :footer="null" class="MessageBox">
+        :footer="null" class="MessageBox" :width="600">
         <div style="padding: 10px 0;">
             已有 {{ existingFields.length }} 个字段，检测到
             {{ Math.max(0, newFields.length - existingFields.length) }} 个新字段，如何处理？

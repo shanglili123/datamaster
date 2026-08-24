@@ -69,3 +69,12 @@ export function batchDeleteCheck(id) {
     });
 }
 
+// 查询资产侧登记表全量列表（非分页，可按 datasourceId、status 等过滤）
+export function getCatalogTableListAsset(query) {
+    return request({
+        url: '/cat/table/getCatalogTableListAsset',
+        method: 'get',
+        params: query
+    });
+}
+

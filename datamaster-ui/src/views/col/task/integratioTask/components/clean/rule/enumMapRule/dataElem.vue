@@ -374,7 +374,7 @@ defineExpose({ openDialog });
   padding-right: 20px;
 }
 
-.el-table {
+.ant-table {
   flex: none;
   /* 不占满父容器 */
 }

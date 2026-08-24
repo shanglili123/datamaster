@@ -113,7 +113,7 @@
       </div>
     </template>
   </a-modal>
-  <a-modal title="Cron表达式生成器" v-model:open="openCron" class="dialog" destroy-on-close>
+  <a-modal title="Cron表达式生成器" v-model:open="openCron" class="dialog" destroy-on-close :width="700">
     <crontab ref="crontabRef" @hide="openCron = false" @fill="crontabFill" :expression="expression"> </crontab>
   </a-modal>
 </template>

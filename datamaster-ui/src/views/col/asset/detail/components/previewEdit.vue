@@ -1,6 +1,6 @@
 <template>
     <!-- 数据预览的修改弹窗 -->
-    <a-modal v-model:open="visible" class="dialog" destroy-on-close>
+    <a-modal v-model:open="visible" class="dialog" destroy-on-close :width="1200">
         <template #header="{ close, titleId, titleClass }">
             <span role="heading" aria-level="2">
                 {{ title }}

@@ -44,8 +44,8 @@ export default {
       Modal.confirm({
         title: '系统提示',
         content,
-        okText: okText || '确定',
-        cancelText: cancelText || '取消',
+        okText: okText || 'OK',
+        cancelText: cancelText || 'Cancel',
         onOk: () => resolve(true),
         onCancel: () => reject(new Error('cancel'))
       })
@@ -56,8 +56,8 @@ export default {
       Modal.confirm({
         title: '系统提示',
         content,
-        okText: okText || '确定',
-        cancelText: cancelText || '取消',
+        okText: okText || 'OK',
+        cancelText: cancelText || 'Cancel',
         onOk: () => resolve(true),
         onCancel: () => reject(new Error('cancel'))
       })

@@ -1,5 +1,5 @@
 <template>
-  <a-modal v-model:open="visibleDialog" :draggable="true" class="dialog" :title="title" :destroy-on-close="true" :footer="null">
+    <a-modal v-model:open="visibleDialog" :draggable="true" class="dialog" :title="title" :destroy-on-close="true" :footer="null" :width="800">
     <a-form ref="daDiscoveryTaskRef" :model="form" :label-col="{ style: { width: '120px' } }" @submit.prevent>
       <a-row :gutter="20">
         <a-col :span="12">

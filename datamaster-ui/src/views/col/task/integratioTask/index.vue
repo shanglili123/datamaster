@@ -54,32 +54,38 @@
                     class="task-name-text task-name-ellipsis"
                     :title="row.name"
                   >
-                    {{ row.name || "-" }}
+                    {{ row.name }}
                   </a-typography-link>
                   <a-tag
                     color="blue"
                     class="task-cat-ellipsis"
                     :title="row.catName"
                   >
-                    {{ row.catName || "-" }}
+                    {{ row.catName }}
                   </a-tag>
                 </div>
                 <div class="text-ellipsis desc-text" :title="row.description">
-                  {{ row.description || "-" }}
+                  {{ row.description }}
                 </div>
               </div>
             </template>
             <template #releaseState="{ row }">
-              <div class="task-status-stack fz12">
+              <div class="flex-column" style="gap: 4px">
                 <div class="flex-center">
                   <span class="black-label mr5">发布状态:</span>
-                  <a-tag :type="row.status == '1' ? 'success' : row.status == '-1' ? 'default' : 'warning'">
+                  <a-tag
+                    v-if="row.status !== null && row.status !== undefined && row.status !== ''"
+                    :color="row.status == '1' ? 'success' : row.status == '-1' ? 'default' : 'warning'"
+                  >
                     {{ row.status == "1" ? "已发布" : row.status == "-1" ? "草稿" : "未发布" }}
                   </a-tag>
                 </div>
                 <div class="flex-center">
                   <span class="black-label mr5">调度状态:</span>
-                  <a-tag :type="row.schedulerState == '1' ? 'success' : 'default'">
+                  <a-tag
+                    v-if="row.schedulerState !== null && row.schedulerState !== undefined && row.schedulerState !== ''"
+                    :color="row.schedulerState == '1' ? 'success' : 'default'"
+                  >
                     {{ row.schedulerState == "1" ? "已上线" : "未上线" }}
                   </a-tag>
                 </div>
@@ -87,51 +93,33 @@
             </template>
             <template #cronExpression="{ row }">
               <div class="flex-column fz14 grey-black-text">
-                <div class="flex-center mb5">
-                  <ClockCircleOutlined class="mr5" />
+                <div class="cron-row">
+                  <ClockCircleOutlined class="cron-icon" />
                   <span
                     class="text-ellipsis cron-text"
                     :title="cronToZh(row.cronExpression)"
                   >
-                    {{ cronToZh(row.cronExpression) || "-" }}
+                    {{ cronToZh(row.cronExpression) }}
                   </span>
-                </div>
-                <div class="flex-center">
-                  <span class="mr5">执行策略:</span>
-                  <dict-tag
-                    :options="col_etl_task_execution_type"
-                    :value="row.executionType"
-                  />
                 </div>
               </div>
             </template>
             <template #lastExecute="{ row }">
               <div class="flex-column fz14 last-execute-col">
                 <template v-if="row.lastExecuteTime">
-                  <div class="mb5">
-                    <a-tag
-                      v-if="
-                        row.lastExecuteStatus !== null &&
-                        row.lastExecuteStatus !== undefined &&
-                        row.lastExecuteStatus !== ''
-                      "
-                      :type="taskInstanceStatusType(row.lastExecuteStatus)"
-                    >
-                      {{ taskInstanceStatusLabel(row.lastExecuteStatus) }}
-                    </a-tag>
-                    <span v-else>-</span>
-                  </div>
+                  <a-tag
+                    v-if="
+                      row.lastExecuteStatus !== null &&
+                      row.lastExecuteStatus !== undefined &&
+                      row.lastExecuteStatus !== ''
+                    "
+                    :color="taskInstanceStatusType(row.lastExecuteStatus)"
+                  >
+                    {{ taskInstanceStatusLabel(row.lastExecuteStatus) }}
+                  </a-tag>
                   <span>
                     {{ parseTime(row.lastExecuteTime, "{y}-{m}-{d} {h}:{i}") }}
                   </span>
-                </template>
-                <template v-else>
-                  <div class="mb5">
-                    <a-tag class="not-executed-tag"
-                      >未执行</a-tag
-                    >
-                  </div>
-                  <span>-</span>
                 </template>
               </div>
             </template>
@@ -140,7 +128,7 @@
                 <span
                   class="text-ellipsis person-charge-ellipsis"
                   :title="row.createBy"
-                  >{{ row.createBy || "-" }}</span
+                  >{{ row.createBy }}</span
                 >
               </div>
             </template>
@@ -243,6 +231,7 @@
       v-model:open="openCron"
       :footer="null"
       destroy-on-close
+      :width="700"
     >
       <crontab
         ref="crontabRef"
@@ -277,7 +266,7 @@
     >
       <a-form :model="opsForm" :label-col="{ style: { width: '120px' } }">
         <a-form-item label="任务名称">
-          <span>{{ opsTask.name || "-" }}</span>
+          <span>{{ opsTask.name }}</span>
         </a-form-item>
         <a-form-item label="失败即停">
           <a-switch v-model:checked="opsForm.failStopEnabled" />
@@ -401,18 +390,18 @@ const tableStore = reactive({
     },
   },
   columns: [
-    { label: "编号", prop: "id", width: 90, sortable: true },
+    { label: "编号", prop: "id", width: 110, sortable: true },
     {
       label: "任务信息",
       prop: "name",
       align: "left",
       slot: "name",
-      width: 340,
+      width: 280,
     },
     {
       label: "运行控制",
       prop: "status",
-      width: 145,
+      width: 200,
       slot: "releaseState",
       align: "left",
     },
@@ -425,7 +414,7 @@ const tableStore = reactive({
     },
     {
       label: "最近执行",
-      width: 160,
+      width: 200,
       slot: "lastExecute",
       align: "left",
     },
@@ -1011,16 +1000,31 @@ onBeforeUnmount(() => {
 <style lang="scss" src="@/assets/system/styles/table-style-optimized.scss"></style>
 <style scoped lang="scss">
 :deep(.dm-search-bar) {
-  .el-form {
+  .ant-form {
     flex-wrap: nowrap !important;
   }
-  .el-form-item {
+  .ant-form-item {
     flex-shrink: 0 !important;
     margin-bottom: 0 !important;
   }
   .search-content {
     width: 150px !important;
   }
+}
+.cron-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.cron-icon {
+  flex-shrink: 0;
+  line-height: 1;
+}
+.cron-icon svg {
+  display: block;
+}
+:deep(.anticon) {
+  line-height: 1;
 }
 </style>
 

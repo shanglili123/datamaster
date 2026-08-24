@@ -265,18 +265,15 @@ defineExpose({
   flex: 1;
   min-width: 0;
 }
-.name-input :deep(.el-input__wrapper) {
+.name-input :deep(.ant-input) {
   padding: 0 4px;
   box-shadow: none !important;
   border: 1px solid transparent;
-}
-.name-input :deep(.el-input__wrapper:hover) {
-  border-color: #dcdfe6;
-}
-.name-input :deep(.el-input__inner) {
-  padding: 0;
   font-size: 12px;
   height: 28px;
+}
+.name-input :deep(.ant-input:hover) {
+  border-color: #dcdfe6;
 }
 
 .icon {

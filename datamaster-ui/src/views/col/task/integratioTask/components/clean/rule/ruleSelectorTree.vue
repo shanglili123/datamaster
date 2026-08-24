@@ -230,7 +230,7 @@ defineExpose({ resetTree });
   overflow: auto;
 }
 
-.el-aside {
+.ant-layout-sider {
   padding: 2px 0;
   margin-bottom: 0px;
   background: transparent;
@@ -274,7 +274,7 @@ defineExpose({ resetTree });
 }
 
 .colorxz {
-  color: var(--el-color-primary);
+  color: #1677ff;
 }
 
 .colorwxz {
@@ -328,7 +328,7 @@ defineExpose({ resetTree });
   box-shadow: 0 4px 12px rgba(31, 45, 61, 0.08);
 
   &:hover {
-    color: var(--el-color-primary);
+    color: #1677ff;
     border-color: #c9dcff;
   }
 }
@@ -336,56 +336,51 @@ defineExpose({ resetTree });
 :deep(.filter-tree) {
   margin-bottom: 12px;
 
-  .el-input__wrapper {
+  .ant-input-affix-wrapper {
     min-height: 34px;
     border-radius: 6px;
     background: #f8fafc;
     box-shadow: 0 0 0 1px #e2e8f0 inset;
   }
 
-  .el-input__prefix {
+  .ant-input-prefix {
     color: #7f8da3;
   }
 }
 
 :deep(.dept-tree) {
-  --el-tree-node-hover-bg-color: #f6faff;
   background: transparent;
 
   //组织树 背景颜色 及右边线颜色
-  &.el-tree--highlight-current
-    .el-tree-node.is-current
-    > .el-tree-node__content {
+  &.ant-tree-directory
+    .ant-tree-treenode.ant-tree-treenode-selected
+    > .ant-tree-node-content-wrapper {
     background: #eef5ff !important;
     border: none;
     border-radius: 6px;
 
     .custom-tree-node {
       .treelable {
-        color: var(--el-color-primary);
+        color: #1677ff;
       }
     }
   }
 
-  .el-tree-node__content {
+  .ant-tree-node-content-wrapper {
     position: relative;
     height: 34px;
     margin: 2px 0;
     border-radius: 6px;
     transition: background-color 0.16s ease, color 0.16s ease;
+    line-height: 34px;
 
-    .el-tree-node__expand-icon {
+    .ant-tree-switcher {
       position: absolute;
       right: 10px;
       color: #9aa8ba;
       font-size: 11px;
       width: 11px;
       height: 11px;
-
-      & > svg {
-        background: none;
-        transform: none;
-      }
     }
   }
 }

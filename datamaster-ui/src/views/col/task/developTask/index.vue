@@ -252,6 +252,7 @@
       title="调度周期"
       v-model:open="openCron"
       :destroy-on-close="true"
+      :width="700"
     >
       <crontab
         ref="crontabRef"

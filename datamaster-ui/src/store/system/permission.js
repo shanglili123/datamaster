@@ -179,11 +179,33 @@ function filterSystemTool(routes) {
 function addRoutesToRouter(routes) {
     buildRouterRoutes(routes).forEach((route) => {
         if (isHttp(route.path)) return;
+        mergeStaticChildRoutes(route);
         if (route.name && router.hasRoute(route.name)) {
             router.removeRoute(route.name);
         }
         router.addRoute(route);
     });
+}
+
+// 后端空间菜单可能缺少部分子菜单（如带参数的隐藏详情页 workspace/:ontologyId），
+// 直接 removeRoute + addRoute 重建会把前端静态路由中已注册的这些子页面一并删除，
+// 导致刷新时按名称/路径重定向失败（No match）。注册前先把静态定义中缺失的子路由补回。
+function mergeStaticChildRoutes(route) {
+    if (!route || !route.name) return route;
+    const staticRoute = constantRoutes.find((item) => item && item.name === route.name);
+    if (!staticRoute || !Array.isArray(staticRoute.children)) return route;
+
+    const children = Array.isArray(route.children) ? route.children : [];
+    const knownPaths = new Set(children.map((child) => child && child.path));
+    staticRoute.children.forEach((child) => {
+        if (child && child.path && !knownPaths.has(child.path)) {
+            children.push({ ...child });
+        }
+    });
+    if (children.length) {
+        route.children = children;
+    }
+    return route;
 }
 
 function buildRouterRoutes(routes) {

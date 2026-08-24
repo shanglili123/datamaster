@@ -290,7 +290,7 @@ function submitForm() {
 
 <style scoped lang="scss">
 .medium-dialog {
-  .el-form-item {
+  .ant-form-item {
     margin-bottom: 16px;
   }
 }

@@ -1473,10 +1473,10 @@ const getAssetsFile = (url) => {
     }
 
     .search {
-      :deep(.el-input__wrapper) {
+      :deep(.ant-input-affix-wrapper) {
         background: transparent;
 
-        .el-input__inner {
+        .ant-input {
           color: #fff;
         }
       }
@@ -1507,7 +1507,7 @@ const getAssetsFile = (url) => {
   }
 }
 
-.el-aside {
+.ant-layout-sider {
   padding: 2px 0;
   margin-bottom: 0;
   background: transparent;

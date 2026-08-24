@@ -1,0 +1,264 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e3]:
+    - complementary [ref=f1e4]:
+      - generic [ref=f1e6]:
+        - link [ref=f1e8] [cursor=pointer]:
+          - /url: /
+          - img "DataMaster" [ref=f1e9]
+        - menu [ref=f1e10]:
+          - generic [ref=f1e11] [cursor=pointer]: 数据探查
+          - generic [ref=f1e16] [cursor=pointer]: 标准建模
+          - generic [ref=f1e21] [cursor=pointer]: 数据资产
+          - generic [ref=f1e26] [cursor=pointer]: 空间管理
+          - generic [ref=f1e31] [cursor=pointer]: 数据研发
+          - generic [ref=f1e36] [cursor=pointer]: 数据服务
+          - generic [ref=f1e41] [cursor=pointer]: 智能问数
+          - generic [ref=f1e46] [cursor=pointer]: 本体模型
+          - generic [ref=f1e55] [cursor=pointer]: 系统管理
+          - list [ref=f1e1006]:
+            - menuitem "用户管理" [ref=f1e1007] [cursor=pointer]
+            - menuitem "角色管理" [ref=f1e1009] [cursor=pointer]
+            - menuitem "菜单管理" [active] [ref=f1e1011] [cursor=pointer]
+            - menuitem "部门管理" [ref=f1e1013] [cursor=pointer]
+            - menuitem "岗位管理" [ref=f1e1015] [cursor=pointer]
+            - menuitem "字典管理" [ref=f1e1017] [cursor=pointer]
+            - menuitem "参数设置" [ref=f1e1019] [cursor=pointer]
+            - menuitem "日志管理" [ref=f1e1021] [cursor=pointer]
+            - menuitem "来源系统" [ref=f1e1023] [cursor=pointer]
+            - menuitem "空间列表" [ref=f1e1025] [cursor=pointer]
+          - generic [ref=f1e60] [cursor=pointer]: 监控运维
+    - generic [ref=f1e65]:
+      - generic [ref=f1e67]:
+        - generic [ref=f1e68]:
+          - button "收起侧边栏" [ref=f1e69] [cursor=pointer]
+          - navigation [ref=f1e73]:
+            - list [ref=f1e74]:
+              - listitem [ref=f1e75]:
+                - generic [ref=f1e76]: 首页
+                - text: /
+              - listitem [ref=f1e78]:
+                - generic [ref=f1e79]: 系统管理
+                - text: /
+              - listitem [ref=f1e81]:
+                - generic [ref=f1e82]: 菜单管理
+        - generic [ref=f1e99] [cursor=pointer]:
+          - img "avatar" [ref=f1e100]
+          - generic [ref=f1e101]: 超级管理员
+          - img "down" [ref=f1e102]
+      - main [ref=f1e105]:
+        - generic [ref=f1e1027]:
+          - generic [ref=f1e1028]:
+            - generic [ref=f1e1029]:
+              - generic [ref=f1e1031]:
+                - generic "菜单名称" [ref=f1e1033]: "菜单名称 :"
+                - textbox "菜单名称 :" [ref=f1e1038]:
+                  - /placeholder: 请输入菜单名称
+              - generic [ref=f1e1041]:
+                - generic "状态" [ref=f1e1043]: "状态 :"
+                - generic [ref=f1e1048] [cursor=pointer]:
+                  - combobox "状态 :" [ref=f1e1050]
+                  - generic: 菜单状态
+              - generic [ref=f1e1055]:
+                - button " 查询" [ref=f1e1056] [cursor=pointer]:
+                  - generic [ref=f1e1057]: 
+                  - generic [ref=f1e1058]: 查询
+                - button " 重置" [ref=f1e1059] [cursor=pointer]:
+                  - generic [ref=f1e1060]: 
+                  - generic [ref=f1e1061]: 重置
+            - generic [ref=f1e1062]:
+              - button "plus 新增" [ref=f1e1063] [cursor=pointer]:
+                - img "plus" [ref=f1e1064]
+                - generic [ref=f1e1068]: 新增
+              - button "switcher 展开/折叠" [ref=f1e1069] [cursor=pointer]:
+                - img "switcher" [ref=f1e1070]
+                - generic [ref=f1e1073]: 展开/折叠
+            - button [ref=f1e1078] [cursor=pointer]:
+              - img "reload" [ref=f1e1079]
+          - generic [ref=f1e1082]:
+            - generic [ref=f1e1089]:
+              - table [ref=f1e1091]:
+                - rowgroup [ref=f1e1102]:
+                  - row [ref=f1e1103]:
+                    - columnheader "菜单名称" [ref=f1e1104]
+                    - columnheader "图标" [ref=f1e1105]
+                    - columnheader "排序" [ref=f1e1106]
+                    - columnheader "权限标识" [ref=f1e1107]
+                    - columnheader "组件路径" [ref=f1e1108]
+                    - columnheader "状态" [ref=f1e1109]
+                    - columnheader "创建时间" [ref=f1e1110]
+                    - columnheader "操作" [ref=f1e1111]
+                    - columnheader [ref=f1e1112]
+              - table [ref=f1e1114]:
+                - rowgroup [ref=f1e1124]:
+                  - row [ref=f1e1125]:
+                    - cell [ref=f1e1126]:
+                      - button "Expand row" [ref=f1e1127] [cursor=pointer]
+                      - text: 数据探查
+                    - cell [ref=f1e1128]
+                    - cell "-" [ref=f1e1131]
+                    - cell "-" [ref=f1e1132]
+                    - cell "-" [ref=f1e1133]
+                    - cell "正常" [ref=f1e1134]
+                    - cell "2026-03-25 17:42:27" [ref=f1e1137]
+                    - cell [ref=f1e1138]:
+                      - button "修改" [ref=f1e1139] [cursor=pointer]
+                      - button "新增" [ref=f1e1141] [cursor=pointer]
+                      - button "删除" [ref=f1e1143] [cursor=pointer]
+                  - row [ref=f1e1145]:
+                    - cell [ref=f1e1146]:
+                      - button "Expand row" [ref=f1e1147] [cursor=pointer]
+                      - text: 标准建模
+                    - cell [ref=f1e1148]
+                    - cell "2" [ref=f1e1151]
+                    - cell "-" [ref=f1e1152]
+                    - cell "-" [ref=f1e1153]
+                    - cell "正常" [ref=f1e1154]
+                    - cell "2026-03-24 14:48:16" [ref=f1e1157]
+                    - cell [ref=f1e1158]:
+                      - button "修改" [ref=f1e1159] [cursor=pointer]
+                      - button "新增" [ref=f1e1161] [cursor=pointer]
+                      - button "删除" [ref=f1e1163] [cursor=pointer]
+                  - row [ref=f1e1165]:
+                    - cell [ref=f1e1166]:
+                      - button "Expand row" [ref=f1e1167] [cursor=pointer]
+                      - text: 数据资产
+                    - cell [ref=f1e1168]
+                    - cell "3" [ref=f1e1171]
+                    - cell "-" [ref=f1e1172]
+                    - cell "-" [ref=f1e1173]
+                    - cell "正常" [ref=f1e1174]
+                    - cell "2025-01-21 14:01:11" [ref=f1e1177]
+                    - cell [ref=f1e1178]:
+                      - button "修改" [ref=f1e1179] [cursor=pointer]
+                      - button "新增" [ref=f1e1181] [cursor=pointer]
+                      - button "删除" [ref=f1e1183] [cursor=pointer]
+                  - row [ref=f1e1185]:
+                    - cell [ref=f1e1186]:
+                      - button "Expand row" [ref=f1e1187] [cursor=pointer]
+                      - text: 空间管理
+                    - cell [ref=f1e1188]
+                    - cell "4" [ref=f1e1191]
+                    - cell "-" [ref=f1e1192]
+                    - cell "-" [ref=f1e1193]
+                    - cell "正常" [ref=f1e1194]
+                    - cell "2025-03-31 09:29:41" [ref=f1e1197]
+                    - cell [ref=f1e1198]:
+                      - button "修改" [ref=f1e1199] [cursor=pointer]
+                      - button "新增" [ref=f1e1201] [cursor=pointer]
+                      - button "删除" [ref=f1e1203] [cursor=pointer]
+                  - row [ref=f1e1205]:
+                    - cell [ref=f1e1206]:
+                      - button "Expand row" [ref=f1e1207] [cursor=pointer]
+                      - text: 数据研发
+                    - cell [ref=f1e1208]
+                    - cell "5" [ref=f1e1211]
+                    - cell "-" [ref=f1e1212]
+                    - cell "-" [ref=f1e1213]
+                    - cell "正常" [ref=f1e1214]
+                    - cell "2025-02-11 09:51:19" [ref=f1e1217]
+                    - cell [ref=f1e1218]:
+                      - button "修改" [ref=f1e1219] [cursor=pointer]
+                      - button "新增" [ref=f1e1221] [cursor=pointer]
+                      - button "删除" [ref=f1e1223] [cursor=pointer]
+                  - row [ref=f1e1225]:
+                    - cell [ref=f1e1226]:
+                      - button "Expand row" [ref=f1e1227] [cursor=pointer]
+                      - text: 数据服务
+                    - cell [ref=f1e1228]
+                    - cell "6" [ref=f1e1231]
+                    - cell "-" [ref=f1e1232]
+                    - cell "-" [ref=f1e1233]
+                    - cell "正常" [ref=f1e1234]
+                    - cell "2025-02-12 16:08:29" [ref=f1e1237]
+                    - cell [ref=f1e1238]:
+                      - button "修改" [ref=f1e1239] [cursor=pointer]
+                      - button "新增" [ref=f1e1241] [cursor=pointer]
+                      - button "删除" [ref=f1e1243] [cursor=pointer]
+            - list [ref=f1e1246]:
+              - listitem [ref=f1e1247]: 共 57 条
+              - listitem "Previous Page" [ref=f1e1248]:
+                - button [disabled] [ref=f1e1249]:
+                  - img "left" [ref=f1e1250]
+              - listitem "1" [ref=f1e1253] [cursor=pointer]
+              - listitem "2" [ref=f1e1255] [cursor=pointer]
+              - listitem "3" [ref=f1e1257] [cursor=pointer]
+              - listitem "4" [ref=f1e1259] [cursor=pointer]
+              - listitem "5" [ref=f1e1261] [cursor=pointer]
+              - listitem "Next 5 Pages" [ref=f1e1263] [cursor=pointer]:
+                - generic [ref=f1e1265]:
+                  - img "double-right" [ref=f1e1266]
+                  - generic [ref=f1e1269]: •••
+              - listitem "10" [ref=f1e1270] [cursor=pointer]
+              - listitem "Next Page" [ref=f1e1272] [cursor=pointer]:
+                - button [ref=f1e1273]:
+                  - img "right" [ref=f1e1274]
+              - listitem [ref=f1e1277]:
+                - generic [ref=f1e1279] [cursor=pointer]:
+                  - combobox [ref=f1e1281]
+                  - generic [ref=f1e1282]: 6 / page
+                - generic [ref=f1e1283]:
+                  - text: Go to
+                  - textbox [ref=f1e1284]
+  - img:
+    - generic "account-box-2-line"
+    - generic "account-pin-box-line"
+    - generic "archive-2-line"
+    - generic "archive-drawer-line"
+    - generic "archive-line"
+    - generic "article-line"
+    - generic "bnb-line"
+    - generic "book-2-line"
+    - generic "book-3-line"
+    - generic "book-line"
+    - generic "book-marked-line"
+    - generic "book-read-line"
+    - generic "box-3-line"
+    - generic "briefcase-2-line"
+    - generic "calendar-2-line"
+    - generic "calendar-todo-line"
+    - generic "chrome-line"
+    - generic "code-box-line"
+    - generic "color-filter-line"
+    - generic "contacts-book-2-line"
+    - generic "contacts-book-line"
+    - generic "copper-coin-line"
+    - generic "currency-line"
+    - generic "dashboard-3-line"
+    - generic "equalizer-line"
+    - generic "exchange-dollar-line"
+    - generic "exchange-funds-line"
+    - generic "file-copy-2-line"
+    - generic "file-edit-line"
+    - generic "file-list-2-line"
+    - generic "file-list-line"
+    - generic "group-3-line"
+    - generic "hard-drive-3-line"
+    - generic "hourglass-line"
+    - generic "instance-line"
+    - generic "lifebuoy-line"
+    - generic "list-view"
+    - generic "mail-line"
+    - generic "map-2-line"
+    - generic "megaphone-line"
+    - generic "microsoft-line"
+    - generic "mind-map"
+    - generic "money-dollar-box-line"
+    - generic "news-line"
+    - generic "newspaper-line"
+    - generic "node-tree"
+    - generic "openai-line"
+    - generic "organization-chart"
+    - generic "rainbow-line"
+    - generic "safe-line"
+    - generic "settings-line"
+    - generic "shield-check-line"
+    - generic "shuffle-line"
+    - generic "slideshow-2-line"
+    - generic "slideshow-3-line"
+    - generic "slideshow-4-line"
+    - generic "slideshow-line"
+    - generic "smartphone-line"
+    - generic "stack-line"
+    - generic "telegram-line"
+    - generic "user-3-line"
+    - generic "user-line"

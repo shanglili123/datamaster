@@ -1,0 +1,98 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic:
+      - generic:
+        - heading "DataMaster" [level=1]
+        - paragraph: 一站式AI数据管家平台。
+    - generic [ref=e6]:
+      - generic [ref=e7]: DataMaster
+      - generic [ref=e9]:
+        - generic [ref=e15]:
+          - generic [ref=e16]: 
+          - textbox "账号" [ref=e18]: admin
+        - generic [ref=e24]:
+          - generic [ref=e25]: 
+          - textbox "密码" [ref=e27]: admin123
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - generic [ref=e35]: 
+            - textbox "验证码" [ref=e37]
+          - generic [ref=e38] [cursor=pointer]
+        - button "登 录" [ref=e45] [cursor=pointer]
+        - generic [ref=e48] [cursor=pointer]:
+          - checkbox "记住密码" [checked] [ref=e50]
+          - generic [ref=e52]: 记住密码
+  - img:
+    - generic "account-box-2-line"
+    - generic "account-pin-box-line"
+    - generic "archive-2-line"
+    - generic "archive-drawer-line"
+    - generic "archive-line"
+    - generic "article-line"
+    - generic "bnb-line"
+    - generic "book-2-line"
+    - generic "book-3-line"
+    - generic "book-line"
+    - generic "book-marked-line"
+    - generic "book-read-line"
+    - generic "box-3-line"
+    - generic "briefcase-2-line"
+    - generic "calendar-2-line"
+    - generic "calendar-todo-line"
+    - generic "chrome-line"
+    - generic "code-box-line"
+    - generic "color-filter-line"
+    - generic "contacts-book-2-line"
+    - generic "contacts-book-line"
+    - generic "copper-coin-line"
+    - generic "currency-line"
+    - generic "dashboard-3-line"
+    - generic "equalizer-line"
+    - generic "exchange-dollar-line"
+    - generic "exchange-funds-line"
+    - generic "file-copy-2-line"
+    - generic "file-edit-line"
+    - generic "file-list-2-line"
+    - generic "file-list-line"
+    - generic "group-3-line"
+    - generic "hard-drive-3-line"
+    - generic "hourglass-line"
+    - generic "instance-line"
+    - generic "lifebuoy-line"
+    - generic "list-view"
+    - generic "mail-line"
+    - generic "map-2-line"
+    - generic "megaphone-line"
+    - generic "microsoft-line"
+    - generic "mind-map"
+    - generic "money-dollar-box-line"
+    - generic "news-line"
+    - generic "newspaper-line"
+    - generic "node-tree"
+    - generic "openai-line"
+    - generic "organization-chart"
+    - generic "rainbow-line"
+    - generic "safe-line"
+    - generic "settings-line"
+    - generic "shield-check-line"
+    - generic "shuffle-line"
+    - generic "slideshow-2-line"
+    - generic "slideshow-3-line"
+    - generic "slideshow-4-line"
+    - generic "slideshow-line"
+    - generic "smartphone-line"
+    - generic "stack-line"
+    - generic "telegram-line"
+    - generic "user-3-line"
+    - generic "user-line"
+  - generic [ref=e55]:
+    - generic [ref=e56]: "[vue/compiler-sfc] Missing catch or finally clause. (339:2) D:/dev/dataMaster/datamaster-ui/src/views/col/task/integratioTask/components/transform/fieldBuilder.vue 512| 513| const saveData = async () => { 514| try { | ^ 515| // 手动检查关键字段 516| if (!form.value?.code) {"
+    - generic [ref=e58]: at constructor (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:365:19) at Parser.raise (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:6616:19) at Parser.parseTryStatement (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:13241:12) at Parser.parseStatementContent (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:12821:21) at Parser.parseStatementLike (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:12784:17) at Parser.parseStatementListItem (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:12764:17) at Parser.parseBlockOrModuleBlockBody (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:13333:61) at Parser.parseBlockBody (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:13326:10) at Parser.parseBlock (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:13314:10) at Parser.parseFunctionBody (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:12117:24) at Parser.parseArrowExpression (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:12092:10) at Parser.parseAsyncArrowFromCallExpression (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:11281:10) at Parser.parseCoverCallAndAsyncArrowHead (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:11211:27) at Parser.parseSubscript (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:11137:19) at Parser.parseSubscripts (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:11111:19) at Parser.parseExprSubscripts (D:\dev\dataMaster\datamaster-ui\node_modules\@babel\parser\lib\index.js:11102:17
+    - generic [ref=e59]:
+      - text: Click outside, press Esc key, or fix the code to dismiss.You can also disable this overlay by setting
+      - code [ref=e60]: server.hmr.overlay
+      - text: to
+      - code [ref=e61]: "false"
+      - text: in
+      - code [ref=e62]: vite.config.js
+      - text: .

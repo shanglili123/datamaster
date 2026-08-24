@@ -18,7 +18,7 @@
     min-width: 0;
     max-width: 190px;
 
-    .el-link__inner {
+    .ant-typography {
         display: inline-block;
         max-width: 100%;
         overflow: hidden;
@@ -38,7 +38,8 @@
     line-height: 20px;
     border-radius: 4px;
 
-    .el-tag__content {
+    .ant-tag-content,
+    .ant-tag .ant-tag-inner {
         display: inline-block;
         max-width: 100%;
         overflow: hidden;
@@ -109,12 +110,12 @@
     gap: 8px;
 }
 
-.app-container .task-title .el-tag--default .el-tag__content {
+.app-container .task-title .ant-tag.ant-tag-default {
     font-size: 12px !important;
 }
 
 .dpp-task-list-page {
-    .el-container {
+    .ant-layout {
         width: 100%;
     }
 
@@ -134,39 +135,30 @@
         border-radius: 6px;
     }
 
-    .el-table {
-        --el-table-row-hover-bg-color: #f7fbff;
+    .ant-table {
         font-size: 13px;
     }
 
-    .el-table .el-table__header-wrapper th {
+    .ant-table-wrapper .ant-table-thead > tr > th,
+    .ant-table-wrapper .ant-table-thead > tr > td {
         height: 44px;
         font-weight: 600;
+        background: #fafafa;
     }
 
-    .el-table .el-table__cell {
+    .ant-table-cell {
         padding: 12px 0;
         vertical-align: top;
     }
 
-    .el-table .cell {
-        line-height: 20px;
-    }
-
-    .el-table__row {
+    .ant-table-row {
         transition: background-color 0.2s ease;
     }
 
-    .task-status-stack {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 7px;
-        min-width: 118px;
-        padding: 2px 0;
+    .ant-table-row:hover > td {
+        background: #f7fbff;
     }
 
-    .task-status-stack .flex-center,
     .grey-black-text .flex-center {
         min-width: 0;
         gap: 2px;
@@ -189,17 +181,17 @@
         padding: 1px 0;
     }
 
-    .task-actions .el-button {
+    .task-actions .ant-btn {
         margin-left: 0;
         min-height: 22px;
         line-height: 22px;
     }
 
-    .task-actions .el-button [class*="el-icon"] + span {
+    .task-actions .ant-btn .anticon + span {
         margin-left: 3px;
     }
 
-    .el-tag {
+    .ant-tag {
         border-radius: 4px;
     }
 

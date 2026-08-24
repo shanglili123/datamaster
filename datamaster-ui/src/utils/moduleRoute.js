@@ -8,7 +8,8 @@ export const SPACE_MODULE_ROUTE_PREFIXES = [
     '/std',
     '/tax',
     '/meta',
-    '/ai'
+    '/ai',
+    '/ont'
 ];
 
 export function isSpaceModuleRoute(path) {

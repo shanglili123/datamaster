@@ -136,7 +136,7 @@ const store = reactive({
 
 // 过滤form参数
 function getFormItemProps(item) {
-  const { component, ...data } = item;
+  const { component, prop, ...data } = item;
   return data;
 }
 

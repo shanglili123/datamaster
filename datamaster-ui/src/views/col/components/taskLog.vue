@@ -1,5 +1,5 @@
 <template>
-    <a-modal v-model:open="visible" title="任务执行日志" class="medium-dialog" @close="handleClose">
+    <a-modal v-model:open="visible" title="任务执行日志" class="medium-dialog task-log-modal" :width="1000" @close="handleClose">
         <div class="task-log-container" ref="containerRef">
             <a-spin :spinning="loading" class="task-log-spin">
                 <div class="log-container">
@@ -148,7 +148,9 @@ defineExpose({ open });
 }
 
 .log-container {
-    height: 100%;
+    height: 660px;
+    display: flex;
+    flex-direction: column;
     border: 1px solid #ebeef5;
     border-radius: 3px;
     background: #000;
@@ -157,18 +159,9 @@ defineExpose({ open });
     overflow: hidden;
 }
 
-.log-scrollbar {
-    height: calc(100% - 34px);
-    overflow-y: auto;
-}
-
-.task-log-spin,
-.task-log-spin ::v-deep .ant-spin-container {
-    height: 100%;
-}
-
 .log-toolbar {
     height: 34px;
+    flex-shrink: 0;
     padding: 0 12px;
     display: flex;
     align-items: center;
@@ -185,12 +178,27 @@ defineExpose({ open });
     gap: 12px;
 }
 
+.log-scrollbar {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 .log-text {
-    min-height: 100%;
     margin: 0;
     padding: 12px;
     white-space: pre-wrap;
     word-wrap: break-word;
+    word-break: break-all;
+}
+</style>
+
+<style lang="scss">
+.task-log-modal .ant-modal-body {
+    overflow: hidden !important;
+    max-height: none !important;
+    padding: 12px 24px !important;
 }
 </style>
 

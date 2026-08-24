@@ -37,7 +37,7 @@ defineExpose({ updateLog, })
                     height: 100%;
 
                     :deep(.monaco-scrollable-element > .scrollbar > .slider) {
-                        background: var(--el-color-primary) !important;
+                        background: #1677ff !important;
                     }
                 }
             }

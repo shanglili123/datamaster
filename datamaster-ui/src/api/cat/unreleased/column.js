@@ -68,3 +68,12 @@ export function batchDeleteCheck(id) {
         method: 'get'
     });
 }
+
+// 查询表字段元数据全量列表（非分页，按 tableId 过滤）
+export function getMdColumnList(query) {
+    return request({
+        url: '/cat/column/getMdColumnList',
+        method: 'get',
+        params: query
+    });
+}

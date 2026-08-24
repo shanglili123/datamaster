@@ -1,0 +1,183 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e3]:
+    - complementary [ref=f1e4]:
+      - generic [ref=f1e6]:
+        - link [ref=f1e8] [cursor=pointer]:
+          - /url: /
+          - img "DataMaster" [ref=f1e9]
+        - menu [ref=f1e10]:
+          - generic [ref=f1e11] [cursor=pointer]: 数据探查
+          - generic [ref=f1e16] [cursor=pointer]: 标准建模
+          - generic [ref=f1e21] [cursor=pointer]: 数据资产
+          - generic [ref=f1e26] [cursor=pointer]: 空间管理
+          - generic [ref=f1e31] [cursor=pointer]: 数据研发
+          - generic [ref=f1e36] [cursor=pointer]: 数据服务
+          - generic [ref=f1e41] [cursor=pointer]: 智能问数
+          - generic [ref=f1e46] [cursor=pointer]: 本体模型
+          - generic [ref=f1e55] [cursor=pointer]: 系统管理
+          - generic [ref=f1e60] [cursor=pointer]: 监控运维
+    - generic [ref=f1e65]:
+      - generic [ref=f1e67]:
+        - generic [ref=f1e68]:
+          - button "收起侧边栏" [ref=f1e69] [cursor=pointer]
+          - navigation [ref=f1e73]:
+            - list [ref=f1e74]:
+              - listitem [ref=f1e75]:
+                - generic [ref=f1e76]: 首页
+                - text: /
+              - listitem [ref=f1e78]:
+                - generic [ref=f1e79]: 本体模型
+                - text: /
+              - listitem [ref=f1e81]:
+                - generic [ref=f1e82]: 本体工作台
+        - generic [ref=f1e84]:
+          - generic [ref=f1e85]:
+            - generic [ref=f1e86]: "*"
+            - generic [ref=f1e87]: 所属空间
+            - generic [ref=f1e89] [cursor=pointer]:
+              - combobox [ref=f1e91]
+              - generic [ref=f1e92]: 客户与账户数据空间
+          - generic [ref=f1e99] [cursor=pointer]:
+            - img "avatar" [ref=f1e100]
+            - generic [ref=f1e101]: 超级管理员
+            - img "down" [ref=f1e102]
+      - main [ref=f1e105]:
+        - generic [ref=f1e193]:
+          - generic [ref=f1e194]:
+            - button "arrow-left 返回" [ref=f1e195] [cursor=pointer]:
+              - img "arrow-left" [ref=f1e196]
+              - generic [ref=f1e199]: 返回
+            - separator [ref=f1e200]
+            - generic [ref=f1e201]:
+              - generic "搜索" [ref=f1e202]
+              - generic [ref=f1e203]: 草稿
+          - generic [ref=f1e205]:
+            - tablist [ref=f1e206]:
+              - generic [ref=f1e208]:
+                - tab "可视化图谱" [selected] [ref=f1e210] [cursor=pointer]
+                - tab "概念管理" [ref=f1e212] [cursor=pointer]
+                - tab "属性管理" [ref=f1e214] [cursor=pointer]
+                - tab "关系管理" [ref=f1e216] [cursor=pointer]
+            - tabpanel "可视化图谱" [ref=f1e219]:
+              - generic [ref=f1e220]:
+                - generic [ref=f1e221]:
+                  - generic "按住我拖到画布上松开，快速创建概念节点" [ref=f1e222]: ⬡ 概念
+                  - button "reload 刷新图谱" [ref=f1e223] [cursor=pointer]:
+                    - img "reload" [ref=f1e224]
+                    - generic [ref=f1e227]: 刷新图谱
+                  - button "适应画布" [ref=f1e228] [cursor=pointer]
+                  - generic [ref=f1e230]: 拖动「概念」到画布新增节点 · 从端口拉线创建关系 · 点击节点看详情 · 滚轮缩放 / 空白处拖拽平移
+                - img [ref=f1e234]:
+                  - generic [ref=f1e236]:
+                    - generic [ref=f1e237]: 人物
+                    - generic [ref=f1e248]: 公司
+                    - generic [ref=f1e259]: 订单
+                    - generic [ref=f1e270]: 就职
+                    - generic [ref=f1e274]: 拥有
+                    - generic [ref=f1e278]: 归属
+                - generic [ref=f1e331]:
+                  - heading "人物" [level=4] [ref=f1e332]
+                  - generic [ref=f1e333]:
+                    - generic [ref=f1e334]: 节点信息
+                    - paragraph [ref=f1e335]: 名称：人物
+                    - paragraph [ref=f1e336]: 编码：11
+                    - paragraph [ref=f1e337]: 描述：暂无描述
+                  - generic [ref=f1e338]:
+                    - generic [ref=f1e339]: 绑定表
+                    - generic [ref=f1e340]: actor
+                  - generic [ref=f1e342]:
+                    - generic [ref=f1e343]: 属性
+                    - generic [ref=f1e344]: "年龄 : integer"
+                  - generic [ref=f1e346]:
+                    - button "编 辑" [ref=f1e348] [cursor=pointer]
+                    - button "删 除" [ref=f1e351] [cursor=pointer]
+                    - button "绑定表" [ref=f1e354] [cursor=pointer]
+                    - button "属性映射" [ref=f1e357] [cursor=pointer]
+                    - button "plus 添加属性" [ref=f1e360] [cursor=pointer]:
+                      - img "plus" [ref=f1e361]
+                      - generic [ref=f1e365]: 添加属性
+  - img:
+    - generic "account-box-2-line"
+    - generic "account-pin-box-line"
+    - generic "archive-2-line"
+    - generic "archive-drawer-line"
+    - generic "archive-line"
+    - generic "article-line"
+    - generic "bnb-line"
+    - generic "book-2-line"
+    - generic "book-3-line"
+    - generic "book-line"
+    - generic "book-marked-line"
+    - generic "book-read-line"
+    - generic "box-3-line"
+    - generic "briefcase-2-line"
+    - generic "calendar-2-line"
+    - generic "calendar-todo-line"
+    - generic "chrome-line"
+    - generic "code-box-line"
+    - generic "color-filter-line"
+    - generic "contacts-book-2-line"
+    - generic "contacts-book-line"
+    - generic "copper-coin-line"
+    - generic "currency-line"
+    - generic "dashboard-3-line"
+    - generic "equalizer-line"
+    - generic "exchange-dollar-line"
+    - generic "exchange-funds-line"
+    - generic "file-copy-2-line"
+    - generic "file-edit-line"
+    - generic "file-list-2-line"
+    - generic "file-list-line"
+    - generic "group-3-line"
+    - generic "hard-drive-3-line"
+    - generic "hourglass-line"
+    - generic "instance-line"
+    - generic "lifebuoy-line"
+    - generic "list-view"
+    - generic "mail-line"
+    - generic "map-2-line"
+    - generic "megaphone-line"
+    - generic "microsoft-line"
+    - generic "mind-map"
+    - generic "money-dollar-box-line"
+    - generic "news-line"
+    - generic "newspaper-line"
+    - generic "node-tree"
+    - generic "openai-line"
+    - generic "organization-chart"
+    - generic "rainbow-line"
+    - generic "safe-line"
+    - generic "settings-line"
+    - generic "shield-check-line"
+    - generic "shuffle-line"
+    - generic "slideshow-2-line"
+    - generic "slideshow-3-line"
+    - generic "slideshow-4-line"
+    - generic "slideshow-line"
+    - generic "smartphone-line"
+    - generic "stack-line"
+    - generic "telegram-line"
+    - generic "user-3-line"
+    - generic "user-line"
+  - dialog "绑定数据表" [ref=f1e367]:
+    - document:
+      - generic [ref=f1e368]:
+        - button "Close" [ref=f1e369] [cursor=pointer]:
+          - img "close" [ref=f1e371]
+        - generic [ref=f1e374]: 绑定数据表
+        - generic [ref=f1e376]:
+          - paragraph [ref=f1e377]: 概念「人物」当前绑定的物理表：
+          - generic [ref=f1e379]:
+            - generic [ref=f1e380]: actor
+            - generic [ref=f1e381]: mysql测试
+            - button "解除绑定" [ref=f1e382] [cursor=pointer]
+          - separator [ref=f1e384]:
+            - generic [ref=f1e385]: 新增绑定
+          - generic [ref=f1e386]:
+            - generic [ref=f1e388]:
+              - combobox [ref=f1e390]
+              - generic: 请选择数据源
+            - generic [ref=f1e392]:
+              - combobox [ref=f1e394]
+              - generic: 请选择表
+            - button "绑 定" [ref=f1e395] [cursor=pointer]

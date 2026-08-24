@@ -56,6 +56,12 @@
             <artifactId>datamaster-metadata-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
+        <!-- 本体模型模块 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-ontology-core</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
         <!-- spring-boot-devtools -->
 <!--        <dependency>-->
 <!--            <groupId>org.springframework.boot</groupId>-->

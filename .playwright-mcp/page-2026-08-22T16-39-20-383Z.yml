@@ -1,0 +1,137 @@
+- generic [ref=f3e1]:
+  - generic [ref=f3e3]:
+    - complementary [ref=f3e4]:
+      - generic [ref=f3e6]:
+        - link [ref=f3e8] [cursor=pointer]:
+          - /url: /
+          - img "DataMaster" [ref=f3e9]
+        - menu [ref=f3e10]:
+          - generic [ref=f3e11] [cursor=pointer]: 数据探查
+          - generic [ref=f3e16] [cursor=pointer]: 标准建模
+          - generic [ref=f3e21] [cursor=pointer]: 数据资产
+          - generic [ref=f3e26] [cursor=pointer]: 空间管理
+          - generic [ref=f3e31] [cursor=pointer]: 数据研发
+          - generic [ref=f3e36] [cursor=pointer]: 数据服务
+          - generic [ref=f3e41] [cursor=pointer]: 智能问数
+          - generic [ref=f3e46] [cursor=pointer]: 本体模型
+          - generic [ref=f3e50] [cursor=pointer]: 系统管理
+          - generic [ref=f3e55] [cursor=pointer]: 监控运维
+    - generic [ref=f3e60]:
+      - generic [ref=f3e62]:
+        - generic [ref=f3e63]:
+          - button "收起侧边栏" [ref=f3e64] [cursor=pointer]
+          - navigation [ref=f3e68]:
+            - list [ref=f3e69]:
+              - listitem [ref=f3e70]:
+                - generic [ref=f3e71]: 首页
+                - text: /
+              - listitem [ref=f3e73]:
+                - generic [ref=f3e74]: 本体模型
+                - text: /
+              - listitem [ref=f3e76]:
+                - generic [ref=f3e77]: 本体工作台
+        - generic [ref=f3e79]:
+          - generic [ref=f3e80]:
+            - generic [ref=f3e81]: "*"
+            - generic [ref=f3e82]: 所属空间
+            - generic [ref=f3e84] [cursor=pointer]:
+              - combobox [ref=f3e86]
+              - generic [ref=f3e87]: 客户与账户数据空间
+          - generic [ref=f3e94] [cursor=pointer]:
+            - img "avatar" [ref=f3e95]
+            - generic [ref=f3e96]: 超级管理员
+            - img "down" [ref=f3e97]
+      - main [ref=f3e100]:
+        - generic [ref=f3e103]:
+          - generic [ref=f3e104]:
+            - button "arrow-left 返回" [ref=f3e105] [cursor=pointer]:
+              - img "arrow-left" [ref=f3e106]
+              - generic [ref=f3e109]: 返回
+            - separator [ref=f3e110]
+            - generic [ref=f3e111]:
+              - generic "搜索" [ref=f3e112]
+              - generic [ref=f3e113]: 草稿
+          - generic [ref=f3e115]:
+            - tablist [ref=f3e116]:
+              - generic [ref=f3e118]:
+                - tab "概念管理" [ref=f3e120] [cursor=pointer]
+                - tab "属性管理" [ref=f3e122] [cursor=pointer]
+                - tab "关系管理" [ref=f3e124] [cursor=pointer]
+                - tab "动作管理" [ref=f3e126] [cursor=pointer]
+                - tab "可视化图谱" [active] [selected] [ref=f3e128] [cursor=pointer]
+            - tabpanel "可视化图谱" [ref=f3e223]:
+              - generic [ref=f3e224]:
+                - generic [ref=f3e225]:
+                  - button "reload 刷新图谱" [ref=f3e226] [cursor=pointer]:
+                    - img "reload" [ref=f3e227]
+                    - generic [ref=f3e230]: 刷新图谱
+                  - button "适应画布" [ref=f3e231] [cursor=pointer]
+                  - generic [ref=f3e233]: 点击节点查看概念详情
+                - img [ref=f3e237]:
+                  - generic [ref=f3e239]:
+                    - generic [ref=f3e240]: 人物
+                    - generic [ref=f3e243]: 公司
+                    - generic [ref=f3e246]: 就职
+  - img:
+    - generic "account-box-2-line"
+    - generic "account-pin-box-line"
+    - generic "archive-2-line"
+    - generic "archive-drawer-line"
+    - generic "archive-line"
+    - generic "article-line"
+    - generic "bnb-line"
+    - generic "book-2-line"
+    - generic "book-3-line"
+    - generic "book-line"
+    - generic "book-marked-line"
+    - generic "book-read-line"
+    - generic "box-3-line"
+    - generic "briefcase-2-line"
+    - generic "calendar-2-line"
+    - generic "calendar-todo-line"
+    - generic "chrome-line"
+    - generic "code-box-line"
+    - generic "color-filter-line"
+    - generic "contacts-book-2-line"
+    - generic "contacts-book-line"
+    - generic "copper-coin-line"
+    - generic "currency-line"
+    - generic "dashboard-3-line"
+    - generic "equalizer-line"
+    - generic "exchange-dollar-line"
+    - generic "exchange-funds-line"
+    - generic "file-copy-2-line"
+    - generic "file-edit-line"
+    - generic "file-list-2-line"
+    - generic "file-list-line"
+    - generic "group-3-line"
+    - generic "hard-drive-3-line"
+    - generic "hourglass-line"
+    - generic "instance-line"
+    - generic "lifebuoy-line"
+    - generic "list-view"
+    - generic "mail-line"
+    - generic "map-2-line"
+    - generic "megaphone-line"
+    - generic "microsoft-line"
+    - generic "mind-map"
+    - generic "money-dollar-box-line"
+    - generic "news-line"
+    - generic "newspaper-line"
+    - generic "node-tree"
+    - generic "openai-line"
+    - generic "organization-chart"
+    - generic "rainbow-line"
+    - generic "safe-line"
+    - generic "settings-line"
+    - generic "shield-check-line"
+    - generic "shuffle-line"
+    - generic "slideshow-2-line"
+    - generic "slideshow-3-line"
+    - generic "slideshow-4-line"
+    - generic "slideshow-line"
+    - generic "smartphone-line"
+    - generic "stack-line"
+    - generic "telegram-line"
+    - generic "user-3-line"
+    - generic "user-line"

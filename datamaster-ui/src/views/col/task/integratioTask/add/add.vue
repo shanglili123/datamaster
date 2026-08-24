@@ -4,6 +4,7 @@
     class="dialog"
     :title="title"
     destroy-on-close
+    :width="1200"
   >
     <a-form
       ref="daDiscoveryTaskRef"
@@ -317,6 +318,7 @@
     class="dialog"
     :footer="null"
     destroy-on-close
+    :width="700"
   >
     <!--    <crontab ref="crontabRef" @hide="openCron = false" @fill="crontabFill" :expression="expression" :Crontab="false">-->
     <crontab
@@ -568,18 +570,18 @@ const defaultExpandedCats = computed(() => {
 </script>
 <style lang="scss" scoped>
 .blue-text {
-  color: var(--el-color-primary);
+  color: #1677ff;
 }
 
-:deep(.el-select) {
-  .el-select__wrapper.is-disabled {
+:deep(.ant-select) {
+  .ant-select-selector {
     cursor: default;
     background-color: #fcfcfc;
-    --el-select-disabled-color: #333;
+    color: #333;
+  }
 
-    .el-select__suffix {
-      display: none;
-    }
+  .ant-select-suffix {
+    display: none;
   }
 }
 </style>

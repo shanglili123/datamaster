@@ -43,7 +43,7 @@ router.beforeEach((to, from, next) => {
                   }
                 });
                 await ensureSpaceRoutes(to);
-                next({ ...to, replace: true });
+                retryNavigation(to, next);
               });
           })
           .catch((err) => {
@@ -58,7 +58,7 @@ router.beforeEach((to, from, next) => {
         const permissionStore = usePermissionStore();
         if (isSpaceModuleRoute(to.path) && permissionStore.menuMode !== "space") {
           ensureSpaceRoutes(to)
-            .then(() => next({ ...to, replace: true }))
+            .then(() => retryNavigation(to, next))
             .catch(() => next());
         } else {
           next();
@@ -74,6 +74,35 @@ router.beforeEach((to, from, next) => {
     }
   }
 });
+
+/**
+ * 路由表在刷新/切换空间时会被后端菜单重建（removeRoute + addRoute），
+ * 原始路由的 name 可能已被替换，直接 next({ ...to, replace: true }) 会按
+ * 名称匹配失败抛出 No match，导致初始导航中断、页面空白。
+ * 这里改为按路径重试；若目标确实已不存在，则回退首页而不是让导航崩溃。
+ */
+function retryNavigation(target, next) {
+  let resolvedLocation = null;
+  try {
+    const resolved = router.resolve(target.fullPath);
+    if (resolved.matched.length > 0) {
+      resolvedLocation = resolved;
+    }
+  } catch (error) {
+    // 目标路由无法解析（如已被菜单重建移除）
+    resolvedLocation = null;
+  }
+  if (resolvedLocation) {
+    next({
+      path: resolvedLocation.path,
+      query: resolvedLocation.query,
+      hash: resolvedLocation.hash,
+      replace: true
+    });
+  } else {
+    next({ path: "/", replace: true });
+  }
+}
 
 async function ensureSpaceRoutes(to) {
   if (!isSpaceModuleRoute(to.path)) return;

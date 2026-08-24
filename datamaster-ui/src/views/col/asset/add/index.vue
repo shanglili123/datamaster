@@ -1,6 +1,6 @@
 <template>
   <!-- 新增或修改数据资产任务对话框 -->
-  <a-modal :title="title" v-model:open="visibleDialog" class="medium-dialog" destroy-on-close>
+  <a-modal :title="title" v-model:open="visibleDialog" class="medium-dialog" destroy-on-close :width="1200">
     <a-form ref="daDiscoveryTaskRef" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent>
       <a-row :gutter="20">
         <a-col :span="12">

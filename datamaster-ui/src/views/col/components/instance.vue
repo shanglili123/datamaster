@@ -1,5 +1,5 @@
 <template>
-  <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="title" destroyOnClose>
+  <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="title" destroyOnClose :width="1200">
     <a-table
       :loading="loading"
       :data-source="jobLogList"

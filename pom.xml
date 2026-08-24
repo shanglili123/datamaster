@@ -201,6 +201,7 @@
         <module>datamaster-metadata</module>
         <module>datamaster-api-ds</module>
         <module>datamaster-server</module>
+        <module>datamaster-ontology</module>
     </modules>
     <packaging>pom</packaging>
     <build>
