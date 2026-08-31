@@ -1,5 +1,6 @@
 package com.datamaster.module.assets.service.assetColumnSpaceRel.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.utils.object.BeanUtils;
@@ -35,9 +36,9 @@ public class AssetsAssetColumnSpaceRelServiceImpl extends ServiceImpl<AssetsAsse
 
     @Override
     public Long createAssetColumnSpaceRel(AssetsAssetColumnSpaceRelSaveReqVO createReqVO) {
-        AssetsAssetColumnSpaceRelDO existingRel = lambdaQuery()
-                .eq(AssetsAssetColumnSpaceRelDO::getColumnId, createReqVO.getColumnId())
-                .one();
+        AssetsAssetColumnSpaceRelDO existingRel = assetsAssetColumnSpaceRelMapper.selectOne(
+                Wrappers.<AssetsAssetColumnSpaceRelDO>lambdaQuery()
+                        .eq(AssetsAssetColumnSpaceRelDO::getColumnId, createReqVO.getColumnId()));
         if (existingRel != null) {
             AssetsAssetColumnSpaceRelDO updateRel = BeanUtils.toBean(createReqVO, AssetsAssetColumnSpaceRelDO.class);
             updateRel.setId(existingRel.getId());

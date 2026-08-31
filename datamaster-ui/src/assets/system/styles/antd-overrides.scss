@@ -51,6 +51,109 @@
   }
 }
 
+// Unified modal layout. This is global because Ant Design modals are teleported to document.body.
+.ant-modal {
+  padding-bottom: 24px;
+
+  .ant-modal-content {
+    overflow: hidden;
+    border: 1px solid #e7edf5;
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(29, 48, 75, 0.18);
+  }
+
+  .ant-modal-header {
+    min-height: 56px;
+    margin-bottom: 0;
+    padding: 17px 24px;
+    background: linear-gradient(90deg, #f8fbff 0%, #ffffff 72%);
+    border-bottom: 1px solid #edf1f6;
+  }
+
+  .ant-modal-title {
+    padding-right: 28px;
+    overflow: hidden;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 22px;
+    color: #1f2d3d;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ant-modal-close {
+    top: 10px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    color: #77869a;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #1677ff;
+      background: #edf5ff;
+    }
+  }
+
+  .ant-modal-body {
+    padding: 22px 24px;
+    color: #4d5b6c;
+  }
+
+  .ant-modal-footer {
+    margin-top: 0;
+    padding: 14px 24px 16px;
+    background: #fafcff;
+    border-top: 1px solid #edf1f6;
+
+    .ant-btn {
+      min-width: 72px;
+      height: 34px;
+      border-radius: 6px;
+    }
+
+    .ant-btn-primary {
+      box-shadow: 0 3px 8px rgba(22, 119, 255, 0.2);
+    }
+  }
+
+}
+
+.ant-modal-mask {
+  background: rgba(19, 34, 55, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 768px) {
+  .ant-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px);
+    margin: 12px auto;
+    padding-bottom: 0;
+
+    .ant-modal-header {
+      min-height: 52px;
+      padding: 15px 18px;
+    }
+
+    .ant-modal-body {
+      padding: 18px;
+    }
+
+    .ant-modal-footer {
+      display: flex;
+      gap: 10px;
+      padding: 12px 18px;
+
+      .ant-btn {
+        flex: 1;
+        margin: 0;
+      }
+    }
+  }
+}
+
 // Scrollbar styling
 ::-webkit-scrollbar {
   width: 6px;

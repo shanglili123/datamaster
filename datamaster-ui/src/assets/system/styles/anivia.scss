@@ -1378,7 +1378,7 @@
       .task-item {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         font-weight: 600;
       }
 
@@ -1386,14 +1386,20 @@
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        padding: 2px;
-        background-color: #2666fb;
-        color: #fff;
-        font-size: 14px;
-        border-radius: 0;
-        aspect-ratio: 1 / 1;
-        min-width: 20px;
-        min-height: 20px;
+        max-width: 180px;
+        min-height: 24px;
+        padding: 2px 8px;
+        overflow: hidden;
+        font-family: Consolas, Monaco, monospace;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 18px;
+        color: #66758a;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        background: #f5f7fa;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
       }
 
       .task-name {}

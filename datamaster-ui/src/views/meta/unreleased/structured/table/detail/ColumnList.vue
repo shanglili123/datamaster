@@ -36,7 +36,7 @@
     <a-modal
       v-model:open="dialog.open"
       :title="dialog.title"
-      width="1200"
+      width="760"
       destroy-on-close
     >
       <a-form
@@ -196,7 +196,7 @@
           <a-textarea
             v-model:value="dialog.form.remark"
             placeholder="请输入备注"
-            :auto-size="{ minRows: 8 }"
+            :auto-size="{ minRows: 3 }"
             :maxlength="500"
             show-count
           />
@@ -206,7 +206,7 @@
           <a-textarea
             v-model:value="dialog.form.description"
             placeholder="请输入描述"
-            :auto-size="{ minRows: 8 }"
+            :auto-size="{ minRows: 3 }"
             :maxlength="500"
             show-count
           />
@@ -221,7 +221,7 @@
           <a-textarea
             v-model:value="dialog.form.updateMsg"
             placeholder="请输入变更说明"
-            :auto-size="{ minRows: 8 }"
+            :auto-size="{ minRows: 3 }"
             :maxlength="500"
             show-count
           />

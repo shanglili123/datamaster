@@ -19,8 +19,7 @@
       />
     </div>
     <div
-      class="content"
-      style="height: 600px; padding-right: 10px"
+      class="content rule-config-content"
       v-show="dialogStatus == 1 || dialogStatus == 2"
       :disabled="dialogStatus == 2"
     >
@@ -508,6 +507,12 @@ defineExpose({ openDialog, closeDialog });
 
 .medium-dialog {
   width: 800px;
+}
+
+.rule-config-content {
+  max-height: calc(100vh - 250px);
+  padding-right: 10px;
+  overflow-y: auto;
 }
 </style>
 <style>

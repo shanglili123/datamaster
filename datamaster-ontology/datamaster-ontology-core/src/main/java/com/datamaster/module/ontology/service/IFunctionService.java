@@ -11,6 +11,11 @@ public interface IFunctionService {
     FunctionRespVO getFunctionById(Long id);
     PageResult<FunctionRespVO> getFunctionPage(FunctionPageReqVO pageReqVO);
     List<FunctionRespVO> getFunctionsByOntologyId(Long ontologyId);
+    List<FunctionRespVO> listAllFunctions();
+    String runFunctionDirect(Long functionId, String inputParams);
+    String runFunctionWithBinding(Long functionId, Long sourceConceptId, String sourceRelationIds,
+                                  Long outputConceptId, Integer readLimit, String inputParams);
+    String resolveFunctionBody(Long functionId, String inputParams);
     FunctionExecRespVO submitExecution(FunctionExecReqVO reqVO);
     void approveExecution(FunctionApprovalReqVO reqVO);
     void rejectExecution(FunctionApprovalReqVO reqVO);

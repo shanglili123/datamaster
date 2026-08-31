@@ -25,6 +25,7 @@
         :data-source="daAssetColumnList"
         :columns="tableColumns"
         :pagination="false"
+        :scroll="{ x: 1975, y: 'calc(100vh - 500px)' }"
         :locale="{ emptyText: '暂无记录' }"
         @change="handleTableChange"
     >
@@ -161,6 +162,19 @@
                             <a-select-option v-for="item in daSensitiveLevelList" :key="item.id" :label="item.sensitiveLevel"
                                 :value="item.id"
 >{{ item.sensitiveLevel }}</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="数据分类" name="dataCategoryId" :label-col="{ style: { width: '100px' } }">
+                        <a-select v-model:value="form.dataCategoryId" show-search allow-clear placeholder="请选择数据分类（绑定后用于脱敏规则匹配）"
+                            @change="val => form.dataCategoryId = val ?? null"
+>
+                            <a-select-option v-for="item in dataCategoryList" :key="item.id" :label="item.name"
+                                :value="item.id"
+>{{ item.name }}</a-select-option>
                         </a-select>
                     </a-form-item>
                 </a-col>
@@ -327,6 +341,7 @@ import {
 } from '@/api/ast/asset/assetColumn.js';
 import { listDaSensitiveLevel } from '@/api/ast/security/sensitiveLevel/sensitiveLevel';
 import { listDpDataElem } from '@/api/std/dataElem/dataElem';
+import { listDataCategoryAll, listAssetcolumnBinding, addAssetcolumnBinding, updateAssetcolumnBinding } from '@/api/governance/assetcolumn.js';
 import { useRoute } from 'vue-router';
 import { ref, computed } from "vue";
 
@@ -339,6 +354,8 @@ const { column_type, dp_model_column_pk_flag, dp_model_column_nullable_flag } = 
 
 const daAssetColumnList = ref([]);
 const daSensitiveLevelList = ref([]);
+const dataCategoryList = ref([]); //数据分类
+const bindingId = ref(null); //当前绑定记录ID
 const codeTableList = ref([]); //代码表
 const elementList = ref([]); //数据元
 const defaultSort = ref({ columnKey: 'create_time', order: 'desc' });
@@ -447,7 +464,7 @@ function getList() {
     queryParams.value.assetId = assetId;
     listDaAssetColumn(queryParams.value).then((response) => {
         daAssetColumnList.value = response.data.rows;
-        total.value = response.data.total;
+        total.value = Number(response.data.total) || 0;
         loading.value = false;
     });
 }
@@ -491,8 +508,10 @@ function reset() {
         createTime: null,
         updateBy: null,
         updaterId: null,
-        updateTime: null
+        updateTime: null,
+        dataCategoryId: null
     };
+    bindingId.value = null;
     proxy.resetForm('daAssetRef');
 }
 
@@ -537,8 +556,23 @@ function handleUpdate(row) {
     const _id = row.id || ids.value;
     getDaAssetColumn(_id).then((response) => {
         form.value = response.data;
+        // 加载该字段的脱敏绑定
+        loadBinding(_id, response.data.assetId);
         open.value = true;
         title.value = '修改数据资产';
+    });
+}
+
+/** 加载字段脱敏绑定 */
+function loadBinding(columnId, assetIdVal) {
+    listAssetcolumnBinding({ assetcolumnId: columnId, pageNum: 1, pageSize: 10 }).then((res) => {
+        const rows = res.data?.rows || [];
+        if (rows.length > 0) {
+            bindingId.value = rows[0].id;
+            form.value.dataCategoryId = rows[0].dataCategoryId;
+        } else {
+            bindingId.value = null;
+        }
     });
 }
 
@@ -556,26 +590,42 @@ function handleDetail(row) {
 /** 提交按钮 */
 function submitForm() {
     proxy.$refs['daAssetRef'].validate().then(() => {
-        if (form.value.id != null) {
-            delete form.value.updateTime;
-
-            updateDaAssetColumn(form.value)
-                .then((response) => {
-                    proxy.$modal.msgSuccess('修改成功');
-                    open.value = false;
-                    getList();
-                })
-                .catch((error) => { });
-        } else {
-            addDaAsset(form.value)
-                .then((response) => {
-                    proxy.$modal.msgSuccess('新增成功');
-                    open.value = false;
-                    getList();
-                })
-                .catch((error) => { });
-        }
-    }).catch(() => { });
+        const columnId = form.value.id;
+        const dataCategoryId = form.value.dataCategoryId;
+        // 1. 先保存/更新绑定关系
+        const saveBinding = () => {
+            if (!columnId || !dataCategoryId) return Promise.resolve();
+            const bindingData = {
+                assetId: assetId,
+                assetcolumnId: columnId,
+                dataCategoryId: dataCategoryId
+            };
+            if (bindingId.value) {
+                bindingData.id = bindingId.value;
+                return updateAssetcolumnBinding(bindingData);
+            } else {
+                return addAssetcolumnBinding(bindingData);
+            }
+        };
+        // 2. 保存字段本身
+        const saveColumn = () => {
+            if (columnId != null) {
+                const colData = { ...form.value };
+                delete colData.updateTime;
+                delete colData.dataCategoryId; // 字段表无此列
+                return updateDaAssetColumn(colData);
+            } else {
+                return addDaAsset(form.value);
+            }
+        };
+        saveColumn().then(() => {
+            return saveBinding();
+        }).then(() => {
+            proxy.$modal.msgSuccess(columnId != null ? '修改成功' : '新增成功');
+            open.value = false;
+            getList();
+        }).catch(() => {});
+    }).catch(() => {});
 }
 
 /** 删除按钮操作 */
@@ -620,8 +670,16 @@ function getCodeTableList() {
     });
 }
 
+/** 获取数据分类列表 */
+function getDataCategoryList() {
+    listDataCategoryAll({}).then((response) => {
+        dataCategoryList.value = response.data?.rows || response.data || [];
+    });
+}
+
 getElementList();
 getCodeTableList();
 getDaSensitiveLevelList();
+getDataCategoryList();
 </script>
 

@@ -49,7 +49,8 @@
                 </a-row>
             </div>
             <a-table :loading="loadingList" :data-source="tableFields" :columns="tableColumns"
-                :pagination="false" :scroll="{ y: 310 }" :row-key="'columnName'" ref="dragTable">
+                :pagination="false" :scroll="{ x: 680, y: 310 }" tableLayout="fixed" :row-key="'columnName'"
+                ref="dragTable">
                 <template #headerCell="{ column }">
                     <template v-if="column.dataIndex === 'index'">
                         <div class="justify-center">
@@ -69,13 +70,13 @@
                         </div>
                     </template>
                     <template v-else-if="column.dataIndex === 'columnName'">
-                        <a-select v-model:value="record.columnName" placeholder="请选择字段" style="flex: 1">
+                        <a-select v-model:value="record.columnName" placeholder="请选择字段" style="width: 100%">
                             <a-select-option v-for="item in inputFields" :key="item.value" :label="item.label"
                                 :value="item.columnName" :disabled="isOptionDisabled(item.columnName, record)" />
                         </a-select>
                     </template>
                     <template v-else-if="column.dataIndex === 'order'">
-                        <a-select v-model:value="record.order" placeholder="请选择">
+                        <a-select v-model:value="record.order" placeholder="请选择" style="width: 100%">
                             <a-select-option label="降序" value="desc" />
                             <a-select-option label="升序" value="asc" />
                         </a-select>
@@ -130,9 +131,9 @@ const { proxy } = getCurrentInstance();
 const userStore = useUserStore();
 
 const tableColumns = [
-    { title: '序号', dataIndex: 'index', width: 80, align: 'left' },
-    { title: '字段名称', dataIndex: 'columnName', align: 'left' },
-    { title: '排序规则', dataIndex: 'order', align: 'left' },
+    { title: '序号', dataIndex: 'index', width: 90, align: 'left' },
+    { title: '字段名称', dataIndex: 'columnName', width: 280, align: 'left' },
+    { title: '排序规则', dataIndex: 'order', width: 160, align: 'left' },
     { title: '操作', key: 'actions', align: 'center', fixed: 'right', width: 150 },
 ];
 

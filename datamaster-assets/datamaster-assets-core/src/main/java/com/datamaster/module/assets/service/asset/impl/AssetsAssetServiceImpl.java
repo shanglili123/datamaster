@@ -44,6 +44,7 @@ import com.datamaster.module.assets.api.asset.dto.AssetsAssetReqDTO;
 import com.datamaster.module.assets.api.asset.dto.AssetsAssetRespDTO;
 import com.datamaster.module.assets.api.assetColumn.dto.AssetsAssetColumnReqDTO;
 import com.datamaster.module.assets.api.service.asset.IAssetsAssetApiOutService;
+import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.assets.controller.admin.asset.vo.AssetsAssetPageReqVO;
 import com.datamaster.module.assets.controller.admin.asset.vo.AssetsAssetRespVO;
 import com.datamaster.module.assets.controller.admin.asset.vo.AssetsAssetSaveReqVO;
@@ -177,7 +178,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     private IAssetsAssetFilesService AssetsAssetFilesService;
     @Resource
     private ITaxonomyTagAssetRelApiService taxonomyTagAssetRelApiService;
-    @Resource
+    @Autowired(required = false)
     private LineageDataService lineageDataService;
     @Resource
     private CollectorEtlTaskInstanceService collectorEtlTaskInstanceService;
@@ -196,6 +197,8 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     private IStandardsDesensitizeRuleService standardsDesensitizeRuleService;
     @Resource
     private IStandardsDesensitizeWhitelistService whitelistService;
+    @Resource
+    private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
     private static final List<String> SUPPORTED_EXTENSIONS = Arrays.asList(".xlsx", ".xls", ".csv");
 
     /**
@@ -771,8 +774,11 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
             redisCache.expire(CacheConstants.ASSET_PREVIEW_KEY + AssetsDatasourceDO.getId() + "_" + tableName, 5, TimeUnit.MINUTES);
         }
 // Ã¦ÂÂ¼Ã¦ÂÂ¥Ã¦ÂÂ¥Ã¨Â¯Â¢sqlÃ¨Â¯Â­Ã¥ÂÂ¥
+        // 权限字段为空时回退到数据库表字段，避免返回空列定义和空数据
+        List<DbColumn> columnsForDisplay = CollectionUtils.isNotEmpty(AssetsAssetColumns) ? AssetsAssetColumns : columns;
+        
         List<Map<String, Object>> columnTable = new ArrayList<>();
-        for (DbColumn column : AssetsAssetColumns) {
+        for (DbColumn column : columnsForDisplay) {
             Map<String, Object> columnMap = new HashMap<>();
             columnMap.put("field", column.getColName());
             columnMap.put("en", column.getColName());
@@ -781,7 +787,8 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
             columnMap.put("columnKey", column.getColKey());
             columnTable.add(columnMap);
         }
-        if (columnAuthScoped && CollectionUtils.isEmpty(AssetsAssetColumns)) {
+        
+        if (columnAuthScoped && CollectionUtils.isEmpty(AssetsAssetColumns) && columns.isEmpty()) {
             Map<String, Object> Data = new HashMap<>();
             Data.put("columns", columnTable);
             Data.put("tableData", Collections.emptyList());
@@ -792,7 +799,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         List<Map> orderByList = jsonObject.getBeanList("orderBy", Map.class);
         PageUtil pageUtil = new PageUtil(pageNum, pageSize);
         List<Map<String, Object>> queryList;
-        List<DbColumn> queryColumns = columnAuthScoped || CollectionUtils.isNotEmpty(AssetsAssetColumns) ? AssetsAssetColumns : columns;
+        List<DbColumn> queryColumns = CollectionUtils.isNotEmpty(AssetsAssetColumns) ? AssetsAssetColumns : columns;
         queryList = dbQuery.queryDbColumnByList(queryColumns, tableName, dbQueryProperty, jsonObject.getStr("filter"), orderByList, pageUtil.getOffset(), pageSize);
         int total = dbQuery.countNew(tableName, dbQueryProperty, jsonObject.getStr("filter"));
         Map<String, Object> Data = new HashMap<>();
@@ -1506,6 +1513,11 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         if (datasource == null) {
             throw new ServiceException("");
         }
+        //血缘开关未开启（LINEAGE_ENABLED=false 或未安装 Neo4j）时不装配 LineageDataService，
+        //直接返回空血缘，不影响资产详情展示
+        if (lineageDataService == null) {
+            return new LineageDTO();
+        }
         DbQueryProperty dbProperty = new DbQueryProperty(datasource.getDatasourceType(), datasource.getIp(), datasource.getPort(), datasource.getDatasourceConfig());
         DbDialect dbDialect = DialectFactory.getDialect(DbType.getDbType(dbProperty.getDbType()));
         String tableName = dbDialect.getTableName(dbProperty, AssetsAsset.getTableName());
@@ -1558,132 +1570,14 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
 
     @Override
     public List<Map<String, Object>> dataMaskings(Long assetId, List<Map<String, Object>> Data, Long userId, String scene, Long userPermissionLevel) {
-        Map<String, Object> mt = new HashMap<>();
-        List<Map<String, Object>> out = new ArrayList<>(Data.size());
-        Map<String, Object> mk = new HashMap<>();
-        List<AssetsAssetColumnDO> cols = AssetsAssetColumnMapper.findByAssetId(assetId);
-        Map<Long, AssetsSensitiveLevelDO> levelMap = AssetsSensitiveLevelMapper.selectList(
-                new QueryWrapper<AssetsSensitiveLevelDO>().eq("online_flag", "1"))
-                .stream().collect(Collectors.toMap(AssetsSensitiveLevelDO::getId, x -> x, (a, b) -> a));
-        for (AssetsAssetColumnDO col : cols) {
-            // 数据权限等级过滤：列的敏感等级数字越小越敏感，用户权限等级数字越大权限越低
-            // 如果列敏感等级 < 用户权限等级，说明列比用户权限更高，应隐藏
-            if (userPermissionLevel != null && col.getSensitiveLevelId() != null
-                    && col.getSensitiveLevelId() < userPermissionLevel) {
-                mt.put(col.getColumnName(), 3);
-                continue;
-            }
-            StandardsDesensitizeAssetcolumnDO assetcolumnDO = standardsDesensitizeAssetcolumnService.getDgDesensitizeAssetcolumnByAid(col.getId());
-            if (assetcolumnDO == null) {
-                if (col.getSensitiveLevelId() != null) {
-                    AssetsSensitiveLevelDO lvl = levelMap.get(col.getSensitiveLevelId());
-                    if (lvl != null && lvl.getSensitiveRule() != null && "1".equals(lvl.getSensitiveRule())
-                            && lvl.getStartCharLoc() == null && lvl.getEndCharLoc() == null) {
-                        mt.put(col.getColumnName(), 3);
-                    } else {
-                        mt.put(col.getColumnName(), 1);
-                    }
-                } else {
-                    mt.put(col.getColumnName(), 1);
-                }
-            } else {
-                StandardsDesensitizeRuleDO rule = standardsDesensitizeRuleService.getDgDesensitizeRuleByDataCategoryId(assetcolumnDO.getDataCategoryId());
-                StandardsDesensitizeWhitelistDO white = whitelistService.getDgDesensitizeWhitelistByCategoryId(assetcolumnDO.getDataCategoryId());
-                if (rule == null) {
-                    mt.put(col.getColumnName(), 1);
-                } else {
-                    if (!rule.getValidFlag() || !rule.getApplicationScene().contains(scene)) {
-                        mt.put(col.getColumnName(), 1);
-                    } else {
-                        mk.put("rp", rule.getReplaceContent());
-                        if (rule.getIntervalList().size() > 0) {
-                            mk.put("gz", rule.getIntervalList());
-                            mt.put(col.getColumnName(), 2);
-                        } else {
-                            mt.put(col.getColumnName(), 3);
-                        }
-                    }
-                }
-                if (white != null) {
-                    Date currtime = new Date();
-                    boolean b = (!currtime.before(white.getStartTime())) && (!currtime.after(white.getEndTime()));
-                    boolean c = white.getUserList().stream().anyMatch(userRelDO -> userRelDO.getUserId() == userId);
-                    if (white.getValidFlag() && c && b) {
-                        mt.put(col.getColumnName(), 1);
-                    }
-                }
-            }
-        }
-        for (Map<String, Object> row : Data) {
-            Map<String, Object> masked = new LinkedHashMap<>(row.size());
-            for (Map.Entry<String, Object> e : row.entrySet()) {
-                String key = e.getKey();
-                Object val = e.getValue();
-                Object flag = mt.get(key);
-                if (flag == null || flag.toString().equals("1")) {
-                    masked.put(key, val);
-                } else if (flag.toString().equals("2")) {
-                    String s = desensitizeByInterval2((String) val, (String) mk.get("rp"), (List<StandardsDesensitizeIntervalDO>) mk.get("gz"));
-                    masked.put(key, s);
-                }
-                // type "3" = hide column, skip
-            }
-            out.add(masked);
-        }
-        return out;
+        return assetsTableGovernanceApiService.desensitizeResultData(assetId, Data, userId, userPermissionLevel, scene);
     }
 
     @Override
     public List<AssetsAssetDO> getAssetByDataSourceId(Long DataSourceId, String tableName) {
         return this.list(Wrappers.lambdaQuery(AssetsAssetDO.class).eq(AssetsAssetDO::getDatasourceId, DataSourceId).eq(AssetsAssetDO::getTableName, tableName));
     }
-    public static String desensitizeByInterval(String originalStr, String replaceStr, List<StandardsDesensitizeIntervalDO> intervalList) {
-        if (originalStr == null || originalStr.isEmpty()) return originalStr;
-        if (replaceStr == null || replaceStr.isEmpty()) return originalStr;
-        if (intervalList == null || intervalList.isEmpty()) return originalStr;
-        char replaceChar = replaceStr.charAt(0);
-        char[] chars = originalStr.toCharArray();
-        int len = chars.length;
-        intervalList.sort(Comparator.comparing(StandardsDesensitizeIntervalDO::getIntervalNo));
-        for (StandardsDesensitizeIntervalDO interval : intervalList) {
-            Long startL = interval.getStartNum();
-            Long endL = interval.getEndNum();
-            if (startL == null || endL == null) continue;
-            int start = startL.intValue() - 1;
-            int end = endL.intValue() - 1;
-            start = Math.max(start, 0);
-            end = Math.min(end, len - 1);
-            if (start > end) continue;
-            for (int i = start; i <= end; i++) {
-                chars[i] = replaceChar;
-            }
-        }
-        return new String(chars);
-    }
 
-    public static String desensitizeByInterval2(String originalStr, String replaceStr, List<StandardsDesensitizeIntervalDO> intervalList) {
-        if (originalStr == null || originalStr.isEmpty()) return originalStr;
-        if (replaceStr == null || replaceStr.isEmpty()) return originalStr;
-        if (intervalList == null || intervalList.isEmpty()) return originalStr;
-        List<StandardsDesensitizeIntervalDO> sortedList = new ArrayList<>(intervalList);
-        sortedList.sort(Comparator.comparing(StandardsDesensitizeIntervalDO::getIntervalNo));
-        StringBuilder sb = new StringBuilder(originalStr);
-        int offset = 0;
-        for (StandardsDesensitizeIntervalDO interval : sortedList) {
-            Long s = interval.getStartNum();
-            Long e = interval.getEndNum();
-            if (s == null || e == null) continue;
-            int start = s.intValue() - 1;
-            int end = e.intValue() - 1;
-            int len = end - start + 1;
-            if (len <= 0) continue;
-            int replaceStart = start - offset;
-            if (replaceStart < 0) replaceStart = 0;
-            sb.replace(replaceStart, replaceStart + len, replaceStr);
-            offset += (len - 1);
-        }
-        return sb.toString();
-    }
 
     private void updateAssetFieldAndDataCount(DbQuery dbQuery, DbQueryProperty dbQueryProperty, AssetsAssetDO assetDO) {
         List<DbColumn> tableColumns = dbQuery.getTableColumns(dbQueryProperty, assetDO.getTableName());

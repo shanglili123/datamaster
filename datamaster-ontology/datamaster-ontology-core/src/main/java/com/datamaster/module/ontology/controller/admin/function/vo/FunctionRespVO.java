@@ -23,6 +23,16 @@ public class FunctionRespVO implements Serializable {
     private String lang;
     @Schema(description = "函数代码体")
     private String body;
+    @Schema(description = "参数声明(JSON数组)") @Excel(name = "参数声明")
+    private String params;
+    @Schema(description = "数据来源主概念ID") @Excel(name = "数据来源主概念ID")
+    private Long sourceConceptId;
+    @Schema(description = "可选关联关系ID JSON数组") @Excel(name = "可选关联关系")
+    private String sourceRelationIds;
+    @Schema(description = "输出目标概念ID") @Excel(name = "输出目标概念ID")
+    private Long outputConceptId;
+    @Schema(description = "主概念/关系数据读取行数上限") @Excel(name = "读取行数上限")
+    private Integer readLimit;
     @Schema(description = "是否需要审批") @Excel(name = "需要审批")
     private Boolean needsApproval;
     @Schema(description = "描述") @Excel(name = "描述")

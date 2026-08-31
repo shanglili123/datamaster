@@ -26,6 +26,11 @@
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-datasource-mgmt</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
             <artifactId>datamaster-common-base</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
@@ -41,6 +46,21 @@
         <dependency>
             <groupId>com.datamaster</groupId>
             <artifactId>datamaster-ontology-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-assets-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-metadata-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-ai</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>

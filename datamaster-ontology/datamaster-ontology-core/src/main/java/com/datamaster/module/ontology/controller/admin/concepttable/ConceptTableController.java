@@ -3,6 +3,7 @@ package com.datamaster.module.ontology.controller.admin.concepttable;
 import com.datamaster.common.core.domain.CommonResult;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTablePageReqVO;
+import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTablePreviewRespVO;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTableRespVO;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTableSaveReqVO;
 import com.datamaster.module.ontology.service.IConceptTableService;
@@ -44,6 +45,15 @@ public class ConceptTableController {
     @GetMapping("/{id}")
     public CommonResult<ConceptTableRespVO> get(@PathVariable Long id) {
         return CommonResult.success(conceptTableService.getConceptTableById(id));
+    }
+
+    @Operation(summary = "预览表绑定数据")
+    @PreAuthorize("@ss.hasPermi('ont:concept-table:list')")
+    @GetMapping("/preview/{id}")
+    public CommonResult<ConceptTablePreviewRespVO> preview(@PathVariable Long id,
+                                                           @RequestParam(value = "limit", required = false, defaultValue = "20") Integer limit,
+                                                           @RequestParam(value = "filters", required = false) String filters) {
+        return CommonResult.success(conceptTableService.previewData(id, limit, filters));
     }
 
     @Operation(summary = "新增表绑定")

@@ -5,6 +5,7 @@
       <div v-for="b in bindRows" :key="b.id" class="bind-item">
         <span class="bind-name">{{ b.tableName }}</span>
         <span class="bind-ds">{{ dsName(b.datasourceId) }}</span>
+        <a-button type="link" size="small" @click="openPreview(b)">数据预览</a-button>
         <a-button type="link" danger size="small" @click="deleteBind(b)">解除绑定</a-button>
       </div>
       <div v-if="!bindLoading && !bindRows.length" class="bind-empty">暂无绑定，请在下方选择数据源与表进行绑定</div>
@@ -31,10 +32,31 @@
       <a-button type="primary" :loading="bindSaving" @click="submitBind">绑定</a-button>
     </div>
   </a-modal>
+  <!-- 数据预览弹窗 -->
+  <a-modal
+    :title="previewTableName ? `数据预览 - ${previewTableName}` : '数据预览'"
+    v-model:open="previewVisible"
+    width="780px"
+    :footer="null"
+    destroy-on-close
+  >
+    <div style="max-height: 480px; overflow: auto">
+      <a-table
+        :columns="previewColumns"
+        :data-source="previewRows"
+        :loading="previewLoading"
+        size="small"
+        :pagination="false"
+        :scroll="{ x: 640 }"
+        row-key="__previewKey"
+      />
+      <a-empty v-if="!previewLoading && !previewRows.length" description="暂无数据" />
+    </div>
+  </a-modal>
 </template>
 
 <script setup name="ConceptBindModal">
-import { listConceptTable, addConceptTable, delConceptTable } from '@/api/ont/conceptTable'
+import { listConceptTable, addConceptTable, delConceptTable, previewConceptTable } from '@/api/ont/conceptTable'
 import { getDaDatasourceList } from '@/api/ast/dataSource/dataSource'
 import { getCatalogTableListAsset } from '@/api/cat/unreleased/table'
 
@@ -68,6 +90,12 @@ let dsCache = []
 const dsOptions = ref([])
 const bindForm = ref({})
 const bindTableOptions = ref([])
+
+const previewVisible = ref(false)
+const previewLoading = ref(false)
+const previewTableName = ref('')
+const previewColumns = ref([])
+const previewRows = ref([])
 
 // 统一解析响应数据：list 接口可能返回数组或分页对象
 function rowsOf(res) {
@@ -138,6 +166,28 @@ function deleteBind(row) {
     proxy.$modal.msgSuccess('已解除绑定')
     emit('success')
     return refreshBindRows()
+  })
+}
+
+function openPreview(row) {
+  previewTableName.value = row.tableName || ''
+  previewVisible.value = true
+  previewLoading.value = true
+  previewColumns.value = []
+  previewRows.value = []
+  previewConceptTable(row.id, 20).then(res => {
+    const data = res.data || {}
+    previewColumns.value = (data.columns || []).map(c => ({
+      title: c,
+      dataIndex: c,
+      ellipsis: true,
+      width: 160
+    }))
+    previewRows.value = (data.rows || []).map((r, i) => ({ __previewKey: i, ...r }))
+  }).catch(() => {
+    proxy.$modal.msgError('数据预览失败')
+  }).finally(() => {
+    previewLoading.value = false
   })
 }
 

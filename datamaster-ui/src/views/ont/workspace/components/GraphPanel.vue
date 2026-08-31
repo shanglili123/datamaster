@@ -1,5 +1,5 @@
 <template>
-  <div class="graph-panel">
+  <div class="graph-panel" :class="{ 'preview-open': previewOpen }">
     <!-- 工具条：拖拽建模芯片 + 刷新/适应画布 -->
     <div class="panel-toolbar">
       <div
@@ -17,10 +17,57 @@
       <span class="toolbar-tip">拖动「概念」到画布新增节点 · 从端口拉线创建关系 · 点击节点看详情 · 滚轮缩放 / 空白处拖拽平移</span>
     </div>
 
-    <div class="graph-container" @dragover.prevent @drop="onCanvasDrop">
+    <div class="graph-container" :class="{ 'graph-shrunk': previewOpen }" @dragover.prevent @drop="onCanvasDrop">
       <!-- X6 被隔离在内层宿主中：autoResize 类的尺寸回写只会作用于这层 absolute 元素，
            物理上无法再把外层容器（及下方面板）撑爆 -->
       <div ref="containerRef" class="x6-host"></div>
+    </div>
+
+    <!-- 数据预览：点击概念节点后位于可视化下方；画布随之收缩一半，页面总高不变；表头=属性名，最多 5 行，支持属性值过滤 -->
+    <div v-if="selectedNode && previewOpen" class="preview-panel">
+      <div class="preview-header">
+        <span class="preview-title">数据预览</span>
+        <a-select
+          v-if="nodeBindings.length > 1"
+          v-model:value="previewBindingId"
+          size="small"
+          :options="previewBindingOptions"
+          style="width: 220px"
+          @change="loadPreview"
+        />
+        <span v-else-if="previewTableName" class="preview-table">{{ previewTableName }}</span>
+        <a-button size="small" :loading="previewLoading" @click="loadPreview">
+          <template #icon><ReloadOutlined /></template>
+          刷新
+        </a-button>
+        <span class="preview-hint">展示前 5 条数据</span>
+        <a-button type="text" size="small" class="preview-collapse" title="收起数据预览，恢复画布" @click="previewOpen = false">
+          <template #icon><DownOutlined /></template>
+        </a-button>
+      </div>
+      <div v-if="previewColumns.length" class="preview-filters">
+        <a-input
+          v-for="col in previewColumns"
+          :key="col.dataIndex"
+          v-model:value="previewFilterValues[col.dataIndex]"
+          :placeholder="'按' + col.title + '过滤'"
+          size="small"
+          allow-clear
+          style="width: 160px"
+          @pressEnter="loadPreview"
+        />
+        <a-button size="small" type="primary" :loading="previewLoading" @click="loadPreview">过滤</a-button>
+        <a-button size="small" @click="resetPreviewFilters">重置</a-button>
+      </div>
+      <a-table
+        :columns="previewColumns"
+        :data-source="previewRows"
+        :loading="previewLoading"
+        size="small"
+        :pagination="false"
+        row-key="__previewKey"
+        :scroll="{ x: 640 }"
+      />
     </div>
 
     <!-- 概念详情 -->
@@ -223,11 +270,12 @@ import { Graph } from '@antv/x6'
 import { getGraphData } from '@/api/ont/function'
 import { listConcept, getConcept, addConcept, updateConcept, delConcept } from '@/api/ont/concept'
 import { getRelation, addRelation, updateRelation, delRelation } from '@/api/ont/relation'
-import { listConceptTable } from '@/api/ont/conceptTable'
-import { addProperty } from '@/api/ont/property'
+import { listConceptTable, previewConceptTable } from '@/api/ont/conceptTable'
+import { listPropertyColumn } from '@/api/ont/propertyColumn'
+import { addProperty, listProperty } from '@/api/ont/property'
 import ConceptMappingModal from './bindings/ConceptMappingModal.vue'
 import RelColumnModal from './bindings/RelColumnModal.vue'
-import { ReloadOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { ReloadOutlined, PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { genCode } from '@/utils/codeGen'
 
 const props = defineProps({
@@ -272,6 +320,89 @@ const quickPropForm = ref({})
 // 节点详情：绑定表列表（后端图谱接口不含 boundTables，点击节点时单独拉取）
 const nodeBindings = ref([])
 const nodeBindingsLoading = ref(false)
+
+// 数据预览：位于可视化下方，点击概念时加载；表头=属性名，最多 5 行，支持属性值过滤
+const previewLoading = ref(false)
+const previewTableName = ref('')
+const previewBindingId = ref(null)
+const previewColumns = ref([])
+const previewRows = ref([])
+const previewFilterValues = ref({})
+// 当前预览绑定对应的 物理列 → 属性名 映射（listPropertyColumn + propertyDict 构建）
+const previewColMap = ref({})
+// 本体全部属性字典（id -> property）
+const propertyDict = ref({})
+// 数据预览展开开关：展开时画布收缩一半、下方展示预览，页面总高不变；收起时画布恢复整高
+const previewOpen = ref(false)
+// 画布目标高度：预览展开 300px，收起 600px（与 .graph-container / .graph-shrunk 样式一致）
+const CANVAS_FULL_HEIGHT = 600
+const CANVAS_SHRUNK_HEIGHT = 300
+
+const previewBindingOptions = computed(() => nodeBindings.value.map(b => ({ value: b.id, label: b.tableName })))
+
+// 加载本体属性字典（属性名 → 表头 / 过滤条件翻译）
+function loadProperties() {
+  listProperty({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 200 }).then(res => {
+    const rows = (res.data && res.data.rows) || []
+    const dict = {}
+    rows.forEach(p => { dict[p.id] = p })
+    propertyDict.value = dict
+  })
+}
+
+// 按选中绑定加载预览：列表头=属性名（映射失败退化为物理列名），最多 5 行；过滤值走服务端 WHERE
+async function loadPreview() {
+  const bindingId = previewBindingId.value
+  if (bindingId == null || bindingId === '') {
+    previewColumns.value = []
+    previewRows.value = []
+    previewTableName.value = ''
+    return
+  }
+  previewLoading.value = true
+  try {
+    // 1. 构建 物理列 → 属性名（复用 ActionPanel 同款链路：概念表绑定 → 列映射 → 属性字典）
+    const colRes = await listPropertyColumn(bindingId)
+    const cols = (colRes.data && colRes.data.rows) || colRes.data || []
+    const map = {}
+    cols.forEach(c => {
+      const p = propertyDict.value[c.propertyId] || {}
+      map[c.columnName] = p.name || c.columnName
+    })
+    previewColMap.value = map
+    // 2. 收集非空过滤条件（物理列: 值）
+    const filters = {}
+    Object.keys(previewFilterValues.value).forEach(k => {
+      const v = String(previewFilterValues.value[k] == null ? '' : previewFilterValues.value[k]).trim()
+      if (v) filters[k] = v
+    })
+    // 3. 拉取数据：最多 5 行
+    const res = await previewConceptTable(bindingId, 5, filters)
+    const data = res.data || {}
+    previewTableName.value = data.tableName || ''
+    const srcCols = data.columns || []
+    // 表头=属性名；未映射到属性的物理列不展示（与对比表一致），全未映射时退化为物理列名
+    const mapped = srcCols.filter(c => map[c])
+    const colsToShow = mapped.length ? mapped : srcCols
+    previewColumns.value = colsToShow.map(c => ({
+      title: map[c] || c,
+      dataIndex: c,
+      ellipsis: true,
+      width: 160
+    }))
+    previewRows.value = (data.rows || []).map((r, i) => ({ __previewKey: i, ...r }))
+  } catch (e) {
+    previewColumns.value = []
+    previewRows.value = []
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+function resetPreviewFilters() {
+  previewFilterValues.value = {}
+  return loadPreview()
+}
 
 // 共享绑定弹窗（概念映射 / 关系关联字段）
 const mappingOpen = ref(false)
@@ -354,7 +485,7 @@ async function reloadGraphKeepSelection() {
   }
 }
 
-// 拉取节点当前绑定的物理表
+// 拉取节点当前绑定的物理表；绑定就绪后联动下方数据预览（默认预览第一张绑定表）
 async function loadNodeBindings(conceptId) {
   nodeBindings.value = []
   if (conceptId == null || conceptId === '') return
@@ -362,8 +493,17 @@ async function loadNodeBindings(conceptId) {
   try {
     const res = await listConceptTable({ conceptId })
     nodeBindings.value = rowsOf(res)
+    const hasBindings = nodeBindings.value.length > 0
+    previewBindingId.value = hasBindings ? nodeBindings.value[0].id : null
+    // 有绑定表才展开预览（有真实数据可看）；无绑定时保持画布整高，不出现空白预览面板
+    previewOpen.value = hasBindings
+    // 切换概念时重置过滤条件，避免上一概念的属性值残留串扰
+    previewFilterValues.value = {}
+    if (hasBindings) await loadPreview()
   } catch (e) {
     nodeBindings.value = []
+    previewBindingId.value = null
+    previewOpen.value = false
   } finally {
     nodeBindingsLoading.value = false
   }
@@ -393,6 +533,11 @@ function renderGraph(nodes, edges) {
   selectedNode.value = null
   selectedEdge.value = null
   nodeBindings.value = []
+  previewOpen.value = false
+  previewBindingId.value = null
+  previewColumns.value = []
+  previewRows.value = []
+  previewTableName.value = ''
   const container = containerRef.value
   if (!container) return
 
@@ -493,12 +638,22 @@ function renderGraph(nodes, edges) {
     })
     selectedNode.value = null
     nodeBindings.value = []
+    previewOpen.value = false
+    previewBindingId.value = null
+    previewColumns.value = []
+    previewRows.value = []
+    previewTableName.value = ''
   })
 
   graph.on('blank:click', () => {
     selectedNode.value = null
     selectedEdge.value = null
     nodeBindings.value = []
+    previewOpen.value = false
+    previewBindingId.value = null
+    previewColumns.value = []
+    previewRows.value = []
+    previewTableName.value = ''
   })
 
   // 拖动节点后记录位置，刷新图谱不丢位置
@@ -544,6 +699,18 @@ function filterOption(input, option) {
 function fitView() {
   if (graph) graph.centerContent()
 }
+
+// 画布高度随预览展开/收起在 600px/300px 间切换；X6 未开启 autoResize，
+// 必须在 DOM 高度变化后再手动 resize，否则命中检测与渲染视口仍停留在旧尺寸
+watch(previewOpen, async (open) => {
+  await nextTick()
+  const container = containerRef.value
+  if (!graph || !container) return
+  const width = container.offsetWidth || 800
+  const height = open ? CANVAS_SHRUNK_HEIGHT : CANVAS_FULL_HEIGHT
+  graph.resize(width, height)
+  graph.centerContent()
+})
 
 /* ================= 可视化建模 ================= */
 
@@ -829,6 +996,7 @@ async function onBindingChanged() {
 
 onMounted(() => {
   nextTick(() => {
+    loadProperties()
     loadGraph()
   })
 })
@@ -881,6 +1049,12 @@ onBeforeUnmount(() => {
     border-radius: 8px;
     background: #fafafa;
     overflow: hidden;
+    transition: height 0.2s ease;
+
+    // 预览展开时画布收缩到一半高度，配合下方预览面板，整体页面高度保持不变
+    &.graph-shrunk {
+      height: 300px;
+    }
 
     .x6-host {
       position: absolute;
@@ -888,7 +1062,57 @@ onBeforeUnmount(() => {
     }
   }
 
-  // 节点/关系详情浮层：固定在画布右上角，任何布局变化都不会把它推走
+  // 数据预览面板：位于可视化下方
+  .preview-panel {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    background: #ffffff;
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+
+      .preview-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2d3d;
+      }
+
+      .preview-table {
+        font-size: 12px;
+        color: #8a95a6;
+      }
+
+      .preview-hint {
+        margin-left: auto;
+        font-size: 12px;
+        color: #8a95a6;
+      }
+
+      .preview-collapse {
+        color: #8a95a6;
+
+        &:hover {
+          color: #1677ff;
+        }
+      }
+    }
+
+    .preview-filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+  }
+
+  // 节点/关系详情浮层：固定在画布右上角，任何布局变化都不会把它推走。
+  // pointer-events:none 让点击穿透到画布节点（卡片悬浮区不再吞掉“点其他节点”），内部按钮单独恢复可点
   .node-detail {
     position: absolute;
     top: 46px;
@@ -903,6 +1127,12 @@ onBeforeUnmount(() => {
     border: 1px solid #d6e4ff;
     border-radius: 6px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    pointer-events: none;
+
+    // 卡片内按钮仍需可点（编辑/删除/映射/添加属性）
+    .detail-actions {
+      pointer-events: auto;
+    }
 
     h4 {
       margin: 0 0 8px;
@@ -941,6 +1171,13 @@ onBeforeUnmount(() => {
 
     .detail-actions {
       margin-top: 8px;
+    }
+  }
+
+  // 预览展开时：详情卡片收进半高画布内（top:46px + 230px < 300px），避免盖住下方预览面板
+  &.preview-open {
+    .node-detail {
+      max-height: 230px;
     }
   }
 }

@@ -1332,6 +1332,8 @@ const getAssetsFile = (url) => {
 }
 
 .app-container {
+  display: flex;
+  flex-direction: column;
   height: calc(87vh - 7px);
   overflow: hidden;
 
@@ -1350,6 +1352,7 @@ const getAssetsFile = (url) => {
   }
 
   .head-container {
+    flex: 0 0 auto;
     height: 50px;
     background: #fff;
     border: 1px solid #e8edf5;
@@ -1401,11 +1404,13 @@ const getAssetsFile = (url) => {
 
 .flex-container {
   display: flex;
-  height: calc(87vh - 60px);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
 .left-pane {
+  flex: 0 0 274px;
   width: 274px;
   background: #ffffff;
   border: 1px solid #e8edf5;
@@ -1436,8 +1441,8 @@ const getAssetsFile = (url) => {
 
 .right-pane {
   //min-height: 864px;
-  width: 20vw;
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1485,7 +1490,7 @@ const getAssetsFile = (url) => {
 
   .graph-container {
     flex: 1;
-    min-height: 70vh;
+    min-height: 260px;
     overflow: hidden;
     border: 1px solid #e8edf5;
     border-radius: 8px;
@@ -1550,7 +1555,15 @@ const getAssetsFile = (url) => {
 
 .graph-container {
   box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05) !important;
-  min-height: 70vh !important;
+  min-height: 260px !important;
+}
+
+:deep(.ant-spin-nested-loading),
+:deep(.ant-spin-container) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.x6-widget-selection-box) {

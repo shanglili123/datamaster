@@ -31,6 +31,12 @@ public class ActionExecutionDO extends BaseEntity {
     /** 执行者ID */
     private Long executorId;
 
+    /** 提交时的空间ID（执行阶段二次权限校验复用） */
+    private Long spaceId;
+
+    /** 提交时的空间编码（执行阶段二次权限校验复用） */
+    private String spaceCode;
+
     /** 输入参数 (JSONB) */
     private String inputParams;
 
@@ -43,7 +49,16 @@ public class ActionExecutionDO extends BaseEntity {
     /** 执行前数据快照 (JSONB) */
     private String beforeData;
 
-    /** 状态：DRAFT/PENDING_APPROVAL/APPROVED/REJECTED/EXECUTED/FAILED */
+    /** 执行后数据快照 (JSONB)：UPDATE=重查新值 / DELETE=空集 / CREATE=按主键回查新行 */
+    private String afterData;
+
+    /** 回退前数据快照 (JSONB)：回退动作执行前一刻的数据（= 原执行 afterData，即回退时的当前状态） */
+    private String rollbackBeforeData;
+
+    /** 回退后数据快照 (JSONB)：回退动作执行后的数据（UPDATE/DELETE 回退=还原的 beforeData / CREATE 回退=空集） */
+    private String rollbackAfterData;
+
+    /** 状态：DRAFT/PENDING_APPROVAL/APPROVED/REJECTED/EXECUTED/FAILED/ROLLED_BACK */
     private String status;
 
     /** 审批意见 */
@@ -57,6 +72,12 @@ public class ActionExecutionDO extends BaseEntity {
 
     /** 执行时间 */
     private java.util.Date executeTime;
+
+    /** 回退SQL（ROLLED_BACK 留痕：回退动作实际执行的还原语句） */
+    private String rollbackSql;
+
+    /** 回退时间 */
+    private java.util.Date rollbackTime;
 
     /** 错误信息 */
     private String errorMessage;

@@ -2,7 +2,7 @@
     <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name"
         :closable="false" :destroy-on-close="true" :mask-closable="false" :width="1200">
         <a-spin :spinning="loading">
-        <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
+        <a-form class="input-form" ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
             :disabled="info">
 
             <a-row :gutter="20">
@@ -1491,10 +1491,34 @@ watch(
     color: #2666fb;
 }
 
+.input-form {
+    :deep(.ant-form-item) {
+        margin-bottom: 14px;
+    }
+
+    :deep(.ant-radio-group) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+    }
+
+    :deep(.ant-radio-wrapper) {
+        margin-inline-end: 0;
+    }
+
+    :deep(.ant-select),
+    :deep(.ant-input),
+    :deep(.ant-picker),
+    :deep(.sql-editor) {
+        width: 100%;
+    }
+}
+
 .stream-field-title {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin: 8px 0 12px;
 }
 </style>
 

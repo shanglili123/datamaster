@@ -17,15 +17,10 @@
         >{{ item.label + " " }}</a-tag>
       </template>
     </template>
-    <template v-if="unmatch && showValue">
-      {{ unmatchArray | handleArray }}
-    </template>
   </div>
 </template>
 
 <script setup>
-const unmatchArray = ref([]);
-
 const props = defineProps({
   options: {
     type: Array,
@@ -55,18 +50,4 @@ function antTagColor(elTagType) {
   };
   return map[elTagType] || 'default';
 }
-
-// 未匹配字典的值
-watch(
-  () => props.options,
-  () => {
-    unmatchArray.value = values.value.filter(
-      (v) =>
-        !props.options.some(
-          (o) => String(o.value) === String(v)
-        )
-    );
-  },
-  { immediate: true }
-);
 </script>

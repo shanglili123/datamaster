@@ -30,10 +30,13 @@ public class FunctionController {
         return CommonResult.success(functionService.getFunctionPage(pageReqVO));
     }
 
-    @Operation(summary = "按本体ID查询函数列表")
+    @Operation(summary = "按本体ID查询函数列表（本体ID为空时返回共享函数全量）")
     @PreAuthorize("@ss.hasPermi('ont:function:list')")
     @GetMapping("/list")
-    public CommonResult<List<FunctionRespVO>> list(@RequestParam Long ontologyId) {
+    public CommonResult<List<FunctionRespVO>> list(@RequestParam(required = false) Long ontologyId) {
+        if (ontologyId == null) {
+            return CommonResult.success(functionService.listAllFunctions());
+        }
         return CommonResult.success(functionService.getFunctionsByOntologyId(ontologyId));
     }
 
@@ -109,10 +112,10 @@ public class FunctionController {
         return CommonResult.success(functionService.getExecutionPage(pageReqVO));
     }
 
-    @Operation(summary = "查询待审批列表")
+    @Operation(summary = "查询待审批列表（本体ID为空时查询全部）")
     @PreAuthorize("@ss.hasPermi('ont:function:list')")
     @GetMapping("/exec/pending")
-    public CommonResult<List<FunctionExecRespVO>> pendingApprovals(@RequestParam Long ontologyId) {
+    public CommonResult<List<FunctionExecRespVO>> pendingApprovals(@RequestParam(required = false) Long ontologyId) {
         return CommonResult.success(functionService.getPendingApprovals(ontologyId));
     }
 }

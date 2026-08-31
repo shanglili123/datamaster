@@ -18,6 +18,6 @@ public class ActionPageReqVO extends PageParam {
     @Schema(description = "动作名称", example = "创建客户")
     private String name;
 
-    @Schema(description = "动作类型：CREATE/UPDATE/DELETE/QUERY", example = "CREATE")
+    @Schema(description = "动作类型：CREATE/UPDATE/DELETE/QUERY/FUNCTION", example = "CREATE")
     private String actionType;
 }

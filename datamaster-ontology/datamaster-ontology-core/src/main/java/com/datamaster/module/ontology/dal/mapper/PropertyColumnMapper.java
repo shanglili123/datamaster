@@ -26,4 +26,9 @@ public interface PropertyColumnMapper extends BaseMapperX<PropertyColumnDO> {
         return delete(new LambdaQueryWrapperX<PropertyColumnDO>()
                 .eq(PropertyColumnDO::getConceptTableId, conceptTableId));
     }
+
+    default int deleteByPropertyId(Long propertyId) {
+        return delete(new LambdaQueryWrapperX<PropertyColumnDO>()
+                .eq(PropertyColumnDO::getPropertyId, propertyId));
+    }
 }

@@ -71,6 +71,12 @@
             <artifactId>datamaster-assets-interface</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
+        <!-- 脱敏公共能力 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-governance-core</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
             <artifactId>datamaster-system</artifactId>

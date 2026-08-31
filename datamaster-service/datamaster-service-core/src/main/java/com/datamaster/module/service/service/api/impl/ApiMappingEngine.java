@@ -27,6 +27,8 @@ import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqD
 import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO;
 import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
+import com.datamaster.common.utils.SecurityUtils;
+import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.module.service.dal.dataobject.api.ServiceApiDO;
 import com.datamaster.module.service.dal.dataobject.api.ExecuteConfig;
 import com.datamaster.module.service.dal.dataobject.dto.ReqParam;
@@ -36,6 +38,7 @@ import com.datamaster.module.service.utils.SqlBuilderUtil;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -46,6 +49,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class ApiMappingEngine {
+
+    /** 数据服务场景标识 */
+    private static final String SCENE_DATA_SERVICE = "3";
 
     @Autowired
     private DataSourceFactory dataSourceFactory;
@@ -112,20 +118,18 @@ public class ApiMappingEngine {
                 case "3":
                     PageResult<Map<String, Object>> pageResult = dbQuery.queryByPage(sqlFilterResult.getSql(), acceptedFilters, offset, pageSize, cacheSwitch);
                     List<Map<String, Object>> data = pageResult.getData();
-                    List<Map<String, Object>> list = this.encryptQueryResultList(data, String.valueOf(dataApi.getId()));
+                    List<Map<String, Object>> list = this.desensitizeData(data, governanceResp);
 
                     pageResult.setPageNum(pageNum).setPageSize(pageSize).setData(list);
                     result = pageResult;
                     break;
                 case "2":
                     List<Map<String, Object>> listResult = dbQuery.queryList(sqlFilterResult.getSql(), acceptedFilters, cacheSwitch);
-                    result = this.encryptQueryResultList(listResult, String.valueOf(dataApi.getId()));
-//                    result = listResult;
+                    result = this.desensitizeData(listResult, governanceResp);
                     break;
                 case "1":
                     Map<String, Object> mapResult = dbQuery.queryOne(sqlFilterResult.getSql(), acceptedFilters, cacheSwitch);
-                    result = encryptQueryResultMap(mapResult, String.valueOf(dataApi.getId()));
-//                    result = mapResult;
+                    result = this.desensitizeSingleData(mapResult, governanceResp);
                     break;
             }
         } catch (Exception e) {
@@ -163,6 +167,7 @@ public class ApiMappingEngine {
         dataApi.setReqParamsList(reqParams1);
         List<ResParam> resParamsList = JSONArray.parseArray(resParams1, ResParam.class);
         resParamsList = filterAllowedColumns(resParamsList, governanceResp);
+        resParamsList = filterDesensitizeHideColumns(resParamsList, governanceResp);
         dataApi.setResParamsList(resParamsList);
         ExecuteConfig executeConfig = dataApi.getExecuteConfig();
         if (com.datamaster.common.utils.StringUtils.isEmpty(executeConfig.getDbType())) {
@@ -217,75 +222,91 @@ public class ApiMappingEngine {
         return filtered;
     }
 
-    private Map<String, Object> encryptQueryResultMap(Map<String, Object> mapResult, String apiId) {
-        if (MapUtils.isEmpty(mapResult)) {
-            return mapResult;
+    /**
+     * 前置过滤脱敏隐藏列：敏感等级不足或脱敏规则隐藏的字段在 SQL 构建前剔除，
+     * 避免敏感字段进入查询语句。无资产或未命中治理时原样返回。
+     */
+    private List<ResParam> filterDesensitizeHideColumns(List<ResParam> resParamsList, AssetsTableGovernanceRespDTO governanceResp) {
+        if (resParamsList == null || resParamsList.isEmpty() || governanceResp == null || governanceResp.getAssetId() == null) {
+            return resParamsList;
         }
-
-//        List<MetadataDsnRuleLinkEntity> metadataDsnRuleLinkList = new ArrayList<>();
-//        try {
-//            metadataDsnRuleLinkList = metadataSourceServiceFeign.getMetadataDsnRuleLinkList(apiId);
-//        } catch (Exception e) {
-//            throw new ServiceException("API调用查询脱敏规则出错");
-//        }
-//
-//        if (CollectionUtils.isEmpty(metadataDsnRuleLinkList)) {
-//            return mapResult;
-//        }
-//
-//        metadataDsnRuleLinkList.stream()
-//                .filter(columnEntity -> mapResult.containsKey(columnEntity.getColumnName()))
-//                .forEach(columnEntity -> {
-//                    String columnName = columnEntity.getColumnName();
-//                    Map.Entry<String, Object> item = getIgnoreCaseData(mapResult, columnName);
-//
-//                    if (item != null) {
-//                        MaskRuleUtil.MaskRule maskRule = MaskRuleUtil.mapToMaskRule(columnEntity);
-//                        Object object = MaskRuleUtil.processRule(item.getValue(), maskRule);
-//                        mapResult.put(item.getKey(), object);
-//                    }
-//                });
-
-        return mapResult;
+        try {
+            Long userId = SecurityUtils.getUserId();
+            Long userPermissionLevel = currentUserPermissionLevel();
+            Set<String> hideColumns = assetsTableGovernanceApiService.getDesensitizeHideColumns(
+                    governanceResp.getAssetId(), userId, userPermissionLevel, SCENE_DATA_SERVICE);
+            if (hideColumns == null || hideColumns.isEmpty()) {
+                return resParamsList;
+            }
+            Set<String> hideLower = hideColumns.stream()
+                    .filter(Objects::nonNull)
+                    .map(column -> column.trim().toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
+            List<ResParam> filtered = resParamsList.stream()
+                    .filter(resParam -> resParam.getFieldName() == null
+                            || !hideLower.contains(resParam.getFieldName().trim().toLowerCase(Locale.ROOT)))
+                    .collect(Collectors.toList());
+            if (filtered.isEmpty()) {
+                throw new ServiceException("当前用户无权查询该服务的任何输出字段");
+            }
+            return filtered;
+        } catch (Exception e) {
+            log.warn("前置过滤脱敏隐藏列异常: {}", e.getMessage());
+            return resParamsList;
+        }
     }
 
     /**
-     * 数据脱敏
-     *
-     * @param data
-     * @param apiId
-     * @return
+     * 数据服务场景脱敏（列表）：委托治理公共方法，scene=3 数据服务。
+     * governanceResp 为 null 或 assetId 为 null 时直接返回原数据，不影响查询链路。
      */
-    private List<Map<String, Object>> encryptQueryResultList(List<Map<String, Object>> data, String apiId) {
-//        if (CollectionUtils.isEmpty(data)) {
-//            return data;
-//        }
-//        List<MetadataDsnRuleLinkEntity> metadataDsnRuleLinkList = new ArrayList<>();
-//        try {
-//            metadataDsnRuleLinkList = metadataSourceServiceFeign.getMetadataDsnRuleLinkList(apiId);
-//        } catch (Exception e) {
-//            throw new ServiceException("API调用查询脱敏规则出错");
-//        }
-//
-//        if (CollectionUtils.isEmpty(metadataDsnRuleLinkList)) {
-//            return data;
-//        }
-//
-//        for (Map<String, Object> datum : data) {
-//            metadataDsnRuleLinkList.stream()
-//                    .filter(columnEntity -> datum.containsKey(columnEntity.getColumnName()))
-//                    .forEach(columnEntity -> {
-//                        String columnName = columnEntity.getColumnName();
-//                        Map.Entry<String, Object> item = getIgnoreCaseData(datum, columnName);
-//
-//                        if (item != null) {
-//                            MaskRuleUtil.MaskRule maskRule = MaskRuleUtil.mapToMaskRule(columnEntity);
-//                            Object object = MaskRuleUtil.processRule(item.getValue(), maskRule);
-//                            datum.put(item.getKey(), object);
-//                        }
-//                    });
-//        }
-        return data;
+    private List<Map<String, Object>> desensitizeData(List<Map<String, Object>> data, AssetsTableGovernanceRespDTO governanceResp) {
+        if (data == null || data.isEmpty() || governanceResp == null || governanceResp.getAssetId() == null) {
+            return data;
+        }
+        try {
+            Long userId = SecurityUtils.getUserId();
+            Long userPermissionLevel = currentUserPermissionLevel();
+            return assetsTableGovernanceApiService.desensitizeResultData(
+                    governanceResp.getAssetId(), data, userId, userPermissionLevel, SCENE_DATA_SERVICE);
+        } catch (Exception e) {
+            log.warn("数据服务脱敏异常，返回原始数据: {}", e.getMessage());
+            return data;
+        }
+    }
+
+    /**
+     * 数据服务场景脱敏（单条）
+     */
+    private Map<String, Object> desensitizeSingleData(Map<String, Object> mapData, AssetsTableGovernanceRespDTO governanceResp) {
+        if (mapData == null || mapData.isEmpty() || governanceResp == null || governanceResp.getAssetId() == null) {
+            return mapData;
+        }
+        try {
+            List<Map<String, Object>> singleList = new ArrayList<>();
+            singleList.add(mapData);
+            List<Map<String, Object>> masked = desensitizeData(singleList, governanceResp);
+            return (masked != null && !masked.isEmpty()) ? masked.get(0) : mapData;
+        } catch (Exception e) {
+            log.warn("数据服务单条脱敏异常，返回原始数据: {}", e.getMessage());
+            return mapData;
+        }
+    }
+
+    /**
+     * 获取当前用户数据权限等级
+     */
+    private Long currentUserPermissionLevel() {
+        try {
+            LoginUser loginUser = SecurityUtils.getLoginUser();
+            if (loginUser == null || loginUser.getUser() == null) {
+                return null;
+            }
+            return loginUser.getUser().getDataPermissionLevel();
+        } catch (Exception e) {
+            log.warn("获取用户数据权限等级异常: {}", e.getMessage());
+            return null;
+        }
     }
 
 

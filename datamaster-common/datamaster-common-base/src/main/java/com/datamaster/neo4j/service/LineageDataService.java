@@ -6,14 +6,17 @@ import com.alibaba.fastjson.JSONObject;
 import org.neo4j.driver.*;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.types.Relationship;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.datamaster.neo4j.config.Neo4jProperties;
 import com.datamaster.neo4j.dto.LineageDTO;
+import com.datamaster.neo4j.node.ActionExecutionNode;
 import com.datamaster.neo4j.node.TableNode;
 import com.datamaster.neo4j.node.TaskNode;
 import com.datamaster.neo4j.rel.TableToTaskRel;
 import com.datamaster.neo4j.rel.TaskToTableRel;
+import com.datamaster.neo4j.repository.ActionExecutionRepository;
 import com.datamaster.neo4j.repository.TableRepository;
 import com.datamaster.neo4j.repository.TaskRepository;
 
@@ -31,6 +34,7 @@ import java.util.stream.Stream;
  * @create: 2025-08-27 13:46
  **/
 @Service
+@ConditionalOnProperty(prefix = "datamaster.lineage", name = "enabled", havingValue = "true")
 public class LineageDataService {
 
     @Resource
@@ -38,6 +42,9 @@ public class LineageDataService {
 
     @Resource
     private TaskRepository taskRepository;
+
+    @Resource
+    private ActionExecutionRepository actionExecutionRepository;
 
     @Resource
     private Neo4jProperties neo4jProperties;
@@ -120,6 +127,22 @@ public class LineageDataService {
         if (oldTaskNode != null) {
             taskRepository.delete(oldTaskNode);
         }
+    }
+
+    /**
+     * 保存动作执行节点（动作血缘，可插拔）
+     * <p>
+     * 由 ActionExecutionServiceImpl 在 DML 执行成功/失败后调用；
+     * 仅当 LINEAGE_ENABLED=true 时本服务存在，写入失败不影响动作执行主流程。
+     *
+     * @param node 动作执行节点
+     */
+    @Transactional("neo4jTransactionManager")
+    public void saveActionExecution(ActionExecutionNode node) {
+        if (node == null) {
+            return;
+        }
+        actionExecutionRepository.save(node);
     }
 
     /**

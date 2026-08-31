@@ -33,7 +33,6 @@ public interface StandardsDesensitizeRuleMapper extends BaseMapperX<StandardsDes
                 .eq(reqVO.getDataCategoryId() != null, StandardsDesensitizeRuleDO::getDataCategoryId, reqVO.getDataCategoryId())
                 //根据ValidFlag查询
                 .eq(reqVO.getValidFlag() != null, StandardsDesensitizeRuleDO::getValidFlag, reqVO.getValidFlag())
-                .eq(reqVO.getSpaceId() != null, StandardsDesensitizeRuleDO::getSpaceId, reqVO.getSpaceId())
                 // 按照 createTime 字段降序排序
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()),
                         StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);

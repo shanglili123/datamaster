@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
@@ -39,6 +40,8 @@ import com.datamaster.common.enums.MySqlColumnTypeEnum;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.database.utils.AesEncryptUtil;
 import com.datamaster.common.utils.DateUtils;
+import com.datamaster.common.utils.SecurityUtils;
+import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.common.api.space.ISpaceApi;
@@ -48,7 +51,10 @@ import com.datamaster.common.core.domain.entity.DatasourceSpaceRelDO;
 import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
 import com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableListReqDTO;
 import com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO;
 import com.datamaster.module.assets.api.service.asset.IAssetsDatasourceApiService;
+import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourcePageReqVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceRespVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceSaveReqVO;
@@ -99,6 +105,8 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     private IStandardsModelApiService standardsModelApiService;
     @Resource
     private IAssetsDatasourceSpaceRelService assetsDatasourceSpaceRelService;
+    @Resource
+    private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
     @Resource
     private ISpaceApi taxonomySpaceApi;
     @Resource
@@ -747,19 +755,115 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     @Override
     public com.datamaster.common.database.core.PageResult<Map<String, Object>> executeSqlQuery(AssetsDatasourcePageReqVO AssetsDatasource) {
         String sqlText = decryptSqlText(AssetsDatasource.getSqlText());
+        // 前置表级权限校验（scene=2）：命中资产且拒绝访问时抛出 ServiceException 阻断；无资产/解析失败跳过
+        Long assetId = resolveSqlQueryAssetId(AssetsDatasource, sqlText);
         DbQuery dbQuery = getDbQuery(AssetsDatasource);
         int[] paging = getPagingParameters(AssetsDatasource);
 
 // paging 数组中：paging[0] 为 offset，paging[1] 为 pageSize
         com.datamaster.common.database.core.PageResult<Map<String, Object>> mapPageResult = dbQuery.queryByPage(sqlText, paging[0], paging[1]);
         dbQuery.close();
+
+        // 数据查询场景结果脱敏（scene=2）
+        if (assetId != null) {
+            List<Map<String, Object>> desensitizedData = desensitizeDataByAsset(assetId, mapPageResult.getData());
+            if (desensitizedData != null) {
+                mapPageResult.setData(desensitizedData);
+            }
+        }
         return mapPageResult;
     }
+
+    /**
+     * 数据查询场景（scene=2）结果脱敏：命中资产时按资产列脱敏，无资产或异常时返回 null（不影响查询链路）。
+     */
+    private List<Map<String, Object>> desensitizeDataByAsset(Long assetId, List<Map<String, Object>> data) {
+        if (assetId == null || data == null || data.isEmpty()) {
+            return null;
+        }
+        try {
+            Long userId = SecurityUtils.getUserId();
+            Long userPermissionLevel = currentUserPermissionLevel();
+            return assetsTableGovernanceApiService.desensitizeResultData(assetId, data, userId, userPermissionLevel, SCENE_DATA_QUERY);
+        } catch (Exception e) {
+            log.warn("数据查询结果脱敏异常，返回原始数据: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 解析 SQL 中第一张表名，调用 resolveTable 做前置权限校验，返回命中资产的 assetId。
+     * 无资产、未命中治理或 SQL 解析失败时返回 null（跳过权限控制，不影响查询链路）；
+     * 表级权限拒绝访问时抛出 ServiceException 阻断查询。
+     */
+    private Long resolveSqlQueryAssetId(AssetsDatasourcePageReqVO AssetsDatasource, String sqlText) {
+        String tableName = parseFirstTableName(sqlText);
+        if (StringUtils.isBlank(tableName)) {
+            return null;
+        }
+        AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
+        reqDTO.setDatasourceId(AssetsDatasource.getId());
+        reqDTO.setTableName(tableName);
+        reqDTO.setSpaceCode(AssetsDatasource.getSpaceCode());
+        reqDTO.setEntrance("DATA_QUERY");
+        AssetsTableGovernanceRespDTO respDTO = assetsTableGovernanceApiService.resolveTable(reqDTO);
+        if (Boolean.FALSE.equals(respDTO.getAccessAllowed())) {
+            throw new ServiceException(respDTO.getMessage());
+        }
+        return respDTO.getAssetId();
+    }
+
+    /**
+     * 解析 SQL 中第一张表名；解析失败返回 null（跳过，不阻断）。
+     */
+    private String parseFirstTableName(String sqlText) {
+        if (StringUtils.isBlank(sqlText)) {
+            return null;
+        }
+        try {
+            Statement stmt = CCJSqlParserUtil.parse(sqlText);
+            List<String> tables = new TablesNamesFinder().getTableList(stmt);
+            if (tables == null || tables.isEmpty()) {
+                return null;
+            }
+            String tableName = tables.get(0);
+            int dotIndex = tableName.lastIndexOf('.');
+            if (dotIndex >= 0 && dotIndex < tableName.length() - 1) {
+                tableName = tableName.substring(dotIndex + 1);
+            }
+            tableName = tableName.replace("\"", "").replace("`", "").trim();
+            return StringUtils.isBlank(tableName) ? null : tableName;
+        } catch (JSQLParserException e) {
+            log.warn("数据查询SQL解析失败，跳过前置权限控制: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 获取当前用户数据权限等级
+     */
+    private Long currentUserPermissionLevel() {
+        try {
+            LoginUser loginUser = SecurityUtils.getLoginUser();
+            if (loginUser == null || loginUser.getUser() == null) {
+                return null;
+            }
+            return loginUser.getUser().getDataPermissionLevel();
+        } catch (Exception e) {
+            log.warn("获取用户数据权限等级异常: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /** 数据查询场景标识 */
+    private static final String SCENE_DATA_QUERY = "2";
 
     @SneakyThrows
     @Override
     public void exportSqlQueryResult(HttpServletResponse response, AssetsDatasourcePageReqVO AssetsDatasource) {
         String sqlText = decryptSqlText(AssetsDatasource.getSqlText());
+        // 前置表级权限校验（scene=2），与 executeSqlQuery 保持一致
+        Long assetId = resolveSqlQueryAssetId(AssetsDatasource, sqlText);
         DbQuery dbQuery = getDbQuery(AssetsDatasource);
         int[] paging = getPagingParameters(AssetsDatasource);
         com.datamaster.common.database.core.PageResult<Map<String, Object>> result = dbQuery.queryByPage(sqlText, paging[0], paging[1]);
@@ -768,6 +872,13 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
 // 移除每条记录中的 ROW_ID 字段
         dataList.forEach(map -> map.remove("ROW_ID"));
+        // 数据查询场景结果脱敏（scene=2），与 executeSqlQuery 保持一致
+        if (assetId != null) {
+            List<Map<String, Object>> desensitizedData = desensitizeDataByAsset(assetId, dataList);
+            if (desensitizedData != null) {
+                dataList = desensitizedData;
+            }
+        }
         String schemeName = "导出第" + paging[2] + "页数据-" + IdUtil.simpleUUID();
         exportByList(response, dataList, schemeName);
     }

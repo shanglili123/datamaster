@@ -261,7 +261,20 @@ getDetail();
 
 <style lang="scss" scoped>
 .app-container {
-  min-height: auto;
+  height: 100%;
+  min-height: 0 !important;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   --el-text-color-regular: inherit;
+}
+.pagecont-top-wrap {
+  flex-shrink: 0;
+}
+.pagecont-bottom {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 </style>

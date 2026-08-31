@@ -49,12 +49,15 @@ import com.datamaster.module.collector.dal.mapper.etl.CollectorEtlTaskMapper;
 import com.datamaster.module.collector.service.etl.*;
 import com.datamaster.module.collector.utils.IDGeneratorUtils;
 import com.datamaster.flinkx.core.FlinkxEtlTaskConverter;
+import com.datamaster.module.collector.utils.EtlLineageAssembler;
 import com.datamaster.module.collector.utils.TaskConverter;
 import com.datamaster.module.collector.utils.model.DsResource;
 import com.datamaster.module.collector.utils.model.FlinkxIncrementalConfig;
 import com.datamaster.mybatis.config.MasterDataSourceConfig;
 import com.datamaster.mybatis.core.util.MyBatisUtils;
+import com.datamaster.neo4j.service.LineageDataService;
 import com.datamaster.redis.service.IRedisService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.Resource;
@@ -120,6 +123,12 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     private String incrementalPrepareUrl;
     @Value("${ds.incremental_complete_url:http://127.0.0.1:8080/col/etlTask/incremental/complete}")
     private String incrementalCompleteUrl;
+
+    /**
+     * 数据血缘服务（可插拔）：LINEAGE_ENABLED=false 或未装配 Neo4j 时为 null，不影响 ETL 任务
+     */
+    @Autowired(required = false)
+    private LineageDataService lineageDataService;
 
     @Override
     public PageResult<CollectorEtlTaskDO> getCollectorEtlTaskPage(CollectorEtlTaskPageReqVO pageReqVO) {
@@ -199,6 +208,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 dsEtlTaskService.deleteTask(CollectorEtlTaskDO.getSpaceCode(), dsTaskCode);
             }
             sum += CollectorEtlTaskMapper.deleteById(id);
+            // 联动删除 Neo4j 血缘节点（可插拔，LINEAGE_ENABLED=false 时跳过，失败不影响任务删除）
+            deleteTaskLineageSilently(id);
         }
         // 批量删除数据集成任务
         return sum;
@@ -1566,6 +1577,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         dsTaskSaveReqDTO.setDescription(reqVO.getDescription());
         dsTaskSaveReqDTO.setExecutionType(StringUtils.isNotBlank(reqVO.getExecutionType()) ? reqVO.getExecutionType() : "SERIAL_WAIT");
 
+        Map<String, Object> mainArgs = null;
         Map<String, Object> taskInfo = new HashMap<>();
         List<DsResource> resourceList = new ArrayList<>();
         String taskDefinition;
@@ -1599,7 +1611,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             taskInfo.put("taskVersion", existingDsDefinition == null ? 1 : existingDsDefinition.getVersion() + 1);
             taskInfo.put("name", reqVO.getName());
 
-            Map<String, Object> mainArgs = TaskConverter.buildEtlTaskParams(reqVO.getTaskDefinitionList(), new HashMap<>(), taskInfo, resourceList);
+            mainArgs = TaskConverter.buildEtlTaskParams(reqVO.getTaskDefinitionList(), new HashMap<>(), taskInfo, resourceList);
 
             if (TaskConverter.isShellTask(reqVO.getDraftJson())) {
                 taskDefinition = TaskConverter.buildShellTaskDefinitionJson(null, nodeName, nodeCode, 0, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
@@ -1709,7 +1721,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             taskInfo.put("taskVersion", taskExt.getEtlTaskVersion() != null ? taskExt.getEtlTaskVersion() + 1 : 1);
             taskInfo.put("name", reqVO.getName());
 
-            Map<String, Object> mainArgs = TaskConverter.buildEtlTaskParams(reqVO.getTaskDefinitionList(), new HashMap<>(), taskInfo, resourceList);
+            mainArgs = TaskConverter.buildEtlTaskParams(reqVO.getTaskDefinitionList(), new HashMap<>(), taskInfo, resourceList);
 
             if (TaskConverter.isShellTask(reqVO.getDraftJson())) {
                 taskDefinition = TaskConverter.buildShellTaskDefinitionJson(taskExt.getEtlNodeId(), nodeName, nodeCode, nodeVersion, mainArgs, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
@@ -1817,6 +1829,9 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         taskDO.setStatus("1");
         taskDO.setCode(taskCode); //确保使用DS编码
 
+        //写入数据血缘（可插拔：LINEAGE_ENABLED=false 时 lineageDataService 为 null，失败不影响任务发布）
+        writeTaskLineageSilently(taskDO, mainArgs);
+
         if (streamingFlinkx) {
             disableSchedulerForStreamingTask(taskDO, taskCode);
             return BeanUtils.toBean(taskDO, CollectorEtlTaskSaveReqVO.class);
@@ -1869,6 +1884,50 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         }
 
         return BeanUtils.toBean(taskDO, CollectorEtlTaskSaveReqVO.class);
+    }
+
+    /**
+     * 发布成功后写入数据血缘（可插拔，静默降级）
+     * <p>
+     * LINEAGE_ENABLED=false 或未装配 Neo4j 时 lineageDataService 为 null，直接跳过；
+     * 血缘写入失败不影响任务发布结果。
+     *
+     * @param taskDO   任务记录（发布成功后已回填 taskCode）
+     * @param mainArgs ETL 任务参数（readerList/writerList），用于构建 TableNode/TaskNode
+     */
+    private void writeTaskLineageSilently(CollectorEtlTaskDO taskDO, Map<String, Object> mainArgs) {
+        if (lineageDataService == null || taskDO == null || mainArgs == null) {
+            return;
+        }
+        try {
+            EtlLineageAssembler.LineageBuildResult result = EtlLineageAssembler.build(
+                    mainArgs, taskDO.getId(), taskDO.getCode(), taskDO.getName(), taskDO.getType());
+            if (result != null) {
+                lineageDataService.save(result.getReaderTables(), result.getWriterTables(), result.getTaskNode());
+                log.info("数据血缘写入成功，taskId={}，taskCode={}", taskDO.getId(), taskDO.getCode());
+            }
+        } catch (Exception e) {
+            log.warn("数据血缘写入失败，不影响任务发布，taskId={}，原因：{}", taskDO.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 删除任务时联动删除 Neo4j 血缘节点（可插拔，静默降级）
+     * <p>
+     * LINEAGE_ENABLED=false 或未装配 Neo4j 时 lineageDataService 为 null，直接跳过；
+     * 血缘删除失败不影响任务删除结果。
+     *
+     * @param taskId 平台任务ID
+     */
+    private void deleteTaskLineageSilently(Long taskId) {
+        if (lineageDataService == null || taskId == null) {
+            return;
+        }
+        try {
+            lineageDataService.deleteTask(taskId);
+        } catch (Exception e) {
+            log.warn("数据血缘删除失败，不影响任务删除，taskId={}，原因：{}", taskId, e.getMessage(), e);
+        }
     }
 
     private boolean isStreamingFlinkxTask(Long taskId) {

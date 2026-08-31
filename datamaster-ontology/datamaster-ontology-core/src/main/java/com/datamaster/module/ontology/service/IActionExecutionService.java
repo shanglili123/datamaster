@@ -20,6 +20,9 @@ public interface IActionExecutionService {
     /** 执行已批准的动作 */
     ExecutionRespVO executeExecution(Long executionId);
 
+    /** 回退已执行的记录（按 before/after 快照构建还原 SQL） */
+    ExecutionRespVO rollbackExecution(Long executionId);
+
     /** 获取执行详情 */
     ExecutionRespVO getExecutionById(Long id);
 

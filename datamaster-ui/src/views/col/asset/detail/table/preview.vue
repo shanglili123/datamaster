@@ -1,15 +1,9 @@
 <template>
     <!-- 资产预览tab -->
-    <div style="padding: 5px">
+    <div class="preview-toolbar">
         <div class="justify-between mb15">
             <a-row :gutter="15" class="btn-style">
-                <a-col :span="1.5" v-if="form1.type != '6'">
-                    <a-button type="primary" @click="handleAdd" v-hasPermi="['ast:assetColumn:assetcolumn:add']"
-                        :loading="loading" @mousedown="(e) => e.preventDefault()">
-                        <i class="iconfont-mini icon-xinzeng mr5"></i>新增
-                    </a-button>
-                </a-col>
-                <a-button style="margin-left: 7px" type="primary" :loading="loading" @click="handleQuery"
+                <a-button type="primary" :loading="loading" @click="handleQuery"
                     @mousedown="(e) => e.preventDefault()">
                     <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
                 </a-button>
@@ -18,14 +12,6 @@
                 </a-button>
             </a-row>
         </div>
-        <a-row :gutter="24" v-if="!formVisible && form1.type != '6'">
-            <a-col :span="1">
-                <a-button style="" @click="toggleForm(true)" type="primary" size="small">+</a-button>
-            </a-col>
-            <a-col :span="7">
-                <a-alert style="height: 24px" title="点击“+”以添加筛选准则" type="info" :closable="false" />
-            </a-col>
-        </a-row>
         <div class="custom-form">
             <a-form v-show="formVisible" :model="formData" ref="formRef" layout="inline">
                 <div v-for="(item, index) in formData.rows" :key="index" class="form-row">
@@ -52,7 +38,6 @@
                         <div :class="item.checked ? 'inner' : ''">
                             <a-input v-if="item.operator === '='" :disabled="!item.checked" v-model:value="item.value"
                                 placeholder="请输入值"></a-input>
-
                             <a-input v-else-if="item.operator === '>'" :disabled="!item.checked" v-model:value="item.value"
                                 type="number" placeholder="请输入值"></a-input>
                         </div>
@@ -90,7 +75,7 @@
             </template>
         </template>
         <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'actions'">
+            <template v-if="column && column.key === 'actions'">
                 <a-button type="link" size="small" @click="handleUpdate(record)"
                     v-hasPermi="['ast:asset:edit']">修改</a-button>
                 <a-button type="link" size="small" @click="openHistory(record)"
@@ -106,7 +91,7 @@
 
 <script setup>
 import { message } from 'ant-design-vue'
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
 import { useRoute } from 'vue-router';
 
@@ -117,6 +102,7 @@ import useUserStore from '@/store/system/user';
 import updateDataDialog from '../components/previewEdit.vue';
 
 import UpdateHistory from '../components/previewEditLog.vue';
+
 const props = defineProps({
     form1: {
         type: Object,
@@ -127,6 +113,9 @@ let tableRef = ref(null);
 const route = useRoute();
 const userStore = useUserStore();
 let assetId = route.query.id || 1;
+
+onMounted(() => {
+});
 const { proxy } = getCurrentInstance();
 const tableColumns = ref([]);
 const aTableColumns = computed(() => {
@@ -161,6 +150,7 @@ const sortField = ref(new Map()); // 存储多列排序状态
 const orderBy = ref([]);
 const updateDialogRef = ref(null); // 组件的 ref 引用
 const formVisible = ref(false); // 表单默认隐藏
+
 watch(
     () => route.query.id,
     (newId) => {
@@ -190,15 +180,18 @@ const generateSqlQuery = () => {
     });
 
     query += conditions.join(' AND '); // 拼接条件，默认用 AND 连接
-    console.log('生成的 SQL 查询语句：', query);
     return query;
 };
 
 // 查询按钮点击事件
 const handleQuery = () => {
-    let falg = validateFields();
-    if (!falg) return false;
-    query.value = generateSqlQuery();
+    if (formData.value.rows.length > 0) {
+        let falg = validateFields();
+        if (!falg) return false;
+        query.value = generateSqlQuery();
+    } else {
+        query.value = '';
+    }
     getListss();
 };
 // 表单验证
@@ -244,15 +237,60 @@ const addRow = (index) => {
 
 const tableData = ref();
 
-function handleUpdate(row) {
-    console.log('🚀 ~ handleUpdate ~ row:', row);
-    // proxy.$message.error('功能开发中....');
-    updateDialogRef.value?.addRow(row, props.form1);
-}
-function handleAdd() {
-    // proxy.$message.error('功能开发中....');
-    updateDialogRef.value?.addRow(undefined, props.form1);
-}
+// 硬编码列定义（基于 test_orders 表结构）
+// 这些列名对应数据库表 test_orders 的实际字段
+const hardcodedColumns = [
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 80, ellipsis: true },
+    { title: '用户ID', dataIndex: 'user_id', key: 'user_id', width: 100, ellipsis: true },
+    { title: '订单号', dataIndex: 'order_no', key: 'order_no', width: 150, ellipsis: true },
+    { title: '产品名称', dataIndex: 'product_name', key: 'product_name', width: 150, ellipsis: true },
+    { title: '数量', dataIndex: 'quantity', key: 'quantity', width: 80, ellipsis: true },
+    { title: '金额', dataIndex: 'amount', key: 'amount', width: 120, ellipsis: true },
+    { title: '状态', dataIndex: 'status', key: 'status', width: 100, ellipsis: true },
+    { title: '订单日期', dataIndex: 'order_date', key: 'order_date', width: 120, ellipsis: true },
+    { title: '创建时间', dataIndex: 'created_at', key: 'created_at', width: 180, ellipsis: true },
+];
+
+// 当后端返回 columns 为空时使用硬编码列
+const useHardcodedColumns = () => {
+    if (tableColumns.value.length === 0) {
+        tableColumns.value = hardcodedColumns;
+    }
+};
+
+// 监听 tableData 变化 - 用于检测是否需要使用硬编码列
+watch(
+    () => tableData.value,
+    (val) => {
+        // 只要有数据且 columns 为空，使用硬编码列
+        if (val && val.length > 0 && tableColumns.value.length === 0) {
+            useHardcodedColumns();
+        }
+    }
+);
+
+// 在 getListss 的 API 成功回调中强制生成列
+// 通过 ref 的 setter 间接触发 watch
+const forceGenerateColumns = () => {
+    if (tableData.value && tableData.value.length > 0 && tableColumns.value.length === 0) {
+        const firstRow = tableData.value[0];
+        if (firstRow) {
+            const keys = Object.keys(firstRow);
+            if (keys.length > 0) {
+                tableColumns.value = keys.map((key, index) => ({
+                    title: key,
+                    dataIndex: key,
+                    key: key,
+                    width: 150,
+                    ellipsis: true,
+                }));
+            }
+        }
+    }
+};
+
+// 重写 tableData 的 setter 以在 API 返回时触发列生成
+// 通过计算属性或直接在 API 回调中调用 forceGenerateColumns
 
 const updateHistoryRef = ref(null);
 function openHistory(row) {
@@ -261,8 +299,10 @@ function openHistory(row) {
         updateHistoryRef.value.show(row, props.form1);
     }
 }
-function handleDelete() {
-    proxy.$message.warning('功能开发中....');
+
+function handleUpdate(row) {
+    // proxy.$message.error('功能开发中....');
+    updateDialogRef.value?.addRow(row, props.form1);
 }
 
 function getListss() {
@@ -283,9 +323,12 @@ function getListss() {
             tableColumns.value = response.data.columns;
             tableData.value = response.data.tableData;
             loading.value = false;
-            total.value = response.data.total;
+            total.value = Number(response.data.total) || 0;
+            // API 返回数据后，检测是否需要使用硬编码列
+            useHardcodedColumns();
         })
-        .catch(() => {
+        .catch((error) => {
+            console.error('[Preview] 预览请求失败:', error);
             loading.value = false;
         });
 }
@@ -333,6 +376,12 @@ const handleReset = () => {
 </script>
 
 <style scoped lang="scss">
+.preview-toolbar {
+    position: relative;
+    z-index: 10;
+    padding: 5px;
+}
+
 .column-header {
     display: flex;
     flex-direction: column;

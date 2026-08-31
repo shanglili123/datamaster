@@ -105,6 +105,13 @@ public class ActionController {
         return CommonResult.success(executionService.executeExecution(id));
     }
 
+    @Operation(summary = "回退已执行的记录（按执行前后快照还原）")
+    @PreAuthorize("@ss.hasPermi('ont:action:edit')")
+    @PostMapping("/execution/rollback/{id}")
+    public CommonResult<ExecutionRespVO> rollback(@PathVariable Long id) {
+        return CommonResult.success(executionService.rollbackExecution(id));
+    }
+
     @Operation(summary = "获取执行详情")
     @PreAuthorize("@ss.hasPermi('ont:action:query')")
     @GetMapping("/execution/{id}")

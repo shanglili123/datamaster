@@ -1,10 +1,16 @@
 <template>
   <div class="app-container" ref="app-container">
-    <div class="pagecont-top" v-show="showSearch" style="padding-bottom: 15px">
+    <div class="pagecont-top back-host" v-show="showSearch" style="padding-bottom: 15px">
       <div class="infotop">
-        <div class="infotop-title mb15">
-          {{ daAssetDetail?.name }}
-        </div>
+        <a-button
+          type="primary"
+          class="fh_btn detail-back-btn"
+          @mousedown="(e) => e.preventDefault()"
+          @click="handleBack"
+        >
+          <svg-icon iconClass="fhs" />返回
+        </a-button>
+        <div class="infotop-title mb15">{{ daAssetDetail?.name }}</div>
         <a-row :gutter="20">
           <a-col :span="desc.span || 8" v-for="desc in descList" :key="desc.label">
             <div class="infotop-row border-top">
@@ -202,7 +208,7 @@
         v-if="!daAssetDetail.assetsAssetFiles || ['.xlsx', '.xls', '.csv'].includes(daAssetDetail.assetsAssetFiles.type)"
 >
         <a-tab-pane v-for="pane in tabPanes" :key="pane.name" :tab="pane.label">
-          <component v-if="activeName === pane.name" :is="pane.component" :form1="daAssetDetail" />
+          <component v-if="activeName == pane.name" :is="pane.component" :form1="daAssetDetail" />
         </a-tab-pane>
       </a-tabs>
     </div>
@@ -210,7 +216,7 @@
 </template>
 <script setup name="AssetsAsset">
 import { getDaAsset } from "@/api/ast/asset/asset";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import column from "@/views/col/asset/detail/table/column.vue";
 import DataQualityControl from "@/views/col/asset/detail/table/quality.vue";
 import lineage from "@/views/col/asset/detail/table/lineage.vue";
@@ -220,9 +226,9 @@ import info from "@/views/col/asset/detail/info.vue";
 const { proxy } = getCurrentInstance();
 const { da_assets_status } = proxy.useDict("da_assets_status");
 const activeName = ref("0");
+
 function handleClick(tab) {
   // 可根据需要自定义逻辑
-  console.log("Tab clicked:", tab);
 }
 
 const descList = ref([
@@ -251,7 +257,6 @@ const descList = ref([
 
 // 计算属性生成 tab pane 数组
 const tabPanes = computed(() => {
-  console.log("🚀 ~ tabPanes ~ daAssetDetail.value.type:", daAssetDetail.value.type);
   switch (daAssetDetail.value.type) {
     case "1":
       return [
@@ -277,11 +282,24 @@ const tabPanes = computed(() => {
       ];
     case "7":
       return [{ label: "资产概览", name: "0", component: info }];
-    default:
   }
 });
 const showSearch = ref(true);
 const route = useRoute();
+const router = useRouter();
+// 返回资产列表：优先历史回退保留列表状态；直接打开详情页时按入口回对应列表
+// （列表为动态菜单路由：资产数据=/ast/asset，空间资产=/spaceBase/asset，meta.activeMenu 的 /col/asset 并不存在）
+function handleBack() {
+  if (window.history.state && window.history.state.back) {
+    router.back();
+    return;
+  }
+  const fallbackMap = {
+    "/ast/asset/detail": "/ast/asset",
+    "/col/asset/detail": "/spaceBase/asset",
+  };
+  router.push({ path: fallbackMap[route.path] || "/ast/asset" });
+}
 let id = route.query.id || null;
 // 监听 id 变化
 watch(
@@ -330,6 +348,31 @@ onBeforeUnmount(() => {
 // listDaAssetColumn();
 </script>
 <style lang="scss" scoped>
+.app-container {
+  height: 100%;
+  min-height: 0 !important;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pagecont-top {
+  flex-shrink: 0;
+}
+.back-host {
+  position: relative;
+}
+.detail-back-btn {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  z-index: 5;
+}
+.pagecont-bottom {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 .li-type {
   display: flex;
   align-items: center;

@@ -7,11 +7,14 @@ import com.datamaster.module.ontology.controller.admin.relation.vo.RelationRespV
 import com.datamaster.module.ontology.controller.admin.relation.vo.RelationSaveReqVO;
 import com.datamaster.module.ontology.dal.dataobject.RelationDO;
 import com.datamaster.module.ontology.dal.mapper.RelationMapper;
+import com.datamaster.module.ontology.dal.mapper.RelationColumnMapper;
+import com.datamaster.module.ontology.dal.mapper.RelationTableMapper;
 import com.datamaster.module.ontology.service.IRelationService;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.Resource;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
@@ -23,6 +26,10 @@ public class RelationServiceImpl implements IRelationService {
 
     @Resource
     private RelationMapper relationMapper;
+    @Resource
+    private RelationColumnMapper relationColumnMapper;
+    @Resource
+    private RelationTableMapper relationTableMapper;
 
     @Override
     public PageResult<RelationRespVO> getRelationPage(RelationPageReqVO pageReqVO) {
@@ -51,7 +58,11 @@ public class RelationServiceImpl implements IRelationService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Integer deleteRelation(Long id) {
+        relationColumnMapper.deleteByRelationId(id);
+        relationTableMapper.delete(new com.datamaster.mybatis.core.query.LambdaQueryWrapperX<com.datamaster.module.ontology.dal.dataobject.RelationTableDO>()
+                .eq(com.datamaster.module.ontology.dal.dataobject.RelationTableDO::getRelationId, id));
         return relationMapper.deleteById(id);
     }
 }

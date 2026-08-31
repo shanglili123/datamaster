@@ -34,6 +34,27 @@ public class ActionRespVO implements Serializable {
     @Excel(name = "绑定概念ID")
     private Long conceptId;
 
+    @Schema(description = "绑定共享函数ID（actionType=FUNCTION 时绑定的 ONT_FUNCTION 表ID）", example = "1")
+    private Long functionId;
+
+    @Schema(description = "动作绑定函数的读取来源概念ID（FUNCTION 类型动作）", example = "1")
+    private Long sourceConceptId;
+
+    @Schema(description = "可选关联关系ID JSON数组（FUNCTION 类型动作）")
+    private String sourceRelationIds;
+
+    @Schema(description = "输出目标概念ID（FUNCTION 类型动作）", example = "1")
+    private Long outputConceptId;
+
+    @Schema(description = "数据来源读取行数上限（默认 5000）", example = "5000")
+    private Integer readLimit;
+
+    @Schema(description = "是否需要审批", example = "true")
+    private Boolean needsApproval;
+
+    @Schema(description = "执行参数配置(JSON数组)：属性选择+目标值配置")
+    private String paramConfig;
+
     @Schema(description = "描述", example = "创建新客户记录")
     @Excel(name = "描述")
     private String description;

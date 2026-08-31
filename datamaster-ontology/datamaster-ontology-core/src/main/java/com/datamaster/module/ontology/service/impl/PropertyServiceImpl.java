@@ -7,11 +7,13 @@ import com.datamaster.module.ontology.controller.admin.property.vo.PropertyRespV
 import com.datamaster.module.ontology.controller.admin.property.vo.PropertySaveReqVO;
 import com.datamaster.module.ontology.dal.dataobject.PropertyDO;
 import com.datamaster.module.ontology.dal.mapper.PropertyMapper;
+import com.datamaster.module.ontology.dal.mapper.PropertyColumnMapper;
 import com.datamaster.module.ontology.service.IPropertyService;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.Resource;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
@@ -23,6 +25,8 @@ public class PropertyServiceImpl implements IPropertyService {
 
     @Resource
     private PropertyMapper propertyMapper;
+    @Resource
+    private PropertyColumnMapper propertyColumnMapper;
 
     @Override
     public PageResult<PropertyRespVO> getPropertyPage(PropertyPageReqVO pageReqVO) {
@@ -51,7 +55,9 @@ public class PropertyServiceImpl implements IPropertyService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Integer deleteProperty(Long id) {
+        propertyColumnMapper.deleteByPropertyId(id);
         return propertyMapper.deleteById(id);
     }
 }

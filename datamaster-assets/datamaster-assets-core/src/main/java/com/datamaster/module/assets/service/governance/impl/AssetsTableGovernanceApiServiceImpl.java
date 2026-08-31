@@ -6,6 +6,10 @@ import com.datamaster.common.utils.StringUtils;
 import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
 import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO;
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
+import com.datamaster.module.governance.service.desensitizeHelper.ColumnDesensitizeMeta;
+import com.datamaster.module.governance.service.desensitizeHelper.DesensitizeContext;
+import com.datamaster.module.governance.service.desensitizeHelper.DesensitizeHelper;
+import com.datamaster.module.governance.service.desensitizeHelper.DesensitizeResult;
 import com.datamaster.module.assets.config.TableGovernanceProperties;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
@@ -24,9 +28,11 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,6 +44,10 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
     private static final String MODE_WARN = "warn";
     private static final String MODE_STRICT = "strict";
     private static final String APPLY_APPROVED = "2";
+
+    /** 写操作入口：本体动作 CREATE/UPDATE/DELETE（严格模式，任一涉及列未授权即整体拒绝） */
+    private static final Set<String> WRITE_ENTRANCES = new HashSet<>(Arrays.asList(
+            "ONTOLOGY_CREATE", "ONTOLOGY_UPDATE", "ONTOLOGY_DELETE"));
 
     @Resource
     private TableGovernanceProperties properties;
@@ -53,6 +63,8 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
     private AssetsAssetApplyMapper assetsAssetApplyMapper;
     @Resource
     private CatalogTableApiService catalogTableApiService;
+    @Resource
+    private DesensitizeHelper desensitizeHelper;
 
     @Override
     public AssetsTableGovernanceRespDTO resolveTable(AssetsTableGovernanceReqDTO reqDTO) {
@@ -184,6 +196,8 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
      * 空间未配置字段级授权时返回 null（全部字段放行）；
      * 配置了字段级授权时返回空间已授权字段（请求列与授权列求交）。
      * 仅当请求列全部未授权时拒绝访问，部分未授权时过滤后放行。
+     * 写操作（ONTOLOGY_CREATE/UPDATE/DELETE）为严格模式：
+     * 任一涉及列未授权即整体拒绝，不做部分过滤放行。
      */
     private void fillAllowedColumns(AssetsTableGovernanceRespDTO respDTO, AssetsTableGovernanceReqDTO reqDTO, AssetsAssetDO asset) {
         List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(asset.getId());
@@ -211,12 +225,22 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
             return;
         }
         Set<String> requested = normalizeColumns(reqDTO.getColumnNames());
+        boolean writeMode = WRITE_ENTRANCES.contains(reqDTO.getEntrance());
         Set<String> allowed = new HashSet<>(requested);
         allowed.retainAll(authorized);
         if (allowed.isEmpty()) {
             respDTO.setAccessAllowed(false);
             respDTO.setDeniedColumns(new ArrayList<>(requested));
             respDTO.setMessage("当前空间无权访问字段：" + String.join(",", requested));
+            return;
+        }
+        if (writeMode && allowed.size() < requested.size()) {
+            // 写操作严格模式：任一涉及列未授权即整体拒绝，不做部分过滤放行
+            List<String> denied = new ArrayList<>(requested);
+            denied.removeAll(allowed);
+            respDTO.setAccessAllowed(false);
+            respDTO.setDeniedColumns(denied);
+            respDTO.setMessage("当前空间无权操作字段：" + String.join(",", denied));
             return;
         }
         respDTO.setAllowedColumns(new ArrayList<>(allowed));
@@ -249,5 +273,59 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
             value = value.substring(dotIndex + 1);
         }
         return value.replace("\"", "").replace("`", "").toLowerCase(Locale.ROOT);
+    }
+
+    @Override
+    public List<Map<String, Object>> desensitizeResultData(Long assetId, List<Map<String, Object>> data,
+                                                           Long userId, Long userPermissionLevel, String scene) {
+        if (assetId == null || data == null || data.isEmpty()) {
+            return data;
+        }
+        List<ColumnDesensitizeMeta> columnMetas = buildDesensitizeColumnMetas(assetId);
+        if (columnMetas == null || columnMetas.isEmpty()) {
+            return data;
+        }
+        DesensitizeContext context = DesensitizeContext.builder()
+                .userId(userId)
+                .userPermissionLevel(userPermissionLevel)
+                .scene(scene)
+                .build();
+        DesensitizeResult result = desensitizeHelper.computeActions(columnMetas, context);
+        return desensitizeHelper.applyMasking(data, result);
+    }
+
+    @Override
+    public Set<String> getDesensitizeHideColumns(Long assetId, Long userId, Long userPermissionLevel, String scene) {
+        if (assetId == null) {
+            return new HashSet<>();
+        }
+        List<ColumnDesensitizeMeta> columnMetas = buildDesensitizeColumnMetas(assetId);
+        if (columnMetas == null || columnMetas.isEmpty()) {
+            return new HashSet<>();
+        }
+        DesensitizeContext context = DesensitizeContext.builder()
+                .userId(userId)
+                .userPermissionLevel(userPermissionLevel)
+                .scene(scene)
+                .build();
+        DesensitizeResult result = desensitizeHelper.computeActions(columnMetas, context);
+        return result.getColumnActions().entrySet().stream()
+                .filter(entry -> entry.getValue() != null && entry.getValue() == DesensitizeHelper.ACTION_HIDE)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    private List<ColumnDesensitizeMeta> buildDesensitizeColumnMetas(Long assetId) {
+        List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(assetId);
+        if (columns == null || columns.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return columns.stream()
+                .map(col -> ColumnDesensitizeMeta.builder()
+                        .columnName(col.getColumnName())
+                        .columnId(col.getId())
+                        .sensitiveLevelId(col.getSensitiveLevelId())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

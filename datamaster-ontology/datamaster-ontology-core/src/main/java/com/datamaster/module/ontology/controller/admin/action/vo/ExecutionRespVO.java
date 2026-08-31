@@ -42,6 +42,18 @@ public class ExecutionRespVO implements Serializable {
     @Excel(name = "执行前数据")
     private String beforeData;
 
+    @Schema(description = "执行后数据：UPDATE=重查新值 / DELETE=空集 / CREATE=按主键回查新行")
+    @Excel(name = "执行后数据")
+    private String afterData;
+
+    @Schema(description = "回退前数据：回退动作执行前一刻的数据（= 原执行后数据，即回退时的当前状态）")
+    @Excel(name = "回退前数据")
+    private String rollbackBeforeData;
+
+    @Schema(description = "回退后数据：回退动作执行后的数据（UPDATE/DELETE 回退=还原的旧值 / CREATE 回退=空集）")
+    @Excel(name = "回退后数据")
+    private String rollbackAfterData;
+
     @Schema(description = "状态", example = "DRAFT")
     @Excel(name = "状态", readConverterExp = "DRAFT=草稿,PENDING_APPROVAL=待审批,APPROVED=已批准,REJECTED=已拒绝,EXECUTED=已执行,FAILED=失败")
     private String status;
@@ -63,6 +75,15 @@ public class ExecutionRespVO implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Excel(name = "执行时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private Date executeTime;
+
+    @Schema(description = "回退SQL（ROLLED_BACK 留痕）")
+    @Excel(name = "回退SQL", width = 60)
+    private String rollbackSql;
+
+    @Schema(description = "回退时间", example = "2026-08-22 10:00:00")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Excel(name = "回退时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
+    private Date rollbackTime;
 
     @Schema(description = "错误信息")
     @Excel(name = "错误信息")

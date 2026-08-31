@@ -2,12 +2,12 @@
 <!-- 输出组件的字段映射   -->
   <div class="container">
     <a-form label-position="left" :label-col="{ style: { width: '80px' } }" :model="readerForm">
-      <a-row>
+      <a-row class="field-map-row">
         <!-- 左侧拖拽列表 -->
-        <a-col :span="8" :offset="3">
+        <a-col :span="8" :offset="3" class="field-map-side">
           <p>来源表字段：</p>
           <!-- 全选复选框 -->
-          <a-checkbox style="margin-top: -20px" v-model:checked="leftSelectAll" :disabled="info"
+          <a-checkbox v-model:checked="leftSelectAll" :disabled="info"
             v-if="readerForm.tableFields.length > 0">全选</a-checkbox>
           <draggable tag="div" class="draggable-list" :list="readerForm.tableFields" animation="300" item-key="id" :disabled="info">
             <template v-slot:item="{ element, index }">
@@ -28,7 +28,7 @@
         </a-col>
 
         <!-- 中间箭头列 -->
-        <a-col :span="4">
+        <a-col :span="4" class="field-map-arrows">
           <div class="arrow-container">
             <div v-for="(arrow, index) in arrowRows" :key="index" class="arrow-row fixed-height">
               <div class="circle"></div>
@@ -39,11 +39,11 @@
         </a-col>
 
         <!-- 右侧拖拽列表 -->
-        <a-col :span="8">
+        <a-col :span="8" class="field-map-side">
           <p>目标字段：</p>
           <!-- 全选复选框，仅当不是 hdfs 且有字段时显示 -->
           <a-checkbox v-if="readerForm.toColumnsList.length > 0" :disabled="type == 'hdfs' || info"
-            v-model:checked="rightSelectAll" style="margin-top: -20px">
+            v-model:checked="rightSelectAll">
             全选
           </a-checkbox>
           <!-- 拖拽区域 -->
@@ -227,6 +227,36 @@ defineExpose({
   margin-top: -20px;
 }
 
+.field-map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: start;
+
+  > :deep(.ant-col) {
+    width: auto;
+    max-width: none;
+    margin-left: 0;
+  }
+
+  > :deep(.ant-col:last-child) {
+    grid-column: 1 / -1;
+  }
+}
+
+.field-map-side > p {
+  height: 24px;
+  margin: 0;
+  line-height: 24px;
+}
+
+.field-map-side > :deep(.ant-checkbox-wrapper) {
+  display: block;
+  height: 22px;
+  margin: 0;
+  line-height: 22px;
+}
+
 /* 左右列表容器 */
 .draggable-list {
   display: flex;
@@ -288,7 +318,8 @@ defineExpose({
   flex-direction: column;
   justify-content: flex-start;
   height: 100%;
-  margin-top: 75px;
+  // 与两侧“标题 + 全选”区域等高，第一条连线从首个字段行开始。
+  margin-top: 46px;
 }
 
 /* 每一行 */
@@ -315,7 +346,8 @@ defineExpose({
 /* 当条件满足时，显示整条横线和箭头 */
 .arrow-line.show-arrow {
   display: block;
-  width: 160px;
+  flex: 1;
+  min-width: 0;
   height: 2px;
   background-color: #0095ff;
   position: relative;

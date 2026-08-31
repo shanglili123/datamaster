@@ -23,4 +23,8 @@ public interface FunctionMapper extends BaseMapperX<FunctionDO> {
                 .eq(FunctionDO::getOntologyId, ontologyId)
                 .orderByAsc(FunctionDO::getId));
     }
+
+    default List<FunctionDO> selectAll() {
+        return selectList(new LambdaQueryWrapperX<FunctionDO>().orderByDesc(FunctionDO::getId));
+    }
 }

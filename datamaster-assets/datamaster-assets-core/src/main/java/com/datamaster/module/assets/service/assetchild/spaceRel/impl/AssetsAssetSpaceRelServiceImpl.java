@@ -1,6 +1,7 @@
 package com.datamaster.module.assets.service.assetchild.spaceRel.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,9 +48,9 @@ public class AssetsAssetSpaceRelServiceImpl  extends ServiceImpl<AssetsAssetSpac
 
     @Override
     public Long createAssetSpaceRel(AssetsAssetSpaceRelSaveReqVO createReqVO) {
-        AssetsAssetSpaceRelDO existingRel = lambdaQuery()
-                .eq(AssetsAssetSpaceRelDO::getAssetId, createReqVO.getAssetId())
-                .one();
+        AssetsAssetSpaceRelDO existingRel = AssetsAssetSpaceRelMapper.selectOne(
+                Wrappers.<AssetsAssetSpaceRelDO>lambdaQuery()
+                        .eq(AssetsAssetSpaceRelDO::getAssetId, createReqVO.getAssetId()));
         if (existingRel != null) {
             AssetsAssetSpaceRelDO updateRel = BeanUtils.toBean(createReqVO, AssetsAssetSpaceRelDO.class);
             updateRel.setId(existingRel.getId());

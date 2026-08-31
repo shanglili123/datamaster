@@ -1,12 +1,12 @@
 <template>
-  <div :class="{ 'has-logo': showLogo }" :style="{ backgroundColor: sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }">
+  <div :class="{ 'has-logo': showLogo }" class="sidebar-shell">
     <logo v-if="showLogo" :collapse="isCollapse" />
     <a-menu
       :selected-keys="activeMenu ? [activeMenu] : []"
       :open-keys="isCollapse ? [] : openKeys"
       :inline-collapsed="isCollapse"
       :mode="isCollapse ? 'vertical' : 'inline'"
-      :theme="sideTheme === 'theme-dark' ? 'dark' : 'light'"
+      theme="dark"
       @click="handleMenuClick"
       @openChange="handleOpenChange"
       class="sidebar-menu"
@@ -37,7 +37,6 @@
 
 <script setup>
 import Logo from './Logo'
-import variables from '@/assets/system/styles/variables.module.scss'
 import useAppStore from '@/store/system/app'
 import useSettingsStore from '@/store/system/settings'
 import usePermissionStore from '@/store/system/permission'
@@ -58,7 +57,6 @@ const topbarRouters = computed(() => {
 })
 
 const showLogo = computed(() => settingsStore.sidebarLogo)
-const sideTheme = computed(() => settingsStore.sideTheme)
 const isCollapse = computed(() => !appStore.sidebar.opened)
 
 const openKeys = ref([])

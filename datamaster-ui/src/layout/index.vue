@@ -18,7 +18,6 @@
       :trigger="null"
       collapsible
       class="sidebar-container"
-      :style="{ background: sideTheme === 'theme-dark' ? '#001529' : '#fff' }"
     >
       <sidebar />
     </a-layout-sider>
@@ -52,7 +51,6 @@ const permissionStore = usePermissionStore();
 const appStore = useAppStore();
 const route = useRoute();
 const theme = computed(() => settingsStore.theme);
-const sideTheme = computed(() => settingsStore.sideTheme);
 const sidebar = computed(() => appStore.sidebar);
 const device = computed(() => useAppStore().device);
 const fixedHeader = computed(() => settingsStore.fixedHeader);

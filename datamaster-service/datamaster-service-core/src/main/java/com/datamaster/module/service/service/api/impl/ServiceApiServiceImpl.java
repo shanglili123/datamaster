@@ -40,10 +40,13 @@ import com.datamaster.common.enums.ConfigType;
 import com.datamaster.common.enums.DataConstant;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.PageUtil;
+import com.datamaster.common.utils.SecurityUtils;
+import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
 import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
+import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO;
 import com.datamaster.module.assets.api.sensitiveLevel.dto.AssetsSensitiveLevelRespDTO;
 import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
@@ -207,7 +210,7 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         String resDataType = dataApiEntity.getResDataType();
         DatasourceRespDTO dataSource = iAssetsDatasourceApiService
                 .getDatasourceById(Long.valueOf(dataApiEntity.getExecuteConfig().getSourceId()));
-        checkTableGovernance(dataApiEntity, dataApiEntity.getExecuteConfig());
+        AssetsTableGovernanceRespDTO governanceResp = checkTableGovernance(dataApiEntity, dataApiEntity.getExecuteConfig());
 
         DbQueryProperty dbQueryProperty = new DbQueryProperty(
                 dataSource.getDatasourceType(),
@@ -242,6 +245,7 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
                     List<Map<String, Object>> data = pageResult.getData();
                     List<Map<String, Object>> list = this.encryptQueryResultList(data,
                             String.valueOf(dataApiEntity.getId()));
+                    list = this.desensitizeServiceResult(list, governanceResp);
                     this.dateToStr(resParamsList, list);
 
                     pageResult.setPageNum(pageNum).setPageSize(pageSize).setData(list);
@@ -251,13 +255,15 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
                     List<Map<String, Object>> listResult = dbQuery.queryList(sqlFilterResult.getSql(), acceptedFilters,
                             cacheSwitch);
                     this.dateToStr(resParamsList, listResult);
-                    result = this.encryptQueryResultList(listResult, String.valueOf(dataApiEntity.getId()));
+                    result = this.desensitizeServiceResult(this.encryptQueryResultList(listResult,
+                            String.valueOf(dataApiEntity.getId())), governanceResp);
                     break;
                 case "1":
                     Map<String, Object> mapResult = dbQuery.queryOne(sqlFilterResult.getSql(), acceptedFilters,
                             cacheSwitch);
                     this.dateToStr(resParamsList, mapResult);
-                    result = encryptQueryResultMap(mapResult, String.valueOf(dataApiEntity.getId()));
+                    result = this.desensitizeServiceResultMap(encryptQueryResultMap(mapResult,
+                            String.valueOf(dataApiEntity.getId())), governanceResp);
                     break;
             }
         } catch (Exception e) {
@@ -277,10 +283,10 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         }), Feature.OrderedField);
     }
 
-    private void checkTableGovernance(ServiceApiDO dataApi, ExecuteConfig executeConfig) {
+private AssetsTableGovernanceRespDTO checkTableGovernance(ServiceApiDO dataApi, ExecuteConfig executeConfig) {
         if (executeConfig == null || StringUtils.isEmpty(executeConfig.getSourceId())
                 || StringUtils.isEmpty(executeConfig.getTableName())) {
-            return;
+            return null;
         }
         AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
         reqDTO.setDatasourceId(Long.valueOf(executeConfig.getSourceId()));
@@ -293,8 +299,67 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
                     .filter(StringUtils::isNotBlank)
                     .collect(Collectors.toList()));
         }
-        reqDTO.setEntrance("DATA_SERVICE_TEST");
-        assetsTableGovernanceApiService.checkTableAccess(reqDTO);
+reqDTO.setEntrance("DATA_SERVICE_TEST");
+        AssetsTableGovernanceRespDTO respDTO = assetsTableGovernanceApiService.resolveTable(reqDTO);
+        if (Boolean.FALSE.equals(respDTO.getAccessAllowed())) {
+            throw new ServiceException(respDTO.getMessage());
+        }
+        return respDTO;
+    }
+
+    /**
+     * 数据服务测试执行结果脱敏（列表）：委托治理公共方法，scene=3 数据服务。
+     */
+    private List<Map<String, Object>> desensitizeServiceResult(List<Map<String, Object>> data,
+                                                              AssetsTableGovernanceRespDTO governanceResp) {
+        if (data == null || data.isEmpty() || governanceResp == null || governanceResp.getAssetId() == null) {
+            return data;
+        }
+        try {
+            Long userId = SecurityUtils.getUserId();
+            Long userPermissionLevel = currentUserPermissionLevel();
+            return assetsTableGovernanceApiService.desensitizeResultData(
+                    governanceResp.getAssetId(), data, userId, userPermissionLevel, SCENE_DATA_SERVICE);
+        } catch (Exception e) {
+            log.warn("数据服务测试结果脱敏异常，返回原始数据: {}", e.getMessage());
+            return data;
+        }
+    }
+
+    /**
+     * 数据服务测试执行结果脱敏（单条）：委托治理公共方法，scene=3 数据服务。
+     */
+    private Map<String, Object> desensitizeServiceResultMap(Map<String, Object> mapData,
+                                                           AssetsTableGovernanceRespDTO governanceResp) {
+        if (mapData == null || mapData.isEmpty() || governanceResp == null || governanceResp.getAssetId() == null) {
+            return mapData;
+        }
+        List<Map<String, Object>> singleList = new ArrayList<>();
+        singleList.add(mapData);
+        List<Map<String, Object>> desensitizedList = desensitizeServiceResult(singleList, governanceResp);
+        if (desensitizedList == null || desensitizedList.isEmpty()) {
+            return mapData;
+        }
+        return desensitizedList.get(0);
+    }
+
+    /** 数据服务场景标识 */
+    private static final String SCENE_DATA_SERVICE = "3";
+
+    /**
+     * 获取当前用户数据权限等级
+     */
+    private Long currentUserPermissionLevel() {
+        try {
+            LoginUser loginUser = SecurityUtils.getLoginUser();
+            if (loginUser == null || loginUser.getUser() == null) {
+                return null;
+            }
+            return loginUser.getUser().getDataPermissionLevel();
+        } catch (Exception e) {
+            log.warn("获取用户数据权限等级异常: {}", e.getMessage());
+            return null;
+        }
     }
 
     private void fillProjectOnUpdate(ServiceApiDO dataApi) {

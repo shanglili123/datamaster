@@ -44,6 +44,10 @@ export function runExecution(id) {
   return request({ url: '/ont/action/execution/run/' + id, method: 'post' })
 }
 
+export function rollbackExecution(id) {
+  return request({ url: '/ont/action/execution/rollback/' + id, method: 'post' })
+}
+
 export function getExecution(id) {
   return request({ url: '/ont/action/execution/' + id, method: 'get' })
 }

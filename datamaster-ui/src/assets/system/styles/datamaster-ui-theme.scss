@@ -1,11 +1,11 @@
 :root {
-  --dm-bg-page: #f6f8fb;
-  --dm-bg-layout: #eef3f8;
+  --dm-bg-page: #f5f8fc;
+  --dm-bg-layout: #edf2f9;
   --dm-bg-card: #ffffff;
 
-  --dm-color-primary: #2563eb;
-  --dm-color-primary-hover: #3b82f6;
-  --dm-color-primary-active: #1d4ed8;
+  --dm-color-primary: #4f7cff;
+  --dm-color-primary-hover: #6d92ff;
+  --dm-color-primary-active: #365fe0;
   --dm-color-success: #52c41a;
   --dm-color-warning: #faad14;
   --dm-color-danger: #ff4d4f;
@@ -16,14 +16,14 @@
   --dm-text-secondary: #6b7280;
   --dm-text-placeholder: #9ca3af;
 
-  --dm-border-color: #e5e7eb;
-  --dm-border-light: #edf1f5;
-  --dm-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --dm-shadow-popover: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --dm-border-color: #e2e9f3;
+  --dm-border-light: #e9eef6;
+  --dm-shadow-card: 0 8px 24px rgba(33, 61, 101, 0.06);
+  --dm-shadow-popover: 0 18px 42px rgba(23, 46, 79, 0.14);
 
   --dm-radius-small: 4px;
-  --dm-radius-base: 6px;
-  --dm-radius-large: 8px;
+  --dm-radius-base: 8px;
+  --dm-radius-large: 12px;
 
   --dm-header-height: 64px;
   --dm-sidebar-width: 280px;
@@ -992,4 +992,76 @@ label {
 .ant-table-cell .ant-btn-link {
   padding-inline: 5px !important;
   white-space: nowrap;
+}
+
+/* ===== AI Workspace shell ===== */
+#app .sidebar-container {
+  background: linear-gradient(180deg, #0a1120 0%, #111d34 100%) !important;
+  border-right: 1px solid rgba(142, 170, 222, 0.16) !important;
+  box-shadow: 12px 0 36px rgba(8, 18, 38, 0.12) !important;
+
+  .sidebar-shell,
+  .ant-menu {
+    background: transparent !important;
+  }
+
+  .ant-menu {
+    padding: 12px 10px 20px;
+    color: #aebfdb;
+  }
+
+  .ant-menu-item,
+  .ant-menu-submenu-title {
+    width: calc(100% - 8px);
+    height: 44px;
+    margin: 4px;
+    border-radius: 9px;
+    color: #aebfdb !important;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 44px;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .ant-menu-item .svg-icon,
+  .ant-menu-submenu-title .svg-icon {
+    margin-right: 11px;
+    color: #8ca2c6;
+  }
+
+  .ant-menu-item:hover,
+  .ant-menu-submenu-title:hover {
+    color: #eff5ff !important;
+    background: rgba(123, 150, 216, 0.1) !important;
+  }
+
+  .ant-menu-item-selected,
+  .ant-menu-submenu-selected > .ant-menu-submenu-title {
+    color: #ffffff !important;
+    background: linear-gradient(90deg, rgba(79, 124, 255, 0.56), rgba(67, 200, 194, 0.2)) !important;
+    box-shadow: inset 2px 0 0 #75a0ff, 0 5px 16px rgba(41, 95, 230, 0.2);
+
+    .svg-icon { color: #8be9e1; }
+  }
+
+  .ant-menu-sub {
+    background: rgba(4, 11, 24, 0.24) !important;
+  }
+}
+
+.layout-header-wrapper {
+  background: rgba(255, 255, 255, 0.86) !important;
+  box-shadow: 0 1px 0 rgba(218, 228, 242, 0.86);
+  backdrop-filter: blur(14px);
+}
+
+.navbar {
+  height: 64px !important;
+  padding-right: 16px !important;
+  background: transparent !important;
+}
+
+.dm-metric-card {
+  border-radius: var(--dm-radius-large);
+  box-shadow: var(--dm-shadow-card);
 }

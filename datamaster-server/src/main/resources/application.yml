@@ -13,6 +13,10 @@ datamaster:
       enabled: ${TABLE_GOVERNANCE_ENABLED:false}
       mode: ${TABLE_GOVERNANCE_MODE:off}
       fallback-to-catalog: ${TABLE_GOVERNANCE_FALLBACK_TO_CATALOG:true}
+  # 数据血缘开关：LINEAGE_ENABLED=true 时启用 Neo4j 血缘装配（需配置 spring.data.neo4j.*）
+  # 默认关闭，未安装/未配置 Neo4j 时不影响 ETL 任务与动作执行
+  lineage:
+    enabled: ${LINEAGE_ENABLED:false}
 
 server:
   port: 8989

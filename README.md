@@ -338,6 +338,123 @@ AI 问数基于空间、资产、字段、权限和会话上下文提供自然�
   -> 返回结果 / 图表 / 报告
 ```
 
+## 5.11 数据脱敏
+
+数据脱敏用于对敏感字段进行区间替换或隐藏，保护用户隐私数据。
+
+### 5.11.1 数据库表
+
+| 表名 | 用途 |
+| --- | --- |
+| `STD_DATA_CATEGORY` | 数据分类（如：姓名、手机号、身份证） |
+| `STD_DATA_LEVEL` | 数据等级 |
+| `STD_SENSITIVE_LEVEL` | 敏感等级（数字越小越敏感） |
+| `STD_DESENSITIZE_RULE` | 脱敏规则（按 dataCategoryId 关联） |
+| `STD_DESENSITIZE_INTERVAL` | 脱敏区间（挂在规则下，定义替换位置） |
+| `STD_DESENSITIZE_WHITELIST` | 脱敏白名单（按 dataCategoryId 关联） |
+| `STD_DESENSITIZE_USER_REL` | 白名单用户关联 |
+| `STD_DESENSITIZE_ASSETCOLUMN` | 字段 → 数据分类绑定关系 |
+
+### 5.11.2 执行流程（公共脱敏方法）
+
+脱敏统一收敛到 `AssetsTableGovernanceApiServiceImpl` 的公共方法，三处场景共用，仅传参 `scene` 不同：
+
+```text
+公共方法入口（scene: 1数据资产 / 2数据查询 / 3数据服务）
+    ├── desensitizeResultData(assetId, data, userId, userPermissionLevel, scene)
+    │    └── 前置隐藏列剔除（flag=3，列敏感等级不足或规则无区间）
+    │    └── 区间替换（flag=2，按规则区间替换）
+    │    └── 白名单放行（flag=1）
+    └── getDesensitizeHideColumns(assetId, userId, userPermissionLevel, scene)
+         └── 供 SQL 构建前剔除隐藏列（避免敏感字段进入查询语句）
+
+场景接入点：
+    1. 数据资产：AssetsAssetServiceImpl.dataMaskings() 委托 desensitizeResultData
+    2. 数据查询：AssetsDatasourceServiceImpl.executeSqlQuery() / exportSqlQueryResult()
+       前置 resolveTable 表级权限校验（拒绝访问抛异常阻断，解析失败跳过），
+       结果命中资产后调 desensitizeResultData
+    3. 数据服务：ApiMappingEngine（发布执行）/ ServiceApiServiceImpl.serviceTesting（测试执行）
+       前置 filterDesensitizeHideColumns 剔除隐藏列，结果调 desensitizeResultData
+```
+
+字段级脱敏判定（单个列）：
+
+```text
+Asset Column
+    ├── 1. 敏感等级检查
+    │   列敏感等级 < 用户权限等级 → 隐藏列 (flag=3)
+    │
+    ├── 2. 查绑定关系: std_desensitize_assetcolumn WHERE assetcolumnId = col.id
+    │   ├── 无绑定 → 放行 (flag=1)
+    │   └── 有绑定 → 拿到 dataCategoryId
+    │
+    ├── 3. 查脱敏规则: std_desensitize_rule WHERE data_category_id = ?
+    │   ├── 规则不存在 → 放行 (flag=1)
+    │   ├── validFlag=false 或应用场景不匹配 → 放行 (flag=1)
+    │   ├── intervalList 非空 → 区间替换脱敏 (flag=2)
+    │   └── intervalList 为空 → 隐藏列 (flag=3)
+    │
+    └── 4. 查白名单: std_desensitize_whitelist WHERE data_category_id = ?
+        ├── validFlag=true + userId匹配 + 时间范围内 → 强制放行 (flag=1)
+        └── 否则 → 保持原状态
+```
+
+脱敏标记含义：
+- `1` = 放行（不脱敏）
+- `2` = 区间替换（用 replaceContent 替换指定位置）
+- `3` = 隐藏列（整列不返回）
+
+### 5.11.3 区间替换算法
+
+```text
+输入: 原始字符串 + 替换内容 + 区间列表(intervalNo, startNum, endNum)
+按 intervalNo 排序 → 逐个区间替换 → 替换后偏移量修正
+```
+
+示例：原始 `"1234567890"`，replaceContent=`"*"`，区间 `[(3,5), (7,9)]`
+→ 结果 `"12***6*890"`
+
+### 5.11.4 前端配置页面
+
+位于 `数据资产 > 数据安全` 菜单下：
+
+| 页面 | 功能 | 关键字段 |
+| --- | --- | --- |
+| 脱敏规则 | 管理脱敏规则 | name, dataCategoryId, applicationScene, maskType, replaceContent, intervalList |
+| 脱敏白名单 | 管理豁免白名单 | name, dataCategoryId, effectiveCategory, startTime, endTime, userList |
+| 字段绑定 | 绑定字段到数据分类 | assetId, assetcolumnId, dataCategoryId |
+
+应用场景 (applicationScene):
+- `1` = 数据资产
+- `2` = 数据查询
+- `3` = 数据服务
+
+脱敏类型 (maskType)：固定为 `2`（展示脱敏，查询层脱敏）。系统不支持底层脱敏（无法修改外部数据源）。
+
+生效范围 (effectiveCategory):
+- `1` = 用户
+- `2` = 角色
+- `3` = 部门
+
+### 5.11.5 API 接口
+
+| 模块 | 接口前缀 | 用途 |
+| --- | --- | --- |
+| 脱敏规则 | `/cat/desensitizeRules/` | CRUD + 区间子表 |
+| 脱敏白名单 | `/cat/desensitizeWhitelist/` | CRUD + 用户子表 |
+| 字段绑定 | `/cat/standardsDesensitizeList/` | CRUD |
+| 数据分类 | `/cat/dataCategory/listAll` | 下拉数据源 |
+| 资产列表 | `/ast/asset/list` | 下拉数据源 |
+| 资产字段 | `/ast/assetColumn/list?assetId=xxx` | 联动下拉 |
+| 用户列表 | `/system/user/list` | 白名单用户选择器 |
+
+### 5.11.6 菜单权限
+
+菜单 ID 2930-2947，按钮权限标识：
+- `dg:desensitizerules:*`
+- `dg:desensitizewhitelist:*`
+- `dg:Standardsdesensitizelist:*`
+
 ## 6. 权限控制体系
 
 平台权限分为系统权限、空间权限和数据权限。
@@ -377,6 +494,18 @@ AI 问数基于空间、资产、字段、权限和会话上下文提供自然�
   -> 判断空间是否具备数据源 / 资产 / 字段权限
   -> 判断用户数据权限等级
   -> 结合敏感等级和脱敏规则返回可见字段与数据
+```
+
+本体动作增删改字段级控制（复用上述字段级授权）：
+
+```text
+本体动作提交/执行（Ontology Action CREATE/UPDATE/DELETE）
+  -> 提取涉及列（CREATE=插入列，UPDATE=SET列+主键WHERE列，DELETE=WHERE条件列）
+  -> 复用 AssetsTableGovernanceApiServiceImpl.checkTableAccess（entrance=ONTOLOGY_CREATE/UPDATE/DELETE）
+  -> 写操作严格模式：任一涉及列不在 AST_ASSET_COLUMN_SPACE_REL 授权列内即整体拒绝
+  -> SELECT 查询保持表级校验原样，不按字段拦截
+  -> 提交（submitExecution）与执行（executeExecution）双重校验，
+     执行阶段复用提交快照的 spaceId/spaceCode 防权限被回收后绕过
 ```
 
 ## 7. 数据源体系
