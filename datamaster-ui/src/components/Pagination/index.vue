@@ -8,6 +8,7 @@
       :showSizeChanger="true"
       :showQuickJumper="true"
       :showTotal="(total) => `共 ${total} 条`"
+      :locale="paginationLocale"
       @change="handleChange"
     />
   </div>
@@ -15,6 +16,7 @@
 
 <script setup>
 import { scrollTo } from '@/utils/scroll-to'
+import paginationLocale from '@/utils/paginationLocale'
 
 const props = defineProps({
   total: {

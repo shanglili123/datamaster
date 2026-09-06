@@ -80,9 +80,9 @@ Palantir 不是单一产品,而是一组围绕"数据到决策"的平台:
 
 **这一层是 Palantir 与所有普通数据平台的根本区别。** 前两层(集成、转换)很多公司都有,本体层是 Palantir 的核心资产。
 
-### 5.1 Ontology 三要素
+### 5.1 Ontology 核心建模要素
 
-Palantir Ontology = **Objects + Links + Actions**,缺一不可:
+理解 Palantir Ontology 时，可以先抓住 **Objects + Links + Actions** 三类核心能力；公开产品还包含 Interfaces、Functions、Rules 等配套概念，不能把“三要素”理解成完整且排他的元模型清单。
 
 | 要素 | 含义 | 例子 | 对照数据库 |
 |---|---|---|---|
@@ -93,7 +93,7 @@ Palantir Ontology = **Objects + Links + Actions**,缺一不可:
 **第三个 Action 是最容易被忽略、也最关键的**。它让本体从"只读的世界描述"变成"可写的操作面":
 - Action 定义了**谁、在什么条件下、能对哪个对象做什么修改**。
 - Action 执行时可以:改对象属性、创建/删除对象、触发外部系统调用、跑一段逻辑(AIP Logic)。
-- Action 天然带**权限校验 + 审计 + 血缘**——每次操作都留痕、可回溯。
+- Action 受**权限、规则和审计**治理；具体审批、自动化和跨动作编排由应用与运行时配置完成。
 
 ### 5.2 本体是"映射",不是"物化副本" ★核心设计
 

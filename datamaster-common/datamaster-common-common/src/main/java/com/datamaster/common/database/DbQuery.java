@@ -234,6 +234,16 @@ public interface DbQuery {
     Integer getDataStorageSize();
 
     /**
+     * 采集指定表的元数据信息（行数、索引、分区、存储、注释、主键等）
+     *
+     * @param dbQueryProperty 数据源连接属性
+     * @param tableName       表名
+     * @return 表元数据信息
+     */
+    com.datamaster.common.database.core.DbTableMetadata getTableMetadata(
+            com.datamaster.common.database.constants.DbQueryProperty dbQueryProperty, String tableName);
+
+    /**
      * 根据一个表创建新表
      *
      * @param dbQueryProperty

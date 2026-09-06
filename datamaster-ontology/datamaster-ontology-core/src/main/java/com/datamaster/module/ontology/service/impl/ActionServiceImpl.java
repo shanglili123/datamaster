@@ -1,16 +1,29 @@
 package com.datamaster.module.ontology.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.ontology.controller.admin.action.vo.*;
 import com.datamaster.module.ontology.convert.ActionConvert;
 import com.datamaster.module.ontology.dal.dataobject.ActionDO;
+import com.datamaster.module.ontology.dal.dataobject.ActionExecutionDO;
+import com.datamaster.module.ontology.dal.dataobject.ConceptDO;
+import com.datamaster.module.ontology.dal.dataobject.ConceptTableDO;
+import com.datamaster.module.ontology.dal.mapper.ActionExecutionMapper;
 import com.datamaster.module.ontology.dal.mapper.ActionMapper;
+import com.datamaster.module.ontology.dal.mapper.ConceptMapper;
+import com.datamaster.module.ontology.dal.mapper.ConceptTableMapper;
 import com.datamaster.module.ontology.service.IActionService;
+import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 动作定义 Service 实现
@@ -19,57 +32,228 @@ import java.util.List;
 @Validated
 public class ActionServiceImpl implements IActionService {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Resource
     private ActionMapper actionMapper;
+    @Resource
+    private ActionExecutionMapper executionMapper;
+    @Resource
+    private ConceptMapper conceptMapper;
+    @Resource
+    private ConceptTableMapper conceptTableMapper;
 
     @Override
     public Long createAction(ActionSaveReqVO createReqVO) {
+        normalizeApprovalConfig(createReqVO);
         validateActionBinding(createReqVO);
-        ActionDO action = ActionConvert.INSTANCE.convert(createReqVO);
+        ActionDO action = convertSaveRequest(createReqVO);
+        action.setVersion(1);
         actionMapper.insert(action);
         return action.getId();
     }
 
     @Override
     public Integer updateAction(ActionSaveReqVO updateReqVO) {
+        normalizeApprovalConfig(updateReqVO);
         validateActionBinding(updateReqVO);
-        ActionDO action = ActionConvert.INSTANCE.convert(updateReqVO);
-        return actionMapper.updateById(action);
+        ActionDO existing = actionMapper.selectById(updateReqVO.getId());
+        if (existing == null) {
+            throw new RuntimeException("动作不存在: " + updateReqVO.getId());
+        }
+        ActionDO action = convertSaveRequest(updateReqVO);
+        action.setVersion((existing.getVersion() == null ? 1 : existing.getVersion()) + 1);
+        LambdaUpdateWrapper<ActionDO> wrapper = new LambdaUpdateWrapper<ActionDO>()
+                .eq(ActionDO::getId, updateReqVO.getId())
+                // 触发来源属于运行时上下文；动作定义不再保存人工/数据到达选择。
+                .set(ActionDO::getTriggerRef, null);
+        if (existing.getVersion() == null) {
+            wrapper.isNull(ActionDO::getVersion);
+        } else {
+            wrapper.eq(ActionDO::getVersion, existing.getVersion());
+        }
+        int updated = actionMapper.update(action, wrapper);
+        if (updated == 0) {
+            throw new RuntimeException("动作已被其他请求修改，请刷新后重试");
+        }
+        return updated;
     }
 
-    /**
-     * 动作绑定校验：FUNCTION 类型必须绑定共享函数；其余类型必须绑定概念。
-     */
+    /** 动作绑定校验：FUNCTION 绑定函数；数据动作绑定触发对象；多目标动作还必须包含执行步骤。 */
     private void validateActionBinding(ActionSaveReqVO reqVO) {
         if ("FUNCTION".equals(reqVO.getActionType())) {
             if (reqVO.getFunctionId() == null) {
                 throw new RuntimeException("函数类型动作必须绑定共享函数");
             }
         } else if (reqVO.getConceptId() == null) {
-            throw new RuntimeException("非函数类型动作必须绑定概念");
+            throw new RuntimeException("非函数类型动作必须选择触发对象类型");
+        } else if ("COMPOSITE".equals(reqVO.getActionType())
+                && (reqVO.getExecutionSteps() == null || reqVO.getExecutionSteps().trim().isEmpty())) {
+            throw new RuntimeException("多目标动作必须配置至少一个执行步骤");
+        } else if ("COMPOSITE".equals(reqVO.getActionType())) {
+            try {
+                JsonNode steps = objectMapper.readTree(reqVO.getExecutionSteps());
+                if (!steps.isArray() || steps.size() == 0) {
+                    throw new RuntimeException("多目标动作必须配置至少一个执行步骤");
+                }
+                Long datasourceId = null;
+                for (int i = 0; i < steps.size(); i++) {
+                    JsonNode step = steps.get(i);
+                    if (!step.hasNonNull("conceptId") || !step.hasNonNull("actionType")) {
+                        throw new RuntimeException("执行步骤 " + (i + 1) + " 缺少目标对象类型或操作类型");
+                    }
+                    String type = step.path("actionType").asText("").toUpperCase();
+                    if (!("CREATE".equals(type) || "UPDATE".equals(type) || "DELETE".equals(type))) {
+                        throw new RuntimeException("执行步骤 " + (i + 1) + " 的操作类型不受支持: " + type);
+                    }
+                    JsonNode paramConfig = step.path("paramConfig");
+                    int targetCount = 0;
+                    int conditionCount = 0;
+                    if (paramConfig.isArray()) {
+                        for (JsonNode config : paramConfig) {
+                            if (config.path("condition").asBoolean(false)) conditionCount++;
+                            else if (config.hasNonNull("propertyCode")) targetCount++;
+                        }
+                    }
+                    if (("CREATE".equals(type) || "UPDATE".equals(type)) && targetCount == 0) {
+                        throw new RuntimeException("执行步骤 " + (i + 1) + " 至少需要一个目标属性");
+                    }
+                    if (("UPDATE".equals(type) || "DELETE".equals(type)) && conditionCount == 0) {
+                        throw new RuntimeException("执行步骤 " + (i + 1) + " 至少需要一个条件");
+                    }
+                    Long conceptId = step.path("conceptId").asLong();
+                    ConceptDO concept = conceptMapper.selectById(conceptId);
+                    if (concept == null || !Objects.equals(concept.getOntologyId(), reqVO.getOntologyId())) {
+                        throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标对象类型不属于当前本体");
+                    }
+                    List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(conceptId);
+                    if (tables == null || tables.isEmpty() || tables.get(0).getDatasourceId() == null) {
+                        throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标对象类型未完成数据源绑定");
+                    }
+                    Long currentDatasourceId = tables.get(0).getDatasourceId();
+                    if (datasourceId == null) {
+                        datasourceId = currentDatasourceId;
+                    } else if (!datasourceId.equals(currentDatasourceId)) {
+                        throw new RuntimeException("多目标动作的所有执行步骤必须位于同一数据源");
+                    }
+                }
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new RuntimeException("多目标动作执行步骤格式错误: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * 当前动作确认模型固定为 0 或 1 次人工确认。
+     * 触发来源（人工、数据到达、API、工作流）不改变该配置。
+     */
+    private void normalizeApprovalConfig(ActionSaveReqVO reqVO) {
+        reqVO.setTriggerRef(null);
+        boolean needsApproval = Boolean.TRUE.equals(reqVO.getNeedsApproval())
+                || (reqVO.getApprovalLevels() != null && reqVO.getApprovalLevels() > 0);
+        reqVO.setNeedsApproval(needsApproval);
+        reqVO.setApprovalLevels(needsApproval ? 1 : 0);
+        reqVO.setApprovalReviewers(needsApproval
+                ? normalizeSingleReviewer(reqVO.getApprovalReviewers()) : null);
+    }
+
+    private String normalizeSingleReviewer(String reviewersJson) {
+        if (reviewersJson == null || reviewersJson.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(reviewersJson);
+            if (!root.isArray() || root.size() == 0) {
+                return null;
+            }
+            JsonNode selected = null;
+            for (JsonNode node : root) {
+                if (node.path("stage").asInt(1) == 1) {
+                    selected = node;
+                    break;
+                }
+            }
+            if (selected == null) {
+                selected = root.get(0);
+            }
+            if (selected == null || !selected.hasNonNull("userId")) {
+                return null;
+            }
+            ObjectNode reviewer = objectMapper.createObjectNode();
+            reviewer.put("stage", 1);
+            if (selected.get("userId").isNumber()) {
+                reviewer.put("userId", selected.get("userId").longValue());
+            } else {
+                reviewer.put("userId", selected.get("userId").asText());
+            }
+            if (selected.hasNonNull("userName")) {
+                reviewer.put("userName", selected.get("userName").asText());
+            }
+            ArrayNode result = objectMapper.createArrayNode();
+            result.add(reviewer);
+            return result.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("审批人配置格式错误: " + e.getMessage(), e);
         }
     }
 
     @Override
     public Integer deleteAction(Long id) {
+        // 防误删：动作已有执行/审批记录（含行操作内置动作）时拒绝物理删除，
+        // 历史记录/审计/血缘依赖该定义，需保留；确需清理可先清理 ONT_ACTION_EXECUTION。
+        Long execCount = executionMapper.selectCount(new LambdaQueryWrapperX<ActionExecutionDO>()
+                .eq(ActionExecutionDO::getActionId, id));
+        if (execCount != null && execCount > 0) {
+            throw new RuntimeException("动作已产生 " + execCount
+                    + " 条执行记录，为保障历史审计/血缘不可删除；如需下线请调整动作状态而非删除");
+        }
         return actionMapper.deleteById(id);
     }
 
     @Override
     public ActionRespVO getActionById(Long id) {
         ActionDO action = actionMapper.selectById(id);
-        return ActionConvert.INSTANCE.convert(action);
+        return convertResponse(action);
     }
 
     @Override
     public PageResult<ActionRespVO> getActionPage(ActionPageReqVO pageReqVO) {
         PageResult<ActionDO> pageResult = actionMapper.selectPage(pageReqVO);
-        return new PageResult<>(ActionConvert.INSTANCE.convertList(pageResult.getRows()), pageResult.getTotal());
+        return new PageResult<>(convertResponseList(pageResult.getRows()), pageResult.getTotal());
     }
 
     @Override
     public List<ActionRespVO> getActionsByOntologyId(Long ontologyId) {
         List<ActionDO> list = actionMapper.selectByOntologyId(ontologyId);
-        return ActionConvert.INSTANCE.convertList(list);
+        return convertResponseList(list);
+    }
+
+    /**
+     * executionSteps 是后加字段。显式赋值可兼容 IDE 增量编译时尚未重新生成的 MapStruct
+     * ActionConvertImpl，避免校验通过但 INSERT/UPDATE 丢失多目标步骤。
+     */
+    private ActionDO convertSaveRequest(ActionSaveReqVO reqVO) {
+        ActionDO action = ActionConvert.INSTANCE.convert(reqVO);
+        action.setExecutionSteps(reqVO.getExecutionSteps());
+        return action;
+    }
+
+    /** 查询响应同样显式回填，避免对象浏览器和修改弹窗把已有步骤误判为空。 */
+    private ActionRespVO convertResponse(ActionDO action) {
+        if (action == null) {
+            return null;
+        }
+        ActionRespVO response = ActionConvert.INSTANCE.convert(action);
+        response.setExecutionSteps(action.getExecutionSteps());
+        return response;
+    }
+
+    private List<ActionRespVO> convertResponseList(List<ActionDO> actions) {
+        if (actions == null) {
+            return java.util.Collections.emptyList();
+        }
+        return actions.stream().map(this::convertResponse).collect(java.util.stream.Collectors.toList());
     }
 }

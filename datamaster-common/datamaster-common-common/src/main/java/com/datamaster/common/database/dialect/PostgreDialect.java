@@ -9,9 +9,13 @@ import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbName;
 import com.datamaster.common.database.core.DbTable;
+import com.datamaster.common.database.core.DbTableMetadata;
+import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.database.utils.DatabaseUtil;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -512,6 +516,123 @@ public class PostgreDialect extends AbstractDbDialect {
     public String updateTableComment(DbQueryProperty dbQueryProperty, String tableName, String tableComment) {
         String fullTableName = getTableName(dbQueryProperty, tableName);
         return "COMMENT ON TABLE " + fullTableName + " IS '" + DatabaseUtil.escapeSingleQuotes(tableComment) + "'";
+    }
+
+    @Override
+    public DbTableMetadata tableMetadata(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try {
+            DbTableMetadata metadata = new DbTableMetadata();
+            metadata.setRowCount(getTableRowCount(dbQueryProperty, tableName, conn));
+            metadata.setIndexes(getTableIndexes(dbQueryProperty, tableName, conn));
+            metadata.setPartitionFields(getTablePartitionFields(dbQueryProperty, tableName, conn));
+            metadata.setStorageEngine("PostgreSQL");
+            fillTableMetadata(dbQueryProperty, tableName, metadata, conn);
+            return metadata;
+        } catch (Exception e) {
+            throw new DataQueryException("采集PostgreSQL表元数据失败: " + e.getMessage());
+        }
+    }
+
+    private Long getTableRowCount(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String sql = "SELECT COUNT(*) FROM " + qualifiedTableName(dbQueryProperty, tableName);
+            try (ResultSet rs = stmt.executeQuery(sql)) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取PostgreSQL表行数失败: " + e.getMessage());
+        }
+        return 0L;
+    }
+
+    private String getTableIndexes(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String sql = "SELECT indexname FROM pg_indexes WHERE schemaname = '" + schemaName(dbQueryProperty) + "' "
+                    + "AND tablename = '" + tableName + "' AND indexname NOT LIKE 'pk_%'";
+            try (ResultSet rs = stmt.executeQuery(sql)) {
+                StringBuilder indexes = new StringBuilder();
+                while (rs.next()) {
+                    String indexName = rs.getString("indexname");
+                    if (indexes.length() > 0) {
+                        indexes.append(", ");
+                    }
+                    indexes.append(indexName);
+                }
+                return indexes.toString();
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取PostgreSQL表索引信息失败: " + e.getMessage());
+        }
+    }
+
+    private String getTablePartitionFields(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String sql = "SELECT a.attname AS column_name FROM pg_partitioned_table pt "
+                    + "JOIN pg_class c ON c.oid = pt.partrelid "
+                    + "JOIN pg_namespace n ON n.oid = c.relnamespace "
+                    + "JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(pt.partattrs) "
+                    + "WHERE n.nspname = '" + schemaName(dbQueryProperty) + "' AND c.relname = '" + tableName + "'";
+            try (ResultSet rs = stmt.executeQuery(sql)) {
+                StringBuilder partitionFields = new StringBuilder();
+                while (rs.next()) {
+                    String columnName = rs.getString("column_name");
+                    if (partitionFields.length() > 0) {
+                        partitionFields.append(", ");
+                    }
+                    partitionFields.append(columnName);
+                }
+                return partitionFields.toString();
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取PostgreSQL表分区字段信息失败: " + e.getMessage());
+        }
+    }
+
+    private void fillTableMetadata(DbQueryProperty dbQueryProperty, String tableName, DbTableMetadata metadata, Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String tableSql = "SELECT obj_description(c.oid) AS table_comment, "
+                    + "pg_total_relation_size(c.oid) AS table_size, "
+                    + "to_char(GREATEST(st.last_vacuum, st.last_autovacuum), 'YYYY-MM-DD HH24:MI:SS') AS update_time "
+                    + "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                    + "LEFT JOIN pg_stat_all_tables st ON st.relid = c.oid "
+                    + "WHERE n.nspname = '" + schemaName(dbQueryProperty) + "' AND c.relname = '" + tableName + "'";
+            try (ResultSet tableRs = stmt.executeQuery(tableSql)) {
+                if (tableRs.next()) {
+                    metadata.setTableComment(tableRs.getString("table_comment"));
+                    metadata.setTableSize(tableRs.getInt("table_size"));
+                    metadata.setUpdateTime(tableRs.getString("update_time"));
+                }
+            }
+
+            String pkSql = "SELECT a.attname AS column_name FROM pg_index i "
+                    + "JOIN pg_class c ON c.oid = i.indrelid "
+                    + "JOIN pg_namespace n ON n.oid = c.relnamespace "
+                    + "JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(i.indkey) "
+                    + "WHERE i.indisprimary AND n.nspname = '" + schemaName(dbQueryProperty) + "' "
+                    + "AND c.relname = '" + tableName + "' ORDER BY a.attnum";
+            try (ResultSet pkRs = stmt.executeQuery(pkSql)) {
+                StringBuilder primaryKeys = new StringBuilder();
+                while (pkRs.next()) {
+                    if (primaryKeys.length() > 0) {
+                        primaryKeys.append(", ");
+                    }
+                    primaryKeys.append(pkRs.getString("column_name"));
+                }
+                metadata.setPrimaryKey(primaryKeys.toString());
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("批量获取PostgreSQL表元数据失败: " + e.getMessage());
+        }
+    }
+
+    private String qualifiedTableName(DbQueryProperty dbQueryProperty, String tableName) {
+        return schemaName(dbQueryProperty) + "." + tableName;
+    }
+
+    private String schemaName(DbQueryProperty dbQueryProperty) {
+        return StringUtils.isNotBlank(dbQueryProperty.getSid()) ? dbQueryProperty.getSid() : "public";
     }
 
     // ... existing code ...

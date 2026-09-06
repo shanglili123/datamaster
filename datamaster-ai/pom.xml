@@ -25,6 +25,11 @@
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-ontology-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
             <artifactId>datamaster-common-config</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>

@@ -2,11 +2,15 @@ package com.datamaster.module.ontology.controller.admin.action;
 
 import com.datamaster.common.core.domain.CommonResult;
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.module.ontology.api.dto.ActionDataArrivalTriggerDTO;
 import com.datamaster.module.ontology.controller.admin.action.vo.*;
+import com.datamaster.module.ontology.service.IActionApprovalService;
 import com.datamaster.module.ontology.service.IActionExecutionService;
 import com.datamaster.module.ontology.service.IActionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +32,11 @@ public class ActionController {
     private IActionService actionService;
     @Resource
     private IActionExecutionService executionService;
+    @Resource
+    private IActionApprovalService approvalService;
+
+    @Value("${datamaster.ontology.action-trigger.secret:}")
+    private String actionTriggerSecret;
 
     // ==================== Action CRUD ====================
 
@@ -79,6 +88,12 @@ public class ActionController {
     @PreAuthorize("@ss.hasPermi('ont:action:edit')")
     @PostMapping("/execution/submit")
     public CommonResult<ExecutionRespVO> submitExecution(@Valid @RequestBody ExecutionSubmitReqVO reqVO) {
+        // 人工入口固定保留“预览后手动确认执行”，自动执行只允许由受控触发入口设置。
+        reqVO.setAutoExecute(false);
+        reqVO.setTriggerType("MANUAL");
+        reqVO.setTriggerRef(null);
+        reqVO.setEventId(null);
+        reqVO.setMaxAttempts(1);
         return CommonResult.success(executionService.submitExecution(reqVO));
     }
 
@@ -131,5 +146,50 @@ public class ActionController {
     @GetMapping("/execution/pending")
     public CommonResult<List<ExecutionRespVO>> pendingApprovals(@RequestParam Long ontologyId) {
         return CommonResult.success(executionService.getPendingApprovals(ontologyId));
+    }
+
+    @Operation(summary = "查询对象执行记录的人工确认审计（请求 + 确认任务 + 确认人结论）")
+    @PreAuthorize("@ss.hasPermi('ont:action:query')")
+    @GetMapping("/execution/approval-chain/{executionId}")
+    public CommonResult<ApprovalChainRespVO> approvalChain(@PathVariable Long executionId) {
+        return CommonResult.success(approvalService.getChain(executionId));
+    }
+
+    // ==================== 数据到达触发 ====================
+
+    @Operation(summary = "数据到达触发：匹配 triggerRef 的启用动作自动提交并进入可靠执行队列")
+    @PostMapping("/trigger/data-arrival")
+    public CommonResult<List<ExecutionRespVO>> dataArrivalTrigger(
+            @RequestHeader(value = "X-DataMaster-Trigger-Secret", required = false) String secret,
+            @RequestBody(required = false) ActionDataArrivalTriggerDTO body,
+            @RequestParam(required = false) String triggerRef,
+            @RequestParam(required = false) String inputParams,
+            @RequestParam(required = false) String objectKey,
+            @RequestParam(required = false) String eventId,
+            @RequestParam(required = false) Long spaceId,
+            @RequestParam(required = false) String spaceCode) {
+        assertTriggerSecret(secret);
+        ActionDataArrivalTriggerDTO request = body == null ? new ActionDataArrivalTriggerDTO() : body;
+        if (request.getTriggerRef() == null) request.setTriggerRef(triggerRef);
+        if (request.getInputParams() == null) request.setInputParams(inputParams);
+        if (request.getObjectKey() == null) request.setObjectKey(objectKey);
+        if (request.getEventId() == null) request.setEventId(eventId);
+        if (request.getSpaceId() == null) request.setSpaceId(spaceId);
+        if (request.getSpaceCode() == null) request.setSpaceCode(spaceCode);
+        if (request.getTriggerRef() == null || request.getTriggerRef().trim().isEmpty()) {
+            throw new IllegalArgumentException("triggerRef 不能为空");
+        }
+        return CommonResult.success(executionService.submitByTrigger(
+                request.getTriggerRef(), request.getInputParams(), request.getObjectKey(),
+                request.getEventId(), request.getSpaceId(), request.getSpaceCode()));
+    }
+
+    private void assertTriggerSecret(String secret) {
+        if (actionTriggerSecret == null || actionTriggerSecret.trim().isEmpty()) {
+            throw new IllegalStateException("HTTP 动作触发入口未配置 datamaster.ontology.action-trigger.secret");
+        }
+        if (!actionTriggerSecret.equals(secret)) {
+            throw new AccessDeniedException("动作触发密钥错误");
+        }
     }
 }

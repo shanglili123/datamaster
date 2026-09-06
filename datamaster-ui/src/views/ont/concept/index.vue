@@ -100,7 +100,7 @@
       </a-layout-content>
     </a-layout>
     <!-- 概念对话框 -->
-    <a-modal :title="conceptTitle" v-model:open="conceptOpen" width="600px" ok-text="OK" cancel-text="Cancel" @ok="submitConceptForm" @cancel="conceptOpen = false">
+    <a-modal :title="conceptTitle" v-model:open="conceptOpen" width="600px" ok-text="确定" cancel-text="取消" @ok="submitConceptForm" @cancel="conceptOpen = false">
       <a-form ref="conceptRef" :model="conceptForm" :rules="conceptRules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="概念名称" name="name"><a-input v-model:value="conceptForm.name" placeholder="请输入概念名称" /></a-form-item>
         <a-form-item label="图标" name="icon"><a-input v-model:value="conceptForm.icon" placeholder="图标名称" /></a-form-item>
@@ -109,7 +109,7 @@
       </a-form>
     </a-modal>
     <!-- 属性对话框 -->
-    <a-modal :title="propertyTitle" v-model:open="propertyOpen" width="600px" ok-text="OK" cancel-text="Cancel" @ok="submitPropertyForm" @cancel="propertyOpen = false">
+    <a-modal :title="propertyTitle" v-model:open="propertyOpen" width="600px" ok-text="确定" cancel-text="取消" @ok="submitPropertyForm" @cancel="propertyOpen = false">
       <a-form ref="propertyRef" :model="propertyForm" :rules="propertyRules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="属性名称" name="name"><a-input v-model:value="propertyForm.name" placeholder="请输入属性名称" /></a-form-item>
         <a-form-item label="数据类型" name="dataType">
@@ -131,7 +131,7 @@
       </a-form>
     </a-modal>
     <!-- 关系对话框 -->
-    <a-modal :title="relationTitle" v-model:open="relationOpen" width="600px" ok-text="OK" cancel-text="Cancel" @ok="submitRelationForm" @cancel="relationOpen = false">
+    <a-modal :title="relationTitle" v-model:open="relationOpen" width="600px" ok-text="确定" cancel-text="取消" @ok="submitRelationForm" @cancel="relationOpen = false">
       <a-form ref="relationRef" :model="relationForm" :rules="relationRules" :label-col="{ style: { width: '100px' } }">
         <a-form-item label="关系名称" name="name"><a-input v-model:value="relationForm.name" placeholder="请输入关系名称" /></a-form-item>
         <a-form-item label="关系类型" name="relationType">
@@ -152,7 +152,7 @@
       </a-form>
     </a-modal>
     <!-- 表绑定对话框 -->
-    <a-modal :title="bindingTitle" v-model:open="bindingOpen" width="600px" ok-text="OK" cancel-text="Cancel" @ok="submitBindingForm" @cancel="bindingOpen = false">
+    <a-modal :title="bindingTitle" v-model:open="bindingOpen" width="600px" ok-text="确定" cancel-text="取消" @ok="submitBindingForm" @cancel="bindingOpen = false">
       <a-form ref="bindingRef" :model="bindingForm" :rules="bindingRules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="数据源" name="datasourceId">
           <a-select v-model:value="bindingForm.datasourceId" placeholder="请选择数据源" show-search :filter-option="filterOption" @change="onDatasourceChange">
@@ -177,7 +177,7 @@
       </a-form>
     </a-modal>
     <!-- 列映射对话框 -->
-    <a-modal title="属性列映射" v-model:open="columnMappingOpen" width="800px" ok-text="Save" cancel-text="Cancel" @ok="submitColumnMapping" @cancel="columnMappingOpen = false">
+    <a-modal title="属性列映射" v-model:open="columnMappingOpen" width="800px" ok-text="保存" cancel-text="取消" @ok="submitColumnMapping" @cancel="columnMappingOpen = false">
       <p style="margin-bottom: 12px; color: #666">为当前绑定表 <strong>{{ currentBinding?.tableName }}</strong> 的属性配置物理列映射</p>
       <a-table :columns="columnMappingColumns" :data-source="columnMappingData" row-key="propertyId" size="small" :pagination="false">
         <template #bodyCell="{ column, record }">

@@ -67,6 +67,7 @@
                     :page-size-options="['6', '8', '10', '20', '50']"
                     show-size-changer
                     size="small"
+                    :locale="paginationLocale"
                     @change="handlePageChange"
                     @showSizeChange="(current, size) => handleSizeChange(size)"
                   />
@@ -110,6 +111,7 @@ import { useClipboard } from "@vueuse/core";
 import { ChatMessageApi } from "@/api/ai/chat/message";
 import { saveAs } from "file-saver";
 import SqlEditor from "@/components/SqlEditor/index2.vue";
+import paginationLocale from "@/utils/paginationLocale";
 
 const props = defineProps({
   data: {

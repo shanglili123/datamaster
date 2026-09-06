@@ -37,6 +37,8 @@ public class FunctionRespVO implements Serializable {
     private Boolean needsApproval;
     @Schema(description = "描述") @Excel(name = "描述")
     private String description;
+    @Schema(description = "函数定义版本号：提交执行时冻结，执行前按函数体哈希复核") @Excel(name = "版本")
+    private Integer version;
     @Schema(description = "创建者") @Excel(name = "创建者")
     private String createBy;
     @Schema(description = "创建时间") @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

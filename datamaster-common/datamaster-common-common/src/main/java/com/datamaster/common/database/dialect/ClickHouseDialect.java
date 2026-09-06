@@ -2,11 +2,18 @@ package com.datamaster.common.database.dialect;
 
 import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.core.DbColumn;
+import com.datamaster.common.database.core.DbTableMetadata;
+import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.database.utils.DatabaseUtil;
 import com.datamaster.common.utils.StringUtils;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -78,6 +85,85 @@ public class ClickHouseDialect extends MySqlDialect {
         }
         sqlList.add(sql.toString());
         return sqlList;
+    }
+
+    @Override
+    public DbTableMetadata tableMetadata(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        DbTableMetadata metadata = new DbTableMetadata();
+        try {
+            metadata.setRowCount(getTableRowCount(dbQueryProperty, tableName, conn));
+            metadata.setIndexes("");
+            metadata.setPartitionFields(getTablePartitionFields(dbQueryProperty, tableName, conn));
+            metadata.setStorageEngine("ClickHouse");
+        } catch (Exception e) {
+            throw new DataQueryException("采集ClickHouse表元数据失败: " + e.getMessage());
+        }
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT comment, engine, create_table_query FROM system.tables WHERE database = '"
+                     + dbName(dbQueryProperty) + "' AND name = '" + tableName + "'")) {
+            if (rs.next()) {
+                metadata.setTableComment(rs.getString("comment"));
+                metadata.setStorageEngine(rs.getString("engine"));
+                metadata.setPrimaryKey(extractPrimaryKey(rs.getString("create_table_query")));
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取ClickHouse表元数据失败: " + e.getMessage());
+        }
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT sum(bytes_on_disk) / 1024 / 1024 AS table_size "
+                     + "FROM system.parts WHERE active = 1 AND database = '" + dbName(dbQueryProperty) + "' AND table = '" + tableName + "'")) {
+            if (rs.next()) {
+                metadata.setTableSize(rs.getInt("table_size"));
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取ClickHouse表大小失败: " + e.getMessage());
+        }
+        return metadata;
+    }
+
+    private Long getTableRowCount(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + qualifiedTableName(dbQueryProperty, tableName))) {
+            if (rs.next()) {
+                return rs.getLong(1);
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取ClickHouse表行数失败: " + e.getMessage());
+        }
+        return 0L;
+    }
+
+    private String getTablePartitionFields(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT partition_key FROM system.tables WHERE database = '"
+                     + dbName(dbQueryProperty) + "' AND name = '" + tableName + "'")) {
+            if (rs.next()) {
+                return normalizeClickHouseExpression(rs.getString("partition_key"));
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取ClickHouse表分区字段失败: " + e.getMessage());
+        }
+        return "";
+    }
+
+    private String dbName(DbQueryProperty dbQueryProperty) {
+        return StringUtils.isNotBlank(dbQueryProperty.getDbName()) ? dbQueryProperty.getDbName() : "";
+    }
+
+    private String normalizeClickHouseExpression(String expression) {
+        if (StringUtils.isBlank(expression)) {
+            return "";
+        }
+        return expression.replaceAll("[` ]", "").replaceAll("[()]", "");
+    }
+
+    private String extractPrimaryKey(String createTableSql) {
+        if (StringUtils.isBlank(createTableSql)) {
+            return "";
+        }
+        Matcher matcher = Pattern.compile("PRIMARY KEY\\s*\\(([^)]*)\\)", Pattern.CASE_INSENSITIVE)
+                .matcher(createTableSql);
+        return matcher.find() ? normalizeClickHouseExpression(matcher.group(1)) : "";
     }
 
     private String qualifiedTableName(DbQueryProperty property, String tableName) {

@@ -1,6 +1,26 @@
 datasource:
   type: PostgreSQL
 
+datamaster:
+  # 数据接收子工程（消费 Kafka -> 冲突检查 -> 写入数仓 Doris）
+  # 生产默认关闭；上线时通过环境变量填 Kafka / Doris 数据源后开启。
+  ingestion:
+    enabled: ${INGESTION_ENABLED:false}
+    kafka:
+      bootstrap-servers: ${INGESTION_KAFKA_SERVERS:localhost:9092}
+      group-id: datamaster-ingestion
+      topics: ${INGESTION_KAFKA_TOPICS:[]}
+      poll-timeout-ms: 1000
+      poll-interval-ms: 1000
+    doris-datasource-id: ${INGESTION_DORIS_DATASOURCE_ID:0}
+    conflict-strategy: ${INGESTION_CONFLICT_STRATEGY:UPSERT}
+    key-columns: ${INGESTION_KEY_COLUMNS:[]}
+    target-table: ${INGESTION_TARGET_TABLE:}
+    decision-trigger:
+      enabled: false
+      base-url: ${INGESTION_DECISION_BASE_URL:}
+      path: /ont/decision/trigger/data-arrival
+
 spring:
   redis:
     host: 127.0.0.1

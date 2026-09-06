@@ -10,12 +10,19 @@ import com.datamaster.common.database.constants.DbType;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbName;
 import com.datamaster.common.database.core.DbTable;
+import com.datamaster.common.database.core.DbTableMetadata;
 import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.database.utils.DatabaseUtil;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -802,5 +809,162 @@ public class MySqlDialect extends AbstractDbDialect {
             return "`"+property.getDbName() + "`.`" + tableName + "`";
         }
         return tableName;
+    }
+
+    /**
+     * 采集 MySQL 表的元数据（行数、索引、分区、存储、注释、主键等）
+     * <p>
+     * 由公共数据源层 {@code AbstractDbQueryFactory.getTableMetadata} 调用，连接由 {@code conn} 提供。
+     *
+     * @param dbQueryProperty 数据源连接属性
+     * @param tableName       表名
+     * @param conn            已建立的数据库连接
+     * @return 表元数据信息
+     */
+    @Override
+    public DbTableMetadata tableMetadata(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        DbTableMetadata metadata = new DbTableMetadata();
+        try {
+            String dbName = dbQueryProperty.getDbName();
+            // 获取表行数
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SELECT COUNT(*) FROM " + tableName;
+                ResultSet rs = stmt.executeQuery(sql);
+                if (rs.next()) {
+                    metadata.setRowCount(rs.getLong(1));
+                }
+            }
+
+            // 获取表索引信息
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SHOW INDEX FROM " + tableName;
+                ResultSet rs = stmt.executeQuery(sql);
+                StringBuilder indexes = new StringBuilder();
+                while (rs.next()) {
+                    String indexName = rs.getString("Key_name");
+                    if (!"PRIMARY".equals(indexName) && !indexes.toString().contains(indexName)) {
+                        if (indexes.length() > 0) {
+                            indexes.append(", ");
+                        }
+                        indexes.append(indexName);
+                    }
+                }
+                metadata.setIndexes(indexes.toString());
+            }
+
+            // 获取表分区字段信息
+            try (Statement stmt = conn.createStatement()) {
+                Set<String> fieldSet = new LinkedHashSet<>();
+                String sql = "SELECT DISTINCT " +
+                        " PARTITION_EXPRESSION, " +
+                        " SUBPARTITION_EXPRESSION " +
+                        " FROM information_schema.PARTITIONS " +
+                        " WHERE TABLE_SCHEMA = '" + dbName + "' AND TABLE_NAME = '" + tableName + "' ";
+                ResultSet rs = stmt.executeQuery(sql);
+                while (rs.next()) {
+                    String partExpr = rs.getString("PARTITION_EXPRESSION");
+                    String subPartExpr = rs.getString("SUBPARTITION_EXPRESSION");
+
+                    // 解析并提取字段名
+                    if (partExpr != null) {
+                        String fieldName = extractFieldName(partExpr);
+                        if (fieldName != null && !fieldName.isEmpty()) {
+                            fieldSet.add(fieldName);
+                        }
+                    }
+                    if (subPartExpr != null && !subPartExpr.trim().isEmpty()) {
+                        // 去掉反引号
+                        String field = subPartExpr.trim().replaceAll("`", "");
+                        fieldSet.add(field);
+                    }
+                }
+                // 拼接字段，用逗号分隔
+                metadata.setPartitionFields(String.join(",", fieldSet));
+            }
+
+            // 获取表存储大小、创建时间和修改时间
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SELECT DATA_LENGTH + INDEX_LENGTH AS table_size, ENGINE AS storage_engine, " +
+                        " DATE_FORMAT(CREATE_TIME, '%Y-%m-%d %H:%i:%s') AS create_time, DATE_FORMAT(UPDATE_TIME, '%Y-%m-%d %H:%i:%s') AS update_time ,TABLE_COMMENT as table_comment" +
+                        " FROM information_schema.TABLES WHERE TABLE_NAME = '" + tableName + "' AND TABLE_SCHEMA = '" + dbName + "'";
+                ResultSet rsSize = stmt.executeQuery(sql);
+                if (rsSize.next()) {
+                    metadata.setTableSize(rsSize.getInt("table_size"));
+                    metadata.setStorageEngine(rsSize.getString("storage_engine"));
+                    metadata.setTableComment(rsSize.getString("table_comment"));
+                    // 确保时间格式正确，不包含毫秒
+                    String createTime = rsSize.getString("create_time");
+                    if (createTime != null && createTime.contains(".")) {
+                        createTime = createTime.substring(0, createTime.indexOf("."));
+                    }
+                    metadata.setCreateTime(createTime);
+                    String updateTime = rsSize.getString("update_time");
+                    if (updateTime != null && updateTime.contains(".")) {
+                        updateTime = updateTime.substring(0, updateTime.indexOf("."));
+                    }
+                    metadata.setUpdateTime(updateTime);
+                }
+            }
+
+            // 获取表主键字段
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SHOW INDEX FROM " + tableName + " WHERE Key_name = 'PRIMARY'";
+                ResultSet rs = stmt.executeQuery(sql);
+                StringBuilder primaryKeys = new StringBuilder();
+                while (rs.next()) {
+                    String columnName = rs.getString("Column_name");
+                    if (primaryKeys.length() > 0) {
+                        primaryKeys.append(", ");
+                    }
+                    primaryKeys.append(columnName);
+                }
+                metadata.setPrimaryKey(primaryKeys.toString());
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("采集MySQL表元数据失败: " + e.getMessage());
+        }
+        return metadata;
+    }
+
+    /**
+     * 从分区表达式中提取原始字段名
+     * 例如：to_days(tm) -> tm
+     *       UNIX_TIMESTAMP(create_time) -> create_time
+     *       user_id -> user_id
+     */
+    private static String extractFieldName(String expr) {
+        if (expr == null || expr.trim().isEmpty()) {
+            return "";
+        }
+
+        expr = expr.trim().replaceAll("`", "");
+
+        // 去掉函数调用，保留括号内的内容
+        // 匹配 pattern: func_name(column_name)
+        int openParen = expr.indexOf('(');
+        int closeParen = expr.lastIndexOf(')');
+
+        if (openParen > 0 && closeParen > openParen) {
+            String funcName = expr.substring(0, openParen).trim().toLowerCase();
+            // 常见函数列表，可根据需要扩展
+            Set<String> knownFuncs = new HashSet<>(Arrays.asList(
+                    "to_days", "year", "month", "day", "hour", "minute",
+                    "unix_timestamp", "from_days", "date", "str_to_date"
+            ));
+
+            if (knownFuncs.contains(funcName)) {
+                String inner = expr.substring(openParen + 1, closeParen).trim();
+                // 递归处理嵌套函数，如 to_days(date(create_time))
+                return extractFieldName(inner);
+            }
+        }
+
+        // 如果没有函数包装，直接返回表达式（可能是字段名或常量）
+        // 过滤掉常量，如 '2024-01-01'，只保留标识符
+        if (expr.matches("^[a-zA-Z_][a-zA-Z0-9_]*$")) {
+            return expr;
+        }
+
+        return "";
     }
 }

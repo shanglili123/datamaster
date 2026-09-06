@@ -1,0 +1,565 @@
+- generic [ref=e1]:
+  - generic [ref=e53]:
+    - complementary [ref=e54]:
+      - generic [ref=e56]:
+        - link "DataMaster AI DATA INTELLIGENCE" [ref=e58] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e59]:
+            - strong [ref=e60]: DataMaster
+            - generic [ref=e61]: AI DATA INTELLIGENCE
+          - emphasis [ref=e65]
+        - menu [ref=e66]:
+          - generic [ref=e67] [cursor=pointer]: 数据探查
+          - generic [ref=e72] [cursor=pointer]: 标准建模
+          - generic [ref=e77] [cursor=pointer]: 数据资产
+          - generic [ref=e82] [cursor=pointer]: 空间管理
+          - generic [ref=e87] [cursor=pointer]: 数据研发
+          - list [ref=e92]:
+            - menuitem "数据源管理" [ref=e93] [cursor=pointer]
+            - menuitem "任务管理" [ref=e95] [cursor=pointer]
+            - menuitem "运维管理" [ref=e97] [cursor=pointer]
+          - generic [ref=e99] [cursor=pointer]: 数据服务
+          - generic [ref=e104] [cursor=pointer]: 智能问数
+          - generic [ref=e109] [cursor=pointer]: 本体模型
+          - generic [ref=e114] [cursor=pointer]: 系统管理
+          - generic [ref=e119] [cursor=pointer]: 监控运维
+    - generic [ref=e124]:
+      - generic [ref=e126]:
+        - generic [ref=e127]:
+          - button "收起侧边栏" [ref=e128] [cursor=pointer]
+          - navigation [ref=e132]:
+            - list [ref=e133]:
+              - listitem [ref=e134]:
+                - generic [ref=e135]: 首页
+                - text: /
+              - listitem [ref=e137]:
+                - generic [ref=e138]: 数据研发
+                - text: /
+              - listitem [ref=e140]:
+                - generic [ref=e141]: 数据集成
+        - generic [ref=e143]:
+          - generic [ref=e144]:
+            - generic [ref=e145]: "*"
+            - generic [ref=e146]: 所属空间
+            - generic [ref=e148] [cursor=pointer]:
+              - combobox [ref=e150]
+              - generic [ref=e151]: 客户与账户数据空间
+          - generic [ref=e158] [cursor=pointer]:
+            - img "avatar" [ref=e159]
+            - generic [ref=e160]: 超级管理员
+            - img "down" [ref=e161]
+      - main [ref=e164]:
+        - menu [ref=e166]:
+          - menuitem "数据集成" [ref=e167] [cursor=pointer]
+          - menuitem "数据开发" [ref=e169] [cursor=pointer]
+        - generic [ref=e174]:
+          - complementary [ref=e175]:
+            - generic [ref=e177]:
+              - generic [ref=e178]:
+                - generic [ref=e179] [cursor=pointer]:
+                  - img "folder-open" [ref=e180]
+                  - generic [ref=e183]: 数据集成目录
+                - generic [ref=e184]:
+                  - button [ref=e185] [cursor=pointer]:
+                    - img "reload" [ref=e186]
+                  - button [ref=e189] [cursor=pointer]:
+                    - img "menu-fold" [ref=e190]
+              - generic [ref=e194]:
+                - img "search" [ref=e196]
+                - textbox "请输入数据集成目录名称" [ref=e199]
+              - tree [ref=e202]:
+                - generic:
+                  - textbox "for screen reader"
+                - generic [ref=e206]:
+                  - generic [ref=e207]:
+                    - img "caret-down" [ref=e209] [cursor=pointer]
+                    - generic [ref=e214] [cursor=pointer]:
+                      - img "folder" [ref=e215]
+                      - generic [ref=e218]: 客户数据分析
+                  - generic [ref=e219]:
+                    - img "caret-down" [ref=e221] [cursor=pointer]
+                    - generic [ref=e226] [cursor=pointer]:
+                      - img "folder" [ref=e227]
+                      - generic [ref=e230]: 核心银行系统
+                  - generic [ref=e231]:
+                    - img "caret-down" [ref=e233] [cursor=pointer]
+                    - generic [ref=e238] [cursor=pointer]:
+                      - img "folder" [ref=e239]
+                      - generic [ref=e242]: 资产质量分析
+                  - generic [ref=e243]:
+                    - img "caret-down" [ref=e245] [cursor=pointer]
+                    - generic [ref=e250] [cursor=pointer]:
+                      - img "folder" [ref=e251]
+                      - generic [ref=e254]: 信贷数据分析
+                  - generic [ref=e259] [cursor=pointer]:
+                    - img "file-text" [ref=e260]
+                    - generic [ref=e263]: 压力情景分析
+          - img "left" [ref=e265] [cursor=pointer]
+          - main [ref=e268]:
+            - generic [ref=e269]:
+              - generic [ref=e271]:
+                - generic [ref=e273]:
+                  - generic [ref=e275]:
+                    - generic "名称" [ref=e277]: "名称 :"
+                    - 'textbox "名称 : * 任务名称 :" [ref=e655]':
+                      - /placeholder: 请输入任务名称
+                  - generic [ref=e285]:
+                    - generic "状态" [ref=e287]: "状态 :"
+                    - generic [ref=e292] [cursor=pointer]:
+                      - combobox "状态 :" [ref=e294]
+                      - generic: 请选择任务状态
+                  - text:  
+                - generic [ref=e295]:
+                  - button " 查询" [ref=e296] [cursor=pointer]:
+                    - generic [ref=e297]: 
+                    - generic [ref=e298]: 查询
+                  - button " 重置" [ref=e299] [cursor=pointer]:
+                    - generic [ref=e300]: 
+                    - generic [ref=e301]: 重置
+                - button " 新增" [ref=e303] [cursor=pointer]:
+                  - generic [ref=e304]: 
+                  - generic [ref=e305]: 新增
+                - generic [ref=e306]:
+                  - button "" [ref=e307] [cursor=pointer]
+                  - button [ref=e309] [cursor=pointer]:
+                    - img "menu" [ref=e310]
+              - generic [ref=e315]:
+                - table [ref=e325]:
+                  - rowgroup [ref=e335]:
+                    - row [ref=e336]:
+                      - columnheader "编号 caret-up caret-down" [ref=e337] [cursor=pointer]:
+                        - generic [ref=e338]:
+                          - generic [ref=e339]: 编号
+                          - generic [ref=e341]:
+                            - generic "caret-up" [ref=e342]
+                            - generic "caret-down" [ref=e345]
+                      - columnheader "任务信息" [ref=e348]
+                      - columnheader "运行控制" [ref=e349]
+                      - columnheader "调度周期" [ref=e350]
+                      - columnheader "最近执行" [ref=e351]
+                      - columnheader "创建人" [ref=e352]
+                      - columnheader "创建时间 caret-up caret-down" [ref=e353] [cursor=pointer]:
+                        - generic [ref=e354]:
+                          - generic [ref=e355]: 创建时间
+                          - generic [ref=e357]:
+                            - generic "caret-up" [ref=e358]
+                            - generic "caret-down" [ref=e361]
+                      - columnheader "操作" [ref=e364]
+                  - rowgroup [ref=e365]:
+                    - row [ref=e366]:
+                      - cell "2073672292788969474" [ref=e367]
+                      - cell "ggghh 核心银行系统" [ref=e368]:
+                        - generic [ref=e370] [cursor=pointer]:
+                          - generic "ggghh" [ref=e371]
+                          - generic "核心银行系统" [ref=e372]
+                      - 'cell "发布状态: 已发布 调度状态: 未上线" [ref=e373]':
+                        - generic [ref=e374]:
+                          - generic [ref=e375]:
+                            - text: "发布状态:"
+                            - generic [ref=e376]: 已发布
+                          - generic [ref=e377]:
+                            - text: "调度状态:"
+                            - generic [ref=e378]: 未上线
+                      - cell [ref=e379]:
+                        - img "clock-circle" [ref=e382]
+                      - cell "失败 2026-08-19 21:07" [ref=e386]:
+                        - generic [ref=e387]:
+                          - generic [ref=e388]: 失败
+                          - text: 2026-08-19 21:07
+                      - cell "超级管理员" [ref=e389]:
+                        - generic "超级管理员" [ref=e391]
+                      - cell "2026-07-05 15:36" [ref=e392]
+                      - cell [ref=e393]:
+                        - generic [ref=e394]:
+                          - button "edit 配置任务" [disabled] [ref=e395]:
+                            - img "edit" [ref=e396]
+                            - generic [ref=e399]: 配置任务
+                          - button "eye 详情" [ref=e400] [cursor=pointer]:
+                            - img "eye" [ref=e401]
+                            - generic [ref=e404]: 详情
+                          - button "upload 发布" [disabled] [ref=e405]:
+                            - img "upload" [ref=e406]
+                            - generic [ref=e409]: 发布
+                          - button "download 卸载" [ref=e410] [cursor=pointer]:
+                            - img "download" [ref=e411]
+                            - generic [ref=e414]: 卸载
+                          - button "down 更多" [ref=e415] [cursor=pointer]:
+                            - img "down" [ref=e416]
+                            - generic [ref=e419]: 更多
+                    - row [ref=e420]:
+                      - cell "2066869955954143234" [ref=e421]
+                      - cell "a啊啊 信贷数据分析" [ref=e422]:
+                        - generic [ref=e424] [cursor=pointer]:
+                          - generic "a啊啊" [ref=e425]
+                          - generic "信贷数据分析" [ref=e426]
+                      - 'cell "发布状态: 未发布 调度状态: 未上线" [ref=e427]':
+                        - generic [ref=e428]:
+                          - generic [ref=e429]:
+                            - text: "发布状态:"
+                            - generic [ref=e430]: 未发布
+                          - generic [ref=e431]:
+                            - text: "调度状态:"
+                            - generic [ref=e432]: 未上线
+                      - cell [ref=e433]:
+                        - img "clock-circle" [ref=e436]
+                      - cell "成功 2026-06-18 11:04" [ref=e440]:
+                        - generic [ref=e441]:
+                          - generic [ref=e442]: 成功
+                          - text: 2026-06-18 11:04
+                      - cell "超级管理员" [ref=e443]:
+                        - generic "超级管理员" [ref=e445]
+                      - cell "2026-06-16 21:06" [ref=e446]
+                      - cell [ref=e447]:
+                        - generic [ref=e448]:
+                          - button "edit 配置任务" [ref=e449] [cursor=pointer]:
+                            - img "edit" [ref=e450]
+                            - generic [ref=e453]: 配置任务
+                          - button "eye 详情" [ref=e454] [cursor=pointer]:
+                            - img "eye" [ref=e455]
+                            - generic [ref=e458]: 详情
+                          - button "upload 发布" [ref=e459] [cursor=pointer]:
+                            - img "upload" [ref=e460]
+                            - generic [ref=e463]: 发布
+                          - button "download 卸载" [disabled] [ref=e464]:
+                            - img "download" [ref=e465]
+                            - generic [ref=e468]: 卸载
+                          - button "down 更多" [ref=e469] [cursor=pointer]:
+                            - img "down" [ref=e470]
+                            - generic [ref=e473]: 更多
+                    - row [ref=e474]:
+                      - cell "2066525551896801281" [ref=e475]
+                      - cell "小程序从v 核心银行系统" [ref=e476]:
+                        - generic [ref=e478] [cursor=pointer]:
+                          - generic "小程序从v" [ref=e479]
+                          - generic "核心银行系统" [ref=e480]
+                      - 'cell "发布状态: 未发布 调度状态: 未上线" [ref=e481]':
+                        - generic [ref=e482]:
+                          - generic [ref=e483]:
+                            - text: "发布状态:"
+                            - generic [ref=e484]: 未发布
+                          - generic [ref=e485]:
+                            - text: "调度状态:"
+                            - generic [ref=e486]: 未上线
+                      - cell [ref=e487]:
+                        - img "clock-circle" [ref=e490]
+                      - cell [ref=e494]
+                      - cell "超级管理员" [ref=e495]:
+                        - generic "超级管理员" [ref=e497]
+                      - cell "2026-06-15 22:17" [ref=e498]
+                      - cell [ref=e499]:
+                        - generic [ref=e500]:
+                          - button "edit 配置任务" [ref=e501] [cursor=pointer]:
+                            - img "edit" [ref=e502]
+                            - generic [ref=e505]: 配置任务
+                          - button "eye 详情" [ref=e506] [cursor=pointer]:
+                            - img "eye" [ref=e507]
+                            - generic [ref=e510]: 详情
+                          - button "upload 发布" [ref=e511] [cursor=pointer]:
+                            - img "upload" [ref=e512]
+                            - generic [ref=e515]: 发布
+                          - button "download 卸载" [disabled] [ref=e516]:
+                            - img "download" [ref=e517]
+                            - generic [ref=e520]: 卸载
+                          - button "down 更多" [ref=e521] [cursor=pointer]:
+                            - img "down" [ref=e522]
+                            - generic [ref=e525]: 更多
+                    - row [ref=e526]:
+                      - cell "2066524973405810690" [ref=e527]
+                      - cell "s随时随地的 核心银行系统" [ref=e528]:
+                        - generic [ref=e530] [cursor=pointer]:
+                          - generic "s随时随地的" [ref=e531]
+                          - generic "核心银行系统" [ref=e532]
+                      - 'cell "发布状态: 已发布 调度状态: 未上线" [ref=e533]':
+                        - generic [ref=e534]:
+                          - generic [ref=e535]:
+                            - text: "发布状态:"
+                            - generic [ref=e536]: 已发布
+                          - generic [ref=e537]:
+                            - text: "调度状态:"
+                            - generic [ref=e538]: 未上线
+                      - cell [ref=e539]:
+                        - img "clock-circle" [ref=e542]
+                      - cell "成功 2026-08-21 10:31" [ref=e546]:
+                        - generic [ref=e547]:
+                          - generic [ref=e548]: 成功
+                          - text: 2026-08-21 10:31
+                      - cell "超级管理员" [ref=e549]:
+                        - generic "超级管理员" [ref=e551]
+                      - cell "2026-06-15 22:15" [ref=e552]
+                      - cell [ref=e553]:
+                        - generic [ref=e554]:
+                          - button "edit 配置任务" [disabled] [ref=e555]:
+                            - img "edit" [ref=e556]
+                            - generic [ref=e559]: 配置任务
+                          - button "eye 详情" [ref=e560] [cursor=pointer]:
+                            - img "eye" [ref=e561]
+                            - generic [ref=e564]: 详情
+                          - button "upload 发布" [disabled] [ref=e565]:
+                            - img "upload" [ref=e566]
+                            - generic [ref=e569]: 发布
+                          - button "download 卸载" [ref=e570] [cursor=pointer]:
+                            - img "download" [ref=e571]
+                            - generic [ref=e574]: 卸载
+                          - button "down 更多" [ref=e575] [cursor=pointer]:
+                            - img "down" [ref=e576]
+                            - generic [ref=e579]: 更多
+                    - row [ref=e580]:
+                      - cell "2061796395806498817" [ref=e581]
+                      - cell "wew 核心银行系统" [ref=e582]:
+                        - generic [ref=e584] [cursor=pointer]:
+                          - generic "wew" [ref=e585]
+                          - generic "核心银行系统" [ref=e586]
+                      - 'cell "发布状态: 未发布 调度状态: 未上线" [ref=e587]':
+                        - generic [ref=e588]:
+                          - generic [ref=e589]:
+                            - text: "发布状态:"
+                            - generic [ref=e590]: 未发布
+                          - generic [ref=e591]:
+                            - text: "调度状态:"
+                            - generic [ref=e592]: 未上线
+                      - cell "clock-circle 每隔 5 分钟 执行" [ref=e593]:
+                        - generic [ref=e595]:
+                          - img "clock-circle" [ref=e596]
+                          - generic "每隔 5 分钟 执行" [ref=e600]
+                      - cell "成功 2026-06-03 18:06" [ref=e601]:
+                        - generic [ref=e602]:
+                          - generic [ref=e603]: 成功
+                          - text: 2026-06-03 18:06
+                      - cell [ref=e604]
+                      - cell "2026-06-02 21:05" [ref=e606]
+                      - cell [ref=e607]:
+                        - generic [ref=e608]:
+                          - button "edit 配置任务" [ref=e609] [cursor=pointer]:
+                            - img "edit" [ref=e610]
+                            - generic [ref=e613]: 配置任务
+                          - button "eye 详情" [ref=e614] [cursor=pointer]:
+                            - img "eye" [ref=e615]
+                            - generic [ref=e618]: 详情
+                          - button "upload 发布" [ref=e619] [cursor=pointer]:
+                            - img "upload" [ref=e620]
+                            - generic [ref=e623]: 发布
+                          - button "download 卸载" [disabled] [ref=e624]:
+                            - img "download" [ref=e625]
+                            - generic [ref=e628]: 卸载
+                          - button "down 更多" [ref=e629] [cursor=pointer]:
+                            - img "down" [ref=e630]
+                            - generic [ref=e633]: 更多
+                - list [ref=e635]:
+                  - listitem [ref=e636]: 共 5 条
+                  - listitem "上一页" [ref=e637]:
+                    - button [disabled] [ref=e638]:
+                      - img "left" [ref=e639]
+                  - listitem "1" [ref=e642] [cursor=pointer]
+                  - listitem "下一页" [ref=e644]:
+                    - button [disabled] [ref=e645]:
+                      - img "right" [ref=e646]
+                  - listitem [ref=e649]:
+                    - generic [ref=e651] [cursor=pointer]:
+                      - combobox [ref=e653]
+                      - generic "6" [ref=e654]
+  - img:
+    - generic "account-box-2-line"
+    - generic "account-pin-box-line"
+    - generic "archive-2-line"
+    - generic "archive-drawer-line"
+    - generic "archive-line"
+    - generic "article-line"
+    - generic "bnb-line"
+    - generic "book-2-line"
+    - generic "book-3-line"
+    - generic "book-line"
+    - generic "book-marked-line"
+    - generic "book-read-line"
+    - generic "box-3-line"
+    - generic "briefcase-2-line"
+    - generic "calendar-2-line"
+    - generic "calendar-todo-line"
+    - generic "chrome-line"
+    - generic "code-box-line"
+    - generic "color-filter-line"
+    - generic "contacts-book-2-line"
+    - generic "contacts-book-line"
+    - generic "copper-coin-line"
+    - generic "currency-line"
+    - generic "dashboard-3-line"
+    - generic "equalizer-line"
+    - generic "exchange-dollar-line"
+    - generic "exchange-funds-line"
+    - generic "file-copy-2-line"
+    - generic "file-edit-line"
+    - generic "file-list-2-line"
+    - generic "file-list-line"
+    - generic "group-3-line"
+    - generic "hard-drive-3-line"
+    - generic "hourglass-line"
+    - generic "instance-line"
+    - generic "lifebuoy-line"
+    - generic "list-view"
+    - generic "mail-line"
+    - generic "map-2-line"
+    - generic "megaphone-line"
+    - generic "microsoft-line"
+    - generic "mind-map"
+    - generic "money-dollar-box-line"
+    - generic "news-line"
+    - generic "newspaper-line"
+    - generic "node-tree"
+    - generic "openai-line"
+    - generic "organization-chart"
+    - generic "rainbow-line"
+    - generic "safe-line"
+    - generic "settings-line"
+    - generic "shield-check-line"
+    - generic "shuffle-line"
+    - generic "slideshow-2-line"
+    - generic "slideshow-3-line"
+    - generic "slideshow-4-line"
+    - generic "slideshow-line"
+    - generic "smartphone-line"
+    - generic "stack-line"
+    - generic "telegram-line"
+    - generic "user-3-line"
+    - generic "user-line"
+  - dialog "新增任务" [ref=e657]:
+    - document:
+      - generic [ref=e658]:
+        - button "Close" [ref=e659] [cursor=pointer]:
+          - img "close" [ref=e661]
+        - generic [ref=e664]: 新增任务
+        - generic [ref=e667]:
+          - generic [ref=e668]: 基本信息
+          - generic [ref=e669]:
+            - generic [ref=e672]:
+              - generic "任务名称" [ref=e674]: "* 任务名称 :"
+              - textbox "请输入任务名称" [ref=e678]
+            - generic [ref=e681]:
+              - generic "任务目录" [ref=e683]: "* 任务目录 :"
+              - combobox "* 任务目录 :" [ref=e690]
+          - generic [ref=e692]:
+            - generic [ref=e695]:
+              - generic "执行策略" [ref=e697]: "* 执行策略 :"
+              - generic [ref=e702]:
+                - combobox "* 执行策略 :" [ref=e704] [cursor=pointer]
+                - generic [ref=e705]: 并行
+            - generic [ref=e708]:
+              - generic "调度周期" [ref=e710]: "调度周期 :"
+              - generic [ref=e715]:
+                - textbox "调度周期 :" [ref=e716]:
+                  - /placeholder: 请选择调度周期
+                - button "配 置" [ref=e718] [cursor=pointer]
+            - generic [ref=e722]:
+              - generic "描述" [ref=e724]: "描述 :"
+              - textbox "描述 :" [ref=e728]:
+                - /placeholder: 请输入描述
+            - generic "任务状态" [ref=e733]: "任务状态 :"
+          - generic [ref=e737]: 属性信息
+          - generic [ref=e738]:
+            - generic [ref=e741]:
+              - generic "任务优先级" [ref=e743]: "任务优先级 :"
+              - combobox "任务优先级 :" [ref=e750] [cursor=pointer]
+            - generic [ref=e758]:
+              - generic "Worker分组" [ref=e760]: "Worker分组 :"
+              - textbox "Worker分组 :" [disabled] [ref=e764]:
+                - /placeholder: 请输入Worker分组
+                - text: default
+            - generic [ref=e767]:
+              - generic "失败重试次数" [ref=e769]: "失败重试次数 :"
+              - generic [ref=e774]:
+                - spinbutton "失败重试次数 :" [ref=e775]
+                - generic [ref=e776]: 次
+            - generic [ref=e779]:
+              - generic "失败重试间隔" [ref=e781]: "失败重试间隔 :"
+              - generic [ref=e786]:
+                - spinbutton "失败重试间隔 :" [ref=e787]
+                - generic [ref=e788]: 分
+            - generic [ref=e791]:
+              - generic "延迟执行时间" [ref=e793]: "延迟执行时间 :"
+              - generic [ref=e798]:
+                - spinbutton "延迟执行时间 :" [ref=e799]
+                - generic [ref=e800]: 分
+            - generic [ref=e803]:
+              - generic "执行引擎" [ref=e805]: "* 执行引擎 :"
+              - generic [ref=e806]: FLINK (FlinkX)
+          - generic [ref=e810]:
+            - generic [ref=e813]:
+              - generic "JobManager内存" [ref=e815]: "JobManager内存 :"
+              - textbox "JobManager内存 :" [ref=e819]:
+                - /placeholder: 请输入JobManager内存，如 1G
+                - text: 1G
+            - generic [ref=e822]:
+              - generic "TaskManager内存" [ref=e824]: "TaskManager内存 :"
+              - textbox "TaskManager内存 :" [ref=e828]:
+                - /placeholder: 请输入TaskManager内存，如 2G
+                - text: 2G
+            - generic [ref=e831]:
+              - generic "Slot数量" [ref=e833]: "Slot数量 :"
+              - generic [ref=e837]:
+                - generic [ref=e838]:
+                  - button "Increase Value" [ref=e839] [cursor=pointer]:
+                    - img "up" [ref=e840]
+                  - button "Decrease Value" [disabled] [ref=e843]:
+                    - img "down" [ref=e844]
+                - spinbutton "Slot数量 :" [ref=e848]: "1"
+            - generic [ref=e851]:
+              - generic "TaskManager数量" [ref=e853]: "TaskManager数量 :"
+              - generic [ref=e857]:
+                - generic [ref=e858]:
+                  - button "Increase Value" [ref=e859] [cursor=pointer]:
+                    - img "up" [ref=e860]
+                  - button "Decrease Value" [ref=e863] [cursor=pointer]:
+                    - img "down" [ref=e864]
+                - spinbutton "TaskManager数量 :" [ref=e868]: "2"
+            - generic [ref=e871]:
+              - generic "并行度" [ref=e873]: "并行度 :"
+              - generic [ref=e877]:
+                - generic [ref=e878]:
+                  - button "Increase Value" [ref=e879] [cursor=pointer]:
+                    - img "up" [ref=e880]
+                  - button "Decrease Value" [disabled] [ref=e883]:
+                    - img "down" [ref=e884]
+                - spinbutton "并行度 :" [ref=e888]: "1"
+            - generic [ref=e891]:
+              - generic "Yarn队列" [ref=e893]: "Yarn队列 :"
+              - textbox "Yarn队列 :" [ref=e897]:
+                - /placeholder: 请输入Yarn队列(选填)
+            - generic [ref=e900]:
+              - generic "错误记录容忍" [ref=e902]: "错误记录容忍 :"
+              - generic [ref=e906]:
+                - generic [ref=e907]:
+                  - button "Increase Value" [ref=e908] [cursor=pointer]:
+                    - img "up" [ref=e909]
+                  - button "Decrease Value" [ref=e912] [cursor=pointer]:
+                    - img "down" [ref=e913]
+                - spinbutton "错误记录容忍 :" [ref=e917]: "100"
+            - generic [ref=e920]:
+              - generic "错误比例容忍" [ref=e922]: "错误比例容忍 :"
+              - generic [ref=e926]:
+                - generic [ref=e927]:
+                  - button "Increase Value" [ref=e928] [cursor=pointer]:
+                    - img "up" [ref=e929]
+                  - button "Decrease Value" [ref=e932] [cursor=pointer]:
+                    - img "down" [ref=e933]
+                - spinbutton "错误比例容忍 :" [ref=e937]: "0.10"
+            - generic [ref=e940]:
+              - generic "断点续传" [ref=e942]: "断点续传 :"
+              - switch "断点续传 :" [checked] [ref=e946] [cursor=pointer]
+            - generic [ref=e951]:
+              - generic "Checkpoint行数" [ref=e953]: "Checkpoint行数 :"
+              - generic [ref=e957]:
+                - generic [ref=e958]:
+                  - button "Increase Value" [ref=e959] [cursor=pointer]:
+                    - img "up" [ref=e960]
+                  - button "Decrease Value" [ref=e963] [cursor=pointer]:
+                    - img "down" [ref=e964]
+                - spinbutton "Checkpoint行数 :" [ref=e968]: "10000"
+            - generic [ref=e971]:
+              - generic "任务日志" [ref=e973]: "任务日志 :"
+              - switch "任务日志 :" [checked] [ref=e977] [cursor=pointer]
+            - generic [ref=e982]:
+              - generic "日志级别" [ref=e984]: "日志级别 :"
+              - generic [ref=e989]:
+                - combobox "日志级别 :" [ref=e991] [cursor=pointer]
+                - generic "info" [ref=e992]
+        - generic [ref=e994]:
+          - button "仅保存" [ref=e995] [cursor=pointer]
+          - button "保存并配置流程" [ref=e997] [cursor=pointer]

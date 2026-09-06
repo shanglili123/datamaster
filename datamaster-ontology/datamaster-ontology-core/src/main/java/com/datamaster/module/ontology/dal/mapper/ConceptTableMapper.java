@@ -24,4 +24,10 @@ public interface ConceptTableMapper extends BaseMapperX<ConceptTableDO> {
                 .eq(ConceptTableDO::getConceptId, conceptId)
                 .orderByAsc(ConceptTableDO::getId));
     }
+
+    default List<ConceptTableDO> selectByDatasourceId(Long datasourceId) {
+        return selectList(new LambdaQueryWrapperX<ConceptTableDO>()
+                .eq(ConceptTableDO::getDatasourceId, datasourceId)
+                .orderByAsc(ConceptTableDO::getId));
+    }
 }

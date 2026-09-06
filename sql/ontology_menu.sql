@@ -39,12 +39,13 @@ BEGIN
         (v_top + 1, '本体管理',   v_top, 1, 'ontology', 'ont/ontology/index', NULL, '', 1, 1, 'C', '0', '0', 'ont:ontology:list', 'organization-chart', 'admin', NOW(), ''),
         (v_top + 2, '函数管理',   v_top, 2, 'function', 'ont/function/index', NULL, '', 1, 1, 'C', '0', '0', 'ont:function:list', 'tool',       'admin', NOW(), '');
 
-    -- 隐藏页面(visible=1): 本体工作台 / 概念管理
-    -- 动态路由会整体替换前端同名静态路由(Ont), 这两个隐藏行保证带参数的详情页不丢
+    -- 隐藏页面(visible=1): 本体工作台 / 概念管理 / 对象实例
+    -- 动态路由会整体替换前端同名静态路由(Ont), 这几个隐藏行保证带参数的详情页不丢
     INSERT INTO system_menu (menu_id, menu_name, parent_id, order_num, path, component, query, route_name, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
     VALUES
-        (v_top + 5, '本体工作台', v_top, 5, 'workspace/:ontologyId', 'ont/workspace/index', NULL, '', 1, 1, 'C', '1', '0', 'ont:ontology:query', 'dashboard', 'admin', NOW(), ''),
-        (v_top + 6, '概念管理',   v_top, 6, 'concept/:ontologyId',   'ont/concept/index',   NULL, '', 1, 1, 'C', '1', '0', 'ont:concept:list',   'node-tree', 'admin', NOW(), '');
+        (v_top + 5, '本体工作台', v_top, 5, 'workspace/:ontologyId', 'ont/workspace/index', NULL, 'OntWorkspace', 1, 1, 'C', '1', '0', 'ont:ontology:query', 'dashboard', 'admin', NOW(), ''),
+        (v_top + 6, '概念管理',   v_top, 6, 'concept/:ontologyId',   'ont/concept/index',   NULL, 'ConceptManage', 1, 1, 'C', '1', '0', 'ont:concept:list',   'node-tree', 'admin', NOW(), ''),
+        (v_top + 7, '对象实例',   v_top, 7, 'object/:ontologyId',   'ont/object/index',    NULL, 'OntObjectInstance', 1, 1, 'C', '1', '0', 'ont:object-instance:query', 'table', 'admin', NOW(), '对象实例浏览器（对象血缘入口，从本体管理卡片按钮跳转）');
 
     -- 三级按钮权限
     -- 覆盖: 本体管理 / 函数管理 / 工作台画布(概念·属性·关系·绑表·映射) / 独立概念页
@@ -109,7 +110,10 @@ BEGIN
         ('概念详情', 'ont/concept/index', 'ont:concept:query',  2),
         ('概念新增', 'ont/concept/index', 'ont:concept:add',    3),
         ('概念修改', 'ont/concept/index', 'ont:concept:edit',   4),
-        ('概念删除', 'ont/concept/index', 'ont:concept:remove', 5)
+        ('概念删除', 'ont/concept/index', 'ont:concept:remove', 5),
+        -- ===== 对象实例浏览器(对象血缘四维度入口) =====
+        -- 对象实例/对象血缘接口统一使用 ont:object-instance:query（见 ObjectInstanceController）
+        ('对象实例查询', 'ont/object/index', 'ont:object-instance:query', 1)
     ) AS b(label, comp, perm, ord) ON p.component = b.comp AND p.parent_id = v_top;
 END $$;
 

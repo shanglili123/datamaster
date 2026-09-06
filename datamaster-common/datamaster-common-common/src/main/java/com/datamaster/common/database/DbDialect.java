@@ -132,6 +132,24 @@ public interface DbDialect {
     String getDataStorageSize(String dbName);
 
     /**
+     * 采集指定表的元数据信息（行数、索引、分区、存储、注释、主键等）
+     * <p>
+     * 连接由 {@code conn} 提供，具体采集 SQL 与结果解析逻辑由各数据库方言实现。
+     * 未覆盖的数据库类型返回空对象（各字段为 null/默认值）。
+     *
+     * @param dbQueryProperty 数据源连接属性
+     * @param tableName       表名
+     * @param conn            已建立的数据库连接
+     * @return 表元数据信息
+     */
+    default com.datamaster.common.database.core.DbTableMetadata tableMetadata(
+            com.datamaster.common.database.constants.DbQueryProperty dbQueryProperty,
+            String tableName,
+            java.sql.Connection conn) {
+        return new com.datamaster.common.database.core.DbTableMetadata();
+    }
+
+    /**
      * 获取数据库名或模式名
      *
      * @return

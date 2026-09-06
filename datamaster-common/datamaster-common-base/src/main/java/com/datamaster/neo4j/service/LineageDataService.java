@@ -11,12 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.datamaster.neo4j.config.Neo4jProperties;
 import com.datamaster.neo4j.dto.LineageDTO;
+import com.datamaster.neo4j.dto.ObjectLineageDTO;
 import com.datamaster.neo4j.node.ActionExecutionNode;
+import com.datamaster.neo4j.node.ObjectNode;
 import com.datamaster.neo4j.node.TableNode;
 import com.datamaster.neo4j.node.TaskNode;
 import com.datamaster.neo4j.rel.TableToTaskRel;
 import com.datamaster.neo4j.rel.TaskToTableRel;
+import com.datamaster.neo4j.rel.ObjectToTableRel;
 import com.datamaster.neo4j.repository.ActionExecutionRepository;
+import com.datamaster.neo4j.repository.ObjectRepository;
 import com.datamaster.neo4j.repository.TableRepository;
 import com.datamaster.neo4j.repository.TaskRepository;
 
@@ -45,6 +49,9 @@ public class LineageDataService {
 
     @Resource
     private ActionExecutionRepository actionExecutionRepository;
+
+    @Resource
+    private ObjectRepository objectRepository;
 
     @Resource
     private Neo4jProperties neo4jProperties;
@@ -143,6 +150,110 @@ public class LineageDataService {
             return;
         }
         actionExecutionRepository.save(node);
+    }
+
+    /**
+     * 保存语义对象节点（对象血缘，可插拔）
+     * <p>
+     * upsert 语义：对象以 conceptId 为业务键，已存在则复用其节点（并沿用 MATERIALIZES 关系）。
+     * 由本体对象实例层在查询/执行时调用；写入失败不影响业务主流程（调用方自行 try/catch）。
+     *
+     * @param node 语义对象节点；node.objectId=conceptId
+     */
+    @Transactional("neo4jTransactionManager")
+    public void saveObject(ObjectNode node) {
+        if (node == null) {
+            return;
+        }
+        if (node.getConceptId() == null) {
+            return;
+        }
+        objectRepository.findByConceptId(node.getConceptId()).ifPresent(existing -> {
+            node.setId(existing.getId());
+            node.setMaterializesRels(existing.getMaterializesRels());
+        });
+        objectRepository.save(node);
+    }
+
+    /**
+     * 保存对象血缘「数据维度」：语义对象 + 支撑物理表（MATERIALIZES）。
+     * <p>
+     * 对象与表均按业务键 upsert（对象=conceptId，表=tableName+datasourceHostPort），
+     * 避免每次查询重复建节点/关系。由本体对象实例层在实例查询时调用，写入失败不影响查询。
+     *
+     * @param conceptId         概念ID（对象业务键）
+     * @param ontologyId        本体ID
+     * @param conceptCode       概念编码（可空）
+     * @param conceptName       概念名称（可空）
+     * @param tableName         命中物理表名
+     * @param datasourceHostPort 数据源ip:port
+     * @param dbName            数据库名（可空）
+     * @param sid               模式名（可空）
+     */
+    @Transactional("neo4jTransactionManager")
+    public void saveObjectLineage(Long conceptId, Long ontologyId, String conceptCode, String conceptName,
+                                  String tableName, String datasourceHostPort, String dbName, String sid) {
+        if (conceptId == null || tableName == null) {
+            return;
+        }
+        // 1. 表节点（按表名+数据源 upsert）
+        TableNode table = tableRepository.findByTableNameAndDatasourceHostPort(tableName, datasourceHostPort)
+                .orElseGet(() -> TableNode.builder()
+                        .name(tableName)
+                        .tableName(tableName)
+                        .datasourceHostPort(datasourceHostPort)
+                        .dbName(dbName)
+                        .sid(sid)
+                        .build());
+
+        // 2. 对象节点（按概念ID upsert，沿用既有节点与关系）
+        ObjectNode object = objectRepository.findByConceptId(conceptId)
+                .orElseGet(ObjectNode::new);
+        object.setObjectId(conceptId);
+        object.setOntologyId(ontologyId);
+        object.setConceptId(conceptId);
+        object.setConceptCode(conceptCode);
+        object.setConceptName(conceptName);
+        object.setTableName(tableName);
+        object.setDatasourceHostPort(datasourceHostPort);
+        object.setDbName(dbName);
+        object.setSid(sid);
+
+        // 3. 挂 MATERIALIZES 关系（按目标表去重，避免重复边）
+        List<ObjectToTableRel> rels = new ArrayList<>();
+        if (object.getMaterializesRels() != null) {
+            rels.addAll(object.getMaterializesRels());
+        }
+        boolean exists = rels.stream().anyMatch(r -> r.getTable() != null
+                && Objects.equals(r.getTable().getTableName(), tableName)
+                && Objects.equals(r.getTable().getDatasourceHostPort(), datasourceHostPort));
+        if (!exists) {
+            rels.add(ObjectToTableRel.builder().objectId(conceptId).table(table).build());
+        }
+        object.setMaterializesRels(rels);
+
+        // 4. 落库
+        tableRepository.save(table);
+        objectRepository.save(object);
+    }
+
+    /**
+     * 对象血缘读取（数据维度 + 决策维度）。
+     * <p>
+     * 版本/权限维度不落 Neo4j，由本体 Service 层基于 ONT_ACTION_EXECUTION 快照与
+     * 统一权限入口实时派生后合并。图中无该对象时返回空 DTO。
+     *
+     * @param conceptId 本体概念ID
+     * @return 对象血缘聚合（当前对象 + 支撑表 + 决策动作执行）
+     */
+    @Transactional("neo4jTransactionManager")
+    public ObjectLineageDTO objectLineage(Long conceptId) {
+        ObjectLineageDTO dto = objectRepository.findObjectLineage(conceptId)
+                .orElse(null);
+        if (dto == null) {
+            return new ObjectLineageDTO();
+        }
+        return dto;
     }
 
     /**

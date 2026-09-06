@@ -43,7 +43,7 @@
 </template>
 
 <script setup name="FieldBindModal">
-import { listProperty } from '@/api/ont/property'
+import { listProperty, setPrimaryProperties } from '@/api/ont/property'
 import { listConceptTable } from '@/api/ont/conceptTable'
 import { listPropertyColumn, batchSavePropertyColumns } from '@/api/ont/propertyColumn'
 import { getCatalogTableListAsset } from '@/api/cat/unreleased/table'
@@ -159,7 +159,8 @@ function loadFbColumns(tableId) {
     return getMdColumnList({ tableId: hit.id }).then(res => {
       fbColumnOptions.value = rowsOf(res).map(c => ({
         value: c.columnName,
-        label: c.columnComment ? `${c.columnName} (${c.columnComment})` : c.columnName
+        label: `${c.columnComment ? `${c.columnName} (${c.columnComment})` : c.columnName}${String(c.pkFlag) === '1' ? ' · 主键' : ''}`,
+        pkFlag: c.pkFlag
       })).filter(o => !!o.value)
     })
   }).catch(() => {
@@ -186,7 +187,17 @@ function saveFieldBind() {
     propertyId: r.propertyId,
     conceptTableId: fbTableId.value,
     columnName: r.columnName
-  }))).then(() => {
+  }))).then(async () => {
+    // 映射命中物理主键时，自动将对应属性设为概念主属性；联合主键保留全部组成列。
+    const primaryPropertyIds = fbRows.value
+      .filter(row => {
+        const column = fbColumnOptions.value.find(option => option.value === row.columnName)
+        return column && String(column.pkFlag) === '1'
+      })
+      .map(row => row.propertyId)
+    if (primaryPropertyIds.length) {
+      await setPrimaryProperties({ conceptId: props.conceptId, propertyIds: primaryPropertyIds })
+    }
     proxy.$modal.msgSuccess('映射已保存')
     emit('success')
   }).finally(() => {

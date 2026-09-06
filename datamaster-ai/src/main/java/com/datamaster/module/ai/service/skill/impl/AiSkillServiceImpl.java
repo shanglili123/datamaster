@@ -41,6 +41,9 @@ import com.datamaster.metadata.api.service.table.CatalogTableApiService;
 import com.datamaster.metadata.api.table.dto.CatalogTableRespDTO;
 import com.datamaster.metadata.api.qa.dto.QualitySummaryRespDTO;
 import com.datamaster.metadata.api.service.qa.QualityTaskApiService;
+import com.datamaster.module.ontology.api.IConceptApiService;
+import com.datamaster.module.ontology.api.dto.SemanticTableDTO;
+import com.datamaster.module.ontology.api.dto.SemanticPropertyDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -117,6 +120,8 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private CatalogTableApiService catalogTableApiService;
     @Resource
     private QualityTaskApiService qualityTaskApiService;
+    @Resource
+    private IConceptApiService conceptApiService;
 
     @Override
     public PageResult<AiSkillRespVO> getSkillPage(AiSkillPageReqVO pageReqVO) {
@@ -246,11 +251,13 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (assets == null || assets.isEmpty()) {
             throw new ServiceException("当前数据源未获取到表元数据");
         }
+        // 三级降级：构建本体语义映射（模式A：每张表独立判层，本体表独立成段）
+        Map<String, SemanticTableDTO> ontologyMap = buildOntologyTableMap(reqVO.getDatasourceId());
         Map<Long, List<AssetsAssetColumnDO>> columnMap = collectColumnsForMetadataTables(assets);
         String skillCode = databaseSkillCode(datasource);
         AiSkillDO oldSkill = aiSkillMapper.selectByBizObject(BIZ_OBJECT_DATA_SOURCE, datasource.getId());
         String manualNotes = resolveManualNotes(oldSkill, reqVO.getManualNotes());
-        String content = databaseSkillContent(skillCode, datasource, assets, columnMap, manualNotes);
+        String content = databaseSkillContent(skillCode, datasource, assets, columnMap, ontologyMap, manualNotes);
         AiSkillDO skill = upsertGeneratedSkill(skillCode, firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType(), String.valueOf(datasource.getId())) + "整库问数Skill",
                 TYPE_DATABASE, BIZ_OBJECT_DATA_SOURCE, datasource.getId(), content, Boolean.TRUE.equals(reqVO.getPublish()));
         refreshDatabaseRefs(skill, datasource, assets);
@@ -283,11 +290,13 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (assets.size() < 2) {
             throw new ServiceException("多表Skill至少需要选择两张有效表");
         }
+        // 三级降级：构建本体语义映射
+        Map<String, SemanticTableDTO> ontologyMap = buildOntologyTableMap(reqVO.getDatasourceId());
         Map<Long, List<AssetsAssetColumnDO>> columnMap = collectColumnsForMetadataTables(assets);
         String skillCode = multiTableSkillCode(datasource, assets);
         AiSkillDO oldSkill = aiSkillMapper.selectBySkillCode(skillCode);
         String manualNotes = resolveManualNotes(oldSkill, reqVO.getManualNotes());
-        String content = multiTableSkillContent(skillCode, datasource, assets, columnMap, manualNotes);
+        String content = multiTableSkillContent(skillCode, datasource, assets, columnMap, ontologyMap, manualNotes);
         AiSkillDO skill = upsertGeneratedSkill(skillCode, multiTableSkillName(assets) + "多表问数Skill",
                 TYPE_MULTI_TABLE, BIZ_OBJECT_TABLE_GROUP, null, content, Boolean.TRUE.equals(reqVO.getPublish()));
         refreshMultiTableRefs(skill, datasource, assets, columnMap);
@@ -363,6 +372,31 @@ public class AiSkillServiceImpl implements IAiSkillService {
             }
         }
         return tables;
+    }
+
+    /**
+     * 构建 tableName → SemanticTableDTO 映射，用于模式A（单表独立选层）
+     * 无本体绑定时返回空Map，不影响现有资产/元数据逻辑。
+     */
+    private Map<String, SemanticTableDTO> buildOntologyTableMap(Long datasourceId) {
+        if (datasourceId == null) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            List<SemanticTableDTO> semanticTables = conceptApiService.listSemanticTablesByDatasource(datasourceId);
+            Map<String, SemanticTableDTO> map = new LinkedHashMap<>();
+            if (semanticTables != null) {
+                for (SemanticTableDTO st : semanticTables) {
+                    if (st != null && st.getTableName() != null) {
+                        map.put(st.getTableName().toLowerCase(Locale.ROOT), st);
+                    }
+                }
+            }
+            return map;
+        } catch (Exception ignored) {
+            // 本体服务不可用或该数据源无本体绑定，回退到资产/元数据
+            return new LinkedHashMap<>();
+        }
     }
 
     private AssetsAssetDO toSkillTable(CatalogTableRespDTO table) {
@@ -867,7 +901,8 @@ public class AiSkillServiceImpl implements IAiSkillService {
     }
 
     private String databaseSkillContent(String skillCode, DatasourceDO datasource, List<AssetsAssetDO> assets,
-                                        Map<Long, List<AssetsAssetColumnDO>> columnMap, String manualNotes) {
+                                        Map<Long, List<AssetsAssetColumnDO>> columnMap,
+                                        Map<String, SemanticTableDTO> ontologyMap, String manualNotes) {
         String title = firstNonBlank(datasource.getDatasourceName(), datasource.getDatasourceType(), String.valueOf(datasource.getId()));
         StringBuilder tableRows = new StringBuilder();
         Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap = loadOnlineSensitiveLevels();
@@ -886,6 +921,11 @@ public class AiSkillServiceImpl implements IAiSkillService {
                     .append(escapeTableCell(maxSensitiveLevelText(columns, sensitiveLevelMap))).append(" | ")
                     .append(escapeTableCell(firstNonBlank(asset.getDescription(), ""))).append(" |\n");
         }
+        // 收集本体语义表（独立成段）
+        List<SemanticTableDTO> ontologyTables = new ArrayList<>();
+        if (ontologyMap != null && !ontologyMap.isEmpty()) {
+            ontologyTables.addAll(ontologyMap.values());
+        }
         return "---\n"
                 + "name: " + skillCode + "\n"
                 + "description: " + title + " 整库问数 Skill。用于理解数据库主题、核心表、公共字段、跨表问数边界和质量风险。\n"
@@ -899,6 +939,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "## 数据库主题说明\n\n"
                 + "- 本 Skill 直接根据 DataMaster 元数据管理中的表字段生成。\n"
                 + "- 用于普通问数时优先帮助定位候选表；如果候选表不唯一，应先让用户确认业务主题或表范围。\n\n"
+                + renderOntologySemanticSection(ontologyTables)
                 + renderPermissionRulesForDatabase()
                 + "## 表关系图\n\n"
                 + renderTableRelationGraph(assets, columnMap)
@@ -924,7 +965,8 @@ public class AiSkillServiceImpl implements IAiSkillService {
     }
 
     private String multiTableSkillContent(String skillCode, DatasourceDO datasource, List<AssetsAssetDO> assets,
-                                          Map<Long, List<AssetsAssetColumnDO>> columnMap, String manualNotes) {
+                                          Map<Long, List<AssetsAssetColumnDO>> columnMap,
+                                          Map<String, SemanticTableDTO> ontologyMap, String manualNotes) {
         String title = multiTableSkillName(assets);
         StringBuilder tableSections = new StringBuilder();
         Map<Long, AssetsSensitiveLevelDO> sensitiveLevelMap = loadOnlineSensitiveLevels();
@@ -936,6 +978,11 @@ public class AiSkillServiceImpl implements IAiSkillService {
                     .append("| --- | --- | --- | --- | --- | --- |\n")
                     .append(fieldRows(columnMap.get(asset.getId()), sensitiveLevelMap))
                     .append("\n");
+        }
+        // 收集本体语义表（独立成段）
+        List<SemanticTableDTO> ontologyTables = new ArrayList<>();
+        if (ontologyMap != null && !ontologyMap.isEmpty()) {
+            ontologyTables.addAll(ontologyMap.values());
         }
         return "---\n"
                 + "name: " + skillCode + "\n"
@@ -949,6 +996,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "## 主题说明\n\n"
                 + "- 本 Skill 由用户选择的多张表生成，适合跨表统计、关联查询和报告数据准备。\n"
                 + "- 如果实际业务关联键不在自动识别结果中，需要以人工维护备注或用户补充为准。\n\n"
+                + renderOntologySemanticSection(ontologyTables)
                 + renderPermissionRulesForDatabase()
                 + "## 涉及表和字段\n\n"
                 + tableSections
@@ -1209,6 +1257,47 @@ public class AiSkillServiceImpl implements IAiSkillService {
                     .append(escapeTableCell(columnPermissionNotice(column, sensitiveLevelMap))).append(" |\n");
         }
         return rows.toString();
+    }
+
+    /**
+     * 渲染本体语义段（整库 Skill / 多表 Skill 共用）
+     * 本体表独立成段，字段使用业务属性名 + 物理列映射。
+     * 为空时返回空字符串，不影响现有资产/元数据内容。
+     */
+    private String renderOntologySemanticSection(List<SemanticTableDTO> ontologyTables) {
+        if (ontologyTables == null || ontologyTables.isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append("## 本体语义层\n\n");
+        builder.append("- 以下表已建立本体概念模型，字段使用业务语义名称而非物理列名。\n");
+        builder.append("- 问数时优先使用本体属性语义理解业务含义，再映射到物理列生成 SQL。\n\n");
+        for (SemanticTableDTO table : ontologyTables) {
+            builder.append("### ").append(defaultText(table.getConceptName(), table.getTableName())).append("\n\n");
+            builder.append("- 概念名称：").append(defaultText(table.getConceptName(), "")).append("\n");
+            builder.append("- 概念编码：").append(defaultText(table.getConceptCode(), "")).append("\n");
+            if (StringUtils.isNotBlank(table.getConceptDescription())) {
+                builder.append("- 概念描述：").append(table.getConceptDescription()).append("\n");
+            }
+            builder.append("- 物理表：").append(defaultText(table.getTableName(), "")).append("\n\n");
+            if (table.getProperties() != null && !table.getProperties().isEmpty()) {
+                builder.append("| 业务属性名 | 属性编码 | 数据类型 | 物理列名 | 说明 | 主键 |\n");
+                builder.append("| --- | --- | --- | --- | --- | --- |\n");
+                for (SemanticPropertyDTO prop : table.getProperties()) {
+                    builder.append("| ")
+                            .append(escapeTableCell(defaultText(prop.getPropertyName(), ""))).append(" | ")
+                            .append(escapeTableCell(defaultText(prop.getPropertyCode(), ""))).append(" | ")
+                            .append(escapeTableCell(defaultText(prop.getDataType(), ""))).append(" | ")
+                            .append(escapeTableCell(defaultText(prop.getPhysicalColumnName(), ""))).append(" | ")
+                            .append(escapeTableCell(defaultText(prop.getPropertyDescription(), ""))).append(" | ")
+                            .append(Boolean.TRUE.equals(prop.getIsPrimary()) ? "是" : "").append(" |\n");
+                }
+            } else {
+                builder.append("- 暂未配置属性映射\n");
+            }
+            builder.append("\n");
+        }
+        return builder.toString();
     }
 
     private String renderPermissionRules(List<AssetsAssetColumnDO> columns,

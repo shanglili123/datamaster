@@ -4,13 +4,14 @@
     class="dialog"
     :title="title"
     destroy-on-close
-    :width="1200"
+    :width="900"
+    :style="{ top: '40px' }"
   >
     <a-form
       ref="daDiscoveryTaskRef"
       :model="form"
       :rules="title == '任务详情' ? {} : rules"
-      :label-col="{ style: { width: '146px' } }"
+      :label-col="{ style: { width: '130px' } }"
       @submit.prevent
       :disabled="title == '任务详情'"
     >
@@ -71,6 +72,7 @@
           <a-form-item label="调度周期" name="crontab">
             <a-input
               v-if="title != '任务详情'"
+              class="cron-input"
               v-model:value="form.crontab"
               placeholder="请选择调度周期"
             >
@@ -78,7 +80,7 @@
                 <a-button
                   type="primary"
                   @click="handleShowCron"
-                  style="background-color: #2666fb; color: #fff"
+                  style="background-color: #2666fb; color: #fff; border: none; box-shadow: none; height: 100%;"
                 >
                   配置
                 </a-button>
@@ -99,33 +101,14 @@
             </div>
           </a-form-item>
         </a-col>
-        <a-col :span="12">
-          <a-form-item label="任务状态" name="releaseState">
-            <a-radio-group
-              v-if="title != '任务详情'"
-              v-model:value="form.releaseState"
-              class="el-form-input-width"
-            >
-              <a-radio
-                v-for="dict in dpp_etl_task_status"
-                :key="dict.value"
-                :value="dict.value"
-                :disabled="dict.value == 1"
-              >
-                {{ dict.label }}
-              </a-radio>
-            </a-radio-group>
-            <div class="form-readonly" v-else>
-              {{
-                dpp_etl_task_status.find(
-                  (item) => item.value == form.releaseState
-                )?.label || "-"
-              }}
-            </div>
-          </a-form-item>
-        </a-col>
       </a-row>
-      <div class="h2-title">属性信息</div>
+      <div class="h2-title prop-title" :class="{ collapsed: propCollapsed }" @click="propCollapsed = !propCollapsed">
+        <span class="prop-title-inner">
+          <span class="prop-title-text">属性信息</span>
+          <span class="prop-caret">{{ propCollapsed ? '▸' : '▾' }}</span>
+        </span>
+      </div>
+      <div v-show="!propCollapsed">
       <a-row :gutter="20">
         <a-col :span="12">
           <a-form-item label="任务优先级" name="taskPriority">
@@ -295,6 +278,7 @@
           </a-col>
         </template>
       </a-row>
+      </div>
     </a-form>
     <template #footer>
       <div style="text-align: right">
@@ -334,7 +318,9 @@
 <script setup>
 import { ref, computed, watch, getCurrentInstance } from "vue";
 import Crontab from "@/components/Crontab/index.vue";
+import useUserStore from "@/store/system/user";
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
 const {
   col_etl_task_execution_type,
   dpp_etl_task_status,
@@ -363,6 +349,9 @@ const props = defineProps({
 const emit = defineEmits(["update:visible", "confirm", "save", "回echo完成"]);
 
 const saveLoading = ref(false);
+
+// 属性信息区默认折叠
+const propCollapsed = ref(true);
 
 // 定义表单验证规则
 const rules = {
@@ -460,6 +449,17 @@ watch(
 );
 const handleNodeClick = (val) => {
   console.log("任务目录改变了，当前值：", val);
+  console.log("任务目录 code 字段：", val && val.code, "| form.catCode：", form.value.catCode);
+  // 虚拟根节点（数据集成目录, id=0）不可作为实际任务目录，选中时忽略
+  if (val && (val.code === "0" || val.id === 0 || val.id === "0")) {
+    form.value.catCode = "";
+    form.value.catId = "";
+    return;
+  }
+  // 目录节点可能没有 code 字段（仅 id），此时退回用 id 作为 catCode，保证必填校验能通过
+  if (val && (val.code === undefined || val.code === null || val.code === "")) {
+    form.value.catCode = String(val.id);
+  }
   form.value.catId = val.id;
 };
 // 计算属性处理 v-model
@@ -489,25 +489,45 @@ const saveClose = () => {
     normalizeFlinkSetting();
     applyCurrentUserAsCreator();
     emit("save", form.value);
-  }).catch(() => {});
+  }).catch(() => {
+    // 校验失败不应静默吞掉，提示用户缺失字段
+    proxy.$modal.msgError("请完善必填项后保存");
+  });
 };
 // 保存数据的方法
 const saveData = () => {
   if (saveLoading.value) return;
+  console.log("🚀 [saveData] 开始 validate...");
   daDiscoveryTaskRef.value.validate().then(() => {
+    console.log("✅ [saveData] validate 通过，进入 then");
     saveLoading.value = true;
-    normalizeFlinkSetting();
-    applyCurrentUserAsCreator();
-    emit("confirm", form.value);
-    // 发送回echo完成事件
-    emit("回echo完成", {
-      dataSourceId: props.savedDataSourceId,
-      dataSourceName: props.savedDataSourceName,
-      dataSourceType: props.savedDataSourceType,
-      assetTableId: props.savedAssetTableId
-    });
-  }).catch(() => {
-    console.log("表单校验未通过");
+    try {
+      normalizeFlinkSetting();
+      applyCurrentUserAsCreator();
+      emit("confirm", form.value);
+      // 发送回echo完成事件
+      emit("回echo完成", {
+        dataSourceId: props.savedDataSourceId,
+        dataSourceName: props.savedDataSourceName,
+        dataSourceType: props.savedDataSourceType,
+        assetTableId: props.savedAssetTableId
+      });
+    } catch (e) {
+      console.error("❌ [saveData] then 内部异常：", e);
+      proxy.$modal.msgError("保存异常：" + (e && e.message ? e.message : e));
+    }
+  }).catch((err) => {
+    const flat = (err && err.errorFields || []).map((f) => f.name);
+    console.warn("❌ [saveData] validate 未通过 errors：", flat, "| err=", err, "| form.catCode=", form.value.catCode, "| form.name=", form.value.name, "| executionType=", form.value.executionType, "| taskType=", form.value.taskType);
+    if (flat.length) {
+      proxy.$modal.msgError("请完善必填项：" + flat.join("、"));
+    } else if (err && err.errorFields) {
+      // validate() 返回了空 errorFields —— 一般是某个 form-item 字段访问异常造成
+      console.warn("⚠️ validate 返回空 errorFields，err 详情：", JSON.stringify(err));
+      proxy.$modal.msgError("表单校验异常，请检查控制台后重试");
+    } else {
+      proxy.$modal.msgError("保存失败：" + (err && err.message ? err.message : String(err)));
+    }
   });
 };
 
@@ -565,12 +585,62 @@ function crontabFill(value) {
   form.value.crontab = value;
 }
 const defaultExpandedCats = computed(() => {
-  return props.deptOptions.map((item) => item.id);
+  return props.deptOptions.map((item) => item.code);
 });
 </script>
 <style lang="scss" scoped>
 .blue-text {
   color: #1677ff;
+}
+
+/* 属性信息区可折叠标题 */
+.prop-title {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+
+  &.collapsed {
+    margin-bottom: 0;
+  }
+
+  .prop-title-inner {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .prop-title-text {
+    flex: 1;
+  }
+
+  .prop-caret {
+    color: #909399;
+    font-size: 24px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin-left: 6px;
+    transition: transform 0.2s;
+  }
+
+  &:hover .prop-caret {
+    color: #1677ff;
+  }
+}
+
+/* 任务配置弹窗：限制高度为视口自适应，内容超高时内部滚动，
+   避免整个弹窗被内容撑高超出屏幕（"页面太高"） */
+:deep(.dialog) {
+  max-width: 100vw;
+}
+
+:deep(.dialog .ant-modal-body) {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 :deep(.ant-select) {
@@ -583,6 +653,14 @@ const defaultExpandedCats = computed(() => {
   .ant-select-suffix {
     display: none;
   }
+}
+
+/* 调度周期 addonAfter 内的"配置"按钮：去掉 addon 容器的边框/背景，
+   让按钮与输入框右侧无缝融合（避免"按钮外面还套个框"） */
+:deep(.cron-input .ant-input-group-addon) {
+  padding: 0;
+  border: none;
+  background-color: transparent;
 }
 </style>
 

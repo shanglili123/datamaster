@@ -1,13 +1,18 @@
 package com.datamaster.neo4j.node;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
+import com.datamaster.neo4j.rel.ObjectDecisionRel;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * <P>
@@ -24,6 +29,8 @@ import java.util.Date;
 @Node("ActionExecution")
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ActionExecutionNode {
 
     @Id
@@ -70,4 +77,8 @@ public class ActionExecutionNode {
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date executeTime;
+
+    /** ActionExecution -> Object（决策维度：本次动作执行作用于哪个语义对象） */
+    @Relationship(type = "DECISION_ACTION", direction = Relationship.Direction.OUTGOING)
+    private List<ObjectDecisionRel> objectRels;
 }

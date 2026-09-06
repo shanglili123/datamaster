@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>dataMaster</artifactId>
+        <groupId>com.datamaster</groupId>
+        <version>${dataMaster.version}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>datamaster-ingestion</artifactId>
+    <description>
+        datamaster-ingestion 数据接收子工程
+
+        独立于 datamaster-server 的接收数据工程：
+        消费数据集成输出（Kafka，由集成输出组件产出）-> 数据冲突检查 -> 写入数据仓库（Doris）。
+
+        复用 datamaster-common-common 的 SQL 执行能力（DbQuery / DataSourceFactory / DbQueryProperty）
+        与 datamaster-common-datasource-mgmt 的数据源元信息（IDatasourceApiService / DatasourceRespDTO）。
+
+        通过 @ComponentScan(basePackages={"com.datamaster"}) 与 @MapperScan({"com.datamaster.**.mapper"})
+        由 datamaster-server 聚合装配：组件、Kafka 消费调度、冲突检查、Doris 写入、决策数据到达触发回调。
+    </description>
+    <dependencies>
+        <!-- SQL 执行能力 + kafka-clients + hutool + fastjson -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-common</artifactId>
+        </dependency>
+        <!-- 数据源元信息 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-datasource-mgmt</artifactId>
+        </dependency>
+        <!-- 本体人为编辑登记查询契约（冲突仲裁：按表/主键定位人工编辑），实现由 server 注入 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-ontology-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- mybatis 基础 + 分页 + BaseMapperX -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-mybatis</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 公共配置 / 拦截器 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-common-config</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 接收工程的数据源配置正确性需要依赖数据源管理熔断时也具备 kafka 驱动（common-common 已内置） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

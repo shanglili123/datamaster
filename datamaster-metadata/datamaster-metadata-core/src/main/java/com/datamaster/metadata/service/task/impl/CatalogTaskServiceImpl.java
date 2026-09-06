@@ -25,6 +25,7 @@ import com.datamaster.common.database.constants.DbType;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbName;
 import com.datamaster.common.database.core.DbTable;
+import com.datamaster.common.database.core.DbTableMetadata;
 import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
@@ -64,8 +65,6 @@ import com.datamaster.metadata.service.columnLog.ICatalogColumnLogService;
 import com.datamaster.metadata.service.metadata.ICatalogColumnService;
 import com.datamaster.metadata.service.metadata.ICatalogDbService;
 import com.datamaster.metadata.service.metadata.ICatalogTableService;
-import com.datamaster.metadata.service.metadata.dialect.DatabaseDialect;
-import com.datamaster.metadata.service.metadata.dialect.DatabaseDialectFactory;
 import com.datamaster.metadata.service.qa.IQualityTaskEvaluateService;
 import com.datamaster.metadata.service.qa.IQualityTaskObjService;
 import com.datamaster.metadata.service.qa.IQualityTaskService;
@@ -1537,11 +1536,23 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         // 获取数据库元数据信息，包括数据库类型
         CatalogDbDO CatalogDbDO = CatalogDbMapper.findById(CatalogTableDO.getDbId());
         if (CatalogDbDO != null) {
-            // 使用数据库方言获取表的行数、索引、分区字段等信息
-            DatabaseDialect dialect = DatabaseDialectFactory.getDialect(CatalogDbDO);
-            if (dialect != null) {
+            // 使用统一数据源层（DataSourceFactory + DbQuery）获取表的行数、索引、分区字段等信息
+            try {
+                DbQueryProperty dbQueryProperty = new DbQueryProperty(
+                        CatalogDbDO.getDbType(), CatalogDbDO.getIp(), CatalogDbDO.getPort().longValue(),
+                        CatalogDbDO.getDatasourceConfig());
+                // PG / Kingbase 使用库 + schema 限定
+                if (DbType.KINGBASE8.getDb().equals(dbQueryProperty.getDbType())
+                        || DbType.POSTGRE_SQL.getDb().equals(dbQueryProperty.getDbType())) {
+                    dbQueryProperty.setDbName(CatalogDbDO.getDbName());
+                    if (StringUtils.isNotBlank(CatalogDbDO.getSchemaName())) {
+                        dbQueryProperty.setSid(CatalogDbDO.getSchemaName());
+                    }
+                }
+                DbQuery dbQuery = dataSourceFactory.createDbQuery(dbQueryProperty);
                 // 批量获取表元数据信息
-                DatabaseDialect.TableMetadata metadata = dialect.getTableMetadata(CatalogDbDO, CatalogTableDO.getTableName());
+                DbTableMetadata metadata =
+                        dbQuery.getTableMetadata(dbQueryProperty, CatalogTableDO.getTableName());
                 // 对比索引字段和存储大小
                 if (StringUtils.isNotBlank(tbIndex) && !tbIndex.equals(metadata.getIndexes())) {
                     result = true;
@@ -1562,6 +1573,8 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
                             .append("；\n");
                     type.add("4");
                 }
+            } catch (Exception e) {
+                log.error("检查表更新失败", e);
             }
         }
         reqTable.setUpdateMsg(updateMsg.toString());

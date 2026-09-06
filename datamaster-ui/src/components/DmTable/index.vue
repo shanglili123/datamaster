@@ -97,6 +97,7 @@
         show-size-changer
         show-quick-jumper
         :show-total="(total) => `共 ${total} 条`"
+        :locale="paginationLocale"
         @change="handleAntPageChange"
         @showSizeChange="handleAntSizeChange"
       />
@@ -110,6 +111,7 @@ import { useRouter } from 'vue-router';
 import { InfoCircleFilled as InfoFilled } from '@ant-design/icons-vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import { scrollTo } from '@/utils/scroll-to';
+import paginationLocale from '@/utils/paginationLocale';
 
 defineOptions({
   inheritAttrs: false,

@@ -465,7 +465,9 @@ function getDeptTree() {
       {
         name: "数据集成目录",
         value: "",
+        code: "0",
         id: 0,
+        disabled: true,
         children: children,
       },
     ];

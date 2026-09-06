@@ -9,6 +9,7 @@ import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbName;
 import com.datamaster.common.database.core.DbTable;
+import com.datamaster.common.database.core.DbTableMetadata;
 import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.database.utils.DatabaseUtil;
 
@@ -634,6 +635,128 @@ public class SQLServer2008Dialect extends AbstractDbDialect {
     public String updateTableComment(DbQueryProperty dbQueryProperty, String tableName, String tableComment) {
         String schema = StringUtils.isNotEmpty(dbQueryProperty.getSid()) ? dbQueryProperty.getSid() : "dbo";
         return "EXEC sys.sp_updateextendedproperty @name = N'MS_Description', @value = N'" + DatabaseUtil.escapeSingleQuotes(tableComment) + "', @level0type = N'SCHEMA', @level0name = N'" + schema + "', @level1type = N'TABLE', @level1name = N'" + tableName + "'";
+    }
+
+    @Override
+    public DbTableMetadata tableMetadata(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try {
+            DbTableMetadata metadata = new DbTableMetadata();
+            metadata.setRowCount(getTableRowCount(dbQueryProperty, tableName, conn));
+            metadata.setIndexes(getTableIndexes(dbQueryProperty, tableName, conn));
+            metadata.setPartitionFields(getTablePartitionFields(dbQueryProperty, tableName, conn));
+            metadata.setStorageEngine("SQL Server");
+            fillTableMetadata(dbQueryProperty, tableName, metadata, conn);
+            return metadata;
+        } catch (Exception e) {
+            throw new DataQueryException("采集SQL Server表元数据失败: " + e.getMessage());
+        }
+    }
+
+    private Long getTableRowCount(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + qualifiedTableName(dbQueryProperty, tableName))) {
+            if (rs.next()) {
+                return rs.getLong(1);
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取SQL Server表行数失败: " + e.getMessage());
+        }
+        return 0L;
+    }
+
+    private String getTableIndexes(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String sql = "SELECT i.name FROM sys.indexes i "
+                    + "JOIN sys.tables t ON t.object_id = i.object_id "
+                    + "JOIN sys.schemas s ON s.schema_id = t.schema_id "
+                    + "WHERE s.name = '" + schemaName(dbQueryProperty) + "' AND t.name = '" + tableName + "' "
+                    + "AND i.is_primary_key = 0 AND i.name IS NOT NULL";
+            try (ResultSet rs = stmt.executeQuery(sql)) {
+                StringBuilder indexes = new StringBuilder();
+                while (rs.next()) {
+                    if (indexes.length() > 0) {
+                        indexes.append(", ");
+                    }
+                    indexes.append(rs.getString("name"));
+                }
+                return indexes.toString();
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取SQL Server表索引信息失败: " + e.getMessage());
+        }
+    }
+
+    private String getTablePartitionFields(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String sql = "SELECT DISTINCT c.name FROM sys.indexes i "
+                    + "JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id "
+                    + "JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id "
+                    + "JOIN sys.tables t ON t.object_id = i.object_id "
+                    + "JOIN sys.schemas s ON s.schema_id = t.schema_id "
+                    + "WHERE s.name = '" + schemaName(dbQueryProperty) + "' AND t.name = '" + tableName + "' "
+                    + "AND i.data_space_id IN (SELECT data_space_id FROM sys.partition_schemes)";
+            try (ResultSet rs = stmt.executeQuery(sql)) {
+                StringBuilder fields = new StringBuilder();
+                while (rs.next()) {
+                    if (fields.length() > 0) {
+                        fields.append(", ");
+                    }
+                    fields.append(rs.getString("name"));
+                }
+                return fields.toString();
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("获取SQL Server表分区字段信息失败: " + e.getMessage());
+        }
+    }
+
+    private void fillTableMetadata(DbQueryProperty dbQueryProperty, String tableName, DbTableMetadata metadata, Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            String tableSql = "SELECT CAST(SUM(a.total_pages) * 8 * 1024 AS BIGINT) AS table_size, "
+                    + "CAST(ep.value AS NVARCHAR(4000)) AS table_comment "
+                    + "FROM sys.tables t "
+                    + "JOIN sys.schemas s ON s.schema_id = t.schema_id "
+                    + "LEFT JOIN sys.indexes i ON i.object_id = t.object_id "
+                    + "LEFT JOIN sys.partitions p ON p.object_id = i.object_id AND p.index_id = i.index_id "
+                    + "LEFT JOIN sys.allocation_units a ON a.container_id = p.partition_id "
+                    + "LEFT JOIN sys.extended_properties ep ON ep.major_id = t.object_id AND ep.minor_id = 0 AND ep.name = 'MS_Description' "
+                    + "WHERE s.name = '" + schemaName(dbQueryProperty) + "' AND t.name = '" + tableName + "' "
+                    + "GROUP BY ep.value";
+            try (ResultSet tableRs = stmt.executeQuery(tableSql)) {
+                if (tableRs.next()) {
+                    metadata.setTableSize(tableRs.getInt("table_size"));
+                    metadata.setTableComment(tableRs.getString("table_comment"));
+                }
+            }
+
+            String pkSql = "SELECT c.name FROM sys.indexes i "
+                    + "JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id "
+                    + "JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id "
+                    + "JOIN sys.tables t ON t.object_id = i.object_id "
+                    + "JOIN sys.schemas s ON s.schema_id = t.schema_id "
+                    + "WHERE i.is_primary_key = 1 AND s.name = '" + schemaName(dbQueryProperty) + "' "
+                    + "AND t.name = '" + tableName + "' ORDER BY ic.key_ordinal";
+            try (ResultSet pkRs = stmt.executeQuery(pkSql)) {
+                StringBuilder primaryKeys = new StringBuilder();
+                while (pkRs.next()) {
+                    if (primaryKeys.length() > 0) {
+                        primaryKeys.append(", ");
+                    }
+                    primaryKeys.append(pkRs.getString("name"));
+                }
+                metadata.setPrimaryKey(primaryKeys.toString());
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("批量获取SQL Server表元数据失败: " + e.getMessage());
+        }
+    }
+
+    private String qualifiedTableName(DbQueryProperty dbQueryProperty, String tableName) {
+        return schemaName(dbQueryProperty) + "." + tableName;
+    }
+
+    private String schemaName(DbQueryProperty dbQueryProperty) {
+        return StringUtils.isNotBlank(dbQueryProperty.getSid()) ? dbQueryProperty.getSid() : "dbo";
     }
 
     // ... existing code ...

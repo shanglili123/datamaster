@@ -11,10 +11,13 @@ import com.datamaster.common.database.constants.DbType;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbName;
 import com.datamaster.common.database.core.DbTable;
+import com.datamaster.common.database.core.DbTableMetadata;
 import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.database.utils.DatabaseUtil;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -903,5 +906,96 @@ public class OracleDialect extends AbstractDbDialect {
             return "\"" + property.getDbName() + "\".\"" + tableName + "\"";
         }
         return tableName;
+    }
+
+    /**
+     * 采集 Oracle 表的元数据（行数、索引、分区、存储、注释、存储引擎、主键等）。
+     * <p>
+     * 连接由 {@code conn} 提供，所有者（Owner）由 {@code dbQueryProperty.getDbName()} 提供。
+     *
+     * @param dbQueryProperty 数据源连接属性
+     * @param tableName       表名
+     * @param conn            已建立的数据库连接
+     * @return 表元数据信息
+     */
+    @Override
+    public DbTableMetadata tableMetadata(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        DbTableMetadata metadata = new DbTableMetadata();
+        try {
+            // 获取表行数
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SELECT COUNT(*) FROM " + tableName;
+                ResultSet rs = stmt.executeQuery(sql);
+                if (rs.next()) {
+                    metadata.setRowCount(rs.getLong(1));
+                }
+            }
+
+            // 获取表索引信息
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SELECT INDEX_NAME FROM USER_INDEXES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "' AND INDEX_NAME != 'PK_'";
+                ResultSet rs = stmt.executeQuery(sql);
+                StringBuilder indexes = new StringBuilder();
+                while (rs.next()) {
+                    String indexName = rs.getString("INDEX_NAME");
+                    if (indexes.length() > 0) {
+                        indexes.append(", ");
+                    }
+                    indexes.append(indexName);
+                }
+                metadata.setIndexes(indexes.toString());
+            }
+
+            // 获取表分区字段信息
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SELECT COLUMN_NAME FROM USER_PART_KEY_COLUMNS WHERE NAME = '" + tableName.toUpperCase() + "'";
+                ResultSet rs = stmt.executeQuery(sql);
+                StringBuilder partitionFields = new StringBuilder();
+                while (rs.next()) {
+                    String columnName = rs.getString("COLUMN_NAME");
+                    if (partitionFields.length() > 0) {
+                        partitionFields.append(", ");
+                    }
+                    partitionFields.append(columnName);
+                }
+                metadata.setPartitionFields(partitionFields.toString());
+            }
+
+            // 设置存储引擎
+            metadata.setStorageEngine("Oracle Database");
+
+            // 补充表注释、存储大小、行数与主键
+            try (Statement stmt = conn.createStatement()) {
+                String tableSql = "SELECT t.NUM_ROWS, c.COMMENTS, s.BYTES FROM USER_TABLES t "
+                        + "LEFT JOIN USER_TAB_COMMENTS c ON c.TABLE_NAME = t.TABLE_NAME "
+                        + "LEFT JOIN (SELECT SEGMENT_NAME, SUM(BYTES) BYTES FROM USER_SEGMENTS GROUP BY SEGMENT_NAME) s "
+                        + "ON s.SEGMENT_NAME = t.TABLE_NAME WHERE t.TABLE_NAME = '" + tableName.toUpperCase() + "'";
+                ResultSet tableRs = stmt.executeQuery(tableSql);
+                if (tableRs.next()) {
+                    if (metadata.getRowCount() == null || metadata.getRowCount() == 0L) {
+                        metadata.setRowCount(tableRs.getLong("NUM_ROWS"));
+                    }
+                    metadata.setTableComment(tableRs.getString("COMMENTS"));
+                    metadata.setTableSize(tableRs.getInt("BYTES"));
+                }
+
+                String pkSql = "SELECT cols.COLUMN_NAME FROM USER_CONSTRAINTS cons "
+                        + "JOIN USER_CONS_COLUMNS cols ON cons.CONSTRAINT_NAME = cols.CONSTRAINT_NAME "
+                        + "WHERE cons.CONSTRAINT_TYPE = 'P' AND cons.TABLE_NAME = '" + tableName.toUpperCase() + "' "
+                        + "ORDER BY cols.POSITION";
+                ResultSet pkRs = stmt.executeQuery(pkSql);
+                StringBuilder primaryKeys = new StringBuilder();
+                while (pkRs.next()) {
+                    if (primaryKeys.length() > 0) {
+                        primaryKeys.append(", ");
+                    }
+                    primaryKeys.append(pkRs.getString("COLUMN_NAME"));
+                }
+                metadata.setPrimaryKey(primaryKeys.toString());
+            }
+        } catch (Exception e) {
+            throw new DataQueryException("采集Oracle表元数据失败: " + e.getMessage());
+        }
+        return metadata;
     }
 }

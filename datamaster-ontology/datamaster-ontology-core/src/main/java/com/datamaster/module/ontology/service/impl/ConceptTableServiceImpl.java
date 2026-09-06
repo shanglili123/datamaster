@@ -7,9 +7,6 @@ import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
-import com.datamaster.common.utils.StringUtils;
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
 import com.datamaster.module.ontology.convert.ConceptTableConvert;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTablePageReqVO;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTablePreviewRespVO;
@@ -19,6 +16,8 @@ import com.datamaster.module.ontology.dal.dataobject.ConceptTableDO;
 import com.datamaster.module.ontology.dal.mapper.ConceptTableMapper;
 import com.datamaster.module.ontology.dal.mapper.PropertyColumnMapper;
 import com.datamaster.module.ontology.service.IConceptTableService;
+import com.datamaster.module.ontology.service.query.TypedQueryBuilder;
+import com.datamaster.module.ontology.service.query.TypedQuerySpec;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -26,7 +25,6 @@ import javax.annotation.Resource;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -103,62 +101,40 @@ public class ConceptTableServiceImpl implements IConceptTableService {
         DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
         try {
             int safeLimit = (limit == null || limit <= 0) ? 20 : Math.min(limit, 100);
-            // 解析过滤条件：{物理列: 值}，列名必须命中表元数据白名单，值走 NamedParameter 占位符防注入
-            Map<String, String> filterMap = Collections.emptyMap();
-            if (StringUtils.hasText(filters)) {
-                try {
-                    JSONObject obj = JSON.parseObject(filters);
-                    if (obj != null && !obj.isEmpty()) {
-                        filterMap = new LinkedHashMap<>();
-                        for (String key : obj.keySet()) {
-                            filterMap.put(key, String.valueOf(obj.get(key)));
-                        }
-                    }
-                } catch (Exception e) {
-                    // 过滤参数非法时忽略，退化为全量预览
-                }
-            }
             // 列以元数据为准（保证顺序与类型），取不到元数据时退化为按首行 key 兜底
-            List<String> columns;
+            List<String> columns = new ArrayList<>();
+            java.util.Set<String> textColumns = new java.util.HashSet<>();
             try {
-                columns = new ArrayList<>();
                 for (DbColumn col : dbQuery.getTableColumns(property, entity.getTableName())) {
                     columns.add(col.getColName());
+                    if (TypedQueryBuilder.isTextType(col.getDataType())) {
+                        textColumns.add(col.getColName());
+                    }
                 }
             } catch (Exception e) {
                 columns = Collections.emptyList();
             }
-            Map<String, Object> queryParams = new LinkedHashMap<>();
-            StringBuilder sql = new StringBuilder("SELECT * FROM ").append(entity.getTableName());
-            if (!filterMap.isEmpty()) {
-                List<String> whitelist = columns.isEmpty()
-                        ? Collections.emptyList()
-                        : Collections.unmodifiableList(columns);
-                StringBuilder where = new StringBuilder();
-                int idx = 0;
-                for (Map.Entry<String, String> entry : filterMap.entrySet()) {
-                    String column = entry.getKey();
-                    String value = entry.getValue();
-                    if (column == null || column.isEmpty() || value == null || value.isEmpty()) {
-                        continue;
-                    }
-                    // 物理列白名单校验：过滤条件里的列必须真实存在于目标表，防注入
-                    if (columns.isEmpty() || !whitelist.contains(column)) {
-                        continue;
-                    }
-                    String paramName = "pv" + (idx++);
-                    if (where.length() > 0) {
-                        where.append(" AND ");
-                    }
-                    where.append(column).append(" = :").append(paramName);
-                    queryParams.put(paramName, value);
-                }
-                if (where.length() > 0) {
-                    sql.append(" WHERE ").append(where);
-                }
+            // 类型化过滤/排序/投影/关键字：统一白名单校验 + NamedParameter 防注入；
+            // 跨列模糊仅作用于文本列，避免数值/日期列 LIKE 类型错误
+            List<String> whitelist = columns.isEmpty() ? Collections.emptyList()
+                    : Collections.unmodifiableList(columns);
+            TypedQuerySpec spec = TypedQueryBuilder.parse(filters);
+            TypedQueryBuilder.Compiled compiled = TypedQueryBuilder.compile(spec, whitelist, textColumns);
+
+            StringBuilder sql = new StringBuilder();
+            if (compiled.hasProjection()) {
+                sql.append("SELECT ").append(compiled.projection).append(" FROM ").append(entity.getTableName());
+            } else {
+                sql.append("SELECT * FROM ").append(entity.getTableName());
+            }
+            if (compiled.hasWhere()) {
+                sql.append(" WHERE ").append(compiled.where);
+            }
+            if (compiled.hasOrderBy()) {
+                sql.append(" ORDER BY ").append(compiled.orderBy);
             }
             sql.append(" LIMIT ").append(safeLimit);
-            List<Map<String, Object>> rows = dbQuery.queryList(sql.toString(), queryParams, 0);
+            List<Map<String, Object>> rows = dbQuery.queryList(sql.toString(), compiled.params, 0);
             if (columns.isEmpty() && !rows.isEmpty()) {
                 columns = new ArrayList<>(rows.get(0).keySet());
             }

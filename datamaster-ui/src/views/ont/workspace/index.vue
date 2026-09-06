@@ -29,7 +29,13 @@
           <RelationPanel ref="relationPanelRef" v-if="visited.relation" v-show="activeTab === 'relation'" :ontology-id="ontologyId" />
         </a-tab-pane>
         <a-tab-pane key="action" tab="动作管理">
-          <ActionPanel ref="actionPanelRef" v-if="visited.action" v-show="activeTab === 'action'" :ontology-id="ontologyId" />
+          <ActionPanel ref="actionPanelRef" v-if="visited.action" v-show="activeTab === 'action'" :ontology-id="ontologyId" @changed="onActionChanged" />
+        </a-tab-pane>
+        <a-tab-pane key="workflow" tab="动作编排">
+          <WorkflowPanel ref="workflowPanelRef" v-if="visited.workflow" v-show="activeTab === 'workflow'" :ontology-id="ontologyId" />
+        </a-tab-pane>
+        <a-tab-pane key="object" tab="对象实例">
+          <ObjectPanel ref="objectPanelRef" v-if="visited.object" v-show="activeTab === 'object'" :ontology-id="ontologyId" @switch-tab="onSwitchTab" />
         </a-tab-pane>
       </a-tabs>
     </div>
@@ -44,6 +50,8 @@ import PropertyPanel from './components/PropertyPanel.vue'
 import RelationPanel from './components/RelationPanel.vue'
 import GraphPanel from './components/GraphPanel.vue'
 import ActionPanel from './components/ActionPanel.vue'
+import WorkflowPanel from './components/WorkflowPanel.vue'
+import ObjectPanel from './components/ObjectPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,17 +61,25 @@ const ontology = ref({})
 const activeTab = ref('graph')
 // 懒挂载常驻：首次进入的 tab 才挂载，之后保持存活（v-show 切换），避免反复销毁重建/重复请求导致的卡顿
 const visited = reactive({ graph: true })
+// 支持外部直达：对象实例页待审批时 ?tab=action 跳转到审批中心（动作管理 tab）
+const queriedTab = route.query.tab
+if (queriedTab && ['graph', 'concept', 'property', 'relation', 'action', 'workflow', 'object'].includes(queriedTab)) {
+  activeTab.value = queriedTab
+  visited[queriedTab] = true
+}
 const conceptPanelRef = ref(null)
 const propertyPanelRef = ref(null)
 const relationPanelRef = ref(null)
 const actionPanelRef = ref(null)
+const workflowPanelRef = ref(null)
+const objectPanelRef = ref(null)
 // 图谱变更后仅标记各面板为脏，切换到对应面板时再刷新，避免一次性触发全部请求
-const dirty = reactive({ concept: false, property: false, relation: false, action: false })
+const dirty = reactive({ concept: false, property: false, relation: false, action: false, workflow: false, object: false })
 
 watch(activeTab, key => {
   visited[key] = true
   if (dirty[key]) {
-    const panelRef = { concept: conceptPanelRef, property: propertyPanelRef, relation: relationPanelRef, action: actionPanelRef }[key]
+    const panelRef = { concept: conceptPanelRef, property: propertyPanelRef, relation: relationPanelRef, action: actionPanelRef, workflow: workflowPanelRef, object: objectPanelRef }[key]
     if (panelRef?.value && typeof panelRef.value.reload === 'function') {
       panelRef.value.reload()
       dirty[key] = false
@@ -76,6 +92,20 @@ function onGraphChanged() {
   dirty.property = true
   dirty.relation = true
   dirty.action = true
+  dirty.workflow = true
+  dirty.object = true
+}
+
+function onActionChanged() {
+  dirty.workflow = true
+}
+
+// ObjectPanel 行操作待审批 → 切到「动作管理」tab（审批中心/执行记录区）
+function onSwitchTab(key) {
+  visited[key] = true
+  // 跳到动作管理时强制刷新执行记录，确保能看到刚提交的待审批单
+  if (key === 'action') dirty.action = true
+  activeTab.value = key
 }
 
 function statusText(status) {

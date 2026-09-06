@@ -4,6 +4,7 @@ import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.ontology.controller.admin.property.vo.PropertyPageReqVO;
 import com.datamaster.module.ontology.controller.admin.property.vo.PropertyRespVO;
 import com.datamaster.module.ontology.controller.admin.property.vo.PropertySaveReqVO;
+import com.datamaster.module.ontology.controller.admin.property.vo.PropertyPrimaryReqVO;
 
 /**
  * 本体属性 Service 接口
@@ -41,6 +42,9 @@ public interface IPropertyService {
      * @return 影响行数
      */
     Integer updateProperty(PropertySaveReqVO updateReqVO);
+
+    /** 设置概念的主属性；普通概念一个，联合主键概念可多个。 */
+    Integer setPrimaryProperties(PropertyPrimaryReqVO reqVO);
 
     /**
      * 删除属性

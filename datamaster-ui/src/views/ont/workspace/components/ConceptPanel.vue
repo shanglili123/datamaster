@@ -40,6 +40,7 @@
         </template>
         <template v-else-if="column.key === 'action'">
           <a-button type="link" size="small" @click="openBindTable(record)" v-hasPermi="['ont:concept:edit']">绑定表</a-button>
+          <a-button type="link" size="small" @click="openPrimaryProperty(record)" v-hasPermi="['ont:property:edit']">设置主属性</a-button>
           <a-button type="link" size="small" @click="handleUpdate(record)" v-hasPermi="['ont:concept:edit']">修改</a-button>
           <a-button type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['ont:concept:remove']">删除</a-button>
         </template>
@@ -61,7 +62,7 @@
     />
 
     <!-- 概念对话框 -->
-    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="OK" cancel-text="Cancel" @ok="submitForm" @cancel="cancel">
+    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
       <a-form ref="conceptRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="概念名称" name="name">
           <a-input v-model:value="form.name" placeholder="请输入概念名称" />
@@ -98,6 +99,34 @@
 
     <!-- 概念绑表对话框 -->
     <ConceptBindModal v-model="bindOpen" :concept-id="bindConcept.id" :concept-name="bindConcept.name" @success="getList" />
+
+    <a-modal
+      v-model:open="primaryOpen"
+      :title="'设置主属性 - ' + (primaryConcept.name || '')"
+      width="560px"
+      ok-text="保存"
+      cancel-text="取消"
+      :confirm-loading="primarySaving"
+      @ok="savePrimaryProperty"
+    >
+      <a-alert
+        type="info"
+        show-icon
+        message="物理表有主键时会在字段映射保存后自动采用；没有物理主键时，可在这里选择稳定且唯一的属性。联合主键可选择多个。"
+        style="margin-bottom:12px"
+      />
+      <a-form-item label="主属性" required>
+        <a-select
+          v-model:value="primaryPropertyIds"
+          mode="multiple"
+          :options="primaryPropertyOptions"
+          placeholder="请选择已绑定物理字段的属性"
+          show-search
+          option-filter-prop="label"
+        />
+      </a-form-item>
+      <a-empty v-if="!primaryLoading && !primaryPropertyOptions.length" description="暂无已映射属性，请先绑定表并完成属性字段映射" />
+    </a-modal>
   </div>
 </template>
 
@@ -106,6 +135,9 @@ import { listConcept, getConcept, addConcept, updateConcept, delConcept } from '
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { genCode } from '@/utils/codeGen'
 import ConceptBindModal from './bindings/ConceptBindModal.vue'
+import { listProperty, setPrimaryProperties } from '@/api/ont/property'
+import { listConceptTable } from '@/api/ont/conceptTable'
+import { listPropertyColumn } from '@/api/ont/propertyColumn'
 
 const props = defineProps({
   ontologyId: {
@@ -132,8 +164,69 @@ const columns = [
   { title: '排序', dataIndex: 'sortOrder', align: 'center', width: 70 },
   { title: '状态', key: 'status', align: 'center', width: 90 },
   { title: '描述', dataIndex: 'description', align: 'left', ellipsis: true },
-  { title: '操作', key: 'action', align: 'center', width: 140, fixed: 'right' }
+  { title: '操作', key: 'action', align: 'center', width: 230, fixed: 'right' }
 ]
+
+const primaryOpen = ref(false)
+const primarySaving = ref(false)
+const primaryLoading = ref(false)
+const primaryConcept = ref({})
+const primaryPropertyIds = ref([])
+const primaryPropertyOptions = ref([])
+
+function rowsOf(res) {
+  return Array.isArray(res.data) ? res.data : (res.data?.rows || [])
+}
+
+async function openPrimaryProperty(concept) {
+  primaryConcept.value = concept
+  primaryPropertyIds.value = []
+  primaryPropertyOptions.value = []
+  primaryOpen.value = true
+  primaryLoading.value = true
+  try {
+    const [propertyRes, tableRes] = await Promise.all([
+      listProperty({ conceptId: concept.id, pageNum: 1, pageSize: 1000 }),
+      listConceptTable({ conceptId: concept.id })
+    ])
+    const properties = rowsOf(propertyRes)
+    const tables = rowsOf(tableRes)
+    const mappedIds = new Set()
+    for (const table of tables) {
+      const mappingRes = await listPropertyColumn(table.id)
+      rowsOf(mappingRes).forEach(mapping => mappedIds.add(String(mapping.propertyId)))
+    }
+    primaryPropertyOptions.value = properties
+      .filter(property => mappedIds.has(String(property.id)))
+      .map(property => ({
+        value: property.id,
+        label: `${property.name}（${property.code}）${property.isPrimary ? ' · 当前主属性' : ''}`
+      }))
+    primaryPropertyIds.value = properties
+      .filter(property => property.isPrimary && mappedIds.has(String(property.id)))
+      .map(property => property.id)
+  } finally {
+    primaryLoading.value = false
+  }
+}
+
+async function savePrimaryProperty() {
+  if (!primaryPropertyIds.value.length) {
+    proxy.$modal.msgError('请至少选择一个主属性')
+    return
+  }
+  primarySaving.value = true
+  try {
+    await setPrimaryProperties({
+      conceptId: primaryConcept.value.id,
+      propertyIds: primaryPropertyIds.value
+    })
+    proxy.$modal.msgSuccess('主属性已更新')
+    primaryOpen.value = false
+  } finally {
+    primarySaving.value = false
+  }
+}
 
 const queryParams = reactive({
   pageNum: 1,

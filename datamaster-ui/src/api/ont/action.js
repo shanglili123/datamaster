@@ -59,3 +59,7 @@ export function listExecution(query) {
 export function getPendingApprovals(ontologyId) {
   return request({ url: '/ont/action/execution/pending', method: 'get', params: { ontologyId } })
 }
+
+export function getApprovalChain(executionId) {
+  return request({ url: '/ont/action/execution/approval-chain/' + executionId, method: 'get' })
+}

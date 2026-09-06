@@ -58,6 +58,9 @@ public class FunctionDO extends BaseEntity {
     /** 描述 */
     private String description;
 
+    /** 函数定义版本号：提交执行时冻结到执行记录，执行前按函数体哈希复核 */
+    private Integer version;
+
     @TableLogic
     private Integer delFlag;
 }

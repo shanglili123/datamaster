@@ -5,6 +5,7 @@ import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.ontology.controller.admin.property.vo.PropertyPageReqVO;
 import com.datamaster.module.ontology.controller.admin.property.vo.PropertyRespVO;
 import com.datamaster.module.ontology.controller.admin.property.vo.PropertySaveReqVO;
+import com.datamaster.module.ontology.controller.admin.property.vo.PropertyPrimaryReqVO;
 import com.datamaster.module.ontology.service.IPropertyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -53,6 +54,13 @@ public class PropertyController {
     @PutMapping
     public CommonResult<Integer> edit(@Valid @RequestBody PropertySaveReqVO updateReqVO) {
         return CommonResult.success(propertyService.updateProperty(updateReqVO));
+    }
+
+    @Operation(summary = "设置概念主属性")
+    @PreAuthorize("@ss.hasPermi('ont:property:edit')")
+    @PutMapping("/primary")
+    public CommonResult<Integer> setPrimary(@Valid @RequestBody PropertyPrimaryReqVO reqVO) {
+        return CommonResult.success(propertyService.setPrimaryProperties(reqVO));
     }
 
     @Operation(summary = "删除属性")

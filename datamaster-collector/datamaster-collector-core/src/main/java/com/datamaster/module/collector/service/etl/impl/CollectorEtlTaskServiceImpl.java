@@ -34,6 +34,7 @@ import com.datamaster.common.enums.TaskCatEnum;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.JSONUtils;
+import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.common.utils.uuid.IdUtils;
@@ -1334,6 +1335,10 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         createReqVO.setCatCode(CollectorEtlNewNodeSaveReqVO.getCatCode());
         createReqVO.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId());
         createReqVO.setSpaceCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getSpaceCode()));
+        // 创建人(负责人)未传时默认为当前登录用户，避免 col_etl_task.person_charge 非空约束导致新建任务失败
+        if (StringUtils.isBlank(CollectorEtlNewNodeSaveReqVO.getPersonCharge())) {
+            CollectorEtlNewNodeSaveReqVO.setPersonCharge(String.valueOf(SecurityUtils.getUserId()));
+        }
         createReqVO.setPersonCharge(CollectorEtlNewNodeSaveReqVO.getPersonCharge());
         createReqVO.setContactNumber(CollectorEtlNewNodeSaveReqVO.getContactNumber());
         createReqVO.setDescription(CollectorEtlNewNodeSaveReqVO.getDescription());

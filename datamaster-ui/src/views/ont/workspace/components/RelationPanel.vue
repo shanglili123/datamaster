@@ -61,7 +61,7 @@
     />
 
     <!-- 关系对话框 -->
-    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="OK" cancel-text="Cancel" @ok="submitForm" @cancel="cancel">
+    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
       <a-form ref="relationRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="关系名称" name="name">
           <a-input v-model:value="form.name" placeholder="请输入关系名称" />

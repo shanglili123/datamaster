@@ -6,8 +6,10 @@ import com.datamaster.common.database.constants.DbQueryProperty;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbName;
 import com.datamaster.common.database.core.DbTable;
+import com.datamaster.common.database.core.DbTableMetadata;
 import com.datamaster.common.database.utils.DatabaseUtil;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -574,6 +576,22 @@ public class DorisDialect extends AbstractDbDialect {
     public String updateTableComment(DbQueryProperty dbQueryProperty, String tableName, String tableComment) {
         String fullTableName = getTableName(dbQueryProperty, tableName);
         return "ALTER TABLE " + fullTableName + " MODIFY COMMENT '" + DatabaseUtil.escapeSingleQuotes(tableComment) + "'";
+    }
+
+    /**
+     * 采集 Doris 表的元数据。
+     * <p>
+     * Doris 兼容 MySQL 的 information_schema，因此复用 {@link MySqlDialect#tableMetadata} 的采集逻辑，
+     * 并在存储引擎缺失时回退为 "Doris"。
+     */
+    @Override
+    public DbTableMetadata tableMetadata(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        MySqlDialect mySqlDialect = new MySqlDialect();
+        DbTableMetadata metadata = mySqlDialect.tableMetadata(dbQueryProperty, tableName, conn);
+        if (StringUtils.isBlank(metadata.getStorageEngine())) {
+            metadata.setStorageEngine("Doris");
+        }
+        return metadata;
     }
 
     // ... existing code ...

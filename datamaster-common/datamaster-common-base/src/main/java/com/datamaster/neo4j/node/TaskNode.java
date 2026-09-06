@@ -3,8 +3,10 @@
 package com.datamaster.neo4j.node;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
@@ -26,6 +28,8 @@ import java.util.List;
 @Node("Task")
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TaskNode {
     @Id
     @GeneratedValue

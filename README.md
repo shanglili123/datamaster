@@ -69,11 +69,12 @@ DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的
 
 ```text
 datamaster-server        后端启动入口，聚合业务模块并提供运行配置
-datamaster-common        公共基础能力、数据源、MyBatis、安全、缓存、WebSocket
+datamaster-common        公共基础能力：数据源、SQL 执行（DbQuery）、MyBatis、安全、缓存、WebSocket
 datamaster-system        系统管理：用户、角色、菜单、部门、字典、权限
 datamaster-taxonomy      空间、分类、主题、源系统、规则等治理元数据
 datamaster-standards     数据标准、标准文档、数据元
-datamaster-assets        数据资产、数据源管理、资产申请、字段权限、AI 问数资产侧能力
+datamaster-assets        数据资产、数据源管理、资产申请、字段权限、表治理权限校验、脱敏；依赖元数据（metadata）
+datamaster-ontology      本体模型：概念、关系、属性、动作/函数（概念计算引擎）；依赖资产
 datamaster-collector     数据采集、ETL 任务、调度任务编排和任务实例管理
 datamaster-service       数据服务 API 发布、SQL 执行、接口调用、限流和缓存
 datamaster-governance    数据治理、数据标准、数据建模
@@ -81,6 +82,7 @@ datamaster-metadata      元数据探查与质量探查（含原 catalog 元数�
 datamaster-api-ds        DolphinScheduler API 适配层
 datamaster-flinkx-core   FlinkX / ChunJun 任务 JSON 转换能力
 datamaster-quality       质量探查模块
+datamaster-ai            AI 问数、SQL 生成、Skill 管理、DB-GPT 集成；依赖本体
 datamaster-ui            Vue 3 + Vite 前端
 sql                      数据库脚本
 docs                     项目文档
@@ -110,8 +112,9 @@ datamaster-ui/
 
 | 子模块 | 职责 |
 | --- | --- |
-| `datamaster-common-common` | 公共注解、枚举、工具类、数据库方言、统一返回、异常处理 |
+| `datamaster-common-common` | 公共注解、枚举、工具类、统一返回、异常处理；**数据库 SQL 执行能力**（`DbQuery` 接口、`DataSourceFactory`、`DbQueryProperty`、数据库方言、查询工厂） |
 | `datamaster-common-datasource` | 动态数据源、连接管理、安全认证、Redis 封装 |
+| `datamaster-common-datasource-mgmt` | 公共数据源管理（`IDatasourceApiService`、`IDatasourceMgmtService`、`DatasourceRespDTO`、`DatasourceSpaceRelMgmtMapper`） |
 | `datamaster-common-config` | 公共配置、拦截器、轻量定时能力 |
 | `datamaster-common-mybatis` | MyBatis-Plus 配置、分页、数据权限相关扩展 |
 | `datamaster-common-websocket` | WebSocket 消息推送 |
@@ -136,16 +139,19 @@ datamaster-ui/
 
 ### 4.5 datamaster-assets
 
-数据资产核心模块，负责数据源、资产、资产字段、资产申请、资产权限和 AI 问数资产侧能力。
+数据资产核心模块，负责数据源、资产、资产字段、资产申请、资产权限、表治理权限校验、脱敏和 AI 问数资产侧能力。
+
+**依赖关系**：资产依赖 `datamaster-metadata`（元数据）获取库表字段结构，是元数据的主要业务消费方。
 
 主要职责：
 
 - 数据源注册、测试连接、配置保存、同步调度平台
 - 资产登记、资产目录、字段管理
-- 数据源级、表级、字段级访问控制
+- 数据源级、表级、字段级访问控制（`AssetsTableGovernanceApiServiceImpl`，统一权限校验入口）
 - 资产申请和审批
 - 数据预览、字段脱敏、用户数据权限等级控制
-- 为数据服务、采集、质量和 AI 问数提供数据源与资产能力
+- 为本体、数据服务、采集、质量和 AI 问数提供数据源与资产能力
+- 未命中资产时回退元数据目录（`CatalogTableApiService`）作为表结构依据
 
 ### 4.6 datamaster-collector
 
@@ -177,6 +183,8 @@ datamaster-ui/
 
 元数据探查与质量探查模块（由 datamaster-catalog 与 datamaster-quality 合并而来），负责采集外部数据源的库、表、字段、索引、分区、存储等结构信息，维护目录和版本，并对库表执行质量规则探查、产出质量报告。
 
+作为数据底层，为 `datamaster-assets`（资产）、`datamaster-ai`（AI 问数）、`datamaster-service`（数据服务）等模块提供表结构元数据。
+
 ### 4.9 datamaster-api-ds
 
 DolphinScheduler HTTP API 适配层，封装项目、任务、调度、执行、上下线、数据源同步等接口。
@@ -193,7 +201,22 @@ FlinkX / ChunJun 转换核心，负责将平台的输入、转换、输出配置
 
 ### 4.12 datamaster-ui
 
-前端工程，提供空间、数据源、资产、目录、标准、采集、ETL、质量、服务、AI 问数等页面。
+前端工程，提供空间、数据源、资产、目录、标准、采集、ETL、质量、服务、本体、AI 问数等页面。
+
+### 4.13 datamaster-ontology
+
+本体模型模块（概念计算引擎），负责把底层数据抽象成语义层，供 AI 问数等上层模块以业务概念进行推理。
+
+**依赖关系**：本体依赖 `datamaster-assets`（资产），获取表权限与数据源能力。
+
+主要职责：
+
+- 本体管理：Ontology 本体定义
+- 概念（Concept）：业务实体建模，绑定物理表
+- 关系（Relation）：概念之间的关联，绑定关联表
+- 属性（Property）：概念的字段语义映射
+- 动作（Action）/ 函数（Function）：封装语义化操作；函数升级为「概念计算引擎」——单主概念 + 可选关系作为数据来源，批处理注入脚本（`input.source.rows` / `input.relations.<code>`），脚本输出 JSON 数组，可选按主键 UPSERT 回写输出目标概念物理表（`READ_LIMIT` 默认 5000）
+- SQL 能力复用 `datamaster-common` 的 `DbQuery`/`DataSourceFactory`，权限复用 `datamaster-assets` 的 `AssetsTableGovernanceApiServiceImpl.checkTableAccess`（entrance=ONTOLOGY_*）
 
 ## 5. 核心业务流程
 
@@ -327,14 +350,24 @@ AST_DATASOURCE_SPACE_REL
 
 ### 5.10 AI 问数
 
-AI 问数基于空间、资产、字段、权限和会话上下文提供自然语言问数能力。
+AI 问数基于空间、本体、资产、字段、权限和会话上下文提供自然语言问数能力。
+
+**依赖模型**：AI 问数依赖 `datamaster-ontology`（本体）作为统一语义入口，本体内部再逐级降级到资产与元数据：
+
+```text
+AI 请求语义数据
+  -> 优先走本体（概念/属性/关系/动作，语义层查询）
+  -> 无概念映射时，回退资产（表权限 + 表结构）
+  -> 资产也无登记时，兜底元数据（裸表结构）
+  -> 返回统一语义化结果给 AI
+```
 
 ```text
 选择空间和数据范围
-  -> 发起问数
-  -> 生成 SQL
-  -> 权限校验
-  -> 执行查询
+  -> 发起问数（按数据成熟度选层：本体 / 资产 / 元数据）
+  -> 生成 SQL / 构造 Skill
+  -> 权限校验（resolveTable / checkTableAccess）
+  -> 执行查询（本体动作 / DB-GPT）
   -> 返回结果 / 图表 / 报告
 ```
 
@@ -455,6 +488,70 @@ Asset Column
 - `dg:desensitizewhitelist:*`
 - `dg:Standardsdesensitizelist:*`
 
+## 5.12 数据血缘
+
+数据血缘基于 Neo4j 图数据库（可选能力，`datamaster-common/datamaster-common-base` 模块），以 `LineageDataService` 为统一入口，通过开关 `datamaster.lineage.enabled`（默认 false，生产环境可用环境变量 `LINEAGE_ENABLED` 覆盖）控制装配。
+
+### 5.12.1 可插拔机制（关键）
+
+`LineageDataService` 被多处业务以 `@Autowired(required = false) + null 判空` 方式注入：
+
+| 注入方 | 用途 | 开关关闭时的行为 |
+| --- | --- | --- |
+| `ObjectLineageServiceImpl` | 对象血缘读取（数据/决策维度） | 静默跳过，仅返回 SQL 派生的版本/权限维度 |
+| `ActionExecutionServiceImpl` | 动作血缘写入（对象节点 + 决策关系） | 静默跳过，动作执行主流程不受影响 |
+| `AssetsAssetServiceImpl` | 资产表级血缘读取 | 返回空血缘，资产详情正常展示 |
+| `ObjectInstanceQueryServiceImpl` | 对象实例查询时写数据维度 MATERIALIZES 关系 | 静默跳过 |
+
+即：`LINEAGE_ENABLED=false` 或未安装 Neo4j 时，血缘完全不影响任何业务主流程；只有开启后血缘才真正落库并展示。
+
+### 5.12.2 两条血缘链路
+
+**（1）表级血缘（数据资产侧）**
+
+- 入口：`AssetsAssetServiceImpl.dataLineage(id)` → `LineageDataService.lineage(hostPort, tableName)`
+- 展示某张物理表的上/下游血缘：当前表、上游源表、下游目标表，以及连接它们的 ETL Task（`TABLE_TO_TASK` / `TASK_TO_TABLE` 关系），并用 Task 最新执行状态/时间回填节点
+- 写入来源：collector ETL 发布时维护表↔任务关系（`LineageDataService.save()/saveTable()`）
+
+**（2）对象血缘（本体语义层，四维度）**
+
+- 入口：`ObjectLineageServiceImpl.objectLineage(conceptId)` → `LineageDataService.objectLineage()`
+- 四个维度中仅「数据 + 决策」落 Neo4j，另两个维度实时派生：
+
+| 维度 | 数据来源 |
+| --- | --- |
+| 数据 | Neo4j：`Object -[MATERIALIZES]-> Table`（对象由物理表支撑）及表级上/下游 |
+| 决策 | Neo4j：`ActionExecution -[DECISION_ACTION]-> Object`（动作执行消费/产出该对象） |
+| 版本 | SQL：`ONT_ACTION_EXECUTION.beforeData/afterData` 快照派生时间线（不落 Neo4j） |
+| 权限 | 资产统一权限入口 `resolveTable`（entrance=`ONTOLOGY_OBJECT_QUERY`）实时计算（不落 Neo4j） |
+
+- 写入来源：`ActionExecutionServiceImpl.writeActionLineageSilently()` 在本体动作（CREATE/UPDATE/DELETE）执行成功/失败后调用 `saveObject()` + `saveActionExecution()`，全部 `try/catch` 静默，绝不影响执行主流程；`ObjectInstanceQueryServiceImpl` 在对象实例查询时维护 `MATERIALIZES` 关系。
+
+### 5.12.3 后端接口
+
+| 接口 | 用途 |
+| --- | --- |
+| `GET /ast/asset/dataLineage/{id}` | 资产详情的表级血缘图 |
+| `GET /ont/object-instance/lineage/{conceptId}` | 本体对象实例的对象血缘（四维度） |
+
+### 5.12.4 前端位置
+
+| 功能 | 前端文件 |
+| --- | --- |
+| 资产详情「表」Tab 血缘图 | `datamaster-ui/src/views/col/asset/detail/table/lineage.vue` |
+| 资产详情页容器（引入血缘 Tab） | `datamaster-ui/src/views/col/asset/detail/index.vue` |
+| 对象血缘弹窗（graph/决策/版本/权限 四 Tab） | `datamaster-ui/src/views/ont/object/components/ObjectLineageDialog.vue` |
+| 对象血缘图组件 | `datamaster-ui/src/views/ont/object/components/ObjectLineageGraph.vue` |
+| 对象血缘图节点组件 | `datamaster-ui/src/views/ont/object/components/ObjectNode.vue` |
+| 对象实例列表页（打开血缘弹窗） | `datamaster-ui/src/views/ont/object/index.vue` |
+| 资产血缘 API | `datamaster-ui/src/api/ast/asset/asset.js`（`dataLineage`） |
+
+> 补充：`datamaster-ui/src/views/meta/analyses/lineage/index.vue`、`LineageAnalysis.vue`（元数据未发布表详情）等亦含"线分析"类页面，属于元数据血缘分析展示，与上述数据/对象血缘同源或复用图组件。
+
+### 5.12.5 基础设施
+
+Neo4j 为可选中间件（见 7.3）。连接配置使用 Spring Boot 标准前缀 `spring.data.neo4j.uri/username/password`，`Neo4jLineageConfig` 在 `LINEAGE_ENABLED=true` 时装配全部 Repository 与事务管理器。
+
 ## 6. 权限控制体系
 
 平台权限分为系统权限、空间权限和数据权限。
@@ -507,6 +604,64 @@ Asset Column
   -> 提交（submitExecution）与执行（executeExecution）双重校验，
      执行阶段复用提交快照的 spaceId/spaceCode 防权限被回收后绕过
 ```
+
+### 6.4 跨模块权限集中架构
+
+平台的表级/字段级权限校验统一收敛在 `datamaster-assets` 的 `AssetsTableGovernanceApiServiceImpl`，各业务模块通过 `datamaster-assets-interface` 依赖资产接口，实现类在 `datamaster-assets-core`（由 `datamaster-server` 聚合注入）。
+
+| 模块 | 依赖的权限接口（assets-interface） | entrance 入口 |
+| --- | --- | --- |
+| datamaster-ontology（本体） | `IAssetsTableGovernanceApiService.checkTableAccess` | ONTOLOGY_CREATE / UPDATE / DELETE / ACTION |
+| datamaster-service（数据服务） | `IAssetsTableGovernanceApiService.resolveTable` | DATA_SERVICE / DATA_SERVICE_TEST |
+| datamaster-ai（AI 问数） | `IAssetsTableGovernanceApiService.checkTableAccess/resolveTable` | AI_ASK_DATA / AI_ASK_DATA_PREPARE / AI_ASK_DATA_SKILL |
+
+```text
+datamaster-ontology / datamaster-service / datamaster-ai
+        │  编译期：只依赖 datamaster-assets-interface
+        ▼
+datamaster-assets-core  AssetsTableGovernanceApiServiceImpl   ← 唯一权限实现（表级+字段级+脱敏）
+        │  未命中资产时回退
+        ▼
+datamaster-metadata     CatalogTableApiService（元数据目录）
+```
+
+降级规则：`resolveTable` 未命中资产时，由 `TableGovernanceProperties` 开关决定——strict 拒绝、off/warn 放行并回退元数据目录作为表结构依据。
+
+### 6.5 跨模块依赖架构（AI → 本体 → 资产 → 元数据）
+
+参照 Palantir 本体语义层思路，平台上层模块通过「逐层收口」的方式获取数据能力与权限：**AI 问数只依赖本体，本体依赖资产，资产依赖元数据**。SQL 执行能力（`DbQuery`/`DataSourceFactory`）统一来自 `datamaster-common`。
+
+```text
+datamaster-ai（AI 问数 / Skill 生成）
+   │  依赖本体接口（语义层，唯一数据入口）
+   ▼
+datamaster-ontology（本体：概念 / 关系 / 属性 / 动作 / 函数）
+   │  依赖资产接口 + 元数据接口（降级逻辑封装在本体内部）
+   ▼
+datamaster-assets（资产：权限 / 脱敏 / 表结构）
+   │  依赖元数据接口（未命中资产回退元数据目录）
+   ▼
+datamaster-metadata（元数据：目录 / 版本 / 质量探查）
+```
+
+三层逐级降级模型（按数据成熟度选层）：
+
+| 数据状态 | 上层走哪层 | 语义 |
+| --- | --- | --- |
+| 已建本体（概念+关系+动作） | 本体接口 | 用业务语义查（概念属性/关系/动作） |
+| 有资产但未建本体 | 资产接口 | 表权限 + 表结构 |
+| 连资产都未登记 | 元数据目录 | 裸表结构兜底 |
+
+SQL 执行能力归属：
+
+```text
+datamaster-common-common           → DbQuery / DataSourceFactory / DbQueryProperty（SQL 能力）
+datamaster-common-datasource-mgmt  → IDatasourceApiService / DatasourceRespDTO（数据源元信息）
+datamaster-assets-core             → AssetsTableGovernanceApiServiceImpl（权限实现，经 assets-interface 暴露）
+datamaster-metadata-core           → CatalogTableApiService 等（元数据实现，经 metadata-interface 暴露）
+```
+
+模块间依赖以「接口 jar（`*-interface`）」为边界，实现由 `datamaster-server` 聚合注入，避免上层业务模块直接耦合实现模块。
 
 ## 7. 数据源体系
 

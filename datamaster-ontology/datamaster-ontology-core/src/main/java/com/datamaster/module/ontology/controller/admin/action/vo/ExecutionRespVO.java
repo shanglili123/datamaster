@@ -55,8 +55,27 @@ public class ExecutionRespVO implements Serializable {
     private String rollbackAfterData;
 
     @Schema(description = "状态", example = "DRAFT")
-    @Excel(name = "状态", readConverterExp = "DRAFT=草稿,PENDING_APPROVAL=待审批,APPROVED=已批准,REJECTED=已拒绝,EXECUTED=已执行,FAILED=失败")
+    @Excel(name = "状态", readConverterExp = "DRAFT=草稿,PENDING_APPROVAL=待审批,APPROVED=已批准,RUNNING=执行中,REJECTED=已拒绝,EXECUTED=已执行,FAILED=失败,RECONCILIATION_REQUIRED=需对账")
     private String status;
+
+    @Schema(description = "是否由后台 Worker 自动执行")
+    private Boolean autoExecute;
+
+    @Schema(description = "触发类型", example = "DATA_ARRIVAL")
+    private String triggerType;
+
+    @Schema(description = "触发器引用", example = "customer_stream")
+    private String triggerRef;
+
+    @Schema(description = "来源事件唯一编号", example = "customer_stream:0:1024")
+    private String eventId;
+
+    @Schema(description = "最大执行尝试次数", example = "1")
+    private Integer maxAttempts;
+
+    @Schema(description = "最早可执行时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date nextRunTime;
 
     @Schema(description = "审批意见", example = "同意")
     @Excel(name = "审批意见")
@@ -88,6 +107,55 @@ public class ExecutionRespVO implements Serializable {
     @Schema(description = "错误信息")
     @Excel(name = "错误信息")
     private String errorMessage;
+
+    @Schema(description = "目标对象主键（对象实例级决策载体）", example = "CUST001")
+    private String objectKey;
+
+    @Schema(description = "①提交判定结果 JSONB：{\"decision\":\"PASS|REJECT\",\"passed\":boolean,\"detail\":[...]}")
+    private String criteriaResult;
+
+    @Schema(description = "人工确认兼容关卡：0=无需/未提交确认，1=唯一人工确认任务", example = "1")
+    private Integer currentStage;
+
+    @Schema(description = "当前登录用户是否可审批该执行记录（待审批且未绑定审批人或本人为当前关指定审批人时=true）", example = "true")
+    private Boolean canApprove;
+
+    @Schema(description = "提交时冻结的动作定义版本", example = "1")
+    private Integer actionVersion;
+
+    @Schema(description = "提交时冻结的函数版本（函数类型动作）", example = "1")
+    private Integer functionVersion;
+
+    @Schema(description = "提交时冻结的解析函数体 SHA-256")
+    private String functionHash;
+
+    @Schema(description = "幂等键", example = "evt-20260905-0001")
+    private String idempotencyKey;
+
+    @Schema(description = "尝试次数", example = "1")
+    private Integer attemptNo;
+
+    @Schema(description = "执行中锁标记（非空=正在执行）")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date lockTime;
+
+    @Schema(description = "执行锁持有者")
+    private String lockOwner;
+
+    @Schema(description = "统一执行结果上下文 JSONB {actionType,status,objectKey,actionVersion,targetTable,affectedRows,output,...}")
+    private String resultContext;
+
+    @Schema(description = "失败分类错误码", example = "EXECUTE_ERROR")
+    private String errorCode;
+
+    @Schema(description = "所属工作流运行ID（预留）")
+    private Long workflowRunId;
+
+    @Schema(description = "所属工作流步骤ID（预留）")
+    private Long workflowStepId;
+
+    @Schema(description = "触发本次执行的上游执行记录ID（预留）")
+    private Long parentExecutionId;
 
     @Schema(description = "创建者", example = "admin")
     @Excel(name = "创建者")

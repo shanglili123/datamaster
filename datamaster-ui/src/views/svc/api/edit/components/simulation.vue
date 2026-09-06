@@ -100,6 +100,7 @@
                                 :page-size-options="['6', '8', '10', '20', '50', '100']"
                                 v-model:current="callData.pageNum" v-model:pageSize="callData.pageSize"
                                 :total="callData.dataTotal" show-size-changer show-quick-jumper
+                                :locale="paginationLocale"
                                 @change="handleCurrentChange"
                                 @showSizeChange="(current, size) => handleSizeChange(size)"
 />
@@ -118,6 +119,7 @@ import { message } from 'ant-design-vue'
 import { serviceTesting } from '@/api/svc/api/api.js';
 
 import useUserStore from '@/store/system/user';
+import paginationLocale from '@/utils/paginationLocale';
 const { proxy } = getCurrentInstance();
 const userStore = useUserStore();
 const { ds_api_bas_info_api_method_type, ds_api_param_type, ds_api_bas_info_res_data_type,  da_api_param_operator } =

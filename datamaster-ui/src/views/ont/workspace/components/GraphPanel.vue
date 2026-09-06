@@ -46,18 +46,26 @@
         </a-button>
       </div>
       <div v-if="previewColumns.length" class="preview-filters">
-        <a-input
-          v-for="col in previewColumns"
-          :key="col.dataIndex"
-          v-model:value="previewFilterValues[col.dataIndex]"
-          :placeholder="'按' + col.title + '过滤'"
-          size="small"
+        <a-select
+          v-model:value="previewFilterField"
+          placeholder="选择属性"
           allow-clear
-          style="width: 160px"
-          @pressEnter="loadPreview"
+          size="small"
+          :options="previewFilterFields"
+          class="preview-filter-field"
         />
-        <a-button size="small" type="primary" :loading="previewLoading" @click="loadPreview">过滤</a-button>
-        <a-button size="small" @click="resetPreviewFilters">重置</a-button>
+        <a-input
+          v-model:value="previewFilterValue"
+          placeholder="属性值筛选"
+          allow-clear
+          size="small"
+          class="preview-filter-value"
+          @press-enter="loadPreview"
+        />
+        <div class="preview-filter-actions">
+          <a-button size="small" type="primary" :loading="previewLoading" @click="loadPreview">过滤</a-button>
+          <a-button size="small" @click="resetPreviewFilters">重置</a-button>
+        </div>
       </div>
       <a-table
         :columns="previewColumns"
@@ -95,7 +103,7 @@
         <p v-else class="detail-empty">暂无属性</p>
       </div>
       <a-space size="small" wrap class="detail-actions">
-        <a-button size="small" @click="openNodeEdit" v-hasPermi="['ont:concept:edit']">编辑</a-button>
+          <a-button size="small" @click="openNodeEdit" v-hasPermi="['ont:concept:edit']">编辑</a-button>
         <a-button size="small" danger @click="removeSelectedNode" v-hasPermi="['ont:concept:remove']">删除</a-button>
         <a-button size="small" @click="openMapping" v-hasPermi="['ont:concept:edit', 'ont:property:edit']">映射</a-button>
         <a-button type="primary" size="small" @click="openQuickProp(selectedNode)">
@@ -118,7 +126,7 @@
     </div>
 
     <!-- 新增概念（拖放画布触发） -->
-    <a-modal v-model:open="conceptOpen" title="新增概念" width="480px" destroy-on-close ok-text="OK" cancel-text="Cancel" :confirm-loading="saving" @ok="submitConcept" @cancel="conceptOpen = false">
+    <a-modal v-model:open="conceptOpen" title="新增概念" width="480px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitConcept" @cancel="conceptOpen = false">
       <a-form :model="conceptForm" :label-col="{ style: { width: '70px' } }">
         <a-form-item label="概念名称" required>
           <a-input v-model:value="conceptForm.name" placeholder="请输入概念名称" />
@@ -134,7 +142,7 @@
     </a-modal>
 
     <!-- 拉线创建关系 -->
-    <a-modal v-model:open="relationOpen" title="创建关系" width="520px" destroy-on-close ok-text="OK" cancel-text="Cancel" :confirm-loading="saving" @ok="submitRelation" @cancel="cancelRelation">
+    <a-modal v-model:open="relationOpen" title="创建关系" width="520px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitRelation" @cancel="cancelRelation">
       <a-alert type="info" show-icon :message="'源概念：' + (pendingLink ? pendingLink.sourceName : '') + '　→　目标概念：' + (pendingLink ? pendingLink.targetName : '')" style="margin-bottom: 12px;" />
       <a-form :model="relationForm" :label-col="{ style: { width: '70px' } }">
         <a-form-item label="关系名称" required>
@@ -153,7 +161,7 @@
     </a-modal>
 
     <!-- 快捷添加属性 -->
-    <a-modal v-model:open="quickPropOpen" :title="'添加属性 - ' + quickPropConceptName" width="520px" destroy-on-close ok-text="OK" cancel-text="Cancel" :confirm-loading="saving" @ok="submitQuickProp" @cancel="quickPropOpen = false">
+    <a-modal v-model:open="quickPropOpen" :title="'添加属性 - ' + quickPropConceptName" width="520px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitQuickProp" @cancel="quickPropOpen = false">
       <a-form :model="quickPropForm" :label-col="{ style: { width: '70px' } }">
         <a-form-item label="属性名称" required>
           <a-input v-model:value="quickPropForm.name" placeholder="请输入属性名称" />
@@ -196,7 +204,7 @@
     </a-modal>
 
     <!-- 编辑概念（详情面板触发，先拉详情再打开） -->
-    <a-modal v-model:open="nodeEditOpen" title="编辑概念" width="480px" destroy-on-close ok-text="OK" cancel-text="Cancel" :confirm-loading="saving" @ok="submitNodeEdit" @cancel="nodeEditOpen = false">
+    <a-modal v-model:open="nodeEditOpen" title="编辑概念" width="480px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitNodeEdit" @cancel="nodeEditOpen = false">
       <a-spin :spinning="nodeEditLoading">
         <a-form :model="nodeEditForm" :label-col="{ style: { width: '70px' } }">
           <a-form-item label="概念名称" required>
@@ -229,7 +237,7 @@
     </a-modal>
 
     <!-- 编辑关系（详情面板触发，先拉详情再打开） -->
-    <a-modal v-model:open="edgeEditOpen" title="编辑关系" width="520px" destroy-on-close ok-text="OK" cancel-text="Cancel" :confirm-loading="saving" @ok="submitEdgeEdit" @cancel="edgeEditOpen = false">
+    <a-modal v-model:open="edgeEditOpen" title="编辑关系" width="520px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitEdgeEdit" @cancel="edgeEditOpen = false">
       <a-spin :spinning="edgeEditLoading">
         <a-form :model="edgeEditForm" :label-col="{ style: { width: '70px' } }">
           <a-form-item label="关系名称" required>
@@ -327,7 +335,11 @@ const previewTableName = ref('')
 const previewBindingId = ref(null)
 const previewColumns = ref([])
 const previewRows = ref([])
-const previewFilterValues = ref({})
+// 简单筛选：属性选择 + 属性值（替代 OntFilterBuilder）
+const previewFilterField = ref(undefined)
+const previewFilterValue = ref('')
+// OntFilterBuilder 可选字段 → 改为简单下拉选项（语义属性名 → 物理列）
+const previewFilterFields = ref([])
 // 当前预览绑定对应的 物理列 → 属性名 映射（listPropertyColumn + propertyDict 构建）
 const previewColMap = ref({})
 // 本体全部属性字典（id -> property）
@@ -370,14 +382,16 @@ async function loadPreview() {
       map[c.columnName] = p.name || c.columnName
     })
     previewColMap.value = map
-    // 2. 收集非空过滤条件（物理列: 值）
-    const filters = {}
-    Object.keys(previewFilterValues.value).forEach(k => {
-      const v = String(previewFilterValues.value[k] == null ? '' : previewFilterValues.value[k]).trim()
-      if (v) filters[k] = v
-    })
-    // 3. 拉取数据：最多 5 行
-    const res = await previewConceptTable(bindingId, 5, filters)
+    // 2. 构建属性下拉选项（语义属性名 → 物理列），并随绑定切换重置不适用字段
+    previewFilterFields.value = Object.keys(map).map(col => ({
+      label: map[col] || col,
+      value: col
+    }))
+    // 3. 组装简单筛选 spec：属性 + 属性值 → 服务端 WHERE
+    const filter = buildPreviewFilter()
+    const spec = { groups: [{ connector: 'AND', filters: filter ? [filter] : [] }], orderBy: [], columns: [], keyword: '' }
+    // 4. 拉取数据：最多 5 行（filters = 类型化查询 spec，服务端白名单编译 WHERE/排序/投影）
+    const res = await previewConceptTable(bindingId, 5, spec)
     const data = res.data || {}
     previewTableName.value = data.tableName || ''
     const srcCols = data.columns || []
@@ -387,11 +401,11 @@ async function loadPreview() {
     previewColumns.value = colsToShow.map(c => ({
       title: map[c] || c,
       dataIndex: c,
-      ellipsis: true,
-      width: 160
+      ellipsis: { showTitle: true },
+      width: 100
     }))
     previewRows.value = (data.rows || []).map((r, i) => ({ __previewKey: i, ...r }))
-  } catch (e) {
+  } catch {
     previewColumns.value = []
     previewRows.value = []
   } finally {
@@ -399,8 +413,19 @@ async function loadPreview() {
   }
 }
 
+// 由「属性 + 属性值」组装单条件筛选（无属性或无值时返回 null）
+function buildPreviewFilter() {
+  const field = previewFilterField.value
+  const value = previewFilterValue.value
+  if (!field) return null
+  const trimmed = String(value == null ? '' : value).trim()
+  if (trimmed === '') return null
+  return { field, op: 'eq', value: trimmed }
+}
+
 function resetPreviewFilters() {
-  previewFilterValues.value = {}
+  previewFilterField.value = undefined
+  previewFilterValue.value = ''
   return loadPreview()
 }
 
@@ -498,9 +523,11 @@ async function loadNodeBindings(conceptId) {
     // 有绑定表才展开预览（有真实数据可看）；无绑定时保持画布整高，不出现空白预览面板
     previewOpen.value = hasBindings
     // 切换概念时重置过滤条件，避免上一概念的属性值残留串扰
-    previewFilterValues.value = {}
+    previewFilterField.value = undefined
+    previewFilterValue.value = ''
+    previewFilterFields.value = []
     if (hasBindings) await loadPreview()
-  } catch (e) {
+  } catch {
     nodeBindings.value = []
     previewBindingId.value = null
     previewOpen.value = false
@@ -863,7 +890,7 @@ async function openNodeEdit() {
     const res = await getConcept(cid)
     nodeEditForm.value = Object.assign({}, res.data)
     nodeEditOpen.value = true
-  } catch (e) {
+  } catch {
     // 错误提示由请求拦截器统一弹出
   } finally {
     nodeEditLoading.value = false
@@ -918,7 +945,7 @@ async function openEdgeEdit() {
     const res = await getRelation(e.relationId)
     edgeEditForm.value = Object.assign({}, res.data)
     edgeEditOpen.value = true
-  } catch (e2) {
+  } catch {
     // 错误提示由请求拦截器统一弹出
   } finally {
     edgeEditLoading.value = false
@@ -1104,10 +1131,32 @@ onBeforeUnmount(() => {
 
     .preview-filters {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       gap: 8px;
       margin-bottom: 10px;
+    }
+
+    .preview-filter-field {
+      width: 160px;
+    }
+
+    .preview-filter-value {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .preview-filter-actions {
+      display: flex;
+      flex-shrink: 0;
+      gap: 8px;
+    }
+
+    // 预览表格单元格：强制截断过长值，hover 时由 tooltip 显示完整内容
+    .ant-table-cell {
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 

@@ -56,7 +56,7 @@
             <div v-else class="form-readonly">{{ form.taskParams.writerDatasource.dbname || '-' }}</div>
           </a-form-item>
         </a-col>
-        <a-col :span="12">
+        <a-col :span="12" v-if="!isKafkaWriter">
           <a-form-item label="选择表">
             <a-select v-if="!info" v-model:value="form.taskParams.target_asset_id" placeholder="请选择表" @change="handleChange"
               show-search :loading="loadingTables" style="width:100%">
@@ -72,7 +72,38 @@
         </a-col>
       </a-row>
 
-      <a-row :gutter="20">
+      <!-- Kafka 输出配置：Topic + 分区键（主键/键分区） -->
+      <a-row :gutter="20" v-if="isKafkaWriter">
+        <a-col :span="12">
+          <a-form-item label="Topic" required>
+            <a-input v-if="!info" v-model:value="form.taskParams.kafkaWriterConfig.topic"
+              placeholder="请输入输出 Topic" />
+            <div v-else class="form-readonly">{{ form.taskParams.kafkaWriterConfig?.topic || '-' }}</div>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="分区键字段">
+            <a-select v-if="!info" v-model:value="form.taskParams.kafkaWriterConfig.partitionAssignColumns"
+              mode="multiple" placeholder="选择作为消息 key 的字段（同 key 同分区）" style="width:100%">
+              <a-select-option v-for="col in sourceColumnNames" :key="col" :value="col">{{ col }}</a-select-option>
+            </a-select>
+            <div v-else class="form-readonly">{{ (form.taskParams.kafkaWriterConfig?.partitionAssignColumns || []).join(', ') || '-' }}</div>
+          </a-form-item>
+        </a-col>
+      </a-row>
+
+      <a-row :gutter="20" v-if="isKafkaWriter && !info">
+        <a-col :span="24">
+          <a-form-item label="分区方式">
+            <a-radio-group v-model:value="form.taskParams.kafkaWriterConfig.partitionStrategy">
+              <a-radio value="hash-by-key">按分区键哈希（同 key 同分区）</a-radio>
+              <a-radio value="all-to-zero">全部写入 partition 0</a-radio>
+            </a-radio-group>
+          </a-form-item>
+        </a-col>
+      </a-row>
+
+      <a-row :gutter="20" v-if="!isKafkaWriter">
         <a-col :span="24">
           <a-form-item label="where条件">
             <a-textarea v-if="!info" v-model:value="form.taskParams.where" placeholder="请输入where条件" />
@@ -81,17 +112,17 @@
         </a-col>
       </a-row>
 
-      <div class="h2-title">字段映射</div>
+      <div class="h2-title" v-if="!isKafkaWriter">字段映射</div>
 
-      <div style="margin-top: -20px">
+      <div style="margin-top: -20px" v-if="!isKafkaWriter">
         <a-spin :spinning="loadingList">
           <YourChildComponent ref="childComponent" :tableFields="tableFields" :toColumnsList="ColumnByAssettab"
             :info="info" />
         </a-spin>
       </div>
-      <div class="h2-title">输出配置</div>
+      <div class="h2-title" v-if="!isKafkaWriter">输出配置</div>
 
-      <a-row :gutter="20">
+      <a-row :gutter="20" v-if="!isKafkaWriter">
         <a-col :span="24" class=" hasMsg">
           <a-form-item label="前置SQL">
             <a-textarea v-if="!info" v-model:value="form.preSql" placeholder="请输入前置SQL" />
@@ -100,7 +131,7 @@
           </a-form-item>
         </a-col>
       </a-row>
-      <a-row :gutter="20">
+      <a-row :gutter="20" v-if="!isKafkaWriter">
         <a-col :span="12">
           <a-form-item label="写入模式">
             <a-radio-group v-if="!info" v-model:value="form.taskParams.writeModeType">
@@ -124,7 +155,7 @@
         </a-col>
       </a-row>
       <a-row :gutter="20"
-        v-if="form.taskParams.writeModeType == 3 && form.taskParams.writerDatasource.datasourceType !== 'Doris'">
+        v-if="!isKafkaWriter && form.taskParams.writeModeType == 3 && form.taskParams.writerDatasource.datasourceType !== 'Doris'">
         <a-col :span="24">
           <a-form-item label="更新主键字段">
             <a-checkbox-group v-if="!info" v-model:value="form.taskParams.selectedColumns">
@@ -136,7 +167,7 @@
           </a-form-item>
         </a-col>
       </a-row>
-      <a-row :gutter="20">
+      <a-row :gutter="20" v-if="!isKafkaWriter">
         <a-col :span="24" class=" hasMsg">
           <a-form-item label="后置SQL">
             <a-textarea v-if="!info" v-model:value="form.taskParams.postSql" placeholder="请输入后置SQL" />
@@ -226,14 +257,38 @@ const childComponent = ref(null); // 表字段
 const tableFields = ref([]); // 来源表格
 const createTypeList = ref([]); // 数据源列表
 
-// 获取数据源列表
+// 归一化数据源类型（与 Kafka 输入组件一致的判断口径）
+const normalizeDatasourceType = (type) => String(type || '').replace(/[\s_-]/g, '').toLowerCase();
+// 目标数据源是否为 Kafka
+const isKafkaWriter = computed(() => {
+  const ds = form.value?.taskParams?.writerDatasource;
+  return normalizeDatasourceType(ds?.datasourceType) === 'kafka';
+});
+// Kafka 分区键可选字段（来自源表/上游输入字段）
+const sourceColumnNames = computed(() => {
+  const candidates = [
+    form.value?.taskParams?.tableFields,
+    tableFields.value,
+    form.value?.taskParams?.inputFields,
+  ];
+  for (const fields of candidates) {
+    if (!Array.isArray(fields) || !fields.length) continue;
+    const names = fields
+      .map(c => c?.columnName ?? c?.name ?? c?.key ?? '')
+      .filter(Boolean);
+    if (names.length) return names;
+  }
+  return [];
+});
+
+// 获取数据源列表（含 Kafka，支持输出到 Kafka）
 const getDatasourceList = async () => {
   try {
     loading.value = true;
     const response = await listDaDatasource({
       spaceCode: userStore.spaceCode,
       spaceId: userStore.spaceId,
-      datasourceType: "DM8,Oracle11,MySql,Oracle,Kingbase8,Doris,ClickHouse,Hive,MongoDB,Elasticsearch,SQL_Server,SQL_Server2008,PostgreSQL",
+      datasourceType: "DM8,Oracle11,MySql,Oracle,Kingbase8,Doris,ClickHouse,Hive,MongoDB,Elasticsearch,SQL_Server,SQL_Server2008,PostgreSQL,Kafka",
       pageSize: 9999,
     });
     createTypeList.value = response.data.rows;
@@ -291,7 +346,12 @@ const resetAndFetchTables = async (selectedDatasource) => {
     datasourceId: String(id),
     datasourceName: selectedDatasource.datasourceName,
   };
+  form.value.taskParams.kafkaWriterConfig = { topic: "", partitionAssignColumns: [] };
 
+  if (isKafkaWriter.value) {
+    // Kafka 无表/列概念，无需拉取表列表
+    return;
+  }
   await fetchTablesByDatasourceId(id);
 };
 
@@ -338,16 +398,24 @@ const saveData = async () => {
     if (!form.value?.taskParams?.writerDatasource?.datasourceId) {
       return proxy.$message.warning('请选择目标数据连接');
     }
-    if (!form.value?.taskParams?.target_asset_id) {
-      return proxy.$message.warning('请选择表');
-    }
-    if (!form.value?.taskParams?.writeModeType && form.value?.taskParams?.writeModeType !== 0) {
-      return proxy.$message.warning('请选择写入模式');
-    }
-    if (form.value?.taskParams?.writeModeType === 3 &&
-        form.value?.taskParams?.writerDatasource?.datasourceType !== 'Doris' &&
-        (!form.value?.taskParams?.selectedColumns || !form.value.taskParams.selectedColumns.length)) {
-      return proxy.$message.warning('请选择更新主键字段');
+    if (isKafkaWriter.value) {
+      // Kafka 输出：校验 Topic
+      const writerCfg = form.value.taskParams.kafkaWriterConfig || {};
+      if (!writerCfg.topic) {
+        return proxy.$message.warning('请输入 Topic');
+      }
+    } else {
+      if (!form.value?.taskParams?.target_asset_id) {
+        return proxy.$message.warning('请选择表');
+      }
+      if (!form.value?.taskParams?.writeModeType && form.value?.taskParams?.writeModeType !== 0) {
+        return proxy.$message.warning('请选择写入模式');
+      }
+      if (form.value?.taskParams?.writeModeType === 3 &&
+          form.value?.taskParams?.writerDatasource?.datasourceType !== 'Doris' &&
+          (!form.value?.taskParams?.selectedColumns || !form.value.taskParams.selectedColumns.length)) {
+        return proxy.$message.warning('请选择更新主键字段');
+      }
     }
 
     // 没有 code 时生成唯一 code
@@ -368,14 +436,21 @@ const saveData = async () => {
     const { fromColumns = [], toColumns = [] } = getColumns() || {};
 
     taskParams.tableFields = fromColumns.length ? fromColumns : taskParams.tableFields;
-    taskParams.toColumnsList = toColumns.length ? toColumns : ColumnByAssettab.value;
-    const { target_columns, columns } = handleType2TaskParams(taskParams.tableFields, taskParams.toColumnsList);
-    taskParams.target_columns = target_columns;
-    taskParams.columns = columns;
+    if (isKafkaWriter.value) {
+      // Kafka：分区键作为消息 key，实现"同 key 同分区"的主键/键分区
+      taskParams.kafkaWriterConfig = taskParams.kafkaWriterConfig || {};
+      taskParams.target_columns = taskParams.tableFields ? taskParams.tableFields.map(c => c.columnName ?? c.name) : [];
+      taskParams.columns = taskParams.tableFields;
+    } else {
+      taskParams.toColumnsList = toColumns.length ? toColumns : ColumnByAssettab.value;
+      const { target_columns, columns } = handleType2TaskParams(taskParams.tableFields, taskParams.toColumnsList);
+      taskParams.target_columns = target_columns;
+      taskParams.columns = columns;
 
-    taskParams.outputFields = ColumnByAssettab.value;
-    if (!taskParams.target_table_name && taskParams.target_asset_id) {
-      taskParams.target_table_name = taskParams.target_asset_id;
+      taskParams.outputFields = ColumnByAssettab.value;
+      if (!taskParams.target_table_name && taskParams.target_asset_id) {
+        taskParams.target_table_name = taskParams.target_asset_id;
+      }
     }
     form.value.taskParams = { ...form.value.taskParams, ...taskParams }
     emit("confirm", form.value);
@@ -454,6 +529,9 @@ function deepCopy(data) {
 
 // 处理数据源和列操作的共用函数
 const handleDatasource = (datasource, assetId) => {
+  if (!datasource) return;
+  // Kafka 无表列表，跳过拉取
+  if (normalizeDatasourceType(datasource.datasourceType) === 'kafka') return;
   if (datasource?.datasourceId) {
     fetchTablesByDatasourceId(datasource.datasourceId);
   } else {
@@ -480,6 +558,11 @@ watch(
     form.value.taskParams = form.value.taskParams || {};
     form.value.taskParams.writerDatasource = form.value.taskParams.writerDatasource || {};
     form.value.taskParams.selectedColumns = form.value.taskParams.selectedColumns || [];
+    form.value.taskParams.kafkaWriterConfig = form.value.taskParams.kafkaWriterConfig || {
+      topic: "",
+      partitionAssignColumns: [],
+      partitionStrategy: "hash-by-key",
+    };
 
     const taskParams = form.value.taskParams;
     const savedTableFields = taskParams.tableFields?.length

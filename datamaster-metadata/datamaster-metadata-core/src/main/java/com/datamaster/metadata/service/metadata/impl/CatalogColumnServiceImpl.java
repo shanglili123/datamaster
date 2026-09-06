@@ -73,38 +73,11 @@ public class CatalogColumnServiceImpl extends ServiceImpl<CatalogColumnMapper, C
     }
 
     private CatalogColumnDO reCatalogColumnDO(CatalogColumnDO CatalogColumnDO) {
-        CatalogDbDO CatalogDbDO = CatalogDbMapper.findById(CatalogColumnDO.getDbId());
-
         CatalogColumnRespVO respVO = BeanUtils.toBean(CatalogColumnDO, CatalogColumnRespVO.class);
         if (CatalogColumnDO.getTableId() != null) {
             CatalogTableRespVO tableRespVO = tableService.getCatalogTableById(CatalogColumnDO.getTableId());
             respVO.setTableRespVO(tableRespVO);
         }
-
-//        if (CatalogDbDO != null) {
-//            // 使用数据库方言获取字段的自增和分区字段信息
-//            DatabaseDialect dialect = DatabaseDialectFactory.getDialect(CatalogDbDO);
-//            if (dialect != null) {
-//                // 批量获取字段元数据信息
-//                DatabaseDialect.ColumnMetadata metadata = dialect.getColumnMetadata(CatalogDbDO, respVO.getTableRespVO()
-//                        .getTableName(), CatalogColumnDO.getColumnName());
-//                // 设置字段自增信息
-//                CatalogColumnDO.setAutoIncrementFlag(metadata.isAutoIncrement() ? "1" : "0");
-//
-//                // 设置字段是否为分区字段
-//                DatabaseDialect.TableMetadata metadataTb = dialect.getTableMetadata(CatalogDbDO, respVO.getTableRespVO()
-//                        .getTableName());
-//                // 获取表的分区字段判断是否包含
-//                Boolean partitionFields = false;
-//                if (metadataTb.getPartitionFields() != null) {
-//                    partitionFields = metadataTb.getPartitionFields()
-//                            .toUpperCase()
-//                            .contains(CatalogColumnDO.getColumnName().toUpperCase());
-//                }
-//                CatalogColumnDO.setPartitionFlag(partitionFields ? "1" : "0");
-//                CatalogColumnDO.setUniqueFlag(metadata.isUnique() ? "1" : "0");
-//            }
-//        }
         return CatalogColumnDO;
     }
 

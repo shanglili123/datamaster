@@ -3,8 +3,10 @@
 package com.datamaster.neo4j.node;
 
 import org.springframework.data.neo4j.core.schema.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import com.datamaster.neo4j.rel.TableToTaskRel;
 import com.datamaster.neo4j.rel.TaskToTableRel;
 
@@ -22,6 +24,8 @@ import java.util.Objects;
 @Node("Table")
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TableNode {
     @Id
     @GeneratedValue

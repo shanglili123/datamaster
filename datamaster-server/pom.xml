@@ -62,6 +62,12 @@
             <artifactId>datamaster-ontology-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
+        <!-- 数据接收子工程（消费Kafka -> 冲突检查 -> 写入数仓 Doris） -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-ingestion</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
         <!-- spring-boot-devtools -->
 <!--        <dependency>-->
 <!--            <groupId>org.springframework.boot</groupId>-->

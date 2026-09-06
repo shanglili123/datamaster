@@ -32,6 +32,12 @@ const ontRouter = [
         component: () => import('@/views/ont/function/index.vue'),
         name: 'OntFunction',
         meta: { title: '函数管理', icon: 'tool' }
+      },
+      {
+        path: 'object/:ontologyId',
+        component: () => import('@/views/ont/object/index.vue'),
+        name: 'OntObjectInstance',
+        meta: { title: '对象实例', icon: 'database', activeMenu: '/ont/ontology', hidden: true }
       }
     ]
   }

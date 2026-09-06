@@ -1,12 +1,15 @@
 package com.datamaster.module.ontology.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.ontology.controller.admin.action.vo.*;
 import com.datamaster.module.ontology.convert.ActionConvert;
 import com.datamaster.module.ontology.dal.dataobject.*;
 import com.datamaster.module.ontology.dal.mapper.*;
+import com.datamaster.module.ontology.service.IActionApprovalService;
 import com.datamaster.module.ontology.service.IActionExecutionService;
 import com.datamaster.module.ontology.service.IFunctionService;
+import com.datamaster.module.ontology.service.IWebhookService;
 import com.datamaster.common.database.DataSourceFactory;
 import com.datamaster.common.database.DbQuery;
 import com.datamaster.common.database.constants.DbQueryProperty;
@@ -15,20 +18,28 @@ import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
 import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.neo4j.node.ActionExecutionNode;
+import com.datamaster.neo4j.node.ObjectNode;
+import com.datamaster.neo4j.rel.ObjectDecisionRel;
 import com.datamaster.neo4j.service.LineageDataService;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.util.*;
 
@@ -44,11 +55,18 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     @Resource private ConceptTableMapper conceptTableMapper;
     @Resource private PropertyColumnMapper propertyColumnMapper;
     @Resource private PropertyMapper propertyMapper;
+    @Resource private FunctionMapper functionMapper;
     @Resource private ObjectMapper objectMapper;
     @Resource private IDatasourceApiService datasourceApiService;
     @Resource private DataSourceFactory dataSourceFactory;
     @Resource private IAssetsTableGovernanceApiService tableGovernanceApiService;
     @Resource private IFunctionService functionService;
+    @Resource private IWebhookService webhookService;
+    @Resource private IActionApprovalService approvalService;
+    @Resource private ObjectStateConditionResolver objectStateConditionResolver;
+    @Autowired
+    @Lazy
+    private IActionExecutionService self;
 
     /**
      * 动作血缘写入（可插拔）：
@@ -58,12 +76,21 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     @Autowired(required = false)
     private LineageDataService lineageDataService;
 
-private static final String STATUS_PENDING = "PENDING_APPROVAL";
+    private static final String STATUS_PENDING = "PENDING_APPROVAL";
     private static final String STATUS_APPROVED = "APPROVED";
+    private static final String STATUS_RUNNING = "RUNNING";
     private static final String STATUS_REJECTED = "REJECTED";
     private static final String STATUS_EXECUTED = "EXECUTED";
     private static final String STATUS_FAILED = "FAILED";
     private static final String STATUS_ROLLED_BACK = "ROLLED_BACK";
+
+    /** 执行失败错误码：落 ERROR_CODE 供统一结构/审计/前端展示（成功后置 null） */
+    private static final String ERROR_CODE_EXECUTE = "EXECUTE_ERROR";
+    private static final String ERROR_CODE_FUNCTION = "FUNCTION_ERROR";
+    private static final String ERROR_CODE_TRIGGER_SUBMIT = "TRIGGER_SUBMIT_ERROR";
+    private static final String ERROR_CODE_ACTION_VERSION = "ACTION_VERSION_CHANGED";
+    private static final String ERROR_CODE_FUNCTION_VERSION = "FUNCTION_VERSION_CHANGED";
+    private static final String EXECUTION_OWNER = UUID.randomUUID().toString();
 
     /** 治理 API 入口标识：查询维持原值，增删改按动作类型区分（写操作严格模式） */
     private static final String ENTRANCE_ONTOLOGY_ACTION = "ONTOLOGY_ACTION";
@@ -73,10 +100,22 @@ private static final String STATUS_PENDING = "PENDING_APPROVAL";
 
     @Override
     @Transactional
-public ExecutionRespVO submitExecution(ExecutionSubmitReqVO reqVO) {
+    public ExecutionRespVO submitExecution(ExecutionSubmitReqVO reqVO) {
         ActionDO action = actionMapper.selectById(reqVO.getActionId());
         if (action == null) {
             throw new RuntimeException("动作不存在: " + reqVO.getActionId());
+        }
+        // autoExecute 表示“无需人工确认，提交后由 Worker 直接执行”，与触发来源无关。
+        boolean autoExecute = resolveAutoExecute(action, reqVO);
+        // 幂等去重：同动作 + 同幂等键已存在执行记录 → 直接返回首次执行记录，防重复提交/重复执行
+        if (reqVO.getIdempotencyKey() != null && !reqVO.getIdempotencyKey().trim().isEmpty()) {
+            ActionExecutionDO existing = executionMapper.selectByActionIdAndIdempotencyKey(
+                    action.getId(), reqVO.getIdempotencyKey());
+            if (existing != null) {
+                log.info("命中幂等键，返回既有执行记录: actionId={}, idempotencyKey={}, executionId={}",
+                        action.getId(), reqVO.getIdempotencyKey(), existing.getId());
+                return ActionConvert.INSTANCE.convert(existing);
+            }
         }
         // FUNCTION 类型动作：不生成SQL、不干跑、不做表权限校验。
         // 直接校验函数与参数后，将替换后的解析代码体写入 generatedSql 供审批展示。
@@ -88,46 +127,472 @@ public ExecutionRespVO submitExecution(ExecutionSubmitReqVO reqVO) {
             if (resolvedBody == null || resolvedBody.trim().isEmpty()) {
                 resolvedBody = "[函数类型动作]";
             }
+            // 版本冻结：函数定义版本 + 解析函数体 SHA-256（执行前复核一致性）
+            FunctionDO function = functionMapper.selectById(action.getFunctionId());
+            Integer functionVersion = function == null || function.getVersion() == null ? 1 : function.getVersion();
+            String functionHash = sha256(resolvedBody);
+            String effectiveObjectKey = deriveObjectKey(action, reqVO);
             ActionExecutionDO functionExec = ActionExecutionDO.builder()
                     .actionId(action.getId()).ontologyId(action.getOntologyId())
                     .inputParams(reqVO.getInputParams()).generatedSql(resolvedBody)
                     .previewResult(null)
                     .spaceId(reqVO.getSpaceId()).spaceCode(reqVO.getSpaceCode())
+                    .actionVersion(defaultVersion(action.getVersion()))
+                    .functionVersion(functionVersion).functionHash(functionHash)
+                    .idempotencyKey(reqVO.getIdempotencyKey())
+                    .objectKey(effectiveObjectKey)
+                    .autoExecute(autoExecute)
+                    .triggerType(defaultTriggerType(reqVO.getTriggerType()))
+                    .triggerRef(reqVO.getTriggerRef()).eventId(reqVO.getEventId())
+                    .maxAttempts(defaultMaxAttempts(reqVO.getMaxAttempts()))
+                    .nextRunTime(reqVO.getNextRunTime()).attemptNo(0)
                     .status(STATUS_PENDING).build();
+            // 前置条件通过后，按动作执行模式直接进入 Worker 队列或等待一次人工确认。
+            applySubmissionDecision(functionExec, action, reqVO);
             executionMapper.insert(functionExec);
+            initApprovalChainIfPending(functionExec, action);
             return ActionConvert.INSTANCE.convert(functionExec);
+        }
+        if ("COMPOSITE".equals(action.getActionType())) {
+            return submitCompositeExecution(action, reqVO, autoExecute);
         }
         // 提交前先校验当前空间对目标物理表的访问权限；
         // 增删改（CREATE/UPDATE/DELETE）额外按涉及列做字段级严格校验（主张5接入）
+        String effectiveObjectKey = deriveObjectKey(action, reqVO);
         Map<String, Object> rawInputParams = parseParams(reqVO.getInputParams());
-        Map<String, Object> params = applyParamConfig(action, rawInputParams);
+        Map<String, Object> params = applyParamConfig(action, rawInputParams, effectiveObjectKey);
         assertTableAccess(action, reqVO.getSpaceId(), reqVO.getSpaceCode(),
                 extractActionColumns(action, params), action.getActionType());
-String sql = generateSql(action, params);
+        String sql = generateSql(action, params);
         Map<String, Object> preview = executeDryRun(action.getConceptId(), sql, action.getActionType());
         // beforeData 不在提交时抓取：提交→执行之间存在时间差（审批、排队），
         // 提交时抓的快照可能与执行前一刻的数据不一致（如提交后行被改/被删/新插入）。
         // 「可溯源回退」要求修改前数据=执行前一刻的旧值，故在 executeExecution 执行 DML 前重查。
+        // 版本冻结：动作定义版本（执行前复核，防定义变更后误执行与预览不一致的逻辑）
         ActionExecutionDO exec = ActionExecutionDO.builder()
                 .actionId(action.getId()).ontologyId(action.getOntologyId())
                 .inputParams(reqVO.getInputParams()).generatedSql(sql)
                 .previewResult(toJson(preview))
                 .spaceId(reqVO.getSpaceId()).spaceCode(reqVO.getSpaceCode())
+                .actionVersion(defaultVersion(action.getVersion()))
+                .idempotencyKey(reqVO.getIdempotencyKey())
+                .objectKey(effectiveObjectKey)
+                .autoExecute(autoExecute)
+                .triggerType(defaultTriggerType(reqVO.getTriggerType()))
+                .triggerRef(reqVO.getTriggerRef()).eventId(reqVO.getEventId())
+                .maxAttempts(defaultMaxAttempts(reqVO.getMaxAttempts()))
+                .nextRunTime(reqVO.getNextRunTime()).attemptNo(0)
                 .status(STATUS_PENDING).build();
+        // 前置条件通过后，按动作执行模式直接进入 Worker 队列或等待一次人工确认。
+        applySubmissionDecision(exec, action, reqVO);
         executionMapper.insert(exec);
+        initApprovalChainIfPending(exec, action);
+        return ActionConvert.INSTANCE.convert(exec);
+    }
+
+    private ExecutionRespVO submitCompositeExecution(ActionDO action, ExecutionSubmitReqVO reqVO,
+                                                       boolean autoExecute) {
+        String effectiveObjectKey = deriveObjectKey(action, reqVO);
+        Map<String, Object> rawInputParams = parseParams(reqVO.getInputParams());
+        List<ExecutionStep> steps = resolveExecutionSteps(action);
+        assertSameDatasource(steps);
+        List<Map<String, Object>> plan = new ArrayList<>();
+        List<Map<String, Object>> previews = new ArrayList<>();
+        for (ExecutionStep step : steps) {
+            ActionDO targetAction = targetAction(action, step);
+            Map<String, Object> params = applyParamConfig(targetAction, rawInputParams,
+                    effectiveObjectKey, action);
+            assertTableAccess(targetAction, reqVO.getSpaceId(), reqVO.getSpaceCode(),
+                    extractActionColumns(targetAction, params), step.actionType);
+            String sql = generateSql(targetAction, params);
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("stepNo", step.stepNo);
+            item.put("name", step.name);
+            item.put("conceptId", step.conceptId);
+            item.put("actionType", step.actionType);
+            item.put("content", sql);
+            plan.add(item);
+            Map<String, Object> preview = new LinkedHashMap<>(item);
+            preview.put("result", executeDryRun(step.conceptId, sql, step.actionType));
+            previews.add(preview);
+        }
+        ActionExecutionDO exec = ActionExecutionDO.builder()
+                .actionId(action.getId()).ontologyId(action.getOntologyId())
+                .inputParams(reqVO.getInputParams()).generatedSql(toJson(plan))
+                .previewResult(toJson(previews))
+                .spaceId(reqVO.getSpaceId()).spaceCode(reqVO.getSpaceCode())
+                .actionVersion(defaultVersion(action.getVersion()))
+                .idempotencyKey(reqVO.getIdempotencyKey())
+                .objectKey(effectiveObjectKey)
+                .autoExecute(autoExecute)
+                .triggerType(defaultTriggerType(reqVO.getTriggerType()))
+                .triggerRef(reqVO.getTriggerRef()).eventId(reqVO.getEventId())
+                .maxAttempts(defaultMaxAttempts(reqVO.getMaxAttempts()))
+                .nextRunTime(reqVO.getNextRunTime()).attemptNo(0)
+                .status(STATUS_PENDING).build();
+        applySubmissionDecision(exec, action, reqVO);
+        executionMapper.insert(exec);
+        initApprovalChainIfPending(exec, action);
         return ActionConvert.INSTANCE.convert(exec);
     }
 
     @Override
+    public List<ExecutionRespVO> submitByTrigger(String triggerRef, String inputParams, String objectKey,
+                                                 String eventId, Long spaceId, String spaceCode) {
+        List<ExecutionRespVO> result = new ArrayList<>();
+        if (eventId == null || eventId.trim().isEmpty()) {
+            throw new IllegalArgumentException("数据到达触发必须携带稳定 eventId");
+        }
+        List<ActionDO> actions = actionMapper.selectByTriggerRef(triggerRef);
+        if (actions == null || actions.isEmpty()) {
+            log.info("数据到达触发未匹配到启用动作 triggerRef={}", triggerRef);
+            return result;
+        }
+        for (ActionDO action : actions) {
+            ExecutionSubmitReqVO req = new ExecutionSubmitReqVO();
+            req.setActionId(action.getId());
+            req.setInputParams(inputParams == null || inputParams.trim().isEmpty() ? "{}" : inputParams);
+            req.setObjectKey(objectKey);
+            req.setEventId(eventId);
+            req.setIdempotencyKey(eventId.trim() + ":" + action.getId());
+            req.setTriggerType("DATA_ARRIVAL");
+            req.setTriggerRef(triggerRef);
+            req.setMaxAttempts(1);
+            req.setSpaceId(spaceId);
+            req.setSpaceCode(spaceCode);
+            try {
+                // 通过代理调用，使每个匹配动作拥有独立事务；单个动作失败不回滚同事件的其他动作。
+                result.add(self.submitExecution(req));
+            } catch (Exception e) {
+                // 并发重复事件可能在“先查后插”窗口命中唯一索引；事务结束后再查一次即可返回赢家记录。
+                ActionExecutionDO existing = executionMapper.selectByActionIdAndIdempotencyKey(
+                        action.getId(), req.getIdempotencyKey());
+                if (existing != null) {
+                    result.add(ActionConvert.INSTANCE.convert(existing));
+                    log.info("数据到达触发并发幂等命中 actionId={} eventId={} executionId={}",
+                            action.getId(), eventId, existing.getId());
+                } else {
+                    log.error("数据到达触发自动提交动作失败 actionId={} triggerRef={} eventId={}",
+                            action.getId(), triggerRef, eventId, e);
+                    ActionExecutionDO failed = ActionExecutionDO.builder()
+                            .actionId(action.getId()).ontologyId(action.getOntologyId())
+                            .inputParams(req.getInputParams()).objectKey(req.getObjectKey())
+                            .idempotencyKey(req.getIdempotencyKey())
+                            .autoExecute(resolveAutoExecute(action, req)).triggerType("DATA_ARRIVAL")
+                            .triggerRef(triggerRef).eventId(eventId)
+                            .actionVersion(defaultVersion(action.getVersion()))
+                            .attemptNo(0).maxAttempts(1)
+                            .status(STATUS_FAILED).executeTime(new Date())
+                            .errorCode(ERROR_CODE_TRIGGER_SUBMIT)
+                            .errorMessage(e.getMessage())
+                            .build();
+                    try {
+                        executionMapper.insert(failed);
+                        result.add(ActionConvert.INSTANCE.convert(failed));
+                    } catch (Exception recordError) {
+                        log.error("数据到达触发失败记录落库失败 actionId={} eventId={}",
+                                action.getId(), eventId, recordError);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * ① 提交时判定：评估动作的 submissionCriteria，落 objectKey/criteriaResult，并按结果设定执行记录状态。
+     * 免判定（无 criteria）→ 按动作执行模式决定直接执行或等待一次人工确认；
+     * 前置检查不通过 → FAILED/PRECONDITION_FAILED；检查通过但需人工确认 → PENDING_APPROVAL；否则直接 APPROVED。
+     * objectKey 已在提交分支推导完成（deriveObjectKey，优先调用方显式值），此处不再覆盖。
+     */
+    private void applySubmissionDecision(ActionExecutionDO exec, ActionDO action, ExecutionSubmitReqVO reqVO) {
+        String criteriaResult = approvalService.evaluateCriteria(action, reqVO.getInputParams(), exec.getObjectKey());
+        exec.setCriteriaResult(criteriaResult);
+        boolean passed = isCriteriaPassed(criteriaResult);
+        // autoExecute 表示该次执行无需人工确认；触发来源与执行模式互相独立。
+        boolean requiresApproval = !Boolean.TRUE.equals(exec.getAutoExecute())
+                && ((action.getApprovalLevels() != null && action.getApprovalLevels() > 0)
+                || Boolean.TRUE.equals(action.getNeedsApproval()));
+        if (!passed) {
+            exec.setStatus(STATUS_FAILED);
+            exec.setCurrentStage(0);
+            exec.setErrorCode("PRECONDITION_FAILED");
+            exec.setErrorMessage("提交前置检查未通过，动作未进入执行队列");
+            exec.setResultContext(buildResultContext(exec, action, null));
+        } else if (requiresApproval) {
+            exec.setStatus(STATUS_PENDING);
+            exec.setCurrentStage(1);
+        } else {
+            exec.setStatus(STATUS_APPROVED);
+            exec.setCurrentStage(0);
+            exec.setApproveTime(new Date());
+        }
+    }
+
+    /**
+     * 提交判定通过与否（解析 criteriaResult 的 passed）。
+     * fail-closed：决策为 EVALUATION_ERROR（条件解析/求值失败）或缺省决策/解析异常 → 一律按不通过拒绝，
+     * 修复原先解析异常「按通过处理」的 fail-open 缺陷——配置错误绝不能静默放行执行。
+     */
+    private boolean isCriteriaPassed(String criteriaResult) {
+        if (criteriaResult == null || criteriaResult.trim().isEmpty()) {
+            return true;
+        }
+        try {
+            JsonNode node = objectMapper.readTree(criteriaResult);
+            String decision = node.path("decision").asText("");
+            if (ActionApprovalServiceImpl.DECISION_EVALUATION_ERROR.equals(decision)) {
+                return false;
+            }
+            if (node.has("passed")) {
+                return node.path("passed").asBoolean(false);
+            }
+            // 缺省 passed 字段但决策未显式评估错误：老数据兼容按决策判定（PASS 才通过）
+            return ActionApprovalServiceImpl.DECISION_PASS.equals(decision);
+        } catch (Exception e) {
+            log.warn("解析提交判定结果失败，按不通过处理: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /** 提交后如需人工确认（PENDING_APPROVAL），建立唯一确认任务。 */
+    private void initApprovalChainIfPending(ActionExecutionDO exec, ActionDO action) {
+        if (STATUS_PENDING.equals(exec.getStatus())) {
+            approvalService.initChain(exec, action);
+        }
+    }
+
+    /* ---------------- 阶段一运行时加固：对象标识推导 + 版本冻结 + 幂等 ---------------- */
+
+    /** 版本缺省值：未显式设置（老数据）按 1 冻结，保证与 DB 默认列一致。 */
+    private int defaultVersion(Integer version) {
+        return version == null ? 1 : version;
+    }
+
+    private boolean resolveAutoExecute(ActionDO action, ExecutionSubmitReqVO reqVO) {
+        // 对象行操作的“预览”接口必须停在 APPROVED，等待用户确认当前预览内容；这不是审批。
+        if ("PREVIEW_ONLY".equalsIgnoreCase(reqVO.getTriggerType())) {
+            return false;
+        }
+        boolean needsManualApproval = (action.getApprovalLevels() != null && action.getApprovalLevels() > 0)
+                || Boolean.TRUE.equals(action.getNeedsApproval());
+        return !needsManualApproval;
+    }
+
+    private int defaultMaxAttempts(Integer maxAttempts) {
+        return maxAttempts == null || maxAttempts < 1 ? 1 : maxAttempts;
+    }
+
+    private String defaultTriggerType(String triggerType) {
+        return triggerType == null || triggerType.trim().isEmpty() ? "MANUAL" : triggerType.trim();
+    }
+
+    /** 执行前复核提交时冻结的动作/函数定义，任何变化均 fail-closed。 */
+    private void validateFrozenDefinition(ActionExecutionDO exec, ActionDO action) {
+        if (exec.getActionVersion() != null
+                && !exec.getActionVersion().equals(defaultVersion(action.getVersion()))) {
+            throw new IllegalStateException("动作定义已变更（提交时版本 v" + exec.getActionVersion()
+                    + "，当前 v" + defaultVersion(action.getVersion()) + "），请基于新定义重新提交");
+        }
+        if (!"FUNCTION".equals(action.getActionType())) {
+            return;
+        }
+        FunctionDO function = functionMapper.selectById(action.getFunctionId());
+        int currentFunctionVersion = function == null ? 1 : defaultVersion(function.getVersion());
+        if (exec.getFunctionVersion() != null
+                && !exec.getFunctionVersion().equals(currentFunctionVersion)) {
+            throw new IllegalStateException("函数定义版本已变更（提交时版本 v" + exec.getFunctionVersion()
+                    + "，当前 v" + currentFunctionVersion + "），请基于新定义重新提交");
+        }
+        if (exec.getFunctionHash() != null && !exec.getFunctionHash().isEmpty()) {
+            String currentBody = functionService.resolveFunctionBody(action.getFunctionId(), exec.getInputParams());
+            if (currentBody == null || currentBody.trim().isEmpty()) {
+                currentBody = "[函数类型动作]";
+            }
+            if (!exec.getFunctionHash().equals(sha256(currentBody))) {
+                throw new IllegalStateException("函数定义内容已变更，请基于新定义重新提交");
+            }
+        }
+    }
+
+    private String classifyExecutionError(ActionDO action, Exception error) {
+        String message = error.getMessage() == null ? "" : error.getMessage();
+        if (message.startsWith("动作定义已变更")) {
+            return ERROR_CODE_ACTION_VERSION;
+        }
+        if (message.startsWith("函数定义版本已变更") || message.startsWith("函数定义内容已变更")) {
+            return ERROR_CODE_FUNCTION_VERSION;
+        }
+        return action != null && "FUNCTION".equals(action.getActionType())
+                ? ERROR_CODE_FUNCTION : ERROR_CODE_EXECUTE;
+    }
+
+    /**
+     * 推导稳定对象标识（objectKey）：调用方显式传入则优先采用；否则从概念主键属性 + 提交参数提取。
+     * 单一主键属性 → 值字符串；联合主键属性 → 规范化 JSON（{code: value}，按 code 字典序保证可比较/可幂等）。
+     * 概念未绑定主键属性或参数缺失主键值 → 返回 null（object.* 条件会因此无法求值，fail-closed 拒绝）。
+     */
+    private String deriveObjectKey(ActionDO action, ExecutionSubmitReqVO reqVO) {
+        if (reqVO.getObjectKey() != null && !reqVO.getObjectKey().trim().isEmpty()) {
+            return reqVO.getObjectKey().trim();
+        }
+        if (action == null || action.getConceptId() == null) {
+            return null;
+        }
+        List<ColumnMapping> mapping;
+        try {
+            List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(action.getConceptId());
+            if (tables == null || tables.isEmpty()) {
+                return null;
+            }
+            mapping = resolveColumnMappings(action.getConceptId(), tables.get(0).getId());
+        } catch (Exception e) {
+            log.debug("推导 objectKey 失败（概念无绑定表？），按 null 处理: {}", e.getMessage());
+            return null;
+        }
+        List<ColumnMapping> pkMappings = new ArrayList<>();
+        for (ColumnMapping m : mapping) {
+            if (m.primaryKey) {
+                pkMappings.add(m);
+            }
+        }
+        if (pkMappings.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> params = parseParams(reqVO.getInputParams());
+        if (pkMappings.size() == 1) {
+            ColumnMapping pk = pkMappings.get(0);
+            Object v = params.get(pk.semanticName);
+            return v == null ? null : String.valueOf(v);
+        }
+        // 联合主键：规范化 JSON（按属性 code 字典序）
+        try {
+            Map<String, Object> keyMap = new TreeMap<>();
+            for (ColumnMapping pk : pkMappings) {
+                Object v = params.get(pk.semanticName);
+                if (v == null) {
+                    return null; // 联合主键任一缺失 → 无法定位对象
+                }
+                keyMap.put(pk.semanticName, String.valueOf(v));
+            }
+            return objectMapper.writeValueAsString(keyMap);
+        } catch (Exception e) {
+            log.debug("序列化联合主键 objectKey 失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /** SHA-256 摘要（hex 小写），用于函数体/动作定义的版本指纹。 */
+    private String sha256(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest((input == null ? "" : input).getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            // 理论上 SHA-256 必然存在；异常时退化为内容哈希，避免阻断提交流程
+            log.warn("计算 SHA-256 失败，退化为字符串哈希: {}", e.getMessage());
+            return String.valueOf((input == null ? "" : input).hashCode());
+        }
+    }
+
+    /**
+     * ④ 释放 CAS 执行锁（LOCK_TIME 置空）。成功/失败路径都必须释放；
+     * 状态已落 EXECUTED/FAILED，后续 executeExecution 的状态校验即天然防重入，LOCK_TIME 仅标志「执行中」。
+     */
+    private void releaseExecutionLock(Long executionId) {
+        executionMapper.update(null, new LambdaUpdateWrapper<ActionExecutionDO>()
+                .eq(ActionExecutionDO::getId, executionId)
+                .set(ActionExecutionDO::getLockTime, null)
+                .set(ActionExecutionDO::getLockOwner, null));
+    }
+
+    /**
+     * 构建统一执行结果上下文 JSON（RESULT_CONTEXT）：
+     * 固定结构 { actionId, actionType, actionVersion, functionVersion?, endTime, status, errorCode?, errorMessage?, ...业务汇总 }
+     * 供前端详情 / 审计 / 后续工作流编排（阶段二）统一消费；失败时业务汇总为 null。
+     */
+    private String buildResultContext(ActionExecutionDO exec, ActionDO action, Map<String, Object> businessSummary) {
+        try {
+            com.fasterxml.jackson.databind.node.ObjectNode ctx = objectMapper.createObjectNode();
+            ctx.put("actionId", action.getId());
+            ctx.put("actionType", action.getActionType());
+            ctx.put("actionVersion", exec.getActionVersion() == null
+                    ? defaultVersion(action.getVersion()) : exec.getActionVersion());
+            if (exec.getObjectKey() != null) {
+                ctx.put("objectKey", exec.getObjectKey());
+            }
+            if (exec.getTriggerType() != null) {
+                ctx.put("triggerType", exec.getTriggerType());
+            }
+            ctx.put("autoExecute", Boolean.TRUE.equals(exec.getAutoExecute()));
+            if (exec.getTriggerRef() != null) {
+                ctx.put("triggerRef", exec.getTriggerRef());
+            }
+            if (exec.getEventId() != null) {
+                ctx.put("eventId", exec.getEventId());
+            }
+            if (exec.getCriteriaResult() != null) {
+                try {
+                    ctx.set("preconditionResult", objectMapper.readTree(exec.getCriteriaResult()));
+                } catch (Exception ignore) {
+                    ctx.put("preconditionResult", exec.getCriteriaResult());
+                }
+            }
+            ctx.put("endTime", exec.getExecuteTime() == null ? "" : String.valueOf(exec.getExecuteTime().getTime()));
+            ctx.put("status", exec.getStatus());
+            if (exec.getFunctionVersion() != null) {
+                ctx.put("functionVersion", exec.getFunctionVersion());
+            }
+            if (exec.getErrorCode() != null) {
+                ctx.put("errorCode", exec.getErrorCode());
+            }
+            if (exec.getErrorMessage() != null) {
+                ctx.put("errorMessage", exec.getErrorMessage());
+            }
+            if (businessSummary != null) {
+                for (Map.Entry<String, Object> entry : businessSummary.entrySet()) {
+                    Object v = entry.getValue();
+                    if (v instanceof Number) {
+                        ctx.put(entry.getKey(), ((Number) v).doubleValue());
+                    } else {
+                        ctx.put(entry.getKey(), String.valueOf(v));
+                    }
+                }
+            }
+            return ctx.toString();
+        } catch (Exception e) {
+            log.warn("构建执行结果上下文失败，忽略: {}", e.getMessage());
+            return null;
+        }
+    }
+
+@Override
     @Transactional
     public void approveExecution(ApprovalReqVO reqVO) {
         ActionExecutionDO exec = getExecutionOrThrow(reqVO.getExecutionId());
         if (!STATUS_PENDING.equals(exec.getStatus())) {
             throw new RuntimeException("当前状态不允许审批: " + exec.getStatus());
         }
-        exec.setStatus(STATUS_APPROVED);
+        // 单次人工确认：结论永久审计，意见可选；通过后由 Worker 自动执行。
+        String result = approvalService.submitReviewerDecision(exec.getId(), true, reqVO.getApprovalReason());
         exec.setApprovalReason(reqVO.getApprovalReason());
-        exec.setApproveTime(new Date());
+        if (result == null) {
+            // 旧单步路径（无审批链）：一次人工确认后交给 Worker 自动执行。
+            exec.setStatus(STATUS_APPROVED);
+            exec.setAutoExecute(true);
+            exec.setApproveTime(new Date());
+        } else if ("APPROVED".equals(result)) {
+            exec.setStatus(STATUS_APPROVED);
+            exec.setAutoExecute(true);
+            exec.setApproveTime(new Date());
+        } else if ("REJECTED".equals(result)) {
+            exec.setStatus(STATUS_REJECTED);
+        }
+        // result == PENDING：审批流仍在中途/本关未完，保持 PENDING_APPROVAL
         executionMapper.updateById(exec);
     }
 
@@ -138,33 +603,68 @@ String sql = generateSql(action, params);
         if (!STATUS_PENDING.equals(exec.getStatus())) {
             throw new RuntimeException("当前状态不允许拒绝: " + exec.getStatus());
         }
-        exec.setStatus(STATUS_REJECTED);
+        String result = approvalService.submitReviewerDecision(exec.getId(), false, reqVO.getApprovalReason());
         exec.setApprovalReason(reqVO.getApprovalReason());
-        exec.setApproveTime(new Date());
+        if (result == null) {
+            // 旧单步路径（无审批链）
+            exec.setStatus(STATUS_REJECTED);
+            exec.setApproveTime(new Date());
+        } else if ("REJECTED".equals(result)) {
+            // 任一审阅人拒绝 → 审批流终止 → 执行记录 REJECTED
+            exec.setStatus(STATUS_REJECTED);
+        }
+        // result == PENDING：本关仍有其他审阅人需决策，保持 PENDING_APPROVAL
         executionMapper.updateById(exec);
     }
 
     @Override
-    @Transactional
-    public ExecutionRespVO executeExecution(Long executionId) {
+    public ExecutionRespVO executeExecution(Long executionId, boolean triggerWebhook) {
         ActionExecutionDO exec = getExecutionOrThrow(executionId);
         if (!STATUS_APPROVED.equals(exec.getStatus())) {
             throw new RuntimeException("只有已批准的才能执行，当前状态: " + exec.getStatus());
         }
-        ActionDO action = actionMapper.selectById(exec.getActionId());
-        if (action == null) {
-            throw new RuntimeException("动作不存在: " + exec.getActionId());
+        // 先以独立数据库语句把 RUNNING 状态持久化，再访问业务库。该方法不包裹管理库长事务：
+        // 若业务库写成功后进程崩溃，RUNNING 会被保留并由 Worker 转为 RECONCILIATION_REQUIRED，
+        // 不会因为事务回滚重新变成 APPROVED 而盲目重放写动作。
+        Date lockTime = new Date();
+        int locked = executionMapper.update(null, new LambdaUpdateWrapper<ActionExecutionDO>()
+                .eq(ActionExecutionDO::getId, executionId)
+                .eq(ActionExecutionDO::getStatus, STATUS_APPROVED)
+                .isNull(ActionExecutionDO::getLockTime)
+                .apply("COALESCE(ATTEMPT_NO, 0) < COALESCE(MAX_ATTEMPTS, 1)")
+                .set(ActionExecutionDO::getStatus, STATUS_RUNNING)
+                .set(ActionExecutionDO::getLockTime, lockTime)
+                .set(ActionExecutionDO::getLockOwner, EXECUTION_OWNER)
+                .setSql("ATTEMPT_NO = COALESCE(ATTEMPT_NO, 0) + 1"));
+        if (locked == 0) {
+            throw new RuntimeException("执行记录正被其他请求执行、已完成或已达到最大尝试次数");
         }
-        // FUNCTION 类型动作：直接调用共享函数执行，无需SQL/快照/血缘/表权限校验。
-        // 概念绑定/读取限制/输出目标等来自动作绑定函数的绑定配置；
-        // 输出内容一律以 JSON 记录（有输出目标概念时同时 UPSERT 落库并记录汇总 JSON）。
-        if ("FUNCTION".equals(action.getActionType())) {
-            try {
+        exec = getExecutionOrThrow(executionId);
+        ActionDO action = null;
+        DbQuery dbQuery = null;
+        boolean finalStatePersisted = false;
+        try {
+            action = actionMapper.selectById(exec.getActionId());
+            if (action == null) {
+                throw new RuntimeException("动作不存在: " + exec.getActionId());
+            }
+            validateFrozenDefinition(exec, action);
+
+            // 前置条件不能只在提交时检查。审批等待期间对象状态可能变化（例如库存被其他订单扣减），
+            // 因此在任何业务写入/函数副作用发生前，基于最新对象状态再次 fail-closed 求值。
+            String executionCriteriaResult = approvalService.evaluateCriteria(
+                    action, exec.getInputParams(), exec.getObjectKey());
+            exec.setCriteriaResult(executionCriteriaResult);
+            if (!isCriteriaPassed(executionCriteriaResult)) {
+                exec.setStatus(STATUS_FAILED);
+                exec.setExecuteTime(new Date());
+                exec.setErrorCode("PRECONDITION_FAILED");
+                exec.setErrorMessage("执行前置检查未通过，动作未执行");
+                exec.setResultContext(buildResultContext(exec, action, null));
+            } else if ("FUNCTION".equals(action.getActionType())) {
                 if (action.getFunctionId() == null) {
                     throw new RuntimeException("函数类型动作未绑定共享函数");
                 }
-                // 字段映射入参（param_config 中 kind=field 的条目）：把脚本入参映射到数据来源概念属性，
-                // 注入 input[paramName] = 属性 code，脚本通过入参名动态引用要处理的字段（不写死属性 code）。
                 String effectiveInputParams = applyFunctionParamMapping(action, parseParams(exec.getInputParams()));
                 String output = functionService.runFunctionWithBinding(
                         action.getFunctionId(),
@@ -174,53 +674,215 @@ String sql = generateSql(action, params);
                         action.getReadLimit(),
                         effectiveInputParams);
                 exec.setPreviewResult(toJson(Collections.singletonMap("output", output)));
+                exec.setTargetTable(resolveTargetTable(action.getOutputConceptId()));
                 exec.setStatus(STATUS_EXECUTED);
                 exec.setExecuteTime(new Date());
-            } catch (Exception e) {
-                log.error("执行函数失败", e);
-                exec.setStatus(STATUS_FAILED);
-                exec.setErrorMessage(e.getMessage());
-            }
-            executionMapper.updateById(exec);
-            return ActionConvert.INSTANCE.convert(exec);
-        }
-        DbQuery dbQuery = getDbQuery(action.getConceptId());
-        try {
-            // 执行前二次校验：防提交审批后到实际执行之间权限被回收而绕过控制；
-            // 复用提交快照的空间上下文（exec.spaceId/spaceCode）+ 与生成SQL一致的有效参数解析列
-            Map<String, Object> execParams = applyParamConfig(action, parseParams(exec.getInputParams()));
-            assertTableAccess(action, exec.getSpaceId(), exec.getSpaceCode(),
-                    extractActionColumns(action, execParams), action.getActionType());
-            String sql = exec.getGeneratedSql();
-            if (sql.toUpperCase().trim().startsWith("SELECT")) {
-                List<Map<String, Object>> rows = dbQuery.queryList(sql);
-                exec.setPreviewResult(toJson(rows));
+                exec.setErrorCode(null);
+                exec.setErrorMessage(null);
+                exec.setResultContext(buildResultContext(exec, action,
+                        Collections.singletonMap("output", output)));
+            } else if ("COMPOSITE".equals(action.getActionType())) {
+                Map<String, Object> summary = executeCompositeSteps(exec, action);
+                exec.setStatus(STATUS_EXECUTED);
+                exec.setExecuteTime(new Date());
+                exec.setErrorCode(null);
+                exec.setErrorMessage(null);
+                exec.setResultContext(buildResultContext(exec, action, summary));
             } else {
-                // 执行前一刻抓取旧值快照（可溯源回退要求「修改前」= 执行前瞬间的旧值，
-                // 而非提交时的快照——提交→执行之间数据可能已变化）
-                if ("UPDATE".equals(action.getActionType()) || "DELETE".equals(action.getActionType())) {
-                    exec.setBeforeData(captureSnapshot(action.getConceptId(), sql));
+                dbQuery = getDbQuery(action.getConceptId());
+                exec.setTargetTable(resolveTargetTable(action.getConceptId()));
+                Map<String, Object> execParams = applyParamConfig(action, parseParams(exec.getInputParams()), exec.getObjectKey());
+                assertTableAccess(action, exec.getSpaceId(), exec.getSpaceCode(),
+                        extractActionColumns(action, execParams), action.getActionType());
+                // 审批/排队期间对象值可能变化；真正执行前必须按 objectKey 重新读取条件值并重建 SQL。
+                String sql = generateSql(action, execParams);
+                exec.setGeneratedSql(sql);
+                Map<String, Object> summary;
+                if (sql.toUpperCase().trim().startsWith("SELECT")) {
+                    List<Map<String, Object>> rows = dbQuery.queryList(sql);
+                    exec.setPreviewResult(toJson(rows));
+                    summary = Collections.singletonMap("rowCount", rows.size());
+                } else {
+                    if ("UPDATE".equals(action.getActionType()) || "DELETE".equals(action.getActionType())) {
+                        exec.setBeforeData(captureSnapshot(action.getConceptId(), sql));
+                    }
+                    int affected = dbQuery.update(sql);
+                    exec.setPreviewResult(toJson(Collections.singletonMap("affectedRows", affected)));
+                    exec.setAfterData(captureAfterData(action, sql, execParams));
+                    summary = Collections.singletonMap("affectedRows", affected);
                 }
-                int affected = dbQuery.update(sql);
-                exec.setPreviewResult(toJson(Collections.singletonMap("affectedRows", affected)));
-                // 执行后数据快照（可溯源回退）：
-                // UPDATE 重查新值 / DELETE 重查空集（行已删，beforeData 保留用于回退=重INSERT）
-                // / CREATE 按主键回查新插入行
-                exec.setAfterData(captureAfterData(action, sql, execParams));
+                exec.setStatus(STATUS_EXECUTED);
+                exec.setExecuteTime(new Date());
+                exec.setErrorCode(null);
+                exec.setErrorMessage(null);
+                exec.setResultContext(buildResultContext(exec, action, summary));
             }
-            exec.setStatus(STATUS_EXECUTED);
-            exec.setExecuteTime(new Date());
         } catch (Exception e) {
-            log.error("执行SQL失败", e);
+            log.error("动作执行失败 executionId={}", executionId, e);
             exec.setStatus(STATUS_FAILED);
+            exec.setExecuteTime(new Date());
+            exec.setErrorCode(classifyExecutionError(action, e));
             exec.setErrorMessage(e.getMessage());
+            if (action != null) {
+                exec.setResultContext(buildResultContext(exec, action, null));
+            }
         } finally {
             closeDbQuery(dbQuery);
+            try {
+                int updated = executionMapper.update(exec, new LambdaUpdateWrapper<ActionExecutionDO>()
+                        .eq(ActionExecutionDO::getId, executionId)
+                        .eq(ActionExecutionDO::getStatus, STATUS_RUNNING)
+                        .eq(ActionExecutionDO::getLockOwner, EXECUTION_OWNER));
+                finalStatePersisted = updated > 0;
+            } finally {
+                if (finalStatePersisted) {
+                    releaseExecutionLock(executionId);
+                } else {
+                    log.error("动作最终状态未保存：执行锁可能已被超时对账接管 executionId={}", executionId);
+                }
+            }
         }
-// 动作血缘写节点（可插拔：LINEAGE_ENABLED=false 时 lineageDataService 为 null 跳过）
-        writeActionLineageSilently(exec, action);
-        executionMapper.updateById(exec);
+        if (!finalStatePersisted) {
+            return ActionConvert.INSTANCE.convert(getExecutionOrThrow(executionId));
+        }
+        if (action != null && !"FUNCTION".equals(action.getActionType())
+                && !"COMPOSITE".equals(action.getActionType())) {
+            writeActionLineageSilently(exec, action);
+        }
+        if (triggerWebhook && action != null) {
+            try {
+                webhookService.notifyActionExecution(exec);
+            } catch (Exception e) {
+                log.warn("动作执行结果 Webhook 通知失败 executionId={}", executionId, e);
+            }
+        }
         return ActionConvert.INSTANCE.convert(exec);
+    }
+
+    /**
+     * 多目标动作在同一个业务库事务中按步骤顺序执行。所有步骤在执行前已校验为同一数据源，
+     * 任一步失败即回滚整个事务，避免出现“订单已改、库存未扣”的半完成状态。
+     */
+    private Map<String, Object> executeCompositeSteps(ActionExecutionDO exec, ActionDO action) throws Exception {
+        List<ExecutionStep> steps = resolveExecutionSteps(action);
+        assertSameDatasource(steps);
+        Map<String, Object> rawInputParams = parseParams(exec.getInputParams());
+        List<Map<String, Object>> plans = new ArrayList<>();
+        List<Map<String, Object>> summaries = new ArrayList<>();
+        List<Map<String, Object>> beforeSnapshots = new ArrayList<>();
+        List<Map<String, Object>> afterSnapshots = new ArrayList<>();
+        List<String> targetTables = new ArrayList<>();
+
+        DbQuery dbQuery = getDbQuery(steps.get(0).conceptId);
+        Connection connection = null;
+        try {
+            connection = dbQuery.getConnection();
+            connection.setAutoCommit(false);
+            for (ExecutionStep step : steps) {
+                ActionDO targetAction = targetAction(action, step);
+                Map<String, Object> params = applyParamConfig(targetAction, rawInputParams,
+                        exec.getObjectKey(), action);
+                assertTableAccess(targetAction, exec.getSpaceId(), exec.getSpaceCode(),
+                        extractActionColumns(targetAction, params), step.actionType);
+                String sql = generateSql(targetAction, params);
+                String table = resolveTargetTable(step.conceptId);
+                targetTables.add(table);
+
+                Map<String, Object> plan = new LinkedHashMap<>();
+                plan.put("stepNo", step.stepNo);
+                plan.put("name", step.name);
+                plan.put("conceptId", step.conceptId);
+                plan.put("actionType", step.actionType);
+                plan.put("content", sql);
+                plans.add(plan);
+
+                String beforeSelect = ("UPDATE".equals(step.actionType) || "DELETE".equals(step.actionType))
+                        ? convertToSelect(sql) : null;
+                List<Map<String, Object>> beforeRows = beforeSelect == null
+                        ? Collections.emptyList() : queryRows(connection, beforeSelect);
+
+                int affected;
+                try (Statement statement = connection.createStatement()) {
+                    affected = statement.executeUpdate(sql);
+                }
+                if (affected <= 0) {
+                    throw new RuntimeException("多目标动作步骤 " + step.stepNo + "（" + step.name
+                            + "）未匹配到可执行对象，已回滚全部步骤；请检查库存、对象状态或定位条件");
+                }
+
+                String afterSelect = convertToSelect(sql);
+                if (afterSelect == null && "CREATE".equals(step.actionType)) {
+                    afterSelect = buildSelectByPk(targetAction, params);
+                }
+                List<Map<String, Object>> afterRows = afterSelect == null
+                        ? Collections.emptyList() : queryRows(connection, afterSelect);
+
+                Map<String, Object> before = new LinkedHashMap<>();
+                before.put("stepNo", step.stepNo);
+                before.put("name", step.name);
+                before.put("conceptId", step.conceptId);
+                before.put("target", table);
+                before.put("rows", beforeRows);
+                beforeSnapshots.add(before);
+
+                Map<String, Object> after = new LinkedHashMap<>();
+                after.put("stepNo", step.stepNo);
+                after.put("name", step.name);
+                after.put("conceptId", step.conceptId);
+                after.put("target", table);
+                after.put("rows", afterRows);
+                afterSnapshots.add(after);
+
+                Map<String, Object> summary = new LinkedHashMap<>();
+                summary.put("stepNo", step.stepNo);
+                summary.put("name", step.name);
+                summary.put("conceptId", step.conceptId);
+                summary.put("actionType", step.actionType);
+                summary.put("affectedRows", affected);
+                summaries.add(summary);
+            }
+            connection.commit();
+        } catch (Exception e) {
+            if (connection != null) {
+                try { connection.rollback(); } catch (Exception rollbackError) {
+                    log.warn("多目标动作事务回滚失败 executionId={}", exec.getId(), rollbackError);
+                }
+            }
+            throw e;
+        } finally {
+            if (connection != null) {
+                try { connection.close(); } catch (Exception closeError) {
+                    log.debug("多目标动作连接关闭失败", closeError);
+                }
+            }
+            closeDbQuery(dbQuery);
+        }
+
+        exec.setGeneratedSql(toJson(plans));
+        exec.setPreviewResult(toJson(summaries));
+        exec.setBeforeData(toJson(beforeSnapshots));
+        exec.setAfterData(toJson(afterSnapshots));
+        exec.setTargetTable(String.join(",", new LinkedHashSet<>(targetTables)));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("stepCount", summaries.size());
+        result.put("steps", summaries);
+        return result;
+    }
+
+    private List<Map<String, Object>> queryRows(Connection connection, String sql) throws Exception {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try (Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)) {
+            ResultSetMetaData meta = resultSet.getMetaData();
+            int count = meta.getColumnCount();
+            while (resultSet.next()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                for (int i = 1; i <= count; i++) {
+                    row.put(meta.getColumnLabel(i), resultSet.getObject(i));
+                }
+                rows.add(row);
+            }
+        }
+        return rows;
     }
 
     @Override
@@ -241,8 +903,11 @@ String sql = generateSql(action, params);
         if ("FUNCTION".equals(action.getActionType())) {
             throw new RuntimeException("函数类型动作不支持回退");
         }
+        if ("COMPOSITE".equals(action.getActionType())) {
+            throw new RuntimeException("多目标动作已在同一事务中保证整体成功或整体撤销，暂不支持事后回退");
+        }
         // 回退属于写操作：复用提交快照的空间上下文，按原动作类型走字段级严格校验
-        Map<String, Object> execParams = applyParamConfig(action, parseParams(exec.getInputParams()));
+        Map<String, Object> execParams = applyParamConfig(action, parseParams(exec.getInputParams()), exec.getObjectKey());
         assertTableAccess(action, exec.getSpaceId(), exec.getSpaceCode(),
                 extractActionColumns(action, execParams), action.getActionType());
         DbQuery dbQuery = getDbQuery(action.getConceptId());
@@ -282,12 +947,15 @@ String sql = generateSql(action, params);
                         .inputParams(exec.getInputParams())
                         .generatedSql(rollbackSql)
                         .previewResult(toJson(Collections.singletonMap("affectedRows", totalAffected)))
+                        .targetTable(resolveTargetTable(action.getConceptId()))
                         .beforeData(exec.getAfterData())
                         .afterData(rollbackAfterData)
                         .status(STATUS_ROLLED_BACK)
                         .executeTime(new Date())
                         .build();
                 executionMapper.insert(rollbackExec);
+                // 回退动作本身产生一条 ROLLED_BACK 执行记录，触发绑定该动作/本体的 webhook 回调
+                webhookService.notifyActionExecution(rollbackExec);
             } catch (Exception e) {
                 try { con.rollback(); } catch (Exception rbEx) { log.debug("回退事务回滚失败", rbEx); }
                 throw e;
@@ -504,20 +1172,126 @@ String sql = generateSql(action, params);
         return ActionConvert.INSTANCE.convert(executionMapper.selectById(id));
     }
 
-    @Override
+@Override
     public PageResult<ExecutionRespVO> getExecutionPage(ExecutionPageReqVO pageReqVO) {
         PageResult<ActionExecutionDO> page = executionMapper.selectPage(pageReqVO);
-        return new PageResult<>(ActionConvert.INSTANCE.convertExecutionList(page.getRows()), page.getTotal());
+        List<ExecutionRespVO> list = ActionConvert.INSTANCE.convertExecutionList(page.getRows());
+        fillCanApprove(list);
+        return new PageResult<>(list, page.getTotal());
     }
 
     @Override
     public List<ExecutionRespVO> getPendingApprovals(Long ontologyId) {
-        return ActionConvert.INSTANCE.convertExecutionList(executionMapper.selectPendingApprovals(ontologyId));
+        List<ExecutionRespVO> list = ActionConvert.INSTANCE.convertExecutionList(executionMapper.selectPendingApprovals(ontologyId));
+        if (list != null) {
+            // 待办仅返回当前登录用户可审的（未绑定审批人=任意可审；绑定后仅本人）
+            list.removeIf(resp -> resp.getId() != null && !approvalService.canApprove(resp.getId()));
+        }
+        return list;
+    }
+
+    /** 执行记录列表回填 canApprove（仅待审批记录判定，非待审批保持 null=按钮不可见） */
+    private void fillCanApprove(List<ExecutionRespVO> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        for (ExecutionRespVO resp : list) {
+            if (resp.getId() != null && STATUS_PENDING.equals(resp.getStatus())) {
+                resp.setCanApprove(approvalService.canApprove(resp.getId()));
+            }
+        }
     }
 
     // ================================================================
     //  SQL Engine
     // ================================================================
+
+    private static class ExecutionStep {
+        final int stepNo;
+        final String name;
+        final String actionType;
+        final Long conceptId;
+        final String paramConfig;
+
+        ExecutionStep(int stepNo, String name, String actionType, Long conceptId, String paramConfig) {
+            this.stepNo = stepNo;
+            this.name = name;
+            this.actionType = actionType;
+            this.conceptId = conceptId;
+            this.paramConfig = paramConfig;
+        }
+    }
+
+    private List<ExecutionStep> resolveExecutionSteps(ActionDO action) {
+        if (action.getExecutionSteps() == null || action.getExecutionSteps().trim().isEmpty()) {
+            throw new RuntimeException("多目标动作未配置执行步骤");
+        }
+        try {
+            List<Map<String, Object>> configs = objectMapper.readValue(action.getExecutionSteps(),
+                    new TypeReference<List<Map<String, Object>>>() {});
+            if (configs == null || configs.isEmpty()) {
+                throw new RuntimeException("多目标动作未配置执行步骤");
+            }
+            List<ExecutionStep> result = new ArrayList<>();
+            int index = 0;
+            for (Map<String, Object> config : configs) {
+                index++;
+                Long conceptId = config.get("conceptId") == null ? null
+                        : Long.valueOf(String.valueOf(config.get("conceptId")));
+                String actionType = config.get("actionType") == null ? ""
+                        : String.valueOf(config.get("actionType")).toUpperCase(Locale.ROOT);
+                if (conceptId == null) {
+                    throw new RuntimeException("执行步骤 " + index + " 未选择目标对象类型");
+                }
+                ConceptDO concept = conceptMapper.selectById(conceptId);
+                if (concept == null || !Objects.equals(concept.getOntologyId(), action.getOntologyId())) {
+                    throw new RuntimeException("执行步骤 " + index + " 的目标对象类型不属于当前本体");
+                }
+                if (!("CREATE".equals(actionType) || "UPDATE".equals(actionType) || "DELETE".equals(actionType))) {
+                    throw new RuntimeException("执行步骤 " + index + " 的操作类型不受支持: " + actionType);
+                }
+                Object paramConfig = config.get("paramConfig");
+                String paramConfigJson = paramConfig == null ? "[]" : objectMapper.writeValueAsString(paramConfig);
+                String name = config.get("name") == null ? "步骤 " + index : String.valueOf(config.get("name"));
+                result.add(new ExecutionStep(index, name, actionType, conceptId, paramConfigJson));
+            }
+            return result;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("多目标动作执行步骤解析失败: " + e.getMessage(), e);
+        }
+    }
+
+    private ActionDO targetAction(ActionDO source, ExecutionStep step) {
+        ActionDO target = new ActionDO();
+        target.setId(source.getId());
+        target.setOntologyId(source.getOntologyId());
+        target.setName(source.getName() + " / " + step.name);
+        target.setActionType(step.actionType);
+        target.setConceptId(step.conceptId);
+        target.setParamConfig(step.paramConfig);
+        return target;
+    }
+
+    private void assertSameDatasource(List<ExecutionStep> steps) {
+        Long datasourceId = null;
+        for (ExecutionStep step : steps) {
+            List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(step.conceptId);
+            if (tables == null || tables.isEmpty()) {
+                throw new RuntimeException("执行步骤 " + step.stepNo + " 的目标对象未绑定物理表");
+            }
+            Long current = tables.get(0).getDatasourceId();
+            if (current == null) {
+                throw new RuntimeException("执行步骤 " + step.stepNo + " 的目标对象缺少数据源配置");
+            }
+            if (datasourceId == null) {
+                datasourceId = current;
+            } else if (!datasourceId.equals(current)) {
+                throw new RuntimeException("一个多目标动作的所有执行步骤必须位于同一数据源，以保证失败时整体撤销");
+            }
+        }
+    }
 
     /**
      * ColumnMapping pairs a physical column with its semantic property info.
@@ -546,6 +1320,21 @@ String sql = generateSql(action, params);
         return mappings;
     }
 
+    /**
+     * 解析概念绑定的目标物理表名（用于执行记录打标 targetTable）。
+     * 概念未绑定物理表时返回 null，打标动作静默跳过，不阻断主流程。
+     */
+    private String resolveTargetTable(Long conceptId) {
+        if (conceptId == null) {
+            return null;
+        }
+        List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(conceptId);
+        if (tables == null || tables.isEmpty()) {
+            return null;
+        }
+        return tables.get(0).getTableName();
+    }
+
     private String generateSql(ActionDO action, Map<String, Object> params) {
         Long conceptId = action.getConceptId();
         List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(conceptId);
@@ -555,7 +1344,8 @@ String sql = generateSql(action, params);
         ConceptTableDO table = tables.get(0);
         String physicalTable = table.getTableName();
         List<ColumnMapping> mappings = resolveColumnMappings(conceptId, table.getId());
-        List<ConditionSpec> conditionSpecs = resolveConditionSpecs(action);
+        List<ConditionSpec> conditionSpecs = enrichPhysicalPkConditions(action, physicalTable,
+                mappings, params, resolveConditionSpecs(action));
         switch (action.getActionType()) {
             case "SELECT": return buildSelectSql(physicalTable, mappings, params);
             case "CREATE": return buildInsertSql(physicalTable, mappings, params);
@@ -592,12 +1382,92 @@ String sql = generateSql(action, params);
                 String link = "OR".equalsIgnoreCase(String.valueOf(cfg.get("conditionLink"))) ? "OR" : "AND";
                 boolean negate = Boolean.TRUE.equals(cfg.get("conditionNegate"))
                         || "true".equalsIgnoreCase(String.valueOf(cfg.get("conditionNegate")));
-                specs.add(new ConditionSpec(String.valueOf(cfg.get("propertyCode")), link, negate));
+                String operator = normalizeConditionOperator(cfg.get("conditionOperator"));
+                specs.add(new ConditionSpec(String.valueOf(cfg.get("propertyCode")), link, negate, operator));
             }
         } catch (Exception e) {
             log.warn("动作参数配置解析失败（条件字段识别）: {}", e.getMessage());
         }
         return specs;
+    }
+
+    /**
+     * 物理表主键兜底（行操作精确定位）：
+     * 仅当动作无属性级主键且未配置「条件字段」时（典型：对象管理行操作的内置 UPDATE/DELETE 动作），
+     * 用物理表真实主键列（DatabaseMetaData.getPrimaryKeys，与回退主键解析同源）匹配属性映射，
+     * 命中且已传值的属性追加为 AND 条件，使 WHERE 能按物理主键精确定位行。
+     * 解析失败静默降级：保持原逻辑，由 buildUpdateSql/buildDeleteSql 原有校验规则报错。
+     */
+    private List<ConditionSpec> enrichPhysicalPkConditions(ActionDO action, String table,
+                                                           List<ColumnMapping> mappings,
+                                                           Map<String, Object> params,
+                                                           List<ConditionSpec> conditionSpecs) {
+        if (!("UPDATE".equals(action.getActionType()) || "DELETE".equals(action.getActionType()))) {
+            return conditionSpecs;
+        }
+        if (conditionSpecs != null && !conditionSpecs.isEmpty()) {
+            return conditionSpecs; // 已显式配置条件字段，尊重用户配置
+        }
+        for (ColumnMapping m : mappings) {
+            if (m.primaryKey) {
+                return conditionSpecs; // 已有属性级主键，走原主键定位链路
+            }
+        }
+        List<ConditionSpec> enriched = new ArrayList<>();
+        DbQuery dbQuery = null;
+        try {
+            dbQuery = getDbQuery(action.getConceptId());
+            Set<String> pkCols = resolvePhysicalPrimaryKeyColumns(dbQuery, table);
+            for (ColumnMapping m : mappings) {
+                if (pkCols.contains(m.physicalColumn.toLowerCase()) && params.containsKey(m.semanticName)) {
+                    enriched.add(new ConditionSpec(m.semanticName, "AND", false, "eq"));
+                }
+            }
+            if (!enriched.isEmpty()) {
+                log.info("SQL生成物理主键兜底：表 [{}] 主键列命中属性条件 {} 个", table, enriched.size());
+            }
+        } catch (Exception e) {
+            log.warn("SQL生成物理主键兜底失败，保持原逻辑处理: {}", e.getMessage());
+        } finally {
+            closeDbQuery(dbQuery);
+        }
+        enriched.addAll(conditionSpecs == null ? Collections.emptyList() : conditionSpecs);
+        return enriched;
+    }
+
+    /**
+     * 物理表真实主键列解析（小写集合）：通过已打开连接的 DatabaseMetaData.getPrimaryKeys 获取。
+     * 与回退兜底 resolvePhysicalPkColumns 同源，供行操作 SQL 生成定位复用。
+     */
+    private Set<String> resolvePhysicalPrimaryKeyColumns(DbQuery dbQuery, String table) {
+        Set<String> pkCols = new LinkedHashSet<>();
+        if (dbQuery == null) {
+            return pkCols;
+        }
+        Connection con = null;
+        try {
+            con = dbQuery.getConnection();
+            DatabaseMetaData meta = con.getMetaData();
+            try (ResultSet rs = meta.getPrimaryKeys(null, null, table)) {
+                while (rs.next()) {
+                    String col = rs.getString("COLUMN_NAME");
+                    if (col != null) {
+                        pkCols.add(col.toLowerCase());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("物理主键解析失败，回退空主键集合: {}", e.getMessage());
+        } finally {
+            if (con != null) {
+                try {
+                    con.close();
+                } catch (Exception cEx) {
+                    log.debug("主键解析连接关闭失败", cEx);
+                }
+            }
+        }
+        return pkCols;
     }
 
     /**
@@ -607,11 +1477,24 @@ String sql = generateSql(action, params);
         final String semanticName;
         final String link;      // "AND" 或 "OR"
         final boolean negate;   // NOT 取反
+        final String operator;
 
-        ConditionSpec(String semanticName, String link, boolean negate) {
+        ConditionSpec(String semanticName, String link, boolean negate, String operator) {
             this.semanticName = semanticName;
             this.link = link;
             this.negate = negate;
+            this.operator = operator;
+        }
+    }
+
+    private String normalizeConditionOperator(Object operator) {
+        String value = operator == null ? "eq" : String.valueOf(operator).toLowerCase(Locale.ROOT);
+        switch (value) {
+            case "eq": case "ne": case "gt": case "ge": case "lt": case "le":
+            case "contains": case "in":
+                return value;
+            default:
+                return "eq";
         }
     }
 
@@ -660,7 +1543,8 @@ String sql = generateSql(action, params);
                 continue;
             }
             if (!first) setClauses.append(", ");
-            setClauses.append(m.physicalColumn).append(" = ").append(sqlValue(params.get(m.semanticName)));
+            setClauses.append(m.physicalColumn).append(" = ")
+                    .append(sqlAssignmentValue(m, params.get(m.semanticName)));
             first = false;
         }
         // 配置条件按序拼接（AND/OR/NOT），主键条件附加到末尾（AND）
@@ -708,7 +1592,7 @@ String sql = generateSql(action, params);
             if (m == null || !params.containsKey(m.semanticName)) {
                 continue;
             }
-            exprs.add(buildConditionExpr(m, params, spec.negate));
+            exprs.add(buildConditionExpr(m, params, spec.operator, spec.negate));
             links.add(spec.link);
         }
         // 2. 补充未配置的属性级主键（AND 连接）
@@ -716,7 +1600,7 @@ String sql = generateSql(action, params);
             for (ColumnMapping m : mappings) {
                 if (m.primaryKey && !containsSpec(conditionSpecs, m.semanticName)
                         && params.containsKey(m.semanticName)) {
-                    exprs.add(buildConditionExpr(m, params, false));
+                    exprs.add(buildConditionExpr(m, params, "eq", false));
                     links.add("AND");
                 }
             }
@@ -733,8 +1617,31 @@ String sql = generateSql(action, params);
         return null;
     }
 
-    private String buildConditionExpr(ColumnMapping m, Map<String, Object> params, boolean negate) {
-        String expr = m.physicalColumn + " = " + sqlValue(params.get(m.semanticName));
+    private String buildConditionExpr(ColumnMapping m, Map<String, Object> params,
+                                      String operator, boolean negate) {
+        Object value = params.get(m.semanticName);
+        String expr;
+        switch (normalizeConditionOperator(operator)) {
+            case "ne": expr = m.physicalColumn + " <> " + sqlValue(value); break;
+            case "gt": expr = m.physicalColumn + " > " + sqlValue(value); break;
+            case "ge": expr = m.physicalColumn + " >= " + sqlValue(value); break;
+            case "lt": expr = m.physicalColumn + " < " + sqlValue(value); break;
+            case "le": expr = m.physicalColumn + " <= " + sqlValue(value); break;
+            case "contains":
+                expr = m.physicalColumn + " LIKE " + sqlValue("%" + String.valueOf(value) + "%");
+                break;
+            case "in":
+                List<String> values = new ArrayList<>();
+                if (value instanceof Collection) {
+                    for (Object item : (Collection<?>) value) values.add(sqlValue(item));
+                } else {
+                    for (String item : String.valueOf(value).split(",")) values.add(sqlValue(item.trim()));
+                }
+                if (values.isEmpty()) throw new RuntimeException("属于列表条件不能为空: " + m.semanticName);
+                expr = m.physicalColumn + " IN (" + String.join(", ", values) + ")";
+                break;
+            default: expr = m.physicalColumn + " = " + sqlValue(value);
+        }
         return negate ? "NOT (" + expr + ")" : expr;
     }
 
@@ -774,7 +1681,13 @@ String sql = generateSql(action, params);
      * - expression:  原生SQL表达式（如 CASE WHEN ... END），拼装时不加引号
      * 未配置 PARAM_CONFIG 的动作保持旧行为：直接使用入参生成SQL。
      */
-    private Map<String, Object> applyParamConfig(ActionDO action, Map<String, Object> inputParams) {
+    private Map<String, Object> applyParamConfig(ActionDO action, Map<String, Object> inputParams,
+                                                 String objectKey) {
+        return applyParamConfig(action, inputParams, objectKey, action);
+    }
+
+    private Map<String, Object> applyParamConfig(ActionDO action, Map<String, Object> inputParams,
+                                                 String objectKey, ActionDO conditionSourceAction) {
         String configJson = action.getParamConfig();
         if (configJson == null || configJson.trim().isEmpty()) {
             return inputParams;
@@ -796,13 +1709,22 @@ String sql = generateSql(action, params);
             String valueTemplate = cfg.get("valueTemplate") == null ? "" : String.valueOf(cfg.get("valueTemplate"));
             boolean required = Boolean.TRUE.equals(cfg.get("required"))
                     || "true".equalsIgnoreCase(String.valueOf(cfg.get("required")));
+            boolean condition = Boolean.TRUE.equals(cfg.get("condition"))
+                    || "true".equalsIgnoreCase(String.valueOf(cfg.get("condition")));
             switch (valueMode) {
                 case "direct":
                     effective.put(propertyCode, valueTemplate);
                     break;
                 case "placeholder": {
                     String paramName = stripPlaceholder(valueTemplate);
-                    Object v = inputParams.get(paramName);
+                    String conditionSourceProperty = paramName.isEmpty() ? propertyCode : paramName;
+                    // 对象绑定条件的值必须来自 objectKey 对应的当前对象，不能信任前端手填值。
+                    // 例如条件字段选择“订单编号”，配置自动为 ${orderNo}，实际执行时重新读取
+                    // object.orderNo；提交预览和 Worker 真正执行都会各读取一次。
+                    Object v = condition && objectKey != null && !objectKey.trim().isEmpty()
+                            ? objectStateConditionResolver.resolve("object." + conditionSourceProperty,
+                                    conditionSourceAction, objectKey)
+                            : inputParams.get(paramName);
                     if (v == null && required) {
                         throw new RuntimeException("缺少必填执行参数: " + paramName);
                     }
@@ -817,6 +1739,35 @@ String sql = generateSql(action, params);
                     }
                     effective.put(propertyCode, new RawExpression(valueTemplate));
                     break;
+                case "relative": {
+                    if (!"UPDATE".equals(action.getActionType())) {
+                        throw new RuntimeException("当前值运算仅支持 UPDATE 动作: " + propertyCode);
+                    }
+                    String relativeOperator = "ADD".equalsIgnoreCase(String.valueOf(cfg.get("relativeOperator")))
+                            ? "ADD" : "SUBTRACT";
+                    Object operand;
+                    String trimmed = valueTemplate.trim();
+                    if (trimmed.startsWith("${") && trimmed.endsWith("}")) {
+                        String paramName = stripPlaceholder(trimmed);
+                        operand = inputParams.get(paramName);
+                        if (operand == null) {
+                            throw new RuntimeException("缺少当前值运算参数: " + paramName);
+                        }
+                        try {
+                            operand = new BigDecimal(String.valueOf(operand).trim());
+                        } catch (Exception e) {
+                            throw new RuntimeException("当前值运算参数必须是数字: " + paramName);
+                        }
+                    } else {
+                        try {
+                            operand = new BigDecimal(trimmed);
+                        } catch (Exception e) {
+                            throw new RuntimeException("当前值运算只支持数字或入参占位符: " + valueTemplate);
+                        }
+                    }
+                    effective.put(propertyCode, new CurrentValueExpression(relativeOperator, operand));
+                    break;
+                }
                 default:
                     throw new RuntimeException("不支持的目标值模式: " + valueMode);
             }
@@ -844,6 +1795,15 @@ String sql = generateSql(action, params);
             return ((RawExpression) val).expr;
         }
         return "'" + escape(val) + "'";
+    }
+
+    private String sqlAssignmentValue(ColumnMapping mapping, Object val) {
+        if (val instanceof CurrentValueExpression) {
+            CurrentValueExpression expression = (CurrentValueExpression) val;
+            String operator = "ADD".equals(expression.operator) ? "+" : "-";
+            return mapping.physicalColumn + " " + operator + " " + sqlValue(expression.operand);
+        }
+        return sqlValue(val);
     }
 
     /**
@@ -911,6 +1871,17 @@ String sql = generateSql(action, params);
             closeDbQuery(dbQuery);
         }
         return null;
+    }
+
+    /** UPDATE 专用的安全相对运算：目标列当前值 +/- 数字或已解析的执行入参。 */
+    private static class CurrentValueExpression {
+        final String operator;
+        final Object operand;
+        CurrentValueExpression(String operator, Object operand) {
+            this.operator = operator;
+            this.operand = operand;
+        }
+        @Override public String toString() { return operator + " " + operand; }
     }
 
     private String convertToSelect(String dmlSql) {
@@ -1002,6 +1973,21 @@ if (upper.startsWith("DELETE")) {
                     hostPort = ds.getIp() + ":" + ds.getPort();
                 }
             }
+            // 1. 数据/决策共用：upsert 语义对象节点（数据维度 MATERIALIZES 由对象实例层维护，此处保证节点存在供决策关联）
+            ConceptDO concept = conceptMapper.selectById(action.getConceptId());
+            ObjectNode objectNode = ObjectNode.builder()
+                    .objectId(action.getConceptId())
+                    .ontologyId(exec.getOntologyId())
+                    .conceptId(action.getConceptId())
+                    .conceptCode(concept == null ? null : concept.getCode())
+                    .conceptName(concept == null ? null : concept.getName())
+                    .tableName(table.getTableName())
+                    .datasourceHostPort(hostPort)
+                    .dbName(table.getDatabaseName())
+                    .sid(table.getSchemaName())
+                    .build();
+            lineageDataService.saveObject(objectNode);
+            // 2. 决策维度：ActionExecution -[DECISION_ACTION]-> Object
             ActionExecutionNode node = ActionExecutionNode.builder()
                     .executionId(exec.getId())
                     .actionId(action.getId())
@@ -1011,6 +1997,10 @@ if (upper.startsWith("DELETE")) {
                     .datasourceHostPort(hostPort)
                     .status(exec.getStatus())
                     .executeTime(exec.getExecuteTime())
+                    .objectRels(Collections.singletonList(ObjectDecisionRel.builder()
+                            .executionId(exec.getId())
+                            .actionId(action.getId())
+                            .object(objectNode).build()))
                     .build();
             lineageDataService.saveActionExecution(node);
         } catch (Exception e) {

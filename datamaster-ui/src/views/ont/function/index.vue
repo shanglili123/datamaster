@@ -41,7 +41,7 @@
       </template>
     </a-table>
 
-    <a-modal :title="title" v-model:open="open" width="700px" destroy-on-close ok-text="OK" cancel-text="Cancel" @ok="submitForm" @cancel="cancel">
+    <a-modal :title="title" v-model:open="open" width="700px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
       <a-form :label-col="{ style: { width: '100px' } }">
         <a-form-item label="函数名称"><a-input v-model:value="form.name" placeholder="函数名称" /></a-form-item>
         <a-form-item label="语言">
@@ -67,7 +67,7 @@
       </a-form>
     </a-modal>
 
-    <a-modal title="编辑代码" v-model:open="codeOpen" width="900px" destroy-on-close ok-text="Save" cancel-text="Cancel" @ok="saveCode" @cancel="codeOpen = false">
+    <a-modal title="编辑代码" v-model:open="codeOpen" width="900px" destroy-on-close ok-text="保存" cancel-text="取消" @ok="saveCode" @cancel="codeOpen = false">
       <div style="margin-bottom:8px;"><a-tag :color="editFunc.lang === 'PYTHON' ? 'orange' : 'blue'">{{ editFunc.lang }}</a-tag> {{ editFunc.name }}</div>
       <div style="margin-bottom:8px;padding:8px 12px;background:#fff7e6;border:1px solid #ffd591;border-radius:6px;font-size:12px;color:#d46b08;">可用 ${参数名} 引用入参，也可用 input 对象获取全部入参，如 $${'{name}'}；动作绑定数据来源概念后 input.source.rows 为主概念数据、input.relations 为关联关系数据，脚本输出 JSON 数组（键=输出属性 code）可写回输出目标概念。<b>脚本必须输出结果</b>（TS 用 console.log、Python 用 print 输出 JSON 数组或对象，输出将被记录/落库）。</div>
       <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">

@@ -192,6 +192,10 @@ public class FlinkxEtlTaskConverter {
 
         JSONObject wp = new JSONObject();
         if (param != null) {
+            if (isKafka(dbType)) {
+                writer.put("parameter", buildKafkaWriterParameter(param));
+                return writer;
+            }
             if (isMongo(dbType)) {
                 writer.put("parameter", buildMongoParameter(param, false));
                 return writer;
@@ -377,6 +381,105 @@ public class FlinkxEtlTaskConverter {
                 "pavingData", "split", "keyFields", "consumerSettings",
                 "timestamp", "offset", "deserialization", "deserializationProperties");
         return kp;
+    }
+
+    /**
+     * 构建 Kafka 输出（kafkawriter）参数。
+     * 依据 ChunJun chunjun-connector-kafka 的 KafkaConfig 契约：
+     * - topic / topics             输出目标
+     * - codec                      序列化格式（默认 json）
+     * - column / tableFields       字段定义
+     * - partitionAssignColumns     分区键字段（KafkaSinkFactory 校验其必须包含在 tableFields 中，
+     *                              并通过 KafkaSyncKeyConverter 将分区键序列化为消息 key，
+     *                              配合 FlinkKafkaProducer 默认分区器实现"同 key 同分区"的主键/键分区）
+     * - producerSettings           Kafka 生产端原生参数（bootstrap.servers、序列化器等）
+     */
+    private static JSONObject buildKafkaWriterParameter(Map<String, Object> param) {
+        JSONObject kafkaConfig = nestedConfig(param, "kafkaWriterConfig");
+        JSONObject kp = new JSONObject();
+
+        // topic / topics：优先取配置，其次兜底 connection.table
+        Object configuredTopics = kafkaConfig.get("topics");
+        Object rawTopic = firstPresent(
+                param.get("topic"), kafkaConfig.get("topic"), connectionTable(param), firstTopic(configuredTopics));
+        Object topics = firstPresent(configuredTopics, rawTopic);
+        Object topic = firstTopic(topics);
+        putIfPresent(kp, "topic", topic);
+        putListIfPresent(kp, "topics", topics);
+        if (!hasValue(kp.get("topic")) && !hasValue(kp.get("topics"))) {
+            throw new DataQueryException("Kafka writer 缺少 Topic");
+        }
+
+        // 序列化格式
+        kp.put("codec", firstPresent(kafkaConfig.get("codec"), "json"));
+
+        // 字段
+        Object tableFields = firstPresent(kafkaConfig.get("tableFields"), param.get("tableFields"));
+        Object columns = firstPresent(kafkaConfig.get("column"), param.get("target_column"), param.get("column"));
+        Object normalizedColumns = normalizeFieldColumns(columns);
+        putIfPresent(kp, "column", normalizedColumns);
+        putListIfPresent(kp, "tableFields", firstPresent(kafkaConfig.get("fieldList"), normalizeKafkaFieldNames(columns)));
+        putIfPresent(kp, "tableSchema", firstPresent(
+                normalizeKafkaTableSchema(kafkaConfig.get("tableSchema")),
+                buildKafkaTableSchema(firstPresent(topic, firstTopic(topics)), normalizedColumns)));
+
+        // 主键/键分区：partitionAssignColumns 必须包含在 tableFields 中
+        List<String> partitionAssignColumns = toStringList(
+                firstPresent(kafkaConfig.get("partitionAssignColumns"), param.get("partitionAssignColumns")));
+        if (partitionAssignColumns.isEmpty()) {
+            List<String> selected = toStringList(kafkaConfig.get("selectedColumns"));
+            partitionAssignColumns = selected;
+        }
+        putListIfPresent(kp, "partitionAssignColumns", partitionAssignColumns);
+
+        kp.put("batchSize", toInt(firstPresent(kafkaConfig.get("batchSize"), param.getOrDefault("batchSize", 1024)), 1024));
+        putIfPresent(kp, "dataCompelOrder", kafkaConfig.get("dataCompelOrder"));
+        putIfPresent(kp, "pavingData", kafkaConfig.get("pavingData"));
+        putIfPresent(kp, "split", kafkaConfig.get("split"));
+
+        // producerSettings：Kafka 生产端原生参数
+        JSONObject producerSettings = new JSONObject();
+        mergeProducerSettings(producerSettings, datasourceConfig(param).get("config"));
+        mergeProducerSettings(producerSettings, param.get("config"));
+        mergeKafkaClientProperties(producerSettings, kafkaConfig);
+        normalizeBootstrapServers(producerSettings, param);
+        if (!hasValue(producerSettings.get("bootstrap.servers"))) {
+            throw new DataQueryException("Kafka writer 缺少 bootstrap.servers");
+        }
+        putIfPresent(kp, "producerSettings", stringifyJsonValues(producerSettings));
+
+        mergeKafkaExtraConfig(kp, kafkaConfig,
+                "topic", "topics", "codec", "column", "columns", "fields",
+                "tableFields", "fieldList", "tableSchema", "partitionAssignColumns",
+                "selectedColumns", "batchSize", "dataCompelOrder", "pavingData", "split",
+                "producerSettings", "timestamp", "offset",
+                "deserialization", "deserializationProperties");
+        return kp;
+    }
+
+    private static void mergeProducerSettings(JSONObject target, Object raw) {
+        JSONObject config = toJsonObject(raw);
+        for (Map.Entry<String, Object> entry : config.entrySet()) {
+            String key = entry.getKey() == null ? null : entry.getKey().trim();
+            if (StringUtils.isBlank(key) || entry.getValue() == null) {
+                continue;
+            }
+            // 只合并 Kafka 生产端相关属性，其余配置由 mergeKafkaExtraConfig 兜底透传
+            if ("bootstrap.servers".equalsIgnoreCase(key)
+                    || "bootstrapServers".equalsIgnoreCase(key)
+                    || "bootstrap_servers".equalsIgnoreCase(key)
+                    || key.endsWith(".serializer")
+                    || key.endsWith("serializer")
+                    || key.startsWith("producer.")
+                    || key.toLowerCase(java.util.Locale.ROOT).contains("acks")
+                    || key.toLowerCase(java.util.Locale.ROOT).contains("linger")
+                    || key.toLowerCase(java.util.Locale.ROOT).contains("retries")
+                    || key.toLowerCase(java.util.Locale.ROOT).contains("batch")
+                    || key.toLowerCase(java.util.Locale.ROOT).contains("buffer.memory")
+                    || key.toLowerCase(java.util.Locale.ROOT).contains("request.timeout")) {
+                target.put(key, entry.getValue());
+            }
+        }
     }
 
     private static JSONObject buildStreamingMqParameter(Map<String, Object> param, DbType dbType) {

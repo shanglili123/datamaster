@@ -107,6 +107,7 @@
         show-size-changer
         show-quick-jumper
         :show-total="(total) => `共 ${total} 条`"
+        :locale="paginationLocale"
         @change="onAntPagination"
         @showSizeChange="onAntPagination"
       />
@@ -118,6 +119,7 @@
 import { computed, ref, watch, h } from 'vue';
 import { parseTime } from '@/utils/anivia';
 import { cronToZh } from '@/utils/cronUtils';
+import paginationLocale from '@/utils/paginationLocale';
 import { InfoCircleFilled as InfoFilled } from '@ant-design/icons-vue';
 
 const noDataImg = new URL(

@@ -202,6 +202,7 @@
         <module>datamaster-api-ds</module>
         <module>datamaster-server</module>
         <module>datamaster-ontology</module>
+        <module>datamaster-ingestion</module>
     </modules>
     <packaging>pom</packaging>
     <build>

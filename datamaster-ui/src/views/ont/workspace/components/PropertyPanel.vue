@@ -99,7 +99,7 @@
     />
 
     <!-- 属性对话框 -->
-    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="OK" cancel-text="Cancel" @ok="submitForm" @cancel="cancel">
+    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
       <a-form ref="propertyRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="所属概念" name="conceptId">
           <a-select
@@ -124,12 +124,7 @@
           </a-select>
         </a-form-item>
         <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="主键" name="isPrimary">
-              <a-switch v-model:checked="form.isPrimary" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
+          <a-col :span="24">
             <a-form-item label="必填" name="isRequired">
               <a-switch v-model:checked="form.isRequired" />
             </a-form-item>
@@ -190,7 +185,7 @@ const fbConcept = ref({})
 const columns = [
   { title: '属性名称', dataIndex: 'name', align: 'left', width: 150 },
   { title: '数据类型', key: 'dataType', align: 'center', width: 100 },
-  { title: '主键', key: 'isPrimary', align: 'center', width: 80 },
+  { title: '主属性', key: 'isPrimary', align: 'center', width: 90 },
   { title: '必填', key: 'isRequired', align: 'center', width: 80 },
   { title: '默认值', dataIndex: 'defaultValue', align: 'center', width: 120 },
   { title: '排序', dataIndex: 'sortOrder', align: 'center', width: 70 },

@@ -170,25 +170,6 @@ public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,Cata
         return CatalogTableMapper.updateById(updateCatalogTableDO);
     }
     private CatalogTableDO reCatalogTableDO(CatalogTableDO CatalogTableDO) {
-        CatalogDbDO CatalogDbDO = CatalogDbMapper.findById(CatalogTableDO.getDbId());
-//        if (CatalogDbDO != null) {
-//            // 使用数据库方言获取表的行数、索引、分区字段等信息
-//            DatabaseDialect dialect = DatabaseDialectFactory.getDialect(CatalogDbDO);
-//            if (dialect != null) {
-//                // 批量获取表元数据信息
-//                DatabaseDialect.TableMetadata metadata = dialect.getTableMetadata(CatalogDbDO, CatalogTableDO.getTableName());
-//                CatalogTableDO.setRowCount(metadata.getRowCount());
-//                CatalogTableDO.setTbIndex(metadata.getIndexes());
-//                CatalogTableDO.setPartitionKey(metadata.getPartitionFields());
-//                CatalogTableDO.setStorageSize(null !=metadata.getTableSize()?metadata.getTableSize().intValue(): null);
-//                CatalogTableDO.setStorageEngine(metadata.getStorageEngine());
-//                CatalogTableDO.setTableComment(metadata.getTableComment());
-//                CatalogTableDO.setPrimaryKey(metadata.getPrimaryKey());
-//                CatalogTableDO.setTbCreateTime(metadata.getCreateTime() != null ? parseDate(metadata.getCreateTime()) : null);
-//                CatalogTableDO.setDataUpdateTime(metadata.getUpdateTime() != null ? parseDate(metadata.getUpdateTime()) : null);
-//
-//            }
-//        }
         return CatalogTableDO;
     }
     private Date parseDate(String dateStr) {

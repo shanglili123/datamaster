@@ -101,6 +101,43 @@ public class DBWriterComponent implements ComponentItem {
         if (StringUtils.isNotBlank(postSql)) {
             parameter.put("postSql", postSql.split(","));
         }
+
+        // Kafka 输出：无 JDBC/表，透传 kafkaWriterConfig（topic/分区键）供 Flinkx kafkawriter 使用
+        if (DbType.KAFKA.getDb().equalsIgnoreCase(writerProperty.getDbType())) {
+            Object kafkaWriterConfigObj = taskParams.get("kafkaWriterConfig");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> kafkaWriterConfig = kafkaWriterConfigObj instanceof Map
+                    ? (Map<String, Object>) kafkaWriterConfigObj
+                    : new LinkedHashMap<String, Object>();
+            parameter.put("kafkaWriterConfig", kafkaWriterConfig);
+            Object topic = kafkaWriterConfig.get("topic");
+            if (StringUtils.isNotBlank(MapUtils.getString(taskParams, "topic"))) {
+                topic = MapUtils.getString(taskParams, "topic");
+            }
+            if (topic != null) {
+                parameter.put("topic", topic);
+            }
+            Object topics = kafkaWriterConfig.get("topics");
+            if (topics != null) {
+                parameter.put("topics", topics);
+            }
+            List<String> partitionAssignColumns = new ArrayList<>();
+            Object rawPartition = kafkaWriterConfig.get("partitionAssignColumns");
+            if (rawPartition instanceof List) {
+                for (Object item : (List<?>) rawPartition) {
+                    partitionAssignColumns.add(String.valueOf(item));
+                }
+            } else if (rawPartition instanceof String && StringUtils.isNotBlank((String) rawPartition)) {
+                partitionAssignColumns.add((String) rawPartition);
+            }
+            if (!partitionAssignColumns.isEmpty()) {
+                parameter.put("partitionAssignColumns", partitionAssignColumns);
+            }
+            // Kafka 无连接参数
+            parameter.put("writerProperty", writerProperty);
+            return reader;
+        }
+
         Map<String, Object> connection = new HashMap<>();
         connection.put("table", resolveTargetTableName(taskParams));
         connection.put("jdbcUrl", writerProperty.trainToJdbcUrl());

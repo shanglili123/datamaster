@@ -26,4 +26,13 @@ public interface ActionMapper extends BaseMapperX<ActionDO> {
                 .eq(ActionDO::getOntologyId, ontologyId)
                 .orderByAsc(ActionDO::getId));
     }
+
+    /** 数据到达触发匹配：命中 triggerRef 的已启用动作（triggerRef 非空即视为启用） */
+    default List<ActionDO> selectByTriggerRef(String triggerRef) {
+        if (triggerRef == null || triggerRef.trim().isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+        return selectList(new LambdaQueryWrapperX<ActionDO>()
+                .eq(ActionDO::getTriggerRef, triggerRef));
+    }
 }

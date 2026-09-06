@@ -35,6 +35,15 @@ export function updateProperty(data) {
   })
 }
 
+// 设置概念主属性（联合主键可传多个属性ID）
+export function setPrimaryProperties(data) {
+  return request({
+    url: '/ont/property/primary',
+    method: 'put',
+    data
+  })
+}
+
 // 删除属性
 export function delProperty(id) {
   return request({

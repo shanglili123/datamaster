@@ -1,5 +1,6 @@
 package com.datamaster.module.ontology.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.ontology.controller.admin.function.vo.*;
 import com.datamaster.module.ontology.convert.FunctionConvert;
@@ -54,14 +55,31 @@ public class FunctionServiceImpl implements IFunctionService {
     @Override
     public Long createFunction(FunctionSaveReqVO reqVO) {
         FunctionDO func = FunctionConvert.INSTANCE.convert(reqVO);
+        func.setVersion(1);
         functionMapper.insert(func);
         return func.getId();
     }
 
     @Override
     public Integer updateFunction(FunctionSaveReqVO reqVO) {
+        FunctionDO existing = functionMapper.selectById(reqVO.getId());
+        if (existing == null) {
+            throw new RuntimeException("函数不存在: " + reqVO.getId());
+        }
         FunctionDO func = FunctionConvert.INSTANCE.convert(reqVO);
-        return functionMapper.updateById(func);
+        func.setVersion((existing.getVersion() == null ? 1 : existing.getVersion()) + 1);
+        LambdaUpdateWrapper<FunctionDO> wrapper = new LambdaUpdateWrapper<FunctionDO>()
+                .eq(FunctionDO::getId, reqVO.getId());
+        if (existing.getVersion() == null) {
+            wrapper.isNull(FunctionDO::getVersion);
+        } else {
+            wrapper.eq(FunctionDO::getVersion, existing.getVersion());
+        }
+        int updated = functionMapper.update(func, wrapper);
+        if (updated == 0) {
+            throw new RuntimeException("函数已被其他请求修改，请刷新后重试");
+        }
+        return updated;
     }
 
     @Override

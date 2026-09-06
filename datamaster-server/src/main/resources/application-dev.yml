@@ -4,8 +4,49 @@ datasource:
 datamaster:
   embedded-redis:
     enabled: false
+  # 数据血缘开关：开启 Neo4j 血缘装配（ETL 表血缘 + 本体对象四维血缘）
+  lineage:
+    enabled: true
+  # 本体动作自动执行 Worker 轮询：关闭后不再定时扫描 APPROVED 执行记录自动执行，
+  # 动作执行退化为纯人工入口（提交 -> 预览 -> 手动执行 / 人工确认后执行）
+  ontology:
+    action-execution:
+      worker-enabled: false
+  # 数据接收子工程（消费 Kafka -> 冲突检查 -> 写入数仓 Doris）
+  ingestion:
+    # 是否启动数据接收消费调度
+    enabled: false
+    kafka:
+      # 集成输出 Kafka 地址
+      bootstrap-servers: ${INGESTION_KAFKA_SERVERS:localhost:9092}
+      # 消费组
+      group-id: datamaster-ingestion
+      # 订阅的集成输出 topic（由数据集成输出组件产出）
+      topics: ${INGESTION_KAFKA_TOPICS:[]}
+      poll-timeout-ms: 1000
+      poll-interval-ms: 1000
+    # 目标数据仓库（Doris）数据源ID：对应数据源管理中注册的 Doris 数据源
+    doris-datasource-id: ${INGESTION_DORIS_DATASOURCE_ID:}
+    # 冲突策略：INSERT 追加 / UPSERT 按主键更新 / SKIP 跳过 / ERROR 报错
+    conflict-strategy: UPSERT
+    # 冲突判定主键列（目标表主键列名）；消息携带 __keys 时优先使用
+    key-columns: ${INGESTION_KEY_COLUMNS:[]}
+    # 目标表名（缺省从消息 __table 字段读取）
+    target-table: ${INGESTION_TARGET_TABLE:}
+    # 决策数据到达触发（数据落库后回调本体 DATA_ARRIVAL 决策自动提交执行）
+    decision-trigger:
+      enabled: false
+      base-url: ${INGESTION_DECISION_BASE_URL:}
+      path: /ont/decision/trigger/data-arrival
+      # trigger-ref: 不配置时取 Kafka topic 名
+      # secret: 可选
 
 spring:
+  data:
+    neo4j:
+      uri: bolt://192.168.93.176:7687
+      username: neo4j
+      password: 1Kox2ZvgwWaTEZ1x
   redis:
     host: 192.168.93.174
     port: 6379

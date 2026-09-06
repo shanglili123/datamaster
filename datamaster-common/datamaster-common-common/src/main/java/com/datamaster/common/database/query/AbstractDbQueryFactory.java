@@ -797,6 +797,16 @@ public abstract class AbstractDbQueryFactory implements DbQuery {
     }
 
     @Override
+    public com.datamaster.common.database.core.DbTableMetadata getTableMetadata(
+            DbQueryProperty dbQueryProperty, String tableName) {
+        try (Connection conn = getConnection()) {
+            return dbDialect.tableMetadata(dbQueryProperty, tableName, conn);
+        } catch (java.sql.SQLException e) {
+            throw new DataQueryException("采集表元数据失败: " + e.getMessage());
+        }
+    }
+
+    @Override
     public Boolean copyTable(Connection conn, DbQueryProperty dbQueryProperty, String tableName, String newTableName) {
         try {
             //判断是否是 Hive

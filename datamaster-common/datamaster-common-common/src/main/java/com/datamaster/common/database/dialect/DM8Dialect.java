@@ -15,6 +15,7 @@ import com.datamaster.common.database.constants.fieldtypes.DM8FieldType;
 import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.common.database.core.DbName;
 import com.datamaster.common.database.core.DbTable;
+import com.datamaster.common.database.core.DbTableMetadata;
 import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.common.database.utils.DatabaseUtil;
 
@@ -24,6 +25,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -660,5 +662,62 @@ public class DM8Dialect extends AbstractDbDialect {
             return "\"" + property.getDbName() + "\".\"" + tableName + "\"";
         }
         return tableName;
+    }
+
+    /**
+     * 采集 DM8 表的元数据（行数、索引、分区、存储引擎等）。
+     * <p>
+     * 连接由 {@code conn} 提供，库名（Owner）由 {@code dbQueryProperty.getDbName()} 提供。
+     *
+     * @param dbQueryProperty 数据源连接属性
+     * @param tableName       表名
+     * @param conn            已建立的数据库连接
+     * @return 表元数据信息
+     */
+    @Override
+    public DbTableMetadata tableMetadata(DbQueryProperty dbQueryProperty, String tableName, Connection conn) {
+        DbTableMetadata metadata = new DbTableMetadata();
+        try {
+            String dbName = dbQueryProperty.getDbName();
+            // 获取表行数
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SELECT COUNT(*) FROM " + dbName + "." + tableName;
+                ResultSet rs = stmt.executeQuery(sql);
+                if (rs.next()) {
+                    metadata.setRowCount(rs.getLong(1));
+                }
+            }
+
+            // 获取表索引信息
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SELECT INDEX_NAME FROM DBA_IND_COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "' and INDEX_OWNER='" + dbName.toUpperCase() + "'";
+                ResultSet rs = stmt.executeQuery(sql);
+                StringBuilder indexes = new StringBuilder();
+                while (rs.next()) {
+                    String indexName = rs.getString("INDEX_NAME");
+                    if (indexes.length() > 0) {
+                        indexes.append(", ");
+                    }
+                    indexes.append(indexName);
+                }
+                metadata.setIndexes(indexes.toString());
+            }
+
+            // 获取表分区字段信息
+            try (Statement stmt = conn.createStatement()) {
+                String sql = "SELECT COLUMN_NAME  FROM DBA_PART_KEY_COLUMNS WHERE NAME = '" + tableName.toUpperCase() + "' AND OWNER = '" + dbName.toUpperCase() + "';  ";
+                ResultSet rs = stmt.executeQuery(sql);
+                if (rs.next()) {
+                    String partitionColumns = rs.getString("COLUMN_NAME");
+                    metadata.setPartitionFields(partitionColumns != null ? partitionColumns : "");
+                }
+            }
+
+            // 设置存储引擎
+            metadata.setStorageEngine("Dameng");
+        } catch (Exception e) {
+            throw new DataQueryException("采集DM8表元数据失败: " + e.getMessage());
+        }
+        return metadata;
     }
 }
