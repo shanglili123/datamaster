@@ -32,18 +32,74 @@ def parse_args():
 
 
 def split_statements(sql_text):
-    """按行拆分：跳过 -- 注释行，以分号结尾的语句切分。返回非空语句列表。"""
+    """引号感知的 SQL 语句切分：
+    - 正确识别单引号字符串（含 '' 转义、E'...' 前缀）、双引号标识符、行级 -- 注释
+    - 仅在字符串/标识符之外的 ';' 处切分，避免含分号/换行的数据字面量被误切
+    返回非空语句列表。
+    """
     statements = []
     buf = []
-    for line in sql_text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith('--'):
+    i, n = 0, len(sql_text)
+    line_start = True  # 当前处于行首（用于识别 -- 行注释开头）
+    while i < n:
+        c = sql_text[i]
+        # 行级注释（-- 到行尾）
+        if line_start and sql_text.startswith('--', i):
+            while i < n and sql_text[i] != '\n':
+                i += 1
+            continue  # 吞掉整行注释（含最后的换行交给下一循环处理也行）
+        if c == '\n':
+            line_start = True
+        else:
+            line_start = False
+        # 单引号字符串（含 E'...' 前缀也走同一逻辑）
+        if c == "'":
+            buf.append(c)
+            i += 1
+            while i < n:
+                if sql_text[i] == '\\' and i + 1 < n:
+                    # E'...' 字符串中的反斜杠转义，但普通字符串可能也含，保守处理
+                    buf.append(sql_text[i])
+                    buf.append(sql_text[i + 1])
+                    i += 2
+                    continue
+                if sql_text[i] == "'":
+                    if i + 1 < n and sql_text[i + 1] == "'":
+                        buf.append("''")  # 两个单引号=一个转义单引号
+                        i += 2
+                        continue
+                    buf.append("'")
+                    i += 1
+                    break  # 字符串结束
+                buf.append(sql_text[i])
+                i += 1
             continue
-        buf.append(line)
-        if stripped.endswith(';'):
-            statements.append('\n'.join(buf).strip())
+        # 双引号标识符（其中 "" 为转义）
+        if c == '"':
+            buf.append(c)
+            i += 1
+            while i < n:
+                if sql_text[i] == '"':
+                    if i + 1 < n and sql_text[i + 1] == '"':
+                        buf.append('""')
+                        i += 2
+                        continue
+                    buf.append('"')
+                    i += 1
+                    break
+                buf.append(sql_text[i])
+                i += 1
+            continue
+        if c == ';':
+            stmt = ''.join(buf).strip()
+            if stmt:
+                statements.append(stmt)
             buf = []
-    tail = '\n'.join(buf).strip()
+            i += 1
+            continue
+        buf.append(c)
+        i += 1
+    tail = ''.join(buf).strip()
     if tail:
         statements.append(tail)
     return statements

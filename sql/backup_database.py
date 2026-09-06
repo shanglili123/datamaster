@@ -1,0 +1,293 @@
+# -*- coding: utf-8 -*-
+"""
+PostgreSQL 数据库备份导出器（纯 psycopg2，不依赖 pg_dump）
+用法:
+    python backup_database.py [--host HOST] [--port PORT] [--db DB] [--user USER] [--password PASS] [--out OUT]
+
+默认连接与 run_migration.py 一致: 192.168.93.174:5432/datamaster (postgres/postgres)
+默认输出: sql/backup_<db>_<YYYYMMDD>.sql
+
+导出内容（public schema）:
+  1. 表结构: CREATE TABLE (列、类型、默认值、identity、主键约束)
+  2. 序列: CREATE SEQUENCE + ALTER SEQUENCE ... OWNED BY + setval 当前值
+  3. 索引: CREATE [UNIQUE] INDEX
+  4. 约束: 唯一 / 检查 / 外键 (ALTER TABLE ADD CONSTRAINT)
+  5. 注释: COMMENT ON TABLE / COLUMN
+  6. 数据: 逐行 INSERT INTO ... VALUES (...)
+所有语句均以 ';' 结尾，兼容 run_migration.py 逐条回放。
+"""
+import argparse
+import datetime
+import os
+import sys
+
+import psycopg2
+
+DEFAULT_HOST = '192.168.93.174'
+DEFAULT_PORT = 5432
+DEFAULT_DB = 'datamaster'
+DEFAULT_USER = 'postgres'
+DEFAULT_PASSWORD = 'postgres'
+SQL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='导出 PostgreSQL 数据库为 SQL 备份')
+    parser.add_argument('--host', default=DEFAULT_HOST)
+    parser.add_argument('--port', type=int, default=DEFAULT_PORT)
+    parser.add_argument('--db', default=DEFAULT_DB)
+    parser.add_argument('--user', default=DEFAULT_USER)
+    parser.add_argument('--password', default=DEFAULT_PASSWORD)
+    parser.add_argument('--out', default=None, help='输出文件路径，缺省 sql/backup_<db>_<YYYYMMDD>.sql')
+    return parser.parse_args()
+
+
+def qident(name):
+    """双引号引用标识符。"""
+    return '"' + name.replace('"', '""') + '"'
+
+
+def fmt_literal(value):
+    """把 Python 值转成 SQL 字面量（逐行 INSERT 用）。"""
+    if value is None:
+        return 'NULL'
+    if isinstance(value, bool):
+        return 'TRUE' if value else 'FALSE'
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, bytes):
+        return "E'\\\\x" + value.hex() + "'"
+    # str / datetime / Decimal 等统一按字符串输出，交给数据库端 coerce
+    s = str(value)
+    return "'" + s.replace("'", "''") + "'"
+
+
+def main():
+    args = parse_args()
+    out_path = args.out or os.path.join(SQL_DIR, 'backup_%s_%s.sql' % (args.db, datetime.date.today().strftime('%Y%m%d')))
+
+    print("连接数据库 %s:%s/%s ..." % (args.host, args.port, args.db))
+    conn = psycopg2.connect(
+        host=args.host, port=args.port, dbname=args.db,
+        user=args.user, password=args.password,
+    )
+    conn.autocommit = True
+    cur = conn.cursor()
+    out = []
+    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    out.append('-- ============================================================')
+    out.append('-- PostgreSQL 备份: db=%s host=%s:%s' % (args.db, args.host, args.port))
+    out.append('-- 导出时间: %s' % now)
+    out.append('-- 生成工具: backup_database.py (psycopg2, 无 pg_dump 依赖)')
+    out.append('-- 建议以 superuser 回放: python run_migration.py <本文件> --db %s' % args.db)
+    out.append('-- ============================================================')
+    out.append('SET statement_timeout = 0;')
+    out.append('SET client_encoding = \'UTF8\';')
+    out.append('')
+
+    try:
+        # 表清单
+        cur.execute("""
+            SELECT t.tablename
+            FROM pg_tables t JOIN pg_class c ON c.relname = t.tablename AND c.relnamespace = 'public'::regnamespace
+            WHERE t.schemaname = 'public'
+            ORDER BY t.tablename
+        """)
+        tables = [r[0] for r in cur.fetchall()]
+        print("表数量: %d" % len(tables))
+        fk_constraints = []  # 外键滞后到全部表建完后统一输出，避免引用未来表
+
+        for t in tables:
+            tq = qident(t)
+            # ---- 表结构 ----
+            cur.execute("""
+                SELECT a.attname, format_type(a.atttypid, a.atttypmod) AS ftype,
+                       a.attnotnull, pg_get_expr(d.adbin, d.adrelid) AS defexpr,
+                       a.attidentity, col_description(a.attrelid, a.attnum) AS comment,
+                       a.attnum
+                FROM pg_attribute a
+                LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+                WHERE a.attrelid = %s::regclass AND a.attnum > 0 AND NOT a.attisdropped
+                ORDER BY a.attnum
+            """, ('public.' + t,))
+            cols = cur.fetchall()
+            # 主键
+            cur.execute("""
+                SELECT a.attname
+                FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+                WHERE i.indrelid = %s::regclass AND i.indisprimary
+                ORDER BY array_position(i.indkey, a.attnum)
+            """, ('public.' + t,))
+            pk_cols = [r[0] for r in cur.fetchall()]
+
+            col_defs = []
+            for name, ftype, notnull, defexpr, ident, comment, attnum in cols:
+                part = '    %s %s' % (qident(name), ftype)
+                if ident == 'a':
+                    part += ' GENERATED ALWAYS AS IDENTITY'
+                elif ident == 'd':
+                    part += ' GENERATED BY DEFAULT AS IDENTITY'
+                elif defexpr is not None and 'nextval(' not in defexpr:
+                    part += ' DEFAULT %s' % defexpr
+                if notnull:
+                    part += ' NOT NULL'
+                col_defs.append(part)
+            header = '%s (' % tq
+            body = ',\n'.join(col_defs)
+            if pk_cols:
+                body += ',\n    CONSTRAINT %s_pkey PRIMARY KEY (%s)' % (t, ', '.join(qident(c) for c in pk_cols))
+            out.append('CREATE TABLE %s' % header)
+            out.append(body)
+            out.append(');')
+            out.append('')
+
+            # ---- 序列 ----
+            for name, ftype, notnull, defexpr, ident, comment, attnum in cols:
+                seq = None
+                if defexpr and 'nextval(' in defexpr:
+                    # nextval('xxx'::regclass)
+                    i1 = defexpr.find("'") + 1
+                    i2 = defexpr.find("'", i1)
+                    seq = defexpr[i1:i2].split('.')[-1]
+                elif ident in ('a', 'd'):
+                    cur.execute("SELECT pg_get_serial_sequence(%s, %s)", ('public.' + t, name))
+                    seq = cur.fetchone()[0]
+                    if seq:
+                        seq = seq.split('.')[-1]
+                if not seq:
+                    continue
+                seqq = qident(seq)
+                cur.execute('SELECT last_value, is_called FROM %s' % seqq)
+                last_value, is_called = cur.fetchone()
+                out.append('CREATE SEQUENCE IF NOT EXISTS %s;' % seqq)
+                out.append('ALTER SEQUENCE %s OWNED BY %s.%s;' % (seqq, tq, qident(name)))
+                # 建表时已省略 nextval 默认值，这里补回
+                out.append('ALTER TABLE %s ALTER COLUMN %s SET DEFAULT nextval(%s::regclass);'
+                           % (tq, qident(name), "'" + seq + "'"))
+                out.append("SELECT setval('%s', %s, %s);" % (seq, fmt_literal(int(last_value)), 'TRUE' if is_called else 'FALSE'))
+                out.append('')
+
+            # ---- 索引（跳过主键/唯一/排他约束对应索引：由 ADD CONSTRAINT 隐式创建）----
+            skip_index_names = set()
+            cur.execute("""
+                SELECT i.indexrelid::regclass::text
+                FROM pg_index i
+                WHERE i.indrelid = %s::regclass
+                  AND EXISTS (SELECT 1 FROM pg_constraint c
+                              WHERE c.conrelid = i.indrelid AND c.conindid = i.indexrelid
+                                AND c.contype IN ('p', 'u', 'x'))
+            """, ('public.' + t,))
+            for (idx,) in cur.fetchall():
+                skip_index_names.add(idx.split('.')[-1])
+            cur.execute("""
+                SELECT indexname, indexdef
+                FROM pg_indexes WHERE schemaname = 'public' AND tablename = %s
+                ORDER BY indexname
+            """, (t,))
+            for indexname, indexdef in cur.fetchall():
+                if indexname in skip_index_names:
+                    continue
+                out.append(indexdef + ';')
+                out.append('')
+
+            # ---- 约束（唯一/检查放本表；外键滞后）----
+            cur.execute("""
+                SELECT conname, pg_get_constraintdef(oid)
+                FROM pg_constraint
+                WHERE conrelid = %s::regclass AND contype IN ('u', 'c')
+                ORDER BY conname
+            """, ('public.' + t,))
+            for conname, condef in cur.fetchall():
+                out.append('ALTER TABLE %s ADD CONSTRAINT %s %s;' % (tq, qident(conname), condef))
+                out.append('')
+            cur.execute("""
+                SELECT conname, pg_get_constraintdef(oid)
+                FROM pg_constraint
+                WHERE conrelid = %s::regclass AND contype = 'f'
+                ORDER BY conname
+            """, ('public.' + t,))
+            for conname, condef in cur.fetchall():
+                fk_constraints.append('ALTER TABLE %s ADD CONSTRAINT %s %s;' % (tq, qident(conname), condef))
+
+            # ---- 注释 ----
+            cur.execute("SELECT obj_description(%s::regclass, 'pg_class')", ('public.' + t,))
+            tbl_comment = cur.fetchone()[0]
+            if tbl_comment:
+                out.append("COMMENT ON TABLE %s IS '%s';" % (tq, tbl_comment.replace("'", "''")))
+            for name, ftype, notnull, defexpr, ident, comment, attnum in cols:
+                if comment:
+                    out.append("COMMENT ON COLUMN %s.%s IS '%s';" % (tq, qident(name), comment.replace("'", "''")))
+            if tbl_comment or any(c[5] for c in cols):
+                out.append('')
+
+            # ---- 数据 ----
+            # 每列按类型适配：
+            #   - json/jsonb: 读原始文本，套 '...'::jsonb 显式转换，字节级还原
+            #   - bytea: 读 hex，写 E'\\x...'::bytea
+            #   - 其余列: 用 mogrify 按 psycopg2 规则适配（数组/数值/时间等）
+            colnames_all = [c[0] for c in cols]  # 物理列名顺序
+            col_kinds = []
+            sel_exprs = []
+            for name, ftype, notnull, defexpr, ident, comment, attnum in cols:
+                if ftype in ('json', 'jsonb'):
+                    col_kinds.append('JSON')
+                    sel_exprs.append('%s::text' % qident(name))
+                elif ftype == 'bytea':
+                    col_kinds.append('BYTEA')
+                    sel_exprs.append("encode(%s, 'hex')" % qident(name))
+                else:
+                    col_kinds.append(None)
+                    sel_exprs.append(qident(name))
+            cur.execute('SELECT %s FROM %s' % (', '.join(sel_exprs), tq))
+            colnames = colnames_all
+            col_sql = ', '.join(qident(c) for c in colnames)
+            count = 0
+            for row in cur.fetchall():
+                parts = []
+                for colname, kind, raw in zip(colnames, col_kinds, row):
+                    if raw is None:
+                        parts.append('NULL')
+                    elif kind == 'JSON':
+                        parts.append("'%s'::jsonb" % raw.replace("'", "''"))
+                    elif kind == 'BYTEA':
+                        parts.append("E'\\\\x%s'::bytea" % raw)
+                    else:
+                        parts.append(cur.mogrify('%s', (raw,)).decode('utf-8'))
+                out.append('INSERT INTO %s (%s) VALUES (%s);' % (tq, col_sql, ', '.join(parts)))
+                count += 1
+            if count:
+                out.append('')
+            print("  %-45s rows=%d" % (t, count))
+
+        # ---- 外键约束（全部建表并灌完数据后统一添加）----
+        if fk_constraints:
+            out.append('-- 外键约束')
+            out.extend(fk_constraints)
+            out.append('')
+
+        # ---- 函数/类型（若有自定义）----
+        cur.execute("""
+            SELECT n.nspname, p.proname, pg_get_function_identity_arguments(p.oid),
+                   pg_get_functiondef(p.oid)
+            FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+            WHERE n.nspname = 'public' AND p.prokind = 'f'
+            ORDER BY p.proname
+        """)
+        funcs = cur.fetchall()
+        for nsp, pname, args, fdef in funcs:
+            out.append(fdef.rstrip() + (';' if not fdef.rstrip().endswith(';') else ''))
+            out.append('')
+
+        out.append('-- 备份完成: %s 表, %d 个函数' % (len(tables), len(funcs)))
+
+        with open(out_path, 'w', encoding='utf-8', newline='\n') as f:
+            f.write('\n'.join(out))
+        print("已导出: %s (%d 行, %.2f MB)" % (out_path, len(out), os.path.getsize(out_path) / 1024 / 1024))
+        return 0
+    finally:
+        cur.close()
+        conn.close()
+
+
+if __name__ == '__main__':
+    sys.exit(main())
