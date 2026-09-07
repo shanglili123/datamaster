@@ -5,7 +5,6 @@
     :title="title"
     destroy-on-close
     :width="900"
-    :style="{ top: '40px' }"
   >
     <a-form
       ref="daDiscoveryTaskRef"

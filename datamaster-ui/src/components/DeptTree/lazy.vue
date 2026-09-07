@@ -71,7 +71,7 @@ const { proxy } = getCurrentInstance();
 
 const props = defineProps({
     deptOptions: { type: Array, default: () => [] },
-    leftWidth: { type: Number, default: 300 },
+    leftWidth: { type: Number, default: 240 },
     placeholder: { type: String, default: "请输入部门名称" },
     defaultExpand: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },
@@ -184,7 +184,7 @@ const updateResize = (event) => {
 };
 
 const toggleCollapse = () => {
-    leftWidth.value = leftWidth.value === 0 ? 300 : 0;
+    leftWidth.value = leftWidth.value === 0 ? (props.leftWidth || 240) : 0;
     emit("update:leftWidth", leftWidth.value);
 };
 

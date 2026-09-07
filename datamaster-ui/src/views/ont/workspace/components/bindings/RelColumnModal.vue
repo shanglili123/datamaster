@@ -1,5 +1,5 @@
 <template>
-  <a-modal title="关联表与字段" v-model:open="visible" width="960px" destroy-on-close :footer="null">
+  <a-modal title="关联表与字段" v-model:open="visible" width="980px" wrap-class-name="ontology-workspace-modal ontology-modal--data" destroy-on-close :footer="null">
     <p class="modal-hint">关系「{{ relationName }}」：先绑定关联表（来自元数据模块已发布目录表）并勾选字段；下方为源表⟶目标表的物理字段映射（整体保存）。</p>
 
     <!-- 一、关联表绑定 -->
@@ -406,6 +406,7 @@ function saveRelColumns() {
 
 .bind-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -423,6 +424,7 @@ function saveRelColumns() {
 
 .rt-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
@@ -445,6 +447,7 @@ function saveRelColumns() {
 
 .rc-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
@@ -463,5 +466,34 @@ function saveRelColumns() {
 .rc-actions {
   margin-top: 12px;
   text-align: right;
+}
+
+@media (max-width: 820px) {
+  .bind-form :deep(.ant-select),
+  .rc-row :deep(.ant-select),
+  .rc-row :deep(.ant-select-auto-complete) {
+    width: auto !important;
+    min-width: 180px;
+    flex: 1 1 180px;
+  }
+
+  .rt-item {
+    align-items: flex-start;
+
+    .rt-name,
+    .rt-ds {
+      min-width: 0;
+      flex: 1 1 140px;
+    }
+
+    :deep(.ant-select) {
+      min-width: 100% !important;
+      flex-basis: 100%;
+    }
+  }
+
+  .rc-row .rc-arrow {
+    display: none;
+  }
 }
 </style>

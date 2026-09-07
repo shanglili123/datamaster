@@ -227,7 +227,7 @@ const handleSave = (form) => {
   })
 }
 const deptOptions = ref([]);
-const leftWidth = ref(300); // 初始左侧宽度
+const leftWidth = ref(240); // 初始左侧宽度
 /** 下拉树结构 */
 function getDeptTree() {
   listAttQualityCat({ validFlag: true }).then((response) => {

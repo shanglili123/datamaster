@@ -1,5 +1,5 @@
 <template>
-  <a-modal title="属性绑定字段" v-model:open="visible" width="720px" destroy-on-close :footer="null">
+  <a-modal title="属性绑定字段" v-model:open="visible" width="800px" wrap-class-name="ontology-workspace-modal ontology-modal--data" destroy-on-close :footer="null">
     <p class="modal-hint">概念「{{ conceptName }}」的属性到物理字段映射（按绑定表维度整体保存）：</p>
     <div class="fb-table-picker">
       <span class="fb-label">绑定表：</span>
@@ -233,6 +233,7 @@ function saveFieldBind() {
 
 .fb-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
@@ -251,5 +252,23 @@ function saveFieldBind() {
 .fb-actions {
   margin-top: 12px;
   text-align: right;
+}
+
+@media (max-width: 720px) {
+  .fb-table-picker,
+  .fb-row {
+    align-items: stretch;
+  }
+
+  .fb-table-picker :deep(.ant-select),
+  .fb-row :deep(.ant-select),
+  .fb-row :deep(.ant-select-auto-complete) {
+    width: 100% !important;
+    flex: 1 1 100%;
+  }
+
+  .fb-row .fb-arrow {
+    display: none;
+  }
 }
 </style>

@@ -30,10 +30,16 @@
 
     <a-modal v-model:open="editorOpen" :title="form.id ? '编辑动作编排' : '新增动作编排'"
       :width="designerBounds.width" :style="designerModalStyle"
-      wrap-class-name="workflow-designer-modal" destroy-on-close :footer="null"
+      wrap-class-name="workflow-designer-modal" :mask="false" destroy-on-close :footer="null"
       @after-close="disposeGraph">
       <div class="designer-modal-body">
         <div class="designer-topbar">
+          <a-tooltip :title="appStore.sidebar.opened ? '收起一级目录' : '展开一级目录'">
+            <a-button type="text" class="primary-sidebar-toggle" @click="togglePrimarySidebar">
+              <MenuFoldOutlined v-if="appStore.sidebar.opened" />
+              <MenuUnfoldOutlined v-else />
+            </a-button>
+          </a-tooltip>
           <a-form ref="formRef" :model="form" :rules="rules" layout="vertical" class="workflow-basic-form">
             <a-form-item label="编排名称" name="name"><a-input v-model:value="form.name" placeholder="如：订单发货流程" /></a-form-item>
             <a-form-item label="失败策略"><a-select v-model:value="form.failurePolicy" :options="failurePolicyOptions" /></a-form-item>
@@ -151,15 +157,17 @@
 import { Graph } from '@antv/x6'
 import { Dnd } from '@antv/x6-plugin-dnd'
 import { Empty } from 'ant-design-vue'
-import { NodeIndexOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { MenuFoldOutlined, MenuUnfoldOutlined, NodeIndexOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { getActionsByOntology } from '@/api/ont/action'
 import { listConcept } from '@/api/ont/concept'
 import { listProperty } from '@/api/ont/property'
 import { addWorkflow, delWorkflow, disableWorkflow, getWorkflow, listWorkflow, publishWorkflow, updateWorkflow, validateWorkflow } from '@/api/ont/workflow'
 import ReferenceEditor from './workflow/ReferenceEditor.vue'
+import useAppStore from '@/store/system/app'
 
 const props = defineProps({ ontologyId: { type: [String, Number], required: true } })
 const { proxy } = getCurrentInstance()
+const appStore = useAppStore()
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
 const canvasRef = ref(null)
 const formRef = ref(null)
@@ -177,6 +185,7 @@ const actionKeyword = ref('')
 const designerBounds = reactive({ left: 0, top: 0, width: window.innerWidth, height: window.innerHeight })
 let graph = null
 let graphDnd = null
+let designerResizeObserver = null
 let localKey = 0
 let renderingGraph = false
 const graphNodeWidth = 170
@@ -453,6 +462,7 @@ function syncGraphState() {
 function disposeGraph() {
   if (graph) { graph.dispose(); graph = null }
   graphDnd = null
+  if (designerResizeObserver) { designerResizeObserver.disconnect(); designerResizeObserver = null }
 }
 function fitGraph() {
   if (!graph) return
@@ -462,6 +472,10 @@ function fitGraph() {
     return
   }
   graph.zoomToFit({ padding: 50, maxScale: 1 })
+}
+function togglePrimarySidebar() {
+  appStore.toggleSideBar()
+  requestAnimationFrame(() => requestAnimationFrame(() => { syncDesignerBounds(); resizeGraph() }))
 }
 function resizeGraph() {
   if (!graph || !canvasRef.value) return
@@ -475,6 +489,16 @@ function syncDesignerBounds() {
   designerBounds.width = Math.round(rect.width) || window.innerWidth
   designerBounds.height = Math.round(rect.height) || window.innerHeight
 }
+function observeDesignerBounds() {
+  if (designerResizeObserver) designerResizeObserver.disconnect()
+  const target = document.querySelector('.app-main-inner')
+  if (!target || typeof ResizeObserver === 'undefined') return
+  designerResizeObserver = new ResizeObserver(() => {
+    syncDesignerBounds()
+    nextTick(() => resizeGraph())
+  })
+  designerResizeObserver.observe(target)
+}
 async function openDesigner() {
   syncDesignerBounds()
   editorOpen.value = true
@@ -484,6 +508,7 @@ async function openDesigner() {
       initGraph()
       resizeGraph()
       fitGraph()
+      observeDesignerBounds()
     })
   })
 }
@@ -726,6 +751,7 @@ defineExpose({ reload() { loadActions(); loadConcepts(); loadList() } })
 .publish-btn { color:#52c41a; }
 .designer-modal-body { height:calc(var(--workflow-designer-height, 100vh) - 72px); min-height:0; max-height:none; display:flex; flex-direction:column; overflow:hidden; }
 .designer-topbar { display:flex; align-items:flex-end; gap:12px; padding:0 2px 12px; border-bottom:1px solid #e8edf5; }
+.primary-sidebar-toggle { align-self:center; flex:0 0 auto; font-size:18px; }
 .workflow-basic-form { display:grid; min-width:0; grid-template-columns:minmax(220px,1.5fr) 180px minmax(220px,1fr); gap:10px; flex:1; :deep(.ant-form-item) { min-width:0; margin-bottom:0; } }
 .topbar-actions { display:flex; flex:0 0 auto; gap:8px; padding-bottom:1px; }
 .designer-shell { display:grid; grid-template-columns:clamp(180px,16vw,220px) minmax(360px,1fr) clamp(250px,22vw,300px); flex:1; min-height:0; margin-top:12px; border:1px solid #e3e9f2; border-radius:9px; overflow:hidden; }
@@ -773,8 +799,8 @@ defineExpose({ reload() { loadActions(); loadConcepts(); loadList() } })
 </style>
 
 <style lang="scss">
-.workflow-designer-modal { z-index:1100; }
-.workflow-designer-modal .ant-modal { max-width:none; height:var(--workflow-designer-height, 100vh); margin-right:0; margin-bottom:0; padding:0; }
+.workflow-designer-modal { z-index:1100; pointer-events:none; padding:0; }
+.workflow-designer-modal .ant-modal { max-width:none; height:var(--workflow-designer-height, 100vh); margin-right:0; margin-bottom:0; padding:0; pointer-events:auto; }
 .workflow-designer-modal .ant-modal-content { height:var(--workflow-designer-height, 100vh); max-height:none; overflow:hidden; border-radius:0; padding:18px 20px 14px; }
 .workflow-designer-modal .ant-modal-body { height:calc(100% - 38px); }
 </style>

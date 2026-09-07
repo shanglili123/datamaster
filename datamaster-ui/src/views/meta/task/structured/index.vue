@@ -182,15 +182,15 @@
       v-model:open="dialog.open"
       :title="dialog.title"
       :width="1200"
-      centered
-      :body-style="{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }"
+      wrap-class-name="collection-task-dialog-wrap"
+      :body-style="{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }"
       @cancel="handleCancelClick"
     >
       <a-tabs v-model:activeKey="dialog.activeTab" class="task-form-tabs">
         <a-tab-pane :tab="'基础配置'" key="base">
           <a-form
             :model="dialog.form"
-            class="column-form"
+            class="column-form collection-task-form"
             :rules="rules"
             ref="formRef"
             :label-col="{ style: { width: '110px' } }"
@@ -335,7 +335,7 @@
           <a-textarea
             v-model:value="dialog.form.description"
             placeholder="请输入描述"
-            :auto-size="{ minRows: 8 }"
+            :auto-size="{ minRows: 3, maxRows: 6 }"
             :maxlength="500"
             show-count
           />
@@ -345,7 +345,7 @@
           <a-textarea
             v-model:value="dialog.form.remark"
             placeholder="请输入备注"
-            :auto-size="{ minRows: 8 }"
+            :auto-size="{ minRows: 3, maxRows: 6 }"
             :maxlength="500"
             show-count
           />
@@ -1129,6 +1129,49 @@ getAllSourceSystems();
 
 <style lang="scss" src="@/assets/system/styles/table-style-optimized.scss"></style>
 <style lang="scss" scoped>
+.collection-task-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+  row-gap: 0;
+  width: 100%;
+  align-items: start;
+
+  > :deep(.ant-form-item) {
+    min-width: 0;
+    margin-bottom: 16px;
+  }
+
+  > :deep(.row-full) {
+    grid-column: 1 / -1;
+  }
+
+  :deep(.ant-input),
+  :deep(.ant-input-affix-wrapper),
+  :deep(.ant-input-number),
+  :deep(.ant-picker),
+  :deep(.ant-select),
+  :deep(.ant-tree-select) {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@container dm-modal (max-width: 900px) {
+  .collection-task-form {
+    grid-template-columns: 1fr;
+
+    > :deep(.row-full) {
+      grid-column: 1;
+    }
+  }
+}
+
+.collection-wrap {
+  min-width: 0;
+  width: 100%;
+}
+
 .task-actions-col {
   display: flex;
   flex-direction: column;
@@ -1162,4 +1205,3 @@ getAllSourceSystems();
   }
 }
 </style>
-

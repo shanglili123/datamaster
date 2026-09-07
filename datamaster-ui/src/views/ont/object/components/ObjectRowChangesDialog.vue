@@ -3,6 +3,7 @@
     :open="visible"
     :title="title"
     :width="860"
+    wrap-class-name="ontology-workspace-modal ontology-modal--data"
     :footer="null"
     :destroy-on-close="true"
     @cancel="emit('update:visible', false)"

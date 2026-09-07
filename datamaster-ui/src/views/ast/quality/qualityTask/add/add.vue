@@ -1,10 +1,10 @@
 <template>
   <div
-    class="app-container"
+    class="app-container quality-task-page"
     ref="app-container"
     style="background-color: #f0f2f5"
   >
-    <a-spin :spinning="loadingInstance">
+    <a-spin class="quality-page-spin" :spinning="loadingInstance">
     <div class="custom-card">
       <div class="steps-inner">
         <ul class="zl-step">
@@ -35,24 +35,24 @@
     </div>
 
     <div
-      class="pagecont-top"
+      class="pagecont-top quality-task-editor"
       v-show="showSearch"
       style="padding-bottom: 15px"
     >
-      <a-spin :spinning="loading" style="display: block">
+      <a-spin class="quality-content-spin" :spinning="loading">
       <div class="infotop">
         <div class="main">
           <a-form
             ref="formRef"
+            class="quality-base-form"
             :model="form"
-            :label-col="{ style: { width: '170px' } }"
+            :label-col="{ style: { width: '120px' } }"
             v-show="activeReult == 0"
-            style="padding-right: 90px"
             :disabled="route.query.info"
           >
             <div class="h2-titles">基础信息</div>
             <a-row :gutter="20">
-              <a-col :span="11">
+              <a-col :xs="24" :md="12">
                 <a-form-item
                   label="任务名称"
                   name="taskName"
@@ -70,8 +70,7 @@
                   />
                 </a-form-item>
               </a-col>
-              <a-col :span="2"> </a-col>
-              <a-col :span="11">
+              <a-col :xs="24" :md="12">
                 <a-form-item
                   label="任务分类"
                   name="catCode"
@@ -100,7 +99,7 @@
               </a-col>
             </a-row>
             <a-row :gutter="20">
-              <a-col :span="11">
+              <a-col :xs="24" :md="12">
                 <a-form-item
                   label="执行策略"
                   name="strategy"
@@ -126,11 +125,7 @@
                   </a-select>
                 </a-form-item>
               </a-col>
-              <a-col :span="2"> </a-col>
-            </a-row>
-
-            <a-row :gutter="20">
-              <a-col :span="11">
+              <a-col :xs="24" :md="12">
                 <a-form-item
                   label="调度周期"
                   name="cycle"
@@ -149,8 +144,9 @@
                   </a-input>
                 </a-form-item>
               </a-col>
-              <a-col :span="2"> </a-col>
-              <a-col :span="11">
+            </a-row>
+            <a-row :gutter="20">
+              <a-col :xs="24" :md="12">
                 <a-form-item label="任务状态" name="status">
                   <a-radio-group
                     v-model:value="form.status"
@@ -188,7 +184,7 @@
                         </div> -->
             <div class="h2-titles">属性信息</div>
             <a-row :gutter="20">
-              <a-col :span="11">
+              <a-col :xs="24" :md="12">
                 <a-form-item
                   label="任务优先级"
                   name="priority"
@@ -212,8 +208,7 @@
                   </a-select>
                 </a-form-item>
               </a-col>
-              <a-col :span="2"> </a-col>
-              <a-col :span="11">
+              <a-col :xs="24" :md="12">
                 <a-form-item
                   label="Worker分组"
                   name="workerGroup"
@@ -231,7 +226,7 @@
                   />
                 </a-form-item>
               </a-col>
-              <a-col :span="11">
+              <a-col :xs="24" :md="12">
                 <a-form-item label="失败重试次数" name="retryTimes">
                   <a-input
                     type="number"
@@ -242,8 +237,7 @@
                   </a-input>
                 </a-form-item>
               </a-col>
-              <a-col :span="2"> </a-col>
-              <a-col :span="11">
+              <a-col :xs="24" :md="12">
                 <a-form-item label="延迟执行时间" name="delayTime">
                   <a-input
                     type="number"
@@ -278,7 +272,7 @@
                 </a-col>
               </a-row>
             </div>
-            <a-table striped :data-source="pagedQualityTaskObjects" :pagination="false" :scroll="{ y: 500 }" :columns="objTableColumns">
+            <a-table striped :data-source="pagedQualityTaskObjects" :pagination="false" :scroll="{ y: 'max(220px, calc(100vh - 390px))' }" :columns="objTableColumns">
               <template #bodyCell="{ column, record, index }">
                 <template v-if="column.dataIndex === 'name'">
                   {{ record.name }}
@@ -424,7 +418,7 @@
               striped
               :data-source="pagedQualityTaskEvaluates"
               :pagination="false"
-              :scroll="{ y: 450 }"
+              :scroll="{ y: 'max(220px, calc(100vh - 430px))' }"
               :columns="ruleTableColumns"
             >
               <template #bodyCell="{ column, record }">
@@ -1086,9 +1080,30 @@ getDeptTree();
 }
 
 .pagecont-top {
-  height: 74vh;
+  min-height: calc(100vh - 165px);
+  height: auto;
   position: relative;
   padding-bottom: 20px;
+}
+
+// 质量探查新增页内容高度不固定：表单、对象列表和规则列表都可能随着
+// 屏幕尺寸及数据量变化。让页面使用主内容区的滚动，不再用固定 vh 和
+// 绝对定位把底部按钮压出可视区域。
+.quality-task-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 165px);
+
+  .infotop {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .main {
+    min-height: 0;
+  }
 }
 
 .steps-wrap {
@@ -1256,12 +1271,13 @@ getDeptTree();
 }
 
 .button-style {
-  position: absolute;
-  left: 0;
-  right: 0;
+  position: sticky;
   bottom: 0;
-  padding: 0px 35px 25px 0px;
+  flex: none;
+  margin-top: 20px;
+  padding: 14px 35px 12px 0;
   background: #fff;
+  border-top: 1px solid #edf1f6;
   text-align: right;
   z-index: 10;
 }
@@ -1276,7 +1292,7 @@ getDeptTree();
 .home {
   display: flex;
   flex-direction: column;
-  height: 88vh;
+  min-height: 0;
 
   .clearfix {
     width: 100%;
@@ -1335,6 +1351,180 @@ getDeptTree();
   height: 15px;
   font-size: 15px;
   vertical-align: middle;
+}
+
+/* 质量探查编辑页：固定外层工作区，内容区独立滚动，避免页面整体上下跳动。 */
+.quality-task-page {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+:deep(.quality-page-spin) {
+  height: 100%;
+  min-height: 0;
+}
+
+:deep(.quality-page-spin > .ant-spin-container) {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.custom-card {
+  flex: none;
+  height: 76px;
+  margin-bottom: 12px;
+  padding: 18px clamp(40px, 10vw, 180px);
+  border: 1px solid #e8edf5;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(31, 45, 61, 0.05);
+
+  .steps-inner {
+    height: 40px;
+    padding: 0;
+
+    .zl-step {
+      height: 40px;
+      margin: 0;
+      align-items: stretch;
+      gap: 10px;
+
+      li,
+      li:first-child,
+      li:not(:first-child):not(:last-child),
+      li:last-child {
+        height: 40px;
+        margin-left: 0;
+        clip-path: none;
+        border: 1px solid #e1e7ef;
+        border-radius: 8px;
+        background: #f6f8fb;
+        color: #68758a;
+
+        &::before {
+          display: none;
+        }
+
+        &.statusEnd {
+          border-color: #7da5ff;
+          background: #edf3ff;
+          color: #2666fb !important;
+          box-shadow: 0 4px 12px rgba(38, 102, 251, 0.12);
+        }
+
+        &.prevStep {
+          border-color: #c6d8ff;
+          background: #f4f7ff !important;
+          font-size: 14px !important;
+        }
+      }
+    }
+
+    .step-circle {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+      font-size: 14px;
+    }
+
+    .step-name {
+      font-size: 14px;
+    }
+  }
+}
+
+.quality-task-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 0;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid #e8edf5;
+  border-radius: 10px;
+  box-shadow: 0 8px 22px rgba(31, 45, 61, 0.06);
+}
+
+:deep(.quality-content-spin),
+:deep(.quality-content-spin > .ant-spin-container) {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.quality-task-editor .infotop {
+  height: 100%;
+}
+
+.quality-task-editor .main {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 20px 28px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.quality-base-form {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+
+  .h2-titles {
+    margin: 4px 0 18px;
+    padding: 10px 14px;
+    color: #1f2d3d;
+    font-size: 15px;
+    font-weight: 600;
+    background: linear-gradient(90deg, #f3f7ff 0%, #fafcff 65%, #fff 100%);
+    border-left: 4px solid #2666fb;
+    border-radius: 6px;
+  }
+
+  .ant-form-item {
+    margin-bottom: 18px;
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-group-wrapper,
+  .ant-select,
+  .ant-tree-select {
+    width: 100%;
+  }
+
+  textarea.ant-input {
+    min-height: 76px;
+    resize: vertical;
+  }
+}
+
+.button-style {
+  position: relative;
+  bottom: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 0;
+  padding: 12px 28px;
+  box-shadow: 0 -5px 14px rgba(31, 45, 61, 0.04);
+}
+
+@media (max-width: 900px) {
+  .custom-card {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .quality-task-editor .main {
+    padding: 16px;
+  }
+
+  .quality-base-form {
+    :deep(.ant-form-item-label) {
+      width: 96px !important;
+    }
+  }
 }
 </style>
 

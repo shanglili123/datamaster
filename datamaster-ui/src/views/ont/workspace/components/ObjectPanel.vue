@@ -138,7 +138,8 @@
     <a-modal
       v-model:open="rowModal.visible"
       :title="rowModalTitle"
-      :width="760"
+      :width="780"
+      wrap-class-name="ontology-workspace-modal ontology-modal--data"
       :footer="null"
       :mask-closable="false"
       destroy-on-close
@@ -159,9 +160,9 @@
             </template>
           </div>
         </template>
-        <a-form v-else :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }" style="margin-top: 8px">
+        <a-form v-else class="ontology-form-grid object-row-form" :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }" style="margin-top: 8px">
           <template v-for="f in formFields" :key="'f-' + f.propertyCode">
-            <a-form-item :label="f.propertyName + (f.isPrimary ? '（主键）' : '')">
+            <a-form-item :class="{ 'ontology-form-grid__full': f.dataType === 'text' }" :label="f.propertyName + (f.isPrimary ? '（主键）' : '')">
               <a-input
                 v-if="f.dataType === 'string'"
                 v-model:value="rowModal.form[f.propertyCode]"
@@ -198,8 +199,8 @@
         </a-form>
 
         <a-divider style="margin: 12px 0">回调选项</a-divider>
-        <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }">
-          <a-form-item label="执行后回调">
+        <a-form class="ontology-form-grid" :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }">
+          <a-form-item class="ontology-form-grid__full" label="执行后回调">
             <a-switch v-model:checked="rowModal.triggerWebhook" />
             <span class="row-webhook-hint">开启后按动作/本体绑定的 Webhook 配置，在执行成功后发起回调</span>
           </a-form-item>
@@ -249,7 +250,8 @@
     <a-modal
       v-model:open="objectAction.visible"
       title="执行对象动作"
-      width="620px"
+      width="660px"
+      wrap-class-name="ontology-workspace-modal ontology-modal--form"
       ok-text="确定执行"
       cancel-text="取消"
       :confirm-loading="objectAction.saving"
@@ -262,7 +264,7 @@
         :message="'触发对象：' + (selectedObjectSet ? selectedObjectSet.conceptName : '') + ' / ' + (objectAction.objectKey || '-')"
         style="margin-bottom:12px"
       />
-      <a-form :label-col="{ style: { width: '110px' } }">
+      <a-form class="ontology-form-grid object-action-form" :label-col="{ style: { width: '110px' } }">
         <a-form-item label="选择动作" required>
           <a-select
             v-model:value="objectAction.actionId"
@@ -274,13 +276,14 @@
         </a-form-item>
         <a-alert
           v-if="objectActionInvalidReason"
+          class="ontology-form-grid__full"
           type="error"
           show-icon
           :message="objectActionInvalidReason"
           description="请先到动作管理中编辑该动作并添加执行步骤，保存后再回来执行。"
           style="margin-bottom:12px"
         />
-        <div v-else-if="objectActionExecutionSteps.length" class="object-action-step-list">
+        <div v-else-if="objectActionExecutionSteps.length" class="object-action-step-list ontology-form-grid__full">
           <div class="toolbar-tip" style="margin-bottom:6px">将按以下顺序原子执行，任一步失败都会整体回滚：</div>
           <div v-for="step in objectActionExecutionSteps" :key="step.stepNo" class="object-action-step-item">
             <a-tag color="blue">步骤 {{ step.stepNo }}</a-tag>
@@ -296,7 +299,7 @@
         >
           <a-input v-model:value="objectAction.params[param.name]" :placeholder="'请输入 ' + param.name" />
         </a-form-item>
-        <div v-if="objectAction.actionId && !objectActionInvalidReason && !objectActionInputParams.length" class="toolbar-tip">
+        <div v-if="objectAction.actionId && !objectActionInvalidReason && !objectActionInputParams.length" class="toolbar-tip ontology-form-grid__full">
           该动作无需人工填写参数；订单编号、产品名称、数量等占位符会从当前对象自动读取。
         </div>
       </a-form>
@@ -1025,6 +1028,7 @@ defineExpose({
   font-weight: 600;
 }
 .row-webhook-hint {
+  display: inline-block;
   margin-left: 8px;
   font-size: 12px;
   color: #999;
@@ -1057,6 +1061,7 @@ defineExpose({
 .row-modal-footer {
   margin-top: 16px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   align-items: center;
@@ -1070,6 +1075,7 @@ defineExpose({
 }
 .object-action-step-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-height: 30px;
@@ -1077,5 +1083,22 @@ defineExpose({
 }
 .row-footer-left {
   margin-right: auto;
+}
+
+@media (max-width: 768px) {
+  .object-action-step-list {
+    margin-left: 0;
+  }
+
+  .row-webhook-hint {
+    display: block;
+    margin-top: 6px;
+    margin-left: 0;
+  }
+
+  .row-footer-left {
+    width: 100%;
+    margin-right: 0;
+  }
 }
 </style>

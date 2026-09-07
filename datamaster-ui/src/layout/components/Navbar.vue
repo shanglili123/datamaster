@@ -133,6 +133,7 @@ function isHomeShellPath(path) {
 
 function resetHomeShell() {
   userStore.spaceCode = "";
+  userStore.spaceName = "";
   permissionStore.resetHomeMenus();
   appStore.toggleSideBarHide(true);
 }
@@ -143,6 +144,7 @@ function loadSpaceMenus(spaceId, options = { navigate: true }) {
   );
   if (space) {
     userStore.spaceCode = space.code;
+    userStore.spaceName = space.name || "";
   }
   localStorage.setItem("dataMasterSpaceId", spaceId);
 
@@ -213,12 +215,14 @@ function spaceIdChange() {
   );
   if (space) {
     userStore.spaceCode = space.code;
+    userStore.spaceName = space.name || "";
   }
   if (userStore.spaceId) {
     localStorage.setItem("dataMasterSpaceId", userStore.spaceId);
     location.reload();
   } else {
     userStore.spaceCode = "";
+    userStore.spaceName = "";
     localStorage.removeItem("dataMasterSpaceId");
   }
 }
@@ -230,6 +234,7 @@ const listSpace = () => {
       if (!spaceOptions.value.length) {
         userStore.spaceId = null;
         userStore.spaceCode = "";
+        userStore.spaceName = "";
         localStorage.removeItem("dataMasterSpaceId");
         return;
       }
@@ -238,6 +243,7 @@ const listSpace = () => {
       if (!dataMasterSpaceId) {
         userStore.spaceId = "";
         userStore.spaceCode = "";
+        userStore.spaceName = "";
         return;
       }
 
@@ -247,12 +253,14 @@ const listSpace = () => {
       if (!space) {
         userStore.spaceId = "";
         userStore.spaceCode = "";
+        userStore.spaceName = "";
         localStorage.removeItem("dataMasterSpaceId");
         return;
       }
 
       userStore.spaceId = space.id;
       userStore.spaceCode = space.code;
+      userStore.spaceName = space.name || "";
       if (isSpaceWorkspacePath(route.path)) {
         loadSpaceMenus(space.id, { navigate: false });
       }

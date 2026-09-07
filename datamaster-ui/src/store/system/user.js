@@ -13,7 +13,9 @@ const useUserStore = defineStore('user', {
         avatar: '',
         roles: [],
         permissions: [],
-        spaceId: ''
+        spaceId: '',
+        spaceCode: '',
+        spaceName: ''
     }),
     actions: {
         // 登录
@@ -72,6 +74,9 @@ const useUserStore = defineStore('user', {
                         this.token = '';
                         this.roles = [];
                         this.permissions = [];
+                        this.spaceId = '';
+                        this.spaceCode = '';
+                        this.spaceName = '';
                         localStorage.removeItem('dataMasterSpaceId');
                         removeToken();
                         resolve();

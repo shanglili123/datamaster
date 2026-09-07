@@ -1,5 +1,6 @@
 <template>
-    <a-form ref="form1" :model="form1" :rules="rules1" :label-col="{ style: { width: '170px' } }">
+    <a-form class="service-api-base-form" ref="form1" :model="form1" :rules="rules1"
+        :label-col="{ style: { width: '120px' } }">
         <!--        <a-row :gutter="20">-->
         <!--            <a-col :span="12">-->
         <!--                <a-form-item label="数据所属目录" name="typeId" v-if="isChange">-->
@@ -9,7 +10,7 @@
         <!--                </a-form-item>-->
         <!--            </a-col>-->
         <!--        </a-row>-->
-        <a-row :gutter="20">
+        <a-row :gutter="[32, 4]">
             <a-col :span="12">
                 <a-form-item label="API名称" name="name">
                     <a-input v-model:value="form1.name" placeholder="请输入API名称" />
@@ -21,7 +22,7 @@
                 </a-form-item>
             </a-col>
         </a-row>
-        <a-row :gutter="20">
+        <a-row :gutter="[32, 4]">
             <a-col :span="12">
                 <a-form-item label="API地址" name="apiUrl">
                     <a-input v-model:value="form1.apiUrl" placeholder="请输入API地址，只允许字母、数字、下划线、中划线和斜杠"
@@ -38,7 +39,7 @@
                 </a-form-item>
             </a-col>
         </a-row>
-        <a-row :gutter="20">
+        <a-row :gutter="[32, 4]">
             <a-col :span="12">
                 <a-form-item label="请求方式" name="reqMethod">
                     <a-select v-model:value="form1.reqMethod" placeholder="请选择请求方式">
@@ -58,7 +59,7 @@
                 </a-form-item>
             </a-col>
         </a-row>
-        <a-row :gutter="20">
+        <a-row :gutter="[32, 4]">
             <a-col :span="24">
                 <a-form-item label="描述" name="description">
                     <a-textarea v-model:value="form1.description" placeholder="请输入描述" />
@@ -78,7 +79,7 @@
         <!--                </a-radio>-->
         <!--            </a-radio-group>-->
         <!--        </a-form-item>-->
-        <a-row :gutter="20">
+        <a-row :gutter="[32, 4]">
             <a-col :span="24">
                 <a-form-item label="IP黑名单" name="deny">
                     <a-textarea v-model:value="form1.deny" placeholder="请输入IP黑名单多个用英文,隔开" />
@@ -86,7 +87,7 @@
             </a-col>
         </a-row>
 
-        <a-row :gutter="20">
+        <a-row :gutter="[32, 4]">
             <a-col :span="12">
                 <a-form-item label="是否限流" name="rateLimit">
                     <a-radio-group v-model:value="form1.rateLimit.enable">
@@ -107,7 +108,7 @@
             </a-col>
         </a-row>
 
-        <a-row :gutter="20">
+        <a-row :gutter="[32, 4]">
             <a-col :span="24" style="color: #333333;">
                 <!-- class="input-number" -->
                 <a-form-item v-if="form1.rateLimit.enable === '1'" label="限流配置">
@@ -120,7 +121,7 @@
             </a-col>
 
         </a-row>
-        <a-row :gutter="20">
+        <a-row :gutter="[32, 4]">
             <a-col :span="24">
                 <a-form-item label="备注" name="remark">
                     <a-textarea v-model:value="form1.remark" placeholder="请输入内容" />
@@ -295,6 +296,26 @@ const handleCatSelect = (value) => {
 </script>
 
 <style scoped>
+.service-api-base-form {
+    width: 100%;
+}
+
+.service-api-base-form :deep(.ant-input),
+.service-api-base-form :deep(.ant-input-affix-wrapper),
+.service-api-base-form :deep(.ant-input-number),
+.service-api-base-form :deep(.ant-select),
+.service-api-base-form :deep(.ant-tree-select) {
+    width: 100%;
+    max-width: 100%;
+}
+
+@container service-api-editor (max-width: 1080px) {
+    .service-api-base-form :deep(.ant-col-12) {
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+}
+
 .input-number {
     width: auto;
     max-width: 150px;

@@ -136,7 +136,7 @@
     />
 
     <!-- 动作对话框 -->
-    <a-modal :title="title" v-model:open="open" width="920px" :get-container="false" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
+    <a-modal :title="title" v-model:open="open" width="920px" wrap-class-name="ontology-workspace-modal ontology-modal--editor" :get-container="false" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
       <a-form ref="actionRef" class="action-form-compact" :model="form" :rules="rules" :label-col="{ style: { width: '105px' } }">
         <div class="action-editor-section">
           <div class="action-editor-section-title">基础信息</div>
@@ -198,7 +198,7 @@
               <div style="font-size:12px;color:#999;margin-bottom:6px;">
                 固定值入参执行时输入框手填；字段映射入参把脚本参数名映射到数据来源概念的属性，执行时注入该属性 code，脚本按参数名动态处理该字段。
               </div>
-              <div v-for="row in functionParamMappings" :key="row.paramName" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border:1px solid #eee;padding:6px 8px;border-radius:4px;">
+              <div v-for="row in functionParamMappings" :key="row.paramName" class="function-param-row">
                 <span style="width:90px;font-weight:500;">{{ row.paramName }}</span>
                 <a-radio-group v-model:value="row.kind" size="small">
                   <a-radio-button value="value">固定值</a-radio-button>
@@ -485,7 +485,7 @@
             style="width:280px"
           />
         </a-form-item>
-        <a-form-item label="执行前置检查" :wrapper-col="{ span: 24 }">
+        <a-form-item class="action-control-full" label="执行前置检查" :wrapper-col="{ span: 24 }">
           <div class="precondition-config-block">
             <div class="precondition-block-head">
               <div>
@@ -553,7 +553,7 @@
             </div>
           </div>
         </a-form-item>
-        <a-form-item label="描述" name="description">
+        <a-form-item class="action-control-full" label="描述" name="description">
           <a-textarea v-model:value="form.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="请输入描述" style="width:420px" />
         </a-form-item>
         </div>
@@ -561,7 +561,7 @@
     </a-modal>
 
     <!-- 提交执行对话框 -->
-    <a-modal title="提交执行" v-model:open="execOpen" width="600px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="execSaving" @ok="submitExec" @cancel="execOpen = false">
+    <a-modal title="提交执行" v-model:open="execOpen" width="660px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="execSaving" @ok="submitExec" @cancel="execOpen = false">
       <a-alert
         type="info"
         show-icon
@@ -571,8 +571,8 @@
       <p class="modal-hint-line">
         提交后先生成执行记录并进行前置检查；直接执行模式由 Worker 自动执行，人工确认模式在确认后自动执行。
       </p>
-      <a-form :label-col="{ style: { width: '90px' } }">
-        <a-form-item v-if="execAction.actionType !== 'FUNCTION' && execAction.actionType !== 'CREATE'" label="触发对象" required>
+      <a-form class="ontology-form-grid exec-form-grid" :label-col="{ style: { width: '90px' } }">
+        <a-form-item v-if="execAction.actionType !== 'FUNCTION' && execAction.actionType !== 'CREATE'" class="ontology-form-grid__full" label="触发对象" required>
           <div class="exec-object-picker">
             <OntFilterBuilder
               v-if="execObjectSet"
@@ -613,7 +613,7 @@
             >
               <a-input v-model:value="execFormValues[paramName]" :placeholder="'引用名 ${' + paramName + '}'" />
             </a-form-item>
-            <div v-if="Object.keys(execFieldParamMap).length" class="fixed-param-lines">
+            <div v-if="Object.keys(execFieldParamMap).length" class="fixed-param-lines ontology-form-grid__full">
               <div class="modal-hint-line">以下入参已映射到数据来源概念属性，无需手填：</div>
               <div v-for="(code, name) in execFieldParamMap" :key="name" class="fixed-param-line">
                 <span class="fixed-param-name">{{ name }}</span>
@@ -622,7 +622,7 @@
               </div>
             </div>
           </template>
-          <a-form-item v-else>
+          <a-form-item v-else class="ontology-form-grid__full">
             <div class="modal-hint-line">该函数未声明参数，将直接执行。</div>
           </a-form-item>
         </template>
@@ -635,7 +635,7 @@
           >
             <a-input v-model:value="execFormValues[cfg.paramName]" :placeholder="'请输入 ' + cfg.paramName" />
           </a-form-item>
-          <div v-if="execFixedConfigs.length" class="fixed-param-lines">
+          <div v-if="execFixedConfigs.length" class="fixed-param-lines ontology-form-grid__full">
             <div class="modal-hint-line">以下参数已在动作定义中固定：</div>
             <div v-for="cfg in execFixedConfigs" :key="cfg.propertyCode" class="fixed-param-line">
               <span class="fixed-param-name">{{ cfg.propName }}</span>
@@ -645,7 +645,7 @@
             </div>
           </div>
         </template>
-        <a-form-item v-else label="输入参数">
+        <a-form-item v-else class="ontology-form-grid__full" label="输入参数">
           <a-textarea
             v-model:value="inputParams"
             :auto-size="{ minRows: 4, maxRows: 10 }"
@@ -656,7 +656,7 @@
     </a-modal>
 
     <!-- 执行结果对话框 -->
-    <a-modal title="执行结果" v-model:open="resultOpen" width="720px" :footer="null">
+    <a-modal title="执行结果" v-model:open="resultOpen" width="820px" wrap-class-name="ontology-workspace-modal ontology-modal--data" :footer="null">
       <a-alert
         v-if="currentResult.status === 'RECONCILIATION_REQUIRED'"
         type="error"
@@ -786,13 +786,13 @@
     </a-modal>
 
     <!-- 单次人工确认：意见可选，结论永久审计 -->
-    <a-modal title="人工确认" v-model:open="approvalOpen" width="460px" destroy-on-close :ok-text="approvalTitle" cancel-text="取消" :confirm-loading="approvalSaving" @ok="submitApproval" @cancel="approvalOpen = false">
+    <a-modal title="人工确认" v-model:open="approvalOpen" width="520px" wrap-class-name="ontology-workspace-modal ontology-modal--compact" destroy-on-close :ok-text="approvalTitle" cancel-text="取消" :confirm-loading="approvalSaving" @ok="submitApproval" @cancel="approvalOpen = false">
       <p class="modal-hint-line" style="margin:0 0 8px;">请确认对象主键 <code>{{ approvalRecord.objectKey || '-' }}</code> 的动作是否继续执行。业务依据由前置检查给出，此处只记录人工确认结论。</p>
       <a-textarea v-model:value="approvalReason" :auto-size="{ minRows: 3, maxRows: 5 }" placeholder="审批意见（可选）" :disabled="approvalSaving" />
     </a-modal>
 
     <!-- 单次人工确认审计记录 -->
-    <a-modal title="人工确认记录" v-model:open="chainOpen" width="700px" :footer="null" @close="chainOpen = false">
+    <a-modal title="人工确认记录" v-model:open="chainOpen" width="760px" wrap-class-name="ontology-workspace-modal ontology-modal--data" :footer="null" @close="chainOpen = false">
       <div v-if="!chainData" class="chain-empty">该执行记录无需人工确认或暂无确认记录</div>
       <template v-else>
         <div class="chain-header">
@@ -2552,9 +2552,7 @@ onBeforeUnmount(clearExecutionRefresh)
   }
 
   .action-form-compact {
-    max-height: calc(100vh - 210px);
     padding-right: 6px;
-    overflow-y: auto;
   }
 
   .action-editor-section {
@@ -2581,6 +2579,15 @@ onBeforeUnmount(clearExecutionRefresh)
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 18px;
 
+    :deep(.ant-input),
+    :deep(.ant-input-affix-wrapper),
+    :deep(.ant-input-number),
+    :deep(.ant-select),
+    :deep(.ant-picker) {
+      width: 100% !important;
+      max-width: 100%;
+    }
+
     :deep(.ant-form-item) {
       margin-bottom: 12px;
     }
@@ -2590,8 +2597,32 @@ onBeforeUnmount(clearExecutionRefresh)
     }
   }
 
+  .function-param-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    border: 1px solid #eef1f6;
+    border-radius: 6px;
+    background: #fafbfc;
+  }
+
   .action-control-section {
     margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+
+    > .action-editor-section-title,
+    > .action-control-full {
+      grid-column: 1 / -1;
+    }
+
+    > :deep(.ant-form-item) {
+      min-width: 0;
+    }
   }
 
   .condition-value-preview {
@@ -2765,6 +2796,7 @@ onBeforeUnmount(clearExecutionRefresh)
 
       .param-body {
         display: flex;
+        flex-wrap: wrap;
         align-items: flex-start;
         gap: 8px;
 
@@ -2788,6 +2820,7 @@ onBeforeUnmount(clearExecutionRefresh)
 
     .approver-row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 8px;
       padding: 6px 0;
@@ -3040,6 +3073,7 @@ onBeforeUnmount(clearExecutionRefresh)
 
     .step-condition-source {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 8px;
       margin-top: 8px;
@@ -3171,6 +3205,80 @@ onBeforeUnmount(clearExecutionRefresh)
       &.error-pre {
         background: #fff1f0;
         border-color: #ffa39e;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .action-basic-grid {
+      grid-template-columns: 1fr;
+
+      .action-grid-full {
+        grid-column: auto;
+      }
+
+      :deep(.ant-select),
+      :deep(.ant-input),
+      :deep(.ant-input-number) {
+        width: 100% !important;
+      }
+    }
+
+    .action-control-section {
+      grid-template-columns: 1fr;
+
+      > .action-editor-section-title,
+      > .action-control-full,
+      > :deep(.ant-form-item) {
+        grid-column: 1;
+      }
+    }
+
+    .param-block-head,
+    .condition-block-head,
+    .precondition-block-head {
+      flex-wrap: wrap;
+    }
+
+    .execution-step-card {
+      width: 100%;
+      padding-right: 10px;
+      padding-left: 10px;
+
+      .step-card-head {
+        margin-right: -10px;
+        margin-left: -10px;
+      }
+
+      .step-basic-row {
+        grid-template-columns: 1fr;
+      }
+
+      .step-name-field {
+        grid-column: auto;
+      }
+
+      .step-param-value-row,
+      .step-condition-source {
+        align-items: stretch;
+        flex-direction: column;
+
+        > span,
+        .step-value-label {
+          width: auto;
+          flex-basis: auto;
+        }
+
+        :deep(.ant-select),
+        :deep(.ant-input),
+        :deep(.ant-input-group-wrapper),
+        :deep(.ant-input-textarea) {
+          width: 100% !important;
+        }
+
+        code {
+          max-width: 100%;
+        }
       }
     }
   }

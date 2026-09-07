@@ -189,3 +189,218 @@ loadOntology()
   box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05);
 }
 </style>
+
+<!-- 本体工作台弹窗统一规范。弹窗默认 Teleport 到 body，需使用全局样式。 -->
+<style lang="scss">
+.ontology-workspace-modal {
+  padding: 20px 0;
+
+  .ant-modal {
+    top: 0;
+    max-width: calc(100vw - 40px);
+    padding-bottom: 0;
+  }
+
+  .ant-modal-content {
+    display: flex;
+    max-height: calc(100vh - 40px);
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .ant-modal-header,
+  .ant-modal-footer {
+    flex: none;
+  }
+
+  .ant-modal-header {
+    margin-bottom: 0;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .ant-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-top: 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .ant-modal-footer {
+    margin-top: 0;
+    padding-top: 14px;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  &.ontology-modal--compact .ant-modal-body {
+    padding-bottom: 16px;
+  }
+
+  &.ontology-modal--data .ant-modal-body,
+  &.ontology-modal--editor .ant-modal-body {
+    padding: 16px 20px;
+  }
+
+  &.ontology-workspace-modal .ontology-form-grid,
+  .ontology-form-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+    row-gap: 0;
+    align-items: start;
+
+    &.ant-form {
+      width: 100%;
+    }
+
+    > .ant-form-item,
+    > .ant-row,
+    > .ontology-form-grid__full {
+      min-width: 0;
+    }
+
+    > .ant-row,
+    > .ontology-form-grid__full {
+      grid-column: 1 / -1;
+    }
+
+    > .ant-form-item {
+      display: block;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .ant-form-item-row {
+      display: flex;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    .ant-form-item-control {
+      min-width: 0;
+    }
+
+    .ant-input-number,
+    .ant-picker,
+    .ant-select {
+      width: 100%;
+    }
+  }
+
+  .ontology-form-grid__full {
+    grid-column: 1 / -1;
+  }
+}
+
+/* a-form 组件可能被 Teleport 到 body，独立声明确保网格规则不依赖弹窗包装类。 */
+.ontology-form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  row-gap: 0;
+  align-items: start;
+  width: 100%;
+
+  > .ant-form-item {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 16px;
+  }
+
+  > .ant-form-item.ontology-form-grid__full,
+  > .ontology-form-grid__full {
+    grid-column: 1 / -1;
+  }
+
+  .ant-form-item-row {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .ant-form-item-control {
+    min-width: 0;
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-picker,
+  .ant-select {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .ontology-form-grid {
+    grid-template-columns: 1fr !important;
+    column-gap: 0;
+  }
+
+  .ontology-form-grid > .ant-form-item,
+  .ontology-form-grid > .ontology-form-grid__full {
+    grid-column: 1 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .ontology-workspace-modal {
+    padding: 12px 0;
+
+    .ant-modal {
+      width: calc(100vw - 24px) !important;
+      max-width: calc(100vw - 24px);
+    }
+
+    .ant-modal-content {
+      max-height: calc(100vh - 24px);
+    }
+
+    .ant-modal-header,
+    .ant-modal-body,
+    .ant-modal-footer {
+      padding-right: 16px;
+      padding-left: 16px;
+    }
+
+    .ant-form-item-row {
+      display: block;
+    }
+
+    .ant-form-item-label {
+      width: 100% !important;
+      padding-bottom: 4px;
+      text-align: left;
+    }
+
+    .ant-form-item-label > label {
+      height: auto;
+    }
+
+    .ant-form-item-control {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .ant-row .ant-col-12 {
+      max-width: 100%;
+      flex: 0 0 100%;
+    }
+
+    .ontology-form-grid {
+      grid-template-columns: 1fr;
+      column-gap: 0;
+
+      > .ant-form-item,
+      > .ant-row,
+      > .ontology-form-grid__full {
+        grid-column: 1;
+      }
+    }
+  }
+}
+</style>

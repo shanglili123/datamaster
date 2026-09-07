@@ -100,17 +100,17 @@
       </a-layout-content>
     </a-layout>
     <!-- 概念对话框 -->
-    <a-modal :title="conceptTitle" v-model:open="conceptOpen" width="600px" ok-text="确定" cancel-text="取消" @ok="submitConceptForm" @cancel="conceptOpen = false">
-      <a-form ref="conceptRef" :model="conceptForm" :rules="conceptRules" :label-col="{ style: { width: '80px' } }">
+    <a-modal :title="conceptTitle" v-model:open="conceptOpen" width="620px" wrap-class-name="ontology-workspace-modal ontology-modal--form" ok-text="确定" cancel-text="取消" @ok="submitConceptForm" @cancel="conceptOpen = false">
+      <a-form ref="conceptRef" class="ontology-form-grid" :model="conceptForm" :rules="conceptRules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="概念名称" name="name"><a-input v-model:value="conceptForm.name" placeholder="请输入概念名称" /></a-form-item>
         <a-form-item label="图标" name="icon"><a-input v-model:value="conceptForm.icon" placeholder="图标名称" /></a-form-item>
         <a-form-item label="颜色" name="color"><a-input v-model:value="conceptForm.color" placeholder="颜色值" /></a-form-item>
-        <a-form-item label="描述" name="description"><a-textarea v-model:value="conceptForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" /></a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="描述" name="description"><a-textarea v-model:value="conceptForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" /></a-form-item>
       </a-form>
     </a-modal>
     <!-- 属性对话框 -->
-    <a-modal :title="propertyTitle" v-model:open="propertyOpen" width="600px" ok-text="确定" cancel-text="取消" @ok="submitPropertyForm" @cancel="propertyOpen = false">
-      <a-form ref="propertyRef" :model="propertyForm" :rules="propertyRules" :label-col="{ style: { width: '80px' } }">
+    <a-modal :title="propertyTitle" v-model:open="propertyOpen" width="620px" wrap-class-name="ontology-workspace-modal ontology-modal--form" ok-text="确定" cancel-text="取消" @ok="submitPropertyForm" @cancel="propertyOpen = false">
+      <a-form ref="propertyRef" class="ontology-form-grid" :model="propertyForm" :rules="propertyRules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="属性名称" name="name"><a-input v-model:value="propertyForm.name" placeholder="请输入属性名称" /></a-form-item>
         <a-form-item label="数据类型" name="dataType">
           <a-select v-model:value="propertyForm.dataType" placeholder="请选择数据类型">
@@ -127,12 +127,12 @@
           <a-col :span="12"><a-form-item label="必填"><a-switch v-model:checked="propertyForm.isRequired" /></a-form-item></a-col>
         </a-row>
         <a-form-item label="默认值"><a-input v-model:value="propertyForm.defaultValue" placeholder="默认值" /></a-form-item>
-        <a-form-item label="描述"><a-textarea v-model:value="propertyForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" /></a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="描述"><a-textarea v-model:value="propertyForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" /></a-form-item>
       </a-form>
     </a-modal>
     <!-- 关系对话框 -->
-    <a-modal :title="relationTitle" v-model:open="relationOpen" width="600px" ok-text="确定" cancel-text="取消" @ok="submitRelationForm" @cancel="relationOpen = false">
-      <a-form ref="relationRef" :model="relationForm" :rules="relationRules" :label-col="{ style: { width: '100px' } }">
+    <a-modal :title="relationTitle" v-model:open="relationOpen" width="660px" wrap-class-name="ontology-workspace-modal ontology-modal--form" ok-text="确定" cancel-text="取消" @ok="submitRelationForm" @cancel="relationOpen = false">
+      <a-form ref="relationRef" class="ontology-form-grid" :model="relationForm" :rules="relationRules" :label-col="{ style: { width: '100px' } }">
         <a-form-item label="关系名称" name="name"><a-input v-model:value="relationForm.name" placeholder="请输入关系名称" /></a-form-item>
         <a-form-item label="关系类型" name="relationType">
           <a-select v-model:value="relationForm.relationType" placeholder="请选择">
@@ -148,12 +148,12 @@
         <a-form-item label="目标概念" name="targetConceptId">
           <a-select v-model:value="relationForm.targetConceptId" :options="conceptOptions" show-search :filter-option="filterOption" />
         </a-form-item>
-        <a-form-item label="描述"><a-textarea v-model:value="relationForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" /></a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="描述"><a-textarea v-model:value="relationForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" /></a-form-item>
       </a-form>
     </a-modal>
     <!-- 表绑定对话框 -->
-    <a-modal :title="bindingTitle" v-model:open="bindingOpen" width="600px" ok-text="确定" cancel-text="取消" @ok="submitBindingForm" @cancel="bindingOpen = false">
-      <a-form ref="bindingRef" :model="bindingForm" :rules="bindingRules" :label-col="{ style: { width: '80px' } }">
+    <a-modal :title="bindingTitle" v-model:open="bindingOpen" width="760px" wrap-class-name="ontology-workspace-modal ontology-modal--form" ok-text="确定" cancel-text="取消" @ok="submitBindingForm" @cancel="bindingOpen = false">
+      <a-form ref="bindingRef" class="ontology-form-grid" :model="bindingForm" :rules="bindingRules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="数据源" name="datasourceId">
           <a-select v-model:value="bindingForm.datasourceId" placeholder="请选择数据源" show-search :filter-option="filterOption" @change="onDatasourceChange">
             <a-select-option v-for="ds in datasourceList" :key="ds.id" :value="ds.id" :label="ds.name">{{ ds.name }}</a-select-option>
@@ -177,7 +177,7 @@
       </a-form>
     </a-modal>
     <!-- 列映射对话框 -->
-    <a-modal title="属性列映射" v-model:open="columnMappingOpen" width="800px" ok-text="保存" cancel-text="取消" @ok="submitColumnMapping" @cancel="columnMappingOpen = false">
+    <a-modal title="属性列映射" v-model:open="columnMappingOpen" width="900px" wrap-class-name="ontology-workspace-modal ontology-modal--data" ok-text="保存" cancel-text="取消" @ok="submitColumnMapping" @cancel="columnMappingOpen = false">
       <p style="margin-bottom: 12px; color: #666">为当前绑定表 <strong>{{ currentBinding?.tableName }}</strong> 的属性配置物理列映射</p>
       <a-table :columns="columnMappingColumns" :data-source="columnMappingData" row-key="propertyId" size="small" :pagination="false">
         <template #bodyCell="{ column, record }">

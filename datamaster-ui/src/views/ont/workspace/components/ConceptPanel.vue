@@ -62,8 +62,8 @@
     />
 
     <!-- 概念对话框 -->
-    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
-      <a-form ref="conceptRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+    <a-modal :title="title" v-model:open="open" width="620px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
+      <a-form ref="conceptRef" class="ontology-form-grid" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="概念名称" name="name">
           <a-input v-model:value="form.name" placeholder="请输入概念名称" />
         </a-form-item>
@@ -76,22 +76,16 @@
             <a-input v-model:value="form.color" placeholder="请输入颜色值，如 #1677ff" allow-clear />
           </div>
         </a-form-item>
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="排序" name="sortOrder">
-              <a-input-number v-model:value="form.sortOrder" :min="0" style="width: 100%" placeholder="排序号" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="状态" name="status">
-              <a-select v-model:value="form.status" placeholder="请选择状态">
-                <a-select-option :value="0">草稿</a-select-option>
-                <a-select-option :value="1">已发布</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item label="描述" name="description">
+        <a-form-item label="排序" name="sortOrder">
+          <a-input-number v-model:value="form.sortOrder" :min="0" placeholder="排序号" />
+        </a-form-item>
+        <a-form-item label="状态" name="status">
+          <a-select v-model:value="form.status" placeholder="请选择状态">
+            <a-select-option :value="0">草稿</a-select-option>
+            <a-select-option :value="1">已发布</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="描述" name="description">
           <a-textarea v-model:value="form.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="请输入描述" />
         </a-form-item>
       </a-form>
@@ -103,7 +97,8 @@
     <a-modal
       v-model:open="primaryOpen"
       :title="'设置主属性 - ' + (primaryConcept.name || '')"
-      width="560px"
+      width="600px"
+      wrap-class-name="ontology-workspace-modal ontology-modal--form"
       ok-text="保存"
       cancel-text="取消"
       :confirm-loading="primarySaving"
@@ -354,6 +349,12 @@ getList()
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
+
+    :deep(.ant-input-affix-wrapper) {
+      min-width: 0;
+      flex: 1;
+    }
 
     .color-picker {
       width: 32px;

@@ -67,7 +67,7 @@ const { att_rule_audit_q_dimension } = proxy.useDict(
 const loading = ref(false);
 const contentWrapper = ref(null);
 const selectedCard = ref(null);
-const leftWidth = ref(250); // 初始左侧宽度
+const leftWidth = ref(240); // 初始左侧宽度
 const emit = defineEmits(["card-click"]);
 const props = defineProps({
   type: {
@@ -146,7 +146,8 @@ onMounted(() => {
 
 <style lang="less" scoped>
 .main-layout {
-  height: 75vh;
+  height: min(75vh, calc(100vh - 200px));
+  min-height: 280px;
   overflow: hidden;
 }
 
@@ -156,7 +157,7 @@ onMounted(() => {
 
 .divider {
   width: 1px;
-  height: 700px;
+  height: 100%;
   background-color: #dcdfe6;
 }
 
@@ -173,12 +174,12 @@ onMounted(() => {
 
 /* 右侧内容 */
 .content-col {
-  height: 75vh;
+  height: 100%;
   overflow: hidden;
 }
 
 .content {
-  height: 75vh;
+  height: 100%;
   overflow-y: auto;
   padding: 20px 10px;
 }

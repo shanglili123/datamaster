@@ -3,6 +3,15 @@
 // Fix drawer z-index
 .ant-drawer {
   z-index: 1001;
+
+  .ant-drawer-content-wrapper {
+    max-width: calc(100vw - 24px);
+  }
+
+  .ant-drawer-body {
+    min-width: 0;
+    overflow: auto;
+  }
 }
 
 // Fix dropdowns
@@ -52,10 +61,23 @@
 }
 
 // Unified modal layout. This is global because Ant Design modals are teleported to document.body.
+.ant-modal-wrap {
+  overflow: hidden;
+  padding: 16px 0;
+}
+
 .ant-modal {
+  // Ant Design defaults to a 100px top offset. Keep dialogs close to the
+  // viewport top so the footer remains visible on shorter screens.
+  top: 16px;
+  margin: 0 auto;
+  max-width: calc(100vw - 40px);
   padding-bottom: 24px;
 
   .ant-modal-content {
+    display: flex;
+    max-height: calc(100vh - 56px);
+    flex-direction: column;
     overflow: hidden;
     border: 1px solid #e7edf5;
     border-radius: 12px;
@@ -97,8 +119,13 @@
   }
 
   .ant-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100vh - 180px);
     padding: 22px 24px;
     color: #4d5b6c;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .ant-modal-footer {
@@ -125,11 +152,158 @@
   backdrop-filter: blur(2px);
 }
 
+// 以弹框自身宽度为依据切换布局，避免侧栏或浏览器宽度干扰弹框表单。
+.ant-modal-content {
+  container-name: dm-modal;
+  container-type: inline-size;
+}
+
+// Compact two-column form utility used by ontology and other CRUD dialogs.
+// Long text fields opt into .ontology-form-grid__full and remain full width.
+.ontology-form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  row-gap: 0;
+  align-items: start;
+  width: 100%;
+
+  > .ant-form-item {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 16px;
+  }
+
+  > .ant-form-item.ontology-form-grid__full,
+  > .ontology-form-grid__full {
+    grid-column: 1 / -1;
+  }
+
+  .ant-form-item-row {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .ant-form-item-control {
+    min-width: 0;
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-picker,
+  .ant-select,
+  .ant-tree-select {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+// 标准 CRUD 弹窗的兜底布局：只有直接由 form-item 组成的横向表单自动两列。
+// 含表格、页签、上传、折叠面板或垂直布局的复杂表单保持原有布局，避免破坏专用编辑器。
+.ant-modal-body > .ant-form.ant-form-horizontal:not(.action-form-compact):not(:has(.ant-row, .ant-table, .ant-tabs, .ant-upload, .ant-collapse)),
+.ant-modal-body > .ant-spin > .ant-spin-container > .ant-form.ant-form-horizontal:not(.action-form-compact):not(:has(.ant-row, .ant-table, .ant-tabs, .ant-upload, .ant-collapse)) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  row-gap: 0;
+  align-items: start;
+
+  > .ant-form-item {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 16px;
+  }
+
+  > .ant-form-item:has(textarea),
+  > .ant-form-item:has(.ant-input-textarea) {
+    grid-column: 1 / -1;
+  }
+
+  .ant-form-item-row {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .ant-form-item-control {
+    min-width: 0;
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-picker,
+  .ant-select,
+  .ant-tree-select {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+// a-row/a-col 表单尊重页面声明的 12/24 栅格；控件只占满自己的栅格单元。
+// 不在全局把 span=24 强制改成半行，字段是否整行由具体页面的内容类型决定。
+.ant-modal-body .ant-form-horizontal > .ant-row {
+  align-items: flex-start;
+
+  .ant-form-item-control {
+    min-width: 0;
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-picker,
+  .ant-select,
+  .ant-tree-select {
+    max-width: 100%;
+  }
+}
+
+// 小弹框内部自动单列；中、大弹框继续使用页面原有的两列或整行布局。
+@container dm-modal (max-width: 720px) {
+  .ant-modal-body > .ant-form.ant-form-horizontal:not(.action-form-compact),
+  .ant-modal-body > .ant-spin > .ant-spin-container > .ant-form.ant-form-horizontal:not(.action-form-compact) {
+    grid-template-columns: 1fr;
+
+    > .ant-form-item,
+    > .ant-form-item:has(textarea),
+    > .ant-form-item:has(.ant-input-textarea) {
+      grid-column: 1;
+    }
+  }
+
+  .ant-modal-body .ant-form-horizontal > .ant-row {
+    > .ant-col {
+      max-width: 100%;
+      flex: 0 0 100%;
+    }
+  }
+}
+
 @media (max-width: 768px) {
-  .ant-modal {
+  .ant-drawer-left .ant-drawer-content-wrapper,
+  .ant-drawer-right .ant-drawer-content-wrapper {
     width: calc(100vw - 24px) !important;
     max-width: calc(100vw - 24px);
-    margin: 12px auto;
+  }
+
+  .ant-modal {
+    top: 8px;
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px);
+
+    .ant-modal-content {
+      max-height: calc(100vh - 16px);
+    }
+
+    .ant-modal-body {
+      max-height: calc(100vh - 150px);
+    }
+    margin: 0 auto;
     padding-bottom: 0;
 
     .ant-modal-header {
@@ -150,6 +324,41 @@
         flex: 1;
         margin: 0;
       }
+    }
+  }
+
+  .ant-modal-wrap {
+    padding: 8px 0;
+  }
+
+  .ontology-form-grid {
+    grid-template-columns: 1fr !important;
+    column-gap: 0;
+
+    > .ant-form-item,
+    > .ontology-form-grid__full {
+      grid-column: 1 !important;
+    }
+  }
+
+  .ant-modal-body > .ant-form.ant-form-horizontal:not(.action-form-compact),
+  .ant-modal-body > .ant-spin > .ant-spin-container > .ant-form.ant-form-horizontal:not(.action-form-compact) {
+    grid-template-columns: 1fr;
+
+    > .ant-form-item,
+    > .ant-form-item:has(textarea),
+    > .ant-form-item:has(.ant-input-textarea) {
+      grid-column: 1;
+    }
+  }
+
+  .ant-modal-body .ant-form-horizontal > .ant-row {
+    > .ant-col,
+    > .ant-col-12,
+    > .ant-col-24,
+    > .ant-col:not([class*="ant-col-"]) {
+      max-width: 100%;
+      flex: 0 0 100%;
     }
   }
 }

@@ -1,16 +1,14 @@
 <template>
     <!-- 稽查对象信息 新增修改弹窗 第二步 -->
-    <a-modal v-model:open="dialogVisible" draggable class="dialog" :title="dialogTitle" destroy-on-close width="800px">
-        <a-form ref="formRef" :model="form" :rules="formRules" :label-col="{ style: { width: '120px' } }" @submit.prevent>
+    <a-modal v-model:open="dialogVisible" draggable class="dialog" wrap-class-name="quality-target-modal" :title="dialogTitle" destroy-on-close width="800px">
+        <a-form class="quality-target-form" ref="formRef" :model="form" :rules="formRules" :label-col="{ style: { width: '110px' } }" @submit.prevent>
             <a-row :gutter="20">
-                <a-col :span="24">
+                <a-col :span="12">
                     <a-form-item label="稽查对象名称" name="name">
                         <a-input v-model:value="form.name" placeholder="请输入稽查对象名称" />
                     </a-form-item>
                 </a-col>
-            </a-row>
-            <a-row :gutter="20">
-                <a-col :span="24">
+                <a-col :span="12">
                     <a-form-item label="源数据库连接" name="datasourceId">
                         <a-select v-model:value="form.datasourceId" placeholder="请选择源数据库连接" show-search
                             @change="onDatasourceChange">
@@ -22,21 +20,19 @@
             </a-row>
 
             <a-row :gutter="20">
-                <a-col :span="24">
+                <a-col :span="12">
                     <a-form-item label="数据连接类型">
                         <a-input v-model:value="form.datasourceType" disabled placeholder="数据连接类型" />
                     </a-form-item>
                 </a-col>
-            </a-row>
-            <a-row :gutter="20">
-                <a-col :span="24">
+                <a-col :span="12">
                     <a-form-item label="数据连接实例">
                         <a-input v-model:value="form.dbname" disabled placeholder="数据连接实例" />
                     </a-form-item>
                 </a-col>
             </a-row>
             <a-row :gutter="20">
-                <a-col :span="24">
+                <a-col :span="12">
 
                     <a-form-item label="选择表" name="tableName">
                         <a-select v-model:value="form.tableName" show-search :loading="tableLoading" @change="onTableChange">
@@ -199,6 +195,28 @@ defineExpose({ openDialog, closeDialog })
 <style scoped lang="less">
 .dialog-footer {
     text-align: right;
+}
+</style>
+
+<style lang="less">
+.quality-target-modal {
+    .quality-target-form {
+        .ant-form-item {
+            margin-bottom: 16px;
+        }
+
+        .ant-input,
+        .ant-select {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .quality-target-form .ant-col-12 {
+            max-width: 100%;
+            flex: 0 0 100%;
+        }
+    }
 }
 </style>
 

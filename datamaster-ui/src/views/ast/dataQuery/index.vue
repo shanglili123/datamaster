@@ -54,7 +54,7 @@ import {
 } from "@/api/std/model/model";
 import { executeSqlQuery } from "@/api/ast/dataSource/dataSource";
 import { encrypt } from "@/utils/aesEncrypt";
-const leftWidth = ref(300);
+const leftWidth = ref(240);
 const loading = ref(false);
 const dialogVisible = ref(false);
 

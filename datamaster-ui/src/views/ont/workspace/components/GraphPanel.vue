@@ -126,25 +126,25 @@
     </div>
 
     <!-- 新增概念（拖放画布触发） -->
-    <a-modal v-model:open="conceptOpen" title="新增概念" width="480px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitConcept" @cancel="conceptOpen = false">
-      <a-form :model="conceptForm" :label-col="{ style: { width: '70px' } }">
+    <a-modal v-model:open="conceptOpen" title="新增概念" width="620px" wrap-class-name="ontology-workspace-modal ontology-modal--compact" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitConcept" @cancel="conceptOpen = false">
+      <a-form class="ontology-form-grid" :model="conceptForm" :label-col="{ style: { width: '70px' } }">
         <a-form-item label="概念名称" required>
           <a-input v-model:value="conceptForm.name" placeholder="请输入概念名称" />
         </a-form-item>
-        <a-form-item label="颜色">
+        <a-form-item class="graph-color-field" label="颜色">
           <input type="color" class="mini-color-picker" :value="conceptForm.color || '#1677ff'" @input="conceptForm.color = $event.target.value" />
-          <a-input v-model:value="conceptForm.color" placeholder="#1677ff" allow-clear style="width: 170px; margin-left: 8px;" />
+          <a-input v-model:value="conceptForm.color" placeholder="#1677ff" allow-clear />
         </a-form-item>
-        <a-form-item label="描述">
+        <a-form-item class="ontology-form-grid__full" label="描述">
           <a-textarea v-model:value="conceptForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="请输入描述" />
         </a-form-item>
       </a-form>
     </a-modal>
 
     <!-- 拉线创建关系 -->
-    <a-modal v-model:open="relationOpen" title="创建关系" width="520px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitRelation" @cancel="cancelRelation">
+    <a-modal v-model:open="relationOpen" title="创建关系" width="620px" wrap-class-name="ontology-workspace-modal ontology-modal--compact" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitRelation" @cancel="cancelRelation">
       <a-alert type="info" show-icon :message="'源概念：' + (pendingLink ? pendingLink.sourceName : '') + '　→　目标概念：' + (pendingLink ? pendingLink.targetName : '')" style="margin-bottom: 12px;" />
-      <a-form :model="relationForm" :label-col="{ style: { width: '70px' } }">
+      <a-form class="ontology-form-grid" :model="relationForm" :label-col="{ style: { width: '70px' } }">
         <a-form-item label="关系名称" required>
           <a-input v-model:value="relationForm.name" placeholder="请输入关系名称，如 拥有订单" />
         </a-form-item>
@@ -161,42 +161,30 @@
     </a-modal>
 
     <!-- 快捷添加属性 -->
-    <a-modal v-model:open="quickPropOpen" :title="'添加属性 - ' + quickPropConceptName" width="520px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitQuickProp" @cancel="quickPropOpen = false">
-      <a-form :model="quickPropForm" :label-col="{ style: { width: '70px' } }">
+    <a-modal v-model:open="quickPropOpen" :title="'添加属性 - ' + quickPropConceptName" width="660px" wrap-class-name="ontology-workspace-modal ontology-modal--compact" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitQuickProp" @cancel="quickPropOpen = false">
+      <a-form class="ontology-form-grid" :model="quickPropForm" :label-col="{ style: { width: '70px' } }">
         <a-form-item label="属性名称" required>
           <a-input v-model:value="quickPropForm.name" placeholder="请输入属性名称" />
         </a-form-item>
-        <a-row :gutter="12">
-          <a-col :span="12">
-            <a-form-item label="数据类型">
-              <a-select v-model:value="quickPropForm.dataType">
-                <a-select-option value="string">string</a-select-option>
-                <a-select-option value="integer">integer</a-select-option>
-                <a-select-option value="decimal">decimal</a-select-option>
-                <a-select-option value="date">date</a-select-option>
-                <a-select-option value="boolean">boolean</a-select-option>
-                <a-select-option value="text">text</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="排序">
-              <a-input-number v-model:value="quickPropForm.sortOrder" :min="0" style="width: 100%" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-row :gutter="12">
-          <a-col :span="12">
-            <a-form-item label="主键">
-              <a-checkbox v-model:checked="quickPropForm.isPrimary" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="必填">
-              <a-checkbox v-model:checked="quickPropForm.isRequired" />
-            </a-form-item>
-          </a-col>
-        </a-row>
+        <a-form-item label="数据类型">
+          <a-select v-model:value="quickPropForm.dataType">
+            <a-select-option value="string">string</a-select-option>
+            <a-select-option value="integer">integer</a-select-option>
+            <a-select-option value="decimal">decimal</a-select-option>
+            <a-select-option value="date">date</a-select-option>
+            <a-select-option value="boolean">boolean</a-select-option>
+            <a-select-option value="text">text</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="排序">
+          <a-input-number v-model:value="quickPropForm.sortOrder" :min="0" />
+        </a-form-item>
+        <a-form-item label="主键">
+          <a-checkbox v-model:checked="quickPropForm.isPrimary" />
+        </a-form-item>
+        <a-form-item label="必填">
+          <a-checkbox v-model:checked="quickPropForm.isRequired" />
+        </a-form-item>
         <a-form-item label="默认值">
           <a-input v-model:value="quickPropForm.defaultValue" placeholder="默认值" />
         </a-form-item>
@@ -204,32 +192,26 @@
     </a-modal>
 
     <!-- 编辑概念（详情面板触发，先拉详情再打开） -->
-    <a-modal v-model:open="nodeEditOpen" title="编辑概念" width="480px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitNodeEdit" @cancel="nodeEditOpen = false">
+    <a-modal v-model:open="nodeEditOpen" title="编辑概念" width="620px" wrap-class-name="ontology-workspace-modal ontology-modal--compact" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitNodeEdit" @cancel="nodeEditOpen = false">
       <a-spin :spinning="nodeEditLoading">
-        <a-form :model="nodeEditForm" :label-col="{ style: { width: '70px' } }">
+        <a-form class="ontology-form-grid" :model="nodeEditForm" :label-col="{ style: { width: '70px' } }">
           <a-form-item label="概念名称" required>
             <a-input v-model:value="nodeEditForm.name" placeholder="请输入概念名称" />
           </a-form-item>
-          <a-form-item label="颜色">
+          <a-form-item class="graph-color-field" label="颜色">
             <input type="color" class="mini-color-picker" :value="nodeEditForm.color || '#1677ff'" @input="nodeEditForm.color = $event.target.value" />
-            <a-input v-model:value="nodeEditForm.color" placeholder="#1677ff" allow-clear style="width: 170px; margin-left: 8px;" />
+            <a-input v-model:value="nodeEditForm.color" placeholder="#1677ff" allow-clear />
           </a-form-item>
-          <a-row :gutter="12">
-            <a-col :span="12">
-              <a-form-item label="排序">
-                <a-input-number v-model:value="nodeEditForm.sortOrder" :min="0" style="width: 100%" />
-              </a-form-item>
-            </a-col>
-            <a-col :span="12">
-              <a-form-item label="状态">
-                <a-select v-model:value="nodeEditForm.status">
-                  <a-select-option :value="0">草稿</a-select-option>
-                  <a-select-option :value="1">已发布</a-select-option>
-                </a-select>
-              </a-form-item>
-            </a-col>
-          </a-row>
-          <a-form-item label="描述">
+          <a-form-item label="排序">
+            <a-input-number v-model:value="nodeEditForm.sortOrder" :min="0" />
+          </a-form-item>
+          <a-form-item label="状态">
+            <a-select v-model:value="nodeEditForm.status">
+              <a-select-option :value="0">草稿</a-select-option>
+              <a-select-option :value="1">已发布</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item class="ontology-form-grid__full" label="描述">
             <a-textarea v-model:value="nodeEditForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="请输入描述" />
           </a-form-item>
         </a-form>
@@ -237,9 +219,9 @@
     </a-modal>
 
     <!-- 编辑关系（详情面板触发，先拉详情再打开） -->
-    <a-modal v-model:open="edgeEditOpen" title="编辑关系" width="520px" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitEdgeEdit" @cancel="edgeEditOpen = false">
+    <a-modal v-model:open="edgeEditOpen" title="编辑关系" width="660px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="saving" @ok="submitEdgeEdit" @cancel="edgeEditOpen = false">
       <a-spin :spinning="edgeEditLoading">
-        <a-form :model="edgeEditForm" :label-col="{ style: { width: '70px' } }">
+        <a-form class="ontology-form-grid" :model="edgeEditForm" :label-col="{ style: { width: '70px' } }">
           <a-form-item label="关系名称" required>
             <a-input v-model:value="edgeEditForm.name" placeholder="请输入关系名称" />
           </a-form-item>
@@ -260,7 +242,7 @@
           <a-form-item label="排序">
             <a-input-number v-model:value="edgeEditForm.sortOrder" :min="0" style="width: 100%" />
           </a-form-item>
-          <a-form-item label="描述">
+          <a-form-item class="ontology-form-grid__full" label="描述">
             <a-textarea v-model:value="edgeEditForm.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="请输入描述" />
           </a-form-item>
         </a-form>
@@ -1248,6 +1230,20 @@ onBeforeUnmount(() => {
   &::-webkit-color-swatch {
     border: none;
     border-radius: 4px;
+  }
+}
+
+.graph-color-field {
+  :deep(.ant-form-item-control-input-content) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  :deep(.ant-input-affix-wrapper) {
+    min-width: 0;
+    flex: 1;
   }
 }
 

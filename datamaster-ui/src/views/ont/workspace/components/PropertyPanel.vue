@@ -99,8 +99,8 @@
     />
 
     <!-- 属性对话框 -->
-    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
-      <a-form ref="propertyRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+    <a-modal :title="title" v-model:open="open" width="620px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
+      <a-form ref="propertyRef" class="ontology-form-grid" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="所属概念" name="conceptId">
           <a-select
             v-model:value="form.conceptId"
@@ -123,26 +123,16 @@
             <a-select-option value="text">text</a-select-option>
           </a-select>
         </a-form-item>
-        <a-row :gutter="16">
-          <a-col :span="24">
-            <a-form-item label="必填" name="isRequired">
-              <a-switch v-model:checked="form.isRequired" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="默认值" name="defaultValue">
-              <a-input v-model:value="form.defaultValue" placeholder="默认值" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="排序" name="sortOrder">
-              <a-input-number v-model:value="form.sortOrder" :min="0" style="width: 100%" placeholder="排序号" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item label="描述" name="description">
+        <a-form-item label="必填" name="isRequired">
+          <a-switch v-model:checked="form.isRequired" />
+        </a-form-item>
+        <a-form-item label="默认值" name="defaultValue">
+          <a-input v-model:value="form.defaultValue" placeholder="默认值" />
+        </a-form-item>
+        <a-form-item label="排序" name="sortOrder">
+          <a-input-number v-model:value="form.sortOrder" :min="0" placeholder="排序号" />
+        </a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="描述" name="description">
           <a-textarea v-model:value="form.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="请输入描述" />
         </a-form-item>
       </a-form>
@@ -380,7 +370,7 @@ loadConcepts()
 
   // 左侧概念目录
   .catalog-side {
-    width: 220px;
+    width: 240px;
     flex-shrink: 0;
     background: #fff;
     border: 1px solid #f0f0f0;

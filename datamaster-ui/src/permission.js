@@ -111,14 +111,18 @@ async function ensureSpaceRoutes(to) {
 
   const userStore = useUserStore();
   const permissionStore = usePermissionStore();
-  if (!spaceId) {
+  if (!spaceId || !userStore.spaceCode || !userStore.spaceName) {
     const spaceResponse = await currentUser();
-    const firstSpace = spaceResponse?.data?.[0];
-    if (!firstSpace?.id) return;
+    const spaces = spaceResponse?.data || [];
+    const currentSpace = spaceId
+      ? spaces.find((item) => String(item.id) === String(spaceId))
+      : spaces[0];
+    if (!currentSpace?.id) return;
 
-    spaceId = firstSpace.id;
+    spaceId = currentSpace.id;
     localStorage.setItem("dataMasterSpaceId", spaceId);
-    userStore.spaceCode = firstSpace.code || firstSpace.spaceCode || "";
+    userStore.spaceCode = currentSpace.code || currentSpace.spaceCode || "";
+    userStore.spaceName = currentSpace.name || currentSpace.spaceName || "";
   }
 
   userStore.spaceId = spaceId;

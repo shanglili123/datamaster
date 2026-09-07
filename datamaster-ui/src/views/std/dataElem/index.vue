@@ -274,7 +274,7 @@ const { column_type, sys_disable, dp_data_elem_code_type, dp_document_type } = p
   listDpDocument,
 } from "@/api/std/document/document";
 const deptOptions = ref(undefined);
-const leftWidth = ref(300); // 初始左侧宽度
+const leftWidth = ref(240); // 初始左侧宽度
 const isResizing = ref(false); // 判断是否正在拖拽
 let startX = 0; // 鼠标按下时的初始位置// 初始左侧宽度
 /** 类型字典翻译 */

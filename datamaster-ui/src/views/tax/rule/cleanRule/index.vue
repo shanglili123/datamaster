@@ -262,7 +262,7 @@ const { att_rule_level, att_rule_clean_type } = proxy.useDict(
     'att_rule_level',
     'att_rule_clean_type'
 );
-const leftWidth = ref(300); // 初始左侧宽度
+const leftWidth = ref(240); // 初始左侧宽度
 const isResizing = ref(false); // 判断是否正在拖拽
 let startX = 0; // 鼠标按下时的初始位置// 初始左侧宽度
 let Materialization = ref(false);
@@ -651,4 +651,3 @@ getDeptTree();
     // box-shadow: 1px 1px 3px rgba(0, 0, 0, .2);
 }
 </style>
-

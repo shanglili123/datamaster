@@ -97,7 +97,7 @@ const props = defineProps({
   deptOptions: Array,
   leftWidth: {
     type: Number,
-    default: 300,
+    default: 240,
   },
   placeholder: {
     type: String,
@@ -182,7 +182,7 @@ const updateResize = (event) => {
 // 折叠展开
 const toggleCollapse = () => {
   if (leftWidth.value === 0) {
-    leftWidth.value = 300;
+        leftWidth.value = props.leftWidth || 240;
   } else {
     leftWidth.value = 0;
   }
@@ -218,7 +218,8 @@ defineExpose({ resetTree });
 }
 
 .left-tree {
-  height: 72vh;
+  height: min(72vh, calc(100vh - 220px));
+  min-height: 260px;
   padding: 14px;
   background: #ffffff;
   border: 1px solid #e8edf5;
@@ -291,7 +292,8 @@ defineExpose({ resetTree });
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 72vh;
+  height: min(72vh, calc(100vh - 220px));
+  min-height: 260px;
   width: 12px;
   flex-shrink: 0;
 }

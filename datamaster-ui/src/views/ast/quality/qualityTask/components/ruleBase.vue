@@ -7,6 +7,7 @@
     :class="{ 'max-dialogs-status0': dialogStatus === 0 }"
     :title="dialogTitle"
     :width="dialogStatus === 0 ? 1100 : 900"
+    wrap-class-name="quality-rule-modal"
     destroy-on-close
   >
     <div class="content" v-if="dialogStatus == 0">
@@ -18,15 +19,14 @@
       />
     </div>
     <div
-      class="content"
-      style="max-height: 650px; overflow-y: auto; padding-right: 10px"
+      class="content rule-config-content"
       v-show="dialogStatus == 1 || dialogStatus == 2"
       :disabled="dialogStatus == 2"
     >
-      <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }">
+      <a-form class="rule-config-form" ref="formRef" :model="form" :label-col="{ style: { width: '110px' } }">
         <div class="h2-title">基础信息</div>
-        <a-row>
-          <a-col :span="8">
+        <a-row :gutter="18">
+          <a-col :span="12">
             <a-form-item
               label="评测名称"
               name="name"
@@ -54,25 +54,24 @@
               <div v-else class="form-readonly">{{ form.name || "-" }}</div>
             </a-form-item>
           </a-col>
-          <a-col :span="8">
+          <a-col :span="12">
             <a-form-item label="稽查规则编号" name="ruleCode">
               <div class="form-readonly">{{ form.ruleCode || "-" }}</div>
             </a-form-item>
           </a-col>
-          <a-col :span="8">
+        </a-row>
+        <a-row :gutter="18">
+          <a-col :span="12">
             <a-form-item label="稽查规则名称" name="ruleName">
               <div class="form-readonly">{{ form.ruleName || "-" }}</div>
             </a-form-item>
           </a-col>
-        </a-row>
-        <a-row>
-          <a-col :span="8">
+          <a-col :span="12">
             <a-form-item label="告警等级" name="warningLevel">
               <template v-if="!falg">
                 <a-select
                   v-model:value="form.warningLevel"
                   placeholder="请选择质量维度"
-                  style="width: 290px"
                 >
                   <a-select-option
                     v-for="dict in quality_warning_status"
@@ -91,7 +90,9 @@
               </div>
             </a-form-item>
           </a-col>
-          <a-col :span="8">
+        </a-row>
+        <a-row :gutter="18">
+          <a-col :span="12">
             <a-form-item label="状态" name="status">
               <a-radio-group v-model:value="form.status" :disabled="falg">
                 <a-radio :value="'1'">上线</a-radio>
@@ -100,13 +101,14 @@
             </a-form-item>
           </a-col>
         </a-row>
-        <a-row>
+        <a-row :gutter="18">
           <a-col :span="24">
             <a-form-item label="规则描述" name="ruleDescription">
               <template v-if="!falg">
                 <a-textarea
                   :maxlength="500"
                   :show-count="true"
+                  :auto-size="{ minRows: 2, maxRows: 4 }"
                   v-model:value="form.ruleDescription"
                   placeholder="请输入规则描述"
                 />
@@ -117,13 +119,14 @@
             </a-form-item>
           </a-col>
         </a-row>
-        <a-row>
+        <a-row :gutter="18">
           <a-col :span="24">
             <a-form-item label="错误示例" name="errDescription">
               <template v-if="!falg">
                 <a-textarea
                   :maxlength="500"
                   :show-count="true"
+                  :auto-size="{ minRows: 2, maxRows: 4 }"
                   v-model:value="form.errDescription"
                   placeholder="请输入错误示例"
                 />
@@ -134,13 +137,14 @@
             </a-form-item>
           </a-col>
         </a-row>
-        <a-row>
+        <a-row :gutter="18">
           <a-col :span="24">
             <a-form-item label="修复建议" name="suggestion">
               <template v-if="!falg">
                 <a-textarea
                   :maxlength="500"
                   :show-count="true"
+                  :auto-size="{ minRows: 2, maxRows: 4 }"
                   v-model:value="form.suggestion"
                   placeholder="请输入修复建议"
                 />
@@ -151,13 +155,14 @@
             </a-form-item>
           </a-col>
         </a-row>
-        <a-row>
+        <a-row :gutter="18">
           <a-col :span="24">
             <a-form-item label="Where 条件" name="whereClause">
               <template v-if="!falg">
                 <a-textarea
                   :maxlength="500"
                   :show-count="true"
+                  :auto-size="{ minRows: 2, maxRows: 4 }"
                   v-model:value="form.whereClause"
                   placeholder="请输入 Where 条件"
                 />
@@ -170,7 +175,7 @@
         </a-row>
         <!-- 规则配置 -->
         <div class="h2-title">规则配置</div>
-        <a-row>
+        <a-row :gutter="18">
           <a-col :span="12" class="hasMsg" v-if="type != 3">
             <a-form-item
               label="评测对象"
@@ -822,6 +827,60 @@ defineExpose({ openDialog, closeDialog });
 .ant-modal.max-dialogs-status0 .ant-modal-body {
   padding: 0 !important;
   padding-left: 10px !important;
+}
+
+.quality-rule-modal .ant-modal-body {
+  overflow: hidden;
+}
+
+.quality-rule-modal .rule-config-content {
+  max-height: calc(100vh - 190px);
+  padding: 2px 8px 12px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.quality-rule-modal .rule-config-form {
+  width: 100%;
+}
+
+.quality-rule-modal .rule-config-form > .h2-title {
+  margin: 4px 0 16px;
+  padding: 10px 14px;
+  color: #1f2d3d;
+  font-size: 15px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #f2f7ff 0%, #fafcff 72%, #fff 100%);
+  border-left: 4px solid #2666fb;
+  border-radius: 6px;
+}
+
+.quality-rule-modal .rule-config-form .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.quality-rule-modal .rule-config-form .ant-input,
+.quality-rule-modal .rule-config-form .ant-input-affix-wrapper,
+.quality-rule-modal .rule-config-form .ant-input-number,
+.quality-rule-modal .rule-config-form .ant-select,
+.quality-rule-modal .rule-config-form .ant-tree-select {
+  width: 100%;
+}
+
+.quality-rule-modal .rule-config-form .form-readonly {
+  min-height: 32px;
+  padding: 5px 10px;
+  line-height: 20px;
+  background: #f7f9fc;
+  border: 1px solid #edf1f6;
+  border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+  .quality-rule-modal .rule-config-form .ant-col-12 {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
 }
 </style>
 

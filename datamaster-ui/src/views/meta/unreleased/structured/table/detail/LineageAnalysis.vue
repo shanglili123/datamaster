@@ -18,7 +18,7 @@
 
     const store = reactive({
         dept: {
-            leftWidth: 300,
+            leftWidth: 240,
             deptOptions: [],
             defaultExpand: true
         },

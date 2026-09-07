@@ -381,7 +381,7 @@ function handleCall() {
 <style lang="scss" scoped>
 .app-container {
     margin-top: -5px;
-    min-height: 65vh;
+    min-height: 0;
     margin-left: 0px;
     // padding: 20px;
     background-color: #ffffff;

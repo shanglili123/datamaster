@@ -109,9 +109,10 @@
 
     <!-- 行操作弹框：新增/修改/删除 → 提交预览 → 确认执行（审批移至审批中心，不在弹框内嵌） -->
     <a-modal
-      v-model:open="rowModal.visible"
-      :title="rowModalTitle"
-      :width="760"
+    v-model:open="rowModal.visible"
+    :title="rowModalTitle"
+    :width="760"
+    wrap-class-name="ontology-workspace-modal ontology-modal--data"
       :footer="null"
       :mask-closable="false"
       destroy-on-close
@@ -132,9 +133,9 @@
             </template>
           </div>
         </template>
-        <a-form v-else :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }" style="margin-top: 8px">
+        <a-form v-else class="ontology-form-grid" :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }" style="margin-top: 8px">
           <template v-for="f in formFields" :key="'f-' + f.propertyCode">
-            <a-form-item :label="f.propertyName + (f.isPrimary ? '（主键）' : '')">
+            <a-form-item :class="{ 'ontology-form-grid__full': f.dataType === 'text' }" :label="f.propertyName + (f.isPrimary ? '（主键）' : '')">
               <a-input
                 v-if="f.dataType === 'string'"
                 v-model:value="rowModal.form[f.propertyCode]"
@@ -171,8 +172,8 @@
         </a-form>
 
         <a-divider style="margin: 12px 0">回调选项</a-divider>
-        <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }">
-          <a-form-item label="执行后回调">
+        <a-form class="ontology-form-grid" :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }">
+          <a-form-item class="ontology-form-grid__full" label="执行后回调">
             <a-switch v-model:checked="rowModal.triggerWebhook" />
             <span class="row-webhook-hint">开启后按动作/本体绑定的 Webhook 配置，在执行成功后发起回调</span>
           </a-form-item>

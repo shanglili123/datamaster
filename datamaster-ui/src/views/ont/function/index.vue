@@ -41,8 +41,8 @@
       </template>
     </a-table>
 
-    <a-modal :title="title" v-model:open="open" width="700px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
-      <a-form :label-col="{ style: { width: '100px' } }">
+    <a-modal :title="title" v-model:open="open" width="820px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
+      <a-form class="ontology-form-grid" :label-col="{ style: { width: '100px' } }">
         <a-form-item label="函数名称"><a-input v-model:value="form.name" placeholder="函数名称" /></a-form-item>
         <a-form-item label="语言">
           <a-select v-model:value="form.lang" placeholder="请选择语言">
@@ -50,10 +50,10 @@
             <a-select-option value="PYTHON">Python</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="函数代码">
+        <a-form-item class="ontology-form-grid__full" label="函数代码">
           <Codemirror v-model:value="form.body" :options="codeEditorOptions" height="260px" />
         </a-form-item>
-        <a-form-item label="参数">
+        <a-form-item class="ontology-form-grid__full" label="参数">
           <div style="width:100%">
             <div v-for="(p, idx) in paramNames" :key="idx" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
               <a-input v-model:value="paramNames[idx]" placeholder="参数名，如 name" style="width:260px" size="small" />
@@ -63,11 +63,11 @@
             <div style="font-size:12px;color:#999;margin-top:4px;">声明函数输入参数，代码内用 $${'{name}'} 引用或通过 input 对象获取（如 input.name）</div>
           </div>
         </a-form-item>
-        <a-form-item label="描述"><a-textarea v-model:value="form.description" :rows="2" /></a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="描述"><a-textarea v-model:value="form.description" :rows="2" /></a-form-item>
       </a-form>
     </a-modal>
 
-    <a-modal title="编辑代码" v-model:open="codeOpen" width="900px" destroy-on-close ok-text="保存" cancel-text="取消" @ok="saveCode" @cancel="codeOpen = false">
+    <a-modal title="编辑代码" v-model:open="codeOpen" width="960px" wrap-class-name="ontology-workspace-modal ontology-modal--data" destroy-on-close ok-text="保存" cancel-text="取消" @ok="saveCode" @cancel="codeOpen = false">
       <div style="margin-bottom:8px;"><a-tag :color="editFunc.lang === 'PYTHON' ? 'orange' : 'blue'">{{ editFunc.lang }}</a-tag> {{ editFunc.name }}</div>
       <div style="margin-bottom:8px;padding:8px 12px;background:#fff7e6;border:1px solid #ffd591;border-radius:6px;font-size:12px;color:#d46b08;">可用 ${参数名} 引用入参，也可用 input 对象获取全部入参，如 $${'{name}'}；动作绑定数据来源概念后 input.source.rows 为主概念数据、input.relations 为关联关系数据，脚本输出 JSON 数组（键=输出属性 code）可写回输出目标概念。<b>脚本必须输出结果</b>（TS 用 console.log、Python 用 print 输出 JSON 数组或对象，输出将被记录/落库）。</div>
       <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
@@ -78,7 +78,7 @@
       <Codemirror v-model:value="editFunc.body" :options="editCodeEditorOptions" height="400px" />
     </a-modal>
 
-    <a-modal title="执行结果" v-model:open="resultOpen" width="700px" :footer="null">
+    <a-modal title="执行结果" v-model:open="resultOpen" width="820px" wrap-class-name="ontology-workspace-modal ontology-modal--data" :footer="null">
       <pre style="background:#f6ffed;padding:12px;border-radius:6px;font-family:monospace;font-size:12px;max-height:400px;overflow:auto;white-space:pre-wrap;word-break:break-all;">{{ currentResult.outputResult || currentResult.errorMessage || 'No output' }}</pre>
     </a-modal>
   </div>

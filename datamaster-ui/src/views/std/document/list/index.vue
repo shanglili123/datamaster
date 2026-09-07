@@ -229,7 +229,7 @@ const { column_type, sys_disable, dp_document_status } = proxy.useDict(
   "dp_document_status"
 );
 const deptOptions = ref(undefined);
-const leftWidth = ref(300);
+const leftWidth = ref(240);
 
 const dpDataElemList = ref([]);
 

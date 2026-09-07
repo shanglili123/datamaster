@@ -164,7 +164,7 @@ const props = defineProps({
   deptOptions: Array,
   leftWidth: {
     type: Number,
-    default: 300,
+    default: 240,
   },
   placeholder: {
     type: String,

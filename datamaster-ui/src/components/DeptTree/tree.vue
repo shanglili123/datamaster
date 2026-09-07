@@ -38,7 +38,7 @@ const props = defineProps({
     deptOptions: Array,
     leftWidth: {
         type: Number,
-        default: 300,
+        default: 240,
     },
     placeholder: {
         type: String,
@@ -113,7 +113,7 @@ const updateResize = (event) => {
 // 折叠展开
 const toggleCollapse = () => {
     if (leftWidth.value === 0) {
-        leftWidth.value = 300;
+        leftWidth.value = props.leftWidth || 240;
     } else {
         leftWidth.value = 0;
     }

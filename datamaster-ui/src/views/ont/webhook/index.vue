@@ -43,8 +43,8 @@
       </template>
     </a-table>
 
-    <a-modal :title="title" v-model:open="open" width="760px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
-      <a-form :label-col="{ style: { width: '110px' } }">
+    <a-modal :title="title" v-model:open="open" width="820px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
+      <a-form class="ontology-form-grid" :label-col="{ style: { width: '110px' } }">
         <a-form-item label="Webhook 名称"><a-input v-model:value="form.name" placeholder="如 客户源系统回调" /></a-form-item>
         <a-form-item label="所属本体">
           <a-select v-model:value="form.ontologyId" placeholder="请选择本体" @change="onChangeOntology" style="width:100%">
@@ -63,8 +63,8 @@
             <a-select-option value="PUT">PUT</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="请求头"><a-textarea v-model:value="form.headers" :rows="2" placeholder='JSON，如 {"Authorization":"Bearer xxx"}' /></a-form-item>
-        <a-form-item label="请求体模板"><a-textarea v-model:value="form.payloadTemplate" :rows="3" placeholder="JSON 模板，空时按执行记录生成默认结构" /></a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="请求头"><a-textarea v-model:value="form.headers" :rows="2" placeholder='JSON，如 {"Authorization":"Bearer xxx"}' /></a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="请求体模板"><a-textarea v-model:value="form.payloadTemplate" :rows="3" placeholder="JSON 模板，空时按执行记录生成默认结构" /></a-form-item>
         <a-form-item label="回调密钥"><a-input v-model:value="form.secret" placeholder="可选，回调签名密钥" /></a-form-item>
         <a-form-item label="是否启用">
           <a-switch v-model:checked="form.enabled" />
@@ -72,11 +72,11 @@
         <a-form-item label="最大重试">
           <a-input-number v-model:value="form.maxRetry" :min="0" style="width:100%" /><span style="color:#999;font-size:12px;"> 0 表示不重试</span>
         </a-form-item>
-        <a-form-item label="描述"><a-textarea v-model:value="form.description" :rows="2" /></a-form-item>
+        <a-form-item class="ontology-form-grid__full" label="描述"><a-textarea v-model:value="form.description" :rows="2" /></a-form-item>
       </a-form>
     </a-modal>
 
-    <a-modal title="回调详情" v-model:open="logOpen" width="760px" :footer="null">
+    <a-modal title="回调详情" v-model:open="logOpen" width="820px" wrap-class-name="ontology-workspace-modal ontology-modal--data" :footer="null">
       <div style="margin-bottom:8px;"><a-tag :color="logStatusColor(currentLog.status)">{{ logStatusText(currentLog.status) }}</a-tag>
         <a-tag v-if="currentLog.httpStatus" style="margin-left:8px">{{ currentLog.httpStatus }}</a-tag>
         <a-tag v-if="currentLog.retryCount != null" style="margin-left:8px" color="default">重试 {{ currentLog.retryCount }} 次</a-tag>

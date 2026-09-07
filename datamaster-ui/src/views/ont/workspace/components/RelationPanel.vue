@@ -61,8 +61,8 @@
     />
 
     <!-- 关系对话框 -->
-    <a-modal :title="title" v-model:open="open" width="600px" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
-      <a-form ref="relationRef" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
+    <a-modal :title="title" v-model:open="open" width="640px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" @ok="submitForm" @cancel="cancel">
+      <a-form ref="relationRef" class="ontology-form-grid" :model="form" :rules="rules" :label-col="{ style: { width: '80px' } }">
         <a-form-item label="关系名称" name="name">
           <a-input v-model:value="form.name" placeholder="请输入关系名称" />
         </a-form-item>
@@ -95,7 +95,7 @@
         <a-form-item label="排序" name="sortOrder">
           <a-input-number v-model:value="form.sortOrder" :min="0" style="width: 100%" placeholder="排序号" />
         </a-form-item>
-        <a-form-item label="描述" name="description">
+        <a-form-item class="ontology-form-grid__full" label="描述" name="description">
           <a-textarea v-model:value="form.description" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder="请输入描述" />
         </a-form-item>
       </a-form>

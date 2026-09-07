@@ -371,6 +371,7 @@ async function enterSpace(space) {
 
   userStore.spaceId = space.id;
   userStore.spaceCode = space.code || space.spaceCode || "";
+  userStore.spaceName = space.name || space.spaceName || "";
   localStorage.setItem("dataMasterSpaceId", space.id);
 
   try {

@@ -66,8 +66,8 @@
     </a-spin>
 
     <!-- 新增/修改对话框 -->
-    <a-modal :title="title" v-model:open="open" width="900px" draggable destroy-on-close @cancel="cancel">
-      <a-form ref="ontologyRef" class="ontology-form" :model="form" :rules="rules" :label-col="{ style: { width: '100px' } }">
+    <a-modal :title="title" v-model:open="open" width="900px" wrap-class-name="ontology-workspace-modal ontology-modal--form" draggable destroy-on-close @cancel="cancel">
+      <a-form ref="ontologyRef" class="ontology-form ontology-form-grid" :model="form" :rules="rules" :label-col="{ style: { width: '100px' } }">
         <template v-if="!aiEnabled">
           <a-row :gutter="20">
             <a-col :span="12">
@@ -94,7 +94,7 @@
           </a-row>
         </template>
 
-        <a-form-item label="AI 生成" :label-col="{ style: { width: '100px' } }" class="ai-toggle-item">
+        <a-form-item label="AI 生成" :label-col="{ style: { width: '100px' } }" class="ai-toggle-item ontology-form-grid__full">
           <a-checkbox v-model:checked="aiEnabled" :disabled="isEdit">启用 AI 生成</a-checkbox>
           <span class="toggle-tip">将根据数据源中的业务表自动生成本体、概念和属性</span>
         </a-form-item>

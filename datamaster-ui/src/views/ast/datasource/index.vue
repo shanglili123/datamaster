@@ -385,17 +385,11 @@
           <a-col :span="24">
             <a-form-item label="所属空间" name="spaceNameList">
               <a-input
-                style="width: 83.5%"
-                v-model:value="form.spaceNameList"
-                placeholder="请选择空间"
+                style="width: 100%"
+                :value="Array.isArray(form.spaceNameList) ? form.spaceNameList.join(', ') : form.spaceNameList"
+                placeholder="当前空间"
                 disabled
-              >
-              </a-input>
-              <a-button
-                style="margin-left: 11px"
-                type="primary"
-                @click="getListSpace"
-                >选择空间</a-button>
+              />
             </a-form-item>
           </a-col>
         </a-row>
@@ -627,68 +621,6 @@
         </div>
       </template>
     </a-modal>
-    <a-modal title="空间选择" v-model:open="openSpace" width="1000px">
-      <template #title>
-        <span role="heading" aria-level="2">
-          空间选择
-        </span>
-      </template>
-      <!--用户数据-->
-      <a-form
-        class="btn-style"
-        :model="queryParamsSpace"
-        ref="queryRef"
-        layout="inline"
-        :label-col="{ style: { width: '68px' } }"
-      >
-        <a-form-item label="空间名称" name="name">
-          <a-input
-            class="el-form-input-width"
-            v-model:value="queryParamsSpace.name"
-            placeholder="请输入空间名称"
-            allow-clear
-            @pressEnter="handleQuery"
-          />
-        </a-form-item>
-        <a-form-item>
-          <a-button
-            type="primary"
-            @click="handleQuerySpace"
-            @mousedown="(e) => e.preventDefault()"
-          >
-            <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
-          </a-button>
-          <a-button
-            @click="resetQuerySpace"
-            @mousedown="(e) => e.preventDefault()"
-          >
-            <i class="iconfont-mini icon-a-zu22378 mr5"></i>重置
-          </a-button>
-        </a-form-item>
-      </a-form>
-      <a-table
-        ref="spaceTableRef"
-        :row-key="'id'"
-        :loading="loadingSpace"
-        :data-source="spaceList"
-        :columns="spaceColumns"
-        :row-selection="rowSelection"
-      >
-      </a-table>
-      <pagination
-        v-show="totalSpace > 0"
-        :total="totalSpace"
-        v-model:page="queryParamsSpace.pageNum"
-        v-model:limit="queryParamsSpace.pageSize"
-        @pagination="getListSpace"
-      />
-      <template #footer>
-        <div class="dialog-footer">
-          <a-button size="small" @click="openSpace = false">取 消</a-button>
-          <a-button type="primary" size="small" @click="submitFormSpace">确 定</a-button>
-        </div>
-      </template>
-    </a-modal>
   </div>
 </template>
 
@@ -706,7 +638,6 @@ import {
   updateDaDatasource,
   listDaDatasourceBySpaceCode,
   editDatasourceStatus,
-  noDppAdd,
 } from "@/api/ast/dataSource/dataSource";
 import { encrypt, isDecrypted } from "@/utils/aesEncrypt";
 import { getToken } from "@/utils/auth.js";
@@ -761,7 +692,6 @@ const tableScroll = computed(() => {
 });
 
 const open = ref(false);
-const openSpace = ref(false);
 const openDetail = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -772,13 +702,6 @@ const total = ref(0);
 const title = ref("");
 const defaultSort = ref({ prop: "createTime", order: "desc" });
 const router = useRouter();
-const spaceList = ref([]);
-const totalSpace = ref(0);
-const spaceTableRef = ref(null);
-const loadingSpace = ref(false);
-const spaceIdAndCodeList = ref([]);
-const selectedRowKeys = ref([]);
-
 /*** 用户导入参数 */
 const upload = reactive({
   // 是否显示弹出层（用户导入）
@@ -798,15 +721,9 @@ const upload = reactive({
 const data = reactive({
   form: {
     spaceNameListStr: "-",
-    spaceNameList: [],
+    spaceNameList: userStore.spaceName ? [userStore.spaceName] : [],
     spaceIdList: [],
     spaceList: [],
-  },
-  queryParamsSpace: {
-    pageNum: 1,
-    pageSize: 6,
-    name: null,
-    datasourceId: null,
   },
   queryParams: {
     pageNum: 1,
@@ -901,22 +818,7 @@ const data = reactive({
   },
 });
 
-const { queryParams, form, rules, queryParamsSpace } = toRefs(data);
-const selectable = (row) => !row.dppAssigned;
-// a-table 行选择配置（迁移自 el-table type="selection"）
-const rowSelection = computed(() => ({
-  selectedRowKeys: selectedRowKeys.value,
-  onChange: (keys, rows) => {
-    selectedRowKeys.value = keys;
-    handleSelectionChangeSpace(rows);
-  },
-  getCheckboxProps: (record) => ({ disabled: !selectable(record) })
-}));
-// 空间选择表格列定义
-const spaceColumns = [
-  { title: '编号', dataIndex: 'id', key: 'id', width: 120, customRender: ({ text }) => text || '-' },
-  { title: '空间名称', dataIndex: 'name', key: 'name', align: 'center', customRender: ({ text }) => text || '-' },
-];
+const { queryParams, form, rules } = toRefs(data);
 // 监听 id 变化
 watch(
   () => userStore.spaceCode,
@@ -924,6 +826,15 @@ watch(
     getList();
   },
   { immediate: true } // `immediate` 为 true 表示页面加载时也会立即执行一次 watch
+);
+
+watch(
+  () => userStore.spaceName,
+  (name) => {
+    if (!form.value.id && name) {
+      form.value.spaceNameList = [name];
+    }
+  }
 );
 
 // 数据源类型 change 事件
@@ -982,60 +893,6 @@ function normalizePageData(response) {
   return { rows, total: Number.isNaN(total) ? rows.length : total };
 }
 
-function getListSpace() {
-  openSpace.value = true;
-  loadingSpace.value = true;
-  noDppAdd(queryParamsSpace.value).then((response) => {
-    const pageData = normalizePageData(response);
-    spaceList.value = pageData.rows;
-    totalSpace.value = pageData.total;
-    loadingSpace.value = false;
-
-    // 在表格加载完成后，设置之前选中的空间
-    nextTick(() => {
-      selectedRowKeys.value = [];
-      spaceList.value.forEach((space) => {
-        form.value.spaceList.forEach((item) => {
-          if (item.spaceId === space.id) {
-            selectedRowKeys.value.push(space.id);
-          }
-        });
-      });
-    });
-  });
-}
-
-function handleSelectionChangeSpace(selection) {
-  spaceIdAndCodeList.value = [];
-  for (let i = 0; i < selection.length; i++) {
-    const element = selection[i];
-    let space = {
-      spaceId: element.id,
-      spaceCode: element.code,
-    };
-    spaceIdAndCodeList.value.push(space);
-  }
-
-  form.value.spaceNameList = selection.map((item) => item.name);
-}
-
-function submitFormSpace() {
-  openSpace.value = false;
-  form.value.spaceList = spaceIdAndCodeList.value;
-}
-
-function handleQuerySpace() {
-  queryParamsSpace.value.pageNum = 1;
-  getListSpace();
-}
-
-function resetQuerySpace() {
-  queryParamsSpace.value.pageNum = 1;
-  queryParamsSpace.value.pageSize = 6;
-  queryParamsSpace.value.name = null;
-  getListSpace();
-}
-
 /** 查询数据源列表 */
 function getList() {
   loading.value = true;
@@ -1060,7 +917,7 @@ function cancel() {
 function reset() {
   form.value = {
     id: null,
-    spaceNameList: [],
+    spaceNameList: userStore.spaceName ? [userStore.spaceName] : [],
     spaceIdList: [],
     spaceList: [],
     datasourceName: null,
@@ -1125,6 +982,7 @@ function handleAdd() {
       dppAssigned: true,
     },
   ];
+  form.value.spaceNameList = userStore.spaceName ? [userStore.spaceName] : [];
   open.value = true;
   title.value = "新增数据源";
 }
@@ -1161,7 +1019,6 @@ function handleUpdate(row, type) {
         form.value.config = normalizeConfigText(config.config);
       }
       form.value.spaceListOld = form.value.spaceIdList;
-      queryParamsSpace.value.assignedDatasourceId = form.value.id;
       open.value = true;
       if (type == 3) {
         title.value = "数据源详情";

@@ -592,7 +592,7 @@ function deleteRows(index, row) {
 .home {
   display: flex;
   flex-direction: column;
-  height: 88vh;
+  min-height: 0;
 
 }
 

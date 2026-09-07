@@ -38,12 +38,12 @@
         </div>
 
         <a-spin :spinning="loading">
-        <div class="pagecont-top" v-show="showSearch" style="padding-bottom: 15px">
+        <div class="pagecont-top service-api-editor" v-show="showSearch" style="padding-bottom: 15px">
             <div class="infotop">
                 <div class="main">
 
-                    <Base ref="base" v-if="activeReult === 0" :form1="form1" :rules1="rules1"
-                        style="padding-right: 116px;" :reqMethodOptions="reqMethodOptions"
+                    <Base ref="base" v-if="activeReult === 0" class="service-api-base" :form1="form1" :rules1="rules1"
+                        :reqMethodOptions="reqMethodOptions"
                         :resTypeOptions="resTypeOptions" :whetherOptions="whetherOptions" :statusOptions="statusOptions"
                         :isChange="true" :treeOptions="treeOptions" :typeNames="typeName" />
                     <Parameter ref="parameter" v-show="splReult === true || activeReult === 1" :form2="form2"
@@ -642,23 +642,37 @@ onBeforeRouteLeave((to, from) => {
 }
 
 .button-style {
-    padding: 15px 35px 0px 0px;
+    position: sticky;
+    bottom: 0;
+    flex: none;
+    margin-top: 20px;
+    padding: 14px 35px 12px 0px;
     background: #fff;
+    border-top: 1px solid #edf1f6;
     text-align: right;
     z-index: 10;
 }
 
 .main {
     flex: 1;
+    width: 100%;
+    min-height: 0;
+    min-width: 0;
+    box-sizing: border-box;
     // margin: 15px;
     background-color: white;
     padding: 10px 25px 0;
 }
 
+.service-api-base {
+    display: block;
+    width: 100%;
+}
+
 .home {
     display: flex;
     flex-direction: column;
-    height: 88vh;
+    min-height: 0;
 
     .clearfix {
         width: 100%;
@@ -690,9 +704,27 @@ onBeforeRouteLeave((to, from) => {
 }
 
 .pagecont-top {
-    min-height: 600px;
+    min-height: calc(100vh - 165px);
+    height: auto;
     position: relative;
     padding-bottom: 40px;
+}
+
+.service-api-editor {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: calc(100vh - 165px);
+    container-name: service-api-editor;
+    container-type: inline-size;
+
+    .infotop {
+        display: flex;
+        width: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
+        flex-direction: column;
+    }
 }
 
 .el-textarea__inner::-webkit-resizer {

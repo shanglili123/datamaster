@@ -265,7 +265,7 @@ const { att_rule_audit_type, att_rule_level, att_rule_audit_q_dimension } =
     "att_rule_level",
     "att_rule_audit_q_dimension"
   );
-const leftWidth = ref(300); // 初始左侧宽度
+const leftWidth = ref(240); // 初始左侧宽度
 const isResizing = ref(false); // 判断是否正在拖拽
 let startX = 0; // 鼠标按下时的初始位置// 初始左侧宽度
 let Materialization = ref(false);

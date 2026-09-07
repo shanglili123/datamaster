@@ -1,5 +1,5 @@
 <template>
-  <a-modal title="绑定数据表" v-model:open="visible" width="640px" destroy-on-close :footer="null">
+  <a-modal title="绑定数据表" v-model:open="visible" width="700px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close :footer="null">
     <p class="modal-hint">概念「{{ conceptName }}」当前绑定的物理表：</p>
     <div class="bind-list">
       <div v-for="b in bindRows" :key="b.id" class="bind-item">
@@ -36,7 +36,8 @@
   <a-modal
     :title="previewTableName ? `数据预览 - ${previewTableName}` : '数据预览'"
     v-model:open="previewVisible"
-    width="780px"
+    width="900px"
+    wrap-class-name="ontology-workspace-modal ontology-modal--data"
     :footer="null"
     destroy-on-close
   >
@@ -213,6 +214,7 @@ function refreshBindRows() {
 
   .bind-item {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     padding: 6px 10px;
@@ -241,6 +243,21 @@ function refreshBindRows() {
 
 .bind-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+
+  :deep(.ant-select) {
+    flex: 1 1 220px;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 720px) {
+  .bind-form {
+    :deep(.ant-select) {
+      width: 100% !important;
+      flex-basis: 100%;
+    }
+  }
 }
 </style>

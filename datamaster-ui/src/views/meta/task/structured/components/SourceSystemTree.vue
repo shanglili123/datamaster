@@ -121,7 +121,7 @@ import { getDatasourceIcon } from "@/utils/datasource";
 const props = defineProps({
   initialLeftWidth: {
     type: Number,
-    default: 300,
+    default: 240,
   },
   // 树形模式: sourceSystem-来源系统三级树(默认), dbTable-库表两级树
   treeType: {
@@ -155,7 +155,11 @@ function restoreState() {
     }
     const savedWidth = localStorage.getItem(storageWidthKey);
     if (savedWidth !== null) {
-      leftWidth.value = Number(savedWidth) || props.initialLeftWidth;
+      const restoredWidth = Number(savedWidth);
+      // 兼容旧版本将默认展开宽度持久化为 300px 的数据
+      leftWidth.value = restoredWidth === 300
+        ? (props.initialLeftWidth || 240)
+        : (restoredWidth || props.initialLeftWidth);
     }
   } catch (e) {
     // 忽略异常，使用默认折叠状态
@@ -205,7 +209,7 @@ const updateResize = (event) => {
 
 // 折叠展开
 const toggleCollapse = () => {
-  leftWidth.value = leftWidth.value === 0 ? 300 : 0;
+  leftWidth.value = leftWidth.value === 0 ? (props.initialLeftWidth || 240) : 0;
   try {
     localStorage.setItem(storageWidthKey, String(leftWidth.value));
   } catch (e) {

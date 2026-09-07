@@ -238,7 +238,7 @@ import {
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
-const leftWidth = ref(300); // 初始左侧宽度
+const leftWidth = ref(240); // 初始左侧宽度
 const layerTreeOptions = ref([]);
 const currentLayer = ref(null);
 const layerTreeRef = ref(null);

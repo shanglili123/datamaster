@@ -1,5 +1,5 @@
 <template>
-  <a-modal title="映射" v-model:open="visible" width="720px" destroy-on-close :footer="null">
+  <a-modal title="映射" v-model:open="visible" width="820px" wrap-class-name="ontology-workspace-modal ontology-modal--data" destroy-on-close :footer="null">
     <p class="modal-hint">概念「{{ conceptName }}」的表绑定与属性到物理字段映射：</p>
     <a-tabs v-model:activeKey="activeTab">
       <!-- 页签一：表绑定（原「绑定数据表」） -->
@@ -370,7 +370,13 @@ function saveFieldBind() {
 
 .bind-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+
+  :deep(.ant-select) {
+    flex: 1 1 220px;
+    min-width: 180px;
+  }
 }
 
 .fb-table-picker {
@@ -393,6 +399,7 @@ function saveFieldBind() {
 
 .fb-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
@@ -411,5 +418,25 @@ function saveFieldBind() {
 .fb-actions {
   margin-top: 12px;
   text-align: right;
+}
+
+@media (max-width: 720px) {
+  .bind-form,
+  .fb-row,
+  .fb-table-picker {
+    align-items: stretch;
+  }
+
+  .bind-form :deep(.ant-select),
+  .fb-row :deep(.ant-select),
+  .fb-row :deep(.ant-select-auto-complete),
+  .fb-table-picker :deep(.ant-select) {
+    width: 100% !important;
+    flex: 1 1 100%;
+  }
+
+  .fb-row .fb-arrow {
+    display: none;
+  }
 }
 </style>
