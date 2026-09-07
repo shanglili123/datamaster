@@ -2,6 +2,7 @@ package com.datamaster.module.ontology.controller.admin.relationtable;
 
 import com.datamaster.common.core.domain.CommonResult;
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.module.ontology.controller.admin.relationtable.vo.RelationTablePageReqVO;
 import com.datamaster.module.ontology.controller.admin.relationtable.vo.RelationTableRespVO;
 import com.datamaster.module.ontology.controller.admin.relationtable.vo.RelationTableSaveReqVO;
@@ -44,6 +45,13 @@ public class RelationTableController {
     @GetMapping("/{id}")
     public CommonResult<RelationTableRespVO> get(@PathVariable Long id) {
         return CommonResult.success(relationTableService.getRelationTableById(id));
+    }
+
+    @Operation(summary = "读取关系物理表字段（元数据登记缺失时兜底）")
+    @PreAuthorize("@ss.hasPermi('ont:relation-table:list')")
+    @GetMapping("/columns/{id}")
+    public CommonResult<List<DbColumn>> columns(@PathVariable Long id) {
+        return CommonResult.success(relationTableService.getPhysicalColumns(id));
     }
 
     @Operation(summary = "新增关联表绑定")

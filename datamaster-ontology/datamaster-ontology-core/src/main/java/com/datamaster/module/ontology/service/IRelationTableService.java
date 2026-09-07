@@ -1,6 +1,7 @@
 package com.datamaster.module.ontology.service;
 
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.module.ontology.controller.admin.relationtable.vo.RelationTablePageReqVO;
 import com.datamaster.module.ontology.controller.admin.relationtable.vo.RelationTableRespVO;
 import com.datamaster.module.ontology.controller.admin.relationtable.vo.RelationTableSaveReqVO;
@@ -17,6 +18,9 @@ public interface IRelationTableService {
     List<RelationTableRespVO> getRelationTablesByRelationId(Long relationId);
 
     RelationTableRespVO getRelationTableById(Long id);
+
+    /** 读取关系物理表字段；仅供元数据登记缺失时兜底。 */
+    List<DbColumn> getPhysicalColumns(Long id);
 
     Long createRelationTable(RelationTableSaveReqVO createReqVO);
 

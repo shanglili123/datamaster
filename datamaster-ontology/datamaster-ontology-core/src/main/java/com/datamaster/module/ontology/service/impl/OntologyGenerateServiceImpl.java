@@ -11,6 +11,8 @@ import com.datamaster.metadata.api.service.column.CatalogColumnApiService;
 import com.datamaster.metadata.api.service.table.CatalogTableApiService;
 import com.datamaster.metadata.api.table.dto.CatalogTableRespDTO;
 import com.datamaster.module.ai.service.skill.IAiModelGatewayService;
+import com.datamaster.module.ontology.controller.admin.aigenerate.vo.AiActionPreviewReqVO;
+import com.datamaster.module.ontology.controller.admin.aigenerate.vo.AiActionPreviewRespVO;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.OntologyAiGenerateReqVO;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.OntologyAiGenerateRespVO;
 import com.datamaster.module.ontology.controller.admin.concept.vo.ConceptSaveReqVO;
@@ -24,10 +26,12 @@ import com.datamaster.module.ontology.dal.dataobject.ConceptDO;
 import com.datamaster.module.ontology.dal.dataobject.OntologyDO;
 import com.datamaster.module.ontology.dal.dataobject.PropertyDO;
 import com.datamaster.module.ontology.dal.dataobject.RelationDO;
+import com.datamaster.module.ontology.dal.dataobject.RelationTableDO;
 import com.datamaster.module.ontology.dal.mapper.ConceptMapper;
 import com.datamaster.module.ontology.dal.mapper.OntologyMapper;
 import com.datamaster.module.ontology.dal.mapper.PropertyMapper;
 import com.datamaster.module.ontology.dal.mapper.RelationMapper;
+import com.datamaster.module.ontology.dal.mapper.RelationTableMapper;
 import com.datamaster.module.ontology.service.IConceptService;
 import com.datamaster.module.ontology.service.IConceptTableService;
 import com.datamaster.module.ontology.service.IOntologyGenerateService;
@@ -94,6 +98,8 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
     private PropertyMapper propertyMapper;
     @Resource
     private RelationMapper relationMapper;
+    @Resource
+    private RelationTableMapper relationTableMapper;
 
     @Override
     public OntologyAiGenerateRespVO preview(OntologyAiGenerateReqVO reqVO) {
@@ -854,6 +860,315 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
 
     private String nullToEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    // ==================== AI 生成动作 ====================
+
+    @Override
+    public AiActionPreviewRespVO generateActionsPreview(AiActionPreviewReqVO reqVO) {
+        if (reqVO == null || reqVO.getOntologyId() == null) {
+            throw new ServiceException("本体ID不能为空");
+        }
+        if (StringUtils.isBlank(reqVO.getPrompt())) {
+            throw new ServiceException("动作描述不能为空");
+        }
+        AiActionPreviewRespVO respVO = new AiActionPreviewRespVO();
+        try {
+            // 1. 读取本体概念/关系/属性上下文
+            List<ConceptDO> concepts = conceptMapper.selectList(
+                    Wrappers.<ConceptDO>lambdaQuery().eq(ConceptDO::getOntologyId, reqVO.getOntologyId()));
+            if (concepts.isEmpty()) {
+                respVO.setQualityWarning("该本体下没有概念，请先创建概念");
+                return respVO;
+            }
+
+            // 如果指定了概念ID，过滤只保留该概念
+            List<ConceptDO> targetConcepts = concepts;
+            if (reqVO.getConceptId() != null) {
+                targetConcepts = concepts.stream()
+                        .filter(c -> c.getId().equals(reqVO.getConceptId()))
+                        .collect(java.util.stream.Collectors.toList());
+                if (targetConcepts.isEmpty()) {
+                    respVO.setQualityWarning("指定的概念不存在于该本体中");
+                    return respVO;
+                }
+            }
+
+            // 2. 读取关系（整个本体的）
+            List<RelationDO> allRelations = relationMapper.selectList(
+                    Wrappers.<RelationDO>lambdaQuery().eq(RelationDO::getOntologyId, reqVO.getOntologyId()));
+
+            // 过滤：只保留与目标概念相关的关系
+            Set<Long> targetConceptIds = new HashSet<>();
+            for (ConceptDO c : targetConcepts) {
+                targetConceptIds.add(c.getId());
+            }
+            List<RelationDO> relations = new ArrayList<>();
+            for (RelationDO r : allRelations) {
+                if (targetConceptIds.contains(r.getSourceConceptId()) || targetConceptIds.contains(r.getTargetConceptId())) {
+                    relations.add(r);
+                }
+            }
+
+            // 动作虽然从一个触发对象发起，但多步骤可能修改关系另一端对象；
+            // 将相邻关系端点概念一并提供给模型，避免“人物入职公司”只能看到人物属性。
+            List<ConceptDO> promptConcepts = new ArrayList<>(targetConcepts);
+            Set<Long> promptConceptIds = new HashSet<>(targetConceptIds);
+            Set<Long> addedPromptConceptIds = new HashSet<>(targetConceptIds);
+            for (RelationDO relation : relations) {
+                promptConceptIds.add(relation.getSourceConceptId());
+                promptConceptIds.add(relation.getTargetConceptId());
+            }
+            for (ConceptDO concept : concepts) {
+                if (promptConceptIds.contains(concept.getId()) && addedPromptConceptIds.add(concept.getId())) {
+                    promptConcepts.add(concept);
+                }
+            }
+
+            // 3. 构建概念code→name映射
+            Map<Long, String> conceptNameById = new HashMap<>();
+            Map<Long, String> conceptCodeById = new HashMap<>();
+            for (ConceptDO c : concepts) {
+                conceptNameById.put(c.getId(), c.getName());
+                conceptCodeById.put(c.getId(), c.getCode());
+            }
+
+            // 4. 读取每个目标概念的属性
+            Map<Long, List<PropertyDO>> propertiesByConcept = new HashMap<>();
+            for (ConceptDO c : promptConcepts) {
+                List<PropertyDO> props = propertyMapper.selectList(
+                        Wrappers.<PropertyDO>lambdaQuery().eq(PropertyDO::getConceptId, c.getId()));
+                propertiesByConcept.put(c.getId(), props);
+            }
+
+            // 5. 构建 prompt
+            String systemPrompt = buildActionSystemPrompt();
+            String userPrompt = buildActionUserPrompt(reqVO, promptConcepts, relations, propertiesByConcept,
+                    conceptNameById, conceptCodeById);
+
+            // 6. 调用 AI
+            String reply = aiModelGatewayService.complete(systemPrompt, userPrompt);
+            if (StringUtils.isBlank(reply)) {
+                respVO.setQualityWarning("AI 未返回有效结果");
+                return respVO;
+            }
+
+            JSONObject result = extractJsonObject(reply);
+            if (result == null) {
+                respVO.setQualityWarning("AI 返回的 JSON 解析失败");
+                return respVO;
+            }
+
+            // 7. 解析结果
+            respVO.setActions(parseActionPreviews(result, reqVO.getActionTypes()));
+            return respVO;
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("AI 生成动作预览失败：{}", e.getMessage());
+            respVO.setQualityWarning("AI 生成失败：" + e.getMessage());
+            return respVO;
+        }
+    }
+
+    private String buildActionSystemPrompt() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("你是 DataMaster 数据治理平台的动作建模专家。\n");
+        builder.append("请根据给定的本体模型（概念、属性、关系）和用户的动作功能描述，生成合适的动作定义。\n");
+        builder.append("支持两种动作类型：\n");
+        builder.append("1. COMPOSITE（多步骤动作）：按顺序执行多个操作（CREATE/UPDATE/DELETE），步骤可操作概念对象或关系关联表。\n");
+        builder.append("2. FUNCTION（函数动作）：用 TypeScript 或 Python 编写自定义处理逻辑。\n\n");
+        builder.append("要求：\n");
+        builder.append("1. 只返回一个合法 JSON 对象，不要返回 Markdown，不要使用任何解释性文字。\n");
+        builder.append("2. JSON 结构如下：\n");
+        builder.append("{\n");
+        builder.append("  \"actions\": [\n");
+        builder.append("    {\n");
+        builder.append("      \"actionName\": \"动作名称（中文）\",\n");
+        builder.append("      \"actionDescription\": \"动作功能描述\",\n");
+        builder.append("      \"actionType\": \"COMPOSITE 或 FUNCTION\",\n");
+        builder.append("      \"triggerConceptCode\": \"触发动作的概念编码\",\n");
+        // COMPOSITE 格式
+        builder.append("      \"executionSteps\": [\n");
+        builder.append("        {\n");
+        builder.append("          \"targetType\": \"CONCEPT 或 RELATION\",\n");
+        builder.append("          \"conceptCode\": \"targetType=CONCEPT 时填写概念编码\",\n");
+        builder.append("          \"relationCode\": \"targetType=RELATION 时填写关系编码\",\n");
+        builder.append("          \"actionType\": \"CREATE 或 UPDATE 或 DELETE\",\n");
+        builder.append("          \"paramConfig\": [\n");
+        builder.append("            {\"propertyCode\": \"概念属性编码或关系属性字段\", \"relationEndpoint\": \"关系步骤的 SOURCE 或 TARGET，端点取值时填写\", \"valueMode\": \"direct|placeholder|object|expression\", \"valueTemplate\": \"目标值、参数名或触发对象属性编码\"}\n");
+        builder.append("          ],\n");
+        builder.append("          \"conditionConfig\": [\n");
+        builder.append("            {\"propertyCode\": \"概念属性编码或关系属性字段\", \"relationEndpoint\": \"关系步骤的 SOURCE 或 TARGET，端点条件时填写\", \"operator\": \"eq\", \"negate\": false, \"sourceType\": \"OBJECT或PARAM\", \"sourcePropertyCode\": \"触发对象属性编码或执行参数名\"}\n");
+        builder.append("          ]\n");
+        builder.append("        }\n");
+        builder.append("      ],\n");
+        // FUNCTION 格式
+        builder.append("      \"functionBody\": \"const result = ...; console.log(JSON.stringify(result));\",\n");
+        builder.append("      \"functionLang\": \"TYPESCRIPT 或 PYTHON\",\n");
+        builder.append("      \"functionParams\": [\"param1\", \"param2\"],\n");
+        builder.append("      \"sourceConceptCode\": \"数据来源概念编码\",\n");
+        builder.append("      \"outputConceptCode\": \"输出目标概念编码\"\n");
+        builder.append("    }\n");
+        builder.append("  ]\n");
+        builder.append("}\n\n");
+        builder.append("COMPOSITE 动作步骤规则：\n");
+        builder.append("- targetType=CONCEPT 时 conceptCode 必须引用给定概念列表中的 code，propertyCode 使用概念属性 code\n");
+        builder.append("- targetType=RELATION 时 relationCode 必须引用给定关系列表中的 code；主体、客体不要填写物理字段名，分别使用 relationEndpoint=SOURCE、TARGET\n");
+        builder.append("- 入职、任职、加入、分配、绑定、解除、离职等描述关系变化的动作，优先生成 RELATION 步骤，不要用修改两个概念对象代替关系记录\n");
+        builder.append("- UPDATE/DELETE 类型步骤必须有 conditionConfig\n");
+        builder.append("- conditionConfig 的 sourceType=OBJECT 时 sourcePropertyCode 是触发对象属性编码；sourceType=PARAM 时是执行参数名\n");
+        builder.append("- valueMode 支持：direct（固定值）、placeholder（引用参数 ${paramName}）、object（引用触发对象属性，valueTemplate 写属性编码）、expression（SQL 表达式）\n");
+        builder.append("- 先判断 triggerConceptCode 位于关系的 SOURCE 还是 TARGET：触发概念对应端优先用 object，另一端通常用 placeholder；禁止固定假设 SOURCE 就是触发对象\n\n");
+        builder.append("FUNCTION 动作规则：\n");
+        builder.append("- functionBody 是可直接执行的脚本体，不要只声明未调用的函数；运行环境提供全局 input 对象\n");
+        builder.append("- input.source.rows 是来源数据，input.relations 是关联数据，普通运行参数直接位于 input[paramName]\n");
+        builder.append("- TypeScript 必须用 console.log(JSON.stringify(result)) 输出结果；Python 必须用 print(json.dumps(result, ensure_ascii=False)) 输出结果\n");
+        builder.append("- 输出必须是 JSON 数组（输出到目标概念的数据）\n");
+        builder.append("- sourceConceptCode/outputConceptCode 必须引用给定概念列表中的 code\n");
+        return builder.toString();
+    }
+
+    private String buildActionUserPrompt(AiActionPreviewReqVO reqVO,
+                                          List<ConceptDO> targetConcepts,
+                                          List<RelationDO> relations,
+                                          Map<Long, List<PropertyDO>> propertiesByConcept,
+                                          Map<Long, String> conceptNameById,
+                                          Map<Long, String> conceptCodeById) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("用户需求：").append(reqVO.getPrompt()).append("\n\n");
+
+        if (reqVO.getConceptId() != null) {
+            builder.append("当前动作触发概念：")
+                    .append(conceptCodeById.getOrDefault(reqVO.getConceptId(), String.valueOf(reqVO.getConceptId())))
+                    .append("。生成结果的 triggerConceptCode 必须使用该编码。\n\n");
+        } else {
+            builder.append("未预选触发概念，请为每个动作明确返回 triggerConceptCode。\n\n");
+        }
+
+        builder.append("本体概念列表：\n");
+        for (ConceptDO c : targetConcepts) {
+            builder.append("- 概念编码：").append(c.getCode())
+                    .append("，名称：").append(c.getName())
+                    .append("，描述：").append(nullToEmpty(c.getDescription())).append("\n");
+            List<PropertyDO> props = propertiesByConcept.get(c.getId());
+            if (props != null && !props.isEmpty()) {
+                builder.append("  属性列表：\n");
+                for (PropertyDO p : props) {
+                    builder.append("  - ").append(p.getCode())
+                            .append("（").append(p.getName()).append("）")
+                            .append("，类型：").append(p.getDataType())
+                            .append(p.getIsPrimary() ? "，主键" : "")
+                            .append(p.getIsRequired() ? "，必填" : "")
+                            .append("\n");
+                }
+            }
+        }
+
+        if (!relations.isEmpty()) {
+            builder.append("\n概念关系列表：\n");
+            for (RelationDO r : relations) {
+                String sourceName = conceptNameById.getOrDefault(r.getSourceConceptId(), r.getSourceConceptId().toString());
+                String targetName = conceptNameById.getOrDefault(r.getTargetConceptId(), r.getTargetConceptId().toString());
+                String sourceCode = conceptCodeById.getOrDefault(r.getSourceConceptId(), r.getSourceConceptId().toString());
+                String targetCode = conceptCodeById.getOrDefault(r.getTargetConceptId(), r.getTargetConceptId().toString());
+                builder.append("- ").append(r.getName())
+                        .append("（").append(r.getCode()).append("）：")
+                        .append("SOURCE=").append(sourceName).append("[").append(sourceCode).append("]")
+                        .append(" -> TARGET=").append(targetName).append("[").append(targetCode).append("]")
+                        .append("，类型：").append(r.getRelationType())
+                        .append("\n");
+                List<RelationTableDO> relationTables = relationTableMapper.selectByRelationId(r.getId());
+                if (relationTables != null && !relationTables.isEmpty()) {
+                    RelationTableDO table = relationTables.get(0);
+                    RelationActionColumnContext columnContext = parseRelationActionColumnContext(table.getColumnNames());
+                    builder.append("  关联表：").append(table.getTableName())
+                            .append("，主体/客体端点映射：")
+                            .append(columnContext.endpointConfigured ? "已配置" : "未完整配置")
+                            .append("，可写关系属性：").append(columnContext.attributeColumns)
+                            .append("\n");
+                } else {
+                    builder.append("  未绑定关联表：不能生成 RELATION 写入步骤\n");
+                }
+            }
+        }
+
+        return builder.toString();
+    }
+
+    private List<AiActionPreviewRespVO.GeneratedActionPreview> parseActionPreviews(
+            JSONObject result, List<String> actionTypes) {
+        List<AiActionPreviewRespVO.GeneratedActionPreview> previews = new ArrayList<>();
+        JSONArray actions = result.getJSONArray("actions");
+        if (actions == null) {
+            return previews;
+        }
+        Set<String> typeFilter = actionTypes != null && !actionTypes.isEmpty()
+                ? new HashSet<>(actionTypes) : null;
+
+        for (int i = 0; i < actions.size(); i++) {
+            JSONObject action = actions.getJSONObject(i);
+            String actionType = action.getString("actionType");
+            if (actionType == null) continue;
+            actionType = actionType.toUpperCase(Locale.ROOT);
+            if (typeFilter != null && !typeFilter.contains(actionType)) continue;
+
+            AiActionPreviewRespVO.GeneratedActionPreview preview = new AiActionPreviewRespVO.GeneratedActionPreview();
+            preview.setActionName(action.getString("actionName"));
+            preview.setActionDescription(action.getString("actionDescription"));
+            preview.setActionType(actionType);
+            preview.setTriggerConceptCode(action.getString("triggerConceptCode"));
+
+            if ("COMPOSITE".equals(actionType)) {
+                preview.setExecutionSteps(action.getJSONArray("executionSteps") != null
+                        ? action.getJSONArray("executionSteps").toJSONString() : "[]");
+            } else if ("FUNCTION".equals(actionType)) {
+                preview.setFunctionBody(action.getString("functionBody"));
+                preview.setFunctionLang(action.getString("functionLang"));
+                preview.setFunctionParams(action.getJSONArray("functionParams") != null
+                        ? action.getJSONArray("functionParams").toJSONString() : "[]");
+                preview.setSourceConceptCode(action.getString("sourceConceptCode"));
+                preview.setOutputConceptCode(action.getString("outputConceptCode"));
+            }
+            previews.add(preview);
+        }
+        return previews;
+    }
+
+    private RelationActionColumnContext parseRelationActionColumnContext(String json) {
+        RelationActionColumnContext context = new RelationActionColumnContext();
+        if (StringUtils.isBlank(json)) return context;
+        try {
+            String trimmed = json.trim();
+            if (trimmed.startsWith("[")) {
+                JSONArray columns = JSON.parseArray(trimmed);
+                context.endpointConfigured = columns.size() >= 2
+                        && StringUtils.isNotBlank(columns.getString(0))
+                        && StringUtils.isNotBlank(columns.getString(1));
+                for (int i = 2; i < columns.size(); i++) {
+                    if (StringUtils.isNotBlank(columns.getString(i))) context.attributeColumns.add(columns.getString(i));
+                }
+            } else {
+                JSONObject value = JSON.parseObject(trimmed);
+                context.endpointConfigured = StringUtils.isNotBlank(value.getString("sourceColumn"))
+                        && StringUtils.isNotBlank(value.getString("targetColumn"));
+                JSONArray attributes = value.getJSONArray("attributeColumns");
+                if (attributes == null) attributes = value.getJSONArray("columns");
+                if (attributes != null) {
+                    for (int i = 0; i < attributes.size(); i++) {
+                        if (StringUtils.isNotBlank(attributes.getString(i))) context.attributeColumns.add(attributes.getString(i));
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // 旧数据或异常配置由动作保存/执行阶段继续做严格校验。
+        }
+        return context;
+    }
+
+    private static class RelationActionColumnContext {
+        private boolean endpointConfigured;
+        private final List<String> attributeColumns = new ArrayList<>();
     }
 
     /**

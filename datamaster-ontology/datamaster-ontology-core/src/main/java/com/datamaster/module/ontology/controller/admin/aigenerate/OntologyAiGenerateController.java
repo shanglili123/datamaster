@@ -2,6 +2,8 @@ package com.datamaster.module.ontology.controller.admin.aigenerate;
 
 import com.datamaster.common.core.domain.CommonResult;
 import com.datamaster.metadata.api.table.dto.CatalogTableRespDTO;
+import com.datamaster.module.ontology.controller.admin.aigenerate.vo.AiActionPreviewReqVO;
+import com.datamaster.module.ontology.controller.admin.aigenerate.vo.AiActionPreviewRespVO;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.OntologyAiGenerateReqVO;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.OntologyAiGenerateRespVO;
 import com.datamaster.module.ontology.service.IOntologyGenerateService;
@@ -57,5 +59,12 @@ public class OntologyAiGenerateController {
     @GetMapping("/tables")
     public CommonResult<List<CatalogTableRespDTO>> tables(@RequestParam("datasourceId") Long datasourceId) {
         return CommonResult.success(ontologyGenerateService.listCatalogTables(datasourceId));
+    }
+
+    @Operation(summary = "AI 生成动作预览（不落库）")
+    @PreAuthorize("@ss.hasPermi('ont:ontology:query')")
+    @PostMapping("/actions")
+    public CommonResult<AiActionPreviewRespVO> generateActions(@Valid @RequestBody AiActionPreviewReqVO reqVO) {
+        return CommonResult.success(ontologyGenerateService.generateActionsPreview(reqVO));
     }
 }

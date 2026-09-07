@@ -8,8 +8,6 @@ import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
-import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataPrepareReqVO;
-import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataPrepareRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataReportReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataReportRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataSqlReqVO;
@@ -77,91 +75,6 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
 
     private static final Pattern SQL_BLOCK_PATTERN = Pattern.compile(
             "(?i)```sql\\s*\\n?([\\s\\S]*?)\\s*```");
-
-    @Override
-    public AiAskDataPrepareRespVO prepare(AiAskDataPrepareReqVO reqVO) {
-        String question = reqVO == null ? "" : reqVO.getQuestion();
-        String keyword = reqVO == null ? "" : firstNonBlank(reqVO.getKeyword(), reqVO.getQuestion());
-        AiSkillDO assetSkill = reqVO == null || reqVO.getAssetId() == null ? null : aiSkillMapper.selectByBizObject("TABLE", reqVO.getAssetId());
-        checkAskDataAssetAccess(reqVO == null ? null : reqVO.getAssetId(),
-                reqVO == null ? null : reqVO.getSpaceId(),
-                reqVO == null ? null : reqVO.getSpaceCode(),
-                "AI_ASK_DATA_PREPARE");
-        List<AiSkillDO> skillList = mergeSkills(Collections.emptyList(), aiSkillMapper.selectPublishedByKeyword(keyword), assetSkill);
-        List<AiSkillRespVO> skills = BeanUtils.toBean(skillList, AiSkillRespVO.class);
-        AiAskDataPrepareRespVO respVO = new AiAskDataPrepareRespVO();
-        respVO.setQuestion(question);
-        respVO.setSkills(skills);
-        respVO.setPromptContext(buildPromptContext(question, skills));
-        return respVO;
-    }
-
-    @Override
-    public AiAskDataSqlRespVO generateSql(AiAskDataSqlReqVO reqVO) {
-        if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
-            throw new ServiceException("用户问题不能为空");
-        }
-        checkAskDataGovernance(reqVO);
-
-        String question = reqVO.getQuestion();
-        Long assetId = reqVO.getAssetId();
-
-        // Build full context from skills
-        String fullContext = aiAskDataContextService.buildFullContext(question, assetId);
-
-        // Get relevant skills
-        List<AiSkillDO> skills = getRelevantSkills(question, assetId);
-        List<AiSkillRespVO> skillRespList = BeanUtils.toBean(skills, AiSkillRespVO.class);
-
-        // Build system prompt for SQL generation
-        Long userPermissionLevel = currentUserDataPermissionLevel();
-        String systemPrompt = buildSystemPrompt(fullContext, userPermissionLevel);
-
-        // Call DB-GPT for SQL generation
-        DbGptChatCompletionRequest gptRequest = new DbGptChatCompletionRequest();
-        gptRequest.setModel(dbGptProperties.getModel());
-        gptRequest.setTemperature(0.6);
-        gptRequest.setMaxTokens(4096);
-        gptRequest.setStream(false);
-        gptRequest.setMessages(Arrays.asList(
-                new DbGptChatMessage("system", systemPrompt),
-                new DbGptChatMessage("user", question)
-        ));
-
-        AiAskDataSqlRespVO respVO = new AiAskDataSqlRespVO();
-        respVO.setQuestion(question);
-        respVO.setReferencedSkills(skillRespList);
-        respVO.setExplanation(fullContext);
-
-        try {
-            DbGptChatCompletionResponse gptResponse = dbGptClientService.chatCompletion(gptRequest);
-
-            String llmReply = extractReply(gptResponse);
-            String sql = extractSqlFromReply(llmReply);
-
-            respVO.setSql(sql);
-            respVO.setQualityWarning(null);
-
-            if (StringUtils.isBlank(sql)) {
-                respVO.setSql("-- " + llmReply);
-                respVO.setQualityWarning("未能从回复中提取有效SQL，原始回复：" + llmReply.substring(0, Math.min(200, llmReply.length())));
-            }
-        } catch (Exception e) {
-            respVO.setQualityWarning("DB-GPT调用失败：" + e.getMessage());
-            respVO.setSql("-- " + fullContext);
-        }
-
-        return respVO;
-    }
-
-    @Override
-    public AiAskDataSqlRespVO chat(AiAskDataSqlReqVO reqVO) {
-        if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
-            throw new ServiceException("用户问题不能为空");
-        }
-
-        return generateSql(reqVO);
-    }
 
     @Override
     public AiAskDataSqlRespVO chatWithDbGpt(AiAskDataSqlReqVO reqVO) {
@@ -713,52 +626,46 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         return builder.toString();
     }
 
-    private void appendMetricIntentRules(StringBuilder builder) {
-        builder.append("\n\n【指标口径识别规则】\n");
-        builder.append("- 用户提到“销售量、销量、销售次数、订单量、租赁量、租赁次数、购买次数、交易次数、贡献 top10%”时，默认按数量/次数口径计算，");
-        builder.append("例如 COUNT(*)、COUNT(order_id/rental_id) 或 SUM(quantity)，不要用 SUM(amount/payment/price) 代替。\n");
-        builder.append("- 只有用户明确提到“销售额、消费金额、收入、GMV、金额、客单价、高价值用户”时，才按金额口径计算。\n");
-        builder.append("- “贡献 top10%”应先按用户问题中的指标聚合并降序排序，再取 top 10%；不得更换用户指定的指标口径。\n");
-    }
-
-    private String dataPermissionLevelName(Long level) {
-        if (level == null) {
-            return "未配置";
-        }
-        if (level == 1L) {
-            return "绝密";
-        }
-        if (level == 2L) {
-            return "机密";
-        }
-        if (level == 3L) {
-            return "秘密";
-        }
-        if (level == 4L) {
-            return "内部";
-        }
-        if (level == 5L) {
-            return "公开";
-        }
-        return "未知";
-    }
-
-    private void appendCurrentUserPermission(StringBuilder builder, Long userPermissionLevel) {
-        builder.append("\n\n【当前用户数据权限】\n");
-        if (userPermissionLevel == null) {
-            builder.append("- 当前用户未配置 data_permission_level，必须以服务端最终资产预览/查询权限结果为准。\n");
-        } else {
-            builder.append("- 当前用户 data_permission_level = ").append(userPermissionLevel).append("。数字越小权限越高：1=绝密、2=机密、3=秘密、4=内部、5=公开。\n");
-            builder.append("- 字段 sensitive_level_id 小于当前用户 data_permission_level 时，该字段不可查询、不可展示、不可用于过滤/排序/分组/统计和报告输出。\n");
-        }
-        builder.append("- 命中脱敏规则的字段只能使用脱敏后的值；隐藏字段不得反推或绕过。\n");
-    }
-
     private void appendCurrentUserDataPermission(StringBuilder builder, Long userPermissionLevel) {
         builder.append("当前用户数据等级 data_permission_level：")
                 .append(userPermissionLevel == null ? "未配置，按运行时后端权限结果为准" : userPermissionLevel)
-                .append(userPermissionLevel == null ? "" : "（" + dataPermissionLevelName(userPermissionLevel) + "）")
                 .append("请严格按照数据字段权限查询");
+    }
+
+    private void appendMetricIntentRules(StringBuilder builder) {
+        builder.append("\n\n【指标口径识别规则】\n");
+        builder.append("- 用户提到\u201c销售量、销量、销售次数、订单量、租赁量、租赁次数、购买次数、交易次数、贡献 top10%\u201d时，默认按数量/次数口径计算，");
+        builder.append("例如 COUNT(*)、COUNT(order_id/rental_id) 或 SUM(quantity)，不要用 SUM(amount/payment/price) 代替。\n");
+        builder.append("- 只有用户明确提到\u201c销售额、消费金额、收入、GMV、金额、客单价、高价值用户\u201d时，才按金额口径计算。\n");
+        builder.append("- \u201c贡献 top10%\u201d应先按用户问题中的指标聚合并降序排序，再取 top 10%；不得更换用户指定的指标口径。\n");
+    }
+
+    private List<AiSkillDO> getRelevantSkills(String question, Long assetId) {
+        String keyword = firstNonBlank(question);
+        AiSkillDO assetSkill = assetId != null ? aiSkillMapper.selectByBizObject("TABLE", assetId) : null;
+        return mergeSkills(
+                Collections.emptyList(),
+                aiSkillMapper.selectPublishedByKeyword(keyword),
+                assetSkill
+        );
+    }
+
+    private List<AiSkillDO> mergeSkills(List<AiSkillDO> platformSkills, List<AiSkillDO> matchedSkills, AiSkillDO assetSkill) {
+        Map<Long, AiSkillDO> map = new LinkedHashMap<>();
+        if (platformSkills != null) {
+            for (AiSkillDO skill : platformSkills) {
+                map.put(skill.getId(), skill);
+            }
+        }
+        if (assetSkill != null && "PUBLISHED".equals(assetSkill.getStatus())) {
+            map.put(assetSkill.getId(), assetSkill);
+        }
+        if (matchedSkills != null) {
+            for (AiSkillDO skill : matchedSkills) {
+                map.put(skill.getId(), skill);
+            }
+        }
+        return new ArrayList<>(map.values());
     }
 
     private Long currentUserDataPermissionLevel() {
@@ -829,52 +736,6 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         return false;
     }
 
-    private List<AiSkillDO> getRelevantSkills(String question, Long assetId) {
-        String keyword = firstNonBlank(question);
-        AiSkillDO assetSkill = assetId != null ? aiSkillMapper.selectByBizObject("TABLE", assetId) : null;
-        return mergeSkills(
-                Collections.emptyList(),
-                aiSkillMapper.selectPublishedByKeyword(keyword),
-                assetSkill
-        );
-    }
-
-    private List<AiSkillDO> mergeSkills(List<AiSkillDO> platformSkills, List<AiSkillDO> matchedSkills, AiSkillDO assetSkill) {
-        Map<Long, AiSkillDO> map = new LinkedHashMap<>();
-        if (platformSkills != null) {
-            for (AiSkillDO skill : platformSkills) {
-                map.put(skill.getId(), skill);
-            }
-        }
-        if (assetSkill != null && "PUBLISHED".equals(assetSkill.getStatus())) {
-            map.put(assetSkill.getId(), assetSkill);
-        }
-        if (matchedSkills != null) {
-            for (AiSkillDO skill : matchedSkills) {
-                map.put(skill.getId(), skill);
-            }
-        }
-        return new ArrayList<>(map.values());
-    }
-
-    private String buildPromptContext(String question, List<AiSkillRespVO> skills) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("用户问题：").append(StringUtils.defaultString(question)).append("\n\n");
-        builder.append("可引用Skill：\n");
-        if (skills == null || skills.isEmpty()) {
-            builder.append("- 未命中已发布Skill。需要先生成平台级Skill或表级Skill。\n");
-            return builder.toString();
-        }
-        for (AiSkillRespVO skill : skills) {
-            builder.append("\n## ").append(skill.getSkillName()).append("\n");
-            builder.append("- 编码：").append(skill.getSkillCode()).append("\n");
-            builder.append("- 类型：").append(skill.getSkillType()).append("\n");
-            builder.append("- 版本：").append(skill.getVersion()).append("\n\n");
-            builder.append(skill.getContent()).append("\n");
-        }
-        return builder.toString();
-    }
-
     private String firstNonBlank(String... values) {
         if (values == null) {
             return "";
@@ -885,16 +746,6 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             }
         }
         return "";
-    }
-
-    private String buildSystemPrompt(String context, Long userPermissionLevel) {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("你是一个数据查询分析助手。请根据用户问题、当前用户信息和可用上下文回答。\n\n");
-        appendCurrentUserPermission(prompt, userPermissionLevel);
-        prompt.append("【可用上下文】\n");
-        prompt.append(context).append("\n");
-
-        return prompt.toString();
     }
 
     private String extractReply(DbGptChatCompletionResponse response) {

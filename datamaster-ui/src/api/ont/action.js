@@ -63,3 +63,9 @@ export function getPendingApprovals(ontologyId) {
 export function getApprovalChain(executionId) {
   return request({ url: '/ont/action/execution/approval-chain/' + executionId, method: 'get' })
 }
+
+// ========== AI Generate ==========
+
+export function aiGenerateActions(data) {
+  return request({ url: '/ont/ai-generate/actions', method: 'post', data })
+}

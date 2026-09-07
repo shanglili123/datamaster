@@ -8,10 +8,14 @@ import com.datamaster.module.ontology.dal.dataobject.ActionDO;
 import com.datamaster.module.ontology.dal.dataobject.ActionExecutionDO;
 import com.datamaster.module.ontology.dal.dataobject.ConceptDO;
 import com.datamaster.module.ontology.dal.dataobject.ConceptTableDO;
+import com.datamaster.module.ontology.dal.dataobject.RelationDO;
+import com.datamaster.module.ontology.dal.dataobject.RelationTableDO;
 import com.datamaster.module.ontology.dal.mapper.ActionExecutionMapper;
 import com.datamaster.module.ontology.dal.mapper.ActionMapper;
 import com.datamaster.module.ontology.dal.mapper.ConceptMapper;
 import com.datamaster.module.ontology.dal.mapper.ConceptTableMapper;
+import com.datamaster.module.ontology.dal.mapper.RelationMapper;
+import com.datamaster.module.ontology.dal.mapper.RelationTableMapper;
 import com.datamaster.module.ontology.service.IActionService;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,8 +26,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.Resource;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 动作定义 Service 实现
@@ -42,6 +48,10 @@ public class ActionServiceImpl implements IActionService {
     private ConceptMapper conceptMapper;
     @Resource
     private ConceptTableMapper conceptTableMapper;
+    @Resource
+    private RelationMapper relationMapper;
+    @Resource
+    private RelationTableMapper relationTableMapper;
 
     @Override
     public Long createAction(ActionSaveReqVO createReqVO) {
@@ -99,8 +109,8 @@ public class ActionServiceImpl implements IActionService {
                 Long datasourceId = null;
                 for (int i = 0; i < steps.size(); i++) {
                     JsonNode step = steps.get(i);
-                    if (!step.hasNonNull("conceptId") || !step.hasNonNull("actionType")) {
-                        throw new RuntimeException("执行步骤 " + (i + 1) + " 缺少目标对象类型或操作类型");
+                    if (!step.hasNonNull("actionType")) {
+                        throw new RuntimeException("执行步骤 " + (i + 1) + " 缺少操作类型");
                     }
                     String type = step.path("actionType").asText("").toUpperCase();
                     if (!("CREATE".equals(type) || "UPDATE".equals(type) || "DELETE".equals(type))) {
@@ -121,16 +131,43 @@ public class ActionServiceImpl implements IActionService {
                     if (("UPDATE".equals(type) || "DELETE".equals(type)) && conditionCount == 0) {
                         throw new RuntimeException("执行步骤 " + (i + 1) + " 至少需要一个条件");
                     }
-                    Long conceptId = step.path("conceptId").asLong();
-                    ConceptDO concept = conceptMapper.selectById(conceptId);
-                    if (concept == null || !Objects.equals(concept.getOntologyId(), reqVO.getOntologyId())) {
-                        throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标对象类型不属于当前本体");
+                    String targetType = step.hasNonNull("targetType")
+                            ? step.path("targetType").asText("CONCEPT").toUpperCase()
+                            : (step.hasNonNull("relationId") ? "RELATION" : "CONCEPT");
+                    Long currentDatasourceId;
+                    if ("RELATION".equals(targetType)) {
+                        if (!step.hasNonNull("relationId")) {
+                            throw new RuntimeException("执行步骤 " + (i + 1) + " 缺少目标关系");
+                        }
+                        Long relationId = step.path("relationId").asLong();
+                        RelationDO relation = relationMapper.selectById(relationId);
+                        if (relation == null || !Objects.equals(relation.getOntologyId(), reqVO.getOntologyId())) {
+                            throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标关系不属于当前本体");
+                        }
+                        List<RelationTableDO> tables = relationTableMapper.selectByRelationId(relationId);
+                        if (tables == null || tables.isEmpty() || tables.get(0).getDatasourceId() == null) {
+                            throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标关系未绑定关联表或数据源");
+                        }
+                        RelationTableDO relationTable = tables.get(0);
+                        validateRelationStepColumns(paramConfig, relationTable, i + 1);
+                        currentDatasourceId = relationTable.getDatasourceId();
+                    } else if ("CONCEPT".equals(targetType)) {
+                        if (!step.hasNonNull("conceptId")) {
+                            throw new RuntimeException("执行步骤 " + (i + 1) + " 缺少目标对象类型");
+                        }
+                        Long conceptId = step.path("conceptId").asLong();
+                        ConceptDO concept = conceptMapper.selectById(conceptId);
+                        if (concept == null || !Objects.equals(concept.getOntologyId(), reqVO.getOntologyId())) {
+                            throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标对象类型不属于当前本体");
+                        }
+                        List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(conceptId);
+                        if (tables == null || tables.isEmpty() || tables.get(0).getDatasourceId() == null) {
+                            throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标对象类型未完成数据源绑定");
+                        }
+                        currentDatasourceId = tables.get(0).getDatasourceId();
+                    } else {
+                        throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标类型不受支持: " + targetType);
                     }
-                    List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(conceptId);
-                    if (tables == null || tables.isEmpty() || tables.get(0).getDatasourceId() == null) {
-                        throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标对象类型未完成数据源绑定");
-                    }
-                    Long currentDatasourceId = tables.get(0).getDatasourceId();
                     if (datasourceId == null) {
                         datasourceId = currentDatasourceId;
                     } else if (!datasourceId.equals(currentDatasourceId)) {
@@ -141,6 +178,53 @@ public class ActionServiceImpl implements IActionService {
                 throw e;
             } catch (Exception e) {
                 throw new RuntimeException("多目标动作执行步骤格式错误: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    private void validateRelationStepColumns(JsonNode paramConfig, RelationTableDO table, int stepNo) {
+        Set<String> writableColumns = new LinkedHashSet<>();
+        String sourceColumn = null;
+        String targetColumn = null;
+        try {
+            JsonNode configured = objectMapper.readTree(table.getColumnNames() == null ? "[]" : table.getColumnNames());
+            if (configured.isArray()) {
+                for (JsonNode column : configured) {
+                    if (column.isTextual() && !column.asText().trim().isEmpty()) writableColumns.add(column.asText());
+                }
+                if (configured.size() > 0) sourceColumn = configured.get(0).asText(null);
+                if (configured.size() > 1) targetColumn = configured.get(1).asText(null);
+            } else if (configured.isObject()) {
+                sourceColumn = configured.path("sourceColumn").asText(null);
+                targetColumn = configured.path("targetColumn").asText(null);
+                if (sourceColumn != null) writableColumns.add(sourceColumn);
+                if (targetColumn != null) writableColumns.add(targetColumn);
+                JsonNode attributes = configured.has("attributeColumns")
+                        ? configured.path("attributeColumns") : configured.path("columns");
+                if (attributes.isArray()) {
+                    for (JsonNode column : attributes) {
+                        if (column.isTextual() && !column.asText().trim().isEmpty()) writableColumns.add(column.asText());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("执行步骤 " + stepNo + " 的关系字段配置格式错误: " + e.getMessage());
+        }
+        if (sourceColumn == null || targetColumn == null) {
+            throw new RuntimeException("执行步骤 " + stepNo + " 的目标关系尚未配置主体外键列和客体外键列");
+        }
+        if (!paramConfig.isArray()) return;
+        for (JsonNode config : paramConfig) {
+            String propertyCode = config.path("propertyCode").asText(null);
+            if (propertyCode != null && !writableColumns.contains(propertyCode)) {
+                throw new RuntimeException("执行步骤 " + stepNo + " 的关系字段不存在或不可写: " + propertyCode);
+            }
+            String endpoint = config.path("relationEndpoint").asText("").toUpperCase();
+            if ("SOURCE".equals(endpoint) && !Objects.equals(sourceColumn, propertyCode)) {
+                throw new RuntimeException("执行步骤 " + stepNo + " 的主体端点字段与关系绑定不一致");
+            }
+            if ("TARGET".equals(endpoint) && !Objects.equals(targetColumn, propertyCode)) {
+                throw new RuntimeException("执行步骤 " + stepNo + " 的客体端点字段与关系绑定不一致");
             }
         }
     }

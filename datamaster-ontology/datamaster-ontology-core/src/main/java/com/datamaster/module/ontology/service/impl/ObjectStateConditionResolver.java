@@ -102,6 +102,37 @@ public class ObjectStateConditionResolver {
         return resolveRelatedProperty(action, propOrRelation, propCode, objectKey);
     }
 
+    /**
+     * 按当前对象的 objectKey 回查指定物理列。
+     * 用于关系步骤把当前主体自动转换为关系表需要的引用值，例如：
+     * 人物对象以 person_code=P1003 作为语义主属性定位，但关系表 person_id 必须写 dm_person.id=3。
+     */
+    public Object resolvePhysicalColumn(ActionDO action, String objectKey, String physicalColumn) {
+        if (action == null || action.getConceptId() == null) {
+            throw new IllegalArgumentException("关系主体取值要求动作绑定概念");
+        }
+        if (objectKey == null || objectKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("关系主体取值缺少 objectKey");
+        }
+        if (physicalColumn == null || !physicalColumn.matches("[A-Za-z_][A-Za-z0-9_$]*")) {
+            throw new IllegalArgumentException("关系主体取值字段不合法: " + physicalColumn);
+        }
+        ConceptTableDO table = firstConceptTable(action.getConceptId(), true);
+        String whereSql = buildObjectKeyWhere(action.getConceptId(), table, objectKey);
+        String sql = "SELECT " + physicalColumn + " AS v FROM " + table.getTableName()
+                + " WHERE " + whereSql + " LIMIT 1";
+        DbQuery dbQuery = openDbQuery(table.getDatasourceId());
+        try {
+            List<Map<String, Object>> rows = dbQuery.queryList(sql);
+            return rows == null || rows.isEmpty() ? null : getIgnoreCase(rows.get(0), "v");
+        } catch (Exception e) {
+            throw new IllegalArgumentException("关系主体字段回查失败: column=" + physicalColumn
+                    + ", err=" + e.getMessage(), e);
+        } finally {
+            closeQuietly(dbQuery);
+        }
+    }
+
     /** object.{prop}：按对象主键回查概念物理表该属性物理列。 */
     private Object resolveOwnProperty(ActionDO action, String propCode, String objectKey) {
         Long conceptId = action.getConceptId();

@@ -34,7 +34,7 @@ public class ActionRespVO implements Serializable {
     @Excel(name = "触发对象类型ID")
     private Long conceptId;
 
-    @Schema(description = "多目标动作的有序执行步骤 JSON 数组")
+    @Schema(description = "多目标动作的有序执行步骤 JSON 数组；targetType=CONCEPT|RELATION")
     private String executionSteps;
 
     @Schema(description = "绑定共享函数ID（actionType=FUNCTION 时绑定的 ONT_FUNCTION 表ID）", example = "1")

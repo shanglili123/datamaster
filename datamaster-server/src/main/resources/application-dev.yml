@@ -150,3 +150,14 @@ db-gpt:
   chat-mode: chat_with_db_qa
   skill-space-name: datamaster-skills
   skill-space-owner: datamaster
+
+# AI 本体生成/动作生成使用的模型（直连 OpenAI 兼容 API，不走 DB-GPT）
+ai:
+  skill-model:
+    enabled: ${AI_SKILL_MODEL_ENABLED:true}
+    api-url: ${AI_SKILL_MODEL_API_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    api-key: ${AI_SKILL_MODEL_API_KEY:sk-3d13e28f0c9c44628181045e454b75f8}
+    model: ${AI_SKILL_MODEL_NAME:qwen-plus}
+    timeout: ${AI_SKILL_MODEL_TIMEOUT:60000}
+    temperature: ${AI_SKILL_MODEL_TEMPERATURE:0.2}
+    max-tokens: ${AI_SKILL_MODEL_MAX_TOKENS:4096}

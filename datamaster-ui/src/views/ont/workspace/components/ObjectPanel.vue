@@ -145,7 +145,7 @@
       destroy-on-close
       @cancel="closeRowModal"
     >
-      <a-spin :spinning="rowModal.loading || rowModal.confirming">
+      <a-spin :spinning="rowModal.loading || rowModal.confirming || relationCreateLoading">
         <template v-if="rowModal.mode === 'DELETE'">
           <a-alert
             type="warning"
@@ -161,7 +161,7 @@
           </div>
         </template>
         <a-form v-else class="ontology-form-grid object-row-form" :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }" style="margin-top: 8px">
-          <template v-for="f in formFields" :key="'f-' + f.propertyCode">
+          <template v-for="f in displayedFormFields" :key="'f-' + f.propertyCode">
             <a-form-item :class="{ 'ontology-form-grid__full': f.dataType === 'text' }" :label="f.propertyName + (f.isPrimary ? '（主键）' : '')">
               <a-input
                 v-if="f.dataType === 'string'"
@@ -197,6 +197,24 @@
             </a-form-item>
           </template>
         </a-form>
+
+        <template v-if="rowModal.mode === 'CREATE' && relationCreateFields.length">
+          <a-divider style="margin: 12px 0">关联对象</a-divider>
+          <a-form class="ontology-form-grid" :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }">
+            <a-form-item v-for="field in relationCreateFields" :key="field.relationId" :label="field.label">
+              <a-select
+                v-model:value="rowModal.relationValues[field.relationId]"
+                :options="field.options"
+                :loading="field.loading"
+                :placeholder="'选择' + field.targetConceptName"
+                show-search
+                option-filter-prop="label"
+                allow-clear
+              />
+              <div class="row-relation-hint">选择后写入当前对象的关联字段 {{ field.sourceColumn }}；不会重复新增关联对象。</div>
+            </a-form-item>
+          </a-form>
+        </template>
 
         <a-divider style="margin: 12px 0">回调选项</a-divider>
         <a-form class="ontology-form-grid" :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }">
@@ -297,7 +315,22 @@
           :label="param.label"
           :required="param.required"
         >
-          <a-input v-model:value="objectAction.params[param.name]" :placeholder="'请输入 ' + param.name" />
+          <a-select
+            v-if="isObjectActionRelationParam(param)"
+            v-model:value="objectAction.params[param.name]"
+            :options="objectActionRelationState(param).options"
+            :loading="objectActionRelationState(param).loading"
+            :placeholder="'搜索并选择' + param.label"
+            show-search
+            allow-clear
+            :filter-option="false"
+            @search="keyword => searchObjectActionRelationObjects(param, keyword)"
+            @dropdown-visible-change="open => open && searchObjectActionRelationObjects(param, '')"
+          />
+          <a-input v-else v-model:value="objectAction.params[param.name]" :placeholder="'请输入 ' + param.name" />
+          <div v-if="objectActionRelationState(param).error" class="modal-hint-line" style="color:#ff4d4f;">
+            {{ objectActionRelationState(param).error }}
+          </div>
         </a-form-item>
         <div v-if="objectAction.actionId && !objectActionInvalidReason && !objectActionInputParams.length" class="toolbar-tip ontology-form-grid__full">
           该动作无需人工填写参数；订单编号、产品名称、数量等占位符会从当前对象自动读取。
@@ -309,8 +342,11 @@
 
 <script setup name="OntObjectPanel">
 import { listObjectSets, queryObjects, rowPreview, rowConfirm } from '@/api/ont/objectInstance'
-import { listRelation } from '@/api/ont/relation'
-import { getAction, listAction, submitExecution } from '@/api/ont/action'
+import { previewConceptTable } from '@/api/ont/conceptTable'
+import { listRelation, getRelation } from '@/api/ont/relation'
+import { listRelationColumn } from '@/api/ont/relationColumn'
+import { listRelationTable } from '@/api/ont/relationTable'
+import { getAction, listAction, submitExecution, runExecution } from '@/api/ont/action'
 import ObjectLineageDialog from '@/views/ont/object/components/ObjectLineageDialog.vue'
 import ObjectRowChangesDialog from '@/views/ont/object/components/ObjectRowChangesDialog.vue'
 import OntFilterBuilder from '@/components/OntFilterBuilder/index.vue'
@@ -370,9 +406,13 @@ const rowModal = reactive({
   loading: false, // 提交预览中
   confirming: false, // 确认执行中
   form: {}, // key = 属性编码 propertyCode
+  relationValues: {}, // CREATE 直接外键关系：relationId -> 目标对象关联值
   triggerWebhook: true,
   preview: null // RowOperateRespVO
 })
+
+const relationCreateFields = ref([])
+const relationCreateLoading = ref(false)
 
 const objectActionList = ref([])
 const objectAction = reactive({
@@ -385,6 +425,14 @@ const objectAction = reactive({
   params: {}
 })
 
+// 对象动作中的关系端点参数（例如就职动作的公司）使用目标对象下拉，
+// 不把关系表物理列名 company_id 暴露成手填输入框。
+const objectActionRelationStates = reactive({})
+const objectActionRelationMetaByParam = reactive({})
+let objectActionAllObjectSets = []
+const objectActionRelationSearchTimers = new Map()
+const emptyObjectActionRelationState = { options: [], loading: false, error: '' }
+
 const objectActionOptions = computed(() => objectActionList.value.map(action => ({
   value: action.id,
   label: `${action.name}（${{ CREATE: '新建', UPDATE: '更新', DELETE: '删除', COMPOSITE: '多目标动作', FUNCTION: '函数' }[action.actionType] || action.actionType}）`
@@ -393,7 +441,10 @@ const objectActionOptions = computed(() => objectActionList.value.map(action => 
 function parseActionParamConfig(action) {
   if (action?.actionType === 'COMPOSITE') {
     const steps = parseJsonArray(action.executionSteps ?? action.execution_steps)
-    return steps.flatMap(step => parseJsonArray(step.paramConfig ?? step.param_config))
+    return steps.flatMap(step => parseJsonArray(step.paramConfig ?? step.param_config).map(config => ({
+      ...config,
+      targetRelationId: config.targetRelationId || config.target_relation_id || step.relationId || step.relation_id
+    })))
   }
   return parseJsonArray(action?.paramConfig ?? action?.param_config)
 }
@@ -450,24 +501,41 @@ function actionTypeLabel(type) {
   return { CREATE: '新建', UPDATE: '更新', DELETE: '删除' }[type] || type || '-'
 }
 
-const objectActionInputParams = computed(() => {
+const objectActionAllInputParams = computed(() => {
   const seen = new Set()
   const properties = selectedObjectSet.value?.properties || []
   return parseActionParamConfig(currentObjectAction.value)
-    .filter(cfg => !cfg.condition && (cfg.valueMode === 'placeholder'
+    .filter(cfg => (!cfg.condition || String(cfg.conditionValueSource || '').toUpperCase() === 'PARAM') && (cfg.valueMode === 'placeholder'
       || (cfg.valueMode === 'relative' && /^\$\{[^}]+\}$/.test(String(cfg.valueTemplate || '').trim()))))
     .filter(cfg => {
       const name = placeholderName(cfg.valueTemplate)
       return !properties.some(property => property.propertyCode === name)
     })
-    .map(cfg => ({
-      name: placeholderName(cfg.valueTemplate),
-      label: ((selectedObjectSet.value?.properties || []).find(p => p.propertyCode === cfg.propertyCode)?.propertyName
-        || cfg.propertyCode) + (cfg.valueMode === 'relative' ? '（运算量）' : ''),
-      required: !!cfg.required || cfg.valueMode === 'relative'
-    }))
+    .map(cfg => {
+      const name = placeholderName(cfg.valueTemplate)
+      const relation = objectActionRelationMetaByParam[name] || resolveObjectActionRelationMeta(cfg)
+      return {
+        ...cfg,
+        name,
+        label: relation?.conceptName
+          || ((selectedObjectSet.value?.properties || []).find(p => p.propertyCode === cfg.propertyCode)?.propertyName
+            || cfg.propertyCode) + (cfg.valueMode === 'relative' ? '（运算量）' : ''),
+        required: !!cfg.required || cfg.valueMode === 'relative',
+        relationMeta: relation
+      }
+    })
     .filter(param => param.name && !seen.has(param.name) && seen.add(param.name))
 })
+
+function isCurrentObjectRelationParam(param) {
+  const conceptId = param?.relationMeta?.conceptId
+  return !!conceptId && String(conceptId) === String(selectedObjectSet.value?.conceptId)
+}
+
+// 关系主体已经由当前对象行确定，不再重复让用户选择；只展示另一端对象和关系属性参数。
+const objectActionInputParams = computed(() =>
+  objectActionAllInputParams.value.filter(param => !isCurrentObjectRelationParam(param))
+)
 
 function selectedRowObjectKey(record) {
   const pks = pkFields.value
@@ -494,6 +562,9 @@ async function openObjectAction(record) {
   objectAction.actionId = undefined
   objectAction.params = {}
   objectAction.visible = true
+  Object.keys(objectActionRelationStates).forEach(key => delete objectActionRelationStates[key])
+  Object.keys(objectActionRelationMetaByParam).forEach(key => delete objectActionRelationMetaByParam[key])
+  objectActionAllObjectSets = []
   const res = await listAction({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 1000 })
   const rows = res.data?.rows || []
   objectActionList.value = rows.filter(action =>
@@ -516,8 +587,192 @@ async function handleObjectActionChange(actionId) {
     if (index >= 0) {
       objectActionList.value.splice(index, 1, { ...objectActionList.value[index], ...detail })
     }
+    await prepareObjectActionRelationSelectors()
   } finally {
     objectAction.detailLoading = false
+  }
+}
+
+function normalizeObjectSetsResponse(res) {
+  if (Array.isArray(res?.data)) return res.data
+  return res?.data?.rows || []
+}
+
+function relationConfigEndpoint(cfg, mapping, relationTableConfig) {
+  const explicit = String(cfg?.relationEndpoint || '').toUpperCase()
+  if (explicit === 'SOURCE' || explicit === 'TARGET') return explicit
+  const code = String(cfg?.propertyCode || '').toLowerCase()
+  if (relationTableConfig && code && String(relationTableConfig.sourceColumn || '').toLowerCase() === code) return 'SOURCE'
+  if (relationTableConfig && code && String(relationTableConfig.targetColumn || '').toLowerCase() === code) return 'TARGET'
+  return ''
+}
+
+function parseRelationTableConfig(value) {
+  if (!value) return { sourceColumn: '', targetColumn: '' }
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    if (Array.isArray(parsed)) return { sourceColumn: parsed[0] || '', targetColumn: parsed[1] || '' }
+    return { sourceColumn: parsed?.sourceColumn || '', targetColumn: parsed?.targetColumn || '' }
+  } catch {
+    return { sourceColumn: '', targetColumn: '' }
+  }
+}
+
+function resolveObjectActionRelationMeta(cfg) {
+  if (!cfg?.targetRelationId) return null
+  const relation = currentRelations.value.find(item => String(item.id) === String(cfg.targetRelationId))
+  const endpoint = String(cfg.relationEndpoint || '').toUpperCase()
+  const conceptId = endpoint === 'SOURCE' ? relation?.sourceConceptId
+    : endpoint === 'TARGET' ? relation?.targetConceptId : undefined
+  const set = objectActionAllObjectSets.find(item => String(item.conceptId) === String(conceptId))
+  return {
+    relationId: cfg.targetRelationId,
+    endpoint,
+    conceptId,
+    conceptName: set?.conceptName || (endpoint === 'TARGET' ? '目标对象' : endpoint === 'SOURCE' ? '主体对象' : ''),
+    tableBindingId: set?.tableBindingId
+  }
+}
+
+function objectActionRelationState(param) {
+  return objectActionRelationStates[param.name] || emptyObjectActionRelationState
+}
+
+function isObjectActionRelationParam(param) {
+  return !!param?.relationMeta?.relationId
+}
+
+function objectActionRelationOptionLabel(objectSet, record, objectKey) {
+  const properties = objectSet?.properties || []
+  const displayProperty = properties.find(property => !property.isPrimary
+    && /(name|title|label|名称|全称|简称)/i.test(`${property.propertyCode || ''} ${property.propertyName || ''}`))
+    || properties.find(property => !property.isPrimary
+      && /(code|编码)/i.test(`${property.propertyCode || ''} ${property.propertyName || ''}`))
+    || properties.find(property => !property.isPrimary)
+  const displayValue = displayProperty ? objectRecordValue(record, displayProperty) : undefined
+  return displayValue !== undefined && displayValue !== null && String(displayValue) !== String(objectKey)
+    ? `${displayValue}（${objectKey}）` : String(objectKey)
+}
+
+async function loadObjectActionRelationObjects(param, keyword = '') {
+  if (!isObjectActionRelationParam(param)) return
+  const state = objectActionRelationStates[param.name]
+    || (objectActionRelationStates[param.name] = { options: [], loading: false, error: '', requestNo: 0 })
+  const requestNo = ++state.requestNo
+  state.loading = true
+  state.error = ''
+  try {
+    if (!objectActionAllObjectSets.length) {
+      objectActionAllObjectSets = normalizeObjectSetsResponse(await listObjectSets(props.ontologyId))
+    }
+    let relation = currentRelations.value.find(item => String(item.id) === String(param.relationMeta.relationId))
+    if (!relation) relation = (await getRelation(param.relationMeta.relationId).catch(() => ({ data: null }))).data
+    if (!relation) {
+      // 关系详情接口比动作详情更准确；失败时保留已有关系列表结果。
+      const relationRows = currentRelations.value || []
+      relation = relationRows.find(item => String(item.id) === String(param.relationMeta.relationId))
+    }
+    if (!relation) {
+      state.error = '未找到动作绑定的关系定义'
+      return
+    }
+    const [columnRes, tableRes] = await Promise.all([
+      listRelationColumn(param.relationMeta.relationId),
+      listRelationTable(param.relationMeta.relationId)
+    ])
+    const mappings = Array.isArray(columnRes?.data) ? columnRes.data : (columnRes?.data?.rows || [])
+    const mapping = mappings.find(item => String(item.sourceConceptTableId) === String(selectedObjectSet.value?.tableBindingId)) || mappings[0]
+    const tables = Array.isArray(tableRes?.data) ? tableRes.data : (tableRes?.data?.rows || [])
+    const relationTableConfig = parseRelationTableConfig(tables[0]?.columnNames)
+    const endpoint = relationConfigEndpoint(param, mapping, relationTableConfig)
+    if (!endpoint || !mapping) {
+      state.error = '关系字段映射未配置主体/客体端点'
+      return
+    }
+    const conceptId = endpoint === 'SOURCE' ? relation.sourceConceptId : relation.targetConceptId
+    const tableBindingId = endpoint === 'SOURCE' ? mapping.sourceConceptTableId : mapping.targetConceptTableId
+    const referenceColumn = endpoint === 'SOURCE' ? mapping.sourceColumn : mapping.targetColumn
+    const objectSet = objectActionAllObjectSets.find(item => String(item.tableBindingId) === String(tableBindingId))
+      || objectActionAllObjectSets.find(item => String(item.conceptId) === String(conceptId))
+    if (!objectSet || !referenceColumn) {
+      state.error = '未找到关系端点对应的对象表绑定'
+      return
+    }
+    objectActionRelationMetaByParam[param.name] = {
+      relationId: param.relationMeta.relationId,
+      endpoint,
+      conceptId,
+      conceptName: objectSet.conceptName || (endpoint === 'TARGET' ? '目标对象' : '主体对象'),
+      tableBindingId
+    }
+    // 当前触发对象就是关系的这一端：直接读取当前行中关系映射指定的物理字段（例如人物.id），
+    // 不展示下拉，也不能使用概念展示主属性（例如 person_code=P1003）替代 bigint 外键。
+    if (String(conceptId) === String(selectedObjectSet.value?.conceptId)) {
+      const currentValue = objectRecordValue(objectAction.record, {
+        physicalColumnName: referenceColumn,
+        propertyCode: referenceColumn
+      })
+      if (currentValue === undefined || currentValue === null || currentValue === '') {
+        state.error = `当前对象缺少关系关联字段 ${referenceColumn}`
+        return
+      }
+      objectAction.params[param.name] = currentValue
+      state.options = []
+      return
+    }
+    const filterSpec = { groups: [], orderBy: [], columns: [], keyword: keyword || '' }
+    let rows = []
+    try {
+      const res = await queryObjects({
+        ontologyId: props.ontologyId,
+        conceptId: objectSet.conceptId,
+        tableBindingId: objectSet.tableBindingId,
+        pageNum: 1,
+        pageSize: 30,
+        filters: JSON.stringify(filterSpec)
+      })
+      rows = res.data?.rows || []
+    } catch (queryError) {
+      const previewRes = await previewConceptTable(objectSet.tableBindingId, 30, filterSpec)
+      rows = previewRes.data?.rows || []
+    }
+    if (!rows.length) {
+      try {
+        const previewRes = await previewConceptTable(objectSet.tableBindingId, 30, filterSpec)
+        rows = previewRes.data?.rows || []
+      } catch (previewError) {
+        // 主查询已返回空结果时，保留空列表并在下方给出可读提示。
+      }
+    }
+    if (requestNo !== state.requestNo) return
+    state.options = rows.map(record => {
+      const value = objectRecordValue(record, { physicalColumnName: referenceColumn, propertyCode: referenceColumn })
+      const key = value === undefined || value === null ? '' : String(value)
+      return { value: key, label: objectActionRelationOptionLabel(objectSet, record, key), disabled: !key }
+    }).filter(option => option.value)
+    if (!state.options.length) state.error = `未从 ${objectSet.tableName || '目标表'} 查询到可引用实体`
+  } catch (e) {
+    if (requestNo === state.requestNo) state.error = e?.response?.data?.msg || e?.message || '关联对象加载失败'
+  } finally {
+    if (requestNo === state.requestNo) state.loading = false
+  }
+}
+
+function searchObjectActionRelationObjects(param, keyword) {
+  const oldTimer = objectActionRelationSearchTimers.get(param.name)
+  if (oldTimer) clearTimeout(oldTimer)
+  const timer = setTimeout(() => loadObjectActionRelationObjects(param, keyword).catch(() => {}), 250)
+  objectActionRelationSearchTimers.set(param.name, timer)
+}
+
+async function prepareObjectActionRelationSelectors() {
+  Object.keys(objectActionRelationStates).forEach(key => delete objectActionRelationStates[key])
+  Object.keys(objectActionRelationMetaByParam).forEach(key => delete objectActionRelationMetaByParam[key])
+  objectActionAllObjectSets = normalizeObjectSetsResponse(await listObjectSets(props.ontologyId).catch(() => ({ data: [] })))
+  const configs = objectActionAllInputParams.value.filter(isObjectActionRelationParam)
+  for (const param of configs) {
+    objectActionRelationStates[param.name] = { options: [], loading: false, error: '', requestNo: 0 }
+    loadObjectActionRelationObjects(param).catch(() => {})
   }
 }
 
@@ -561,8 +816,23 @@ async function submitObjectAction() {
       inputParams: JSON.stringify(buildObjectActionParams()),
       triggerType: 'MANUAL'
     })
-    const record = res.data || {}
-    message.success(record.status === 'PENDING_APPROVAL' ? '已提交，等待人工确认' : '已提交执行')
+    let record = res.data || {}
+    // MANUAL 且无需审批时，提交接口只会把记录置为 APPROVED；对象动作入口必须继续调用 run，
+    // 否则用户还要去动作管理页再点一次“执行”。需要审批的动作仍停在 PENDING_APPROVAL。
+    if (record.status === 'APPROVED' && record.id
+      && (!record.triggerType || record.triggerType === 'MANUAL')) {
+      const runRes = await runExecution(record.id)
+      record = runRes.data || record
+    }
+    if (record.status === 'PENDING_APPROVAL') {
+      message.success('已提交，等待人工确认')
+    } else if (record.status === 'EXECUTED') {
+      message.success('执行完成')
+    } else if (record.status === 'RUNNING' || record.autoExecute) {
+      message.success('已提交，正在执行')
+    } else {
+      message.success('已提交')
+    }
     objectAction.visible = false
     emit('switchTab', 'action')
   } finally {
@@ -588,6 +858,12 @@ const formFields = computed(() => {
 
 // 主键字段（DELETE 定位 / UPDATE 只读）
 const pkFields = computed(() => formFields.value.filter(f => f.isPrimary))
+
+const displayedFormFields = computed(() => {
+  if (rowModal.mode !== 'CREATE' || !relationCreateFields.value.length) return formFields.value
+  const relationPropertyCodes = new Set(relationCreateFields.value.map(field => field.sourcePropertyCode))
+  return formFields.value.filter(field => !relationPropertyCodes.has(field.propertyCode))
+})
 
 // 无主键映射时禁用行内修改/删除（后端亦无 WHERE 定位依据）
 const rowModifiable = computed(() => pkFields.value.length === 0)
@@ -671,12 +947,80 @@ async function loadRelations(os) {
   if (!os || !os.conceptId) return
   try {
     const res = await listRelation({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 200 })
-    const rows = (res.data && res.data.rows) || []
+    const rows = Array.isArray(res.data) ? res.data : ((res.data && res.data.rows) || [])
     currentRelations.value = rows.filter(r =>
       String(r.sourceConceptId) === String(os.conceptId)
     )
   } catch {
     currentRelations.value = []
+  }
+}
+
+function relationOptionLabel(objectSet, record, key) {
+  const properties = objectSet?.properties || []
+  const displayProperty = properties.find(p => !p.isPrimary && /(name|title|label|名称|全称|简称)/i.test(`${p.propertyCode || ''} ${p.propertyName || ''}`))
+    || properties.find(p => !p.isPrimary && /(code|编码)/i.test(`${p.propertyCode || ''} ${p.propertyName || ''}`))
+    || properties.find(p => !p.isPrimary)
+  const value = displayProperty ? objectRecordValue(record, displayProperty) : undefined
+  return value === undefined || value === null || String(value) === String(key) ? String(key) : `${value}（${key}）`
+}
+
+// 新增对象时，加载出向关系的目标对象列表。直接外键关系写入当前对象行；
+// 有关系表的多对多关系不在这里伪装成当前对象字段，避免误写学生表。
+async function loadCreateRelationFields() {
+  const os = selectedObjectSet.value
+  relationCreateFields.value = []
+  if (!os || !os.conceptId) return
+  relationCreateLoading.value = true
+  try {
+    await loadRelations(os)
+    if (!currentRelations.value.length) return
+    const setsRes = await listObjectSets(props.ontologyId)
+    const objectSetsAll = normalizeObjectSetsResponse(setsRes)
+    const fields = []
+    for (const relation of currentRelations.value) {
+      try {
+        const [columnRes, tableRes] = await Promise.all([listRelationColumn(relation.id), listRelationTable(relation.id)])
+        const mappings = Array.isArray(columnRes.data) ? columnRes.data : (columnRes.data?.rows || [])
+        const mapping = mappings.find(item => String(item.sourceConceptTableId) === String(os.tableBindingId)) || mappings[0]
+        if (!mapping?.sourceColumn || !mapping?.targetConceptTableId || !mapping?.targetColumn) continue
+        const hasRelationTable = Array.isArray(tableRes.data) ? tableRes.data.length > 0 : (tableRes.data?.rows || []).length > 0
+        if (hasRelationTable) continue
+        const sourceProperty = (os.properties || []).find(p => String(p.physicalColumnName).toLowerCase() === String(mapping.sourceColumn).toLowerCase())
+        const targetSet = objectSetsAll.find(item => String(item.tableBindingId) === String(mapping.targetConceptTableId))
+        if (!sourceProperty || !targetSet) continue
+        const rowsRes = await queryObjects({
+          ontologyId: props.ontologyId,
+          conceptId: targetSet.conceptId,
+          tableBindingId: targetSet.tableBindingId,
+          pageNum: 1,
+          pageSize: 200,
+          filters: JSON.stringify({ groups: [], orderBy: [], columns: [], keyword: '' })
+        })
+        const rows = rowsRes.data?.rows || []
+        const options = []
+        rows.forEach(record => {
+          const actualKey = Object.keys(record).find(key => String(key).toLowerCase() === String(mapping.targetColumn).toLowerCase())
+          const value = actualKey === undefined ? undefined : record[actualKey]
+          if (value !== undefined && value !== null && !options.some(option => String(option.value) === String(value))) {
+            options.push({ value, label: relationOptionLabel(targetSet, record, value) })
+          }
+        })
+        fields.push({
+          relationId: relation.id,
+          label: `${relation.name || '关联'}（${targetSet.conceptName || '目标对象'}）`,
+          targetConceptName: targetSet.conceptName || '目标对象',
+          sourceColumn: mapping.sourceColumn,
+          sourcePropertyCode: sourceProperty.propertyCode,
+          options
+        })
+      } catch (e) {
+        // 关系元数据不完整时不阻断普通对象新增。
+      }
+    }
+    relationCreateFields.value = fields
+  } finally {
+    relationCreateLoading.value = false
   }
 }
 
@@ -815,6 +1159,12 @@ function buildRowData() {
     if (rowModal.mode === 'UPDATE' && f.isPrimary) { data[f.propertyCode] = v; return }
     data[f.propertyCode] = v
   })
+  relationCreateFields.value.forEach(field => {
+    const value = rowModal.relationValues[field.relationId]
+    if (value !== undefined && value !== null && value !== '' && field.sourcePropertyCode) {
+      data[field.sourcePropertyCode] = value
+    }
+  })
   return data
 }
 
@@ -834,6 +1184,7 @@ function buildRowPayload() {
 function openRowModal(mode, record) {
   rowModal.mode = mode
   rowModal.form = initRowForm(record)
+  rowModal.relationValues = {}
   rowModal.triggerWebhook = true
   rowModal.preview = null
   rowModal.loading = false
@@ -843,6 +1194,7 @@ function openRowModal(mode, record) {
 
 function openRowCreate() {
   openRowModal('CREATE', null)
+  loadCreateRelationFields().catch(() => { relationCreateFields.value = [] })
 }
 
 function openRowEdit(record) {
@@ -1032,6 +1384,11 @@ defineExpose({
   margin-left: 8px;
   font-size: 12px;
   color: #999;
+}
+.row-relation-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #86909c;
 }
 .row-sql-title {
   margin: 10px 0 6px;

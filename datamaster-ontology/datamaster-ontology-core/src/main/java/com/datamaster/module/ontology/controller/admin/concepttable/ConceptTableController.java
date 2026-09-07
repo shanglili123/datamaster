@@ -2,6 +2,7 @@ package com.datamaster.module.ontology.controller.admin.concepttable;
 
 import com.datamaster.common.core.domain.CommonResult;
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTablePageReqVO;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTablePreviewRespVO;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTableRespVO;
@@ -45,6 +46,13 @@ public class ConceptTableController {
     @GetMapping("/{id}")
     public CommonResult<ConceptTableRespVO> get(@PathVariable Long id) {
         return CommonResult.success(conceptTableService.getConceptTableById(id));
+    }
+
+    @Operation(summary = "读取绑定物理表字段（元数据登记缺失时兜底）")
+    @PreAuthorize("@ss.hasPermi('ont:concept-table:list')")
+    @GetMapping("/columns/{id}")
+    public CommonResult<List<DbColumn>> columns(@PathVariable Long id) {
+        return CommonResult.success(conceptTableService.getPhysicalColumns(id));
     }
 
     @Operation(summary = "预览表绑定数据")

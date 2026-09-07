@@ -1,6 +1,6 @@
 <template>
   <a-modal title="关联表与字段" v-model:open="visible" width="980px" wrap-class-name="ontology-workspace-modal ontology-modal--data" destroy-on-close :footer="null">
-    <p class="modal-hint">关系「{{ relationName }}」：先绑定关联表（来自元数据模块已发布目录表）并勾选字段；下方为源表⟶目标表的物理字段映射（整体保存）。</p>
+    <p class="modal-hint">关系「{{ relationName }}」的主体与客体已由关系定义确定。原表与目标表映射用于定位两端实体；关联表字段仅用于写入两端关联值。</p>
 
     <!-- 一、关联表绑定 -->
     <div class="section-title">关联表</div>
@@ -28,36 +28,64 @@
       <div v-for="row in rtRows" :key="row.id" class="rt-item">
         <span class="rt-name">{{ row.tableName }}</span>
         <span class="rt-ds">{{ rtDsName(row.datasourceId) }}</span>
-        <a-select
-          mode="multiple"
-          :value="rtSelectedByRow[row.id] || []"
-          :options="rtColsByRow[row.id] || []"
-          :placeholder="rtColsByRow[row.id] && rtColsByRow[row.id].length ? '选择该表参与关系的字段' : '未在元数据模块找到该表字段'"
-          style="flex: 1; min-width: 260px"
-          :max-tag-count="3"
-          allow-clear
-          @change="(vals) => onRtColsChange(row, vals)"
-        />
+        <div class="rt-column-config">
+          <label>
+            <span>原表关联字段</span>
+            <a-select
+              v-model:value="rtSelectedByRow[row.id].sourceColumn"
+              :options="rtColsByRow[row.id] || []"
+              placeholder="选择原表关联字段"
+              show-search
+              option-filter-prop="label"
+              @change="saveRtColumnConfig(row)"
+            />
+          </label>
+          <label>
+            <span>目标表关联字段</span>
+            <a-select
+              v-model:value="rtSelectedByRow[row.id].targetColumn"
+              :options="rtColsByRow[row.id] || []"
+              placeholder="选择目标表关联字段"
+              show-search
+              option-filter-prop="label"
+              @change="saveRtColumnConfig(row)"
+            />
+          </label>
+          <label class="rt-attribute-field">
+            <span>关系属性</span>
+            <a-select
+              v-model:value="rtSelectedByRow[row.id].attributeColumns"
+              mode="multiple"
+              :options="rtAttributeOptions(row)"
+              placeholder="可选，如职位、入职时间"
+              :max-tag-count="2"
+              allow-clear
+              @change="saveRtColumnConfig(row)"
+            />
+          </label>
+        </div>
         <a-button type="link" danger size="small" @click="deleteRt(row)">解除绑定</a-button>
       </div>
       <div v-if="!rtLoading && !rtRows.length" class="rc-empty">尚未绑定关联表，请在上方选择数据源与表进行绑定</div>
     </div>
 
-    <a-divider style="margin: 12px 0">源表 ⟶ 目标表 字段映射</a-divider>
+    <a-divider style="margin: 12px 0">原表字段 ⟶ 目标表字段</a-divider>
 
-    <!-- 二、源/目标概念表字段映射（原有能力保持不变） -->
+    <!-- 二、关系两端实体表映射；无论是否存在关联表都必须配置 -->
     <div v-for="(row, idx) in rcRows" :key="idx" class="rc-row">
       <a-select
         v-model:value="row.sourceConceptTableId"
         :options="rcSrcTableOptions"
-        placeholder="源表"
+        placeholder="原表"
         style="width: 190px"
         @change="(v) => handleRcTableChange(row, 'source', v)"
       />
-      <a-auto-complete
+      <a-select
         v-model:value="row.sourceColumn"
         :options="columnOptionsFor(row.sourceConceptTableId)"
-        placeholder="源字段"
+        placeholder="原表字段"
+        show-search
+        option-filter-prop="label"
         style="width: 160px"
       />
       <span class="rc-arrow">⟶</span>
@@ -68,15 +96,17 @@
         style="width: 190px"
         @change="(v) => handleRcTableChange(row, 'target', v)"
       />
-      <a-auto-complete
+      <a-select
         v-model:value="row.targetColumn"
         :options="columnOptionsFor(row.targetConceptTableId)"
-        placeholder="目标字段"
+        placeholder="目标表字段"
+        show-search
+        option-filter-prop="label"
         style="width: 160px"
       />
       <a-button type="link" danger size="small" @click="rcRows.splice(idx, 1)">移除</a-button>
     </div>
-    <div v-if="!rcRows.length && !rcLoading" class="rc-empty">暂无关联字段映射，点击下方按钮添加</div>
+    <div v-if="!rcRows.length && !rcLoading" class="rc-empty">暂无原表到目标表的字段映射，点击下方按钮添加</div>
     <a-button type="dashed" block @click="addRcRow"><PlusOutlined /> 添加映射</a-button>
     <div class="rc-actions">
       <a-button type="primary" :loading="rcSaving" @click="saveRelColumns">保存映射</a-button>
@@ -85,9 +115,10 @@
 </template>
 
 <script setup name="RelColumnModal">
-import { listConceptTable } from '@/api/ont/conceptTable'
+import { listConceptTable, listConceptTablePhysicalColumns } from '@/api/ont/conceptTable'
+import { getConcept } from '@/api/ont/concept'
 import { listRelationColumn, batchSaveRelationColumns } from '@/api/ont/relationColumn'
-import { listRelationTable, addRelationTable, updateRelationTable, delRelationTable } from '@/api/ont/relationTable'
+import { listRelationTable, addRelationTable, updateRelationTable, delRelationTable, listRelationTablePhysicalColumns } from '@/api/ont/relationTable'
 import { getDaDatasourceList } from '@/api/ast/dataSource/dataSource'
 import { getCatalogTableListAsset } from '@/api/cat/unreleased/table'
 import { getMdColumnList } from '@/api/cat/unreleased/column'
@@ -129,6 +160,7 @@ const rcSaving = ref(false)
 const rcRows = ref([])
 const rcSrcTables = ref([])
 const rcTgtTables = ref([])
+let rcMappingsPersisted = false
 // 每张绑定表的字段候选缓存，key 为绑定记录 id；空数组表示未加载成功，允许重试
 const rcColOptionsByTable = reactive({})
 // 元数据登记表缓存：datasourceId -> 登记表行数组（组件级）
@@ -142,7 +174,9 @@ let rtDsCache = []
 const rtDsOptions = ref([])
 const rtForm = ref({})
 const rtTableOptions = ref([])
-// 关联表字段候选与选中值，key 为关联表绑定记录 id
+const sourceConceptMeta = ref({})
+const targetConceptMeta = ref({})
+// 关联表字段候选与端点配置，key 为关联表绑定记录 id
 const rtColsByRow = reactive({})
 const rtSelectedByRow = reactive({})
 
@@ -163,7 +197,44 @@ function rowsOf(res) {
   return Array.isArray(res.data) ? res.data : (res.data?.rows || [])
 }
 
-watch(visible, val => {
+function uniqueOptions(options) {
+  const seen = new Set()
+  return (options || []).filter(option => {
+    const key = String(option?.value ?? '')
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function normalizeRtColumnConfig(raw) {
+  let value = raw
+  if (typeof raw === 'string') {
+    try { value = JSON.parse(raw) } catch (e) { value = [] }
+  }
+  if (Array.isArray(value)) {
+    return {
+      sourceColumn: value[0],
+      targetColumn: value[1],
+      attributeColumns: value.slice(2).filter(Boolean)
+    }
+  }
+  return {
+    sourceColumn: value?.sourceColumn,
+    targetColumn: value?.targetColumn,
+    attributeColumns: Array.isArray(value?.attributeColumns)
+      ? value.attributeColumns.filter(Boolean)
+      : (Array.isArray(value?.columns) ? value.columns.filter(Boolean) : [])
+  }
+}
+
+function rtAttributeOptions(row) {
+  const cfg = rtSelectedByRow[row.id] || {}
+  return (rtColsByRow[row.id] || []).filter(option =>
+    option.value !== cfg.sourceColumn && option.value !== cfg.targetColumn)
+}
+
+watch(visible, async val => {
   if (!val || !props.relationId) return
   // 数据源下拉只加载一次
   if (!rtDsCache.length) {
@@ -172,7 +243,7 @@ watch(visible, val => {
       rtDsOptions.value = rtDsCache.map(d => ({ value: d.id, label: d.datasourceName }))
     })
   }
-  loadRtRows()
+  await Promise.allSettled([loadEndpointConcepts(), loadRtRows()])
   if (!props.sourceConceptId || !props.targetConceptId) return
   rcRows.value = []
   rcSrcTables.value = []
@@ -184,10 +255,12 @@ watch(visible, val => {
     listConceptTable({ conceptId: props.sourceConceptId }),
     listConceptTable({ conceptId: props.targetConceptId }),
     listRelationColumn(props.relationId)
-  ]).then(([sRes, tRes, mRes]) => {
+  ]).then(async ([sRes, tRes, mRes]) => {
     rcSrcTables.value = rowsOf(sRes)
     rcTgtTables.value = rowsOf(tRes)
-    rcRows.value = rowsOf(mRes).map(m => ({
+    const savedMappings = rowsOf(mRes)
+    rcMappingsPersisted = savedMappings.length > 0
+    rcRows.value = savedMappings.map(m => ({
       sourceConceptTableId: m.sourceConceptTableId,
       sourceColumn: m.sourceColumn,
       targetConceptTableId: m.targetConceptTableId,
@@ -196,11 +269,24 @@ watch(visible, val => {
     if (!rcSrcTables.value.length || !rcTgtTables.value.length) {
       proxy.$modal.msgWarning('源/目标概念尚未绑定数据表，请先在「概念管理」中完成绑表')
     }
+    await autoPopulateRelationColumns()
     fetchRcColumnsForCurrentRows()
+    rtRows.value.forEach(row => autoConfigureRtEndpoints(row))
   }).finally(() => {
     rcLoading.value = false
   })
 })
+
+async function loadEndpointConcepts() {
+  const tasks = []
+  if (props.sourceConceptId) {
+    tasks.push(getConcept(props.sourceConceptId).then(res => { sourceConceptMeta.value = res.data || {} }))
+  }
+  if (props.targetConceptId) {
+    tasks.push(getConcept(props.targetConceptId).then(res => { targetConceptMeta.value = res.data || {} }))
+  }
+  await Promise.allSettled(tasks)
+}
 
 // ===== 关联表绑定 =====
 function loadRtRows() {
@@ -209,16 +295,14 @@ function loadRtRows() {
   Object.keys(rtColsByRow).forEach(k => delete rtColsByRow[k])
   Object.keys(rtSelectedByRow).forEach(k => delete rtSelectedByRow[k])
   rtLoading.value = true
-  listRelationTable(props.relationId).then(res => {
-    rtRows.value = rowsOf(res)
-    rtRows.value.forEach(row => {
-      try {
-        rtSelectedByRow[row.id] = row.columnNames ? JSON.parse(row.columnNames) : []
-      } catch (e) {
-        rtSelectedByRow[row.id] = []
-      }
+  return listRelationTable(props.relationId).then(res => {
+    const rows = rowsOf(res)
+    // 先建立每行配置，再更新 rtRows，避免模板在异步渲染间隙访问 undefined。
+    rows.forEach(row => {
+      rtSelectedByRow[row.id] = normalizeRtColumnConfig(row.columnNames)
       ensureRtColumns(row)
     })
+    rtRows.value = rows
   }).finally(() => {
     rtLoading.value = false
   })
@@ -230,10 +314,10 @@ function handleRtDsChange(dsId) {
   if (!dsId) return
   // 表候选来自元数据模块已发布的登记表
   getCatalogTableListAsset({ datasourceId: dsId, status: '1' }).then(res => {
-    rtTableOptions.value = rowsOf(res).map(t => ({
+    rtTableOptions.value = uniqueOptions(rowsOf(res).map(t => ({
       value: t.tableName,
       label: t.tableComment ? `${t.tableName} (${t.tableComment})` : t.tableName
-    })).filter(t => !!t.value)
+    })).filter(t => !!t.value))
   }).catch(() => {
     proxy.$modal.msgError('获取表列表失败')
   })
@@ -252,7 +336,15 @@ function submitRtBind() {
   }).then(() => {
     proxy.$modal.msgSuccess('关联表绑定成功')
     emit('success')
-    loadRtRows()
+    loadRtRows().then(async () => {
+      if (!rcMappingsPersisted) {
+        rcRows.value.forEach(row => {
+          row.sourceColumn = undefined
+          row.targetColumn = undefined
+        })
+        await autoPopulateRelationColumns()
+      }
+    })
   }).finally(() => {
     rtBinding.value = false
   })
@@ -264,20 +356,95 @@ function ensureRtColumns(rt) {
   const cached = rtColsByRow[rt.id]
   if (Array.isArray(cached) && cached.length) return
   rtColsByRow[rt.id] = []
+  const loadPhysicalFallback = () => listRelationTablePhysicalColumns(rt.id).then(res => {
+    rtColsByRow[rt.id] = uniqueOptions(rowsOf(res).map(c => ({
+      value: c.colName,
+      label: c.colComment ? `${c.colName} (${c.colComment})` : c.colName,
+      pkFlag: c.colKey ? '1' : '0'
+    })).filter(option => !!option.value))
+    return rtColsByRow[rt.id]
+  })
   getCatalogRows(rt.datasourceId).then(rows => {
     const hit = rows.find(r => r.tableName === rt.tableName)
-    if (!hit) return
+    if (!hit) return loadPhysicalFallback()
     return getMdColumnList({ tableId: hit.id }).then(res => {
-      rtColsByRow[rt.id] = rowsOf(res).map(c => ({
+      rtColsByRow[rt.id] = uniqueOptions(rowsOf(res).map(c => ({
         value: c.columnName,
-        label: c.columnComment ? `${c.columnName} (${c.columnComment})` : c.columnName
-      })).filter(o => !!o.value)
+        label: c.columnComment ? `${c.columnName} (${c.columnComment})` : c.columnName,
+        pkFlag: c.pkFlag,
+        fkFlag: c.fkFlag
+      })).filter(o => !!o.value))
+      return rtColsByRow[rt.id].length ? rtColsByRow[rt.id] : loadPhysicalFallback()
     })
+  }).catch(() => loadPhysicalFallback()).then(() => {
+    autoConfigureRtEndpoints(rt)
   }).catch(() => {})
 }
 
-function onRtColsChange(row, vals) {
-  rtSelectedByRow[row.id] = vals || []
+function normalizedIdentifier(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function inferEndpointColumn(options, concept, conceptTable, excluded) {
+  const tableName = normalizedIdentifier(conceptTable?.tableName)
+  const aliases = [...new Set([
+    normalizedIdentifier(concept?.code),
+    normalizedIdentifier(concept?.name),
+    tableName,
+    tableName.replace(/^(dm|t|tbl)/, '')
+  ].filter(Boolean))]
+  if (!aliases.length) return undefined
+  let best
+  let bestScore = 0
+  options.forEach(option => {
+    if (option.value === excluded) return
+    const column = normalizedIdentifier(option.value)
+    let score = 0
+    aliases.forEach(alias => {
+      if (column === `${alias}id`) score = Math.max(score, 100)
+      else if (column === alias) score = Math.max(score, 80)
+      else if (column.startsWith(alias) && column.endsWith('id')) score = Math.max(score, 70)
+      else if (column.includes(alias)) score = Math.max(score, 50)
+    })
+    if (score > bestScore) {
+      best = option.value
+      bestScore = score
+    }
+  })
+  return best
+}
+
+async function autoConfigureRtEndpoints(row) {
+  const config = rtSelectedByRow[row.id]
+  const options = rtColsByRow[row.id] || []
+  if (!config || !options.length) return
+  const mapping = rcRows.value[0]
+  if (!mapping) return
+  let changed = false
+  if (!config.sourceColumn) {
+    const sourceTable = rcSrcTables.value.find(table => String(table.id) === String(mapping.sourceConceptTableId))
+    const sourceColumn = inferEndpointColumn(options, sourceConceptMeta.value, sourceTable, config.targetColumn)
+    if (sourceColumn) {
+      config.sourceColumn = sourceColumn
+      changed = true
+    }
+  }
+  if (!config.targetColumn) {
+    const targetTable = rcTgtTables.value.find(table => String(table.id) === String(mapping.targetConceptTableId))
+    const targetColumn = inferEndpointColumn(options, targetConceptMeta.value, targetTable, config.sourceColumn)
+    if (targetColumn) {
+      config.targetColumn = targetColumn
+      changed = true
+    }
+  }
+  if (changed && config.sourceColumn && config.targetColumn) saveRtColumnConfig(row, true)
+}
+
+function saveRtColumnConfig(row, silent = false) {
+  const config = normalizeRtColumnConfig(rtSelectedByRow[row.id])
+  config.attributeColumns = config.attributeColumns.filter(column =>
+    column !== config.sourceColumn && column !== config.targetColumn)
+  rtSelectedByRow[row.id] = config
   updateRelationTable({
     id: row.id,
     relationId: props.relationId,
@@ -285,9 +452,9 @@ function onRtColsChange(row, vals) {
     databaseName: row.databaseName,
     tableName: row.tableName,
     schemaName: row.schemaName,
-    columnNames: JSON.stringify(vals || [])
+    columnNames: JSON.stringify(config)
   }).then(() => {
-    proxy.$modal.msgSuccess('字段已保存')
+    if (!silent) proxy.$modal.msgSuccess('字段已保存')
     emit('success')
   })
 }
@@ -319,22 +486,33 @@ function getCatalogRows(datasourceId) {
 
 // 通过元数据模块解析物理字段候选：绑定表 -> 同数据源登记表中精确匹配表名 -> 表字段列表
 function ensureRcColumns(ct) {
-  if (!ct || !ct.id) return
+  if (!ct || !ct.id) return Promise.resolve([])
   const cached = rcColOptionsByTable[ct.id]
   // 空数组视为未加载成功，允许重试
-  if (Array.isArray(cached) && cached.length) return
+  if (Array.isArray(cached) && cached.length) return Promise.resolve(cached)
   rcColOptionsByTable[ct.id] = []
-  getCatalogRows(ct.datasourceId).then(rows => {
+  const loadPhysicalFallback = () => listConceptTablePhysicalColumns(ct.id).then(res => {
+    rcColOptionsByTable[ct.id] = uniqueOptions(rowsOf(res).map(c => ({
+      value: c.colName,
+      label: c.colComment ? `${c.colName} (${c.colComment})` : c.colName,
+      pkFlag: c.colKey ? '1' : '0'
+    })).filter(option => !!option.value))
+    return rcColOptionsByTable[ct.id]
+  })
+  return getCatalogRows(ct.datasourceId).then(rows => {
     const hit = rows.find(r => r.tableName === ct.tableName)
-    // 未在元数据模块登记：保持空数组，仍可手动输入并允许重试
-    if (!hit) return
+    // 只有元数据登记缺失时才直读绑定物理表。
+    if (!hit) return loadPhysicalFallback()
     return getMdColumnList({ tableId: hit.id }).then(res => {
-      rcColOptionsByTable[ct.id] = rowsOf(res).map(c => ({
+      rcColOptionsByTable[ct.id] = uniqueOptions(rowsOf(res).map(c => ({
         value: c.columnName,
-        label: c.columnComment ? `${c.columnName} (${c.columnComment})` : c.columnName
-      })).filter(o => !!o.value)
+        label: c.columnComment ? `${c.columnName} (${c.columnComment})` : c.columnName,
+        pkFlag: c.pkFlag,
+        fkFlag: c.fkFlag
+      })).filter(o => !!o.value))
+      return rcColOptionsByTable[ct.id].length ? rcColOptionsByTable[ct.id] : loadPhysicalFallback()
     })
-  }).catch(() => {})
+  }).catch(() => loadPhysicalFallback()).catch(() => [])
 }
 
 // 为当前映射行涉及的表拉取字段候选
@@ -352,19 +530,55 @@ function handleRcTableChange(row, side, tableId) {
   if (!tableId) return
   const ct = [...rcSrcTables.value, ...rcTgtTables.value].find(t => t.id === tableId)
   ensureRcColumns(ct)
+  autoFillRelationRow(row)
 }
 
-function addRcRow() {
+async function autoFillRelationRow(row) {
+  const sourceTable = rcSrcTables.value.find(table => String(table.id) === String(row.sourceConceptTableId))
+  const targetTable = rcTgtTables.value.find(table => String(table.id) === String(row.targetConceptTableId))
+  await Promise.all([ensureRcColumns(sourceTable), ensureRcColumns(targetTable)])
+  const sourceOptions = columnOptionsFor(row.sourceConceptTableId)
+  const targetOptions = columnOptionsFor(row.targetConceptTableId)
+  const primaryColumn = options => options.find(option => String(option.pkFlag) === '1')?.value
+    || options.find(option => String(option.value).toLowerCase() === 'id')?.value
+  if (rtRows.value.length) {
+    if (!row.sourceColumn) row.sourceColumn = primaryColumn(sourceOptions)
+    if (!row.targetColumn) row.targetColumn = primaryColumn(targetOptions)
+  } else {
+    if (!row.targetColumn) row.targetColumn = primaryColumn(targetOptions)
+    if (!row.sourceColumn) {
+      row.sourceColumn = inferEndpointColumn(sourceOptions, targetConceptMeta.value, targetTable, undefined)
+        || sourceOptions.find(option => String(option.fkFlag) === '1')?.value
+    }
+  }
+}
+
+async function autoPopulateRelationColumns() {
+  if (!rcSrcTables.value.length || !rcTgtTables.value.length) return
+  if (!rcRows.value.length) {
+    rcRows.value.push({
+      sourceConceptTableId: rcSrcTables.value[0].id,
+      sourceColumn: undefined,
+      targetConceptTableId: rcTgtTables.value[0].id,
+      targetColumn: undefined
+    })
+  }
+  await Promise.all(rcRows.value.map(row => autoFillRelationRow(row)))
+}
+
+async function addRcRow() {
   const firstSrc = rcSrcTables.value[0]
   const firstTgt = rcTgtTables.value[0]
-  rcRows.value.push({
+  const row = {
     sourceConceptTableId: firstSrc ? firstSrc.id : undefined,
     sourceColumn: undefined,
     targetConceptTableId: firstTgt ? firstTgt.id : undefined,
     targetColumn: undefined
-  })
+  }
+  rcRows.value.push(row)
   if (firstSrc) ensureRcColumns(firstSrc)
   if (firstTgt) ensureRcColumns(firstTgt)
+  await autoFillRelationRow(row)
 }
 
 function saveRelColumns() {
@@ -445,6 +659,35 @@ function saveRelColumns() {
   }
 }
 
+.rt-column-config {
+  display: flex;
+  flex: 1 1 560px;
+  align-items: flex-end;
+  gap: 8px;
+
+  label {
+    display: flex;
+    flex: 1 1 170px;
+    flex-direction: column;
+    gap: 4px;
+    color: #666;
+    font-size: 12px;
+  }
+
+  .rt-attribute-field {
+    flex-basis: 220px;
+  }
+
+  :deep(.ant-select) {
+    width: 100%;
+  }
+
+  .rc-arrow {
+    padding-bottom: 6px;
+    color: #999;
+  }
+}
+
 .rc-row {
   display: flex;
   flex-wrap: wrap;
@@ -489,6 +732,14 @@ function saveRelColumns() {
     :deep(.ant-select) {
       min-width: 100% !important;
       flex-basis: 100%;
+    }
+  }
+
+  .rt-column-config {
+    flex-basis: 100%;
+
+    label {
+      min-width: 180px;
     }
   }
 

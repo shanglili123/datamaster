@@ -55,6 +55,9 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     @Resource private ConceptTableMapper conceptTableMapper;
     @Resource private PropertyColumnMapper propertyColumnMapper;
     @Resource private PropertyMapper propertyMapper;
+    @Resource private RelationMapper relationMapper;
+    @Resource private RelationColumnMapper relationColumnMapper;
+    @Resource private RelationTableMapper relationTableMapper;
     @Resource private FunctionMapper functionMapper;
     @Resource private ObjectMapper objectMapper;
     @Resource private IDatasourceApiService datasourceApiService;
@@ -200,20 +203,33 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         List<Map<String, Object>> previews = new ArrayList<>();
         for (ExecutionStep step : steps) {
             ActionDO targetAction = targetAction(action, step);
-            Map<String, Object> params = applyParamConfig(targetAction, rawInputParams,
-                    effectiveObjectKey, action);
-            assertTableAccess(targetAction, reqVO.getSpaceId(), reqVO.getSpaceCode(),
-                    extractActionColumns(targetAction, params), step.actionType);
-            String sql = generateSql(targetAction, params);
+            Map<String, Object> params = applyStepParamConfig(action, step, targetAction,
+                    rawInputParams, effectiveObjectKey);
+            String sql;
+            Map<String, Object> dryRun;
+            if (step.isRelation()) {
+                RelationTableDO table = requireRelationTable(step.relationId, step.stepNo);
+                assertRelationTableAccess(table, reqVO.getSpaceId(), reqVO.getSpaceCode(),
+                        extractRelationColumns(step, params), step.actionType);
+                sql = generateRelationSql(step, table, params);
+                dryRun = executeDryRunByDatasource(table.getDatasourceId(), sql, step.actionType);
+            } else {
+                assertTableAccess(targetAction, reqVO.getSpaceId(), reqVO.getSpaceCode(),
+                        extractActionColumns(targetAction, params), step.actionType);
+                sql = generateSql(targetAction, params);
+                dryRun = executeDryRun(step.conceptId, sql, step.actionType);
+            }
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("stepNo", step.stepNo);
             item.put("name", step.name);
+            item.put("targetType", step.targetType);
             item.put("conceptId", step.conceptId);
+            item.put("relationId", step.relationId);
             item.put("actionType", step.actionType);
             item.put("content", sql);
             plan.add(item);
             Map<String, Object> preview = new LinkedHashMap<>(item);
-            preview.put("result", executeDryRun(step.conceptId, sql, step.actionType));
+            preview.put("result", dryRun);
             previews.add(preview);
         }
         ActionExecutionDO exec = ActionExecutionDO.builder()
@@ -376,7 +392,12 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         }
         boolean needsManualApproval = (action.getApprovalLevels() != null && action.getApprovalLevels() > 0)
                 || Boolean.TRUE.equals(action.getNeedsApproval());
-        return !needsManualApproval;
+        if (needsManualApproval) {
+            return false;
+        }
+        // 人工入口会显式传 false，由当前请求在 dry-run 后立即调用执行接口；
+        // 数据到达等受控触发入口不传 false，仍交给后台 Worker 可靠领取。
+        return !Boolean.FALSE.equals(reqVO.getAutoExecute());
     }
 
     private int defaultMaxAttempts(Integer maxAttempts) {
@@ -773,25 +794,38 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         List<Map<String, Object>> afterSnapshots = new ArrayList<>();
         List<String> targetTables = new ArrayList<>();
 
-        DbQuery dbQuery = getDbQuery(steps.get(0).conceptId);
+        DbQuery dbQuery = getDbQueryForStep(steps.get(0));
         Connection connection = null;
         try {
             connection = dbQuery.getConnection();
             connection.setAutoCommit(false);
             for (ExecutionStep step : steps) {
                 ActionDO targetAction = targetAction(action, step);
-                Map<String, Object> params = applyParamConfig(targetAction, rawInputParams,
-                        exec.getObjectKey(), action);
-                assertTableAccess(targetAction, exec.getSpaceId(), exec.getSpaceCode(),
-                        extractActionColumns(targetAction, params), step.actionType);
-                String sql = generateSql(targetAction, params);
-                String table = resolveTargetTable(step.conceptId);
+                Map<String, Object> params = applyStepParamConfig(action, step, targetAction,
+                        rawInputParams, exec.getObjectKey());
+                String sql;
+                String table;
+                RelationTableDO relationTable = null;
+                if (step.isRelation()) {
+                    relationTable = requireRelationTable(step.relationId, step.stepNo);
+                    assertRelationTableAccess(relationTable, exec.getSpaceId(), exec.getSpaceCode(),
+                            extractRelationColumns(step, params), step.actionType);
+                    sql = generateRelationSql(step, relationTable, params);
+                    table = relationTable.getTableName();
+                } else {
+                    assertTableAccess(targetAction, exec.getSpaceId(), exec.getSpaceCode(),
+                            extractActionColumns(targetAction, params), step.actionType);
+                    sql = generateSql(targetAction, params);
+                    table = resolveTargetTable(step.conceptId);
+                }
                 targetTables.add(table);
 
                 Map<String, Object> plan = new LinkedHashMap<>();
                 plan.put("stepNo", step.stepNo);
                 plan.put("name", step.name);
+                plan.put("targetType", step.targetType);
                 plan.put("conceptId", step.conceptId);
+                plan.put("relationId", step.relationId);
                 plan.put("actionType", step.actionType);
                 plan.put("content", sql);
                 plans.add(plan);
@@ -812,7 +846,9 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
 
                 String afterSelect = convertToSelect(sql);
                 if (afterSelect == null && "CREATE".equals(step.actionType)) {
-                    afterSelect = buildSelectByPk(targetAction, params);
+                    afterSelect = step.isRelation()
+                            ? buildRelationSelectAfterCreate(relationTable, step, params)
+                            : buildSelectByPk(targetAction, params);
                 }
                 List<Map<String, Object>> afterRows = afterSelect == null
                         ? Collections.emptyList() : queryRows(connection, afterSelect);
@@ -820,7 +856,9 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 Map<String, Object> before = new LinkedHashMap<>();
                 before.put("stepNo", step.stepNo);
                 before.put("name", step.name);
+                before.put("targetType", step.targetType);
                 before.put("conceptId", step.conceptId);
+                before.put("relationId", step.relationId);
                 before.put("target", table);
                 before.put("rows", beforeRows);
                 beforeSnapshots.add(before);
@@ -828,7 +866,9 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 Map<String, Object> after = new LinkedHashMap<>();
                 after.put("stepNo", step.stepNo);
                 after.put("name", step.name);
+                after.put("targetType", step.targetType);
                 after.put("conceptId", step.conceptId);
+                after.put("relationId", step.relationId);
                 after.put("target", table);
                 after.put("rows", afterRows);
                 afterSnapshots.add(after);
@@ -836,7 +876,9 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 Map<String, Object> summary = new LinkedHashMap<>();
                 summary.put("stepNo", step.stepNo);
                 summary.put("name", step.name);
+                summary.put("targetType", step.targetType);
                 summary.put("conceptId", step.conceptId);
+                summary.put("relationId", step.relationId);
                 summary.put("actionType", step.actionType);
                 summary.put("affectedRows", affected);
                 summaries.add(summary);
@@ -1209,16 +1251,25 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     private static class ExecutionStep {
         final int stepNo;
         final String name;
+        final String targetType;
         final String actionType;
         final Long conceptId;
+        final Long relationId;
         final String paramConfig;
 
-        ExecutionStep(int stepNo, String name, String actionType, Long conceptId, String paramConfig) {
+        ExecutionStep(int stepNo, String name, String targetType, String actionType,
+                      Long conceptId, Long relationId, String paramConfig) {
             this.stepNo = stepNo;
             this.name = name;
+            this.targetType = targetType;
             this.actionType = actionType;
             this.conceptId = conceptId;
+            this.relationId = relationId;
             this.paramConfig = paramConfig;
+        }
+
+        boolean isRelation() {
+            return "RELATION".equals(targetType);
         }
     }
 
@@ -1236,16 +1287,34 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
             int index = 0;
             for (Map<String, Object> config : configs) {
                 index++;
+                String targetType = config.get("targetType") == null
+                        ? (config.get("relationId") == null ? "CONCEPT" : "RELATION")
+                        : String.valueOf(config.get("targetType")).toUpperCase(Locale.ROOT);
                 Long conceptId = config.get("conceptId") == null ? null
                         : Long.valueOf(String.valueOf(config.get("conceptId")));
+                Long relationId = config.get("relationId") == null ? null
+                        : Long.valueOf(String.valueOf(config.get("relationId")));
                 String actionType = config.get("actionType") == null ? ""
                         : String.valueOf(config.get("actionType")).toUpperCase(Locale.ROOT);
-                if (conceptId == null) {
-                    throw new RuntimeException("执行步骤 " + index + " 未选择目标对象类型");
-                }
-                ConceptDO concept = conceptMapper.selectById(conceptId);
-                if (concept == null || !Objects.equals(concept.getOntologyId(), action.getOntologyId())) {
-                    throw new RuntimeException("执行步骤 " + index + " 的目标对象类型不属于当前本体");
+                if ("RELATION".equals(targetType)) {
+                    if (relationId == null) {
+                        throw new RuntimeException("执行步骤 " + index + " 未选择目标关系");
+                    }
+                    RelationDO relation = relationMapper.selectById(relationId);
+                    if (relation == null || !Objects.equals(relation.getOntologyId(), action.getOntologyId())) {
+                        throw new RuntimeException("执行步骤 " + index + " 的目标关系不属于当前本体");
+                    }
+                    requireRelationTable(relationId, index);
+                } else if ("CONCEPT".equals(targetType)) {
+                    if (conceptId == null) {
+                        throw new RuntimeException("执行步骤 " + index + " 未选择目标对象类型");
+                    }
+                    ConceptDO concept = conceptMapper.selectById(conceptId);
+                    if (concept == null || !Objects.equals(concept.getOntologyId(), action.getOntologyId())) {
+                        throw new RuntimeException("执行步骤 " + index + " 的目标对象类型不属于当前本体");
+                    }
+                } else {
+                    throw new RuntimeException("执行步骤 " + index + " 的目标类型不受支持: " + targetType);
                 }
                 if (!("CREATE".equals(actionType) || "UPDATE".equals(actionType) || "DELETE".equals(actionType))) {
                     throw new RuntimeException("执行步骤 " + index + " 的操作类型不受支持: " + actionType);
@@ -1253,7 +1322,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 Object paramConfig = config.get("paramConfig");
                 String paramConfigJson = paramConfig == null ? "[]" : objectMapper.writeValueAsString(paramConfig);
                 String name = config.get("name") == null ? "步骤 " + index : String.valueOf(config.get("name"));
-                result.add(new ExecutionStep(index, name, actionType, conceptId, paramConfigJson));
+                result.add(new ExecutionStep(index, name, targetType, actionType,
+                        conceptId, relationId, paramConfigJson));
             }
             return result;
         } catch (RuntimeException e) {
@@ -1277,13 +1347,18 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     private void assertSameDatasource(List<ExecutionStep> steps) {
         Long datasourceId = null;
         for (ExecutionStep step : steps) {
-            List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(step.conceptId);
-            if (tables == null || tables.isEmpty()) {
-                throw new RuntimeException("执行步骤 " + step.stepNo + " 的目标对象未绑定物理表");
+            Long current;
+            if (step.isRelation()) {
+                current = requireRelationTable(step.relationId, step.stepNo).getDatasourceId();
+            } else {
+                List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(step.conceptId);
+                if (tables == null || tables.isEmpty()) {
+                    throw new RuntimeException("执行步骤 " + step.stepNo + " 的目标对象未绑定物理表");
+                }
+                current = tables.get(0).getDatasourceId();
             }
-            Long current = tables.get(0).getDatasourceId();
             if (current == null) {
-                throw new RuntimeException("执行步骤 " + step.stepNo + " 的目标对象缺少数据源配置");
+                throw new RuntimeException("执行步骤 " + step.stepNo + " 的目标缺少数据源配置");
             }
             if (datasourceId == null) {
                 datasourceId = current;
@@ -1291,6 +1366,19 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 throw new RuntimeException("一个多目标动作的所有执行步骤必须位于同一数据源，以保证失败时整体撤销");
             }
         }
+    }
+
+    private RelationTableDO requireRelationTable(Long relationId, int stepNo) {
+        List<RelationTableDO> tables = relationTableMapper.selectByRelationId(relationId);
+        if (tables == null || tables.isEmpty()) {
+            throw new RuntimeException("执行步骤 " + stepNo + " 的目标关系未绑定关联表");
+        }
+        RelationTableDO table = tables.get(0);
+        if (table.getDatasourceId() == null || table.getTableName() == null
+                || table.getTableName().trim().isEmpty()) {
+            throw new RuntimeException("执行步骤 " + stepNo + " 的目标关系关联表配置不完整");
+        }
+        return table;
     }
 
     /**
@@ -1353,6 +1441,99 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
             case "DELETE": return buildDeleteSql(physicalTable, mappings, params, conditionSpecs);
             default: throw new RuntimeException("不支持的动作类型: " + action.getActionType());
         }
+    }
+
+    /**
+     * 关系步骤直接面向 ONT_RELATION_TABLE 绑定的物理关联表。
+     * columnNames 中的字段名既是动作配置的 propertyCode，也是最终 SQL 的物理列名。
+     */
+    private String generateRelationSql(ExecutionStep step, RelationTableDO table,
+                                       Map<String, Object> params) {
+        List<ColumnMapping> mappings = resolveRelationColumnMappings(table);
+        ActionDO virtualAction = new ActionDO();
+        virtualAction.setActionType(step.actionType);
+        virtualAction.setParamConfig(step.paramConfig);
+        List<ConditionSpec> conditions = resolveConditionSpecs(virtualAction);
+        switch (step.actionType) {
+            case "CREATE":
+                return buildInsertSql(table.getTableName(), mappings, params);
+            case "UPDATE":
+                return buildUpdateSql(table.getTableName(), mappings, params, conditions);
+            case "DELETE":
+                return buildDeleteSql(table.getTableName(), mappings, params, conditions);
+            default:
+                throw new RuntimeException("关系步骤不支持的操作类型: " + step.actionType);
+        }
+    }
+
+    private List<ColumnMapping> resolveRelationColumnMappings(RelationTableDO table) {
+        List<String> columns = parseRelationColumnNames(table.getColumnNames());
+        if (columns.isEmpty()) {
+            throw new RuntimeException("关系关联表未选择可写字段: " + table.getTableName());
+        }
+        List<ColumnMapping> mappings = new ArrayList<>();
+        for (String column : columns) {
+            if (column == null || !column.matches("[A-Za-z_][A-Za-z0-9_$]*")) {
+                throw new RuntimeException("关系关联表包含不安全的字段名: " + column);
+            }
+            mappings.add(new ColumnMapping(column, column, false));
+        }
+        return mappings;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> parseRelationColumnNames(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            Object value = objectMapper.readValue(json, Object.class);
+            LinkedHashSet<String> columns = new LinkedHashSet<>();
+            if (value instanceof List) {
+                for (Object item : (List<Object>) value) {
+                    if (item != null) columns.add(String.valueOf(item));
+                }
+            } else if (value instanceof Map) {
+                Map<String, Object> map = (Map<String, Object>) value;
+                addRelationColumn(columns, map.get("sourceColumn"));
+                addRelationColumn(columns, map.get("targetColumn"));
+                Object configured = map.get("columns");
+                if (configured == null) configured = map.get("attributeColumns");
+                if (configured instanceof List) {
+                    for (Object item : (List<Object>) configured) {
+                        addRelationColumn(columns, item);
+                    }
+                }
+            }
+            return new ArrayList<>(columns);
+        } catch (Exception e) {
+            throw new RuntimeException("关系关联表字段配置解析失败: " + e.getMessage(), e);
+        }
+    }
+
+    private void addRelationColumn(Set<String> columns, Object value) {
+        if (value != null && !String.valueOf(value).trim().isEmpty()) {
+            columns.add(String.valueOf(value).trim());
+        }
+    }
+
+    private String buildRelationSelectAfterCreate(RelationTableDO table, ExecutionStep step,
+                                                  Map<String, Object> params) {
+        List<ColumnMapping> mappings = resolveRelationColumnMappings(table);
+        ActionDO virtualAction = new ActionDO();
+        virtualAction.setParamConfig(step.paramConfig);
+        Set<String> conditionNames = resolveConditionSpecs(virtualAction).stream()
+                .map(spec -> spec.semanticName).collect(java.util.stream.Collectors.toSet());
+        List<String> clauses = new ArrayList<>();
+        for (ColumnMapping mapping : mappings) {
+            Object value = params.get(mapping.semanticName);
+            if (!conditionNames.contains(mapping.semanticName) && value != null
+                    && !(value instanceof RawExpression) && !(value instanceof CurrentValueExpression)) {
+                clauses.add(mapping.physicalColumn + " = " + sqlValue(value));
+            }
+        }
+        return clauses.isEmpty() ? null
+                : "SELECT * FROM " + table.getTableName() + " WHERE " + String.join(" AND ", clauses);
     }
 
     /**
@@ -1686,6 +1867,105 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         return applyParamConfig(action, inputParams, objectKey, action);
     }
 
+    /**
+     * 多步骤关系动作参数解析。关系的一端若就是当前触发对象，不使用其展示主属性值直接写关系表，
+     * 而是根据 RelationColumn 配置回查端点引用字段。例如 objectKey=P1003 定位人物后读取
+     * dm_person.id=3，最终写入 dm_person_company.person_id。
+     */
+    private Map<String, Object> applyStepParamConfig(ActionDO sourceAction, ExecutionStep step,
+                                                     ActionDO targetAction, Map<String, Object> inputParams,
+                                                     String objectKey) {
+        Map<String, Object> effective = applyParamConfig(targetAction, inputParams, objectKey, sourceAction);
+        if (!step.isRelation() || sourceAction == null || sourceAction.getConceptId() == null
+                || objectKey == null || objectKey.trim().isEmpty()) {
+            return effective;
+        }
+        RelationDO relation = relationMapper.selectById(step.relationId);
+        if (relation == null) {
+            return effective;
+        }
+        String currentEndpoint;
+        if (Objects.equals(sourceAction.getConceptId(), relation.getSourceConceptId())) {
+            currentEndpoint = "SOURCE";
+        } else if (Objects.equals(sourceAction.getConceptId(), relation.getTargetConceptId())) {
+            currentEndpoint = "TARGET";
+        } else {
+            return effective;
+        }
+
+        RelationColumnDO binding = findRelationEndpointBinding(relation, sourceAction.getConceptId(), currentEndpoint);
+        if (binding == null) {
+            throw new RuntimeException("关系未配置当前对象端点字段映射: relationId=" + step.relationId);
+        }
+        String referenceColumn = "SOURCE".equals(currentEndpoint)
+                ? binding.getSourceColumn() : binding.getTargetColumn();
+        Object referenceValue = objectStateConditionResolver.resolvePhysicalColumn(
+                sourceAction, objectKey, referenceColumn);
+        if (referenceValue == null) {
+            throw new RuntimeException("当前对象未读取到关系端点字段 " + referenceColumn);
+        }
+
+        try {
+            List<Map<String, Object>> configs = objectMapper.readValue(step.paramConfig,
+                    new TypeReference<List<Map<String, Object>>>() {});
+            for (Map<String, Object> cfg : configs) {
+                String endpoint = cfg.get("relationEndpoint") == null ? ""
+                        : String.valueOf(cfg.get("relationEndpoint")).toUpperCase(Locale.ROOT);
+                if (endpoint.isEmpty() && cfg.get("propertyCode") != null) {
+                    endpoint = inferRelationEndpoint(step.relationId, String.valueOf(cfg.get("propertyCode")));
+                }
+                if (!currentEndpoint.equals(endpoint) || cfg.get("propertyCode") == null) {
+                    continue;
+                }
+                effective.put(String.valueOf(cfg.get("propertyCode")), referenceValue);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("关系端点参数解析失败: " + e.getMessage(), e);
+        }
+        return effective;
+    }
+
+    private String inferRelationEndpoint(Long relationId, String propertyCode) {
+        List<RelationTableDO> tables = relationTableMapper.selectByRelationId(relationId);
+        if (tables == null || tables.isEmpty() || propertyCode == null) return "";
+        try {
+            JsonNode node = objectMapper.readTree(tables.get(0).getColumnNames());
+            if (node != null && node.isObject()) {
+                if (propertyCode.equalsIgnoreCase(node.path("sourceColumn").asText())) return "SOURCE";
+                if (propertyCode.equalsIgnoreCase(node.path("targetColumn").asText())) return "TARGET";
+            } else if (node != null && node.isArray() && node.size() >= 2) {
+                if (propertyCode.equalsIgnoreCase(node.get(0).asText())) return "SOURCE";
+                if (propertyCode.equalsIgnoreCase(node.get(1).asText())) return "TARGET";
+            }
+        } catch (Exception ignored) {
+            // 老关系配置无法解析时保持空端点，交由动作校验给出原始错误。
+        }
+        return "";
+    }
+
+    private RelationColumnDO findRelationEndpointBinding(RelationDO relation, Long currentConceptId,
+                                                          String endpoint) {
+        List<RelationColumnDO> bindings = relationColumnMapper.selectByRelationId(relation.getId());
+        if (bindings == null || bindings.isEmpty()) {
+            return null;
+        }
+        List<ConceptTableDO> currentTables = conceptTableMapper.selectByConceptId(currentConceptId);
+        Set<Long> tableIds = new HashSet<>();
+        if (currentTables != null) {
+            for (ConceptTableDO table : currentTables) {
+                if (table.getId() != null) tableIds.add(table.getId());
+            }
+        }
+        for (RelationColumnDO binding : bindings) {
+            Long endpointTableId = "SOURCE".equals(endpoint)
+                    ? binding.getSourceConceptTableId() : binding.getTargetConceptTableId();
+            if (tableIds.contains(endpointTableId)) {
+                return binding;
+            }
+        }
+        return bindings.get(0);
+    }
+
     private Map<String, Object> applyParamConfig(ActionDO action, Map<String, Object> inputParams,
                                                  String objectKey, ActionDO conditionSourceAction) {
         String configJson = action.getParamConfig();
@@ -1711,6 +1991,10 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                     || "true".equalsIgnoreCase(String.valueOf(cfg.get("required")));
             boolean condition = Boolean.TRUE.equals(cfg.get("condition"))
                     || "true".equalsIgnoreCase(String.valueOf(cfg.get("condition")));
+            boolean objectValue = Boolean.TRUE.equals(cfg.get("objectValue"))
+                    || "true".equalsIgnoreCase(String.valueOf(cfg.get("objectValue")));
+            boolean conditionFromObject = condition
+                    && !"PARAM".equalsIgnoreCase(String.valueOf(cfg.get("conditionValueSource")));
             switch (valueMode) {
                 case "direct":
                     effective.put(propertyCode, valueTemplate);
@@ -1721,7 +2005,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                     // 对象绑定条件的值必须来自 objectKey 对应的当前对象，不能信任前端手填值。
                     // 例如条件字段选择“订单编号”，配置自动为 ${orderNo}，实际执行时重新读取
                     // object.orderNo；提交预览和 Worker 真正执行都会各读取一次。
-                    Object v = condition && objectKey != null && !objectKey.trim().isEmpty()
+                    Object v = (conditionFromObject || objectValue)
+                            && objectKey != null && !objectKey.trim().isEmpty()
                             ? objectStateConditionResolver.resolve("object." + conditionSourceProperty,
                                     conditionSourceAction, objectKey)
                             : inputParams.get(paramName);
@@ -1825,10 +2110,18 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
      * 真正落库只允许发生在 approve 之后的 executeExecution 阶段。
      */
     private Map<String, Object> executeDryRun(Long conceptId, String sql, String actionType) {
+        List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(conceptId);
+        if (tables == null || tables.isEmpty() || tables.get(0).getDatasourceId() == null) {
+            throw new RuntimeException("概念未绑定有效数据源: conceptId=" + conceptId);
+        }
+        return executeDryRunByDatasource(tables.get(0).getDatasourceId(), sql, actionType);
+    }
+
+    private Map<String, Object> executeDryRunByDatasource(Long datasourceId, String sql, String actionType) {
         DbQuery dbQuery = null;
         Connection con = null;
         try {
-            dbQuery = getDbQuery(conceptId);
+            dbQuery = getDbQueryByDatasource(datasourceId);
             if ("SELECT".equals(actionType)) {
                 List<Map<String, Object>> rows = dbQuery.queryList(sql);
                 return Collections.singletonMap("rows", rows);
@@ -2027,6 +2320,20 @@ if (upper.startsWith("DELETE")) {
         if (datasourceId == null) {
             throw new RuntimeException("概念绑定的物理表缺少数据源配置: conceptId=" + conceptId);
         }
+        return getDbQueryByDatasource(datasourceId);
+    }
+
+    private DbQuery getDbQueryForStep(ExecutionStep step) {
+        if (step.isRelation()) {
+            return getDbQueryByDatasource(requireRelationTable(step.relationId, step.stepNo).getDatasourceId());
+        }
+        return getDbQuery(step.conceptId);
+    }
+
+    private DbQuery getDbQueryByDatasource(Long datasourceId) {
+        if (datasourceId == null) {
+            throw new RuntimeException("数据源ID不能为空");
+        }
         DatasourceRespDTO ds = datasourceApiService.getDatasourceById(datasourceId);
         if (ds == null) {
             throw new RuntimeException("数据源不存在: id=" + datasourceId);
@@ -2078,6 +2385,23 @@ if (upper.startsWith("DELETE")) {
         tableGovernanceApiService.checkTableAccess(reqDTO);
     }
 
+    private void assertRelationTableAccess(RelationTableDO table, Long spaceId, String spaceCode,
+                                           List<String> columns, String actionType) {
+        if (table == null || table.getDatasourceId() == null || table.getTableName() == null) {
+            return;
+        }
+        AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
+        reqDTO.setDatasourceId(table.getDatasourceId());
+        reqDTO.setTableName(table.getTableName());
+        reqDTO.setSpaceId(spaceId);
+        reqDTO.setSpaceCode(spaceCode);
+        reqDTO.setEntrance(entranceOf(actionType));
+        if (columns != null && !columns.isEmpty()) {
+            reqDTO.setColumnNames(columns);
+        }
+        tableGovernanceApiService.checkTableAccess(reqDTO);
+    }
+
     /**
      * 提取增删改动作涉及的物理列（与 SQL 生成逻辑一一对应）：
      * - CREATE：入参覆盖的映射列 → INSERT 目标列
@@ -2100,6 +2424,17 @@ if (upper.startsWith("DELETE")) {
         for (ColumnMapping m : mappings) {
             if (params.containsKey(m.semanticName)) {
                 columns.add(m.physicalColumn);
+            }
+        }
+        return columns;
+    }
+
+    private List<String> extractRelationColumns(ExecutionStep step, Map<String, Object> params) {
+        RelationTableDO table = requireRelationTable(step.relationId, step.stepNo);
+        List<String> columns = new ArrayList<>();
+        for (ColumnMapping mapping : resolveRelationColumnMappings(table)) {
+            if (params.containsKey(mapping.semanticName)) {
+                columns.add(mapping.physicalColumn);
             }
         }
         return columns;

@@ -1,6 +1,8 @@
 package com.datamaster.module.ontology.service;
 
 import com.datamaster.metadata.api.table.dto.CatalogTableRespDTO;
+import com.datamaster.module.ontology.controller.admin.aigenerate.vo.AiActionPreviewReqVO;
+import com.datamaster.module.ontology.controller.admin.aigenerate.vo.AiActionPreviewRespVO;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.OntologyAiGenerateReqVO;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.OntologyAiGenerateRespVO;
 
@@ -44,4 +46,12 @@ public interface IOntologyGenerateService {
      * @return 元数据目录表列表，datasourceId 为空时返回空列表
      */
     List<CatalogTableRespDTO> listCatalogTables(Long datasourceId);
+
+    /**
+     * AI 生成动作预览：根据用户描述 + 本体概念/关系/属性上下文，调用 LLM 生成动作定义，不落库。
+     *
+     * @param reqVO 生成参数（含本体ID、可选概念ID、用户描述）
+     * @return 生成的动作预览列表
+     */
+    AiActionPreviewRespVO generateActionsPreview(AiActionPreviewReqVO reqVO);
 }

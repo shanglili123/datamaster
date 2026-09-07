@@ -1,6 +1,12 @@
 package com.datamaster.module.ontology.service.impl;
 
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.database.DataSourceFactory;
+import com.datamaster.common.database.DbQuery;
+import com.datamaster.common.database.constants.DbQueryProperty;
+import com.datamaster.common.database.core.DbColumn;
+import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
+import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
 import com.datamaster.module.ontology.convert.RelationTableConvert;
 import com.datamaster.module.ontology.controller.admin.relationtable.vo.RelationTablePageReqVO;
 import com.datamaster.module.ontology.controller.admin.relationtable.vo.RelationTableRespVO;
@@ -23,6 +29,10 @@ public class RelationTableServiceImpl implements IRelationTableService {
 
     @Resource
     private RelationTableMapper relationTableMapper;
+    @Resource
+    private IDatasourceApiService datasourceApiService;
+    @Resource
+    private DataSourceFactory dataSourceFactory;
 
     @Override
     public PageResult<RelationTableRespVO> getRelationTablePage(RelationTablePageReqVO pageReqVO) {
@@ -41,6 +51,28 @@ public class RelationTableServiceImpl implements IRelationTableService {
     public RelationTableRespVO getRelationTableById(Long id) {
         RelationTableDO entity = relationTableMapper.selectById(id);
         return entity != null ? RelationTableConvert.INSTANCE.convert(entity) : null;
+    }
+
+    @Override
+    public List<DbColumn> getPhysicalColumns(Long id) {
+        RelationTableDO entity = relationTableMapper.selectById(id);
+        if (entity == null) {
+            throw new RuntimeException("关系表绑定不存在: id=" + id);
+        }
+        DatasourceRespDTO ds = datasourceApiService.getDatasourceById(entity.getDatasourceId());
+        if (ds == null) {
+            throw new RuntimeException("数据源不存在: id=" + entity.getDatasourceId());
+        }
+        DbQueryProperty property = new DbQueryProperty(
+                ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig());
+        DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
+        try {
+            return dbQuery.getTableColumns(property, entity.getTableName());
+        } finally {
+            if (dbQuery != null) {
+                dbQuery.close();
+            }
+        }
     }
 
     @Override

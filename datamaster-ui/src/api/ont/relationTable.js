@@ -26,6 +26,14 @@ export function getRelationTable(id) {
   })
 }
 
+// 元数据登记缺失时，直接读取关系物理表字段
+export function listRelationTablePhysicalColumns(id) {
+  return request({
+    url: '/ont/relation-table/columns/' + id,
+    method: 'get'
+  })
+}
+
 // 新增关联表绑定
 export function addRelationTable(data) {
   return request({

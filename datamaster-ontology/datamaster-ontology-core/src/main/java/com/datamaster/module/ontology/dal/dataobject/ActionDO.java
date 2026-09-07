@@ -34,7 +34,7 @@ public class ActionDO extends BaseEntity {
     /** 触发对象类型ID（FUNCTION 类型动作不需要） */
     private Long conceptId;
 
-    /** 多目标动作的有序执行步骤 JSONB；每步定义目标概念、操作类型、目标属性和定位条件 */
+    /** 多目标动作的有序执行步骤 JSONB；每步可定义目标概念或关系、操作类型、目标字段和定位条件 */
     private String executionSteps;
 
     /** 绑定共享函数ID，actionType=FUNCTION 时必填，来自 ONT_FUNCTION 表 */

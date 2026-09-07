@@ -28,7 +28,7 @@ public class ActionSaveReqVO {
     @Schema(description = "触发对象类型ID（FUNCTION 类型动作不需要）", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "1")
     private Long conceptId;
 
-    @Schema(description = "多目标动作的有序执行步骤 JSON 数组")
+    @Schema(description = "多目标动作的有序执行步骤 JSON 数组；targetType=CONCEPT|RELATION")
     private String executionSteps;
 
     @Schema(description = "绑定共享函数ID（actionType=FUNCTION 时必填，来自 ONT_FUNCTION 表）", example = "1")

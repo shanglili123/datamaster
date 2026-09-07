@@ -26,6 +26,14 @@ export function getConceptTable(id) {
   })
 }
 
+// 元数据登记缺失时，直接读取绑定物理表字段
+export function listConceptTablePhysicalColumns(id) {
+  return request({
+    url: '/ont/concept-table/columns/' + id,
+    method: 'get'
+  })
+}
+
 // 新增概念表绑定
 export function addConceptTable(data) {
   return request({

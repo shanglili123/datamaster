@@ -1,8 +1,6 @@
 package com.datamaster.module.ai.controller.admin.skill;
 
 import com.datamaster.common.core.domain.CommonResult;
-import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataPrepareReqVO;
-import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataPrepareRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataReportReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataReportRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiAskDataSqlReqVO;
@@ -30,27 +28,6 @@ public class AiAskDataController {
 
     @Resource
     private IAiAskDataService aiAskDataService;
-
-    @Operation(summary = "准备问数上下文")
-    @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
-    @PostMapping("/prepare")
-    public CommonResult<AiAskDataPrepareRespVO> prepare(@RequestBody AiAskDataPrepareReqVO reqVO) {
-        return CommonResult.success(aiAskDataService.prepare(reqVO));
-    }
-
-    @Operation(summary = "生成SQL")
-    @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
-    @PostMapping("/sql")
-    public CommonResult<AiAskDataSqlRespVO> generateSql(@Valid @RequestBody AiAskDataSqlReqVO reqVO) {
-        return CommonResult.success(aiAskDataService.generateSql(reqVO));
-    }
-
-    @Operation(summary = "一站式问数对话")
-    @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
-    @PostMapping("/chat")
-    public CommonResult<AiAskDataSqlRespVO> chat(@Valid @RequestBody AiAskDataSqlReqVO reqVO) {
-        return CommonResult.success(aiAskDataService.chat(reqVO));
-    }
 
     @Operation(summary = "AI问数对话")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")

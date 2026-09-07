@@ -1,6 +1,7 @@
 package com.datamaster.module.ontology.service;
 
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.database.core.DbColumn;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTablePageReqVO;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTablePreviewRespVO;
 import com.datamaster.module.ontology.controller.admin.concepttable.vo.ConceptTableRespVO;
@@ -18,6 +19,9 @@ public interface IConceptTableService {
     List<ConceptTableRespVO> getConceptTableByConceptId(Long conceptId);
 
     ConceptTableRespVO getConceptTableById(Long id);
+
+    /** 读取绑定物理表字段；仅供元数据登记缺失时兜底。 */
+    List<DbColumn> getPhysicalColumns(Long id);
 
     Long createConceptTable(ConceptTableSaveReqVO createReqVO);
 

@@ -28,7 +28,7 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === '__rj_action__'">
               <template v-if="childRelations.length">
-                <RelationJump
+                <OntRelationJump
                   v-for="cr in childRelations"
                   :key="cr.id"
                   :ontology-id="ontologyId"
@@ -55,6 +55,8 @@ import { DownOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { queryRelatedObjects } from '@/api/ont/objectInstance'
 import { listRelation } from '@/api/ont/relation'
 import { listRelationColumn } from '@/api/ont/relationColumn'
+
+defineOptions({ name: 'OntRelationJump' })
 
 const props = defineProps({
   ontologyId: { type: [Number, String], required: true },

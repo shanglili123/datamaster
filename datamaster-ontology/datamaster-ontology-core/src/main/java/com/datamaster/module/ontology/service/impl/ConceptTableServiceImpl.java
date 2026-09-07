@@ -64,6 +64,28 @@ public class ConceptTableServiceImpl implements IConceptTableService {
     }
 
     @Override
+    public List<DbColumn> getPhysicalColumns(Long id) {
+        ConceptTableDO entity = conceptTableMapper.selectById(id);
+        if (entity == null) {
+            throw new RuntimeException("概念表绑定不存在: id=" + id);
+        }
+        DatasourceRespDTO ds = datasourceApiService.getDatasourceById(entity.getDatasourceId());
+        if (ds == null) {
+            throw new RuntimeException("数据源不存在: id=" + entity.getDatasourceId());
+        }
+        DbQueryProperty property = new DbQueryProperty(
+                ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig());
+        DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
+        try {
+            return dbQuery.getTableColumns(property, entity.getTableName());
+        } finally {
+            if (dbQuery != null) {
+                dbQuery.close();
+            }
+        }
+    }
+
+    @Override
     public Long createConceptTable(ConceptTableSaveReqVO createReqVO) {
         ConceptTableDO entity = ConceptTableConvert.INSTANCE.convert(createReqVO);
         conceptTableMapper.insert(entity);

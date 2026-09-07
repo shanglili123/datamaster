@@ -22,6 +22,10 @@
         <template #icon><PlusOutlined /></template>
         新增动作
       </a-button>
+      <a-button @click="openAiGenerate" v-hasPermi="['ont:action:add']" style="margin-left: 8px;">
+        <template #icon><RobotOutlined /></template>
+        AI 生成
+      </a-button>
     </div>
 
     <a-table
@@ -112,7 +116,7 @@
         <template v-else-if="column.key === 'execAction'">
           <a-button v-if="record.status === 'PENDING_APPROVAL' && record.canApprove" type="link" size="small" style="color:#52c41a" @click="openApproval(record, 'approve')" v-hasPermi="['ont:action:edit']">确认执行</a-button>
           <a-button v-if="record.status === 'PENDING_APPROVAL' && record.canApprove" type="link" danger size="small" @click="openApproval(record, 'reject')" v-hasPermi="['ont:action:edit']">不执行</a-button>
-          <a-button v-if="record.status === 'APPROVED' && !record.autoExecute" type="link" size="small" style="color:#1677ff" @click="handleRun(record)" v-hasPermi="['ont:action:edit']">执行</a-button>
+          <a-button v-if="record.status === 'APPROVED' && (record.triggerType === 'MANUAL' || !record.autoExecute)" type="link" size="small" style="color:#1677ff" @click="handleRun(record)" v-hasPermi="['ont:action:edit']">执行</a-button>
           <a-button v-if="record.status === 'EXECUTED' && !record.rollbackTime && !['FUNCTION', 'COMPOSITE'].includes(actionTypeMap[record.actionId])" type="link" size="small" style="color:#fa8c16" @click="handleRollback(record)" v-hasPermi="['ont:action:edit']">回退</a-button>
           <a-button v-if="record.objectKey" type="link" size="small" @click="handleViewChain(record)" v-hasPermi="['ont:action:query']">确认记录</a-button>
           <a-button type="link" size="small" @click="handleViewResult(record)" v-hasPermi="['ont:action:query']">查看结果</a-button>
@@ -367,7 +371,7 @@
               <div class="param-block-head">
                 <div>
                   <span class="param-block-title">执行步骤</span>
-                  <div class="modal-hint-line">一个动作可按顺序修改多个对象类型；全部目标必须位于同一数据源，任一步失败都会整体撤销。</div>
+                  <div class="modal-hint-line">一个动作可按顺序修改对象或关系关联表；全部目标必须位于同一数据源，任一步失败都会整体撤销。</div>
                 </div>
                 <a-button type="dashed" size="small" @click="addExecutionStep">
                   <template #icon><PlusOutlined /></template>
@@ -391,36 +395,74 @@
                   </label>
                   <label class="step-field step-type-field">
                     <span>操作类型</span>
-                    <a-select v-model:value="step.actionType" :options="stepActionTypeOptions" placeholder="请选择" style="width:140px" @change="resetStepConfig(step)" />
+                    <a-select v-model:value="step.actionType" :options="stepActionTypeOptions" placeholder="请选择" style="width:140px" @change="handleStepActionTypeChange(step)" />
+                  </label>
+                  <label class="step-field step-type-field">
+                    <span>目标类型</span>
+                    <a-select v-model:value="step.targetType" :options="stepTargetTypeOptions" style="width:120px" @change="changeStepTargetType(step)" />
                   </label>
                   <label class="step-field step-concept-field">
-                    <span>目标对象类型</span>
-                    <a-select v-model:value="step.conceptId" :options="conceptOptions" placeholder="请选择" show-search option-filter-prop="label" style="width:200px" @change="loadStepProperties(step)" />
+                    <span>{{ step.targetType === 'RELATION' ? '目标关系' : '目标对象类型' }}</span>
+                    <a-select
+                      v-if="step.targetType === 'RELATION'"
+                      v-model:value="step.relationId"
+                      :options="stepRelationOptions"
+                      placeholder="请选择关系"
+                      show-search
+                      option-filter-prop="label"
+                      style="width:220px"
+                      @change="loadStepProperties(step)"
+                    />
+                    <a-select
+                      v-else
+                      v-model:value="step.conceptId"
+                      :options="conceptOptions"
+                      placeholder="请选择对象类型"
+                      show-search
+                      option-filter-prop="label"
+                      style="width:200px"
+                      @change="loadStepProperties(step)"
+                    />
                   </label>
                 </div>
                 <div v-if="step.actionType !== 'DELETE'" class="step-section-head">
-                  <span>目标属性配置</span>
-                  <a-button type="dashed" size="small" @click="addStepParamRow(step)">添加属性</a-button>
+                  <span>{{ step.targetType === 'RELATION' ? '主体 / 客体取值与关系属性' : '目标属性配置' }}</span>
+                  <a-button type="dashed" size="small" @click="addStepParamRow(step)">{{ step.targetType === 'RELATION' ? '添加关系属性' : '添加属性' }}</a-button>
                 </div>
-                <a-empty v-if="step.actionType !== 'DELETE' && !step.paramRows.length" description="未添加目标属性" :image-style="{ height: '32px' }" />
+                <a-empty v-if="step.actionType !== 'DELETE' && !step.paramRows.length" :description="step.targetType === 'RELATION' ? '关系尚未配置主体、客体取值' : '未添加目标属性'" :image-style="{ height: '32px' }" />
                 <div v-for="(row, rowIndex) in step.paramRows" :key="'p-' + rowIndex" class="step-param-card">
                   <div class="step-param-card-head">
-                    <a-select class="step-property-select" v-model:value="row.propertyId" :options="step.propertyOptions" placeholder="选择目标属性" show-search option-filter-prop="label" style="width:190px" @change="syncStepProperty(step, row)" />
+                    <div v-if="row.relationEndpoint" class="step-endpoint-label">
+                      <a-tag :color="row.relationEndpoint === 'SOURCE' ? 'blue' : 'purple'">{{ row.relationEndpoint === 'SOURCE' ? '主体' : '客体' }}</a-tag>
+                      <span>{{ row.endpointConceptName }}</span>
+                    </div>
+                    <a-select v-else class="step-property-select" v-model:value="row.propertyId" :options="stepEditablePropertyOptions(step)" placeholder="选择目标属性" show-search option-filter-prop="label" style="width:190px" @change="syncStepProperty(step, row)" />
                     <a-radio-group v-model:value="row.valueMode" size="small" button-style="solid" class="step-value-mode-group">
                       <a-radio-button value="direct">固定值</a-radio-button>
                       <a-radio-button value="placeholder">引用值</a-radio-button>
-                      <a-radio-button v-if="step.actionType === 'UPDATE'" value="relative">当前值运算</a-radio-button>
-                      <a-radio-button value="expression">SQL 表达式</a-radio-button>
+                      <a-radio-button value="object">触发对象值</a-radio-button>
+                      <a-radio-button v-if="!row.relationEndpoint && step.actionType === 'UPDATE'" value="relative">当前值运算</a-radio-button>
+                      <a-radio-button v-if="!row.relationEndpoint" value="expression">SQL 表达式</a-radio-button>
                     </a-radio-group>
                     <div class="step-param-actions">
-                      <a-checkbox v-model:checked="row.required">必填</a-checkbox>
-                      <a-button type="link" danger size="small" @click="step.paramRows.splice(rowIndex, 1)">删除</a-button>
+                      <a-checkbox v-if="!row.locked" v-model:checked="row.required">必填</a-checkbox>
+                      <a-tag v-else color="red">必填</a-tag>
+                      <a-button v-if="!row.locked" type="link" danger size="small" @click="step.paramRows.splice(rowIndex, 1)">删除</a-button>
                     </div>
                   </div>
                   <div class="step-param-value-row">
-                    <span class="step-value-label">属性值</span>
+                    <span class="step-value-label">取值</span>
                     <a-input v-if="row.valueMode === 'direct'" v-model:value="row.valueTemplate" placeholder="输入固定值" style="width:240px" />
                     <a-input v-else-if="row.valueMode === 'placeholder'" v-model:value="row.valueTemplate" placeholder="如 ${prop_dm_status}" style="width:240px" />
+                    <a-select
+                      v-else-if="row.valueMode === 'object'"
+                      v-model:value="row.valueTemplate"
+                      :options="ownPreconditionPropertyOptions"
+                      placeholder="选择触发对象属性"
+                      show-search
+                      option-filter-prop="label"
+                      style="width:240px"
+                    />
                     <a-input v-else-if="row.valueMode === 'relative'" v-model:value="row.valueTemplate" placeholder="数字或引用值" style="width:260px">
                       <template #addonBefore>
                         <a-select v-model:value="row.relativeOperator" :options="relativeOperatorOptions" style="width:92px" />
@@ -439,14 +481,21 @@
                     <div class="step-config-row step-condition-row">
                       <span class="condition-row-number">条件 {{ rowIndex + 1 }}</span>
                       <a-select v-if="rowIndex > 0" class="step-link-select" v-model:value="row.link" :options="conditionLinkOptions" style="width:90px" />
-                      <a-select class="step-property-select" v-model:value="row.propertyId" :options="step.propertyOptions" placeholder="选择条件属性" show-search option-filter-prop="label" style="width:190px" @change="syncStepConditionProperty(step, row)" />
-                      <a-select class="step-operator-select" v-model:value="row.operator" :options="conditionOperatorOptions" style="width:105px" />
+                      <div v-if="row.relationEndpoint" class="step-endpoint-label">
+                        <a-tag :color="row.relationEndpoint === 'SOURCE' ? 'blue' : 'purple'">{{ row.relationEndpoint === 'SOURCE' ? '主体' : '客体' }}</a-tag>
+                        <span>{{ row.endpointConceptName }}</span>
+                      </div>
+                      <a-select v-else class="step-property-select" v-model:value="row.propertyId" :options="step.propertyOptions" placeholder="选择条件属性" show-search option-filter-prop="label" style="width:190px" @change="syncStepConditionProperty(step, row)" />
+                      <span v-if="row.relationEndpoint" class="step-fixed-operator">等于</span>
+                      <a-select v-else class="step-operator-select" v-model:value="row.operator" :options="conditionOperatorOptions" style="width:105px" />
                       <a-checkbox v-model:checked="row.negate">非</a-checkbox>
-                      <a-button type="link" danger size="small" @click="step.conditionRows.splice(rowIndex, 1)">删除</a-button>
+                      <a-button v-if="!row.locked" type="link" danger size="small" @click="step.conditionRows.splice(rowIndex, 1)">删除</a-button>
                     </div>
                     <div class="step-condition-source">
-                      <span>值来自触发对象</span>
+                      <span>条件值来源</span>
+                      <a-select v-model:value="row.sourceType" :options="conditionValueSourceOptions" style="width:120px" @change="row.sourcePropertyCode = undefined" />
                       <a-select
+                        v-if="row.sourceType !== 'PARAM'"
                         v-model:value="row.sourcePropertyCode"
                         :options="ownPreconditionPropertyOptions"
                         placeholder="选择触发对象属性"
@@ -454,6 +503,7 @@
                         option-filter-prop="label"
                         style="width:200px"
                       />
+                      <a-input v-else v-model:value="row.sourcePropertyCode" placeholder="输入执行参数名" style="width:200px" />
                       <code>{{ conditionSourcePlaceholder(row) || '尚未选择' }}</code>
                     </div>
                   </div>
@@ -560,6 +610,14 @@
       </a-form>
     </a-modal>
 
+    <!-- AI 生成动作弹窗 -->
+    <AiGenerateDialog
+      v-model:open="aiGenerateOpen"
+      :concept-options="conceptOptions"
+      :ontology-id="ontologyId"
+      @use-action="handleAiGenerateUse"
+    />
+
     <!-- 提交执行对话框 -->
     <a-modal title="提交执行" v-model:open="execOpen" width="660px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="execSaving" @ok="submitExec" @cancel="execOpen = false">
       <a-alert
@@ -633,7 +691,22 @@
             :label="cfg.propName + (cfg.condition ? '（条件）' : '')"
             :required="!!cfg.required"
           >
-            <a-input v-model:value="execFormValues[cfg.paramName]" :placeholder="'请输入 ' + cfg.paramName" />
+            <a-select
+              v-if="isExecRelationObjectConfig(cfg)"
+              v-model:value="execFormValues[cfg.paramName]"
+              :options="execRelationObjectState(cfg).options"
+              :loading="execRelationObjectState(cfg).loading"
+              :placeholder="'搜索并选择' + cfg.propName"
+              show-search
+              allow-clear
+              :filter-option="false"
+              @search="keyword => searchExecRelationObjects(cfg, keyword)"
+              @dropdown-visible-change="open => open && searchExecRelationObjects(cfg, '')"
+            />
+            <a-input v-else v-model:value="execFormValues[cfg.paramName]" :placeholder="'请输入 ' + cfg.paramName" />
+            <div v-if="execRelationObjectState(cfg).error" class="modal-hint-line" style="color:#ff4d4f;">
+              {{ execRelationObjectState(cfg).error }}
+            </div>
           </a-form-item>
           <div v-if="execFixedConfigs.length" class="fixed-param-lines ontology-form-grid__full">
             <div class="modal-hint-line">以下参数已在动作定义中固定：</div>
@@ -837,17 +910,20 @@
 
 <script setup name="ActionPanel">
 import { listAction, getAction, addAction, updateAction, delAction, submitExecution, approveExecution, rejectExecution, runExecution, rollbackExecution, listExecution, getApprovalChain } from '@/api/ont/action'
-import { listConcept } from '@/api/ont/concept'
+import { listConcept, getConcept } from '@/api/ont/concept'
 import { listProperty } from '@/api/ont/property'
-import { listConceptTable } from '@/api/ont/conceptTable'
+import { listConceptTable, previewConceptTable } from '@/api/ont/conceptTable'
 import { listPropertyColumn } from '@/api/ont/propertyColumn'
-import { listFunction, getFunction } from '@/api/ont/function'
-import { listRelation } from '@/api/ont/relation'
+import { listFunction, getFunction, addFunction } from '@/api/ont/function'
+import { listRelation, getRelation } from '@/api/ont/relation'
+import { listRelationTable } from '@/api/ont/relationTable'
+import { listRelationColumn } from '@/api/ont/relationColumn'
 import { listObjectSets, queryObjects } from '@/api/ont/objectInstance'
 import { listSpaceUserRel } from '@/api/tax/spaceUserRel/spaceUserRel'
 import useUserStore from '@/store/system/user'
 import OntFilterBuilder from '@/components/OntFilterBuilder/index.vue'
-import { PlusOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, RobotOutlined } from '@ant-design/icons-vue'
+import AiGenerateDialog from './AiGenerateDialog.vue'
 
 const props = defineProps({
   ontologyId: {
@@ -862,6 +938,7 @@ const loading = ref(false)
 const actionList = ref([])
 const total = ref(0)
 const open = ref(false)
+const aiGenerateOpen = ref(false)
 const title = ref('')
 // 触发来源是每次运行的上下文，不属于动作定义；动作定义只决定是否需要一次人工确认。
 const executionMode = ref('DIRECT')
@@ -950,6 +1027,14 @@ const actionRelationOptions = computed(() =>
     .map(r => ({ value: r.code, label: `${r.name}（${r.code}）`, targetConceptId: r.targetConceptId }))
 )
 
+const stepRelationOptions = computed(() =>
+  ontologyRelations.value.map(r => ({
+    value: r.id,
+    code: r.code,
+    label: `${r.name}（${r.code} · ${r.relationType || 'relation'}）`
+  }))
+)
+
 function relatedPreconditionPropertyOptions(row) {
   const relation = ontologyRelations.value.find(r => r.code === row.relationCode)
   if (!relation) return []
@@ -960,7 +1045,7 @@ function relatedPreconditionPropertyOptions(row) {
 
 async function loadRelations() {
   const res = await listRelation({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 1000 })
-  ontologyRelations.value = res.data?.rows || []
+  ontologyRelations.value = Array.isArray(res.data) ? res.data : (res.data?.rows || [])
 }
 
 function newPreconditionRow() {
@@ -1376,9 +1461,10 @@ function scheduleExecutionRefresh() {
 }
 
 function loadConcepts() {
-  listConcept({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 100 }).then(res => {
-    const rows = (res.data && res.data.rows) || []
-    conceptOptions.value = rows.map(c => ({ value: c.id, label: c.name }))
+  return listConcept({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 1000 }).then(res => {
+    const rows = Array.isArray(res.data) ? res.data : ((res.data && res.data.rows) || [])
+    conceptOptions.value = rows.map(c => ({ value: c.id, label: c.name, code: c.code }))
+    return rows
   })
 }
 
@@ -1464,11 +1550,22 @@ const stepActionTypeOptions = [
   { value: 'UPDATE', label: '更新' },
   { value: 'DELETE', label: '删除' }
 ]
+const stepTargetTypeOptions = [
+  { value: 'CONCEPT', label: '对象' },
+  { value: 'RELATION', label: '关系' }
+]
+const conditionValueSourceOptions = [
+  { value: 'OBJECT', label: '触发对象' },
+  { value: 'PARAM', label: '执行参数' }
+]
 
 function newStepParamRow() {
   return {
     propertyId: undefined,
     propertyCode: undefined,
+    relationEndpoint: undefined,
+    endpointConceptName: undefined,
+    locked: false,
     valueMode: 'direct',
     valueTemplate: '',
     relativeOperator: 'SUBTRACT',
@@ -1480,6 +1577,10 @@ function newStepConditionRow() {
   return {
     propertyId: undefined,
     propertyCode: undefined,
+    relationEndpoint: undefined,
+    endpointConceptName: undefined,
+    locked: false,
+    sourceType: 'OBJECT',
     sourcePropertyCode: undefined,
     operator: 'eq',
     link: 'AND',
@@ -1492,11 +1593,20 @@ function addExecutionStep() {
     key: ++executionStepKey,
     name: '',
     actionType: 'UPDATE',
+    targetType: 'CONCEPT',
     conceptId: undefined,
+    relationId: undefined,
     propertyOptions: [],
     paramRows: [],
     conditionRows: []
   })
+}
+
+function changeStepTargetType(step) {
+  step.conceptId = undefined
+  step.relationId = undefined
+  step.propertyOptions = []
+  resetStepConfig(step)
 }
 
 function removeExecutionStep(index) {
@@ -1508,9 +1618,113 @@ function resetStepConfig(step) {
   step.conditionRows = []
 }
 
+function handleStepActionTypeChange(step) {
+  resetStepConfig(step)
+  if (step.targetType === 'RELATION' && step.relationId && step.relationConfig) {
+    initializeRelationEndpointRows(step)
+  }
+}
+
+function relationOfStep(step) {
+  return ontologyRelations.value.find(relation => String(relation.id) === String(step.relationId))
+}
+
+function conceptMeta(conceptId) {
+  return conceptOptions.value.find(concept => String(concept.value) === String(conceptId)) || {}
+}
+
+function triggerPrimaryPropertyCode() {
+  return propertyOptions.value.find(property => property.isPrimary)?.code || ''
+}
+
+function endpointParamRow(endpoint, conceptId, physicalColumn) {
+  const concept = conceptMeta(conceptId)
+  const triggerEndpoint = String(conceptId) === String(form.value.conceptId)
+  const paramName = `${concept.code || endpoint.toLowerCase()}Id`
+  return {
+    ...newStepParamRow(),
+    propertyId: physicalColumn,
+    propertyCode: physicalColumn,
+    relationEndpoint: endpoint,
+    endpointConceptName: concept.label || (endpoint === 'SOURCE' ? '主体概念' : '客体概念'),
+    locked: true,
+    required: true,
+    valueMode: triggerEndpoint ? 'object' : 'placeholder',
+    valueTemplate: triggerEndpoint ? triggerPrimaryPropertyCode() : `\${${paramName}}`
+  }
+}
+
+function endpointConditionRow(endpoint, conceptId, physicalColumn) {
+  const concept = conceptMeta(conceptId)
+  const triggerEndpoint = String(conceptId) === String(form.value.conceptId)
+  return {
+    ...newStepConditionRow(),
+    propertyId: physicalColumn,
+    propertyCode: physicalColumn,
+    relationEndpoint: endpoint,
+    endpointConceptName: concept.label || (endpoint === 'SOURCE' ? '主体概念' : '客体概念'),
+    locked: true,
+    sourceType: triggerEndpoint ? 'OBJECT' : 'PARAM',
+    sourcePropertyCode: triggerEndpoint
+      ? triggerPrimaryPropertyCode()
+      : `${concept.code || endpoint.toLowerCase()}Id`,
+    operator: 'eq'
+  }
+}
+
+function initializeRelationEndpointRows(step) {
+  const relation = relationOfStep(step)
+  const config = step.relationConfig || {}
+  if (!relation || !config.sourceColumn || !config.targetColumn) return
+  if (step.actionType === 'CREATE') {
+    step.paramRows = [
+      endpointParamRow('SOURCE', relation.sourceConceptId, config.sourceColumn),
+      endpointParamRow('TARGET', relation.targetConceptId, config.targetColumn)
+    ]
+  } else {
+    step.conditionRows = [
+      endpointConditionRow('SOURCE', relation.sourceConceptId, config.sourceColumn),
+      endpointConditionRow('TARGET', relation.targetConceptId, config.targetColumn)
+    ]
+  }
+}
+
 async function loadStepProperties(step, preserveRows = false) {
   step.propertyOptions = []
   if (!preserveRows) resetStepConfig(step)
+  if (step.targetType === 'RELATION') {
+    if (!step.relationId) return
+    const tableRes = await listRelationTable(step.relationId)
+    const tables = Array.isArray(tableRes.data) ? tableRes.data : (tableRes.data?.rows || [])
+    if (!tables.length) {
+      proxy.$modal.msgWarning('该关系尚未绑定关联表，不能配置关系写入步骤')
+      return
+    }
+    const config = parseRelationColumnConfig(tables[0].columnNames)
+    const relation = relationOfStep(step)
+    step.relationConfig = config
+    if (!config.sourceColumn || !config.targetColumn) {
+      proxy.$modal.msgWarning('该关系尚未配置主体外键列和客体外键列，请先在关系绑定中完成配置')
+      return
+    }
+    step.propertyOptions = [
+      {
+        value: config.sourceColumn,
+        code: config.sourceColumn,
+        relationEndpoint: 'SOURCE',
+        label: `主体：${conceptMeta(relation?.sourceConceptId).label || '源概念'}`
+      },
+      {
+        value: config.targetColumn,
+        code: config.targetColumn,
+        relationEndpoint: 'TARGET',
+        label: `客体：${conceptMeta(relation?.targetConceptId).label || '目标概念'}`
+      },
+      ...config.attributeColumns.map(column => ({ value: column, code: column, label: `关系属性：${column}` }))
+    ]
+    if (!preserveRows) initializeRelationEndpointRows(step)
+    return
+  }
   if (!step.conceptId) return
   const tableRes = await listConceptTable({ conceptId: step.conceptId })
   const tables = (tableRes.data && tableRes.data.rows) || tableRes.data || []
@@ -1528,8 +1742,41 @@ async function loadStepProperties(step, preserveRows = false) {
   })
 }
 
+function parseRelationColumnConfig(json) {
+  if (!json) return { sourceColumn: undefined, targetColumn: undefined, attributeColumns: [] }
+  try {
+    const value = typeof json === 'string' ? JSON.parse(json) : json
+    if (Array.isArray(value)) {
+      return {
+        sourceColumn: value[0],
+        targetColumn: value[1],
+        attributeColumns: value.slice(2).filter(Boolean)
+      }
+    }
+    if (value && typeof value === 'object') {
+      return {
+        sourceColumn: value.sourceColumn,
+        targetColumn: value.targetColumn,
+        attributeColumns: [...new Set([
+          ...(Array.isArray(value.attributeColumns) ? value.attributeColumns : []),
+          ...(Array.isArray(value.columns) ? value.columns : [])
+        ].filter(Boolean))]
+      }
+    }
+  } catch (e) {
+    return { sourceColumn: undefined, targetColumn: undefined, attributeColumns: [] }
+  }
+  return { sourceColumn: undefined, targetColumn: undefined, attributeColumns: [] }
+}
+
 function addStepParamRow(step) {
   step.paramRows.push(newStepParamRow())
+}
+
+function stepEditablePropertyOptions(step) {
+  return step.targetType === 'RELATION'
+    ? step.propertyOptions.filter(option => !option.relationEndpoint)
+    : step.propertyOptions
 }
 
 function addStepConditionRow(step) {
@@ -1558,17 +1805,21 @@ function conditionSourcePlaceholder(row) {
 function serializeStepConfig(step) {
   const config = step.paramRows.filter(r => r.propertyCode).map(r => ({
     propertyCode: r.propertyCode,
-    valueMode: r.valueMode || 'direct',
-    valueTemplate: r.valueTemplate || '',
+    relationEndpoint: r.relationEndpoint || undefined,
+    valueMode: r.valueMode === 'object' ? 'placeholder' : (r.valueMode || 'direct'),
+    valueTemplate: r.valueMode === 'object' ? `\${${r.valueTemplate || ''}}` : (r.valueTemplate || ''),
+    objectValue: r.valueMode === 'object' || undefined,
     relativeOperator: r.valueMode === 'relative' ? (r.relativeOperator || 'SUBTRACT') : undefined,
     required: !!r.required
   }))
   step.conditionRows.filter(r => r.propertyCode).forEach(r => config.push({
     propertyCode: r.propertyCode,
+    relationEndpoint: r.relationEndpoint || undefined,
     valueMode: 'placeholder',
     valueTemplate: `\${${r.sourcePropertyCode || r.propertyCode}}`,
     required: true,
     condition: true,
+    conditionValueSource: r.sourceType === 'PARAM' ? 'PARAM' : 'OBJECT',
     conditionOperator: r.operator || 'eq',
     conditionLink: r.link || 'AND',
     conditionNegate: !!r.negate
@@ -1579,7 +1830,11 @@ function serializeStepConfig(step) {
 function buildExecutionStepsJson() {
   if (!executionSteps.value.length) throw new Error('请至少添加一个执行步骤')
   const steps = executionSteps.value.map((step, index) => {
-    if (!step.conceptId) throw new Error(`步骤 ${index + 1} 未选择目标对象类型`)
+    if (step.targetType === 'RELATION') {
+      if (!step.relationId) throw new Error(`步骤 ${index + 1} 未选择目标关系`)
+    } else if (!step.conceptId) {
+      throw new Error(`步骤 ${index + 1} 未选择目标对象类型`)
+    }
     const config = serializeStepConfig(step)
     if (step.actionType === 'CREATE' && !config.some(c => !c.condition)) {
       throw new Error(`步骤 ${index + 1} 至少需要一个目标属性`)
@@ -1597,8 +1852,10 @@ function buildExecutionStepsJson() {
     return {
       stepNo: index + 1,
       name: step.name || `步骤 ${index + 1}`,
+      targetType: step.targetType || 'CONCEPT',
       actionType: step.actionType,
-      conceptId: step.conceptId,
+      conceptId: step.targetType === 'RELATION' ? undefined : step.conceptId,
+      relationId: step.targetType === 'RELATION' ? step.relationId : undefined,
       paramConfig: config
     }
   })
@@ -1609,11 +1866,14 @@ async function loadExecutionSteps(json) {
   executionSteps.value = []
   const saved = parseJsonArray(json)
   for (const item of (Array.isArray(saved) ? saved : [])) {
+    const targetType = String(item.targetType || '').toUpperCase() === 'RELATION' || item.relationId ? 'RELATION' : 'CONCEPT'
     const step = {
       key: ++executionStepKey,
       name: item.name || '',
       actionType: item.actionType || 'UPDATE',
+      targetType,
       conceptId: item.conceptId,
+      relationId: item.relationId,
       propertyOptions: [],
       paramRows: [],
       conditionRows: []
@@ -1622,11 +1882,22 @@ async function loadExecutionSteps(json) {
     await loadStepProperties(step, true)
     const config = parseJsonArray(item.paramConfig ?? item.param_config)
     config.forEach(c => {
-      const option = step.propertyOptions.find(o => o.code === c.propertyCode)
+      const option = step.propertyOptions.find(o =>
+        (c.relationEndpoint && o.relationEndpoint === c.relationEndpoint) || o.code === c.propertyCode)
+      const relationEndpoint = c.relationEndpoint || option?.relationEndpoint
+      const relation = relationOfStep(step)
+      const endpointConceptId = relationEndpoint === 'SOURCE'
+        ? relation?.sourceConceptId
+        : (relationEndpoint === 'TARGET' ? relation?.targetConceptId : undefined)
+      const endpointConceptName = relationEndpoint ? conceptMeta(endpointConceptId).label : undefined
       if (c.condition) {
         step.conditionRows.push({
           propertyId: option?.value,
-          propertyCode: c.propertyCode,
+          propertyCode: option?.code || c.propertyCode,
+          relationEndpoint,
+          endpointConceptName,
+          locked: !!relationEndpoint,
+          sourceType: String(c.conditionValueSource || '').toUpperCase() === 'PARAM' ? 'PARAM' : 'OBJECT',
           sourcePropertyCode: stripPlaceholder(c.valueTemplate) || c.propertyCode,
           operator: c.conditionOperator || 'eq',
           link: c.conditionLink === 'OR' ? 'OR' : 'AND',
@@ -1635,25 +1906,60 @@ async function loadExecutionSteps(json) {
       } else {
         step.paramRows.push({
           propertyId: option?.value,
-          propertyCode: c.propertyCode,
-          valueMode: ['direct', 'placeholder', 'relative', 'expression'].includes(c.valueMode) ? c.valueMode : 'direct',
-          valueTemplate: c.valueTemplate || '',
+          propertyCode: option?.code || c.propertyCode,
+          relationEndpoint,
+          endpointConceptName,
+          locked: !!relationEndpoint,
+          valueMode: c.objectValue ? 'object' : (['direct', 'placeholder', 'relative', 'expression'].includes(c.valueMode) ? c.valueMode : 'direct'),
+          valueTemplate: c.objectValue ? stripPlaceholder(c.valueTemplate) : (c.valueTemplate || ''),
           relativeOperator: c.relativeOperator === 'ADD' ? 'ADD' : 'SUBTRACT',
           required: !!c.required
         })
       }
     })
+    ensureRelationEndpointRows(step)
   }
 }
 
+function ensureRelationEndpointRows(step) {
+  if (step.targetType !== 'RELATION' || !step.relationConfig) return
+  const originalParams = step.paramRows
+  const originalConditions = step.conditionRows
+  step.paramRows = []
+  step.conditionRows = []
+  initializeRelationEndpointRows(step)
+  const defaultParams = step.paramRows
+  const defaultConditions = step.conditionRows
+  step.paramRows = [
+    ...defaultParams.filter(row => !originalParams.some(saved => saved.relationEndpoint === row.relationEndpoint)),
+    ...originalParams
+  ]
+  step.conditionRows = [
+    ...defaultConditions.filter(row => !originalConditions.some(saved => saved.relationEndpoint === row.relationEndpoint)),
+    ...originalConditions
+  ]
+}
+
 function flattenExecutionStepConfigs(json) {
-  return parseJsonArray(json).flatMap(step =>
-    parseJsonArray(step.paramConfig).map(config => ({
-      ...config,
-      stepName: step.name,
-      targetConceptId: step.conceptId
-    }))
-  )
+  return parseJsonArray(json).flatMap(step => {
+    const relation = ontologyRelations.value.find(item => String(item.id) === String(step.relationId))
+    return parseJsonArray(step.paramConfig).map(config => {
+      const endpoint = String(config.relationEndpoint || '').toUpperCase()
+      const endpointConceptId = endpoint === 'SOURCE'
+        ? relation?.sourceConceptId
+        : (endpoint === 'TARGET' ? relation?.targetConceptId : undefined)
+      return {
+        ...config,
+        relationEndpoint: endpoint || undefined,
+        endpointConceptId,
+        endpointConceptName: endpointConceptId ? conceptMeta(endpointConceptId).label : undefined,
+        stepName: step.name,
+        targetType: step.targetType || (step.relationId ? 'RELATION' : 'CONCEPT'),
+        targetConceptId: step.conceptId,
+        targetRelationId: step.relationId
+      }
+    })
+  })
 }
 
 /* ================= 单次人工确认人绑定（空间成员） ================= */
@@ -1782,6 +2088,178 @@ function handleAdd() {
   reset()
   open.value = true
   title.value = '新增动作'
+}
+
+function openAiGenerate() {
+  aiGenerateOpen.value = true
+}
+
+async function handleAiGenerateUse(action) {
+  aiGenerateOpen.value = false
+  reset()
+  form.value.name = action.actionName || ''
+  form.value.description = action.actionDescription || ''
+  form.value.actionType = action.actionType
+  form.value.conceptId = action.triggerConceptId || findConceptIdByCode(action.triggerConceptCode) || undefined
+  if (form.value.conceptId) {
+    await loadConceptProperties(form.value.conceptId)
+  }
+
+  if (action.actionType === 'COMPOSITE') {
+    // 解析 executionSteps，将 conceptCode/propertyCode 映射为 ID
+    const steps = parseJsonArray(action.executionSteps)
+    const resolvedSteps = []
+    for (const step of steps) {
+      const targetType = String(step.targetType || '').toUpperCase() === 'RELATION' || step.relationCode ? 'RELATION' : 'CONCEPT'
+      const conceptId = targetType === 'CONCEPT' ? findConceptIdByCode(step.conceptCode) : undefined
+      const relationId = targetType === 'RELATION' ? findRelationIdByCode(step.relationCode) : undefined
+      const resolvedStep = {
+        key: Date.now() + Math.random(),
+        name: step.name || step.relationCode || step.conceptCode || '未命名步骤',
+        actionType: step.actionType || 'UPDATE',
+        targetType,
+        conceptId: conceptId,
+        relationId: relationId,
+        paramRows: [],
+        conditionRows: [],
+        propertyOptions: []
+      }
+      // 解析 paramConfig
+      if (step.paramConfig && Array.isArray(step.paramConfig)) {
+        for (const pc of step.paramConfig) {
+          if (pc.condition) {
+            // 条件行
+            resolvedStep.conditionRows.push({
+              propertyId: undefined,
+              propertyCode: pc.propertyCode,
+              relationEndpoint: pc.relationEndpoint,
+              sourceType: String(pc.sourceType || pc.conditionValueSource || '').toUpperCase() === 'PARAM' ? 'PARAM' : 'OBJECT',
+              operator: pc.operator || 'eq',
+              negate: pc.negate || false,
+              link: 'AND',
+              sourcePropertyCode: pc.sourcePropertyCode || ''
+            })
+          } else {
+            resolvedStep.paramRows.push({
+              propertyId: undefined,
+              propertyCode: pc.propertyCode,
+              relationEndpoint: pc.relationEndpoint,
+              valueMode: pc.objectValue || String(pc.valueMode || '').toLowerCase() === 'object'
+                ? 'object' : (pc.valueMode || 'direct'),
+              valueTemplate: pc.objectValue || String(pc.valueMode || '').toLowerCase() === 'object'
+                ? stripPlaceholder(pc.valueTemplate || pc.sourcePropertyCode || '') : (pc.valueTemplate || ''),
+              required: false,
+              relativeOperator: 'ADD'
+            })
+          }
+        }
+      }
+      // 解析 conditionConfig（步骤级条件）
+      if (step.conditionConfig && Array.isArray(step.conditionConfig)) {
+        for (const cc of step.conditionConfig) {
+          resolvedStep.conditionRows.push({
+            propertyId: undefined,
+            propertyCode: cc.propertyCode,
+            relationEndpoint: cc.relationEndpoint,
+            sourceType: String(cc.sourceType || cc.conditionValueSource || '').toUpperCase() === 'PARAM' ? 'PARAM' : 'OBJECT',
+            operator: cc.operator || 'eq',
+            negate: cc.negate || false,
+            link: cc.link || 'AND',
+            sourcePropertyCode: cc.sourcePropertyCode || ''
+          })
+        }
+      }
+      resolvedSteps.push(resolvedStep)
+    }
+    executionSteps.value = resolvedSteps
+    // 异步加载每个步骤的属性选项
+    for (const step of resolvedSteps) {
+      if (step.conceptId || step.relationId) {
+        await loadStepProperties(step, true)
+        step.paramRows.forEach(row => {
+          const option = step.propertyOptions.find(item =>
+            (row.relationEndpoint && item.relationEndpoint === row.relationEndpoint) || item.code === row.propertyCode)
+          row.propertyId = option?.value
+          row.propertyCode = option?.code || row.propertyCode
+          if (option?.relationEndpoint) {
+            const relation = relationOfStep(step)
+            const conceptId = option.relationEndpoint === 'SOURCE' ? relation?.sourceConceptId : relation?.targetConceptId
+            row.relationEndpoint = option.relationEndpoint
+            row.endpointConceptName = conceptMeta(conceptId).label
+            row.locked = true
+            row.required = true
+          }
+        })
+        step.conditionRows.forEach(row => {
+          const option = step.propertyOptions.find(item =>
+            (row.relationEndpoint && item.relationEndpoint === row.relationEndpoint) || item.code === row.propertyCode)
+          row.propertyId = option?.value
+          row.propertyCode = option?.code || row.propertyCode
+          if (option?.relationEndpoint) {
+            const relation = relationOfStep(step)
+            const conceptId = option.relationEndpoint === 'SOURCE' ? relation?.sourceConceptId : relation?.targetConceptId
+            row.relationEndpoint = option.relationEndpoint
+            row.endpointConceptName = conceptMeta(conceptId).label
+            row.locked = true
+          }
+        })
+        ensureRelationEndpointRows(step)
+      }
+    }
+  } else if (action.actionType === 'FUNCTION') {
+    // FUNCTION 类型：先创建函数，再绑定到动作
+    createFunctionFromPreview(action)
+  }
+
+  open.value = true
+  title.value = 'AI 生成的动作'
+}
+
+async function createFunctionFromPreview(action) {
+  try {
+    const functionData = {
+      ontologyId: Number(props.ontologyId),
+      name: action.actionName || 'AI 生成函数',
+      code: genFunctionCode(action.actionName),
+      lang: action.functionLang || 'TYPESCRIPT',
+      body: action.functionBody || '',
+      params: action.functionParams || '[]',
+      description: action.actionDescription || ''
+    }
+    const res = await addFunction(functionData)
+    const functionId = res.data
+    form.value.functionId = functionId
+    // 设置来源/输出概念
+    if (action.sourceConceptCode) {
+      form.value.sourceConceptId = findConceptIdByCode(action.sourceConceptCode)
+    }
+    if (action.outputConceptCode) {
+      form.value.outputConceptId = findConceptIdByCode(action.outputConceptCode)
+    }
+    // 加载函数参数映射
+    if (functionId) {
+      handleFunctionChange(functionId)
+    }
+  } catch (e) {
+    proxy.$modal.msgError('创建函数失败：' + (e.message || '未知错误'))
+  }
+}
+
+function genFunctionCode(name) {
+  const base = (name || 'ai_func').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').toLowerCase()
+  return base + '_' + Date.now().toString(36)
+}
+
+function findConceptIdByCode(code) {
+  if (!code) return undefined
+  const found = conceptOptions.value.find(c => c.code === code || String(c.value) === String(code) || c.label === code)
+  return found ? found.value : undefined
+}
+
+function findRelationIdByCode(code) {
+  if (!code) return undefined
+  const found = ontologyRelations.value.find(r => r.code === code || String(r.id) === String(code) || r.name === code)
+  return found ? found.id : undefined
 }
 
 function handleUpdate(row) {
@@ -1973,6 +2451,10 @@ const execObjectPagination = reactive({ current: 1, pageSize: 8, total: 0, showS
 // 动作参数配置（PARAM_CONFIG）：配置驱动时按属性渲染表单，否则回退手工JSON
 const execParamConfigs = ref([])
 const execFormValues = reactive({})
+const execRelationObjectStates = reactive({})
+let execAllObjectSets = []
+const execRelationSearchTimers = new Map()
+const emptyRelationObjectState = { options: [], loading: false, error: '' }
 
 const hasParamConfig = computed(() => execParamConfigs.value.length > 0)
 
@@ -1996,6 +2478,13 @@ function recordValue(record, property) {
   return undefined
 }
 
+function recordColumnValue(record, columnName) {
+  if (!record || !columnName) return undefined
+  if (Object.prototype.hasOwnProperty.call(record, columnName)) return record[columnName]
+  const actualKey = Object.keys(record).find(key => String(key).toLowerCase() === String(columnName).toLowerCase())
+  return actualKey === undefined ? undefined : record[actualKey]
+}
+
 // 入参引用型：执行时需用户填写
 const execPlaceholderConfigs = computed(() =>
   execParamConfigs.value
@@ -2004,30 +2493,280 @@ const execPlaceholderConfigs = computed(() =>
     .map(c => ({
       ...c,
       paramName: stripPlaceholder(c.valueTemplate),
-      propName: propertyCodeNameMap.value[c.propertyCode] || c.propertyCode,
+      propName: relationEndpointDisplayName(c),
       required: c.valueMode === 'relative' || !!c.required
     }))
 )
 
+function relationEndpointDisplayName(cfg) {
+  if (cfg?.endpointConceptName) return cfg.endpointConceptName
+  const endpoint = String(cfg?.relationEndpoint || '').toUpperCase()
+  if (cfg?.targetRelationId && endpoint) {
+    const relation = ontologyRelations.value.find(r => String(r.id) === String(cfg.targetRelationId))
+    const conceptId = endpoint === 'SOURCE' ? relation?.sourceConceptId : relation?.targetConceptId
+    const concept = conceptMeta(conceptId)
+    if (concept.label) return concept.label
+    if (concept.name) return concept.name
+  }
+  return propertyCodeNameMap.value[cfg?.propertyCode] || cfg?.propertyCode
+}
+
+function normalizeRelationEndpointInput(config) {
+  const endpoint = String(config?.relationEndpoint || '').toUpperCase()
+  if (!endpoint || !config?.endpointConceptId) return
+  // 关系端点的执行参数使用概念语义名（如 companyId），不把关系表物理列名
+  //（如 company_id）暴露给用户；物理列仍保留在 propertyCode 中供后端写入。
+  const concept = conceptMeta(config.endpointConceptId)
+  const paramName = concept.code
+    ? `${concept.code}Id`
+    : (endpoint === 'TARGET' ? 'targetId' : 'sourceId')
+  const isParamValue = !config.condition || String(config.conditionValueSource || '').toUpperCase() === 'PARAM'
+  if (isParamValue && !config.objectValue) {
+    config.valueMode = 'placeholder'
+    config.valueTemplate = `\${${paramName}}`
+  }
+}
+
 // 条件字段的占位符由所选对象自动提供；这里只让用户填写真正的动作输入（如新状态）。
-const execEditablePlaceholderConfigs = computed(() =>
-  execPlaceholderConfigs.value.filter(c => !c.condition)
-)
+const execEditablePlaceholderConfigs = computed(() => {
+  const seen = new Set()
+  return execPlaceholderConfigs.value.filter(c => {
+    if (c.objectValue || (c.condition && c.conditionValueSource !== 'PARAM')) return false
+    if (!c.paramName || seen.has(c.paramName)) return false
+    seen.add(c.paramName)
+    return true
+  })
+})
+
+function execRelationObjectState(cfg) {
+  return execRelationObjectStates[cfg.paramName] || emptyRelationObjectState
+}
+
+function isExecRelationObjectConfig(cfg) {
+  const endpoint = String(cfg?.relationEndpoint || '').toUpperCase()
+  return !!cfg?.targetRelationId
+    && (!!cfg.endpointConceptId || endpoint === 'SOURCE' || endpoint === 'TARGET')
+}
+
+function relationObjectOptionLabel(objectSet, record, objectKey) {
+  const properties = objectSet?.properties || []
+  const displayProperty = properties.find(property => !property.isPrimary
+      && /(name|title|label|名称|全称|简称)/i.test(`${property.propertyCode || ''} ${property.propertyName || ''}`))
+    || properties.find(property => !property.isPrimary
+      && /(code|编码)/i.test(`${property.propertyCode || ''} ${property.propertyName || ''}`))
+    || properties.find(property => !property.isPrimary)
+  const displayValue = displayProperty ? recordValue(record, displayProperty) : undefined
+  if (displayValue !== undefined && displayValue !== null && String(displayValue) !== String(objectKey)) {
+    return `${displayValue}（${objectKey}）`
+  }
+  return String(objectKey)
+}
+
+async function loadExecRelationObjects(cfg, keyword = '') {
+  if (!isExecRelationObjectConfig(cfg) || !cfg.paramName) return
+  const state = execRelationObjectStates[cfg.paramName]
+    || (execRelationObjectStates[cfg.paramName] = { options: [], loading: false, requestNo: 0, error: '' })
+  const requestNo = ++state.requestNo
+  state.loading = true
+  state.error = ''
+  try {
+    if (!cfg.endpointConceptId) {
+      await hydrateExecRelationEndpoints()
+    }
+    if (!cfg.endpointConceptId) {
+      state.options = []
+      return
+    }
+    if (!execAllObjectSets.length) {
+      const setRes = await listObjectSets(props.ontologyId)
+      execAllObjectSets = setRes.data || []
+    }
+    const endpointObjectSets = execAllObjectSets.filter(item =>
+      String(item.conceptId) === String(cfg.endpointConceptId))
+    if (!cfg.endpointConceptTableId || !cfg.endpointReferenceColumn) {
+      state.options = []
+      state.error = `关系字段映射尚未指定${cfg.endpointConceptName || '端点'}的绑定表和取值字段`
+      return
+    }
+    const objectSet = endpointObjectSets.find(item =>
+      String(item.tableBindingId) === String(cfg.endpointConceptTableId))
+    if (!objectSet) {
+      state.options = []
+      state.error = `未找到${cfg.endpointConceptName || '关系端点'}对应的表绑定`
+      return
+    }
+    const filterSpec = { groups: [], orderBy: [], columns: [], keyword: keyword || '' }
+    let rows = []
+    let previewLoaded = false
+    try {
+      const res = await queryObjects({
+        ontologyId: props.ontologyId,
+        conceptId: objectSet.conceptId,
+        tableBindingId: objectSet.tableBindingId,
+        pageNum: 1,
+        pageSize: 30,
+        filters: JSON.stringify(filterSpec)
+      })
+      rows = res.data?.rows || []
+    } catch (queryError) {
+      try {
+        const previewRes = await previewConceptTable(objectSet.tableBindingId, 30, filterSpec)
+        rows = previewRes.data?.rows || []
+        previewLoaded = true
+      } catch (previewError) {
+        state.error = previewError?.response?.data?.msg || previewError?.message || '公司实体加载失败'
+        return
+      }
+    }
+    if (!rows.length && !previewLoaded) {
+      try {
+        const previewRes = await previewConceptTable(objectSet.tableBindingId, 30, filterSpec)
+        rows = previewRes.data?.rows || []
+      } catch (e) {
+        // 主查询已成功时，兜底失败不覆盖其结果状态。
+      }
+    }
+    if (requestNo !== state.requestNo) return
+    state.options = rows.map(record => {
+      const referenceValue = recordColumnValue(record, cfg.endpointReferenceColumn)
+      const key = referenceValue === undefined || referenceValue === null ? '' : String(referenceValue)
+      return {
+        value: key,
+        label: relationObjectOptionLabel(objectSet, record, key),
+        disabled: !key
+      }
+    }).filter(option => !!option.value)
+    if (!state.options.length) {
+      state.error = `未从 ${objectSet.tableName || '目标表'} 查询到可引用实体`
+    }
+  } finally {
+    if (requestNo === state.requestNo) state.loading = false
+  }
+}
+
+function searchExecRelationObjects(cfg, keyword) {
+  const oldTimer = execRelationSearchTimers.get(cfg.paramName)
+  if (oldTimer) clearTimeout(oldTimer)
+  const timer = setTimeout(() => loadExecRelationObjects(cfg, keyword).catch(() => {}), 250)
+  execRelationSearchTimers.set(cfg.paramName, timer)
+}
+
+function prepareExecRelationObjectSelectors() {
+  Object.keys(execRelationObjectStates).forEach(key => delete execRelationObjectStates[key])
+  execEditablePlaceholderConfigs.value
+    .filter(isExecRelationObjectConfig)
+    .forEach(cfg => {
+      execRelationObjectStates[cfg.paramName] = { options: [], loading: false, requestNo: 0, error: '' }
+      loadExecRelationObjects(cfg).catch(() => {})
+    })
+}
+
+async function hydrateExecRelationEndpoints() {
+  const relationIds = [...new Set(execParamConfigs.value
+    // 每次执行都以当前 RelationColumn 为准，避免动作里残留旧的端点表/字段配置。
+    .filter(config => config.targetRelationId)
+    .map(config => config.targetRelationId))]
+  if (!relationIds.length) return
+  const junctionConfigsByRelation = {}
+  const endpointMappingsByRelation = {}
+  const relationById = {}
+  await Promise.all(relationIds.map(async relationId => {
+    const relationKey = String(relationId)
+    const cachedRelation = ontologyRelations.value.find(item => String(item.id) === relationKey)
+    relationById[relationKey] = cachedRelation
+
+    // 已明确 SOURCE/TARGET 时只需要关系两端的概念，不应被关系表字段请求失败拖累。
+    if (!cachedRelation?.sourceConceptId || !cachedRelation?.targetConceptId) {
+      try {
+        const relationRes = await getRelation(relationId)
+        relationById[relationKey] = relationRes.data || cachedRelation
+      } catch (e) {
+        relationById[relationKey] = cachedRelation
+      }
+    }
+
+    const [columnResult, tableResult] = await Promise.allSettled([
+      listRelationColumn(relationId),
+      listRelationTable(relationId)
+    ])
+    if (columnResult.status === 'fulfilled') {
+      const mappings = Array.isArray(columnResult.value.data)
+        ? columnResult.value.data : (columnResult.value.data?.rows || [])
+      endpointMappingsByRelation[relationKey] = mappings[0] || null
+    }
+    if (tableResult.status === 'fulfilled') {
+      const tables = Array.isArray(tableResult.value.data)
+        ? tableResult.value.data : (tableResult.value.data?.rows || [])
+      junctionConfigsByRelation[relationKey] = tables.length
+        ? parseRelationColumnConfig(tables[0].columnNames) : null
+    }
+  }))
+  execParamConfigs.value.forEach(config => {
+    if (!config.targetRelationId) return
+    const relationKey = String(config.targetRelationId)
+    const junctionConfig = junctionConfigsByRelation[relationKey]
+    const endpointMapping = endpointMappingsByRelation[relationKey]
+    const endpoint = String(config.relationEndpoint || '').toUpperCase()
+      || (config.propertyCode === junctionConfig?.sourceColumn
+        ? 'SOURCE'
+        : (config.propertyCode === junctionConfig?.targetColumn ? 'TARGET' : undefined))
+    if (!endpoint) return
+    const relation = relationById[relationKey]
+      || ontologyRelations.value.find(item => String(item.id) === String(config.targetRelationId))
+    const endpointConceptId = endpoint === 'SOURCE' ? relation?.sourceConceptId : relation?.targetConceptId
+    config.relationEndpoint = endpoint
+    config.endpointConceptId = endpointConceptId
+    config.endpointConceptTableId = endpoint === 'SOURCE'
+      ? endpointMapping?.sourceConceptTableId
+      : endpointMapping?.targetConceptTableId
+    config.endpointReferenceColumn = endpoint === 'SOURCE'
+      ? endpointMapping?.sourceColumn
+      : endpointMapping?.targetColumn
+    config.endpointConceptName = endpointConceptId ? conceptMeta(endpointConceptId).label : undefined
+  })
+
+  // 概念列表可能尚未加载完整；补拉关系端点概念，确保执行参数显示“公司/人物”而不是物理列名。
+  const endpointConceptIds = [...new Set(execParamConfigs.value.map(config => {
+    const relation = relationById[String(config.targetRelationId)]
+      || ontologyRelations.value.find(item => String(item.id) === String(config.targetRelationId))
+    const endpoint = String(config.relationEndpoint || '').toUpperCase()
+    return endpoint === 'SOURCE' ? relation?.sourceConceptId
+      : (endpoint === 'TARGET' ? relation?.targetConceptId : undefined)
+  }).filter(Boolean))]
+  await Promise.all(endpointConceptIds.map(async conceptId => {
+    if (conceptOptions.value.some(option => String(option.value) === String(conceptId))) return
+    try {
+      const res = await getConcept(conceptId)
+      const concept = res.data
+      if (concept?.id) conceptOptions.value.push({ value: concept.id, label: concept.name, code: concept.code })
+    } catch (e) {
+      // 名称补拉失败时仍保留端点配置，执行查询不受影响。
+    }
+  }))
+  execParamConfigs.value.forEach(config => {
+    if (config.endpointConceptId && !config.endpointConceptName) {
+      config.endpointConceptName = relationEndpointDisplayName(config)
+    }
+    normalizeRelationEndpointInput(config)
+  })
+}
 
 const execConditionValueConfigs = computed(() => {
   const properties = execObjectSet.value?.properties || []
-  return execParamConfigs.value.filter(c => c.condition).map((cfg, index) => {
+  return execParamConfigs.value
+    .filter(c => c.objectValue || (c.condition && c.conditionValueSource !== 'PARAM'))
+    .map((cfg, index) => {
     const sourceCode = stripPlaceholder(cfg.valueTemplate) || cfg.propertyCode
     const sourceProperty = properties.find(p => p.propertyCode === sourceCode)
     const operator = conditionOperatorOptions.find(option => option.value === (cfg.conditionOperator || 'eq'))
     return {
-      key: `${cfg.targetConceptId || ''}-${cfg.propertyCode}-${index}`,
-      targetName: propertyCodeNameMap.value[cfg.propertyCode] || cfg.propertyCode,
+      key: `${cfg.targetConceptId || cfg.targetRelationId || ''}-${cfg.propertyCode}-${index}`,
+      targetName: relationEndpointDisplayName(cfg),
       sourceName: sourceProperty?.propertyName || sourceCode,
-      operatorText: operator?.label || '等于',
+      operatorText: cfg.objectValue ? '自动取值' : (operator?.label || '等于'),
       value: recordValue(execSelectedObject.value, sourceProperty)
     }
-  })
+    })
 })
 
 const execObjectRowSelection = computed(() => ({
@@ -2043,7 +2782,7 @@ const execFixedConfigs = computed(() =>
       || (c.valueMode === 'relative' && /^\$\{[^}]+\}$/.test(String(c.valueTemplate || '').trim()))))
     .map(c => ({
       ...c,
-      propName: propertyCodeNameMap.value[c.propertyCode] || c.propertyCode,
+      propName: relationEndpointDisplayName(c),
       modeText: c.valueMode === 'direct' ? '固定值'
         : c.valueMode === 'relative' ? '当前值运算' : '表达式',
       display: c.valueMode === 'relative'
@@ -2121,13 +2860,15 @@ function selectExecObject(keys, rows) {
   if (!execSelectedObject.value || !execObjectSet.value) return
   const propertyByCode = {}
   ;(execObjectSet.value.properties || []).forEach(p => { propertyByCode[p.propertyCode] = p })
-  execPlaceholderConfigs.value.filter(c => c.condition).forEach(cfg => {
+  execPlaceholderConfigs.value
+    .filter(c => c.condition && c.conditionValueSource !== 'PARAM')
+    .forEach(cfg => {
     const sourceCode = stripPlaceholder(cfg.valueTemplate) || cfg.propertyCode
     const property = propertyByCode[sourceCode]
     if (property) {
       execFormValues[cfg.paramName] = recordValue(execSelectedObject.value, property)
     }
-  })
+    })
 }
 
 function handleExecObjectTableChange(pagination) {
@@ -2135,13 +2876,24 @@ function handleExecObjectTableChange(pagination) {
   loadExecObjects()
 }
 
-function openSubmitExec(row) {
-  execAction.value = row
+async function openSubmitExec(row) {
+  // 列表接口可能只返回摘要字段；执行前读取动作详情，确保多目标步骤中的 relationId、端点标记完整。
+  let action = row
+  if (row?.id) {
+    try {
+      const detail = await getAction(row.id)
+      action = detail.data || row
+    } catch (e) {
+      action = row
+    }
+  }
+  await Promise.allSettled([loadRelations(), loadConcepts()])
+  execAction.value = action
   execObjectKey.value = ''
   inputParams.value = '{}'
-  execParamConfigs.value = row.actionType === 'COMPOSITE'
-    ? flattenExecutionStepConfigs(row.executionSteps)
-    : parseParamConfig(row.paramConfig)
+  execParamConfigs.value = action.actionType === 'COMPOSITE'
+    ? flattenExecutionStepConfigs(action.executionSteps ?? action.execution_steps)
+    : parseParamConfig(action.paramConfig ?? action.param_config)
   execObjectSet.value = null
   execObjectRows.value = []
   execObjectSelectedKeys.value = []
@@ -2149,28 +2901,53 @@ function openSubmitExec(row) {
   execObjectPagination.current = 1
   execObjectFilterSpec.value = { groups: [{ connector: 'AND', filters: [] }], orderBy: [], columns: [], keyword: '' }
   Object.keys(execFormValues).forEach(k => delete execFormValues[k])
-  if (row.actionType === 'FUNCTION') {
-    const functionId = row.functionId
-    functionParamsMap.value[row.id] = []
+  await hydrateExecRelationEndpoints()
+  prepareExecRelationObjectSelectors()
+  if (action.actionType === 'FUNCTION') {
+    const functionId = action.functionId
+    functionParamsMap.value[action.id] = []
     if (functionId) {
       getFunction(functionId).then(res => {
         const fn = res.data || {}
-        functionParamsMap.value[row.id] = parseFunctionParams(fn.params)
+        functionParamsMap.value[action.id] = parseFunctionParams(fn.params)
       }).catch(() => {
-        functionParamsMap.value[row.id] = []
+        functionParamsMap.value[action.id] = []
       })
     }
   }
   execOpen.value = true
-  if (row.actionType !== 'FUNCTION' && row.actionType !== 'CREATE') {
+  if (action.actionType !== 'FUNCTION' && action.actionType !== 'CREATE') {
     loadExecObjectSet().catch(() => {})
   }
 }
 
 function submissionSuccessText(record) {
   if (record && record.status === 'PENDING_APPROVAL') return '已提交，等待人工确认'
+  if (record && record.status === 'EXECUTED') return '执行完成'
   if (record && record.autoExecute) return '已提交，正在自动执行'
   return '已提交'
+}
+
+// 页面上的“执行”是一次完整操作：无需人工确认时，提交预览成功后立即落库执行。
+// 需要人工确认的动作仍停在 PENDING_APPROVAL；自动触发动作仍由 Worker 领取。
+function submitAndExecuteImmediately(payload) {
+  return submitExecution(payload).then(res => {
+    const submitted = res.data
+    const isManualExecution = !submitted?.triggerType || submitted.triggerType === 'MANUAL'
+    if (submitted?.status === 'APPROVED' && submitted.id
+      && (isManualExecution || !submitted.autoExecute)) {
+      return runExecution(submitted.id).then(runRes => runRes.data || submitted)
+    }
+    return submitted
+  })
+}
+
+function notifyExecutionResult(record) {
+  if (record?.status === 'FAILED') {
+    proxy.$modal.msgError(record.errorMessage ? `执行失败：${record.errorMessage}` : '执行失败')
+    return
+  }
+  proxy.$modal.msgSuccess(submissionSuccessText(record))
 }
 
 function submitExec() {
@@ -2182,8 +2959,8 @@ function submitExec() {
     })
     const input = JSON.stringify(params)
     execSaving.value = true
-    submitExecution({ actionId: execAction.value.id, inputParams: input, objectKey: execObjectKey.value || undefined }).then(res => {
-      proxy.$modal.msgSuccess(submissionSuccessText(res.data))
+    submitAndExecuteImmediately({ actionId: execAction.value.id, inputParams: input, objectKey: execObjectKey.value || undefined }).then(record => {
+      notifyExecutionResult(record)
       execOpen.value = false
       loadExecutions()
     }).finally(() => {
@@ -2220,8 +2997,8 @@ function submitExec() {
     }
   }
   execSaving.value = true
-  submitExecution({ actionId: execAction.value.id, inputParams: JSON.stringify(params), objectKey: execObjectKey.value || undefined }).then(res => {
-    proxy.$modal.msgSuccess(submissionSuccessText(res.data))
+  submitAndExecuteImmediately({ actionId: execAction.value.id, inputParams: JSON.stringify(params), objectKey: execObjectKey.value || undefined }).then(record => {
+    notifyExecutionResult(record)
     execOpen.value = false
     loadExecutions()
   }).finally(() => {
@@ -3035,6 +3812,21 @@ onBeforeUnmount(clearExecutionRefresh)
 
     .step-property-select {
       width: 210px;
+    }
+
+    .step-endpoint-label {
+      display: flex;
+      width: 210px;
+      align-items: center;
+      gap: 6px;
+      color: #344054;
+      font-weight: 600;
+    }
+
+    .step-fixed-operator {
+      width: 105px;
+      color: #667085;
+      text-align: center;
     }
 
     .step-mode-select,
