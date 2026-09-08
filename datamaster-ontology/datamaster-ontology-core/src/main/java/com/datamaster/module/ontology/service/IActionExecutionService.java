@@ -22,6 +22,13 @@ public interface IActionExecutionService {
         return executeExecution(executionId, true);
     }
 
+    /** 执行已批准动作，并可在人工执行阶段覆盖补充引用参数。 */
+    default ExecutionRespVO executeExecution(Long executionId, String inputParams) {
+        return executeExecution(executionId, inputParams, true);
+    }
+
+    ExecutionRespVO executeExecution(Long executionId, String inputParams, boolean triggerWebhook);
+
     /**
      * 执行已批准的动作
      *

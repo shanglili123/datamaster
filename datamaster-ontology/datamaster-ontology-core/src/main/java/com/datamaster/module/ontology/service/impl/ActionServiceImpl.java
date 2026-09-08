@@ -9,12 +9,14 @@ import com.datamaster.module.ontology.dal.dataobject.ActionExecutionDO;
 import com.datamaster.module.ontology.dal.dataobject.ConceptDO;
 import com.datamaster.module.ontology.dal.dataobject.ConceptTableDO;
 import com.datamaster.module.ontology.dal.dataobject.RelationDO;
+import com.datamaster.module.ontology.dal.dataobject.RelationColumnDO;
 import com.datamaster.module.ontology.dal.dataobject.RelationTableDO;
 import com.datamaster.module.ontology.dal.mapper.ActionExecutionMapper;
 import com.datamaster.module.ontology.dal.mapper.ActionMapper;
 import com.datamaster.module.ontology.dal.mapper.ConceptMapper;
 import com.datamaster.module.ontology.dal.mapper.ConceptTableMapper;
 import com.datamaster.module.ontology.dal.mapper.RelationMapper;
+import com.datamaster.module.ontology.dal.mapper.RelationColumnMapper;
 import com.datamaster.module.ontology.dal.mapper.RelationTableMapper;
 import com.datamaster.module.ontology.service.IActionService;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
@@ -50,6 +52,8 @@ public class ActionServiceImpl implements IActionService {
     private ConceptTableMapper conceptTableMapper;
     @Resource
     private RelationMapper relationMapper;
+    @Resource
+    private RelationColumnMapper relationColumnMapper;
     @Resource
     private RelationTableMapper relationTableMapper;
 
@@ -125,15 +129,11 @@ public class ActionServiceImpl implements IActionService {
                             else if (config.hasNonNull("propertyCode")) targetCount++;
                         }
                     }
-                    if (("CREATE".equals(type) || "UPDATE".equals(type)) && targetCount == 0) {
-                        throw new RuntimeException("执行步骤 " + (i + 1) + " 至少需要一个目标属性");
-                    }
-                    if (("UPDATE".equals(type) || "DELETE".equals(type)) && conditionCount == 0) {
-                        throw new RuntimeException("执行步骤 " + (i + 1) + " 至少需要一个条件");
-                    }
-                    String targetType = step.hasNonNull("targetType")
-                            ? step.path("targetType").asText("CONCEPT").toUpperCase()
-                            : (step.hasNonNull("relationId") ? "RELATION" : "CONCEPT");
+                    // relationId 是关系步骤的权威标识。兼容旧数据中 targetType 缺失或误存为 CONCEPT，
+                    // 避免关系更新被普通对象校验误判为“至少需要一个条件”。
+                    String targetType = step.hasNonNull("relationId")
+                            ? "RELATION"
+                            : step.path("targetType").asText("CONCEPT").toUpperCase();
                     Long currentDatasourceId;
                     if ("RELATION".equals(targetType)) {
                         if (!step.hasNonNull("relationId")) {
@@ -144,14 +144,58 @@ public class ActionServiceImpl implements IActionService {
                         if (relation == null || !Objects.equals(relation.getOntologyId(), reqVO.getOntologyId())) {
                             throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标关系不属于当前本体");
                         }
-                        List<RelationTableDO> tables = relationTableMapper.selectByRelationId(relationId);
-                        if (tables == null || tables.isEmpty() || tables.get(0).getDatasourceId() == null) {
-                            throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标关系未绑定关联表或数据源");
+                        if ("UPDATE".equals(type)
+                                && !Objects.equals(reqVO.getConceptId(), relation.getSourceConceptId())
+                                && !Objects.equals(reqVO.getConceptId(), relation.getTargetConceptId())) {
+                            throw new RuntimeException("执行步骤 " + (i + 1)
+                                    + " 更新关系时，动作触发对象必须是该关系的主体或客体");
                         }
-                        RelationTableDO relationTable = tables.get(0);
-                        validateRelationStepColumns(paramConfig, relationTable, i + 1);
-                        currentDatasourceId = relationTable.getDatasourceId();
+                        validateRelationEndpointValues(paramConfig, i + 1);
+                        List<RelationTableDO> tables = relationTableMapper.selectByRelationId(relationId);
+                        if (tables != null && !tables.isEmpty()) {
+                            RelationTableDO relationTable = tables.get(0);
+                            if (relationTable.getDatasourceId() == null) {
+                                throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标关系关联表缺少数据源");
+                            }
+                            validateRelationStepColumns(paramConfig, relationTable, i + 1);
+                            currentDatasourceId = relationTable.getDatasourceId();
+                        } else {
+                            List<RelationColumnDO> bindings = relationColumnMapper.selectByRelationId(relationId);
+                            if (bindings == null || bindings.isEmpty()) {
+                                throw new RuntimeException("执行步骤 " + (i + 1) + " 的目标关系未配置字段映射");
+                            }
+                            if ("many_to_many".equalsIgnoreCase(relation.getRelationType())) {
+                                throw new RuntimeException("执行步骤 " + (i + 1) + " 的多对多关系必须绑定关系表");
+                            }
+                            RelationColumnDO binding = bindings.get(0);
+                            ConceptTableDO sourceTable = binding.getSourceConceptTableId() == null
+                                    ? null : conceptTableMapper.selectById(binding.getSourceConceptTableId());
+                            ConceptTableDO targetTable = binding.getTargetConceptTableId() == null
+                                    ? null : conceptTableMapper.selectById(binding.getTargetConceptTableId());
+                            if (sourceTable == null || targetTable == null
+                                    || sourceTable.getDatasourceId() == null || targetTable.getDatasourceId() == null) {
+                                throw new RuntimeException("执行步骤 " + (i + 1) + " 的关系两端未完成数据源绑定");
+                            }
+                            if (!Objects.equals(sourceTable.getDatasourceId(), targetTable.getDatasourceId())) {
+                                throw new RuntimeException("执行步骤 " + (i + 1) + " 的直接外键关系两端必须位于同一数据源");
+                            }
+                            if (binding.getSourceColumn() == null || binding.getSourceColumn().trim().isEmpty()
+                                    || binding.getTargetColumn() == null || binding.getTargetColumn().trim().isEmpty()) {
+                                throw new RuntimeException("执行步骤 " + (i + 1) + " 的关系字段映射不完整");
+                            }
+                            for (JsonNode config : paramConfig) {
+                                if (!config.hasNonNull("propertyCode") || config.hasNonNull("relationEndpoint")) continue;
+                                throw new RuntimeException("执行步骤 " + (i + 1) + " 使用直接外键关系，不能配置关系表属性");
+                            }
+                            currentDatasourceId = sourceTable.getDatasourceId();
+                        }
                     } else if ("CONCEPT".equals(targetType)) {
+                        if (("CREATE".equals(type) || "UPDATE".equals(type)) && targetCount == 0) {
+                            throw new RuntimeException("执行步骤 " + (i + 1) + " 至少需要一个目标属性");
+                        }
+                        if (("UPDATE".equals(type) || "DELETE".equals(type)) && conditionCount == 0) {
+                            throw new RuntimeException("执行步骤 " + (i + 1) + " 至少需要一个条件");
+                        }
                         if (!step.hasNonNull("conceptId")) {
                             throw new RuntimeException("执行步骤 " + (i + 1) + " 缺少目标对象类型");
                         }
@@ -216,16 +260,28 @@ public class ActionServiceImpl implements IActionService {
         if (!paramConfig.isArray()) return;
         for (JsonNode config : paramConfig) {
             String propertyCode = config.path("propertyCode").asText(null);
+            String endpoint = config.path("relationEndpoint").asText("").toUpperCase();
+            if ("SOURCE".equals(endpoint) || "TARGET".equals(endpoint)) {
+                continue;
+            }
             if (propertyCode != null && !writableColumns.contains(propertyCode)) {
                 throw new RuntimeException("执行步骤 " + stepNo + " 的关系字段不存在或不可写: " + propertyCode);
             }
-            String endpoint = config.path("relationEndpoint").asText("").toUpperCase();
-            if ("SOURCE".equals(endpoint) && !Objects.equals(sourceColumn, propertyCode)) {
-                throw new RuntimeException("执行步骤 " + stepNo + " 的主体端点字段与关系绑定不一致");
+        }
+    }
+
+    private void validateRelationEndpointValues(JsonNode paramConfig, int stepNo) {
+        boolean source = false;
+        boolean target = false;
+        if (paramConfig.isArray()) {
+            for (JsonNode config : paramConfig) {
+                String endpoint = config.path("relationEndpoint").asText("").toUpperCase();
+                if ("SOURCE".equals(endpoint)) source = true;
+                if ("TARGET".equals(endpoint)) target = true;
             }
-            if ("TARGET".equals(endpoint) && !Objects.equals(targetColumn, propertyCode)) {
-                throw new RuntimeException("执行步骤 " + stepNo + " 的客体端点字段与关系绑定不一致");
-            }
+        }
+        if (!source || !target) {
+            throw new RuntimeException("执行步骤 " + stepNo + " 必须同时配置主体值和客体值");
         }
     }
 

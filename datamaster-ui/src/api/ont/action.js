@@ -40,8 +40,8 @@ export function rejectExecution(data) {
   return request({ url: '/ont/action/execution/reject', method: 'post', data })
 }
 
-export function runExecution(id) {
-  return request({ url: '/ont/action/execution/run/' + id, method: 'post' })
+export function runExecution(id, data) {
+  return request({ url: '/ont/action/execution/run/' + id, method: 'post', data })
 }
 
 export function rollbackExecution(id) {

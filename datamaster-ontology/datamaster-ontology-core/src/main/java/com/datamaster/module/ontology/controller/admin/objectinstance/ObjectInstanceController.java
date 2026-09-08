@@ -70,14 +70,14 @@ public class ObjectInstanceController {
         return CommonResult.success(objectInstanceQueryService.queryRelatedObjects(reqVO));
     }
 
-    @Operation(summary = "对象行操作-提交预览（新增/修改/删除，生成SQL+dry-run+按需建审批链）")
+    @Operation(summary = "对象或关系操作-提交预览（生成SQL+dry-run+按需建审批链）")
     @PreAuthorize("@ss.hasPermi('ont:object-instance:query')")
     @PostMapping("/row/preview")
     public CommonResult<RowOperateRespVO> rowPreview(@Valid @RequestBody RowOperateReqVO reqVO) {
         return CommonResult.success(objectInstanceOperateService.preview(reqVO));
     }
 
-    @Operation(summary = "对象行操作-确认执行（审批通过+执行，弹框确定=审批通过）")
+    @Operation(summary = "对象或关系操作-确认执行")
     @PreAuthorize("@ss.hasPermi('ont:object-instance:query')")
     @PostMapping("/row/confirm")
     public CommonResult<RowOperateRespVO> rowConfirm(@Valid @RequestBody RowOperateReqVO reqVO) {

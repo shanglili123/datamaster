@@ -19,16 +19,21 @@ import com.datamaster.module.ontology.dal.dataobject.PropertyColumnDO;
 import com.datamaster.module.ontology.dal.dataobject.PropertyDO;
 import com.datamaster.module.ontology.dal.dataobject.RelationColumnDO;
 import com.datamaster.module.ontology.dal.dataobject.RelationDO;
+import com.datamaster.module.ontology.dal.dataobject.RelationTableDO;
 import com.datamaster.module.ontology.dal.mapper.ConceptMapper;
 import com.datamaster.module.ontology.dal.mapper.ConceptTableMapper;
 import com.datamaster.module.ontology.dal.mapper.PropertyColumnMapper;
 import com.datamaster.module.ontology.dal.mapper.PropertyMapper;
 import com.datamaster.module.ontology.dal.mapper.RelationColumnMapper;
 import com.datamaster.module.ontology.dal.mapper.RelationMapper;
+import com.datamaster.module.ontology.dal.mapper.RelationTableMapper;
 import com.datamaster.module.ontology.service.IObjectInstanceQueryService;
 import com.datamaster.module.ontology.service.query.TypedQueryBuilder;
 import com.datamaster.module.ontology.service.query.TypedQuerySpec;
 import com.datamaster.neo4j.service.LineageDataService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +46,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 对象实例层查询实现 — 管理端对象浏览器
@@ -84,6 +90,10 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
     private RelationMapper relationMapper;
     @Resource
     private RelationColumnMapper relationColumnMapper;
+    @Resource
+    private RelationTableMapper relationTableMapper;
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     public ObjectInstanceQueryRespVO queryObjects(ObjectInstanceQueryReqVO reqVO) {
@@ -168,7 +178,21 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
                 : null;
         assertTableAccess(targetBinding, reqVO.getSpaceId(), reqVO.getSpaceCode());
 
-        // 4. 目标数据源 + 执行
+        // 4. 独立关系表先解析主体值对应的客体端点值；主体表/客体表自身存外键时直接沿字段映射查询。
+        List<Object> targetValues = reqVO.getSourceValues() == null
+                ? Collections.emptyList() : reqVO.getSourceValues();
+        List<RelationTableDO> relationTables = relationTableMapper.selectByRelationId(reqVO.getRelationId());
+        if (relationTables != null && !relationTables.isEmpty()) {
+            RelationTableDO relationTable = relationTables.get(0);
+            boolean endpointTable = samePhysicalTable(relationTable, sourceBinding)
+                    || samePhysicalTable(relationTable, targetBinding);
+            if (!endpointTable) {
+                assertRelationTableAccess(relationTable, reqVO.getSpaceId(), reqVO.getSpaceCode());
+                targetValues = queryJunctionTargetValues(relationTable, targetValues);
+            }
+        }
+
+        // 5. 目标数据源 + 执行
         DatasourceRespDTO ds = datasourceApiService.getDatasourceById(targetBinding.getDatasourceId());
         if (ds == null) {
             throw new RuntimeException("数据源不存在: id=" + targetBinding.getDatasourceId());
@@ -178,7 +202,8 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
         try {
             List<SemanticPropertyDTO> targetProperties = buildProperties(targetBinding.getId());
-            return doRelatedQuery(reqVO, colBinding, targetBinding, targetConcept, targetProperties, dbQuery, property);
+            return doRelatedQuery(reqVO, colBinding, targetBinding, targetConcept, targetProperties,
+                    targetValues, dbQuery, property);
         } finally {
             if (dbQuery != null) {
                 try {
@@ -197,6 +222,7 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
     private ObjectInstanceQueryRespVO doRelatedQuery(RelationJumpReqVO reqVO, RelationColumnDO colBinding,
                                                      ConceptTableDO targetBinding, ConceptDO targetConcept,
                                                      List<SemanticPropertyDTO> targetProperties,
+                                                     List<Object> relationValues,
                                                      DbQuery dbQuery, DbQueryProperty property) {
         int pageNum = reqVO.getPageNum() == null ? 1 : reqVO.getPageNum();
         int pageSize = reqVO.getPageSize() == null ? 20 : Math.min(reqVO.getPageSize(), MAX_PAGE_SIZE);
@@ -228,10 +254,15 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         }
 
         // 必带关系过滤：targetColumn IN (源值)。源值必须非空；列必须命中白名单。
-        List<Object> sourceValues = reqVO.getSourceValues() == null
-                ? Collections.emptyList() : reqVO.getSourceValues();
+        List<Object> sourceValues = relationValues == null ? Collections.emptyList() : relationValues;
         String targetCol = colBinding.getTargetColumn();
-        if (whitelist.contains(targetCol) && !sourceValues.isEmpty()) {
+        if (!isSafeColumn(targetCol) || (!whitelist.isEmpty() && !whitelist.contains(targetCol))) {
+            throw new RuntimeException("关系目标字段不属于目标对象表: " + targetCol);
+        }
+        if (sourceValues.isEmpty()) {
+            // 独立关系表未查到端点时必须返回空集，不能退化为查询全部目标对象。
+            whereParts.add("1 = 0");
+        } else {
             List<String> placeholders = new ArrayList<>();
             int idx = 0;
             for (Object v : sourceValues) {
@@ -274,6 +305,104 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         respVO.setRows(rows);
         respVO.setTotal((long) total);
         return respVO;
+    }
+
+    /** 独立关系表：按主体端点查出客体端点值，再交给目标对象查询。 */
+    private List<Object> queryJunctionTargetValues(RelationTableDO table, List<Object> sourceValues) {
+        if (sourceValues == null || sourceValues.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String[] endpoints = relationTableEndpointColumns(table);
+        DatasourceRespDTO ds = datasourceApiService.getDatasourceById(table.getDatasourceId());
+        if (ds == null) {
+            throw new RuntimeException("关系表数据源不存在: id=" + table.getDatasourceId());
+        }
+        DbQueryProperty property = new DbQueryProperty(
+                ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig());
+        DbQuery query = dataSourceFactory.createDbQuery(property);
+        try {
+            Map<String, Object> params = new LinkedHashMap<>();
+            List<String> placeholders = new ArrayList<>();
+            for (int i = 0; i < sourceValues.size(); i++) {
+                String key = "source" + i;
+                params.put(key, sourceValues.get(i));
+                placeholders.add(":" + key);
+            }
+            String sql = "SELECT " + endpoints[1] + " AS relation_target FROM " + table.getTableName()
+                    + " WHERE " + endpoints[0] + " IN (" + String.join(", ", placeholders) + ")";
+            List<Map<String, Object>> rows = query.queryList(sql, params, 0);
+            List<Object> values = new ArrayList<>();
+            if (rows != null) {
+                for (Map<String, Object> row : rows) {
+                    Object value = getIgnoreCase(row, "relation_target");
+                    if (value != null && !values.contains(value)) values.add(value);
+                }
+            }
+            return values;
+        } finally {
+            if (query != null) {
+                try {
+                    query.close();
+                } catch (Exception ignore) {
+                    // 忽略关闭失败
+                }
+            }
+        }
+    }
+
+    private String[] relationTableEndpointColumns(RelationTableDO table) {
+        try {
+            JsonNode node = objectMapper.readTree(table.getColumnNames() == null ? "[]" : table.getColumnNames());
+            String source = node.isArray() && node.size() > 0
+                    ? node.get(0).asText(null) : node.path("sourceColumn").asText(null);
+            String target = node.isArray() && node.size() > 1
+                    ? node.get(1).asText(null) : node.path("targetColumn").asText(null);
+            if (!isSafeColumn(source) || !isSafeColumn(target)) {
+                throw new RuntimeException("关系表未正确配置主体列和客体列");
+            }
+            return new String[]{source, target};
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("关系表端点字段解析失败: " + e.getMessage(), e);
+        }
+    }
+
+    private boolean isSafeColumn(String column) {
+        return column != null && column.matches("[A-Za-z_][A-Za-z0-9_$]*");
+    }
+
+    private Object getIgnoreCase(Map<String, Object> row, String key) {
+        if (row == null || key == null) return null;
+        for (Map.Entry<String, Object> entry : row.entrySet()) {
+            if (key.equalsIgnoreCase(entry.getKey())) return entry.getValue();
+        }
+        return null;
+    }
+
+    private void assertRelationTableAccess(RelationTableDO table, Long spaceId, String spaceCode) {
+        ConceptTableDO binding = new ConceptTableDO();
+        binding.setDatasourceId(table.getDatasourceId());
+        binding.setTableName(table.getTableName());
+        assertTableAccess(binding, spaceId, spaceCode);
+    }
+
+    private boolean samePhysicalTable(RelationTableDO relationTable, ConceptTableDO conceptTable) {
+        if (relationTable == null || conceptTable == null
+                || relationTable.getDatasourceId() == null || conceptTable.getDatasourceId() == null
+                || !Objects.equals(relationTable.getDatasourceId(), conceptTable.getDatasourceId())
+                || relationTable.getTableName() == null || conceptTable.getTableName() == null
+                || !relationTable.getTableName().trim().equalsIgnoreCase(conceptTable.getTableName().trim())) {
+            return false;
+        }
+        if (StringUtils.isNotBlank(relationTable.getDatabaseName())
+                && StringUtils.isNotBlank(conceptTable.getDatabaseName())
+                && !relationTable.getDatabaseName().trim().equalsIgnoreCase(conceptTable.getDatabaseName().trim())) {
+            return false;
+        }
+        return StringUtils.isBlank(relationTable.getSchemaName())
+                || StringUtils.isBlank(conceptTable.getSchemaName())
+                || relationTable.getSchemaName().trim().equalsIgnoreCase(conceptTable.getSchemaName().trim());
     }
 
     /**

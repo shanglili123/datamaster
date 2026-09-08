@@ -30,9 +30,12 @@ public class RowOperateReqVO {
     @NotNull(message = "表绑定ID不能为空")
     private Long tableBindingId;
 
-    @Schema(description = "行操作类型：CREATE=新增 / UPDATE=修改 / DELETE=删除", requiredMode = Schema.RequiredMode.REQUIRED, example = "CREATE")
+    @Schema(description = "操作类型：CREATE=新增 / UPDATE=修改 / DELETE=删除；relationId 有值时表示关系操作", requiredMode = Schema.RequiredMode.REQUIRED, example = "CREATE")
     @NotBlank(message = "行操作类型不能为空")
     private String actionType;
+
+    @Schema(description = "关系ID；为空表示对象数据操作，有值表示只新增/修改/解除关系，不新增关系两端对象", example = "1")
+    private Long relationId;
 
     @Schema(description = "执行记录ID（confirm 阶段必填，来自 preview 返回）", example = "1")
     private Long executionId;

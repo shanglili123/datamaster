@@ -1,12 +1,15 @@
 <template>
   <div class="relation-jump">
-    <a-button type="link" size="small" class="rj-toggle" @click="toggle">
-      <template #icon>
-        <DownOutlined v-if="expanded" />
-        <RightOutlined v-else />
-      </template>
-      {{ relation.name || '关联' }}
-    </a-button>
+    <div class="rj-toolbar">
+      <a-button type="link" size="small" class="rj-toggle" @click="toggle">
+        <template #icon>
+          <DownOutlined v-if="expanded" />
+          <RightOutlined v-else />
+        </template>
+        {{ relation.name || '关联' }}
+      </a-button>
+      <a-button v-if="editable" type="link" size="small" @click.stop="emit('add')">新增</a-button>
+    </div>
 
     <div v-if="expanded" class="rj-panel">
       <div v-if="loading" class="rj-loading"><a-spin size="small" /></div>
@@ -26,21 +29,16 @@
           :scroll="{ x: 'max-content' }"
         >
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === '__rj_action__'">
-              <template v-if="childRelations.length">
-                <OntRelationJump
-                  v-for="cr in childRelations"
-                  :key="cr.id"
-                  :ontology-id="ontologyId"
-                  :concept-id="respConceptId"
-                  :table-binding-id="respTableBindingId"
-                  :row="record"
-                  :relation="cr"
-                  :space-id="spaceId"
-                  :space-code="spaceCode"
-                />
-              </template>
-              <span v-else class="rj-none">无</span>
+            <template v-if="column.key === '__rj_action__' && editable">
+              <a-popconfirm
+                title="解除这条关联？"
+                description="只删除关系，不删除关联对象。"
+                ok-text="删除"
+                cancel-text="取消"
+                @confirm="emit('remove', record)"
+              >
+                <a-button type="link" size="small" danger>删除</a-button>
+              </a-popconfirm>
             </template>
           </template>
         </a-table>
@@ -53,10 +51,11 @@
 import { ref, computed } from 'vue'
 import { DownOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { queryRelatedObjects } from '@/api/ont/objectInstance'
-import { listRelation } from '@/api/ont/relation'
 import { listRelationColumn } from '@/api/ont/relationColumn'
 
 defineOptions({ name: 'OntRelationJump' })
+
+const emit = defineEmits(['add', 'remove'])
 
 const props = defineProps({
   ontologyId: { type: [Number, String], required: true },
@@ -68,6 +67,7 @@ const props = defineProps({
   row: { type: Object, required: true },
   // 当前跳转的关系
   relation: { type: Object, required: true },
+  editable: { type: Boolean, default: false },
   spaceId: { type: [Number, String], default: null },
   spaceCode: { type: String, default: '' }
 })
@@ -75,11 +75,6 @@ const props = defineProps({
 const expanded = ref(false)
 const loading = ref(false)
 const resp = ref(null)
-// 目标概念 / 目标表绑定（递归跳转的源）
-const respConceptId = ref(null)
-const respTableBindingId = ref(null)
-// 目标概念自身的出向关系（懒加载，递归展开子行）
-const childRelations = ref([])
 
 // 本关系在当前源表上的字段绑定（sourceColumn → targetColumn / targetConceptTableId）
 let colBinding = null
@@ -93,27 +88,10 @@ async function ensureRelationMeta() {
       const list = res.data || []
       const rc = list.find(r => String(r.sourceConceptTableId) === String(props.tableBindingId)) || list[0] || null
       colBinding = rc
-      if (rc) {
-        respConceptId.value = props.relation.targetConceptId ?? null
-        respTableBindingId.value = rc.targetConceptTableId ?? null
-      }
       return rc
     })()
   }
   return metaPromise
-}
-
-async function loadChildRelations() {
-  if (!respConceptId.value) return
-  try {
-    const res = await listRelation({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 200 })
-    const rows = (res.data && res.data.rows) || []
-    childRelations.value = rows.filter(r =>
-      String(r.sourceConceptId) === String(respConceptId.value)
-    )
-  } catch {
-    childRelations.value = []
-  }
 }
 
 function toggle() {
@@ -145,7 +123,6 @@ async function load() {
       spaceCode: props.spaceCode
     })
     resp.value = r.data || null
-    loadChildRelations()
   } catch {
     resp.value = null
   } finally {
@@ -169,7 +146,9 @@ const targetCols = computed(() => {
     key: c,
     ellipsis: true
   }))
-  arr.push({ title: '关联', dataIndex: '__rj_action__', key: '__rj_action__', width: 140, fixed: 'right' })
+  if (props.editable) {
+    arr.push({ title: '操作', dataIndex: '__rj_action__', key: '__rj_action__', width: 80, fixed: 'right' })
+  }
   return arr
 })
 
@@ -182,6 +161,10 @@ const targetRows = computed(() =>
 .relation-jump {
   display: inline-flex;
   flex-direction: column;
+}
+.rj-toolbar {
+  display: inline-flex;
+  align-items: center;
 }
 .rj-toggle {
   padding: 0 4px;
@@ -203,5 +186,4 @@ const targetRows = computed(() =>
   color: #1677ff;
   font-weight: 500;
 }
-.rj-none { color: #bbb; font-size: 12px; }
 </style>

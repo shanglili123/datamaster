@@ -61,7 +61,7 @@ public class ActionSaveReqVO {
     @Schema(description = "历史触发标识兼容字段；新动作的触发来源由运行时传入")
     private String triggerRef;
 
-    @Schema(description = "执行参数配置(JSON数组)：属性选择+目标值配置，valueMode=direct|placeholder|relative|expression；relative 表示当前值加减运算")
+    @Schema(description = "执行参数配置(JSON数组)：属性选择+目标值配置，valueMode=direct|placeholder|relative|expression；relative 的 valueTemplate 可为数字、${param}、${object.prop} 或 ${object.relation.prop}")
     private String paramConfig;
 
     @Schema(description = "描述", example = "创建新客户记录")

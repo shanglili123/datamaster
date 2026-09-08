@@ -4,14 +4,15 @@ import com.datamaster.module.ontology.controller.admin.objectinstance.vo.RowOper
 import com.datamaster.module.ontology.controller.admin.objectinstance.vo.RowOperateRespVO;
 
 /**
- * 对象实例行操作 Service — 对象管理列表内直接对单条数据做新增/修改/删除
+ * 对象实例操作 Service — 对象管理列表内操作对象数据或对象关系
  *
  * <p>与普通动作走完全一致的执行链路（提交 → 审批 → 执行 → 快照/血缘/Webhook）：
  * <ul>
  *   <li>{@code preview}：按概念惰性创建/复用「内置」CREATE/UPDATE/DELETE 动作并提交执行（生成 SQL + dry-run + 按需建审批链）；</li>
  *   <li>{@code confirm}：审批通过（当前用户可审时，即「二次弹框确定=审批通过」）并真正执行。</li>
  * </ul>
- * 内置动作默认直接执行，可在动作面板调整为一次人工确认、绑定唯一确认人或挂 Webhook 回调。
+ * 关系操作只写直接外键或关系表，不会新增或删除关系两端对象。内置动作默认直接执行，
+ * 可在动作面板调整为一次人工确认、绑定唯一确认人或挂 Webhook 回调。
  */
 public interface IObjectInstanceOperateService {
 

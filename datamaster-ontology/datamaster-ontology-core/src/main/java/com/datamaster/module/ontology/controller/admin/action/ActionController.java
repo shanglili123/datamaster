@@ -116,8 +116,10 @@ public class ActionController {
     @Operation(summary = "执行已批准的动作")
     @PreAuthorize("@ss.hasPermi('ont:action:edit')")
     @PostMapping("/execution/run/{id}")
-    public CommonResult<ExecutionRespVO> execute(@PathVariable Long id) {
-        return CommonResult.success(executionService.executeExecution(id));
+    public CommonResult<ExecutionRespVO> execute(@PathVariable Long id,
+                                                  @RequestBody(required = false) ExecutionRunReqVO reqVO) {
+        return CommonResult.success(executionService.executeExecution(id,
+                reqVO == null ? null : reqVO.getInputParams(), true));
     }
 
     @Operation(summary = "回退已执行的记录（按执行前后快照还原）")

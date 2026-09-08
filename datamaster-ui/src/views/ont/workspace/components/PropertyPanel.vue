@@ -126,6 +126,12 @@
         <a-form-item label="必填" name="isRequired">
           <a-switch v-model:checked="form.isRequired" />
         </a-form-item>
+        <a-form-item label="主属性" name="isPrimary">
+          <div class="property-switch-field">
+            <a-switch v-model:checked="form.isPrimary" />
+            <span class="property-switch-hint">用于唯一定位对象；联合主键可分别开启多个属性</span>
+          </div>
+        </a-form-item>
         <a-form-item label="默认值" name="defaultValue">
           <a-input v-model:value="form.defaultValue" placeholder="默认值" />
         </a-form-item>
@@ -435,6 +441,17 @@ loadConcepts()
 
       .toolbar-right {
         margin-left: auto;
+      }
+    }
+
+    .property-switch-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .property-switch-hint {
+        color: #8c8c8c;
+        font-size: 12px;
       }
     }
   }

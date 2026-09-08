@@ -75,12 +75,15 @@
                 <template v-if="currentRelations.length">
                   <OntRelationJump
                     v-for="rel in currentRelations"
-                    :key="'rel-' + rel.id"
+                    :key="'rel-' + rel.id + '-' + relationViewVersion"
                     :ontology-id="props.ontologyId"
                     :concept-id="selectedObjectSet.conceptId"
                     :table-binding-id="selectedObjectSet.tableBindingId"
                     :row="record"
                     :relation="rel"
+                    :editable="rowOperateEnabled"
+                    @add="openRelationCreate(record, rel)"
+                    @remove="targetRecord => openRelationDelete(record, rel, targetRecord)"
                   />
                 </template>
                 <span v-else style="color:#bbb">无</span>
@@ -264,6 +267,99 @@
       </a-spin>
     </a-modal>
 
+    <!-- 关系管理：只新增或删除关系，不新增/删除两端对象。 -->
+    <a-modal
+      v-model:open="relationManage.visible"
+      :title="relationManage.operation === 'DELETE' ? '删除关联' : '新增关联'"
+      width="680px"
+      wrap-class-name="ontology-workspace-modal ontology-modal--form"
+      :footer="null"
+      :mask-closable="false"
+      destroy-on-close
+      @cancel="closeRelationManage"
+    >
+      <a-spin :spinning="relationManage.loading || relationManage.confirming">
+        <a-alert
+          type="info"
+          show-icon
+          :message="relationManage.operation === 'DELETE' ? '只删除这条关系' : '只新增一条关系'"
+          description="不会新增或删除关系两端的对象数据。"
+          style="margin-bottom: 12px"
+        />
+        <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 18 }">
+          <a-form-item label="当前对象">
+            <a-input :value="relationManage.currentLabel" disabled />
+          </a-form-item>
+          <a-form-item label="关系">
+            <a-input :value="relationManage.relationName" disabled />
+          </a-form-item>
+          <a-form-item :label="relationManage.otherConceptName || '关联对象'" required>
+            <a-select
+              v-if="relationManage.operation === 'CREATE'"
+              v-model:value="relationManage.selectedValue"
+              :options="relationManage.options"
+              :loading="relationManage.optionLoading"
+              :placeholder="'选择已有' + (relationManage.otherConceptName || '关联对象')"
+              show-search
+              option-filter-prop="label"
+              allow-clear
+              @change="resetRelationPreview"
+            />
+            <a-input v-else :value="relationManage.selectedLabel" disabled />
+            <div v-if="relationManage.operation === 'CREATE'" class="row-relation-hint">优先显示名称类属性；实际执行提交关系字段映射对应的值。</div>
+          </a-form-item>
+        </a-form>
+
+        <a-alert
+          v-if="relationManage.error"
+          type="error"
+          show-icon
+          :message="relationManage.error"
+          style="margin-bottom: 12px"
+        />
+        <template v-if="relationManage.preview">
+          <a-divider style="margin: 12px 0">预览与执行</a-divider>
+          <a-alert :message="relationManage.preview.message" :type="relationPreviewAlertType" show-icon />
+          <template v-if="relationManage.preview.generatedSql">
+            <div class="row-sql-title">执行内容预览</div>
+            <pre class="row-sql-block">{{ relationManage.preview.generatedSql }}</pre>
+          </template>
+          <p v-if="relationManage.preview.previewResult" class="row-preview-result">
+            预览结果：{{ relationManage.preview.previewResult }}
+          </p>
+        </template>
+
+        <div class="row-modal-footer">
+          <div class="row-footer-left">
+            <a-button
+              v-if="relationManage.preview?.status === 'PENDING_APPROVAL'"
+              type="link"
+              @click="goApprovalCenter"
+            >已提交待审批，前往审批中心</a-button>
+          </div>
+          <a-button @click="closeRelationManage">关闭</a-button>
+          <a-button
+            v-if="relationManage.preview"
+            :loading="relationManage.loading"
+            @click="submitRelationPreview"
+          >重新预览</a-button>
+          <a-button
+            v-if="!relationManage.preview"
+            type="primary"
+            :loading="relationManage.loading"
+            :disabled="Boolean(relationManage.error)"
+            @click="submitRelationPreview"
+          >提交预览</a-button>
+          <a-button
+            v-if="relationPreviewCanExecute"
+            type="primary"
+            :loading="relationManage.confirming"
+            @click="confirmRelationExecute"
+          >确认执行</a-button>
+        </div>
+      </a-spin>
+    </a-modal>
+
     <!-- 对象级人工动作：对象已由当前行确定，只需选择动作并填写真正的业务入参。 -->
     <a-modal
       v-model:open="objectAction.visible"
@@ -317,7 +413,7 @@
         >
           <a-select
             v-if="isObjectActionRelationParam(param)"
-            v-model:value="objectAction.params[param.name]"
+            :value="param.referencePropertyCode ? objectActionRelationState(param).selectedValue : objectAction.params[param.name]"
             :options="objectActionRelationState(param).options"
             :loading="objectActionRelationState(param).loading"
             :placeholder="'搜索并选择' + param.label"
@@ -326,6 +422,7 @@
             :filter-option="false"
             @search="keyword => searchObjectActionRelationObjects(param, keyword)"
             @dropdown-visible-change="open => open && searchObjectActionRelationObjects(param, '')"
+            @change="value => handleObjectActionRelationChange(param, value)"
           />
           <a-input v-else v-model:value="objectAction.params[param.name]" :placeholder="'请输入 ' + param.name" />
           <div v-if="objectActionRelationState(param).error" class="modal-hint-line" style="color:#ff4d4f;">
@@ -384,6 +481,7 @@ const filterFields = ref([])
 const filterSpec = ref({ groups: [{ connector: 'AND', filters: [] }], orderBy: [], columns: [], keyword: '' })
 // 当前对象集（源概念）的出向关系，用于行内“关联”跳转
 const currentRelations = ref([])
+const relationViewVersion = ref(0)
 
 // 对象血缘（四维度）弹窗状态
 const lineageVisible = ref(false)
@@ -414,6 +512,34 @@ const rowModal = reactive({
 const relationCreateFields = ref([])
 const relationCreateLoading = ref(false)
 
+const relationManage = reactive({
+  visible: false,
+  loading: false,
+  confirming: false,
+  optionLoading: false,
+  record: null,
+  relationId: undefined,
+  relationName: '',
+  operation: 'CREATE',
+  currentEndpoint: 'SOURCE',
+  currentLabel: '',
+  currentRelationValue: undefined,
+  otherConceptName: '',
+  selectedValue: undefined,
+  selectedLabel: '',
+  options: [],
+  error: '',
+  preview: null
+})
+
+const relationPreviewCanExecute = computed(() => relationManage.preview?.status === 'APPROVED')
+const relationPreviewAlertType = computed(() => {
+  const status = relationManage.preview?.status
+  if (status === 'APPROVED' || status === 'EXECUTED') return 'success'
+  if (status === 'PENDING_APPROVAL') return 'warning'
+  return status ? 'error' : 'info'
+})
+
 const objectActionList = ref([])
 const objectAction = reactive({
   visible: false,
@@ -439,14 +565,30 @@ const objectActionOptions = computed(() => objectActionList.value.map(action => 
 })))
 
 function parseActionParamConfig(action) {
+  const normalize = config => {
+    const match = /^\$\{object\.([^.}]+)\.([^}]+)\}$/.exec(String(config?.valueTemplate || '').trim())
+    if (match && config.valueMode === 'relative' && !config.targetRelationId) {
+      const relation = currentRelations.value.find(item => item.code === match[1])
+      if (relation) {
+        return {
+          ...config,
+          targetRelationId: relation.id,
+          relationEndpoint: 'TARGET',
+          referenceRelationCode: match[1],
+          referencePropertyCode: match[2]
+        }
+      }
+    }
+    return config
+  }
   if (action?.actionType === 'COMPOSITE') {
     const steps = parseJsonArray(action.executionSteps ?? action.execution_steps)
-    return steps.flatMap(step => parseJsonArray(step.paramConfig ?? step.param_config).map(config => ({
+    return steps.flatMap(step => parseJsonArray(step.paramConfig ?? step.param_config).map(config => normalize({
       ...config,
       targetRelationId: config.targetRelationId || config.target_relation_id || step.relationId || step.relation_id
     })))
   }
-  return parseJsonArray(action?.paramConfig ?? action?.param_config)
+  return parseJsonArray(action?.paramConfig ?? action?.param_config).map(normalize)
 }
 
 function parseJsonArray(value) {
@@ -464,6 +606,11 @@ function parseJsonArray(value) {
 
 function placeholderName(template) {
   return String(template || '').trim().replace(/^\$\{/, '').replace(/\}$/, '').trim()
+}
+
+function triggerObjectPropertyName(template) {
+  const match = /^\$\{object\.([^.}]+)\}$/.exec(String(template || '').trim())
+  return match ? match[1] : ''
 }
 
 function objectRecordValue(record, property) {
@@ -509,7 +656,8 @@ const objectActionAllInputParams = computed(() => {
       || (cfg.valueMode === 'relative' && /^\$\{[^}]+\}$/.test(String(cfg.valueTemplate || '').trim()))))
     .filter(cfg => {
       const name = placeholderName(cfg.valueTemplate)
-      return !properties.some(property => property.propertyCode === name)
+      const objectProperty = triggerObjectPropertyName(cfg.valueTemplate)
+      return !objectProperty && !properties.some(property => property.propertyCode === name)
     })
     .map(cfg => {
       const name = placeholderName(cfg.valueTemplate)
@@ -570,6 +718,7 @@ async function openObjectAction(record) {
   objectActionList.value = rows.filter(action =>
     String(action.conceptId) === String(os.conceptId)
       && action.actionType !== 'CREATE'
+      && !String(action.name || '').startsWith('内置-')
   )
 }
 
@@ -640,6 +789,26 @@ function objectActionRelationState(param) {
 
 function isObjectActionRelationParam(param) {
   return !!param?.relationMeta?.relationId
+}
+
+function handleObjectActionRelationChange(param, value) {
+  const state = objectActionRelationState(param)
+  if (!param.referencePropertyCode) {
+    objectAction.params[param.name] = value
+    return
+  }
+  state.selectedValue = value
+  const option = (state.options || []).find(item => String(item.value) === String(value))
+  if (!option?.record) return
+  const objectSet = objectActionAllObjectSets.find(item =>
+    String(item.conceptId) === String(param.relationMeta.conceptId)
+      && String(item.tableBindingId) === String(param.relationMeta.tableBindingId))
+  const property = (objectSet?.properties || []).find(item =>
+    item.propertyCode === param.referencePropertyCode || item.physicalColumnName === param.referencePropertyCode)
+  const resolved = property
+    ? objectRecordValue(option.record, property)
+    : objectRecordValue(option.record, { physicalColumnName: param.referencePropertyCode, propertyCode: param.referencePropertyCode })
+  if (resolved !== undefined && resolved !== null) objectAction.params[param.name] = resolved
 }
 
 function objectActionRelationOptionLabel(objectSet, record, objectKey) {
@@ -748,7 +917,7 @@ async function loadObjectActionRelationObjects(param, keyword = '') {
     state.options = rows.map(record => {
       const value = objectRecordValue(record, { physicalColumnName: referenceColumn, propertyCode: referenceColumn })
       const key = value === undefined || value === null ? '' : String(value)
-      return { value: key, label: objectActionRelationOptionLabel(objectSet, record, key), disabled: !key }
+      return { value: key, label: objectActionRelationOptionLabel(objectSet, record, key), record, disabled: !key }
     }).filter(option => option.value)
     if (!state.options.length) state.error = `未从 ${objectSet.tableName || '目标表'} 查询到可引用实体`
   } catch (e) {
@@ -771,7 +940,7 @@ async function prepareObjectActionRelationSelectors() {
   objectActionAllObjectSets = normalizeObjectSetsResponse(await listObjectSets(props.ontologyId).catch(() => ({ data: [] })))
   const configs = objectActionAllInputParams.value.filter(isObjectActionRelationParam)
   for (const param of configs) {
-    objectActionRelationStates[param.name] = { options: [], loading: false, error: '', requestNo: 0 }
+    objectActionRelationStates[param.name] = { options: [], loading: false, error: '', requestNo: 0, selectedValue: undefined }
     loadObjectActionRelationObjects(param).catch(() => {})
   }
 }
@@ -781,12 +950,13 @@ function buildObjectActionParams() {
   const properties = selectedObjectSet.value?.properties || []
   parseActionParamConfig(currentObjectAction.value).forEach(cfg => {
     const name = placeholderName(cfg.valueTemplate)
+    const objectProperty = triggerObjectPropertyName(cfg.valueTemplate)
     const isPlaceholder = cfg.valueMode === 'placeholder'
       || (cfg.valueMode === 'relative' && /^\$\{[^}]+\}$/.test(String(cfg.valueTemplate || '').trim()))
     if (!isPlaceholder) return
-    const property = properties.find(p => p.propertyCode === name)
+    const property = properties.find(p => p.propertyCode === (objectProperty || name))
     if (name && property) {
-      params[name] = objectRecordValue(objectAction.record, property)
+      params[objectProperty ? `object.${objectProperty}` : name] = objectRecordValue(objectAction.record, property)
     }
   })
   return params
@@ -953,6 +1123,243 @@ async function loadRelations(os) {
     )
   } catch {
     currentRelations.value = []
+  }
+}
+
+function resetRelationPreview() {
+  relationManage.preview = null
+}
+
+function relationPrimaryProperty(objectSet) {
+  return (objectSet?.properties || []).find(property => property.isPrimary && property.physicalColumnName)
+}
+
+function sameRelationPhysicalTable(relationTable, objectSet) {
+  if (!relationTable || !objectSet
+    || String(relationTable.datasourceId) !== String(objectSet.datasourceId)
+    || String(relationTable.tableName || '').toLowerCase() !== String(objectSet.tableName || '').toLowerCase()) return false
+  if (relationTable.databaseName && objectSet.databaseName
+    && String(relationTable.databaseName).toLowerCase() !== String(objectSet.databaseName).toLowerCase()) return false
+  return !relationTable.schemaName || !objectSet.schemaName
+    || String(relationTable.schemaName).toLowerCase() === String(objectSet.schemaName).toLowerCase()
+}
+
+function relationOwnerEndpoint(relation, mapping, sourceSet, targetSet) {
+  if (String(relation.relationType).toLowerCase() === 'one_to_many') return 'TARGET'
+  if (String(relation.relationType).toLowerCase() === 'many_to_one') return 'SOURCE'
+  const sourcePrimary = relationPrimaryProperty(sourceSet)
+  const targetPrimary = relationPrimaryProperty(targetSet)
+  const sourceIsPrimary = sourcePrimary
+    && String(sourcePrimary.physicalColumnName).toLowerCase() === String(mapping.sourceColumn || '').toLowerCase()
+  const targetIsPrimary = targetPrimary
+    && String(targetPrimary.physicalColumnName).toLowerCase() === String(mapping.targetColumn || '').toLowerCase()
+  if (sourceIsPrimary && !targetIsPrimary) return 'TARGET'
+  if (targetIsPrimary && !sourceIsPrimary) return 'SOURCE'
+  return ''
+}
+
+async function prepareRelationManage(record, relation, operation) {
+  const currentPrimary = relationPrimaryProperty(selectedObjectSet.value)
+  const currentValue = objectRecordValue(record, currentPrimary)
+  if (!currentPrimary || currentValue === undefined || currentValue === null || currentValue === '') {
+    message.warning('当前对象没有可用的主属性，无法管理关系')
+    return null
+  }
+  const [columnRes, tableRes] = await Promise.all([
+    listRelationColumn(relation.id),
+    listRelationTable(relation.id)
+  ])
+  const mappings = Array.isArray(columnRes.data) ? columnRes.data : (columnRes.data?.rows || [])
+  const mapping = mappings.find(item =>
+    String(item.sourceConceptTableId) === String(selectedObjectSet.value.tableBindingId)) || mappings[0]
+  if (!mapping?.sourceColumn || !mapping?.targetColumn) {
+    message.warning('关系尚未配置完整的主体、客体字段映射')
+    return null
+  }
+  const sourceSet = objectSets.value.find(item =>
+    String(item.tableBindingId) === String(mapping.sourceConceptTableId)) || selectedObjectSet.value
+  const otherSet = objectSets.value.find(item =>
+    String(item.tableBindingId) === String(mapping.targetConceptTableId))
+    || objectSets.value.find(item => String(item.conceptId) === String(relation.targetConceptId))
+  const otherPrimary = relationPrimaryProperty(otherSet)
+  if (!otherSet || !otherPrimary) {
+    message.warning('关系目标对象尚未绑定物理表或设置主属性')
+    return null
+  }
+  const relationTables = Array.isArray(tableRes.data) ? tableRes.data : (tableRes.data?.rows || [])
+  const relationTable = relationTables[0]
+  const tableIsSource = sameRelationPhysicalTable(relationTable, sourceSet)
+  const tableIsTarget = sameRelationPhysicalTable(relationTable, otherSet)
+  const junction = Boolean(relationTable) && !tableIsSource && !tableIsTarget
+  let ownerEndpoint = ''
+  if (!junction) {
+    if (tableIsSource !== tableIsTarget) {
+      ownerEndpoint = tableIsSource ? 'SOURCE' : 'TARGET'
+    } else {
+      ownerEndpoint = relationOwnerEndpoint(relation, mapping, sourceSet, otherSet)
+    }
+    if (!ownerEndpoint) {
+      message.warning('无法判断关系关联字段位于主体表还是客体表')
+      return null
+    }
+  }
+  const currentRelationValue = junction || ownerEndpoint === 'TARGET'
+    ? objectRecordValue(record, { physicalColumnName: mapping.sourceColumn, propertyCode: mapping.sourceColumn })
+    : currentValue
+  if (currentRelationValue === undefined || currentRelationValue === null || currentRelationValue === '') {
+    message.warning(`当前对象缺少关系字段值 ${mapping.sourceColumn}`)
+    return null
+  }
+  const targetValueProperty = junction || ownerEndpoint === 'SOURCE'
+    ? { physicalColumnName: mapping.targetColumn, propertyCode: mapping.targetColumn }
+    : otherPrimary
+  relationManage.record = record
+  relationManage.currentLabel = `${selectedObjectSet.value?.conceptName || '当前对象'}：${currentValue}`
+  relationManage.relationId = relation.id
+  relationManage.relationName = relation.name || '关联'
+  relationManage.operation = operation
+  relationManage.currentEndpoint = 'SOURCE'
+  relationManage.currentRelationValue = currentRelationValue
+  relationManage.otherConceptName = otherSet.conceptName || '关联对象'
+  relationManage.selectedValue = undefined
+  relationManage.selectedLabel = ''
+  relationManage.options = []
+  relationManage.optionLoading = false
+  relationManage.error = ''
+  relationManage.preview = null
+  return { otherSet, otherPrimary, targetValueProperty }
+}
+
+async function openRelationCreate(record, relation) {
+  let context
+  try {
+    context = await prepareRelationManage(record, relation, 'CREATE')
+  } catch (e) {
+    message.error(e?.response?.data?.msg || e?.message || '关系字段配置读取失败')
+    return
+  }
+  if (!context) return
+  relationManage.visible = true
+  relationManage.optionLoading = true
+  try {
+    const rowsRes = await queryObjects({
+      ontologyId: props.ontologyId,
+      conceptId: context.otherSet.conceptId,
+      tableBindingId: context.otherSet.tableBindingId,
+      pageNum: 1,
+      pageSize: 200,
+      filters: JSON.stringify({ groups: [], orderBy: [], columns: [], keyword: '' })
+    })
+    const options = []
+    ;(rowsRes.data?.rows || []).forEach(targetRecord => {
+      const value = objectRecordValue(targetRecord, context.targetValueProperty)
+      if (value === undefined || value === null || value === '') return
+      if (options.some(option => String(option.value) === String(value))) return
+      options.push({
+        value,
+        label: objectActionRelationOptionLabel(context.otherSet, targetRecord, value),
+        record: targetRecord
+      })
+    })
+    relationManage.options = options
+    if (!options.length) relationManage.error = `${relationManage.otherConceptName}暂无可选择的数据`
+  } catch (e) {
+    relationManage.error = e?.response?.data?.msg || e?.message || '关联对象加载失败'
+  } finally {
+    relationManage.optionLoading = false
+  }
+}
+
+async function openRelationDelete(record, relation, targetRecord) {
+  let context
+  try {
+    context = await prepareRelationManage(record, relation, 'DELETE')
+  } catch (e) {
+    message.error(e?.response?.data?.msg || e?.message || '关系字段配置读取失败')
+    return
+  }
+  if (!context) return
+  const value = objectRecordValue(targetRecord, context.targetValueProperty)
+  if (value === undefined || value === null || value === '') {
+    message.warning('关联对象缺少主属性值，无法删除关系')
+    return
+  }
+  relationManage.selectedValue = value
+  relationManage.selectedLabel = objectActionRelationOptionLabel(context.otherSet, targetRecord, value)
+  relationManage.visible = true
+}
+
+function closeRelationManage() {
+  relationManage.visible = false
+  relationManage.preview = null
+}
+
+function buildRelationPayload() {
+  const os = selectedObjectSet.value
+  const relation = currentRelations.value.find(item => String(item.id) === String(relationManage.relationId))
+  const currentPrimary = relationPrimaryProperty(os)
+  const currentValue = objectRecordValue(relationManage.record, currentPrimary)
+  const currentRelationValue = relationManage.currentRelationValue
+  const otherValue = relationManage.selectedValue
+  const currentIsSource = relationManage.currentEndpoint === 'SOURCE'
+  const data = {
+    [currentPrimary.propertyCode]: currentValue,
+    __relation_source__: currentIsSource ? currentRelationValue : otherValue,
+    __relation_target__: currentIsSource ? otherValue : currentRelationValue
+  }
+  return {
+    ontologyId: props.ontologyId,
+    conceptId: os.conceptId,
+    tableBindingId: os.tableBindingId,
+    relationId: relation?.id,
+    actionType: relationManage.operation,
+    data,
+    triggerWebhook: true,
+    spaceId: userStore.spaceId ? Number(userStore.spaceId) : null
+  }
+}
+
+async function submitRelationPreview() {
+  if (!relationManage.relationId || relationManage.selectedValue === undefined
+    || relationManage.selectedValue === null || relationManage.selectedValue === '') {
+    message.warning('请选择要关联或解除的对象')
+    return
+  }
+  relationManage.loading = true
+  relationManage.preview = null
+  try {
+    const res = await rowPreview(buildRelationPayload())
+    relationManage.preview = res.data || {}
+    if (relationManage.preview.status === 'PENDING_APPROVAL') {
+      message.warning(relationManage.preview.message || '已提交待审批')
+    } else {
+      message.success(relationManage.preview.message || '已生成关系操作预览')
+    }
+  } finally {
+    relationManage.loading = false
+  }
+}
+
+async function confirmRelationExecute() {
+  if (!relationManage.preview?.executionId) return
+  relationManage.confirming = true
+  try {
+    const res = await rowConfirm({
+      ...buildRelationPayload(),
+      executionId: relationManage.preview.executionId
+    })
+    const data = res.data || {}
+    if (data.status === 'EXECUTED') {
+      message.success(data.message || '关系操作执行成功')
+      closeRelationManage()
+      relationViewVersion.value++
+      loadData()
+    } else {
+      relationManage.preview = data
+      message.error(data.message || '关系操作执行失败')
+    }
+  } finally {
+    relationManage.confirming = false
   }
 }
 

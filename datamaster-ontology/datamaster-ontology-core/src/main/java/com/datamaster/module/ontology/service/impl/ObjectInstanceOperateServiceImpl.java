@@ -7,8 +7,12 @@ import com.datamaster.module.ontology.controller.admin.objectinstance.vo.RowOper
 import com.datamaster.module.ontology.controller.admin.objectinstance.vo.RowOperateRespVO;
 import com.datamaster.module.ontology.dal.dataobject.ActionDO;
 import com.datamaster.module.ontology.dal.dataobject.ConceptDO;
+import com.datamaster.module.ontology.dal.dataobject.PropertyDO;
+import com.datamaster.module.ontology.dal.dataobject.RelationDO;
 import com.datamaster.module.ontology.dal.mapper.ActionMapper;
 import com.datamaster.module.ontology.dal.mapper.ConceptMapper;
+import com.datamaster.module.ontology.dal.mapper.PropertyMapper;
+import com.datamaster.module.ontology.dal.mapper.RelationMapper;
 import com.datamaster.module.ontology.service.IActionExecutionService;
 import com.datamaster.module.ontology.service.IObjectInstanceOperateService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,7 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * 对象实例行操作服务实现
@@ -44,6 +52,8 @@ public class ObjectInstanceOperateServiceImpl implements IObjectInstanceOperateS
 
     @Resource private ActionMapper actionMapper;
     @Resource private ConceptMapper conceptMapper;
+    @Resource private PropertyMapper propertyMapper;
+    @Resource private RelationMapper relationMapper;
     @Resource private IActionExecutionService executionService;
     @Resource private ObjectMapper objectMapper;
 
@@ -51,7 +61,7 @@ public class ObjectInstanceOperateServiceImpl implements IObjectInstanceOperateS
     @Transactional
     public RowOperateRespVO preview(RowOperateReqVO reqVO) {
         ActionDO action = getOrCreateBuiltinAction(reqVO);
-        String inputParams = toJson(reqVO.getData());
+        String inputParams = toJson(normalizeRelationInput(reqVO));
         ExecutionSubmitReqVO submitReq = new ExecutionSubmitReqVO();
         submitReq.setActionId(action.getId());
         submitReq.setInputParams(inputParams);
@@ -62,6 +72,40 @@ public class ObjectInstanceOperateServiceImpl implements IObjectInstanceOperateS
         submitReq.setSpaceCode(reqVO.getSpaceCode());
         ExecutionRespVO exec = executionService.submitExecution(submitReq);
         return buildPreviewResp(exec);
+    }
+
+    /** 当前对象端点永远以当前概念的主属性值为准，前端只需要人工选择关系另一端。 */
+    private Map<String, Object> normalizeRelationInput(RowOperateReqVO reqVO) {
+        Map<String, Object> input = reqVO.getData() == null
+                ? new LinkedHashMap<>() : new LinkedHashMap<>(reqVO.getData());
+        if (reqVO.getRelationId() == null) {
+            return input;
+        }
+        RelationDO relation = relationMapper.selectById(reqVO.getRelationId());
+        if (relation == null) {
+            throw new RuntimeException("关系不存在: " + reqVO.getRelationId());
+        }
+        List<PropertyDO> primaryProperties = propertyMapper.selectList(new LambdaQueryWrapper<PropertyDO>()
+                .eq(PropertyDO::getConceptId, reqVO.getConceptId())
+                .eq(PropertyDO::getIsPrimary, true)
+                .orderByAsc(PropertyDO::getSortOrder)
+                .last("limit 1"));
+        if (primaryProperties == null || primaryProperties.isEmpty()) {
+            throw new RuntimeException("当前对象类型尚未设置主属性，无法管理关系");
+        }
+        PropertyDO primary = primaryProperties.get(0);
+        Object currentValue = input.get(primary.getCode());
+        if (currentValue == null || String.valueOf(currentValue).trim().isEmpty()) {
+            throw new RuntimeException("缺少当前对象主属性值: " + primary.getName());
+        }
+        if (Objects.equals(relation.getSourceConceptId(), reqVO.getConceptId())) {
+            input.put("__relation_source__", currentValue);
+        } else if (Objects.equals(relation.getTargetConceptId(), reqVO.getConceptId())) {
+            input.put("__relation_target__", currentValue);
+        } else {
+            throw new RuntimeException("当前对象类型不是该关系的主体或客体");
+        }
+        return input;
     }
 
     @Override
@@ -99,6 +143,9 @@ public class ObjectInstanceOperateServiceImpl implements IObjectInstanceOperateS
      * 查询用名称前缀「内置-」限定，避免命中用户自建的同类型动作。
      */
     private ActionDO getOrCreateBuiltinAction(RowOperateReqVO reqVO) {
+        if (reqVO.getRelationId() != null) {
+            return getOrCreateBuiltinRelationAction(reqVO);
+        }
         String typeLabel = typeLabel(reqVO.getActionType());
         List<ActionDO> existed = actionMapper.selectList(new LambdaQueryWrapper<ActionDO>()
                 .eq(ActionDO::getOntologyId, reqVO.getOntologyId())
@@ -122,6 +169,71 @@ public class ObjectInstanceOperateServiceImpl implements IObjectInstanceOperateS
         actionMapper.insert(built);
         log.info("已创建对象行操作内置动作: actionId={}, type={}, conceptId={}", built.getId(), reqVO.getActionType(), reqVO.getConceptId());
         return built;
+    }
+
+    /**
+     * 对象浏览器中的关系管理复用一个仅含关系步骤的内置多目标动作。
+     * 输入只包含关系主体/客体的主属性值，真正落库时由关系执行引擎统一选择外键表或关系表，
+     * 因此这里绝不会 INSERT 主体或客体对象。
+     */
+    private ActionDO getOrCreateBuiltinRelationAction(RowOperateReqVO reqVO) {
+        RelationDO relation = relationMapper.selectById(reqVO.getRelationId());
+        if (relation == null || !Objects.equals(relation.getOntologyId(), reqVO.getOntologyId())) {
+            throw new RuntimeException("关系不存在或不属于当前本体: " + reqVO.getRelationId());
+        }
+        if (!Objects.equals(relation.getSourceConceptId(), reqVO.getConceptId())
+                && !Objects.equals(relation.getTargetConceptId(), reqVO.getConceptId())) {
+            throw new RuntimeException("当前对象类型不是该关系的主体或客体");
+        }
+        String operationLabel = typeLabel(reqVO.getActionType());
+        String builtinName = BUILTIN_PREFIX + "关系" + operationLabel + "-r" + relation.getId()
+                + "-c" + reqVO.getConceptId();
+        List<ActionDO> existed = actionMapper.selectList(new LambdaQueryWrapper<ActionDO>()
+                .eq(ActionDO::getOntologyId, reqVO.getOntologyId())
+                .eq(ActionDO::getConceptId, reqVO.getConceptId())
+                .eq(ActionDO::getActionType, "COMPOSITE")
+                .eq(ActionDO::getName, builtinName)
+                .last("limit 1"));
+        if (existed != null && !existed.isEmpty()) {
+            return existed.get(0);
+        }
+
+        List<Map<String, Object>> paramConfig = new ArrayList<>();
+        paramConfig.add(relationEndpointParam("SOURCE", "__relation_source__"));
+        paramConfig.add(relationEndpointParam("TARGET", "__relation_target__"));
+        Map<String, Object> step = new LinkedHashMap<>();
+        step.put("name", operationLabel + "关系-" + relation.getName());
+        step.put("targetType", "RELATION");
+        step.put("relationId", relation.getId());
+        step.put("actionType", reqVO.getActionType());
+        step.put("paramConfig", paramConfig);
+
+        ActionDO built = new ActionDO();
+        built.setOntologyId(reqVO.getOntologyId());
+        built.setName(builtinName);
+        built.setActionType("COMPOSITE");
+        built.setConceptId(reqVO.getConceptId());
+        built.setExecutionSteps(toJson(java.util.Collections.singletonList(step)));
+        built.setNeedsApproval(false);
+        built.setApprovalLevels(0);
+        built.setVersion(1);
+        built.setDescription("对象浏览器内置关系操作：只" + operationLabel + "关系“" + relation.getName()
+                + "”，不新增或删除关系两端对象");
+        actionMapper.insert(built);
+        log.info("已创建对象关系操作内置动作: actionId={}, relationId={}, operation={}, conceptId={}",
+                built.getId(), relation.getId(), reqVO.getActionType(), reqVO.getConceptId());
+        return built;
+    }
+
+    private Map<String, Object> relationEndpointParam(String endpoint, String parameterName) {
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("propertyCode", parameterName);
+        config.put("relationEndpoint", endpoint);
+        config.put("valueMode", "placeholder");
+        config.put("valueTemplate", "${" + parameterName + "}");
+        config.put("objectValue", false);
+        config.put("required", true);
+        return config;
     }
 
     private String typeLabel(String actionType) {
