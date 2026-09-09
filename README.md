@@ -8,9 +8,20 @@ DataMaster 是一个面向银行金融数据治理场景的数据中台系统，
 docs/整体规范化改造目标与方案.md
 ```
 
-## 1. 项目定位
+## 1. 项目定位与架构原则
 
-DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的 CRUD 后台。
+DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的 CRUD 后台。平台将外部数据源、元数据目录、数据资产、本体语义和数据应用分层管理；空间权限贯穿各层。
+
+需要先区分四类数据：
+
+| 层次 | 主要来源 | 作用 |
+| --- | --- | --- |
+| 真实数据源 | 用户注册的数据库、Doris、文件等 | 实际查询、写入和 ETL 执行 |
+| 元数据目录 | `CAT_TABLE`、`CAT_COLUMN` | 探查得到的库、表、字段结构 |
+| 数据资产 | `AST_ASSET`、`AST_ASSET_COLUMN` | 业务登记、空间权限、字段治理和脱敏 |
+| 业务配置 | 数据服务参数、本体绑定、任务配置等 | 各应用保存的业务定义 |
+
+“资产优先、元数据回退”是部分治理和语义流程的规则，不是所有模块的字段读取规则。各模块的真实来源以第 6 节矩阵为准。
 
 核心能力包括：
 
@@ -68,21 +79,19 @@ DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的
 根目录是一个多模块 Maven 工程，整体采用“启动入口 + 业务模块 + 公共基础能力 + 前端工程”的结构。
 
 ```text
-datamaster-server        后端启动入口，聚合业务模块并提供运行配置
-datamaster-common        公共基础能力：数据源、SQL 执行（DbQuery）、MyBatis、安全、缓存、WebSocket
-datamaster-system        系统管理：用户、角色、菜单、部门、字典、权限
-datamaster-taxonomy      空间、分类、主题、源系统、规则等治理元数据
-datamaster-standards     数据标准、标准文档、数据元
-datamaster-assets        数据资产、数据源管理、资产申请、字段权限、表治理权限校验、脱敏；依赖元数据（metadata）
-datamaster-ontology      本体模型：概念、关系、属性、动作/函数（概念计算引擎）；依赖资产
-datamaster-collector     数据采集、ETL 任务、调度任务编排和任务实例管理
-datamaster-service       数据服务 API 发布、SQL 执行、接口调用、限流和缓存
-datamaster-governance    数据治理、数据标准、数据建模
-datamaster-metadata      元数据探查与质量探查（含原 catalog 元数据目录）
-datamaster-api-ds        DolphinScheduler API 适配层
-datamaster-flinkx-core   FlinkX / ChunJun 任务 JSON 转换能力
-datamaster-quality       质量探查模块
-datamaster-ai            AI 问数、SQL 生成、Skill 管理、DB-GPT 集成；依赖本体
+datamaster-server        后端启动入口，聚合全部业务模块
+datamaster-system-api    系统公共 API、DTO 和跨模块接口模型
+datamaster-system        用户、角色、菜单、部门、字典和系统权限
+datamaster-common        数据源、DbQuery、动态数据源、MyBatis、缓存、安全和 WebSocket
+datamaster-governance    数据标准、数据元、码表、敏感等级、脱敏规则、逻辑模型和空间治理
+datamaster-metadata      元数据探查、目录版本和质量探查
+datamaster-assets        数据源、数据资产、资产字段、权限、申请审批、表治理和脱敏
+datamaster-ontology      本体概念、属性、关系、动作、函数和对象实例
+datamaster-service       数据服务 API、SQL 执行、参数映射、限流、缓存和日志
+datamaster-collector     ETL、数据开发、任务编排、调度发布和实例日志
+datamaster-ai            AI 问数、Skill、SQL 生成和 DB-GPT 集成
+datamaster-ingestion     Kafka/Doris 数据接入和本体决策触发
+datamaster-api-ds        DolphinScheduler HTTP 适配层
 datamaster-ui            Vue 3 + Vite 前端
 sql                      数据库脚本
 docs                     项目文档
@@ -100,6 +109,51 @@ datamaster-server/src/main/java/com/datamaster/server/DataMasterApplication.java
 
 ```text
 datamaster-ui/
+```
+
+整体调用关系：
+
+```text
+datamaster-ui
+      -> datamaster-server（Spring Boot 聚合启动）
+      -> system / governance / metadata / assets
+      -> ontology / service / collector / ai / ingestion
+      -> common（DbQuery、数据源、缓存、安全、MyBatis）
+      -> 平台主库、Redis、RabbitMQ、DolphinScheduler、外部数据源
+```
+
+主要数据流：
+
+```text
+外部数据源 --探查--> CAT_TABLE / CAT_COLUMN
+CAT_TABLE / CAT_COLUMN --同步/登记--> AST_ASSET / AST_ASSET_COLUMN
+AST_ASSET --绑定--> 本体概念 / 属性 / 关系 / 动作
+本体、资产、元数据 --提供上下文--> AI / 数据服务 / ETL / 数据查询
+Kafka --接入--> Doris --可选触发--> 本体动作/决策
+```
+
+```mermaid
+flowchart LR
+    UI[datamaster-ui] --> SERVER[datamaster-server]
+    SERVER --> SYS[system / governance]
+    SERVER --> META[metadata]
+    SERVER --> ASSET[assets]
+    SERVER --> ONT[ontology]
+    SERVER --> SVC[service]
+    SERVER --> COL[collector]
+    SERVER --> AI[ai]
+    SERVER --> ING[ingestion]
+    META --> CAT[(CAT_TABLE / CAT_COLUMN)]
+    CAT --> ASSETDB[(AST_ASSET / AST_ASSET_COLUMN)]
+    ASSET --> GOV[统一表治理入口]
+    ONT --> GOV
+    SVC --> GOV
+    AI --> ONT
+    COL --> DS[DolphinScheduler]
+    DS --> ENGINE[ChunJun / FlinkX]
+    ING --> KAFKA[Kafka]
+    ING --> DORIS[Doris]
+    GOV --> EXT[真实数据源]
 ```
 
 ## 4. 模块职责
@@ -125,19 +179,13 @@ datamaster-ui/
 
 空间改造后，系统角色和菜单权限会结合空间上下文进行权限隔离。
 
-### 4.3 datamaster-taxonomy
+### 4.3 datamaster-governance
 
-治理元数据模块，负责空间、分类、主题域、源系统、规则等治理基础数据。
+治理模块集中负责数据标准、数据元、码表、敏感等级、脱敏规则、逻辑模型和空间相关治理配置。它不负责探查外部数据库的库表字段；外部结构由 `datamaster-metadata` 采集。
 
-它为资产、质量、采集、服务等模块提供统一的分类、规则和空间上下文。
+资产字段、模型字段、质量规则和数据服务脱敏配置可以引用治理模块中的标准定义。
 
-### 4.4 datamaster-standards
-
-数据标准模块，负责标准目录、标准文档、数据元、码表、敏感等级、脱敏规则等标准化能力。
-
-资产字段、模型字段和治理规则可以引用标准定义。
-
-### 4.5 datamaster-assets
+### 4.4 datamaster-assets
 
 数据资产核心模块，负责数据源、资产、资产字段、资产申请、资产权限、表治理权限校验、脱敏和 AI 问数资产侧能力。
 
@@ -151,9 +199,9 @@ datamaster-ui/
 - 资产申请和审批
 - 数据预览、字段脱敏、用户数据权限等级控制
 - 为本体、数据服务、采集、质量和 AI 问数提供数据源与资产能力
-- 未命中资产时回退元数据目录（`CatalogTableApiService`）作为表结构依据
+- 未命中资产时通过 `CatalogTableApiService` 回退到元数据目录，作为表级治理解析依据
 
-### 4.6 datamaster-collector
+### 4.5 datamaster-collector
 
 采集和 ETL 任务模块，负责任务配置、节点编排、发布、执行、实例日志和状态回写。
 
@@ -166,7 +214,7 @@ datamaster-ui/
 - 生成 ChunJun / FlinkX 任务 JSON
 - 处理增量任务边界、回调和状态同步
 
-### 4.7 datamaster-service
+### 4.6 datamaster-service
 
 数据服务模块，负责把 SQL、参数映射、权限控制和数据源执行封装成可发布 API。
 
@@ -177,46 +225,38 @@ datamaster-ui/
 - SQL 测试执行
 - API 调用日志
 - 限流、缓存、白名单
-- 执行时读取资产和数据源权限
+- API 配置时选择数据源、表、请求参数和返回字段
+- 执行前调用统一表治理入口，按“数据资产优先、元数据回退”解析表
+- 命中数据资产时执行字段权限、隐藏字段和数据脱敏
+- 未命中数据资产时仍按已保存的 API SQL/字段配置执行，不自动替换为元数据字段
 
-### 4.8 datamaster-metadata
+### 4.7 datamaster-metadata
 
-元数据探查与质量探查模块（由 datamaster-catalog 与 datamaster-quality 合并而来），负责采集外部数据源的库、表、字段、索引、分区、存储等结构信息，维护目录和版本，并对库表执行质量规则探查、产出质量报告。
+元数据探查与质量探查模块，负责采集外部数据源的库、表、字段、索引、分区、存储等结构信息，维护目录和版本，并对库表执行质量规则探查、产出质量报告。
 
 作为数据底层，为 `datamaster-assets`（资产）、`datamaster-ai`（AI 问数）、`datamaster-service`（数据服务）等模块提供表结构元数据。
 
-### 4.9 datamaster-api-ds
+### 4.8 datamaster-api-ds
 
 DolphinScheduler HTTP API 适配层，封装项目、任务、调度、执行、上下线、数据源同步等接口。
 
 业务模块通过该层调用 DolphinScheduler，避免在各模块里散落 HTTP 调用细节。
 
-### 4.10 datamaster-flinkx-core
+### 4.9 datamaster-ai
 
-FlinkX / ChunJun 转换核心，负责将平台的输入、转换、输出配置转换为 ChunJun 任务 JSON。
+AI 问数、Skill、SQL 生成和 DB-GPT 集成。AI 依赖本体作为语义入口；单表、多表 Skill 根据资产和元数据可用性分别处理回退。
 
-### 4.11 datamaster-quality
+### 4.10 datamaster-ingestion
 
-质量探查模块，负责质量规则、质量任务、检测执行和检测结果管理。质量任务读取平台数据源配置，对目标数据执行规则校验。
+独立的数据接入模块。消费 Kafka 消息，写入 Doris，记录接入日志，并按配置调用本体决策/动作触发接口。
+
+### 4.11 datamaster-ontology
+
+本体模块负责概念、属性、关系、动作、函数和对象实例。概念绑定物理表，属性绑定物理字段，关系描述对象关联，动作负责语义化读写。
 
 ### 4.12 datamaster-ui
 
 前端工程，提供空间、数据源、资产、目录、标准、采集、ETL、质量、服务、本体、AI 问数等页面。
-
-### 4.13 datamaster-ontology
-
-本体模型模块（概念计算引擎），负责把底层数据抽象成语义层，供 AI 问数等上层模块以业务概念进行推理。
-
-**依赖关系**：本体依赖 `datamaster-assets`（资产），获取表权限与数据源能力。
-
-主要职责：
-
-- 本体管理：Ontology 本体定义
-- 概念（Concept）：业务实体建模，绑定物理表
-- 关系（Relation）：概念之间的关联，绑定关联表
-- 属性（Property）：概念的字段语义映射
-- 动作（Action）/ 函数（Function）：封装语义化操作；函数升级为「概念计算引擎」——单主概念 + 可选关系作为数据来源，批处理注入脚本（`input.source.rows` / `input.relations.<code>`），脚本输出 JSON 数组，可选按主键 UPSERT 回写输出目标概念物理表（`READ_LIMIT` 默认 5000）
-- SQL 能力复用 `datamaster-common` 的 `DbQuery`/`DataSourceFactory`，权限复用 `datamaster-assets` 的 `AssetsTableGovernanceApiServiceImpl.checkTableAccess`（entrance=ONTOLOGY_*）
 
 ## 5. 核心业务流程
 
@@ -253,6 +293,16 @@ AST_DATASOURCE
 AST_DATASOURCE_SPACE_REL
 ```
 
+```mermaid
+flowchart LR
+    REGISTER[新增/编辑数据源] --> TEST[测试连接]
+    TEST --> SAVE[保存 AST_DATASOURCE]
+    SAVE --> SPACE[绑定空间 AST_DATASOURCE_SPACE_REL]
+    SPACE --> CACHE[刷新 Redis datasource]
+    CACHE --> REUSE[资产 / 元数据 / 质量 / ETL / 服务复用]
+    SAVE -. 可选 .-> DS[同步 DolphinScheduler 数据源]
+```
+
 ### 5.3 数据资产
 
 数据资产模块负责资产登记、资产分类、字段维护、资产申请和访问控制。
@@ -266,17 +316,73 @@ AST_DATASOURCE_SPACE_REL
   -> 被数据服务、AI 问数、质量、ETL 使用
 ```
 
-### 5.4 元数据目录
+资产与元数据的同步关系如下：
 
-元数据目录负责扫描外部数据源结构，并沉淀库、表、字段、索引、分区等元数据。
+```text
+元数据采集：读取外部数据源 -> CAT_TABLE / CAT_COLUMN
+资产同步：按 tableId 优先匹配资产，匹配不到再按数据源 + 表名匹配
+          -> 更新或新建 AST_ASSET
+          -> 从 CAT_COLUMN 同步 AST_ASSET_COLUMN
+```
+
+资产同步是“元数据目录写入数据资产”，不是运行时查询回退。运行时是否使用资产或元数据，由各业务入口自己的解析流程决定，详见“数据来源解析矩阵”。
+
+```mermaid
+flowchart TD
+    SOURCE[真实数据源] --> DISCOVER[元数据探查]
+    DISCOVER --> TABLE[CAT_TABLE]
+    DISCOVER --> COLUMN[CAT_COLUMN]
+    TABLE --> MATCH{匹配已有资产?}
+    MATCH -->|tableId 优先| UPDATE[更新 AST_ASSET]
+    MATCH -->|数据源 + 表名| UPDATE
+    MATCH -->|未匹配| CREATE[新增 AST_ASSET]
+    COLUMN --> ASSETCOL[同步 AST_ASSET_COLUMN]
+    UPDATE --> ASSETCOL
+    CREATE --> ASSETCOL
+    ASSETCOL --> GOVERN[分类 / 标准 / 敏感等级 / 空间权限]
+```
+
+### 5.4 元数据目录与质量探查
+
+`datamaster-metadata` 同时承载元数据目录和质量探查能力，负责扫描外部数据源结构，并沉淀库、表、字段、索引、分区等元数据。
 
 ```text
 创建采集任务
-  -> 发布 DolphinScheduler HTTP 工作流
+  -> metadata/collector 创建并发布 DolphinScheduler 工作流
   -> 调度平台回调系统采集接口
   -> 读取数据源结构
   -> 比对元数据变化
   -> 写入目录和版本记录
+  -> 按质量任务配置执行规则探查
+  -> 写入质量结果和报告
+```
+
+```mermaid
+flowchart TD
+    TASK[创建探查/质量任务] --> PUBLISH[发布调度任务]
+    PUBLISH --> RUN[DolphinScheduler 执行]
+    RUN --> READ[读取外部库表结构]
+    READ --> VERSION[比对版本变化]
+    VERSION --> CATALOG[写入 CAT_TABLE / CAT_COLUMN]
+    CATALOG --> QUALITY[执行质量规则]
+    QUALITY --> REPORT[保存质量结果/报告]
+```
+
+#### 5.4.1 统一表治理回退
+
+元数据探查完成后，数据查询、数据服务、AI 和本体等入口可通过资产治理服务判断使用资产还是元数据表：
+
+```mermaid
+flowchart TD
+    REQUEST[数据查询 / 数据服务 / AI / 本体请求]
+    REQUEST --> FIND_ASSET{按数据源 + 表名查 AST_ASSET}
+    FIND_ASSET -->|命中| ASSET[使用资产表和 assetId]
+    FIND_ASSET -->|未命中| FALLBACK{允许元数据回退?}
+    FALLBACK -->|是| CATALOG[查 CAT_TABLE，标记 metadata 来源]
+    FALLBACK -->|否| BLOCK[按 strict 策略阻断或返回无治理记录]
+    ASSET --> FIELD_AUTH[空间表/字段权限、敏感等级、脱敏]
+    CATALOG --> EXEC[按业务自身字段配置继续执行]
+    FIELD_AUTH --> EXEC
 ```
 
 ### 5.5 数据标准
@@ -290,7 +396,39 @@ AST_DATASOURCE_SPACE_REL
   -> 在治理、质量、建模、服务中复用
 ```
 
-### 5.6 数据集成和 ETL
+### 5.6 本体与对象执行
+
+本体把物理表和字段抽象为概念、属性、关系、动作和函数，供对象查询、动作执行和 AI 使用。
+
+```text
+绑定概念和物理表
+  -> 绑定属性和物理字段
+  -> 配置关系和主客体字段
+  -> 配置动作/函数
+  -> 对象查询或提交动作
+  -> 权限校验、审批（需要时）
+  -> 生成 SELECT / INSERT / UPDATE / DELETE
+  -> 执行事务并记录前后值
+```
+
+```mermaid
+flowchart TD
+    CONCEPT[概念] --> PROPERTY[属性绑定物理字段]
+    CONCEPT --> RELATION[关系：主客体 / 关联字段]
+    PROPERTY --> ACTION[动作 / 函数]
+    RELATION --> ACTION
+    ACTION --> PRECHECK[权限校验和预执行]
+    PRECHECK --> APPROVAL{需要审批?}
+    APPROVAL -->|是| WAIT[待人工审批]
+    APPROVAL -->|否| EXEC[执行事务]
+    WAIT --> EXEC
+    EXEC --> AUDIT[ONT_ACTION_EXECUTION 前后值和状态]
+    EXEC -. 可选 .-> NEO[Neo4j 动作血缘]
+```
+
+本体生成当前直接使用 `CAT_TABLE` / `CAT_COLUMN`；对象查询和动作权限复用资产表治理入口。关系更新必须使用实际主键和关系条件字段，不能用显示名称代替主键值。
+
+### 5.7 数据集成和 ETL
 
 数据集成由 `datamaster-collector` 管理任务配置，通过 DolphinScheduler 调度，由 ChunJun / FlinkX 执行数据同步和转换。
 
@@ -310,7 +448,20 @@ AST_DATASOURCE_SPACE_REL
 - HTTP 回调辅助增量边界计算
 - 任务实例日志和状态同步
 
-### 5.7 数据开发
+```mermaid
+flowchart LR
+    CONFIG[任务配置：输入 / 转换 / 输出] --> SAVE[保存任务、节点、关系]
+    SAVE --> CONVERT[TaskConverter]
+    CONVERT --> JSON[ChunJun / FlinkX Job JSON]
+    JSON --> PUBLISH[datamaster-api-ds 发布]
+    PUBLISH --> DS[DolphinScheduler]
+    DS --> WORKER[Worker 执行]
+    WORKER --> CALLBACK[状态回调 / 日志]
+    CALLBACK --> INSTANCE[任务实例和节点状态]
+    PUBLISH -. 可选 .-> LINEAGE[Neo4j 血缘写入]
+```
+
+### 5.8 数据开发
 
 数据开发复用 collector ETL 任务体系，通过 `type = 3` 区分。
 
@@ -323,7 +474,7 @@ AST_DATASOURCE_SPACE_REL
 
 数据开发不单独维护一套后台，发布、执行、调度、实例日志复用 `/col/etlTask` 主链路。
 
-### 5.8 质量探查
+### 5.9 质量探查
 
 质量探查负责质量规则配置、质量任务调度和检测结果管理。
 
@@ -335,20 +486,77 @@ AST_DATASOURCE_SPACE_REL
   -> 查看问题数据和质量报告
 ```
 
-### 5.9 数据服务
+### 5.10 数据服务
 
 数据服务将 SQL、参数、权限和数据源执行封装成可调用 API。
 
 ```text
 创建 API
-  -> 配置 SQL 和参数映射
+  -> 选择数据源和配置方式
+  -> 配置 SQL、请求参数和返回字段
   -> 测试执行
   -> 发布服务
   -> 外部系统调用
   -> 记录调用日志
 ```
 
-### 5.10 AI 问数
+#### 5.10.1 配置阶段的表和字段来源
+
+当前数据服务配置存在以下取数路径：
+
+| 配置场景 | 当前来源 | 说明 |
+| --- | --- | --- |
+| 编辑已有 API 时加载表下拉 | `AST_ASSET`（`/ast/asset/getTablesByDataSourceId`） | 读取已登记的数据资产表 |
+| 新增 API 或切换数据源后加载表下拉 | 真实数据源表结构（`/ast/dataSource/tableList/{id}`） | 直接读取外部数据源 |
+| 选择表后加载请求/返回字段 | 真实数据源字段（`/ast/dataSource/columnsList`） | 当前不是 `AST_ASSET_COLUMN`，也不是 `CAT_COLUMN` |
+| SQL 配置方式 | SQL 解析结果 | 返回字段由 SQL 解析得到 |
+
+选中的请求参数和返回字段会保存到数据服务自己的 `reqParams`、`resParams` 配置 JSON 中，不会在运行时自动从资产字段重新生成。
+
+#### 5.10.2 执行阶段的资产优先和元数据回退
+
+数据服务测试执行和发布后的 API 调用都会调用
+`AssetsTableGovernanceApiServiceImpl.resolveTable()`：
+
+```text
+按数据源 + 表名查 AST_ASSET
+  ├── 命中数据资产
+  │     -> 返回 assetId
+  │     -> 严格模式下校验空间表权限和字段权限
+  │     -> 按资产授权字段过滤已配置的返回字段
+  │     -> 按 scene=3 执行数据服务脱敏
+  │
+  └── 未命中数据资产
+        -> 开启回退时查 CAT_TABLE
+        -> 标记为元数据回退并允许继续执行
+        -> 不产生 assetId，不执行资产字段级脱敏
+        -> 仍按 API 已保存的 SQL/字段配置查询真实数据源
+```
+
+因此当前数据服务的“执行治理”已经是资产优先、元数据回退，但“配置字段来源”还没有统一为资产字段优先。
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant API as 数据服务 API
+    participant GOV as AssetsTableGovernanceApiService
+    participant DB as 真实数据源
+    C->>API: 调用 API / 测试执行
+    API->>API: 读取已保存 SQL、reqParams、resParams
+    API->>GOV: resolveTable(datasourceId, tableName)
+    alt 命中 AST_ASSET
+        GOV-->>API: assetId + 授权字段
+        API->>API: 过滤字段、隐藏列、scene=3 脱敏
+    else 未命中资产且允许回退
+        GOV-->>API: CAT_TABLE 元数据回退
+        API->>API: 保留已保存字段配置
+    end
+    API->>DB: 执行 SQL
+    DB-->>API: 返回数据
+    API-->>C: 返回结果
+```
+
+### 5.11 AI 问数
 
 AI 问数基于空间、本体、资产、字段、权限和会话上下文提供自然语言问数能力。
 
@@ -371,11 +579,52 @@ AI 请求语义数据
   -> 返回结果 / 图表 / 报告
 ```
 
-## 5.11 数据脱敏
+```mermaid
+flowchart TD
+    QUESTION[自然语言问题] --> ONT{本体是否有概念/属性/关系映射?}
+    ONT -->|是| ONTSQL[本体语义查询 / 动作]
+    ONT -->|否| SKILL[构造 Skill]
+    SKILL --> ASSET{是否命中数据资产?}
+    ASSET -->|是| ASSETCTX[使用资产字段、权限和数据源]
+    ASSET -->|否| METACTX[使用 CAT_TABLE / CAT_COLUMN]
+    ONTSQL --> GOVERN[表治理和权限校验]
+    ASSETCTX --> GOVERN
+    METACTX --> GOVERN
+    GOVERN --> EXEC[生成 SQL / DB-GPT 执行]
+    EXEC --> RESULT[结果、图表或报告]
+```
+
+### 5.12 数据接入 ingestion
+
+`datamaster-ingestion` 是独立的数据接入模块，不依赖数据服务 API 配置：
+
+```text
+Kafka topic
+  -> IngestionKafkaConsumer 消费消息
+  -> 解析并写入 Doris
+  -> 记录接入日志和结果
+  -> 按配置调用本体决策/动作触发接口
+```
+
+只有 `datamaster.ingestion.enabled=true` 且配置了 topic 时才启用消费。冲突策略、目标表和触发配置由 `IngestionProperties` 控制。
+
+```mermaid
+flowchart LR
+    KAFKA[Kafka topic] --> CONSUMER[IngestionKafkaConsumer]
+    CONSUMER --> PARSE[解析消息]
+    PARSE --> DORIS[Doris 写入]
+    DORIS --> LOG[记录接入日志]
+    DORIS --> TRIGGER{配置了决策触发?}
+    TRIGGER -->|是| ACTION[ontology 决策/动作触发]
+    TRIGGER -->|否| DONE[完成]
+    ACTION --> DONE
+```
+
+## 5.13 数据脱敏
 
 数据脱敏用于对敏感字段进行区间替换或隐藏，保护用户隐私数据。
 
-### 5.11.1 数据库表
+### 5.13.1 数据库表
 
 | 表名 | 用途 |
 | --- | --- |
@@ -388,7 +637,7 @@ AI 请求语义数据
 | `STD_DESENSITIZE_USER_REL` | 白名单用户关联 |
 | `STD_DESENSITIZE_ASSETCOLUMN` | 字段 → 数据分类绑定关系 |
 
-### 5.11.2 执行流程（公共脱敏方法）
+### 5.13.2 执行流程（公共脱敏方法）
 
 脱敏统一收敛到 `AssetsTableGovernanceApiServiceImpl` 的公共方法，三处场景共用，仅传参 `scene` 不同：
 
@@ -437,7 +686,7 @@ Asset Column
 - `2` = 区间替换（用 replaceContent 替换指定位置）
 - `3` = 隐藏列（整列不返回）
 
-### 5.11.3 区间替换算法
+### 5.13.3 区间替换算法
 
 ```text
 输入: 原始字符串 + 替换内容 + 区间列表(intervalNo, startNum, endNum)
@@ -447,7 +696,7 @@ Asset Column
 示例：原始 `"1234567890"`，replaceContent=`"*"`，区间 `[(3,5), (7,9)]`
 → 结果 `"12***6*890"`
 
-### 5.11.4 前端配置页面
+### 5.13.4 前端配置页面
 
 位于 `数据资产 > 数据安全` 菜单下：
 
@@ -469,7 +718,7 @@ Asset Column
 - `2` = 角色
 - `3` = 部门
 
-### 5.11.5 API 接口
+### 5.13.5 API 接口
 
 | 模块 | 接口前缀 | 用途 |
 | --- | --- | --- |
@@ -481,18 +730,18 @@ Asset Column
 | 资产字段 | `/ast/assetColumn/list?assetId=xxx` | 联动下拉 |
 | 用户列表 | `/system/user/list` | 白名单用户选择器 |
 
-### 5.11.6 菜单权限
+### 5.13.6 菜单权限
 
 菜单 ID 2930-2947，按钮权限标识：
 - `dg:desensitizerules:*`
 - `dg:desensitizewhitelist:*`
 - `dg:Standardsdesensitizelist:*`
 
-## 5.12 数据血缘
+## 5.14 数据血缘
 
 数据血缘基于 Neo4j 图数据库（可选能力，`datamaster-common/datamaster-common-base` 模块），以 `LineageDataService` 为统一入口，通过开关 `datamaster.lineage.enabled`（默认 false，生产环境可用环境变量 `LINEAGE_ENABLED` 覆盖）控制装配。
 
-### 5.12.1 可插拔机制（关键）
+### 5.14.1 可插拔机制（关键）
 
 `LineageDataService` 被多处业务以 `@Autowired(required = false) + null 判空` 方式注入：
 
@@ -505,7 +754,7 @@ Asset Column
 
 即：`LINEAGE_ENABLED=false` 或未安装 Neo4j 时，血缘完全不影响任何业务主流程；只有开启后血缘才真正落库并展示。
 
-### 5.12.2 两条血缘链路
+### 5.14.2 两条血缘链路
 
 **（1）表级血缘（数据资产侧）**
 
@@ -527,14 +776,14 @@ Asset Column
 
 - 写入来源：`ActionExecutionServiceImpl.writeActionLineageSilently()` 在本体动作（CREATE/UPDATE/DELETE）执行成功/失败后调用 `saveObject()` + `saveActionExecution()`，全部 `try/catch` 静默，绝不影响执行主流程；`ObjectInstanceQueryServiceImpl` 在对象实例查询时维护 `MATERIALIZES` 关系。
 
-### 5.12.3 后端接口
+### 5.14.3 后端接口
 
 | 接口 | 用途 |
 | --- | --- |
 | `GET /ast/asset/dataLineage/{id}` | 资产详情的表级血缘图 |
 | `GET /ont/object-instance/lineage/{conceptId}` | 本体对象实例的对象血缘（四维度） |
 
-### 5.12.4 前端位置
+### 5.14.4 前端位置
 
 | 功能 | 前端文件 |
 | --- | --- |
@@ -548,9 +797,9 @@ Asset Column
 
 > 补充：`datamaster-ui/src/views/meta/analyses/lineage/index.vue`、`LineageAnalysis.vue`（元数据未发布表详情）等亦含"线分析"类页面，属于元数据血缘分析展示，与上述数据/对象血缘同源或复用图组件。
 
-### 5.12.5 基础设施
+### 5.14.5 基础设施
 
-Neo4j 为可选中间件（见 7.3）。连接配置使用 Spring Boot 标准前缀 `spring.data.neo4j.uri/username/password`，`Neo4jLineageConfig` 在 `LINEAGE_ENABLED=true` 时装配全部 Repository 与事务管理器。
+Neo4j 为可选中间件（见 7.4）。连接配置使用 Spring Boot 标准前缀 `spring.data.neo4j.uri/username/password`，`Neo4jLineageConfig` 在 `LINEAGE_ENABLED=true` 时装配全部 Repository 与事务管理器。
 
 ## 6. 权限控制体系
 
@@ -593,6 +842,18 @@ Neo4j 为可选中间件（见 7.3）。连接配置使用 Spring Boot 标准前
   -> 结合敏感等级和脱敏规则返回可见字段与数据
 ```
 
+```mermaid
+flowchart TD
+    REQ[业务请求] --> SYSTEM[系统菜单/接口权限]
+    SYSTEM --> SPACE[当前空间和成员权限]
+    SPACE --> DS[数据源空间权限]
+    DS --> TABLE[资产表空间权限]
+    TABLE --> COLUMN[资产字段空间权限]
+    COLUMN --> LEVEL[用户等级 vs 字段敏感等级]
+    LEVEL --> RULE[脱敏规则和白名单]
+    RULE --> RESULT[放行 / 替换 / 隐藏 / 拒绝]
+```
+
 本体动作增删改字段级控制（复用上述字段级授权）：
 
 ```text
@@ -625,18 +886,18 @@ datamaster-assets-core  AssetsTableGovernanceApiServiceImpl   ← 唯一权限�
 datamaster-metadata     CatalogTableApiService（元数据目录）
 ```
 
-降级规则：`resolveTable` 未命中资产时，由 `TableGovernanceProperties` 开关决定——strict 拒绝、off/warn 放行并回退元数据目录作为表结构依据。
+降级规则：`resolveTable` 未命中资产时，由 `TableGovernanceProperties` 开关决定——strict 模式按配置拒绝或限制访问，off/warn 模式放行并回退元数据目录进行表级解析。该回退不会自动替换业务模块已经保存的字段配置。
 
 ### 6.5 跨模块依赖架构（AI → 本体 → 资产 → 元数据）
 
-参照 Palantir 本体语义层思路，平台上层模块通过「逐层收口」的方式获取数据能力与权限：**AI 问数只依赖本体，本体依赖资产，资产依赖元数据**。SQL 执行能力（`DbQuery`/`DataSourceFactory`）统一来自 `datamaster-common`。
+参照本体语义层思路，平台运行时优先以本体作为 AI 的语义入口；但代码依赖并不是单向传递。`datamaster-ai` 当前同时依赖本体、资产和元数据接口，`datamaster-ontology` 依赖资产和元数据接口，`datamaster-service` 依赖资产治理接口。SQL 执行能力（`DbQuery`/`DataSourceFactory`）统一来自 `datamaster-common`。
 
 ```text
 datamaster-ai（AI 问数 / Skill 生成）
-   │  依赖本体接口（语义层，唯一数据入口）
+   │  运行时优先本体；实现层可直接读取资产/元数据接口
    ▼
 datamaster-ontology（本体：概念 / 关系 / 属性 / 动作 / 函数）
-   │  依赖资产接口 + 元数据接口（降级逻辑封装在本体内部）
+   │  依赖资产接口 + 元数据接口
    ▼
 datamaster-assets（资产：权限 / 脱敏 / 表结构）
    │  依赖元数据接口（未命中资产回退元数据目录）
@@ -644,7 +905,7 @@ datamaster-assets（资产：权限 / 脱敏 / 表结构）
 datamaster-metadata（元数据：目录 / 版本 / 质量探查）
 ```
 
-三层逐级降级模型（按数据成熟度选层）：
+三层逐级降级模型（按数据成熟度选层，属于跨模块抽象，不代表每个接口都会自动走完三层）：
 
 | 数据状态 | 上层走哪层 | 语义 |
 | --- | --- | --- |
@@ -662,6 +923,26 @@ datamaster-metadata-core           → CatalogTableApiService 等（元数据实
 ```
 
 模块间依赖以「接口 jar（`*-interface`）」为边界，实现由 `datamaster-server` 聚合注入，避免上层业务模块直接耦合实现模块。
+
+### 6.6 数据资产与元数据来源解析矩阵
+
+以下是当前代码中“优先查资产、查不到再取元数据”相关流程的实际边界：
+
+| 流程 | 第一来源 | 资产不存在时 | 字段来源/备注 |
+| --- | --- | --- | --- |
+| 资产同步 | `CAT_TABLE` / `CAT_COLUMN` | 不适用 | 将目录元数据写入 `AST_ASSET` / `AST_ASSET_COLUMN`；匹配已有资产时优先按 `tableId`，再按数据源 + 表名 |
+| 手工新增资产 | 表单字段 | 有 `tableId` 且表单无字段时取 `CAT_COLUMN` | 表单有字段时以表单为准 |
+| 资产预览 | `AST_ASSET_COLUMN`（按空间权限过滤） | 实时读取真实数据源字段 | 当前不经过 `CAT_COLUMN` |
+| 数据查询/数据服务表治理 | `AST_ASSET` | `CAT_TABLE`（由 `resolveTable` 开关控制） | 这是表级治理回退；不会自动替换业务已保存的字段配置 |
+| 数据服务表配置（编辑已有 API） | `AST_ASSET` 表 | 无 | 当前字段选择仍调用 `columnsList`，读取真实数据源字段 |
+| 数据服务表配置（新增/切换数据源） | 真实数据源表 | 无 | 表下拉调用 `tableList`，字段仍调用 `columnsList` |
+| 数据服务 SQL 配置 | SQL 解析结果 | 无 | 返回字段保存到 API 的 `resParams` |
+| AI 单表 Skill | 资产及其字段 | 对应 `CAT_TABLE` / `CAT_COLUMN` | 命中已有资产时优先使用资产字段 |
+| AI 整库/多表 Skill | 每张表先匹配资产 | 对应元数据表及字段 | 元数据目录为空时才退回资产列表 |
+| 本体生成 | `CAT_TABLE` / `CAT_COLUMN` | 不适用 | 当前直接使用元数据目录，未接入资产优先回退 |
+| 本体对象查询/动作权限 | 统一 `resolveTable` / `checkTableAccess` | `CAT_TABLE` 表级回退 | 动作写操作还会校验资产字段授权 |
+
+因此，项目当前不是所有模块都使用完全相同的字段链路。统一入口目前主要负责表级治理和权限判断；具体业务是否读取 `AST_ASSET_COLUMN`、`CAT_COLUMN` 或实时数据源字段，仍取决于对应流程的实现。
 
 ## 7. 数据源体系
 
@@ -701,7 +982,41 @@ datamaster-server/src/main/resources/application-prod.yml
 | DolphinScheduler | 工作流调度、任务发布和执行 |
 | Flink / ChunJun | 数据集成执行引擎 |
 | HDFS | 文件和资源存储能力 |
-| MongoDB / Neo4j | 部分可选能力 |
+| MongoDB | 部分可选能力 |
+| Neo4j | 可选血缘图存储，不是核心业务必需依赖 |
+
+### 7.4 Neo4j 使用说明
+
+Neo4j 只用于血缘增强能力：
+
+- 资产表级血缘：表 → ETL 任务 → 表；
+- 本体对象血缘：对象 → 物理表；
+- 动作/决策血缘：动作执行 → 对象。
+
+它不负责数据服务查询、资产同步、元数据探查、权限校验、动作事务或动作前后值审计。后者由平台主库、资产治理服务和真实数据源完成。
+
+默认配置为关闭：
+
+```yaml
+datamaster:
+  lineage:
+    enabled: ${LINEAGE_ENABLED:false}
+```
+
+启用时还需要配置：
+
+```yaml
+spring:
+  data:
+    neo4j:
+      uri: bolt://<host>:7687
+      username: <username>
+      password: <password>
+```
+
+关闭开关或不部署 Neo4j 时，ETL、数据服务、本体动作、资产预览等主流程仍可运行；受影响的只是 Neo4j 提供的图血缘维度，版本和权限等 SQL 派生信息仍可用。
+
+当前 `spring-boot-starter-data-neo4j` 位于 `datamaster-common-base`，因此构建时会被相关模块间接带入；但运行时由 `LINEAGE_ENABLED` 控制是否装配。若后续需要进一步降低基础依赖，应将 Neo4j 代码和依赖拆到独立的 lineage 模块。
 
 ## 8. 动态数据源路由
 
