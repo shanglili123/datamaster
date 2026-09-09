@@ -447,6 +447,7 @@ deploy_database_init() {
     echo "Skip DataMaster app upgrade SQL: postgresql_app_upgrade_sql_src is empty"
   fi
   apply_dolphinscheduler_compatibility_sql "$host" "$user" "$port"
+  rewrite_dolphinscheduler_datamaster_urls "$host" "$user" "$port"
   upsert_dolphinscheduler_tenant "$host" "$user" "$port"
   upsert_dolphinscheduler_token "$host" "$user" "$port"
 }
@@ -479,6 +480,25 @@ apply_dolphinscheduler_compatibility_sql() {
   sql="ALTER TABLE public.t_ds_project_parameter ADD COLUMN IF NOT EXISTS param_data_type varchar(50) DEFAULT 'VARCHAR';"
   echo "Applying DolphinScheduler compatibility SQL to ${VARS[dolphinscheduler_database]}..."
   execute_postgresql_sql_text "$host" "$user" "$port" "${VARS[dolphinscheduler_database]}" "dolphinscheduler-compatibility" "$sql"
+}
+
+rewrite_dolphinscheduler_datamaster_urls() {
+  local host="$1" user="$2" port="$3" target_url target_sql sql
+  target_url="http://${VARS[datamaster_app_ip]}:${VARS[datamaster_server_port]}"
+  target_sql="$(sql_literal "$target_url")"
+  sql="DO \$\$ BEGIN
+UPDATE public.t_ds_task_definition
+   SET task_params = regexp_replace(task_params, 'http://[^/]+:8080', $target_sql, 'g')
+ WHERE task_params LIKE '%/col/%' OR task_params LIKE '%/quality/%' OR task_params LIKE '%/cat/%';
+UPDATE public.t_ds_task_definition_log
+   SET task_params = regexp_replace(task_params, 'http://[^/]+:8080', $target_sql, 'g')
+ WHERE task_params LIKE '%/col/%' OR task_params LIKE '%/quality/%' OR task_params LIKE '%/cat/%';
+UPDATE public.t_ds_task_instance
+   SET task_params = regexp_replace(task_params, 'http://[^/]+:8080', $target_sql, 'g')
+ WHERE task_params LIKE '%/col/%' OR task_params LIKE '%/quality/%' OR task_params LIKE '%/cat/%';
+END \$\$;"
+  echo "Rewriting DolphinScheduler DataMaster callback URLs to ${target_url}..."
+  execute_postgresql_sql_text "$host" "$user" "$port" "${VARS[dolphinscheduler_database]}" "dolphinscheduler-datamaster-url" "$sql"
 }
 
 upsert_dolphinscheduler_tenant() {

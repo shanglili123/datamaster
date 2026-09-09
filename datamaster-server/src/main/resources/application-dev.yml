@@ -37,7 +37,7 @@ datamaster:
     decision-trigger:
       enabled: false
       base-url: ${INGESTION_DECISION_BASE_URL:}
-      path: /ont/decision/trigger/data-arrival
+      path: /ont/action/trigger/data-arrival
       # trigger-ref: 不配置时取 Kafka topic 名
       # secret: 可选
 

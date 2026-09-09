@@ -13,7 +13,7 @@ WORKDIR $APP_HOME
 # 拷贝产物
 COPY ./target/*.jar ./datamaster.jar
 
-EXPOSE 8080
+EXPOSE 8989
 
 ENTRYPOINT ["java", "-Xms512m", "-Xmx2g", "-Dspring.profiles.active=prod","-jar","datamaster.jar"]
-CMD ["--server.port=8080"]
+CMD ["--server.port=8989"]

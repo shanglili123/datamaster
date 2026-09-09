@@ -35,6 +35,8 @@ Windows 可以用包装入口：
 - DolphinScheduler API 端口。token 可以留空，脚本会自动生成并写入 DS 库。
 - DolphinScheduler tenant code：必须和 DS worker 执行任务使用的 Linux 用户一致，默认 `root`。
 - DB-GPT 部署地址、端口和模型密钥：`dbgpt_ssh_host`、`dbgpt_port`、`dashscope_api_key`、`ai_skill_model_*`。
+- DataMaster 内置 ingestion 是否启用及连接配置：`ingestion_*`。Kafka/Doris 集群由独立脚本 `deploy/ingestion/deploy.sh` 部署，不混入主部署组。
+- Neo4j 血缘是否启用：`lineage_enabled`、`neo4j_uri`、`neo4j_username`、`neo4j_password`。Neo4j 默认关闭，不是核心业务必需组件。
 - 离线包文件名和目录是否与 `deploy/deploy.yml` 一致。
 - Chunjun/Flink 是否已经放到 `deploy/packages/soft/chunjun` 和 `deploy/packages/soft/flink`。
 
@@ -45,8 +47,8 @@ Windows 可以用包装入口：
 ```text
 deploy/packages
 ├── components
-│   ├── postgres-15.tar
-│   ├── redis-7.2.tar
+│   ├── postgres-15.8-alpine.tar
+│   ├── redis-6-alpine.tar
 │   ├── dbgpt-openai-latest.tar
 │   ├── datamaster-server.jar
 │   ├── dist/
@@ -63,8 +65,8 @@ deploy/packages
 上面的文件名和目录名来自 `deploy/deploy.yml`：
 
 ```yaml
-postgresql_image_tar: postgres-15.tar
-redis_image_tar: redis-7.2.tar
+postgresql_image_tar: postgres-15.8-alpine.tar
+redis_image_tar: redis-6-alpine.tar
 dolphinscheduler_version: "3.4.1"
 dolphinscheduler_install_tgz: apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin.tar.gz
 database_init_jar_src: packages/components/datamaster-db-init.jar
@@ -82,6 +84,16 @@ soft_package_src: packages/soft
 - `soft/chunjun/` 和 `soft/flink/`：目录里有实际文件时上传到远程 `{{ base_dir }}/soft`。
 - 文件直接上传到最终部署目录，不使用 `/tmp` 或其他远程中转目录。
 
+后端生成的 `application-prod.yml` 还会写入：
+
+- `datamaster.ingestion`：Kafka、Doris、冲突策略和决策触发配置；
+- `datamaster.lineage`：Neo4j 血缘开关；
+- `spring.data.neo4j`：启用血缘时使用的连接配置。
+
+ingestion 消费代码随 DataMaster server 运行；Kafka、Doris 集群单独维护，部署说明见 `deploy/ingestion/README.md`。Neo4j 仍是外部可选中间件。
+
+数据到达触发默认使用主服务进程内调用的 `/ont/action/trigger/data-arrival`；只有拆分为独立接收进程时，才需要配置 `ingestion_decision_base_url`、`ingestion_decision_trigger_ref` 和 `ingestion_decision_trigger_secret`。
+
 ## 执行过程
 
 `deploy/start-all.sh` 会按下面顺序执行：
@@ -89,13 +101,15 @@ soft_package_src: packages/soft
 1. 读取 `deploy/deploy.yml`，把模板里的 `{{ variable }}` 替换成实际值。
 2. 通过 `ssh`/`scp` 连接每台目标机器，创建 `base_dir` 下的组件目录。
 3. 部署 PostgreSQL：上传镜像 tar 并 `docker load`，再用 `docker run` 启动 PG。
-4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL，再写入 DS tenant 和 DS API token。
+4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL；部署脚本会把种子任务中旧的 DataMaster `:8080` 回调地址重写为当前 `datamaster_app_ip:datamaster_server_port`，再写入 DS tenant 和 DS API token。
 5. 可选应用业务升级 SQL：只有配置 `postgresql_app_upgrade_sql_src` 时才会额外执行；全量 SQL 包场景默认不需要。
 6. 部署 Redis：上传镜像 tar、生成 `redis.conf`，再用 `docker run` 启动 Redis。
 7. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源、JDBC 注册中心和运行环境，再生成 systemd 服务。
 8. 部署 DB-GPT：上传镜像 tar 并用 `docker run` 启动 `datamaster-dbgpt`。
 9. 部署 DataMaster server：上传 `datamaster-server.jar`，生成 `application-prod.yml` 和 systemd 服务后启动。
 10. 部署 Nginx：上传前端 `dist`，生成 `nginx.conf` 并启动 `datamaster-nginx` 容器。
+
+其中 DataMaster 配置文件只下发 ingestion 的连接参数和开关；Kafka、Doris 集群不在第 9 步安装，需要单独执行 `deploy/ingestion/deploy.sh`。
 
 ## 单独部署
 
@@ -252,26 +266,26 @@ PostgreSQL 使用单容器 `docker run` 部署，不使用 Compose。
 然后检查本地镜像 tar：
 
 ```yaml
-postgresql_image_tar_src: packages/components/postgres-15.tar
+postgresql_image_tar_src: packages/components/postgres-15.8-alpine.tar
 ```
 
 如果文件存在，会上传到：
 
 ```text
-{{ remote_package_dir }}/postgres-15.tar
+{{ remote_package_dir }}/postgres-15.8-alpine.tar
 ```
 
 并执行：
 
 ```bash
-docker load -i {{ remote_package_dir }}/postgres-15.tar
+docker load -i {{ remote_package_dir }}/postgres-15.8-alpine.tar
 ```
 
 之后会删除旧容器并重新启动：
 
 ```text
 容器名：datamaster-postgresql
-镜像：postgres:15
+镜像：postgres:15.8-alpine
 端口：{{ postgresql_port }}:5432
 数据目录：{{ postgresql_data_dir }} -> /var/lib/postgresql/data
 日志目录：{{ postgresql_log_dir }} -> /var/log/postgresql
@@ -294,7 +308,7 @@ Redis 使用单容器 `docker run` 部署。
 然后检查本地镜像 tar：
 
 ```yaml
-redis_image_tar_src: packages/components/redis-7.2.tar
+redis_image_tar_src: packages/components/redis-6-alpine.tar
 ```
 
 如果文件存在，会上传到远程并执行 `docker load -i`。
@@ -320,7 +334,7 @@ requirepass {{ redis_password }}
 
 ```text
 容器名：datamaster-redis
-镜像：redis:7.2
+镜像：redis:6-alpine
 端口：{{ redis_port }}:6379
 数据目录：{{ redis_data_dir }} -> /data
 配置文件：{{ redis_conf_dir }}/redis.conf -> /etc/redis/redis.conf
@@ -431,7 +445,7 @@ dbgpt_image_tar_src: packages/components/dbgpt-openai-latest.tar
 
 ## DataMaster Server 执行流程
 
-主服务使用单容器 `docker run` 部署。
+主服务当前使用 `java -jar` + systemd 部署，不使用 DataMaster 后端容器。
 
 脚本会创建远程目录：
 
@@ -441,13 +455,17 @@ dbgpt_image_tar_src: packages/components/dbgpt-openai-latest.tar
 {{ app_upload_dir }}
 ```
 
-然后检查本地镜像 tar：
+然后检查本地后端 jar：
 
 ```yaml
-datamaster_server_image_tar_src: packages/components/datamaster-server-ce-1.4.0.tar
+datamaster_server_jar_src: packages/components/datamaster-server.jar
 ```
 
-如果文件存在，会上传到远程并执行 `docker load -i`。
+脚本会上传 jar 到：
+
+```text
+{{ app_jar_path }}
+```
 
 脚本会根据 `deploy/templates/datamaster-server-application-prod.yml.j2` 生成：
 
@@ -464,31 +482,34 @@ DolphinScheduler API 地址和自动生成/复用的 token
 DS resource 路径
 DB-GPT 地址、问数 chat mode、Skill 知识空间
 AI Skill 模型增强配置
+ingestion 的 Kafka、Doris、冲突策略和决策触发配置
+Neo4j 血缘开关和连接配置
 ```
 
-最后删除旧容器并重新启动：
+最后生成并重启 systemd 服务：
 
 ```text
-容器名：datamaster-server
-端口：{{ datamaster_server_port }}:8080
-配置文件：{{ app_conf_dir }}/application-prod.yml -> /usr/app/jar/application-prod.yml
-日志目录：{{ app_log_dir }} -> /usr/app/jar/logs
-上传目录：{{ app_upload_dir }} -> /usr/app/jar/upload
+服务名：datamaster-server.service
+端口：{{ datamaster_server_port }}
+工作目录：{{ app_dir }}
+配置文件：{{ app_conf_dir }}/application-prod.yml
+日志：systemd journal
+上传目录：{{ app_upload_dir }}
 ```
 
-容器启动时还会增加 host 映射：
+systemd 服务会设置：
 
 ```text
-postgresql -> derived from {{ postgresql_ssh_host }}
-redis -> derived from {{ redis_ssh_host }}
-dolphinscheduler -> {{ dolphinscheduler_ip }}
-dbgpt -> derived from {{ dbgpt_ssh_host }}
+SPRING_PROFILES_ACTIVE=prod
+DS_INCREMENTAL_PREPARE_URL
+DS_INCREMENTAL_COMPLETE_URL
+AI_SKILL_MODEL_API_KEY
 ```
 
 ## 配置文件
 
 - 统一配置：`deploy/deploy.yml`
-- 模板目录：`deploy/templates`
+- 主服务配置模板：`deploy/config`（脚本优先使用）；其他组件模板：`deploy/templates`
 
 `deploy/deploy.yml` 同时声明 SSH 目标、组件 IP、端口、镜像、账号密码、组件目录。远程统一部署根目录也在这里：
 
@@ -498,116 +519,28 @@ base_dir: /data/datamaster
 
 ---
 
-# 开发环境搭建（基于 DEPLOY.md 更新）
+# 本地开发环境
 
-> 以下内容根据 DEPLOY.md 整理，已按当前项目现状修正。
+当前本地开发依赖运行在 `Ubuntu` WSL 的 Docker 中，统一使用仓库下的辅助脚本：
 
-## 系统要求
-
-| 组件 | 版本 |
-|------|------|
-| JDK | 1.8 |
-| Node.js | 18+ |
-| yarn | v1.22.22+ |
-| Maven | 3.6+ |
-| PostgreSQL | 15（容器部署） |
-| Redis | 7.2（容器部署） |
-| Docker | 1.13.1+ |
-
-**移除组件：** RabbitMQ（已从业务流程中移除）、MongoDB（质量模块错误明细已改为 JDBC 存储）、DM8/MySQL（主数据库统一为 PostgreSQL）。
-
-## 项目模块结构
-
-```
-dataMaster/
-├── datamaster-common           # 公共模块（工具类、数据源注册）
-├── datamaster-system           # 系统管理
-├── datamaster-assets           # 数据资产
-├── datamaster-collector        # 数据汇聚/采集（含 collector-biz/sub）
-├── datamaster-service          # 数据服务
-├── datamaster-catalog          # 数据目录
-├── datamaster-quality          # 数据质量模块
-├── datamaster-etl              # ETL/Spark 任务
-├── datamaster-server           # 主服务入口（端口 8080）
-├── datamaster-view             # 前端（Vue 3 + Vite）
-├── sql/                        # 数据库脚本
-├── deploy/                     # 部署脚本和配置
-├── docker/                     # Docker 辅助脚本
-└── upload/                     # 运行时上传目录
+```powershell
+powershell -ExecutionPolicy Bypass -File .\docker\start-dev-services.ps1
 ```
 
-## 服务架构
+该脚本启动现有 PostgreSQL、Redis 和 DolphinScheduler 容器，不会删除或重建数据卷。详细说明见 `docker/README.md`。
 
-- **主服务**（datamaster-server）：端口 8080，含系统管理、汇聚、资产、目录、服务、质量等模块
-- **前端**（datamaster-view）：Vite 开发服务器，端口 81，代理 `/dev-api` 到主服务 8080
-- **数据库**：PostgreSQL（业务库 `datamaster`、DS 调度库 `dolphinscheduler`）
-- **调度器**：DolphinScheduler（JDBC 注册中心 + API + Master + Worker + Alert）
-
-## 本地开发环境启动
-
-### 1. 依赖服务
-
-使用 Docker 启动基础设施：
+后端和前端启动：
 
 ```bash
-# PostgreSQL
-docker run -d --name datamaster-postgresql -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:15
+mvn -pl datamaster-server -am package
+java -jar datamaster-server/target/datamaster-server.jar --server.port=8989
 
-# Redis
-docker run -d --name datamaster-redis -p 6379:6379 redis:7.2
-
-# DolphinScheduler（本地开发可跳过，或使用 WSL 容器集群）
+cd datamaster-ui
+npm install
+npm run dev
 ```
 
-**WSL 本地 DolphinScheduler 集群**：通过 Docker 运行在 WSL Ubuntu 中，端口已映射到 Windows（PG 5432、Redis 6379）。
-
-### 2. 初始化数据库
-
-执行 SQL 脚本创建业务表：
-
-```bash
-# PostgreSQL
-psql -h 127.0.0.1 -U postgres -d datamaster -f sql/postgresql/datamaster.sql
-```
-
-升级脚本位于 `sql/postgresql/upgrade/`，按版本目录排列。
-
-### 3. 后端配置（application-dev.yml）
-
-```yaml
-# 主数据源
-spring:
-  datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/datamaster?stringtype=unspecified
-    username: postgres
-    password: postgres
-
-# Redis
-redis:
-  host: 127.0.0.1
-  port: 6379
-
-# 质量任务执行地址（默认指向主服务自身）
-path:
-  quality_url: http://127.0.0.1:8080/quality/qualityTaskExecutor
-```
-
-### 4. 启动后端
-
-```bash
-mvn clean package -pl datamaster-server -am -DskipTests
-java -jar datamaster-server/target/datamaster-server-*.jar
-```
-
-### 5. 启动前端
-
-```bash
-cd datamaster-view
-yarn install
-yarn run dev
-```
-
-访问 `http://localhost:81`。
+当前工程模块以根 `pom.xml` 为准，主要包括 `datamaster-governance`、`datamaster-metadata`、`datamaster-assets`、`datamaster-ontology`、`datamaster-service`、`datamaster-collector`、`datamaster-ai` 和 `datamaster-ingestion`。完整架构和模块流程见根目录 `README.md`。
 
 ## 质量模块错误明细存储配置
 

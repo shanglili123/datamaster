@@ -1,6 +1,28 @@
 datasource:
   type: PostgreSQL
 
+datamaster:
+  lineage:
+    enabled: {{ lineage_enabled }}
+  ingestion:
+    enabled: {{ ingestion_enabled }}
+    kafka:
+      bootstrap-servers: {{ ingestion_kafka_servers }}
+      group-id: datamaster-ingestion
+      topics: {{ ingestion_kafka_topics }}
+      poll-timeout-ms: {{ ingestion_poll_timeout_ms }}
+      poll-interval-ms: {{ ingestion_poll_interval_ms }}
+    doris-datasource-id: {{ ingestion_doris_datasource_id }}
+    conflict-strategy: {{ ingestion_conflict_strategy }}
+    key-columns: {{ ingestion_key_columns }}
+    target-table: {{ ingestion_target_table }}
+    decision-trigger:
+      enabled: {{ ingestion_decision_trigger_enabled }}
+      base-url: {{ ingestion_decision_base_url }}
+      path: {{ ingestion_decision_path }}
+      trigger-ref: {{ ingestion_decision_trigger_ref }}
+      secret: {{ ingestion_decision_trigger_secret }}
+
 spring:
   redis:
     host: {{ redis_ip }}
@@ -16,6 +38,11 @@ spring:
           url: jdbc:postgresql://{{ postgresql_ip }}:{{ postgresql_port }}/{{ postgresql_database }}?stringtype=unspecified
           username: {{ postgresql_user }}
           password: {{ postgresql_password }}
+  data:
+    neo4j:
+      uri: {{ neo4j_uri }}
+      username: {{ neo4j_username }}
+      password: {{ neo4j_password }}
 
 PostgreSQL:
   driver-class-name: org.postgresql.Driver

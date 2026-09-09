@@ -38,5 +38,5 @@ docker buildx rm DATAMASTER-builder
 # 启动新容器
 docker run -d \
   --name DATAMASTER-server-ce \
-  -p 8080:8080 \
+  -p 8989:8989 \
   crpi-kf13onfj0v8f6jax.cn-shanghai.personal.cr.aliyuncs.com/qiantongkeji/DATAMASTER-server-ce:1.4.0

@@ -1,0 +1,41 @@
+---
+# DataMaster ingestion 独立部署配置；不会被 deploy/start-all.sh 读取。
+
+timezone: Asia/Shanghai
+remote_package_dir: /data/datamaster-ingestion/packages
+
+# Kafka 三节点 KRaft 集群。格式：nodeId@可访问IP。
+kafka_ssh_user: root
+kafka_ssh_port: 22
+kafka_nodes: "1@192.168.93.174,2@192.168.93.175,3@192.168.93.176"
+kafka_cluster_id: "MkU3OEVBNTcwNTJENDM2Qk"
+kafka_image: apache/kafka:3.9.0
+kafka_image_tar: apache-kafka-3.9.0.tar
+kafka_image_tar_src: "packages/components/{{ kafka_image_tar }}"
+kafka_broker_port: 9092
+kafka_controller_port: 9093
+kafka_topics: "datamaster-ingestion"
+kafka_topic_partitions: 3
+kafka_topic_replication_factor: 3
+kafka_data_dir: /data/datamaster-ingestion/kafka
+
+# Doris 三 FE + 三 BE 集群。格式：nodeId@可访问IP。
+# 默认每台机器各运行一个 FE 和一个 BE；也可以将 BE 节点放到独立机器。
+doris_ssh_user: root
+doris_ssh_port: 22
+doris_fe_nodes: "1@192.168.93.174,2@192.168.93.175,3@192.168.93.176"
+doris_be_nodes: "1@192.168.93.174,2@192.168.93.175,3@192.168.93.176"
+doris_fe_image: apache/doris:fe-4.0.3
+doris_fe_image_tar: apache-doris-fe-4.0.3.tar
+doris_fe_image_tar_src: "packages/components/{{ doris_fe_image_tar }}"
+doris_be_image: apache/doris:be-4.0.3
+doris_be_image_tar: apache-doris-be-4.0.3.tar
+doris_be_image_tar_src: "packages/components/{{ doris_be_image_tar }}"
+doris_fe_http_port: 8030
+doris_fe_query_port: 9030
+doris_fe_editlog_port: 9010
+doris_be_http_port: 8040
+doris_be_heartbeat_port: 9050
+doris_be_brpc_port: 8060
+doris_fe_data_dir: /data/datamaster-ingestion/doris/fe
+doris_be_data_dir: /data/datamaster-ingestion/doris/be

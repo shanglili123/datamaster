@@ -111,7 +111,7 @@ dolphinscheduler_install_tgz: "apache-dolphinscheduler-{{ dolphinscheduler_versi
 dolphinscheduler_package_src: "packages/components/{{ dolphinscheduler_install_tgz }}"
 dolphinscheduler_api_port: 12345
 dolphinscheduler_tenant_code: root
-dolphinscheduler_token: "f8f79e6b9c7b48e5fc5a1836b88e754b"
+dolphinscheduler_token: ""
 
 # * Must confirm: Chunjun/Flink local source directory.
 # * 必须确认：Chunjun/Flink 本地包目录。
@@ -121,8 +121,8 @@ soft_package_src: "packages/soft"
 
 # * Must confirm: DataMaster service ports.
 # * 必须确认：DataMaster 服务端口。
-# * Change these if the target host already uses 8080.
-# * 如果目标机器已经占用 8080，就修改这里。
+# * Change these if the target host already uses 8989.
+# * 如果目标机器已经占用 8989，就修改这里。
 datamaster_server_port: 8989
 dbgpt_port: 5670
 nginx_port: 80
@@ -141,7 +141,33 @@ ai_skill_model_name: qwen-plus
 ai_skill_model_timeout: 60000
 ai_skill_model_temperature: 0.2
 ai_skill_model_max_tokens: 4096
-dashscope_api_key: "sk-3d13e28f0c9c44628181045e454b75f8"
+dashscope_api_key: ""
+
+# * Optional: data ingestion settings. The ingestion module runs inside DataMaster server.
+# * 可选：数据接入配置。ingestion 模块随 DataMaster server 一起运行，不单独部署服务。
+# * Keep ingestion disabled unless Kafka and Doris are ready.
+# * Kafka 和 Doris 未准备好时保持关闭。
+ingestion_enabled: "false"
+ingestion_kafka_servers: "localhost:9092"
+ingestion_kafka_topics: "[]"
+ingestion_poll_timeout_ms: 1000
+ingestion_poll_interval_ms: 1000
+ingestion_doris_datasource_id: 0
+ingestion_conflict_strategy: "UPSERT"
+ingestion_key_columns: "[]"
+ingestion_target_table: ""
+ingestion_decision_trigger_enabled: "false"
+ingestion_decision_base_url: ""
+ingestion_decision_path: "/ont/action/trigger/data-arrival"
+ingestion_decision_trigger_ref: ""
+ingestion_decision_trigger_secret: ""
+
+# Optional: Neo4j lineage. It is not required by the core application.
+# 可选：Neo4j 血缘。核心业务不依赖 Neo4j，默认关闭。
+lineage_enabled: "false"
+neo4j_uri: "bolt://127.0.0.1:7687"
+neo4j_username: "neo4j"
+neo4j_password: ""
 
 # * Must confirm if customizing layout: remote common directories.
 # * 如果自定义目录结构则必须确认：远程通用目录。

@@ -19,7 +19,7 @@ datamaster:
     decision-trigger:
       enabled: false
       base-url: ${INGESTION_DECISION_BASE_URL:}
-      path: /ont/decision/trigger/data-arrival
+      path: /ont/action/trigger/data-arrival
 
 spring:
   redis:
