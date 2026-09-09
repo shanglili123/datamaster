@@ -153,7 +153,7 @@
                     class="el-form-input-width"
                   >
                     <a-radio
-                      v-for="dict in ast_discovery_task_status"
+                      v-for="dict in taskStatusOptions"
                       :key="dict.value"
                       :value="dict.value"
                     >
@@ -540,13 +540,15 @@ let id = route.query.id || "";
 const router = useRouter();
 const {
   att_rule_audit_q_dimension,
-  ast_discovery_task_status,
   col_etl_task_execution_type,
 } = proxy.useDict(
   "att_rule_audit_q_dimension",
-  "ast_discovery_task_status",
   "col_etl_task_execution_type"
 );
+const taskStatusOptions = [
+  { label: "上线", value: "0" },
+  { label: "下线", value: "1" },
+];
 let dppQualityTaskObjSaveReqVO = ref([]);
 const objectQueryParams = ref({
   pageNum: 1,

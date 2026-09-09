@@ -75,6 +75,22 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
             return PageResult.empty();
         }
         PageResult<AssetsAssetColumnDO> AssetsAssetColumnDOPageResult = AssetsAssetColumnMapper.selectPage(pageReqVO);
+        // 元数据同步生成的字段没有 AST_ASSET_COLUMN_SPACE_REL 记录；
+        // 联表分页在部分数据权限场景下会返回空，此时按资产 ID 直接读取字段。
+        if (AssetsAssetColumnDOPageResult.getTotal() == null
+                || AssetsAssetColumnDOPageResult.getTotal() == 0) {
+            List<AssetsAssetColumnDO> directColumns = AssetsAssetColumnMapper.findByAssetId(pageReqVO.getAssetId());
+            if (!directColumns.isEmpty()) {
+                int pageNum = pageReqVO.getPageNum() == null ? 1 : pageReqVO.getPageNum();
+                int pageSize = pageReqVO.getPageSize() == null ? directColumns.size() : pageReqVO.getPageSize();
+                if (pageSize == com.datamaster.common.core.page.PageParam.PAGE_SIZE_NONE) {
+                    return new PageResult<>(directColumns, (long) directColumns.size());
+                }
+                int fromIndex = Math.min((pageNum - 1) * pageSize, directColumns.size());
+                int toIndex = Math.min(fromIndex + pageSize, directColumns.size());
+                return new PageResult<>(directColumns.subList(fromIndex, toIndex), (long) directColumns.size());
+            }
+        }
         Set<Long> ids = new HashSet<>();
         List<?> rows = AssetsAssetColumnDOPageResult.getRows();
         for (Object row : rows) {

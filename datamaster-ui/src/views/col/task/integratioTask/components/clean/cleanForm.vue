@@ -254,11 +254,9 @@ import RuleSelectorDialog from "./rule/ruleBase.vue";
 const userStore = useUserStore();
 const {
   att_rule_clean_type,
-  ast_discovery_task_status,
   col_etl_task_execution_type,
 } = proxy.useDict(
   "att_rule_clean_type",
-  "ast_discovery_task_status",
   "col_etl_task_execution_type"
 );
 const props = defineProps({

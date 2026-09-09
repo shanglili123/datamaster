@@ -405,53 +405,6 @@ public class QualityTaskServiceImpl  extends ServiceImpl<QualityTaskMapper,Quali
         return bean;
     }
 
-    public QualityTaskRespVO getDaDiscoveryTaskById(Long id) {
-
-        MPJLambdaWrapper<QualityTaskDO> mpjLambdaWrapper = new MPJLambdaWrapper();
-        mpjLambdaWrapper.selectAll(QualityTaskDO.class)
-                .select("t2.name AS catName")
-                .leftJoin("TAX_CATEGORY t2 on t.CAT_CODE = t2.CODE AND t2.DEL_FLAG = '0' AND t2.CAT_TYPE = 'QUALITY'")
-                .eq(QualityTaskDO::getId, id);
-        QualityTaskDO daDiscoveryTaskDO =  QualityTaskMapper.selectJoinOne(QualityTaskDO.class, mpjLambdaWrapper);
-
-        QualityTaskRespVO bean = BeanUtils.toBean(daDiscoveryTaskDO, QualityTaskRespVO.class);
-
-
-//        DaDatasourceRespDTO daDatasourceById = daDatasourceApiService.getDatasourceById(bean.getDatasourceId());
-//        daDatasourceById = daDatasourceById == null ? new DaDatasourceRespDTO():daDatasourceById;
-//        bean.setDatasourceName(daDatasourceById.getDatasourceName());
-//        bean.setDatasourceType(daDatasourceById.getDatasourceType());
-//        bean.setIp(daDatasourceById.getIp());
-//
-//        List<QualityTaskObjDO> daDiscoveryTableDOList = fetchDiscoveryTableList(bean);
-//        daDiscoveryTableDOList = daDiscoveryTableDOList == null ? new ArrayList<>():daDiscoveryTableDOList;
-
-
-//        long countPending = daDiscoveryTableDOList.stream()
-//                .filter(item -> StringUtils.equals("1",item.get()))
-//                .count();
-//
-//        long countSubmitted = daDiscoveryTableDOList.stream()
-//                .filter(item -> StringUtils.equals("2",item.getStatus()))
-//                .count();
-//
-//        //0:否，1：是
-//        long countIgnoreFlag = daDiscoveryTableDOList.stream()
-//                .filter(item -> StringUtils.equals("1",item.getIgnoreFlag()))
-//                .count();
-//        bean.setCountPending(countPending);
-//        bean.setCountSubmitted(countSubmitted);
-//        bean.setCountIgnoreFlag(countIgnoreFlag);
-
-        return bean;
-    }
-
-    private List<QualityTaskObjDO> fetchDiscoveryTableList(QualityTaskRespVO daDiscoveryTaskDO) {
-        LambdaQueryWrapperX<QualityTaskObjDO> objectLambdaQueryWrapperX = new LambdaQueryWrapperX<>();
-        objectLambdaQueryWrapperX.eqIfPresent(QualityTaskObjDO::getTaskId , daDiscoveryTaskDO.getId());
-        return QualityTaskObjService.list(objectLambdaQueryWrapperX);
-    }
-
     @Override
     public List<QualityTaskDO> getQualityTaskList() {
         return QualityTaskMapper.selectList();

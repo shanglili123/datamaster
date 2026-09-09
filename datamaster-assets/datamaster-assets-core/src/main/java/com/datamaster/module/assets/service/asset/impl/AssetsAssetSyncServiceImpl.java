@@ -15,21 +15,15 @@ import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapp
 import com.datamaster.module.assets.service.asset.IAssetsAssetService;
 import com.datamaster.module.assets.service.asset.IAssetsAssetSyncService;
 import com.datamaster.module.assets.service.assetColumn.IAssetsAssetColumnService;
-import com.datamaster.metadata.controller.discovery.vo.AssetsDiscoveryColumnPageReqVO;
-import com.datamaster.metadata.controller.discovery.vo.AssetsDiscoveryTablePageReqVO;
-import com.datamaster.metadata.dal.dataobject.discovery.AssetsDiscoveryColumnDO;
-import com.datamaster.metadata.dal.dataobject.discovery.AssetsDiscoveryTableDO;
-import com.datamaster.metadata.dal.dataobject.discovery.AssetsDiscoveryTaskDO;
-import com.datamaster.metadata.service.discovery.IAssetsDiscoveryColumnService;
-import com.datamaster.metadata.service.discovery.IAssetsDiscoveryTableService;
-import com.datamaster.metadata.service.discovery.IAssetsDiscoveryTaskService;
+import com.datamaster.metadata.api.column.dto.CatalogColumnRespDTO;
+import com.datamaster.metadata.api.service.column.CatalogColumnApiService;
+import com.datamaster.metadata.api.service.table.CatalogTableApiService;
+import com.datamaster.metadata.api.table.dto.CatalogTableRespDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,20 +34,14 @@ import java.util.stream.Collectors;
 /**
  * 资产元数据同步 Service 实现
  *
- * 同步 = 从探查结果（AST_DISCOVERY_TABLE / AST_DISCOVERY_COLUMN）同步到资产，
- * 不自行实时取数。同步所有未被忽略（ignoreFlag!='1'）的表。
- * 新建资产状态沿用探查表状态（待提交=1/已提交=2）；已有资产不覆盖其发布状态。
+ * 从当前元数据目录（CAT_TABLE / CAT_COLUMN）同步到资产，不自行实时取数。
+ * 新建资产状态沿用目录表状态；已有资产不覆盖其发布状态。
  * 列级更新使用 syncUpdateColumnMetadata 仅刷新字段元数据，保留
  * DATA_ELEM_CODE_ID、SENSITIVE_LEVEL_ID 等扩展关联字段。
  */
 @Slf4j
 @Service
 public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
-
-    /** 探查表状态：已提交 */
-    private static final String DISCOVERY_TABLE_STATUS_COMMITTED = "2";
-    /** 探查表忽略标志：忽略 */
-    private static final String IGNORE_YES = "1";
 
     @Resource
     private IAssetsAssetService assetsAssetService;
@@ -62,88 +50,63 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
     @Resource
     private AssetsAssetColumnMapper assetsAssetColumnMapper;
     @Resource
-    private IAssetsDiscoveryTableService discoveryTableService;
+    private CatalogTableApiService catalogTableApiService;
     @Resource
-    private IAssetsDiscoveryColumnService discoveryColumnService;
-    @Resource
-    private IAssetsDiscoveryTaskService discoveryTaskService;
+    private CatalogColumnApiService catalogColumnApiService;
 
     @Override
     public AjaxResult sync(AssetsAssetSyncReqVO reqVO) {
-        List<AssetsDiscoveryTableDO> tables = resolveDiscoveryTables(reqVO);
-        if (CollectionUtils.isEmpty(tables)) {
+        List<CatalogTableRespDTO> catalogTables = resolveCatalogTables(reqVO);
+        if (CollectionUtils.isEmpty(catalogTables)) {
             return AjaxResult.success("未发现可同步的元数据");
         }
-        SyncStat stat = doSync(tables);
+        String catCode = resolveSyncCatCode(reqVO);
+        SyncStat stat = doSyncCatalog(catalogTables, catCode);
         return AjaxResult.success(stat.toMessage());
     }
 
-    @Scheduled(cron = "0 * * * * ?")
-    public void syncByScheduled() {
-        try {
-            List<AssetsDiscoveryTaskDO> tasks = discoveryTaskService.getDaDiscoveryTaskList();
-            if (CollectionUtils.isEmpty(tasks)) {
-                return;
-            }
-            int totalCreated = 0;
-            int totalUpdated = 0;
-            for (AssetsDiscoveryTaskDO task : tasks) {
-                if (StringUtils.isEmpty(task.getCatCode())) {
-                    continue;
-                }
-                AssetsDiscoveryTablePageReqVO tableReq = new AssetsDiscoveryTablePageReqVO();
-                tableReq.setTaskId(task.getId());
-                List<AssetsDiscoveryTableDO> tables = discoveryTableService.getDaDiscoveryTableList(tableReq);
-                if (CollectionUtils.isEmpty(tables)) {
-                    continue;
-                }
-                SyncStat stat = doSync(tables);
-                totalCreated += stat.created;
-                totalUpdated += stat.updated;
-            }
-            if (totalCreated > 0 || totalUpdated > 0) {
-                log.info("定时同步资产元数据完成，新增：{}，更新：{}", totalCreated, totalUpdated);
-            }
-        } catch (Exception e) {
-            log.error("定时同步资产元数据失败", e);
+    private String resolveSyncCatCode(AssetsAssetSyncReqVO reqVO) {
+        if (reqVO.getAssetId() != null) {
+            return null;
         }
+        if (StringUtils.isBlank(reqVO.getCatCode())) {
+            throw new ServiceException("请选择资产目录");
+        }
+        return reqVO.getCatCode().trim();
     }
 
-    private List<AssetsDiscoveryTableDO> resolveDiscoveryTables(AssetsAssetSyncReqVO reqVO) {
-        AssetsDiscoveryTablePageReqVO tableReq = new AssetsDiscoveryTablePageReqVO();
-        if (reqVO.getTaskId() != null) {
-            tableReq.setTaskId(reqVO.getTaskId());
-            return discoveryTableService.getDaDiscoveryTableList(tableReq);
-        }
-        if (reqVO.getDatasourceId() != null) {
-            tableReq.setDatasourceId(reqVO.getDatasourceId());
-            return discoveryTableService.getDaDiscoveryTableList(tableReq);
-        }
+    private List<CatalogTableRespDTO> resolveCatalogTables(AssetsAssetSyncReqVO reqVO) {
         if (reqVO.getAssetId() != null) {
             AssetsAssetRespVO asset = assetsAssetService.getAssetByIdSimple(reqVO.getAssetId());
             if (asset == null || asset.getDatasourceId() == null || StringUtils.isEmpty(asset.getTableName())) {
                 throw new ServiceException("资产不存在或未关联元数据表");
             }
-            return discoveryTableService.list(Wrappers.<AssetsDiscoveryTableDO>lambdaQuery()
-                    .eq(AssetsDiscoveryTableDO::getDatasourceId, asset.getDatasourceId())
-                    .eq(AssetsDiscoveryTableDO::getTableName, asset.getTableName()));
+            CatalogTableRespDTO table = asset.getTableId() == null
+                    ? catalogTableApiService.getByDatasourceIdAndTableName(
+                    asset.getDatasourceId(), asset.getTableName())
+                    : catalogTableApiService.getById(asset.getTableId());
+            if (table == null) {
+                throw new ServiceException("资产关联的目录元数据不存在");
+            }
+            List<CatalogTableRespDTO> result = new ArrayList<>();
+            result.add(table);
+            return result;
         }
-        return discoveryTableService.getDaDiscoveryTableList(tableReq);
+        if (reqVO.getDatasourceId() == null || StringUtils.isBlank(reqVO.getDatabaseName())) {
+            throw new ServiceException("请选择需要同步的元数据库");
+        }
+        return catalogTableApiService.listByDatasourceAndDatabase(
+                reqVO.getDatasourceId(), reqVO.getDatabaseName(), reqVO.getSchemaName());
     }
 
-    private SyncStat doSync(List<AssetsDiscoveryTableDO> tables) {
+    private SyncStat doSyncCatalog(List<CatalogTableRespDTO> tables, String catCode) {
         SyncStat stat = new SyncStat();
-        Map<Long, AssetsDiscoveryTaskDO> taskMap = loadTaskMap(tables);
-        for (AssetsDiscoveryTableDO table : tables) {
-            if (IGNORE_YES.equals(table.getIgnoreFlag())) {
-                continue;
-            }
-            AssetsDiscoveryTaskDO task = taskMap.get(table.getTaskId());
-            if (task == null || task.getDatasourceId() == null) {
+        for (CatalogTableRespDTO table : tables) {
+            if (table == null || table.getDatasourceId() == null || StringUtils.isBlank(table.getTableName())) {
                 continue;
             }
             try {
-                boolean existed = syncTable(table, task);
+                boolean existed = syncCatalogTable(table, catCode);
                 if (existed) {
                     stat.updated++;
                 } else {
@@ -152,117 +115,128 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
             } catch (Exception e) {
                 stat.failed++;
                 stat.errors.add(table.getTableName() + ": " + e.getMessage());
-                log.error("同步资产元数据失败，表：{}", table.getTableName(), e);
+                log.error("从目录元数据同步资产失败，表：{}", table.getTableName(), e);
             }
         }
         return stat;
     }
 
-    private Map<Long, AssetsDiscoveryTaskDO> loadTaskMap(List<AssetsDiscoveryTableDO> tables) {
-        Set<Long> taskIds = tables.stream()
-                .map(AssetsDiscoveryTableDO::getTaskId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        Map<Long, AssetsDiscoveryTaskDO> taskMap = new HashMap<>();
-        if (taskIds.isEmpty()) {
-            return taskMap;
-        }
-        List<AssetsDiscoveryTaskDO> tasks = discoveryTaskService.list(
-                Wrappers.<AssetsDiscoveryTaskDO>lambdaQuery().in(AssetsDiscoveryTaskDO::getId, taskIds));
-        for (AssetsDiscoveryTaskDO task : tasks) {
-            taskMap.put(task.getId(), task);
-        }
-        return taskMap;
-    }
-
-    /**
-     * 同步单张表：生成缺失资产或更新已有资产，并同步列元数据。
-     *
-     * @return true=更新已有资产；false=新建资产
-     */
-    private boolean syncTable(AssetsDiscoveryTableDO table, AssetsDiscoveryTaskDO task) {
-        Long datasourceId = task.getDatasourceId();
-        List<AssetsAssetDO> existingList = assetsAssetService.getAssetByDataSourceId(datasourceId, table.getTableName());
-        boolean existed = CollectionUtils.isNotEmpty(existingList);
-        AssetsAssetDO asset;
-        if (existed) {
-            asset = existingList.get(0);
-        } else {
+    private boolean syncCatalogTable(CatalogTableRespDTO table, String syncCatCode) {
+        AssetsAssetDO asset = findCatalogAsset(table);
+        boolean existed = asset != null;
+        if (!existed) {
             asset = new AssetsAssetDO();
             asset.setType("1");
             asset.setSource("1");
-            asset.setStatus(StringUtils.isNotEmpty(table.getStatus())
-                    ? table.getStatus()
-                    : DISCOVERY_TABLE_STATUS_COMMITTED);
+            asset.setStatus(StringUtils.isNotBlank(table.getStatus()) ? table.getStatus() : "1");
+            asset.setCatCode(syncCatCode);
         }
-        asset.setName(StringUtils.isNotEmpty(table.getTableComment()) ? table.getTableComment() : table.getTableName());
-        asset.setCatCode(task.getCatCode());
-        asset.setDatasourceId(datasourceId);
+        asset.setTableId(table.getId());
+        asset.setName(StringUtils.isNotBlank(table.getTableComment())
+                ? table.getTableComment() : table.getTableName());
+        asset.setDatasourceId(table.getDatasourceId());
         asset.setTableName(table.getTableName());
         asset.setTableComment(table.getTableComment());
-        asset.setDataCount(table.getDataCount());
-        asset.setFieldCount(table.getFieldCount());
+        asset.setDataCount(table.getRowCount());
+        asset.setFieldCount(table.getColumnCount());
         if (existed) {
             assetsAssetService.updateById(asset);
         } else {
             assetsAssetService.save(asset);
         }
-        syncColumns(asset, table);
+        syncCatalogColumns(asset, table);
         return existed;
     }
 
-    private void syncColumns(AssetsAssetDO asset, AssetsDiscoveryTableDO table) {
-        AssetsDiscoveryColumnPageReqVO columnReq = new AssetsDiscoveryColumnPageReqVO();
-        columnReq.setTableId(table.getId());
-        List<AssetsDiscoveryColumnDO> discoveryColumns = discoveryColumnService.getDaDiscoveryColumnList(columnReq);
+    private AssetsAssetDO findCatalogAsset(CatalogTableRespDTO table) {
+        if (table.getId() != null) {
+            AssetsAssetDO exact = assetsAssetService.getOne(Wrappers.<AssetsAssetDO>lambdaQuery()
+                    .eq(AssetsAssetDO::getTableId, table.getId())
+                    .last("limit 1"));
+            if (exact != null) {
+                return exact;
+            }
+        }
+        List<AssetsAssetDO> candidates = assetsAssetService.getAssetByDataSourceId(
+                table.getDatasourceId(), table.getTableName());
+        if (CollectionUtils.isEmpty(candidates)) {
+            return null;
+        }
+        for (AssetsAssetDO candidate : candidates) {
+            if (candidate.getTableId() == null) {
+                return candidate;
+            }
+            CatalogTableRespDTO boundTable = catalogTableApiService.getById(candidate.getTableId());
+            if (boundTable != null
+                    && Objects.equals(boundTable.getDatasourceId(), table.getDatasourceId())
+                    && StringUtils.equalsIgnoreCase(boundTable.getDbName(), table.getDbName())
+                    && StringUtils.equalsIgnoreCase(StringUtils.defaultString(boundTable.getSchemaName()),
+                    StringUtils.defaultString(table.getSchemaName()))) {
+                return candidate;
+            }
+        }
+        return null;
+    }
 
+    private void syncCatalogColumns(AssetsAssetDO asset, CatalogTableRespDTO table) {
+        List<CatalogColumnRespDTO> catalogColumns = catalogColumnApiService.listByTableId(table.getId());
         AssetsAssetColumnPageReqVO assetColumnReq = new AssetsAssetColumnPageReqVO();
         assetColumnReq.setAssetId(asset.getId());
         List<AssetsAssetColumnDO> existingColumns = assetsAssetColumnService.getAssetColumnList(assetColumnReq);
         Map<String, AssetsAssetColumnDO> existingByName = existingColumns.stream()
-                .filter(columnDO -> columnDO.getColumnName() != null)
-                .collect(Collectors.toMap(AssetsAssetColumnDO::getColumnName, columnDO -> columnDO, (a, b) -> a));
+                .filter(column -> column.getColumnName() != null)
+                .collect(Collectors.toMap(AssetsAssetColumnDO::getColumnName, column -> column, (a, b) -> a));
 
-        Set<String> discoveryNames = new HashSet<>();
-        for (AssetsDiscoveryColumnDO discoveryColumn : discoveryColumns) {
-            if (StringUtils.isEmpty(discoveryColumn.getColumnName())) {
+        Set<String> catalogNames = new HashSet<>();
+        for (CatalogColumnRespDTO catalogColumn : catalogColumns) {
+            if (StringUtils.isBlank(catalogColumn.getColumnName())) {
                 continue;
             }
-            discoveryNames.add(discoveryColumn.getColumnName());
-            AssetsAssetColumnDO existing = existingByName.get(discoveryColumn.getColumnName());
+            catalogNames.add(catalogColumn.getColumnName());
+            AssetsAssetColumnDO existing = existingByName.get(catalogColumn.getColumnName());
             if (existing != null) {
                 AssetsAssetColumnDO update = new AssetsAssetColumnDO();
                 update.setId(existing.getId());
                 update.setAssetId(asset.getId());
-                update.setColumnName(discoveryColumn.getColumnName());
-                update.setColumnComment(discoveryColumn.getColumnComment());
-                update.setColumnType(discoveryColumn.getColumnType());
-                update.setColumnLength(discoveryColumn.getColumnLength());
-                update.setColumnScale(discoveryColumn.getColumnScale());
-                update.setNullableFlag(discoveryColumn.getNullableFlag());
-                update.setPkFlag(discoveryColumn.getPkFlag());
-                update.setDefaultValue(discoveryColumn.getDefaultValue());
+                update.setColumnName(catalogColumn.getColumnName());
+                update.setColumnComment(catalogColumn.getColumnComment());
+                update.setColumnType(catalogColumn.getColumnType());
+                update.setColumnLength(catalogColumn.getColumnLength() == null
+                        ? null : catalogColumn.getColumnLength().longValue());
+                update.setColumnScale(catalogColumn.getColumnScale() == null
+                        ? null : catalogColumn.getColumnScale().longValue());
+                update.setNullableFlag(catalogColumn.getNullableFlag());
+                update.setPkFlag(catalogColumn.getPkFlag());
+                update.setDefaultValue(catalogColumn.getDefaultValue());
                 assetsAssetColumnMapper.syncUpdateColumnMetadata(update);
             } else {
                 AssetsAssetColumnSaveReqVO save = new AssetsAssetColumnSaveReqVO();
                 save.setAssetId(asset.getId());
-                save.setColumnName(discoveryColumn.getColumnName());
-                save.setColumnComment(discoveryColumn.getColumnComment());
-                save.setColumnType(discoveryColumn.getColumnType());
-                save.setColumnLength(discoveryColumn.getColumnLength());
-                save.setColumnScale(discoveryColumn.getColumnScale());
-                save.setNullableFlag(discoveryColumn.getNullableFlag());
-                save.setPkFlag(discoveryColumn.getPkFlag());
-                save.setDefaultValue(discoveryColumn.getDefaultValue());
+                save.setColumnName(catalogColumn.getColumnName());
+                save.setColumnComment(catalogColumn.getColumnComment());
+                save.setColumnType(catalogColumn.getColumnType());
+                save.setColumnLength(catalogColumn.getColumnLength() == null
+                        ? null : catalogColumn.getColumnLength().longValue());
+                save.setColumnScale(catalogColumn.getColumnScale() == null
+                        ? null : catalogColumn.getColumnScale().longValue());
+                save.setNullableFlag(catalogColumn.getNullableFlag());
+                save.setPkFlag(catalogColumn.getPkFlag());
+                save.setDefaultValue(catalogColumn.getDefaultValue());
                 assetsAssetColumnService.createAssetColumn(save);
             }
         }
         List<Long> removedIds = existingColumns.stream()
-                .filter(columnDO -> columnDO.getColumnName() != null && !discoveryNames.contains(columnDO.getColumnName()))
+                .filter(column -> column.getColumnName() != null && !catalogNames.contains(column.getColumnName()))
                 .map(AssetsAssetColumnDO::getId)
                 .collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(removedIds)) {
             assetsAssetColumnService.removeAssetColumn(removedIds);
+        }
+        if (table.getColumnCount() == null || !Objects.equals(table.getColumnCount(), (long) catalogColumns.size())) {
+            AssetsAssetDO countUpdate = new AssetsAssetDO();
+            countUpdate.setId(asset.getId());
+            countUpdate.setFieldCount((long) catalogColumns.size());
+            assetsAssetService.updateById(countUpdate);
         }
     }
 

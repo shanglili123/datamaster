@@ -14,4 +14,6 @@ public interface CatalogTableApiService {
     CatalogTableRespDTO getByDatasourceIdAndTableName(Long datasourceId, String tableName);
 
     List<CatalogTableRespDTO> listByDatasourceId(Long datasourceId);
+
+    List<CatalogTableRespDTO> listByDatasourceAndDatabase(Long datasourceId, String databaseName, String schemaName);
 }

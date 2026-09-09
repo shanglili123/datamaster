@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.datamaster.common.core.page.PageParam;
-import com.datamaster.metadata.dal.dataobject.discovery.AssetsDiscoveryTableDO;
 
 import java.util.List;
 
@@ -127,24 +126,4 @@ public class AssetsAssetPageReqVO extends PageParam {
 
     @Schema(description = "", example = "")
     private String createType;
-    /**
-     *  AssetsDiscoveryTableDO  VO
-     *
-     * @param AssetsDiscoveryTableById
-     */
-    public AssetsAssetPageReqVO(AssetsDiscoveryTableDO AssetsDiscoveryTableById) {
-        if (AssetsDiscoveryTableById != null) {
-            // 这里将表名作为资产名称
-//
-    this.name = AssetsDiscoveryTableById.getTableComment();
-            this.tableName = AssetsDiscoveryTableById.getTableName();
-            this.tableComment = AssetsDiscoveryTableById.getTableComment();
-            this.dataCount = AssetsDiscoveryTableById.getDataCount();
-            this.fieldCount = AssetsDiscoveryTableById.getFieldCount();
-            this.status = "1";
-            // 可根据需要将表描述也赋值给描述字段
-//
-    this.description = AssetsDiscoveryTableById.getTableComment();
-        }
-    }
 }

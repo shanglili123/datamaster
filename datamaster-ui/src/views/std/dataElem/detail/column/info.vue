@@ -6,11 +6,7 @@
         <template #label>
           <div class="cell-item">{{ item.label }}</div>
         </template>
-        <div v-if="item.key == 'status'">
-          <dict-tag :options="ast_discovery_task_status" :value="daDiscoveryTaskDetail.status" />
-        </div>
-
-        <div v-else-if="item.key == 'createTime'">
+        <div v-if="item.key == 'createTime'">
           {{
             parseTime(
               daDiscoveryTaskDetail.createTime,

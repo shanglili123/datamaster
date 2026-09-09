@@ -100,6 +100,12 @@
             >
               <i class="iconfont-mini icon-xinzeng mr5"></i>新增
             </a-button>
+            <a-button
+              @click="openDatasourceSync"
+              @mousedown="(e) => e.preventDefault()"
+            >
+              <ReloadOutlined class="mr5" />整库同步
+            </a-button>
           </div>
         </div>
         <div class="pagecont-bottom pagecont-bottoms">
@@ -196,6 +202,50 @@
         </div>
       </a-layout-content>
     </a-layout>
+
+    <a-modal
+      title="整库元数据同步"
+      v-model:open="syncOpen"
+      :confirm-loading="syncSubmitting"
+      @ok="submitDatasourceSync"
+      @cancel="closeDatasourceSync"
+    >
+      <a-form :label-col="{ style: { width: '90px' } }">
+        <a-form-item label="元数据库" required>
+          <a-select
+            v-model:value="syncDatabaseKey"
+            placeholder="请选择要同步的数据库"
+            show-search
+            option-filter-prop="label"
+            :loading="syncDatasourceLoading"
+            allow-clear
+          >
+            <a-select-option
+              v-for="item in syncDatabaseOptions"
+              :key="item.syncKey"
+              :value="item.syncKey"
+              :label="item.syncLabel"
+            >
+              {{ item.syncLabel }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="资产目录" required>
+          <a-tree-select
+            v-model:value="syncCatCode"
+            show-search
+            tree-default-expand-all
+            :tree-data="deptOptions"
+            :field-names="{ value: 'code', label: 'name', children: 'children' }"
+            placeholder="请选择资产目录"
+            allow-clear
+          />
+        </a-form-item>
+      </a-form>
+      <div style="color: #8c8c8c; padding-left: 90px;">
+        将该数据库已探查到的全部表和字段同步到资产数据，新资产归入所选目录。
+      </div>
+    </a-modal>
 
     <!-- 数据资产详情对话框 -->
     <a-modal
@@ -480,6 +530,7 @@ import {
   startDaDiscoveryTask,
   syncAsset,
 } from "@/api/ast/asset/asset";
+import { listDb } from "@/api/cat/unreleased/db";
 
 
 import CreateEditModal from "./add/index.vue";
@@ -509,6 +560,12 @@ const { da_assets_status, da_asset_type } = proxy.useDict(
 );
 const daAssetList = ref([]);
 const isRegister = ref(false);
+const syncOpen = ref(false);
+const syncSubmitting = ref(false);
+const syncDatasourceLoading = ref(false);
+const syncDatabaseKey = ref();
+const syncDatabaseOptions = ref([]);
+const syncCatCode = ref();
 
 const unregistered = (item) => {
   return item.createType == undefined || item.createType == 2;
@@ -850,6 +907,72 @@ function handleSync(row) {
       loading.value = false;
     });
 }
+
+async function openDatasourceSync() {
+  syncDatabaseKey.value = undefined;
+  syncCatCode.value = undefined;
+  syncOpen.value = true;
+  syncDatasourceLoading.value = true;
+  try {
+    const response = await listDb({
+      pageNum: 1,
+      pageSize: 9999,
+      spaceId: userStore.spaceId,
+      spaceCode: userStore.spaceCode,
+    });
+    const rows = response.data?.rows || response.data || [];
+    const databaseMap = new Map();
+    rows.forEach((item) => {
+      if (!item.datasourceId || !item.dbName) return;
+      const syncKey = `${item.datasourceId}|${item.dbName}|${item.schemaName || ""}`;
+      databaseMap.set(syncKey, {
+        ...item,
+        syncKey,
+        syncLabel: `${item.datasourceName || item.datasource?.datasourceName || `数据源${item.datasourceId}`} / ${item.dbName}${item.schemaName ? ` (${item.schemaName})` : ""}`,
+      });
+    });
+    syncDatabaseOptions.value = Array.from(databaseMap.values())
+      .sort((a, b) => a.syncLabel.localeCompare(b.syncLabel, "zh-CN"));
+  } finally {
+    syncDatasourceLoading.value = false;
+  }
+}
+
+function closeDatasourceSync() {
+  if (syncSubmitting.value) return;
+  syncOpen.value = false;
+  syncDatabaseKey.value = undefined;
+  syncCatCode.value = undefined;
+}
+
+async function submitDatasourceSync() {
+  const database = syncDatabaseOptions.value.find((item) => item.syncKey === syncDatabaseKey.value);
+  if (!database) {
+    message.warning("请选择要同步的数据库");
+    return;
+  }
+  if (!syncCatCode.value) {
+    message.warning("请选择资产目录");
+    return;
+  }
+  syncSubmitting.value = true;
+  try {
+    const response = await syncAsset({
+      datasourceId: database.datasourceId,
+      databaseName: database.dbName,
+      schemaName: database.schemaName,
+      catCode: syncCatCode.value,
+    });
+    message.success(response.msg || "整库同步成功");
+    syncOpen.value = false;
+    syncDatabaseKey.value = undefined;
+    syncCatCode.value = undefined;
+    getList();
+  } finally {
+    syncSubmitting.value = false;
+  }
+}
+
 /** ---------------- 导入相关操作 -----------------**/
 /** 下载模板操作 */
 function importTemplate() {

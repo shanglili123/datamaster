@@ -88,11 +88,6 @@ public class DatasourceApiServiceImpl implements IDatasourceApiService {
         return assetsDatasourceApiService.getSpaceCodeByDatasourceId(datasourceId);
     }
 
-    @Override
-    public void detectTableSchemaUpdates(Long id) {
-        assetsDatasourceApiService.detectTableSchemaUpdates(id);
-    }
-
     private com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO toAssetsReqDTO(DatasourceCreaTeTableReqDTO dto) {
         return BeanUtils.toBean(dto, com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO.class);
     }

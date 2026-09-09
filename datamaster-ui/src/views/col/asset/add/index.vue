@@ -141,7 +141,6 @@ import { defineProps, defineEmits, ref, computed, watch } from "vue";
 // import { message } from 'ant-design-vue'
 import Crontab from "@/components/Crontab/index.vue";
 // import { message } from 'ant-design-vue'
-import { getDaDiscoveryTask } from "@/api/ast/discovery/discoveryTask";
 // 数据库表
 
 import tableConfigForm from "./tableAdd.vue";

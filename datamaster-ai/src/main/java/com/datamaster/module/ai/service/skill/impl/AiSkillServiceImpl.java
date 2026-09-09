@@ -1026,7 +1026,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "- `/cat/table/list`：分页检索元数据表。\n"
                 + "- `/cat/table/{id}`：获取元数据表详情。\n"
                 + "- `/cat/column/list`：按元数据表查询字段。\n"
-                + "- `/ast/discoveryTask/list`、`/ast/discoveryTaskLog/list`：查询元数据发现任务和日志。\n\n"
+                + "- `/cat/task/list`、`/cat/taskInstance/list`：查询元数据采集任务和执行记录。\n\n"
                 + "## 问数流程\n\n"
                 + "1. 从用户问题抽取业务主题、指标词、时间词和过滤条件。\n"
                 + "2. 检索元数据表名、表注释和字段注释，得到候选表。\n"

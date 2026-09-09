@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.datamaster.common.core.domain.BaseEntity;
-import com.datamaster.metadata.dal.dataobject.discovery.AssetsDiscoveryColumnDO;
 
 import javax.validation.constraints.Size;
 import java.util.Set;
@@ -98,26 +97,4 @@ public class AssetsAssetColumnSaveReqVO extends BaseEntity {
     @TableField(exist = false)
     private Set<Long> elementId;
 
-    /**
-     *  AssetsDiscoveryColumnDO  VO
-     *
-     * @param discoveryColumnDO  DO
-     */
-    public AssetsAssetColumnSaveReqVO(AssetsDiscoveryColumnDO discoveryColumnDO) {
-        if (discoveryColumnDO != null) {
-//
-    this.id = discoveryColumnDO.getId();
-            // assetId 的赋值需根据实际业务逻辑处理，此处暂未映射
-            this.columnName = discoveryColumnDO.getColumnName();
-            this.columnComment = discoveryColumnDO.getColumnComment();
-            this.columnType = discoveryColumnDO.getColumnType();
-            this.columnLength = discoveryColumnDO.getColumnLength();
-            this.columnScale = discoveryColumnDO.getColumnScale();
-            this.nullableFlag = discoveryColumnDO.getNullableFlag();
-            this.pkFlag = discoveryColumnDO.getPkFlag();
-            this.defaultValue = discoveryColumnDO.getDefaultValue();
-            // 其他字段，如 dataElemCodeFlag、dataElemCodeId、sensitiveLevelId、relDataElmeFlag、
-            // relCleanFlag、relAuditFlag、description、remark、elementId 等，可根据业务需求补充映射逻辑
-        }
-    }
 }

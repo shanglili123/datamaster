@@ -15,7 +15,7 @@
             <a-form-item label="状态" name="status">
               <a-select v-model:value="queryParams.status" placeholder="请选择任务状态" allow-clear
                 style="width: 160px;">
-                <a-select-option v-for="dict in ast_discovery_task_status" :key="dict.value" :value="dict.value">{{
+                <a-select-option v-for="dict in taskStatusOptions" :key="dict.value" :value="dict.value">{{
                   dict.label }}</a-select-option>
               </a-select>
             </a-form-item>
@@ -168,13 +168,16 @@ import {
 } from "@/api/ast/quality/qualityTask";;
 
 const { proxy } = getCurrentInstance();
-const { ast_discovery_task_status, col_etl_task_execution_type, datasource_type, col_etl_task_process_type } =
+const { col_etl_task_execution_type, datasource_type, col_etl_task_process_type } =
   proxy.useDict(
-    "ast_discovery_task_status",
     "col_etl_task_execution_type",
     "datasource_type",
     "col_etl_task_process_type"
   );
+const taskStatusOptions = [
+  { label: "上线", value: "0" },
+  { label: "下线", value: "1" },
+];
 const typaOptions = treeData.map((item) => {
   return {
     ...item,

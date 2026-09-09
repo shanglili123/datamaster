@@ -37,10 +37,4 @@ public interface IDatasourceApiService {
      */
     String getSpaceCodeByDatasourceId(Long datasourceId);
 
-    /**
-     * 触发数据发现任务的表结构更新探测
-     *
-     * @param id 数据发现任务ID
-     */
-    void detectTableSchemaUpdates(Long id);
 }

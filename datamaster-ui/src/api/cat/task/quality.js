@@ -30,7 +30,10 @@ export function batchQualitySummary(data) {
   return request({
     url: '/cat/task/batchQualitySummary',
     method: 'post',
-    data: data
+    data: data,
+    // 这是列表加载后的只读批量查询，表格格式化可能在一次刷新中触发两次。
+    // 不参与“重复提交”拦截，避免点击库表目录时出现“数据正在处理”的误提示。
+    headers: { repeatSubmit: false }
   })
 }
 

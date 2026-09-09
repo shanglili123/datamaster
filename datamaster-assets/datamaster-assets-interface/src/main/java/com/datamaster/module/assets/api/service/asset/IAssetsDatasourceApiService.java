@@ -26,7 +26,6 @@ public interface IAssetsDatasourceApiService {
 
     String getSpaceCodeByDatasourceId(Long datasourceId);
 
-    void detectTableSchemaUpdates(Long id);
     public boolean creaDatasourceTeTableApi(DatasourceCreaTeTableReqDTO datasourceCreaTeTableReqDTO);
     public boolean creaDatasourceTeTableApi(DbQuery dbQuery, DbQueryProperty dbQueryProperty, DatasourceCreaTeTableReqDTO creaTeTableReqDTO);
     public boolean creaDatasourceTeTableListApi(DatasourceCreaTeTableListReqDTO datasourceCreaTeTableListReqDTO);

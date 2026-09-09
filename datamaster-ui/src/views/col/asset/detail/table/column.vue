@@ -463,8 +463,10 @@ function getList() {
     loading.value = true;
     queryParams.value.assetId = assetId;
     listDaAssetColumn(queryParams.value).then((response) => {
-        daAssetColumnList.value = response.data.rows;
-        total.value = Number(response.data.total) || 0;
+        const page = response.data || {};
+        const rows = Array.isArray(page) ? page : (page.rows || []);
+        daAssetColumnList.value = rows;
+        total.value = Number(page.total) || rows.length;
         loading.value = false;
     });
 }

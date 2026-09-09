@@ -257,7 +257,8 @@ const descList = ref([
 
 // 计算属性生成 tab pane 数组
 const tabPanes = computed(() => {
-  switch (daAssetDetail.value.type) {
+  // 后端字段类型通常是字符串，但兼容数字类型，避免资产字段页因类型不一致不渲染。
+  switch (String(daAssetDetail.value.type || "")) {
     case "1":
       return [
         { label: "资产字段", name: "0", component: column },

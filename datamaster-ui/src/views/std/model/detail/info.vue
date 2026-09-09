@@ -6,15 +6,7 @@
         <template #label>
           <div class="cell-item">{{ item.label }}</div>
         </template>
-        <div v-if="item.key == 'status'">
-          <dict-tag :options="ast_discovery_task_status" :value="daDiscoveryTaskDetail.status" />
-        </div>
-        <div v-else-if="item.key == 'countSubmitted'">
-          <ProgressBar :completed="daDiscoveryTaskDetail.countSubmitted"
-            :inProgress="daDiscoveryTaskDetail.countPending" :notStarted="daDiscoveryTaskDetail.countIgnoreFlag"
-            :total="21" />
-        </div>
-        <div v-else-if="item.key == 'createTime'">
+        <div v-if="item.key == 'createTime'">
           {{
             parseTime(
               daDiscoveryTaskDetail.createTime,
@@ -39,7 +31,6 @@
   </div>
 </template>
 <script setup name="BasicInfo">
-import ProgressBar from "@/views/ast/discovery/components/progressBar.vue";
 import moment from "moment";
 import { cronToZh } from "@/utils/cronUtils";
 const { proxy } = getCurrentInstance();

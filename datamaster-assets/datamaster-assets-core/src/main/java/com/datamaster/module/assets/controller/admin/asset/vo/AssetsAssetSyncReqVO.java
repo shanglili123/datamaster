@@ -6,7 +6,7 @@ import lombok.Data;
 /**
  * 资产元数据同步 Request VO
  *
- * 三个筛选条件均可选；全部为空时执行全量同步。
+ * 整库同步传 datasourceId + databaseName + catCode，可选 schemaName；单资产同步传 assetId。
  */
 @Schema(description = "资产元数据同步 Request VO")
 @Data
@@ -17,8 +17,14 @@ public class AssetsAssetSyncReqVO {
     @Schema(description = "数据源ID", example = "")
     private Long datasourceId;
 
-    @Schema(description = "探查任务ID", example = "")
-    private Long taskId;
+    @Schema(description = "数据库名称", example = "datamaster_test")
+    private String databaseName;
+
+    @Schema(description = "模式名称", example = "public")
+    private String schemaName;
+
+    @Schema(description = "资产目录编码", example = "A03A02")
+    private String catCode;
 
     @Schema(description = "资产ID", example = "")
     private Long assetId;

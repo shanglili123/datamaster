@@ -1,6 +1,5 @@
 package com.datamaster.module.assets.service.datasource.impl;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -13,12 +12,10 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.xssf.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.datamaster.api.ds.api.base.DsResultDTO;
@@ -39,7 +36,6 @@ import com.datamaster.common.enums.KingbaseColumnTypeEnum;
 import com.datamaster.common.enums.MySqlColumnTypeEnum;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.database.utils.AesEncryptUtil;
-import com.datamaster.common.utils.DateUtils;
 import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.common.utils.StringUtils;
@@ -58,24 +54,16 @@ import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanc
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourcePageReqVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceRespVO;
 import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasourceSaveReqVO;
-import com.datamaster.metadata.controller.discovery.vo.AssetsDiscoveryColumnPageReqVO;
-import com.datamaster.metadata.controller.discovery.vo.AssetsDiscoveryTablePageReqVO;
-import com.datamaster.metadata.controller.discovery.vo.AssetsDiscoveryTaskLogSaveReqVO;
-import com.datamaster.metadata.controller.discovery.vo.AssetsDiscoveryTaskRespVO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceSpaceRelDO;
-import com.datamaster.metadata.dal.dataobject.discovery.AssetsDiscoveryColumnDO;
-import com.datamaster.metadata.dal.dataobject.discovery.AssetsDiscoveryTableDO;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceMapper;
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceSpaceRelService;
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceService;
-import com.datamaster.metadata.service.discovery.*;
 import com.datamaster.module.governance.api.model.dto.StandardsModelColumnReqDTO;
 import com.datamaster.module.governance.api.model.dto.StandardsModelColumnRespDTO;
 import com.datamaster.module.governance.api.service.model.IStandardsModelApiService;
 import com.datamaster.module.collector.api.service.etl.CollectorEtlTaskService;
-import com.datamaster.module.system.service.ISysMessageService;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 import com.datamaster.redis.service.IRedisService;
 
@@ -113,22 +101,6 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     private CollectorEtlTaskService collectorEtlTaskService;
     @Autowired
     private IRedisService redisService;
-    @Autowired
-    private ISysMessageService iSysMessageService;
-    @Autowired
-    @Lazy
-    private IAssetsDiscoveryTaskService IAssetsDiscoveryTaskService;
-    @Autowired
-    @Lazy
-    private IAssetsDiscoveryColumnService IAssetsDiscoveryColumnService;
-    @Autowired
-    @Lazy
-    private IAssetsDiscoveryTableService IAssetsDiscoveryTableService;
-    @Autowired
-    @Lazy
-    private IAssetsDiscoveryTaskLogService IAssetsDiscoveryTaskLogService;
-    @Resource
-    private IAssetsDiscoveryLogBodyService IAssetsDiscoveryLogBodyService;
     @Autowired
     private IDsDatasourceService dsDatasourceService;
 
@@ -1217,312 +1189,4 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         return BeanUtils.toBean(AssetsDatasourceDOS, AssetsDatasourceRespDTO.class);
     }
 
-    private List<AssetsDiscoveryTableDO> fetchDiscoveryTableList(AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskDO, Long AssetsDiscoveryTaskLog) {
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "ID" + AssetsDiscoveryTaskDO.getId());
-        AssetsDiscoveryTablePageReqVO AssetsDiscoveryTablePageReqVO = new AssetsDiscoveryTablePageReqVO();
-        AssetsDiscoveryTablePageReqVO.setTaskId(AssetsDiscoveryTaskDO.getId());
-        AssetsDiscoveryTablePageReqVO.setDatasourceId(AssetsDiscoveryTaskDO.getDatasourceId());
-        List<AssetsDiscoveryTableDO> result = IAssetsDiscoveryTableService.getDaDiscoveryTableList(AssetsDiscoveryTablePageReqVO);
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "" + (result != null ? result.size() : 0));
-        return result;
-    }
-
-    private List<AssetsDiscoveryColumnDO> fetchDaDiscoveryColumnDOList(AssetsDiscoveryTableDO matchedTable, Long AssetsDiscoveryTaskLog) {
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "ID" + matchedTable.getId() + "ID" + matchedTable.getTaskId());
-        AssetsDiscoveryColumnPageReqVO AssetsDiscoveryTablePageReqVO = new AssetsDiscoveryColumnPageReqVO();
-        AssetsDiscoveryTablePageReqVO.setTaskId(matchedTable.getTaskId());
-        AssetsDiscoveryTablePageReqVO.setDatasourceId(matchedTable.getDatasourceId());
-        AssetsDiscoveryTablePageReqVO.setTableId(matchedTable.getId());
-        List<AssetsDiscoveryColumnDO> result = IAssetsDiscoveryColumnService.getDaDiscoveryColumnList(AssetsDiscoveryTablePageReqVO);
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "" + (result != null ? result.size() : 0));
-        return result;
-    }
-
-    private List<AssetsDiscoveryTableDO> mapToMetadataTableList(List<DbTable> tables, Long taskId, Long datasourceId) {
-        return tables.stream().map(table -> {
-            AssetsDiscoveryTableDO metadataTable = new AssetsDiscoveryTableDO();
-            metadataTable.setTaskId(taskId);
-            metadataTable.setDatasourceId(datasourceId);
-            metadataTable.setTableName(table.getTableName());
-            metadataTable.setTableComment(table.getTableComment());
-            return metadataTable;
-        }).collect(Collectors.toList());
-    }
-
-    private void updateTableDataCount(DbQuery dbQuery, AssetsDiscoveryTableDO table, int fieldCount) {
-        int dataCount = dbQuery.countNew(table.getTableName(), new HashMap<>());
-        table.setDataCount((long) dataCount);
-        table.setFieldCount((long) fieldCount);
-        table.setCreateBy("");
-        table.setCreatorId(1L);
-    }
-
-    private int updateTableStatus(AssetsDiscoveryTableDO matchedTable, AssetsDiscoveryTableDO table, boolean modifiedTablesBoolean, Long AssetsDiscoveryTaskLog) {
-        if (modifiedTablesBoolean) {
-//1:新增，2:修改，3:删除，4:无变化
-            table.setChangeFlag("2");
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "更新表状态为修改：" + matchedTable.getTableName());
-            IAssetsDiscoveryTableService.updateDaDiscoveryTable(table);
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "更新完毕");
-            return 1;
-        } else {
-//1:新增，2:修改，3:删除，4:无变化
-            matchedTable.setChangeFlag("4");
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "更新表状态为无变化：" + matchedTable.getTableName());
-            IAssetsDiscoveryTableService.updateDaDiscoveryTable(matchedTable);
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "更新完毕");
-            return 0;
-        }
-    }
-
-    private void saveNewTable(AssetsDiscoveryTableDO table, List<DbColumn> columns, DbQuery dbQuery, DbQueryProperty dbQueryProperty, Long AssetsDiscoveryTaskLog) {
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "保存新表：" + table.getTableName());
-        updateTableDataCount(dbQuery, table, columns.size());
-
-// 1:新增，2:修改，3:删除，4:无变化
-        table.setChangeFlag("1");
-        IAssetsDiscoveryTableService.createDaDiscoveryTable(table);
-        if (CollUtil.isNotEmpty(columns)) {
-            List<AssetsDiscoveryColumnDO> metadataColumnEntityList = columns.stream().map(column -> new AssetsDiscoveryColumnDO(table.getTaskId(), table.getDatasourceId(), table.getId(), column)).collect(Collectors.toList());
-            metadataColumnEntityList.forEach(IAssetsDiscoveryColumnService::createDaDiscoveryColumn);
-        }
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "保存完毕");
-    }
-
-    public AssetsDiscoveryTableDO findMatchedTable(AssetsDiscoveryTableDO table, List<AssetsDiscoveryTableDO> AssetsDiscoveryTableDOList) {
-        return AssetsDiscoveryTableDOList.stream().filter(existingTable -> existingTable.getTableName().equals(table.getTableName()) &&
-                existingTable.getTaskId().equals(table.getTaskId())).findFirst().orElse(null);
-
-// 如果没有匹配到，返回null
-    }
-
-    private boolean isTableCommentModified(AssetsDiscoveryTableDO table, AssetsDiscoveryTableDO matchedTable) {
-        return !StringUtils.equals(table.getTableComment(), matchedTable.getTableComment());
-    }
-
-    private List<AssetsDiscoveryColumnDO> generateMetadataColumnList(List<DbColumn> columns, AssetsDiscoveryTableDO matchedTable) {
-        if (CollUtil.isEmpty(columns)) {
-            return new ArrayList<>();
-        }
-        return columns.stream().map(column -> new AssetsDiscoveryColumnDO(matchedTable.getTaskId(), matchedTable.getDatasourceId(), matchedTable.getId(), column)).collect(Collectors.toList());
-    }
-
-    private boolean compareColumnsAndUpdate(List<AssetsDiscoveryColumnDO> metadataColumnEntityList, List<AssetsDiscoveryColumnDO> discoveryColumnDOList) {
-        boolean modifiedTablesBoolean = false;
-        for (AssetsDiscoveryColumnDO column : metadataColumnEntityList) {
-            AssetsDiscoveryColumnDO matchedColumn = findMatchedColumn(column, discoveryColumnDOList);
-            if (matchedColumn == null) {
-                modifiedTablesBoolean = true;
-                IAssetsDiscoveryColumnService.createDaDiscoveryColumn(column);
-            } else if (!column.isEqual(matchedColumn)) {
-                modifiedTablesBoolean = true;
-                column.setId(matchedColumn.getId());
-                IAssetsDiscoveryColumnService.updateDaDiscoveryColumn(column);
-            }
-        }
-        return modifiedTablesBoolean;
-    }
-
-    public AssetsDiscoveryColumnDO findMatchedColumn(AssetsDiscoveryColumnDO table, List<AssetsDiscoveryColumnDO> AssetsDiscoveryTableDOList) {
-        return AssetsDiscoveryTableDOList.stream().filter(existingTable -> StringUtils.equals(existingTable.getColumnName(), table.getColumnName())).findFirst().orElse(null);
-
-// 如果没有匹配到，返回null
-    }
-
-    private boolean deleteUnmatchedColumns(List<AssetsDiscoveryColumnDO> discoveryColumnDOList, List<AssetsDiscoveryColumnDO> metadataColumnEntityList) {
-        List<AssetsDiscoveryColumnDO> notInMetadataTable = findNotInDaDiscoveryColumn(discoveryColumnDOList, metadataColumnEntityList);
-        if (CollectionUtils.isEmpty(notInMetadataTable)) {
-            return false;
-        }
-        Collection<Long> idList = notInMetadataTable.stream().map(AssetsDiscoveryColumnDO::getId).collect(Collectors.toList());
-        IAssetsDiscoveryColumnService.removeDaDiscoveryColumn(idList);
-        return true;
-    }
-
-    public List<AssetsDiscoveryColumnDO> findNotInDaDiscoveryColumn(List<AssetsDiscoveryColumnDO> discoveryColumnDOList, List<AssetsDiscoveryColumnDO> metadataTableEntityList) {
-        return discoveryColumnDOList.stream().filter(table -> metadataTableEntityList.stream().noneMatch(existingTable -> {
-            return StringUtils.equals(existingTable.getColumnName(), table.getColumnName());
-        })).collect(Collectors.toList());
-
-// 返回daDiscoveryTableDOList中在metadataTableEntityList中不存在的table
-    }
-
-    private int updateExistingTable(DbQuery dbQuery, AssetsDiscoveryTableDO matchedTable, AssetsDiscoveryTableDO table, List<DbColumn> columns, Long AssetsDiscoveryTaskLog) {
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "更新表：" + table.getTableName());
-        boolean modifiedTablesBoolean = false;
-
-// 查询表存的快照字段结构
-        List<AssetsDiscoveryColumnDO> discoveryColumnDOList = this.fetchDaDiscoveryColumnDOList(matchedTable, AssetsDiscoveryTaskLog);
-        discoveryColumnDOList = discoveryColumnDOList == null ? new ArrayList<>() : discoveryColumnDOList;
-        if (isTableCommentModified(table, matchedTable)) {
-            modifiedTablesBoolean = true;
-        }
-        table.setId(matchedTable.getId());
-        List<AssetsDiscoveryColumnDO> metadataColumnEntityList = generateMetadataColumnList(columns, matchedTable);
-        modifiedTablesBoolean |= compareColumnsAndUpdate(metadataColumnEntityList, discoveryColumnDOList);
-        modifiedTablesBoolean |= deleteUnmatchedColumns(discoveryColumnDOList, metadataColumnEntityList);
-        updateTableDataCount(dbQuery, table, columns.size());
-        return updateTableStatus(matchedTable, table, modifiedTablesBoolean, AssetsDiscoveryTaskLog);
-    }
-
-    private Map<String, Object> logSchemaModifications(DbQueryProperty dbQueryProperty, DbQuery dbQuery, AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, Long AssetsDiscoveryTaskLog) {
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "开始执行模式修改操作，任务ID：" + AssetsDiscoveryTaskById.getId());
-        int newTables = 0;
-        int modifiedTables = 0;
-        int deletedTables = 0;
-        int totalTables = 0;
-        List<AssetsDiscoveryTableDO> AssetsDiscoveryTableDOList = this.fetchDiscoveryTableList(AssetsDiscoveryTaskById, AssetsDiscoveryTaskLog);
-        AssetsDiscoveryTableDOList = AssetsDiscoveryTableDOList == null ? new ArrayList<>() : AssetsDiscoveryTableDOList;
-        List<DbTable> tables = dbQuery.getTables(dbQueryProperty);
-        List<AssetsDiscoveryTableDO> metadataTableEntityList = new ArrayList<>();
-        if (CollUtil.isNotEmpty(tables)) {
-            totalTables = tables.size();
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "从数据源中，实时获取表列数量信息：" + totalTables);
-            metadataTableEntityList = mapToMetadataTableList(tables, AssetsDiscoveryTaskById.getId(), AssetsDiscoveryTaskById.getDatasourceId());
-            if (CollUtil.isNotEmpty(metadataTableEntityList)) {
-                for (AssetsDiscoveryTableDO table : metadataTableEntityList) {
-                    AssetsDiscoveryTableDO matchedTable = findMatchedTable(table, AssetsDiscoveryTableDOList);
-                    IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "正在处理表：" + table.getTableName());
-                    List<DbColumn> columns = dbQuery.getTableColumns(dbQueryProperty, table.getTableName());
-                    columns = columns == null ? new ArrayList<>() : columns;
-                    IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "从数据源中，实时获取列数量信息：" + columns.size());
-                    if (matchedTable == null) {
-                        newTables++;
-                        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "新表发现，表：" + table.getTableName() + "，开始保存");
-                        saveNewTable(table, columns, dbQuery, dbQueryProperty, AssetsDiscoveryTaskLog);
-                    } else {
-                        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "查看表[ " + table.getTableName() + " ]库中配置信息");
-
-// 是否忽略;0:否，1：是
-                        String ignoreFlag = matchedTable.getIgnoreFlag();
-                        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "查看表[ " + table.getTableName() + " ]库中配置信息,发现配置ignoreFlag为：" + ignoreFlag);
-                        if (StringUtils.equals("1", ignoreFlag)) {
-                            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "查看表[ " + table.getTableName() + " ]库中配置信息,发现配置为：忽略。该表结束扫描！");
-                            continue;
-                        }
-                        table.setId(matchedTable.getId());
-                        modifiedTables += updateExistingTable(dbQuery, matchedTable, table, columns, AssetsDiscoveryTaskLog);
-                        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "已存在表更新，表：" + table.getTableName());
-                    }
-                }
-            }
-        }
-        deletedTables = deleteUnmatchedTables(AssetsDiscoveryTableDOList, metadataTableEntityList, AssetsDiscoveryTaskLog);
-        String executionTime = DateUtils.getExecutionTime();
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "模式修改操作完成，总表数：" + totalTables + "。其中，新增表数：" + newTables + "，修改表数：" + modifiedTables + "，删除表数：" + deletedTables);
-        Map<String, Object> map = new HashMap<>();
-        map.put("taskName", AssetsDiscoveryTaskById.getName());
-        map.put("executionTime", executionTime);
-        map.put("totalTables", totalTables);
-        map.put("newTables", newTables);
-        map.put("modifiedTables", modifiedTables);
-        map.put("deletedTables", deletedTables);
-        AssetsDiscoveryTaskById.setLastTableCount((long) (newTables + modifiedTables + deletedTables));
-        return map;
-    }
-
-    public List<AssetsDiscoveryTableDO> findNotInMetadataTable(List<AssetsDiscoveryTableDO> AssetsDiscoveryTableDOList, List<AssetsDiscoveryTableDO> metadataTableEntityList) {
-        return AssetsDiscoveryTableDOList.stream().filter(table -> metadataTableEntityList.stream().noneMatch(existingTable -> existingTable.getTableName().equals(table.getTableName()) &&
-                existingTable.getTaskId().equals(table.getTaskId()))).collect(Collectors.toList());
-
-// 返回daDiscoveryTableDOList中在metadataTableEntityList中不存在的table
-    }
-
-    private int deleteUnmatchedTables(List<AssetsDiscoveryTableDO> AssetsDiscoveryTableDOList, List<AssetsDiscoveryTableDO> metadataTableEntityList, Long AssetsDiscoveryTaskLog) {
-        List<AssetsDiscoveryTableDO> notInMetadataTable = findNotInMetadataTable(AssetsDiscoveryTableDOList, metadataTableEntityList);
-        if (CollectionUtils.isEmpty(notInMetadataTable)) return 0;
-        for (AssetsDiscoveryTableDO AssetsDiscoveryTableDO : notInMetadataTable) {
-            AssetsDiscoveryTableDO.setUpdateBy("超级管理员");
-            AssetsDiscoveryTableDO.setUpdatorId(1L);
-
-// 1:新增，2:修改，3:删除，4:无变化
-            AssetsDiscoveryTableDO.setChangeFlag("3");
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "删除未匹配表：" + AssetsDiscoveryTableDO.getTableName());
-            IAssetsDiscoveryTableService.updateDaDiscoveryTable(AssetsDiscoveryTableDO);
-        }
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "删除完毕");
-        return notInMetadataTable.size();
-    }
-
-    private Map<String, Object> runJobTableSchemaUpdates(AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById, Long AssetsDiscoveryTaskLog) {
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据数据源编号，获取发现任务的 数据源详细信息");
-        AssetsDatasourceDO AssetsDatasourceBy = this.getDatasourceDOById(AssetsDiscoveryTaskById.getDatasourceId());
-        if (AssetsDatasourceBy == null) {
-            throw new DataQueryException("任务执行-根据数据源编号，获取发现任务的 数据源详情信息查询失败！");
-        }
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据数据源编号，获取发现任务的 数据源详细信息成功");
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据数据源链接信息，建立实时数据源链接");
-        DbQueryProperty dbQueryProperty = new DbQueryProperty(AssetsDatasourceBy.getDatasourceType(), AssetsDatasourceBy.getIp(), AssetsDatasourceBy.getPort(), AssetsDatasourceBy.getDatasourceConfig());
-        DbQuery dbQuery = DataSourceFactory.createDbQuery(dbQueryProperty);
-        if (!dbQuery.valid()) {
-            throw new DataQueryException("任务执行-根据数据源链接信息，建立实时数据源链接 失败！");
-        }
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据数据源链接信息，建立实时数据源链接 成功");
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据数据源链接，开始进入获取实时库中信息方法");
-        try {
-            Map<String, Object> map = logSchemaModifications(dbQueryProperty, dbQuery, AssetsDiscoveryTaskById, AssetsDiscoveryTaskLog);
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据数据源链接，获取实时库中信息方法结束");
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-信息如下 map:" + map.toString());
-            IAssetsDiscoveryTaskService.updateDaDiscoveryTask(AssetsDiscoveryTaskById);
-            return map;
-        } catch (Exception e) {
-            throw e;
-        } finally {
-            dbQuery.close();
-        }
-    }
-
-    /***     * @param id     */
-
-    @Override
-    public void detectTableSchemaUpdates(Long id) {
-        String key = "detectTableSchemaUpdates-" + id;
-        String status = redisService.get(key);
-        if (StringUtils.isNotEmpty(status) && StringUtils.equals("1", status)) {
-            throw new RuntimeException("");
-        }
-        AssetsDiscoveryTaskRespVO AssetsDiscoveryTaskById = IAssetsDiscoveryTaskService.getDaDiscoveryTaskById(id);
-        if (AssetsDiscoveryTaskById == null) {
-            throw new DataQueryException("- !");
-        }
-        redisService.set(key, "1", 1200);
-
-//创建日志记录表
-        AssetsDiscoveryTaskLogSaveReqVO createReqVO = new AssetsDiscoveryTaskLogSaveReqVO();
-        Date executionDate = DateUtils.getExecutionDate();
-        createReqVO.setStartTime(executionDate);
-        createReqVO.populateFromTask(AssetsDiscoveryTaskById);
-        Long AssetsDiscoveryTaskLog = IAssetsDiscoveryTaskLogService.createDaDiscoveryTaskLog(createReqVO);
-        createReqVO.setId(AssetsDiscoveryTaskLog);
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据发现任务编号，获取发现任务详细信息成功");
-        IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务开始执行");
-        try {
-            AssetsDiscoveryTaskById.setLastExecuteTime(executionDate);
-
-// 
-            Map<String, Object> map = runJobTableSchemaUpdates(AssetsDiscoveryTaskById, AssetsDiscoveryTaskLog);
-            int newTables = MapUtils.getIntValue(map, "newTables");
-            int modifiedTables = MapUtils.getIntValue(map, "modifiedTables");
-            int deletedTables = MapUtils.getIntValue(map, "deletedTables");
-            createReqVO.setNewTableCount((long) newTables);
-            createReqVO.setModifiedTableCount((long) modifiedTables);
-            createReqVO.setDeletedTableCount((long) deletedTables);
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据任务执行信息，开始对本次任务发放站内信");
-            iSysMessageService.sendDbChangeMessage(AssetsDiscoveryTaskById.getContactId(), map);
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务执行-根据任务执行信息，对本次任务站内信发放 完毕");
-            createReqVO.setStatus("2");
-        } catch (Exception e) {
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务失败");
-            createReqVO.setStatus("3");
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, e.getMessage().toString());
-            redisService.set(key, "3", 300);
-        } finally {
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "FINALIZE_SESSION");
-            createReqVO.setPath("");
-            IAssetsDiscoveryLogBodyService.taskLogAppend(AssetsDiscoveryTaskLog, "任务结束");
-            createReqVO.setEndTime(DateUtils.getExecutionDate());
-            IAssetsDiscoveryTaskLogService.updateDaDiscoveryTaskLog(createReqVO);
-            redisService.set(key, "2", 300);
-        }
-    }
 }

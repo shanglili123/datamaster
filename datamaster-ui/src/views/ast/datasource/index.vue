@@ -113,7 +113,6 @@
               v-hasPermi="['ast:dataSource:edit']"
               >同步到调度平台
             </a-button>
-
             <a-button
               type="link"
               :icon="h(EyeOutlined)"
@@ -1097,6 +1096,7 @@ function handleSyncToDs(row) {
       loading.value = false;
     });
 }
+
 const btnLoading = ref(false);
 /** 提交按钮 */
 function submitForm() {

@@ -60,14 +60,12 @@ import com.datamaster.module.assets.controller.admin.assetchild.theme.vo.AssetsA
 import com.datamaster.module.assets.controller.admin.assetchild.theme.vo.AssetsAssetThemeRelRespVO;
 import com.datamaster.module.assets.controller.admin.assetchild.video.vo.AssetsAssetVideoRespVO;
 import com.datamaster.module.assets.controller.admin.assetchild.video.vo.AssetsAssetVideoSaveReqVO;
-import com.datamaster.metadata.controller.discovery.vo.AssetsDiscoveryTableSaveReqVO;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
 import com.datamaster.module.assets.dal.dataobject.assetchild.file.AssetsAssetFileDO;
 import com.datamaster.module.assets.dal.dataobject.assetchild.files.AssetsAssetFilesDO;
 import com.datamaster.module.assets.dal.dataobject.assetApply.AssetsAssetApplyDO;
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceDO;
-import com.datamaster.metadata.dal.dataobject.discovery.AssetsDiscoveryTaskDO;
 import com.datamaster.module.assets.dal.dataobject.sensitiveLevel.AssetsSensitiveLevelDO;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapper;
@@ -84,8 +82,6 @@ import com.datamaster.module.assets.service.assetchild.spaceRel.IAssetsAssetSpac
 import com.datamaster.module.assets.service.assetchild.theme.IAssetsAssetThemeRelService;
 import com.datamaster.module.assets.service.assetchild.video.IAssetsAssetVideoService;
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceService;
-import com.datamaster.metadata.service.discovery.IAssetsDiscoveryTableService;
-import com.datamaster.metadata.service.discovery.IAssetsDiscoveryTaskService;
 import com.datamaster.module.governance.dal.dataobject.desensitizeList.StandardsDesensitizeAssetcolumnDO;
 import com.datamaster.module.governance.dal.dataobject.desensitizeRules.StandardsDesensitizeIntervalDO;
 import com.datamaster.module.governance.dal.dataobject.desensitizeRules.StandardsDesensitizeRuleDO;
@@ -155,13 +151,9 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Autowired
     private DataSourceFactory DataSourceFactory;
     @Resource
-    private IAssetsDiscoveryTaskService AssetsDiscoveryTaskService;
-    @Resource
     private RedisCache redisCache;
     @Resource
     private AssetsAssetApplyMapper AssetsAssetApplyMapper;
-    @Resource
-    private IAssetsDiscoveryTableService AssetsDiscoveryTableService;
     @Resource
     private CollectorEtlTaskService collectorEtlTaskService;
     @Resource
@@ -569,20 +561,6 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         if (asset > 0) {
             throw new ServiceException(",!");
         }
-        List<AssetsAssetDO> AssetsAssetDOList = AssetsAssetMapper.selectList("ID", idList);
-        AssetsAssetDO AssetsAssetDO = AssetsAssetDOList != null ? AssetsAssetDOList.get(0) : null;
-        if ("1".equals(AssetsAssetDO.getSource())) {
-            LambdaQueryWrapperX<AssetsDiscoveryTaskDO> queryWrapperX = new LambdaQueryWrapperX<>();
-            queryWrapperX.eqIfPresent(AssetsDiscoveryTaskDO::getDatasourceId, AssetsAssetDO.getDatasourceId());
-            List<AssetsDiscoveryTaskDO> taskDOList = AssetsDiscoveryTaskService.list(queryWrapperX);
-            List<Long> taskIdList = taskDOList.stream().map(AssetsDiscoveryTaskDO::getId).collect(Collectors.toList());
-            AssetsDiscoveryTableSaveReqVO AssetsDiscoveryTableSaveReqVO = new AssetsDiscoveryTableSaveReqVO();
-            AssetsDiscoveryTableSaveReqVO.setTaskIdList(taskIdList);
-            AssetsDiscoveryTableSaveReqVO.setTableName(AssetsAssetDO.getTableName());
-            AssetsDiscoveryTableSaveReqVO.setIgnoreFlag("0");
-            AssetsDiscoveryTableSaveReqVO.setStatus("1");
-            AssetsDiscoveryTableService.updateByTaskIdListAndTableNameStatus(AssetsDiscoveryTableSaveReqVO);
-        }
 // Ã¦ÂÂ¹Ã©ÂÂÃ¥ÂÂ Ã©ÂÂ¤Ã¦ÂÂ°Ã¦ÂÂ®Ã¨ÂµÂÃ¤ÂºÂ§
         return AssetsAssetMapper.deleteBatchIds(idList);
     }
@@ -598,18 +576,6 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAssetDO AssetsAssetDO = AssetsAssetMapper.selectById(id);
         if (AssetsAssetDO == null) {
             return 1;
-        }
-        if ("1".equals(AssetsAssetDO.getSource())) {
-            LambdaQueryWrapperX<AssetsDiscoveryTaskDO> queryWrapperX = new LambdaQueryWrapperX<>();
-            queryWrapperX.eqIfPresent(AssetsDiscoveryTaskDO::getDatasourceId, AssetsAssetDO.getDatasourceId());
-            List<AssetsDiscoveryTaskDO> taskDOList = AssetsDiscoveryTaskService.list(queryWrapperX);
-            List<Long> taskIdList = taskDOList.stream().map(AssetsDiscoveryTaskDO::getId).collect(Collectors.toList());
-            AssetsDiscoveryTableSaveReqVO AssetsDiscoveryTableSaveReqVO = new AssetsDiscoveryTableSaveReqVO();
-            AssetsDiscoveryTableSaveReqVO.setTaskIdList(taskIdList);
-            AssetsDiscoveryTableSaveReqVO.setTableName(AssetsAssetDO.getTableName());
-            AssetsDiscoveryTableSaveReqVO.setIgnoreFlag("0");
-            AssetsDiscoveryTableSaveReqVO.setStatus("1");
-            AssetsDiscoveryTableService.updateByTaskIdListAndTableNameStatus(AssetsDiscoveryTableSaveReqVO);
         }
 //Ã¥ÂÂ Ã©ÂÂ¤Ã©Â¡Â¹Ã§ÂÂ®
         IAssetsAssetSpaceRelService.removeSpaceRelByAssetId(id);
@@ -710,25 +676,19 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
 // Ã¦ÂÂ¥Ã¨Â¯Â¢Ã¦ÂÂ°Ã¦ÂÂ®
         Integer pageNum = Integer.valueOf(jsonObject.getStr("pageNum"));
         Integer pageSize = Integer.valueOf(jsonObject.getStr("pageSize"));
-        if (StringUtils.isNotEmpty(jsonObject.getStr("taskId")) && StringUtils.isNotEmpty(jsonObject.getStr("tableName"))) {
-            AssetsDiscoveryTaskDO discoveryTaskDO = AssetsDiscoveryTaskService.getById(Long.valueOf(jsonObject.getStr("taskId")));
-            tableName = jsonObject.getStr("tableName");
-            DataSourceId = discoveryTaskDO.getDatasourceId();
-        } else {
 // Ã¨ÂÂ·Ã¥ÂÂÃ¨ÂµÂÃ¤ÂºÂ§Ã¨Â¯Â¦Ã¦ÂÂ
-            AssetsAssetRespVO AssetsAssetDO = this.getAssetById(Long.valueOf(jsonObject.getStr("id")));
-            if (StringUtils.equals("6", AssetsAssetDO.getType())) {
-                AssetsAssetFilesDO filesServiceOne = AssetsAssetFilesService.getOne(new LambdaQueryWrapperX<AssetsAssetFilesDO>().eq(AssetsAssetFilesDO::getAssetId, AssetsAssetDO.getId()));
-                if (SUPPORTED_EXTENSIONS.contains(filesServiceOne.getType())) {
-                    String fixedResourceUrl = profile.replace("\\", "/").replaceAll("/+$", "").replaceAll("/profile", "");
-                    String url = filesServiceOne.getUrl().replaceAll("/profile", "");
-                    Map<String, Object> fileData = FileDataReaderUtil.readFileData(fixedResourceUrl + url, pageNum.longValue(), pageSize.longValue(), filesServiceOne.getStartData(), filesServiceOne.getStartColumn(), jsonObject.getStr("filter"));
-                    return fileData;
-                }
+        AssetsAssetRespVO AssetsAssetDO = this.getAssetById(Long.valueOf(jsonObject.getStr("id")));
+        if (StringUtils.equals("6", AssetsAssetDO.getType())) {
+            AssetsAssetFilesDO filesServiceOne = AssetsAssetFilesService.getOne(new LambdaQueryWrapperX<AssetsAssetFilesDO>().eq(AssetsAssetFilesDO::getAssetId, AssetsAssetDO.getId()));
+            if (SUPPORTED_EXTENSIONS.contains(filesServiceOne.getType())) {
+                String fixedResourceUrl = profile.replace("\\", "/").replaceAll("/+$", "").replaceAll("/profile", "");
+                String url = filesServiceOne.getUrl().replaceAll("/profile", "");
+                Map<String, Object> fileData = FileDataReaderUtil.readFileData(fixedResourceUrl + url, pageNum.longValue(), pageSize.longValue(), filesServiceOne.getStartData(), filesServiceOne.getStartColumn(), jsonObject.getStr("filter"));
+                return fileData;
             }
-            tableName = AssetsAssetDO.getTableName();
-            DataSourceId = AssetsAssetDO.getDatasourceId();
         }
+        tableName = AssetsAssetDO.getTableName();
+        DataSourceId = AssetsAssetDO.getDatasourceId();
 // Ã¨ÂÂ·Ã¥ÂÂÃ¦ÂÂ°Ã¦ÂÂ®Ã¦ÂºÂÃ¨Â¿ÂÃ¦ÂÂ¥Ã¤Â¿Â¡Ã¦ÂÂ¯
         AssetsDatasourceDO AssetsDatasourceDO = AssetsDatasourceMapper.selectById(DataSourceId);
         if (AssetsDatasourceDO == null) {

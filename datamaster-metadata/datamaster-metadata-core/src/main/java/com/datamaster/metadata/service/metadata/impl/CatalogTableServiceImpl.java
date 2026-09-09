@@ -128,6 +128,38 @@ public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,Cata
     }
 
     @Override
+    public List<CatalogTableRespDTO> listByDatasourceAndDatabase(Long datasourceId, String databaseName,
+                                                                  String schemaName) {
+        if (datasourceId == null || StringUtils.isBlank(databaseName)) {
+            return new ArrayList<>();
+        }
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<CatalogTableDO> wrapper =
+                Wrappers.lambdaQuery(CatalogTableDO.class)
+                        .eq(CatalogTableDO::getDatasourceId, datasourceId)
+                        .eq(CatalogTableDO::getDbName, databaseName)
+                        .orderByDesc(CatalogTableDO::getVersion, BaseEntity::getCreateTime);
+        if (StringUtils.isNotBlank(schemaName)) {
+            wrapper.eq(CatalogTableDO::getSchemaName, schemaName);
+        }
+        List<CatalogTableDO> tables = CatalogTableMapper.selectList(wrapper);
+        if (CollectionUtils.isEmpty(tables)) {
+            return new ArrayList<>();
+        }
+        Map<String, CatalogTableDO> latestByTable = new LinkedHashMap<>();
+        for (CatalogTableDO table : tables) {
+            if (table == null || StringUtils.isBlank(table.getTableName())) {
+                continue;
+            }
+            String key = StringUtils.defaultString(table.getSchemaName()).toLowerCase(Locale.ROOT)
+                    + "|" + table.getTableName().toLowerCase(Locale.ROOT);
+            latestByTable.putIfAbsent(key, table);
+        }
+        List<CatalogTableDO> distinctTables = new ArrayList<>(latestByTable.values());
+        distinctTables.sort(Comparator.comparing(CatalogTableDO::getTableName, String.CASE_INSENSITIVE_ORDER));
+        return BeanUtils.toBean(distinctTables, CatalogTableRespDTO.class);
+    }
+
+    @Override
     public PageResult<CatalogTableRespVO> getCatalogTablePageAsset(CatalogTablePageReqVO CatalogTable) {
         PageResult<CatalogTableDO> CatalogTablelist = CatalogTableMapper.getCatalogTablelist(CatalogTable);
         PageResult<CatalogTableRespVO> bean = BeanUtils.toBean(CatalogTablelist, CatalogTableRespVO.class);

@@ -70,7 +70,6 @@ import { getColumnByAssetId, getTablesByDataSourceId as getRealtimeTablesByDataS
 import {
     listDaDatasourceBySpaceCode
 } from '@/api/ast/dataSource/dataSource.js';
-import { getDaDiscoveryTableList, getDaDiscoveryColumnList } from '@/api/ast/discovery/discoveryTable.js';
 import { listDaSensitiveLevel } from '@/api/ast/security/sensitiveLevel/sensitiveLevel.js';
 import { listTable as listCatalogTable } from '@/api/cat/unreleased/table.js';
 import { listColumn as listCatalogColumn } from '@/api/cat/unreleased/column.js';
@@ -147,13 +146,6 @@ const getColumnsByTable = async (table) => {
             columnLength: item.columnLength ?? item.columnPrecision
         }));
     }
-    if (table?.id) {
-        const response = await getDaDiscoveryColumnList({
-            tableId: table.id,
-            datasourceId: localForm.value.datasourceId
-        });
-        return getRows(response);
-    }
     const response = await getColumnByAssetId({
         id: localForm.value.datasourceId,
         tableName: table?.tableName,
@@ -164,7 +156,7 @@ const getColumnsByTable = async (table) => {
 };
 
 const buildAssetRemark = (table, columns) => {
-    const sourceLabel = table?.metadataSource === 'realtime' ? '数据源实时表' : table?.metadataSource === 'catalog' ? '元数据中心' : '元数据采集';
+    const sourceLabel = table?.metadataSource === 'realtime' ? '数据源实时表' : '元数据中心';
     const lines = [
         `${sourceLabel}表备注：${table?.tableComment || '-'}`,
         `${sourceLabel}数据量：${table?.dataCount ?? '-'}`,
@@ -233,18 +225,6 @@ const getTablesByDatasourceId = async (id) => {
         }));
         if (catalogTables.length) {
             tablesByDataSource.value = catalogTables;
-            localForm.value.discoveryTaskId = tablesByDataSource.value[0]?.taskId;
-            return;
-        }
-
-        const tableResponse = await getDaDiscoveryTableList({ datasourceId: id });
-        const discoveryTables = getRows(tableResponse).map((item) => ({
-            ...item,
-            metadataSource: 'discovery'
-        }));
-        if (discoveryTables.length) {
-            tablesByDataSource.value = discoveryTables;
-            localForm.value.discoveryTaskId = tablesByDataSource.value[0]?.taskId;
             return;
         }
 
@@ -254,7 +234,6 @@ const getTablesByDatasourceId = async (id) => {
             tableComment: item.tableComment || item.remarks || item.comment,
             metadataSource: 'realtime'
         }));
-        localForm.value.discoveryTaskId = tablesByDataSource.value[0]?.taskId;
     } finally {
         loadingList.value = false;
     }
@@ -280,9 +259,7 @@ const handleDatasourceChange = async (id) => {
         tableComment: '',
         dataCount: undefined,
         fieldCount: undefined,
-        discoveryTableId: undefined,
         tableId: undefined,
-        discoveryTaskId: undefined,
         assetCreatedFlag: false,
         existingAssetId: undefined,
         assetColumnList: []
@@ -302,7 +279,6 @@ const handleTableChange = async (tableName) => {
     localForm.value.tableComment = selected.tableComment;
     localForm.value.dataCount = selected.dataCount;
     localForm.value.fieldCount = selected.fieldCount;
-    localForm.value.discoveryTableId = selected.metadataSource === 'discovery' ? selected.id : undefined;
     localForm.value.tableId = selected.metadataSource === 'catalog' ? selected.id : undefined;
     localForm.value.assetCreatedFlag = !!selected.assetCreatedFlag;
     localForm.value.existingAssetId = selected.assetId;

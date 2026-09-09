@@ -484,8 +484,12 @@ const updateResize = (event) => {
   }
 };
 
-function handleStatusChange(value) {
-  form.value.status = value;
+function handleStatusChange(event) {
+  const status = event?.target?.value ?? event;
+  form.value.status = status;
+  if (status !== 2) {
+    form.value.approvalReason = null;
+  }
 }
 
 function getAssetCat() {

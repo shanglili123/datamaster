@@ -191,12 +191,5 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      */
     Boolean editDatasourceStatus(Long datasourceId, Long status);
 
-    /**
-     *
-     *
-     * @param id
-     */
-    void detectTableSchemaUpdates(Long id);
-
     AjaxResult syncToDs(Long id);
 }
