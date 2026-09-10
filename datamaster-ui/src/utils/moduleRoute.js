@@ -1,4 +1,5 @@
 export const SPACE_MODULE_ROUTE_PREFIXES = [
+    '/space',
     '/spaceBase',
     '/col',
     '/svc',

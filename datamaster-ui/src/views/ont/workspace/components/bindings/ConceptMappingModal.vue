@@ -86,8 +86,8 @@ import { listProperty } from '@/api/ont/property'
 import { listConceptTable, addConceptTable, delConceptTable } from '@/api/ont/conceptTable'
 import { listPropertyColumn, batchSavePropertyColumns } from '@/api/ont/propertyColumn'
 import { getDaDatasourceList } from '@/api/ast/dataSource/dataSource'
-import { getCatalogTableListAsset } from '@/api/cat/unreleased/table'
-import { getMdColumnList } from '@/api/cat/unreleased/column'
+import { getCatalogTableListAsset } from '@/api/cat/catalog/table'
+import { getMdColumnList } from '@/api/cat/catalog/column'
 import { PlusOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps({

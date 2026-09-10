@@ -418,7 +418,7 @@ import {
   startDaDiscoveryTask,
   syncAsset,
 } from "@/api/ast/asset/asset";
-import { listDb } from "@/api/cat/unreleased/db";
+import { listDb } from "@/api/cat/catalog/db";
 
 import OverflowTooltip from "@/components/OverflowTooltip";
 

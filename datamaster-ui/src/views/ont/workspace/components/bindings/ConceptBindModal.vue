@@ -59,7 +59,7 @@
 <script setup name="ConceptBindModal">
 import { listConceptTable, addConceptTable, delConceptTable, previewConceptTable } from '@/api/ont/conceptTable'
 import { getDaDatasourceList } from '@/api/ast/dataSource/dataSource'
-import { getCatalogTableListAsset } from '@/api/cat/unreleased/table'
+import { getCatalogTableListAsset } from '@/api/cat/catalog/table'
 
 const props = defineProps({
   modelValue: {

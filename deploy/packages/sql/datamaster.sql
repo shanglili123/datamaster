@@ -31939,7 +31939,7 @@ COPY public.system_menu (menu_id, menu_name, parent_id, order_num, path, compone
 2722	主题域管理导入	2716	6	#	\N	\N	1	0	\N	F	0	0	dm:themeDomain:import	#	admin	2026-03-24 14:53:02	\N	\N	\N
 2723	数据治理	0	5	dg	\N	\N	1	0	\N	M	0	0	\N	sjzl	admin	2026-03-25 17:42:27	admin	2026-03-27 16:08:33	\N
 2724	元数据管理	2723	1	cat	\N	\N	1	0	\N	M	0	0	\N	ysjgl	admin	2026-03-25 17:42:50	admin	2026-03-27 16:10:44	\N
-2727	元数据结果	2724	3	management	cat/unreleased/structured/table/index	\N	1	0	\N	C	0	0	mc:metadata:table:list	#	admin	2026-03-25 17:44:52	admin	2026-05-12 14:57:16	\N
+2727	元数据结果	2724	3	management	meta/catalog/table/index	\N	1	0	\N	C	0	0	cat:table:list	#	admin	2026-03-25 17:44:52	admin	2026-05-12 14:57:16	\N
 2729	元数据比对	2724	5	comparison	sys/developing/index	\N	1	0	\N	C	1	1		#	admin	2026-03-25 17:45:35	admin	2026-05-12 14:50:21	\N
 2730	模型管理	2694	5	model	\N	\N	1	0	\N	M	0	0	\N	instance-line	admin	2026-03-27 16:54:27	admin	2026-03-27 16:58:13	\N
 2734	模型管理新增	2732	2	#	\N	\N	1	0	\N	F	0	0	ai:model:add	#	admin	2026-04-01 14:31:09	\N	\N	\N
@@ -31959,11 +31959,11 @@ COPY public.system_menu (menu_id, menu_name, parent_id, order_num, path, compone
 2742	来源系统删除	2738	4	#	\N	\N	1	0	\N	F	0	0	att:sourcesystem:remove	#	admin	2026-04-03 10:35:56	admin	2026-04-15 15:16:45	\N
 2743	来源系统导出	2738	5	#	\N	\N	1	0	\N	F	0	0	att:sourcesystem:export	#	admin	2026-04-03 10:36:08	admin	2026-04-15 15:16:29	\N
 2744	来源系统导入	2738	6	#	\N	\N	1	0	\N	F	0	0	att:sourcesystem:import	#	admin	2026-04-03 10:36:14	admin	2026-04-15 15:16:40	\N
-2745	元数据结果查询	2727	1	#	\N	\N	1	0	\N	F	0	0	mc:metadata:table:query	#	admin	2025-12-18 11:05:20	admin	2026-04-27 11:24:44	\N
-2746	元数据结果新增	2727	2	#	\N	\N	1	0	\N	F	0	0	mc:metadata:table:add	#	admin	2025-12-18 11:05:20	admin	2026-04-27 11:25:04	\N
-2747	元数据结果修改	2727	3	#	\N	\N	1	0	\N	F	0	0	mc:metadata:table:edit	#	admin	2025-12-18 11:05:20	admin	2026-04-27 11:25:12	\N
-2748	元数据结果删除	2727	4	#	\N	\N	1	0	\N	F	0	0	mc:metadata:table:remove	#	admin	2025-12-18 11:05:21	admin	2026-04-27 11:25:19	\N
-2749	元数据结果详情	2727	5	#	\N	\N	1	0	\N	F	0	0	mc:metadata:table:detail	#	admin	2025-12-18 11:05:21	admin	2026-04-27 11:25:26	\N
+2745	元数据结果查询	2727	1	#	\N	\N	1	0	\N	F	0	0	cat:table:query	#	admin	2025-12-18 11:05:20	admin	2026-04-27 11:24:44	\N
+2746	元数据结果新增	2727	2	#	\N	\N	1	0	\N	F	0	0	cat:table:add	#	admin	2025-12-18 11:05:20	admin	2026-04-27 11:25:04	\N
+2747	元数据结果修改	2727	3	#	\N	\N	1	0	\N	F	0	0	cat:table:edit	#	admin	2025-12-18 11:05:20	admin	2026-04-27 11:25:12	\N
+2748	元数据结果删除	2727	4	#	\N	\N	1	0	\N	F	0	0	cat:table:remove	#	admin	2025-12-18 11:05:21	admin	2026-04-27 11:25:19	\N
+2749	元数据结果详情	2727	5	#	\N	\N	1	0	\N	F	0	0	cat:table:detail	#	admin	2025-12-18 11:05:21	admin	2026-04-27 11:25:26	\N
 2725	采集任务	2724	1	task	cat/task/structured/index	\N	1	0	CatTask	C	0	0	\N	#	admin	2026-03-25 17:43:26	admin	2026-05-07 11:47:58	\N
 2426	数据集成	2510	1	integratioTask	col/task/integratioTask/index	\N	1	0	dppIntegratioTask	C	0	0	dpp:integratioTask:list	#	DataMaster	2025-02-12 11:56:06	admin	2025-09-30 11:23:48	\N
 2511	数据开发	2510	2	developTask	col/task/developTask/index	\N	1	0	dppDevelopTask	C	0	0	dpp:developTask:list	#	DataMaster	2025-03-12 17:55:40	admin	2025-09-30 10:21:56	\N

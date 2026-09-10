@@ -159,7 +159,7 @@
                   <div
                     class="btn-item"
                     @click="go('db/detail', { id: meta.id })"
-                    v-hasPermi="['md:unreleased:structured:db:detail']"
+                    v-hasPermi="['cat:db:detail']"
                   >
                     <EyeOutlined style="color: var(--el-color-primary)" />
                     详情
@@ -168,7 +168,7 @@
                   <div
                     class="btn-item"
                     @click="go('db/detail', { id: meta.id, tab: 'TableList' })"
-                    v-hasPermi="['md:unreleased:structured:db:detail']"
+                    v-hasPermi="['cat:db:detail']"
                   >
                     <svg-icon icon-class="meta-table"></svg-icon>
                     表列表
@@ -180,7 +180,7 @@
                   <div
                     class="btn-item"
                     @click="go('table/detail', { id: meta.id })"
-                    v-hasPermi="['md:unreleased:structured:table:detail']"
+                    v-hasPermi="['cat:table:detail']"
                   >
                     <EyeOutlined style="color: var(--el-color-primary)" />
                     详情
@@ -194,7 +194,7 @@
                         tab: 'ColumnList',
                       })
                     "
-                    v-hasPermi="['md:unreleased:structured:table:detail']"
+                    v-hasPermi="['cat:table:detail']"
                   >
                     <svg-icon icon-class="meta-column"> </svg-icon>
                     字段列表
@@ -203,7 +203,7 @@
                   <a-dropdown :popup-class-name="'more-dropdown'">
                     <div
                       class="btn-item"
-                      v-hasPermi="['md:unreleased:structured:table:detail']"
+                      v-hasPermi="['cat:table:detail']"
                     >
                       <svg-icon icon-class="arrow-down"> </svg-icon>
                       <span>更多</span>
@@ -217,7 +217,7 @@
                               tab: 'ImpactAnalysis',
                             })
                           "
-                          v-hasPermi="['md:unreleased:structured:table:detail']"
+                          v-hasPermi="['cat:table:detail']"
                         >
                           <a-typography-text type="primary">
                             <svg-icon icon-class="meta-impact"> </svg-icon>
@@ -231,7 +231,7 @@
                               tab: 'LineageAnalysis',
                             })
                           "
-                          v-hasPermi="['md:unreleased:structured:table:detail']"
+                          v-hasPermi="['cat:table:detail']"
                         >
                           <a-typography-text type="primary">
                             <svg-icon icon-class="meta-lineage"></svg-icon>
@@ -283,7 +283,7 @@ import { getParentLabelPath } from "@/utils/anivia.js";
 import { listDomain } from "@/api/tax/domain/domain.js";
 import { useRouter } from "vue-router";
 
-const BASE_URL = "/meta/unreleased/structured/";
+const BASE_URL = "/meta/catalog/";
 
 const TYPE_OPTIONS = [
   {

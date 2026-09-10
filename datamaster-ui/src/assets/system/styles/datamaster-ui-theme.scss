@@ -996,9 +996,11 @@ label {
 
 /* ===== AI Workspace shell ===== */
 #app .sidebar-container {
-  background: linear-gradient(180deg, #0a1120 0%, #111d34 100%) !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(74, 102, 190, 0.2), transparent 30%),
+    linear-gradient(180deg, #081120 0%, #0d1830 58%, #111e38 100%) !important;
   border-right: 1px solid rgba(142, 170, 222, 0.16) !important;
-  box-shadow: 12px 0 36px rgba(8, 18, 38, 0.12) !important;
+  box-shadow: 14px 0 38px rgba(8, 18, 38, 0.18) !important;
 
   .sidebar-shell,
   .ant-menu {
@@ -1006,21 +1008,22 @@ label {
   }
 
   .ant-menu {
-    padding: 12px 10px 20px;
+    padding: 14px 11px 24px;
     color: #aebfdb;
   }
 
   .ant-menu-item,
   .ant-menu-submenu-title {
     width: calc(100% - 8px);
-    height: 44px;
-    margin: 4px;
-    border-radius: 9px;
+    height: 46px;
+    margin: 5px 3px;
+    border-radius: 11px;
     color: #aebfdb !important;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     line-height: 44px;
-    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    letter-spacing: 0.01em;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   }
 
   .ant-menu-item .svg-icon,
@@ -1032,20 +1035,25 @@ label {
   .ant-menu-item:hover,
   .ant-menu-submenu-title:hover {
     color: #eff5ff !important;
-    background: rgba(123, 150, 216, 0.1) !important;
+    background: rgba(123, 150, 216, 0.14) !important;
+    transform: translateX(2px);
   }
 
   .ant-menu-item-selected,
   .ant-menu-submenu-selected > .ant-menu-submenu-title {
     color: #ffffff !important;
-    background: linear-gradient(90deg, rgba(79, 124, 255, 0.56), rgba(67, 200, 194, 0.2)) !important;
-    box-shadow: inset 2px 0 0 #75a0ff, 0 5px 16px rgba(41, 95, 230, 0.2);
+    background: linear-gradient(100deg, rgba(82, 119, 241, 0.62), rgba(48, 178, 174, 0.2)) !important;
+    box-shadow: inset 1px 0 0 #8ee7d7, 0 7px 20px rgba(41, 95, 230, 0.22);
 
     .svg-icon { color: #8be9e1; }
   }
 
   .ant-menu-sub {
-    background: rgba(4, 11, 24, 0.24) !important;
+    margin: 2px 3px 8px;
+    padding: 4px 0;
+    background: rgba(4, 11, 24, 0.28) !important;
+    border: 1px solid rgba(126, 151, 207, 0.08);
+    border-radius: 11px;
   }
 }
 
@@ -1056,9 +1064,85 @@ label {
 }
 
 .navbar {
-  height: 64px !important;
-  padding-right: 16px !important;
+  height: 68px !important;
+  padding-right: 18px !important;
   background: transparent !important;
+}
+
+#app .workspace-layout .main-container {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(113, 143, 255, 0.08), transparent 28%),
+    #f3f6fb;
+}
+
+#app .workspace-layout .layout-header-wrapper {
+  position: relative;
+  background: #0d1830 !important;
+  border-bottom: 0;
+  box-shadow: 0 8px 25px rgba(10, 24, 51, 0.16);
+
+  &::after {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 2px;
+    content: "";
+    background: linear-gradient(90deg, #5879ff 0%, #80e8d6 52%, rgba(128, 232, 214, 0) 100%);
+    pointer-events: none;
+  }
+
+  .navbar {
+    color: #dce7ff;
+    background: linear-gradient(100deg, rgba(13, 24, 48, 0.98), rgba(18, 35, 70, 0.96)) !important;
+
+    .hamburger-container {
+      color: #b9c9ed;
+
+      &:hover {
+        background: rgba(126, 158, 255, 0.16);
+      }
+    }
+
+    .breadcrumb,
+    .breadcrumb .no-redirect,
+    .breadcrumb .redirect {
+      color: #aab9d8 !important;
+    }
+
+    .breadcrumb .redirect:hover {
+      color: #8ee7d7 !important;
+    }
+
+    .navbar-right > div > span,
+    .navbar-right .ant-select-selection-item,
+    .navbar-right .ant-select-arrow {
+      color: #c4d0e8 !important;
+    }
+
+    .navbar-right .ant-select {
+      color: #e7efff;
+
+      .ant-select-selector {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(160, 183, 238, 0.28) !important;
+        border-radius: 9px;
+      }
+    }
+
+    .avatar-wrapper {
+      color: #eaf1ff;
+
+      &:hover {
+        background: rgba(126, 158, 255, 0.16) !important;
+        border-color: rgba(160, 183, 238, 0.28) !important;
+      }
+
+      .nickName {
+        color: #eaf1ff !important;
+      }
+    }
+  }
 }
 
 .dm-metric-card {

@@ -1,8 +1,8 @@
 /* Layout */
 import Layout from '@/layout/index.vue';
 
-const tableHandleComponent = () => import('@/views/meta/unreleased/structured/table/handle/index.vue');
-const tableDetailComponent = () => import('@/views/meta/unreleased/structured/table/detail/index.vue');
+const tableHandleComponent = () => import('@/views/meta/catalog/table/handle/index.vue');
+const tableDetailComponent = () => import('@/views/meta/catalog/table/detail/index.vue');
 const probeTaskInstanceDetailComponent = () => import('@/views/ast/quality/probeTaskInstance/detail/index.vue');
 
 function tableRoute(path, name, title, permission, component) {
@@ -37,37 +37,23 @@ export default [
             }
         ]
     },
-    {
-        path: '/meta/unreleased/structured/db/detail',
-        component: Layout,
-        hidden: true,
-        permissions: ['cat:table:detail'],
-        children: [
-            {
-                path: '',
-                component: () => import('@/views/meta/unreleased/structured/database/detail/index.vue'),
-                name: 'UnreleasedStructuredDatabaseDetail',
-                meta: { title: '库元数据详情', activeMenu: '/meta/catalog/management' }
-            }
-        ]
-    },
     tableRoute(
-        '/meta/unreleased/structured/table/add',
-        'UnreleasedStructuredTableAdd',
+        '/meta/catalog/table/add',
+        'CatalogTableAdd',
         '新增表元数据',
         'cat:table:add',
         tableHandleComponent
     ),
     tableRoute(
-        '/meta/unreleased/structured/table/edit',
-        'UnreleasedStructuredTableEdit',
+        '/meta/catalog/table/edit',
+        'CatalogTableEdit',
         '修改表元数据',
         'cat:table:edit',
         tableHandleComponent
     ),
     tableRoute(
-        '/meta/unreleased/structured/table/detail',
-        'UnreleasedStructuredTableDetail',
+        '/meta/catalog/table/detail',
+        'CatalogTableDetail',
         '表元数据详情',
         'cat:table:detail',
         tableDetailComponent
@@ -86,15 +72,15 @@ export default [
         ]
     },
     {
-        path: '/meta/unreleased/structured/column/add',
+        path: '/meta/catalog/column/add',
         component: Layout,
         hidden: true,
         permissions: ['cat:table:add'],
         children: [
             {
                 path: '',
-                component: () => import('@/views/meta/unreleased/structured/column/add/index.vue'),
-                name: 'UnreleasedStructuredColumnAdd',
+                component: () => import('@/views/meta/catalog/column/add/index.vue'),
+                name: 'CatalogColumnAdd',
                 meta: { title: '新增字段元数据', activeMenu: '/meta/catalog/management' }
             }
         ]

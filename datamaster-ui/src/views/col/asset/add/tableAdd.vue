@@ -71,8 +71,8 @@ import {
     listDaDatasourceBySpaceCode
 } from '@/api/ast/dataSource/dataSource.js';
 import { listDaSensitiveLevel } from '@/api/ast/security/sensitiveLevel/sensitiveLevel.js';
-import { listTable as listCatalogTable } from '@/api/cat/unreleased/table.js';
-import { listColumn as listCatalogColumn } from '@/api/cat/unreleased/column.js';
+import { listTable as listCatalogTable } from '@/api/cat/catalog/table.js';
+import { listColumn as listCatalogColumn } from '@/api/cat/catalog/column.js';
 const props = defineProps({
     form: Object,
     isRegister: Boolean,

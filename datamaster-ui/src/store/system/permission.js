@@ -180,11 +180,32 @@ function addRoutesToRouter(routes) {
     buildRouterRoutes(routes).forEach((route) => {
         if (isHttp(route.path)) return;
         mergeStaticChildRoutes(route);
+        applySpaceWorkstationShell(route);
         if (route.name && router.hasRoute(route.name)) {
             router.removeRoute(route.name);
         }
         router.addRoute(route);
     });
+}
+
+// 空间动态菜单会重新注册同名路由，不能只修改 router/ont 的静态定义。
+// 这里只替换实际注册到 Vue Router 的本体入口组件；topbarRouters 仍保留原业务组件，
+// 由空间工作站壳在内容区加载，避免进入本体后重新出现旧系统侧栏或产生组件递归。
+function applySpaceWorkstationShell(route) {
+    if (!route) return;
+    const title = route.meta && route.meta.title;
+    const path = route.path || '';
+    const isOntologyEntry = route.name === 'OntologyList' || title === '本体管理' || path === 'ontology';
+    const isOntologyWorkspace = route.name === 'OntWorkspace' || path === 'workspace/:ontologyId' || path.endsWith('/workspace/:ontologyId');
+    if (isOntologyEntry || isOntologyWorkspace) {
+        route.component = loadView('explore/space');
+        route.meta = {
+            ...(route.meta || {}),
+            fullScreen: true,
+            noCache: true
+        };
+    }
+    (route.children || []).forEach((child) => applySpaceWorkstationShell(child));
 }
 
 // 后端空间菜单可能缺少部分子菜单（如带参数的隐藏详情页 workspace/:ontologyId），
@@ -392,6 +413,7 @@ function normalizeMenuTree(routes) {
     moveQualityMenusToMetadata(normalizedRoutes);
     moveQualityCatUnderQualityMenu(normalizedRoutes);
     moveDatasourceToMetadata(normalizedRoutes);
+    ensureMetadataCatalogRoutes(normalizedRoutes);
     reorganizeDevelopmentMenus(normalizedRoutes);
     reorderTopLevelRoutes(normalizedRoutes);
     return normalizedRoutes;
@@ -677,6 +699,10 @@ function normalizeMenuTitle(route) {
         if (route.meta.title === '数据连接') {
             route.meta.title = '数据源管理';
         }
+        // 元数据结果就是旧菜单中的“探查元数据”，统一名称，避免空间菜单丢失该入口。
+        if (route.meta.title === '元数据结果') {
+            route.meta.title = '探查元数据';
+        }
     }
     if (route.children && route.children.length) {
         route.children = route.children
@@ -879,6 +905,8 @@ function isCatalogMetadataManagement(route) {
     return title === '元数据管理' && (
         path === 'catalog' ||
         path === '/catalog' ||
+        path === 'cat' ||
+        path === '/cat' ||
         path === 'meta/catalog' ||
         path === '/meta/catalog' ||
         path.endsWith('/catalog')
@@ -929,6 +957,67 @@ function moveDatasourceToMetadata(routes) {
     metadataRoute.children.unshift(datasourceRoute);
 }
 
+function ensureMetadataCatalogRoutes(routes) {
+    const metadataRoute = findRoute(routes, (route) => isCatalogMetadataManagement(route)) ||
+        findRoute(routes, (route) => isMetadataManagement(route));
+    if (!metadataRoute) return;
+
+    metadataRoute.children = metadataRoute.children || [];
+    // 数据库目录已合并到元数据管理中的其他入口，不再保留独立菜单和详情页。
+    metadataRoute.children = metadataRoute.children.filter((child) => {
+        return child.path !== 'database';
+    });
+
+    const statisticsRoute = metadataRoute.children.find((child) => {
+        return child.name === 'MetadataStatistics' || child.path === 'statistics';
+    });
+
+    if (statisticsRoute) {
+        statisticsRoute.meta = statisticsRoute.meta || {};
+        statisticsRoute.meta.title = '数据统计';
+    } else {
+        metadataRoute.children.push({
+            path: 'statistics',
+            name: 'MetadataStatistics',
+            component: loadView('meta/catalog/statistics/index'),
+            meta: {
+                title: '数据统计',
+                icon: 'bar-chart-box-line'
+            }
+        });
+    }
+
+    // 兼容旧菜单：元数据浏览页原来叫“探查元数据”，部分空间菜单接口只返回了探查/采集任务，
+    // 这里按原页面路由补回，避免工作站左侧目录缺失。
+    const probeMetadataRoute = metadataRoute.children.find((child) => {
+        const title = child.meta && child.meta.title;
+        const path = child.path || '';
+        return child.name === 'ProbeResult' || title === '探查元数据' || title === '元数据结果' ||
+            path === 'management' || path.endsWith('/management');
+    });
+
+    if (probeMetadataRoute) {
+        probeMetadataRoute.meta = probeMetadataRoute.meta || {};
+        probeMetadataRoute.meta.title = '探查元数据';
+    } else {
+        const probeRoute = {
+            path: 'management',
+            name: 'ProbeResult',
+            component: loadView('meta/catalog/table/index'),
+            meta: {
+                title: '探查元数据',
+                icon: 'eye-line'
+            }
+        };
+        const taskIndex = metadataRoute.children.findIndex((child) => {
+            const title = child.meta && child.meta.title;
+            const path = child.path || '';
+            return title === '探查任务' || title === '采集任务' || path === 'task' || path.endsWith('/task');
+        });
+        metadataRoute.children.splice(taskIndex >= 0 ? taskIndex + 1 : 0, 0, probeRoute);
+    }
+}
+
 function reorderTopLevelRoutes(routes) {
     const metaIndex = routes.findIndex((route) => isMetadataManagement(route));
     if (metaIndex > 0) {
@@ -966,4 +1055,3 @@ export const loadView = (view) => {
 };
 
 export default usePermissionStore;
-

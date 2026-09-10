@@ -120,8 +120,8 @@ import { getConcept } from '@/api/ont/concept'
 import { listRelationColumn, batchSaveRelationColumns } from '@/api/ont/relationColumn'
 import { listRelationTable, addRelationTable, updateRelationTable, delRelationTable, listRelationTablePhysicalColumns } from '@/api/ont/relationTable'
 import { getDaDatasourceList } from '@/api/ast/dataSource/dataSource'
-import { getCatalogTableListAsset } from '@/api/cat/unreleased/table'
-import { getMdColumnList } from '@/api/cat/unreleased/column'
+import { getCatalogTableListAsset } from '@/api/cat/catalog/table'
+import { getMdColumnList } from '@/api/cat/catalog/column'
 import { PlusOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps({

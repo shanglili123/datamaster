@@ -34510,7 +34510,7 @@ INSERT INTO "system_menu" ("menu_id", "menu_name", "parent_id", "order_num", "pa
 (2555, '数据探查', 2723, 2, 'quality', NULL, NULL, 1, 0, NULL, 'M', 0, 1, NULL, 'skill', 'admin', '2025-07-18 11:24:17', 'system', '2026-07-17 11:18:14.482742', NULL),
 (2724, '元数据管理', 2723, 1, 'catalog', NULL, NULL, 1, 0, NULL, 'M', 0, 1, NULL, 'ysjgl', 'admin', '2026-03-25 17:42:50', 'system', '2026-08-08 12:10:27.202759', NULL),
 (2, '监控运维', 0, 999, 'monitor', NULL, NULL, 1, 0, NULL, 'M', 0, 0, NULL, 'slideshow-3-line', 'qData', '2024-05-06 06:12:17', 'system', '2026-07-17 11:18:14.482742', '系统监控目录'),
-(2727, '探查元数据', 2723, 3, 'probeResult', 'meta/unreleased/structured/table/index', NULL, 1, 0, 'ProbeResult', 'C', 0, 0, 'cat:probeResult:list', 'eye-line', 'admin', '2026-03-25 17:44:52', 'system', '2026-08-04 15:59:58.330446', NULL),
+(2727, '探查元数据', 2723, 3, 'probeResult', 'meta/catalog/table/index', NULL, 1, 0, 'ProbeResult', 'C', 0, 0, 'cat:probeResult:list', 'eye-line', 'admin', '2026-03-25 17:44:52', 'system', '2026-08-04 15:59:58.330446', NULL),
 (2544, '研发类目管理', 2397, 1, 'setting', NULL, NULL, 1, 0, 'ColDevelopmentCategory', 'M', 0, 0, NULL, '#', 'qData', '2025-03-27 15:30:38', 'system', '2026-07-17 11:18:14.482742', NULL),
 (2477, '运维管理', 2397, 4, 'instance', NULL, NULL, 1, 0, NULL, 'M', 0, 0, NULL, 'box-3-line', 'qData', '2025-02-27 14:00:09', 'system', '2026-07-17 11:18:14.482742', NULL),
 (2510, '任务管理', 2397, 3, 'task', NULL, NULL, 1, 0, NULL, 'M', 0, 0, NULL, 'file-list-line', 'qData', '2025-03-12 17:47:13', 'system', '2026-07-17 11:18:14.482742', NULL),

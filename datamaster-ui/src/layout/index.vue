@@ -1,7 +1,7 @@
 <template>
-  <a-layout class="app-wrapper" :class="{ hideSidebar: !sidebar.opened, mobile: device === 'mobile' }">
+  <a-layout class="app-wrapper" :class="{ hideSidebar: !sidebar.opened, mobile: device === 'mobile', 'workspace-layout': !isHomeShell }">
     <a-drawer
-      v-if="device === 'mobile'"
+      v-if="!isFullScreenPage && device === 'mobile'"
       :open="sidebar.opened"
       placement="left"
       :width="248"
@@ -22,11 +22,15 @@
       <sidebar />
     </a-layout-sider>
     <a-layout>
-      <div :class="{ 'fixed-header': fixedHeader, 'sidebarHide': sidebarHide }" class="layout-header-wrapper">
+      <div
+        v-if="!isHomeShell && !isFullScreenPage"
+        :class="{ 'fixed-header': fixedHeader, 'sidebarHide': sidebarHide }"
+        class="layout-header-wrapper"
+      >
         <navbar @setLayout="setLayout" />
       </div>
       <a-layout-content class="main-container" :class="{ 'sidebarHide': sidebarHide }">
-        <sub-menu-tabs v-if="!sidebarHide" />
+        <sub-menu-tabs v-if="!sidebarHide && !isFullScreenPage" />
         <app-main />
       </a-layout-content>
       <settings ref="settingRef" />
@@ -54,6 +58,8 @@ const theme = computed(() => settingsStore.theme);
 const sidebar = computed(() => appStore.sidebar);
 const device = computed(() => useAppStore().device);
 const fixedHeader = computed(() => settingsStore.fixedHeader);
+const isHomeShell = computed(() => route.path === "/" || route.path === "/index");
+const isFullScreenPage = computed(() => route.meta?.fullScreen === true);
 
 watch(
   [() => route.path, () => permissionStore.topbarRouters],
@@ -70,6 +76,7 @@ watch(
 
 const sidebarHide = computed(() => {
   const path = route.path;
+  if (isFullScreenPage.value) return true;
   if (path === "/index") return true;
   const navbarLogoRoutes = defaultSettings.navbarLogoRoutes || [];
   if (navbarLogoRoutes.some((p) => path.startsWith(p))) return true;

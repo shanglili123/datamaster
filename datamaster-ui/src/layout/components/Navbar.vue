@@ -319,15 +319,31 @@ function setLayout() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid var(--dm-border-light, #edf1f5);
-  padding-right: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(222, 230, 242, 0.9);
+  padding: 0 18px 0 10px;
+  box-shadow: 0 8px 24px rgba(27, 48, 91, 0.045);
+  backdrop-filter: blur(16px);
 
   .navbar-left {
     display: flex;
     align-items: center;
     flex: 1;
     overflow: hidden;
+
+    :deep(.breadcrumb) {
+      color: #75829a;
+      font-size: 13px;
+    }
+
+    :deep(.breadcrumb .no-redirect),
+    :deep(.breadcrumb .redirect) {
+      transition: color 0.2s ease;
+    }
+
+    :deep(.breadcrumb .redirect:hover) {
+      color: #4b67df;
+    }
   }
 
   .navbar-right {
@@ -346,12 +362,14 @@ function setLayout() {
         align-items: center;
         height: 36px;
         padding: 0 6px 0 4px;
+        border: 1px solid transparent;
         border-radius: 18px;
         cursor: pointer;
         transition: border-color 0.16s ease, background-color 0.16s ease;
 
         &:hover {
-          background: #f8fafc;
+          background: #f5f8ff;
+          border-color: #dfe6f7;
         }
 
         .user-avatar {

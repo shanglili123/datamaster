@@ -1222,6 +1222,10 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         List<Long> updateTableIds = new ArrayList<>();
         // 3. 表循环
         for (CatalogTableSaveReqVO table : CatalogTables) {
+            // 表列表接口只返回名称和注释，行数、存储大小、索引等统计信息需要通过
+            // 当前库/schema 的连接单独读取后再写入 CAT_TABLE。
+            populateTableMetadata(dbQuery, task, instance, table);
+
             if (notEmptyBlacklist) {
                 String dbName = dbScope.getDbName();
                 String tableName = table.getTableName();
@@ -1525,6 +1529,24 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         StringBuilder updateMsg = new StringBuilder();
         Set<String> type = new HashSet<>();//变更类型集合
 
+        // 行数及其他表级统计信息由当前采集连接填充到 reqTable，必须参与比对，
+        // 否则已有表不会触发 updateCatalogTable，row_count 会一直保持为空。
+        if (!Objects.equals(reqTable.getRowCount(), respTable.getRowCount())) {
+            result = true;
+            updateMsg.append("表数据行数变更旧行数：")
+                    .append(respTable.getRowCount())
+                    .append("，新行数：")
+                    .append(reqTable.getRowCount())
+                    .append("；\n");
+            type.add("5");
+        }
+        if (!Objects.equals(reqTable.getPartitionKey(), respTable.getPartitionKey())
+                || !Objects.equals(reqTable.getStorageEngine(), respTable.getStorageEngine())
+                || !Objects.equals(reqTable.getPrimaryKey(), respTable.getPrimaryKey())) {
+            result = true;
+            type.add("6");
+        }
+
         // 检查索引字段是否有变更、存储大小是否变更  respTables是匹配到的表中的数据
         CatalogTableDO CatalogTableDO = BeanUtils.toBean(respTable, CatalogTableDO.class);
         // 获取表中原来存储的索引字段和存储大小
@@ -1580,6 +1602,25 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         reqTable.setUpdateMsg(updateMsg.toString());
         reqTable.setUpdateType(String.join(",", type));
         return result;
+    }
+
+    private void populateTableMetadata(DbQueryContext dbQuery, CatalogTaskRespVO task,
+                                       CatalogTaskInstanceDO instance, CatalogTableSaveReqVO table) {
+        try {
+            DbTableMetadata metadata = dbQuery.getDbQuery().getTableMetadata(
+                    dbQuery.getProperty(), table.getTableName());
+            if (metadata == null) {
+                return;
+            }
+            table.setRowCount(metadata.getRowCount());
+            table.setTbIndex(metadata.getIndexes());
+            table.setPartitionKey(metadata.getPartitionFields());
+            table.setStorageSize(metadata.getTableSize());
+            table.setStorageEngine(metadata.getStorageEngine());
+        } catch (Exception e) {
+            safeLog(instance.getId(), task.getId(), "加载表统计信息失败，table="
+                    + table.getTableName() + "，原因：" + e.getMessage());
+        }
     }
 
     private boolean isColumnUpdated(CatalogColumnSaveReqVO req, CatalogColumnRespVO resp) {

@@ -11,15 +11,16 @@ const ontRouter = [
     children: [
       {
         path: 'ontology',
-        component: () => import('@/views/ont/ontology/index.vue'),
+        component: () => import('@/views/explore/space.vue'),
         name: 'OntologyList',
-        meta: { title: '本体管理', icon: 'organization-chart' }
+        meta: { title: '本体管理', icon: 'organization-chart', fullScreen: true, noCache: true }
       },
       {
         path: 'workspace/:ontologyId',
-        component: () => import('@/views/ont/workspace/index.vue'),
+        // 本体工作台沿用空间工作站壳，避免进入本体后退回旧的深色系统侧栏。
+        component: () => import('@/views/explore/space.vue'),
         name: 'OntWorkspace',
-        meta: { title: '本体工作台', activeMenu: '/ont/ontology', hidden: true }
+        meta: { title: '本体工作台', activeMenu: '/ont/ontology', fullScreen: true, noCache: true, hidden: true }
       },
       {
         path: 'concept/:ontologyId',

@@ -185,5 +185,38 @@ function handleMenuClick({ key }) {
 
 .sidebar-menu {
   border-inline-end: none !important;
+
+  :deep(.ant-menu-submenu-arrow) {
+    color: #7487aa;
+    transition: color 0.2s ease, transform 0.2s ease;
+  }
+
+  :deep(.ant-menu-submenu-open > .ant-menu-submenu-title .ant-menu-submenu-arrow),
+  :deep(.ant-menu-submenu-title:hover .ant-menu-submenu-arrow) {
+    color: #9db3ff;
+  }
+
+  :deep(.ant-menu-item),
+  :deep(.ant-menu-submenu-title) {
+    position: relative;
+    overflow: hidden;
+  }
+
+  :deep(.ant-menu-item::after) {
+    right: auto;
+    left: 0;
+    width: 3px;
+    height: 18px;
+    margin-top: -9px;
+    background: #8ee7d7;
+    border: 0;
+    border-radius: 0 3px 3px 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  :deep(.ant-menu-item-selected::after) {
+    opacity: 1;
+  }
 }
 </style>

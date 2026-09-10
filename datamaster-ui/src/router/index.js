@@ -48,6 +48,9 @@ import aiRouter from './ai/index.js';
 /* 本体模型路由 */
 import ontRouter from './ont/index.js';
 
+/* 数据探索工作站 */
+import exploreRouter from './explore/index.js';
+
 /* 数据规划动态路由 */
 // 用来存储当前请求的取消源
 // let currentCancelSource = null;
@@ -75,7 +78,7 @@ import ontRouter from './ont/index.js';
  */
 
 // 公共路由
-export const constantRoutes = [...systemPublicRouter, ...examplePublicRouter, ...daPublicRouter, ...dsCatRouter, ...dsPublicRouter, ...dPdocument, ...dpPublicRouter, ...dpDataElemRouter, ...daAssetRouter, ...daQualityRouter, ...colRouter, ...mcPublicRouter, ...mcDynamicRouter, ...aiRouter, ...ontRouter];
+export const constantRoutes = [...systemPublicRouter, ...examplePublicRouter, ...daPublicRouter, ...dsCatRouter, ...dsPublicRouter, ...dPdocument, ...dpPublicRouter, ...dpDataElemRouter, ...daAssetRouter, ...daQualityRouter, ...colRouter, ...mcPublicRouter, ...mcDynamicRouter, ...aiRouter, ...ontRouter, ...exploreRouter];
 
 // 动态路由，基于用户权限动态去加载
 export const dynamicRoutes = [...systemDynamicRouter, ...exampleDynamicRouter, ...daDynamicRouter, ...dsDynamicRouter,];
