@@ -55,6 +55,7 @@ import ObjectPanel from './components/ObjectPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
+const stationNavigation = inject('spaceWorkstationNavigation', null)
 
 const ontologyId = computed(() => route.params.ontologyId)
 const ontology = ref({})
@@ -119,6 +120,7 @@ function statusColor(status) {
 }
 
 function goBack() {
+  if (stationNavigation?.back?.()) return
   router.push('/ont/ontology')
 }
 

@@ -348,7 +348,6 @@
               <a-input
                   v-model:value="form.sid"
                   placeholder="请输入模式名称"
-                  :disabled="form.id"
               />
             </a-form-item>
           </a-col>

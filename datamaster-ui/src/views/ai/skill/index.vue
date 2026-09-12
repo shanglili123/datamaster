@@ -2,8 +2,8 @@
   <div class="app-container ai-skill-page">
     <div class="page-header">
       <div>
-        <h2>问数 Skill</h2>
-        <p>维护表级问数 Skill，并同步给 AI 问数使用。</p>
+        <h2>数据智能体 Skill</h2>
+        <p>维护数据查询、分析与决策知识，并同步给数据智能体使用。</p>
       </div>
     </div>
 
@@ -14,9 +14,10 @@
         </a-form-item>
         <a-form-item label="类型">
           <a-select v-model:value="queryParams.skillType" placeholder="请选择类型" allow-clear style="width: 150px">
-            <a-select-option label="表级问数" value="TABLE" />
-            <a-select-option label="整库问数" value="DATABASE" />
-            <a-select-option label="多表问数" value="MULTI_TABLE" />
+            <a-select-option label="表级查询" value="TABLE" />
+            <a-select-option label="整库查询" value="DATABASE" />
+            <a-select-option label="多表分析" value="MULTI_TABLE" />
+            <a-select-option label="本体决策" value="ONTOLOGY_DECISION" />
             <a-select-option label="报告模板" value="REPORT_TEMPLATE" />
           </a-select>
         </a-form-item>
@@ -34,9 +35,10 @@
       </a-form>
       <div class="skill-actions">
         <a-button type="primary" :icon="h(PlusOutlined)" @click="handleAdd" v-hasPermi="['ai:skill:add']">新增</a-button>
-        <a-button :icon="h(ApartmentOutlined)" @click="openSkillGenerate" v-hasPermi="['ai:skill:generate']">生成问数Skill</a-button>
-        <a-button type="primary" :icon="h(UploadOutlined)" @click="handleSyncAllSkills" v-hasPermi="['ai:skill:sync']">同步问数Skill</a-button>
-        <a-button :icon="h(LinkOutlined)" @click="handleSyncAllDatasources" v-hasPermi="['ast:dataSource:edit']">同步数据源</a-button>
+        <a-button :icon="h(ApartmentOutlined)" @click="openSkillGenerate" v-hasPermi="['ai:skill:generate']">生成查询分析 Skill</a-button>
+        <a-button :icon="h(ApartmentOutlined)" @click="openOntologySkillGenerate" v-hasPermi="['ai:skill:generate']">生成本体决策Skill</a-button>
+        <a-button type="primary" :icon="h(UploadOutlined)" @click="handleSyncAllSkills" v-hasPermi="['ai:skill:sync']">同步智能体知识</a-button>
+        <a-button :icon="h(LinkOutlined)" @click="handleSyncAllDatasources" v-hasPermi="['ast:dataSource:edit']">同步智能体数据源</a-button>
       </div>
     </div>
 
@@ -60,12 +62,12 @@
             <a-tag :color="syncTagColor(record.dbgptSyncStatus)">
               {{ syncText(record.dbgptSyncStatus) }}
             </a-tag>
-            <div class="sync-doc" v-if="record.dbgptDocumentName">{{ record.dbgptDocumentName }}</div>
+            <div class="sync-doc" v-if="record.dbgptDocumentName">{{ normalizeAgentText(record.dbgptDocumentName) }}</div>
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="handleEdit(record)">编辑</a-button>
             <a-button type="link" size="small" @click="handleVersions(record)">版本</a-button>
-            <a-button type="link" size="small" @click="openTemplateEditor(record)" v-hasPermi="['ai:skill:edit']">上传模板</a-button>
+            <a-button type="link" size="small" @click="openTemplateEditor(record)" v-hasPermi="['ai:skill:edit']">报告模板</a-button>
             <a-button type="link" size="small" @click="openTemplateList(record)">查看模板</a-button>
             <a-button type="link" size="small" @click="handlePublish(record)" v-hasPermi="['ai:skill:publish']">发布</a-button>
             <a-button type="link" size="small" @click="handleSyncSkill(record)" v-hasPermi="['ai:skill:sync']">同步</a-button>
@@ -101,9 +103,9 @@
           <a-col :span="8">
             <a-form-item label="类型" name="skillType">
               <a-select v-model:value="form.skillType" style="width: 100%">
-                <a-select-option label="表级问数" value="TABLE" />
-                <a-select-option label="整库问数" value="DATABASE" />
-                <a-select-option label="多表问数" value="MULTI_TABLE" />
+                <a-select-option label="表级查询" value="TABLE" />
+                <a-select-option label="整库查询" value="DATABASE" />
+                <a-select-option label="多表分析" value="MULTI_TABLE" />
                 <a-select-option label="报告模板" value="REPORT_TEMPLATE" />
               </a-select>
             </a-form-item>
@@ -139,7 +141,7 @@
       </template>
     </a-modal>
 
-    <a-modal v-model:open="tableGenerateOpen" title="生成问数Skill" :width="560" destroy-on-close>
+    <a-modal v-model:open="tableGenerateOpen" title="生成查询分析 Skill" :width="560" destroy-on-close>
       <a-form :model="tableGenerateForm" :label-col="{ style: { width: '90px' } }">
         <a-form-item label="生成范围">
           <a-segmented
@@ -203,6 +205,34 @@
       </template>
     </a-modal>
 
+    <a-modal v-model:open="ontologyGenerateOpen" title="生成本体决策Skill" :width="560" destroy-on-close>
+      <a-alert
+        type="info"
+        show-icon
+        message="Skill 会读取本体的概念、属性、关系、动作和审批规则，生成给数据智能体使用的决策上下文。生成后请先审核，再发布并同步。"
+        style="margin-bottom: 16px"
+      />
+      <a-form :label-col="{ style: { width: '90px' } }">
+        <a-form-item label="本体" required>
+          <a-select v-model:value="ontologyGenerateForm.ontologyId" placeholder="请选择本体" show-search option-filter-prop="label" style="width: 100%">
+            <a-select-option v-for="item in ontologyOptions" :key="item.id" :value="item.id" :label="item.name || item.code">
+              {{ item.name || item.code || item.id }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="发布">
+          <a-switch v-model:checked="ontologyGenerateForm.publish" />
+        </a-form-item>
+        <a-form-item label="人工备注">
+          <a-textarea v-model:value="ontologyGenerateForm.manualNotes" :rows="5" placeholder="补充本体口径、风险边界或人工决策说明" />
+        </a-form-item>
+      </a-form>
+      <template #footer>
+        <a-button @click="ontologyGenerateOpen = false">取消</a-button>
+        <a-button type="primary" :loading="generatingOntology" @click="handleGenerateOntologySkill">生成本体决策Skill</a-button>
+      </template>
+    </a-modal>
+
     <a-drawer v-model:open="versionOpen" title="Skill版本" width="680">
       <a-table :data-source="pagedVersionList" :columns="versionColumns" :pagination="false" bordered row-key="version" size="small">
         <template #bodyCell="{ column, record }">
@@ -221,7 +251,7 @@
 
     <a-drawer v-model:open="templateListOpen" :title="templateListTitle" width="780">
       <div class="template-list-toolbar">
-        <a-button type="primary" :icon="h(PlusOutlined)" @click="openTemplateEditor(currentTemplateSkill)">上传报告模板</a-button>
+        <a-button type="primary" :icon="h(PlusOutlined)" @click="openTemplateEditor(currentTemplateSkill)">新建报告模板</a-button>
       </div>
       <a-spin :spinning="templateLoading">
         <a-table :data-source="pagedTemplateList" :columns="templateColumns" :pagination="false" bordered row-key="id" size="small">
@@ -286,6 +316,19 @@
           </a-col>
         </a-row>
         <a-form-item label="模板JSON" name="templateContent">
+          <div class="template-ai-generator">
+            <a-textarea
+              v-model:value="templateAiPrompt"
+              :rows="3"
+              :maxlength="1000"
+              show-count
+              placeholder="描述报告模板需求，例如：按月份展示订单趋势、销售额和商品排名，并给出异常分析。"
+            />
+            <a-button type="primary" ghost :loading="templateGenerating" @click="generateTemplateByAi">
+              <template #icon><RobotOutlined /></template>
+              AI生成模板
+            </a-button>
+          </div>
           <a-textarea
             v-model:value="templateForm.templateContent"
             :rows="24"
@@ -311,6 +354,7 @@ import { computed, getCurrentInstance, h, reactive, ref } from 'vue'
 import {
   SearchOutlined,
   ReloadOutlined,
+  RobotOutlined,
   PlusOutlined,
   ApartmentOutlined,
   UploadOutlined,
@@ -325,6 +369,8 @@ import {
   delSkill,
   generateDatabaseSkill,
   generateMultiTableSkill,
+  generateOntologyDecisionSkill,
+  generateSkillReportTemplate,
   generateTableSkill,
   getSkill,
   listSkillReportTemplates,
@@ -344,8 +390,12 @@ import { syncAllDatasourceToDbgpt } from '@/api/ai/dbgpt'
 import { listDaDatasource, tableList } from '@/api/ast/dataSource/dataSource'
 
 import { buildReportTemplateFormatText } from '@/views/ai/chat/index/reportTemplateFormat'
+import { listOntology } from '@/api/ont/ontology'
+import { normalizeAgentText } from '@/utils/agentText'
+import useUserStore from '@/store/system/user'
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 
 const skillColumns = [
   { title: '名称', dataIndex: 'skillName', minWidth: 180, ellipsis: true },
@@ -354,7 +404,7 @@ const skillColumns = [
   { title: '状态', dataIndex: 'status', width: 110 },
   { title: '来源', dataIndex: 'sourceType', width: 130 },
   { title: '版本', dataIndex: 'version', width: 80 },
-  { title: '问数同步', dataIndex: 'dbgptSyncStatus', width: 150 },
+  { title: '智能体同步', dataIndex: 'dbgptSyncStatus', width: 150 },
   { title: '更新时间', dataIndex: 'updateTime', width: 170 },
   { title: '操作', key: 'actions', width: 500, fixed: 'right' },
 ]
@@ -395,6 +445,9 @@ const total = ref(0)
 const editorOpen = ref(false)
 const editorTitle = ref('新增Skill')
 const tableGenerateOpen = ref(false)
+const ontologyGenerateOpen = ref(false)
+const generatingOntology = ref(false)
+const ontologyOptions = ref([])
 const versionOpen = ref(false)
 const versionList = ref([])
 const versionPagination = reactive({
@@ -417,8 +470,10 @@ const templatePagination = reactive({
 })
 const currentTemplateSkill = ref(null)
 const templateEditorOpen = ref(false)
-const templateEditorTitle = ref('上传报告模板')
+const templateEditorTitle = ref('新建报告模板')
 const templateSaving = ref(false)
+const templateGenerating = ref(false)
+const templateAiPrompt = ref('')
 const templateFormRef = ref()
 
 const queryParams = reactive({
@@ -456,6 +511,12 @@ const tableGenerateForm = reactive({
   generateScope: 'database',
   tableNames: [],
   forceRefresh: false,
+  publish: false,
+  manualNotes: ''
+})
+
+const ontologyGenerateForm = reactive({
+  ontologyId: null,
   publish: false,
   manualNotes: ''
 })
@@ -634,21 +695,21 @@ function handlePublish(row) {
 
 function handleSyncSkill(row) {
   syncSkillToDbgpt(row.id).then((res) => {
-    proxy.$modal.msgSuccess(res.msg || '同步成功')
+    proxy.$modal.msgSuccess(normalizeAgentText(res.msg) || '同步成功')
     getList()
   })
 }
 
 function handleSyncAllSkills() {
   syncAllSkillToDbgpt().then((res) => {
-    proxy.$modal.msgSuccess(res.msg || '同步完成')
+    proxy.$modal.msgSuccess(normalizeAgentText(res.msg) || '同步完成')
     getList()
   })
 }
 
 function handleSyncAllDatasources() {
   syncAllDatasourceToDbgpt().then((res) => {
-    proxy.$modal.msgSuccess(res.msg || '数据源同步完成')
+    proxy.$modal.msgSuccess(normalizeAgentText(res.msg) || '数据源同步完成')
   })
 }
 
@@ -682,6 +743,7 @@ function resetTemplateForm() {
     defaultFlag: false,
     remark: ''
   })
+  templateAiPrompt.value = ''
 }
 
 function openTemplateEditor(skill, template) {
@@ -709,7 +771,7 @@ function openTemplateEditor(skill, template) {
     templateForm.templateCode = `${targetSkill.skillCode || 'skill'}_report_template`
     templateForm.templateName = `${targetSkill.skillName || 'Skill'}报告模板`
     templateForm.templateContent = buildReportTemplateFormatText(targetSkill)
-    templateEditorTitle.value = '上传报告模板'
+    templateEditorTitle.value = '新建报告模板'
   }
   templateEditorOpen.value = true
 }
@@ -722,6 +784,33 @@ function fillTemplateFormat() {
   if (currentTemplateSkill.value?.skillName && !templateForm.templateName) {
     templateForm.templateName = `${currentTemplateSkill.value.skillName}报告模板`
   }
+}
+
+function generateTemplateByAi() {
+  if (!currentTemplateSkill.value?.id) {
+    proxy.$modal.msgWarning('请先选择Skill')
+    return
+  }
+  if (!templateAiPrompt.value.trim()) {
+    proxy.$modal.msgWarning('请先描述报告模板需求')
+    return
+  }
+  templateGenerating.value = true
+  generateSkillReportTemplate(currentTemplateSkill.value.id, { prompt: templateAiPrompt.value.trim() })
+    .then((res) => {
+      const generated = res?.data || res
+      const content = typeof generated === 'string' ? generated : JSON.stringify(generated, null, 2)
+      JSON.parse(content)
+      templateForm.templateContent = content
+      templateForm.templateName = `${currentTemplateSkill.value.skillName || 'Skill'}·AI报告模板`
+      proxy.$modal.msgSuccess('AI报告模板已生成，可继续编辑后保存')
+    })
+    .catch((error) => {
+      proxy.$modal.msgError(error?.message || 'AI报告模板生成失败')
+    })
+    .finally(() => {
+      templateGenerating.value = false
+    })
 }
 
 function submitTemplateForm() {
@@ -809,8 +898,37 @@ function openSkillGenerate() {
   tableGenerateOpen.value = true
 }
 
+function openOntologySkillGenerate() {
+  ontologyGenerateForm.ontologyId = null
+  ontologyGenerateForm.publish = false
+  ontologyGenerateForm.manualNotes = ''
+  listOntology({ pageNo: 1, pageSize: 1000 }).then((res) => {
+    ontologyOptions.value = toRows(res.data)
+  })
+  ontologyGenerateOpen.value = true
+}
+
+function handleGenerateOntologySkill() {
+  if (!ontologyGenerateForm.ontologyId) {
+    proxy.$modal.msgWarning('请选择本体')
+    return
+  }
+  generatingOntology.value = true
+  generateOntologyDecisionSkill({
+    ontologyId: ontologyGenerateForm.ontologyId,
+    publish: ontologyGenerateForm.publish,
+    manualNotes: ontologyGenerateForm.manualNotes
+  }).then(() => {
+    proxy.$modal.msgSuccess('本体决策Skill已生成')
+    ontologyGenerateOpen.value = false
+    getList()
+  }).finally(() => {
+    generatingOntology.value = false
+  })
+}
+
 function loadDatasourceOptions() {
-  listDaDatasource({ pageNum: 1, pageSize: 1000 }).then((res) => {
+  listDaDatasource({ pageNum: 1, pageSize: 1000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((res) => {
     datasourceOptions.value = toRows(res.data)
   })
 }
@@ -916,9 +1034,10 @@ function handleRollback(row) {
 
 function skillTypeText(type) {
   const map = {
-    TABLE: '表级问数',
-    DATABASE: '整库问数',
-    MULTI_TABLE: '多表问数',
+    TABLE: '表级查询',
+    DATABASE: '整库查询',
+    MULTI_TABLE: '多表分析',
+    ONTOLOGY_DECISION: '本体决策',
     REPORT_TEMPLATE: '报告模板',
     PLATFORM_METADATA: '元数据',
     PLATFORM_QUALITY: '质量'
@@ -1010,6 +1129,23 @@ getList()
   justify-content: flex-end;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.template-ai-generator {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.template-ai-generator :deep(.ant-input) {
+  flex: 1;
+  font-family: inherit;
+}
+
+.template-ai-generator :deep(.ant-btn) {
+  flex: 0 0 auto;
+  height: 72px;
 }
 
 :deep(.ant-input) {

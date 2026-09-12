@@ -36,7 +36,7 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
                 markFailed(skill, e.getMessage());
             }
         }
-        return AjaxResult.success("DB-GPT Skill同步完成，成功 " + success + " 个，失败 " + failed + " 个");
+        return AjaxResult.success("数据智能体知识同步完成，成功 " + success + " 个，失败 " + failed + " 个");
     }
 
     @Override
@@ -46,7 +46,7 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
             throw new ServiceException("Skill不存在");
         }
         if (!"PUBLISHED".equals(skill.getStatus())) {
-            throw new ServiceException("只有已发布Skill可以同步到DB-GPT");
+            throw new ServiceException("只有已发布Skill可以同步到数据智能体");
         }
         try {
             syncSkill(skill);
@@ -54,7 +54,7 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
             markFailed(skill, e.getMessage());
             throw e;
         }
-        return AjaxResult.success("Skill已上传到DB-GPT Skill库：" + skill.getDbgptDocumentName());
+        return AjaxResult.success("Skill已同步到数据智能体知识库：" + skill.getSkillCode());
     }
 
     private void syncSkill(AiSkillDO skill) {
@@ -62,9 +62,9 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
         String content = buildDocument(skill);
         String dbgptSkillId = dbGptClientService.uploadSkill(fileName, content);
         if (StringUtils.isBlank(dbgptSkillId)) {
-            throw new ServiceException("DB-GPT Skill上传后未返回标识：" + fileName);
+            throw new ServiceException("决策智能体 Skill 上传后未返回标识：" + fileName);
         }
-        skill.setDbgptSpaceName("DB-GPT Skill");
+        skill.setDbgptSpaceName("决策智能体知识空间");
         skill.setDbgptDocumentName(skill.getSkillCode());
         skill.setDbgptSyncStatus("SYNCED");
         skill.setDbgptSyncMessage("Skill上传成功，file=" + fileName + "，skillId=" + dbgptSkillId);
@@ -77,8 +77,15 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
 
     private void markFailed(AiSkillDO skill, String message) {
         skill.setDbgptSyncStatus("FAILED");
-        skill.setDbgptSyncMessage(message);
+        skill.setDbgptSyncMessage(normalizeAgentMessage(message));
         aiSkillMapper.updateById(skill);
+    }
+
+    private String normalizeAgentMessage(String message) {
+        if (StringUtils.isBlank(message)) {
+            return message;
+        }
+        return message.replaceAll("(?i)DB[-_ ]?GPT", "决策智能体");
     }
 }
 

@@ -179,6 +179,9 @@ function filterSystemTool(routes) {
 function addRoutesToRouter(routes) {
     buildRouterRoutes(routes).forEach((route) => {
         if (isHttp(route.path)) return;
+        // /explore 是独立的数据探索流程工作站，不能被空间动态菜单重新注册或
+        // 替换成空间工作站组件。空间菜单只负责 /space 及业务模块路由。
+        if (route.name === 'DataExploreStation' || normalizeRoutePath(route.path) === '/explore') return;
         mergeStaticChildRoutes(route);
         applySpaceWorkstationShell(route);
         if (route.name && router.hasRoute(route.name)) {

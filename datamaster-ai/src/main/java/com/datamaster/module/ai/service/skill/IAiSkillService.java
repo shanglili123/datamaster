@@ -7,7 +7,9 @@ import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillSaveReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillVersionRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiDatabaseSkillGenerateReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiMultiTableSkillGenerateReqVO;
+import com.datamaster.module.ai.controller.admin.skill.vo.AiOntologySkillGenerateReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiTableSkillGenerateReqVO;
+import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillReportTemplateGenerateReqVO;
 
 import java.util.List;
 
@@ -19,6 +21,9 @@ public interface IAiSkillService {
     PageResult<AiSkillRespVO> getSkillPage(AiSkillPageReqVO pageReqVO);
 
     AiSkillRespVO getSkill(Long id);
+
+    /** 根据自然语言需求生成报告模板 JSON。 */
+    String generateReportTemplate(Long skillId, AiSkillReportTemplateGenerateReqVO reqVO);
 
     Long createSkill(AiSkillSaveReqVO saveReqVO);
 
@@ -41,5 +46,7 @@ public interface IAiSkillService {
     AiSkillRespVO generateDatabaseSkill(AiDatabaseSkillGenerateReqVO reqVO);
 
     AiSkillRespVO generateMultiTableSkill(AiMultiTableSkillGenerateReqVO reqVO);
+
+    AiSkillRespVO generateOntologyDecisionSkill(AiOntologySkillGenerateReqVO reqVO);
 }
 

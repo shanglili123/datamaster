@@ -182,9 +182,11 @@ ai:
     api-url: ${AI_SKILL_MODEL_API_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
     api-key: ${AI_SKILL_MODEL_API_KEY:sk-3d13e28f0c9c44628181045e454b75f8}
     model: ${AI_SKILL_MODEL_NAME:qwen-plus}
-    timeout: ${AI_SKILL_MODEL_TIMEOUT:60000}
+    timeout: ${AI_SKILL_MODEL_TIMEOUT:180000}
+    retry-count: ${AI_SKILL_MODEL_RETRY_COUNT:2}
+    retry-interval: ${AI_SKILL_MODEL_RETRY_INTERVAL:1500}
     temperature: ${AI_SKILL_MODEL_TEMPERATURE:0.2}
-    max-tokens: ${AI_SKILL_MODEL_MAX_TOKENS:4096}
+    max-tokens: ${AI_SKILL_MODEL_MAX_TOKENS:8192}
 
 id.workerId: 1
 id.datacenterId: 1

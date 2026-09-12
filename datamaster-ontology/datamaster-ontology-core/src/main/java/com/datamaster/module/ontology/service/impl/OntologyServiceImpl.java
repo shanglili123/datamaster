@@ -77,7 +77,11 @@ public class OntologyServiceImpl implements IOntologyService {
             conceptService.deleteConcept(concept.getId());
         }
         actionExecutionMapper.delete(new LambdaQueryWrapperX<ActionExecutionDO>().eq(ActionExecutionDO::getOntologyId, id));
-        functionExecutionMapper.delete(new LambdaQueryWrapperX<FunctionExecutionDO>().eq(FunctionExecutionDO::getOntologyId, id));
+        // 函数执行表的实际数据库结构通过 function_id 关联函数定义，不包含 ontology_id。
+        List<Long> functionIds = functionMapper.selectByOntologyId(id).stream()
+                .map(FunctionDO::getId)
+                .collect(java.util.stream.Collectors.toList());
+        functionExecutionMapper.deleteByFunctionIds(functionIds);
         actionMapper.delete(new LambdaQueryWrapperX<ActionDO>().eq(ActionDO::getOntologyId, id));
         functionMapper.delete(new LambdaQueryWrapperX<FunctionDO>().eq(FunctionDO::getOntologyId, id));
         return ontologyMapper.deleteById(id);

@@ -20,7 +20,7 @@ import javax.validation.Valid;
 /**
  * AI ask-data controller.
  */
-@Tag(name = "AI问数")
+@Tag(name = "决策智能体")
 @RestController
 @RequestMapping("/ai/ask-data")
 @Validated
@@ -29,21 +29,21 @@ public class AiAskDataController {
     @Resource
     private IAiAskDataService aiAskDataService;
 
-    @Operation(summary = "AI问数对话")
+    @Operation(summary = "决策智能体对话")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @PostMapping("/dbgpt/chat")
     public CommonResult<AiAskDataSqlRespVO> chatWithDbGpt(@Valid @RequestBody AiAskDataSqlReqVO reqVO) {
         return CommonResult.success(aiAskDataService.chatWithDbGpt(reqVO));
     }
 
-    @Operation(summary = "AI问数流式对话")
+    @Operation(summary = "决策智能体流式对话")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @PostMapping(value = "/dbgpt/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatWithDbGptStream(@Valid @RequestBody AiAskDataSqlReqVO reqVO) {
         return aiAskDataService.chatWithDbGptStream(reqVO);
     }
 
-    @Operation(summary = "AI问数报告生成")
+    @Operation(summary = "决策智能体报告生成")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @PostMapping("/dbgpt/report")
     public CommonResult<AiAskDataReportRespVO> generateReport(@Valid @RequestBody AiAskDataReportReqVO reqVO) {

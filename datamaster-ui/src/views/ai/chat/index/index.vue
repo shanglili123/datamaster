@@ -3,7 +3,7 @@
     <aside class="conversation-panel">
       <div class="panel-title">
         <strong>对话</strong>
-        <span>AI问数</span>
+        <span>决策智能体</span>
       </div>
       <a-button type="primary" :icon="h(PlusOutlined)" class="new-chat" @click="createConversation">
         新对话
@@ -27,7 +27,7 @@
     <main class="chat-shell">
       <header class="chat-header">
         <div>
-          <h2>{{ activeConversation?.title || '新问数对话' }}</h2>
+          <h2>{{ activeConversation?.title || '新对话' }}</h2>
           <p>{{ selectedDatasourceName() || '请选择数据源' }}</p>
         </div>
         <div class="datasource-box">
@@ -104,7 +104,7 @@
         </div>
         <div v-if="activeMessages.length === 0" class="empty-state">
           <h1>想查什么，直接问</h1>
-          <p>选择数据源后，AI问数会使用已同步的数据源和问数 Skill 进行回答。</p>
+          <p>选择数据源后，决策智能体会结合本体、数据源和 Skill，提供数据查询、分析与决策建议。</p>
           <div class="examples">
             <button v-for="item in examples" :key="item" @click="prompt = item">
               {{ item }}
@@ -207,10 +207,19 @@
             @keydown.shift.enter.stop
           />
           <a-button
+            v-if="sending"
+            danger
+            :icon="h(StopOutlined)"
+            class="send-btn stop-btn"
+            @click="stopGeneration"
+          >
+            停止
+          </a-button>
+          <a-button
+            v-else
             type="primary"
             :icon="h(SendOutlined)"
             class="send-btn"
-            :loading="sending"
             @click="sendMessage"
           />
           <a-button class="clear-btn" :disabled="!activeMessages.length" @click="clearMessages">
@@ -241,7 +250,8 @@
 
 <script setup>
 import { computed, h, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import { AimOutlined, CopyOutlined, FileTextOutlined, FullscreenOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons-vue'
+import { useRoute } from 'vue-router'
+import { AimOutlined, CopyOutlined, FileTextOutlined, FullscreenOutlined, PlusOutlined, SendOutlined, StopOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -250,6 +260,7 @@ import { getToken } from '@/utils/auth'
 import MarkdownView from '@/components/MarkdownView/index.vue'
 import ReportTemplateRenderer from './components/ReportTemplateRenderer.vue'
 import { askDataDbgptReport } from '@/api/ai/askData'
+import { normalizeAgentText } from '@/utils/agentText'
 import { listSkill, listSkillReportTemplates } from '@/api/ai/skill'
 import {
   appendAskMessage,
@@ -271,10 +282,14 @@ const conversations = ref([])
 const activeConversationId = ref(null)
 const prompt = ref('')
 const sending = ref(false)
+const autoScroll = ref(true)
+const activeAbortController = ref(null)
+const activeAssistantMessage = ref(null)
 const messageScrollRef = ref()
 const templateFormatOpen = ref(false)
 const templateFormatText = ref('')
 const userStore = useUserStore()
+const route = useRoute()
 const sessionReady = ref(false)
 const syncingSession = ref(false)
 const isFullscreen = ref(false)
@@ -328,6 +343,10 @@ onMounted(async () => {
   await loadDatasources()
   await loadSkills()
   await loadConversations()
+  const routePrompt = route.query?.prompt
+  if (routePrompt) {
+    prompt.value = Array.isArray(routePrompt) ? routePrompt[0] : String(routePrompt)
+  }
 })
 
 watch(() => form.mode, () => {
@@ -339,7 +358,8 @@ watch(() => [form.datasourceId, form.skillId, form.templateId, form.returnSql], 
   syncActiveSessionSelection()
 })
 
-watch(() => userStore.spaceId, async () => {
+watch(() => [userStore.spaceId, userStore.spaceCode], async () => {
+  await loadDatasources()
   await loadConversations()
 })
 
@@ -347,7 +367,11 @@ async function loadDatasources() {
   const res = await request({
     url: '/ast/dataSource/getDatasourceList',
     method: 'get',
-    params: { pageSize: 200 }
+    params: {
+      pageSize: 200,
+      spaceId: userStore.spaceId,
+      spaceCode: userStore.spaceCode
+    }
   })
   datasourceList.value = res.data || []
 }
@@ -382,8 +406,8 @@ async function refreshReportTemplates() {
     form.templateId = currentTemplateId
     return
   }
-  const latestTemplate = latestReportTemplate(templateList.value)
-  form.templateId = latestTemplate ? latestTemplate.id : null
+  const preferredTemplate = templateList.value.find((item) => item.defaultFlag) || latestReportTemplate(templateList.value)
+  form.templateId = preferredTemplate ? preferredTemplate.id : null
 }
 
 function latestReportTemplate(templates) {
@@ -441,7 +465,7 @@ async function loadConversations() {
 }
 
 async function createConversation() {
-  const res = await createAskSession(buildSessionPayload({ title: '新问数对话' }))
+  const res = await createAskSession(buildSessionPayload({ title: '新对话' }))
   const session = normalizeSession(res.data)
   conversations.value = [session, ...conversations.value.filter((item) => item.id !== session.id)].slice(0, 10)
   await selectConversation(session.id)
@@ -487,7 +511,8 @@ async function loadSessionMessages(sessionId) {
   session.messages = (data.rows || []).map(normalizeMessage)
   messageWindow.hasBefore = Boolean(data.hasBefore)
   messageWindow.hasAfter = Boolean(data.hasAfter)
-  await scrollToBottom()
+  autoScroll.value = true
+  await scrollToBottom(true)
 }
 
 async function loadMoreMessages(direction) {
@@ -498,6 +523,9 @@ async function loadMoreMessages(direction) {
   if (!isBefore && messageWindow.loadingAfter) return
   if (isBefore) messageWindow.loadingBefore = true
   else messageWindow.loadingAfter = true
+  const messageList = messageScrollRef.value
+  const previousScrollHeight = messageList?.scrollHeight || 0
+  const previousScrollTop = messageList?.scrollTop || 0
   try {
     const params = { limit: 5 }
     if (isBefore) params.beforeId = session.messages[0].id
@@ -509,6 +537,10 @@ async function loadMoreMessages(direction) {
       session.messages = [...rows, ...session.messages].slice(0, 10)
       messageWindow.hasBefore = Boolean(data.hasBefore)
       messageWindow.hasAfter = true
+      await nextTick()
+      if (messageList) {
+        messageList.scrollTop = previousScrollTop + messageList.scrollHeight - previousScrollHeight
+      }
     } else {
       session.messages = [...session.messages, ...rows].slice(-10)
       messageWindow.hasAfter = Boolean(data.hasAfter)
@@ -523,6 +555,7 @@ async function loadMoreMessages(direction) {
 function handleMessageScroll() {
   const el = messageScrollRef.value
   if (!el) return
+  autoScroll.value = el.scrollHeight - el.scrollTop - el.clientHeight <= 40
   if (el.scrollTop <= 8 && messageWindow.hasBefore) {
     loadMoreMessages('before')
   } else if (el.scrollHeight - el.scrollTop - el.clientHeight <= 8 && messageWindow.hasAfter) {
@@ -561,7 +594,7 @@ async function clearMessages() {
 function normalizeSession(row) {
   return {
     ...row,
-    title: row?.title || '新问数对话',
+    title: normalizeAgentText(row?.title) || '新对话',
     messages: row?.messages || []
   }
 }
@@ -575,8 +608,9 @@ function normalizeMessage(row) {
         ...payload,
         id: row.id,
         role: row.role,
-        content: payload.content || row.content || '',
-        displayContent: payload.displayContent || row.displayContent || ''
+        content: normalizeAgentText(payload.content || row.content || ''),
+        displayContent: normalizeAgentText(payload.displayContent || row.displayContent || ''),
+        agentSteps: normalizeAgentText(payload.agentSteps || '')
       }
       normalizeReportPayload(message)
       rebuildDisplayContentFromContent(message)
@@ -586,9 +620,9 @@ function normalizeMessage(row) {
   message = {
     id: row.id,
     role: row.role,
-    content: row.content || '',
-    displayContent: row.displayContent || '',
-    agentSteps: '',
+    content: normalizeAgentText(row.content || ''),
+    displayContent: normalizeAgentText(row.displayContent || ''),
+    agentSteps: normalizeAgentText(row.agentSteps || ''),
     queryExecuted: false,
     tableRows: [],
     tableColumns: [],
@@ -747,8 +781,8 @@ function waitForImages(doc) {
 }
 
 function reportFileName(message) {
-  const raw = activeConversation.value?.title || message?.title || 'AI问数报告'
-  const safe = raw.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60) || 'AI问数报告'
+  const raw = activeConversation.value?.title || message?.title || '决策智能体报告'
+  const safe = raw.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60) || '决策智能体报告'
   return `${safe}.pdf`
 }
 
@@ -811,7 +845,7 @@ async function applySessionToForm(session) {
 
 function buildSessionPayload(extra = {}) {
   return {
-    title: activeConversation.value?.title || extra.title || '新问数对话',
+    title: activeConversation.value?.title || extra.title || '新对话',
     mode: form.mode,
     datasourceId: form.datasourceId,
     datasourceName: selectedDatasourceName(),
@@ -907,10 +941,9 @@ async function sendMessage() {
     message.warning('请先选择数据源')
     return
   }
-  if (form.mode === 'report' && !form.skillId) {
-    message.warning('请先选择知识库')
-    return
-  }
+  // 明确提出“生成/输出报告”时，即使当前开关仍在问答，也自动走报告链路。
+  // 报告 Skill/模板由后端结合当前数据源自动解析，避免用户为了同一问题重复配置。
+  const reportRequest = form.mode === 'report' || isReportIntent(question)
   if (!activeConversation.value) {
     await createConversation()
   }
@@ -947,14 +980,17 @@ async function sendMessage() {
   })
   conversation.messages.push(assistantMessage)
   trimActiveMessagesToLatest()
+  activeAssistantMessage.value = assistantMessage
+  activeAbortController.value = new AbortController()
+  autoScroll.value = true
 
   prompt.value = ''
   sending.value = true
-  await scrollToBottom()
+  await scrollToBottom(true)
 
   try {
     setActiveStep(assistantMessage, 'connect')
-    if (form.mode === 'report') {
+    if (reportRequest) {
       setActiveStep(assistantMessage, 'answer')
       await generateReportMessage(question, assistantMessage)
     } else {
@@ -983,23 +1019,45 @@ async function sendMessage() {
           scrollToBottom()
         },
         onError(message) {
-          assistantMessage.content = message || 'AI问数调用失败'
+          assistantMessage.content = normalizeAgentText(message) || '决策智能体调用失败'
           finishSteps(assistantMessage)
         }
-      })
+      }, activeAbortController.value.signal)
       hydrateStructuredData(assistantMessage)
       hydrateNativeExecutionData(assistantMessage)
     }
     finishSteps(assistantMessage)
     await persistMessage(assistantMessage)
   } catch (error) {
-    assistantMessage.content = error?.message || 'AI问数调用失败'
+    if (isAbortError(error)) {
+      assistantMessage.content = assistantMessage.content || '已停止生成'
+    } else {
+      assistantMessage.content = normalizeAgentText(error?.message) || '决策智能体调用失败'
+    }
     finishSteps(assistantMessage)
     await persistMessage(assistantMessage)
   } finally {
     sending.value = false
+    activeAbortController.value = null
+    activeAssistantMessage.value = null
     await scrollToBottom()
   }
+}
+
+function stopGeneration() {
+  if (!sending.value) return
+  const assistantMessage = activeAssistantMessage.value
+  if (assistantMessage) {
+    assistantMessage.content = assistantMessage.content || '已停止生成'
+    assistantMessage.displayContent = assistantMessage.displayContent || assistantMessage.content
+    finishSteps(assistantMessage)
+    persistMessage(assistantMessage)
+  }
+  activeAbortController.value?.abort()
+}
+
+function isAbortError(error) {
+  return error?.name === 'AbortError' || error?.code === 'ERR_CANCELED' || /canceled|aborted/i.test(error?.message || '')
 }
 
 async function generateReportMessage(question, assistantMessage) {
@@ -1011,10 +1069,11 @@ async function generateReportMessage(question, assistantMessage) {
     skillId: form.skillId,
     templateId: form.templateId,
     returnSql: form.returnSql
-  })
+  }, { signal: activeAbortController.value?.signal })
+  if (activeAbortController.value?.signal.aborted) return
   const data = res.data || {}
   if (data.qualityWarning) {
-    assistantMessage.content = data.qualityWarning
+    assistantMessage.content = normalizeAgentText(data.qualityWarning)
   }
   if (data.templateContent && data.reportData) {
     const reportTemplate = parseMaybeJson(data.templateContent) || data.templateContent
@@ -1031,7 +1090,7 @@ async function generateReportMessage(question, assistantMessage) {
     assistantMessage.displayContent = assistantMessage.content
     return
   }
-  assistantMessage.content = data.rawReply || data.qualityWarning || '报告生成失败，未返回结构化数据'
+  assistantMessage.content = normalizeAgentText(data.rawReply || data.qualityWarning) || '报告生成失败，未返回结构化数据'
   assistantMessage.displayContent = assistantMessage.content
 }
 
@@ -1072,12 +1131,18 @@ function mergeStreamContent(current, chunk) {
   if (!chunk) return current || ''
   const before = current || ''
   if (looksLikeCompleteJson(chunk) && looksLikeCompleteJson(before)) {
-    return chunk
+    return normalizeAgentText(chunk)
   }
   if (looksLikeCompleteJson(chunk) && extractJsonObjects(before).length) {
-    return chunk
+    return normalizeAgentText(chunk)
   }
-  return before + chunk
+  return normalizeAgentText(before + chunk)
+}
+
+function isReportIntent(question) {
+  const text = String(question || '').trim().toLowerCase()
+  if (!text) return false
+  return /(生成|输出|制作|导出|形成|创建).{0,20}(数据统计|报告|报表|看板)|统计报告|分析报告|报告模板/.test(text)
 }
 
 function looksLikeCompleteJson(value) {
@@ -1540,7 +1605,7 @@ function finishSteps(message) {
   })
 }
 
-async function streamAskData(payload, callbacks) {
+async function streamAskData(payload, callbacks, signal) {
   const baseUrl = import.meta.env.VITE_APP_BASE_API || ''
   const response = await fetch(baseUrl + '/ai/ask-data/dbgpt/chat/stream', {
     method: 'POST',
@@ -1549,11 +1614,12 @@ async function streamAskData(payload, callbacks) {
       Authorization: 'Bearer ' + getToken()
     },
     credentials: 'include',
+    signal,
     body: JSON.stringify(payload)
   })
 
   if (!response.ok) {
-    throw new Error(await response.text() || 'AI问数请求失败')
+    throw new Error(normalizeAgentText(await response.text()) || '决策智能体请求失败')
   }
   if (!response.body) {
     throw new Error('浏览器不支持流式响应')
@@ -1592,13 +1658,13 @@ function handleSseEvent(raw, callbacks) {
   })
   const text = data.join('\n')
   if (eventName === 'message') {
-    callbacks.onMessage?.(text)
+    callbacks.onMessage?.(normalizeAgentText(text))
   } else if (eventName === 'sql') {
     callbacks.onSql?.(text)
   } else if (eventName === 'steps') {
-    callbacks.onSteps?.(text)
+    callbacks.onSteps?.(normalizeAgentText(text))
   } else if (eventName === 'error') {
-    callbacks.onError?.(text)
+    callbacks.onError?.(normalizeAgentText(text))
   }
 }
 
@@ -1630,7 +1696,8 @@ function syncTag(status) {
   return 'default'
 }
 
-async function scrollToBottom() {
+async function scrollToBottom(force = false) {
+  if (!force && !autoScroll.value) return
   await nextTick()
   await new Promise((r) => requestAnimationFrame(r))
   const el = messageScrollRef.value
@@ -2220,6 +2287,10 @@ async function scrollToBottom() {
   height: 36px;
   padding: 0;
   border-radius: 6px;
+}
+
+.stop-btn {
+  width: 72px;
 }
 
 .clear-btn {

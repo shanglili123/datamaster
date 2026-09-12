@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Ask-data SQL generation response.
  */
-@Schema(description = "问数SQL生成响应")
+@Schema(description = "决策智能体查询响应")
 @Data
 public class AiAskDataSqlRespVO {
 

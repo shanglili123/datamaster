@@ -163,15 +163,20 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     @Override
     public PageResult<AssetsDatasourceDO> getDatasourcePage(AssetsDatasourcePageReqVO pageReqVO) {
+        applySpaceDatasourceFilter(pageReqVO);
+        if (hasSpaceFilter(pageReqVO) && CollectionUtils.isEmpty(pageReqVO.getIdList())) {
+            return PageResult.empty();
+        }
         return AssetsDatasourceMapper.selectPage(pageReqVO);
     }
 
     @Override
     public PageResult<AssetsDatasourceDO> getDatasourceDppPage(AssetsDatasourcePageReqVO pageReqVO) {
-        if (StringUtils.isEmpty(pageReqVO.getSpaceCode())) {
+        if (pageReqVO.getSpaceId() == null && StringUtils.isEmpty(pageReqVO.getSpaceCode())) {
             return new PageResult<AssetsDatasourceDO>();
         }
         AssetsDatasourceSpaceRelDO assetsDatasourceSpaceRelDO = new AssetsDatasourceSpaceRelDO();
+        assetsDatasourceSpaceRelDO.setSpaceId(pageReqVO.getSpaceId());
         assetsDatasourceSpaceRelDO.setSpaceCode(pageReqVO.getSpaceCode());
         List<AssetsDatasourceSpaceRelDO> assetsDatasourceSpaceRelList = assetsDatasourceSpaceRelService.getJoinSpaceAndDatasource(assetsDatasourceSpaceRelDO);
         if (assetsDatasourceSpaceRelList.isEmpty()) {
@@ -194,9 +199,30 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
 
     @Override
     public List<AssetsDatasourceDO> getDatasourceList(AssetsDatasourcePageReqVO reqVO) {
+        applySpaceDatasourceFilter(reqVO);
+        if (hasSpaceFilter(reqVO) && CollectionUtils.isEmpty(reqVO.getIdList())) {
+            return new ArrayList<>();
+        }
         LambdaQueryWrapperX<AssetsDatasourceDO> AssetsDatasourceDOLambdaQueryWrapperX = new LambdaQueryWrapperX<>();
-        AssetsDatasourceDOLambdaQueryWrapperX.likeIfPresent(AssetsDatasourceDO::getDatasourceName, reqVO.getDatasourceName()).like(StringUtils.isNotEmpty(reqVO.getDatasourceType()), AssetsDatasourceDO::getDatasourceType, reqVO.getDatasourceType()).eq(StringUtils.isNotEmpty(reqVO.getDatasourceConfig()), AssetsDatasourceDO::getDatasourceConfig, reqVO.getDatasourceConfig()).eq(StringUtils.isNotEmpty(reqVO.getIp()), AssetsDatasourceDO::getIp, reqVO.getIp());
+        AssetsDatasourceDOLambdaQueryWrapperX.inIfPresent(AssetsDatasourceDO::getId, reqVO.getIdList()).likeIfPresent(AssetsDatasourceDO::getDatasourceName, reqVO.getDatasourceName()).like(StringUtils.isNotEmpty(reqVO.getDatasourceType()), AssetsDatasourceDO::getDatasourceType, reqVO.getDatasourceType()).eq(StringUtils.isNotEmpty(reqVO.getDatasourceConfig()), AssetsDatasourceDO::getDatasourceConfig, reqVO.getDatasourceConfig()).eq(StringUtils.isNotEmpty(reqVO.getIp()), AssetsDatasourceDO::getIp, reqVO.getIp());
         return AssetsDatasourceMapper.selectList(AssetsDatasourceDOLambdaQueryWrapperX);
+    }
+
+    private void applySpaceDatasourceFilter(AssetsDatasourcePageReqVO reqVO) {
+        if (reqVO == null || (reqVO.getSpaceId() == null && StringUtils.isBlank(reqVO.getSpaceCode()))) {
+            return;
+        }
+        AssetsDatasourceSpaceRelDO condition = new AssetsDatasourceSpaceRelDO();
+        condition.setSpaceId(reqVO.getSpaceId());
+        condition.setSpaceCode(reqVO.getSpaceCode());
+        List<AssetsDatasourceSpaceRelDO> relations = assetsDatasourceSpaceRelService.getDatasourceSpaceRelList(condition);
+        reqVO.setIdList(relations == null ? new ArrayList<>() : relations.stream()
+                .map(AssetsDatasourceSpaceRelDO::getDatasourceId)
+                .filter(Objects::nonNull).distinct().collect(Collectors.toList()));
+    }
+
+    private boolean hasSpaceFilter(AssetsDatasourcePageReqVO reqVO) {
+        return reqVO != null && (reqVO.getSpaceId() != null || StringUtils.isNotBlank(reqVO.getSpaceCode()));
     }
 
     @Override
@@ -700,8 +726,9 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     public List<AssetsDatasourceDO> getDatasourceDppNoKafka(AssetsDatasourcePageReqVO AssetsDatasource) {
         List<Long> idList = new ArrayList<>();
         Map<Long, AssetsDatasourceSpaceRelDO> datasourceSpaceRelDOMap = new HashMap<>();
-        if (StringUtils.isNotEmpty(AssetsDatasource.getSpaceCode())) {
+        if (AssetsDatasource.getSpaceId() != null || StringUtils.isNotEmpty(AssetsDatasource.getSpaceCode())) {
             AssetsDatasourceSpaceRelDO assetsDatasourceSpaceRelDO = new AssetsDatasourceSpaceRelDO();
+            assetsDatasourceSpaceRelDO.setSpaceId(AssetsDatasource.getSpaceId());
             assetsDatasourceSpaceRelDO.setSpaceCode(AssetsDatasource.getSpaceCode());
             List<AssetsDatasourceSpaceRelDO> assetsDatasourceSpaceRelList = assetsDatasourceSpaceRelService.getJoinSpaceAndDatasource(assetsDatasourceSpaceRelDO);
             if (assetsDatasourceSpaceRelList.isEmpty()) {

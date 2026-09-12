@@ -98,6 +98,14 @@ const router = createRouter({
 // 在路由守卫中添加取消请求逻辑
 router.beforeEach((to, from, next) => {
     clearCancelTokens(); // 在路由切换前取消所有未完成的请求
+
+    // 数据探索工作站的流程菜单是页内状态切换，不应把当前页面切换成空间工作站。
+    // 某些旧业务组件仍会把返回地址写成 /space，这里只拦截从 /explore 发起的
+    // 这条错误跳转；从首页进入 /space 的正常流程不受影响。
+    if (from.path === '/explore' && to.path === '/space') {
+        next({ path: '/explore', query: from.query, hash: from.hash, replace: true });
+        return;
+    }
     next();
 });
 

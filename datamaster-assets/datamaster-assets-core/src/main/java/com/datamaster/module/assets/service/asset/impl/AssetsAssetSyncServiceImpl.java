@@ -15,6 +15,10 @@ import com.datamaster.module.assets.dal.mapper.assetColumn.AssetsAssetColumnMapp
 import com.datamaster.module.assets.service.asset.IAssetsAssetService;
 import com.datamaster.module.assets.service.asset.IAssetsAssetSyncService;
 import com.datamaster.module.assets.service.assetColumn.IAssetsAssetColumnService;
+import com.datamaster.module.assets.service.assetchild.spaceRel.IAssetsAssetSpaceRelService;
+import com.datamaster.module.assets.service.assetColumnSpaceRel.IAssetsAssetColumnSpaceRelService;
+import com.datamaster.module.assets.controller.admin.assetchild.spaceRel.vo.AssetsAssetSpaceRelSaveReqVO;
+import com.datamaster.module.assets.controller.admin.assetColumnSpaceRel.vo.AssetsAssetColumnSpaceRelSaveReqVO;
 import com.datamaster.metadata.api.column.dto.CatalogColumnRespDTO;
 import com.datamaster.metadata.api.service.column.CatalogColumnApiService;
 import com.datamaster.metadata.api.service.table.CatalogTableApiService;
@@ -53,6 +57,10 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
     private CatalogTableApiService catalogTableApiService;
     @Resource
     private CatalogColumnApiService catalogColumnApiService;
+    @Resource
+    private IAssetsAssetSpaceRelService assetsAssetSpaceRelService;
+    @Resource
+    private IAssetsAssetColumnSpaceRelService assetsAssetColumnSpaceRelService;
 
     @Override
     public AjaxResult sync(AssetsAssetSyncReqVO reqVO) {
@@ -61,7 +69,7 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
             return AjaxResult.success("未发现可同步的元数据");
         }
         String catCode = resolveSyncCatCode(reqVO);
-        SyncStat stat = doSyncCatalog(catalogTables, catCode);
+        SyncStat stat = doSyncCatalog(catalogTables, catCode, reqVO);
         return AjaxResult.success(stat.toMessage());
     }
 
@@ -88,6 +96,12 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
             if (table == null) {
                 throw new ServiceException("资产关联的目录元数据不存在");
             }
+            if (reqVO.getSpaceId() != null || StringUtils.isNotBlank(reqVO.getSpaceCode())) {
+                List<CatalogTableRespDTO> scoped = filterBySpace(java.util.Collections.singletonList(table), reqVO);
+                if (scoped.isEmpty()) {
+                    throw new ServiceException("资产关联的目录元数据不属于当前空间");
+                }
+            }
             List<CatalogTableRespDTO> result = new ArrayList<>();
             result.add(table);
             return result;
@@ -96,17 +110,18 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
             throw new ServiceException("请选择需要同步的元数据库");
         }
         return catalogTableApiService.listByDatasourceAndDatabase(
-                reqVO.getDatasourceId(), reqVO.getDatabaseName(), reqVO.getSchemaName());
+                reqVO.getDatasourceId(), reqVO.getDatabaseName(), reqVO.getSchemaName(),
+                reqVO.getSpaceId(), reqVO.getSpaceCode());
     }
 
-    private SyncStat doSyncCatalog(List<CatalogTableRespDTO> tables, String catCode) {
+    private SyncStat doSyncCatalog(List<CatalogTableRespDTO> tables, String catCode, AssetsAssetSyncReqVO reqVO) {
         SyncStat stat = new SyncStat();
         for (CatalogTableRespDTO table : tables) {
             if (table == null || table.getDatasourceId() == null || StringUtils.isBlank(table.getTableName())) {
                 continue;
             }
             try {
-                boolean existed = syncCatalogTable(table, catCode);
+                boolean existed = syncCatalogTable(table, catCode, reqVO);
                 if (existed) {
                     stat.updated++;
                 } else {
@@ -121,7 +136,7 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
         return stat;
     }
 
-    private boolean syncCatalogTable(CatalogTableRespDTO table, String syncCatCode) {
+    private boolean syncCatalogTable(CatalogTableRespDTO table, String syncCatCode, AssetsAssetSyncReqVO reqVO) {
         AssetsAssetDO asset = findCatalogAsset(table);
         boolean existed = asset != null;
         if (!existed) {
@@ -144,7 +159,8 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
         } else {
             assetsAssetService.save(asset);
         }
-        syncCatalogColumns(asset, table);
+        ensureAssetSpaceRelation(asset.getId(), reqVO);
+        syncCatalogColumns(asset, table, reqVO);
         return existed;
     }
 
@@ -178,7 +194,7 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
         return null;
     }
 
-    private void syncCatalogColumns(AssetsAssetDO asset, CatalogTableRespDTO table) {
+    private void syncCatalogColumns(AssetsAssetDO asset, CatalogTableRespDTO table, AssetsAssetSyncReqVO reqVO) {
         List<CatalogColumnRespDTO> catalogColumns = catalogColumnApiService.listByTableId(table.getId());
         AssetsAssetColumnPageReqVO assetColumnReq = new AssetsAssetColumnPageReqVO();
         assetColumnReq.setAssetId(asset.getId());
@@ -209,6 +225,7 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
                 update.setPkFlag(catalogColumn.getPkFlag());
                 update.setDefaultValue(catalogColumn.getDefaultValue());
                 assetsAssetColumnMapper.syncUpdateColumnMetadata(update);
+                ensureAssetColumnSpaceRelation(asset.getId(), update.getId(), reqVO);
             } else {
                 AssetsAssetColumnSaveReqVO save = new AssetsAssetColumnSaveReqVO();
                 save.setAssetId(asset.getId());
@@ -222,7 +239,8 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
                 save.setNullableFlag(catalogColumn.getNullableFlag());
                 save.setPkFlag(catalogColumn.getPkFlag());
                 save.setDefaultValue(catalogColumn.getDefaultValue());
-                assetsAssetColumnService.createAssetColumn(save);
+                Long columnId = assetsAssetColumnService.createAssetColumn(save);
+                ensureAssetColumnSpaceRelation(asset.getId(), columnId, reqVO);
             }
         }
         List<Long> removedIds = existingColumns.stream()
@@ -238,6 +256,43 @@ public class AssetsAssetSyncServiceImpl implements IAssetsAssetSyncService {
             countUpdate.setFieldCount((long) catalogColumns.size());
             assetsAssetService.updateById(countUpdate);
         }
+    }
+
+    private List<CatalogTableRespDTO> filterBySpace(List<CatalogTableRespDTO> tables, AssetsAssetSyncReqVO reqVO) {
+        if (CollectionUtils.isEmpty(tables)
+                || (reqVO.getSpaceId() == null && StringUtils.isBlank(reqVO.getSpaceCode()))) {
+            return tables;
+        }
+        return tables.stream().filter(table -> table != null
+                && (reqVO.getSpaceId() == null || Objects.equals(reqVO.getSpaceId(), table.getSpaceId()))
+                && (StringUtils.isBlank(reqVO.getSpaceCode())
+                    || StringUtils.equals(reqVO.getSpaceCode(), table.getSpaceCode())))
+                .collect(Collectors.toList());
+    }
+
+    private void ensureAssetSpaceRelation(Long assetId, AssetsAssetSyncReqVO reqVO) {
+        if (assetId == null || reqVO == null
+                || (reqVO.getSpaceId() == null && StringUtils.isBlank(reqVO.getSpaceCode()))) {
+            return;
+        }
+        AssetsAssetSpaceRelSaveReqVO rel = new AssetsAssetSpaceRelSaveReqVO();
+        rel.setAssetId(assetId);
+        rel.setSpaceId(reqVO.getSpaceId());
+        rel.setSpaceCode(reqVO.getSpaceCode());
+        assetsAssetSpaceRelService.createAssetSpaceRel(rel);
+    }
+
+    private void ensureAssetColumnSpaceRelation(Long assetId, Long columnId, AssetsAssetSyncReqVO reqVO) {
+        if (columnId == null || reqVO == null
+                || (reqVO.getSpaceId() == null && StringUtils.isBlank(reqVO.getSpaceCode()))) {
+            return;
+        }
+        AssetsAssetColumnSpaceRelSaveReqVO rel = new AssetsAssetColumnSpaceRelSaveReqVO();
+        rel.setAssetId(assetId);
+        rel.setColumnId(columnId);
+        rel.setSpaceId(reqVO.getSpaceId());
+        rel.setSpaceCode(reqVO.getSpaceCode());
+        assetsAssetColumnSpaceRelService.createAssetColumnSpaceRel(rel);
     }
 
     private static class SyncStat {

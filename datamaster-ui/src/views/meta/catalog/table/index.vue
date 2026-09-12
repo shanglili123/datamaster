@@ -95,7 +95,8 @@
 <script setup name="CatalogTable">
 import { message, Modal } from 'ant-design-vue'
 import { DeleteOutlined, EyeOutlined, EditOutlined, DownOutlined } from '@ant-design/icons-vue'
-import { reactive, ref, getCurrentInstance, computed, h } from "vue";
+import { reactive, ref, getCurrentInstance, computed, h, inject } from "vue";
+import useUserStore from "@/store/system/user";
 
 import { getParentLabelPath } from "@/utils/anivia.js";
 
@@ -116,8 +117,10 @@ import { listProbeHistoryByTable } from "@/api/ast/quality/probeTaskInstance";
 import SourceSystemTree from "@/views/meta/task/structured/components/SourceSystemTree.vue";
 
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
 
 const router = useRouter();
+const stationNavigation = inject("spaceWorkstationNavigation", null);
 const sourceSystemTreeRef = ref();
 const store = reactive({
   domains: [],
@@ -286,7 +289,7 @@ const tableStroe = reactive({
     },
   ],
   func: listTable,
-  params: {},
+  params: { spaceId: userStore.spaceId, spaceCode: userStore.spaceCode },
   events: {
     formatData: function (data) {
       data.forEach((item) => {
@@ -387,7 +390,7 @@ function handleResetQueryClick() {
 // 获取库元素列表
 function getMetaDatabases() {
   store.metaDatabases.splice(0, store.metaDatabases.length);
-  return listDb({ pageSize: 1000 }).then((res) => {
+  return listDb({ pageSize: 1000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((res) => {
     res.data.rows.forEach((item) => {
       store.metaDatabases.push({
         value: item.id,
@@ -451,6 +454,17 @@ function handleDeleteClick(row) {
 
 // 详情
 function handleDetailClick(row, tab) {
+  if (stationNavigation?.openPage?.({
+    path: "/meta/catalog/table/detail",
+    query: {
+      id: row.id,
+      tab: typeof tab === "string" ? tab : undefined,
+    },
+    title: "元数据详情",
+    routeName: "CatalogTableDetail",
+  })) {
+    return;
+  }
   router.push({
     path: "/meta/catalog/table/detail",
     query: {

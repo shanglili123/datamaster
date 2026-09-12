@@ -112,8 +112,10 @@ import {
 import { message } from "ant-design-vue";
 import { listDb } from "@/api/cat/catalog/db";
 import { listTable } from "@/api/cat/catalog/table";
+import useUserStore from "@/store/system/user";
 
 const loading = ref(false);
+const userStore = useUserStore();
 const databases = ref([]);
 const tables = ref([]);
 const selectedDbId = ref(undefined);
@@ -193,8 +195,8 @@ async function loadStatistics() {
   loading.value = true;
   try {
     const [databaseResponse, tableResponse] = await Promise.all([
-      listDb({ pageNum: 1, pageSize: 2000 }),
-      listTable({ pageNum: 1, pageSize: 10000 }),
+      listDb({ pageNum: 1, pageSize: 2000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }),
+      listTable({ pageNum: 1, pageSize: 10000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }),
     ]);
     databases.value = uniqueRecords(getRows(databaseResponse), databaseKey);
     tables.value = uniqueRecords(getRows(tableResponse), tableKey);

@@ -103,13 +103,21 @@ public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,Cata
 
     @Override
     public List<CatalogTableRespDTO> listByDatasourceId(Long datasourceId) {
+        return listByDatasourceId(datasourceId, null, null);
+    }
+
+    @Override
+    public List<CatalogTableRespDTO> listByDatasourceId(Long datasourceId, Long spaceId, String spaceCode) {
         if (datasourceId == null) {
             return new ArrayList<>();
         }
         // 同一库表可能被多次采集任务重复采集，在 CAT_TABLE 中产生多行记录（version 不递增，靠 create_time 区分新旧）。
         // 按 version、create_time 降序取每张表的最新一行，避免下游（如 AI 多表 Skill 生成）对同一库表重复处理。
-        List<CatalogTableDO> tables = CatalogTableMapper.selectList(Wrappers.lambdaQuery(CatalogTableDO.class)
-                .eq(CatalogTableDO::getDatasourceId, datasourceId)
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<CatalogTableDO> wrapper =
+                Wrappers.lambdaQuery(CatalogTableDO.class).eq(CatalogTableDO::getDatasourceId, datasourceId);
+        if (spaceId != null) wrapper.eq(CatalogTableDO::getSpaceId, spaceId);
+        if (StringUtils.isNotBlank(spaceCode)) wrapper.eq(CatalogTableDO::getSpaceCode, spaceCode);
+        List<CatalogTableDO> tables = CatalogTableMapper.selectList(wrapper
                 .orderByDesc(CatalogTableDO::getVersion, BaseEntity::getCreateTime));
         if (CollectionUtils.isEmpty(tables)) {
             return new ArrayList<>();
@@ -130,6 +138,12 @@ public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,Cata
     @Override
     public List<CatalogTableRespDTO> listByDatasourceAndDatabase(Long datasourceId, String databaseName,
                                                                   String schemaName) {
+        return listByDatasourceAndDatabase(datasourceId, databaseName, schemaName, null, null);
+    }
+
+    @Override
+    public List<CatalogTableRespDTO> listByDatasourceAndDatabase(Long datasourceId, String databaseName,
+                                                                  String schemaName, Long spaceId, String spaceCode) {
         if (datasourceId == null || StringUtils.isBlank(databaseName)) {
             return new ArrayList<>();
         }
@@ -141,6 +155,8 @@ public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,Cata
         if (StringUtils.isNotBlank(schemaName)) {
             wrapper.eq(CatalogTableDO::getSchemaName, schemaName);
         }
+        if (spaceId != null) wrapper.eq(CatalogTableDO::getSpaceId, spaceId);
+        if (StringUtils.isNotBlank(spaceCode)) wrapper.eq(CatalogTableDO::getSpaceCode, spaceCode);
         List<CatalogTableDO> tables = CatalogTableMapper.selectList(wrapper);
         if (CollectionUtils.isEmpty(tables)) {
             return new ArrayList<>();

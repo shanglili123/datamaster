@@ -6,6 +6,7 @@ import com.datamaster.module.ontology.api.dto.ActionDataArrivalTriggerDTO;
 import com.datamaster.module.ontology.controller.admin.action.vo.*;
 import com.datamaster.module.ontology.service.IActionApprovalService;
 import com.datamaster.module.ontology.service.IActionExecutionService;
+import com.datamaster.module.ontology.service.IAiActionDecisionService;
 import com.datamaster.module.ontology.service.IActionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +35,8 @@ public class ActionController {
     private IActionExecutionService executionService;
     @Resource
     private IActionApprovalService approvalService;
+    @Resource
+    private IAiActionDecisionService aiActionDecisionService;
 
     @Value("${datamaster.ontology.action-trigger.secret:}")
     private String actionTriggerSecret;
@@ -83,6 +86,14 @@ public class ActionController {
     }
 
     // ==================== Execution ====================
+
+    @Operation(summary = "AI 动作决策（默认只返回预览，submit=true 才进入现有执行队列）")
+    @PreAuthorize("@ss.hasPermi('ont:action:edit')")
+    @PostMapping("/execution/ai-decision")
+    public CommonResult<AiActionDecisionRespVO> aiDecision(
+            @Valid @RequestBody AiActionDecisionReqVO reqVO) {
+        return CommonResult.success(aiActionDecisionService.decide(reqVO));
+    }
 
     @Operation(summary = "提交执行（生成SQL + dry-run + 进入审批）")
     @PreAuthorize("@ss.hasPermi('ont:action:edit')")

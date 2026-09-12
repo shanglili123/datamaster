@@ -1150,7 +1150,9 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         if (DbType.KINGBASE8.getDb().equals(property.getDbType()) || DbType.POSTGRE_SQL.getDb()
                 .equals(property.getDbType())) {
             property.setDbName(dbScope.getDbName());
-            property.setSid(dbScope.getSchemaName());
+            // PostgreSQL 的默认 schema 是 public。schema 为空时不能把 null
+            // 直接拼进 nspname 条件，否则连接成功但永远查不到表。
+            property.setSid(StringUtils.defaultIfBlank(dbScope.getSchemaName(), "public"));
         }
 
         DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
@@ -1160,7 +1162,12 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         }
 
         property.setDbName(dbScope.getDbName());
-        property.setSid(dbScope.getSchemaName());
+        if (DbType.KINGBASE8.getDb().equals(property.getDbType()) || DbType.POSTGRE_SQL.getDb()
+                .equals(property.getDbType())) {
+            property.setSid(StringUtils.defaultIfBlank(dbScope.getSchemaName(), "public"));
+        } else {
+            property.setSid(dbScope.getSchemaName());
+        }
         return new DbQueryContext(dbQuery, property);
     }
 
@@ -1919,7 +1926,17 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
 
         safeLog(instance.getId(), task.getId(), "增量模式：使用任务配置的采集范围");
 
-        return task.getScopeSaveReqVOS();
+        List<CatalogTaskScopeDO> scopes = task.getScopeSaveReqVOS();
+        if (CollectionUtils.isNotEmpty(scopes)
+                && (DbType.POSTGRE_SQL.getDb().equals(task.getDbType())
+                || DbType.KINGBASE8.getDb().equals(task.getDbType()))) {
+            for (CatalogTaskScopeDO scope : scopes) {
+                if (scope != null && StringUtils.isBlank(scope.getSchemaName())) {
+                    scope.setSchemaName("public");
+                }
+            }
+        }
+        return scopes;
     }
 
     private List<CatalogDbSaveReqVO> compareAndRecordDatabaseScope(CatalogTaskRespVO task, CatalogTaskInstanceDO instance, List<CatalogTaskScopeDO> databaseScopes, DatasourceRespDTO datasource) {

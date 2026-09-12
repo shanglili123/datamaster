@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Ask-data report generation request.
  */
-@Schema(description = "问数报告生成请求")
+@Schema(description = "决策智能体报告生成请求")
 @Data
 public class AiAskDataReportReqVO {
 

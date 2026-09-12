@@ -103,7 +103,7 @@
   </a-spin>
 </template>
 <script setup name="DatabaseDetail">
-import { computed, getCurrentInstance, reactive, toValue } from "vue";
+import { computed, getCurrentInstance, inject, reactive, toValue } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { message } from "ant-design-vue";
 import { getTable } from "@/api/cat/catalog/table";
@@ -140,6 +140,7 @@ const dicts = proxy.useDict(
 
 const router = useRouter();
 const route = useRoute();
+const stationNavigation = inject("spaceWorkstationNavigation", null);
 if (!route.query.id) router.go(-1);
 
 const store = reactive({
@@ -217,6 +218,12 @@ function getDetail() {
 
 // 切换tab
 function handleTabChange(tab) {
+  if (stationNavigation?.openPage?.({
+    path: "/meta/catalog/table/detail",
+    query: { ...route.query, tab },
+    title: "元数据详情",
+    routeName: "CatalogTableDetail",
+  })) return;
   router.push({
     query: {
       ...route.query,
@@ -227,6 +234,7 @@ function handleTabChange(tab) {
 
 // 直接打开详情页时没有可返回的路由记录，回退到元数据结果列表。
 function handleBack() {
+  if (stationNavigation?.back?.()) return;
   router.push({ path: "/meta/probeResult" });
 }
 
@@ -246,6 +254,12 @@ function goProbeHistory() {
       }
       // 后端按开始时间倒序，第一条即最近一次探查结果
       const latest = records[0];
+      if (stationNavigation?.openPage?.({
+        path: "/ast/quality/probeTaskInstance/detail",
+        query: { id: latest.id, score: latest.score },
+        title: "探查质量报告",
+        routeName: "ProbeTaskInstanceDetail",
+      })) return;
       router.push({
         path: "/ast/quality/probeTaskInstance/detail",
         query: { id: latest.id, score: latest.score },

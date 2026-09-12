@@ -112,7 +112,16 @@ export function generateMultiTableSkill(data) {
   })
 }
 
-// 同步全部已发布 Skill 到 AI 问数
+// 生成本体决策 Skill
+export function generateOntologyDecisionSkill(data) {
+  return request({
+    url: '/ai/skill/generate/ontology-decision',
+    method: 'post',
+    data: data
+  })
+}
+
+// 同步全部已发布 Skill 到决策智能体（底层适配器路由保持兼容）
 export function syncAllSkillToDbgpt() {
   return request({
     url: '/ai/skill/sync/dbgpt',
@@ -120,7 +129,7 @@ export function syncAllSkillToDbgpt() {
   })
 }
 
-// 同步指定 Skill 到 AI 问数
+// 同步指定 Skill 到决策智能体（底层适配器路由保持兼容）
 export function syncSkillToDbgpt(id) {
   return request({
     url: '/ai/skill/' + id + '/sync/dbgpt',
@@ -133,6 +142,15 @@ export function listSkillReportTemplates(skillId) {
   return request({
     url: '/ai/skill/' + skillId + '/report-templates',
     method: 'get'
+  })
+}
+
+// 根据自然语言需求生成 Skill 报告模板
+export function generateSkillReportTemplate(skillId, data) {
+  return request({
+    url: '/ai/skill/' + skillId + '/report-templates/generate',
+    method: 'post',
+    data: data
   })
 }
 

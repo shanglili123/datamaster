@@ -442,7 +442,25 @@ function goCreateSpace() {
   router.push("/tax/space");
 }
 
-function openDataExplore() {
+async function openDataExplore() {
+  // 从首页直接进入流程工作站时可能尚未选择空间；默认使用当前用户的第一个空间，
+  // 这样流程创建、元数据探查和资产同步都会带上正确的空间上下文。
+  if (!userStore.spaceId || !userStore.spaceName) {
+    try {
+      const response = await currentUser();
+      const spaces = response?.data || [];
+      if (spaces.length) {
+        const storedId = userStore.spaceId || localStorage.getItem("dataMasterSpaceId");
+        const selected = spaces.find((space) => String(space.id) === String(storedId)) || spaces[0];
+        userStore.spaceId = selected.id;
+        userStore.spaceCode = selected.code || selected.spaceCode || "";
+        userStore.spaceName = selected.name || selected.spaceName || "";
+        localStorage.setItem("dataMasterSpaceId", String(selected.id));
+      }
+    } catch {
+      // 流程工作站自身还会再次尝试加载空间，不阻断页面打开。
+    }
+  }
   router.push("/explore");
 }
 

@@ -3,7 +3,7 @@
   <div class="chat-empty">
     <!-- title -->
     <div class="center-container">
-      <div class="title">灵桐 AI</div>
+      <div class="title">数据智能体</div>
       <div class="role-list">
         <div
           class="role-item"
@@ -15,7 +15,7 @@
         </div>
       </div>
       <div class="ai-disclaimer">
-        本功能由 dataMaster 智能问数生成，其回答未必正确无误。
+        本功能由 dataMaster 决策智能体生成，其回答未必正确无误。
       </div>
     </div>
   </div>

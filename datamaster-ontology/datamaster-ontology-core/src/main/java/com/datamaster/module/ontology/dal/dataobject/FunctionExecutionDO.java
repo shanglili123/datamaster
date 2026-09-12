@@ -1,6 +1,7 @@
 package com.datamaster.module.ontology.dal.dataobject;
 
 import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.datamaster.common.core.domain.BaseEntity;
 import lombok.AllArgsConstructor;
@@ -26,15 +27,19 @@ public class FunctionExecutionDO extends BaseEntity {
     private Long functionId;
 
     /** 本体ID */
+    @TableField(exist = false)
     private Long ontologyId;
 
     /** 执行者ID */
+    @TableField(exist = false)
     private Long executorId;
 
     /** 输入参数 (JSON) */
+    @TableField("input_data")
     private String inputParams;
 
     /** 输出结果 (JSON) */
+    @TableField("output_data")
     private String outputResult;
 
     /** 状态：DRAFT / PENDING_APPROVAL / APPROVED / REJECTED / EXECUTED / FAILED */
@@ -44,9 +49,11 @@ public class FunctionExecutionDO extends BaseEntity {
     private String approvalReason;
 
     /** 审批时间 */
+    @TableField(exist = false)
     private Date approveTime;
 
     /** 执行时间 */
+    @TableField(exist = false)
     private Date executeTime;
 
     /** 错误信息 */

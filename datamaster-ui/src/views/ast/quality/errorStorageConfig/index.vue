@@ -31,8 +31,10 @@ import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getErrorStorageConfig, setErrorStorageConfig } from '@/api/ast/quality/errorStorageConfig'
 import { listDaDatasource } from '@/api/ast/dataSource/dataSource'
+import useUserStore from '@/store/system/user'
 
 const JDBC_TYPES = ['MySql', 'MySQL', 'PostgreSQL', 'DM8', 'Oracle', 'Oracle11', 'Kingbase8', 'SQL_Server', 'SQL_Server2008', 'DB2', 'ClickHouse', 'Doris', 'Hive', 'MariaDB', 'OSCAR']
+const userStore = useUserStore()
 
 const formRef = ref(null)
 const datasourceList = ref([])
@@ -48,7 +50,7 @@ const rules = {
 }
 
 function fetchDatasources() {
-  listDaDatasource({ pageNum: 1, pageSize: 9999 }).then(res => {
+  listDaDatasource({ pageNum: 1, pageSize: 9999, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then(res => {
     const all = res.data?.rows || res.data || []
     datasourceList.value = all.filter(d => JDBC_TYPES.includes(d.datasourceType))
   })

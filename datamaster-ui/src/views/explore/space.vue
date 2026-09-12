@@ -56,7 +56,7 @@
         <div class="space-station__content-head">
           <div>
             <span>{{ isOntologyShell ? "ONTOLOGY WORKSPACE" : (selectedGroup?.title || "SPACE WORKSPACE") }}</span>
-            <h1>{{ isOntologyWorkspace ? "本体工作台" : (isOntologyList ? "本体管理" : (selectedItem?.title || "空间工作台")) }}</h1>
+            <h1>{{ currentPageTitle }}</h1>
             <p>{{ currentPageDescription }}</p>
           </div>
           <div class="space-station__signal">
@@ -65,7 +65,7 @@
           </div>
         </div>
 
-        <nav v-if="!isOntologyShell && selectedItem?.tabs?.length" class="space-station__page-tabs" aria-label="三级目录">
+        <nav v-if="!isOntologyShell && !detailPage && selectedItem?.tabs?.length" class="space-station__page-tabs" aria-label="三级目录">
           <button
             v-for="tab in selectedItem.tabs"
             :key="tab.id"
@@ -105,6 +105,7 @@ import { parseRouteQuery } from "@/utils/routeQuery";
 
 const OntologyWorkspaceView = defineAsyncComponent(() => import("@/views/ont/workspace/index.vue"));
 const OntologyListView = defineAsyncComponent(() => import("@/views/ont/ontology/index.vue"));
+const AssetDetailView = defineAsyncComponent(() => import("@/views/col/asset/detail/index.vue"));
 
 const router = useRouter();
 const route = useRoute();
@@ -299,10 +300,12 @@ function ensureProbeMetadataItem(groups) {
 const menuGroups = computed(() => createGroups(permissionStore.topbarRouters || []));
 const selectedItem = ref(null);
 const selectedTabId = ref("");
+const detailPage = ref(null);
 const collapsedGroups = ref(new Set());
 const knownGroupIds = ref(new Set());
 const selectedGroup = computed(() => menuGroups.value.find((group) => group.items.some((item) => item.id === selectedItem.value?.id)));
 const selectedTab = computed(() => {
+  if (detailPage.value) return detailPage.value;
   const item = selectedItem.value;
   if (!item) return null;
   return item.tabs?.find((tab) => tab.id === selectedTabId.value) || {
@@ -317,10 +320,51 @@ const selectedTab = computed(() => {
   };
 });
 const spaceName = computed(() => userStore.spaceName || "");
+const currentPageTitle = computed(() => {
+  if (isOntologyWorkspace.value) return "本体工作台";
+  if (isOntologyList.value) return "本体管理";
+  return detailPage.value?.title || selectedItem.value?.title || "空间工作台";
+});
 const currentPageDescription = computed(() => {
   if (isOntologyWorkspace.value) return "管理本体概念、属性、关系、动作编排和对象实例，构建可执行的业务语义网络。";
   if (isOntologyList.value) return "创建和维护本体模型，并进入可视化工作台完成业务语义建模。";
+  if (detailPage.value) return "查看资产字段、数据预览、质量结果、血缘关系和资产概览。";
   return getPageDescription(selectedTab.value?.title || selectedItem.value?.title, selectedTab.value?.path || selectedItem.value?.pagePath);
+});
+
+function openStationPage({ path, query = {} } = {}) {
+  if (!["/col/asset/detail", "/ast/asset/detail"].includes(path)) return false;
+  detailPage.value = {
+    id: `AssetDetail:${path}:${query.id || ""}`,
+    title: "资产详情",
+    component: AssetDetailView,
+    pagePath: path,
+    path,
+    query,
+    routeName: path.startsWith("/ast/") ? "daDaAssetDetail" : "colDaAssetDetail",
+    meta: { title: "资产详情", activeMenu: selectedItem.value?.pagePath },
+  };
+  updateStationRoute(detailPage.value);
+  return true;
+}
+
+function closeStationDetail() {
+  if (!detailPage.value) return false;
+  if (["/col/asset/detail", "/ast/asset/detail"].includes(route.path)) {
+    detailPage.value = null;
+    router.push(route.path.startsWith("/ast/") ? "/ast/asset" : "/col/asset");
+    return true;
+  }
+  detailPage.value = null;
+  const page = selectedItem.value?.tabs?.find((tab) => tab.id === selectedTabId.value)
+    || selectedItem.value;
+  if (page) updateStationRoute(page);
+  return true;
+}
+
+provide("spaceWorkstationNavigation", {
+  openPage: openStationPage,
+  back: closeStationDetail,
 });
 
 function getPageDescription(title, path) {
@@ -339,10 +383,12 @@ function getPageDescription(title, path) {
     "资产申请": "提交和处理数据资产使用申请，管理授权审批过程。",
     "数据查询": "基于已授权的数据资产执行安全的数据检索与结果查看。",
     "函数管理": "维护本体动作和计算逻辑可复用的函数能力。",
-    "智能问数": "使用自然语言查询数据资产与本体语义，生成分析结果和业务洞察。",
-    "问数": "使用自然语言查询数据资产与本体语义，生成分析结果和业务洞察。",
-    "Skill管理": "维护问数知识、字段语义和分析规则，并同步给智能问数使用。",
-    "Skill 管理": "维护问数知识、字段语义和分析规则，并同步给智能问数使用。",
+    "智能问数": "基于本体进行数据查询、分析与决策建议。",
+    "问数": "基于本体进行数据查询、分析与决策建议。",
+    "数据智能体": "基于本体进行数据查询、分析与决策建议。",
+    "决策智能体": "基于本体进行数据查询、分析与决策建议。",
+    "Skill管理": "维护数据查询、字段语义和决策分析规则，并同步给数据智能体使用。",
+    "Skill 管理": "维护数据查询、字段语义和决策分析规则，并同步给数据智能体使用。",
   };
   if (descriptions[pageTitle]) return descriptions[pageTitle];
   if (pagePath.includes("statistics")) return descriptions["数据统计"];
@@ -374,6 +420,19 @@ watch(menuGroups, (groups) => {
   }
 }, { immediate: true });
 
+// 直接从旧资产列表打开详情时，也强制使用当前工作站壳，不再渲染旧版 Layout 菜单。
+watch(
+  () => [route.path, route.query.id],
+  ([path, id]) => {
+    if (["/col/asset/detail", "/ast/asset/detail"].includes(path) && id) {
+      openStationPage({ path, query: { id } });
+    } else if (!["/col/asset/detail", "/ast/asset/detail"].includes(path) && detailPage.value) {
+      detailPage.value = null;
+    }
+  },
+  { immediate: true }
+);
+
 function isGroupCollapsed(groupId) {
   return collapsedGroups.value.has(groupId);
 }
@@ -386,6 +445,8 @@ function toggleGroup(groupId) {
 }
 
 function selectItem(item, options = {}) {
+  // 直接详情路由下，菜单异步加载/刷新不能把当前详情页清掉。
+  if (!isDirectAssetDetailRoute()) detailPage.value = null;
   selectedItem.value = item;
   if (!item) return;
   if (isOntologyShell.value) {
@@ -402,8 +463,13 @@ function selectItem(item, options = {}) {
   updateStationRoute(item.tabs?.[0] || item);
 }
 
+function isDirectAssetDetailRoute() {
+  return ["/col/asset/detail", "/ast/asset/detail"].includes(route.path) && Boolean(route.query.id);
+}
+
 function selectTab(tab) {
   if (!selectedItem.value || !tab) return;
+  detailPage.value = null;
   selectedTabId.value = tab.id;
   updateStationRoute(tab);
 }

@@ -29,4 +29,10 @@ public class AssetsAssetSyncReqVO {
     @Schema(description = "资产ID", example = "")
     private Long assetId;
 
+    @Schema(description = "空间ID", example = "1")
+    private Long spaceId;
+
+    @Schema(description = "空间编码", example = "space01")
+    private String spaceCode;
+
 }

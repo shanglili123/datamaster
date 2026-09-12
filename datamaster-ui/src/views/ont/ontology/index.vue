@@ -147,15 +147,18 @@
 </template>
 
 <script setup name="OntologyList">
-import { computed, reactive, ref } from 'vue'
+import { computed, inject, reactive, ref } from 'vue'
 import { listOntology, getOntology, addOntology, updateOntology, delOntology } from '@/api/ont/ontology'
 import { aiGenerate, listAiGenerateTables } from '@/api/ont/aiGenerate'
 import { listDaDatasource } from '@/api/ast/dataSource/dataSource'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { genCode } from '@/utils/codeGen'
+import useUserStore from '@/store/system/user'
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 const router = useRouter()
+const stationNavigation = inject('spaceWorkstationNavigation', null)
 const open = ref(false)
 const title = ref('')
 const loading = ref(false)
@@ -228,6 +231,13 @@ function resetQuery() {
 }
 
 function goWorkspace(row) {
+  if (stationNavigation?.openPage?.({
+    path: '/ont/workspace/' + row.id,
+    query: { ontologyId: row.id },
+    title: '本体工作台',
+    routeName: 'OntWorkspace',
+    meta: { title: '本体工作台', fullScreen: true },
+  })) return
   router.push('/ont/workspace/' + row.id)
 }
 
@@ -242,7 +252,7 @@ function reset() {
 
 function loadDatasources() {
   datasourceLoading.value = true
-  listDaDatasource({ pageNum: 1, pageSize: 9999 }).then(res => {
+  listDaDatasource({ pageNum: 1, pageSize: 9999, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then(res => {
     datasourceList.value = res.data?.rows || []
   }).finally(() => {
     datasourceLoading.value = false

@@ -7,7 +7,7 @@ import lombok.Data;
 /**
  * Ask-data report generation response.
  */
-@Schema(description = "问数报告生成响应")
+@Schema(description = "决策智能体报告生成响应")
 @Data
 public class AiAskDataReportRespVO {
 

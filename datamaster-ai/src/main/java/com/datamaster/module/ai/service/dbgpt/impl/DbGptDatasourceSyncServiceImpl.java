@@ -40,7 +40,7 @@ public class DbGptDatasourceSyncServiceImpl implements IDbGptDatasourceSyncServi
                 markFailed(datasource, e.getMessage());
             }
         }
-        return AjaxResult.success("DB-GPT数据源同步完成，成功 " + success + " 个，失败 " + failed + " 个");
+        return AjaxResult.success("数据智能体数据源同步完成，成功 " + success + " 个，失败 " + failed + " 个");
     }
 
     @Override
@@ -50,7 +50,7 @@ public class DbGptDatasourceSyncServiceImpl implements IDbGptDatasourceSyncServi
             throw new ServiceException("数据源不存在");
         }
         Integer dbgptId = syncDatasource(datasource);
-        return AjaxResult.success("DB-GPT数据源同步成功，远端ID：" + dbgptId);
+        return AjaxResult.success("数据智能体数据源同步成功，编号：" + dbgptId);
     }
 
     @Override
@@ -64,9 +64,9 @@ public class DbGptDatasourceSyncServiceImpl implements IDbGptDatasourceSyncServi
         }
         datasource.setDbgptDatasourceId(null);
         datasource.setDbgptSyncStatus("REMOVED");
-        datasource.setDbgptSyncMessage("已从DB-GPT删除");
+            datasource.setDbgptSyncMessage("已从数据智能体移除");
         datasourceMgmtService.updateDatasource(datasource);
-        return AjaxResult.success("已从DB-GPT删除数据源");
+        return AjaxResult.success("已从数据智能体移除数据源");
     }
 
     private Integer syncDatasource(DatasourceDO datasource) {
@@ -142,8 +142,15 @@ public class DbGptDatasourceSyncServiceImpl implements IDbGptDatasourceSyncServi
 
     private void markFailed(DatasourceDO datasource, String message) {
         datasource.setDbgptSyncStatus("FAILED");
-        datasource.setDbgptSyncMessage(message);
+        datasource.setDbgptSyncMessage(normalizeAgentMessage(message));
         datasourceMgmtService.updateDatasource(datasource);
+    }
+
+    private String normalizeAgentMessage(String message) {
+        if (StringUtils.isBlank(message)) {
+            return message;
+        }
+        return message.replaceAll("(?i)DB[-_ ]?GPT", "决策智能体");
     }
 
     private String firstNonBlank(String... values) {

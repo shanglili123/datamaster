@@ -288,9 +288,13 @@ const tabPanes = computed(() => {
 const showSearch = ref(true);
 const route = useRoute();
 const router = useRouter();
+const stationNavigation = inject("spaceWorkstationNavigation", null);
 // 返回资产列表：优先历史回退保留列表状态；直接打开详情页时按入口回对应列表
 // （列表为动态菜单路由：资产数据=/ast/asset，空间资产=/spaceBase/asset，meta.activeMenu 的 /col/asset 并不存在）
 function handleBack() {
+  if (stationNavigation?.back?.()) {
+    return;
+  }
   if (window.history.state && window.history.state.back) {
     router.back();
     return;

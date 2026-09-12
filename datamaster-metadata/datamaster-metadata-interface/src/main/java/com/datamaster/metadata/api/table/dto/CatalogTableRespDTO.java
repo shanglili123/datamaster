@@ -34,6 +34,10 @@ public class CatalogTableRespDTO {
 
     private String status;
 
+    private Long spaceId;
+
+    private String spaceCode;
+
     private String description;
 
     private Long columnCount;

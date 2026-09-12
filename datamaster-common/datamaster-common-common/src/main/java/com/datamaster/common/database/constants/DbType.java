@@ -306,6 +306,17 @@ public enum DbType {
                 return type;
             }
         }
+        // 兼容前端/调度平台常用的标准类型编码。
+        if ("POSTGRESQL".equalsIgnoreCase(dbType) || "POSTGRES".equalsIgnoreCase(dbType)
+                || "POSTGRE-SQL".equalsIgnoreCase(dbType)) {
+            return POSTGRE_SQL;
+        }
+        if ("MYSQL".equalsIgnoreCase(dbType)) {
+            return MYSQL;
+        }
+        if ("SQLSERVER".equalsIgnoreCase(dbType)) {
+            return SQL_SERVER;
+        }
         if ("ES".equalsIgnoreCase(dbType) || "ELASTIC_SEARCH".equalsIgnoreCase(dbType)) {
             return ELASTICSEARCH;
         }

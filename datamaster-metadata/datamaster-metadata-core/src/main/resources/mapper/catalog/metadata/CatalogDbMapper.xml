@@ -29,6 +29,8 @@
         <result property="auditStatus" column="AUDIT_STATUS" />
         <result property="auditTime" column="AUDIT_TIME" />
         <result property="status" column="STATUS" />
+        <result property="spaceId" column="SPACE_ID" />
+        <result property="spaceCode" column="SPACE_CODE" />
         <result property="validFlag" column="VALID_FLAG" />
         <result property="delFlag" column="DEL_FLAG" />
         <result property="createBy" column="CREATE_BY" />
@@ -47,7 +49,7 @@
                DATASOURCE_CONFIG, DB_TYPE, DB_NAME, SCHEMA_NAME, SAFETY_LEVEL_ID,
                BELONGING_LAYER, BELONGING_SYSTEM, BUSINESS_LEADER, BUSINESS_LEADER_PHONE,
                TECH_LEADER, TECH_LEADER_PHONE, STORAGE_SIZE, DATA_QUALITY, AUDIT_STATUS,
-               AUDIT_TIME, STATUS, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID,
+               AUDIT_TIME, STATUS, SPACE_ID, SPACE_CODE, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID,
                CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK, DESCRIPTION,
                PORTAL_VISIBLE
         from CAT_DB
@@ -79,6 +81,8 @@
             <if test="auditStatus != null and auditStatus != ''"> and AUDIT_STATUS = #{auditStatus}</if>
             <if test="auditTime != null"> and AUDIT_TIME = #{auditTime}</if>
             <if test="status != null and status != ''"> and STATUS = #{status}</if>
+            <if test="spaceId != null"> and SPACE_ID = #{spaceId}</if>
+            <if test="spaceCode != null and spaceCode != ''"> and SPACE_CODE = #{spaceCode}</if>
             <if test="createTime != null"> and CREATE_TIME = #{createTime}</if>
             <if test="description != null and description != ''"> and DESCRIPTION = #{description}</if>
             <if test="portalVisible != null and portalVisible != ''"> and PORTAL_VISIBLE = #{portalVisible}</if>

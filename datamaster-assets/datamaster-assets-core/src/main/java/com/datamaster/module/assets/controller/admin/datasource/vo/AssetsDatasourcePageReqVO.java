@@ -51,6 +51,9 @@ public class AssetsDatasourcePageReqVO extends PageParam {
     @Schema(description = "空间编码", example = "bank_risk")
     private String spaceCode;
 
+    @Schema(description = "空间ID", example = "1")
+    private Long spaceId;
+
     @Schema(description = "ID列表", example = "[1,2]")
     private List<Long> idList;
 

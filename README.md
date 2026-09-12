@@ -1,6 +1,6 @@
 ﻿# DataMaster 项目说明
 
-DataMaster 是一个面向银行金融数据治理场景的数据中台系统，采用 Java 8 多模块 Maven 后端和 Vue 3 + Vite 前端。系统覆盖空间管理、数据源管理、数据资产、元数据目录、数据标准、数据采集、ETL、质量探查、数据服务、数据建模和 AI 问数等能力。
+DataMaster 是一个面向银行金融数据治理场景的数据中台系统，采用 Java 8 多模块 Maven 后端和 Vue 3 + Vite 前端。系统覆盖空间管理、数据源管理、数据资产、元数据目录、数据标准、数据采集、ETL、质量探查、数据服务、数据建模和数据智能体等能力。
 
 本文档记录项目整体架构、模块职责、核心流程、启动依赖和排查入口。重构目标、字段规范化、已改模块清单等改造过程记录单独维护在：
 
@@ -34,7 +34,7 @@ DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的
 - 质量探查规则、质量任务和结果管理
 - 数据服务 API 发布、SQL 执行和外部调用
 - 数据建模
-- AI 问数、SQL 生成、图表分析和报告
+- 数据智能体查询、SQL 生成、图表分析、报告和决策建议
 
 整体业务路径可以理解为：
 
@@ -43,7 +43,7 @@ DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的
   -> 数据源注册
   -> 元数据采集 / 资产登记
   -> 标准、分类、权限治理
-  -> ETL / 质量 / 数据服务 / AI 问数应用
+  -> ETL / 质量 / 数据服务 / 数据智能体应用
 ```
 
 ## 2. 技术栈
@@ -89,7 +89,7 @@ datamaster-assets        数据源、数据资产、资产字段、权限、申�
 datamaster-ontology      本体概念、属性、关系、动作、函数和对象实例
 datamaster-service       数据服务 API、SQL 执行、参数映射、限流、缓存和日志
 datamaster-collector     ETL、数据开发、任务编排、调度发布和实例日志
-datamaster-ai            AI 问数、Skill、SQL 生成和 DB-GPT 集成
+datamaster-ai            数据智能体、决策智能体、Skill、SQL 生成和模型适配
 datamaster-ingestion     Kafka/Doris 数据接入和本体决策触发
 datamaster-api-ds        DolphinScheduler HTTP 适配层
 datamaster-ui            Vue 3 + Vite 前端
@@ -187,7 +187,7 @@ flowchart LR
 
 ### 4.4 datamaster-assets
 
-数据资产核心模块，负责数据源、资产、资产字段、资产申请、资产权限、表治理权限校验、脱敏和 AI 问数资产侧能力。
+数据资产核心模块，负责数据源、资产、资产字段、资产申请、资产权限、表治理权限校验、脱敏和数据智能体资产侧能力。
 
 **依赖关系**：资产依赖 `datamaster-metadata`（元数据）获取库表字段结构，是元数据的主要业务消费方。
 
@@ -198,7 +198,7 @@ flowchart LR
 - 数据源级、表级、字段级访问控制（`AssetsTableGovernanceApiServiceImpl`，统一权限校验入口）
 - 资产申请和审批
 - 数据预览、字段脱敏、用户数据权限等级控制
-- 为本体、数据服务、采集、质量和 AI 问数提供数据源与资产能力
+- 为本体、数据服务、采集、质量和数据智能体提供数据源与资产能力
 - 未命中资产时通过 `CatalogTableApiService` 回退到元数据目录，作为表级治理解析依据
 
 ### 4.5 datamaster-collector
@@ -234,7 +234,7 @@ flowchart LR
 
 元数据探查与质量探查模块，负责采集外部数据源的库、表、字段、索引、分区、存储等结构信息，维护目录和版本，并对库表执行质量规则探查、产出质量报告。
 
-作为数据底层，为 `datamaster-assets`（资产）、`datamaster-ai`（AI 问数）、`datamaster-service`（数据服务）等模块提供表结构元数据。
+作为数据底层，为 `datamaster-assets`（资产）、`datamaster-ai`（数据智能体）、`datamaster-service`（数据服务）等模块提供表结构元数据。
 
 ### 4.8 datamaster-api-ds
 
@@ -244,7 +244,7 @@ DolphinScheduler HTTP API 适配层，封装项目、任务、调度、执行、
 
 ### 4.9 datamaster-ai
 
-AI 问数、Skill、SQL 生成和 DB-GPT 集成。AI 依赖本体作为语义入口；单表、多表 Skill 根据资产和元数据可用性分别处理回退。
+数据智能体能力层，包含决策智能体对话、Skill、SQL 生成和模型适配。平台对外只暴露数据智能体/决策智能体；具体模型或数据问答引擎（包括 DB-GPT）只是可替换的内部适配器，不参与平台产品命名，也不把其原生提示语直接返回给用户。决策智能体依赖本体作为语义入口；单表、多表 Skill 根据资产和元数据可用性分别处理回退。
 
 ### 4.10 datamaster-ingestion
 
@@ -256,7 +256,7 @@ AI 问数、Skill、SQL 生成和 DB-GPT 集成。AI 依赖本体作为语义入
 
 ### 4.12 datamaster-ui
 
-前端工程，提供空间、数据源、资产、目录、标准、采集、ETL、质量、服务、本体、AI 问数等页面。
+前端工程，提供空间、数据源、资产、目录、标准、采集、ETL、质量、服务、本体、数据智能体和决策智能体等页面。
 
 ## 5. 核心业务流程
 
@@ -313,7 +313,7 @@ flowchart LR
   -> 维护资产字段
   -> 绑定分类、标准、敏感等级
   -> 分配空间权限或走资产申请审批
-  -> 被数据服务、AI 问数、质量、ETL 使用
+  -> 被数据服务、数据智能体、质量、ETL 使用
 ```
 
 资产与元数据的同步关系如下：
@@ -556,14 +556,14 @@ sequenceDiagram
     API-->>C: 返回结果
 ```
 
-### 5.11 AI 问数
+### 5.11 数据智能体与决策智能体
 
-AI 问数基于空间、本体、资产、字段、权限和会话上下文提供自然语言问数能力。
+数据智能体基于空间、本体、资产、字段、权限和会话上下文提供自然语言查询、分析与决策建议；其中决策智能体负责理解问题、查询证据和给出建议。
 
-**依赖模型**：AI 问数依赖 `datamaster-ontology`（本体）作为统一语义入口，本体内部再逐级降级到资产与元数据：
+**依赖模型**：决策智能体依赖 `datamaster-ontology`（本体）作为统一语义入口，本体内部再逐级降级到资产与元数据：
 
 ```text
-AI 请求语义数据
+决策智能体请求语义数据
   -> 优先走本体（概念/属性/关系/动作，语义层查询）
   -> 无概念映射时，回退资产（表权限 + 表结构）
   -> 资产也无登记时，兜底元数据（裸表结构）
@@ -572,10 +572,10 @@ AI 请求语义数据
 
 ```text
 选择空间和数据范围
-  -> 发起问数（按数据成熟度选层：本体 / 资产 / 元数据）
+  -> 发起数据智能体对话（按数据成熟度选层：本体 / 资产 / 元数据）
   -> 生成 SQL / 构造 Skill
   -> 权限校验（resolveTable / checkTableAccess）
-  -> 执行查询（本体动作 / DB-GPT）
+  -> 执行查询（本体动作 / 决策智能体适配器）
   -> 返回结果 / 图表 / 报告
 ```
 
@@ -590,7 +590,7 @@ flowchart TD
     ONTSQL --> GOVERN[表治理和权限校验]
     ASSETCTX --> GOVERN
     METACTX --> GOVERN
-    GOVERN --> EXEC[生成 SQL / DB-GPT 执行]
+    GOVERN --> EXEC[生成 SQL / 决策智能体适配器执行]
     EXEC --> RESULT[结果、图表或报告]
 ```
 
@@ -874,7 +874,7 @@ flowchart TD
 | --- | --- | --- |
 | datamaster-ontology（本体） | `IAssetsTableGovernanceApiService.checkTableAccess` | ONTOLOGY_CREATE / UPDATE / DELETE / ACTION |
 | datamaster-service（数据服务） | `IAssetsTableGovernanceApiService.resolveTable` | DATA_SERVICE / DATA_SERVICE_TEST |
-| datamaster-ai（AI 问数） | `IAssetsTableGovernanceApiService.checkTableAccess/resolveTable` | AI_ASK_DATA / AI_ASK_DATA_PREPARE / AI_ASK_DATA_SKILL |
+| datamaster-ai（数据智能体） | `IAssetsTableGovernanceApiService.checkTableAccess/resolveTable` | AI_ASK_DATA / AI_ASK_DATA_PREPARE / AI_ASK_DATA_SKILL |
 
 ```text
 datamaster-ontology / datamaster-service / datamaster-ai
@@ -893,7 +893,7 @@ datamaster-metadata     CatalogTableApiService（元数据目录）
 参照本体语义层思路，平台运行时优先以本体作为 AI 的语义入口；但代码依赖并不是单向传递。`datamaster-ai` 当前同时依赖本体、资产和元数据接口，`datamaster-ontology` 依赖资产和元数据接口，`datamaster-service` 依赖资产治理接口。SQL 执行能力（`DbQuery`/`DataSourceFactory`）统一来自 `datamaster-common`。
 
 ```text
-datamaster-ai（AI 问数 / Skill 生成）
+datamaster-ai（数据智能体 / Skill 生成）
    │  运行时优先本体；实现层可直接读取资产/元数据接口
    ▼
 datamaster-ontology（本体：概念 / 关系 / 属性 / 动作 / 函数）
@@ -961,7 +961,7 @@ datamaster-server/src/main/resources/application-prod.yml
 
 ### 7.2 用户注册数据源
 
-用户在数据源管理页面注册外部数据源，供资产、目录、质量、ETL、服务和 AI 问数使用。
+用户在数据源管理页面注册外部数据源，供资产、目录、质量、ETL、服务和数据智能体使用。
 
 关键机制：
 
@@ -1177,7 +1177,7 @@ npm run build:prod
 - ETL 任务列表、发布和执行
 - 质量探查任务执行
 - 数据服务 API 测试和发布
-- AI 问数基础查询
+- 决策智能体基础查询
 
 ## 14. 开发约定
 

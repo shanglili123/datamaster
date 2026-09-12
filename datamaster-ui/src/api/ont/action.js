@@ -28,6 +28,11 @@ export function delAction(id) {
 
 // ========== Execution ==========
 
+// AI 只做结构化动作决策，只返回预览，不直接提交执行
+export function aiActionDecision(data) {
+  return request({ url: '/ont/action/execution/ai-decision', method: 'post', data })
+}
+
 export function submitExecution(data) {
   return request({ url: '/ont/action/execution/submit', method: 'post', data })
 }

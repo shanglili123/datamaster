@@ -507,6 +507,7 @@ const titleApply = ref("");
 const spaceOptions = ref([]);
 const defaultSort = ref({ prop: "create_time", order: "desc" });
 const router = useRouter();
+const stationNavigation = inject("spaceWorkstationNavigation", null);
 const userStore = useUserStore();
 /*** 用户导入参数 */
 const upload = reactive({
@@ -614,7 +615,7 @@ function handleRefresh(row) {
 function handleSync(row) {
   const _id = row.id;
   loading.value = true;
-  syncAsset({ assetId: _id })
+  syncAsset({ assetId: _id, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode })
     .then((res) => {
       if (res.code == 200) {
         proxy.$modal.msgSuccess(res.msg || "同步成功");
@@ -682,6 +683,8 @@ async function submitDatasourceSync() {
       databaseName: database.dbName,
       schemaName: database.schemaName,
       catCode: syncCatCode.value,
+      spaceId: userStore.spaceId,
+      spaceCode: userStore.spaceCode,
     });
     message.success(response.msg || "整库同步成功");
     syncOpen.value = false;
@@ -898,6 +901,9 @@ function routeTo(link, row) {
     return;
   }
   if (link !== "") {
+    if (stationNavigation?.openPage?.({ path: link, query: { id: row?.id } })) {
+      return;
+    }
     if (link === router.currentRoute.value.path) {
       window.location.reload();
     } else {

@@ -16,6 +16,8 @@
         <result property="collectionMode"    column="COLLECTION_MODE"    />
         <result property="collectionScope"    column="COLLECTION_SCOPE"    />
         <result property="status"    column="STATUS"    />
+        <result property="spaceId"    column="SPACE_ID"    />
+        <result property="spaceCode"    column="SPACE_CODE"    />
 
         <!-- 新增字段 -->
         <result property="collectType" column="COLLECT_TYPE" />
@@ -37,6 +39,7 @@
         select ID, SOURCE_SYSTEM_ID, SOURCE_SYSTEM_NAME, NAME, DATASOURCE_ID, DB_TYPE, LEADER, LEADER_PHONE,
                COLLECTION_MODE, COLLECTION_SCOPE, STATUS,
                COLLECT_TYPE, BLACKLIST,
+               SPACE_ID, SPACE_CODE,
                VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME,
                UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK, DESCRIPTION
         from CAT_TASK
@@ -58,6 +61,8 @@
             <if test="collectType != null"> and COLLECT_TYPE = #{collectType}</if>
             <if test="createTime != null "> and CREATE_TIME = #{createTime}</if>
             <if test="description != null  and description != ''"> and DESCRIPTION = #{description}</if>
+            <if test="spaceId != null"> and SPACE_ID = #{spaceId}</if>
+            <if test="spaceCode != null and spaceCode != ''"> and SPACE_CODE = #{spaceCode}</if>
         </where>
     </select>
 
@@ -80,6 +85,8 @@
             <if test="collectionMode != null">COLLECTION_MODE,</if>
             <if test="collectionScope != null">COLLECTION_SCOPE,</if>
             <if test="status != null">STATUS,</if>
+            <if test="spaceId != null">SPACE_ID,</if>
+            <if test="spaceCode != null">SPACE_CODE,</if>
 
             <if test="collectType != null">COLLECT_TYPE,</if>
             <if test="blacklist != null">BLACKLIST,</if>
@@ -107,6 +114,8 @@
             <if test="collectionMode != null">#{collectionMode},</if>
             <if test="collectionScope != null">#{collectionScope},</if>
             <if test="status != null">#{status},</if>
+            <if test="spaceId != null">#{spaceId},</if>
+            <if test="spaceCode != null">#{spaceCode},</if>
 
             <if test="collectType != null">#{collectType},</if>
             <if test="blacklist != null">#{blacklist},</if>
@@ -137,6 +146,8 @@
             <if test="collectionMode != null">COLLECTION_MODE = #{collectionMode},</if>
             <if test="collectionScope != null">COLLECTION_SCOPE = #{collectionScope},</if>
             <if test="status != null">STATUS = #{status},</if>
+            <if test="spaceId != null">SPACE_ID = #{spaceId},</if>
+            <if test="spaceCode != null">SPACE_CODE = #{spaceCode},</if>
 
             <if test="collectType != null">COLLECT_TYPE = #{collectType},</if>
             <if test="blacklist != null">BLACKLIST = #{blacklist},</if>

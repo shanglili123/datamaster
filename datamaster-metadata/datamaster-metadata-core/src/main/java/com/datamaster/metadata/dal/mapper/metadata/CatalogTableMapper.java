@@ -70,6 +70,7 @@ public interface CatalogTableMapper extends BaseMapperX<CatalogTableDO> {
                 .eqIfPresent(CatalogTableDO::getCreateTime, reqVO.getCreateTime())
                 .eqIfPresent(CatalogTableDO::getDescription, reqVO.getDescription())
                 .eq(reqVO.getSpaceId() != null, CatalogTableDO::getSpaceId, reqVO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqVO.getSpaceCode()), CatalogTableDO::getSpaceCode, reqVO.getSpaceCode())
                 .orderBy(reqVO.getOrderByColumn(), reqVO.getIsAsc(), allowedColumns);
         lambdaWrapperX.and(StringUtils.isNotBlank(reqVO.getKeyWord()), wrapper ->
                 wrapper.like(CatalogTableDO::getTableName, reqVO.getKeyWord())
@@ -108,6 +109,7 @@ public interface CatalogTableMapper extends BaseMapperX<CatalogTableDO> {
                                 .or()
                                 .like(CatalogTableDO::getTableComment, reqVO.getKeyWord()))
                 .eq(reqVO.getSpaceId() != null, CatalogTableDO::getSpaceId, reqVO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqVO.getSpaceCode()), CatalogTableDO::getSpaceCode, reqVO.getSpaceCode())
                 .orderByStr(StringUtils.isNotBlank(reqVO.getOrderByColumn()), StringUtils.equals("asc", reqVO.getIsAsc()), StringUtils.isNotBlank(reqVO.getOrderByColumn()) ? Arrays.asList(reqVO.getOrderByColumn().split(",")) : null);
         // 构造动态查询条件
         return selectPage(reqVO, lambdaWrapperX);
@@ -138,6 +140,7 @@ public interface CatalogTableMapper extends BaseMapperX<CatalogTableDO> {
                                 .or()
                                 .like(CatalogTableDO::getTableComment, reqVO.getKeyWord()))
                 .eq(reqVO.getSpaceId() != null, CatalogTableDO::getSpaceId, reqVO.getSpaceId())
+                .eq(StringUtils.isNotBlank(reqVO.getSpaceCode()), CatalogTableDO::getSpaceCode, reqVO.getSpaceCode())
                 .orderByStr(
                         StringUtils.isNotBlank(reqVO.getOrderByColumn()),
                         StringUtils.equals("asc", reqVO.getIsAsc()),

@@ -78,7 +78,8 @@
 import { listProbeTaskInstance, doSendMessage } from "@/api/ast/quality/probeTaskInstance";
 const { proxy } = getCurrentInstance();
 import { useRoute, useRouter } from "vue-router"
-import { ref } from "vue";
+import { ref, inject } from "vue";
+const stationNavigation = inject("spaceWorkstationNavigation", null);
 const defaultSort = ref({ prop: 'startTime', order: 'descending' });
 const { quality_log_success_flag } = proxy.useDict(
 
@@ -175,6 +176,12 @@ function routeTo(link, row) {
         return
     }
     if (link !== "") {
+        if (stationNavigation?.openPage?.({
+            path: link,
+            query: { id: row?.id, score: row?.score },
+            title: "探查质量报告",
+            routeName: "ProbeTaskInstanceDetail",
+        })) return;
         if (link === router.currentRoute.value.path) {
             window.location.reload();
         } else {

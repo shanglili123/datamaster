@@ -5,7 +5,7 @@
     <div class="center-container">
       <div class="title">
         <img src="@/assets/ai/gpt-new.svg" width="44px" />
-        <span>Hello，我是 dataMaster 智能问数，很高兴见到你!</span>
+        <span>Hello，我是 dataMaster 决策智能体，很高兴见到你!</span>
       </div>
       <div class="subheading">化繁为简，让数据分析更高效。</div>
       <div class="footer-container">
@@ -16,7 +16,7 @@
             v-model:value="value"
             @keydown.enter="handleSendByKeydown"
             @keydown.shift.enter="addNewLine"
-            placeholder="问问 dataMaster 智能问数...（Shift+Enter 换行，按下 Enter 发送）"
+        placeholder="问问 dataMaster 决策智能体...（Shift+Enter 换行，按下 Enter 发送）"
           />
           <div class="prompt-btns">
             <div class="footer-left">
@@ -31,7 +31,7 @@
                   <a-select-option
                     v-for="item in modelList"
                     :key="item.id"
-                    :label="item.name"
+                    :label="normalizeAgentText(item.name)"
                     :value="item.id"
                   >
                     <div class="model-option">
@@ -39,7 +39,7 @@
                         :src="getModelIconByPlatform(item.platform)"
                         class="model-option-icon"
                       />
-                      <span>{{ item.name }}</span>
+                      <span>{{ normalizeAgentText(item.name) }}</span>
                     </div>
                   </a-select-option>
                 </a-select>
@@ -86,7 +86,7 @@
       </div>
     </div>
     <div class="ai-disclaimer">
-      本功能由 dataMaster 智能问数生成，其回答未必正确无误。
+      本功能由 dataMaster 决策智能体生成，其回答未必正确无误。
     </div>
   </div>
 </template>
@@ -97,6 +97,7 @@ import defaultModelIcon from "@/assets/ai/gpt-new.svg";
 import deepseekIcon from "@/assets/ai/deepseek.svg";
 import tongyiIcon from "@/assets/ai/TongYi.svg";
 import { PlusOutlined } from "@ant-design/icons-vue";
+import { normalizeAgentText } from "@/utils/agentText";
 
 const emits = defineEmits([
   "onPrompt",

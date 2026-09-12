@@ -47,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 对象实例层查询实现 — 管理端对象浏览器
@@ -506,20 +507,24 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         if (lineageDataService == null) {
             return;
         }
-        try {
-            String hostPort = ds.getIp() + ":" + ds.getPort();
-            lineageDataService.saveObjectLineage(
-                    concept.getId(),
-                    concept.getOntologyId(),
-                    concept.getCode(),
-                    concept.getName(),
-                    binding.getTableName(),
-                    hostPort,
-                    binding.getDatabaseName(),
-                    binding.getSchemaName());
-        } catch (Exception e) {
-            log.warn("对象血缘写入失败，不影响查询结果: {}", e.getMessage());
-        }
+        // Neo4j 只是血缘旁路，不能阻塞对象数据查询。Neo4j 未启动、网络超时或写入较慢时，
+        // 原来的同步调用会让对象面板一直转圈，而资产预览不经过这条链路。
+        CompletableFuture.runAsync(() -> {
+            try {
+                String hostPort = ds.getIp() + ":" + ds.getPort();
+                lineageDataService.saveObjectLineage(
+                        concept.getId(),
+                        concept.getOntologyId(),
+                        concept.getCode(),
+                        concept.getName(),
+                        binding.getTableName(),
+                        hostPort,
+                        binding.getDatabaseName(),
+                        binding.getSchemaName());
+            } catch (Exception e) {
+                log.warn("对象血缘写入失败，不影响查询结果: {}", e.getMessage());
+            }
+        });
     }
 
     private ObjectInstanceQueryRespVO doQuery(ObjectInstanceQueryReqVO reqVO, ConceptDO concept,
@@ -533,15 +538,28 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         // 列以元数据白名单为准（保证顺序与类型），取不到时退化为按首行 key 兜底
         List<String> columns = new ArrayList<>();
         java.util.Set<String> textColumns = new java.util.HashSet<>();
-        try {
-            for (DbColumn col : dbQuery.getTableColumns(property, binding.getTableName())) {
-                columns.add(col.getColName());
-                if (TypedQueryBuilder.isTextType(col.getDataType())) {
-                    textColumns.add(col.getColName());
+        // 本体属性映射已经是可信字段白名单，优先使用它，避免每次打开对象都再次连接外部库读取
+        // information_schema。只有没有任何属性映射时才回退到物理表元数据查询。
+        if (properties != null) {
+            for (SemanticPropertyDTO mapped : properties) {
+                if (mapped == null || StringUtils.isBlank(mapped.getPhysicalColumnName())) continue;
+                columns.add(mapped.getPhysicalColumnName());
+                if (TypedQueryBuilder.isTextType(mapped.getDataType())) {
+                    textColumns.add(mapped.getPhysicalColumnName());
                 }
             }
-        } catch (Exception e) {
-            columns = Collections.emptyList();
+        }
+        if (columns.isEmpty()) {
+            try {
+                for (DbColumn col : dbQuery.getTableColumns(property, binding.getTableName())) {
+                    columns.add(col.getColName());
+                    if (TypedQueryBuilder.isTextType(col.getDataType())) {
+                        textColumns.add(col.getColName());
+                    }
+                }
+            } catch (Exception e) {
+                columns = Collections.emptyList();
+            }
         }
 
         // 解析类型化过滤条件（结构化 JSON：分组/与或非/运算符/排序/投影/关键字），统一白名单校验 + NamedParameter；

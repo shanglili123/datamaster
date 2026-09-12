@@ -381,6 +381,7 @@ import { listDomain } from "@/api/tax/domain/domain.js";
 import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
 
 import { useRouter } from "vue-router";
+import useUserStore from "@/store/system/user";
 
 const BASE_URL = "/meta/catalog/column";
 
@@ -436,6 +437,7 @@ const dicts = proxy.useDict(
 );
 
 const router = useRouter();
+const userStore = useUserStore();
 
 const store = reactive({
   form: {},
@@ -479,7 +481,7 @@ function getDomains() {
 
 // 获取库元素列表
 function getMetaDatabases() {
-  return listDb({ pageSize: 1000 }).then((res) => {
+  return listDb({ pageSize: 1000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((res) => {
     store.metaDatabases = res.data.rows;
     return res;
   });
@@ -487,7 +489,7 @@ function getMetaDatabases() {
 
 // 获取表元素列表
 function getMetaTables(dbId) {
-  return listTable({ pageSize: 1000, dbId }).then((res) => {
+  return listTable({ pageSize: 1000, dbId, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((res) => {
     store.metaTables = res.data.rows;
     return res;
   });

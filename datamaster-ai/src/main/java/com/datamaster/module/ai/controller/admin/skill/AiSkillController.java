@@ -6,11 +6,13 @@ import com.datamaster.common.core.page.PageResult;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillPageReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillReportTemplateRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillReportTemplateSaveReqVO;
+import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillReportTemplateGenerateReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillSaveReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillVersionRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiDatabaseSkillGenerateReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiMultiTableSkillGenerateReqVO;
+import com.datamaster.module.ai.controller.admin.skill.vo.AiOntologySkillGenerateReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiTableSkillGenerateReqVO;
 import com.datamaster.module.ai.service.dbgpt.IDbGptSkillSyncService;
 import com.datamaster.module.ai.service.skill.IAiSkillReportTemplateService;
@@ -121,6 +123,14 @@ public class AiSkillController extends BaseController {
         return CommonResult.success(aiSkillReportTemplateService.getTemplate(skillId, templateId));
     }
 
+    @Operation(summary = "AI生成Skill报告模板")
+    @PreAuthorize("@ss.hasPermi('ai:skill:edit')")
+    @PostMapping("/{skillId}/report-templates/generate")
+    public CommonResult<String> generateReportTemplate(@PathVariable Long skillId,
+                                                       @Valid @RequestBody AiSkillReportTemplateGenerateReqVO reqVO) {
+        return CommonResult.success(aiSkillService.generateReportTemplate(skillId, reqVO));
+    }
+
     @Operation(summary = "新增Skill报告模板")
     @PreAuthorize("@ss.hasPermi('ai:skill:edit')")
     @PostMapping("/{skillId}/report-templates")
@@ -189,6 +199,14 @@ public class AiSkillController extends BaseController {
         return CommonResult.success(aiSkillService.generateMultiTableSkill(reqVO));
     }
 
+    @Operation(summary = "生成本体决策Skill")
+    @PreAuthorize("@ss.hasPermi('ai:skill:generate')")
+    @PostMapping("/generate/ontology-decision")
+    public CommonResult<AiSkillRespVO> generateOntologyDecision(
+            @RequestBody AiOntologySkillGenerateReqVO reqVO) {
+        return CommonResult.success(aiSkillService.generateOntologyDecisionSkill(reqVO));
+    }
+
     @Operation(summary = "生成表级问数Skill")
     @PreAuthorize("@ss.hasPermi('ai:skill:generate')")
     @PostMapping("/generate/table/{assetId}")
@@ -201,14 +219,14 @@ public class AiSkillController extends BaseController {
         return CommonResult.success(aiSkillService.generateTableSkill(reqVO));
     }
 
-    @Operation(summary = "同步全部已发布Skill到AI问数")
+    @Operation(summary = "同步全部已发布Skill到决策智能体")
     @PreAuthorize("@ss.hasPermi('ai:skill:sync')")
     @PostMapping("/sync/dbgpt")
     public com.datamaster.common.core.domain.AjaxResult syncAllToDbGpt() {
         return dbGptSkillSyncService.syncAllSkills();
     }
 
-    @Operation(summary = "同步指定Skill到AI问数")
+    @Operation(summary = "同步指定Skill到决策智能体")
     @PreAuthorize("@ss.hasPermi('ai:skill:sync')")
     @PostMapping("/{id}/sync/dbgpt")
     public com.datamaster.common.core.domain.AjaxResult syncOneToDbGpt(@PathVariable Long id) {

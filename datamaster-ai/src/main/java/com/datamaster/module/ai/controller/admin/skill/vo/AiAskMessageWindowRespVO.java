@@ -5,7 +5,7 @@ import lombok.Data;
 
 import java.util.List;
 
-@Schema(description = "AI问数消息窗口响应")
+@Schema(description = "决策智能体消息窗口响应")
 @Data
 public class AiAskMessageWindowRespVO {
 

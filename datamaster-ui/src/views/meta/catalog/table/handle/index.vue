@@ -260,6 +260,7 @@
 
 <script setup name="TableHandle">
 import { reactive, getCurrentInstance, toValue } from "vue";
+import useUserStore from "@/store/system/user";
 import { listDb, getDb } from "@/api/cat/catalog/db";
 import { listDaDatasource } from "@/api/cat/dataSource/dataSource";
 import { listDgSensitiveLevel } from "@/api/cat/compliance/sensitiveLevel";
@@ -320,6 +321,7 @@ const rules = {
 };
 
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
 const dicts = proxy.useDict(
   "meta_task_status",
   "meta_dw_layers",
@@ -339,7 +341,7 @@ const store = reactive({
 
 // 获取库元素列表
 function getMetaDatabases() {
-  return listDb({ pageSize: 1000 }).then((res) => {
+  return listDb({ pageSize: 1000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((res) => {
     store.metaDatabases = res.data.rows;
     if (route.query.dbId) {
       store.form.dbId = route.query.dbId - 0;

@@ -300,6 +300,7 @@ import { getCurrentInstance, h, reactive, ref, toValue } from "vue";
 import { PlusOutlined, DeleteOutlined, EditOutlined, DownOutlined } from '@ant-design/icons-vue';
 
 import { listDomain } from "@/api/tax/domain/domain.js";
+import useUserStore from "@/store/system/user";
 
 import { getParentLabelPath } from "@/utils/anivia.js";
 
@@ -359,6 +360,7 @@ const rules = {
 };
 
 const { proxy } = getCurrentInstance();
+const userStore = useUserStore();
 const dicts = proxy.useDict(
   "meta_task_status",
   "meta_dw_layers",
@@ -552,6 +554,8 @@ const tableStroe = reactive({
   func: listColumn,
   params: {
     dataType: 1,
+    spaceId: userStore.spaceId,
+    spaceCode: userStore.spaceCode,
   },
 });
 
@@ -640,7 +644,7 @@ function getDomains() {
 // 获取库元素列表
 function getMetaDatabases() {
   store.metaDatabases.splice(0, store.metaDatabases.length);
-  return listDb({ pageSize: 1000 }).then((res) => {
+  return listDb({ pageSize: 1000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((res) => {
     res.data.rows.forEach((item) => {
       store.metaDatabases.push({
         value: item.id,
@@ -654,7 +658,7 @@ function getMetaDatabases() {
 // 获取表元素列表
 function getMetaTables() {
   store.metaTables.splice(0, store.metaTables.length);
-  return listTable({ pageSize: 1000 }).then((res) => {
+  return listTable({ pageSize: 1000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((res) => {
     res.data.rows.forEach((item) => {
       store.metaTables.push({
         value: item.id,

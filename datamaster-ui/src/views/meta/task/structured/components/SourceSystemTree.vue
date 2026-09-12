@@ -106,6 +106,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import useUserStore from "@/store/system/user";
 import { Empty } from "ant-design-vue";
 import {
   LeftOutlined,
@@ -129,6 +130,8 @@ const props = defineProps({
     default: "sourceSystem",
   },
 });
+
+const userStore = useUserStore();
 
 const emit = defineEmits(["node-click", "data-loaded", "update:leftWidth"]);
 
@@ -238,7 +241,7 @@ const handleExpand = (keys) => {
 const getTreeData = () => {
   loading.value = true;
   const fetchApi = props.treeType === "dbTable" ? dbTableTree : sourceSystemTree;
-  fetchApi()
+  fetchApi({ spaceId: userStore.spaceId, spaceCode: userStore.spaceCode })
     .then((res) => {
       loading.value = false;
       if (!res || !res.data) {

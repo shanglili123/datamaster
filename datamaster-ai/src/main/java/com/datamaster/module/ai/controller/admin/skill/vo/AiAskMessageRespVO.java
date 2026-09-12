@@ -6,7 +6,7 @@ import lombok.Data;
 
 import java.util.Date;
 
-@Schema(description = "AI问数消息响应")
+@Schema(description = "决策智能体消息响应")
 @Data
 public class AiAskMessageRespVO {
 

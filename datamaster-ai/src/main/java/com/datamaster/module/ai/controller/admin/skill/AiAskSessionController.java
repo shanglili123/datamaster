@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import java.util.List;
 
-@Tag(name = "AI问数会话")
+@Tag(name = "决策智能体会话")
 @RestController
 @RequestMapping("/ai/ask-session")
 @Validated
@@ -34,7 +34,7 @@ public class AiAskSessionController extends BaseController {
     @Resource
     private IAiAskSessionService aiAskSessionService;
 
-    @Operation(summary = "查询最近AI问数会话")
+    @Operation(summary = "查询最近决策智能体会话")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @GetMapping
     public CommonResult<List<AiAskSessionRespVO>> list(@RequestParam(required = false) Long spaceId,
@@ -42,14 +42,14 @@ public class AiAskSessionController extends BaseController {
         return CommonResult.success(aiAskSessionService.listRecent(getUserId(), spaceId, limit));
     }
 
-    @Operation(summary = "新增AI问数会话")
+    @Operation(summary = "新增决策智能体会话")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @PostMapping
     public CommonResult<AiAskSessionRespVO> create(@RequestBody AiAskSessionSaveReqVO reqVO) {
         return CommonResult.success(aiAskSessionService.create(getUserId(), getUsername(), reqVO));
     }
 
-    @Operation(summary = "修改AI问数会话选择")
+    @Operation(summary = "修改决策智能体会话选择")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @PutMapping("/{sessionId}")
     public CommonResult<AiAskSessionRespVO> update(@PathVariable Long sessionId,
@@ -57,7 +57,7 @@ public class AiAskSessionController extends BaseController {
         return CommonResult.success(aiAskSessionService.update(getUserId(), getUsername(), sessionId, reqVO));
     }
 
-    @Operation(summary = "删除AI问数会话")
+    @Operation(summary = "删除决策智能体会话")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @DeleteMapping("/{sessionId}")
     public CommonResult<Integer> delete(@PathVariable Long sessionId,
@@ -65,7 +65,7 @@ public class AiAskSessionController extends BaseController {
         return CommonResult.toAjax(aiAskSessionService.delete(getUserId(), spaceId, sessionId));
     }
 
-    @Operation(summary = "游标查询AI问数消息")
+    @Operation(summary = "游标查询决策智能体消息")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @GetMapping("/{sessionId}/messages")
     public CommonResult<AiAskMessageWindowRespVO> messages(@PathVariable Long sessionId,
@@ -77,7 +77,7 @@ public class AiAskSessionController extends BaseController {
                 getUserId(), spaceId, sessionId, beforeId, afterId, limit));
     }
 
-    @Operation(summary = "新增AI问数消息")
+    @Operation(summary = "新增决策智能体消息")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @PostMapping("/{sessionId}/messages")
     public CommonResult<AiAskMessageRespVO> appendMessage(@PathVariable Long sessionId,
@@ -87,7 +87,7 @@ public class AiAskSessionController extends BaseController {
                 getUserId(), getUsername(), spaceId, sessionId, reqVO));
     }
 
-    @Operation(summary = "删除AI问数消息")
+    @Operation(summary = "删除决策智能体消息")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @DeleteMapping("/{sessionId}/messages/{messageId}")
     public CommonResult<Integer> deleteMessage(@PathVariable Long sessionId,
@@ -96,7 +96,7 @@ public class AiAskSessionController extends BaseController {
         return CommonResult.toAjax(aiAskSessionService.deleteMessage(getUserId(), spaceId, sessionId, messageId));
     }
 
-    @Operation(summary = "清空AI问数会话消息")
+    @Operation(summary = "清空决策智能体会话消息")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @DeleteMapping("/{sessionId}/messages")
     public CommonResult<Integer> clearMessages(@PathVariable Long sessionId,

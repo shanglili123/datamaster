@@ -7,6 +7,7 @@ import com.datamaster.mybatis.core.mapper.BaseMapperX;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 
 import java.util.List;
+import java.util.Collection;
 
 public interface FunctionExecutionMapper extends BaseMapperX<FunctionExecutionDO> {
 
@@ -19,8 +20,16 @@ public interface FunctionExecutionMapper extends BaseMapperX<FunctionExecutionDO
 
     default List<FunctionExecutionDO> selectPendingApprovals(Long ontologyId) {
         return selectList(new LambdaQueryWrapperX<FunctionExecutionDO>()
-                .eq(FunctionExecutionDO::getOntologyId, ontologyId)
+                // ONT_FUNCTION_EXECUTION 为兼容旧库结构没有 ontology_id，按函数定义反查所属本体。
+                .inSql(FunctionExecutionDO::getFunctionId,
+                        "SELECT id FROM ONT_FUNCTION WHERE ontology_id = " + ontologyId)
                 .eq(FunctionExecutionDO::getStatus, "PENDING_APPROVAL")
                 .orderByDesc(FunctionExecutionDO::getId));
+    }
+
+    default int deleteByFunctionIds(Collection<Long> functionIds) {
+        if (functionIds == null || functionIds.isEmpty()) return 0;
+        return delete(new LambdaQueryWrapperX<FunctionExecutionDO>()
+                .in(FunctionExecutionDO::getFunctionId, functionIds));
     }
 }

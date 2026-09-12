@@ -10,10 +10,11 @@ export function askDataDbgptChat(data) {
 }
 
 // AI 问数报告生成
-export function askDataDbgptReport(data) {
+export function askDataDbgptReport(data, config = {}) {
   return request({
     url: '/ai/ask-data/dbgpt/report',
     method: 'post',
-    data: data
+    data: data,
+    ...config
   })
 }

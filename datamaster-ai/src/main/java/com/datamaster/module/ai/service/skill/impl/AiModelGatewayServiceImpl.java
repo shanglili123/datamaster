@@ -33,8 +33,25 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService {
     public String complete(String systemPrompt, String userPrompt) {
         ModelConfig modelConfig = resolveModelConfig();
         if (modelConfig == null) {
-            throw new ServiceException("AI问数模型未启用或未配置API地址");
+            throw new ServiceException("决策智能体模型未启用或未配置API地址");
         }
+        int maxAttempts = Math.max(1, modelConfig.getRetryCount() + 1);
+        ServiceException lastFailure = null;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return requestCompletion(systemPrompt, userPrompt, modelConfig);
+            } catch (ServiceException e) {
+                lastFailure = e;
+                if (!isRetryable(e) || attempt >= maxAttempts) {
+                    throw e;
+                }
+                sleepBeforeRetry(modelConfig.getRetryInterval(), attempt);
+            }
+        }
+        throw lastFailure == null ? new ServiceException("AI模型调用失败") : lastFailure;
+    }
+
+    private String requestCompletion(String systemPrompt, String userPrompt, ModelConfig modelConfig) {
         DbGptChatCompletionRequest request = new DbGptChatCompletionRequest();
         request.setModel(modelConfig.getModel());
         request.setTemperature(modelConfig.getTemperature());
@@ -73,6 +90,27 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService {
         }
     }
 
+    private boolean isRetryable(ServiceException exception) {
+        String message = exception.getMessage();
+        if (message == null) return false;
+        String text = message.toLowerCase();
+        return text.contains("timed out") || text.contains("timeout")
+                || text.contains("connection reset") || text.contains("connection refused")
+                || text.contains("状态码: 429") || text.contains("状态码: 500")
+                || text.contains("状态码: 502") || text.contains("状态码: 503")
+                || text.contains("状态码: 504");
+    }
+
+    private void sleepBeforeRetry(Long retryInterval, int attempt) {
+        long interval = retryInterval == null ? 1500L : Math.max(0L, retryInterval);
+        try {
+            Thread.sleep(interval * Math.max(1, attempt));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new ServiceException("AI模型重试被中断");
+        }
+    }
+
     private String normalizeUrl(String apiUrl) {
         String url = apiUrl.trim();
         if (url.endsWith("/")) {
@@ -90,9 +128,11 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService {
             modelConfig.setModel(defaultText(properties.getModel(), "qwen-plus"));
             modelConfig.setApiUrl(properties.getApiUrl());
             modelConfig.setApiKey(resolveApiKey(properties.getApiKey()));
-            modelConfig.setTimeout(defaultInt(properties.getTimeout(), 60000));
+            modelConfig.setTimeout(defaultInt(properties.getTimeout(), 180000));
+            modelConfig.setRetryCount(defaultInt(properties.getRetryCount(), 2));
+            modelConfig.setRetryInterval(properties.getRetryInterval() == null ? 1500L : properties.getRetryInterval());
             modelConfig.setTemperature(defaultDouble(properties.getTemperature(), 0.2D));
-            modelConfig.setMaxTokens(defaultInt(properties.getMaxTokens(), 4096));
+            modelConfig.setMaxTokens(defaultInt(properties.getMaxTokens(), 8192));
             return modelConfig;
         }
         return null;
@@ -135,6 +175,8 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService {
         private String apiUrl;
         private String apiKey;
         private Integer timeout;
+        private Integer retryCount;
+        private Long retryInterval;
         private Double temperature;
         private Integer maxTokens;
 
@@ -168,6 +210,22 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService {
 
         public void setTimeout(Integer timeout) {
             this.timeout = timeout;
+        }
+
+        public Integer getRetryCount() {
+            return retryCount;
+        }
+
+        public void setRetryCount(Integer retryCount) {
+            this.retryCount = retryCount;
+        }
+
+        public Long getRetryInterval() {
+            return retryInterval;
+        }
+
+        public void setRetryInterval(Long retryInterval) {
+            this.retryInterval = retryInterval;
         }
 
         public Double getTemperature() {

@@ -7,13 +7,13 @@ const aiRouter = [
     redirect: '/ai/ask',
     alwaysShow: true,
     name: 'Ai',
-    meta: { title: '智能问数', icon: 'message' },
+    meta: { title: '数据智能体', icon: 'message' },
     children: [
       {
         path: 'ask',
         component: () => import('@/views/ai/chat/index/index.vue'),
         name: 'Ask',
-        meta: { title: '问数', icon: 'message' }
+        meta: { title: '决策智能体', icon: 'message' }
       },
       {
         path: 'skill',

@@ -60,6 +60,11 @@ public class DbQueryProperty implements Serializable {
         this.port = port;
         this.dbName = dbName;
         this.sid = sid;
+        if (StringUtils.isBlank(this.sid)
+                && (StringUtils.equals(DbType.POSTGRE_SQL.getDb(), dbType)
+                || StringUtils.equals(DbType.KINGBASE8.getDb(), dbType))) {
+            this.sid = "public";
+        }
     }
 
     public DbQueryProperty copy() {
@@ -191,7 +196,13 @@ public class DbQueryProperty implements Serializable {
             }
         }
 //        this.password = passwordAes;
-        this.sid = configJson.getString("sid");
+        // 数据源配置统一支持 sid/schema；PostgreSQL 和 Kingbase 未填写模式名时使用 public。
+        this.sid = StringUtils.defaultIfBlank(configJson.getString("sid"), configJson.getString("schema"));
+        if (StringUtils.isBlank(this.sid)
+                && (StringUtils.equals(DbType.POSTGRE_SQL.getDb(), dbType)
+                || StringUtils.equals(DbType.KINGBASE8.getDb(), dbType))) {
+            this.sid = "public";
+        }
         this.dbName = configJson.getString("dbname");
         String config = configJson.getString("config");
         if (StringUtils.isNotBlank(config)) {

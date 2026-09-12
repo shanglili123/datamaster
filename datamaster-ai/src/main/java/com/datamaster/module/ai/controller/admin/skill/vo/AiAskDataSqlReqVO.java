@@ -19,7 +19,7 @@ public class AiAskDataSqlReqVO {
     @Schema(description = "资产ID（可选，用于聚焦特定表）", example = "123")
     private Long assetId;
 
-    @Schema(description = "数据源ID（可选，用于AI问数）", example = "12")
+    @Schema(description = "数据源ID（可选，用于决策智能体）", example = "12")
     private Long datasourceId;
 
     @Schema(description = "空间ID", example = "1")
@@ -31,7 +31,7 @@ public class AiAskDataSqlReqVO {
     @Schema(description = "模型名称（可选，默认使用配置文件模型）", example = "qwen-plus")
     private String model;
 
-    @Schema(description = "AI问数模式", example = "chat_with_db_qa")
+    @Schema(description = "决策智能体模式", example = "chat_with_db_qa")
     private String chatMode;
 
     @Schema(description = "Skill ID列表（可选，指定使用的Skill）")

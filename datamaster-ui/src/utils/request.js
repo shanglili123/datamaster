@@ -4,6 +4,7 @@ import { message, Modal, notification } from 'ant-design-vue'
 import { getToken } from '@/utils/auth'
 import errorCode from '@/utils/errorCode'
 import { tansParams, blobValidate } from '@/utils/anivia.js'
+import { normalizeAgentText } from '@/utils/agentText'
 import cache from '@/plugins/cache'
 import { saveAs } from 'file-saver'
 import useUserStore from '@/store/system/user'
@@ -119,7 +120,7 @@ service.interceptors.response.use(res => {
   // 未设置状态码则默认成功状态
   const code = res.data.code || 200;
   // 获取错误信息
-  const msg = errorCode[code] || res.data.msg || errorCode['default']
+  const msg = normalizeAgentText(errorCode[code] || res.data.msg || errorCode['default'])
   // 二进制数据则直接返回
   if (res.request.responseType === 'blob' || res.request.responseType === 'arraybuffer') {
     return res.data
@@ -160,6 +161,7 @@ service.interceptors.response.use(res => {
   error => {
     console.log('err' + error)
     let { message: errorMessage } = error;
+    errorMessage = normalizeAgentText(errorMessage || '系统请求失败');
 
     if (errorMessage == "Network Error") {
       errorMessage = "后端接口连接异常";

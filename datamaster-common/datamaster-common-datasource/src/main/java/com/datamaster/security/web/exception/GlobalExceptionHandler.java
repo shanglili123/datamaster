@@ -53,7 +53,7 @@ public class GlobalExceptionHandler
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',不支持'{}'请求", requestURI, e.getMethod());
-        return AjaxResult.error(e.getMessage());
+        return AjaxResult.error(userMessage(e.getMessage()));
     }
 
     /**
@@ -64,7 +64,8 @@ public class GlobalExceptionHandler
     {
         log.error(e.getMessage(), e);
         Integer code = e.getCode();
-        return StringUtils.isNotNull(code) ? AjaxResult.error(code, e.getMessage()) : AjaxResult.error(e.getMessage());
+        String message = userMessage(e.getMessage());
+        return StringUtils.isNotNull(code) ? AjaxResult.error(code, message) : AjaxResult.error(message);
     }
 
     /**
@@ -76,7 +77,7 @@ public class GlobalExceptionHandler
         String requestURI = request.getRequestURI();
         String message = StringUtils.isNotEmpty(e.getMessage()) ? e.getMessage() : "数据库连接失败";
         log.warn("请求地址'{}',数据查询失败: {}", requestURI, message);
-        return AjaxResult.error(message);
+        return AjaxResult.error(userMessage(message));
     }
 
     /**
@@ -114,7 +115,7 @@ public class GlobalExceptionHandler
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',发生未知异常.", requestURI, e);
-        return AjaxResult.error(e.getMessage());
+        return AjaxResult.error(userMessage(e.getMessage()));
     }
 
     /**
@@ -125,7 +126,7 @@ public class GlobalExceptionHandler
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',发生系统异常.", requestURI, e);
-        return AjaxResult.error(e.getMessage());
+        return AjaxResult.error(userMessage(e.getMessage()));
     }
 
     /**
@@ -157,5 +158,18 @@ public class GlobalExceptionHandler
     public AjaxResult handleDemoModeException(DemoModeException e)
     {
         return AjaxResult.error("演示模式，不允许操作");
+    }
+
+    /**
+     * DB-GPT 是平台内部的模型/数据适配器，不能作为产品品牌出现在用户提示中。
+     */
+    private String userMessage(String message)
+    {
+        if (StringUtils.isEmpty(message))
+        {
+            return message;
+        }
+        return message.replaceAll("(?i)DB[-_ ]?GPT", "决策智能体")
+                .replace("AI问数", "决策智能体");
     }
 }

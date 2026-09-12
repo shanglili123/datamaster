@@ -385,6 +385,8 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
 
     private JSONObject buildReactAgentBody(DbGptChatCompletionRequest request) {
         String dbName = firstNonBlank(request.getChatParam(), request.getDbName());
+        String schemaName = request.getExtra() == null ? "" : firstNonBlank(
+                request.getExtra().get("schema") == null ? "" : String.valueOf(request.getExtra().get("schema")));
         String chatMode = firstNonBlank(request.getChatMode(), dbGptProperties.getChatMode(), "chat_with_db_qa");
         Object skillIdObj = request.getExtra() == null ? null : request.getExtra().get("skill_id");
         String skillId = skillIdObj == null ? "" : firstNonBlank(String.valueOf(skillIdObj));
@@ -392,7 +394,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         body.put("conv_uid", firstNonBlank(request.getConvUid(), "dm-" + System.currentTimeMillis()));
         body.put("chat_mode", chatMode);
         body.put("model_name", firstNonBlank(request.getModel(), dbGptProperties.getModel()));
-        body.put("user_input", buildReactAgentInput(dbName, toUserInputText(request), skillId));
+        body.put("user_input", buildReactAgentInput(dbName, schemaName, toUserInputText(request), skillId));
         body.put("temperature", request.getTemperature() == null ? 0.6 : request.getTemperature());
         body.put("max_new_tokens", request.getMaxTokens() == null ? 4000 : request.getMaxTokens());
         boolean skillMode = "chat_react_agent".equalsIgnoreCase(chatMode);
@@ -497,7 +499,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         return request.getMessages().get(request.getMessages().size() - 1).getContent();
     }
 
-    private String buildReactAgentInput(String dbName, String userInput, String skillId) {
+    private String buildReactAgentInput(String dbName, String schemaName, String userInput, String skillId) {
         String input = firstNonBlank(userInput);
         if (StringUtils.isNotBlank(skillId) && !input.trim().startsWith("/" + skillId)) {
             input = "/" + skillId + "  " + input;
@@ -505,7 +507,11 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         if (dbName == null || dbName.trim().isEmpty()) {
             return input;
         }
-        return "[Database: " + dbName + "] " + input;
+        String databaseContext = "[Database: " + dbName + "]";
+        if (StringUtils.isNotBlank(schemaName)) {
+            databaseContext += " [Schema: " + schemaName + "]";
+        }
+        return databaseContext + " " + input;
     }
 
     private String toDbGptDbType(String dbType) {

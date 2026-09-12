@@ -14,7 +14,9 @@ import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillSaveReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillVersionRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiDatabaseSkillGenerateReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiMultiTableSkillGenerateReqVO;
+import com.datamaster.module.ai.controller.admin.skill.vo.AiOntologySkillGenerateReqVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiTableSkillGenerateReqVO;
+import com.datamaster.module.ai.controller.admin.skill.vo.AiSkillReportTemplateGenerateReqVO;
 import com.datamaster.module.assets.controller.admin.assetColumn.vo.AssetsAssetColumnPageReqVO;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.dal.dataobject.assetColumn.AssetsAssetColumnDO;
@@ -42,6 +44,8 @@ import com.datamaster.metadata.api.table.dto.CatalogTableRespDTO;
 import com.datamaster.metadata.api.qa.dto.QualitySummaryRespDTO;
 import com.datamaster.metadata.api.service.qa.QualityTaskApiService;
 import com.datamaster.module.ontology.api.IConceptApiService;
+import com.datamaster.module.ontology.api.IOntologyDecisionApiService;
+import com.datamaster.module.ontology.api.dto.OntologyDecisionContextDTO;
 import com.datamaster.module.ontology.api.dto.SemanticTableDTO;
 import com.datamaster.module.ontology.api.dto.SemanticPropertyDTO;
 import org.springframework.stereotype.Service;
@@ -80,10 +84,12 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private static final String TYPE_TABLE = "TABLE";
     private static final String TYPE_DATABASE = "DATABASE";
     private static final String TYPE_MULTI_TABLE = "MULTI_TABLE";
+    private static final String TYPE_ONTOLOGY_DECISION = "ONTOLOGY_DECISION";
 
     private static final String BIZ_OBJECT_TABLE = "TABLE";
     private static final String BIZ_OBJECT_DATA_SOURCE = "DATA_SOURCE";
     private static final String BIZ_OBJECT_TABLE_GROUP = "TABLE_GROUP";
+    private static final String BIZ_OBJECT_ONTOLOGY = "ONTOLOGY";
 
     private static final String MANUAL_BEGIN = "<!-- MANUAL_NOTES_BEGIN -->";
     private static final String MANUAL_END = "<!-- MANUAL_NOTES_END -->";
@@ -122,6 +128,8 @@ public class AiSkillServiceImpl implements IAiSkillService {
     private QualityTaskApiService qualityTaskApiService;
     @Resource
     private IConceptApiService conceptApiService;
+    @Resource
+    private IOntologyDecisionApiService ontologyDecisionApiService;
 
     @Override
     public PageResult<AiSkillRespVO> getSkillPage(AiSkillPageReqVO pageReqVO) {
@@ -132,6 +140,44 @@ public class AiSkillServiceImpl implements IAiSkillService {
     public AiSkillRespVO getSkill(Long id) {
         AiSkillDO skill = requireSkill(id);
         return BeanUtils.toBean(skill, AiSkillRespVO.class);
+    }
+
+    @Override
+    public String generateReportTemplate(Long skillId, AiSkillReportTemplateGenerateReqVO reqVO) {
+        AiSkillDO skill = requireSkill(skillId);
+        if (!aiModelGatewayService.available()) {
+            throw new ServiceException("决策智能体模型未启用或未配置API地址");
+        }
+        String systemPrompt = "你是 DataMaster 的报告模板设计器。"
+                + "根据 Skill 的业务语义和用户需求设计可渲染的报告模板。"
+                + "只能输出一个合法 JSON 对象，禁止 Markdown、代码围栏和解释文字。"
+                + "JSON 必须包含 dataSchema、layout、style、prompt 四个顶级字段；"
+                + "dataSchema.fields 描述报告数据字段，layout.sections 只能绑定 dataSchema 中的字段，"
+                + "图表和表格必须使用数组字段，prompt.instruction 必须说明如何生成报告数据。";
+        StringBuilder userPrompt = new StringBuilder();
+        userPrompt.append("【用户模板需求】\n").append(reqVO.getPrompt().trim()).append("\n\n");
+        userPrompt.append("【当前Skill】\n");
+        userPrompt.append("名称：").append(defaultText(skill.getSkillName(), "未命名Skill")).append("\n");
+        userPrompt.append("编码：").append(defaultText(skill.getSkillCode(), "skill")).append("\n");
+        String content = skill.getContent();
+        if (content != null && content.length() > 12000) content = content.substring(0, 12000);
+        userPrompt.append("内容：\n").append(defaultText(content, "暂无Skill内容")).append("\n\n");
+        userPrompt.append("请根据需求输出完整模板 JSON，字段命名使用英文 camelCase，显示标题和说明使用中文。\n");
+        String generated = aiModelGatewayService.complete(systemPrompt, userPrompt.toString());
+        String json = extractJson(generated);
+        if (StringUtils.isBlank(json)) throw new ServiceException("AI未返回合法报告模板JSON");
+        try {
+            JSONObject object = JSON.parseObject(json);
+            if (object == null || object.getJSONObject("dataSchema") == null
+                    || object.getJSONObject("layout") == null || object.getJSONObject("style") == null) {
+                throw new ServiceException("AI生成的模板缺少dataSchema、layout或style");
+            }
+            return JSON.toJSONString(object);
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ServiceException("AI生成的报告模板JSON格式不正确");
+        }
     }
 
     @Override
@@ -300,6 +346,30 @@ public class AiSkillServiceImpl implements IAiSkillService {
         AiSkillDO skill = upsertGeneratedSkill(skillCode, multiTableSkillName(assets) + "多表问数Skill",
                 TYPE_MULTI_TABLE, BIZ_OBJECT_TABLE_GROUP, null, content, Boolean.TRUE.equals(reqVO.getPublish()));
         refreshMultiTableRefs(skill, datasource, assets, columnMap);
+        return BeanUtils.toBean(skill, AiSkillRespVO.class);
+    }
+
+    @Override
+    public AiSkillRespVO generateOntologyDecisionSkill(AiOntologySkillGenerateReqVO reqVO) {
+        if (reqVO == null || reqVO.getOntologyId() == null) {
+            throw new ServiceException("请选择本体");
+        }
+        OntologyDecisionContextDTO context = ontologyDecisionApiService.getDecisionContext(reqVO.getOntologyId());
+        if (context == null) {
+            throw new ServiceException("本体不存在");
+        }
+        if (context.getConcepts() == null || context.getConcepts().isEmpty()) {
+            throw new ServiceException("当前本体没有概念，无法生成决策Skill");
+        }
+        String skillCode = normalizeCode("ontology-decision-" + firstNonBlank(
+                context.getOntologyCode(), String.valueOf(context.getOntologyId())));
+        AiSkillDO oldSkill = aiSkillMapper.selectByBizObject(BIZ_OBJECT_ONTOLOGY, context.getOntologyId());
+        String manualNotes = resolveManualNotes(oldSkill, reqVO.getManualNotes());
+        String content = ontologyDecisionSkillContent(skillCode, context, manualNotes);
+        AiSkillDO skill = upsertGeneratedSkill(skillCode,
+                firstNonBlank(context.getOntologyName(), context.getOntologyCode()) + "本体决策Skill",
+                TYPE_ONTOLOGY_DECISION, BIZ_OBJECT_ONTOLOGY, context.getOntologyId(), content,
+                Boolean.TRUE.equals(reqVO.getPublish()));
         return BeanUtils.toBean(skill, AiSkillRespVO.class);
     }
 
@@ -1011,6 +1081,186 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + MANUAL_BEGIN + "\n"
                 + defaultText(manualNotes, "暂无人工维护备注。") + "\n"
                 + MANUAL_END + "\n";
+    }
+
+    /**
+     * 生成面向决策智能体的本体决策 Skill。
+     *
+     * <p>该文档描述的是可查询语义、可用动作和安全边界；决策智能体不能凭文档自行执行 SQL，
+     * 必须通过 DataMaster 的本体查询/动作接口完成事实查询和最终写入。</p>
+     */
+    private String ontologyDecisionSkillContent(String skillCode,
+                                                 OntologyDecisionContextDTO context,
+                                                 String manualNotes) {
+        String physicalMappings = renderOntologyPhysicalMappings(context);
+        StringBuilder concepts = new StringBuilder();
+        if (context.getConcepts() != null) {
+            for (OntologyDecisionContextDTO.ConceptDTO concept : context.getConcepts()) {
+                concepts.append("### ").append(defaultText(concept.getName(), concept.getCode())).append("\n")
+                        .append("- conceptId: ").append(concept.getId()).append("\n")
+                        .append("- code: ").append(defaultText(concept.getCode(), "")).append("\n")
+                        .append("- description: ").append(defaultText(concept.getDescription(), "")).append("\n")
+                        .append("- properties:\n");
+                if (concept.getProperties() == null || concept.getProperties().isEmpty()) {
+                    concepts.append("  - none\n");
+                } else {
+                    for (OntologyDecisionContextDTO.PropertyDTO property : concept.getProperties()) {
+                        concepts.append("  - ").append(defaultText(property.getName(), property.getCode()))
+                                .append(" (propertyId=").append(property.getId())
+                                .append(", code=").append(defaultText(property.getCode(), ""))
+                                .append(", type=").append(defaultText(property.getDataType(), ""))
+                                .append(", primary=").append(Boolean.TRUE.equals(property.getPrimary()) ? "true" : "false")
+                                .append(", required=").append(Boolean.TRUE.equals(property.getRequired()) ? "true" : "false")
+                                .append(")\n");
+                        if (property.getColumnBindings() != null && !property.getColumnBindings().isEmpty()) {
+                            for (OntologyDecisionContextDTO.ColumnBindingDTO column : property.getColumnBindings()) {
+                                concepts.append("    - physical column: ")
+                                        .append(physicalTableName(column.getDatasourceName(), column.getDatabaseName(),
+                                                column.getSchemaName(), column.getTableName(), column.getColumnName()))
+                                        .append(" (columnBindingId=").append(column.getId()).append(")\n");
+                            }
+                        }
+                    }
+                }
+                concepts.append("\n");
+            }
+        }
+        StringBuilder relations = new StringBuilder();
+        if (context.getRelations() != null && !context.getRelations().isEmpty()) {
+            for (OntologyDecisionContextDTO.RelationDTO relation : context.getRelations()) {
+                relations.append("- ").append(defaultText(relation.getName(), relation.getCode()))
+                        .append(" (relationId=").append(relation.getId())
+                        .append(", source=").append(defaultText(relation.getSourceConceptName(), relation.getSourceConceptCode()))
+                        .append("[#").append(relation.getSourceConceptId()).append("]")
+                        .append(", target=").append(defaultText(relation.getTargetConceptName(), relation.getTargetConceptCode()))
+                        .append("[#").append(relation.getTargetConceptId()).append("]")
+                        .append(", type=").append(defaultText(relation.getRelationType(), ""))
+                        .append("): ").append(defaultText(relation.getDescription(), "")).append("\n");
+                if (relation.getTableBindings() != null) {
+                    for (OntologyDecisionContextDTO.TableBindingDTO table : relation.getTableBindings()) {
+                        relations.append("  - physical relation table: ")
+                                .append(physicalTableName(table.getDatasourceName(), table.getDatabaseName(),
+                                        table.getSchemaName(), table.getTableName(), null))
+                                .append(" (relationTableId=").append(table.getId()).append(")\n");
+                    }
+                }
+                if (relation.getColumnBindings() != null) {
+                    for (OntologyDecisionContextDTO.RelationColumnBindingDTO column : relation.getColumnBindings()) {
+                        relations.append("  - join columns: ")
+                                .append(physicalTableName(column.getSourceDatasourceName(), column.getSourceDatabaseName(),
+                                        column.getSourceSchemaName(), column.getSourceTableName(), column.getSourceColumn()))
+                                .append(" = ")
+                                .append(physicalTableName(column.getTargetDatasourceName(), column.getTargetDatabaseName(),
+                                        column.getTargetSchemaName(), column.getTargetTableName(), column.getTargetColumn()))
+                                .append(" (relationColumnId=").append(column.getId()).append(")\n");
+                    }
+                }
+            }
+        } else {
+            relations.append("- 当前本体未配置关系\n");
+        }
+        StringBuilder actions = new StringBuilder();
+        if (context.getActions() != null && !context.getActions().isEmpty()) {
+            for (OntologyDecisionContextDTO.ActionDTO action : context.getActions()) {
+                actions.append("- ").append(defaultText(action.getName(), String.valueOf(action.getId())))
+                        .append(" (actionId=").append(action.getId())
+                        .append(", type=").append(defaultText(action.getActionType(), ""))
+                        .append(", triggerConceptId=").append(action.getTriggerConceptId())
+                        .append(", needsApproval=").append(Boolean.TRUE.equals(action.getNeedsApproval()) ||
+                                (action.getApprovalLevels() != null && action.getApprovalLevels() > 0))
+                        .append(")\n")
+                        .append("  description: ").append(defaultText(action.getDescription(), "")).append("\n")
+                        .append("  paramConfig: ").append(defaultText(action.getParamConfig(), "[]")).append("\n")
+                        .append("  executionSteps: ").append(defaultText(action.getExecutionSteps(), "[]")).append("\n")
+                        .append("  submissionCriteria: ").append(defaultText(action.getSubmissionCriteria(), "")).append("\n");
+            }
+        } else {
+            actions.append("- 当前本体未配置动作\n");
+        }
+        return "---\n"
+                + "name: " + skillCode + "\n"
+                + "description: " + defaultText(context.getOntologyName(), context.getOntologyCode())
+                + " 本体决策 Skill。用于查询本体事实、分析业务条件并选择已有动作。\n"
+                + "---\n\n"
+                + "# " + defaultText(context.getOntologyName(), context.getOntologyCode()) + " 本体决策 Skill\n\n"
+                + "## 角色边界\n\n"
+                + "- 本 Skill 只负责理解意图、调用本体只读查询、整理证据和选择已有动作。\n"
+                + "- 不得创建动作、修改本体、编造对象主键或生成任意 SQL。\n"
+                + "- 写操作必须使用 actionId 调用 DataMaster 动作执行接口；最终以前置条件、引用值解析、权限、审批和 Worker 结果为准。\n"
+                + "- 非触发对象引用无法唯一确定时，必须返回 ASK_HUMAN，等待人工选择。\n\n"
+                + "## 决策流程\n\n"
+                + "1. 识别触发概念和触发对象主键。\n"
+                + "2. 通过本体关系查询相关对象、属性和必要的历史执行记录。\n"
+                + "3. 先由系统规则判断确定性条件，再由 AI 综合分析。\n"
+                + "4. 只从下方已有动作中选择 actionId。\n"
+                + "5. 输出 ALLOW、ASK_HUMAN 或 REJECT，并附带证据和理由。\n\n"
+                + "## 输出协议\n\n"
+                + "```json\n"
+                + "{\"decision\":\"ALLOW|ASK_HUMAN|REJECT\",\"actionId\":null,\"objectKey\":null,"
+                + "\"inputParams\":{},\"evidence\":[],\"reason\":\"\",\"confidence\":0,\"missingFields\":[]}\n"
+                + "```\n\n"
+                + physicalMappings
+                + "## 本体概念与属性\n\n"
+                + concepts
+                + "## 本体关系\n\n"
+                + relations
+                + "\n## 可执行动作\n\n"
+                + actions
+                + "\n## 人工与自动流程\n\n"
+                + "- 人工问数：先展示查询证据和决策预览，用户确认后提交动作。\n"
+                + "- 数据到达：只有触发对象和相关对象都能唯一解析、无需审批时才允许自动进入队列。\n"
+                + "- 需要人工选择或审批时只登记待执行/待审批记录，不得自动猜测并写入。\n\n"
+                + "## 人工维护备注\n\n"
+                + MANUAL_BEGIN + "\n"
+                + defaultText(manualNotes, "暂无人工维护备注。") + "\n"
+                + MANUAL_END + "\n";
+    }
+
+    private String renderOntologyPhysicalMappings(OntologyDecisionContextDTO context) {
+        StringBuilder out = new StringBuilder("## 数据源与物理存储映射\n\n");
+        if (context.getDatasources() == null || context.getDatasources().isEmpty()) {
+            out.append("- 当前本体没有登记可用数据源映射。\n\n");
+        } else {
+            out.append("### 数据源\n\n");
+            for (OntologyDecisionContextDTO.DatasourceDTO datasource : context.getDatasources()) {
+                out.append("- datasourceId=").append(datasource.getId())
+                        .append("：").append(defaultText(datasource.getName(), "未命名数据源"))
+                        .append(" (type=").append(defaultText(datasource.getType(), ""))
+                        .append(", endpoint=").append(defaultText(datasource.getIp(), ""));
+                if (datasource.getPort() != null) out.append(":").append(datasource.getPort());
+                out.append(")\n");
+            }
+            out.append("\n");
+        }
+        out.append("### 查询映射规则\n\n")
+                .append("- 查询本体概念或属性时，必须优先使用下方 datasource/database/schema/table/column 映射；不能只凭概念名称猜表名。\n")
+                .append("- 映射缺失或存在多个候选时，必须说明缺失信息并请求补充，不能生成不确定的 SQL。\n")
+                .append("- PostgreSQL/Kingbase 未登记 schema 时按数据源配置的默认 schema（通常为 public）处理，不要把数据库名当作 schema。\n\n");
+        if (context.getConcepts() != null) {
+            out.append("### 概念物理表\n\n");
+            for (OntologyDecisionContextDTO.ConceptDTO concept : context.getConcepts()) {
+                if (concept.getTableBindings() == null || concept.getTableBindings().isEmpty()) continue;
+                out.append("- ").append(defaultText(concept.getName(), concept.getCode())).append("：\n");
+                for (OntologyDecisionContextDTO.TableBindingDTO table : concept.getTableBindings()) {
+                    out.append("  - ").append(physicalTableName(table.getDatasourceName(), table.getDatabaseName(),
+                            table.getSchemaName(), table.getTableName(), null))
+                            .append(" (conceptTableId=").append(table.getId()).append(")\n");
+                }
+            }
+            out.append("\n");
+        }
+        return out.toString();
+    }
+
+    private String physicalTableName(String datasourceName, String databaseName, String schemaName,
+                                      String tableName, String columnName) {
+        StringBuilder value = new StringBuilder();
+        if (StringUtils.isNotBlank(datasourceName)) value.append(datasourceName).append("/");
+        if (StringUtils.isNotBlank(databaseName)) value.append(databaseName).append("/");
+        if (StringUtils.isNotBlank(schemaName)) value.append(schemaName).append(".");
+        value.append(defaultText(tableName, "<unmapped-table>"));
+        if (StringUtils.isNotBlank(columnName)) value.append(".").append(columnName);
+        return value.toString();
     }
 
     private String metadataSkillContent() {

@@ -127,6 +127,8 @@ public class CatalogDbServiceImpl  extends ServiceImpl<CatalogDbMapper,CatalogDb
                 .eq(StringUtils.isNotBlank(CatalogDb.getStatus()), CatalogDbDO::getStatus, CatalogDb.getStatus())
                 .eq(StringUtils.isNotBlank(CatalogDb.getAuditStatus()), CatalogDbDO::getAuditStatus, CatalogDb.getAuditStatus())
                 .in(org.apache.commons.collections4.CollectionUtils.isNotEmpty(CatalogDb.getDatasourceIdList()), CatalogDbDO::getDatasourceId, CatalogDb.getDatasourceIdList())
+                .eq(CatalogDb.getSpaceId() != null, CatalogDbDO::getSpaceId, CatalogDb.getSpaceId())
+                .eq(StringUtils.isNotBlank(CatalogDb.getSpaceCode()), CatalogDbDO::getSpaceCode, CatalogDb.getSpaceCode())
 
                 // like 查询
                 .like(StringUtils.isNotBlank(CatalogDb.getDbName()), CatalogDbDO::getDbName, CatalogDb.getDbName())

@@ -26,6 +26,10 @@
         <template #icon><RobotOutlined /></template>
         AI 生成
       </a-button>
+      <a-button @click="openAiDecision" v-hasPermi="['ont:action:edit']" style="margin-left: 8px;">
+        <template #icon><RobotOutlined /></template>
+        AI 决策执行
+      </a-button>
     </div>
 
     <a-table
@@ -668,6 +672,46 @@
       @use-action="handleAiGenerateUse"
     />
 
+    <!-- AI 决策执行：先分析，确认后才可提交；后端仍复用动作校验、审批和 Worker -->
+    <a-modal
+      title="AI 决策执行"
+      v-model:open="aiDecisionOpen"
+      width="680px"
+      wrap-class-name="ontology-workspace-modal ontology-modal--form"
+      :confirm-loading="aiDecisionLoading"
+      :footer="null"
+      destroy-on-close
+    >
+      <a-alert
+        type="info"
+        show-icon
+        message="AI 只负责查询分析并从当前本体已有动作中给出建议，不修改数据、不生成 SQL；确认后请回到动作执行窗口提交。"
+        style="margin-bottom: 12px;"
+      />
+      <a-form class="ontology-form-grid" :label-col="{ style: { width: '92px' } }">
+        <a-form-item label="执行意图" required>
+          <a-textarea v-model:value="aiDecisionPrompt" :auto-size="{ minRows: 3, maxRows: 5 }" placeholder="例如：订单已支付就发货，扣减订单关联商品库存并把订单状态改为已发货" />
+        </a-form-item>
+        <a-form-item label="对象主键">
+          <a-input v-model:value="aiDecisionObjectKey" placeholder="可选；例如 ORD202609100001" />
+        </a-form-item>
+        <a-form-item label="上下文参数">
+          <a-textarea v-model:value="aiDecisionInputParams" :auto-size="{ minRows: 2, maxRows: 4 }" placeholder='可选 JSON，例如 {"orderNo":"ORD202609100001"}' />
+        </a-form-item>
+      </a-form>
+      <a-divider v-if="aiDecisionResult" style="margin: 12px 0;" />
+      <div v-if="aiDecisionResult" class="ai-decision-result">
+        <div><span class="ai-decision-label">决策</span><a-tag :color="aiDecisionResult.decision === 'ALLOW' ? 'green' : aiDecisionResult.decision === 'REJECT' ? 'red' : 'orange'">{{ aiDecisionResult.decision }}</a-tag></div>
+        <div><span class="ai-decision-label">动作</span>{{ aiDecisionResult.actionName || aiDecisionResult.actionId || '需人工选择' }}</div>
+        <div><span class="ai-decision-label">理由</span>{{ aiDecisionResult.reason || '-' }}</div>
+        <div v-if="aiDecisionResult.missingFields?.length"><span class="ai-decision-label">待补充</span>{{ aiDecisionResult.missingFields.join('、') }}</div>
+      </div>
+      <div class="ai-decision-footer">
+        <a-button @click="aiDecisionOpen = false">取消</a-button>
+        <a-button type="primary" :loading="aiDecisionLoading" :disabled="!aiDecisionPrompt.trim()" @click="runAiDecision">分析</a-button>
+      </div>
+    </a-modal>
+
     <!-- 提交执行对话框 -->
     <a-modal title="提交执行" v-model:open="execOpen" width="660px" wrap-class-name="ontology-workspace-modal ontology-modal--form" destroy-on-close ok-text="确定" cancel-text="取消" :confirm-loading="execSaving" @ok="submitExec" @cancel="execOpen = false">
       <a-alert
@@ -964,7 +1008,7 @@
 </template>
 
 <script setup name="ActionPanel">
-import { listAction, getAction, addAction, updateAction, delAction, submitExecution, approveExecution, rejectExecution, runExecution, rollbackExecution, listExecution, getApprovalChain } from '@/api/ont/action'
+import { listAction, getAction, addAction, updateAction, delAction, aiActionDecision, submitExecution, approveExecution, rejectExecution, runExecution, rollbackExecution, listExecution, getApprovalChain } from '@/api/ont/action'
 import { listConcept, getConcept } from '@/api/ont/concept'
 import { listProperty } from '@/api/ont/property'
 import { listConceptTable, previewConceptTable } from '@/api/ont/conceptTable'
@@ -2669,6 +2713,44 @@ const emptyRelationObjectState = { options: [], loading: false, error: '' }
 
 const hasParamConfig = computed(() => execParamConfigs.value.length > 0)
 
+const aiDecisionOpen = ref(false)
+const aiDecisionLoading = ref(false)
+const aiDecisionPrompt = ref('')
+const aiDecisionObjectKey = ref('')
+const aiDecisionInputParams = ref('{}')
+const aiDecisionResult = ref(null)
+
+function openAiDecision() {
+  aiDecisionPrompt.value = ''
+  aiDecisionObjectKey.value = ''
+  aiDecisionInputParams.value = '{}'
+  aiDecisionResult.value = null
+  aiDecisionOpen.value = true
+}
+
+async function runAiDecision() {
+  if (!aiDecisionPrompt.value.trim()) {
+    proxy.$modal.msgWarning('请先输入执行意图')
+    return
+  }
+  aiDecisionLoading.value = true
+  try {
+    const res = await aiActionDecision({
+      ontologyId: props.ontologyId,
+      prompt: aiDecisionPrompt.value.trim(),
+      objectKey: aiDecisionObjectKey.value || undefined,
+      inputParams: aiDecisionInputParams.value || '{}',
+      spaceId: userStore.spaceId,
+      spaceCode: userStore.spaceCode
+    })
+    aiDecisionResult.value = res.data || null
+  } catch (e) {
+    aiDecisionResult.value = null
+  } finally {
+    aiDecisionLoading.value = false
+  }
+}
+
 // propertyCode -> 属性友好名称（执行弹窗展示用）
 const propertyCodeNameMap = computed(() => {
   const map = {}
@@ -3561,6 +3643,29 @@ onBeforeUnmount(clearExecutionRefresh)
     .toolbar-right {
       margin-left: auto;
     }
+  }
+
+  .ai-decision-result {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    background: #f7f9fc;
+    border: 1px solid #e6edf5;
+    border-radius: 6px;
+    color: #334155;
+  }
+
+  .ai-decision-label {
+    display: inline-block;
+    width: 72px;
+    color: #64748b;
+  }
+
+  .ai-decision-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
   }
 
   .sql-cell {

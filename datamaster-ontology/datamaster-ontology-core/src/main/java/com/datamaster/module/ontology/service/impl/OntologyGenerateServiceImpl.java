@@ -46,15 +46,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 本体 AI 生成 Service 实现
@@ -69,6 +62,10 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
      */
     private static final Set<String> ALLOWED_DATA_TYPES =
             new HashSet<>(Arrays.asList("string", "integer", "decimal", "date", "boolean", "text"));
+
+    /** 单次 AI 本体生成的上下文上限，避免数百张表导致模型输出被截断。 */
+    private static final int MAX_AI_TABLES = 6;
+    private static final int MAX_AI_COLUMNS_PER_TABLE = 16;
 
     @Resource
     private CatalogTableApiService catalogTableApiService;
@@ -346,10 +343,30 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
         if (StringUtils.isNotBlank(reqVO.getTableName())) {
             CatalogTableRespDTO table = catalogTableApiService
                     .getByDatasourceIdAndTableName(reqVO.getDatasourceId(), reqVO.getTableName());
-            return table == null ? Collections.emptyList() : Collections.singletonList(table);
+            return table == null || !matchesSpace(table, reqVO) ? Collections.emptyList() : Collections.singletonList(table);
         }
-        List<CatalogTableRespDTO> tables = catalogTableApiService.listByDatasourceId(reqVO.getDatasourceId());
-        return tables == null ? Collections.emptyList() : tables;
+        List<CatalogTableRespDTO> tables = catalogTableApiService.listByDatasourceId(
+                reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode());
+        if (tables == null || tables.isEmpty()) {
+            return Collections.emptyList();
+        }
+        tables = tables.stream().filter(table -> matchesSpace(table, reqVO)).collect(Collectors.toList());
+        if (tables.isEmpty()) return Collections.emptyList();
+        if (tables.size() > MAX_AI_TABLES) {
+            log.warn("本体 AI 生成表数量为 {}，已限制为前 {} 张；可通过指定表名分批生成", tables.size(), MAX_AI_TABLES);
+            return new ArrayList<>(tables.subList(0, MAX_AI_TABLES));
+        }
+        return tables;
+    }
+
+    private boolean matchesSpace(CatalogTableRespDTO table, OntologyAiGenerateReqVO reqVO) {
+        if (table == null || reqVO == null
+                || (reqVO.getSpaceId() == null && StringUtils.isBlank(reqVO.getSpaceCode()))) {
+            return true;
+        }
+        return (reqVO.getSpaceId() == null || Objects.equals(reqVO.getSpaceId(), table.getSpaceId()))
+                && (StringUtils.isBlank(reqVO.getSpaceCode())
+                    || StringUtils.equals(reqVO.getSpaceCode(), table.getSpaceCode()));
     }
 
     private List<CatalogColumnRespDTO> resolveColumns(CatalogTableRespDTO table) {
@@ -372,6 +389,9 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
             }
             TableColumns tableColumns = new TableColumns();
             tableColumns.table = table;
+            if (columns.size() > MAX_AI_COLUMNS_PER_TABLE) {
+                columns = new ArrayList<>(columns.subList(0, MAX_AI_COLUMNS_PER_TABLE));
+            }
             tableColumns.columns = columns;
             result.add(tableColumns);
         }
@@ -416,14 +436,21 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
         if (StringUtils.isBlank(reply)) {
             return null;
         }
-        return extractJsonObject(reply);
+        JSONObject model = extractJsonObject(reply);
+        if (model == null && tableColumnsList.size() > 3) {
+            // 大数据源的输出可能达到模型 token 上限，自动用更小的上下文重试一次，避免返回半截 JSON。
+            log.warn("本体 AI 输出未闭合，缩小上下文重试：{} -> 3 张表", tableColumnsList.size());
+            return callAiGenerateModel(new ArrayList<>(tableColumnsList.subList(0, 3)));
+        }
+        return model;
     }
 
     /**
      * 从 LLM 回复中提取 JSON 对象：优先取 ```json 代码块，其次取首个 { 到最后一个 } 区间。
      */
     private JSONObject extractJsonObject(String reply) {
-        String candidate = reply;
+        // 某些模型会在长输出中混入 ASCII 控制字符（例如截断标记），先清理后再解析。
+        String candidate = reply == null ? "" : reply.replaceAll("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]", "");
         // 尝试 ```json 代码块
         int fenceStart = reply.indexOf("```json");
         if (fenceStart >= 0) {
@@ -505,7 +532,7 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
         builder.append("3. dataType 只能从 string/integer/decimal/date/boolean/text 中选择，根据列类型合理映射。\n");
         builder.append("4. 主键列对应属性 isPrimary=true，非空列对应属性 isRequired=true。\n");
         builder.append("5. 每个有业务含义的列都应生成一个属性，columnName 必须精确等于给定物理列名，不能自造。\n");
-        builder.append("6. 每一张给出的业务表都必须生成一个概念，concepts 数组的元素个数必须与给出的表数量一致，且 tableName 必须与给定表名完全一致。\n");
+        builder.append("6. 最多生成 6 个概念；对给出的表按顺序生成概念，且 tableName 必须与给定表名完全一致。每个概念最多保留 16 个最重要字段，避免输出被截断。\n");
         builder.append("7. 若表名或列名本身即业务含义（如 customer_name），可直接按语义生成中文属性名。\n");
         builder.append("8. 若表与表之间存在外键或业务关联（如同一业务主题、共享主键、名称相同的关联列等），");
         builder.append("则在 relations 中生成关系，否则 relations 可为空数组。\n");
