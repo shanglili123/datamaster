@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Ask-data SQL generation request.
@@ -33,6 +35,15 @@ public class AiAskDataSqlReqVO {
 
     @Schema(description = "决策智能体模式", example = "chat_with_db_qa")
     private String chatMode;
+
+    @Schema(description = "回答模式：qa、decision；decision 表示基于数据分析形成决策建议，不执行本体动作", example = "decision")
+    private String responseMode;
+
+    @Schema(description = "DataMaster 会话ID，用于保持模型上下文", example = "12345")
+    private String conversationId;
+
+    @Schema(description = "最近几轮会话上下文")
+    private List<Map<String, String>> history;
 
     @Schema(description = "Skill ID列表（可选，指定使用的Skill）")
     private java.util.List<Long> skillIds;

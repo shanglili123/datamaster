@@ -39,18 +39,19 @@
           </a-tag>
         </div>
         <div class="chat-option-group">
-          <span class="chat-option-label">知识 Skill</span>
+          <span class="chat-option-label">{{ form.mode === 'decision' ? '分析 Skill' : '知识 Skill' }}</span>
           <a-select
             v-model:value="form.skillId"
-            placeholder="选择 Skill"
+            :placeholder="form.mode === 'decision' ? '选择数据分析 Skill（可选）' : '选择 Skill'"
             show-search
             allow-clear
             @change="handleSkillChange"
           >
-            <a-select-option v-for="item in skillList" :key="item.id" :value="item.id">
+            <a-select-option v-for="item in availableSkillList" :key="item.id" :value="item.id">
               {{ item.skillName }}
             </a-select-option>
           </a-select>
+          <span v-if="form.mode === 'decision'" class="chat-option-hint">查询真实数据后形成经营分析与优化建议，不执行本体动作。</span>
         </div>
         <div v-if="form.mode === 'report'" class="chat-option-group">
           <span class="chat-option-label">报告模板</span>
@@ -77,7 +78,8 @@
         </div>
         <div v-if="activeMessages.length === 0" class="empty-state">
           <h1>想查什么，直接问</h1>
-          <p>选择数据源后，决策智能体会结合本体、数据源和 Skill，提供数据查询、分析与决策建议。</p>
+          <p v-if="form.mode === 'decision'">决策建议模式会先查询真实数据，再给出可量化的经营分析和优化建议，不会直接执行动作。</p>
+          <p v-else>选择数据源后，决策智能体会结合数据源和 Skill，提供数据查询、分析与报告。</p>
           <div class="examples">
             <button v-for="item in examples" :key="item" @click="prompt = item">
               {{ item }}
@@ -132,6 +134,10 @@
                 </span>
                 <span>{{ step.label }}</span>
               </div>
+            </div>
+            <div v-if="message.responseMode === 'decision'" class="decision-analysis-banner">
+              <strong>经营决策分析</strong>
+              <span>基于真实查询结果形成建议，不执行本体动作</span>
             </div>
             <ReportTemplateRenderer
               v-if="message.reportTemplate && message.reportData"
@@ -314,13 +320,15 @@ const form = reactive({
 
 const modeOptions = [
   { label: '问答', value: 'qa' },
+  { label: '决策建议', value: 'decision' },
   { label: '报告', value: 'report' }
 ]
 
 const examples = [
   '查询下前5条订单数据',
   '按城市统计订单金额',
-  '最近7天订单数量趋势'
+  '最近7天订单数量趋势',
+  '分析哪些货物比较好卖，并给出库存分配比例建议'
 ]
 
 const activeConversation = computed(() =>
@@ -337,6 +345,13 @@ const selectedSkill = computed(() =>
   skillList.value.find((item) => item.id === form.skillId)
 )
 
+const availableSkillList = computed(() => {
+  if (form.mode !== 'decision') return skillList.value
+  return skillList.value.filter((item) =>
+    !['ONTOLOGY_DECISION', 'REPORT_TEMPLATE'].includes(String(item.skillType || '').toUpperCase())
+  )
+})
+
 onMounted(async () => {
   await loadDatasources()
   await loadSkills()
@@ -348,6 +363,9 @@ onMounted(async () => {
 })
 
 watch(() => form.mode, () => {
+  if (!availableSkillList.value.some((item) => item.id === form.skillId)) {
+    form.skillId = null
+  }
   refreshReportTemplates()
   syncActiveSessionSelection()
 })
@@ -657,6 +675,7 @@ function normalizeMessage(row) {
     displayContent: normalizeVisibleLineBreaks(normalizeAgentText(row.displayContent || '')),
     agentSteps: normalizeAgentText(row.agentSteps || ''),
     queryExecuted: false,
+    responseMode: 'qa',
     tableRows: [],
     tableColumns: [],
     reportTemplate: null,
@@ -929,6 +948,7 @@ function serializeMessage(message) {
     displayContent: message.displayContent || '',
     agentSteps: message.agentSteps || '',
     queryExecuted: Boolean(message.queryExecuted),
+    responseMode: message.responseMode || 'qa',
     tableRows: message.tableRows || [],
     tableColumns: message.tableColumns || [],
     reportTemplate: message.reportTemplate || null,
@@ -937,6 +957,24 @@ function serializeMessage(message) {
     sqlUnavailable: Boolean(message.sqlUnavailable),
     steps: message.steps || []
   }
+}
+
+function buildConversationHistory(session, currentQuestion) {
+  const rows = (session?.messages || [])
+    .filter((item) => ['user', 'assistant'].includes(String(item?.role || '').toLowerCase()))
+    .map((item) => ({
+      role: String(item.role).toLowerCase(),
+      content: String(item.displayContent || item.content || '').trim()
+    }))
+    .filter((item) => item.content)
+  const last = rows[rows.length - 1]
+  if (last?.role === 'user' && last.content === String(currentQuestion || '').trim()) {
+    rows.pop()
+  }
+  return rows.slice(-8).map((item) => ({
+    ...item,
+    content: item.content.slice(0, 2000)
+  }))
 }
 
 function currentSpaceParams() {
@@ -978,7 +1016,12 @@ function normalizeVisibleLineBreaks(value) {
     JSON.parse(text)
     return text
   } catch (error) {
-    return text.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n')
+    return text
+      .replace(/\\r\\n/g, '\n')
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, '\n')
+      // 部分模型/适配器会把换行错误返回成单独的字母 n，按 Markdown 行首标记兜底恢复。
+      .replace(/(^|[\r\n\s])n(?=\s*(?:#{1,6}\s|\||[-*+]\s))/g, '$1\n')
   }
 }
 
@@ -1040,9 +1083,10 @@ async function sendMessage() {
     message.warning('请先选择数据源')
     return
   }
+  const decisionRequest = form.mode === 'decision'
   // 明确提出“生成/输出报告”时，即使当前开关仍在问答，也自动走报告链路。
   // 报告 Skill/模板由后端结合当前数据源自动解析，避免用户为了同一问题重复配置。
-  const reportRequest = form.mode === 'report' || isReportIntent(question)
+  const reportRequest = !decisionRequest && (form.mode === 'report' || isReportIntent(question))
   if (!activeConversation.value) {
     await createConversation()
   }
@@ -1071,11 +1115,12 @@ async function sendMessage() {
     queryExecuted: false,
     tableRows: [],
     tableColumns: [],
+    responseMode: form.mode,
     reportTemplate: null,
     reportData: null,
     returnedSql: '',
     sqlUnavailable: false,
-    steps: createAskSteps()
+    steps: createAskSteps(form.mode)
   })
   conversation.messages.push(assistantMessage)
   trimActiveMessagesToLatest()
@@ -1098,7 +1143,10 @@ async function sendMessage() {
         question,
         datasourceId: form.datasourceId,
         chatMode: 'chat_with_db_qa',
+        conversationId: String(conversation.id),
+        history: buildConversationHistory(conversation, question),
         skillIds: form.skillId ? [form.skillId] : [],
+        responseMode: decisionRequest ? 'decision' : 'qa',
         returnSql: form.returnSql,
         spaceId: userStore.spaceId || null,
         spaceCode: userStore.spaceCode || ''
@@ -1166,6 +1214,8 @@ async function generateReportMessage(question, assistantMessage) {
     datasourceId: form.datasourceId,
     spaceId: userStore.spaceId || null,
     spaceCode: userStore.spaceCode || '',
+    conversationId: String(activeConversation.value?.id || ''),
+    history: buildConversationHistory(activeConversation.value, question),
     skillId: form.skillId,
     templateId: form.templateId,
     returnSql: form.returnSql
@@ -1677,11 +1727,11 @@ function buildColumns(rows, labels = []) {
   }))
 }
 
-function createAskSteps() {
+function createAskSteps(mode = 'qa') {
   return [
     { key: 'understand', label: '理解问题', status: 'active' },
     { key: 'connect', label: '连接数据源', status: 'pending' },
-    { key: 'answer', label: '生成回答', status: 'pending' }
+    { key: 'answer', label: mode === 'decision' ? '生成决策建议' : '生成回答', status: 'pending' }
   ]
 }
 
@@ -1988,6 +2038,12 @@ async function scrollToBottom(force = false) {
   line-height: 18px;
 }
 
+.chat-option-hint {
+  color: #86909c;
+  font-size: 11px;
+  line-height: 16px;
+}
+
 .chat-option-group :deep(.ant-select),
 .chat-option-group :deep(.ant-segmented) {
   width: 100%;
@@ -2216,6 +2272,29 @@ async function scrollToBottom(force = false) {
 .message-bubble.html-report-bubble {
   width: 100%;
   max-width: none;
+}
+
+.decision-analysis-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 12px;
+  padding: 7px 11px;
+  border: 1px solid #cfe0ff;
+  border-radius: 8px;
+  background: #f2f7ff;
+  color: #165dff;
+  font-size: 12px;
+}
+
+.decision-analysis-banner strong {
+  font-weight: 600;
+}
+
+.decision-analysis-banner span {
+  color: #6b7fa3;
 }
 
 .message-actions {

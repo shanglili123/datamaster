@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,5 +41,11 @@ public class AiAskDataReportReqVO {
 
     @Schema(description = "报告参数，例如周期、区域")
     private Map<String, Object> params;
+
+    @Schema(description = "DataMaster 会话ID，用于保持报告对话上下文", example = "12345")
+    private String conversationId;
+
+    @Schema(description = "最近几轮会话上下文")
+    private List<Map<String, String>> history;
 }
 
