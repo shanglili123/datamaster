@@ -1,5 +1,5 @@
 <template>
-  <div class="explore-station">
+  <div class="explore-station" :class="{ 'is-ai-flow': activeFlowId === 'ai' }">
     <header class="explore-station__header">
       <button class="explore-station__brand" type="button" @click="goFlowHome">
         <span class="explore-station__brand-mark"><NodeIndexOutlined /></span>
@@ -521,6 +521,14 @@ function closeEmbeddedPage() {
 provide("spaceWorkstationNavigation", {
   openPage: openEmbeddedPage,
   back: closeEmbeddedPage,
+  openFlowSubFlow: (flowId, subId) => {
+    if (flowId !== activeFlowId.value) {
+      selectFlow(flowId);
+    }
+    if (subId) {
+      selectSubFlow(subId);
+    }
+  },
 });
 
 // 流程页中的菜单切换完全是页内状态，不允许旧模块把页面导航到 /space。
@@ -1125,6 +1133,30 @@ onBeforeUnmount(() => {
 .explore-station__module { min-height: calc(100vh - 228px); overflow: hidden; background: #fff; border: 1px solid #e0e7f0; border-radius: 16px; box-shadow: 0 12px 35px rgba(28, 45, 81, 0.07); }
 .explore-station__module :deep(.app-container) { min-height: calc(100vh - 230px); }
 .explore-station__module :deep(.ask-data-page) { height: calc(100vh - 230px); min-height: 560px; border-radius: 16px; }
+
+/* 决策智能体直接进入聊天工作区，不重复显示公共二级导航和介绍横幅。 */
+.explore-station.is-ai-flow .explore-station__secondary,
+.explore-station.is-ai-flow .explore-station__workspace-head {
+  display: none;
+}
+
+.explore-station.is-ai-flow .explore-station__workspace {
+  padding: 0;
+}
+
+.explore-station.is-ai-flow .explore-station__module {
+  min-height: calc(100vh - 76px);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.explore-station.is-ai-flow .explore-station__module :deep(.ask-data-page) {
+  height: calc(100vh - 76px);
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
 
 .explore-home { min-height: calc(100vh - 76px); padding: 32px 32px 40px; }
 .explore-home__agent { display: grid; grid-template: auto auto auto / minmax(0, 1fr) 300px; grid-template-areas: "copy ." "dialog history" "prompts ."; column-gap: 24px; width: 100%; margin: 0 0 30px; padding: 30px 34px 24px; border: 1px solid #e4e9f5; border-radius: 24px; background: linear-gradient(135deg, #ffffff 0%, #f7f9ff 62%, #fff8f4 100%); box-shadow: 0 18px 50px rgba(51, 74, 133, 0.1); }

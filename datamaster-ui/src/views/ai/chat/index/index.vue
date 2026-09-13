@@ -1,41 +1,27 @@
 <template>
-  <div class="app-container ask-data-page" :class="{ fullscreen: isFullscreen }">
+  <div class="app-container ask-data-page">
     <aside class="conversation-panel">
+      <div class="ai-local-nav">
+        <button type="button" class="ai-local-nav-item is-active">
+          <span class="ai-local-nav-dot"></span>
+          决策智能体
+        </button>
+        <button type="button" class="ai-local-nav-item" @click="openSkillManagement">
+          <span class="ai-local-nav-dot skill"></span>
+          Skill 管理
+        </button>
+      </div>
       <div class="panel-title">
-        <strong>对话</strong>
-        <span>决策智能体</span>
+        <strong>工作配置</strong>
+        <span>问答与报告参数</span>
       </div>
-      <a-button type="primary" :icon="h(PlusOutlined)" class="new-chat" @click="createConversation">
-        新对话
-      </a-button>
-      <div class="conversation-list">
-        <div
-          v-for="item in conversations"
-          :key="item.id"
-          class="conversation-row"
-          :class="{ active: item.id === activeConversationId }"
-        >
-          <button class="conversation-item" @click="selectConversation(item.id)">
-            <span>{{ item.title }}</span>
-            <small>{{ item.datasourceName || '未选择数据源' }}</small>
-          </button>
-          <a-button type="text" class="conversation-delete" @click.stop="removeConversation(item.id)">删除</a-button>
+      <div class="chat-options">
+        <div class="chat-option-group">
+          <span class="chat-option-label">工作模式</span>
+          <a-segmented v-model:value="form.mode" :options="modeOptions" class="mode-switch" />
         </div>
-      </div>
-    </aside>
-
-    <main class="chat-shell">
-      <header class="chat-header">
-        <div>
-          <h2>{{ activeConversation?.title || '新对话' }}</h2>
-          <p>{{ selectedDatasourceName() || '请选择数据源' }}</p>
-        </div>
-        <div class="datasource-box">
-          <a-segmented
-            v-model:value="form.mode"
-            :options="modeOptions"
-            class="mode-switch"
-          />
+        <div class="chat-option-group">
+          <span class="chat-option-label">数据源</span>
           <a-select
             v-model:value="form.datasourceId"
             placeholder="选择数据源"
@@ -43,59 +29,46 @@
             allow-clear
             @change="handleDatasourceChange"
           >
-            <a-select-option
-              v-for="item in datasourceList"
-              :key="item.id"
-              :value="item.id"
-            >
+            <a-select-option v-for="item in datasourceList" :key="item.id" :value="item.id">
               <span>{{ item.datasourceName }}</span>
-              <span class="option-meta">{{ item.datasourceType }} / {{ syncText(item.dbgptSyncStatus) }}</span>
+              <span class="option-meta">{{ syncText(item.dbgptSyncStatus) }}</span>
             </a-select-option>
           </a-select>
           <a-tag :color="syncTag(selectedDatasource?.dbgptSyncStatus)">
             {{ syncText(selectedDatasource?.dbgptSyncStatus) }}
           </a-tag>
+        </div>
+        <div class="chat-option-group">
+          <span class="chat-option-label">知识 Skill</span>
           <a-select
             v-model:value="form.skillId"
-            placeholder="选择知识库"
+            placeholder="选择 Skill"
             show-search
             allow-clear
             @change="handleSkillChange"
           >
-            <a-select-option
-              v-for="item in skillList"
-              :key="item.id"
-              :value="item.id"
-            >
+            <a-select-option v-for="item in skillList" :key="item.id" :value="item.id">
               {{ item.skillName }}
             </a-select-option>
           </a-select>
-          <template v-if="form.mode === 'report'">
-            <a-select v-model:value="form.templateId" placeholder="选择报告模板" show-search allow-clear>
-              <a-select-option
-                v-for="item in templateList"
-                :key="item.id"
-                :value="item.id"
-              >
-                {{ templateOptionLabel(item) }}
-              </a-select-option>
-            </a-select>
-            <a-button :icon="h(FileTextOutlined)" @click="openTemplateFormat">
-              模板格式
-            </a-button>
-          </template>
-          <a-switch
-            v-model:checked="form.returnSql"
-            checked-children="返回SQL"
-            un-checked-children=""
-            class="sql-switch"
-          />
-          <a-button :icon="h(isFullscreen ? AimOutlined : FullscreenOutlined)" @click="toggleFullscreen">
-            {{ isFullscreen ? '退出全屏' : '全屏' }}
-          </a-button>
         </div>
-      </header>
+        <div v-if="form.mode === 'report'" class="chat-option-group">
+          <span class="chat-option-label">报告模板</span>
+          <a-select v-model:value="form.templateId" placeholder="选择报告模板" show-search allow-clear>
+            <a-select-option v-for="item in templateList" :key="item.id" :value="item.id">
+              {{ templateOptionLabel(item) }}
+            </a-select-option>
+          </a-select>
+          <a-button block :icon="h(FileTextOutlined)" @click="openTemplateFormat">模板格式</a-button>
+        </div>
+        <div class="chat-option-footer">
+          <a-switch v-model:checked="form.returnSql" checked-children="SQL" un-checked-children="" class="sql-switch" />
+          <span>返回 SQL</span>
+        </div>
+      </div>
+    </aside>
 
+    <main class="chat-shell">
       <section ref="messageScrollRef" class="message-list" @scroll="handleMessageScroll">
         <div v-if="messageWindow.hasBefore" class="history-loader">
           <a-button type="text" :loading="messageWindow.loadingBefore" @click="loadMoreMessages('before')">
@@ -118,23 +91,21 @@
           class="message-row"
           :class="[message.role, { 'printing-report': printingMessageId === message.id }]"
         >
-          <div class="avatar">{{ message.role === 'user' ? '我' : 'AI' }}</div>
           <div class="message-bubble" :class="{ 'html-report-bubble': isFullHtmlMessage(message) }">
-            <a-button
-              v-if="isExportableReportMessage(message)"
-              type="text"
-              class="message-export"
-              @click.stop="exportMessagePdf(message)"
-            >
-              导出PDF
-            </a-button>
-            <a-button
-              type="text"
-              class="message-delete"
-              @click="removeMessage(message)"
-            >
-              删除
-            </a-button>
+            <div class="message-actions">
+              <a-tooltip v-if="isExportableReportMessage(message)" title="导出PDF">
+                <a-button type="text" :icon="h(FileTextOutlined)" @click.stop="exportMessagePdf(message)" />
+              </a-tooltip>
+              <a-tooltip v-if="message.role === 'user'" title="编辑">
+                <a-button type="text" :icon="h(EditOutlined)" @click.stop="editMessage(message)" />
+              </a-tooltip>
+              <a-tooltip title="复制">
+                <a-button type="text" :icon="h(CopyOutlined)" @click.stop="copyMessage(message)" />
+              </a-tooltip>
+              <a-tooltip title="删除">
+                <a-button type="text" danger :icon="h(DeleteOutlined)" @click.stop="removeMessage(message)" />
+              </a-tooltip>
+            </div>
             <div v-if="message.agentSteps" class="agent-fold">
               <details>
                 <summary>执行步骤</summary>
@@ -199,36 +170,64 @@
       <footer class="composer-wrap">
         <div class="composer">
           <a-input
+            ref="promptInputRef"
             v-model:value="prompt"
             type="textarea"
             :auto-size="{ minRows: 1, maxRows: 6 }"
             placeholder="输入你的数据问题"
-            @keydown.enter.prevent="handleEnter"
-            @keydown.shift.enter.stop
+            @keydown="handlePromptKeydown"
           />
-          <a-button
-            v-if="sending"
-            danger
-            :icon="h(StopOutlined)"
-            class="send-btn stop-btn"
-            @click="stopGeneration"
-          >
-            停止
-          </a-button>
-          <a-button
-            v-else
-            type="primary"
-            :icon="h(SendOutlined)"
-            class="send-btn"
-            @click="sendMessage"
-          />
-          <a-button class="clear-btn" :disabled="!activeMessages.length" @click="clearMessages">
-            清空
-          </a-button>
+          <div class="composer-actions">
+            <a-button
+              v-if="sending"
+              danger
+              :icon="h(StopOutlined)"
+              class="send-btn stop-btn"
+              @click="stopGeneration"
+            >
+              停止
+            </a-button>
+            <a-button
+              v-else
+              type="primary"
+              :icon="h(SendOutlined)"
+              class="send-btn"
+              @click="sendMessage"
+            />
+            <a-button class="clear-btn" :disabled="!activeMessages.length" @click="clearMessages">
+              清空
+            </a-button>
+          </div>
         </div>
         <div class="composer-tip">Enter 发送，Shift+Enter 换行</div>
       </footer>
     </main>
+
+    <aside class="conversation-history-panel">
+      <div class="history-panel-title">
+        <div>
+          <strong>聊天记录</strong>
+          <span>切换或管理历史对话</span>
+        </div>
+        <a-button type="default" :icon="h(PlusOutlined)" class="new-chat" @click="createConversation">
+          新建对话
+        </a-button>
+      </div>
+      <div class="conversation-list">
+        <div
+          v-for="item in conversations"
+          :key="item.id"
+          class="conversation-row"
+          :class="{ active: item.id === activeConversationId }"
+        >
+          <button class="conversation-item" @click="selectConversation(item.id)">
+            <span>{{ item.title }}</span>
+            <small>{{ item.datasourceName || '未选择数据源' }}</small>
+          </button>
+          <a-button type="text" class="conversation-delete" @click.stop="removeConversation(item.id)">删除</a-button>
+        </div>
+      </div>
+    </aside>
 
     <a-modal v-model:open="templateFormatOpen" title="报告模板格式" width="960px" destroy-on-close>
       <div class="template-format-header">
@@ -249,9 +248,9 @@
 </template>
 
 <script setup>
-import { computed, h, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { AimOutlined, CopyOutlined, FileTextOutlined, FullscreenOutlined, PlusOutlined, SendOutlined, StopOutlined } from '@ant-design/icons-vue'
+import { computed, h, inject, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { CopyOutlined, DeleteOutlined, EditOutlined, FileTextOutlined, PlusOutlined, SendOutlined, StopOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -281,6 +280,9 @@ const templateList = ref([])
 const conversations = ref([])
 const activeConversationId = ref(null)
 const prompt = ref('')
+const promptInputRef = ref()
+const promptHistoryIndex = ref(-1)
+const promptHistoryDraft = ref('')
 const sending = ref(false)
 const autoScroll = ref(true)
 const activeAbortController = ref(null)
@@ -290,9 +292,10 @@ const templateFormatOpen = ref(false)
 const templateFormatText = ref('')
 const userStore = useUserStore()
 const route = useRoute()
+const router = useRouter()
+const stationNavigation = inject('spaceWorkstationNavigation', null)
 const sessionReady = ref(false)
 const syncingSession = ref(false)
-const isFullscreen = ref(false)
 const printingMessageId = ref(null)
 const messageWindow = reactive({
   hasBefore: false,
@@ -325,11 +328,6 @@ const activeConversation = computed(() =>
 )
 
 const activeMessages = computed(() => activeConversation.value?.messages || [])
-
-function toggleFullscreen() {
-  isFullscreen.value = !isFullscreen.value
-  nextTick(scrollToBottom)
-}
 
 const selectedDatasource = computed(() =>
   datasourceList.value.find((item) => item.id === form.datasourceId)
@@ -473,6 +471,7 @@ async function createConversation() {
 
 async function selectConversation(id) {
   activeConversationId.value = id
+  resetPromptHistory()
   const session = activeConversation.value
   if (!session) return
   await applySessionToForm(session)
@@ -513,6 +512,14 @@ async function loadSessionMessages(sessionId) {
   messageWindow.hasAfter = Boolean(data.hasAfter)
   autoScroll.value = true
   await scrollToBottom(true)
+}
+
+function openSkillManagement() {
+  if (stationNavigation?.openFlowSubFlow) {
+    stationNavigation.openFlowSubFlow('ai', 'ai-skill')
+    return
+  }
+  router.push('/ai/skill')
 }
 
 async function loadMoreMessages(direction) {
@@ -570,6 +577,32 @@ async function removeMessage(message) {
   session.messages = session.messages.filter((item) => item.id !== message.id)
 }
 
+async function copyMessage(item) {
+  const content = String(item?.displayContent || item?.content || '').trim()
+  if (!content) {
+    message.warning('当前消息没有可复制内容')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(content)
+    message.success('消息已复制')
+  } catch (error) {
+    message.error('复制失败，请手动选择复制')
+  }
+}
+
+function editMessage(message) {
+  if (!message || String(message.role || '').toLowerCase() !== 'user') return
+  prompt.value = String(message.content || '')
+  resetPromptHistory()
+  nextTick(() => {
+    const input = promptInputRef.value
+    const textarea = input?.$el?.querySelector?.('textarea') || input?.$el || input
+    textarea?.focus?.()
+    movePromptCaretToEnd(textarea)
+  })
+}
+
 async function clearMessages() {
   const session = activeConversation.value
   if (!session) return
@@ -609,7 +642,7 @@ function normalizeMessage(row) {
         id: row.id,
         role: row.role,
         content: normalizeAgentText(payload.content || row.content || ''),
-        displayContent: normalizeAgentText(payload.displayContent || row.displayContent || ''),
+        displayContent: normalizeVisibleLineBreaks(normalizeAgentText(payload.displayContent || row.displayContent || '')),
         agentSteps: normalizeAgentText(payload.agentSteps || '')
       }
       normalizeReportPayload(message)
@@ -621,7 +654,7 @@ function normalizeMessage(row) {
     id: row.id,
     role: row.role,
     content: normalizeAgentText(row.content || ''),
-    displayContent: normalizeAgentText(row.displayContent || ''),
+    displayContent: normalizeVisibleLineBreaks(normalizeAgentText(row.displayContent || '')),
     agentSteps: normalizeAgentText(row.agentSteps || ''),
     queryExecuted: false,
     tableRows: [],
@@ -650,12 +683,12 @@ function normalizeReportPayload(message) {
 function rebuildDisplayContentFromContent(message) {
   if (!message || message.role !== 'assistant' || !message.content) return
   if (message.displayContent) {
-    message.displayContent = removeValidationSqlSection(message.displayContent).trim()
+    message.displayContent = normalizeVisibleLineBreaks(removeValidationSqlSection(message.displayContent).trim())
   }
   const mixed = stripNativeJsonBlocks(message.content)
   if (!mixed.text || mixed.text === message.content) return
   if (!message.displayContent || isSqlOnlyDisplay(message.displayContent)) {
-    message.displayContent = mixed.text
+    message.displayContent = normalizeVisibleLineBreaks(mixed.text)
   }
   if (mixed.steps && !message.agentSteps) {
     message.agentSteps = mixed.steps
@@ -921,12 +954,78 @@ function trimActiveMessagesToLatest() {
   }
 }
 
-function handleEnter(event) {
-  if (event.shiftKey) {
-    prompt.value += '\n'
+function handlePromptKeydown(event) {
+  if (event?.isComposing) return
+  if (event.key === 'ArrowUp' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+    handlePromptHistoryUp(event)
     return
   }
-  sendMessage()
+  if (event.key === 'ArrowDown' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+    handlePromptHistoryDown(event)
+    return
+  }
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    sendMessage()
+  }
+}
+
+function normalizeVisibleLineBreaks(value) {
+  if (value === undefined || value === null) return value
+  const text = String(value)
+  // 结构化消息中的 \n 可能属于 JSON 字符串转义，不能破坏 JSON；普通展示文本则转换为真实换行。
+  try {
+    JSON.parse(text)
+    return text
+  } catch (error) {
+    return text.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n')
+  }
+}
+
+function userPromptHistory() {
+  return (activeConversation.value?.messages || [])
+    .filter((item) => String(item?.role || '').toLowerCase() === 'user' && String(item.content || '').trim())
+    .map((item) => String(item.content).trim())
+}
+
+function handlePromptHistoryUp(event) {
+  const target = event?.target
+  const history = userPromptHistory()
+  if (!history.length) return
+  event.preventDefault()
+  if (promptHistoryIndex.value < 0) {
+    promptHistoryDraft.value = prompt.value
+    promptHistoryIndex.value = history.length - 1
+  } else if (promptHistoryIndex.value > 0) {
+    promptHistoryIndex.value -= 1
+  }
+  prompt.value = history[promptHistoryIndex.value] || ''
+  nextTick(() => movePromptCaretToEnd(target))
+}
+
+function handlePromptHistoryDown(event) {
+  if (promptHistoryIndex.value < 0) return
+  const target = event?.target
+  event.preventDefault()
+  const history = userPromptHistory()
+  if (promptHistoryIndex.value < history.length - 1) {
+    promptHistoryIndex.value += 1
+    prompt.value = history[promptHistoryIndex.value] || ''
+  } else {
+    prompt.value = promptHistoryDraft.value
+    resetPromptHistory(false)
+  }
+  nextTick(() => movePromptCaretToEnd(target))
+}
+
+function movePromptCaretToEnd(target) {
+  const length = String(prompt.value || '').length
+  target?.setSelectionRange?.(length, length)
+}
+
+function resetPromptHistory(clearDraft = true) {
+  promptHistoryIndex.value = -1
+  if (clearDraft) promptHistoryDraft.value = ''
 }
 
 async function sendMessage() {
@@ -985,6 +1084,7 @@ async function sendMessage() {
   autoScroll.value = true
 
   prompt.value = ''
+  resetPromptHistory()
   sending.value = true
   await scrollToBottom(true)
 
@@ -1090,7 +1190,7 @@ async function generateReportMessage(question, assistantMessage) {
     assistantMessage.displayContent = assistantMessage.content
     return
   }
-  assistantMessage.content = normalizeAgentText(data.rawReply || data.qualityWarning) || '报告生成失败，未返回结构化数据'
+  assistantMessage.content = normalizeVisibleLineBreaks(normalizeAgentText(data.rawReply || data.qualityWarning)) || '报告生成失败，未返回结构化数据'
   assistantMessage.displayContent = assistantMessage.content
 }
 
@@ -1103,7 +1203,7 @@ function hydrateStructuredData(message) {
     return
   }
 
-  message.displayContent = message.displayContent || parsed.text || ''
+  message.displayContent = message.displayContent || normalizeVisibleLineBreaks(parsed.text || '')
   message.tableRows = parsed.rows || []
   message.tableColumns = parsed.columns?.length ? parsed.columns : buildColumns(parsed.rows)
   if (parsed.sql) {
@@ -1123,7 +1223,7 @@ function hydrateMixedNativeContent(message) {
     message.agentSteps = normalized.steps
   }
   if (normalized.text && normalized.text !== message.content) {
-    message.displayContent = normalized.text
+    message.displayContent = normalizeVisibleLineBreaks(normalized.text)
   }
 }
 
@@ -1136,7 +1236,7 @@ function mergeStreamContent(current, chunk) {
   if (looksLikeCompleteJson(chunk) && extractJsonObjects(before).length) {
     return normalizeAgentText(chunk)
   }
-  return normalizeAgentText(before + chunk)
+  return normalizeVisibleLineBreaks(normalizeAgentText(before + chunk))
 }
 
 function isReportIntent(question) {
@@ -1710,60 +1810,111 @@ async function scrollToBottom(force = false) {
 <style lang="scss" scoped>
 .ask-data-page {
   display: grid;
-  grid-template-columns: 228px minmax(0, 1fr);
-  height: calc(100vh - 124px);
-  min-height: 560px;
+  grid-template-columns: 260px minmax(0, 1fr) 280px;
+  height: calc(100vh - 96px);
+  min-height: 620px;
   padding: 0;
   overflow: hidden;
-  border: 1px solid #e5e6eb;
-  border-radius: 8px;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
   background: #ffffff;
   color: #1d2129;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-}
-
-.ask-data-page.fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  grid-template-columns: minmax(0, 1fr);
-  height: 100vh;
-  min-height: 0;
-  border: none;
-  border-radius: 0;
-}
-
-.ask-data-page.fullscreen .conversation-panel {
-  display: none;
-}
-
-.ask-data-page.fullscreen .chat-header {
-  padding: 12px 24px;
-}
-
-.ask-data-page.fullscreen .datasource-box {
-  max-width: none;
-}
-
-.ask-data-page.fullscreen .message-row,
-.ask-data-page.fullscreen .history-loader,
-.ask-data-page.fullscreen .composer,
-.ask-data-page.fullscreen .composer-tip {
-  max-width: 1480px;
-}
-
-.ask-data-page.fullscreen .message-bubble.html-report-bubble {
-  width: calc(100vw - 120px);
-  max-width: none;
+  box-shadow: 0 8px 30px rgba(31, 45, 61, .08);
 }
 
 .conversation-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
-  background: #f7f8fa;
-  border-right: 1px solid #e5e6eb;
+  gap: 16px;
+  padding: 22px 16px 16px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f5f7fb 100%);
+  border-right: 1px solid #e8edf4;
+}
+
+.conversation-history-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 16px;
+  padding: 22px 16px 16px;
+  background: #fbfcfe;
+  border-left: 1px solid #e8edf4;
+}
+
+.history-panel-title {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-panel-title strong,
+.history-panel-title span {
+  display: block;
+}
+
+.history-panel-title strong {
+  color: #1d2129;
+  font-size: 17px;
+  line-height: 24px;
+}
+
+.history-panel-title span {
+  margin-top: 3px;
+  color: #86909c;
+  font-size: 12px;
+}
+
+.ai-local-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid #e1eaf6;
+  border-radius: 12px;
+  background: rgba(235, 243, 255, .72);
+}
+
+.ai-local-nav-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #4e5969;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .2s, color .2s, box-shadow .2s;
+}
+
+.ai-local-nav-item:hover {
+  color: #165dff;
+  background: rgba(255, 255, 255, .78);
+}
+
+.ai-local-nav-item.is-active {
+  color: #165dff;
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(22, 93, 255, .12);
+  font-weight: 600;
+}
+
+.ai-local-nav-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #165dff;
+  box-shadow: 0 0 0 3px rgba(22, 93, 255, .12);
+}
+
+.ai-local-nav-dot.skill {
+  background: #ff7d00;
+  box-shadow: 0 0 0 3px rgba(255, 125, 0, .14);
 }
 
 .panel-title strong,
@@ -1772,8 +1923,9 @@ async function scrollToBottom(force = false) {
 }
 
 .panel-title strong {
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 18px;
+  line-height: 26px;
+  letter-spacing: .01em;
 }
 
 .panel-title span {
@@ -1783,15 +1935,103 @@ async function scrollToBottom(force = false) {
 }
 
 .new-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   width: 100%;
-  border-radius: 6px;
+  height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #1d2129;
+  box-shadow: 0 2px 8px rgba(31, 45, 61, .04);
+  font-size: 13px;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.new-chat :deep(.anticon) {
+  flex: 0 0 auto;
+  margin-inline-end: 0;
+}
+
+.new-chat:hover,
+.new-chat:focus {
+  border-color: transparent;
+  background: #f5f8ff;
+  color: #165dff;
+  box-shadow: 0 3px 10px rgba(22, 93, 255, .1);
+}
+
+.chat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e2eaf4;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 4px 14px rgba(31, 45, 61, .04);
+}
+
+.chat-option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chat-option-label {
+  color: #86909c;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.chat-option-group :deep(.ant-select),
+.chat-option-group :deep(.ant-segmented) {
+  width: 100%;
+}
+
+.chat-option-group :deep(.ant-select-selector) {
+  border-radius: 8px !important;
+}
+
+.chat-option-group :deep(.ant-segmented) {
+  padding: 3px;
+  border-radius: 8px;
+  background: #f2f6fc;
+}
+
+.chat-option-group :deep(.ant-btn) {
+  height: 32px;
+  border-radius: 8px;
+}
+
+.chat-option-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+  color: #4e5969;
+  font-size: 12px;
+}
+
+.chat-option-footer .sql-switch {
+  flex: 0 0 auto;
 }
 
 .conversation-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-height: 0;
   overflow-y: auto;
+}
+
+.conversation-history-panel .conversation-list {
+  flex: 1;
+  padding-right: 2px;
 }
 
 .conversation-row {
@@ -1806,10 +2046,10 @@ async function scrollToBottom(force = false) {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  min-height: 54px;
-  padding: 9px 10px;
-  border: 1px solid #edf0f5;
-  border-radius: 6px;
+  min-height: 62px;
+  padding: 11px 12px;
+  border: 1px solid #e7ecf3;
+  border-radius: 9px;
   background: #ffffff;
   color: #1d2129;
   cursor: pointer;
@@ -1821,7 +2061,7 @@ async function scrollToBottom(force = false) {
 .conversation-row.active .conversation-item {
   border-color: #94bfff;
   background: #eef6ff;
-  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  box-shadow: 0 4px 12px rgba(22, 93, 255, .09);
 }
 
 .conversation-delete {
@@ -1845,47 +2085,9 @@ async function scrollToBottom(force = false) {
 
 .chat-shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   min-width: 0;
   overflow: hidden;
-}
-
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 20px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0,0,0,.03);
-}
-
-.chat-header h2 {
-  margin: 0 0 3px;
-  font-size: 16px;
-  line-height: 22px;
-}
-
-.chat-header p {
-  margin: 0;
-  color: #86909c;
-  font-size: 13px;
-}
-
-.datasource-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  max-width: 760px;
-  min-width: 430px;
-}
-
-.datasource-box :deep(.ant-select) {
-  flex: 1;
-  min-width: 160px;
 }
 
 .mode-switch {
@@ -1932,8 +2134,9 @@ async function scrollToBottom(force = false) {
 .message-list {
   overflow-y: auto;
   height: 100%;
-  padding: 24px 20px 36px;
-  background: #f5f7fa;
+  padding: 30px 28px 42px;
+  background: #f7f9fc;
+  scroll-behavior: smooth;
 }
 
 .history-loader {
@@ -1988,88 +2191,105 @@ async function scrollToBottom(force = false) {
 .message-row {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  max-width: 960px;
-  margin: 0 auto 18px;
+  gap: 0;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto 42px;
 }
 
 .message-row.user {
-  flex-direction: row-reverse;
-}
-
-.avatar {
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #165dff;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.message-row.user .avatar {
-  background: #00a870;
+  justify-content: flex-end;
 }
 
 .message-bubble {
   position: relative;
-  max-width: min(760px, 82%);
-  min-height: 38px;
-  padding: 11px 13px;
-  border: 1px solid #e5e6eb;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  width: 100%;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 3px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .message-bubble.html-report-bubble {
-  width: calc(100vw - 360px);
-  max-width: 1180px;
+  width: 100%;
+  max-width: none;
 }
 
-.message-delete {
+.message-actions {
   position: absolute;
-  top: 2px;
-  right: 6px;
-  min-width: 32px;
-  padding: 0;
-  color: #a9aeb8;
+  right: 0;
+  bottom: -31px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  border: 1px solid #e8edf4;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 3px 10px rgba(31, 45, 61, .08);
   opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
 }
 
-.message-export {
-  position: absolute;
-  top: 2px;
-  right: 50px;
-  min-width: 54px;
-  padding: 0;
-  color: #165dff;
-  opacity: 0;
-}
-
-.message-bubble:hover .message-delete,
-.message-bubble:hover .message-export {
+.message-row:hover .message-actions,
+.message-actions:hover {
   opacity: 1;
+  pointer-events: auto;
 }
 
-.message-row.printing-report .message-delete,
-.message-row.printing-report .message-export {
+.message-actions :deep(.ant-btn) {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  color: #86909c;
+}
+
+.message-actions :deep(.ant-btn:hover) {
+  background: #f0f5ff;
+  color: #165dff;
+}
+
+.message-actions :deep(.ant-btn-dangerous:hover) {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+.message-row.printing-report .message-actions {
   display: none !important;
 }
 
 .message-row:not(.user) .message-bubble {
-  border-top-left-radius: 2px;
+  width: 100%;
+  padding-right: 8px;
 }
 
 .message-row.user .message-bubble {
-  border: none;
-  background: transparent;
-  padding: 0;
+  width: auto;
+  max-width: min(760px, 78%);
+  min-height: 0;
+  padding: 6px 15px;
+  border: 1px solid #d8e9fb;
+  border-radius: 18px;
+  background: #eaf4ff;
+  color: #1f2937;
   box-shadow: none;
+}
+
+.message-row.user .message-content {
+  line-height: 1.45;
+}
+
+.message-row.user .message-content :deep(p),
+.message-row.user .message-content :deep(ul),
+.message-row.user .message-content :deep(ol) {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .message-content {
@@ -2251,21 +2471,23 @@ async function scrollToBottom(force = false) {
 }
 
 .composer-wrap {
-  padding: 12px 20px 14px;
-  border-top: 1px solid #e5e6eb;
-  background: #ffffff;
-  box-shadow: 0 -1px 2px rgba(0,0,0,.03);
+  padding: 16px 26px 18px;
+  border-top: 1px solid #e8edf4;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 -8px 20px rgba(31, 45, 61, .04);
 }
 
 .composer {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  max-width: 960px;
+  gap: 10px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 8px 8px 8px 14px;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
+  min-height: 86px;
+  padding: 12px 12px 10px 18px;
+  border: 1px solid #d8e0eb;
+  border-radius: 22px;
+  box-shadow: 0 4px 14px rgba(31, 45, 61, .05);
   background: #ffffff;
 }
 
@@ -2274,33 +2496,50 @@ async function scrollToBottom(force = false) {
 }
 
 .composer :deep(.ant-input) {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: center;
+  width: auto;
   min-height: 24px !important;
-  padding: 6px 0;
+  padding: 2px 0 8px;
   border: none !important;
   box-shadow: none !important;
   line-height: 22px;
+  font-size: 14px;
+}
+
+.composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .send-btn {
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
+  order: 2;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border-radius: 6px;
+  border-radius: 50%;
 }
 
 .stop-btn {
-  width: 72px;
+  width: 76px;
+  border-radius: 18px;
 }
 
 .clear-btn {
   flex: 0 0 auto;
-  height: 36px;
-  border-radius: 6px;
+  order: 1;
+  height: 40px;
+  border-radius: 18px;
 }
 
 .composer-tip {
-  max-width: 960px;
+  max-width: 1180px;
   margin: 6px auto 0;
   color: #a9aeb8;
   font-size: 12px;
@@ -2309,20 +2548,25 @@ async function scrollToBottom(force = false) {
 @media (max-width: 960px) {
   .ask-data-page {
     grid-template-columns: 1fr;
-    height: calc(100vh - 104px);
+    height: calc(100vh - 72px);
+    min-height: 0;
+    border-radius: 10px;
   }
 
   .conversation-panel {
     display: none;
   }
 
-  .chat-header {
-    flex-direction: column;
-    align-items: stretch;
+  .conversation-history-panel {
+    display: none;
   }
 
-  .datasource-box {
-    min-width: 0;
+  .message-list {
+    padding: 20px 14px 30px;
+  }
+
+  .composer-wrap {
+    padding: 12px 14px 14px;
   }
 }
 </style>
