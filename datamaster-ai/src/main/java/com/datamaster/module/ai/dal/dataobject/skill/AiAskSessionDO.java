@@ -30,6 +30,9 @@ public class AiAskSessionDO extends BaseEntity {
 
     private String mode;
 
+    /** 会话分类：ASK_DATA / AUTONOMOUS_AGENT。 */
+    private String category;
+
     private Long datasourceId;
 
     private String datasourceName;

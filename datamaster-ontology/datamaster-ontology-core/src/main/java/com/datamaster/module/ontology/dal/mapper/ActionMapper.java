@@ -7,6 +7,7 @@ import com.datamaster.mybatis.core.mapper.BaseMapperX;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 动作定义 Mapper
@@ -14,10 +15,21 @@ import java.util.List;
 public interface ActionMapper extends BaseMapperX<ActionDO> {
 
     default PageResult<ActionDO> selectPage(ActionPageReqVO reqVO) {
+        if (reqVO == null) {
+            reqVO = new ActionPageReqVO();
+        }
+        Long id = reqVO.getId();
+        Long ontologyId = reqVO.getOntologyId();
+        String actionType = reqVO.getActionType();
+        String name = reqVO.getName();
+        String normalizedName = name == null ? null : name.trim();
         return selectPage(reqVO, new LambdaQueryWrapperX<ActionDO>()
-                .eq(reqVO.getOntologyId() != null, ActionDO::getOntologyId, reqVO.getOntologyId())
-                .eq(reqVO.getActionType() != null, ActionDO::getActionType, reqVO.getActionType())
-                .like(reqVO.getName() != null, ActionDO::getName, reqVO.getName())
+                .eq(id != null, ActionDO::getId, id)
+                .eq(ontologyId != null, ActionDO::getOntologyId, ontologyId)
+                .eq(actionType != null, ActionDO::getActionType, actionType)
+                .apply(normalizedName != null && !normalizedName.isEmpty(),
+                        "LOWER(name) LIKE LOWER({0})", normalizedName == null ? null
+                                : "%" + normalizedName.toLowerCase(Locale.ROOT) + "%")
                 .orderByDesc(ActionDO::getId));
     }
 

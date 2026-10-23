@@ -2,12 +2,15 @@ package com.datamaster.module.ontology.controller.admin.action;
 
 import com.datamaster.common.core.domain.CommonResult;
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.annotation.Anonymous;
 import com.datamaster.module.ontology.api.dto.ActionDataArrivalTriggerDTO;
 import com.datamaster.module.ontology.controller.admin.action.vo.*;
 import com.datamaster.module.ontology.service.IActionApprovalService;
 import com.datamaster.module.ontology.service.IActionExecutionService;
 import com.datamaster.module.ontology.service.IAiActionDecisionService;
 import com.datamaster.module.ontology.service.IActionService;
+import com.datamaster.module.ontology.service.IActionWorkflowRuntimeService;
+import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +30,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/ont/action")
 @Validated
+@Slf4j
 public class ActionController {
 
     @Resource
@@ -37,6 +41,8 @@ public class ActionController {
     private IActionApprovalService approvalService;
     @Resource
     private IAiActionDecisionService aiActionDecisionService;
+    @Resource
+    private IActionWorkflowRuntimeService workflowRuntimeService;
 
     @Value("${datamaster.ontology.action-trigger.secret:}")
     private String actionTriggerSecret;
@@ -171,6 +177,7 @@ public class ActionController {
     // ==================== 数据到达触发 ====================
 
     @Operation(summary = "数据到达触发：匹配 triggerRef 的启用动作自动提交并进入可靠执行队列")
+    @Anonymous
     @PostMapping("/trigger/data-arrival")
     public CommonResult<List<ExecutionRespVO>> dataArrivalTrigger(
             @RequestHeader(value = "X-DataMaster-Trigger-Secret", required = false) String secret,
@@ -192,9 +199,18 @@ public class ActionController {
         if (request.getTriggerRef() == null || request.getTriggerRef().trim().isEmpty()) {
             throw new IllegalArgumentException("triggerRef 不能为空");
         }
-        return CommonResult.success(executionService.submitByTrigger(
+        List<ExecutionRespVO> executions = executionService.submitByTrigger(
                 request.getTriggerRef(), request.getInputParams(), request.getObjectKey(),
-                request.getEventId(), request.getSpaceId(), request.getSpaceCode()));
+                request.getEventId(), request.getSpaceId(), request.getSpaceCode());
+        try {
+            workflowRuntimeService.triggerByEvent(
+                    request.getTriggerRef(), request.getInputParams(), request.getObjectKey(),
+                    request.getEventId(), request.getSpaceId(), request.getSpaceCode());
+        } catch (Exception e) {
+            log.error("HTTP 数据到达触发 Workflow 入队失败 triggerRef={} eventId={}",
+                    request.getTriggerRef(), request.getEventId(), e);
+        }
+        return CommonResult.success(executions);
     }
 
     private void assertTriggerSecret(String secret) {

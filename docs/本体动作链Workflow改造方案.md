@@ -7,9 +7,9 @@
 > `docs/本体动作可靠触发V1实施方案.md` 落地。本文后续内容继续作为 Workflow 阶段设计，
 > 不把 Decision 描述为 Palantir 官方本体原语。
 >
-> 2026-09-06 更新：Workflow 定义层第一版已实现，包括 Workflow / Node / Edge 持久化、
+> 2026-10-14 更新：Workflow 定义层第一版已实现，包括 Workflow / Node / Edge 持久化、
 > DAG 校验、草稿/发布接口和本体工作台“动作编排”配置页。Workflow Run / Workflow Step、
-> 串行调度、条件求值、并行执行与汇聚运行时仍未实现，不能把当前配置页描述为已经可执行的流程引擎。
+> 条件求值、持久化异步运行、动作节点失败重试、可恢复的并行拆分/汇聚和安全超时对账已接入 Workflow Runtime V2；当前并行分支按隔离上下文逐个执行，不是多线程同时执行。失败或需人工对账的运行可人工发起逆序补偿计划，补偿动作只进入人工审批/执行链；自动补偿和补偿结果自动收敛仍未实现。
 >
 > 2026-09-06 图形化改造：动作节点改为从已注册动作列表直接拖入 X6 画布，控制节点从节点库拖入，
 > 端口连线后在右侧配置节点或分支条件。Workflow 增加触发概念，条件不再允许任意手写表达式，
@@ -26,12 +26,14 @@
 
 ## 1. 结论
 
-当前本体模块已经实现了带持久队列 Worker 的“可靠单动作运行时（Action Runtime）”，并已增加动作编排定义层；真正负责启动和推进流程实例的 Workflow Runtime 仍待实现。
+当前本体模块已经实现了带持久队列 Worker 的“可靠单动作运行时（Action Runtime）”，并已增加动作编排定义层和 Workflow Runtime V2。V2 支持已发布 ACTION DAG 的启动、结构化条件分支、持久化异步运行、可恢复的并行拆分/汇聚、待审批、失败续跑、取消、按节点策略重试和超时人工对账；并行目前为逐分支 fan-out/fan-in，不是多线程同时执行。失败终态已经支持人工发起补偿计划，但补偿动作必须经过人工审批，不会自动执行。
+
+审批驳回和 `RECONCILIATION_REQUIRED` 会终止对应 Workflow 节点，不会在续跑时自动重新提交或重放动作。
 
 当前已有：
 
 - `Concept / Property / Relation` 及物理表、字段、关系映射；
-- `CREATE / UPDATE / DELETE / QUERY / FUNCTION` 动作；
+- `CREATE / UPDATE / DELETE / QUERY / FUNCTION / WEBHOOK` 动作；其中 WEBHOOK 通过现有审批、幂等和执行记录链路调用受控外部 HTTP 接口，不能绕过执行引擎直接发请求。
 - SQL 生成、dry-run 预览、直接执行或一次人工确认后执行；
 - 执行前后快照、CRUD 回退和错误记录；
 - `submissionCriteria` 前置检查（提交时与真正执行前各检查一次）；
@@ -43,15 +45,15 @@
 - 超时执行锁转 `RECONCILIATION_REQUIRED`，停止盲目重放。
 - `ONT_ACTION_WORKFLOW / NODE / EDGE` 编排定义、DAG 校验、草稿/发布和前端配置页；
 
-当前没有：
+当前仍没有：
 
-- 动作顺序链的实际运行；
-- 条件分支表达式的实际求值；
-- 并行拆分和汇聚的实际调度；
-- Workflow Run / Workflow Step；
-- 节点级重试、超时和补偿；
-- 节点之间的输入输出上下文；
-- 流程级幂等和运行轨迹。
+- 多线程并行度控制、自动补偿和补偿结果自动收敛；节点级超时已采用人工对账模式，尚未提供可中断的硬超时；
+- 外部通知渠道（邮件、Webhook、企业 IM）；当前已接入站内 Workflow 告警，统一运行监控已通过监控接口和工作站入口接入；
+- 条件求值时的对象版本快照；
+- 外部通知渠道（邮件、Webhook、企业 IM）；当前只提供站内 Workflow 告警和运行监控。
+
+动作节点重试策略使用 JSON 保存，例如 `{"maxAttempts":3,"backoffMs":1000}`；`maxAttempts` 包含首次执行，
+后端限制为 1～10 次，退避时间采用指数增长并限制在 5 分钟内。节点 `timeoutMs` 字段由 Workflow Worker 监控，超时后将底层执行和 Workflow 运行转为 `RECONCILIATION_REQUIRED`，停止自动重试并保留人工对账边界；不会通过线程中断强行终止数据库/函数调用，避免把已产生副作用的动作误判为可安全重放。
 
 因此，现状应准确描述为：
 
@@ -115,6 +117,8 @@ A 成功
   → 执行 D
 ```
 
+现在同一个受信任数据到达入口还会匹配配置了相同 `triggerRef` 的已发布且启用 Workflow，按 `eventId + workflow` 幂等地异步入队；原有动作扇出仍保留，因此 `triggerRef` 同时可以作为动作入口和 Workflow 入口，但 Workflow 内部的条件、并行和审批关系仍由 DAG 定义负责。
+
 ### 2.3 审批链不等于动作执行链
 
 当前 `ONT_ACTION_REQUEST / ONT_ACTION_TASK / ONT_ACTION_REVIEWER` 解决的是：
@@ -133,17 +137,17 @@ A 成功
 
 ## 3. 必须优先修正的问题
 
-### 3.1 对象状态条件尚未真正实现
+### 3.1 对象状态条件已接入，但对象版本留痕仍待补齐
 
-当前 `object.*` 条件没有回查目标对象物理表，而是按未知值处理；条件解析异常时还会按通过处理。
+动作前置条件和 Workflow 条件分支现在都会通过 `ObjectStateConditionResolver` 回查目标对象物理表，解析异常按失败处理；当前仍未记录条件求值时的对象版本快照。
 
 改造要求：
 
-1. 根据 `conceptId + objectKey` 查询对象当前状态；
+1. 根据 `conceptId + objectKey` 查询对象当前状态（已完成）；
 2. 只允许访问概念属性白名单；
-3. 对象不存在、字段不存在、表达式错误不得默认通过；
+3. 对象不存在、字段不存在、表达式错误不得默认通过（已完成）；
 4. 区分 `REJECT`、`EVALUATION_ERROR` 和系统异常；
-5. 记录条件求值时的对象版本。
+5. 记录条件求值时的对象版本（待补齐）。
 
 ### 3.2 `objectKey` 必须使用真实对象主键
 
@@ -325,8 +329,8 @@ START 节点 ──选择动作──> 自动推导触发概念
 点击节点/连线 ───────> 右侧属性面板配置
 ```
 
-当前保存的是可发布的 DAG 定义；因为 Workflow Runtime 尚未实现，`INPUT`、`STEP_OUTPUT`、并行汇聚等配置
-目前只完成结构化持久化和合法性校验，还不能描述为已经会自动运行。
+当前保存的是可发布的 DAG 定义；Workflow Runtime V2 已支持动作输入、前序节点输出注入、节点输出留痕、`INPUT`、`STEP_OUTPUT`、`OBJECT`、`CONTEXT` 条件求值以及并行拆分/汇聚。
+超时已完成安全对账运行时；补偿已支持从失败/需人工对账运行按已执行步骤逆序提交，并根据关联动作执行记录汇总 `REQUESTED / PARTIAL / COMPENSATED / FAILED` 状态，但仍只进入人工审批链。自动执行补偿、外部副作用判定和原 Workflow 状态自动收敛仍未实现，因此仍不能描述为完整的 Saga 流程引擎。
 
 第一版只支持 DAG，禁止环；循环需求通过事件重新触发 Workflow 实现。
 
@@ -457,24 +461,27 @@ dal/dataobject/
 ```text
 CrudActionExecutor       CREATE / UPDATE / DELETE / QUERY
 FunctionActionExecutor   FUNCTION
-ExternalActionExecutor   HTTP / ERP / WMS / 消息 / DolphinScheduler
+WebhookActionExecutor    WEBHOOK（受控 HTTP，含 SSRF/超时/对账边界）
+ExternalActionExecutor   ERP / WMS / 消息 / DolphinScheduler
 ```
 
 ## 8. 分阶段改造计划
 
 ### 阶段一：修正单动作运行时
 
-1. 修复 `objectKey`；
-2. 实现对象状态条件查询；
-3. 条件解析失败改为拒绝或错误；
-4. 增加动作和函数版本冻结；
-5. 增加幂等键、乐观锁和重复执行保护；
+1. 修复 `objectKey`（已完成）；
+2. 实现对象状态条件查询（已完成）；
+3. 条件解析失败改为拒绝或错误（已完成）；
+4. 增加动作和函数版本冻结（已完成）；
+5. 增加幂等键、乐观锁和重复执行保护（已完成）；
 6. 删除动作前检查执行记录和流程引用；
-7. 统一 Action 执行结果结构。
+7. 统一 Action 执行结果结构（已完成）。
 
 ### 阶段二：增加最小 Workflow
 
-当前进度：定义层、节点/连线配置、DAG 校验和发布已完成；以下运行时部分待实现。
+当前进度：定义层、节点/连线配置、DAG 校验和发布已完成；运行时 V2 已完成 ACTION DAG 启动、结构化条件求值、持久化异步运行、节点步骤持久化、底层动作执行结果关联、并行拆分/汇聚、失败续跑、取消、安全超时对账、统一运行监控、人工补偿计划和补偿状态汇总。运行监控通过 `GET /ont/workflow/monitor?limit=20` 提供当前用户可见运行样本的状态汇总与最近运行记录，工作站动作编排页已提供监控入口。补偿动作必须属于当前本体并配置人工审批，通过 `POST /ont/workflow/runs/{runId}/compensate` 逆序提交；自动补偿、外部系统补偿和补偿结果自动收敛仍待实现。
+Workflow `inputSchema` 已在手动启动、数据到达触发和异步执行前执行基础 JSON Schema 校验；运行输入根节点要求为 object，目前支持必填字段、类型、枚举、数组 `items` 和禁止额外字段，复杂 JSON Schema 关键字仍不在运行时范围内。
+Workflow `outputSchema` 同样支持在发布时校验定义，并在 Workflow 到达结束节点时校验最终业务输出上下文；运行游标、对象/空间/事件元数据和当前用户等内部字段不会参与 `additionalProperties=false` 校验，输出不符合时运行标记为失败。
 
 先支持：
 
@@ -491,9 +498,9 @@ PARALLEL_SPLIT
 PARALLEL_JOIN
 ```
 
-### 阶段三：外部动作和补偿
+### 阶段三：外部动作和自动补偿闭环
 
-增加 HTTP/API、消息、DolphinScheduler、Webhook 等适配器，并为有副作用的动作配置补偿动作。
+增加 HTTP/API、消息、DolphinScheduler、Webhook 等适配器；在现有人工补偿计划基础上，补齐外部副作用确认、补偿执行状态和原 Workflow 收敛规则。
 
 ### 阶段四：Proposal 和 AI 调度
 
@@ -565,7 +572,7 @@ Proposal 不作为第一版必须的独立表。需要人工确认时，直接�
 ACTION_CODE
 VERSION
 STATUS                 DRAFT / PUBLISHED / ARCHIVED
-EXECUTOR_TYPE          CRUD / FUNCTION / HTTP / MESSAGE / DS
+EXECUTOR_TYPE          CRUD / FUNCTION / WEBHOOK / MESSAGE / DS
 INPUT_SCHEMA
 OUTPUT_SCHEMA
 PRECONDITION_EXPR
@@ -718,7 +725,7 @@ POST /ont/action/execution/run/{id}
 POST /ont/action/execution/rollback/{id}
 ```
 
-新增 Workflow API：
+新增 Workflow API（当前实际路径）：
 
 ```text
 GET  /ont/workflow/page
@@ -729,10 +736,16 @@ POST /ont/workflow/{id}/validate
 POST /ont/workflow/{id}/publish
 POST /ont/workflow/{id}/disable
 POST /ont/workflow/{id}/run
-POST /ont/workflow/run/{id}/cancel
-POST /ont/workflow/run/{id}/retry
-GET  /ont/workflow/run/{id}
-GET  /ont/workflow/run/{id}/steps
+GET  /ont/workflow/runs/{runId}
+GET  /ont/workflow/{id}/runs/page?pageNum=1&pageSize=10&status=FAILED
+GET  /ont/workflow/{id}/versions
+GET  /ont/workflow/{id}/versions/{version}
+POST /ont/workflow/{id}/versions/{version}/rollback
+POST /ont/workflow/runs/{runId}/resume
+POST /ont/workflow/runs/{runId}/cancel
+POST /ont/workflow/runs/{runId}/compensate
+POST /ont/workflow/runs/{runId}/compensate/retry
+GET  /ont/workflow/monitor?limit=20
 ```
 
 ### 10.9 实施顺序

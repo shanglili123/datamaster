@@ -40,7 +40,7 @@
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-system</artifactId>
+            <artifactId>datamaster-system-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
@@ -56,11 +56,6 @@
         <dependency>
             <groupId>com.datamaster</groupId>
             <artifactId>datamaster-metadata-interface</artifactId>
-            <version>${dataMaster.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-ai</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>

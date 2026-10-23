@@ -67,4 +67,57 @@ public class StandardsModelSaveReqVO extends BaseEntity {
     private String description;
 
 
+
+    // Warehouse governance and frozen target.
+    private String tableType;
+
+    private Long dataLayerId;
+
+    private Long businessCategoryId;
+
+    private String businessCategoryCode;
+
+    private Long dataDomainId;
+
+    private Long themeDomainId;
+
+    private String themeDomainCode;
+
+    private String tableCase;
+
+    @Schema(description = "服务端确定，不接受客户端覆盖", accessMode = Schema.AccessMode.READ_ONLY)
+    private String physicalTableName;
+
+    @Schema(description = "服务端确定，不接受客户端覆盖", accessMode = Schema.AccessMode.READ_ONLY)
+    private String namingVersion;
+
+    private String dataLayerCode;
+
+    private String dataLayerName;
+
+    private String dataLayerEngName;
+
+    private String businessCategoryName;
+
+    private String businessCategoryEngName;
+
+    private String dataDomainCode;
+
+    private String dataDomainName;
+
+    private String dataDomainEngName;
+
+    private String themeDomainName;
+
+    private String themeDomainEngName;
+
+    /** New UI/import contract: send true and serialize nullable governance fields explicitly. */
+    private Boolean governanceProvided;
+
+    /** Explicit confirmation required to upgrade a historical LEGACY model. */
+    private Boolean upgradeNaming;
+
+    private Long spaceId;
+
+    private String spaceCode;
 }

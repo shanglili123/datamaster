@@ -1416,9 +1416,9 @@ public class TaskConverter {
             return null;
         }
 
-        List<String> sourceColumns = toColumnNames(readerParam.get("column"));
+        List<String> mappedSourceColumns = toColumnNames(writerParam.get("column"));
         List<String> targetColumns = toColumnNames(writerParam.get("target_column"));
-        int sourceIndex = sourceColumns.indexOf(sourceColumn);
+        int sourceIndex = mappedSourceColumns.indexOf(sourceColumn);
         if (sourceIndex < 0 || sourceIndex >= targetColumns.size()) {
             throw new ServiceException("增量字段 " + sourceColumn + " 未配置到目标表字段映射中");
         }
@@ -1675,6 +1675,7 @@ public class TaskConverter {
         List<Map<String, Object>> transitionList = new ArrayList<>();
         List<Map<String, Object>> readerList = new ArrayList<>();
         List<Map<String, Object>> writerList = new ArrayList<>();
+        List<Map<String, Object>> pipelineNodeList = new ArrayList<>();
         List<CollectorEtlNodeSaveReqVO> nodeList = JSON.parseArray(taskDefinitionList, CollectorEtlNodeSaveReqVO.class);
         for (CollectorEtlNodeSaveReqVO CollectorEtlNodeSaveReqVO : nodeList) {
             Integer version = 1;
@@ -1726,6 +1727,15 @@ public class TaskConverter {
                         }
                     }
                     break;
+                case PIPELINE_NODE:
+                    pipelineNodeList.add(data);
+                    if (data.get("reader") instanceof Map) {
+                        readerList.add((Map<String, Object>) data.get("reader"));
+                    }
+                    if (data.get("writer") instanceof Map) {
+                        writerList.add((Map<String, Object>) data.get("writer"));
+                    }
+                    break;
                 case SHELL_DEV:
                 case SQL_DEV:
                 case PROCEDURE_DEV:
@@ -1750,7 +1760,76 @@ public class TaskConverter {
         }
         result.put("writerList", writerList);
         result.put("transition", transitionList);
+        result.put("pipelineNodes", pipelineNodeList);
         result.put("config", config);
         return result;
+    }
+
+    /**
+     * 是否包含新的逻辑集成节点。逻辑节点在前端是一个节点，发布到 DS 时需要展开成多个实际执行节点。
+     */
+    public static boolean hasPipelineNodes(String taskDefinitionList) {
+        if (StringUtils.isBlank(taskDefinitionList)) {
+            return false;
+        }
+        try {
+            List<CollectorEtlNodeSaveReqVO> nodes = JSON.parseArray(taskDefinitionList, CollectorEtlNodeSaveReqVO.class);
+            if (nodes == null) {
+                return false;
+            }
+            for (CollectorEtlNodeSaveReqVO node : nodes) {
+                if (node != null && TaskComponentTypeEnum.PIPELINE_NODE.getCode().equals(node.getComponentType())) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("解析逻辑集成节点失败", e);
+        }
+        return false;
+    }
+
+    /**
+     * 构建通用 HTTP 节点。用于把已有元数据探查/质量检查任务挂到 DS 流程中。
+     */
+    public static Map<String, Object> buildHttpTaskDefinitionMap(Long id, String name, String code,
+                                                                   Integer version, String url,
+                                                                   String draftJson, String projectWorkerGroup) {
+        return buildHttpTask(id, name, code, version, url, draftJson, projectWorkerGroup);
+    }
+
+    private static Map<String, Object> buildHttpTask(Long id, String name, String code,
+                                                     Integer version, String url,
+                                                     String draftJson, String projectWorkerGroup) {
+        Map<String, Object> definitionJsonMap = JSONUtils.convertTaskDefinitionJsonMap(draftJson);
+        Map<String, Object> task = new HashMap<>();
+        task.put("id", id);
+        task.put("name", name);
+        task.put("code", code);
+        task.put("version", version == null ? 0 : version);
+        task.put("description", "由数据集成逻辑节点自动生成");
+        task.put("workerGroup", resolveWorkerGroup(projectWorkerGroup, definitionJsonMap.get("workerGroup")));
+        task.put("environmentCode", DEFAULT_ENVIRONMENT_CODE);
+        task.put("flag", DEFAULT_FLAG);
+        task.put("isCache", DEFAULT_IS_CACHE);
+        task.put("taskPriority", MapUtils.getObject(definitionJsonMap, "taskPriority", DEFAULT_TASK_PRIORITY));
+        task.put("taskType", "HTTP");
+        task.put("taskExecuteType", "BATCH");
+        task.put("failRetryTimes", MapUtils.getObject(definitionJsonMap, "failRetryTimes", DEFAULT_TASK_failRetryTimes));
+        task.put("delayTime", MapUtils.getObject(definitionJsonMap, "delayTime", DEFAULT_TASK_delayTime));
+        task.put("failRetryInterval", MapUtils.getObject(definitionJsonMap, "failRetryInterval", DEFAULT_TASK_failRetryInterval));
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("localParams", new ArrayList<>());
+        params.put("resourceList", new ArrayList<>());
+        params.put("httpMethod", "GET");
+        params.put("httpBody", "{}");
+        params.put("httpCheckCondition", HTTP_CHECK_CONDITION);
+        params.put("url", url);
+        params.put("httpParams", new ArrayList<>());
+        params.put("condition", "");
+        params.put("connectTimeout", HTTP_CONNECT_TIMEOUT);
+        params.put("socketTimeout", HTTP_SOCKET_TIMEOUT);
+        task.put("taskParams", params);
+        return task;
     }
 }

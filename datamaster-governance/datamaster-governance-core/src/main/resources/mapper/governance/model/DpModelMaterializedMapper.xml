@@ -7,6 +7,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="StandardsModelMaterializedDO" id="StandardsModelMaterializedResult">
         <result property="id"    column="ID"    />
         <result property="modelName"    column="MODEL_NAME"    />
+        <result property="tableName" column="TABLE_NAME" />
         <result property="modelAlias"    column="MODEL_ALIAS"    />
         <result property="modelId"    column="MODEL_ID"    />
         <result property="status"    column="STATUS"    />
@@ -28,7 +29,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectDpModelMaterializedVo">
-        select ID, MODEL_NAME, MODEL_ALIAS, MODEL_ID, STATUS, MESSAGE, SQL_COMMAND, DATASOURCE_ID, DATASOURCE_TYPE, DATASOURCE_NAME, ASSET_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from STD_MODEL_MATERIALIZED
+        select ID, TABLE_NAME, MODEL_NAME, MODEL_ALIAS, MODEL_ID, STATUS, MESSAGE, SQL_COMMAND, DATASOURCE_ID, DATASOURCE_TYPE, DATASOURCE_NAME, ASSET_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from STD_MODEL_MATERIALIZED
     </sql>
 
     <select id="selectDpModelMaterializedList" parameterType="StandardsModelMaterializedDO" resultMap="StandardsModelMaterializedResult">
@@ -58,6 +59,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">ID,</if>
             <if test="modelName != null">MODEL_NAME,</if>
+            <if test="tableName != null">TABLE_NAME,</if>
             <if test="modelAlias != null">MODEL_ALIAS,</if>
             <if test="modelId != null">MODEL_ID,</if>
             <if test="status != null">STATUS,</if>
@@ -80,6 +82,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
             <if test="modelName != null">#{modelName},</if>
+            <if test="tableName != null">#{tableName},</if>
             <if test="modelAlias != null">#{modelAlias},</if>
             <if test="modelId != null">#{modelId},</if>
             <if test="status != null">#{status},</if>
@@ -105,6 +108,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         update STD_MODEL_MATERIALIZED
         <trim prefix="SET" suffixOverrides=",">
             <if test="modelName != null">MODEL_NAME = #{modelName},</if>
+            <if test="tableName != null">TABLE_NAME = #{tableName},</if>
             <if test="modelAlias != null">MODEL_ALIAS = #{modelAlias},</if>
             <if test="modelId != null">MODEL_ID = #{modelId},</if>
             <if test="status != null">STATUS = #{status},</if>

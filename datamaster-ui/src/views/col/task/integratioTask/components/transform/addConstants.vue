@@ -1,5 +1,5 @@
 <template>
-  <a-modal
+  <a-modal wrap-class-name="integration-component-modal"
     v-model:open="visibleDialog"
     class="medium-dialog"
     :title="form.taskParams.typeName"
@@ -15,6 +15,7 @@
       @submit.prevent
       :disabled="info"
     >
+      <h3 class="etl-section-title">基本信息</h3>
       <a-row :gutter="20">
         <a-col :span="12">
           <a-form-item
@@ -56,9 +57,7 @@
         </a-col>
       </a-row>
 
-      <a-divider orientation="center">
-        <span class="blue-text">常量字段</span>
-      </a-divider>
+      <h3 class="etl-section-title">常量字段</h3>
       <div class="justify-between mb15">
         <a-row :gutter="15" class="btn-style">
           <a-col :span="1.5">

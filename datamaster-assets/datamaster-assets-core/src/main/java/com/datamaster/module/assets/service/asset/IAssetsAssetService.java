@@ -129,6 +129,9 @@ public interface IAssetsAssetService extends IService<AssetsAssetDO> {
      */
     Long createAssetBindResources(AssetsAssetSaveReqVO AssetsAsset);
 
+    /** 独立平台事务；只补缺失治理，绝不覆盖已有字段及权限。 */
+    Long registerCreatedTableAsset(AssetsAssetSaveReqVO asset, boolean existingPhysicalTable);
+
     int updateAssetNew(AssetsAssetSaveReqVO AssetsAsset);
 
     AjaxResult startAssetDatasourceTask(Long id);

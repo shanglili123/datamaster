@@ -128,7 +128,7 @@ import java.util.stream.Collectors;
 public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, AssetsAssetDO> implements IAssetsAssetService, IAssetsAssetApiOutService {
     @Value("${ds.resource_url:}")
     private String resourceUrl;
-    @Value("${datamaster.profile}")
+    @Value("${file.storage.root-path}")
     private String profile;
     @Resource
     private AssetsAssetMapper AssetsAssetMapper;
@@ -492,6 +492,9 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAssetDO dictType = BeanUtils.toBean(createReqVO, AssetsAssetDO.class);
         AssetsAssetDO existingAsset = StringUtils.equals("1", createReqVO.getType()) ? getExistingTableAsset(createReqVO.getDatasourceId(), createReqVO.getTableName()) : null;
         if (existingAsset != null) {
+            if (createReqVO.isCreateOnly()) {
+                throw new ServiceException("同名资产已存在，请重新核对后重试，禁止覆盖已有字段和权限");
+            }
             dictType.setId(existingAsset.getId());
             AssetsAssetMapper.updateById(dictType);
             return existingAsset.getId();
@@ -1093,6 +1096,72 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
         AssetsAsset.setCreateType("2");
         updateAsset(AssetsAsset);
         return 1L;
+    }
+
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public Long registerCreatedTableAsset(AssetsAssetSaveReqVO asset, boolean existingPhysicalTable) {
+        if (asset.getDatasourceId() == null || StringUtils.isBlank(asset.getTableName())) {
+            throw new ServiceException("登记资产必须指定数据源和实际表名");
+        }
+        // 同一登记连接上的安全登记串行化（平台事务行锁，不涉及外部DDL事务）。
+        AssetsDatasourceDO lockedDatasource = AssetsDatasourceMapper.selectOne(Wrappers.<AssetsDatasourceDO>lambdaQuery()
+                .eq(AssetsDatasourceDO::getId, asset.getDatasourceId()).last("FOR UPDATE"));
+        if (lockedDatasource == null) { throw new ServiceException("登记数据源已失效"); }
+        List<AssetsAssetDO> existing = AssetsAssetMapper.selectList(Wrappers.<AssetsAssetDO>lambdaQuery()
+                .eq(AssetsAssetDO::getDatasourceId, asset.getDatasourceId()));
+        existing = existing.stream().filter(item -> asset.getTableName().equalsIgnoreCase(item.getTableName())).collect(Collectors.toList());
+        if (existing.size() > 1) {
+            throw new ServiceException("同名资产登记不唯一，禁止自动修改");
+        }
+        if (!existing.isEmpty()) {
+            AssetsAssetDO current = existing.get(0);
+            if (!asset.getTableName().equals(current.getTableName()) || !"1".equals(current.getType())) {
+                throw new ServiceException("已有资产名称大小写或类型冲突，禁止自动覆盖");
+            }
+            assertGovernanceCompatible(current.getTableType(), asset.getTableType());
+            assertGovernanceCompatible(current.getDataLayerId(), asset.getDataLayerId());
+            assertGovernanceCompatible(current.getBusinessCategoryId(), asset.getBusinessCategoryId());
+            assertGovernanceCompatible(current.getBusinessCategoryCode(), asset.getBusinessCategoryCode());
+            assertGovernanceCompatible(current.getDataDomainId(), asset.getDataDomainId());
+            assertGovernanceCompatible(current.getThemeDomainId(), asset.getThemeDomainId());
+            assertGovernanceCompatible(current.getThemeDomainCode(), asset.getThemeDomainCode());
+            assertGovernanceCompatible(current.getTableCase(), asset.getTableCase());
+            Set<String> actualFields = asset.getAssetColumnList().stream().map(AssetsAssetColumnSaveReqVO::getColumnName).collect(Collectors.toSet());
+            Set<String> registeredFields = AssetsAssetColumnMapper.findByAssetId(current.getId()).stream().map(AssetsAssetColumnDO::getColumnName).collect(Collectors.toSet());
+            if (!actualFields.equals(registeredFields)) {
+                throw new ServiceException("已有资产字段与实际结构不一致，禁止自动覆盖字段和敏感策略");
+            }
+            // 仅填空治理字段。不要调用updateAsset/insertAsset或写字段、敏感级、空间关联。
+            com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<AssetsAssetDO> update = Wrappers.<AssetsAssetDO>lambdaUpdate()
+                    .eq(AssetsAssetDO::getId, current.getId());
+            boolean changed = false;
+            if (current.getTableType() == null && asset.getTableType() != null) { update.isNull(AssetsAssetDO::getTableType).set(AssetsAssetDO::getTableType, asset.getTableType()); changed = true; }
+            if (current.getDataLayerId() == null && asset.getDataLayerId() != null) { update.isNull(AssetsAssetDO::getDataLayerId).set(AssetsAssetDO::getDataLayerId, asset.getDataLayerId()); changed = true; }
+            if (current.getBusinessCategoryId() == null && asset.getBusinessCategoryId() != null) { update.isNull(AssetsAssetDO::getBusinessCategoryId).set(AssetsAssetDO::getBusinessCategoryId, asset.getBusinessCategoryId()); changed = true; }
+            if (current.getBusinessCategoryCode() == null && asset.getBusinessCategoryCode() != null) { update.isNull(AssetsAssetDO::getBusinessCategoryCode).set(AssetsAssetDO::getBusinessCategoryCode, asset.getBusinessCategoryCode()); changed = true; }
+            if (current.getDataDomainId() == null && asset.getDataDomainId() != null) { update.isNull(AssetsAssetDO::getDataDomainId).set(AssetsAssetDO::getDataDomainId, asset.getDataDomainId()); changed = true; }
+            if (current.getThemeDomainId() == null && asset.getThemeDomainId() != null) { update.isNull(AssetsAssetDO::getThemeDomainId).set(AssetsAssetDO::getThemeDomainId, asset.getThemeDomainId()); changed = true; }
+            if (current.getThemeDomainCode() == null && asset.getThemeDomainCode() != null) { update.isNull(AssetsAssetDO::getThemeDomainCode).set(AssetsAssetDO::getThemeDomainCode, asset.getThemeDomainCode()); changed = true; }
+            if (current.getTableCase() == null && asset.getTableCase() != null) { update.isNull(AssetsAssetDO::getTableCase).set(AssetsAssetDO::getTableCase, asset.getTableCase()); changed = true; }
+            if (changed && AssetsAssetMapper.update(null, update) != 1) { throw new ServiceException("资产治理已被并发修改，请重新核对"); }
+            return current.getId();
+        }
+        if (existingPhysicalTable) {
+            throw new ServiceException("已有表结构匹配但无法确认安全归属，请人工审核登记；不自动接管未知表");
+        }
+        asset.setCreateOnly(true);
+        createAssetBindResources(asset);
+        if (asset.getId() == null) {
+            throw new ServiceException("资产登记未回填ID");
+        }
+        return asset.getId();
+    }
+
+    private void assertGovernanceCompatible(Object existing, Object expected) {
+        if (existing != null && !java.util.Objects.equals(existing, expected)) {
+            throw new ServiceException("同名资产已有治理信息冲突，禁止自动覆盖");
+        }
     }
 
     private void createAssetFilesNew(AssetsAssetSaveReqVO AssetsAsset) {

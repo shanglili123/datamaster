@@ -133,7 +133,7 @@
           </div>
           <div v-if="agentPlanning || agentPlanReady || agentOperationId" class="explore-home__agent-progress">
             <div class="explore-home__agent-progress-head">
-              <span>{{ agentOperationStatus === 'NEED_INPUT' ? "需要补充连接信息" : (agentOperationStatus === 'NEED_CONFIRMATION' ? "等待确认发布探查任务" : (agentOperationStatus === 'FAILED' ? "流程执行失败" : (agentOperationStatus === 'INTERRUPTED' ? "流程已中断，可从当前步骤继续" : (agentOperationStatus === 'SUCCEEDED' ? "数据流程已自动完成" : "数据智能体正在执行流程")))) }}</span>
+              <span>{{ agentOperationHeadline }}</span>
               <strong>{{ agentPlanProgress }}%</strong>
             </div>
             <div class="explore-home__agent-progress-bar">
@@ -162,7 +162,7 @@
                   <span>{{ agentOperationStatus === 'NEED_INPUT' ? '请补充连接信息后继续' : (agentOperationStatus === 'NEED_CONFIRMATION' ? '请确认发布并执行探查任务' : '自动运营流程 · 目标数据源') }}</span>
                   <strong>{{ agentPlanDatabase }}</strong>
                 </div>
-                <a-tag :color="agentOperationStatus === 'FAILED' ? 'red' : (agentOperationStatus === 'SUCCEEDED' ? 'green' : (agentOperationStatus === 'NEED_CONFIRMATION' ? 'orange' : 'blue'))">{{ agentOperationStatusLabel }}</a-tag>
+                <a-tag :color="agentOperationStatus === 'FAILED' ? 'red' : (agentOperationStatus === 'SUCCEEDED' ? 'green' : (agentOperationStatus === 'PARTIAL' || agentOperationStatus === 'NEED_CONFIRMATION' ? 'orange' : 'blue'))">{{ agentOperationStatusLabel }}</a-tag>
               </div>
               <div v-if="agentOperationStatus === 'NEED_INPUT'" class="explore-home__agent-connection">
                 <a-input v-model:value="agentConnection.databaseName" placeholder="数据库名称" />
@@ -194,7 +194,8 @@
                 <a-button @click="resetAgentPlan">重新开始</a-button>
                 <a-button v-if="agentOperationStatus === 'NEED_CONFIRMATION'" type="primary" :loading="agentPlanning" @click="confirmMetadataTask">确认发布并执行</a-button>
                 <a-button v-if="agentOperationStatus === 'FAILED' || agentOperationStatus === 'INTERRUPTED'" type="primary" :loading="agentPlanning" @click="retryAgentOperation">从当前步骤重试</a-button>
-                <a-button v-if="agentOperationStatus === 'SUCCEEDED'" type="primary" @click="selectFlow('ai')">打开决策智能体</a-button>
+                <a-button v-if="agentOperationStatus === 'RUNNING'" danger :loading="agentCanceling" @click="cancelAgentOperation">取消流程</a-button>
+                <a-button v-if="agentOperationStatus === 'SUCCEEDED' || agentOperationStatus === 'PARTIAL'" type="primary" @click="selectFlow('ai')">打开决策智能体</a-button>
               </div>
             </div>
           </div>
@@ -274,9 +275,11 @@ import {
   ScanOutlined,
 } from "@ant-design/icons-vue";
 import useUserStore from "@/store/system/user";
-import { startPlatformAgent, getPlatformAgentOperation, getPlatformAgentOperationPage, resumePlatformAgent, retryPlatformAgent, confirmPlatformAgentMetadata } from "@/api/ai/platformAgent";
+import { startPlatformAgent, getPlatformAgentOperation, getPlatformAgentOperationPage, resumePlatformAgent, retryPlatformAgent, confirmPlatformAgentMetadata, cancelPlatformAgent } from "@/api/ai/platformAgent";
 import { encrypt } from "@/utils/aesEncrypt";
 import { currentUser } from "@/api/tax/space/space";
+import { checkPermi } from "@/utils/permission";
+import { normalizeDataQueryTarget } from "@/utils/dataQueryNavigation";
 
 const QualityTaskView = defineAsyncComponent(() => import("@/views/ast/quality/qualityTask/index.vue"));
 const ProbeInstanceView = defineAsyncComponent(() => import("@/views/ast/quality/probeTaskInstance/index.vue"));
@@ -285,10 +288,12 @@ const MetadataView = defineAsyncComponent(() => import("@/views/meta/catalog/tab
 const MetadataDetailView = defineAsyncComponent(() => import("@/views/meta/catalog/table/detail/index.vue"));
 const StatisticsView = defineAsyncComponent(() => import("@/views/meta/catalog/statistics/index.vue"));
 const DatasourceView = defineAsyncComponent(() => import("@/views/ast/datasource/index.vue"));
+const IngestionView = defineAsyncComponent(() => import("@/views/ingestion/index.vue"));
 const DataSecurityView = defineAsyncComponent(() => import("@/views/ast/security/desensitizeRule/index.vue"));
 const AssetView = defineAsyncComponent(() => import("@/views/ast/asset/index.vue"));
 const AssetDetailView = defineAsyncComponent(() => import("@/views/col/asset/detail/index.vue"));
 const AssetAuditView = defineAsyncComponent(() => import("@/views/ast/assetApply/index.vue"));
+const AssetOperateApplyView = defineAsyncComponent(() => import("@/views/ast/assetOperateApply/index.vue"));
 const DataQueryView = defineAsyncComponent(() => import("@/views/ast/dataQuery/index.vue"));
 const OntologyView = defineAsyncComponent(() => import("@/views/ont/ontology/index.vue"));
 const OntologyWorkspaceView = defineAsyncComponent(() => import("@/views/ont/workspace/index.vue"));
@@ -308,6 +313,7 @@ const flows = [
     softColor: "#eef1ff",
     children: [
       { id: "datasource", title: "数据源管理", description: "维护数据源连接和认证配置，为元数据探查提供数据连接。", pagePath: "/ast/datasource", component: DatasourceView },
+      { id: "ingestion", title: "数据接入", description: "查看 Kafka 接入运行状态、指标和死信重放。", pagePath: "/ingestion", component: IngestionView },
       { id: "quality-task", title: "探查任务", description: "配置并运行数据质量探查任务。", pagePath: "/ast/quality/qualityTask", component: QualityTaskView },
       { id: "metadata", title: "探查元数据", description: "浏览元数据探查得到的数据库、数据表和字段目录。", pagePath: "/meta/catalog/table", component: MetadataView },
       { id: "probe-log", title: "探查任务日志", description: "查看探查任务的执行状态、运行日志和历史结果。", pagePath: "/ast/quality/probeTaskInstance", component: ProbeInstanceView },
@@ -325,6 +331,7 @@ const flows = [
     children: [
       { id: "asset-list", title: "资产目录", description: "浏览和管理当前空间的数据资产。", pagePath: "/ast/asset", component: AssetView },
       { id: "asset-audit", title: "资产审核", description: "审核数据资产登记、变更和发布状态。", pagePath: "/ast/assetApply", component: AssetAuditView },
+      { id: "asset-operate-apply", title: "操作申请", description: "提交、审批并执行数据资产的新增、修改和删除操作。", pagePath: "/ast/assetOperateApply", component: AssetOperateApplyView },
       { id: "data-security", title: "数据安全", description: "配置数据脱敏规则和安全控制，保护敏感数据使用过程。", pagePath: "/ast/security/desensitizeRule", component: DataSecurityView },
       { id: "data-query", title: "数据查询", description: "基于已授权资产进行数据检索。", pagePath: "/ast/dataQuery", component: DataQueryView },
     ],
@@ -382,6 +389,7 @@ const agentOperationId = ref("");
 const agentOperationStatus = ref("");
 const agentOperationHistory = ref([]);
 const agentRequiredFields = ref([]);
+const agentCanceling = ref(false);
 const agentConnection = ref({ databaseName: "", datasourceType: "PostgreSQL", ip: "", port: 5432, datasourceConfig: "" });
 const agentOutputRef = ref();
 let agentPlanTimer = null;
@@ -470,6 +478,19 @@ function updateStationRoute(page) {
 
 function openEmbeddedPage({ path, query = {}, component, title, routeName, meta } = {}) {
   if (!path) return false;
+  if (path === "/ast/dataQuery") {
+    if (!checkPermi(["ast:dataQuery:list"])) return false;
+    query = normalizeDataQueryTarget(query);
+    component = DataQueryView;
+    title = "数据查询";
+    // Reuse an already mounted query editor when only its target changes.
+    if (stationRoute.path === path && (embeddedPage.value?.path === path
+      || (!embeddedPage.value && activeSubFlow.value?.pagePath === path))) {
+      if (embeddedPage.value) embeddedPage.value.query = query;
+      updateStationRoute({ path, query, title });
+      return true;
+    }
+  }
   let resolvedComponent = component;
   if (!resolvedComponent && path === "/meta/catalog/table/detail") resolvedComponent = MetadataDetailView;
   if (!resolvedComponent && path === "/col/asset/detail") resolvedComponent = AssetDetailView;
@@ -521,6 +542,7 @@ function closeEmbeddedPage() {
 provide("spaceWorkstationNavigation", {
   openPage: openEmbeddedPage,
   back: closeEmbeddedPage,
+  goFlowHome,
   openFlowSubFlow: (flowId, subId) => {
     if (flowId !== activeFlowId.value) {
       selectFlow(flowId);
@@ -543,6 +565,7 @@ const activeFlow = computed(() => flows.find((flow) => flow.id === activeFlowId.
 const activeFlowIndex = computed(() => flows.findIndex((flow) => flow.id === activeFlowId.value));
 const activeSubFlow = computed(() => activeFlow.value?.children.find((item) => item.id === activeSubId.value));
 const embeddedPageDescription = computed(() => {
+  if (embeddedPage.value?.title === "数据查询") return "预填目标表 SQL，确认数据连接和语句后手动执行查询。";
   if (embeddedPage.value?.title === "本体工作台") return "管理本体概念、属性、关系、动作编排和对象实例。";
   if (embeddedPage.value?.title === "元数据详情") return "查看数据表基本信息、字段结构和探查历史。";
   if (embeddedPage.value?.title === "资产详情") return "查看资产字段、预览、质量结果和血缘信息。";
@@ -550,6 +573,17 @@ const embeddedPageDescription = computed(() => {
   return "查看当前流程步骤的详细信息。";
 });
 const nextFlow = computed(() => flows[activeFlowIndex.value + 1]);
+function emitAgentPageContext() {
+  if (typeof window === "undefined") return;
+  const page = embeddedPage.value || activeSubFlow.value;
+  const title = page?.title || activeFlow.value?.title || "数据探索工作站";
+  const path = page?.pagePath || page?.path || "/explore";
+  const ontologyId = page?.params?.ontologyId || path.match(/^\/ont\/workspace\/([^/]+)/)?.[1];
+  const detail = [activeFlow.value?.title, page?.title, ontologyId ? `ontologyId=${ontologyId}` : null]
+    .filter(Boolean).join(" / ");
+  window.dispatchEvent(new CustomEvent("data-agent-context", { detail: { title, path, detail, ontologyId } }));
+}
+watch(() => [activeFlowId.value, activeSubId.value, embeddedPage.value?.id], emitAgentPageContext, { immediate: true });
 const agentPlanProgress = computed(() => {
   if (agentOperationId.value) return agentOperationProgress.value;
   if (agentPlanStep.value < 0) return 0;
@@ -564,22 +598,39 @@ const agentOperationStatusLabel = computed(() => ({
   NEED_INPUT: "等待补充",
   NEED_CONFIRMATION: "等待确认",
   SUCCEEDED: "已完成",
+  PARTIAL: "部分完成",
   FAILED: "失败",
   INTERRUPTED: "已中断，可继续",
   CANCELED: "已取消",
 }[agentOperationStatus.value] || "准备中"));
+const agentOperationHeadline = computed(() => ({
+  NEED_INPUT: "需要补充连接信息",
+  NEED_CONFIRMATION: "等待确认发布探查任务",
+  FAILED: "流程执行失败",
+  INTERRUPTED: "流程已中断，可从当前步骤继续",
+  CANCELED: "流程已取消",
+  SUCCEEDED: "数据流程已自动完成",
+  PARTIAL: "核心流程已完成，部分能力降级",
+}[agentOperationStatus.value] || "数据智能体正在执行流程"));
 
 function operationStatusLabel(status) {
   return ({
     RUNNING: "执行中", NEED_INPUT: "等待补充", NEED_CONFIRMATION: "等待确认",
-    SUCCEEDED: "已完成", FAILED: "失败", INTERRUPTED: "已中断", CANCELED: "已取消",
+    SUCCEEDED: "已完成", PARTIAL: "部分完成", FAILED: "失败", INTERRUPTED: "已中断", CANCELED: "已取消",
   }[status] || status || "准备中");
 }
 
 function upsertOperationHistory(operation) {
-  if (!operation?.id) return;
+  if (!isFixedWorkflowOperation(operation)) return;
   const existing = agentOperationHistory.value.filter((item) => item.id !== operation.id);
   agentOperationHistory.value = [operation, ...existing].slice(0, 20);
+}
+
+// 固定流程首页只展示“标准数据接入/本体生成”流程记录。
+// 自主 Agent 也会落到 AI_AGENT_OPERATION 表，但它的记录属于右下角会话，不能混入这里。
+function isFixedWorkflowOperation(operation) {
+  if (!operation?.id) return false;
+  return String(operation.currentStep || '').trim() !== '自主 Tool 调度';
 }
 
 async function selectAgentOperation(operation) {
@@ -708,6 +759,27 @@ async function retryAgentOperation() {
       agentOperationStatus.value = "FAILED";
       agentPlanOutput.value = [...agentPlanOutput.value, `> 重试失败：${error?.message || "请求失败"}`];
     });
+}
+
+async function cancelAgentOperation() {
+  if (!agentOperationId.value || agentCanceling.value) return;
+  try {
+    const latestResponse = await getPlatformAgentOperation(agentOperationId.value);
+    const latest = latestResponse?.data || latestResponse;
+    applyAgentOperation(latest);
+    if (latest?.status !== "RUNNING") {
+      message.info(`当前流程状态为“${operationStatusLabel(latest?.status)}”，无需取消`);
+      return;
+    }
+    agentCanceling.value = true;
+    const res = await cancelPlatformAgent(agentOperationId.value);
+    applyAgentOperation(res?.data || res);
+    message.success("已提交流程取消请求");
+  } catch (error) {
+    message.error(`取消流程失败：${error?.message || "请求失败"}`);
+  } finally {
+    agentCanceling.value = false;
+  }
 }
 
 function applyAgentOperation(operation) {
@@ -852,6 +924,7 @@ function buildAgentPlanItems() {
 function resetAgentPlan() {
   if (agentPlanTimer) clearTimeout(agentPlanTimer);
   agentPlanning.value = false;
+  agentCanceling.value = false;
   agentPlanReady.value = false;
   agentPlanStep.value = -1;
   agentPlanOutput.value = [];
@@ -863,7 +936,7 @@ function resetAgentPlan() {
 }
 
 function agentStepStatus(index) {
-  if (agentOperationStatus.value === "SUCCEEDED") return "is-done";
+  if (agentOperationStatus.value === "SUCCEEDED" || agentOperationStatus.value === "PARTIAL") return "is-done";
   if (agentOperationId.value) {
     const item = agentPlanItems.value[index];
     if (item?.status === "已完成") return "is-done";
@@ -881,12 +954,12 @@ async function restoreAgentOperation() {
     const response = await getPlatformAgentOperationPage({
       spaceId: currentAgentSpaceId() || undefined,
       spaceCode: userStore.spaceCode || undefined,
-      limit: 20,
+      limit: 100,
     });
     const operations = response?.data || response || [];
-    if (Array.isArray(operations) && operations.length) {
-      agentOperationHistory.value = operations;
-    }
+    agentOperationHistory.value = Array.isArray(operations)
+      ? operations.filter(isFixedWorkflowOperation)
+      : [];
   } catch (error) {
     // 历史记录加载失败不影响正常开始新流程。
   }
@@ -1164,7 +1237,7 @@ onBeforeUnmount(() => {
 .explore-home__agent-eyebrow { color: #e36f3d; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; }
 .explore-home .explore-home__agent-copy h1 { margin: 10px 0 8px; color: #24324d; font-size: 26px; line-height: 1.35; letter-spacing: -0.01em; }
 .explore-home__agent-copy p { margin: 0; color: #64708a; font-size: 15px; line-height: 1.7; }
-.explore-home__agent-dialog { grid-area: dialog; display: flex; min-height: 220px; flex-direction: column; margin-top: 22px; padding: 12px; border: 1px solid #e7ebf5; border-radius: 16px; background: #fff; }
+.explore-home__agent-dialog { grid-area: dialog; display: flex; min-height: 140px; flex-direction: column; margin-top: 16px; padding: 12px; border: 1px solid #e7ebf5; border-radius: 16px; background: #fff; }
 .explore-home__agent-dialog :deep(.ant-input) { border: 0; box-shadow: none; resize: none; color: #1f2c48; font-size: 15px; }
 .explore-home__agent-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: auto; padding: 10px 4px 0; color: #8a94aa; font-size: 12px; }
 .explore-home__agent-counter { margin-left: 4px; color: #a3adbd; font-style: normal; }
@@ -1202,7 +1275,7 @@ onBeforeUnmount(() => {
 .explore-home__agent-plan-item.is-active em { color: #4058d4; font-weight: 700; }
 .explore-home__agent-plan-item.is-done strong, .explore-home__agent-plan-item.is-done em { color: #087c68; font-weight: 700; }
 .explore-home__agent-plan-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-.explore-home__agent-history { grid-area: history; align-self: stretch; min-height: 0; max-height: none; margin-top: 22px; padding: 14px 16px; overflow: auto; border: 1px solid #e7ebf5; border-radius: 14px; background: #fff; }
+.explore-home__agent-history { grid-area: history; align-self: start; min-height: 140px; max-height: 160px; margin-top: 16px; padding: 14px 16px; overflow: auto; border: 1px solid #e7ebf5; border-radius: 14px; background: #fff; }
 .explore-home__agent-history-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; color: #263653; }
 .explore-home__agent-history-head span { color: #8b96a9; font-size: 12px; }
 .explore-home__agent-history-empty { padding: 14px 10px 4px; color: #9aa5b8; font-size: 13px; }

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.datamaster.module.service.dal.typehandler.BooleanFlagTypeHandler;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import com.datamaster.common.core.domain.BaseEntity;
@@ -110,6 +111,7 @@ public class ServiceApiDO extends BaseEntity {
     private String spaceCode;
 
     /** 是否有效 */
+    @TableField(value = "VALID_FLAG", typeHandler = BooleanFlagTypeHandler.class)
     private Boolean validFlag;
 
     /** 删除标志 */

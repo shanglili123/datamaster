@@ -44,6 +44,24 @@ public class AssetsAssetOperateApplyDO extends BaseEntity {
 
     private Date executeTime;
 
+    /** 审批与执行状态。老数据为空时按历史 executeFlag 兼容处理。 */
+    private String approvalStatus;
+
+    /** 最近一次审批意见。 */
+    private String approvalComment;
+
+    /** 审批人。 */
+    private String approvedBy;
+
+    /** 审批人 ID。 */
+    private Long approvedId;
+
+    /** 审批时间。 */
+    private Date approvedTime;
+
+    /** 最近一次执行结果或错误信息。 */
+    private String executionMessage;
+
     private Boolean validFlag;
 
     @TableLogic

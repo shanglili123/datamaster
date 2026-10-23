@@ -24,7 +24,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="resParams"    column="RES_PARAMS"    />
         <result property="description"    column="DESCRIPTION"    />
         <result property="status"    column="STATUS"    />
-        <result property="validFlag"    column="VALID_FLAG"    />
+        <result property="validFlag"    column="VALID_FLAG" typeHandler="com.datamaster.module.service.dal.typehandler.BooleanFlagTypeHandler" />
         <result property="delFlag"    column="DEL_FLAG"    />
         <result property="createBy"    column="CREATE_BY"    />
         <result property="creatorId"    column="CREATOR_ID"    />
@@ -108,7 +108,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="resParams != null">#{resParams},</if>
             <if test="description != null">#{description},</if>
             <if test="status != null">#{status},</if>
-            <if test="validFlag != null">#{validFlag},</if>
+            <if test="validFlag != null">#{validFlag,typeHandler=com.datamaster.module.service.dal.typehandler.BooleanFlagTypeHandler},</if>
             <if test="delFlag != null">#{delFlag},</if>
             <if test="createBy != null">#{createBy},</if>
             <if test="creatorId != null">#{creatorId},</if>
@@ -141,7 +141,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="resParams != null">RES_PARAMS = #{resParams},</if>
             <if test="description != null">DESCRIPTION = #{DESCRIPTION},</if>
             <if test="status != null">STATUS = #{STATUS},</if>
-            <if test="validFlag != null">VALID_FLAG = #{validFlag},</if>
+            <if test="validFlag != null">VALID_FLAG = #{validFlag,typeHandler=com.datamaster.module.service.dal.typehandler.BooleanFlagTypeHandler},</if>
             <if test="delFlag != null">DEL_FLAG = #{delFlag},</if>
             <if test="createBy != null">CREATE_BY = #{createBy},</if>
             <if test="creatorId != null">CREATOR_ID = #{creatorId},</if>

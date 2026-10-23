@@ -14,6 +14,12 @@
         datamaster-metadata-core 元数据采集与质量探查核心模块
     </description>
     <dependencies>
+        <!-- Lineage parsing uses the Java 8 compatible 4.5 AST API directly. -->
+        <dependency>
+            <groupId>com.github.jsqlparser</groupId>
+            <artifactId>jsqlparser</artifactId>
+            <version>4.5</version>
+        </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
             <artifactId>datamaster-metadata-interface</artifactId>
@@ -70,7 +76,7 @@
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-system</artifactId>
+            <artifactId>datamaster-system-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>

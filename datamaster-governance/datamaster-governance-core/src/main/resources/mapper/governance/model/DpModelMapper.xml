@@ -7,6 +7,16 @@
     <resultMap type="StandardsModelDO" id="StandardsModelResult">
         <result property="id"    column="ID"    />
         <result property="modelName"    column="MODEL_NAME"    />
+        <result property="tableType" column="TABLE_TYPE" />
+        <result property="dataLayerId" column="DATA_LAYER_ID" />
+        <result property="businessCategoryId" column="BUSINESS_CATEGORY_ID" />
+        <result property="businessCategoryCode" column="BUSINESS_CATEGORY_CODE" />
+        <result property="dataDomainId" column="DATA_DOMAIN_ID" />
+        <result property="themeDomainId" column="THEME_DOMAIN_ID" />
+        <result property="themeDomainCode" column="THEME_DOMAIN_CODE" />
+        <result property="tableCase" column="TABLE_CASE" />
+        <result property="physicalTableName" column="PHYSICAL_TABLE_NAME" />
+        <result property="namingVersion" column="NAMING_VERSION" />
         <result property="modelComment"    column="MODEL_COMMENT"    />
         <result property="catCode"    column="CAT_CODE"    />
         <result property="status"    column="STATUS"    />
@@ -28,7 +38,7 @@
     </resultMap>
 
     <sql id="selectDpModelVo">
-        select ID, MODEL_NAME, MODEL_COMMENT, CAT_CODE, STATUS, CREATE_TYPE, DATASOURCE_ID, DOCUMENT_ID, CONTACT, CONTACT_NUMBER, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from STD_MODEL
+        select ID, TABLE_TYPE, DATA_LAYER_ID, BUSINESS_CATEGORY_ID, BUSINESS_CATEGORY_CODE, DATA_DOMAIN_ID, THEME_DOMAIN_ID, THEME_DOMAIN_CODE, TABLE_CASE, PHYSICAL_TABLE_NAME, NAMING_VERSION, MODEL_NAME, MODEL_COMMENT, CAT_CODE, STATUS, CREATE_TYPE, DATASOURCE_ID, DOCUMENT_ID, CONTACT, CONTACT_NUMBER, DESCRIPTION, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from STD_MODEL
     </sql>
 
     <select id="selectDpModelList" parameterType="StandardsModelDO" resultMap="StandardsModelResult">
@@ -50,6 +60,16 @@
         insert into STD_MODEL
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="ID != null">ID,</if>
+            <if test="tableType != null">TABLE_TYPE,</if>
+            <if test="dataLayerId != null">DATA_LAYER_ID,</if>
+            <if test="businessCategoryId != null">BUSINESS_CATEGORY_ID,</if>
+            <if test="businessCategoryCode != null">BUSINESS_CATEGORY_CODE,</if>
+            <if test="dataDomainId != null">DATA_DOMAIN_ID,</if>
+            <if test="themeDomainId != null">THEME_DOMAIN_ID,</if>
+            <if test="themeDomainCode != null">THEME_DOMAIN_CODE,</if>
+            <if test="tableCase != null">TABLE_CASE,</if>
+            <if test="physicalTableName != null">PHYSICAL_TABLE_NAME,</if>
+            <if test="namingVersion != null">NAMING_VERSION,</if>
             <if test="modelName != null and modelName != ''">MODEL_NAME,</if>
             <if test="modelComment != null and modelComment != ''">MODEL_COMMENT,</if>
             <if test="catCode != null and catCode != ''">CAT_CODE,</if>
@@ -72,6 +92,16 @@
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="ID != null">#{ID},</if>
+            <if test="tableType != null">#{tableType},</if>
+            <if test="dataLayerId != null">#{dataLayerId},</if>
+            <if test="businessCategoryId != null">#{businessCategoryId},</if>
+            <if test="businessCategoryCode != null">#{businessCategoryCode},</if>
+            <if test="dataDomainId != null">#{dataDomainId},</if>
+            <if test="themeDomainId != null">#{themeDomainId},</if>
+            <if test="themeDomainCode != null">#{themeDomainCode},</if>
+            <if test="tableCase != null">#{tableCase},</if>
+            <if test="physicalTableName != null">#{physicalTableName},</if>
+            <if test="namingVersion != null">#{namingVersion},</if>
             <if test="modelName != null and modelName != ''">#{modelName},</if>
             <if test="modelComment != null and modelComment != ''">#{modelComment},</if>
             <if test="catCode != null and catCode != ''">#{catCode},</if>
@@ -97,6 +127,16 @@
     <update id="updateDpModel" parameterType="StandardsModelDO">
         update STD_MODEL
         <trim prefix="SET" suffixOverrides=",">
+            TABLE_TYPE = #{tableType},
+            DATA_LAYER_ID = #{dataLayerId},
+            BUSINESS_CATEGORY_ID = #{businessCategoryId},
+            BUSINESS_CATEGORY_CODE = #{businessCategoryCode},
+            DATA_DOMAIN_ID = #{dataDomainId},
+            THEME_DOMAIN_ID = #{themeDomainId},
+            THEME_DOMAIN_CODE = #{themeDomainCode},
+            TABLE_CASE = #{tableCase},
+            PHYSICAL_TABLE_NAME = #{physicalTableName},
+            NAMING_VERSION = #{namingVersion},
             <if test="modelName != null and modelName != ''">MODEL_NAME = #{modelName},</if>
             <if test="modelComment != null and modelComment != ''">MODEL_COMMENT = #{modelComment},</if>
             <if test="catCode != null and catCode != ''">CAT_CODE = #{catCode},</if>

@@ -9,6 +9,7 @@ import com.datamaster.common.database.constants.DbType;
 import com.datamaster.common.database.utils.MD5Util;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
 import com.datamaster.module.collector.utils.datax.FlinkxJson;
+import com.datamaster.module.collector.utils.SourceMetadataSupport;
 import com.datamaster.module.collector.utils.model.DsResource;
 
 import java.util.*;
@@ -92,6 +93,7 @@ public class DBReaderComponent implements ComponentItem {
      */
     @Override
     public Map<String, Object> parse2(String nodeCode, Integer nodeVersion, TaskComponentTypeEnum componentType, Map<String, Object> taskParams, String resourceUrl, List<DsResource> resourceList) {
+        taskParams = SourceMetadataSupport.withRequiredMetadata(taskParams);
         // reader 配置
         Map<String, Object> reader = new HashMap<>();
         // 输入readerDatasource
@@ -120,7 +122,33 @@ public class DBReaderComponent implements ComponentItem {
         if (StringUtils.isNotBlank(readerProperty.getSid())) {
             parameter.put("sid", readerProperty.getSid());
         }
-        parameter.put("column", taskParams.get("columns"));
+        if (SourceMetadataSupport.enabled(taskParams)) {
+            // 仅透传原始字段；来源字段由 Flink SQL transformer 派生，不能让 JDBC reader
+            // 把它们当成源表真实列读取。
+            parameter.put("column", taskParams.get("columns"));
+            String sourceTableValue = StringUtils.defaultIfBlank(MapUtils.getString(taskParams, "table_name", ""),
+                    MapUtils.getString(taskParams, "asset_id", ""));
+            if (StringUtils.isBlank(sourceTableValue)
+                    && StringUtils.isNotBlank(MapUtils.getString(taskParams, "querySql", ""))) {
+                // 自定义 SQL 可能没有单一物理源表；仍然必须给 source_table 一个可追溯值。
+                sourceTableValue = "CUSTOM_SQL";
+            }
+            if (StringUtils.isBlank(sourceTableValue)) {
+                sourceTableValue = StringUtils.defaultIfBlank(MapUtils.getString(taskParams, "topic", ""),
+                        "INPUT_" + nodeCode);
+            }
+            Map<String, Object> sourceMetadata = SourceMetadataSupport.copyWithRuntimeValues(
+                    taskParams, nodeCode,
+                    String.valueOf(readerDatasource.get("datasourceId")), sourceTableValue);
+            String sourceDatabase = MapUtils.getString(taskParams, "sourceDatabaseValue", null);
+            sourceDatabase = StringUtils.defaultIfBlank(sourceDatabase,
+                    MapUtils.getString(readerDatasource, "dbname", null));
+            sourceMetadata.putIfAbsent("sourceDatabaseValue",
+                    StringUtils.defaultIfBlank(sourceDatabase, readerProperty.getDbName()));
+            parameter.put("sourceMetadata", sourceMetadata);
+        } else {
+            parameter.put("column", taskParams.get("columns"));
+        }
         parameter.put("tableFields", taskParams.get("tableFields"));
 
         parameter.put("where", taskParams.get("where"));
@@ -129,6 +157,7 @@ public class DBReaderComponent implements ComponentItem {
         parameter.put("dateIncrementConfig", taskParams.get("dateIncrementConfig"));
         parameter.put("cdcConfig", taskParams.get("cdcConfig"));
         parameter.put("kafkaConfig", taskParams.get("kafkaConfig"));
+        parameter.put("schemaMonitoring", taskParams.get("schemaMonitoring"));
 
         Map<String, Object> connection = new HashMap<>();
         Object querySql = taskParams.get("querySql");

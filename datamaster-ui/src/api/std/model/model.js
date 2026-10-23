@@ -18,6 +18,15 @@ export function getDpModel(ID) {
     });
 }
 
+// 服务端治理命名预览，最终名称以服务端为准
+export function previewTableName(data) {
+    return request({
+        url: '/std/model/previewTableName',
+        method: 'post',
+        data: { ...data, tableCase: data.tableCase || '2' }
+    });
+}
+
 // 新增逻辑模型
 export function addDpModel(data) {
     return request({

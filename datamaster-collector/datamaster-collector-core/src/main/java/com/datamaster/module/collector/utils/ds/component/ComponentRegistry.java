@@ -40,6 +40,7 @@ public class ComponentRegistry {
         this.componentItemMap.put(TaskComponentTypeEnum.DB_WRITER.getCode(), new DBWriterComponent());
         this.componentItemMap.put(TaskComponentTypeEnum.TABLE_SPLIT.getCode(), new TableSplitComponent());
         this.componentItemMap.put(TaskComponentTypeEnum.TABLE_MERGE.getCode(), new TableMergeComponent());
+        this.componentItemMap.put(TaskComponentTypeEnum.PIPELINE_NODE.getCode(), new PipelineNodeComponent());
 
 
 

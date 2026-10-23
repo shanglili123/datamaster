@@ -35,6 +35,23 @@ dbgpt_ssh_port: 22
 # * If you want /data/datamaster as the final deployment root, keep this value unchanged.
 # * 如果最终部署根目录就是 /data/datamaster，这里保持不变。
 base_dir: /data/datamaster
+# * Must confirm: deployment environment. Production-like environments reject
+# * empty/default passwords and external trigger secrets during preflight.
+# * 部署环境。生产类环境预检会拒绝空密码、默认弱口令和外部触发空密钥。
+deployment_environment: prod
+# Keep false in production. Set true only for an explicitly isolated development
+# environment where the default sample credentials are intentional.
+# 生产环境保持 false；只有明确隔离的开发环境才允许示例弱口令。
+allow_insecure_defaults: false
+# 远程只读预检使用的最低根文件系统剩余空间（MB）。
+remote_check_min_free_mb: 1024
+# 远程健康检查最长等待时间和重试间隔（秒）。部署后服务可能需要时间完成启动。
+health_check_timeout_seconds: 120
+health_check_interval_seconds: 5
+# 覆盖远程文件或目录前是否自动备份。目录使用同文件系统硬链接快照，降低额外空间占用。
+deployment_backup_enabled: true
+deployment_backup_dir: "{{ base_dir }}/.deploy-backups"
+deployment_backup_retention: 5
 
 # Time zone. OPTIONAL: change it only if the target environment uses another time zone.
 # 时区。按需修改：目标环境不是 Asia/Shanghai 时再改。
@@ -82,6 +99,8 @@ postgresql_database: datamaster
 postgresql_user: datamaster
 postgresql_password: "datamaster"
 postgresql_init_sql_src: "packages/sql/datamaster.sql"
+# 可重复执行的应用增量迁移，多个文件用逗号分隔。
+postgresql_app_upgrade_sql_src: "../sql/update_20261012_ingestion_reliability.sql,../sql/update_20261013_asset_operate_apply_workflow.sql,../sql/update_20261013_ingestion_permissions.sql,../sql/update_20261014_workflow_alert_template.sql,../sql/update_20261015_workflow_compensation_status.sql,../sql/update_20261016_workflow_version.sql"
 
 # * Must confirm: database initialization jar and SQL files.
 # * 必须确认：数据库初始化 jar 和 SQL 文件。
@@ -111,7 +130,7 @@ dolphinscheduler_install_tgz: "apache-dolphinscheduler-{{ dolphinscheduler_versi
 dolphinscheduler_package_src: "packages/components/{{ dolphinscheduler_install_tgz }}"
 dolphinscheduler_api_port: 12345
 dolphinscheduler_tenant_code: root
-dolphinscheduler_token: ""
+dolphinscheduler_token: "f8f79e6b9c7b48e5fc5a1836b88e754b"
 
 # * Must confirm: Chunjun/Flink local source directory.
 # * 必须确认：Chunjun/Flink 本地包目录。
@@ -138,10 +157,16 @@ dbgpt_skill_space_owner: datamaster
 ai_skill_model_enabled: "false"
 ai_skill_model_api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
 ai_skill_model_name: qwen-plus
-ai_skill_model_timeout: 60000
+ai_skill_model_timeout: 180000
+ai_skill_model_retry_count: 2
+ai_skill_model_retry_interval: 1500
 ai_skill_model_temperature: 0.2
-ai_skill_model_max_tokens: 4096
+ai_skill_model_max_tokens: 8192
 dashscope_api_key: ""
+# * Must confirm: application JWT signing secret. Use a randomly generated value
+# * and rotate it through a private deployment config, never commit the value.
+# 应用 JWT 签名密钥，必须使用随机值并通过私有配置注入。
+jwt_secret: "SkmVAkylODVzK7MUMnYQx6V1-mxJMKrJekEfW6babcLeUOqqugOzUgeds8INAJis"
 
 # * Optional: data ingestion settings. The ingestion module runs inside DataMaster server.
 # * 可选：数据接入配置。ingestion 模块随 DataMaster server 一起运行，不单独部署服务。
@@ -152,15 +177,28 @@ ingestion_kafka_servers: "localhost:9092"
 ingestion_kafka_topics: "[]"
 ingestion_poll_timeout_ms: 1000
 ingestion_poll_interval_ms: 1000
+ingestion_kafka_max_retries: 3
+ingestion_kafka_retry_backoff_ms: 2000
+ingestion_kafka_dead_letter_topic: ""
+ingestion_kafka_event_lease_ms: 300000
+ingestion_kafka_lease_renew_interval_ms: 60000
 ingestion_doris_datasource_id: 0
 ingestion_conflict_strategy: "UPSERT"
 ingestion_key_columns: "[]"
 ingestion_target_table: ""
+ingestion_allowed_tables: "[]"
+ingestion_required_columns: "[]"
+ingestion_schema_version: ""
 ingestion_decision_trigger_enabled: "false"
 ingestion_decision_base_url: ""
 ingestion_decision_path: "/ont/action/trigger/data-arrival"
 ingestion_decision_trigger_ref: ""
 ingestion_decision_trigger_secret: ""
+
+# Optional: PostgreSQL data lineage. Enable only after the lineage and outbox DDL is applied.
+# 可选：PostgreSQL 数据血缘。先更新数据血缘与 outbox 表结构，再显式启用；与 Neo4j 开关独立。
+lineage_jdbc_enabled: "false"
+lineage_sync_delay_ms: 5000
 
 # Optional: Neo4j lineage. It is not required by the core application.
 # 可选：Neo4j 血缘。核心业务不依赖 Neo4j，默认关闭。

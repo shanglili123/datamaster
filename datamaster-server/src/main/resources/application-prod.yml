@@ -2,6 +2,15 @@ datasource:
   type: PostgreSQL
 
 datamaster:
+  ontology:
+    workflow:
+      worker-enabled: ${WORKFLOW_WORKER_ENABLED:true}
+      worker-delay-ms: ${WORKFLOW_WORKER_DELAY_MS:1000}
+      worker-batch-size: ${WORKFLOW_WORKER_BATCH_SIZE:10}
+      worker-stale-timeout-ms: ${WORKFLOW_WORKER_STALE_TIMEOUT_MS:300000}
+    webhook:
+      allowed-hosts: ${WEBHOOK_ALLOWED_HOSTS:}
+      allowed-ports: ${WEBHOOK_ALLOWED_PORTS:80,443}
   # 数据接收子工程（消费 Kafka -> 冲突检查 -> 写入数仓 Doris）
   # 生产默认关闭；上线时通过环境变量填 Kafka / Doris 数据源后开启。
   ingestion:
@@ -12,10 +21,18 @@ datamaster:
       topics: ${INGESTION_KAFKA_TOPICS:[]}
       poll-timeout-ms: 1000
       poll-interval-ms: 1000
+      max-retries: ${INGESTION_KAFKA_MAX_RETRIES:3}
+      retry-backoff-ms: ${INGESTION_KAFKA_RETRY_BACKOFF_MS:2000}
+      dead-letter-topic: ${INGESTION_KAFKA_DEAD_LETTER_TOPIC:}
+      event-lease-ms: ${INGESTION_KAFKA_EVENT_LEASE_MS:300000}
+      lease-renew-interval-ms: ${INGESTION_KAFKA_LEASE_RENEW_INTERVAL_MS:60000}
     doris-datasource-id: ${INGESTION_DORIS_DATASOURCE_ID:0}
     conflict-strategy: ${INGESTION_CONFLICT_STRATEGY:UPSERT}
     key-columns: ${INGESTION_KEY_COLUMNS:[]}
     target-table: ${INGESTION_TARGET_TABLE:}
+    allowed-tables: ${INGESTION_ALLOWED_TABLES:[]}
+    required-columns: ${INGESTION_REQUIRED_COLUMNS:[]}
+    schema-version: ${INGESTION_SCHEMA_VERSION:}
     decision-trigger:
       enabled: false
       base-url: ${INGESTION_DECISION_BASE_URL:}
@@ -95,7 +112,7 @@ ds:
   incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://192.168.93.175:8989/col/etlTask/incremental/prepare}
   incremental_complete_url: ${DS_INCREMENTAL_COMPLETE_URL:http://192.168.93.175:8989/col/etlTask/incremental/complete}
   collector_url: http://192.168.93.175:8989/cat/taskExecutor/runExecuteTask
-  token: b07f0e57c4818043a57ba05a28da291a
+  token: f8f79e6b9c7b48e5fc5a1836b88e754b
   tenant_code: ${DS_TENANT_CODE:default}
   resource_url: /dolphinscheduler/
   hdfs:
@@ -114,3 +131,24 @@ file:
   job:
     log:
       qualitytask_prefix_url: /opt/quality/logs
+
+db-gpt:
+  url: ${DBGPT_URL:http://127.0.0.1:5670}
+  timeout: ${DBGPT_TIMEOUT:60000}
+  model: ${DBGPT_MODEL:qwen-plus}
+  chat-mode: ${DBGPT_CHAT_MODE:chat_with_db_qa}
+  skill-space-name: ${DBGPT_SKILL_SPACE_NAME:datamaster-skills}
+  skill-space-owner: ${DBGPT_SKILL_SPACE_OWNER:datamaster}
+
+# AI 本体生成/动作生成使用的模型，生产默认关闭，密钥通过环境变量注入。
+ai:
+  skill-model:
+    enabled: ${AI_SKILL_MODEL_ENABLED:false}
+    api-url: ${AI_SKILL_MODEL_API_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    api-key: ${AI_SKILL_MODEL_API_KEY:${DASHSCOPE_API_KEY:}}
+    model: ${AI_SKILL_MODEL_NAME:qwen-plus}
+    timeout: ${AI_SKILL_MODEL_TIMEOUT:180000}
+    retry-count: ${AI_SKILL_MODEL_RETRY_COUNT:2}
+    retry-interval: ${AI_SKILL_MODEL_RETRY_INTERVAL:1500}
+    temperature: ${AI_SKILL_MODEL_TEMPERATURE:0.2}
+    max-tokens: ${AI_SKILL_MODEL_MAX_TOKENS:8192}

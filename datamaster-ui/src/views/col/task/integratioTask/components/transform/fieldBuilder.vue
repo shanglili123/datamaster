@@ -1,5 +1,5 @@
 <template>
-    <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name" :closable="false"
+    <a-modal wrap-class-name="integration-component-modal" v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name" :closable="false"
         :destroy-on-close="true" :width="1200">
         <template #title>
             <div class="justify">
@@ -12,6 +12,7 @@
         <a-spin :spinning="loading">
         <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '140px' } }" @submit.prevent
             :disabled="info">
+            <h3 class="etl-section-title">基本信息</h3>
             <a-row :gutter="20">
                 <a-col :span="12">
                     <a-form-item label="节点名称" name="name"
@@ -33,13 +34,13 @@
                     <a-form-item label="操作类型" name="taskParams.fieldDerivationType" :rules="[
                         { required: true, message: '请输入操作类型', trigger: 'change' }
                     ]">
-                        <a-select v-model:value="form.taskParams.fieldDerivationType" placeholder="请选择操作类型">
+                    <a-select v-model:value="form.taskParams.fieldDerivationType" placeholder="请选择操作类型">
                             <a-select-option v-for="item in deriveFieldTypes" :key="item.value" :label="item.label"
-                                :value="item.value" :disabled="!['FIELD_DERIVE_CONCAT', 'FIELD_DERIVE_SUBSTRING'].includes(item.value)" />
+                                :value="item.value" />
                         </a-select>
                     </a-form-item>
                 </a-col>
-                <a-col :span="12" v-if="['FIELD_DERIVE_CONCAT', 'FIELD_DERIVE_SUBSTRING'].includes(form.taskParams.fieldDerivationType)">
+                    <a-col :span="12" v-if="form.taskParams.fieldDerivationType">
                     <a-form-item label="新增字段名称" name="taskParams.fieldDerivationName" :rules="[
                         { required: true, message: '请输入新增字段名称', trigger: 'change' }]">
                         <template #label>
@@ -54,6 +55,56 @@
                     </a-form-item>
                 </a-col>
             </a-row>
+<a-row :gutter="20">
+            <a-col :span="12" >
+            <a-form-item label="结果类型">
+            <a-select v-model:value="form.taskParams.resultType" style="width: 100%">
+            <a-select-option value="string">string</a-select-option>
+            <a-select-option value="int">int</a-select-option>
+            <a-select-option value="bigint">bigint</a-select-option>
+            <a-select-option value="double">double</a-select-option>
+            <a-select-option value="decimal">decimal</a-select-option>
+            <a-select-option value="boolean">boolean</a-select-option>
+            <a-select-option value="date">date</a-select-option>
+            <a-select-option value="timestamp">timestamp</a-select-option>
+            </a-select>
+            </a-form-item>
+            </a-col>
+<a-col :span="12" >
+            <a-form-item label="转换失败策略">
+            <a-select v-model:value="form.taskParams.castFailure" style="width: 100%">
+            <a-select-option value="FAIL">原生 CAST（沿用引擎错误行为）</a-select-option>
+            <a-select-option value="NULL">置为 NULL</a-select-option>
+            <a-select-option value="DEFAULT">使用默认值</a-select-option>
+            </a-select>
+            </a-form-item>
+            </a-col>
+<a-col :span="12" v-if="isDecimal(form.taskParams.resultType)"><a-form-item label="总位数 precision"><a-input-number v-model:value="form.taskParams.precision" :min="1" :max="38" :precision="0" /></a-form-item></a-col>
+<a-col :span="12" v-if="isDecimal(form.taskParams.resultType)"><a-form-item label="小数位 scale"><a-input-number v-model:value="form.taskParams.scale" :min="0" :max="form.taskParams.precision || 38" :precision="0" /></a-form-item></a-col>
+</a-row><a-row :gutter="20"><a-col :span="12" ><a-form-item label="结果可空"><a-switch v-model:checked="form.taskParams.nullable" /></a-form-item></a-col>
+<a-col :span="12" v-if="form.taskParams.castFailure === 'DEFAULT' || form.taskParams.fieldDerivationType === 'FIELD_DERIVE_NULL'"><a-form-item label="默认值"><a-input v-model:value="form.taskParams.defaultValue" placeholder="允许空字符串" /></a-form-item></a-col>
+<a-col :span="12" v-if="form.taskParams.fieldDerivationType === 'FIELD_DERIVE_CONCAT'">
+            <a-form-item label="拼接空值处理">
+            <a-select v-model:value="form.taskParams.nullMode" style="width: 100%">
+            <a-select-option value="KEEP">保留 NULL（结果为 NULL）</a-select-option>
+            <a-select-option value="SKIP">跳过空值</a-select-option>
+            <a-select-option value="EMPTY">按空字符串</a-select-option>
+            <a-select-option value="NULL_LITERAL">按文本 null（兼容旧配置）</a-select-option>
+            </a-select>
+            </a-form-item>
+            </a-col>
+<a-col :span="12" v-if="form.taskParams.fieldDerivationType === 'FIELD_DERIVE_NULL'">
+            <a-form-item label="空值操作">
+            <a-select v-model:value="form.taskParams.nullAction" style="width: 100%">
+            <a-select-option value="COALESCE">首个非空值</a-select-option>
+            <a-select-option value="DEFAULT">默认值替换</a-select-option>
+            <a-select-option value="EMPTY_TO_NULL">空字符串转 NULL</a-select-option>
+            </a-select>
+            </a-form-item>
+            </a-col>
+<a-col :span="12" v-if="form.taskParams.fieldDerivationType === 'FIELD_DERIVE_NULL'"><a-form-item label="空串视为 NULL"><a-switch v-model:checked="form.taskParams.normalizeEmpty" /></a-form-item></a-col>
+<a-col :span="12" v-if="form.taskParams.fieldDerivationType === 'FIELD_DERIVE_NULL'"><a-form-item label="去除首尾空白"><a-switch v-model:checked="form.taskParams.trimWhitespace" /></a-form-item></a-col>
+</a-row>
             <template v-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_CONCAT'">
             <a-row :gutter="20">
                 <a-col :span="12">
@@ -108,6 +159,75 @@
                 </a-col>
             </a-row>
             </template>
+            <template v-else-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_REPLACE'">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="查找文本" name="taskParams.searchValue" :rules="[{ required: true, message: '请输入查找文本', trigger: 'change' }]">
+                        <a-input v-model:value="form.taskParams.searchValue" placeholder="请输入要替换的文本" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                    <a-form-item label="替换文本" name="taskParams.replaceValue" :rules="[{ required: true, message: '请输入替换文本', trigger: 'change' }]">
+                        <a-input v-model:value="form.taskParams.replaceValue" placeholder="请输入替换后的文本" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            </template>
+            <template v-else-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_EXPRESSION'">
+            <a-row :gutter="20">
+                <a-col :span="24">
+                    <a-form-item label="表达式" name="taskParams.expression" :rules="[{ required: true, message: '请输入表达式', trigger: 'change' }]">
+                        <a-textarea v-model:value="form.taskParams.expression" :rows="2" placeholder="支持 ${字段名} 占位符，例如 CONCAT(${first_name}, ' ', ${last_name})" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            </template>
+            <template v-else-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_HASH'">
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="哈希算法" name="taskParams.algorithm" :rules="[{ required: true, message: '请选择哈希算法', trigger: 'change' }]">
+                        <a-select v-model:value="form.taskParams.algorithm" placeholder="请选择哈希算法">
+                            <a-select-option value="MD5">MD5</a-select-option>
+                            <a-select-option value="SHA-1">SHA-1</a-select-option>
+                            <a-select-option value="SHA-256">SHA-256</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            </template>
+            <template v-else-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_REGEX'">
+            <a-row :gutter="20">
+                <a-col :span="16">
+                    <a-form-item label="正则表达式" name="taskParams.regex" :rules="[{ required: true, message: '请输入正则表达式', trigger: 'change' }]">
+                        <a-input v-model:value="form.taskParams.regex" placeholder="例如 ^(\\w+)-" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="8">
+                    <a-form-item label="捕获组" name="taskParams.group">
+                        <a-input-number v-model:value="form.taskParams.group" :min="0" style="width: 100%" />
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            </template>
+            <template v-else-if="form.taskParams.fieldDerivationType == 'FIELD_DERIVE_CONSTANT'">
+            <a-row :gutter="20">
+                <a-col :span="16">
+                    <a-form-item label="常量值" name="taskParams.constantValue" :rules="[{ required: true, message: '请输入常量值', trigger: 'change' }]">
+                        <a-input v-model:value="form.taskParams.constantValue" placeholder="请输入要写入的新字段值" />
+                    </a-form-item>
+                </a-col>
+                <a-col :span="8">
+                    <a-form-item label="类型" name="taskParams.constantType">
+                        <a-select v-model:value="form.taskParams.constantType" @change="form.taskParams.resultType = $event" placeholder="字符串">
+                            <a-select-option value="string">字符串</a-select-option>
+                            <a-select-option value="int">整数</a-select-option>
+                            <a-select-option value="double">小数</a-select-option>
+                            <a-select-option value="boolean">布尔</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            </template>
             <a-row :gutter="20">
                 <a-col :span="24">
                     <a-form-item label="描述" name="description">
@@ -120,9 +240,7 @@
                 <span style="font-weight: 500; white-space: nowrap; margin-right: 10px;">生成规则</span>
                 <div v-html="expressionPreviewHtml" style="flex: 1; white-space: pre-wrap;"></div>
             </div>
-            <a-divider orientation="center">
-                <span class="blue-text">字段值</span>
-            </a-divider>
+            <h3 class="etl-section-title">字段值</h3>
             <div class="justify-between mb15">
                 <a-row :gutter="15" class="btn-style">
                     <a-col :span="1.5">
@@ -174,13 +292,14 @@
 </template>
 
 <script setup>
+import { isDecimal, validateDecimal, fieldSchema, withOutputField } from './transformFieldSchema';
 import { message } from 'ant-design-vue'
 import { InfoCircleOutlined, ControlOutlined } from "@ant-design/icons-vue";
 import CreateEditModal from "../fieldMergeModal.vue";
 
 import FieldConflictDialog from "../fieldDetection.vue";
 
-import { defineProps, defineEmits, ref, computed, watchEffect, getCurrentInstance } from "vue";
+import { defineProps, defineEmits, ref, computed, watch, getCurrentInstance, nextTick } from "vue";
 
 import { typeList } from "@/utils/graph.js";
 
@@ -280,7 +399,8 @@ const deriveFieldTypes = [
     { value: 'FIELD_DERIVE_EXPRESSION', label: '表达式' },
     { value: 'FIELD_DERIVE_HASH', label: '哈希' },
     { value: 'FIELD_DERIVE_REGEX', label: '正则提取' },
-    { value: 'FIELD_DERIVE_CONSTANT', label: '常量赋值' }
+    { value: 'FIELD_DERIVE_CONSTANT', label: '常量赋值' },
+    { value: 'FIELD_DERIVE_NULL', label: '空值处理' }
 ]
 let dragTable = ref(null);
 let sortableInstance = null;
@@ -316,9 +436,10 @@ function handleAddField() {
         proxy.$message.warning("输入字段为空，无法添加字段");
         return;
     }
-    // SUBSTRING 截取只支持单字段
-    if (form.value?.taskParams?.fieldDerivationType === 'FIELD_DERIVE_SUBSTRING' && tableFields.value.length > 0) {
-        proxy.$message.warning("截取操作仅支持选择一个字段");
+    // 单字段派生操作只允许选择一个输入字段。
+    if (['FIELD_DERIVE_SUBSTRING', 'FIELD_DERIVE_REPLACE', 'FIELD_DERIVE_HASH', 'FIELD_DERIVE_REGEX'].includes(form.value?.taskParams?.fieldDerivationType)
+        && tableFields.value.length > 0) {
+        proxy.$message.warning("当前操作仅支持选择一个字段");
         return;
     }
     // 已添加的字段名
@@ -515,11 +636,9 @@ const saveData = async () => {
     // 等待 DOM 更新
     await nextTick();
     // 直接检查关键字段（避免 a-form dot-notation path 校验失效）
-    if (!form.value?.code) {
-      return proxy.$message.warning('请配置代码');
-    }
-    // 判断表格是否为空
-    if (!tableFields.value || tableFields.value.length === 0) {
+    const selectedType = form.value?.taskParams?.fieldDerivationType;
+    // 常量赋值不依赖源字段，其它派生类型至少要选择一个输入字段。
+    if (selectedType !== 'FIELD_DERIVE_CONSTANT' && (!tableFields.value || tableFields.value.length === 0)) {
       proxy.$message.warning("校验未通过，请至少添加一个字段");
       return;
     }
@@ -532,18 +651,36 @@ const saveData = async () => {
       loading.value = false;
       form.value.code = response.data;
     }
+    if (!form.value?.code) {
+      return proxy.$message.warning('代码生成失败，请稍后重试');
+    }
     const taskParams = form.value?.taskParams || {};
+    const type = taskParams.fieldDerivationType;
+    if (['FIELD_DERIVE_SUBSTRING', 'FIELD_DERIVE_REPLACE', 'FIELD_DERIVE_HASH', 'FIELD_DERIVE_REGEX'].includes(type)
+        && tableFields.value.length > 1) {
+      return proxy.$message.warning('当前操作只支持一个输入字段');
+    }
+    if (!taskParams.fieldDerivationName) {
+      return proxy.$message.warning('请输入新增字段名称');
+    }
+    if (type === 'FIELD_DERIVE_REPLACE' && (taskParams.searchValue == null || taskParams.replaceValue == null)) {
+      return proxy.$message.warning('请填写查找文本和替换文本');
+    }
+    if (type === 'FIELD_DERIVE_EXPRESSION' && !taskParams.expression) {
+      return proxy.$message.warning('请输入表达式');
+    }
+    if (type === 'FIELD_DERIVE_REGEX' && !taskParams.regex) {
+      return proxy.$message.warning('请输入正则表达式');
+    }
+    if (type === 'FIELD_DERIVE_CONSTANT' && taskParams.constantValue == null) {
+      return proxy.$message.warning('请输入常量值');
+    }
+    const schemaError = validateDecimal(taskParams, taskParams.resultType);
+    if (schemaError) return proxy.$message.warning(schemaError);
+    if ((taskParams.castFailure === 'DEFAULT' || (type === 'FIELD_DERIVE_NULL' && taskParams.nullAction === 'DEFAULT')) && taskParams.defaultValue == null) return proxy.$message.warning('请填写默认值');
     taskParams.tableFields = tableFields.value;
-    console.log("🚀 ~ saveData ~  form.value.taskParams.fieldDerivationName:", form.value.taskParams.fieldDerivationName)
-    // 输出字段拼接目标字段
-    taskParams.outputFields = [
-      ...inputFields.value,
-      {
-        columnName: form.value.taskParams.fieldDerivationName,
-        source: form.value.name
-      }
-    ];
-    console.log("保存数据 - outputFields:", taskParams.outputFields);
+    const output = fieldSchema({ columnName: taskParams.fieldDerivationName, source: form.value.name }, taskParams.resultType, taskParams);
+    taskParams.outputFields = withOutputField(inputFields.value, output);
     emit("confirm", form.value);
   } catch (error) {
     console.error("保存数据失败:", error);
@@ -569,7 +706,7 @@ function deepCopy(data) {
 }
 
 let nodeOptions = ref([]);
-watchEffect(() => {
+watch(() => [props.visible, props.currentNode?.id, props.currentNode?.data], () => {
     if (!props.visible) {
         off();
         return;
@@ -578,20 +715,27 @@ watchEffect(() => {
     // 原地更新而非替换 ref，保持 a-form 内部字段注册的响应式代理不被断开
     Object.keys(form.value).forEach(k => { delete form.value[k]; });
     Object.assign(form.value, copy);
+    form.value.taskParams = form.value.taskParams || {};
+    const params = form.value.taskParams;
+    params.resultType = params.resultType || (params.fieldDerivationType === 'FIELD_DERIVE_CONSTANT' ? params.constantType || 'string' : 'string');
+    params.nullable = params.nullable == null ? true : params.nullable;
+    params.castFailure = params.castFailure || 'FAIL';
+    params.nullMode = params.nullMode || 'NULL_LITERAL';
+    params.nullAction = params.nullAction || 'COALESCE';
     nodeOptions.value = createNodeSelect(props.graph, props.currentNode.id);
     // 备份初始表字段，避免被篡改
     originalTableFieldsBackup.value = deepCopy(
         props.currentNode?.data?.taskParams?.inputFields || []
     );
-    inputFields.value = props.currentNode?.data?.taskParams?.inputFields;
-    tableFields.value = props.currentNode?.data?.taskParams?.tableFields || [];
+    inputFields.value = deepCopy(params.inputFields || []);
+    tableFields.value = deepCopy(params.tableFields || []);
     setSort()
     // 等待 DOM 更新后清除旧的校验状态，避免残留红字
     nextTick(() => {
         dpModelRefs.value?.clearValidate();
     });
 
-});
+}, { immediate: true });
 </script>
 
 <style scoped lang="less">

@@ -57,10 +57,12 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -133,6 +135,33 @@ public class AiSkillServiceImpl implements IAiSkillService {
 
     @Override
     public PageResult<AiSkillRespVO> getSkillPage(AiSkillPageReqVO pageReqVO) {
+        if (pageReqVO != null && pageReqVO.getDatasourceId() != null) {
+            Set<Long> relatedIds = new LinkedHashSet<>(
+                    aiSkillRefMapper.selectSkillIdsByDatasourceId(pageReqVO.getDatasourceId()));
+            relatedIds.addAll(aiSkillMapper.selectIdsByDatasourceBizObject(pageReqVO.getDatasourceId()));
+            // 兼容历史 Skill：早期数据只保存了 bizObjectType=TABLE/bizObjectId，
+            // 没有写入 AI_SKILL_REF.DATA_SOURCE。通过资产元数据反查所属数据源，
+            // 让老数据也能按数据源筛选，同时仍然不会把其他数据源 Skill 带进来。
+            List<AssetsAssetDO> datasourceAssets = assetsAssetMapper.findByDatasourceId(pageReqVO.getDatasourceId());
+            if (datasourceAssets != null && !datasourceAssets.isEmpty()) {
+                List<Long> assetIds = datasourceAssets.stream()
+                        .map(AssetsAssetDO::getId)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toList());
+                if (!assetIds.isEmpty()) {
+                    List<AiSkillDO> historicalTableSkills = aiSkillMapper.selectList(
+                            new QueryWrapper<AiSkillDO>()
+                                    .eq("biz_object_type", BIZ_OBJECT_TABLE)
+                                    .in("biz_object_id", assetIds));
+                    if (historicalTableSkills != null) {
+                        historicalTableSkills.stream().map(AiSkillDO::getId)
+                                .filter(java.util.Objects::nonNull).forEach(relatedIds::add);
+                    }
+                }
+            }
+            List<Long> ids = new ArrayList<>(relatedIds);
+            return BeanUtils.toBean(aiSkillMapper.selectPage(pageReqVO, ids), AiSkillRespVO.class);
+        }
         return BeanUtils.toBean(aiSkillMapper.selectPage(pageReqVO), AiSkillRespVO.class);
     }
 
@@ -191,6 +220,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
         skill.setVersion(1);
         skill.setContentHash(hash(saveReqVO.getContent()));
         aiSkillMapper.insert(skill);
+        refreshManualDatasourceRef(skill.getId(), saveReqVO.getDatasourceId());
         insertVersion(skill, "CREATE", saveReqVO.getChangeRemark());
         return skill.getId();
     }
@@ -204,6 +234,9 @@ public class AiSkillServiceImpl implements IAiSkillService {
         skill.setStatus(defaultText(saveReqVO.getStatus(), old.getStatus()));
         skill.setSourceType(resolveUpdateSourceType(old, saveReqVO));
         int updated = aiSkillMapper.updateById(skill);
+        // 数据源被清空时也要删除旧 DATA_SOURCE 引用，否则该 Skill 仍会出现在
+        // 原数据源的筛选结果中。
+        refreshManualDatasourceRef(skill.getId(), saveReqVO.getDatasourceId());
         AiSkillDO saved = requireSkill(saveReqVO.getId());
         insertVersion(saved, "EDIT", saveReqVO.getChangeRemark());
         return updated;
@@ -361,16 +394,83 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (context.getConcepts() == null || context.getConcepts().isEmpty()) {
             throw new ServiceException("当前本体没有概念，无法生成决策Skill");
         }
-        String skillCode = normalizeCode("ontology-decision-" + firstNonBlank(
-                context.getOntologyCode(), String.valueOf(context.getOntologyId())));
-        AiSkillDO oldSkill = aiSkillMapper.selectByBizObject(BIZ_OBJECT_ONTOLOGY, context.getOntologyId());
+        OntologyDecisionContextDTO.DatasourceDTO boundDatasource = context.getDatasources() == null || context.getDatasources().isEmpty()
+                ? null : context.getDatasources().get(0);
+        if (boundDatasource == null || boundDatasource.getId() == null) {
+            throw new ServiceException("本体未绑定数据源，无法生成库级 Skill");
+        }
+        DatasourceDO datasource = datasourceMgmtService.getDatasourceDOById(boundDatasource.getId());
+        // 先生成/刷新库级元数据、资产和敏感等级内容，再把本体语义、动作和编排追加到同一个库级 Skill。
+        AiDatabaseSkillGenerateReqVO databaseReq = new AiDatabaseSkillGenerateReqVO();
+        databaseReq.setDatasourceId(boundDatasource.getId());
+        databaseReq.setPublish(reqVO.getPublish());
+        databaseReq.setManualNotes(reqVO.getManualNotes());
+        generateDatabaseSkill(databaseReq);
+        String skillCode = datasource == null
+                ? normalizeCode("database-" + boundDatasource.getId())
+                : databaseSkillCode(datasource);
+        AiSkillDO oldSkill = aiSkillMapper.selectByBizObject(BIZ_OBJECT_DATA_SOURCE, boundDatasource.getId());
         String manualNotes = resolveManualNotes(oldSkill, reqVO.getManualNotes());
-        String content = ontologyDecisionSkillContent(skillCode, context, manualNotes);
+        String ontologySection = ontologyDecisionSkillContent(skillCode, context, manualNotes);
+        String content = oldSkill == null || StringUtils.isBlank(oldSkill.getContent())
+                ? ontologySection
+                : oldSkill.getContent() + "\n\n" + ontologySection;
         AiSkillDO skill = upsertGeneratedSkill(skillCode,
-                firstNonBlank(context.getOntologyName(), context.getOntologyCode()) + "本体决策Skill",
-                TYPE_ONTOLOGY_DECISION, BIZ_OBJECT_ONTOLOGY, context.getOntologyId(), content,
+                firstNonBlank(datasource == null ? null : datasource.getDatasourceName(), boundDatasource.getName(), String.valueOf(boundDatasource.getId())) + "整库Skill",
+                TYPE_DATABASE, BIZ_OBJECT_DATA_SOURCE, boundDatasource.getId(), content,
                 Boolean.TRUE.equals(reqVO.getPublish()));
+        refreshOntologyRefs(skill, context);
+        AiSkillDO legacyOntologySkill = aiSkillMapper.selectByBizObject(BIZ_OBJECT_ONTOLOGY, context.getOntologyId());
+        if (legacyOntologySkill != null && !legacyOntologySkill.getId().equals(skill.getId())) {
+            legacyOntologySkill.setStatus(STATUS_ARCHIVED);
+            aiSkillMapper.updateById(legacyOntologySkill);
+        }
         return BeanUtils.toBean(skill, AiSkillRespVO.class);
+    }
+
+    private void refreshOntologyRefs(AiSkillDO skill, OntologyDecisionContextDTO context) {
+        aiSkillRefMapper.deleteBySkillId(skill.getId());
+        insertRef(skill.getId(), "ONTOLOGY", context.getOntologyId(), context.getOntologyCode(), context.getOntologyName());
+        if (context.getDatasources() != null) {
+            for (OntologyDecisionContextDTO.DatasourceDTO datasource : context.getDatasources()) {
+                insertRef(skill.getId(), "DATA_SOURCE", datasource.getId(), datasource.getType(), datasource.getName());
+            }
+        }
+        if (context.getConcepts() != null) {
+            for (OntologyDecisionContextDTO.ConceptDTO concept : context.getConcepts()) {
+                insertRef(skill.getId(), "CONCEPT", concept.getId(), concept.getCode(), concept.getName());
+                if (concept.getTableBindings() != null) {
+                    for (OntologyDecisionContextDTO.TableBindingDTO table : concept.getTableBindings()) {
+                        insertRef(skill.getId(), "TABLE", table.getId(), table.getTableName(), table.getTableName());
+                    }
+                }
+                if (concept.getProperties() != null) {
+                    for (OntologyDecisionContextDTO.PropertyDTO property : concept.getProperties()) {
+                        insertRef(skill.getId(), "PROPERTY", property.getId(), property.getCode(), property.getName());
+                        if (property.getColumnBindings() != null) {
+                            for (OntologyDecisionContextDTO.ColumnBindingDTO column : property.getColumnBindings()) {
+                                insertRef(skill.getId(), "COLUMN", column.getId(), column.getColumnName(), column.getColumnName());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (context.getRelations() != null) {
+            for (OntologyDecisionContextDTO.RelationDTO relation : context.getRelations()) {
+                insertRef(skill.getId(), "RELATION", relation.getId(), relation.getCode(), relation.getName());
+            }
+        }
+        if (context.getActions() != null) {
+            for (OntologyDecisionContextDTO.ActionDTO action : context.getActions()) {
+                insertRef(skill.getId(), "ACTION", action.getId(), String.valueOf(action.getId()), action.getName());
+            }
+        }
+        if (context.getWorkflows() != null) {
+            for (OntologyDecisionContextDTO.WorkflowDTO workflow : context.getWorkflows()) {
+                insertRef(skill.getId(), "WORKFLOW", workflow.getId(), workflow.getCode(), workflow.getName());
+            }
+        }
     }
 
     private CatalogTableRespDTO resolveMetadataTableForSkill(AiTableSkillGenerateReqVO reqVO) {
@@ -680,6 +780,20 @@ public class AiSkillServiceImpl implements IAiSkillService {
         ref.setRefCode(refCode);
         ref.setRefName(refName);
         aiSkillRefMapper.insert(ref);
+    }
+
+    private void refreshManualDatasourceRef(Long skillId, Long datasourceId) {
+        if (skillId == null) {
+            return;
+        }
+        aiSkillRefMapper.deleteBySkillIdAndRefType(skillId, BIZ_OBJECT_DATA_SOURCE);
+        if (datasourceId == null) {
+            return;
+        }
+        DatasourceDO datasource = datasourceMgmtService.getDatasourceDOById(datasourceId);
+        insertRef(skillId, BIZ_OBJECT_DATA_SOURCE, datasourceId,
+                datasource == null ? String.valueOf(datasourceId) : datasource.getDatasourceType(),
+                datasource == null ? String.valueOf(datasourceId) : datasource.getDatasourceName());
     }
 
     private SkillEnhancement generateTableEnhancement(AssetsAssetDO asset, DatasourceDO datasource,
@@ -1202,10 +1316,12 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + physicalMappings
                 + "## 本体概念与属性\n\n"
                 + concepts
+                + renderOntologyAssetPermissionSection(context)
                 + "## 本体关系\n\n"
                 + relations
                 + "\n## 可执行动作\n\n"
                 + actions
+                + renderWorkflowSection(context)
                 + "\n## 人工与自动流程\n\n"
                 + "- 人工问数：先展示查询证据和决策预览，用户确认后提交动作。\n"
                 + "- 数据到达：只有触发对象和相关对象都能唯一解析、无需审批时才允许自动进入队列。\n"
@@ -1214,6 +1330,134 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + MANUAL_BEGIN + "\n"
                 + defaultText(manualNotes, "暂无人工维护备注。") + "\n"
                 + MANUAL_END + "\n";
+    }
+
+    private String renderWorkflowSection(OntologyDecisionContextDTO context) {
+        StringBuilder out = new StringBuilder("\n## 动作编排\n\n");
+        if (context.getWorkflows() == null || context.getWorkflows().isEmpty()) {
+            return out.append("- 当前本体未配置动作编排。需要多步执行时，先生成并发布动作编排。\n").toString();
+        }
+        for (OntologyDecisionContextDTO.WorkflowDTO workflow : context.getWorkflows()) {
+            out.append("### ").append(defaultText(workflow.getName(), workflow.getCode()))
+                    .append(" (workflowId=").append(workflow.getId())
+                    .append(", status=").append(defaultText(workflow.getStatus(), "DRAFT"))
+                    .append(", enabled=").append(Boolean.TRUE.equals(workflow.getEnabled())).append(")\n")
+                    .append("- code: ").append(defaultText(workflow.getCode(), "")).append("\n")
+                    .append("- triggerRef: ").append(defaultText(workflow.getTriggerRef(), "")).append("\n")
+                    .append("- failurePolicy: ").append(defaultText(workflow.getFailurePolicy(), "")).append("\n")
+                    .append("- description: ").append(defaultText(workflow.getDescription(), "")).append("\n")
+                    .append("- nodes:\n");
+            if (workflow.getNodes() == null || workflow.getNodes().isEmpty()) {
+                out.append("  - none\n");
+            } else {
+                for (OntologyDecisionContextDTO.WorkflowNodeDTO node : workflow.getNodes()) {
+                    out.append("  - ").append(defaultText(node.getNodeKey(), node.getName()))
+                            .append(" (type=").append(defaultText(node.getNodeType(), ""))
+                            .append(", actionId=").append(node.getActionId())
+                            .append(", timeoutMs=").append(node.getTimeoutMs())
+                            .append(", retryPolicy=").append(defaultText(node.getRetryPolicy(), ""))
+                            .append(")\n");
+                    if (StringUtils.isNotBlank(node.getConfigJson())) {
+                        out.append("    config: ").append(node.getConfigJson()).append("\n");
+                    }
+                }
+            }
+            out.append("- edges:\n");
+            if (workflow.getEdges() == null || workflow.getEdges().isEmpty()) {
+                out.append("  - none\n");
+            } else {
+                for (OntologyDecisionContextDTO.WorkflowEdgeDTO edge : workflow.getEdges()) {
+                    out.append("  - ").append(defaultText(edge.getFromNodeKey(), ""))
+                            .append(" -> ").append(defaultText(edge.getToNodeKey(), ""))
+                            .append(" (condition=").append(defaultText(edge.getConditionExpr(), "always"))
+                            .append(", priority=").append(edge.getPriority()).append(")\n");
+                }
+            }
+            out.append("\n");
+        }
+        out.append("- 只有 status=PUBLISHED 且 enabled=true 的编排可以进入执行候选；草稿必须先校验、发布并经过动作权限和审批校验。\n");
+        return out.toString();
+    }
+
+    /**
+     * 将本体属性绑定的物理字段反查到资产权限元数据，直接挂在概念/属性下面。
+     * Skill 保存的是权限元数据和解释规则，当前用户是否可访问仍由运行时权限服务最终判断。
+     */
+    private String renderOntologyAssetPermissionSection(OntologyDecisionContextDTO context) {
+        StringBuilder out = new StringBuilder("## 概念与属性的数据权限\n\n");
+        Map<Long, AssetsSensitiveLevelDO> sensitiveLevels = loadOnlineSensitiveLevels();
+        boolean found = false;
+        if (context.getConcepts() != null) {
+            for (OntologyDecisionContextDTO.ConceptDTO concept : context.getConcepts()) {
+                if (concept == null) continue;
+                List<OntologyDecisionContextDTO.TableBindingDTO> tables = concept.getTableBindings();
+                if (tables == null || tables.isEmpty()) continue;
+                out.append("### ").append(defaultText(concept.getName(), concept.getCode()))
+                        .append("（conceptId=").append(concept.getId()).append("）\n");
+                for (OntologyDecisionContextDTO.TableBindingDTO table : tables) {
+                    AssetsAssetDO asset = findOntologyAsset(table.getDatasourceId(), table.getTableName());
+                    if (asset == null) {
+                        out.append("- 资产表未找到：").append(physicalTableName(table.getDatasourceName(), table.getDatabaseName(),
+                                table.getSchemaName(), table.getTableName(), null)).append("\n");
+                        continue;
+                    }
+                    found = true;
+                    out.append("- assetId=").append(asset.getId()).append("，表=").append(asset.getTableName())
+                            .append("，资产状态=").append(defaultText(asset.getStatus(), "未知"))
+                            .append("，有效=").append(Boolean.TRUE.equals(asset.getValidFlag())).append("\n");
+                    if (concept.getProperties() != null) {
+                        for (OntologyDecisionContextDTO.PropertyDTO property : concept.getProperties()) {
+                            if (property == null || property.getColumnBindings() == null) continue;
+                            for (OntologyDecisionContextDTO.ColumnBindingDTO column : property.getColumnBindings()) {
+                                if (!sameTable(table, column)) continue;
+                                AssetsAssetColumnDO assetColumn = findAssetColumn(asset.getId(), column.getColumnName());
+                                out.append("  - 属性 ").append(defaultText(property.getName(), property.getCode()))
+                                        .append(" -> ").append(column.getColumnName());
+                                if (assetColumn == null) {
+                                    out.append("：资产字段未找到\n");
+                                    continue;
+                                }
+                                out.append("（columnId=").append(assetColumn.getId())
+                                        .append("，敏感等级=")
+                                        .append(sensitiveLevelText(assetColumn.getSensitiveLevelId(),
+                                                sensitiveLevels.get(assetColumn.getSensitiveLevelId())))
+                                        .append("，权限规则=")
+                                        .append(columnPermissionNotice(assetColumn, sensitiveLevels)).append("）\n");
+                            }
+                        }
+                    }
+                }
+                out.append("\n");
+            }
+        }
+        if (!found) {
+            out.append("- 当前本体未解析到资产权限明细；只能使用元数据映射，访问时仍必须经过运行时资产/字段权限校验。\n");
+        }
+        out.append("- 运行时必须同时校验空间资产授权、字段授权和当前用户 data_permission_level；Skill 中的权限快照不能替代实时授权判断。\n\n");
+        return out.toString();
+    }
+
+    private AssetsAssetDO findOntologyAsset(Long datasourceId, String tableName) {
+        if (datasourceId == null || StringUtils.isBlank(tableName)) return null;
+        List<AssetsAssetDO> assets = assetsAssetMapper.findByDatasourceIdAndTableName(datasourceId, tableName);
+        return assets == null || assets.isEmpty() ? null : assets.get(0);
+    }
+
+    private AssetsAssetColumnDO findAssetColumn(Long assetId, String columnName) {
+        if (assetId == null || StringUtils.isBlank(columnName)) return null;
+        List<AssetsAssetColumnDO> columns = assetsAssetColumnMapper.findByAssetId(assetId);
+        if (columns == null) return null;
+        for (AssetsAssetColumnDO column : columns) {
+            if (column != null && columnName.equalsIgnoreCase(column.getColumnName())) return column;
+        }
+        return null;
+    }
+
+    private boolean sameTable(OntologyDecisionContextDTO.TableBindingDTO table,
+                              OntologyDecisionContextDTO.ColumnBindingDTO column) {
+        return table != null && column != null
+                && java.util.Objects.equals(table.getDatasourceId(), column.getDatasourceId())
+                && StringUtils.equalsIgnoreCase(table.getTableName(), column.getTableName());
     }
 
     private String renderOntologyPhysicalMappings(OntologyDecisionContextDTO context) {

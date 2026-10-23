@@ -32,6 +32,12 @@ public class DatasourceCreaTeTableReqDTO {
      */
     private String tableName;
 
+    /** 未加治理前缀的业务表名 */
+    private String baseTableName;
+
+    /** 1 大写，2 小写 */
+    private String tableCase;
+
     /**
      * 表注释
      */
@@ -41,4 +47,14 @@ public class DatasourceCreaTeTableReqDTO {
      * 表字段
      */
     private List<DbColumn> columnsList;
+
+    private Long dataLayerId;
+    private Long businessCategoryId;
+    private String businessCategoryCode;
+    private Long dataDomainId;
+    private Long themeDomainId;
+    private String themeDomainCode;
+    private String tableType;
+    private String catCode;
+    private Long datasourceId;
 }

@@ -70,6 +70,9 @@ public interface IAssetsDatasourceSpaceRelService extends IService<AssetsDatasou
      */
     List<AssetsDatasourceSpaceRelDO> getDatasourceSpaceRelList(AssetsDatasourceSpaceRelDO AssetsDatasourceSpaceRelDO);
 
+    /** 确保数据源绑定到指定空间，已有绑定直接复用。 */
+    DatasourceSpaceRelEnsureResult ensureDatasourceSpaceRel(Long datasourceId, Long spaceId, String spaceCode);
+
     /**
      *
      *

@@ -1,5 +1,5 @@
 <template>
-    <a-modal v-model:open="visibleDialog" :draggable="true" width="500px" class="excelUploadDialog-2025-03-28-17-05" :title="title"
+    <a-modal wrap-class-name="integration-component-modal" v-model:open="visibleDialog" :draggable="true" width="500px" class="excelUploadDialog-2025-03-28-17-05" :title="title"
         :destroy-on-close="true" :footer="null">
         <a-form ref="daDiscoveryTaskRef" :model="form" :label-col="{ style: { width: '90px' } }" @submit.prevent>
             <a-row :gutter="20">

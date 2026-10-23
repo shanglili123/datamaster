@@ -1,5 +1,5 @@
 <template>
-  <a-modal
+  <a-modal wrap-class-name="integration-component-modal"
     v-model:open="dialogVisible"
     :draggable="true"
     class="medium-dialog"

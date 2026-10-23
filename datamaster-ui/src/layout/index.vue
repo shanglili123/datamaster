@@ -1,194 +1,28 @@
 <template>
-  <a-layout class="app-wrapper" :class="{ hideSidebar: !sidebar.opened, mobile: device === 'mobile', 'workspace-layout': !isHomeShell }">
-    <a-drawer
-      v-if="!isFullScreenPage && device === 'mobile'"
-      :open="sidebar.opened"
-      placement="left"
-      :width="248"
-      :closable="false"
-      @close="handleClickOutside"
-    >
-      <sidebar />
-    </a-drawer>
-    <a-layout-sider
-      v-if="!sidebarHide && device !== 'mobile'"
-      :width="248"
-      :collapsed="!sidebar.opened"
-      :collapsed-width="72"
-      :trigger="null"
-      collapsible
-      class="sidebar-container"
-    >
-      <sidebar />
-    </a-layout-sider>
-    <a-layout>
-      <div
-        v-if="!isHomeShell && !isFullScreenPage"
-        :class="{ 'fixed-header': fixedHeader, 'sidebarHide': sidebarHide }"
-        class="layout-header-wrapper"
-      >
-        <navbar @setLayout="setLayout" />
-      </div>
-      <a-layout-content class="main-container" :class="{ 'sidebarHide': sidebarHide }">
-        <sub-menu-tabs v-if="!sidebarHide && !isFullScreenPage" />
-        <app-main />
-      </a-layout-content>
-      <settings ref="settingRef" />
-    </a-layout>
-  </a-layout>
+  <div class="app-wrapper">
+    <app-main v-if="isStandalonePage" :standalone="true" />
+    <space-workstation v-else><app-main /></space-workstation>
+    <data-agent-assistant />
+  </div>
 </template>
 
-<script setup>
-import { useRoute } from "vue-router";
-import { useWindowSize } from "@vueuse/core";
-import Sidebar from "./components/Sidebar/index.vue";
-import SubMenuTabs from "./components/SubMenuTabs/index.vue";
-import { AppMain, Navbar, Settings } from "./components";
-import defaultSettings from "@/settings";
+<script setup name="Layout">
+import { computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import AppMain from './components/AppMain.vue';
+import SpaceWorkstation from './components/SpaceWorkstation.vue';
+import DataAgentAssistant from './components/DataAgentAssistant.vue';
+import usePermissionStore from '@/store/system/permission';
 
-import useAppStore from "@/store/system/app";
-import useSettingsStore from "@/store/system/settings";
-import usePermissionStore from "@/store/system/permission";
-
-const settingsStore = useSettingsStore();
-const permissionStore = usePermissionStore();
-const appStore = useAppStore();
 const route = useRoute();
-const theme = computed(() => settingsStore.theme);
-const sidebar = computed(() => appStore.sidebar);
-const device = computed(() => useAppStore().device);
-const fixedHeader = computed(() => settingsStore.fixedHeader);
-const isHomeShell = computed(() => route.path === "/" || route.path === "/index");
-const isFullScreenPage = computed(() => route.meta?.fullScreen === true);
-
-watch(
-  [() => route.path, () => permissionStore.topbarRouters],
-  () => {
-    const sidebarRoutes = getSidebarRoutesForCurrentTopMenu();
-    permissionStore.setSidebarRouters(sidebarRoutes);
-    appStore.toggleSideBarHide(false);
-    if (!appStore.sidebar.opened) {
-      appStore.toggleSideBar(false);
-    }
-  },
-  { immediate: true, deep: true }
-);
-
-const sidebarHide = computed(() => {
-  const path = route.path;
-  if (isFullScreenPage.value) return true;
-  if (path === "/index") return true;
-  const navbarLogoRoutes = defaultSettings.navbarLogoRoutes || [];
-  if (navbarLogoRoutes.some((p) => path.startsWith(p))) return true;
-  if (route.matched.length > 1) return false;
-  return true;
-});
-
-const { width, height } = useWindowSize();
-const WIDTH = 992;
-
-watch(
-  () => device.value,
-  () => {
-    if (device.value === "mobile" && sidebar.value.opened) {
-      useAppStore().closeSideBar({ withoutAnimation: false });
-    }
-  }
-);
-
-watchEffect(() => {
-  if (width.value - 1 < WIDTH) {
-    useAppStore().toggleDevice("mobile");
-    useAppStore().closeSideBar({ withoutAnimation: true });
-  } else {
-    useAppStore().toggleDevice("desktop");
-  }
-});
-
-function handleClickOutside() {
-  useAppStore().closeSideBar({ withoutAnimation: false });
-}
-
-const settingRef = ref(null);
-function setLayout() {
-  settingRef.value.openSetting();
-}
-
-function getSidebarRoutesForCurrentTopMenu() {
-  const topPath = getTopPath(route.path);
-  if (!topPath) return [];
-  const topRoute = (permissionStore.topbarRouters || []).find((item) => normalizePath(item.path) === topPath);
-  if (!topRoute || !topRoute.children || topRoute.children.length === 0) return [];
-
-  const currentL2 = findCurrentL2(topRoute, route.path);
-  if (!currentL2 || !currentL2.children || currentL2.children.length === 0) return [];
-
-  const l2Path = `${normalizePath(topRoute.path)}/${currentL2.path}`.replace(/\/+/g, "/");
-  return currentL2.children.map((child) => {
-    const routeItem = JSON.parse(JSON.stringify(child));
-    routeItem.parentPath = l2Path;
-    if (routeItem.path && !routeItem.path.startsWith("/") && !/^https?:/i.test(routeItem.path)) {
-      routeItem.path = `${l2Path}/${routeItem.path}`.replace(/\/+/g, "/");
-    }
-    return routeItem;
-  });
-}
-
-function findCurrentL2(topRoute, currentPath) {
-  const topPath = normalizePath(topRoute.path);
-  for (const child of topRoute.children || []) {
-    if (child.hidden) continue;
-    const childResolved = child.path
-      ? (child.path.startsWith('/') ? child.path : `${topPath}/${child.path}`)
-      : '';
-    if (currentPath === childResolved || currentPath.startsWith(childResolved + '/')) {
-      return child;
-    }
-  }
-  return null;
-}
-
-function getTopPath(path) {
-  if (!path || path === "/" || path === "/index") return "";
-  const segments = path.split("/").filter(Boolean);
-  return segments.length > 0 ? `/${segments[0]}` : "";
-}
-
-function normalizePath(path) {
-  if (!path) return "";
-  return path.startsWith("/") ? path : `/${path}`;
-}
+const permissionStore = usePermissionStore();
+// 首页和数据探索拥有自己的入口与流程导航，其余页面统一使用空间工作站布局。
+const isStandalonePage = computed(() => ['/', '/index', '/explore'].includes(route.path));
+watch(() => route.path, (path) => {
+  if (path === '/' || path === '/index') permissionStore.resetHomeMenus();
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>
-@import "@/assets/system/styles/mixin.scss";
-@import "@/assets/system/styles/variables.module.scss";
-
-.app-wrapper {
-  height: 100vh;
-}
-
-.sidebar-container {
-  overflow: auto;
-  border-right: 1px solid #f0f0f0;
-}
-
-.layout-header-wrapper {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #fff;
-}
-
-.main-container {
-  background-color: var(--dm-bg-layout, #eef3f8);
-  /* 撑满 header(100px) 之后的剩余高度：submenu-tabs 与 app-main 竖向排列，
-     app-main flex:1 自动扣减 submenu-tabs 高度，页面不再溢出、不再产生页面级滚动条 */
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
+.app-wrapper { min-height: 100vh; }
 </style>

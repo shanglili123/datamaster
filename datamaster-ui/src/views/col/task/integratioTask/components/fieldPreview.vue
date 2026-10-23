@@ -1,14 +1,12 @@
 <template>
     <!-- 申请服务弹框 -->
-    <a-modal title="步骤里的字段和其来源" v-model:open="open" width="800px" :draggable="true"
+    <a-modal wrap-class-name="integration-component-modal" title="步骤里的字段和其来源" v-model:open="open" width="800px" :draggable="true"
         :destroy-on-close="true" :footer="null">
         <div class="info-line">
             <span class="label">步骤名称：</span>
             <span class="value">{{ form.name || '-' }}</span>
         </div>
-        <a-divider orientation="center">
-            <span class="blue-text">{{ title }}</span>
-        </a-divider>
+        <h3 class="etl-section-title">{{ title }}</h3>
         <a-table
           striped
           :scroll="{ y: '420px' }"

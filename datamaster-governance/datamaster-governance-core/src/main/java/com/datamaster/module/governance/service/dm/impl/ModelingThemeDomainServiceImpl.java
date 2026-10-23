@@ -210,7 +210,9 @@ public class ModelingThemeDomainServiceImpl extends ServiceImpl<ModelingThemeDom
                 .leftJoin("SYSTEM_USER u on t.OWNER_USER_ID = u.USER_ID AND u.DEL_FLAG = '0'")
                 .leftJoin(ModelingDataLayerDO.class, "layer", ModelingDataLayerDO::getId, ModelingThemeDomainDO::getDataLayerId);
 
-        lambdaWrapper.eqIfPresent(ModelingThemeDomainDO::getCode, reqVO.getCode())
+        lambdaWrapper.eqIfPresent(ModelingThemeDomainDO::getSpaceId, reqVO.getSpaceId())
+                .eqIfPresent(ModelingThemeDomainDO::getSpaceCode, reqVO.getSpaceCode())
+                .eqIfPresent(ModelingThemeDomainDO::getCode, reqVO.getCode())
                 .likeIfPresent(ModelingThemeDomainDO::getName, reqVO.getName())
                 .likeIfPresent(ModelingThemeDomainDO::getEngName, reqVO.getEngName())
                 .eqIfPresent(ModelingThemeDomainDO::getParentId, reqVO.getParentId())

@@ -35,8 +35,13 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
 
     @Override
     public List<AiAskSessionRespVO> listRecent(Long userId, Long spaceId, Integer limit) {
+        return listRecent(userId, spaceId, null, limit);
+    }
+
+    @Override
+    public List<AiAskSessionRespVO> listRecent(Long userId, Long spaceId, String category, Integer limit) {
         ensureTablesReady();
-        return BeanUtils.toBean(sessionMapper.selectRecent(userId, spaceId, limit), AiAskSessionRespVO.class);
+        return BeanUtils.toBean(sessionMapper.selectRecent(userId, spaceId, category, limit), AiAskSessionRespVO.class);
     }
 
     @Override
@@ -47,6 +52,7 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
         applySessionFields(session, reqVO);
         session.setTitle(defaultText(reqVO == null ? null : reqVO.getTitle(), "新问数对话"));
         session.setMode(defaultText(reqVO == null ? null : reqVO.getMode(), "qa"));
+        session.setCategory(defaultText(reqVO == null ? null : reqVO.getCategory(), "ASK_DATA"));
         session.setReturnSql(reqVO != null && Boolean.TRUE.equals(reqVO.getReturnSql()));
         session.setMessageCount(0);
         session.setDelFlag(Boolean.FALSE);
@@ -70,6 +76,7 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
                 .set(AiAskSessionDO::getSpaceCode, reqVO == null ? old.getSpaceCode() : reqVO.getSpaceCode())
                 .set(AiAskSessionDO::getTitle, defaultText(reqVO == null ? null : reqVO.getTitle(), old.getTitle()))
                 .set(AiAskSessionDO::getMode, defaultText(reqVO == null ? null : reqVO.getMode(), old.getMode()))
+                .set(AiAskSessionDO::getCategory, defaultText(reqVO == null ? null : reqVO.getCategory(), old.getCategory()))
                 .set(AiAskSessionDO::getDatasourceId, reqVO == null ? old.getDatasourceId() : reqVO.getDatasourceId())
                 .set(AiAskSessionDO::getDatasourceName, reqVO == null ? old.getDatasourceName() : reqVO.getDatasourceName())
                 .set(AiAskSessionDO::getSkillId, reqVO == null ? old.getSkillId() : reqVO.getSkillId())
@@ -164,6 +171,7 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
         session.setSpaceCode(reqVO.getSpaceCode());
         session.setTitle(reqVO.getTitle());
         session.setMode(reqVO.getMode());
+        session.setCategory(reqVO.getCategory());
         session.setDatasourceId(reqVO.getDatasourceId());
         session.setDatasourceName(reqVO.getDatasourceName());
         session.setSkillId(reqVO.getSkillId());
@@ -207,6 +215,7 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
         if (!tableExists("ai_ask_session")) {
             initSessionTable();
         }
+        ensureSessionCategoryColumn();
         if (!tableExists("ai_ask_message")) {
             initMessageTable();
         }
@@ -224,13 +233,24 @@ public class AiAskSessionServiceImpl implements IAiAskSessionService {
     private void initSessionTable() {
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS AI_ASK_SESSION ("
                 + "ID BIGINT PRIMARY KEY, USER_ID BIGINT NOT NULL, SPACE_ID BIGINT, SPACE_CODE VARCHAR(128),"
-                + "TITLE VARCHAR(255) NOT NULL, MODE VARCHAR(32) DEFAULT 'qa', DATASOURCE_ID BIGINT,"
+                + "TITLE VARCHAR(255) NOT NULL, MODE VARCHAR(32) DEFAULT 'qa', CATEGORY VARCHAR(32) DEFAULT 'ASK_DATA', DATASOURCE_ID BIGINT,"
                 + "DATASOURCE_NAME VARCHAR(255), SKILL_ID BIGINT, TEMPLATE_ID BIGINT, RETURN_SQL BOOLEAN DEFAULT FALSE,"
                 + "MESSAGE_COUNT INTEGER DEFAULT 0, CREATOR_ID BIGINT, CREATE_BY VARCHAR(64), CREATE_TIME TIMESTAMP,"
                 + "UPDATER_ID BIGINT, UPDATE_BY VARCHAR(64), UPDATE_TIME TIMESTAMP, REMARK VARCHAR(500),"
                 + "DEL_FLAG BOOLEAN DEFAULT FALSE)");
         jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS IDX_AI_ASK_SESSION_SCOPE "
                 + "ON AI_ASK_SESSION (USER_ID, SPACE_ID, UPDATE_TIME DESC)");
+    }
+
+    private void ensureSessionCategoryColumn() {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM information_schema.columns "
+                        + "WHERE table_schema = current_schema() AND lower(table_name) = 'ai_ask_session' "
+                        + "AND lower(column_name) = 'category'", Integer.class);
+        if (count == null || count == 0) {
+            jdbcTemplate.execute("ALTER TABLE AI_ASK_SESSION ADD COLUMN CATEGORY VARCHAR(32) DEFAULT 'ASK_DATA'");
+        }
+        jdbcTemplate.update("UPDATE AI_ASK_SESSION SET CATEGORY = 'ASK_DATA' WHERE CATEGORY IS NULL");
     }
 
     private void initMessageTable() {

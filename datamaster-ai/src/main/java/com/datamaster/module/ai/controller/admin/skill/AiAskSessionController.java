@@ -38,8 +38,9 @@ public class AiAskSessionController extends BaseController {
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     @GetMapping
     public CommonResult<List<AiAskSessionRespVO>> list(@RequestParam(required = false) Long spaceId,
+                                                       @RequestParam(required = false) String category,
                                                        @RequestParam(defaultValue = "10") Integer limit) {
-        return CommonResult.success(aiAskSessionService.listRecent(getUserId(), spaceId, limit));
+        return CommonResult.success(aiAskSessionService.listRecent(getUserId(), spaceId, category, limit));
     }
 
     @Operation(summary = "新增决策智能体会话")

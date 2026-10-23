@@ -1,16 +1,22 @@
 datasource:
   type: PostgreSQL
 
+logging:
+  level:
+    com.datamaster.module.ontology.dal.mapper.ActionWorkflowRunMapper: info
+
 datamaster:
   embedded-redis:
     enabled: false
-  # 数据血缘开关：开启 Neo4j 血缘装配（ETL 表血缘 + 本体对象四维血缘）
+  # 旧 Neo4j 对象/动作血缘可显式关闭；JDBC 数据血缘使用独立开关。
   lineage:
-    enabled: true
+    enabled: ${LINEAGE_ENABLED:true}
   # 本体动作自动执行 Worker 轮询：关闭后不再定时扫描 APPROVED 执行记录自动执行，
   # 动作执行退化为纯人工入口（提交 -> 预览 -> 手动执行 / 人工确认后执行）
   ontology:
     action-execution:
+      worker-enabled: false
+    workflow:
       worker-enabled: false
   # 数据接收子工程（消费 Kafka -> 冲突检查 -> 写入数仓 Doris）
   ingestion:
@@ -25,6 +31,11 @@ datamaster:
       topics: ${INGESTION_KAFKA_TOPICS:[]}
       poll-timeout-ms: 1000
       poll-interval-ms: 1000
+      max-retries: ${INGESTION_KAFKA_MAX_RETRIES:3}
+      retry-backoff-ms: ${INGESTION_KAFKA_RETRY_BACKOFF_MS:2000}
+      dead-letter-topic: ${INGESTION_KAFKA_DEAD_LETTER_TOPIC:}
+      event-lease-ms: ${INGESTION_KAFKA_EVENT_LEASE_MS:300000}
+      lease-renew-interval-ms: ${INGESTION_KAFKA_LEASE_RENEW_INTERVAL_MS:60000}
     # 目标数据仓库（Doris）数据源ID：对应数据源管理中注册的 Doris 数据源
     doris-datasource-id: ${INGESTION_DORIS_DATASOURCE_ID:}
     # 冲突策略：INSERT 追加 / UPSERT 按主键更新 / SKIP 跳过 / ERROR 报错
@@ -33,6 +44,12 @@ datamaster:
     key-columns: ${INGESTION_KEY_COLUMNS:[]}
     # 目标表名（缺省从消息 __table 字段读取）
     target-table: ${INGESTION_TARGET_TABLE:}
+    # 动态路由目标表白名单；为空时仍执行表名标识符校验
+    allowed-tables: ${INGESTION_ALLOWED_TABLES:[]}
+    # 非 DELETE 消息必须携带的业务字段
+    required-columns: ${INGESTION_REQUIRED_COLUMNS:[]}
+    # 可选消息 Schema 版本
+    schema-version: ${INGESTION_SCHEMA_VERSION:}
     # 决策数据到达触发（数据落库后回调本体 DATA_ARRIVAL 决策自动提交执行）
     decision-trigger:
       enabled: false

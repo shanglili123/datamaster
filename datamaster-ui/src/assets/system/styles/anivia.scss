@@ -1566,10 +1566,6 @@
   --el-text-color-primary: #333;
 }
 
-.el-popup-parent--hidden .fixed-header {
-  padding-right: 0px !important;
-}
-
 /* 针对浏览器自动填充的背景色进行样式覆盖 */
 input:-webkit-autofill {
   background-color: white !important;

@@ -160,13 +160,13 @@
             <!-- 系统模块共享类型-->
             <dependency>
                 <groupId>com.datamaster</groupId>
-                <artifactId>datamaster-system-api</artifactId>
+                <artifactId>datamaster-system-interface</artifactId>
                 <version>${dataMaster.version}</version>
             </dependency>
             <!-- 系统模块-->
             <dependency>
                 <groupId>com.datamaster</groupId>
-                <artifactId>datamaster-system</artifactId>
+                <artifactId>datamaster-system-core</artifactId>
                 <version>${dataMaster.version}</version>
             </dependency>
             <!-- 通用工具-->
@@ -190,7 +190,6 @@
         </dependencies>
     </dependencyManagement>
     <modules>
-        <module>datamaster-system-api</module>
         <module>datamaster-common</module>
         <module>datamaster-system</module>
         <module>datamaster-governance</module>

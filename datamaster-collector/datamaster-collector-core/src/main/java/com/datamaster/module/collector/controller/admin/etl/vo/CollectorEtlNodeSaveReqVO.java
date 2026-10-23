@@ -43,6 +43,13 @@ public class CollectorEtlNodeSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "节点编码长度不能超过256个字符")
     private String code;
 
+    /**
+     * 逻辑集成节点在前端画布中的稳定标识。仅用于 pipelineGraph 边关系映射，
+     * 不作为 DolphinScheduler 节点编码。
+     */
+    @Schema(description = "逻辑集成节点前端标识", example = "node-1")
+    private String pipelineNodeId;
+
     @Schema(description = "节点版本", example = "")
     private Integer version;
 
@@ -109,6 +116,7 @@ public class CollectorEtlNodeSaveReqVO extends BaseEntity {
             return Objects.equals(name, that.getName())
                     && Objects.equals(taskType, that.getTaskType())
                     && Objects.equals(type, that.getType())
+                    && Objects.equals(pipelineNodeId, that.getPipelineNodeId())
                     && Objects.equals(priority, that.getPriority())
                     && Objects.equals(parameters, that.getParameters())
                     && Objects.equals(description, that.getDescription());

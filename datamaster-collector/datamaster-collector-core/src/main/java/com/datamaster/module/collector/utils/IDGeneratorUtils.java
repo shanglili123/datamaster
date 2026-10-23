@@ -1,43 +1,16 @@
-
-
 package com.datamaster.module.collector.utils;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 
-/**
- * <P>
- * 用途:生成数字id
- * </p>
- *
- * @author: FXB
- * @create: 2019-12-26 08:59
- **/
-@Component
-public class IDGeneratorUtils {
+/** Delegates numeric IDs to the project's existing MyBatis-Plus generator. */
+public final class IDGeneratorUtils {
+    private IDGeneratorUtils() { }
 
-    private static long workerId;
-
-    private static long datacenterId;
-
-    @Value("${id.workerId}")
-    public  void setWorkerId(long workerId) {
-        IDGeneratorUtils.workerId = workerId;
+    public static long getLongId() {
+        return IdWorker.getId();
     }
 
-    @Value("${id.datacenterId}")
-    public  void setDatacenterId(long datacenterId) {
-        IDGeneratorUtils.datacenterId = datacenterId;
-    }
-
-    public static long getLongId(){
-        final SnowflakeIdHelper snowflakeIdHelper = SnowflakeIdHelper.getInstance(workerId,datacenterId);
-        long id = snowflakeIdHelper.nextId();
-        return id;
-    }
-    public static String getStringId(){
-        final SnowflakeIdHelper snowflakeIdHelper = SnowflakeIdHelper.getInstance(workerId,datacenterId);
-        long id = snowflakeIdHelper.nextId();
-        return String.valueOf(id);
+    public static String getStringId() {
+        return String.valueOf(getLongId());
     }
 }

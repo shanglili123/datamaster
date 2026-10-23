@@ -11,6 +11,9 @@ import com.datamaster.module.ontology.dal.dataobject.ConceptTableDO;
 import com.datamaster.module.ontology.dal.dataobject.PropertyColumnDO;
 import com.datamaster.module.ontology.dal.dataobject.RelationColumnDO;
 import com.datamaster.module.ontology.dal.dataobject.RelationTableDO;
+import com.datamaster.module.ontology.dal.dataobject.ActionWorkflowDO;
+import com.datamaster.module.ontology.dal.dataobject.ActionWorkflowNodeDO;
+import com.datamaster.module.ontology.dal.dataobject.ActionWorkflowEdgeDO;
 import com.datamaster.module.ontology.dal.mapper.ActionMapper;
 import com.datamaster.module.ontology.dal.mapper.ConceptMapper;
 import com.datamaster.module.ontology.dal.mapper.ConceptTableMapper;
@@ -20,6 +23,9 @@ import com.datamaster.module.ontology.dal.mapper.PropertyMapper;
 import com.datamaster.module.ontology.dal.mapper.RelationMapper;
 import com.datamaster.module.ontology.dal.mapper.RelationColumnMapper;
 import com.datamaster.module.ontology.dal.mapper.RelationTableMapper;
+import com.datamaster.module.ontology.dal.mapper.ActionWorkflowMapper;
+import com.datamaster.module.ontology.dal.mapper.ActionWorkflowNodeMapper;
+import com.datamaster.module.ontology.dal.mapper.ActionWorkflowEdgeMapper;
 import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
@@ -44,6 +50,9 @@ public class OntologyDecisionApiServiceImpl implements IOntologyDecisionApiServi
     @Resource private RelationTableMapper relationTableMapper;
     @Resource private RelationColumnMapper relationColumnMapper;
     @Resource private ActionMapper actionMapper;
+    @Resource private ActionWorkflowMapper actionWorkflowMapper;
+    @Resource private ActionWorkflowNodeMapper actionWorkflowNodeMapper;
+    @Resource private ActionWorkflowEdgeMapper actionWorkflowEdgeMapper;
     @Resource private IDatasourceApiService datasourceApiService;
 
     @Override
@@ -190,6 +199,60 @@ public class OntologyDecisionApiServiceImpl implements IOntologyDecisionApiServi
             }
         }
         result.setActions(actionDTOs);
+
+        List<ActionWorkflowDO> workflows = actionWorkflowMapper.selectList(new LambdaQueryWrapperX<ActionWorkflowDO>()
+                .eq(ActionWorkflowDO::getOntologyId, ontologyId)
+                .orderByAsc(ActionWorkflowDO::getId));
+        List<OntologyDecisionContextDTO.WorkflowDTO> workflowDTOs = new ArrayList<>();
+        if (workflows != null) {
+            for (ActionWorkflowDO workflow : workflows) {
+                OntologyDecisionContextDTO.WorkflowDTO dto = new OntologyDecisionContextDTO.WorkflowDTO();
+                dto.setId(workflow.getId());
+                dto.setCode(workflow.getCode());
+                dto.setName(workflow.getName());
+                dto.setTriggerConceptId(workflow.getTriggerConceptId());
+                dto.setTriggerRef(workflow.getTriggerRef());
+                dto.setInputSchema(workflow.getInputSchema());
+                dto.setOutputSchema(workflow.getOutputSchema());
+                dto.setFailurePolicy(workflow.getFailurePolicy());
+                dto.setEnabled(workflow.getEnabled());
+                dto.setStatus(workflow.getStatus());
+                dto.setDescription(workflow.getDescription());
+                List<OntologyDecisionContextDTO.WorkflowNodeDTO> nodes = new ArrayList<>();
+                List<ActionWorkflowNodeDO> nodeRows = actionWorkflowNodeMapper.selectByWorkflowId(workflow.getId());
+                if (nodeRows != null) {
+                    for (ActionWorkflowNodeDO node : nodeRows) {
+                        OntologyDecisionContextDTO.WorkflowNodeDTO item = new OntologyDecisionContextDTO.WorkflowNodeDTO();
+                        item.setNodeKey(node.getNodeKey());
+                        item.setName(node.getName());
+                        item.setNodeType(node.getNodeType());
+                        item.setActionId(node.getActionId());
+                        item.setConfigJson(node.getConfigJson());
+                        item.setTimeoutMs(node.getTimeoutMs());
+                        item.setRetryPolicy(node.getRetryPolicy());
+                        item.setCompensationActionId(node.getCompensationActionId());
+                        nodes.add(item);
+                    }
+                }
+                dto.setNodes(nodes);
+                List<OntologyDecisionContextDTO.WorkflowEdgeDTO> edges = new ArrayList<>();
+                List<ActionWorkflowEdgeDO> edgeRows = actionWorkflowEdgeMapper.selectByWorkflowId(workflow.getId());
+                if (edgeRows != null) {
+                    for (ActionWorkflowEdgeDO edge : edgeRows) {
+                        OntologyDecisionContextDTO.WorkflowEdgeDTO item = new OntologyDecisionContextDTO.WorkflowEdgeDTO();
+                        item.setEdgeKey(edge.getEdgeKey());
+                        item.setFromNodeKey(edge.getFromNodeKey());
+                        item.setToNodeKey(edge.getToNodeKey());
+                        item.setConditionExpr(edge.getConditionExpr());
+                        item.setPriority(edge.getPriority());
+                        edges.add(item);
+                    }
+                }
+                dto.setEdges(edges);
+                workflowDTOs.add(dto);
+            }
+        }
+        result.setWorkflows(workflowDTOs);
         List<OntologyDecisionContextDTO.DatasourceDTO> datasourceDTOs = new ArrayList<>();
         for (DatasourceRespDTO datasource : datasourceCache.values()) {
             if (datasource == null) continue;

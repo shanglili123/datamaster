@@ -57,7 +57,7 @@ DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的
 - Dynamic Datasource
 - Druid
 - Redis
-- RabbitMQ
+- Kafka（可选 ingestion 集群）
 - PageHelper
 - Knife4j / Swagger
 - DolphinScheduler API 适配
@@ -67,7 +67,7 @@ DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的
 
 - Vue 3
 - Vite 5
-- Element Plus
+- Ant Design Vue 4
 - Pinia
 - Vue Router
 - ECharts
@@ -80,8 +80,9 @@ DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的
 
 ```text
 datamaster-server        后端启动入口，聚合全部业务模块
-datamaster-system-api    系统公共 API、DTO 和跨模块接口模型
-datamaster-system        用户、角色、菜单、部门、字典和系统权限
+datamaster-system        系统管理父模块
+├── datamaster-system-interface  系统公共 API、DTO 和跨模块接口模型
+└── datamaster-system-core       用户、角色、菜单、部门、字典和系统权限
 datamaster-common        数据源、DbQuery、动态数据源、MyBatis、缓存、安全和 WebSocket
 datamaster-governance    数据标准、数据元、码表、敏感等级、脱敏规则、逻辑模型和空间治理
 datamaster-metadata      元数据探查、目录版本和质量探查
@@ -92,7 +93,7 @@ datamaster-collector     ETL、数据开发、任务编排、调度发布和实�
 datamaster-ai            数据智能体、决策智能体、Skill、SQL 生成和模型适配
 datamaster-ingestion     Kafka/Doris 数据接入和本体决策触发
 datamaster-api-ds        DolphinScheduler HTTP 适配层
-datamaster-ui            Vue 3 + Vite 前端
+datamaster-ui            Vue 3 + Vite + Ant Design Vue 前端
 sql                      数据库脚本
 docs                     项目文档
 docker                   容器和部署相关资源
@@ -119,7 +120,7 @@ datamaster-ui
       -> system / governance / metadata / assets
       -> ontology / service / collector / ai / ingestion
       -> common（DbQuery、数据源、缓存、安全、MyBatis）
-      -> 平台主库、Redis、RabbitMQ、DolphinScheduler、外部数据源
+      -> 平台主库、Redis、DolphinScheduler、可选 Kafka/Doris、外部数据源
 ```
 
 主要数据流：
@@ -447,6 +448,7 @@ flowchart TD
 - ChunJun / FlinkX 增量任务
 - HTTP 回调辅助增量边界计算
 - 任务实例日志和状态同步
+- 字段派生转换：拼接、截取、替换、表达式、MD5/SHA 哈希、正则提取、常量赋值；表达式支持 `${字段名}` 占位符并禁止多语句注入
 
 ```mermaid
 flowchart LR
@@ -560,6 +562,8 @@ sequenceDiagram
 
 数据智能体基于空间、本体、资产、字段、权限和会话上下文提供自然语言查询、分析与决策建议；其中决策智能体负责理解问题、查询证据和给出建议。
 
+平台数据智能体运营流程通过 `/ai/agent/operation/start` 创建可恢复的流程实例。同一数据源可以并行承载多个目标：调用方可传 `operationKey` 或 `conversationId` 做业务隔离，未传时服务按规范化目标生成稳定键；`/resume`、`/retry` 和状态查询始终绑定原流程实例 ID，旧版按数据源生成的流程键仍可兼容读取。核心接入完成但 Skill/决策智能体同步失败时返回 `PARTIAL`，具体降级原因位于 `result.warnings`，不会再伪装成完整成功。
+
 **依赖模型**：决策智能体依赖 `datamaster-ontology`（本体）作为统一语义入口，本体内部再逐级降级到资产与元数据：
 
 ```text
@@ -594,6 +598,29 @@ flowchart TD
     EXEC --> RESULT[结果、图表或报告]
 ```
 
+#### 5.11.1 Agent 调度与 DB-GPT 分工
+
+平台自主调度使用 **LangChain4j**（当前项目 Java 8 采用 0.35.0），由配置的模型通过 Tool Calling 自主选择和串联 DataMaster 能力。DB-GPT 只是数据能力适配器，继续负责数据问答、查询分析和报告生成，不承担平台工具编排。
+
+Tool 使用双层注解：`dev.langchain4j.agent.tool.Tool` 标注 `execute` 方法，提供唯一的框架层名称和描述；平台自定义 `@AgentTool` 标注类，只提供风险、确认、权限与审计治理元数据。缺少框架名称会在启动扫描时直接失败。
+
+```mermaid
+flowchart LR
+    USER[用户目标] --> L4J[LangChain4j Agent]
+    L4J --> TOOLS[DataMaster Tools]
+    TOOLS --> DS[数据源/探查]
+    TOOLS --> ASSET[资产/授权]
+    TOOLS --> ONT[本体/动作/Skill]
+    TOOLS --> APPROVAL[权限/审批/执行引擎]
+    L4J --> DBGPT[DB-GPT 数据能力 Tool]
+    DBGPT --> QA[问答/分析/报告]
+```
+
+自主流程和固定流程共用 `AI_AGENT_OPERATION` 主记录、权限和审批边界；刷新页面或服务重启后可按 `operationId` 恢复。核心步骤完成但可选的 Skill/决策智能体同步失败时，流程状态为 `PARTIAL`，告警原因写入 `result.warnings`；取消流程时会向绑定的元数据探查任务发送停止请求，并在数据库级边界停止后续处理；模型不能直接执行任意 SQL 或绕过动作审批。
+流程处于 `NEED_INPUT` 时，工作站下一条消息会作为同一流程的补充信息继续执行，不会重新创建数据源或流程。
+
+首次启用自主 Agent 前，使用 `sql/update_20260914_ai_agent_langchain4j.sql` 建立流程扩展字段、持久化记忆和 Tool 审计表；生产环境按现有数据库变更 Python 流程执行该迁移。
+
 ### 5.12 数据接入 ingestion
 
 `datamaster-ingestion` 是独立的数据接入模块，不依赖数据服务 API 配置：
@@ -607,6 +634,38 @@ Kafka topic
 ```
 
 只有 `datamaster.ingestion.enabled=true` 且配置了 topic 时才启用消费。冲突策略、目标表和触发配置由 `IngestionProperties` 控制。
+
+消息至少应包含配置的主键列（`key-columns`），也可用 `__keys` 传递逗号分隔或 JSON 数组形式的主键列名；未配置任何主键来源、缺少主键值或出现大小写重复字段会在进入数据源前拒绝。字段名匹配对大小写兼容，写入时会按主键配置规范化。目标表可通过 `__table` 指定，未指定时使用 `target-table`。CDC 删除事件支持 `__op`、`__operation` 或 `__eventType` 的 `DELETE`、`D`、`REMOVE` 值，并按主键删除。
+
+可通过 `allowed-tables` 配置动态目标表白名单，通过 `required-columns` 校验非删除消息必填字段，通过 `schema-version` 校验消息中的 `__schemaVersion`。目标表和业务字段名会先执行安全标识符校验。
+
+`UPSERT`/`INSERT`/`SKIP`/`ERROR` 的写入使用参数化 JDBC 直接执行，其中 `UPSERT` 使用 Doris 原生 `ON DUPLICATE KEY UPDATE`。消费前会按 `topic + partition + offset` 查询已成功处理记录，已落库事件会跳过重复写入。Doris 写入或冲突检查失败时不会提交 Kafka offset，默认最多重试 3 次并按退避时间等待；配置 `dead-letter-topic` 后，超过重试次数的消息会携带原 topic、分区、offset 和尝试次数转入死信，否则继续阻塞当前分区等待人工处理。决策触发和成功日志属于旁路能力，失败不会重复写入已成功落库的数据。空间相关人工编辑仲裁按执行记录中的 `datasourceId + spaceId + targetTable` 隔离，并可通过消息中的 `__spaceId` 选择空间；历史执行记录未回填数据源时仍需人工核查。
+
+首次启用 ingestion 前需执行 [`sql/update_20261012_ingestion_reliability.sql`](sql/update_20261012_ingestion_reliability.sql)，创建接入日志表、事件租约表及 `topic + partition + offset` 查询索引，并为动作执行记录增加 `datasource_id` 数据域字段。迁移会尽量回填普通动作和可推导数据源的 FUNCTION 历史记录；复杂 COMPOSITE 记录仍需人工核查。
+
+数据资产操作申请还需要执行 [`sql/update_20261013_asset_operate_apply_workflow.sql`](sql/update_20261013_asset_operate_apply_workflow.sql)，增加申请审批/执行状态、审批意见和执行结果字段。申请接口现在支持“草稿 → 提交 → 审批通过/驳回 → 执行”的状态流转，执行成功后会写入资产操作记录；导入类型申请仍需走文件导入任务，不会被接口静默标记为成功。
+
+本体动作编排已提供 Workflow Runtime V2：已发布且启用的 ACTION DAG 可通过 `POST /ont/workflow/{id}/run` 启动，条件节点支持基于对象状态、输入参数、上游步骤输出和运行上下文进行结构化分支求值；并行拆分节点会做分支隔离、逐分支推进并要求所有分支在同一个汇聚节点完成（当前是可恢复的 fan-out/fan-in 语义，不占用多线程同时执行），分支步骤和输出均可持久化恢复。后续动作节点会收到“初始输入 + 当前运行上下文”的合并参数，可引用前序节点输出。审批驳回或执行记录进入 `RECONCILIATION_REQUIRED` 时，Workflow 会失败并停止自动重新提交，避免绕过人工审批或重复写入。节点配置 `timeoutMs` 后，Workflow Worker 会在超时边界通过条件更新将底层动作和 Workflow 转入 `RECONCILIATION_REQUIRED`，不强行中断可能已有副作用的数据库/函数调用，也不会自动重放；运行详情会保留人工对账原因。异步 Worker 会为本实例正在执行的运行续租，并按 `WORKFLOW_WORKER_STALE_TIMEOUT_MS` 回收服务崩溃遗留的陈旧 `RUNNING` 记录。Workflow 运行启动、详情、续跑、取消和列表会校验本体所属空间成员关系，平台管理员、空间管理员和运维角色保留全局运维能力。运行实例和节点步骤分别写入 `ONT_ACTION_WORKFLOW_RUN`、`ONT_ACTION_WORKFLOW_STEP`，并关联底层 `ONT_ACTION_EXECUTION`。启动请求可携带 `idempotencyKey` 防止同一流程重复创建，并可设置 `async=true` 交给持久化 Workflow Worker 后台执行；可通过 `/ont/workflow/runs/{runId}` 查询、`/resume` 续跑、`/cancel` 取消。动作节点已支持 `retryPolicy` 重试策略（例如 `{"maxAttempts":3,"backoffMs":1000}`，含首次执行且采用指数退避），并在前后端限制最大 10 次尝试。失败或需人工对账的运行可通过 `POST /ont/workflow/runs/{runId}/compensate` 按已执行步骤逆序提交补偿动作；补偿动作必须属于同一本体并配置人工审批，提交后只进入现有动作审批/执行链，不自动执行，也不会自动把原 Workflow 改为成功。运行详情会根据关联执行记录汇总补偿状态：`REQUESTED`、`PARTIAL`、`COMPENSATED` 或 `FAILED`。该能力复用现有动作执行记录，迁移只增加 Workflow 运行汇总状态字段。工作站动作编排页已增加运行入口、运行记录、重试策略、补偿动作配置和运行管理。
+
+补偿状态字段迁移为 [`sql/update_20261015_workflow_compensation_status.sql`](sql/update_20261015_workflow_compensation_status.sql)，部署脚本已加入默认增量迁移列表。
+
+补偿状态为 `FAILED` 或 `PARTIAL` 时，可通过 `POST /ont/workflow/runs/{runId}/compensate/retry` 重新提交最近一次明确失败/驳回的补偿动作；`RECONCILIATION_REQUIRED` 补偿不会自动重放。
+
+Workflow 发布版本迁移为 [`sql/update_20261016_workflow_version.sql`](sql/update_20261016_workflow_version.sql)，部署脚本已加入默认增量迁移列表；历史版本快照只从迁移部署后的新发布开始记录。
+
+Workflow 配置的 `inputSchema` 现在会在手动启动、数据到达触发和异步 Worker 执行前校验根对象、必填字段、字段类型、枚举值、数组 `items` 及 `additionalProperties=false` 约束；`outputSchema` 可在工作站配置，并会在运行到结束节点时校验最终输出上下文；工作站编排页可直接编辑输入和输出 Schema。
+
+Workflow 运行记录新增分页接口 `GET /ont/workflow/{id}/runs/page`，支持按运行状态和幂等键筛选；工作站运行记录弹窗已改为服务端分页，避免历史运行量增长后一次性加载全部步骤。
+
+Workflow 发布时会保存定义、节点和连线快照，可通过 `/ont/workflow/{id}/versions` 查看历史版本，并通过 `/{version}/rollback` 按历史版本生成新的草稿；回滚不会直接覆盖当前已发布版本。版本快照从版本迁移部署后开始记录。
+
+动作还支持受控的 `WEBHOOK` 类型：动作定义的 `executionSteps` 保存 `url`、`method`、`headers`、`bodyTemplate`、`timeoutMs` 和 `idempotent` 配置，提交阶段只生成审批预览，真正发送在现有动作 Worker/审批链中完成。模板可引用 `${param.xxx}` 或 `${input.xxx}`。Webhook 默认建议开启一次人工确认；只有明确声明 `idempotent=true` 才允许 Workflow 配置多次尝试。执行器只允许 HTTP/HTTPS、默认 80/443 端口，禁止重定向并阻止 localhost、回环、私网、链路本地和保留地址；生产环境应通过 `WEBHOOK_ALLOWED_HOSTS` 配置精确目标白名单。连接失败会落 `FAILED`，响应超时等无法确认请求是否已到达的情况会落 `RECONCILIATION_REQUIRED`，不会自动重放。
+
+死信可通过 `GET /ingestion/dead-letters?limit=50&topic=xxx&targetTable=customer` 查询，并通过 `POST /ingestion/dead-letters/replay`（请求体 `{"logId": 123}`）或 `POST /ingestion/dead-letters/replay-batch`（请求体 `{"logIds": [123, 124]}`，最多 100 条）重新投递到原始 Kafka topic。原始 Kafka key 会随日志保存并在重放时恢复，以保持分区路由语义。重放前会原子标记为 `REPLAYING`，避免并发重复重放；服务中断超过 10 分钟的 `REPLAYING` 记录可被下一次重放自动重新领取；成功后原记录标记为 `REPLAYED`，重放会生成新的 Kafka offset 并重新进入幂等处理流程。事件租约默认 5 分钟并每 60 秒续租，重试次数持久化在 `INGESTION_EVENT` 中，服务重启后不会重置。
+
+可通过 `GET /ingestion/metrics` 查看按状态汇总的接入日志和事件租约数量，用于监控失败、死信、重放中和处理中消息；`GET /ingestion/runtime` 返回消费者真实运行状态（配置已启用不等于消费者已运行），包括最近轮询、成功/失败时间、累计计数、最近一次 Kafka 积压采样时间、总积压和分区积压。积压采样每 30 秒执行一次，采样失败不会影响正常消费。运维人员可调用 `POST /ingestion/pause` 优雅暂停消费、调用 `POST /ingestion/resume` 恢复；暂停会处理完当前已拉取批次，并继续调用 Kafka poll 维护消费组心跳，避免因维护窗口触发反复重平衡。`GET /ingestion/config` 只返回脱敏配置摘要，不包含动作触发 secret。启用 ingestion 时，Kafka 地址、消费组、租约/重试参数、Doris 数据源 ID 和冲突策略会在启动阶段校验，非法配置会明确停止消费而不会静默运行。
+
+部署默认还会执行 [`sql/update_20261013_ingestion_permissions.sql`](sql/update_20261013_ingestion_permissions.sql)，为接入控制台、死信重放和消费启停初始化 `ingestion:query`、`ingestion:replay`、`ingestion:control` 权限；平台管理员和超级管理员默认获得，其它角色需按职责授权。
 
 ```mermaid
 flowchart LR
@@ -973,12 +1032,12 @@ datamaster-server/src/main/resources/application-prod.yml
 
 ### 7.3 基础设施中间件
 
-平台运行依赖：
+平台运行依赖（按功能启用）：
 
 | 组件 | 用途 |
 | --- | --- |
 | Redis | 缓存、登录态、数据源信息、任务状态 |
-| RabbitMQ | 异步消息、任务状态推送 |
+| Kafka / Doris | 可选 ingestion 数据接入与到达触发 |
 | DolphinScheduler | 工作流调度、任务发布和执行 |
 | Flink / ChunJun | 数据集成执行引擎 |
 | HDFS | 文件和资源存储能力 |
@@ -1108,13 +1167,14 @@ npm run eslint:lint
 
 开发启动顺序建议：
 
-1. 数据库
+1. PostgreSQL
 2. Redis
-3. RabbitMQ
-4. DolphinScheduler
-5. Flink / ChunJun 运行环境
-6. 后端 `datamaster-server`
-7. 前端 `datamaster-ui`
+3. DolphinScheduler
+4. Flink / ChunJun 运行环境（使用 ETL 时）
+5. DB-GPT（启用数据智能体时）
+6. Kafka / Doris（启用 ingestion 时）
+7. 后端 `datamaster-server`
+8. 前端 `datamaster-ui` 或 Nginx 静态站点
 
 ## 11. 配置入口
 
@@ -1130,7 +1190,7 @@ datamaster-server/src/main/resources/application-prod.yml
 
 - 平台主库连接
 - Redis
-- RabbitMQ
+- Kafka / Doris ingestion（默认关闭）
 - DolphinScheduler API 地址和 token
 - DolphinScheduler 回调地址
 - HDFS / 资源路径
@@ -1153,6 +1213,10 @@ sql/update_20260728_space_menu_routes.sql
 ```
 
 执行数据库脚本前应先备份数据库，并确保脚本与对应代码版本一起发布。
+
+生产部署脚本、离线包目录和组件启停说明见 [`deploy/README.md`](deploy/README.md)。部署脚本支持本地 `--check`、远程只读 `--remote-check`、服务运行态 `--health-check`、部署结束自动检查的 `--post-health-check`，并默认在覆盖远程文件/目录前创建可回滚备份；生产环境还会在任何远程写操作前拒绝空密码、示例弱口令以及未配置完整的外部 ingestion/Neo4j 密钥。ingestion 基础设施独立部署见 [`deploy/ingestion/README.md`](deploy/ingestion/README.md)。当前已知问题、风险和待办见 [`docs/项目现状与缺陷分析.md`](docs/项目现状与缺陷分析.md)。
+
+安全边界：业务接口默认需要登录和权限；Workflow 定义和运行接口还会校验本体所属空间成员关系，普通用户查询列表时必须带本体上下文；动作数据到达回调 `/ont/action/trigger/data-arrival` 是唯一按专用 `X-DataMaster-Trigger-Secret` 校验的外部回调例外，不应把 `/**` 等全局通配符加入匿名白名单。
 
 ## 13. 验证建议
 
@@ -1199,3 +1263,5 @@ docs/datamaster-ui-implementation-plan.md
 docs/数据库实现.md
 docs/数据开发.md
 ```
+
+Workflow 运行监控：`GET /ont/workflow/monitor?limit=20` 返回当前用户有权访问的运行状态汇总和最近运行样本，工作站动作编排页可直接打开“运行监控”；配置 `triggerRef` 的已发布且启用 Workflow 会随受信任的数据到达事件自动异步入队，并按 `eventId + workflow` 幂等；Workflow 失败或进入 `RECONCILIATION_REQUIRED` 时，会通过站内消息通知运行发起人；此类终态可人工发起逆序补偿计划，补偿动作必须经过人工审批，不支持自动补偿或外部系统补偿结果自动收敛。

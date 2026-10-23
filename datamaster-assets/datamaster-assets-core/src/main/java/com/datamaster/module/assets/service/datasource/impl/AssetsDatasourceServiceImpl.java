@@ -621,6 +621,15 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
         return assetColumns;
     }
 
+    @Resource
+    private AssetsTaskTableService taskTableService;
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    public com.datamaster.module.assets.api.datasource.dto.DatasourceCreateTableRespDTO createTaskTempTable(DatasourceCreaTeTableReqDTO req) {
+        return taskTableService.createTaskTempTable(req);
+    }
+
     @Override
     public boolean creaDatasourceTeTable(DatasourceCreaTeTableReqDTO datasourceCreaTeTableReqDTO) {
         DbQueryProperty dbQueryProperty = new DbQueryProperty(datasourceCreaTeTableReqDTO.getDatasourceType(), datasourceCreaTeTableReqDTO.getIp(), datasourceCreaTeTableReqDTO.getPort(), datasourceCreaTeTableReqDTO.getDatasourceConfig());

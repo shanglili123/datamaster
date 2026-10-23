@@ -30,6 +30,9 @@
 
       <dm-table v-bind="tableStore" ref="tableRef">
         <template #action="{ row }">
+          <a-tooltip :title="canListAssets ? '查看当前主题域的已登记库表（不含下级）' : '暂无资产列表权限'">
+            <span><a-button type="link" size="small" :disabled="!canListAssets || !validDomainId(row.id)" @click="showDomainTables(row)">所属表</a-button></span>
+          </a-tooltip>
           <a-button
             type="link"
             size="small"
@@ -66,6 +69,8 @@
         </template>
       </dm-table>
     </dm-wrap>
+    <WarehouseDomainTables v-model:open="domainTablesOpen" domain-type="theme"
+      :domain-id="selectedDomain.id" :domain-name="selectedDomain.name" />
     <a-modal
       :title="title"
       v-model:open="open"
@@ -168,8 +173,19 @@ import { treeDataLayer } from "@/api/mdl/dataLayer/dataLayer.js";
 import DmWrap from "@/components/DmWrap";
 import DmTable from "@/components/DmTable";
 import DmSearchBar from "@/components/DmSearchBar";
+import WarehouseDomainTables from '@/components/WarehouseDomainTables.vue';
+import { checkPermi } from '@/utils/permission';
 
 const { proxy } = getCurrentInstance();
+const domainTablesOpen = ref(false);
+const selectedDomain = ref({});
+const canListAssets = computed(() => checkPermi(['ast:asset:list']));
+const validDomainId = id => /^[1-9]\d*$/.test(String(id ?? ''));
+function showDomainTables(row) {
+  if (!canListAssets.value || !validDomainId(row.id)) return;
+  selectedDomain.value = { id: String(row.id), name: row.name || '' };
+  domainTablesOpen.value = true;
+}
 const attDataElemCatOptions = ref([]);
 const dataLayerOptions = ref([]);
 const open = ref(false);
@@ -258,7 +274,7 @@ const tableStore = reactive({
       date: true,
       width: 180,
     },
-    { label: "操作", width: 220, slot: "action", fixed: "right" },
+    { label: "操作", width: 300, slot: "action", fixed: "right" },
   ],
   func: listThemeDomain,
   params: queryParams,

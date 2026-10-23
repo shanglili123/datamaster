@@ -283,6 +283,15 @@ public class CollectorEtlTaskUpdateQueryRespVO implements Serializable {
                     map.put("spaceId", node.getSpaceId());
                     map.put("spaceCode", node.getSpaceCode());
                     map.put("taskParams", stringObjectMap);
+                    // pipelineNodeId 位于 taskParams.parameters 内持久化，详情回显时
+                    // 同步提升到节点顶层，供前端画布和发布映射直接使用。
+                    if ("100".equals(String.valueOf(node.getComponentType()))
+                            && stringObjectMap.get("pipelineNode") instanceof Map) {
+                        Object pipelineNodeId = ((Map<?, ?>) stringObjectMap.get("pipelineNode")).get("pipelineNodeId");
+                        if (pipelineNodeId != null) {
+                            map.put("pipelineNodeId", String.valueOf(pipelineNodeId));
+                        }
+                    }
                     map.put("priority", node.getPriority());
                     map.put("failRetryTimes", node.getFailRetryTimes());
                     map.put("failRetryInterval", node.getFailRetryInterval());

@@ -23,7 +23,7 @@ const exploreRouter = [
         path: '',
         component: () => import('@/views/explore/space.vue'),
         name: 'SpaceWorkstation',
-        meta: { title: '空间工作站', fullScreen: true, noCache: true }
+        meta: { title: '空间工作站', noCache: true }
       }
     ]
   }

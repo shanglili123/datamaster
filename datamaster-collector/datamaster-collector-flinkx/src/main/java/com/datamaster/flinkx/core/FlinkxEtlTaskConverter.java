@@ -3,6 +3,7 @@ package com.datamaster.flinkx.core;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.datamaster.common.database.constants.DbType;
+import com.datamaster.common.utils.sql.SqlStatementParser;
 import com.datamaster.common.database.exception.DataQueryException;
 import com.datamaster.flinkx.core.transform.TransformSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -40,15 +41,20 @@ public class FlinkxEtlTaskConverter {
         if (readerMap != null && !writerList.isEmpty()) {
             for (Map<String, Object> writerMap : writerList) {
                 JSONObject contentItem = new JSONObject();
+                inheritSourceMetadata(readerMap, writerMap);
                 if (isExcelOrCsvReader(readerMap)) {
                     contentItem.put("reader", buildFileReader(readerMap));
                 } else {
                     contentItem.put("reader", buildReader(readerMap));
                 }
                 contentItem.put("writer", buildWriter(writerMap));
-                if (transitionList != null && !transitionList.isEmpty()) {
-                    String transformSql = buildTransformSql(transitionList, readerMap);
+                if (hasTransformOrSourceMetadata(transitionList, readerMap)
+                        || (!extractOutputColumns(writerMap).isEmpty()
+                        && !extractOutputColumns(writerMap).equals(extractColumns(readerMap)))) {
+                    String transformSql = buildTransformSql(transitionList, readerMap, mainArgs.get("rowFilter"), writerMap);
                     if (transformSql != null) {
+                        ensureTransformTable(contentItem.getJSONObject("reader"), extractSourceTableName(readerMap));
+                        ensureTransformTable(contentItem.getJSONObject("writer"), "targetTable");
                         JSONObject transformer = new JSONObject();
                         transformer.put("transformSql", transformSql);
                         contentItem.put("transformer", transformer);
@@ -63,8 +69,8 @@ public class FlinkxEtlTaskConverter {
             } else {
                 contentItem.put("reader", buildReader(readerMap));
             }
-            if (transitionList != null && !transitionList.isEmpty()) {
-                String transformSql = buildTransformSql(transitionList, readerMap);
+            if (hasTransformOrSourceMetadata(transitionList, readerMap)) {
+                String transformSql = buildTransformSql(transitionList, readerMap, mainArgs.get("rowFilter"), null);
                 if (transformSql != null) {
                     JSONObject transformer = new JSONObject();
                     transformer.put("transformSql", transformSql);
@@ -101,6 +107,14 @@ public class FlinkxEtlTaskConverter {
             return writers;
         }
         return new ArrayList<>();
+    }
+
+    private static void ensureTransformTable(JSONObject connector, String name) {
+        if (connector != null && !connector.containsKey("table")) {
+            JSONObject table = new JSONObject();
+            table.put("tableName", name);
+            connector.put("table", table);
+        }
     }
 
     private static boolean isExcelOrCsvReader(Map<String, Object> readerMap) {
@@ -144,7 +158,7 @@ public class FlinkxEtlTaskConverter {
             rp.put("username", param.get("username"));
             rp.put("password", param.get("password"));
             rp.put("where", param.getOrDefault("where", ""));
-            rp.put("column", normalizeFieldColumns(param.get("column")));
+            rp.put("column", FieldSchemaSupport.columns(resolveReaderColumns(param), param.get("tableFields"), param.get("sourceMetadata")));
             rp.put("splitPk", param.getOrDefault("splitPk", ""));
 
             Object querySql = connectionQuery(param);
@@ -208,18 +222,18 @@ public class FlinkxEtlTaskConverter {
             wp.put("password", param.get("password"));
             wp.put("batchSize", param.getOrDefault("batchSize", 1024));
 
-            wp.put("column", normalizeFieldColumns(firstPresent(param.get("target_column"), param.get("column"))));
+            wp.put("column", FieldSchemaSupport.columns(firstPresent(param.get("target_column"), param.get("column")), param.get("tableFields"), param.get("sourceMetadata")));
 
             String writeModeType = param.get("writeModeType") == null ? null : String.valueOf(param.get("writeModeType"));
             wp.put("writeMode", resolveWriteMode(writeModeType, param.get("selectedColumns"), dbType));
 
             Object preSql = param.get("preSql");
             if (preSql != null) {
-                wp.put("preSql", preSql instanceof List ? preSql : String.valueOf(preSql).split(","));
+                wp.put("preSql", SqlStatementParser.parse(preSql));
             }
             Object postSql = param.get("postSql");
             if (postSql != null) {
-                wp.put("postSql", postSql instanceof List ? postSql : String.valueOf(postSql).split(","));
+                wp.put("postSql", SqlStatementParser.parse(postSql));
             }
 
             Map<String, Object> rawConn = (Map<String, Object>) param.get("connection");
@@ -1062,7 +1076,20 @@ public class FlinkxEtlTaskConverter {
     // ========================================================================
 
     private static String buildTransformSql(List<Map<String, Object>> transitionList,
-                                            Map<String, Object> readerMap) {
+                                            Map<String, Object> readerMap, Object rowFilter, Map<String, Object> stageWriter) {
+        Map<String, Object> readerParam = readerMap == null
+                ? null : (Map<String, Object>) readerMap.get("parameter");
+        JSONObject sourceMetadata = readerParam == null
+                ? null : toJsonObject(readerParam.get("sourceMetadata"));
+        if (sourceMetadata != null && sourceMetadata.getBooleanValue("enabled")) {
+            if (sourceMetadata.getBooleanValue("includeSourceBatch")
+                    && StringUtils.isBlank(sourceMetadata.getString("sourceBatchValue"))) {
+                throw new IllegalArgumentException("来源批次尚未接入运行实例，请取消来源批次选项后发布");
+            }
+        }
+        List<String> sourceColumns = extractColumns(readerMap);
+        List<String> outputColumns = extractOutputColumns(stageWriter);
+        String sourceTableName = extractSourceTableName(readerMap);
         if (transitionList != null) {
             for (Map<String, Object> t : transitionList) {
                 String componentType = (String) t.get("componentType");
@@ -1071,21 +1098,161 @@ public class FlinkxEtlTaskConverter {
                     if (param != null) {
                         String customSql = (String) param.get("sql");
                         if (StringUtils.isNotBlank(customSql)) {
-                            return customSql;
+                            if (rowFilter != null && StringUtils.isNotBlank(String.valueOf(rowFilter))) {
+                                throw new IllegalArgumentException("条件分流后暂不支持自定义转换 SQL，请使用字段转换组件");
+                            }
+                            String sql = TransformSqlBuilder.wrapCustomSql(customSql, sourceColumns,
+                                    sourceTableName, sourceMetadata);
+                            return TransformSqlBuilder.projectCustomSql(sql, outputColumns);
                         }
                     }
                 }
             }
         }
         JSONArray transitions = new JSONArray();
+        if (rowFilter != null && StringUtils.isNotBlank(String.valueOf(rowFilter))) {
+            JSONObject filter = new JSONObject();
+            filter.put("componentType", "ROW_FILTER");
+            JSONObject parameter = new JSONObject();
+            parameter.put("condition", String.valueOf(rowFilter));
+            filter.put("parameter", parameter);
+            transitions.add(filter);
+        }
         if (transitionList != null) {
             for (Map<String, Object> t : transitionList) {
                 transitions.add(new JSONObject(t));
             }
         }
-        List<String> sourceColumns = extractColumns(readerMap);
-        String sourceTableName = extractSourceTableName(readerMap);
-        return TransformSqlBuilder.build(transitions, sourceColumns, sourceTableName);
+        if (!outputColumns.isEmpty()) {
+            JSONObject projection = new JSONObject();
+            projection.put("componentType", "OUTPUT_PROJECTION");
+            JSONObject parameter = new JSONObject();
+            parameter.put("columns", outputColumns);
+            projection.put("parameter", parameter);
+            transitions.add(projection);
+        }
+        return TransformSqlBuilder.build(transitions, sourceColumns, sourceTableName, sourceMetadata);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> extractOutputColumns(Map<String, Object> writerMap) {
+        if (writerMap == null || !(writerMap.get("parameter") instanceof Map)) {
+            return new ArrayList<>();
+        }
+        Object columns = ((Map<String, Object>) writerMap.get("parameter")).get("column");
+        return columns instanceof List ? normalizeKafkaFieldNames(columns) : toStringList(columns);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean hasTransformOrSourceMetadata(List<Map<String, Object>> transitionList,
+                                                         Map<String, Object> readerMap) {
+        if (transitionList != null && !transitionList.isEmpty()) {
+            return true;
+        }
+        if (readerMap == null) {
+            return false;
+        }
+        Map<String, Object> param = (Map<String, Object>) readerMap.get("parameter");
+        if (param == null) {
+            return false;
+        }
+        Object raw = param.get("sourceMetadata");
+        if (!(raw instanceof Map)) {
+            return false;
+        }
+        Object enabled = ((Map<String, Object>) raw).get("enabled");
+        return Boolean.TRUE.equals(enabled) || "true".equalsIgnoreCase(String.valueOf(enabled))
+                || "1".equals(String.valueOf(enabled));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void inheritSourceMetadata(Map<String, Object> readerMap, Map<String, Object> writerMap) {
+        if (readerMap == null || writerMap == null) return;
+        Map<String, Object> readerParam = (Map<String, Object>) readerMap.get("parameter");
+        Map<String, Object> writerParam = (Map<String, Object>) writerMap.get("parameter");
+        if (readerParam == null || writerParam == null) return;
+        Object rawMetadata = readerParam.get("sourceMetadata");
+        if (!(rawMetadata instanceof Map)) return;
+        Map<String, Object> metadata = (Map<String, Object>) rawMetadata;
+        Object enabled = metadata.get("enabled");
+        if (!(Boolean.TRUE.equals(enabled) || "true".equalsIgnoreCase(String.valueOf(enabled))
+                || "1".equals(String.valueOf(enabled)))) return;
+
+        writerParam.putIfAbsent("sourceMetadata", metadata);
+        List<String> extra = new ArrayList<>();
+        if (enabled(metadata, "includeSourceDatasource")) {
+            addMetadataColumn(extra, metadata, "sourceDatasourceColumn", "source_datasource");
+        }
+        if (enabled(metadata, "includeSourceDatabase")) {
+            addMetadataColumn(extra, metadata, "sourceDatabaseColumn", "source_database");
+        }
+        addMetadataColumn(extra, metadata, "sourceTableColumn", "source_table");
+        if (enabled(metadata, "includeSourceTask")) {
+            addMetadataColumn(extra, metadata, "sourceTaskColumn", "source_task");
+        }
+        if (enabled(metadata, "includeSourceBatch")) {
+            addMetadataColumn(extra, metadata, "sourceBatchColumn", "source_batch");
+        }
+        addMetadataColumn(extra, metadata, "writeTimeColumn", "write_time");
+        Object keys = metadata.get("naturalKeyColumns");
+        if (enabled(metadata, "includeNaturalKey") && keys instanceof List && !((List<?>) keys).isEmpty()) {
+            addMetadataColumn(extra, metadata, "naturalKeyColumn", "source_natural_key");
+        }
+        if (enabled(metadata, "includeSourceUpdateTime") && hasValue(metadata.get("sourceUpdateTimeSourceColumn"))) {
+            addMetadataColumn(extra, metadata, "sourceUpdateTimeColumn", "source_update_time");
+        }
+        if (enabled(metadata, "includeRecordOp") && hasValue(metadata.get("recordOpSourceColumn"))) {
+            addMetadataColumn(extra, metadata, "recordOpColumn", "record_op");
+        }
+        if (enabled(metadata, "includeRowHash")) {
+            addMetadataColumn(extra, metadata, "rowHashColumn", "source_row_hash");
+        }
+        writerParam.put("column", appendFieldColumns(writerParam.get("column"), extra));
+        writerParam.put("target_column", appendFieldColumns(writerParam.get("target_column"), extra));
+    }
+
+    private static void addMetadataColumn(List<String> result, Map<String, Object> metadata,
+                                          String key, String defaultValue) {
+        String value = metadata.get(key) == null ? defaultValue : String.valueOf(metadata.get(key));
+        if (value == null || value.trim().isEmpty()) return;
+        for (String item : result) if (item.equalsIgnoreCase(value.trim())) return;
+        result.add(value.trim());
+    }
+
+    private static boolean enabled(Map<String, Object> metadata, String key) {
+        Object value = metadata == null ? null : metadata.get(key);
+        return Boolean.TRUE.equals(value) || "true".equalsIgnoreCase(String.valueOf(value))
+                || "1".equals(String.valueOf(value));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> appendFieldColumns(Object raw, List<String> extra) {
+        List<Object> result = new ArrayList<>();
+        if (raw instanceof List) result.addAll((List<Object>) raw);
+        else if (raw != null && !StringUtils.isBlank(String.valueOf(raw))) {
+            // 兼容历史草稿把字段列保存成逗号分隔字符串。
+            for (String item : String.valueOf(raw).split(",")) {
+                if (!StringUtils.isBlank(item)) result.add(item.trim());
+            }
+        }
+        for (String column : extra) {
+            boolean exists = false;
+            for (Object item : result) {
+                String name;
+                if (item instanceof Map) {
+                    Map<?, ?> field = (Map<?, ?>) item;
+                    Object rawName = field.get("name");
+                    if (rawName == null) rawName = field.get("columnName");
+                    if (rawName == null) rawName = field.get("key");
+                    name = String.valueOf(rawName);
+                } else {
+                    name = String.valueOf(item);
+                }
+                if (column.equalsIgnoreCase(name)) { exists = true; break; }
+            }
+            if (!exists) result.add(column);
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")
@@ -1094,22 +1261,30 @@ public class FlinkxEtlTaskConverter {
         if (readerMap == null) return cols;
         Map<String, Object> param = (Map<String, Object>) readerMap.get("parameter");
         if (param == null) return cols;
-        Object column = param.get("column");
+        Object column = resolveReaderColumns(param);
         if (column instanceof List) {
             for (Object item : (List<Object>) column) {
                 if (item instanceof String) {
                     cols.add((String) item);
                 } else if (item instanceof Map) {
-                    Object name = ((Map<String, Object>) item).get("name");
-                    if (name instanceof String) {
-                        cols.add((String) name);
-                    }
+                    String name = FieldSchemaSupport.name((Map<String, Object>) item);
+                    if (!name.isEmpty()) cols.add(name);
                 }
             }
         } else if (column instanceof String && StringUtils.isNotBlank((String) column)) {
             cols.add((String) column);
         }
         return cols;
+    }
+
+    /**
+     * 合表的 customSql 会额外返回来源列，但这些列不应该参与每个源表 SELECT 的真实字段列表。
+     * TableMergeComponent 用 sourceMetadataColumns 记录最终 reader 输出字段，column 仍保留源表字段。
+     */
+    private static Object resolveReaderColumns(Map<String, Object> param) {
+        if (param == null) return null;
+        Object metadataColumns = param.get("sourceMetadataColumns");
+        return metadataColumns == null ? param.get("column") : metadataColumns;
     }
 
     @SuppressWarnings("unchecked")

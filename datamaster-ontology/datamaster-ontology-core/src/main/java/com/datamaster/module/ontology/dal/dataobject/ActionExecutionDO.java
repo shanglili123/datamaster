@@ -31,6 +31,9 @@ public class ActionExecutionDO extends BaseEntity {
     /** 编辑目标物理表（执行落库时打标，供数据接收工程按表做人为编辑冲突仲裁） */
     private String targetTable;
 
+    /** 编辑目标物理表所属数据源，供数据接入人工编辑仲裁做数据域隔离 */
+    private Long datasourceId;
+
     /** 执行者ID */
     private Long executorId;
 

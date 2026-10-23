@@ -20,6 +20,9 @@
 
       <dm-table v-bind="tableStore" ref="tableRef">
         <template #action="{ row }">
+          <a-tooltip :title="canListAssets ? '查看当前数据域的已登记库表' : '暂无资产列表权限'">
+            <span><a-button type="link" size="small" :disabled="!canListAssets" @click="showDomainTables(row)">所属表</a-button></span>
+          </a-tooltip>
           <a-button
             type="link"
             size="small"
@@ -41,13 +44,15 @@
             type="link"
             size="small"
             @click="handleDetail(row)"
-            v-hasPermi="['mdl:dataDomain:edit']"
+            v-hasPermi="['mdl:dataDomain:query']"
           >
             详情
           </a-button>
         </template>
       </dm-table>
     </dm-wrap>
+    <WarehouseDomainTables v-model:open="domainTablesOpen" domain-type="data"
+      :domain-id="selectedDomain.id" :domain-name="selectedDomain.name" />
 
     <!-- 添加或修改数据域管理对话框 -->
     <a-modal
@@ -226,8 +231,18 @@ import {
   toRefs,
 } from "vue";
 import { CloudUploadOutlined } from "@ant-design/icons-vue";
+import WarehouseDomainTables from '@/components/WarehouseDomainTables.vue';
+import { checkPermi } from '@/utils/permission';
 
 const { proxy } = getCurrentInstance();
+const domainTablesOpen = ref(false);
+const selectedDomain = ref({});
+const canListAssets = computed(() => checkPermi(['ast:asset:list']));
+function showDomainTables(row) {
+  if (!canListAssets.value || !/^[1-9]\d*$/.test(String(row.id ?? ''))) return;
+  selectedDomain.value = { id: String(row.id), name: row.name || '' };
+  domainTablesOpen.value = true;
+}
 
 const tableRef = ref(null);
 
@@ -290,7 +305,7 @@ const tableStore = reactive({
     // { label: "备注", prop: "remark", align: "left" },
     {
       label: "操作",
-      width: 220,
+      width: 300,
       slot: "action",
       fixed: "right",
     },

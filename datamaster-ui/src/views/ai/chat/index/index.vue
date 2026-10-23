@@ -6,6 +6,10 @@
           <span class="ai-local-nav-dot"></span>
           决策智能体
         </button>
+        <button type="button" class="ai-local-nav-item" @click="openWorkflowHome">
+          <span class="ai-local-nav-dot workflow"></span>
+          流程编排
+        </button>
         <button type="button" class="ai-local-nav-item" @click="openSkillManagement">
           <span class="ai-local-nav-dot skill"></span>
           Skill 管理
@@ -324,12 +328,12 @@ const modeOptions = [
   { label: '报告', value: 'report' }
 ]
 
-const examples = [
+const examples = computed(() => [
   '查询下前5条订单数据',
   '按城市统计订单金额',
   '最近7天订单数量趋势',
   '分析哪些货物比较好卖，并给出库存分配比例建议'
-]
+])
 
 const activeConversation = computed(() =>
   conversations.value.find((item) => item.id === activeConversationId.value)
@@ -338,19 +342,16 @@ const activeConversation = computed(() =>
 const activeMessages = computed(() => activeConversation.value?.messages || [])
 
 const selectedDatasource = computed(() =>
-  datasourceList.value.find((item) => item.id === form.datasourceId)
+  datasourceList.value.find((item) => String(item.id) === String(form.datasourceId))
 )
 
 const selectedSkill = computed(() =>
   skillList.value.find((item) => item.id === form.skillId)
 )
 
-const availableSkillList = computed(() => {
-  if (form.mode !== 'decision') return skillList.value
-  return skillList.value.filter((item) =>
-    !['ONTOLOGY_DECISION', 'REPORT_TEMPLATE'].includes(String(item.skillType || '').toUpperCase())
-  )
-})
+// 问答、报告、决策统一使用当前数据源下的全部已发布 Skill；模式只影响调用协议，
+// 不再按 Skill 类型做二次过滤。
+const availableSkillList = computed(() => skillList.value)
 
 onMounted(async () => {
   await loadDatasources()
@@ -389,19 +390,36 @@ async function loadDatasources() {
       spaceCode: userStore.spaceCode
     }
   })
-  datasourceList.value = res.data || []
+  datasourceList.value = (res.data || []).map((item) => ({
+    ...item,
+    id: item?.id == null ? item?.id : String(item.id)
+  }))
 }
 
 async function loadSkills() {
+  if (!form.datasourceId) {
+    skillList.value = []
+    form.skillId = null
+    return
+  }
+  const datasourceId = form.datasourceId == null ? null : String(form.datasourceId)
   const res = await listSkill({
     pageNum: 1,
     pageSize: 200,
-    status: 'PUBLISHED'
+    status: 'PUBLISHED',
+    datasourceId: datasourceId || undefined
   })
-  skillList.value = res.data?.rows || []
+  skillList.value = (res.data?.rows || []).map((item) => ({
+    ...item,
+    id: item?.id == null ? item?.id : String(item.id)
+  }))
+  if (form.skillId && !skillList.value.some((item) => String(item.id) === String(form.skillId))) {
+    form.skillId = null
+  }
 }
 
 async function handleDatasourceChange() {
+  await loadSkills()
   await refreshReportTemplates()
 }
 
@@ -470,7 +488,7 @@ async function copyTemplateFormat() {
 
 async function loadConversations() {
   sessionReady.value = false
-  const res = await listAskSessions({ limit: 10 })
+  const res = await listAskSessions({ ...currentSpaceParams(), category: 'ASK_DATA', limit: 10 })
   conversations.value = (res.data || []).map(normalizeSession)
   if (conversations.value.length) {
     await selectConversation(conversations.value[0].id)
@@ -538,6 +556,14 @@ function openSkillManagement() {
     return
   }
   router.push('/ai/skill')
+}
+
+function openWorkflowHome() {
+  if (stationNavigation?.goFlowHome) {
+    stationNavigation.goFlowHome()
+    return
+  }
+  router.push('/explore')
 }
 
 async function loadMoreMessages(direction) {
@@ -661,7 +687,9 @@ function normalizeMessage(row) {
         role: row.role,
         content: normalizeAgentText(payload.content || row.content || ''),
         displayContent: normalizeVisibleLineBreaks(normalizeAgentText(payload.displayContent || row.displayContent || '')),
-        agentSteps: normalizeAgentText(payload.agentSteps || '')
+        agentSteps: normalizeAgentText(payload.agentSteps || ''),
+        agentConfirmation: payload.agentConfirmation || null,
+        agentConfirming: false
       }
       normalizeReportPayload(message)
       rebuildDisplayContentFromContent(message)
@@ -682,6 +710,8 @@ function normalizeMessage(row) {
     reportData: null,
     returnedSql: '',
     sqlUnavailable: false,
+    agentConfirmation: null,
+    agentConfirming: false,
     steps: []
   }
   normalizeReportPayload(message)
@@ -884,9 +914,11 @@ function isSqlOnlyDisplay(content) {
 async function applySessionToForm(session) {
   syncingSession.value = true
   try {
-    form.mode = session.mode || 'qa'
-    form.datasourceId = session.datasourceId || null
-    form.skillId = session.skillId || null
+    // 流程编排已经迁移到流程首页；旧会话中的 agent 模式回落为普通问答。
+    form.mode = session.mode === 'agent' ? 'qa' : (session.mode || 'qa')
+    form.datasourceId = session.datasourceId == null ? null : String(session.datasourceId)
+    await loadSkills()
+    form.skillId = session.skillId == null ? null : String(session.skillId)
     form.templateId = session.templateId || null
     form.returnSql = Boolean(session.returnSql)
     await refreshReportTemplates()
@@ -904,6 +936,7 @@ function buildSessionPayload(extra = {}) {
     skillId: form.skillId,
     templateId: form.templateId,
     returnSql: form.returnSql,
+    category: 'ASK_DATA',
     spaceId: userStore.spaceId || null,
     spaceCode: userStore.spaceCode || '',
     ...extra
@@ -949,6 +982,9 @@ function serializeMessage(message) {
     agentSteps: message.agentSteps || '',
     queryExecuted: Boolean(message.queryExecuted),
     responseMode: message.responseMode || 'qa',
+    agentOperationId: message.agentOperationId || '',
+    agentOperationStatus: message.agentOperationStatus || '',
+    agentConfirmation: message.agentConfirmation || null,
     tableRows: message.tableRows || [],
     tableColumns: message.tableColumns || [],
     reportTemplate: message.reportTemplate || null,
@@ -1118,6 +1154,10 @@ async function sendMessage() {
     responseMode: form.mode,
     reportTemplate: null,
     reportData: null,
+    agentOperationId: '',
+    agentOperationStatus: '',
+    agentConfirmation: null,
+    agentConfirming: false,
     returnedSql: '',
     sqlUnavailable: false,
     steps: createAskSteps(form.mode)
@@ -1965,6 +2005,11 @@ async function scrollToBottom(force = false) {
 .ai-local-nav-dot.skill {
   background: #ff7d00;
   box-shadow: 0 0 0 3px rgba(255, 125, 0, .14);
+}
+
+.ai-local-nav-dot.workflow {
+  background: #00a870;
+  box-shadow: 0 0 0 3px rgba(0, 168, 112, .14);
 }
 
 .panel-title strong,

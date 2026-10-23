@@ -700,6 +700,11 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
     public boolean runDaDiscoveryTask(Long taskId) {
 
         String redisKey = buildRunLockKey(taskId);
+        // 只有确认没有正在运行的实例后才清除上一轮取消标记；避免重试覆盖活动任务的取消请求。
+        if ("1".equals(redisService.get(redisKey))) {
+            throw new RuntimeException("历史任务未执行完毕，请稍后重试");
+        }
+        redisService.delete(redisKey + ":cancel");
         if (!acquireRunLock(redisKey)) {
             throw new RuntimeException("历史任务未执行完毕，请稍后重试");
         }
@@ -734,6 +739,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
                     }
                 }
             }
+            ensureNotCanceled(taskId, instanceId);
             markSuccess(instance);
             safeLog(instanceId, taskId, "任务执行成功");
             triggerLinkedQualityTasks(task);
@@ -747,6 +753,15 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
             safeLog(instanceId, taskId, String.format("任务执行完成汇总：表总数=%d，成功表=%d，失败表=%d，耗时=%d秒", instance.getTotalCount(), instance.getSuccessCount(), instance.getFailCount(), instance.getDuration()));
             finalizeTask(redisKey, instance);
         }
+    }
+
+    @Override
+    public boolean cancelDaDiscoveryTask(Long taskId) {
+        if (taskId == null) return false;
+        String redisKey = buildRunLockKey(taskId);
+        if (!"1".equals(redisService.get(redisKey))) return false;
+        redisService.set(redisKey + ":cancel", "1", 60 * 60);
+        return true;
     }
 
     /**
@@ -985,6 +1000,7 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         int dbIndex = 1;
         // 3. 循环每个库
         for (CatalogDbSaveReqVO dbScope : dbReqDTOList) {
+            ensureNotCanceled(taskId, instanceId);
             String dbName = dbScope.getDbName();
             safeLog(instanceId, taskId, String.format("【数据库 %d/%d】开始处理：db=%s%s", dbIndex++, databaseScopes.size(), dbName, StringUtils.isNotBlank(dbScope.getSchemaName()) ? ", schema=" + dbScope.getSchemaName() : ""));
 
@@ -1065,6 +1081,13 @@ public class CatalogTaskServiceImpl extends ServiceImpl<CatalogTaskMapper, Catal
         }
         return new TableProcessResult(addCount, delCount, updateCount, totalCount, successCount, updateTableIds);
 
+    }
+
+    private void ensureNotCanceled(Long taskId, Long instanceId) {
+        if ("1".equals(redisService.get(buildRunLockKey(taskId) + ":cancel"))) {
+            safeLog(instanceId, taskId, "任务收到取消请求，停止后续数据库处理");
+            throw new IllegalStateException("探查任务已取消");
+        }
     }
 
     private Void updateResponsibleInfoForMetadata(CatalogTaskRespVO task) {

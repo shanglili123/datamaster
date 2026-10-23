@@ -57,7 +57,7 @@
         <!-- system-api模块 -->
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-system-api</artifactId>
+            <artifactId>datamaster-system-interface</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
     </dependencies>

@@ -130,4 +130,75 @@ public class StandardsModelRespVO implements Serializable {
     /** 文件标准类型字段， */
     @TableField(exist = false)
     private String documentType;
+
+    // Warehouse governance and frozen target.
+    @Excel(name = "tableType")
+    private String tableType;
+
+    @Excel(name = "dataLayerId")
+    private Long dataLayerId;
+
+    @Excel(name = "businessCategoryId")
+    private Long businessCategoryId;
+
+    @Excel(name = "businessCategoryCode")
+    private String businessCategoryCode;
+
+    @Excel(name = "dataDomainId")
+    private Long dataDomainId;
+
+    @Excel(name = "themeDomainId")
+    private Long themeDomainId;
+
+    @Excel(name = "themeDomainCode")
+    private String themeDomainCode;
+
+    @Excel(name = "tableCase")
+    private String tableCase;
+
+    @Excel(name = "physicalTableName", type = Excel.Type.EXPORT)
+    private String physicalTableName;
+
+    @Excel(name = "namingVersion", type = Excel.Type.EXPORT)
+    private String namingVersion;
+
+    @Excel(name = "dataLayerCode", type = Excel.Type.EXPORT)
+    private String dataLayerCode;
+
+    @Excel(name = "dataLayerName", type = Excel.Type.EXPORT)
+    private String dataLayerName;
+
+    @Excel(name = "dataLayerEngName", type = Excel.Type.EXPORT)
+    private String dataLayerEngName;
+
+    @Excel(name = "businessCategoryName", type = Excel.Type.EXPORT)
+    private String businessCategoryName;
+
+    @Excel(name = "businessCategoryEngName", type = Excel.Type.EXPORT)
+    private String businessCategoryEngName;
+
+    @Excel(name = "dataDomainCode", type = Excel.Type.EXPORT)
+    private String dataDomainCode;
+
+    @Excel(name = "dataDomainName", type = Excel.Type.EXPORT)
+    private String dataDomainName;
+
+    @Excel(name = "dataDomainEngName", type = Excel.Type.EXPORT)
+    private String dataDomainEngName;
+
+    @Excel(name = "themeDomainName", type = Excel.Type.EXPORT)
+    private String themeDomainName;
+
+    @Excel(name = "themeDomainEngName", type = Excel.Type.EXPORT)
+    private String themeDomainEngName;
+
+    @Excel(name = "governanceProvided")
+    private Boolean governanceProvided;
+
+    @Excel(name = "upgradeNaming")
+    private Boolean upgradeNaming;
+
+    private Long spaceId;
+
+    private String spaceCode;
 }

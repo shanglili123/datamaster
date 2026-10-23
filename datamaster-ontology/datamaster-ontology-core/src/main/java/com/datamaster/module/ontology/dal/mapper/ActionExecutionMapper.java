@@ -5,6 +5,7 @@ import com.datamaster.module.ontology.controller.admin.action.vo.ExecutionPageRe
 import com.datamaster.module.ontology.dal.dataobject.ActionExecutionDO;
 import com.datamaster.mybatis.core.mapper.BaseMapperX;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,6 +49,15 @@ public interface ActionExecutionMapper extends BaseMapperX<ActionExecutionDO> {
                 .last("limit 1"));
     }
 
+    /** 查询某个 Workflow 运行生成的补偿动作执行记录。 */
+    default List<ActionExecutionDO> selectWorkflowCompensations(Long workflowRunId) {
+        if (workflowRunId == null) return Collections.emptyList();
+        return selectList(new LambdaQueryWrapperX<ActionExecutionDO>()
+                .eq(ActionExecutionDO::getWorkflowRunId, workflowRunId)
+                .eq(ActionExecutionDO::getTriggerType, "WORKFLOW_COMPENSATION")
+                .orderByAsc(ActionExecutionDO::getId));
+    }
+
     default List<ActionExecutionDO> selectPendingApprovals(Long ontologyId) {
         return selectList(new LambdaQueryWrapperX<ActionExecutionDO>()
                 .eq(ActionExecutionDO::getOntologyId, ontologyId)
@@ -87,14 +97,47 @@ public interface ActionExecutionMapper extends BaseMapperX<ActionExecutionDO> {
     }
 
     /**
+     * Workflow 节点超时后停止自动重试。动作可能已经在目标库产生副作用，
+     * 因此只允许 RUNNING/APPROVED 记录转入人工对账状态。
+     */
+    default int markReconciliationRequired(Long executionId, String message) {
+        if (executionId == null) return 0;
+        return update(null, new LambdaUpdateWrapper<ActionExecutionDO>()
+                .eq(ActionExecutionDO::getId, executionId)
+                .in(ActionExecutionDO::getStatus, Arrays.asList("RUNNING", "APPROVED"))
+                .set(ActionExecutionDO::getStatus, "RECONCILIATION_REQUIRED")
+                .set(ActionExecutionDO::getErrorCode, "WORKFLOW_NODE_TIMEOUT")
+                .set(ActionExecutionDO::getErrorMessage, message)
+                .set(ActionExecutionDO::getLockTime, null)
+                .set(ActionExecutionDO::getLockOwner, null)
+                .set(ActionExecutionDO::getUpdateTime, new Date()));
+    }
+
+    /**
      * 查询某目标物理表最近的人为编辑登记（EXECUTED / ROLLED_BACK 落库记录），按执行时间倒序。
      * 供数据接收工程冲突仲裁：按表 + 主键匹配人为编辑做字段级裁决。
      */
     default List<ActionExecutionDO> selectLatestManualEditsByTable(String targetTable, Integer limit) {
+        return selectLatestManualEditsByTable(targetTable, null, null, limit);
+    }
+
+    /** 按目标表及可选空间过滤，兼容执行记录中多目标表逗号拼接的历史数据。 */
+    default List<ActionExecutionDO> selectLatestManualEditsByTable(String targetTable, Long spaceId, Integer limit) {
+        return selectLatestManualEditsByTable(targetTable, null, spaceId, limit);
+    }
+
+    /** 按目标表、数据源及可选空间过滤人工编辑记录。 */
+    default List<ActionExecutionDO> selectLatestManualEditsByTable(String targetTable, Long datasourceId,
+                                                                    Long spaceId, Integer limit) {
         LambdaQueryWrapperX<ActionExecutionDO> wrapper = new LambdaQueryWrapperX<ActionExecutionDO>()
-                .eq(ActionExecutionDO::getTargetTable, targetTable)
                 .in(ActionExecutionDO::getStatus, Arrays.asList("EXECUTED", "ROLLED_BACK"))
                 .orderByDesc(ActionExecutionDO::getExecuteTime);
+        wrapper.and(w -> w.eq(ActionExecutionDO::getTargetTable, targetTable)
+                .or().like(ActionExecutionDO::getTargetTable, targetTable + ",%")
+                .or().like(ActionExecutionDO::getTargetTable, "%," + targetTable)
+                .or().like(ActionExecutionDO::getTargetTable, "%," + targetTable + ",%"));
+        wrapper.eq(spaceId != null, ActionExecutionDO::getSpaceId, spaceId);
+        wrapper.eq(datasourceId != null, ActionExecutionDO::getDatasourceId, datasourceId);
         if (limit != null && limit > 0) {
             wrapper.last("LIMIT " + limit);
         }

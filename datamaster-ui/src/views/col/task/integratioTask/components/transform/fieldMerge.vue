@@ -1,5 +1,5 @@
 <template>
-    <a-modal v-model:open="visibleDialog" class="medium-dialog" :closable="false"
+    <a-modal wrap-class-name="integration-component-modal" v-model:open="visibleDialog" class="medium-dialog" :closable="false"
         :destroy-on-close="true" :confirm-loading="loading" ok-text="确定" cancel-text="取消"
         @ok="saveData" @cancel="closeDialog" :width="1200">
         <template #title>
@@ -12,6 +12,7 @@
         </template>
         <a-spin :spinning="loading">
         <a-form ref="formRef" :model="form" :label-col="{ style: { width: '140px' } }" @submit.prevent>
+            <h3 class="etl-section-title">基本信息</h3>
             <a-row :gutter="20">
                 <a-col :span="12">
                     <a-form-item label="节点名称" name="name"
@@ -69,9 +70,7 @@
                     </a-form-item>
                 </a-col>
             </a-row>
-            <a-divider orientation="center">
-                <span class="blue-text">合并字段（源字段）</span>
-            </a-divider>
+            <h3 class="etl-section-title">合并字段（源字段）</h3>
             <div class="justify-between mb15">
                 <a-row :gutter="15" class="btn-style">
                     <a-col :span="1.5">

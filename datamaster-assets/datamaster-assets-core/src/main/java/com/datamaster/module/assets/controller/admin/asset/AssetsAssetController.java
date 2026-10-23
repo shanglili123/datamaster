@@ -38,6 +38,9 @@ import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
 import com.datamaster.module.assets.service.asset.IAssetsAssetService;
 import com.datamaster.module.assets.service.asset.IAssetsAssetSyncService;
 import com.datamaster.neo4j.dto.LineageDTO;
+import com.datamaster.metadata.api.lineage.dto.LineageGraphDTO;
+import com.datamaster.metadata.api.lineage.dto.LineageQueryReqDTO;
+import com.datamaster.metadata.api.service.lineage.LineageApiService;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
@@ -61,6 +64,8 @@ public class AssetsAssetController extends BaseController {
     private IAssetsAssetService AssetsAssetService;
     @Resource
     private IAssetsAssetSyncService assetsAssetSyncService;
+    @Resource
+    private LineageApiService lineageApiService;
     @Resource
     private ITaxonomyTagAssetRelApiService taxonomyTagAssetRelApiService;
     @Resource
@@ -332,9 +337,24 @@ public class AssetsAssetController extends BaseController {
         return CommonResult.success(vos);
     }
 
+    @PreAuthorize("@ss.hasPermi('ast:asset:query')")
     @GetMapping("/dataLineage/{id}")
-    public CommonResult<LineageDTO> dataLineage(@PathVariable Long id) {
-        return CommonResult.success(AssetsAssetService.dataLineage(id));
+    public CommonResult<LineageDTO> dataLineage(@PathVariable Long id,
+                                               @RequestParam(required = false) Long spaceId,
+                                               @RequestParam(required = false) String spaceCode) {
+        LineageQueryReqDTO request = new LineageQueryReqDTO();
+        request.setSpaceId(spaceId);
+        request.setSpaceCode(spaceCode);
+        request.setGranularity("TABLE");
+        return CommonResult.success(LegacyLineageAdapter.adapt(lineageApiService.queryByAsset(id, request)));
+    }
+
+    @PreAuthorize("@ss.hasPermi('ast:asset:query')")
+    @GetMapping("/dataLineage/v2/{id}")
+    public CommonResult<LineageGraphDTO> dataLineageV2(@PathVariable Long id, LineageQueryReqDTO request) {
+        // queryByAsset resolves and authorizes every object; client objectId is not a lookup override.
+        request.setObjectId(null);
+        return CommonResult.success(lineageApiService.queryByAsset(id, request));
     }
 
     @Operation(summary = "")

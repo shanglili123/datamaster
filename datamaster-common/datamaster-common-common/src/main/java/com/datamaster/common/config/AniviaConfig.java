@@ -4,6 +4,7 @@ package com.datamaster.common.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * 读取空间相关配置
@@ -16,11 +17,6 @@ public class AniviaConfig
 {
     /** 空间名称 */
     private String name;
-
-    /** 版本 */
-    private String version;
-
-    private String copyrightYear;
 
     /** 上传路径 */
     private static String profile;
@@ -43,22 +39,8 @@ public class AniviaConfig
 
     public String getVersion()
     {
-        return version;
-    }
-
-    public void setVersion(String version)
-    {
-        this.version = version;
-    }
-
-    public String getCopyrightYear()
-    {
-        return copyrightYear;
-    }
-
-    public void setCopyrightYear(String copyrightYear)
-    {
-        this.copyrightYear = copyrightYear;
+        String version = AniviaConfig.class.getPackage().getImplementationVersion();
+        return version == null ? "unknown" : version;
     }
 
     public static String getProfile()
@@ -66,6 +48,7 @@ public class AniviaConfig
         return profile;
     }
 
+    @Value("${file.storage.root-path}")
     public void setProfile(String profile)
     {
         AniviaConfig.profile = profile;
@@ -76,6 +59,7 @@ public class AniviaConfig
         return addressEnabled;
     }
 
+    @Value("${sys.address-enabled:false}")
     public void setAddressEnabled(boolean addressEnabled)
     {
         AniviaConfig.addressEnabled = addressEnabled;
@@ -85,6 +69,7 @@ public class AniviaConfig
         return captchaType;
     }
 
+    @Value("${sys.captcha-type:math}")
     public void setCaptchaType(String captchaType) {
         AniviaConfig.captchaType = captchaType;
     }

@@ -111,9 +111,19 @@ public class SecurityConfig
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 注解标记允许匿名访问的url
                 .authorizeHttpRequests((requests) -> {
-                    permitAllUrl.getUrls().forEach(url -> requests.antMatchers(url).permitAll());
+                    // 外部配置也不能重新引入全局 /** 匿名白名单。
+                    permitAllUrl.getUrls().stream()
+                            .filter(url -> url != null && !"/**".equals(url.trim()))
+                            .forEach(url -> requests.antMatchers(url).permitAll());
                     // 对于登录login 注册register 验证码captchaImage 允许匿名访问
-                    requests.antMatchers("/login","/updater/**","/register","/**", "/captchaImage", "/flyflow/**","/services/**","/jmreport/**", "/rp/**", "/drag/**", "/jimubi/**").permitAll()
+                    // 不要加入通配符 /**：它会覆盖后面的 anyRequest().authenticated()，
+                    // 让所有业务接口在未登录时也可访问。公共路径必须逐项显式列出。
+                    requests.antMatchers("/login", "/updater/**", "/register", "/captchaImage",
+                                    "/flyflow/**", "/services/**", "/jmreport/**", "/rp/**",
+                                    "/drag/**", "/jimubi/**",
+                                    // ingestion 独立进程通过专用 X-DataMaster-Trigger-Secret 调用，
+                                    // 控制器内部仍会强制校验该密钥。
+                                    "/ont/action/trigger/data-arrival").permitAll()
                             // 静态资源，可匿名访问
                             .antMatchers(HttpMethod.GET, "/",
                                     "/*.html",
@@ -139,7 +149,8 @@ public class SecurityConfig
                                     "/payment/**",
                                     "/sys/**",
                                     // 调度器白名单
-                                    "/cat/taskExecutor/runExecuteTask/**"
+                                    "/cat/taskExecutor/runExecuteTask/**",
+                                    "/quality/qualityTaskExecutor/runExecuteTask/**"
                             ).permitAll()
                             // 除上面外的所有请求全部需要鉴权认证
                             .anyRequest().authenticated();

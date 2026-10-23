@@ -12,6 +12,26 @@
         <a-form-item label="名称">
           <a-input v-model:value="queryParams.skillName" placeholder="请输入Skill名称" allow-clear />
         </a-form-item>
+        <a-form-item label="数据源">
+          <a-select
+            v-model:value="queryParams.datasourceId"
+            placeholder="请选择数据源"
+            allow-clear
+            show-search
+            option-filter-prop="label"
+            style="width: 190px"
+            @change="handleDatasourceFilterChange"
+          >
+            <a-select-option
+              v-for="item in datasourceOptions"
+              :key="item.id"
+              :value="item.id"
+              :label="item.datasourceName || item.name || String(item.id)"
+            >
+              {{ item.datasourceName || item.name || item.id }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item label="类型">
           <a-select v-model:value="queryParams.skillType" placeholder="请选择类型" allow-clear style="width: 150px">
             <a-select-option label="表级查询" value="TABLE" />
@@ -124,6 +144,24 @@
             </a-form-item>
           </a-col>
         </a-row>
+        <a-form-item label="数据源">
+          <a-select
+            v-model:value="form.datasourceId"
+            placeholder="手工 Skill 请选择所属数据源"
+            allow-clear
+            show-search
+            option-filter-prop="label"
+          >
+            <a-select-option
+              v-for="item in datasourceOptions"
+              :key="item.id"
+              :value="item.id"
+              :label="item.datasourceName || item.name || String(item.id)"
+            >
+              {{ item.datasourceName || item.name || item.id }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item label="内容" name="content">
           <a-textarea
             v-model:value="form.content"
@@ -481,7 +519,8 @@ const queryParams = reactive({
   pageSize: 6,
   skillName: '',
   skillType: '',
-  status: ''
+  status: '',
+  datasourceId: null
 })
 
 const pagedVersionList = computed(() => {
@@ -501,6 +540,7 @@ const form = reactive({
   sourceType: 'MANUAL',
   bizObjectType: '',
   bizObjectId: null,
+  datasourceId: null,
   content: '',
   changeRemark: ''
 })
@@ -590,6 +630,14 @@ function getList() {
   })
 }
 
+function handleDatasourceFilterChange() {
+  if (queryParams.datasourceId != null) {
+    queryParams.datasourceId = String(queryParams.datasourceId)
+  }
+  queryParams.pageNum = 1
+  getList()
+}
+
 function normalizePageData(res) {
   const data = res?.data || res || {}
   const rows = Array.isArray(data.rows)
@@ -621,6 +669,7 @@ function resetQuery() {
   queryParams.skillName = ''
   queryParams.skillType = ''
   queryParams.status = ''
+  queryParams.datasourceId = null
   getList()
 }
 
@@ -634,6 +683,7 @@ function resetForm() {
     sourceType: 'MANUAL',
     bizObjectType: '',
     bizObjectId: null,
+    datasourceId: null,
     content: '',
     changeRemark: ''
   })
@@ -665,6 +715,7 @@ function submitForm() {
       sourceType: form.sourceType,
       bizObjectType: form.bizObjectType,
       bizObjectId: form.bizObjectId,
+      datasourceId: form.datasourceId,
       content: form.content,
       changeRemark: form.changeRemark
     }
@@ -701,7 +752,7 @@ function handleSyncSkill(row) {
 }
 
 function handleSyncAllSkills() {
-  syncAllSkillToDbgpt().then((res) => {
+  syncAllSkillToDbgpt(queryParams.datasourceId).then((res) => {
     proxy.$modal.msgSuccess(normalizeAgentText(res.msg) || '同步完成')
     getList()
   })
@@ -929,8 +980,14 @@ function handleGenerateOntologySkill() {
 
 function loadDatasourceOptions() {
   listDaDatasource({ pageNum: 1, pageSize: 1000, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then((res) => {
-    datasourceOptions.value = toRows(res.data)
+    datasourceOptions.value = toRows(res.data).map(normalizeDatasource)
   })
+}
+
+// 数据源主键是雪花 ID，必须保持字符串，不能让浏览器按 IEEE-754 Number 舍入。
+function normalizeDatasource(item) {
+  if (!item) return item
+  return { ...item, id: item.id == null ? item.id : String(item.id) }
 }
 
 function handleGenerateDatasourceChange(datasourceId) {
@@ -1075,6 +1132,7 @@ function syncTag(status) {
   return 'default'
 }
 
+loadDatasourceOptions()
 getList()
 </script>
 

@@ -19,6 +19,8 @@ public class AiAgentOperationDO {
     private Long datasourceId;
     private String datasourceName;
     private String databaseName;
+    /** 同一空间、数据源和业务操作的稳定流程标志，例如 DATASOURCE:space:datasource:sha256。 */
+    private String flowKey;
     private Long spaceId;
     private String spaceCode;
     private String requestJson;

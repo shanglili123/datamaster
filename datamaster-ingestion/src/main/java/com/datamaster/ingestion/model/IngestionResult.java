@@ -8,6 +8,7 @@ public class IngestionResult {
     public enum Action {
         INSERT,
         UPSERT,
+        DELETE,
         SKIP,
         ERROR,
         /** 命中人为编辑且字段级仲裁生效（编辑值优先回写） */

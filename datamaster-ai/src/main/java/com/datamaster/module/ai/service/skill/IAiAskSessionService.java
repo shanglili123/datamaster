@@ -12,6 +12,8 @@ public interface IAiAskSessionService {
 
     List<AiAskSessionRespVO> listRecent(Long userId, Long spaceId, Integer limit);
 
+    List<AiAskSessionRespVO> listRecent(Long userId, Long spaceId, String category, Integer limit);
+
     AiAskSessionRespVO create(Long userId, String username, AiAskSessionSaveReqVO reqVO);
 
     AiAskSessionRespVO update(Long userId, String username, Long sessionId, AiAskSessionSaveReqVO reqVO);

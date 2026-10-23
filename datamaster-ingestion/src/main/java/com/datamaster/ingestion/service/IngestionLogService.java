@@ -19,11 +19,34 @@ public class IngestionLogService {
     @Resource
     private IngestionLogMapper ingestionLogMapper;
 
+    /**
+     * Kafka 消费前检查是否已经完成落库。查询失败时按未处理返回，
+     * 让主流程继续处理，避免日志库短暂不可用直接阻断数据接入。
+     */
+    public boolean isProcessed(String topic, Integer partition, Long offset) {
+        try {
+            return ingestionLogMapper.selectProcessed(topic, partition, offset) != null;
+        } catch (Exception e) {
+            log.warn("查询数据接入幂等记录失败，按未处理继续 topic={} partition={} offset={}",
+                    topic, partition, offset, e);
+            return false;
+        }
+    }
+
     public void record(String topic, Integer partition, Long offset, String targetTable,
                        String status, String conflictAction, String keyValue, String messageBody, String message) {
+        record(topic, partition, offset, null, targetTable, status, conflictAction,
+                keyValue, messageBody, message);
+    }
+
+    /** 记录带 Kafka key 的消息日志；保留旧重载兼容已有调用方。 */
+    public void record(String topic, Integer partition, Long offset, String messageKey,
+                       String targetTable, String status, String conflictAction,
+                       String keyValue, String messageBody, String message) {
         try {
             String body = messageBody;
-            if (body != null && body.length() > MAX_BODY) {
+            // 死信必须保留完整原文，否则人工重放可能发送截断 JSON；普通运行日志继续限制大小。
+            if (body != null && body.length() > MAX_BODY && !"DEAD_LETTER".equals(status)) {
                 body = body.substring(0, MAX_BODY);
             }
             String msg = message;
@@ -34,6 +57,7 @@ public class IngestionLogService {
                     .topic(topic)
                     .partition(partition)
                     .msgOffset(offset)
+                    .messageKey(messageKey)
                     .targetTable(targetTable)
                     .status(status)
                     .conflictAction(conflictAction)

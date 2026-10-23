@@ -12,7 +12,7 @@ Windows 可以用包装入口：
 .\deploy\start-all.ps1
 ```
 
-正式部署前可以先做本地配置预检，不会连接远程机器：
+正式部署前可以先做本地配置预检，不会连接远程机器，也不会在 `--check` 模式生成 token 文件：
 
 ```bash
 ./deploy/start-all.sh --check
@@ -22,7 +22,96 @@ Windows 可以用包装入口：
 .\deploy\start-all.ps1 -Check
 ```
 
-部署过程只使用 Bash、`ssh`、`scp` 和单容器 `docker run`，不使用 Ansible，也不使用 Docker Compose。脚本会启用 SSH 连接复用，同一轮部署里每台机器通常只需要输入一次 SSH 密码。
+如果需要在部署前检查目标机器的运行环境，可以执行远程只读预检。该模式会先执行本地配置检查，再通过 SSH 检查目标机的 sudo 非交互权限、Docker/Docker daemon、Java、systemd、磁盘空间、目录权限和配置端口占用；不会上传文件、删除目录、创建容器或重启服务：
+
+```bash
+./deploy/start-all.sh --remote-check
+./deploy/start-all.sh --remote-check --limit datamaster_app_servers,nginx_servers
+```
+
+PowerShell 包装入口：
+
+```powershell
+.\deploy\start-all.ps1 -RemoteCheck
+```
+
+端口已被当前服务占用时只输出 warning（升级场景通常是正常的）；Docker、Java、sudo、磁盘或目录权限检查失败会使预检失败。可通过 `remote_check_min_free_mb` 调整根文件系统最低剩余空间阈值，默认 1024 MB。
+
+部署或重启后可以执行远程只读健康检查。它会检查 PostgreSQL/Redis/DB-GPT/Nginx 容器是否运行、DolphinScheduler 和 DataMaster systemd 单元是否 active，并确认对应服务端口正在监听；不会重启服务或修改配置：
+
+```bash
+./deploy/start-all.sh --health-check
+./deploy/start-all.sh --health-check --limit datamaster_app_servers,nginx_servers
+```
+
+PowerShell 包装入口：
+
+```powershell
+.\deploy\start-all.ps1 -HealthCheck
+```
+
+健康检查失败时会返回非零退出码，适合接入发布流水线。它是运行状态检查，不替代真实业务接口、Kafka 消费和 Doris 写入联调。
+
+如果希望部署命令本身在所有组件完成后自动执行同一套检查，可以追加 `--post-health-check`；只有健康检查通过时部署命令才返回成功：
+
+```bash
+./deploy/start-all.sh --post-health-check
+```
+
+PowerShell：
+
+```powershell
+.\deploy\start-all.ps1 -PostHealthCheck
+```
+
+健康检查默认最多等待 120 秒、每 5 秒重试一次，可通过 `health_check_timeout_seconds` 和 `health_check_interval_seconds` 调整。
+
+部署脚本默认在覆盖远程文件或目录前创建备份，备份位于 `deployment_backup_dir`，并按 `deployment_backup_retention` 保留同一目标最近版本。目录备份使用同文件系统硬链接快照，仍会占用 inode；如果现场磁盘布局不支持硬链接，可将 `deployment_backup_enabled` 设为 `false`，但生产环境建议保留开启。
+
+查看某个目标的可用备份：
+
+```bash
+bash ./deploy/rollback.sh --list datamaster_app /data/datamaster/app/conf/application-prod.yml
+```
+
+明确恢复最近备份（必须显式使用 `--restore`）：
+
+```bash
+bash ./deploy/rollback.sh --restore datamaster_app /data/datamaster/app/conf/application-prod.yml
+```
+
+Windows 可使用包装入口：
+
+```powershell
+.\deploy\rollback.ps1 -Component datamaster_app -RemotePath /data/datamaster/app/conf/application-prod.yml -Restore
+```
+
+组件配置了多台主机时必须明确指定目标主机，例如：
+
+```bash
+bash ./deploy/rollback.sh --host 192.168.93.175 --list dolphinscheduler /data/datamaster/soft/chunjun
+```
+
+回滚只恢复指定文件或目录，不会回滚 PostgreSQL/Redis 持久化数据，也不会自动重启服务；恢复后请重新执行 `--health-check`。
+
+预检还会执行生产配置安全校验。`deployment_environment` 默认按生产环境处理，以下情况会直接失败且不会修改远程机器：
+
+- PostgreSQL 管理员密码、业务密码、Redis 密码或 DB-GPT API key 为空或仍使用 `postgres`、`datamaster`、`password`、`123456` 等示例弱口令；
+- 开启外部 ingestion 决策触发，但没有同时配置 `ingestion_decision_trigger_secret` 和 `ingestion_decision_trigger_ref`；
+- 开启 Neo4j 血缘，但没有配置非空的 `neo4j_password`。
+
+请在部署前把真实密钥通过私有配置文件或环境变量注入，不要提交到 Git。DB-GPT key 也可以通过 `DASHSCOPE_API_KEY` 环境变量提供。仅限明确隔离的开发/测试环境，才可以在配置中设置：
+
+```yaml
+deployment_environment: dev
+allow_insecure_defaults: true
+```
+
+该豁免会在预检输出 warning；生产环境不要使用。
+
+脚本打印 SSH 命令时会自动把 PostgreSQL/Redis/Neo4j 密码、DolphinScheduler token、模型 API key 和 ingestion 触发密钥替换为 `<redacted>`；实际远程命令仍使用原始值。
+
+部署过程只使用 Bash、`ssh`、`scp` 和单容器 `docker run`，不使用 Ansible，也不使用 Docker Compose。脚本会启用 SSH 连接复用，同一轮部署里每台机器通常只需要输入一次 SSH 密码。文件和目录先由 SSH 用户上传到远程临时目录，再由配置的 sudo 命令安装/替换到最终目录；非 root 用户不需要直接写入 `base_dir`，但必须具备 sudo 非交互权限。
 
 ## 部署前确认
 
@@ -32,6 +121,7 @@ Windows 可以用包装入口：
 - 组件 IP：应用、DS、Redis、PG 之间实际可访问的地址。
 - `base_dir`：远程统一部署根目录，默认 `/data/datamaster`。
 - PG/Redis 端口和密码。
+- `jwt_secret`：DataMaster JWT 签名密钥，必须使用随机值；部署模板会覆盖源码中的默认值。生产模板同时关闭历史万能密码和 Knife4j basic/debug 能力。
 - DolphinScheduler API 端口。token 可以留空，脚本会自动生成并写入 DS 库。
 - DolphinScheduler tenant code：必须和 DS worker 执行任务使用的 Linux 用户一致，默认 `root`。
 - DB-GPT 部署地址、端口和模型密钥：`dbgpt_ssh_host`、`dbgpt_port`、`dashscope_api_key`、`ai_skill_model_*`。
@@ -82,11 +172,13 @@ soft_package_src: packages/soft
 - `components/datamaster-db-init.jar`：上传到远程后执行，用于创建数据库、用户并导入 SQL。
 - `sql/datamaster.sql` 和 `sql/dolphinscheduler.sql`：上传到远程 `{{ base_dir }}/init-sql` 后由初始化 jar 导入。
 - `soft/chunjun/` 和 `soft/flink/`：目录里有实际文件时上传到远程 `{{ base_dir }}/soft`。
-- 文件直接上传到最终部署目录，不使用 `/tmp` 或其他远程中转目录。
+- 文件通过 SSH 用户可写的 `/tmp/datamaster-deploy-file.*` 临时文件上传，再由 sudo `install` 写入最终路径；目录通过 `/tmp/datamaster-deploy-dir.*` 暂存后由 sudo 替换目标目录。部署失败时可能残留临时文件/目录，应由运维按命名前缀清理。
 
 后端生成的 `application-prod.yml` 还会写入：
 
 - `datamaster.ingestion`：Kafka、Doris、冲突策略和决策触发配置；
+- `datamaster.ontology.workflow`：Workflow 异步 Worker 开关、轮询间隔、批量大小和陈旧运行恢复阈值（`WORKFLOW_WORKER_ENABLED`、`WORKFLOW_WORKER_DELAY_MS`、`WORKFLOW_WORKER_BATCH_SIZE`、`WORKFLOW_WORKER_STALE_TIMEOUT_MS`，默认 300000 毫秒且运行时最小 60000 毫秒）；
+- `datamaster.ontology.webhook`：外部 Webhook 动作的 SSRF 白名单和端口限制。生产建议设置 `WEBHOOK_ALLOWED_HOSTS`（逗号分隔的精确 host 或 `*.example.com`）和 `WEBHOOK_ALLOWED_PORTS`（默认 `80,443`）；空白 host 白名单仍会阻止内网/保留地址，但允许公网地址；
 - `datamaster.lineage`：Neo4j 血缘开关；
 - `spring.data.neo4j`：启用血缘时使用的连接配置。
 
@@ -102,7 +194,8 @@ ingestion 消费代码随 DataMaster server 运行；Kafka、Doris 集群单独�
 2. 通过 `ssh`/`scp` 连接每台目标机器，创建 `base_dir` 下的组件目录。
 3. 部署 PostgreSQL：上传镜像 tar 并 `docker load`，再用 `docker run` 启动 PG。
 4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL；部署脚本会把种子任务中旧的 DataMaster `:8080` 回调地址重写为当前 `datamaster_app_ip:datamaster_server_port`，再写入 DS tenant 和 DS API token。
-5. 可选应用业务升级 SQL：只有配置 `postgresql_app_upgrade_sql_src` 时才会额外执行；全量 SQL 包场景默认不需要。
+5. 应用业务升级 SQL：`deploy.yml` 默认配置为执行六个逗号分隔的迁移文件：[`sql/update_20261012_ingestion_reliability.sql`](../sql/update_20261012_ingestion_reliability.sql)、[`sql/update_20261013_asset_operate_apply_workflow.sql`](../sql/update_20261013_asset_operate_apply_workflow.sql)、[`sql/update_20261013_ingestion_permissions.sql`](../sql/update_20261013_ingestion_permissions.sql)、[`sql/update_20261014_workflow_alert_template.sql`](../sql/update_20261014_workflow_alert_template.sql)、[`sql/update_20261015_workflow_compensation_status.sql`](../sql/update_20261015_workflow_compensation_status.sql) 和 [`sql/update_20261016_workflow_version.sql`](../sql/update_20261016_workflow_version.sql)。脚本会按顺序上传并执行；如需关闭可将 `postgresql_app_upgrade_sql_src` 置空。接入监控使用 `/ingestion/metrics`，支持用 `/ingestion/pause`、`/ingestion/resume` 做维护期优雅启停，死信支持单条和批量重放；数据资产申请支持提交、审批、驳回和执行状态流转；Workflow 失败和人工对账状态会向运行发起人发送站内告警。Workflow 人工补偿计划复用现有动作执行表和审批链，迁移只增加运行汇总状态字段；部署后可通过 `/ont/workflow/runs/{runId}/compensate` 发起，补偿动作不会自动执行。Workflow 发布版本迁移会创建不可变定义快照表，历史版本回滚只生成草稿，不会直接覆盖线上版本。
+补偿状态为 `FAILED` 或 `PARTIAL` 时，可通过 `/ont/workflow/runs/{runId}/compensate/retry` 重新提交明确失败/驳回的补偿动作；需人工对账的补偿不会被脚本自动重放。
 6. 部署 Redis：上传镜像 tar、生成 `redis.conf`，再用 `docker run` 启动 Redis。
 7. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源、JDBC 注册中心和运行环境，再生成 systemd 服务。
 8. 部署 DB-GPT：上传镜像 tar 并用 `docker run` 启动 `datamaster-dbgpt`。
@@ -132,7 +225,7 @@ ingestion 消费代码随 DataMaster server 运行；Kafka、Doris 集群单独�
 ./deploy/start-all.sh --limit datamaster_app_servers,nginx_servers
 ```
 
-预检同样支持 `--limit`，只检查对应组件需要的配置和本地文件：
+预检同样支持 `--limit`，只检查对应组件需要的配置和本地文件；不会因为未选择的组件缺少配置而失败：
 
 ```bash
 ./deploy/start-all.sh --check --limit dolphinscheduler_servers
@@ -199,6 +292,8 @@ backend: app, datamaster-server
 ```
 
 `all` 的启动顺序是 PostgreSQL、Redis、DolphinScheduler、DB-GPT、backend、Nginx；停止顺序相反。
+
+> 注意：`service.sh` 只负责远程 Docker/systemd 启停，不会自动检查端口、磁盘、Docker 镜像 tag、Java/Python 版本或数据库备份。上线前请结合根目录的 [`docs/项目现状与缺陷分析.md`](../docs/项目现状与缺陷分析.md) 完成环境核对。
 
 ## 初始化 jar
 

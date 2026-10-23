@@ -10,6 +10,8 @@ import com.datamaster.common.database.utils.MD5Util;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
 import com.datamaster.module.collector.utils.datax.FlinkxJson;
 import com.datamaster.module.collector.utils.model.DsResource;
+import com.datamaster.module.collector.utils.SourceMetadataSupport;
+import com.datamaster.common.utils.sql.SqlStatementParser;
 
 import java.util.*;
 
@@ -58,8 +60,14 @@ public class DBWriterComponent implements ComponentItem {
 
     @Override
     public Map<String, Object> parse2(String nodeCode, Integer nodeVersion, TaskComponentTypeEnum componentType, Map<String, Object> taskParams, String resourceUrl, List<DsResource> resourceList) {
-        String preSql = MapUtils.getString(taskParams, "preSql", "");
-        String postSql = MapUtils.getString(taskParams, "postSql", "");
+        List<String> preSql = SqlStatementParser.parse(taskParams.get("preSql"));
+        List<String> postSql = SqlStatementParser.parse(taskParams.get("postSql"));
+        if (preSql.isEmpty() && "1".equals(String.valueOf(taskParams.get("writeModeType")))) {
+            String targetTable = resolveTargetTableName(taskParams);
+            if (StringUtils.isNotBlank(targetTable)) {
+                preSql.add("TRUNCATE TABLE " + targetTable);
+            }
+        }
 
         // reader 配置
         Map<String, Object> reader = new HashMap<>();
@@ -88,18 +96,38 @@ public class DBWriterComponent implements ComponentItem {
         if (StringUtils.isNotBlank(writerProperty.getSid())) {
             parameter.put("sid", writerProperty.getSid());
         }
-        //输入字段
-        parameter.put("column", taskParams.get("columns"));
-        //输出字段
-        parameter.put("target_column", taskParams.get("target_columns"));
-        parameter.put("column", taskParams.get("columns"));
-        parameter.put("selectedColumns", taskParams.getOrDefault("selectedColumns", new ArrayList<>()));
-        parameter.put("writeModeType", taskParams.get("writeModeType"));
-        if (StringUtils.isNotBlank(preSql)) {
-            parameter.put("preSql", preSql.split(","));
+        // 输入/输出字段。来源元数据由 reader/transformation 生成，同时补到 writer 字段列表。
+        if (SourceMetadataSupport.enabled(taskParams)) {
+            List<String> metadataColumns = SourceMetadataSupport.metadataColumns(taskParams);
+            Object inputColumns = taskParams.get("columns");
+            Object targetColumns = taskParams.get("target_columns");
+            // 历史草稿或逻辑节点可能只保存了输入字段；目标字段为空时按同名字段写入，
+            // 再追加治理列，避免最终 writer 只剩 source_table / write_time。
+            if (isEmptyColumns(targetColumns)) {
+                targetColumns = inputColumns;
+            }
+            parameter.put("column", SourceMetadataSupport.appendColumns(inputColumns, metadataColumns));
+            parameter.put("target_column", SourceMetadataSupport.appendColumns(
+                    targetColumns, metadataColumns));
+            parameter.put("sourceMetadata", SourceMetadataSupport.copyWithRuntimeValues(
+                    taskParams, nodeCode,
+                    writerDatasource == null ? null : String.valueOf(writerDatasource.get("datasourceId")),
+                    resolveTargetTableName(taskParams)));
+        } else {
+            parameter.put("column", taskParams.get("columns"));
+            parameter.put("target_column", taskParams.get("target_columns"));
         }
-        if (StringUtils.isNotBlank(postSql)) {
-            parameter.put("postSql", postSql.split(","));
+        Object targetFields = taskParams.get("outputFields");
+        if (!(targetFields instanceof List) || ((List<?>) targetFields).isEmpty()) targetFields = taskParams.get("toColumnsList");
+        parameter.put("tableFields", targetFields);
+        parameter.put("qualityConfig", taskParams.get("qualityConfig"));
+        parameter.put("selectedColumns", normalizeColumnList(taskParams.get("selectedColumns")));
+        parameter.put("writeModeType", taskParams.get("writeModeType"));
+        if (!preSql.isEmpty()) {
+            parameter.put("preSql", preSql);
+        }
+        if (!postSql.isEmpty()) {
+            parameter.put("postSql", postSql);
         }
 
         // Kafka 输出：无 JDBC/表，透传 kafkaWriterConfig（topic/分区键）供 Flinkx kafkawriter 使用
@@ -146,6 +174,12 @@ public class DBWriterComponent implements ComponentItem {
         return reader;
     }
 
+    private boolean isEmptyColumns(Object columns) {
+        if (columns == null) return true;
+        if (columns instanceof Collection) return ((Collection<?>) columns).isEmpty();
+        return StringUtils.isBlank(String.valueOf(columns));
+    }
+
     private String resolveTargetTableName(Map<String, Object> taskParams) {
         String tableName = MapUtils.getString(taskParams, "target_table_name");
         if (StringUtils.isNotBlank(tableName)) {
@@ -160,5 +194,23 @@ public class DBWriterComponent implements ComponentItem {
             return tableName;
         }
         return null;
+    }
+
+    private List<String> normalizeColumnList(Object raw) {
+        List<String> result = new ArrayList<>();
+        if (raw instanceof Collection) {
+            for (Object item : (Collection<?>) raw) {
+                if (item != null && StringUtils.isNotBlank(String.valueOf(item))) {
+                    result.add(String.valueOf(item).trim());
+                }
+            }
+            return result;
+        }
+        if (raw != null && StringUtils.isNotBlank(String.valueOf(raw))) {
+            for (String item : String.valueOf(raw).split(",")) {
+                if (StringUtils.isNotBlank(item)) result.add(item.trim());
+            }
+        }
+        return result;
     }
 }

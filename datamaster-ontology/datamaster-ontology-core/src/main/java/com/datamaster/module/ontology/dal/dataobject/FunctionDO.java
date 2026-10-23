@@ -33,6 +33,12 @@ public class FunctionDO extends BaseEntity {
     /** 语言：TYPESCRIPT / PYTHON */
     private String lang;
 
+    /**
+     * 函数类型：PRE_HOOK / POST_HOOK / TRANSFORM / VALIDATOR。
+     * 数据库字段 ONT_FUNCTION.FUNC_TYPE 为非空；动作生成的共享函数默认按 TRANSFORM 保存。
+     */
+    private String funcType;
+
     /** 函数代码体 */
     private String body;
 

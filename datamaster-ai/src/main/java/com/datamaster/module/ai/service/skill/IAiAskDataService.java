@@ -13,8 +13,14 @@ public interface IAiAskDataService {
 
     AiAskDataSqlRespVO chatWithDbGpt(AiAskDataSqlReqVO reqVO);
 
+    /** Agent 后台线程调用时显式传递已认证的用户身份，避免依赖丢失的 SecurityContext。 */
+    AiAskDataSqlRespVO chatWithDbGpt(AiAskDataSqlReqVO reqVO, Long userId);
+
     SseEmitter chatWithDbGptStream(AiAskDataSqlReqVO reqVO);
 
     AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO);
+
+    /** Agent 后台线程调用时显式传递已认证的用户身份。 */
+    AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO, Long userId);
 }
 

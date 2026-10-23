@@ -75,6 +75,11 @@
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-metadata-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
             <artifactId>datamaster-common-datasource-mgmt</artifactId>
         </dependency>
     </dependencies>

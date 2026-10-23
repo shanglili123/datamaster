@@ -36,6 +36,21 @@ public class ExecutionSubmitReqVO {
     @Schema(description = "来源事件唯一编号", example = "customer_stream:0:1024")
     private String eventId;
 
+    @Schema(description = "所属 Workflow 运行 ID")
+    private Long workflowRunId;
+
+    @Schema(description = "所属 Workflow 步骤 ID")
+    private Long workflowStepId;
+
+    @Schema(description = "上游执行记录 ID")
+    private Long parentExecutionId;
+
+    @Schema(description = "原始提交用户 ID（Workflow 异步运行使用）")
+    private Long creatorId;
+
+    @Schema(description = "原始提交用户名（Workflow 异步运行使用）")
+    private String createBy;
+
     @Schema(description = "最大执行尝试次数；V1 写动作默认 1，不自动重放")
     private Integer maxAttempts;
 

@@ -95,10 +95,23 @@ public class ActionServiceImpl implements IActionService {
 
     /** 动作绑定校验：FUNCTION 绑定函数；数据动作绑定触发对象；多目标动作还必须包含执行步骤。 */
     private void validateActionBinding(ActionSaveReqVO reqVO) {
+        String actionType = reqVO.getActionType() == null ? "" : reqVO.getActionType().trim().toUpperCase();
+        if (!("CREATE".equals(actionType) || "UPDATE".equals(actionType) || "DELETE".equals(actionType)
+                || "QUERY".equals(actionType) || "COMPOSITE".equals(actionType)
+                || "FUNCTION".equals(actionType) || "WEBHOOK".equals(actionType))) {
+            throw new RuntimeException("不支持的动作类型: " + reqVO.getActionType());
+        }
+        reqVO.setActionType(actionType);
         if ("FUNCTION".equals(reqVO.getActionType())) {
             if (reqVO.getFunctionId() == null) {
                 throw new RuntimeException("函数类型动作必须绑定共享函数");
             }
+        } else if ("WEBHOOK".equalsIgnoreCase(reqVO.getActionType())) {
+            // Webhook 不绑定概念/数据源；其副作用仍通过动作审批、幂等和执行记录链路处理。
+            if (reqVO.getConceptId() != null) {
+                throw new RuntimeException("WEBHOOK 动作不应绑定触发对象类型");
+            }
+            WebhookActionExecutor.validateDefinition(reqVO.getExecutionSteps());
         } else if (reqVO.getConceptId() == null) {
             throw new RuntimeException("非函数类型动作必须选择触发对象类型");
         } else if ("COMPOSITE".equals(reqVO.getActionType())

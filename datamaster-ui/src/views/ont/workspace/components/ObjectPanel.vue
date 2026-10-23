@@ -559,9 +559,9 @@ let objectActionAllObjectSets = []
 const objectActionRelationSearchTimers = new Map()
 const emptyObjectActionRelationState = { options: [], loading: false, error: '' }
 
-const objectActionOptions = computed(() => objectActionList.value.map(action => ({
+const objectActionOptions = computed(() => objectActionList.value.filter(action => action.actionType !== 'WEBHOOK').map(action => ({
   value: action.id,
-  label: `${action.name}（${{ CREATE: '新建', UPDATE: '更新', DELETE: '删除', COMPOSITE: '多目标动作', FUNCTION: '函数' }[action.actionType] || action.actionType}）`
+  label: `${action.name}（${{ CREATE: '新建', UPDATE: '更新', DELETE: '删除', COMPOSITE: '多目标动作', FUNCTION: '函数', WEBHOOK: 'Webhook' }[action.actionType] || action.actionType}）`
 })))
 
 function parseActionParamConfig(action) {

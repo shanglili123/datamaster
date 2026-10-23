@@ -98,6 +98,10 @@ public class ServiceApiReqDTO {
     /** 状态 */
     private String status;
 
+    /** 当前空间 ID/编码；由 Agent Tool 从可信上下文填充 */
+    private Long spaceId;
+    private String spaceCode;
+
     /** 是否有效 */
     private Boolean validFlag;
 

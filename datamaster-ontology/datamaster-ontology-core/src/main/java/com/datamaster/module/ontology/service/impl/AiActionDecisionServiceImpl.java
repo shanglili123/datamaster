@@ -1,6 +1,6 @@
 package com.datamaster.module.ontology.service.impl;
 
-import com.datamaster.module.ai.service.skill.IAiModelGatewayService;
+import com.datamaster.module.ontology.api.IOntologyModelGateway;
 import com.datamaster.module.ontology.controller.admin.action.vo.AiActionDecisionReqVO;
 import com.datamaster.module.ontology.controller.admin.action.vo.AiActionDecisionRespVO;
 import com.datamaster.module.ontology.dal.dataobject.ActionDO;
@@ -42,7 +42,7 @@ public class AiActionDecisionServiceImpl implements IAiActionDecisionService {
     @Resource
     private ObjectMapper objectMapper;
     @Resource
-    private IAiModelGatewayService aiModelGatewayService;
+    private IOntologyModelGateway aiModelGatewayService;
     @Resource
     private IActionApprovalService approvalService;
 

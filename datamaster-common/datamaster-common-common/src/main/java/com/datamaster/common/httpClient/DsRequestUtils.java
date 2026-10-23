@@ -12,6 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Map;
 
 /**
@@ -88,23 +90,25 @@ public class DsRequestUtils {
      * @return
      */
     public static <T> T requestForm(String url, String method, Map<String, Object> params, Class<T> resultClass) {
-        //拼接url参数（DS API 要求参数在 query string 中）
-        if (params != null && !params.isEmpty()) {
-            String paramsStr = HttpUtil.toParams(params);
-            if (url.indexOf("?") > -1) {
-                url = url + "&" + paramsStr;
-            } else {
-                url = url + "?" + paramsStr;
-            }
-        }
-        //封装请求对象
+        Method httpMethod = Method.valueOf(method);
         String requestUrl = baseUrl + url;
-        HttpRequest request = HttpUtil.createRequest(Method.valueOf(method), requestUrl)
-                .header("token", token)
-                .timeout(timeout);
-        //获取结果
-        HttpResponse response = request.execute();
-        return parseResponse(response, requestUrl, resultClass);
+        HttpRequest request;
+        // Spring @RequestParam 同时接受查询参数和 URL 编码表单。大任务定义必须放请求体，
+        // 否则任务 JSON 会触发 URI 长度限制，并把数据库凭据泄露到 URL/代理日志。
+        if (httpMethod == Method.POST || httpMethod == Method.PUT || httpMethod == Method.PATCH) {
+            request = HttpUtil.createRequest(httpMethod, requestUrl)
+                    .contentType("application/x-www-form-urlencoded; charset=UTF-8")
+                    .body(encodeForm(params));
+        } else {
+            if (params != null && !params.isEmpty()) {
+                requestUrl += (requestUrl.contains("?") ? "&" : "?") + HttpUtil.toParams(params);
+            }
+            request = HttpUtil.createRequest(httpMethod, requestUrl);
+        }
+        request.header("token", token).timeout(timeout);
+        try (HttpResponse response = request.execute()) {
+            return parseResponse(response, requestUrl, resultClass);
+        }
     }
 
     public static String requestRaw(String url, String method, Map<String, Object> params) {
@@ -124,7 +128,7 @@ public class DsRequestUtils {
         String body = response.body();
         if (response.getStatus() < 200 || response.getStatus() >= 300) {
             throw new ServiceException("DolphinScheduler接口请求失败，状态码：" + response.getStatus()
-                    + "，地址：" + requestUrl + "，响应：" + abbreviate(body));
+                    + "，地址：" + safeRequestUrl(requestUrl) + "，响应：" + abbreviate(body));
         }
         return body;
     }
@@ -133,10 +137,10 @@ public class DsRequestUtils {
         String body = response.body();
         if (response.getStatus() < 200 || response.getStatus() >= 300) {
             throw new ServiceException("DolphinScheduler接口请求失败，状态码：" + response.getStatus()
-                    + "，地址：" + requestUrl + "，响应：" + abbreviate(body));
+                    + "，地址：" + safeRequestUrl(requestUrl) + "，响应：" + abbreviate(body));
         }
         if (StringUtils.isBlank(body) || !isJsonResponse(body)) {
-            throw new ServiceException("DolphinScheduler接口返回非JSON响应，地址：" + requestUrl
+            throw new ServiceException("DolphinScheduler接口返回非JSON响应，地址：" + safeRequestUrl(requestUrl)
                     + "，Content-Type：" + response.header("Content-Type")
                     + "，响应：" + abbreviate(body));
         }
@@ -148,12 +152,37 @@ public class DsRequestUtils {
         return StringUtils.startsWith(trimBody, "{") || StringUtils.startsWith(trimBody, "[");
     }
 
+    private static String encodeForm(Map<String, Object> params) {
+        if (params == null || params.isEmpty()) return "";
+        StringBuilder result = new StringBuilder();
+        try {
+            for (Map.Entry<String, Object> entry : params.entrySet()) {
+                if (entry.getValue() == null) continue;
+                if (result.length() > 0) result.append('&');
+                result.append(URLEncoder.encode(entry.getKey(), "UTF-8")).append('=')
+                        .append(URLEncoder.encode(String.valueOf(entry.getValue()), "UTF-8"));
+            }
+        } catch (UnsupportedEncodingException ex) {
+            throw new IllegalStateException("UTF-8 编码不可用", ex);
+        }
+        return result.toString();
+    }
+
+    private static String safeRequestUrl(String url) {
+        int query = url.indexOf('?');
+        return query < 0 ? url : url.substring(0, query) + "?[参数已隐藏]";
+    }
+
     private static String abbreviate(String body) {
         if (body == null) {
             return "";
         }
+        // DS/代理可能回显原始请求和任务 JSON，不能把响应正文原样返回到前端或日志。
         String text = StringUtils.normalizeSpace(body);
-        return StringUtils.abbreviate(text, 300);
+        if (StringUtils.startsWith(text, "<")) {
+            return "[HTML错误响应，正文已隐藏]";
+        }
+        return "[错误响应正文已隐藏]";
     }
 
     /**

@@ -10,6 +10,7 @@
       ref="dpModelRef"
       :model="form"
       :rules="rules"
+      :disabled="submitting"
       :label-col="{ style: { width: '110px' } }"
       @submit.prevent
     >
@@ -27,10 +28,8 @@
           </a-form-item>
         </a-col>
         <a-col :span="12">
-          <a-form-item label="英文名称" name="modelName">
-            <a-input v-model:value="form.modelName" placeholder="请输入英文名称"
-              @input="convertToUpperCase('modelName', form.modelName)"
-/>
+          <a-form-item :label="governanceRequired ? '业务过程编码' : '英文名称'" name="modelName">
+            <a-input v-model:value="form.modelName" placeholder="请输入基础业务过程编码，不含分层/域前缀" :disabled="hasFixedName || (isLegacy && !upgradeNaming)" />
           </a-form-item>
         </a-col>
       </a-row>
@@ -91,6 +90,29 @@
           </a-form-item>
         </a-col>
       </a-row>
+
+      <div class="h2-title">治理命名</div>
+      <a-alert v-if="isLegacy" type="info" show-icon message="历史模型默认仅维护普通字段；只有显式升级才应用治理命名，不会修改来源物理表。" style="margin-bottom:12px" />
+      <a-form-item v-if="isLegacy" label="升级命名">
+        <a-checkbox v-model:checked="upgradeNaming">升级为规范治理命名（GOVERNED_V1）</a-checkbox>
+      </a-form-item>
+      <template v-if="governanceRequired">
+        <a-alert v-if="hasFixedName" type="info" show-icon message="已有规范物理表名保持不变；治理校验不会因分类或字典变化重新命名。" style="margin-bottom:12px" />
+        <GovernedTableFields :model="form" :naming="naming" :disabled="submitting" :identity-locked="hasFixedName" />
+        <a-form-item v-if="isLegacy" label="原目标名称">
+          <a-input :value="originalTargetName" readonly />
+        </a-form-item>
+        <a-alert v-if="isLegacy && upgradeNaming" type="info" show-icon message="以下新名称仅为规范命名预览；已有目标物理表名可能由服务端保留，最终以保存后详情为准。升级不会重命名来源物理表。" style="margin-bottom:12px" />
+        <a-form-item :label="isLegacy ? '规范命名预览' : '目标物理表名'">
+          <a-input :value="targetTableName" readonly placeholder="请先预览并校验命名" />
+          <a-button style="margin-top:8px" :loading="naming.previewLoading" @click="naming.preview()">{{ hasFixedName ? '校验治理信息' : '预览最终表名' }}</a-button>
+          <div style="margin-top:6px">仅用于模型目标命名，不重命名来源表；新建默认小写，已有大小写规则保持，最终名称以服务端为准。</div>
+        </a-form-item>
+        <a-alert v-if="naming.previewError" type="error" show-icon :message="naming.previewError" style="margin-bottom:12px" />
+      </template>
+      <a-form-item v-if="form.id && form.tableName" label="来源物理表">
+        <a-input :value="form.tableName" readonly />
+      </a-form-item>
 
       <div v-if="form.createType == 2">
         <a-divider orientation="center">
@@ -176,7 +198,7 @@
     <template #footer>
       <div class="dialog-footer">
         <a-button @click="closeDialog">取消</a-button>
-        <a-button type="primary" @click="confirmDialog">确认</a-button>
+        <a-button type="primary" :loading="submitting" @click="confirmDialog">确认</a-button>
       </div>
     </template>
   </a-modal>
@@ -188,7 +210,8 @@
 
 <script setup>
 const { proxy } = getCurrentInstance();
-import { message } from 'ant-design-vue'
+import GovernedTableFields from '@/components/GovernedTableFields.vue';
+import { useGovernedTableNaming } from '@/composables/useGovernedTableNaming';
 import {
   listDpDocument,
 } from "@/api/std/document/document";
@@ -221,58 +244,8 @@ const props = defineProps({
   type: { type: String, default: "" },
 });
 let loading = ref(false);
-watch(
-  () => props.visible,
-  (newVal) => {
-    getDaDatasourceListList();
-    if (newVal) {
-
-      if (props.dataList && props.dataList.id) {
-        Object.assign(form.value, props.dataList);
-        form.value.documentId = Number(form.value.documentId) || '';
-        fetchSecondLevelDocs(form.value.documentType, true);
-        form.value.createType = '1';
-        if (form.value.createType == 2) {
-          getTablesByDataSourceIdList();
-          form.value.tableName = form.value.modelName;
-          handleChange(false);
-        } else {
-          fetchDpModelColumnList();
-          form.value.tableName = form.value.modelName;
-        }
-        if (form.value.documentId == -1) {
-          form.value.documentId = null;
-        }
-      } else {
-        form.value = {
-          documentId: '',
-          modelName: "",
-          modelComment: "",
-          createType: "1",
-          catCode: props.catCode,
-          description: "",
-          dataConnection: "",
-          dbType: "",
-          dbAddress: "",
-          dataTable: "",
-          datasourceName: "",
-          datasourceType: "",
-          datasourceConfig: "",
-          ip: "",
-          port: "",
-          status: "0",
-          datasourceId: "",
-          datasourceType: "",
-          ip: "",
-          tableName: "",
-        };
-        TablesByDataSource.value = [];
-        tableData.value = [];
-        tableData.value = [];
-      }
-    }
-  }
-);
+let formRequest = 0;
+let columnsRequest = 0;
 
 let secondLevelDocs = ref([]);
 const btnloading = ref(false);
@@ -286,9 +259,12 @@ const fetchSecondLevelDocs = async (type, preserveSelection = false) => {
     return;
   }
 
+  const request = formRequest;
+  const documentType = type;
   try {
     btnloading.value = true;
     const res = await listDpDocument({ type });
+    if (request !== formRequest || form.value.documentType !== documentType) return;
     secondLevelDocs.value = (res.data.rows || []).map(d => ({
       label: d.name,
       value: d.id,
@@ -299,16 +275,17 @@ const fetchSecondLevelDocs = async (type, preserveSelection = false) => {
       form.value.documentId = '';
     }
   } catch (error) {
+    if (request !== formRequest || form.value.documentType !== documentType) return;
     secondLevelDocs.value = [];
     if (!preserveSelection) {
       form.value.documentId = '';
     }
   } finally {
-    btnloading.value = false;
+    if (request === formRequest) btnloading.value = false;
   }
 }
 
-let createTypeList = ref();
+let createTypeList = ref([]);
 const getDaDatasourceListList = async () => {
   try {
     const response = await getDaDatasourceList();
@@ -320,42 +297,41 @@ const getDaDatasourceListList = async () => {
 // 表
 let TablesByDataSource = ref([]);
 const getTablesByDataSourceIdList = async () => {
+  const request = formRequest;
+  const datasourceId = form.value.datasourceId;
   try {
-    const response = await tableList(form.value.datasourceId);
-    TablesByDataSource.value = response.data;
-  } catch (error) { }
+    const response = await tableList(datasourceId);
+    if (request === formRequest && datasourceId === form.value.datasourceId) TablesByDataSource.value = response.data || [];
+  } catch (error) {
+    if (request === formRequest) proxy.$message.warning('来源表加载失败，请检查数据源权限');
+  }
 };
 const fetchDpModelColumnList = async () => {
+  const request = formRequest;
+  const columns = ++columnsRequest;
+  loading.value = true;
   try {
-    loading.value = true;
-    console.log("props.dataList.id", form.value.id);
-    const response = await getDpModelColumnList({ modelId: form.value.id }); // 传递 `form` 数据
-    tableData.value = response.data;
-    loading.value = false;
-    console.log(
-      "🚀 ~ fetchDpMode111lColumnList ~ 1111   tableData.value :",
-      tableData.value
-    );
-    // 处理返回的数据
+    const response = await getDpModelColumnList({ modelId: form.value.id });
+    if (request === formRequest && columns === columnsRequest) tableData.value = response.data || [];
   } catch (error) {
-    console.error("请求失败:", error);
+    if (request === formRequest) proxy.$message.warning('模型属性字段加载失败，请重试');
+  } finally {
+    if (request === formRequest && columns === columnsRequest) loading.value = false;
   }
 };
 const getColumnByAssetIdList = async (isOld) => {
+  const request = formRequest;
+  const columns = ++columnsRequest;
+  const source = { modelId: form.value.id, id: form.value.datasourceId, tableName: form.value.tableName, type: form.value.datasourceType, isOld };
   loading.value = true;
-  const response = await columnsList({
-    modelId: form.value.id,
-    id: form.value.datasourceId,
-    tableName: form.value.tableName,
-    type: form.value.datasourceType,
-    isOld: isOld,
-  });
-  tableData.value = response.data;
-  loading.value = false;
-  console.log(
-    "🚀 ~ getColumnByAssetIdList ~  2222response.data:",
-    response.data
-  );
+  try {
+    const response = await columnsList(source);
+    if (request === formRequest && columns === columnsRequest && source.id === form.value.datasourceId && source.tableName === form.value.tableName) tableData.value = response.data || [];
+  } catch (error) {
+    if (request === formRequest) proxy.$message.warning('来源表字段导入失败，请检查数据源权限');
+  } finally {
+    if (request === formRequest && columns === columnsRequest) loading.value = false;
+  }
 };
 const handleDatasourceChange = (value) => {
   const selectedDatasource = createTypeList.value.find(
@@ -365,6 +341,8 @@ const handleDatasourceChange = (value) => {
     form.value.tableName = "";
     TablesByDataSource.value = [];
     tableData.value = [];
+    ++columnsRequest;
+    loading.value = false;
     form.value.ip = selectedDatasource.ip;
     form.value.datasourceConfig = selectedDatasource.datasourceConfig;
     form.value.datasourceType = selectedDatasource.datasourceType;
@@ -381,7 +359,7 @@ const handleChange = (isOld) => {
     if(table.tableComment){
       form.value.modelComment = table.tableComment;
     }
-    form.value.modelName = table.tableName;
+    if (!form.value.modelName) form.value.modelName = table.tableName;
   }
   tableData.value = [];
 
@@ -398,36 +376,38 @@ const visibleDialog = computed({
   },
 });
 
-const emit = defineEmits(["update:dialogFormVisible", "confirm", "submit"]);
-const form = ref({
-  modelName: "",
-  modelComment: "",
-  catCode: "",
-  createType: "1",
-  description: "",
-  dataConnection: "",
-  dbType: "",
-  dbAddress: "",
-  dataTable: "",
-  status: "0",
+const emit = defineEmits(['update:visible', 'update:dialogFormVisible', 'confirm', 'submit']);
+const createDefaults = () => ({
+  documentId: '', documentType: undefined, modelName: '', modelComment: '',
+  catCode: props.catCode, createType: '1', description: '', remark: '', status: '0',
+  dataConnection: '', dbType: '', dbAddress: '', dataTable: '',
+  datasourceId: '', datasourceName: '', datasourceType: '', datasourceConfig: '',
+  ip: '', port: '', tableName: '', tableType: '1', dataLayerId: undefined,
+  businessCategoryId: null, dataDomainId: undefined, themeDomainId: undefined,
+  tableCase: '2', physicalTableName: '', namingVersion: '',
 });
+const form = ref(createDefaults());
+const upgradeNaming = ref(false);
+const submitting = ref(false);
+const originalTargetName = ref('');
+const isLegacy = computed(() => !!form.value.id && form.value.namingVersion !== 'GOVERNED_V1');
+const governanceRequired = computed(() => !isLegacy.value || upgradeNaming.value);
+const hasFixedName = computed(() => !!form.value.id && !isLegacy.value && !!form.value.physicalTableName);
+const naming = useGovernedTableNaming(() => form.value, () => form.value.modelName, () => form.value.datasourceType);
+const targetTableName = computed(() => hasFixedName.value ? form.value.physicalTableName : (naming.previewResult?.tableName || ''));
+watch(upgradeNaming, () => naming.resetPreview());
 
-// 转换输入值为大写
-const convertToUpperCase = (key, value) => {
-  form.value[key] = String(value ?? '').replace(/[a-z]/g, (char) => char.toUpperCase());
-};
-
-const rules = ref({
+const rules = computed(() => ({
   modelComment: [
     { required: true, message: "表中文名称表不能为空", trigger: "blur" },
   ],
   modelName: [
     { required: true, message: "英文名称不能为空", trigger: "blur" },
-    {
+    ...(isLegacy.value && !upgradeNaming.value ? [] : [{
       pattern: /^[A-Za-z][A-Za-z0-9_]*$/,
-      message: "表名只能包含字母、数字和下划线，且必须以字母开头",
+      message: "基础编码只能包含字母、数字和下划线，且必须以字母开头",
       trigger: "blur",
-    },
+    }]),
   ],
   // status: [{ required: true, message: "发布状态不能为空", trigger: "change" }],
   catCode: [{ required: true, message: "逻辑模型目录不能为空", trigger: "change" }],
@@ -455,7 +435,7 @@ const rules = ref({
   //     trigger: 'change'
   //   }
   // ]
-});
+}));
 const tableData = ref([]);
 
 const tableColumns = [
@@ -530,50 +510,83 @@ const deleteRow = (row) => {
   }
 };
 
+watch(
+  () => [props.visible, props.dataList?.id],
+  ([visible]) => {
+    ++formRequest;
+    naming.cancel();
+    if (!visible) return;
+    getDaDatasourceListList();
+    upgradeNaming.value = false;
+    submitting.value = false;
+    TablesByDataSource.value = [];
+    tableData.value = [];
+    loading.value = false;
+    // Always start from fresh defaults, including when switching between old records.
+    form.value = { ...createDefaults(), ...(props.dataList?.id ? props.dataList : {}) };
+    form.value.tableType = String(form.value.tableType || '1');
+    if (!form.value.id) form.value.tableCase = '2';
+    originalTargetName.value = form.value.physicalTableName || form.value.modelName || '';
+    if (form.value.id) {
+      form.value.documentId = Number(form.value.documentId) || '';
+      if (form.value.documentId === -1) form.value.documentId = null;
+      fetchSecondLevelDocs(form.value.documentType, true);
+      // Never repurpose the original imported tableName as a target name.
+      form.value.createType = '1';
+      fetchDpModelColumnList();
+    } else secondLevelDocs.value = [];
+    if (governanceRequired.value) naming.loadOptions();
+  },
+  { immediate: true }
+);
+watch(upgradeNaming, value => {
+  if (value) naming.loadOptions();
+});
+
 const closeDialog = () => {
-  form.value = {
-    modelName: "",
-    modelComment: "",
-    catCode: "",
-    createType: "1",
-    description: "",
-    dataConnection: "",
-    dbType: "",
-    dbAddress: "",
-    dataTable: "",
-  };
+  ++formRequest;
+  naming.cancel();
+  form.value = createDefaults();
   tableData.value = [];
   proxy.resetForm("dpModelRef");
   emit("update:visible", false);
 };
 
-const confirmDialog = () => {
-  if (!tableData.value || tableData.value.length === 0) {
-    proxy.$message.warning("操作失败，请添加属性字段");
-    return;
-  }
-
-  proxy.$refs["dpModelRef"]
-    .validate()
-    .then(() => {
-      console.log('form.value', form.value);
-      if (!form.value.id) {
-
-        emit("update:visible", false);
-        emit("confirm", {
-          form: { ...form.value, documentId: form.value.documentId || -1, },
-          tableData: tableData.value,
-        });
-      } else {
-        const updatedTableData = tableData.value.map((item) => ({
-          ...item,
-          modelId: form.value.id,
-        }));
-        emit("confirm", { form: { ...form.value, documentId: form.value.documentId || -1, }, tableData: updatedTableData, modelId: form.value.id, });
+const confirmDialog = async () => {
+  if (submitting.value) return;
+  if (!tableData.value?.length) return proxy.$message.warning('操作失败，请添加属性字段');
+  const request = formRequest;
+  submitting.value = true;
+  try {
+    await proxy.$refs.dpModelRef.validate();
+    if (governanceRequired.value) {
+      if (form.value.id && !isLegacy.value && !form.value.physicalTableName) {
+        return proxy.$message.warning('规范模型缺少物理表名，请先修复数据，不能按基础编码猜测目标名称');
       }
-      closeDialog();
-    })
-    .catch(() => {});
+      const result = await naming.preview();
+      if (!result || request !== formRequest || !props.visible) return;
+      // Preserve any existing target identity; the server decides legacy upgrade adoption.
+      if (!form.value.id || !form.value.physicalTableName) form.value.physicalTableName = result.tableName;
+    }
+    if (request !== formRequest || !props.visible) return;
+    const submitted = { ...form.value, tableCase: form.value.tableCase || '2', documentId: form.value.documentId || -1, upgradeNaming: isLegacy.value && upgradeNaming.value };
+    submitted.governanceProvided = governanceRequired.value;
+    if (governanceRequired.value) {
+      // Explicit null clears a previous category; undefined would disappear during JSON serialization.
+      submitted.businessCategoryId = form.value.businessCategoryId === undefined || form.value.businessCategoryId === '' ? null : form.value.businessCategoryId;
+    }
+    if (isLegacy.value && !upgradeNaming.value) {
+      // Ordinary legacy edits must not introduce default governance or change naming identity.
+      ['tableType', 'dataLayerId', 'businessCategoryId', 'dataDomainId', 'themeDomainId', 'tableCase', 'physicalTableName', 'namingVersion'].forEach(key => delete submitted[key]);
+    }
+    const columns = tableData.value.map(item => form.value.id ? { ...item, modelId: form.value.id } : { ...item });
+    emit('confirm', { form: submitted, tableData: columns, ...(form.value.id ? { modelId: form.value.id } : {}) });
+    closeDialog();
+  } catch (error) {
+    // Field validation is rendered inline; preview failures are rendered above.
+  } finally {
+    if (request === formRequest) submitting.value = false;
+  }
 };
 </script>
 

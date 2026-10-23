@@ -1,5 +1,5 @@
 <template>
-  <a-modal
+  <a-modal wrap-class-name="integration-component-modal"
     v-model:open="visibleDialog"
     :draggable="true"
     class="medium-dialog"
@@ -17,6 +17,7 @@
       @submit.prevent
       :disabled="info"
     >
+      <h3 class="etl-section-title">基本信息</h3>
       <template v-if="!info">
         <a-row :gutter="20">
           <a-col :span="12">
@@ -114,7 +115,7 @@
           </a-col>
         </a-row>
       </template>
-      <div class="h2-title">规则设置</div>
+      <div class="h2-title etl-section-title" role="heading" aria-level="3">规则设置</div>
 
       <div class="justify-between mb15" style="margin-top: 10px" v-if="!info">
         <a-row :gutter="15" class="btn-style">

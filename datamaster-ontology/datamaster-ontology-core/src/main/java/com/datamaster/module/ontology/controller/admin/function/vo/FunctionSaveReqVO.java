@@ -20,6 +20,8 @@ public class FunctionSaveReqVO {
     @Schema(description = "语言：TYPESCRIPT/PYTHON", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "语言不能为空")
     private String lang;
+    @Schema(description = "函数类型：PRE_HOOK/POST_HOOK/TRANSFORM/VALIDATOR，默认 TRANSFORM")
+    private String funcType;
     @Schema(description = "函数代码体", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "代码体不能为空")
     private String body;

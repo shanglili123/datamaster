@@ -103,13 +103,14 @@
   </a-spin>
 </template>
 <script setup name="DatabaseDetail">
-import { computed, getCurrentInstance, inject, reactive, toValue } from "vue";
+import { computed, defineAsyncComponent, getCurrentInstance, inject, onUnmounted, reactive, toValue, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { message } from "ant-design-vue";
 import { getTable } from "@/api/cat/catalog/table";
 import { listDomain } from "@/api/tax/domain/domain.js";
 import { listProbeHistoryByTable } from "@/api/ast/quality/probeTaskInstance";
 import { getParentLabelPath } from "@/utils/anivia.js";
+import useUserStore from "@/store/system/user";
 
 const tabData = [
   {
@@ -124,11 +125,16 @@ const tabData = [
     key: "ProbeHistory",
     label: "任务历史",
   },
+  {
+    key: "LineageAnalysis",
+    label: "血缘分析",
+  },
 ];
 const tabComponent = {
   BaseInfo: defineAsyncComponent(() => import("./BaseInfo.vue")),
   ColumnList: defineAsyncComponent(() => import("./ColumnList.vue")),
   ProbeHistory: defineAsyncComponent(() => import("./ProbeHistory.vue")),
+  LineageAnalysis: defineAsyncComponent(() => import("./LineageAnalysis.vue")),
 };
 
 const { proxy } = getCurrentInstance();
@@ -140,6 +146,7 @@ const dicts = proxy.useDict(
 
 const router = useRouter();
 const route = useRoute();
+const userStore = useUserStore();
 const stationNavigation = inject("spaceWorkstationNavigation", null);
 if (!route.query.id) router.go(-1);
 
@@ -148,7 +155,7 @@ const store = reactive({
   form: {},
   treeDomains: [],
   domains: [],
-  tab: route.query.tab || "BaseInfo",
+  tab: tabComponent[route.query.tab] ? route.query.tab : "BaseInfo",
   datasources: [],
 });
 
@@ -183,11 +190,15 @@ function getDomains() {
   });
 }
 
-// 获取详情
+// 获取详情；路由切换时隔离迟到响应，避免把旧表当作血缘中心。
+let detailSequence = 0;
 function getDetail() {
+  const sequence = ++detailSequence;
   store.loading = true;
+  store.form = {};
   getTable(route.query.id)
     .then((res) => {
+      if (sequence !== detailSequence) return;
       if (!res?.data) {
         store.form = {};
         return;
@@ -207,12 +218,13 @@ function getDetail() {
       store.form = res.data;
     })
     .catch((err) => {
+      if (sequence !== detailSequence) return;
       console.error("表详情加载失败", err);
       store.form = {};
       message.error("表详情加载失败，请稍后重试");
     })
     .finally(() => {
-      store.loading = false;
+      if (sequence === detailSequence) store.loading = false;
     });
 }
 
@@ -270,7 +282,14 @@ function goProbeHistory() {
     });
 }
 
-getDetail();
+watch(() => route.query.tab, (tab) => {
+  store.tab = tabComponent[tab] ? tab : "BaseInfo";
+});
+watch(() => [route.query.id, userStore.spaceId, userStore.spaceCode, userStore.id, userStore.token], () => {
+  if (route.query.id && userStore.spaceId && userStore.token) getDetail();
+  else { ++detailSequence; store.form = {}; store.loading = false; }
+}, { immediate: true, flush: 'sync' });
+onUnmounted(() => { ++detailSequence; });
 </script>
 
 <style lang="scss" scoped>

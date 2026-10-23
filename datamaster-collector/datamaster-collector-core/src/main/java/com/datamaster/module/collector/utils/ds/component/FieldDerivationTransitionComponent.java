@@ -94,31 +94,72 @@ public class FieldDerivationTransitionComponent implements ComponentItem {
                 // 常量赋值处理逻辑
                 parameter = handleConstant(taskParams);
                 break;
+            case FIELD_DERIVE_NULL:
+                parameter = commonParameter(taskParams);
+                parameter.put("nullAction", taskParams.get("nullAction"));
+                parameter.put("normalizeEmpty", taskParams.get("normalizeEmpty"));
+                parameter.put("trimWhitespace", taskParams.get("trimWhitespace"));
+                break;
             default:
                 throw new IllegalArgumentException("未知的字段派生类型: " + fieldDerivationType);
         }
 
+        for (String key : Arrays.asList("resultType", "precision", "scale", "castFailure", "defaultValue", "nullable", "nullMode")) {
+            if (taskParams.containsKey(key)) parameter.put(key, taskParams.get(key));
+        }
         reader.put("parameter", parameter);
         return reader;
     }
 
     private Map<String, Object> handleConstant(Map<String, Object> taskParams) {
-        return null;
+        Map<String, Object> parameter = commonParameter(taskParams);
+        parameter.put("constantValue", firstValue(taskParams, "constantValue", "value", "defaultValue"));
+        parameter.put("constantType", firstValue(taskParams, "constantType", "type", "dataType"));
+        return parameter;
     }
 
     private Map<String, Object> handleRegex(Map<String, Object> taskParams) {
-        return null;
+        Map<String, Object> parameter = commonParameter(taskParams);
+        parameter.put("regex", firstValue(taskParams, "regex", "pattern"));
+        parameter.put("group", firstValue(taskParams, "group", "groupIndex", "captureGroup"));
+        return parameter;
     }
 
     private Map<String, Object> handleHash(Map<String, Object> taskParams) {
-        return null;
+        Map<String, Object> parameter = commonParameter(taskParams);
+        parameter.put("algorithm", firstValue(taskParams, "algorithm", "hashAlgorithm"));
+        return parameter;
     }
 
     private Map<String, Object> handleExpression(Map<String, Object> taskParams) {
-        return null;
+        Map<String, Object> parameter = commonParameter(taskParams);
+        parameter.put("expression", firstValue(taskParams, "expression", "formula", "sqlExpression"));
+        return parameter;
     }
 
     private Map<String, Object> handleReplace(Map<String, Object> taskParams) {
+        Map<String, Object> parameter = commonParameter(taskParams);
+        parameter.put("searchValue", firstValue(taskParams, "searchValue", "oldValue", "search", "pattern"));
+        parameter.put("replaceValue", firstValue(taskParams, "replaceValue", "newValue", "replacement"));
+        return parameter;
+    }
+
+    /** 所有字段派生类型共用的目标字段和输入字段参数。 */
+    private Map<String, Object> commonParameter(Map<String, Object> taskParams) {
+        Map<String, Object> parameter = new HashMap<>();
+        parameter.put("fieldDerivationType", taskParams.get("fieldDerivationType"));
+        parameter.put("fieldDerivationName", taskParams.get("fieldDerivationName"));
+        parameter.put("tableFields", taskParams.get("tableFields"));
+        return parameter;
+    }
+
+    private Object firstValue(Map<String, Object> values, String... keys) {
+        for (String key : keys) {
+            Object value = values.get(key);
+            if (value != null) {
+                return value;
+            }
+        }
         return null;
     }
 

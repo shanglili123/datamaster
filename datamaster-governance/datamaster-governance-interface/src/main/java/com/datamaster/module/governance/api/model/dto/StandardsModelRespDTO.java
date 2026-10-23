@@ -53,9 +53,9 @@ public class StandardsModelRespDTO {
     @Schema(name = "数仓分层id ")
     private Long dataLayerId;
     /**
-     * 业务分类id;只有表类型为非应用表是才有值
+     * 可选业务分类标签（所有表类型）；不参与物理表命名
      */
-    @Schema(name = "业务分类id 只有表类型为非应用表是才有值")
+    @Schema(name = "可选业务分类标签，不参与表名")
     private Long businessCategoryId;
     /**
      * 业务分类层级编码
@@ -221,56 +221,22 @@ public class StandardsModelRespDTO {
     @TableField(exist = false, typeHandler = JacksonTypeHandler.class)
     private String createUserPhoneNumber;
 
-    /**
-     * 获取表名（拼接上表命名规范）
-     * 规则：
-     * 1. 数仓分层 + 业务分类 + 数据分域 + 模型编码（非应用表）
-     * 2. 数仓分层 + 所属主题 + 模型编码（应用表）
-     * 3. 根据 tableCase 转换为大写(1)或小写(2)
-     *
-     * @return 拼接后的表名
-     */
+    /** Frozen physical target; LEGACY preserves its original model name. */
     public String getTableName() {
-        java.util.List<String> parts = new java.util.ArrayList<>();
-
-        // 1. 数仓分层
-        if (dataLayerEngName != null && !dataLayerEngName.isEmpty()) {
-            parts.add(dataLayerEngName);
-        }
-
-        // 2. 根据表类型添加不同的层级
-        if ("4".equals(tableType)) {
-            // 应用表：添加所属主题
-            if (themeDomainEngName != null && !themeDomainEngName.isEmpty()) {
-                parts.add(themeDomainEngName);
-            }
-        } else {
-            // 非应用表：添加业务分类和数据分域
-            if (businessCategoryEngName != null && !businessCategoryEngName.isEmpty()) {
-                parts.add(businessCategoryEngName);
-            }
-            if (dataDomainEngName != null && !dataDomainEngName.isEmpty()) {
-                parts.add(dataDomainEngName);
-            }
-        }
-
-        // 3. 添加模型编码
-        if (modelName != null && !modelName.isEmpty()) {
-            parts.add(modelName);
-        }
-
-        // 4. 拼接并转换大小写
-        String tableName = String.join("_", parts);
-        if (tableName != null && !tableName.isEmpty()) {
-            // tableCase: 1-大写, 2-小写
-            if ("2".equals(tableCase)) {
-                return tableName.toLowerCase();
-            } else {
-                return tableName.toUpperCase();
-            }
-        }
-
-        return tableName;
+        return physicalTableName != null && !physicalTableName.isEmpty() ? physicalTableName : modelName;
     }
 
+
+    // Warehouse governance and frozen target.
+    private String physicalTableName;
+
+    private String namingVersion;
+
+    private String dataLayerCode;
+
+    private String dataDomainCode;
+
+    private Long spaceId;
+
+    private String spaceCode;
 }

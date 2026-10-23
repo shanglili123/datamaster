@@ -106,4 +106,55 @@ public class StandardsModelDO extends BaseEntity {
     /** 文件标准类型字段， */
     @TableField(exist = false)
     private String documentType;
+
+    // Warehouse governance and frozen target.
+    private String tableType;
+
+    private Long dataLayerId;
+
+    private Long businessCategoryId;
+
+    private String businessCategoryCode;
+
+    private Long dataDomainId;
+
+    private Long themeDomainId;
+
+    private String themeDomainCode;
+
+    private String tableCase;
+
+    private String physicalTableName;
+
+    private String namingVersion;
+
+    @TableField(exist = false)
+    private String dataLayerCode;
+
+    @TableField(exist = false)
+    private String dataLayerName;
+
+    @TableField(exist = false)
+    private String dataLayerEngName;
+
+    @TableField(exist = false)
+    private String businessCategoryName;
+
+    @TableField(exist = false)
+    private String businessCategoryEngName;
+
+    @TableField(exist = false)
+    private String dataDomainCode;
+
+    @TableField(exist = false)
+    private String dataDomainName;
+
+    @TableField(exist = false)
+    private String dataDomainEngName;
+
+    @TableField(exist = false)
+    private String themeDomainName;
+
+    @TableField(exist = false)
+    private String themeDomainEngName;
 }

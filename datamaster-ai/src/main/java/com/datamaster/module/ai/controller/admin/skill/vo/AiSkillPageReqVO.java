@@ -28,5 +28,8 @@ public class AiSkillPageReqVO extends PageParam {
     private String bizObjectType;
 
     private Long bizObjectId;
+
+    @Schema(description = "按数据源筛选关联 Skill")
+    private Long datasourceId;
 }
 

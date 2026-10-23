@@ -132,27 +132,30 @@ export const renderGraphs = async (graph, savedData, styletype = 1) => {
 
   const taskList = Array.isArray(savedData.taskDefinitionList) ? savedData.taskDefinitionList : [];
   const relations = Array.isArray(savedData.taskRelationJson) ? savedData.taskRelationJson : [];
+  const pipelineGraph = resolvePipelineGraph(savedData);
+  const graphIdByCode = new Map();
 
   // 准备节点和边
-  const layoutNodes = taskList.map((task) => ({
-    id: String(task.code), // 强制转成字符串
-    width: 36,
-    height: 40,
-    data: task,
-  }));
+  const layoutNodes = taskList.map((task) => {
+    const id = resolvePipelineNodeId(task, task.code);
+    graphIdByCode.set(String(task.code), id);
+    return {
+      id,
+      width: 36,
+      height: 40,
+      data: task,
+    };
+  });
 
-  const layoutEdges = relations
-    .filter(
-      (rel) =>
-        rel &&
-        rel.preNodeCode != null &&
-        rel.postNodeCode != null &&
-        String(rel.preNodeCode) !== '0'
-    )
-    .map((rel) => ({
-      source: String(rel.preNodeCode),
-      target: String(rel.postNodeCode),
-    }));
+  const layoutEdges = pipelineGraph
+    ? resolvePipelineEdges(pipelineGraph, graphIdByCode)
+    : relations
+      .filter((rel) => rel && rel.preNodeCode != null && rel.postNodeCode != null
+        && String(rel.preNodeCode) !== '0')
+      .map((rel) => ({
+        source: graphIdByCode.get(String(rel.preNodeCode)) || String(rel.preNodeCode),
+        target: graphIdByCode.get(String(rel.postNodeCode)) || String(rel.postNodeCode),
+      }));
 
   // Dagre 布局
   const dagreLayout = new DagreLayout({
@@ -195,7 +198,7 @@ export const renderGraphs = async (graph, savedData, styletype = 1) => {
 
   // 添加边（去重）
   layoutEdges.forEach((e) => {
-    const edgeId = `${e.source}-${e.target}`; // 用 source-target 做唯一 id
+    const edgeId = e.id || `${e.source}-${e.target}-${e.branchId || ""}`; // 用 source-target 做唯一 id
     if (!graph.getCellById(edgeId)) {
       const sourceNode = graph.getCellById(e.source);
       const targetNode = graph.getCellById(e.target);
@@ -205,6 +208,8 @@ export const renderGraphs = async (graph, savedData, styletype = 1) => {
         id: edgeId,
         source: { cell: e.source, port: 'port-right' },
         target: { cell: e.target, port: 'port-left' },
+        data: { branchId: e.branchId || '' },
+        labels: e.branchId ? [{ attrs: { label: { text: e.branchId } } }] : [],
         attrs: {
           line: {
             stroke: '#D3D8EA',
@@ -301,19 +306,38 @@ export const transNodeData = async (graph) => {
   for (const item of sortedNodes) {
     if (item.shape === "cu-data-node") {
       const code = item.id;
-      tasksMap[code] = item.data;
+      tasksMap[code] = String(item.data?.componentType) === "100"
+        ? { ...item.data, code: item.data?.code || String(item.id) }
+        : item.data;
     }
   }
   // 处理节点
   for (const item of sortedNodes) {
     if (item.shape === "cu-data-node") {
       const code = item.id;
+      const exportedData = {
+        ...item.data,
+        ...(String(item.data?.componentType) === "100"
+          ? {
+              // 新逻辑节点尚未发布时没有 DS code，使用画布节点 ID 作为草稿级 code。
+              code: item.data?.code || String(item.id),
+              pipelineNodeId: String(item.id),
+              taskParams: {
+                ...(item.data?.taskParams || {}),
+                pipelineNode: {
+                  ...(item.data?.taskParams?.pipelineNode || {}),
+                  pipelineNodeId: String(item.id),
+                },
+              },
+            }
+          : {}),
+      };
       locations.push({
-        taskCode: item.data.code,
+        taskCode: exportedData.code,
         x: item.position.x,
         y: item.position.y,
       });
-      taskDefinitionList.push({ ...item.data });
+      taskDefinitionList.push(exportedData);
     }
   }
 
@@ -354,12 +378,72 @@ export const transNodeData = async (graph) => {
       });
     }
   });
+  const pipelineNodes = allNodes
+    .filter(node => node.shape === "cu-data-node" && String(node.data?.componentType) === "100")
+    .map(node => ({
+      nodeId: String(node.id),
+      nodeCode: String(node.data?.code || node.id),
+      nodeType: node.data?.taskParams?.pipelineNode?.mode || "INTEGRATION",
+      layer: node.data?.taskParams?.pipelineNode?.layer || "ODS",
+      config: node.data?.taskParams?.pipelineNode || {},
+      position: node.position || {},
+    }));
+  const pipelineEdges = allEdges
+    .filter(edge => edge.shape === "edge")
+    .map(edge => ({ source: String(edge.source?.cell), target: String(edge.target?.cell) }))
+    .filter(edge => edge.source && edge.target
+      && pipelineNodes.some(node => node.nodeId === edge.source)
+      && pipelineNodes.some(node => node.nodeId === edge.target));
   return {
     locations,
     taskRelationJson,
     taskDefinitionList,
+    pipelineNodes,
+    pipelineEdges,
+    componentGraph: {
+      nodes: sortedNodes.map(node => ({ nodeId: String(node.id), nodeCode: String(node.data?.code || node.id) })),
+      edges: allEdges.filter(edge => edge.shape === 'edge').map(edge => ({
+        id: edge.id, source: String(edge.source?.cell), target: String(edge.target?.cell),
+        branchId: edge.data?.branchId || '',
+      })),
+    },
+    usesComponentGraph: sortedNodes.some(node => node.data?.taskParams?.logicNode)
+      || sortedNodes.filter(node => String(node.data?.taskParams?.type) === '1').length > 1,
   };
 };
+
+const resolvePipelineGraph = (savedData) => {
+  let draft = savedData?.draftJson;
+  if (!draft && savedData?.taskConfig?.draftJson) draft = savedData.taskConfig.draftJson;
+  if (typeof draft === "string") {
+    try { draft = JSON.parse(draft); } catch (e) { draft = null; }
+  }
+  const graph = draft?.componentGraph || draft?.pipelineGraph;
+  return graph && Array.isArray(graph.nodes) && Array.isArray(graph.edges) ? graph : null;
+};
+
+const resolvePipelineNodeId = (task, fallback) => {
+  if (String(task?.componentType) !== "100") return String(fallback);
+  return String(task?.pipelineNodeId
+    || task?.taskParams?.pipelineNode?.pipelineNodeId
+    || fallback);
+};
+
+const resolvePipelineEdges = (pipelineGraph, graphIdByCode) => {
+  if (!pipelineGraph) return null;
+  const idMap = new Map();
+  (pipelineGraph.nodes || []).forEach((node) => {
+    const mapped = graphIdByCode.get(String(node.nodeCode)) || String(node.nodeId);
+    idMap.set(String(node.nodeId), mapped);
+    if (node.nodeCode != null) idMap.set(String(node.nodeCode), mapped);
+  });
+  return (pipelineGraph.edges || []).map((edge) => ({
+    ...edge,
+    source: idMap.get(String(edge.source)) || String(edge.source),
+    target: idMap.get(String(edge.target)) || String(edge.target),
+  }));
+};
+
 function getAllConnectedEdges(graph, node) {
   const visited = new Set();
   const queue = [];
@@ -404,6 +488,9 @@ export const validateGraph = (graph, flag) => {
 
   let inputNodeExists = false;
   let outputNodeExists = false;
+  const pipelineNodeIds = new Set(
+    nodes.filter((node) => String(node.data?.componentType) === "100").map((node) => node.id)
+  );
 
   const addErrorMessage = (message) => {
     errorMessages.push(message);
@@ -433,6 +520,57 @@ export const validateGraph = (graph, flag) => {
     const componentType = data?.componentType;
 
     if (!taskParams) return;
+    if (String(componentType) === "100" && taskParams.logicNode) {
+      const logic = taskParams.logicNode;
+      const incoming = graph.getIncomingEdges(node) || [];
+      if ((logic.mode === 'MERGE' && incoming.length < 2)
+        || (logic.mode === 'CONDITION' ? incoming.length < 1 : logic.mode !== 'MERGE' && incoming.length !== 1)) {
+        addErrorMessage(`${data.name} 的上游数量不符合逻辑类型要求`);
+      }
+      if (!(graph.getOutgoingEdges(node) || []).length) addErrorMessage(`${data.name} 缺少下游输出`);
+      if (logic.mode === 'SPLIT' || logic.mode === 'CONDITION') {
+        const branches = logic.mode === 'CONDITION' ? ['SUCCESS', 'FAILURE'] : (logic.branches || []).map(branch => branch.id);
+        const outgoing = graph.getOutgoingEdges(node) || [];
+        if (outgoing.some(edge => !branches.includes(edge.getData?.()?.branchId))) addErrorMessage(`${data.name} 有连线尚未选择有效分支`);
+        if (logic.mode === 'CONDITION' && branches.some(branch => !outgoing.some(edge => edge.getData?.()?.branchId === branch))) {
+          addErrorMessage(`${data.name} 必须连接成功和失败两路独立输入`);
+        }
+      }
+      return;
+    }
+    if (String(componentType) === "100") {
+      const pipeline = taskParams.pipelineNode || {};
+      const output = pipeline.output || {};
+      if (!String(output.table || "").trim()) {
+        valid = false;
+        addErrorMessage(`${data.name} 未配置目标表`);
+      }
+      if (pipeline.mode === "MERGE") {
+        if (!Array.isArray(pipeline.inputs) || pipeline.inputs.length < 2) {
+          valid = false;
+          addErrorMessage(`${data.name} 合并节点至少需要两个输入节点`);
+        } else {
+          const refs = pipeline.inputs.map((item) => item?.refNodeId || item?.refNodeCode || item).filter(Boolean);
+          if (new Set(refs).size !== refs.length || refs.some((ref) => !pipelineNodeIds.has(ref))) {
+            valid = false;
+            addErrorMessage(`${data.name} 合并节点存在重复或无效的上游节点引用`);
+          }
+        }
+      } else {
+        const firstInput = pipeline.inputs?.[0] || {};
+        if (!firstInput.table && !firstInput.refNodeId) {
+          valid = false;
+          addErrorMessage(`${data.name} 未配置源表或上游节点`);
+        } else if ((firstInput.refNodeId || firstInput.refNodeCode)
+          && !pipelineNodeIds.has(firstInput.refNodeId || firstInput.refNodeCode)) {
+          valid = false;
+          addErrorMessage(`${data.name} 引用了不存在的上游逻辑节点`);
+        }
+      }
+      inputNodeExists = data;
+      outputNodeExists = data;
+      return;
+    }
     if (componentType == 41) {
       if (!taskParams.sequenceFieldName) {
         valid = false;
@@ -467,6 +605,37 @@ export const validateGraph = (graph, flag) => {
     if (taskParams.type == "1") inputNodeExists = data;
     if (taskParams.type == "2") outputNodeExists = data;
   });
+
+  // 逻辑集成节点必须是 DAG；DS 的 taskRelation 不允许循环依赖。
+  const pipelineNodes = nodes;
+  if (pipelineNodes.length > 0) {
+    const pipelineIds = new Set(pipelineNodes.map((node) => node.id));
+    const adjacency = new Map(pipelineNodes.map((node) => [node.id, []]));
+    edges.forEach((edge) => {
+      const source = edge.source?.cell;
+      const target = edge.target?.cell;
+      if (pipelineIds.has(source) && pipelineIds.has(target)) {
+        adjacency.get(source).push(target);
+      }
+    });
+    const visiting = new Set();
+    const visited = new Set();
+    const visit = (id) => {
+      if (visiting.has(id)) return true;
+      if (visited.has(id)) return false;
+      visiting.add(id);
+      for (const next of adjacency.get(id) || []) {
+        if (visit(next)) return true;
+      }
+      visiting.delete(id);
+      visited.add(id);
+      return false;
+    };
+    if (pipelineNodes.some((node) => visit(node.id))) {
+      valid = false;
+      addErrorMessage("逻辑集成节点存在循环依赖，请调整连接关系");
+    }
+  }
   if (!inputNodeExists && !outputNodeExists) {
     valid = false;
     addErrorMessage("当前任务缺少输入、输出组件，请设置输入、输出节点");
@@ -506,13 +675,17 @@ export const renderGraph = (graph, savedData, width) => {
   const locations = Array.isArray(savedData.locations) ? savedData.locations : [];
   const taskList = Array.isArray(savedData.taskDefinitionList) ? savedData.taskDefinitionList : [];
   const relations = Array.isArray(savedData.taskRelationJson) ? savedData.taskRelationJson : [];
+  const pipelineGraph = resolvePipelineGraph(savedData);
+  const graphIdByCode = new Map();
 
   // 添加节点
   locations.forEach((location) => {
     const nodeData = taskList.find((item) => item.code == location.taskCode);
     if (nodeData) {
+      const graphId = resolvePipelineNodeId(nodeData, location.taskCode);
+      graphIdByCode.set(String(location.taskCode), graphId);
       graph.addNode({
-        id: String(location.taskCode), // 确保 ID 为字符串
+        id: graphId,
         shape: "cu-data-node",
         x: location.x,
         y: location.y,
@@ -530,10 +703,19 @@ export const renderGraph = (graph, savedData, width) => {
     }
   });
 
+  const graphEdges = pipelineGraph
+    ? resolvePipelineEdges(pipelineGraph, graphIdByCode)
+    : relations
+      .filter((relation) => relation && relation.preNodeCode != null && relation.postNodeCode != null)
+      .map((relation) => ({
+        source: graphIdByCode.get(String(relation.preNodeCode)) || String(relation.preNodeCode),
+        target: graphIdByCode.get(String(relation.postNodeCode)) || String(relation.postNodeCode),
+      }));
+
   // 添加边，添加前先检查节点是否存在
-  relations.forEach((relation) => {
-    const preId = String(relation?.preNodeCode);
-    const postId = String(relation?.postNodeCode);
+  graphEdges.forEach((edge) => {
+    const preId = String(edge.source);
+    const postId = String(edge.target);
 
     if (!preId || !postId || preId === "0") return;
 
@@ -546,6 +728,8 @@ export const renderGraph = (graph, savedData, width) => {
     }
 
     graph.addEdge({
+      ...(edge.id ? { id: edge.id } : {}),
+      labels: edge.branchId ? [{ attrs: { label: { text: edge.branchId } } }] : [],
       source: {
         cell: preId,
         port: "port-bottom",
@@ -557,6 +741,7 @@ export const renderGraph = (graph, savedData, width) => {
       data: {
         sourceId: preId,
         targetId: postId,
+        branchId: edge.branchId || '', 
       },
       attrs: {
         line: {
@@ -638,6 +823,14 @@ export const createDataNode = (graph, data) => {
       outputFields: [],
       inputFields: "",
       taskParams: {
+        ...(data.componentType == 100 && {
+          type: 3,
+          typeName: "逻辑集成节点",
+          logicNode: {
+            mode: 'REFERENCE', mergeType: 'UNION_ALL', matchStrategy: 'ALL',
+            unmatchedPolicy: 'DROP', branches: [],
+          },
+        }),
         ...(data.componentType == 7 && {
           name: "API输入组件",
           typeName: "API输入组件",
@@ -713,7 +906,16 @@ export const createDataNode = (graph, data) => {
           fieldDerivationType: "FIELD_DERIVE_CONCAT", //操作类型
           fieldDerivationName: "", //新的字段名
           fieldDerivationPrefix: "", //前缀
-          fieldDerivationSuffix: "", //前缀
+          fieldDerivationSuffix: "", //后缀
+          delimiter: "",
+          searchValue: "",
+          replaceValue: "",
+          expression: "",
+          algorithm: "MD5",
+          regex: "",
+          group: 0,
+          constantValue: "",
+          constantType: "string",
         }),
         ...(data.componentType == 47 && {
           selectedSourceField: "", //字段名称
@@ -791,6 +993,9 @@ export const createDataNode = (graph, data) => {
         type: data.type, // 组件类型 1:输入组件 2:输出组件
         batchSize: "1024", // 一次性写入量
         tableFields: [], // 表输出 源表字段
+        ...(data.type == 1 && {
+          sourceMetadata: { enabled: true, naturalKeyColumns: [], includeNaturalKey: false },
+        }),
         where: "", // where
         datasourceId: "",
         ...(data.type == 2 && {
@@ -992,6 +1197,27 @@ export const getDefaultTaskParams = (data) => {
       },
       sourceTables: [],
       batchSize: 1000,
+    };
+  }
+  if (data.componentType == 100 && data.taskParams?.logicNode) {
+    return { ...base, logicNode: { ...data.taskParams.logicNode } };
+  }
+  if (data.componentType == 100) {
+    return {
+      ...base,
+      type: 3,
+      typeName: "逻辑集成节点",
+      pipelineNode: {
+        mode: "INTEGRATION",
+        layer: "ODS",
+        inputs: [{ kind: "TABLE", table: "", refNodeId: "", alias: "" }],
+        transforms: [],
+        mergeConfig: { type: "UNION_ALL" },
+        output: { table: "", writerDatasource: { datasourceId: "", datasourceType: "", dbname: "" }, qualityConfig: { enabled: false, onFailure: "FAIL", rules: [], taskId: "" } },
+        readerDatasource: { datasourceId: "", datasourceType: "", dbname: "" },
+        schemaMonitoring: { enabled: false, onDrift: "FAIL", taskId: "" },
+        sourceMetadata: { enabled: true, includeNaturalKey: false, includeRowHash: false, includeSourceDatasource: false, includeSourceDatabase: false, includeSourceTask: false, includeSourceBatch: false, includeSourceUpdateTime: false, includeRecordOp: false, naturalKeyColumns: [], naturalKeyColumnsText: "", sourceUpdateTimeSourceColumn: "", recordOpSourceColumn: "" },
+      },
     };
   }
   if (data.componentType == 34) {

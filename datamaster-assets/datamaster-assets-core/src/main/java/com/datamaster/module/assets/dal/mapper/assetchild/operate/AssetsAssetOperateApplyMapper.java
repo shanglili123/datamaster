@@ -24,6 +24,7 @@ public interface AssetsAssetOperateApplyMapper extends BaseMapperX<AssetsAssetOp
 
         // 构造动态查询条件
         return selectPage(reqVO, new LambdaQueryWrapperX<AssetsAssetOperateApplyDO>()
+                .eqIfPresent(AssetsAssetOperateApplyDO::getCreatorId, reqVO.getCreatorId())
                 .eqIfPresent(AssetsAssetOperateApplyDO::getAssetId, reqVO.getAssetId())
                 .eqIfPresent(AssetsAssetOperateApplyDO::getDatasourceId, reqVO.getDatasourceId())
                 .likeIfPresent(AssetsAssetOperateApplyDO::getTableName, reqVO.getTableName())
@@ -33,6 +34,7 @@ public interface AssetsAssetOperateApplyMapper extends BaseMapperX<AssetsAssetOp
                 .eqIfPresent(AssetsAssetOperateApplyDO::getOperateTime, reqVO.getOperateTime())
                 .eqIfPresent(AssetsAssetOperateApplyDO::getExecuteFlag, reqVO.getExecuteFlag())
                 .eqIfPresent(AssetsAssetOperateApplyDO::getExecuteTime, reqVO.getExecuteTime())
+                .eqIfPresent(AssetsAssetOperateApplyDO::getApprovalStatus, reqVO.getApprovalStatus())
                 .eqIfPresent(AssetsAssetOperateApplyDO::getCreateTime, reqVO.getCreateTime())
                 // 如果 reqVO.getName() 不为空，则添加 name 的精确匹配条件（name = '<name>'）
                 // .likeIfPresent(AssetsAssetOperateApplyDO::getName, reqVO.getName())

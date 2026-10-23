@@ -10,6 +10,8 @@
         >
           <svg-icon iconClass="fhs" />返回
         </a-button>
+        <a-button v-if="isQueryableAsset(daAssetDetail)" v-hasPermi="['ast:dataQuery:list']"
+          type="primary" class="detail-query-btn" @click="queryAsset">数据查询</a-button>
         <div class="infotop-title mb15">{{ daAssetDetail?.name }}</div>
         <a-row :gutter="20">
           <a-col :span="desc.span || 8" v-for="desc in descList" :key="desc.label">
@@ -215,6 +217,7 @@
   </div>
 </template>
 <script setup name="AssetsAsset">
+import { useDataQueryNavigation, isQueryableAsset } from "@/utils/dataQueryNavigation";
 import { getDaAsset } from "@/api/ast/asset/asset";
 import { useRoute, useRouter } from "vue-router";
 import column from "@/views/col/asset/detail/table/column.vue";
@@ -223,6 +226,12 @@ import lineage from "@/views/col/asset/detail/table/lineage.vue";
 import preview from "@/views/col/asset/detail/table/preview.vue";
 import info from "@/views/col/asset/detail/info.vue";
 
+const { openDataQuery } = useDataQueryNavigation();
+function queryAsset() {
+  const asset = daAssetDetail.value;
+  if (!isQueryableAsset(asset)) return;
+  openDataQuery({ assetId: asset.id, datasourceId: asset.datasourceId, tableName: asset.tableName });
+}
 const { proxy } = getCurrentInstance();
 const { da_assets_status } = proxy.useDict("da_assets_status");
 const activeName = ref("0");
@@ -366,6 +375,12 @@ onBeforeUnmount(() => {
 }
 .back-host {
   position: relative;
+}
+.detail-query-btn {
+  position: absolute;
+  top: 12px;
+  right: 100px;
+  z-index: 5;
 }
 .detail-back-btn {
   position: absolute;

@@ -1,10 +1,11 @@
 <template>
     <!-- 拆表输出 -->
-    <a-modal v-model:open="visibleDialog" :draggable="true" title="拆表" :closable="false" :destroy-on-close="true"
+    <a-modal wrap-class-name="integration-component-modal" v-model:open="visibleDialog" :draggable="true" title="拆表" :closable="false" :destroy-on-close="true"
         :mask-closable="false" class="medium-dialog" :width="800" :ok-text="'确定'" :cancel-text="'取消'"
         :confirm-loading="loading" @ok="saveData" @cancel="closeDialog">
         <a-spin :spinning="loading">
             <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent>
+                <h3 class="etl-section-title">基本信息</h3>
                 <a-row :gutter="20">
                     <a-col :span="12">
                         <a-form-item label="节点名称" name="name" :rules="[
@@ -20,7 +21,7 @@
                     </a-col>
                 </a-row>
 
-                <div class="h2-title">目标表配置</div>
+                <div class="h2-title etl-section-title" role="heading" aria-level="3">目标表配置</div>
                 <div style="color: #999; font-size: 12px; margin-bottom: 8px">单个输入流将按以下目标表拆分，每个目标表生成一个独立的数据库输出</div>
 
                 <a-collapse v-model:activeKey="activeKeys" :bordered="false">

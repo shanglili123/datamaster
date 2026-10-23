@@ -61,6 +61,9 @@ public class ValueMapTransitionComponent implements ComponentItem {
         parameter.put("inputField",taskParams.get("inputField"));
         parameter.put("outputField",taskParams.get("outputField"));
         parameter.put("tableFields",taskParams.get("tableFields"));
+        for (String key : Arrays.asList("outputType", "precision", "scale", "castFailure", "unmatched")) {
+            if (taskParams.containsKey(key)) parameter.put(key, taskParams.get(key));
+        }
         reader.put("parameter", parameter);
         return reader;
     }

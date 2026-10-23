@@ -34,6 +34,14 @@ public interface IAssetsAssetOperateApplyService extends IService<AssetsAssetOpe
      */
     Long createAssetOperateApply(AssetsAssetOperateApplySaveReqVO createReqVO);
 
+    int submitAssetOperateApply(Long id, Long userId, String userName);
+
+    int approveAssetOperateApply(Long id, String comment, Long userId, String userName);
+
+    int rejectAssetOperateApply(Long id, String comment, Long userId, String userName);
+
+    int executeAssetOperateApply(Long id, Long userId, String userName);
+
     /**
      *
      *
@@ -78,6 +86,7 @@ public interface IAssetsAssetOperateApplyService extends IService<AssetsAssetOpe
      * @param operName
      * @return
      */
-    String importAssetOperateApply(List<AssetsAssetOperateApplyRespVO> importExcelList, boolean isUpdateSupport, String operName);
+    String importAssetOperateApply(List<AssetsAssetOperateApplyRespVO> importExcelList, boolean isUpdateSupport,
+                                   String operName, Long operatorId);
 
 }

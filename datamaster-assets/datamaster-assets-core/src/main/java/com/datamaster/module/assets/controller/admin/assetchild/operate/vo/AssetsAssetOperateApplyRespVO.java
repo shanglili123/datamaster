@@ -19,6 +19,12 @@ public class AssetsAssetOperateApplyRespVO implements Serializable {
 @Excel(name = "", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    @Schema(description = "", example = "")    private Date operateTime;
 @Excel(name = "")    @Schema(description = "", example = "")    private String executeFlag;
 @Excel(name = "", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    @Schema(description = "", example = "")    private Date executeTime;
+@Excel(name = "审批执行状态")    @Schema(description = "审批执行状态")    private String approvalStatus;
+@Excel(name = "审批意见")    @Schema(description = "审批意见")    private String approvalComment;
+@Excel(name = "审批人")    @Schema(description = "审批人")    private String approvedBy;
+@Excel(name = "审批人ID")    @Schema(description = "审批人ID")    private Long approvedId;
+@Excel(name = "", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")    @Schema(description = "审批时间")    private Date approvedTime;
+@Excel(name = "执行结果")    @Schema(description = "执行结果")    private String executionMessage;
 @Excel(name = "")    @Schema(description = "", example = "")    private Boolean validFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private Boolean delFlag;
 @Excel(name = "")    @Schema(description = "", example = "")    private String createBy;

@@ -17,6 +17,7 @@ import com.datamaster.module.assets.controller.admin.datasource.vo.AssetsDatasou
 import com.datamaster.module.assets.dal.dataobject.datasource.AssetsDatasourceSpaceRelDO;
 import com.datamaster.module.assets.dal.mapper.datasource.AssetsDatasourceSpaceRelMapper;
 import com.datamaster.module.assets.service.datasource.IAssetsDatasourceSpaceRelService;
+import com.datamaster.module.assets.service.datasource.DatasourceSpaceRelEnsureResult;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -82,6 +83,33 @@ public class AssetsDatasourceSpaceRelServiceImpl extends ServiceImpl<AssetsDatas
         queryWrapper.eq(assetsDatasourceSpaceRelDO.getSpaceId() != null, AssetsDatasourceSpaceRelDO::getSpaceId, assetsDatasourceSpaceRelDO.getSpaceId());
         queryWrapper.eq(StringUtils.isNotEmpty(assetsDatasourceSpaceRelDO.getSpaceCode()), AssetsDatasourceSpaceRelDO::getSpaceCode, assetsDatasourceSpaceRelDO.getSpaceCode());
         return AssetsDatasourceSpaceRelMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public DatasourceSpaceRelEnsureResult ensureDatasourceSpaceRel(Long datasourceId, Long spaceId, String spaceCode) {
+        if (datasourceId == null) throw new ServiceException("数据源 ID 不能为空");
+        if (spaceId == null && StringUtils.isBlank(spaceCode)) throw new ServiceException("空间不能为空");
+        AssetsDatasourceSpaceRelDO condition = new AssetsDatasourceSpaceRelDO();
+        condition.setDatasourceId(datasourceId);
+        condition.setSpaceId(spaceId);
+        condition.setSpaceCode(spaceCode);
+        List<AssetsDatasourceSpaceRelDO> relations = getDatasourceSpaceRelList(condition);
+        if (relations != null && !relations.isEmpty()) {
+            AssetsDatasourceSpaceRelDO relation = relations.get(0);
+            if (Boolean.FALSE.equals(relation.getValidFlag())) {
+                relation.setValidFlag(Boolean.TRUE);
+                AssetsDatasourceSpaceRelMapper.updateById(relation);
+            }
+            return new DatasourceSpaceRelEnsureResult(relation.getId(), true);
+        }
+        AssetsDatasourceSpaceRelDO relation = new AssetsDatasourceSpaceRelDO();
+        relation.setDatasourceId(datasourceId);
+        relation.setSpaceId(spaceId);
+        relation.setSpaceCode(spaceCode);
+        relation.setValidFlag(Boolean.TRUE);
+        relation.setDescription("由数据智能体 Tool 绑定");
+        AssetsDatasourceSpaceRelMapper.insert(relation);
+        return new DatasourceSpaceRelEnsureResult(relation.getId(), false);
     }
 
     @Override

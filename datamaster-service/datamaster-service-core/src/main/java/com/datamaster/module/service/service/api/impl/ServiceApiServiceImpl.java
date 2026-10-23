@@ -51,6 +51,8 @@ import com.datamaster.module.assets.api.sensitiveLevel.dto.AssetsSensitiveLevelR
 import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
 import com.datamaster.module.service.api.service.api.ServiceApiService;
+import com.datamaster.module.service.api.api.dto.ServiceApiReqDTO;
+import com.datamaster.module.service.api.api.dto.ServiceApiRespDTO;
 import com.datamaster.module.service.async.AsyncTask;
 import com.datamaster.module.service.controller.admin.api.vo.*;
 import com.datamaster.module.service.dal.dataobject.api.ServiceApiDO;
@@ -79,6 +81,13 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, ServiceApiDO> implements IServiceApiService, ServiceApiService {
+    /**
+     * SVC_API 的历史表结构要求分类字段非空，但旧的 Agent 创建入口没有携带分类。
+     * 当前数据服务空间使用该默认分类；显式传入的分类仍然优先保留。
+     */
+    private static final Long DEFAULT_DATA_SERVICE_CAT_ID = 4L;
+    private static final String DEFAULT_DATA_SERVICE_CAT_CODE = "A01A02";
+
     @Resource
     private ServiceApiMapper ServiceApiMapper;
 
@@ -1049,6 +1058,147 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
     @Override
     public List<ServiceApiDO> getServiceApiList() {
         return ServiceApiMapper.selectList();
+    }
+
+    @Override
+    public List<ServiceApiRespDTO> listVisibleServiceApis(Long spaceId, String spaceCode,
+                                                            String name, String status, int limit) {
+        ServiceApiPageReqVO request = new ServiceApiPageReqVO();
+        request.setPageNum(1);
+        request.setPageSize(Math.max(1, Math.min(limit <= 0 ? 100 : limit, 200)));
+        request.setSpaceId(spaceId);
+        request.setSpaceCode(spaceCode);
+        request.setName(StringUtils.isBlank(name) ? null : name.trim());
+        request.setStatus(StringUtils.isBlank(status) ? DataConstant.EnableState.ENABLE.getKey() : status.trim());
+        PageResult<ServiceApiDO> page = getServiceApiPage(request);
+        List<ServiceApiRespDTO> result = new ArrayList<>();
+        if (page == null || page.getRows() == null) return result;
+        for (ServiceApiDO item : page.getRows()) {
+            if (item == null) continue;
+            result.add(toAgentResp(item));
+        }
+        return result;
+    }
+
+    @Override
+    public ServiceApiRespDTO getVisibleServiceApi(Long id, Long spaceId, String spaceCode) {
+        ServiceApiDO item = requireVisibleServiceApi(id, spaceId, spaceCode, false);
+        return item == null ? null : toAgentResp(item);
+    }
+
+    @Override
+    public Object invokeVisibleServiceApi(Long id, Long spaceId, String spaceCode,
+                                          Map<String, Object> params) {
+        ServiceApiDO item = requireVisibleServiceApi(id, spaceId, spaceCode, true);
+        if (item == null) throw new ServiceException("数据服务不存在或不属于当前空间");
+        if (!DataConstant.EnableState.ENABLE.getKey().equals(item.getStatus())) {
+            throw new ServiceException("数据服务尚未发布，不能调用");
+        }
+        hydrateExecuteConfig(item);
+        if (item.getExecuteConfig() == null) {
+            throw new ServiceException("数据服务执行配置不完整");
+        }
+        if (!ConfigType.FORM.getKey().equals(item.getExecuteConfig().getApiServiceType())) {
+            throw new ServiceException("Agent 目前只支持调用表单查询型数据服务");
+        }
+        Map<String, Object> safeParams = params == null ? new LinkedHashMap<>() : new LinkedHashMap<>(params);
+        Object pageSize = safeParams.get("pageSize");
+        if (pageSize instanceof Number && ((Number) pageSize).intValue() > 200) {
+            safeParams.put("pageSize", 200);
+        }
+        item.setParams(safeParams);
+        return serviceTesting(item);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long createDraftDataService(ServiceApiReqDTO request) {
+        if (request == null || (request.getSpaceId() == null
+                && StringUtils.isBlank(request.getSpaceCode()))) {
+            throw new ServiceException("创建数据服务需要明确当前空间");
+        }
+        ServiceApiDO api = BeanUtils.toBean(request, ServiceApiDO.class);
+        api.setExecuteConfig(request.getExecuteConfig() == null ? null
+                : com.alibaba.fastjson.JSON.parseObject(
+                com.alibaba.fastjson.JSON.toJSONString(request.getExecuteConfig()), ExecuteConfig.class));
+        api.setReqParamsList(request.getReqParamsList() == null ? new ArrayList<ReqParam>()
+                : com.alibaba.fastjson.JSON.parseArray(
+                com.alibaba.fastjson.JSON.toJSONString(request.getReqParamsList()), ReqParam.class));
+        api.setResParamsList(request.getResParamsList() == null ? new ArrayList<ResParam>()
+                : com.alibaba.fastjson.JSON.parseArray(
+                com.alibaba.fastjson.JSON.toJSONString(request.getResParamsList()), ResParam.class));
+        if (api.getExecuteConfig() == null || api.getResParamsList().isEmpty()) {
+            throw new ServiceException("数据服务执行配置和返回字段不能为空");
+        }
+        if (api.getCatId() == null) {
+            api.setCatId(DEFAULT_DATA_SERVICE_CAT_ID);
+        }
+        if (StringUtils.isBlank(api.getCatCode())) {
+            api.setCatCode(DEFAULT_DATA_SERVICE_CAT_CODE);
+        }
+        if (StringUtils.isBlank(api.getStatus())) api.setStatus(DataConstant.EnableState.DISABLE.getKey());
+        if (api.getValidFlag() == null) api.setValidFlag(Boolean.TRUE);
+        api.setSpaceId(request.getSpaceId());
+        api.setSpaceCode(request.getSpaceCode());
+        api.setReqParams(JSON.toJSONString(api.getReqParamsList()));
+        api.setResParams(JSON.toJSONString(api.getResParamsList()));
+        api.setConfigJson(JSON.toJSONString(api.getExecuteConfig()));
+        ServiceApiDO prepared = shareCode(api);
+        dataApiDaoInsert(prepared);
+        return prepared.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void publishDataService(Long id, Long spaceId, String spaceCode,
+                                   Long operatorId, String operatorName) {
+        if (requireVisibleServiceApi(id, spaceId, spaceCode, false) == null) {
+            throw new ServiceException("数据服务不存在或不属于当前空间");
+        }
+        releaseDataApi(String.valueOf(id), operatorId, operatorName);
+    }
+
+    private ServiceApiDO requireVisibleServiceApi(Long id, Long spaceId, String spaceCode,
+                                                   boolean requirePublished) {
+        if (id == null) return null;
+        ServiceApiDO item = ServiceApiMapper.selectById(id);
+        if (item == null || Boolean.TRUE.equals(item.getDelFlag())) return null;
+        if (spaceId != null && !Objects.equals(spaceId, item.getSpaceId())) return null;
+        if (StringUtils.isNotBlank(spaceCode) && !spaceCode.trim().equals(item.getSpaceCode())) return null;
+        if (requirePublished && !DataConstant.EnableState.ENABLE.getKey().equals(item.getStatus())) return null;
+        return item;
+    }
+
+    private ServiceApiRespDTO toAgentResp(ServiceApiDO item) {
+        ServiceApiRespDTO result = BeanUtils.toBean(item, ServiceApiRespDTO.class);
+        // 数据库保存的是 JSON 字符串，Agent 契约需要结构化的请求字段。
+        try {
+            result.setResParamsList();
+        } catch (Exception ignored) {
+            // 字段定义损坏时仍返回基础服务摘要，由调用方决定是否继续。
+        }
+        // configJson/headerJson may contain implementation details. Agent only needs
+        // the published contract and declared request/response fields.
+        result.setConfigJson(null);
+        result.setLimitJson(null);
+        result.setHeaderJson(null);
+        return result;
+    }
+
+    private void hydrateExecuteConfig(ServiceApiDO item) {
+        if (item.getExecuteConfig() == null && StringUtils.isNotBlank(item.getConfigJson())) {
+            try {
+                item.setExecuteConfig(com.alibaba.fastjson2.JSON.parseObject(item.getConfigJson(), ExecuteConfig.class));
+            } catch (Exception ex) {
+                throw new ServiceException("数据服务执行配置解析失败");
+            }
+        }
+        if (item.getReqParamsList() == null && StringUtils.isNotBlank(item.getReqParams())) {
+            item.setReqParamsList(com.alibaba.fastjson2.JSON.parseArray(item.getReqParams(), ReqParam.class));
+        }
+        if (item.getResParamsList() == null && StringUtils.isNotBlank(item.getResParams())) {
+            item.setResParamsList(com.alibaba.fastjson2.JSON.parseArray(item.getResParams(), ResParam.class));
+        }
     }
 
     @Override

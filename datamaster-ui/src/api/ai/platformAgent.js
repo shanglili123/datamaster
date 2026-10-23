@@ -57,3 +57,35 @@ export function cancelPlatformAgent(id) {
     method: 'post'
   })
 }
+
+// LangChain4j 自主 Agent 统一消息入口。新问题、继续、补充和确认都使用同一接口。
+export function runAutonomousAgent(data) {
+  return request({
+    url: '/ai/agent/autonomous/message',
+    method: 'post',
+    data
+  })
+}
+
+export function listAgentTools() {
+  return request({
+    url: '/ai/agent/tools',
+    method: 'get'
+  })
+}
+
+export function getAutonomousAgentOperation(id, params) {
+  return request({
+    url: '/ai/agent/autonomous/' + encodeURIComponent(id),
+    method: 'get',
+    params
+  })
+}
+
+export function invokeAgentTool(name, data) {
+  return request({
+    url: '/ai/agent/tools/' + encodeURIComponent(name) + '/invoke',
+    method: 'post',
+    data
+  })
+}

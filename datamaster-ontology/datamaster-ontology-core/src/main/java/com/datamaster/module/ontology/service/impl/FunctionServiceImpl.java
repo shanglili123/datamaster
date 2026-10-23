@@ -55,6 +55,9 @@ public class FunctionServiceImpl implements IFunctionService {
     @Override
     public Long createFunction(FunctionSaveReqVO reqVO) {
         FunctionDO func = FunctionConvert.INSTANCE.convert(reqVO);
+        if (func.getFuncType() == null || func.getFuncType().trim().isEmpty()) {
+            func.setFuncType("TRANSFORM");
+        }
         func.setVersion(1);
         functionMapper.insert(func);
         return func.getId();

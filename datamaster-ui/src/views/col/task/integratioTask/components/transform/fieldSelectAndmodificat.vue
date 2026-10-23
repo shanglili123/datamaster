@@ -1,5 +1,5 @@
 <template>
-  <a-modal
+  <a-modal wrap-class-name="integration-component-modal"
     v-model:open="visibleDialog"
     class="medium-dialog"
     :title="form.taskParams.typeName"
@@ -15,6 +15,7 @@
       @submit.prevent
       :disabled="info"
     >
+      <h3 class="etl-section-title">基本信息</h3>
       <a-row :gutter="20">
         <a-col :span="12">
           <a-form-item
@@ -72,9 +73,7 @@
           </a-form-item>
         </a-col>
       </a-row>
-      <a-divider orientation="center">
-        <span class="blue-text">需要选择与修改的字段</span>
-      </a-divider>
+      <h3 class="etl-section-title">需要选择与修改的字段</h3>
       <div class="justify-between mb15">
         <a-row :gutter="15" class="btn-style">
           <a-col :span="1.5">
@@ -158,6 +157,16 @@
               style="width: 100%"
             />
           </template>
+          <template v-else-if="column.dataIndex === 'scale'">
+            <a-input-number v-model:value="record.scale" :min="0" :max="record.precision || 38" :precision="0" :disabled="!isDecimal(record.type)" />
+          </template>
+          <template v-else-if="column.dataIndex === 'castFailure'">
+            <a-select v-model:value="record.castFailure" style="width: 100%">
+            <a-select-option value="FAIL">原生 CAST（沿用引擎错误行为）</a-select-option>
+            <a-select-option value="NULL">置为 NULL</a-select-option>
+            <a-select-option value="DEFAULT">使用默认值</a-select-option>
+            </a-select></template>
+          <template v-else-if="column.dataIndex === 'defaultValue'"><a-input v-model:value="record.defaultValue" :disabled="record.castFailure !== 'DEFAULT'" /></template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" danger @click="handleDelete(record)">
               <template #icon><DeleteOutlined /></template>
@@ -166,9 +175,7 @@
           </template>
         </template>
       </a-table>
-      <a-divider orientation="center">
-        <span class="blue-text">需要移除的字段</span>
-      </a-divider>
+      <h3 class="etl-section-title">需要移除的字段</h3>
       <div class="justify-between mb15">
         <a-row :gutter="15" class="btn-style">
           <a-col :span="1.5">
@@ -243,6 +250,7 @@
 </template>
 
 <script setup>
+import { isDecimal, validateDecimal, fieldSchema } from './transformFieldSchema';
 import { message } from 'ant-design-vue'
 import { DeleteOutlined } from "@ant-design/icons-vue";
 import CreateEditModal from "../fieldMergeModal.vue";
@@ -254,7 +262,8 @@ import {
   defineEmits,
   ref,
   computed,
-  watchEffect,
+  watch,
+  nextTick,
   getCurrentInstance,
 } from "vue";
 
@@ -276,6 +285,7 @@ const props = defineProps({
 });
 const columntype = [
   { value: "BigNumber", label: "BigNumber" },
+  { value: "decimal", label: "DECIMAL" },
   { value: "Binary", label: "Binary" },
   { value: "Boolean", label: "Boolean" },
   { value: "Date", label: "Date" },
@@ -293,7 +303,10 @@ const tableColumns = computed(() => {
     { title: '字段别名', dataIndex: 'outputField', align: 'left', ellipsis: true },
     { title: '字段类型', dataIndex: 'type', align: 'left', width: 150 },
     { title: '字段长度', dataIndex: 'length', align: 'left', width: 150 },
-    { title: '字段精度', dataIndex: 'precision', align: 'left', width: 150 },
+    { title: '总位数 precision', dataIndex: 'precision', align: 'left', width: 150 },
+    { title: '小数位 scale', dataIndex: 'scale', width: 130 },
+    { title: '转换失败', dataIndex: 'castFailure', width: 140 },
+    { title: '失败默认值', dataIndex: 'defaultValue', width: 140 },
   ];
   if (!props.info) {
     cols.push({ title: '操作', key: 'actions', align: 'center', className: 'small-padding fixed-width', fixed: 'right', width: 150 });
@@ -362,6 +375,8 @@ function handleAddField() {
     type: "",
     length: null,
     precision: null,
+    scale: null,
+    castFailure: "FAIL",
     ignoreCase: 1,
     source: form.value.name,
   });
@@ -572,9 +587,6 @@ const saveData = async () => {
     // 等待 DOM 更新
     await nextTick();
     // 直接检查关键字段（避免 a-form dot-notation path 校验失效）
-    if (!form.value?.code) {
-      return proxy.$message.warning('请配置代码');
-    }
     // 判断表格是否为空
     if (!tableFields.value || tableFields.value.length === 0) {
       proxy.$message.warning("校验未通过，请至少添加一个字段");
@@ -586,10 +598,9 @@ const saveData = async () => {
       return;
     }
 
-    let names = inputFields.value.map((item) => item.columnName);
-    let isOut = names.find((item) =>
-      tableFields.value.some((row) => row.outputField === item)
-    );
+    const names = inputFields.value.map(item => item.columnName);
+    const isOut = tableFields.value.some(row => row.outputField !== row.columnName
+      && names.includes(row.outputField));
     if (isOut) {
       proxy.$message.warning("输出字段不能与已有字段名称重复");
       return;
@@ -604,7 +615,13 @@ const saveData = async () => {
       loading.value = false;
       form.value.code = response.data;
     }
+    if (!form.value.code) return proxy.$message.warning('代码生成失败，请稍后重试');
     const taskParams = form.value?.taskParams || {};
+    for (const row of tableFields.value) {
+      const error = validateDecimal(row, row.type === 'BigNumber' ? '' : row.type);
+      if (error) return proxy.$message.warning(`${row.columnName}: ${error}`);
+      if (row.castFailure === 'DEFAULT' && row.defaultValue == null) return proxy.$message.warning('请填写转换失败默认值');
+    }
     taskParams.tableFields = tableFields.value.map((item) => ({
       ...item,
       inputField: item.columnName,
@@ -619,8 +636,7 @@ const saveData = async () => {
       );
       return matched
         ? {
-            ...input,
-            ...matched,
+            ...fieldSchema({ ...input, ...matched }, matched.type, matched),
             columnName: matched.outputField || matched.columnName,
           }
         : { ...input };
@@ -659,7 +675,7 @@ function deepCopy(data) {
 }
 
 let nodeOptions = ref([]);
-watchEffect(() => {
+watch(() => [props.visible, props.currentNode?.id, props.currentNode?.data], () => {
   if (!props.visible) {
     off();
     return;
@@ -674,13 +690,13 @@ watchEffect(() => {
     props.currentNode?.data?.taskParams?.inputFields || []
   );
   inputFields.value = taskParams?.inputFields || [];
-  tableFields.value = taskParams?.tableFields || [];
+  tableFields.value = (taskParams?.tableFields || []).map(row => ({ ...row, castFailure: row.castFailure || 'FAIL' }));
   removeFields.value = taskParams?.removeFields || [];
   // 等待 DOM 更新后清除旧的校验状态，避免残留红字
 nextTick(() => {
     dpModelRefs.value?.clearValidate();
 });
-});
+}, { immediate: true });
 </script>
 
 <style scoped lang="less">

@@ -25,6 +25,9 @@ public class StandardsModelMaterializedSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "模型编码长度不能超过256个字符")
     private String modelName;
 
+    /** Actual physical target at materialization time; never recomputed from model metadata. */
+    private String tableName;
+
     @Schema(description = "模型名称", example = "")
     @Size(max = 256, message = "模型名称长度不能超过256个字符")
     private String modelAlias;

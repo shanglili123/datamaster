@@ -65,6 +65,8 @@ import excelInputForm from "@/views/col/task/integratioTask/components/input/exc
 import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vue";
 
 import tableMerge from "@/views/col/task/integratioTask/components/input/tableMerge.vue";
+import pipelineNode from "@/views/col/task/integratioTask/components/pipelineNode.vue";
+import logicNode from "@/views/col/task/integratioTask/components/logicNode.vue";
 // 转换组件
 // 清洗组件
 
@@ -148,6 +150,8 @@ const currentFormComponent = computed(() => {
       return tableSplit;
     case "38":
       return tableMerge;
+    case "100":
+      return currentNode.value?.data?.taskParams?.logicNode ? logicNode : pipelineNode;
     case "21":
       return StringReplace;
     case "50":

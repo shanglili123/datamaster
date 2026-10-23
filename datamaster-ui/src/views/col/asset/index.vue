@@ -158,6 +158,8 @@
                 <overflow-tooltip :text="record.description || '-'" max-width="260px" />
               </template>
               <template v-else-if="column.key === 'actions'">
+                <a-button v-if="isQueryableAsset(record)" v-hasPermi="['ast:dataQuery:list']"
+                  type="link" size="small" @click="queryAsset(record)">数据查询</a-button>
                 <a-button v-if="!unregistered(record)" type="link" size="small" @click="handleUpdate(record, 'register')">注册</a-button>
                 <a-button v-if="unregistered(record)" type="link" size="small" @click="handleView(record)">详情</a-button>
                 <a-button
@@ -514,6 +516,7 @@
   </div>
 </template>
 <script setup name="DppAsset">
+import { useDataQueryNavigation, isQueryableAsset } from "@/utils/dataQueryNavigation";
 import { message } from 'ant-design-vue'
 import {
   EditOutlined,
@@ -552,6 +555,11 @@ import { getThemeList } from "@/api/tax/theme/theme.js";
 import OverflowTooltip from "@/components/OverflowTooltip";
 
 import { normalizePage, pageRows } from "@/utils/page.js";
+const { openDataQuery } = useDataQueryNavigation();
+function queryAsset(record) {
+  if (!isQueryableAsset(record)) return;
+  openDataQuery({ assetId: record.id, datasourceId: record.datasourceId, tableName: record.tableName });
+}
 const { proxy } = getCurrentInstance();
 const { da_assets_status, da_asset_type } = proxy.useDict(
   "da_assets_status",
@@ -873,7 +881,7 @@ const tableColumns = [
   { title: "所属主题", dataIndex: "themeName", key: "themeName", width: 170, ellipsis: true },
   { title: "创建时间", dataIndex: "createTime", key: "createTime", width: 160 },
   { title: "资产描述", dataIndex: "description", key: "description", ellipsis: true },
-  { title: "操作", key: "actions", width: 210, fixed: "right" },
+  { title: "操作", key: "actions", width: 290, fixed: "right" },
 ];
 function handleRefresh(row) {
   const _id = row.id;

@@ -13,13 +13,14 @@ import com.datamaster.module.ai.model.dto.dbgpt.DbGptChatCompletionRequest;
 import com.datamaster.module.ai.model.dto.dbgpt.DbGptChatCompletionResponse;
 import com.datamaster.module.ai.model.dto.dbgpt.DbGptChatMessage;
 import com.datamaster.module.ai.service.skill.IAiModelGatewayService;
+import com.datamaster.module.ontology.api.IOntologyModelGateway;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.Arrays;
 
 @Service
-public class AiModelGatewayServiceImpl implements IAiModelGatewayService {
+public class AiModelGatewayServiceImpl implements IAiModelGatewayService, IOntologyModelGateway {
 
     @Resource
     private AiSkillModelProperties properties;

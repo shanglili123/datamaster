@@ -21,6 +21,9 @@ import java.util.List;
  *     doris-datasource-id: 1
  *     conflict-strategy: UPSERT   # INSERT / UPSERT / SKIP / ERROR
  *     key-columns: [id]
+ *     allowed-tables: [customer]
+ *     required-columns: [id, name]
+ *     schema-version: v1
  *     decision-trigger:
  *       base-url: ${datamaster.server-url:}  # 本体决策数据到达触发回调地址
  *       enabled: false
@@ -48,6 +51,15 @@ public class IngestionProperties {
     /** 写入目标表名（缺省从 Kafka 消息 header/字段 table 读取） */
     private String targetTable;
 
+    /** 动态路由允许的目标表白名单；为空时允许使用消息 __table，但仍必须通过标识符校验。 */
+    private List<String> allowedTables = new ArrayList<>();
+
+    /** 每条非 DELETE 消息必须携带的业务字段。 */
+    private List<String> requiredColumns = new ArrayList<>();
+
+    /** 可选 Schema 版本；配置后消息必须携带匹配的 __schemaVersion。 */
+    private String schemaVersion;
+
     /** 本体动作数据到达触发（保留 decision-trigger 配置名兼容既有环境） */
     private DecisionTrigger decisionTrigger = new DecisionTrigger();
 
@@ -60,6 +72,16 @@ public class IngestionProperties {
         private long pollTimeoutMs = 1000L;
         /** 消费轮询间隔（ms） */
         private long pollIntervalMs = 1000L;
+        /** 单条消息最大失败重试次数；0 表示失败后持续阻塞当前分区。 */
+        private int maxRetries = 3;
+        /** 失败重试退避时间（ms）。 */
+        private long retryBackoffMs = 2000L;
+        /** 死信 topic；为空时不发送死信，达到重试上限后仍阻塞当前分区。 */
+        private String deadLetterTopic;
+        /** 跨实例事件处理租约时长（ms），应大于单条消息最大处理耗时。 */
+        private long eventLeaseMs = 300000L;
+        /** 处理长消息时的租约续期间隔（ms）。0 或负数表示不启用续期。 */
+        private long leaseRenewIntervalMs = 60000L;
 
         public String getBootstrapServers() { return bootstrapServers; }
         public void setBootstrapServers(String v) { this.bootstrapServers = v; }
@@ -71,6 +93,16 @@ public class IngestionProperties {
         public void setPollTimeoutMs(long v) { this.pollTimeoutMs = v; }
         public long getPollIntervalMs() { return pollIntervalMs; }
         public void setPollIntervalMs(long v) { this.pollIntervalMs = v; }
+        public int getMaxRetries() { return maxRetries; }
+        public void setMaxRetries(int v) { this.maxRetries = v; }
+        public long getRetryBackoffMs() { return retryBackoffMs; }
+        public void setRetryBackoffMs(long v) { this.retryBackoffMs = v; }
+        public String getDeadLetterTopic() { return deadLetterTopic; }
+        public void setDeadLetterTopic(String v) { this.deadLetterTopic = v; }
+        public long getEventLeaseMs() { return eventLeaseMs; }
+        public void setEventLeaseMs(long v) { this.eventLeaseMs = v; }
+        public long getLeaseRenewIntervalMs() { return leaseRenewIntervalMs; }
+        public void setLeaseRenewIntervalMs(long v) { this.leaseRenewIntervalMs = v; }
     }
 
     /** 本体动作数据到达触发配置 */
@@ -110,6 +142,12 @@ public class IngestionProperties {
     public void setKeyColumns(List<String> v) { this.keyColumns = v; }
     public String getTargetTable() { return targetTable; }
     public void setTargetTable(String v) { this.targetTable = v; }
+    public List<String> getAllowedTables() { return allowedTables; }
+    public void setAllowedTables(List<String> v) { this.allowedTables = v; }
+    public List<String> getRequiredColumns() { return requiredColumns; }
+    public void setRequiredColumns(List<String> v) { this.requiredColumns = v; }
+    public String getSchemaVersion() { return schemaVersion; }
+    public void setSchemaVersion(String v) { this.schemaVersion = v; }
     public DecisionTrigger getDecisionTrigger() { return decisionTrigger; }
     public void setDecisionTrigger(DecisionTrigger v) { this.decisionTrigger = v; }
 }

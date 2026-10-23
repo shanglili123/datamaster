@@ -29,8 +29,8 @@ public class AiAgentOperationServiceImpl extends ServiceImpl<AiAgentOperationMap
     }
 
     @Override
-    public List<AiAgentOperationDO> listLatest(Long spaceId, String spaceCode, int limit) {
-        return baseMapper.selectLatest(spaceId, spaceCode, limit);
+    public List<AiAgentOperationDO> listLatest(Long spaceId, String spaceCode, Long creatorId, int limit) {
+        return baseMapper.selectLatest(spaceId, spaceCode, creatorId, limit);
     }
 
     @Override
@@ -39,7 +39,19 @@ public class AiAgentOperationServiceImpl extends ServiceImpl<AiAgentOperationMap
     }
 
     @Override
-    public AiAgentOperationDO findActiveByDatabaseName(String databaseName) {
-        return baseMapper.selectActiveByDatabaseName(databaseName);
+    public AiAgentOperationDO findActiveByDatabaseName(String databaseName, Long creatorId,
+                                                       Long spaceId, String spaceCode) {
+        return baseMapper.selectActiveByDatabaseName(databaseName, creatorId, spaceId, spaceCode);
+    }
+
+    @Override
+    public AiAgentOperationDO findByDatasourceAndSpace(Long datasourceId, Long creatorId,
+                                                       Long spaceId, String spaceCode) {
+        return baseMapper.selectByDatasourceAndSpace(datasourceId, creatorId, spaceId, spaceCode);
+    }
+
+    @Override
+    public AiAgentOperationDO findByFlowKey(String flowKey, Long creatorId) {
+        return baseMapper.selectByFlowKey(flowKey, creatorId);
     }
 }

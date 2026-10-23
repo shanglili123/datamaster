@@ -59,6 +59,10 @@
         <template v-else-if="column.dataIndex === 'status'">
           <dict-tag :options="dp_template_build_log_build_status" :value="record.status" />
         </template>
+        <template v-else-if="column.key === 'actions'">
+          <a-button v-if="canQueryMaterialization(record)" v-hasPermi="['ast:dataQuery:list']"
+            type="link" size="small" @click="queryMaterialization(record)">数据查询</a-button>
+        </template>
         <template v-else-if="column.dataIndex === 'remark'">
           {{ record.remark || '-' }}
         </template>
@@ -257,6 +261,16 @@ import {
     updateDpModelMaterialized
 } from '@/api/std/model/model';
 import MaterializationDialog from './materialization.vue';
+import { useDataQueryNavigation } from '@/utils/dataQueryNavigation';
+const { openDataQuery } = useDataQueryNavigation();
+function canQueryMaterialization(record) {
+  return Boolean(record.assetId && ['3', '5'].includes(String(record.status)));
+}
+function queryMaterialization(record) {
+  if (!canQueryMaterialization(record)) return;
+  // Use this execution's persisted snapshot, never infer a table from the model row.
+  openDataQuery({ assetId: record.assetId, datasourceId: record.datasourceId, tableName: record.tableName });
+}
 const { proxy } = getCurrentInstance();
 const { dp_template_build_log_build_status } = proxy.useDict(
     'dp_template_build_log_build_status'
@@ -301,7 +315,8 @@ const tableColumns = computed(() =>
         { title: '创建人', dataIndex: 'createBy', align: 'left', width: 120, colKey: 13 },
         { title: '创建时间', dataIndex: 'createTime', align: 'left', width: 265, colKey: 15 },
         { title: '状态', dataIndex: 'status', align: 'left', width: 80, colKey: 4 },
-        { title: '备注', dataIndex: 'remark', align: 'left', ellipsis: true }
+        { title: '备注', dataIndex: 'remark', align: 'left', ellipsis: true },
+        { title: '操作', key: 'actions', width: 110, fixed: 'right' }
     ].filter((col) =>
         col.colKey === undefined ? true : columns.value[col.colKey].visible
     )

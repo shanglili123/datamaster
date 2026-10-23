@@ -28,7 +28,7 @@ strip_quotes() {
 }
 
 load_vars() {
-  local line key value i k ref
+  local line key value k ref
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="$(trim "$line")"
     [[ -z "$line" || "$line" == \#* ]] && continue
@@ -39,11 +39,10 @@ load_vars() {
       VARS["$key"]="$value"
     fi
   done < "$CONFIG_FILE"
-  for ((i = 0; i < 8; i++)); do
-    for k in "${VAR_KEYS[@]}"; do
-      for ref in "${VAR_KEYS[@]}"; do
-        VARS["$k"]="${VARS[$k]//"{{ $ref }}"/${VARS[$ref]}}"
-      done
+  for k in "${VAR_KEYS[@]}"; do
+    [[ "${VARS[$k]}" == *'{{ '*'}}'* ]] || continue
+    for ref in "${VAR_KEYS[@]}"; do
+      VARS["$k"]="${VARS[$k]//"{{ $ref }}"/${VARS[$ref]}}"
     done
   done
 }

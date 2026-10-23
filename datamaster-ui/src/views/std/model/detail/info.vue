@@ -53,6 +53,13 @@ const table = ref([
     label: "逻辑模型目录",
     value: "",
   },
+  { key: "physicalTableName", label: "物理目标表名", value: "" },
+  { key: "tableType", label: "表类型", value: "" },
+  { key: "dataLayerName", label: "数仓分层", value: "" },
+  { key: "businessCategoryName", label: "业务分类（资产标签）", value: "" },
+  { key: "dataDomainName", label: "数据域", value: "" },
+  { key: "themeDomainName", label: "主题域", value: "" },
+  { key: "namingVersion", label: "命名状态", value: "" },
   // {
   //   key: "createType",
   //   label: "创建方式",
@@ -95,6 +102,10 @@ const getDescValue = (row) => {
       row.countSubmitted = detail[row.countSubmitted];
       row.countPending = detail[row.countPending];
       row.countIgnoreFlag = detail[row.countIgnoreFlag];
+    } else if (row.key === "tableType") {
+      row.value = { '1': '明细表', '2': '汇总表', '3': '维度表', '4': '应用表' }[detail.tableType];
+    } else if (row.key === "namingVersion") {
+      row.value = detail.namingVersion === 'GOVERNED_V1' ? '规范命名' : '历史兼容（未升级）';
     } else {
       row.value = detail[row.key];
     }

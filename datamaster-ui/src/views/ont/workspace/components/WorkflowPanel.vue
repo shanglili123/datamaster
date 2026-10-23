@@ -4,10 +4,11 @@
       <a-button type="primary" @click="handleAdd" v-hasPermi="['ont:action:add']">
         <template #icon><PlusOutlined /></template>新增编排
       </a-button>
+      <a-button @click="openWorkflowMonitor" v-hasPermi="['ont:action:list']">运行监控</a-button>
       <a-input-search v-model:value="query.name" placeholder="搜索编排名称" class="search-input" allow-clear @search="loadList" />
     </div>
 
-    <a-alert class="runtime-tip" type="info" show-icon message="当前支持图形化编排定义与 DAG 校验；流程运行、条件求值和并行调度将在运行时阶段接入。" />
+    <a-alert class="runtime-tip" type="info" show-icon message="当前已支持已发布 ACTION DAG、数据到达事件触发、结构化条件分支、可恢复的并行拆分/汇聚、动作节点失败重试和安全超时对账；补偿动作可人工发起并进入审批/执行链，不会自动重放。" />
 
     <a-table :loading="loading" :columns="columns" :data-source="rows" row-key="id" :pagination="false">
       <template #bodyCell="{ column, record }">
@@ -22,11 +23,155 @@
           <a-button type="link" size="small" @click="handleValidate(record)">校验</a-button>
           <a-button v-if="!record.enabled" type="link" size="small" class="publish-btn" @click="handlePublish(record)">{{ record.status === 'PUBLISHED' ? '启用' : '发布' }}</a-button>
           <a-button v-else type="link" size="small" @click="handleDisable(record)">停用</a-button>
+           <a-button v-if="record.enabled && record.status === 'PUBLISHED'" v-hasPermi="['ont:action:edit']" type="link" size="small" @click="handleRun(record)">运行</a-button>
+          <a-button v-hasPermi="['ont:action:list']" type="link" size="small" @click="handleRuns(record)">运行记录</a-button>
+          <a-button v-hasPermi="['ont:action:query']" type="link" size="small" @click="handleVersions(record)">版本</a-button>
           <a-button type="link" danger size="small" @click="handleDelete(record)">删除</a-button>
         </template>
       </template>
     </a-table>
     <pagination v-show="total > 0" :total="total" v-model:page="query.pageNum" v-model:limit="query.pageSize" @pagination="loadList" />
+
+    <a-modal v-model:open="runOpen" title="启动动作编排" :confirm-loading="running" @ok="submitRun">
+      <a-form layout="vertical">
+        <a-form-item label="当前对象主键（可选）"><a-input v-model:value="runForm.objectKey" placeholder="动作需要对象引用时填写" /></a-form-item>
+        <a-form-item label="触发事件 ID（可选）"><a-input v-model:value="runForm.eventId" placeholder="用于幂等和条件上下文" /></a-form-item>
+        <a-form-item label="运行幂等键（可选）"><a-input v-model:value="runForm.idempotencyKey" placeholder="相同编排和幂等键只创建一次运行" /></a-form-item>
+        <a-form-item label="执行方式"><a-switch v-model:checked="runForm.async" checked-children="异步" un-checked-children="同步" /></a-form-item>
+        <a-form-item label="运行输入 JSON"><a-textarea v-model:value="runForm.inputParams" :rows="8" placeholder="例如 {&quot;orderId&quot;:&quot;ORD-001&quot;}" /></a-form-item>
+      </a-form>
+      <a-alert v-if="runResult" :type="runResult.status === 'EXECUTED' ? 'success' : (['FAILED', 'RECONCILIATION_REQUIRED'].includes(runResult.status) ? 'error' : 'warning')" show-icon :message="`运行状态：${runResult.status}`" :description="runResult.errorMessage || `运行 ID：${runResult.id}`" />
+    </a-modal>
+
+    <a-modal v-model:open="versionsOpen" title="Workflow 发布版本" width="760px" :footer="null">
+      <a-alert type="info" show-icon message="回滚会按历史版本生成新的草稿，不会直接覆盖当前已发布版本。" />
+      <a-table class="version-table" :loading="versionsLoading" :columns="versionColumns" :data-source="workflowVersions" row-key="id" :pagination="false" size="small">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'status'">
+            <a-tag color="green">{{ record.status || 'PUBLISHED' }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'operation'">
+            <a-button type="link" size="small" @click="handleRollbackVersion(record)">回滚为草稿</a-button>
+          </template>
+        </template>
+      </a-table>
+    </a-modal>
+
+    <a-modal v-model:open="runsOpen" title="Workflow 运行记录" width="980px" :footer="null">
+      <div class="runs-toolbar">
+        <a-select v-model:value="runQuery.status" allow-clear placeholder="按状态筛选" :options="runStatusOptions" style="width: 170px" />
+        <a-input v-model:value="runQuery.idempotencyKey" allow-clear placeholder="按幂等键精确筛选" style="width: 260px" @press-enter="handleRunSearch" />
+        <a-button :loading="runsLoading" @click="handleRunSearch">查询</a-button>
+      </div>
+      <a-table :loading="runsLoading" :columns="runColumns" :data-source="workflowRuns" row-key="id"
+        :pagination="runPagination"
+        @change="handleRunsPageChange" size="small">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'status'">
+            <a-tag :color="runStatusColor(record.status)">{{ runStatusText(record.status) }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'steps'">
+            {{ (record.steps || []).filter(item => item.status === 'EXECUTED').length }}/{{ (record.steps || []).length }}
+          </template>
+          <template v-else-if="column.key === 'operation'">
+            <a-button type="link" size="small" @click="showRunDetail(record)">详情</a-button>
+            <a-button v-if="record.status === 'WAITING_APPROVAL' || record.status === 'FAILED'" type="link" size="small" @click="handleResume(record)">续跑</a-button>
+            <a-button v-if="record.status === 'FAILED' || record.status === 'RECONCILIATION_REQUIRED'" type="link" size="small" :disabled="record.compensationStatus === 'COMPENSATED'" :loading="compensationLoading" @click="handleCompensate(record)">补偿</a-button>
+            <a-button v-if="record.compensationRetryableCount > 0" type="link" size="small" :loading="compensationLoading" @click="handleRetryCompensate(record)">重试补偿</a-button>
+            <a-button v-if="record.status === 'QUEUED' || record.status === 'RUNNING' || record.status === 'WAITING_APPROVAL'" type="link" danger size="small" @click="handleCancel(record)">取消</a-button>
+          </template>
+        </template>
+      </a-table>
+      <a-divider />
+      <a-descriptions v-if="selectedRun" bordered size="small" :column="2">
+        <a-descriptions-item label="运行 ID">{{ selectedRun.id }}</a-descriptions-item>
+        <a-descriptions-item label="当前节点">{{ selectedRun.currentNodeKey || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="补偿状态">
+          <a-tag v-if="selectedRun.compensationStatus && selectedRun.compensationStatus !== 'NONE'" :color="compensationStatusColor(selectedRun.compensationStatus)">
+            {{ compensationStatusText(selectedRun.compensationStatus) }}
+          </a-tag>
+          <span v-else>未发起</span>
+        </a-descriptions-item>
+        <a-descriptions-item v-if="selectedRun.compensationError" label="补偿错误">{{ selectedRun.compensationError }}</a-descriptions-item>
+        <a-descriptions-item label="错误信息" :span="2">{{ selectedRun.errorMessage || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="步骤明细" :span="2">
+          <a-list size="small" :data-source="selectedRun.steps || []">
+            <template #renderItem="{ item }">
+              <a-list-item>
+                <span>{{ item.nodeKey }}</span>
+                <a-tag :color="runStatusColor(item.status)">{{ runStatusText(item.status) }}</a-tag>
+                <span v-if="item.errorMessage" class="run-error">{{ item.errorMessage }}</span>
+              </a-list-item>
+            </template>
+          </a-list>
+        </a-descriptions-item>
+      </a-descriptions>
+      <a-alert
+        v-if="compensationResult"
+        class="compensation-result"
+        :type="compensationResult.executions?.length ? 'success' : 'warning'"
+        show-icon
+        :message="compensationResult.message || '补偿计划已处理'"
+        :description="`可补偿节点：${compensationResult.eligibleCount || 0}，可重试失败节点：${compensationResult.retryableCount || 0}`"
+      />
+      <a-list
+        v-if="compensationResult?.executions?.length"
+        class="compensation-list"
+        size="small"
+        header="已提交的补偿执行记录"
+        :data-source="compensationResult.executions"
+      >
+        <template #renderItem="{ item }">
+          <a-list-item>
+            <span>执行记录 #{{ item.id }}</span>
+            <a-tag :color="runStatusColor(item.status)">{{ item.status || 'PENDING_APPROVAL' }}</a-tag>
+          </a-list-item>
+        </template>
+      </a-list>
+      <a-alert
+        v-if="compensationResult?.errors?.length"
+        class="compensation-result"
+        type="warning"
+        show-icon
+        message="部分补偿动作未提交"
+        :description="compensationResult.errors.join('；')"
+      />
+    </a-modal>
+
+    <a-modal v-model:open="monitorOpen" title="Workflow 运行监控" width="1100px" :footer="null">
+      <div class="monitor-toolbar">
+        <span class="monitor-meta">样本数：{{ monitorData.sampleSize || 0 }}，采样时间：{{ formatMonitorTime(monitorData.observedAt) }}</span>
+        <a-button size="small" :loading="monitorLoading" @click="refreshWorkflowMonitor">
+          <template #icon><ReloadOutlined /></template>刷新
+        </a-button>
+      </div>
+      <a-alert v-if="!monitorLoading && !(monitorData.sampleSize > 0)" type="info" show-icon message="当前用户暂无可见的 Workflow 运行记录。" />
+      <a-row :gutter="12" class="monitor-stat-row">
+        <a-col v-for="item in monitorStatuses" :key="item.status" :span="8" :lg="4">
+          <a-card size="small" class="monitor-stat-card">
+            <a-statistic :title="item.label" :value="monitorCount(item.status)" :value-style="{ color: item.color }" />
+          </a-card>
+        </a-col>
+      </a-row>
+      <a-table class="monitor-table" :loading="monitorLoading" :columns="monitorColumns" :data-source="monitorData.recentRuns || []" row-key="id" :pagination="false" size="small" :scroll="{ x: 900 }">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'status'">
+            <a-tag :color="runStatusColor(record.status)">{{ runStatusText(record.status) }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'operation'">
+            <a-button type="link" size="small" @click="showRunDetail(record)">详情</a-button>
+          </template>
+        </template>
+      </a-table>
+      <a-descriptions v-if="selectedRun" class="monitor-detail" bordered size="small" :column="2">
+        <a-descriptions-item label="运行 ID">{{ selectedRun.id }}</a-descriptions-item>
+        <a-descriptions-item label="Workflow ID">{{ selectedRun.workflowId }}</a-descriptions-item>
+        <a-descriptions-item label="状态"><a-tag :color="runStatusColor(selectedRun.status)">{{ runStatusText(selectedRun.status) }}</a-tag></a-descriptions-item>
+        <a-descriptions-item label="补偿状态">{{ compensationStatusText(selectedRun.compensationStatus) }}</a-descriptions-item>
+        <a-descriptions-item label="当前节点">{{ selectedRun.currentNodeKey || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="错误信息" :span="2">{{ selectedRun.errorMessage || '-' }}</a-descriptions-item>
+      </a-descriptions>
+    </a-modal>
 
     <a-modal v-model:open="editorOpen" :title="form.id ? '编辑动作编排' : '新增动作编排'"
       :width="designerBounds.width" :style="designerModalStyle"
@@ -43,7 +188,9 @@
           <a-form ref="formRef" :model="form" :rules="rules" layout="vertical" class="workflow-basic-form">
             <a-form-item label="编排名称" name="name"><a-input v-model:value="form.name" placeholder="如：订单发货流程" /></a-form-item>
             <a-form-item label="失败策略"><a-select v-model:value="form.failurePolicy" :options="failurePolicyOptions" /></a-form-item>
-            <a-form-item label="事件标识"><a-input v-model:value="form.triggerRef" placeholder="预留：数据到达事件" /></a-form-item>
+            <a-form-item label="数据到达触发标识"><a-input v-model:value="form.triggerRef" placeholder="与接入事件 triggerRef 一致时自动入队" /></a-form-item>
+            <a-form-item label="输入 Schema（JSON，可选）"><a-textarea v-model:value="form.inputSchema" :rows="2" placeholder='{"type":"object","required":["orderId"],"properties":{"orderId":{"type":"string"}}}' /></a-form-item>
+            <a-form-item label="输出 Schema（JSON，可选）"><a-textarea v-model:value="form.outputSchema" :rows="2" placeholder='{"type":"object","required":["status"],"properties":{"status":{"type":"string"}}}' /></a-form-item>
           </a-form>
           <div class="topbar-actions">
             <a-button @click="fitGraph">适应画布</a-button>
@@ -91,6 +238,17 @@
               <a-alert v-if="selectedNode.nodeType === 'START'" class="node-role-tip" type="info" show-icon :message="startTriggerSummary" />
               <label v-if="selectedNode.nodeType === 'ACTION'" class="config-field"><span>执行动作</span>
                 <a-select v-model:value="selectedNode.actionId" :options="actionSelectOptions" show-search option-filter-prop="label" placeholder="选择已有动作" @change="changeSelectedAction" />
+              </label>
+              <label v-if="selectedNode.nodeType === 'ACTION'" class="config-field"><span>补偿动作（人工发起）</span>
+                <a-select v-model:value="selectedNode.compensationActionId" :options="compensationActionSelectOptions" show-search allow-clear option-filter-prop="label" placeholder="选择已配置人工审批的补偿动作" />
+                <small class="field-help">失败或需人工对账后可发起；不会自动执行。</small>
+              </label>
+              <label v-if="selectedNode.nodeType === 'ACTION'" class="config-field"><span>节点超时（毫秒）</span>
+              <a-input-number v-model:value="selectedNode.timeoutMs" :min="0" :max="86400000" :step="1000" style="width: 100%" placeholder="超时后转人工对账，不自动重试" />
+              </label>
+              <label v-if="selectedNode.nodeType === 'ACTION'" class="config-field"><span>失败重试策略（JSON）</span>
+                <a-input v-model:value="selectedNode.retryPolicy" placeholder='{"maxAttempts":3,"backoffMs":1000}' />
+                <small class="field-help">maxAttempts 含首次执行，最多 10 次；backoffMs 支持指数退避。</small>
               </label>
               <label v-if="selectedNode.nodeType === 'PARALLEL_JOIN'" class="config-field"><span>汇聚策略</span>
                 <a-select v-model:value="selectedNode.joinPolicy" :options="joinPolicyOptions" />
@@ -157,11 +315,11 @@
 import { Graph } from '@antv/x6'
 import { Dnd } from '@antv/x6-plugin-dnd'
 import { Empty } from 'ant-design-vue'
-import { MenuFoldOutlined, MenuUnfoldOutlined, NodeIndexOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { MenuFoldOutlined, MenuUnfoldOutlined, NodeIndexOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { getActionsByOntology } from '@/api/ont/action'
 import { listConcept } from '@/api/ont/concept'
 import { listProperty } from '@/api/ont/property'
-import { addWorkflow, delWorkflow, disableWorkflow, getWorkflow, listWorkflow, publishWorkflow, updateWorkflow, validateWorkflow } from '@/api/ont/workflow'
+import { addWorkflow, delWorkflow, disableWorkflow, getWorkflow, listWorkflow, publishWorkflow, updateWorkflow, validateWorkflow, runWorkflow, listWorkflowRuns, getWorkflowRun, cancelWorkflowRun, resumeWorkflowRun, compensateWorkflowRun, retryWorkflowCompensation, getWorkflowMonitor, listWorkflowVersions, rollbackWorkflowVersion } from '@/api/ont/workflow'
 import ReferenceEditor from './workflow/ReferenceEditor.vue'
 import useAppStore from '@/store/system/app'
 
@@ -176,6 +334,32 @@ const saving = ref(false)
 const rows = ref([])
 const total = ref(0)
 const editorOpen = ref(false)
+const runOpen = ref(false)
+const runsOpen = ref(false)
+const monitorOpen = ref(false)
+const running = ref(false)
+const runsLoading = ref(false)
+const monitorLoading = ref(false)
+const compensationLoading = ref(false)
+const runResult = ref(null)
+const workflowRuns = ref([])
+const runTotal = ref(0)
+const versionsOpen = ref(false)
+const versionsLoading = ref(false)
+const versionWorkflowId = ref(null)
+const workflowVersions = ref([])
+const selectedRun = ref(null)
+const compensationResult = ref(null)
+const monitorData = reactive({ observedAt: null, sampleSize: 0, counts: {}, recentRuns: [] })
+const runForm = reactive({ workflowId: null, objectKey: '', eventId: '', idempotencyKey: '', async: false, inputParams: '{}' })
+const runQuery = reactive({ pageNum: 1, pageSize: 10, status: undefined, idempotencyKey: undefined })
+const runPagination = computed(() => ({
+  current: runQuery.pageNum,
+  pageSize: runQuery.pageSize,
+  total: runTotal.value,
+  showSizeChanger: true,
+  showTotal: total => `共 ${total} 条`
+}))
 const actionOptions = ref([])
 const conceptOptions = ref([])
 const triggerPropertyOptions = ref([])
@@ -199,8 +383,44 @@ const columns = [
   { title: '编排名称', dataIndex: 'name' },
   { title: '版本', dataIndex: 'version', width: 80, align: 'center' }, { title: '状态', key: 'status', width: 100 },
   { title: '启用', key: 'enabled', width: 90 }, { title: '失败策略', dataIndex: 'failurePolicy', width: 110 },
-  { title: '操作', key: 'operation', width: 280, fixed: 'right' }
+  { title: '操作', key: 'operation', width: 340, fixed: 'right' }
 ]
+const runColumns = [
+  { title: '运行 ID', dataIndex: 'id', width: 100 },
+  { title: '状态', key: 'status', width: 130 },
+  { title: '幂等键', dataIndex: 'idempotencyKey', ellipsis: true },
+  { title: '当前节点', dataIndex: 'currentNodeKey' },
+  { title: '步骤进度', key: 'steps', width: 100 },
+  { title: '开始时间', dataIndex: 'startedTime', width: 170 },
+  { title: '结束时间', dataIndex: 'finishedTime', width: 170 },
+  { title: '操作', key: 'operation', width: 190 }
+]
+const versionColumns = [
+  { title: '版本', dataIndex: 'version', width: 90 },
+  { title: '状态', key: 'status', width: 120 },
+  { title: '发布时间', dataIndex: 'createTime', width: 180 },
+  { title: '发布人', dataIndex: 'createBy', ellipsis: true },
+  { title: '操作', key: 'operation', width: 130 }
+]
+const monitorColumns = [
+  { title: '运行 ID', dataIndex: 'id', width: 100 },
+  { title: 'Workflow ID', dataIndex: 'workflowId', width: 110 },
+  { title: '状态', key: 'status', width: 130 },
+  { title: '当前节点', dataIndex: 'currentNodeKey', ellipsis: true },
+  { title: '开始时间', dataIndex: 'startedTime', width: 170 },
+  { title: '结束时间', dataIndex: 'finishedTime', width: 170 },
+  { title: '操作', key: 'operation', width: 80 }
+]
+const monitorStatuses = [
+  { status: 'QUEUED', label: '排队中', color: '#1677ff' },
+  { status: 'RUNNING', label: '运行中', color: '#1677ff' },
+  { status: 'WAITING_APPROVAL', label: '待审批', color: '#fa8c16' },
+  { status: 'FAILED', label: '失败', color: '#ff4d4f' },
+  { status: 'RECONCILIATION_REQUIRED', label: '需人工对账', color: '#cf1322' },
+  { status: 'EXECUTED', label: '已完成', color: '#52c41a' },
+  { status: 'CANCELED', label: '已取消', color: '#8c8c8c' }
+]
+const runStatusOptions = monitorStatuses.map(item => ({ value: item.status, label: item.label }))
 const nodeTypes = [
   { value: 'START', label: '开始触发' }, { value: 'ACTION', label: '动作' }, { value: 'CONDITION', label: '条件' },
   { value: 'PARALLEL_SPLIT', label: '并行拆分' }, { value: 'PARALLEL_JOIN', label: '并行汇聚' }, { value: 'END', label: '结束守护' }
@@ -213,7 +433,7 @@ const controlNodeTypes = [
   { value: 'END', label: '结束守护', hint: '守护流程正常结束且不能再向后连线' }
 ]
 const failurePolicyOptions = [{ value: 'STOP', label: '失败即停止' }, { value: 'MANUAL', label: '转人工处理' }, { value: 'RETRY', label: '按节点重试' }]
-const joinPolicyOptions = [{ value: 'ALL', label: '全部成功后继续' }, { value: 'ANY', label: '任一成功后继续' }]
+const joinPolicyOptions = [{ value: 'ALL', label: '全部成功后继续' }]
 const referenceSourceOptions = [
   { value: 'OBJECT', label: '当前触发对象' }, { value: 'INPUT', label: '流程输入' },
   { value: 'STEP_OUTPUT', label: '上游动作输出' }, { value: 'CONTEXT', label: '运行上下文' }
@@ -241,6 +461,9 @@ const operatorOptions = [
 ]
 
 const actionSelectOptions = computed(() => actionOptions.value.map(action => ({ value: action.id, label: `${action.name}（${action.actionType}）` })))
+const compensationActionSelectOptions = computed(() => actionOptions.value
+  .filter(action => action.needsApproval === true || Number(action.approvalLevels) > 0)
+  .map(action => ({ value: action.id, label: `${action.name}（${action.actionType}）` })))
 const triggerActionSelectOptions = computed(() => actionOptions.value
   .filter(action => resolveActionConceptId(action))
   .map(action => ({ value: action.id, label: `${action.name}（${action.actionType}）` })))
@@ -701,10 +924,34 @@ function validateLocalGraph() {
       if (right.mode === 'REFERENCE' && right.source === 'STEP_OUTPUT' && !right.nodeKey) return '请选择右侧上游动作节点'
     }
   }
+  for (const node of form.nodes.filter(item => item.nodeType === 'ACTION')) {
+    if (node.compensationActionId && !compensationActionSelectOptions.value.some(item => String(item.value) === String(node.compensationActionId))) {
+      return `动作节点“${node.name}”的补偿动作必须配置人工审批`
+    }
+    if (node.timeoutMs != null && (Number(node.timeoutMs) < 0 || Number(node.timeoutMs) > 86400000)) return `动作节点“${node.name}”超时时间必须在 0 到 86400000 毫秒之间`
+    if (node.retryPolicy) {
+      try {
+        const policy = typeof node.retryPolicy === 'string' ? JSON.parse(node.retryPolicy) : node.retryPolicy
+        const maxAttempts = Number(policy.maxAttempts ?? (Number(policy.maxRetries) + 1))
+        if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10) return `动作节点“${node.name}”的 maxAttempts 必须在 1 到 10 之间`
+        if (policy.backoffMs != null && (Number(policy.backoffMs) < 0 || Number(policy.backoffMs) > 300000)) return `动作节点“${node.name}”的 backoffMs 必须在 0 到 300000 毫秒之间`
+      } catch { return `动作节点“${node.name}”的重试策略不是合法 JSON` }
+    }
+  }
   return ''
 }
 async function submit() {
   await formRef.value.validate()
+  for (const [label, value] of [['输入', form.inputSchema], ['输出', form.outputSchema]]) {
+    if (!value) continue
+    try {
+      const schema = JSON.parse(value)
+      if (!schema || typeof schema !== 'object' || Array.isArray(schema)) throw new Error('schema')
+    } catch {
+      proxy.$modal.msgWarning(`${label} Schema 必须是合法 JSON 对象`)
+      return
+    }
+  }
   syncGraphState()
   const graphError = validateLocalGraph()
   if (graphError) { proxy.$modal.msgWarning(graphError); return }
@@ -734,6 +981,170 @@ function handlePublish(row) {
   proxy.$modal.confirm(`确认${label}编排“${row.name}”？`).then(async () => { await publishWorkflow(row.id); proxy.$modal.msgSuccess(`${label}成功`); loadList() })
 }
 function handleDisable(row) { proxy.$modal.confirm(`确认停用编排“${row.name}”？`).then(async () => { await disableWorkflow(row.id); proxy.$modal.msgSuccess('已停用'); loadList() }) }
+function handleRun(row) {
+  runForm.workflowId = row.id
+  runForm.objectKey = ''
+  runForm.eventId = ''
+  runForm.idempotencyKey = ''
+  runForm.async = false
+  runForm.inputParams = '{}'
+  runResult.value = null
+  runOpen.value = true
+}
+async function handleRuns(row) {
+  runForm.workflowId = row.id
+  runQuery.pageNum = 1
+  runQuery.pageSize = 10
+  runQuery.status = undefined
+  runQuery.idempotencyKey = undefined
+  selectedRun.value = null
+  compensationResult.value = null
+  runsOpen.value = true
+  await refreshRuns()
+}
+async function handleVersions(row) {
+  versionWorkflowId.value = row.id
+  versionsOpen.value = true
+  await refreshVersions()
+}
+async function refreshVersions() {
+  if (!versionWorkflowId.value) return
+  versionsLoading.value = true
+  try {
+    const response = await listWorkflowVersions(versionWorkflowId.value)
+    workflowVersions.value = response.data || []
+  } finally { versionsLoading.value = false }
+}
+async function handleRollbackVersion(record) {
+  try { await proxy.$modal.confirm(`确认按版本 ${record.version} 生成新的 Workflow 草稿？`) } catch { return }
+  versionsLoading.value = true
+  try {
+    await rollbackWorkflowVersion(versionWorkflowId.value, record.version)
+    proxy.$modal.msgSuccess(`已按版本 ${record.version} 生成草稿，请校验后重新发布`)
+    versionsOpen.value = false
+    await loadList()
+  } finally { versionsLoading.value = false }
+}
+async function openWorkflowMonitor() {
+  monitorOpen.value = true
+  selectedRun.value = null
+  await refreshWorkflowMonitor()
+}
+async function refreshWorkflowMonitor() {
+  monitorLoading.value = true
+  try {
+    const response = await getWorkflowMonitor(20)
+    const data = response.data || {}
+    monitorData.observedAt = data.observedAt || null
+    monitorData.sampleSize = data.sampleSize || 0
+    monitorData.counts = data.counts || {}
+    monitorData.recentRuns = data.recentRuns || []
+  } finally { monitorLoading.value = false }
+}
+function monitorCount(status) {
+  return monitorData.counts?.[status] || 0
+}
+function formatMonitorTime(value) {
+  return value || '-'
+}
+async function refreshRuns() {
+  if (!runForm.workflowId) return
+  runsLoading.value = true
+  try {
+    const response = await listWorkflowRuns(runForm.workflowId, {
+      pageNum: runQuery.pageNum,
+      pageSize: runQuery.pageSize,
+      status: runQuery.status || undefined,
+      idempotencyKey: runQuery.idempotencyKey || undefined
+    })
+    workflowRuns.value = response.data?.rows || []
+    runTotal.value = Number(response.data?.total) || 0
+  } finally { runsLoading.value = false }
+}
+async function handleRunSearch() {
+  runQuery.pageNum = 1
+  await refreshRuns()
+}
+async function handleRunsPageChange(pagination) {
+  runQuery.pageNum = pagination.current || 1
+  runQuery.pageSize = pagination.pageSize || runQuery.pageSize
+  await refreshRuns()
+}
+async function showRunDetail(record) {
+  if (compensationResult.value && String(compensationResult.value.runId) !== String(record.id)) compensationResult.value = null
+  const response = await getWorkflowRun(record.id)
+  selectedRun.value = response.data || record
+}
+function runStatusText(status) {
+  return { QUEUED: '排队中', RUNNING: '运行中', WAITING_APPROVAL: '待审批', EXECUTED: '已完成', FAILED: '失败', RECONCILIATION_REQUIRED: '需人工对账', CANCELED: '已取消' }[status] || status || '-'
+}
+function runStatusColor(status) {
+  return { QUEUED: 'blue', RUNNING: 'processing', WAITING_APPROVAL: 'orange', EXECUTED: 'success', FAILED: 'error', RECONCILIATION_REQUIRED: 'error', CANCELED: 'default' }[status] || 'blue'
+}
+function compensationStatusText(status) {
+  return { NONE: '未发起', REQUESTED: '已提交/待执行', PARTIAL: '部分完成', COMPENSATED: '已补偿完成', FAILED: '失败' }[status] || status || '-'
+}
+function compensationStatusColor(status) {
+  return { REQUESTED: 'processing', PARTIAL: 'warning', COMPENSATED: 'success', FAILED: 'error' }[status] || 'default'
+}
+async function handleResume(record) {
+  await resumeWorkflowRun(record.id, { async: true })
+  proxy.$modal.msgSuccess('已提交续跑')
+  await refreshRuns()
+  await showRunDetail({ id: record.id })
+}
+async function handleCompensate(record) {
+  try { await proxy.$modal.confirm('补偿动作只会进入人工审批/执行链，确认发起补偿计划？') } catch { return }
+  compensationLoading.value = true
+  try {
+    const response = await compensateWorkflowRun(record.id)
+    compensationResult.value = response.data || {}
+    if (compensationResult.value.executions?.length) proxy.$modal.msgSuccess('补偿计划已提交，请到动作审批/执行记录中继续处理')
+    else proxy.$modal.msgWarning(compensationResult.value.message || '没有提交成功的补偿动作')
+    await refreshRuns()
+    await showRunDetail({ id: record.id })
+  } finally { compensationLoading.value = false }
+}
+async function handleRetryCompensate(record) {
+  try { await proxy.$modal.confirm('仅重试最近一次明确失败或驳回的补偿动作，需人工对账的动作不会自动重放。确认继续？') } catch { return }
+  compensationLoading.value = true
+  try {
+    const response = await retryWorkflowCompensation(record.id)
+    compensationResult.value = response.data || {}
+    if (compensationResult.value.executions?.length) proxy.$modal.msgSuccess('失败补偿已重新提交，请继续处理人工审批')
+    else proxy.$modal.msgWarning(compensationResult.value.message || '没有可重试的补偿动作')
+    await refreshRuns()
+    await showRunDetail({ id: record.id })
+  } finally { compensationLoading.value = false }
+}
+async function handleCancel(record) {
+  try { await proxy.$modal.confirm('确认取消该 Workflow 运行？') } catch { return }
+  await cancelWorkflowRun(record.id)
+  proxy.$modal.msgSuccess('已取消运行')
+  await refreshRuns()
+  await showRunDetail({ id: record.id })
+}
+async function submitRun() {
+  try {
+    const input = JSON.parse(runForm.inputParams || '{}')
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('object')
+  } catch { proxy.$modal.msgWarning('运行输入必须是合法 JSON 对象'); return }
+  running.value = true
+  try {
+    const response = await runWorkflow(runForm.workflowId, {
+      objectKey: runForm.objectKey || undefined,
+      eventId: runForm.eventId || undefined,
+      idempotencyKey: runForm.idempotencyKey || undefined,
+      async: runForm.async,
+      inputParams: runForm.inputParams || '{}'
+    })
+    runResult.value = response.data || {}
+    if (runResult.value.status === 'EXECUTED') proxy.$modal.msgSuccess('Workflow 运行成功')
+    else if (['FAILED', 'RECONCILIATION_REQUIRED'].includes(runResult.value.status)) proxy.$modal.msgError(`Workflow 当前状态：${runResult.value.status}`)
+    else proxy.$modal.msgWarning(`Workflow 当前状态：${runResult.value.status}`)
+    loadList()
+  } finally { running.value = false }
+}
 function handleDelete(row) { proxy.$modal.confirm(`确认删除编排“${row.name}”？`).then(async () => { await delWorkflow(row.id); proxy.$modal.msgSuccess('删除成功'); loadList() }) }
 
 watch(() => props.ontologyId, value => { query.ontologyId = value; form.ontologyId = value; loadActions(); loadConcepts(); loadList() })
@@ -747,12 +1158,24 @@ defineExpose({ reload() { loadActions(); loadConcepts(); loadList() } })
 .workflow-panel { position:relative; }
 .panel-toolbar { display:flex; gap:10px; margin-bottom:12px; }
 .search-input { width:240px; }
+.run-error { margin-left: 12px; color: #ff4d4f; }
+.runs-toolbar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.version-table { margin-top:12px; }
 .runtime-tip { margin-bottom:12px; }
+.monitor-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.monitor-meta { color:#667085; font-size:12px; }
+.monitor-stat-row { margin-bottom:14px; }
+.monitor-stat-card { height:100%; }
+.monitor-stat-card :deep(.ant-statistic-title) { margin-bottom:4px; font-size:12px; }
+.monitor-table { margin-top:10px; }
+.compensation-result { margin-top:14px; }
+.compensation-list { margin-top:10px; }
+.monitor-detail { margin-top:14px; }
 .publish-btn { color:#52c41a; }
 .designer-modal-body { height:calc(var(--workflow-designer-height, 100vh) - 72px); min-height:0; max-height:none; display:flex; flex-direction:column; overflow:hidden; }
 .designer-topbar { display:flex; align-items:flex-end; gap:12px; padding:0 2px 12px; border-bottom:1px solid #e8edf5; }
 .primary-sidebar-toggle { align-self:center; flex:0 0 auto; font-size:18px; }
-.workflow-basic-form { display:grid; min-width:0; grid-template-columns:minmax(220px,1.5fr) 180px minmax(220px,1fr); gap:10px; flex:1; :deep(.ant-form-item) { min-width:0; margin-bottom:0; } }
+.workflow-basic-form { display:grid; min-width:0; grid-template-columns:minmax(190px,1.2fr) 160px minmax(190px,1fr) minmax(260px,1.6fr); gap:10px; flex:1; :deep(.ant-form-item) { min-width:0; margin-bottom:0; } }
 .topbar-actions { display:flex; flex:0 0 auto; gap:8px; padding-bottom:1px; }
 .designer-shell { display:grid; grid-template-columns:clamp(180px,16vw,220px) minmax(360px,1fr) clamp(250px,22vw,300px); flex:1; min-height:0; margin-top:12px; border:1px solid #e3e9f2; border-radius:9px; overflow:hidden; }
 .node-palette,.config-panel { min-height:0; padding:14px; background:#fff; overflow:auto; }
@@ -775,6 +1198,7 @@ defineExpose({ reload() { loadActions(); loadConcepts(); loadList() } })
 .workflow-canvas { width:100%; height:100%; min-height:0; }
 .selected-type { display:flex; align-items:center; gap:7px; margin-bottom:14px; padding:8px 10px; color:#344054; background:#f5f8fc; border-radius:6px; }
 .config-field { display:flex; flex-direction:column; gap:5px; margin-bottom:13px; color:#667085; font-size:12px; }
+.field-help { color:#98a2b3; font-size:11px; line-height:1.45; }
 .config-field :deep(.ant-input-number) { width:120px; }
 .edge-summary { margin-bottom:12px; padding:8px 10px; color:#344054; font-size:12px; background:#f5f8fc; border-radius:6px; }
 .condition-preview { margin:4px 0 13px; padding:8px; color:#475467; font-size:11px; line-height:1.5; word-break:break-all; background:#fff8e6; border:1px solid #ffe2a8; border-radius:6px; }

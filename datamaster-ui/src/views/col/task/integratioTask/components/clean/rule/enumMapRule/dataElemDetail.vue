@@ -1,5 +1,5 @@
 <template>
-  <a-modal
+  <a-modal wrap-class-name="integration-component-modal"
     title="详请"
     v-model:open="visible"
     width="800px"

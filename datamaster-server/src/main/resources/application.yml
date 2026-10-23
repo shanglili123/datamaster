@@ -1,22 +1,30 @@
 datamaster:
   name: datamaster
-  version: 3.8.8
-  copyrightYear: 2024
-  profile: ${user.dir}/upload/
-  addressEnabled: false
-  captchaType: math
-  # 文件存储类型：local=本地存储，s3=S3协议兼容存储
-  storage:
-    type: ${STORAGE_TYPE:local}
   governance:
     table-access:
       enabled: ${TABLE_GOVERNANCE_ENABLED:false}
       mode: ${TABLE_GOVERNANCE_MODE:off}
       fallback-to-catalog: ${TABLE_GOVERNANCE_FALLBACK_TO_CATALOG:true}
-  # 数据血缘开关：LINEAGE_ENABLED=true 时启用 Neo4j 血缘装配（需配置 spring.data.neo4j.*）
-  # 默认关闭，未安装/未配置 Neo4j 时不影响 ETL 任务与动作执行
+  # 旧 Neo4j 对象/动作血缘保持独立，不作为新数据血缘的查询回退。
   lineage:
     enabled: ${LINEAGE_ENABLED:false}
+    # 先执行 update_20261020_data_lineage.sql，再显式启用 PostgreSQL 数据血缘。
+    jdbc-enabled: ${LINEAGE_JDBC_ENABLED:false}
+    sync-delay-ms: ${LINEAGE_SYNC_DELAY_MS:5000}
+  ontology:
+    workflow:
+      worker-enabled: ${WORKFLOW_WORKER_ENABLED:true}
+      worker-delay-ms: ${WORKFLOW_WORKER_DELAY_MS:1000}
+      worker-batch-size: ${WORKFLOW_WORKER_BATCH_SIZE:10}
+      worker-stale-timeout-ms: ${WORKFLOW_WORKER_STALE_TIMEOUT_MS:300000}
+    webhook:
+      # 生产环境建议设置为精确 host 或 *.example.com，空值仍会阻止内网/保留地址但允许公网 host。
+      allowed-hosts: ${WEBHOOK_ALLOWED_HOSTS:}
+      allowed-ports: ${WEBHOOK_ALLOWED_PORTS:80,443}
+
+sys:
+  address-enabled: false
+  captcha-type: math
 
 server:
   port: 8989
@@ -38,7 +46,8 @@ user:
   password:
     maxRetryCount: 5
     lockTime: 10
-    universalPassword: gfh78h23789#$gfdy845
+    # Legacy universal-password login is disabled unless explicitly supplied by a private environment variable.
+    universalPassword: ${DATAMASTER_UNIVERSAL_PASSWORD:}
 
 spring:
   cache:
@@ -72,7 +81,7 @@ spring:
 token:
   header: Authorization
   rpHeader: token
-  secret: abcdefghijklmnopqrstuvwxyz
+  secret: ${DATAMASTER_JWT_SECRET:abcdefghijklmnopqrstuvwxyz}
   expireTime: 600
 
 mybatis-plus:
@@ -129,7 +138,7 @@ springdoc:
       packages-to-scan: com.datamaster.module.dm.controller
 
 knife4j:
-  enable: true
+  enable: ${KNIFE4J_ENABLED:false}
   documents:
     -
       group: 2.X版本
@@ -155,43 +164,20 @@ knife4j:
     enable-footer-custom: true
     footer-custom-content: Apache License 2.0
     enable-dynamic-parameter: false
-    enable-debug: true
+    enable-debug: ${KNIFE4J_DEBUG:false}
     enable-open-api: true
     enable-group: true
   cors: false
-  production: false
+  production: ${KNIFE4J_PRODUCTION:true}
   basic:
-    enable: true
+    enable: ${KNIFE4J_BASIC_ENABLED:false}
     username: test
     password: 12313
 
-flyflow:
-  url: http://127.0.0.1:26859/
-
-db-gpt:
-  url: ${DB_GPT_URL:http://localhost:5670}
-  timeout: ${DB_GPT_TIMEOUT:60000}
-  model: ${DB_GPT_MODEL:qwen-plus}
-  chat-mode: ${DB_GPT_CHAT_MODE:chat_with_db_qa}
-  skill-space-name: ${DB_GPT_SKILL_SPACE_NAME:datamaster-skills}
-  skill-space-owner: ${DB_GPT_SKILL_SPACE_OWNER:datamaster}
-
-ai:
-  skill-model:
-    enabled: ${AI_SKILL_MODEL_ENABLED:false}
-    api-url: ${AI_SKILL_MODEL_API_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
-    api-key: ${AI_SKILL_MODEL_API_KEY:sk-3d13e28f0c9c44628181045e454b75f8}
-    model: ${AI_SKILL_MODEL_NAME:qwen-plus}
-    timeout: ${AI_SKILL_MODEL_TIMEOUT:180000}
-    retry-count: ${AI_SKILL_MODEL_RETRY_COUNT:2}
-    retry-interval: ${AI_SKILL_MODEL_RETRY_INTERVAL:1500}
-    temperature: ${AI_SKILL_MODEL_TEMPERATURE:0.2}
-    max-tokens: ${AI_SKILL_MODEL_MAX_TOKENS:8192}
-
-id.workerId: 1
-id.datacenterId: 1
-
 file:
+  storage:
+    type: ${STORAGE_TYPE:local}
+    root-path: ${user.dir}/upload/
   job:
     log:
       qualitytask_prefix_url: /opt/quality/logs

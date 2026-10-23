@@ -5,15 +5,17 @@ package com.datamaster.metadata.controller.qa;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import cn.hutool.core.date.DateUtil;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,6 +49,11 @@ import com.datamaster.metadata.service.qa.IQualityTaskService;
 @RequestMapping("/metadata/probeTaskInstance")
 @Validated
 public class QualityLogController extends BaseController {
+    private static final long MAX_LOG_BYTES = 5L * 1024L * 1024L;
+
+    @Value("${file.job.log.qualitytask_prefix_url}")
+    private String qualityTaskLogDirectory;
+
     @Resource
     private IQualityLogService QualityLogService;
     @Resource
@@ -124,26 +131,26 @@ public class QualityLogController extends BaseController {
 
     @RequestMapping(value = "/logDetailCat", method = RequestMethod.GET)
     @Operation(summary = "运行日志详情")
+    @PreAuthorize("@ss.hasPermi('ast:qualityTask:query')")
     public ReturnT<LogResult> logDetailCat(String handleMsg) {
-        // 添加日志审计功能
         try {
-            InputStream in = new FileInputStream(handleMsg);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] buf = new byte[1024];
-            int len;
-            while ((len = in.read(buf)) != -1) {
-                bos.write(buf, 0, len);
+            if (handleMsg == null || handleMsg.trim().isEmpty()
+                    || qualityTaskLogDirectory == null || qualityTaskLogDirectory.trim().isEmpty()) {
+                return new ReturnT<>(ReturnT.FAIL_CODE, "日志路径不能为空");
             }
-            String logContent = new String(bos.toByteArray(), "UTF-8");
-            if (bos != null) {
-                bos.close();
+            Path root = Paths.get(qualityTaskLogDirectory).toAbsolutePath().normalize();
+            Path requested = Paths.get(handleMsg).toAbsolutePath().normalize();
+            if (!requested.startsWith(root)
+                    || !requested.getFileName().toString().startsWith("taskLog-")) {
+                logger.warn("拒绝读取越界质量日志路径：{}", handleMsg);
+                return new ReturnT<>(ReturnT.FAIL_CODE, "非法日志路径");
             }
-            if (in != null) {
-                in.close();
+            if (!Files.isRegularFile(requested) || Files.size(requested) > MAX_LOG_BYTES) {
+                return new ReturnT<>(ReturnT.FAIL_CODE, "日志文件不存在或超过大小限制");
             }
-            // @TODO 查看日志
+            String logContent = new String(Files.readAllBytes(requested), StandardCharsets.UTF_8);
             ReturnT<LogResult> returnT = new ReturnT<>(ReturnT.SUCCESS_CODE, "查询日志成功");
-            LogResult logResult = new LogResult(0, 0, logContent, true);
+            LogResult logResult = new LogResult(0, logContent.length(), logContent, true);
             returnT.setContent(logResult);
             return returnT;
         } catch (Exception e) {

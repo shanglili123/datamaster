@@ -1,6 +1,6 @@
 dromara:
   x-file-storage: #文件存储配置
-    default-platform: ${datamaster.storage.type:local} #默认使用的存储平台，可选值：local / s3
+    default-platform: ${file.storage.type:local} #默认使用的存储平台，可选值：local / s3
     thumbnail-suffix: ".min.jpg" #缩略图后缀，例如【.min.jpg】【.png】
     #本地存储配置
     local-plus:
@@ -10,7 +10,7 @@ dromara:
         domain: "" # 访问域名，例如："http://127.0.0.1:8081/file/"，注意后面要和 path-patterns 保持一致，"/"结尾，本地存储建议使用相对路径，方便后期更换域名
         path-patterns: /** # 访问路径
         base-path: / # 基础路径
-        storage-path: ${user.dir}/upload/ # 存储路径
+        storage-path: ${file.storage.root-path} # 存储路径
     #S3 协议兼容存储配置（MinIO、AWS S3、Cloudflare R2、RustFS等）
     amazon-s3:
       - platform: s3 # 存储平台标识

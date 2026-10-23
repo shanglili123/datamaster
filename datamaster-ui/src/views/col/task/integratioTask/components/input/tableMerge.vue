@@ -1,8 +1,10 @@
 <template>
-    <a-modal v-model:open="visibleDialog" class="medium-dialog" title="合表"
+    <a-modal wrap-class-name="integration-component-modal" v-model:open="visibleDialog" class="medium-dialog" title="合表"
         :closable="false" :destroy-on-close="true" :mask-closable="false" :width="1200">
         <a-spin :spinning="loading">
         <a-form ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent>
+
+<h3 class="etl-section-title">基本信息</h3>
 
             <a-row :gutter="20">
                 <a-col :span="12">
@@ -48,9 +50,55 @@
                     </a-form-item>
                 </a-col>
             </a-row>
-            <a-divider orientation="center">
-                <span class="blue-text">源表</span>
-            </a-divider>
+            <h3 class="etl-section-title">来源追溯</h3>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="来源追溯（必写）">
+                        <span>来源表 source_table、写入时间 write_time（转换处理时间）</span>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12" v-if="form.taskParams.sourceMetadata.enabled">
+                    <a-form-item label="来源自然键">
+                        <a-select v-model:value="form.taskParams.sourceMetadata.naturalKeyColumns" mode="multiple"
+                            allow-clear placeholder="选择源主键字段（可选）">
+                            <a-select-option v-for="field in (form.taskParams?.tableFields || [])"
+                                :key="field.columnName" :value="field.columnName">
+                                {{ field.columnName }}
+                            </a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20" v-if="form.taskParams.sourceMetadata.enabled">
+                <a-col :span="24">
+                    <a-form-item label="可选来源字段">
+                        <a-space wrap>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceDatasource">来源数据源</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceDatabase">来源数据库</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceTask">来源任务</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceBatch" :disabled="!form.taskParams.sourceMetadata.includeSourceBatch">来源批次（暂不支持，请取消旧配置）</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeRowHash">来源行 Hash</a-checkbox>
+                        </a-space>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <h3 class="etl-section-title">运行检查</h3>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="Schema 监控">
+                        <span>暂未接入结构变化检测，请使用逻辑集成节点绑定探查任务</span>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12" v-if="form.taskParams.schemaMonitoring.enabled">
+                    <a-form-item label="结构变化策略">
+                        <a-select v-model:value="form.taskParams.schemaMonitoring.onDrift" disabled>
+                            <a-select-option value="FAIL">变化即失败</a-select-option>
+                            <a-select-option value="WARN">变化仅告警</a-select-option>
+                        </a-select>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <h3 class="etl-section-title">源表</h3>
             <div class="stream-field-title">
                 <span>合并的源表(多个结构相同的表)</span>
                 <a-button size="small" type="primary" @click="addSourceTable">添加源表</a-button>
@@ -72,9 +120,7 @@
                     </template>
                 </template>
             </a-table>
-            <a-divider orientation="center">
-                <span class="blue-text">输出字段</span>
-            </a-divider>
+            <h3 class="etl-section-title">输出字段</h3>
             <div class="stream-field-title">
                 <span>输出字段列表</span>
                 <a-button size="small" type="primary" @click="addField">添加字段</a-button>
@@ -139,7 +185,7 @@ const visibleDialog = computed({
 // 变量定义
 let loading = ref(false);
 let dpModelRefs = ref();
-let form = ref({});
+let form = ref({ taskParams: { sourceMetadata: { enabled: true, naturalKeyColumns: [] }, schemaMonitoring: { enabled: false, onDrift: 'FAIL' } } });
 const createTypeList = ref([]); // 数据源列表
 
 const sourceTableColumns = [
@@ -300,7 +346,14 @@ const saveData = async () => {
             form.value.code = response.data;
         }
         const taskParams = form.value?.taskParams;
+        if (taskParams.sourceMetadata?.includeSourceBatch && !taskParams.sourceMetadata.sourceBatchValue) {
+            return proxy.$message.warning('自动来源批次尚未支持，请取消旧的来源批次选项');
+        }
         taskParams.columns = taskParams.tableFields.map(({ columnName }) => columnName);
+        taskParams.sourceMetadata.enabled = true;
+        taskParams.sourceMetadata.includeNaturalKey =
+            Array.isArray(taskParams.sourceMetadata.naturalKeyColumns)
+            && taskParams.sourceMetadata.naturalKeyColumns.length > 0;
 
         emit("confirm", form.value);
 
@@ -339,6 +392,20 @@ watch(
             Object.keys(form.value).forEach(k => { delete form.value[k]; });
             Object.assign(form.value, copy);
             form.value.taskParams = form.value.taskParams || {};
+            form.value.taskParams.sourceMetadata = form.value.taskParams.sourceMetadata || {};
+            form.value.taskParams.sourceMetadata.enabled = true;
+            form.value.taskParams.sourceMetadata.naturalKeyColumns = Array.isArray(
+                form.value.taskParams.sourceMetadata.naturalKeyColumns)
+                ? form.value.taskParams.sourceMetadata.naturalKeyColumns : [];
+            ['includeSourceDatasource', 'includeSourceDatabase', 'includeSourceTask', 'includeSourceBatch',
+                'includeRowHash', 'includeSourceUpdateTime', 'includeRecordOp']
+                .forEach(key => { form.value.taskParams.sourceMetadata[key] = !!form.value.taskParams.sourceMetadata[key]; });
+            form.value.taskParams.sourceMetadata.includeNaturalKey =
+                form.value.taskParams.sourceMetadata.includeNaturalKey !== false
+                && form.value.taskParams.sourceMetadata.naturalKeyColumns.length > 0;
+            form.value.taskParams.schemaMonitoring = form.value.taskParams.schemaMonitoring || {};
+            form.value.taskParams.schemaMonitoring.enabled = !!form.value.taskParams.schemaMonitoring.enabled;
+            form.value.taskParams.schemaMonitoring.onDrift = form.value.taskParams.schemaMonitoring.onDrift || 'FAIL';
             normalizeReaderDatasource(form.value.taskParams);
             form.value.taskParams.batchSize = form.value.taskParams.batchSize || 1000;
             form.value.taskParams.sourceTables = Array.isArray(form.value.taskParams.sourceTables)

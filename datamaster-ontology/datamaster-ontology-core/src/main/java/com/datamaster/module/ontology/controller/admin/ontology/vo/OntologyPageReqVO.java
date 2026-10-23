@@ -15,6 +15,9 @@ public class OntologyPageReqVO extends PageParam {
 
     private static final long serialVersionUID = 1L;
 
+    @Schema(description = "本体ID，精确匹配")
+    private Long id;
+
     @Schema(description = "本体名称，模糊匹配", example = "客户本体")
     private String name;
 
@@ -23,4 +26,10 @@ public class OntologyPageReqVO extends PageParam {
 
     @Schema(description = "状态：0=草稿 1=已发布 2=已归档", example = "0")
     private Integer status;
+
+    @Schema(description = "空间ID，可选")
+    private Long spaceId;
+
+    @Schema(description = "空间编码，可选")
+    private String spaceCode;
 }

@@ -219,11 +219,14 @@ public class AiSkillController extends BaseController {
         return CommonResult.success(aiSkillService.generateTableSkill(reqVO));
     }
 
-    @Operation(summary = "同步全部已发布Skill到决策智能体")
+    @Operation(summary = "同步已发布Skill到决策智能体，可按数据源筛选")
     @PreAuthorize("@ss.hasPermi('ai:skill:sync')")
     @PostMapping("/sync/dbgpt")
-    public com.datamaster.common.core.domain.AjaxResult syncAllToDbGpt() {
-        return dbGptSkillSyncService.syncAllSkills();
+    public com.datamaster.common.core.domain.AjaxResult syncAllToDbGpt(
+            @RequestParam(required = false) Long datasourceId) {
+        return datasourceId == null
+                ? dbGptSkillSyncService.syncAllSkills()
+                : dbGptSkillSyncService.syncSkillsByDatasourceId(datasourceId);
     }
 
     @Operation(summary = "同步指定Skill到决策智能体")

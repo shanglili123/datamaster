@@ -10,10 +10,10 @@
 
             <!-- 树 -->
             <a-tree class="dept-tree" ref="deptTreeRef" :tree-data="deptOptions" highlight-current
-                :field-names="{ title: 'name', children: 'children', isLeaf: 'isLeaf', value: 'id' }"
-                :load-data="(node) => { handleNodeLoad(node, (children) => { node.data.children = children; node.loaded = true; }, () => { node.data.loadError = true; node.loaded = true; }); return Promise.resolve(); }"
+                :field-names="{ title: 'name', key: 'key', children: 'children', isLeaf: 'isLeaf', value: 'id' }"
+                :load-data="loadNodeChildren"
                 :default-expand-all="defaultExpand" :filter-node-method="filterNode"
-                @right-click="(e) => onNodeContextMenu(e.event, e.node.data, e.node)">
+                @right-click="(e) => onNodeContextMenu(e.event, getNodeData(e.node), e.node)">
                 <template #title="{ data, expanded, selected }">
                     <span class="custom-tree-node" @dblclick.stop="handleNodeClick(data, data, 'node')">
                         <!-- 数据源/层级图标 -->
@@ -59,6 +59,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, getCurrentInstance } from "vue";
 import { debounce } from "lodash-es";
+import { buildSelectSql } from "@/utils/sqlIdentifiers";
 import {
     SearchOutlined,
     RightOutlined,
@@ -110,10 +111,12 @@ const getDatasourceIcon = (type) => {
     }
 };
 
+const getNodeData = (node) => node?.dataRef || node?.data || node;
+
 // 右键菜单
 const onNodeContextMenu = (event, data, node) => {
     event.preventDefault();
-    if (node.level !== 2) {
+    if (data?.level !== 2) {
         contextMenuVisible.value = false;
         return;
     }
@@ -123,34 +126,15 @@ const onNodeContextMenu = (event, data, node) => {
     contextMenuNode.value = { data, node };
 };
 
-const generateSQL = (type) => {
+const generateSQL = () => {
   if (!contextMenuNode.value) return;
   const { data, node } = contextMenuNode.value;
-  const parentData = node.parent ? node.parent.data : null;
-  const dbname = parentData?.dbname;
-  const datasourceType = parentData?.datasourceType;
-  const sid = parentData?.sid; // schema
-  const tableName = data.name || null;
-
-  const fields = (node.childNodes || [])
-      .map((childNode) => childNode.data?.name)
-      .filter(Boolean)
-      .join(", ") || "*";
-
-  let fromPart = tableName;
-  console.log("🚀 ~ generateSQL ~ datasourceType:", datasourceType)
-  if (
-      (datasourceType == "Kingbase8" ||
-          datasourceType == "SQL_Server" ||
-          datasourceType == "SQL_Server2008")
-  ) {
-    fromPart = dbname ? `${dbname}.${sid}.${tableName}` : tableName;
-  } else {
-    fromPart = dbname ? `${dbname}.${tableName}` : tableName;
-  }
-  const sql = `SELECT ${fields} FROM ${fromPart};`;
+  const parent = getNodeData(node?.parent);
+  const tableName = data.name;
+  if (!tableName) return;
+  const sql = buildSelectSql(tableName, data.datasourceType || parent?.datasourceType);
   contextMenuVisible.value = false;
-  handleNodeClick(sql, node, "sql");
+  handleNodeClick(sql, { ...node, data }, "sql");
 };
 
 // 点击空白关闭右键菜单
@@ -203,19 +187,25 @@ const findExpandedLevelOneId = (node) => {
 
 const handleNodeClick = (payload, node, type = "node") => {
     contextMenuVisible.value = false;
-    if (payload?.level === 1) return;
-
-    const parent = node?.parent?.data || null;
-    const children = node?.childNodes?.map(n => n.data) || [];
-
-    const expandedRootId = findExpandedLevelOneId(node);
-    console.log("🚀 ~ handleNodeClick ~ expandedRootId:", expandedRootId)
+    const data = type === "node" ? payload : getNodeData(node);
+    const parent = getNodeData(node?.parent) || null;
+    const children = node?.childNodes?.map(n => getNodeData(n)) || data?.children || [];
+    const expandedRootId = data?.datasourceId || (data?.level === 1 ? data.id : null)
+        || findExpandedLevelOneId(node);
     emit("node-click", { type, payload, parent, children, expandedRootId }, node);
 };
 
+// Ant Tree supplies dataRef rather than Element Tree's data/parent wrapper.
+const loadNodeChildren = (node) => new Promise((resolve, reject) => {
+    const data = getNodeData(node);
+    handleNodeLoad({ data, level: data.level, parent: node.parent }, (children) => {
+        data.children = children;
+        resolve();
+    }, reject);
+});
 
 // 懒加载
-const handleNodeLoad = (node, resolve) => {
+const handleNodeLoad = (node, resolve, reject = () => {}) => {
     node.data.loadError = false;
     node.data.loadSuccess = false;
     emit(
@@ -227,17 +217,15 @@ const handleNodeLoad = (node, resolve) => {
         },
         () => {
             node.data.loadError = true;
-            resolve([]);
+            reject(new Error("树节点加载失败"));
         }
     );
 };
 
 const retryLoad = (node) => {
-    if (!node) return;
-    node.data.loadError = false;
-    node.data.loadSuccess = false;
-    node.loaded = false;
-    node.expand();
+    const data = getNodeData(node);
+    if (!data) return;
+    loadNodeChildren({ dataRef: data }).catch(() => {});
 };
 
 // 树过滤

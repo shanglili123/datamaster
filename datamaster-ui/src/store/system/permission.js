@@ -40,7 +40,7 @@ const usePermissionStore = defineStore('permission', {
             this.defaultRoutes = constantRoutes.concat(routes);
         },
         setHomeRoutes(routes) {
-            this.homeRoutes = constantRoutes.concat(routes);
+            this.homeRoutes = routes;
         },
         setTopbarRoutes(routes) {
             this.topbarRouters = routes;
@@ -91,13 +91,22 @@ const usePermissionStore = defineStore('permission', {
         },
         resetHomeMenus(routes = this.defaultRoutes) {
             const sourceRoutes = this.homeRoutes && this.homeRoutes.length ? this.homeRoutes : routes;
-            const homeRoutes = filterHomeMenus(normalizeMenuTree(JSON.parse(JSON.stringify(sourceRoutes))));
+            const homeRoutes = filterHomeMenus(normalizeMenuTree(cloneMenuRoutes(sourceRoutes)));
             this.setMenuMode('home');
             this.setSidebarRouters([]);
             this.setTopbarRoutes(homeRoutes);
         }
     }
 });
+
+// 已解析的菜单包含异步组件函数，不能再用 JSON 克隆，否则返回首页后会丢失组件引用。
+function cloneMenuRoutes(routes) {
+    return (routes || []).map((route) => ({
+        ...route,
+        meta: route.meta ? { ...route.meta } : route.meta,
+        ...(route.children ? { children: cloneMenuRoutes(route.children) } : {})
+    }));
+}
 
 // 遍历后台传来的路由字符串，转换为组件对象
 function filterAsyncRouter(asyncRouterMap, type = false) {
@@ -183,7 +192,6 @@ function addRoutesToRouter(routes) {
         // 替换成空间工作站组件。空间菜单只负责 /space 及业务模块路由。
         if (route.name === 'DataExploreStation' || normalizeRoutePath(route.path) === '/explore') return;
         mergeStaticChildRoutes(route);
-        applySpaceWorkstationShell(route);
         if (route.name && router.hasRoute(route.name)) {
             router.removeRoute(route.name);
         }
@@ -191,32 +199,14 @@ function addRoutesToRouter(routes) {
     });
 }
 
-// 空间动态菜单会重新注册同名路由，不能只修改 router/ont 的静态定义。
-// 这里只替换实际注册到 Vue Router 的本体入口组件；topbarRouters 仍保留原业务组件，
-// 由空间工作站壳在内容区加载，避免进入本体后重新出现旧系统侧栏或产生组件递归。
-function applySpaceWorkstationShell(route) {
-    if (!route) return;
-    const title = route.meta && route.meta.title;
-    const path = route.path || '';
-    const isOntologyEntry = route.name === 'OntologyList' || title === '本体管理' || path === 'ontology';
-    const isOntologyWorkspace = route.name === 'OntWorkspace' || path === 'workspace/:ontologyId' || path.endsWith('/workspace/:ontologyId');
-    if (isOntologyEntry || isOntologyWorkspace) {
-        route.component = loadView('explore/space');
-        route.meta = {
-            ...(route.meta || {}),
-            fullScreen: true,
-            noCache: true
-        };
-    }
-    (route.children || []).forEach((child) => applySpaceWorkstationShell(child));
-}
-
 // 后端空间菜单可能缺少部分子菜单（如带参数的隐藏详情页 workspace/:ontologyId），
 // 直接 removeRoute + addRoute 重建会把前端静态路由中已注册的这些子页面一并删除，
 // 导致刷新时按名称/路径重定向失败（No match）。注册前先把静态定义中缺失的子路由补回。
 function mergeStaticChildRoutes(route) {
-    if (!route || !route.name) return route;
-    const staticRoute = constantRoutes.find((item) => item && item.name === route.name);
+    if (!route) return route;
+    const staticRoute = constantRoutes.find((item) => item && (
+        (route.name && item.name === route.name) || normalizeRoutePath(item.path) === normalizeRoutePath(route.path)
+    ));
     if (!staticRoute || !Array.isArray(staticRoute.children)) return route;
 
     const children = Array.isArray(route.children) ? route.children : [];

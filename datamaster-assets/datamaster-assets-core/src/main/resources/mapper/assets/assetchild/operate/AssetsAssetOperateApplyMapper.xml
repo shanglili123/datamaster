@@ -15,6 +15,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="operateTime"    column="OPERATE_TIME"    />
         <result property="executeFlag"    column="EXECUTE_FLAG"    />
         <result property="executeTime"    column="EXECUTE_TIME"    />
+        <result property="approvalStatus"    column="APPROVAL_STATUS"    />
+        <result property="approvalComment"    column="APPROVAL_COMMENT"    />
+        <result property="approvedBy"    column="APPROVED_BY"    />
+        <result property="approvedId"    column="APPROVED_ID"    />
+        <result property="approvedTime"    column="APPROVED_TIME"    />
+        <result property="executionMessage"    column="EXECUTION_MESSAGE"    />
         <result property="validFlag"    column="VALID_FLAG"    />
         <result property="delFlag"    column="DEL_FLAG"    />
         <result property="createBy"    column="CREATE_BY"    />
@@ -26,7 +32,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAssetOperateApplyVo">
-        select ID, ASSET_ID, DATASOURCE_ID, TABLE_NAME, TABLE_COMMENT, OPERATE_TYPE, OPERATE_JSON, OPERATE_TIME, EXECUTE_FLAG, EXECUTE_TIME, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME from AST_ASSET_OPERATE_APPLY
+        select ID, ASSET_ID, DATASOURCE_ID, TABLE_NAME, TABLE_COMMENT, OPERATE_TYPE, OPERATE_JSON, OPERATE_TIME, EXECUTE_FLAG, EXECUTE_TIME, APPROVAL_STATUS, APPROVAL_COMMENT, APPROVED_BY, APPROVED_ID, APPROVED_TIME, EXECUTION_MESSAGE, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME from AST_ASSET_OPERATE_APPLY
     </sql>
 
     <select id="selectAssetOperateApplyList" parameterType="AssetsAssetOperateApplyDO" resultMap="AssetsAssetOperateApplyResult">
@@ -41,6 +47,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="operateTime != null "> and OPERATE_TIME = #{operateTime}</if>
             <if test="executeFlag != null  and executeFlag != ''"> and EXECUTE_FLAG = #{executeFlag}</if>
             <if test="executeTime != null "> and EXECUTE_TIME = #{executeTime}</if>
+            <if test="approvalStatus != null  and approvalStatus != ''"> and APPROVAL_STATUS = #{approvalStatus}</if>
             <if test="createTime != null "> and CREATE_TIME = #{createTime}</if>
         </where>
     </select>
@@ -63,6 +70,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="operateTime != null">OPERATE_TIME,</if>
             <if test="executeFlag != null">EXECUTE_FLAG,</if>
             <if test="executeTime != null">EXECUTE_TIME,</if>
+            <if test="approvalStatus != null">APPROVAL_STATUS,</if>
+            <if test="approvalComment != null">APPROVAL_COMMENT,</if>
+            <if test="approvedBy != null">APPROVED_BY,</if>
+            <if test="approvedId != null">APPROVED_ID,</if>
+            <if test="approvedTime != null">APPROVED_TIME,</if>
+            <if test="executionMessage != null">EXECUTION_MESSAGE,</if>
             <if test="validFlag != null">VALID_FLAG,</if>
             <if test="delFlag != null">DEL_FLAG,</if>
             <if test="createBy != null">CREATE_BY,</if>
@@ -83,6 +96,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="operateTime != null">#{operateTime},</if>
             <if test="executeFlag != null">#{executeFlag},</if>
             <if test="executeTime != null">#{executeTime},</if>
+            <if test="approvalStatus != null">#{approvalStatus},</if>
+            <if test="approvalComment != null">#{approvalComment},</if>
+            <if test="approvedBy != null">#{approvedBy},</if>
+            <if test="approvedId != null">#{approvedId},</if>
+            <if test="approvedTime != null">#{approvedTime},</if>
+            <if test="executionMessage != null">#{executionMessage},</if>
             <if test="validFlag != null">#{validFlag},</if>
             <if test="delFlag != null">#{delFlag},</if>
             <if test="createBy != null">#{createBy},</if>
@@ -106,6 +125,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="operateTime != null">OPERATE_TIME = #{operateTime},</if>
             <if test="executeFlag != null">EXECUTE_FLAG = #{executeFlag},</if>
             <if test="executeTime != null">EXECUTE_TIME = #{executeTime},</if>
+            <if test="approvalStatus != null">APPROVAL_STATUS = #{approvalStatus},</if>
+            <if test="approvalComment != null">APPROVAL_COMMENT = #{approvalComment},</if>
+            <if test="approvedBy != null">APPROVED_BY = #{approvedBy},</if>
+            <if test="approvedId != null">APPROVED_ID = #{approvedId},</if>
+            <if test="approvedTime != null">APPROVED_TIME = #{approvedTime},</if>
+            <if test="executionMessage != null">EXECUTION_MESSAGE = #{executionMessage},</if>
             <if test="validFlag != null">VALID_FLAG = #{validFlag},</if>
             <if test="delFlag != null">DEL_FLAG = #{delFlag},</if>
             <if test="createBy != null">CREATE_BY = #{createBy},</if>

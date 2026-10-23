@@ -3,6 +3,7 @@ package com.datamaster.module.ai.service.skill.impl;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.datamaster.common.core.domain.entity.SysUser;
+import com.datamaster.common.api.space.ISpaceApi;
 import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.SecurityUtils;
@@ -24,6 +25,7 @@ import com.datamaster.module.ai.dal.dataobject.skill.AiSkillDO;
 import com.datamaster.module.ai.dal.dataobject.skill.AiSkillReportTemplateDO;
 import com.datamaster.module.assets.dal.mapper.asset.AssetsAssetMapper;
 import com.datamaster.module.ai.dal.mapper.skill.AiSkillMapper;
+import com.datamaster.module.ai.dal.mapper.skill.AiSkillRefMapper;
 import com.datamaster.module.ai.dal.mapper.skill.AiSkillReportTemplateMapper;
 import com.datamaster.module.ai.model.dto.dbgpt.DbGptChatCompletionRequest;
 import com.datamaster.module.ai.model.dto.dbgpt.DbGptChatCompletionResponse;
@@ -35,6 +37,7 @@ import com.datamaster.module.ai.service.skill.IAiAskDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.annotation.Resource;
@@ -54,6 +57,8 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     @Resource
     private AiSkillMapper aiSkillMapper;
     @Resource
+    private AiSkillRefMapper aiSkillRefMapper;
+    @Resource
     private AiSkillReportTemplateMapper aiSkillReportTemplateMapper;
     @Resource
     private IDatasourceMgmtService datasourceMgmtService;
@@ -65,6 +70,8 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     private IAiAskDataContextService aiAskDataContextService;
     @Resource
     private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
+    @Autowired(required = false)
+    private ISpaceApi spaceApi;
 
     @Resource
     private IDbGptClientService dbGptClientService;
@@ -77,10 +84,15 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
 
     @Override
     public AiAskDataSqlRespVO chatWithDbGpt(AiAskDataSqlReqVO reqVO) {
+        return chatWithDbGpt(reqVO, currentUserId());
+    }
+
+    @Override
+    public AiAskDataSqlRespVO chatWithDbGpt(AiAskDataSqlReqVO reqVO, Long userId) {
         if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
             throw new ServiceException("用户问题不能为空");
         }
-        checkAskDataGovernance(reqVO);
+        checkAskDataGovernance(reqVO, userId);
         if (!"chat_normal".equals(reqVO.getChatMode()) && !looksLikeDataQuestion(reqVO.getQuestion())) {
                 // pass through — let AI handle it
             }
@@ -144,7 +156,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         if (!isGeneralChat) {
             try {
                 respVO.setReferencedSkills(BeanUtils.toBean(
-                        getRelevantSkills(reqVO.getQuestion(), reqVO.getAssetId()), AiSkillRespVO.class));
+                        getRelevantSkills(reqVO.getQuestion(), reqVO.getAssetId(), reqVO.getDatasourceId()), AiSkillRespVO.class));
             } catch (Exception e) {
                 log.warn("查询AI Skill失败，跳过：{}", e.getMessage());
             }
@@ -156,6 +168,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     public SseEmitter chatWithDbGptStream(AiAskDataSqlReqVO reqVO) {
         SseEmitter emitter = new SseEmitter(0L);
         Long userPermissionLevel = currentUserDataPermissionLevel();
+        Long requestUserId = currentUserId();
         CompletableFuture.runAsync(() -> {
             try {
                 if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
@@ -163,7 +176,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
                     emitter.complete();
                     return;
                 }
-                checkAskDataGovernance(reqVO);
+                checkAskDataGovernance(reqVO, requestUserId);
                 if (!"chat_normal".equals(reqVO.getChatMode()) && !looksLikeDataQuestion(reqVO.getQuestion())) {
                     // pass through — let AI handle it
                 }
@@ -327,13 +340,18 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
 
     @Override
     public AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO) {
+        return generateReport(reqVO, currentUserId());
+    }
+
+    @Override
+    public AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO, Long userId) {
         if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
             throw new ServiceException("用户问题不能为空");
         }
         if (reqVO.getDatasourceId() == null) {
             throw new ServiceException("数据源ID不能为空");
         }
-        checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode());
+        checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode(), userId);
         AiSkillReportTemplateDO template = resolveReportTemplate(reqVO);
         DbGptChatCompletionRequest gptRequest = buildDbGptReportRequest(reqVO, template);
 
@@ -504,7 +522,18 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
 
     /** 根据当前数据源和问题自动选择报告 Skill，减少报告模式的人工前置配置。 */
     private Long resolveReportSkillId(AiAskDataReportReqVO reqVO) {
-        List<AiSkillDO> skills = aiSkillMapper.selectPublishedSkills();
+        List<AiSkillDO> skills;
+        if (reqVO.getDatasourceId() != null) {
+            Set<Long> relatedIds = new LinkedHashSet<>(
+                    aiSkillRefMapper.selectSkillIdsByDatasourceId(reqVO.getDatasourceId()));
+            relatedIds.addAll(aiSkillMapper.selectIdsByDatasourceBizObject(reqVO.getDatasourceId()));
+            if (relatedIds.isEmpty()) {
+                return null;
+            }
+            skills = aiSkillMapper.selectBatchIds(relatedIds);
+        } else {
+            skills = aiSkillMapper.selectPublishedSkills();
+        }
         if (skills == null || skills.isEmpty()) {
             return null;
         }
@@ -633,14 +662,11 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     private void bindSelectedDbGptSkill(AiAskDataSqlReqVO reqVO, DbGptChatCompletionRequest gptRequest) {
         AiSkillDO skill = resolveSelectedDbGptSkill(reqVO);
         if (skill == null || StringUtils.isBlank(skill.getSkillCode())) {
-            return;
-        }
-        // 本体决策 Skill 是 DataMaster 的内部动作/权限上下文，不是 DB-GPT 的问数知识库。
-        // 将它作为 skill_id 传给 chat_react_agent 会导致部分适配器把 Skill 文档原样回显，
-        // 问数场景应继续使用数据库问答模式，由数据源直接生成查询结果。
-        if ("ONTOLOGY_DECISION".equalsIgnoreCase(skill.getSkillType())
-                || "ONTOLOGY".equalsIgnoreCase(skill.getBizObjectType())) {
-            gptRequest.getExtra().put("ontology_id", skill.getBizObjectId());
+            // 选择了数据源但该数据源没有 Skill 时，不能回退到知识空间里的全局 Skill，
+            // 否则 DB-GPT 会把其它数据源的知识也检索进来。
+            if (reqVO != null && reqVO.getDatasourceId() != null) {
+                gptRequest.setSpaceName(null);
+            }
             return;
         }
         String skillId = firstNonBlank(skill.getDbgptDocumentName(), skill.getSkillCode());
@@ -677,7 +703,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             List<AiSkillDO> skills = aiSkillMapper.selectBatchIds(reqVO.getSkillIds());
             if (skills != null) {
                 for (AiSkillDO skill : skills) {
-                    if (isUsableDbGptSkill(skill)) {
+                    if (isUsableDbGptSkill(skill) && isSkillInDatasource(skill, reqVO.getDatasourceId())) {
                         return skill;
                     }
                 }
@@ -685,11 +711,42 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         }
         if (reqVO.getAssetId() != null) {
             AiSkillDO skill = aiSkillMapper.selectByBizObject("TABLE", reqVO.getAssetId());
-            if (isUsableDbGptSkill(skill)) {
+            if (isUsableDbGptSkill(skill) && isSkillInDatasource(skill, reqVO.getDatasourceId())) {
                 return skill;
             }
         }
+
+        // 未手工选择 Skill 时，自动从当前数据源挑选一个已发布 Skill，优先整库 Skill。
+        // 这样决策智能体不会因为没有 skill_id 而回退到全局知识空间。
+        if (reqVO.getDatasourceId() != null) {
+            Set<Long> relatedIds = new LinkedHashSet<>(
+                    aiSkillRefMapper.selectSkillIdsByDatasourceId(reqVO.getDatasourceId()));
+            relatedIds.addAll(aiSkillMapper.selectIdsByDatasourceBizObject(reqVO.getDatasourceId()));
+            if (!relatedIds.isEmpty()) {
+                List<AiSkillDO> relatedSkills = aiSkillMapper.selectBatchIds(relatedIds);
+                AiSkillDO fallback = null;
+                if (relatedSkills != null) {
+                    for (AiSkillDO skill : relatedSkills) {
+                        if (!isUsableDbGptSkill(skill)) continue;
+                        if ("DATABASE".equalsIgnoreCase(skill.getSkillType())) return skill;
+                        if (fallback == null) fallback = skill;
+                    }
+                }
+                return fallback;
+            }
+        }
         return null;
+    }
+
+    private boolean isSkillInDatasource(AiSkillDO skill, Long datasourceId) {
+        if (skill == null || datasourceId == null) {
+            return true;
+        }
+        if (datasourceId.equals(skill.getBizObjectId())
+                && "DATA_SOURCE".equalsIgnoreCase(skill.getBizObjectType())) {
+            return true;
+        }
+        return aiSkillRefMapper.selectSkillIdsByDatasourceId(datasourceId).contains(skill.getId());
     }
 
     private boolean isUsableDbGptSkill(AiSkillDO skill) {
@@ -699,11 +756,23 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     }
 
     private void checkAskDataGovernance(AiAskDataSqlReqVO reqVO) {
+        checkAskDataGovernance(reqVO, currentUserId());
+    }
+
+    private void checkAskDataGovernance(AiAskDataSqlReqVO reqVO, Long userId) {
         if (reqVO == null) {
             return;
         }
+        if ((reqVO.getDatasourceId() != null || reqVO.getAssetId() != null)
+                && reqVO.getSpaceId() == null && StringUtils.isBlank(reqVO.getSpaceCode())) {
+            throw new ServiceException("当前问数请求缺少空间上下文");
+        }
+        if ((reqVO.getDatasourceId() != null || reqVO.getAssetId() != null)
+                && (spaceApi == null || !spaceApi.hasUserSpace(userId, reqVO.getSpaceId(), reqVO.getSpaceCode()))) {
+            throw new ServiceException("当前用户无权访问该空间");
+        }
         if (reqVO.getAssetId() == null) {
-            checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode());
+            checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode(), userId);
             return;
         }
         AssetsAssetDO asset = assetsAssetMapper.selectById(reqVO.getAssetId());
@@ -740,15 +809,34 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
     }
 
     private void checkDatasourceAccess(Long datasourceId, Long spaceId, String spaceCode) {
-        if (datasourceId == null || (spaceId == null && StringUtils.isBlank(spaceCode))) {
+        checkDatasourceAccess(datasourceId, spaceId, spaceCode, currentUserId());
+    }
+
+    private void checkDatasourceAccess(Long datasourceId, Long spaceId, String spaceCode, Long userId) {
+        if (datasourceId == null) {
             return;
+        }
+        if (spaceId == null && StringUtils.isBlank(spaceCode)) {
+            throw new ServiceException("当前请求缺少空间上下文，无法访问数据源");
+        }
+        if (spaceApi == null || !spaceApi.hasUserSpace(userId, spaceId, spaceCode)) {
+            throw new ServiceException("当前用户无权访问该空间");
         }
         Long count = datasourceSpaceRelMgmtMapper.selectCount(Wrappers.<DatasourceSpaceRelDO>lambdaQuery()
                 .eq(DatasourceSpaceRelDO::getDatasourceId, datasourceId)
                 .eq(spaceId != null, DatasourceSpaceRelDO::getSpaceId, spaceId)
                 .eq(StringUtils.isNotBlank(spaceCode), DatasourceSpaceRelDO::getSpaceCode, spaceCode));
         if (count == null || count <= 0) {
-            throw new ServiceException("当前空间无权访问该数据源");
+                throw new ServiceException("当前空间无权访问该数据源");
+        }
+    }
+
+    private Long currentUserId() {
+        try {
+            LoginUser loginUser = SecurityUtils.getLoginUser();
+            return loginUser == null ? null : loginUser.getUserId();
+        } catch (Exception ignored) {
+            return null;
         }
     }
 
@@ -794,14 +882,62 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         builder.append("- \u201c贡献 top10%\u201d应先按用户问题中的指标聚合并降序排序，再取 top 10%；不得更换用户指定的指标口径。\n");
     }
 
-    private List<AiSkillDO> getRelevantSkills(String question, Long assetId) {
+    /**
+     * 只从当前数据源关联的 Skill 中挑选引用项。
+     *
+     * 这里不能直接调用 selectPublishedByKeyword：该查询是全局关键词查询，
+     * 如果不再按数据源收窄，问数结果里的“引用 Skill”会把其它数据源的 Skill
+     * 也带出来，前端看起来就像数据智能体使用了全部 Skill。
+     */
+    private List<AiSkillDO> getRelevantSkills(String question, Long assetId, Long datasourceId) {
         String keyword = firstNonBlank(question);
         AiSkillDO assetSkill = assetId != null ? aiSkillMapper.selectByBizObject("TABLE", assetId) : null;
+        List<AiSkillDO> matchedSkills = aiSkillMapper.selectPublishedByKeyword(keyword);
+        if (datasourceId != null) {
+            Set<Long> relatedIds = new LinkedHashSet<>(
+                    aiSkillRefMapper.selectSkillIdsByDatasourceId(datasourceId));
+            relatedIds.addAll(aiSkillMapper.selectIdsByDatasourceBizObject(datasourceId));
+
+            // 资产级历史 Skill 可能没有 DATA_SOURCE 引用，但资产本身属于当前数据源，
+            // 仍允许它作为当前问题的专属 Skill 返回。
+            if (assetSkill != null && relatedIds.contains(assetSkill.getId())) {
+                // 已在关联集合中，无需额外处理。
+            } else if (assetSkill != null && isAssetInDatasource(assetId, datasourceId)) {
+                relatedIds.add(assetSkill.getId());
+            }
+
+            if (relatedIds.isEmpty()) {
+                matchedSkills = Collections.emptyList();
+                assetSkill = null;
+            } else {
+                final Set<Long> allowedIds = relatedIds;
+                List<AiSkillDO> filtered = new ArrayList<>();
+                if (matchedSkills != null) {
+                    for (AiSkillDO skill : matchedSkills) {
+                        if (skill != null && allowedIds.contains(skill.getId())) {
+                            filtered.add(skill);
+                        }
+                    }
+                }
+                matchedSkills = filtered;
+                if (assetSkill != null && !allowedIds.contains(assetSkill.getId())) {
+                    assetSkill = null;
+                }
+            }
+        }
         return mergeSkills(
                 Collections.emptyList(),
-                aiSkillMapper.selectPublishedByKeyword(keyword),
+                matchedSkills,
                 assetSkill
         );
+    }
+
+    private boolean isAssetInDatasource(Long assetId, Long datasourceId) {
+        if (assetId == null || datasourceId == null) {
+            return false;
+        }
+        AssetsAssetDO asset = assetsAssetMapper.selectById(assetId);
+        return asset != null && datasourceId.equals(asset.getDatasourceId());
     }
 
     private List<AiSkillDO> mergeSkills(List<AiSkillDO> platformSkills, List<AiSkillDO> matchedSkills, AiSkillDO assetSkill) {
@@ -856,8 +992,10 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             if (skill == null || !"PUBLISHED".equals(skill.getStatus())) {
                 continue;
             }
-            if ("decision".equalsIgnoreCase(reqVO.getResponseMode())
-                    && "ONTOLOGY_DECISION".equalsIgnoreCase(skill.getSkillType())) {
+            // skillIds 来自会话历史，可能在切换数据源后仍保留旧值。
+            // 这里必须和 resolveSelectedDbGptSkill 使用同一条数据源边界，
+            // 否则旧 Skill 内容仍会被直接拼进 DB-GPT 提示词。
+            if (reqVO.getDatasourceId() != null && !isSkillInDatasource(skill, reqVO.getDatasourceId())) {
                 continue;
             }
             builder.append("### ").append(firstNonBlank(skill.getSkillName(), skill.getSkillCode())).append("\n");

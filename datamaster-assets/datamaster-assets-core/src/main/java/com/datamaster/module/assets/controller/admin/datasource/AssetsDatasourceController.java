@@ -325,8 +325,18 @@ public class AssetsDatasourceController extends BaseController {
         dto.setIp(jsonObject.getStr("ip"));
         dto.setPort(jsonObject.getLong("port"));
         dto.setDbname(jsonObject.getStr("dbname"));
-        dto.setTableName(jsonObject.getStr("tableName"));
+        dto.setBaseTableName(jsonObject.getStr("baseTableName", jsonObject.getStr("newTableName", jsonObject.getStr("tableName"))));
+        dto.setTableCase(jsonObject.getStr("tableCase", "2"));
         dto.setTableComment(jsonObject.getStr("tableComment"));
+        dto.setDatasourceId(jsonObject.getLong("datasourceId"));
+        dto.setDataLayerId(jsonObject.getLong("dataLayerId"));
+        dto.setBusinessCategoryId(jsonObject.getLong("businessCategoryId"));
+        dto.setBusinessCategoryCode(jsonObject.getStr("businessCategoryCode"));
+        dto.setDataDomainId(jsonObject.getLong("dataDomainId"));
+        dto.setThemeDomainId(jsonObject.getLong("themeDomainId"));
+        dto.setThemeDomainCode(jsonObject.getStr("themeDomainCode"));
+        dto.setTableType(jsonObject.getStr("tableType"));
+        dto.setCatCode(jsonObject.getStr("catCode"));
         JSONArray columns = jsonObject.getJSONArray("columns");
         List<DbColumn> dbColumns = new ArrayList<>();
         if (columns != null && !columns.isEmpty()) {
@@ -336,9 +346,6 @@ public class AssetsDatasourceController extends BaseController {
             }
         }
         dto.setColumnsList(dbColumns);
-        if (AssetsDatasourceService.creaDatasourceTeTable(dto)) {
-            return AjaxResult.success("创建成功");
-        }
-        return AjaxResult.error("表已存在");
+        return AjaxResult.success(AssetsDatasourceService.createTaskTempTable(dto));
     }
 }

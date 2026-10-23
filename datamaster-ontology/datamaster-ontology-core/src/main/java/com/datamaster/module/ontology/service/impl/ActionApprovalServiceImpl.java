@@ -282,8 +282,10 @@ public class ActionApprovalServiceImpl implements IActionApprovalService {
         // 当前产品语义固定为一次人工确认；历史多级定义也只创建一个审批任务。
         int levels = 1;
         LoginUser loginUser = currentLogin();
-        Long userId = loginUser == null || loginUser.getUser() == null ? null : loginUser.getUser().getUserId();
-        String submitterName = loginUser == null || loginUser.getUser() == null ? "" : loginUser.getUser().getUserName();
+        Long userId = loginUser == null || loginUser.getUser() == null
+                ? exec.getCreatorId() : loginUser.getUser().getUserId();
+        String submitterName = loginUser == null || loginUser.getUser() == null
+                ? (exec.getCreateBy() == null ? "" : exec.getCreateBy()) : loginUser.getUser().getUserName();
 
         ActionApprovalRequestDO request = ActionApprovalRequestDO.builder()
                 .actionExecutionId(exec.getId())

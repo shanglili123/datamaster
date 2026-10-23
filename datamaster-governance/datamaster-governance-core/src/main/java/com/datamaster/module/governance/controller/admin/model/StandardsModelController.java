@@ -1,6 +1,9 @@
 package com.datamaster.module.governance.controller.admin.model;
 
 import javax.annotation.Resource;
+import com.datamaster.module.governance.api.service.warehouse.IWarehouseTableNamingApiService;
+import com.datamaster.module.governance.api.warehouse.dto.WarehouseTableNamingReqDTO;
+import com.datamaster.module.governance.api.warehouse.dto.WarehouseTableNamingRespDTO;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.util.Arrays;
@@ -42,6 +45,15 @@ import com.datamaster.module.governance.service.model.IStandardsModelService;
 public class StandardsModelController extends BaseController {
     @Resource
     private IStandardsModelService StandardsModelService;
+    @Resource
+    private IWarehouseTableNamingApiService warehouseTableNamingApiService;
+
+    @Operation(summary = "预览并校验数仓物理表名")
+    @PreAuthorize("@ss.hasPermi('dp:model:add') or @ss.hasPermi('dp:model:edit') or @ss.hasPermi('ast:dataSource:query')")
+    @PostMapping("/previewTableName")
+    public CommonResult<WarehouseTableNamingRespDTO> previewTableName(@RequestBody WarehouseTableNamingReqDTO request) {
+        return CommonResult.success(warehouseTableNamingApiService.resolveAndValidate(request));
+    }
 
     @Operation(summary = "查询逻辑模型列表")
     @PreAuthorize("@ss.hasPermi('dp:model:list')")

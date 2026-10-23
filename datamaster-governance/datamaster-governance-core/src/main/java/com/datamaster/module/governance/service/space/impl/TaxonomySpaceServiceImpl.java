@@ -401,6 +401,23 @@ public class TaxonomySpaceServiceImpl extends ServiceImpl<TaxonomySpaceMapper, T
         return taxonomySpaceMapper.selectList(spaceWrapper);
     }
 
+    @Override
+    public boolean hasUserSpace(Long userId, Long spaceId, String spaceCode) {
+        if (userId == null || (spaceId == null && StringUtils.isBlank(spaceCode))) {
+            return false;
+        }
+        List<TaxonomySpaceDO> spaces = getCurrentUserSpaceList(userId);
+        if (spaces == null) return false;
+        for (TaxonomySpaceDO space : spaces) {
+            if (space == null) continue;
+            if (Boolean.FALSE.equals(space.getValidFlag())) continue;
+            if (spaceId != null && !spaceId.equals(space.getId())) continue;
+            if (StringUtils.isNotBlank(spaceCode) && !spaceCode.equalsIgnoreCase(space.getCode())) continue;
+            return true;
+        }
+        return false;
+    }
+
     /**
      * 查询尚未加入当前空间的用户列表
      */

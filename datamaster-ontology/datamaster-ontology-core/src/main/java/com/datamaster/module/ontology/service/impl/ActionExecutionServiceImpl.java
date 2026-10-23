@@ -66,6 +66,7 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     @Resource private IAssetsTableGovernanceApiService tableGovernanceApiService;
     @Resource private IFunctionService functionService;
     @Resource private IWebhookService webhookService;
+    @Resource private WebhookActionExecutor webhookActionExecutor;
     @Resource private IActionApprovalService approvalService;
     @Resource private ObjectStateConditionResolver objectStateConditionResolver;
     @Autowired
@@ -86,6 +87,7 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     private static final String STATUS_REJECTED = "REJECTED";
     private static final String STATUS_EXECUTED = "EXECUTED";
     private static final String STATUS_FAILED = "FAILED";
+    private static final String STATUS_RECONCILIATION_REQUIRED = "RECONCILIATION_REQUIRED";
     private static final String STATUS_ROLLED_BACK = "ROLLED_BACK";
 
     /** 执行失败错误码：落 ERROR_CODE 供统一结构/审计/前端展示（成功后置 null） */
@@ -94,6 +96,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     private static final String ERROR_CODE_TRIGGER_SUBMIT = "TRIGGER_SUBMIT_ERROR";
     private static final String ERROR_CODE_ACTION_VERSION = "ACTION_VERSION_CHANGED";
     private static final String ERROR_CODE_FUNCTION_VERSION = "FUNCTION_VERSION_CHANGED";
+    private static final String ERROR_CODE_WEBHOOK = "WEBHOOK_ERROR";
+    private static final String ERROR_CODE_WEBHOOK_RECONCILIATION = "WEBHOOK_RECONCILIATION_REQUIRED";
     private static final String EXECUTION_OWNER = UUID.randomUUID().toString();
 
     /** 治理 API 入口标识：查询维持原值，增删改按动作类型区分（写操作严格模式） */
@@ -111,6 +115,7 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         if (action == null) {
             throw new RuntimeException("动作不存在: " + reqVO.getActionId());
         }
+        Long actionDatasourceId = resolveActionDatasourceId(action);
         // autoExecute 表示“无需人工确认，提交后由 Worker 直接执行”，与触发来源无关。
         Map<String, Object> submittedInputParams = parseParams(reqVO.getInputParams());
         boolean manualReference = isManualReferenceRequired(action, submittedInputParams);
@@ -147,6 +152,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
             String effectiveObjectKey = deriveObjectKey(action, reqVO);
             ActionExecutionDO functionExec = ActionExecutionDO.builder()
                     .actionId(action.getId()).ontologyId(action.getOntologyId())
+                    .creatorId(reqVO.getCreatorId()).createBy(reqVO.getCreateBy())
+                    .datasourceId(actionDatasourceId)
                     .inputParams(reqVO.getInputParams()).generatedSql(resolvedBody)
                     .previewResult(null)
                     .spaceId(reqVO.getSpaceId()).spaceCode(reqVO.getSpaceCode())
@@ -157,6 +164,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                     .autoExecute(autoExecute)
                     .triggerType(defaultTriggerType(reqVO.getTriggerType()))
                     .triggerRef(reqVO.getTriggerRef()).eventId(reqVO.getEventId())
+                     .workflowRunId(reqVO.getWorkflowRunId()).workflowStepId(reqVO.getWorkflowStepId())
+                     .parentExecutionId(reqVO.getParentExecutionId())
                     .maxAttempts(defaultMaxAttempts(reqVO.getMaxAttempts()))
                     .nextRunTime(reqVO.getNextRunTime()).attemptNo(0)
                     .status(STATUS_PENDING).build();
@@ -165,6 +174,41 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
             executionMapper.insert(functionExec);
             initApprovalChainIfPending(functionExec, action);
             return ActionConvert.INSTANCE.convert(functionExec);
+        }
+        if ("WEBHOOK".equalsIgnoreCase(action.getActionType())) {
+            Map<String, Object> webhookContext = new LinkedHashMap<>();
+            webhookContext.put("objectKey", reqVO.getObjectKey());
+            webhookContext.put("eventId", reqVO.getEventId());
+            webhookContext.put("triggerType", reqVO.getTriggerType());
+            webhookContext.put("triggerRef", reqVO.getTriggerRef());
+            WebhookActionExecutor.PreparedRequest webhookPlan = webhookActionExecutor.prepare(
+                    action.getExecutionSteps(), submittedInputParams, webhookContext);
+            int maxAttempts = defaultMaxAttempts(reqVO.getMaxAttempts());
+            if (maxAttempts > 1 && !webhookPlan.isIdempotent()) {
+                throw new IllegalArgumentException("WEBHOOK 只有显式标记 idempotent=true 才允许重试，避免重复副作用");
+            }
+            ActionExecutionDO webhookExec = ActionExecutionDO.builder()
+                    .actionId(action.getId()).ontologyId(action.getOntologyId())
+                    .creatorId(reqVO.getCreatorId()).createBy(reqVO.getCreateBy())
+                    .datasourceId(null)
+                    .inputParams(reqVO.getInputParams())
+                    .generatedSql(toJson(webhookPlan.toAuditMap()))
+                    .previewResult(toJson(Collections.singletonMap("request", webhookPlan.toAuditMap())))
+                    .spaceId(reqVO.getSpaceId()).spaceCode(reqVO.getSpaceCode())
+                    .actionVersion(defaultVersion(action.getVersion()))
+                    .idempotencyKey(reqVO.getIdempotencyKey())
+                    .objectKey(reqVO.getObjectKey())
+                    .autoExecute(autoExecute)
+                    .triggerType(defaultTriggerType(reqVO.getTriggerType()))
+                    .triggerRef(reqVO.getTriggerRef()).eventId(reqVO.getEventId())
+                    .workflowRunId(reqVO.getWorkflowRunId()).workflowStepId(reqVO.getWorkflowStepId())
+                    .parentExecutionId(reqVO.getParentExecutionId())
+                    .maxAttempts(maxAttempts).nextRunTime(reqVO.getNextRunTime()).attemptNo(0)
+                    .status(STATUS_PENDING).build();
+            applySubmissionDecision(webhookExec, action, reqVO);
+            executionMapper.insert(webhookExec);
+            initApprovalChainIfPending(webhookExec, action);
+            return ActionConvert.INSTANCE.convert(webhookExec);
         }
         if ("COMPOSITE".equals(action.getActionType())) {
             if ("DATA_ARRIVAL".equalsIgnoreCase(reqVO.getTriggerType()) && manualReference) {
@@ -190,6 +234,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         // 版本冻结：动作定义版本（执行前复核，防定义变更后误执行与预览不一致的逻辑）
         ActionExecutionDO exec = ActionExecutionDO.builder()
                 .actionId(action.getId()).ontologyId(action.getOntologyId())
+                .creatorId(reqVO.getCreatorId()).createBy(reqVO.getCreateBy())
+                .datasourceId(actionDatasourceId)
                 .inputParams(reqVO.getInputParams()).generatedSql(sql)
                 .previewResult(toJson(preview))
                 .spaceId(reqVO.getSpaceId()).spaceCode(reqVO.getSpaceCode())
@@ -199,6 +245,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 .autoExecute(autoExecute)
                 .triggerType(defaultTriggerType(reqVO.getTriggerType()))
                 .triggerRef(reqVO.getTriggerRef()).eventId(reqVO.getEventId())
+                .workflowRunId(reqVO.getWorkflowRunId()).workflowStepId(reqVO.getWorkflowStepId())
+                .parentExecutionId(reqVO.getParentExecutionId())
                 .maxAttempts(defaultMaxAttempts(reqVO.getMaxAttempts()))
                 .nextRunTime(reqVO.getNextRunTime()).attemptNo(0)
                 .status(STATUS_PENDING).build();
@@ -214,6 +262,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         String effectiveObjectKey = deriveObjectKey(action, reqVO);
         ActionExecutionDO exec = ActionExecutionDO.builder()
                 .actionId(action.getId()).ontologyId(action.getOntologyId())
+                .creatorId(reqVO.getCreatorId()).createBy(reqVO.getCreateBy())
+                .datasourceId(resolveActionDatasourceId(action))
                 .inputParams(reqVO.getInputParams()).generatedSql("[WAITING_REFERENCE_SELECTION]")
                 .previewResult("等待人工选择引用对象后生成执行内容")
                 .spaceId(reqVO.getSpaceId()).spaceCode(reqVO.getSpaceCode())
@@ -221,6 +271,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 .idempotencyKey(reqVO.getIdempotencyKey()).objectKey(effectiveObjectKey)
                 .autoExecute(false).triggerType(defaultTriggerType(reqVO.getTriggerType()))
                 .triggerRef(reqVO.getTriggerRef()).eventId(reqVO.getEventId())
+                .workflowRunId(reqVO.getWorkflowRunId()).workflowStepId(reqVO.getWorkflowStepId())
+                .parentExecutionId(reqVO.getParentExecutionId())
                 .maxAttempts(defaultMaxAttempts(reqVO.getMaxAttempts())).attemptNo(0)
                 .status(STATUS_PENDING).build();
         String criteria = approvalService.evaluateCriteria(action, reqVO.getInputParams(), effectiveObjectKey);
@@ -279,6 +331,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         }
         ActionExecutionDO exec = ActionExecutionDO.builder()
                 .actionId(action.getId()).ontologyId(action.getOntologyId())
+                .creatorId(reqVO.getCreatorId()).createBy(reqVO.getCreateBy())
+                .datasourceId(resolveActionDatasourceId(action))
                 .inputParams(reqVO.getInputParams()).generatedSql(toJson(plan))
                 .previewResult(toJson(previews))
                 .spaceId(reqVO.getSpaceId()).spaceCode(reqVO.getSpaceCode())
@@ -288,6 +342,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 .autoExecute(autoExecute)
                 .triggerType(defaultTriggerType(reqVO.getTriggerType()))
                 .triggerRef(reqVO.getTriggerRef()).eventId(reqVO.getEventId())
+                .workflowRunId(reqVO.getWorkflowRunId()).workflowStepId(reqVO.getWorkflowStepId())
+                .parentExecutionId(reqVO.getParentExecutionId())
                 .maxAttempts(defaultMaxAttempts(reqVO.getMaxAttempts()))
                 .nextRunTime(reqVO.getNextRunTime()).attemptNo(0)
                 .status(STATUS_PENDING).build();
@@ -337,10 +393,14 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                             action.getId(), triggerRef, eventId, e);
                     ActionExecutionDO failed = ActionExecutionDO.builder()
                             .actionId(action.getId()).ontologyId(action.getOntologyId())
+                            .creatorId(req.getCreatorId()).createBy(req.getCreateBy())
+                            .datasourceId(resolveActionDatasourceId(action))
                             .inputParams(req.getInputParams()).objectKey(req.getObjectKey())
                             .idempotencyKey(req.getIdempotencyKey())
                             .autoExecute(resolveAutoExecute(action, req)).triggerType("DATA_ARRIVAL")
                             .triggerRef(triggerRef).eventId(eventId)
+                            .workflowRunId(req.getWorkflowRunId()).workflowStepId(req.getWorkflowStepId())
+                            .parentExecutionId(req.getParentExecutionId())
                             .actionVersion(defaultVersion(action.getVersion()))
                             .attemptNo(0).maxAttempts(1)
                             .status(STATUS_FAILED).executeTime(new Date())
@@ -489,8 +549,13 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         if (message.startsWith("函数定义版本已变更") || message.startsWith("函数定义内容已变更")) {
             return ERROR_CODE_FUNCTION_VERSION;
         }
-        return action != null && "FUNCTION".equals(action.getActionType())
-                ? ERROR_CODE_FUNCTION : ERROR_CODE_EXECUTE;
+        if (action != null && "FUNCTION".equals(action.getActionType())) {
+            return ERROR_CODE_FUNCTION;
+        }
+        if (action != null && "WEBHOOK".equalsIgnoreCase(action.getActionType())) {
+            return ERROR_CODE_WEBHOOK;
+        }
+        return ERROR_CODE_EXECUTE;
     }
 
     /**
@@ -759,6 +824,30 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 exec.setErrorMessage(null);
                 exec.setResultContext(buildResultContext(exec, action,
                         Collections.singletonMap("output", output)));
+            } else if ("WEBHOOK".equalsIgnoreCase(action.getActionType())) {
+                Map<String, Object> webhookContext = new LinkedHashMap<>();
+                webhookContext.put("executionId", exec.getId());
+                webhookContext.put("actionId", action.getId());
+                webhookContext.put("objectKey", exec.getObjectKey());
+                webhookContext.put("eventId", exec.getEventId());
+                webhookContext.put("triggerType", exec.getTriggerType());
+                webhookContext.put("triggerRef", exec.getTriggerRef());
+                webhookContext.put("workflowRunId", exec.getWorkflowRunId());
+                WebhookActionExecutor.PreparedRequest webhookPlan = webhookActionExecutor.prepare(
+                        action.getExecutionSteps(), parseParams(exec.getInputParams()), webhookContext);
+                if (exec.getMaxAttempts() != null && exec.getMaxAttempts() > 1
+                        && !webhookPlan.isIdempotent()) {
+                    throw new IllegalArgumentException("WEBHOOK 未声明幂等性，不允许重试");
+                }
+                exec.setGeneratedSql(toJson(webhookPlan.toAuditMap()));
+                WebhookActionExecutor.WebhookResult webhookResult = webhookActionExecutor.execute(webhookPlan);
+                Map<String, Object> summary = webhookResult.toSummary();
+                exec.setPreviewResult(toJson(summary));
+                exec.setStatus(STATUS_EXECUTED);
+                exec.setExecuteTime(new Date());
+                exec.setErrorCode(null);
+                exec.setErrorMessage(null);
+                exec.setResultContext(buildResultContext(exec, action, summary));
             } else if ("COMPOSITE".equals(action.getActionType())) {
                 Map<String, Object> summary = executeCompositeSteps(exec, action);
                 exec.setStatus(STATUS_EXECUTED);
@@ -795,6 +884,15 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 exec.setErrorMessage(null);
                 exec.setResultContext(buildResultContext(exec, action, summary));
             }
+        } catch (WebhookActionExecutor.WebhookCallException e) {
+            log.error("Webhook 动作执行失败 executionId={}", executionId, e);
+            exec.setStatus(e.isUnknownOutcome() ? STATUS_RECONCILIATION_REQUIRED : STATUS_FAILED);
+            exec.setExecuteTime(new Date());
+            exec.setErrorCode(e.isUnknownOutcome() ? ERROR_CODE_WEBHOOK_RECONCILIATION : ERROR_CODE_WEBHOOK);
+            exec.setErrorMessage(e.getMessage());
+            if (action != null) {
+                exec.setResultContext(buildResultContext(exec, action, null));
+            }
         } catch (Exception e) {
             log.error("动作执行失败 executionId={}", executionId, e);
             exec.setStatus(STATUS_FAILED);
@@ -824,7 +922,8 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
             return ActionConvert.INSTANCE.convert(getExecutionOrThrow(executionId));
         }
         if (action != null && !"FUNCTION".equals(action.getActionType())
-                && !"COMPOSITE".equals(action.getActionType())) {
+                && !"COMPOSITE".equals(action.getActionType())
+                && !"WEBHOOK".equalsIgnoreCase(action.getActionType())) {
             writeActionLineageSilently(exec, action);
         }
         if (triggerWebhook && action != null) {
@@ -998,9 +1097,15 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         if (action == null) {
             throw new RuntimeException("动作不存在: " + exec.getActionId());
         }
+        if (exec.getDatasourceId() == null) {
+            exec.setDatasourceId(resolveActionDatasourceId(action));
+        }
         // 函数类型动作无物理表，不支持回退
         if ("FUNCTION".equals(action.getActionType())) {
             throw new RuntimeException("函数类型动作不支持回退");
+        }
+        if ("WEBHOOK".equalsIgnoreCase(action.getActionType())) {
+            throw new RuntimeException("WEBHOOK 动作不支持自动回退，请由目标系统提供幂等补偿接口");
         }
         if ("COMPOSITE".equals(action.getActionType())) {
             throw new RuntimeException("多目标动作已在同一事务中保证整体成功或整体撤销，暂不支持事后回退");
@@ -1041,6 +1146,7 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 ActionExecutionDO rollbackExec = ActionExecutionDO.builder()
                         .actionId(exec.getActionId())
                         .ontologyId(exec.getOntologyId())
+                        .datasourceId(exec.getDatasourceId())
                         .spaceId(exec.getSpaceId())
                         .spaceCode(exec.getSpaceCode())
                         .inputParams(exec.getInputParams())
@@ -1430,6 +1536,43 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
                 throw new RuntimeException("一个多目标动作的所有执行步骤必须位于同一数据源，以保证失败时整体撤销");
             }
         }
+    }
+
+    /**
+     * 推导动作执行记录所属数据源，供数据接收侧的人为编辑仲裁做数据域隔离。
+     * 多目标动作在提交前已校验所有步骤位于同一数据源，因此取第一步即可。
+     */
+    private Long resolveActionDatasourceId(ActionDO action) {
+        if (action == null) {
+            return null;
+        }
+        if ("FUNCTION".equalsIgnoreCase(action.getActionType())) {
+            Long conceptId = action.getOutputConceptId() != null
+                    ? action.getOutputConceptId() : action.getSourceConceptId();
+            return resolveConceptDatasourceId(conceptId);
+        }
+        if ("COMPOSITE".equalsIgnoreCase(action.getActionType())) {
+            List<ExecutionStep> steps = resolveExecutionSteps(action);
+            if (steps == null || steps.isEmpty()) {
+                return null;
+            }
+            ExecutionStep first = steps.get(0);
+            return first.isRelation()
+                    ? resolveRelationStorage(first).datasourceId()
+                    : resolveConceptDatasourceId(first.conceptId);
+        }
+        return resolveConceptDatasourceId(action.getConceptId());
+    }
+
+    private Long resolveConceptDatasourceId(Long conceptId) {
+        if (conceptId == null) {
+            return null;
+        }
+        List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(conceptId);
+        if (tables == null || tables.isEmpty()) {
+            return null;
+        }
+        return tables.get(0).getDatasourceId();
     }
 
     private RelationTableDO requireRelationTable(Long relationId, int stepNo) {

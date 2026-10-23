@@ -46,7 +46,7 @@
           <a-tag :color="actionTypeColor(record.actionType)">{{ actionTypeText(record.actionType) }}</a-tag>
         </template>
         <template v-else-if="column.key === 'conceptName'">
-          {{ record.actionType === 'FUNCTION' ? (functionMap[record.functionId] || record.functionId || '-') : (conceptMap[record.conceptId] || record.conceptId || '-') }}
+          {{ record.actionType === 'FUNCTION' ? (functionMap[record.functionId] || record.functionId || '-') : record.actionType === 'WEBHOOK' ? '外部 HTTP 接口' : (conceptMap[record.conceptId] || record.conceptId || '-') }}
         </template>
         <template v-else-if="column.key === 'executionMode'">
           <div class="trigger-cell">
@@ -60,7 +60,7 @@
         </template>
         <template v-else-if="column.key === 'action'">
           <a-button type="link" size="small" @click="openSubmitExec(record)" v-hasPermi="['ont:action:edit']">执行</a-button>
-          <a-button v-if="['COMPOSITE', 'FUNCTION'].includes(record.actionType)" type="link" size="small" @click="handleUpdate(record)" v-hasPermi="['ont:action:edit']">修改</a-button>
+          <a-button v-if="['COMPOSITE', 'FUNCTION', 'WEBHOOK'].includes(record.actionType)" type="link" size="small" @click="handleUpdate(record)" v-hasPermi="['ont:action:edit']">修改</a-button>
           <a-button type="link" danger size="small" @click="handleDelete(record)" v-hasPermi="['ont:action:remove']">删除</a-button>
         </template>
       </template>
@@ -121,7 +121,7 @@
           <a-button v-if="record.status === 'PENDING_APPROVAL' && record.canApprove" type="link" size="small" style="color:#52c41a" @click="openApproval(record, 'approve')" v-hasPermi="['ont:action:edit']">确认执行</a-button>
           <a-button v-if="record.status === 'PENDING_APPROVAL' && record.canApprove" type="link" danger size="small" @click="openApproval(record, 'reject')" v-hasPermi="['ont:action:edit']">不执行</a-button>
           <a-button v-if="record.status === 'APPROVED' && (record.triggerType === 'MANUAL' || !record.autoExecute)" type="link" size="small" style="color:#1677ff" @click="handleRun(record)" v-hasPermi="['ont:action:edit']">执行</a-button>
-          <a-button v-if="record.status === 'EXECUTED' && !record.rollbackTime && !['FUNCTION', 'COMPOSITE'].includes(actionTypeMap[record.actionId])" type="link" size="small" style="color:#fa8c16" @click="handleRollback(record)" v-hasPermi="['ont:action:edit']">回退</a-button>
+          <a-button v-if="record.status === 'EXECUTED' && !record.rollbackTime && !['FUNCTION', 'COMPOSITE', 'WEBHOOK'].includes(actionTypeMap[record.actionId])" type="link" size="small" style="color:#fa8c16" @click="handleRollback(record)" v-hasPermi="['ont:action:edit']">回退</a-button>
           <a-button v-if="record.objectKey" type="link" size="small" @click="handleViewChain(record)" v-hasPermi="['ont:action:query']">确认记录</a-button>
           <a-button type="link" size="small" @click="handleViewResult(record)" v-hasPermi="['ont:action:query']">查看结果</a-button>
         </template>
@@ -153,9 +153,9 @@
           <a-input v-model:value="form.name" placeholder="请输入动作名称，如 创建客户" style="width:280px" />
         </a-form-item>
         <a-form-item label="动作类型" name="actionType">
-          <a-select v-model:value="form.actionType" placeholder="请选择动作类型" :options="formActionTypeOptions" style="width:200px" />
+          <a-select v-model:value="form.actionType" placeholder="请选择动作类型" :options="formActionTypeOptions" style="width:200px" @change="handleActionTypeChange" />
         </a-form-item>
-        <a-form-item v-if="form.actionType !== 'FUNCTION'" label="触发对象类型" name="conceptId">
+        <a-form-item v-if="form.actionType !== 'FUNCTION' && form.actionType !== 'WEBHOOK'" label="触发对象类型" name="conceptId">
           <a-select
             v-model:value="form.conceptId"
             placeholder="请选择人工执行时要定位的对象类型"
@@ -231,16 +231,37 @@
             <div style="font-size:12px;color:#999;margin-top:2px;">数据来源读取行数上限，默认 5000</div>
           </a-form-item>
         </template>
+        <template v-if="form.actionType === 'WEBHOOK'">
+          <a-form-item label="目标 URL" class="action-grid-full">
+            <a-input v-model:value="webhookUrl" placeholder="https://api.example.com/orders/${param.orderId}" />
+          </a-form-item>
+          <a-form-item label="HTTP 方法">
+            <a-select v-model:value="webhookMethod" :options="webhookMethodOptions" style="width:150px" />
+          </a-form-item>
+          <a-form-item label="超时(ms)">
+            <a-input-number v-model:value="webhookTimeoutMs" :min="100" :max="30000" :step="100" style="width:160px" />
+          </a-form-item>
+          <a-form-item label="请求头" class="action-grid-full">
+            <a-textarea v-model:value="webhookHeadersText" :rows="4" placeholder="每行一个 header，例如：&#10;Content-Type: application/json&#10;X-Signature: ${param.signature}" />
+          </a-form-item>
+          <a-form-item v-if="!['GET', 'DELETE'].includes(webhookMethod)" label="Body 模板" class="action-grid-full">
+            <a-textarea v-model:value="webhookBodyText" :rows="7" placeholder='JSON 模板，例如：{"orderId":"${param.orderId}","amount":"${param.amount}"}' />
+          </a-form-item>
+          <a-form-item label="允许重试">
+            <a-checkbox v-model:checked="webhookIdempotent">我确认目标接口具备幂等性</a-checkbox>
+            <div style="font-size:12px;color:#999;margin-top:2px;">只有勾选后，Workflow 才允许对该 Webhook 设置多次尝试；响应超时仍会转人工对账。</div>
+          </a-form-item>
+        </template>
           </div>
         </div>
         <a-alert
-          v-if="form.actionType !== 'FUNCTION' && form.actionType !== 'COMPOSITE' && isConditionType"
+          v-if="form.actionType !== 'FUNCTION' && form.actionType !== 'COMPOSITE' && form.actionType !== 'WEBHOOK' && isConditionType"
           type="warning"
           show-icon
           :message="conditionHint"
           style="margin-bottom: 8px;"
         />
-        <template v-if="form.actionType !== 'FUNCTION' && form.actionType !== 'COMPOSITE'">
+        <template v-if="form.actionType !== 'FUNCTION' && form.actionType !== 'COMPOSITE' && form.actionType !== 'WEBHOOK'">
         <a-form-item :wrapper-col="{ span: 24 }">
           <div class="param-config-block">
             <div class="param-block-head">
@@ -717,14 +738,14 @@
       <a-alert
         type="info"
         show-icon
-        :message="'动作：' + (execAction.name || '') + '（' + actionTypeText(execAction.actionType) + ' · 触发对象类型：' + (conceptMap[execAction.conceptId] || '-') + '）'"
+        :message="'动作：' + (execAction.name || '') + '（' + actionTypeText(execAction.actionType) + ' · ' + (execAction.actionType === 'WEBHOOK' ? '外部 HTTP 接口' : '触发对象类型：' + (conceptMap[execAction.conceptId] || '-')) + '）'"
         style="margin-bottom: 12px;"
       />
       <p class="modal-hint-line">
         提交后先生成执行记录并进行前置检查；直接执行模式由 Worker 自动执行，人工确认模式在确认后自动执行。
       </p>
       <a-form class="ontology-form-grid exec-form-grid" :label-col="{ style: { width: '90px' } }">
-        <a-form-item v-if="execAction.actionType !== 'FUNCTION' && execAction.actionType !== 'CREATE' && !execRunRecord" class="ontology-form-grid__full" label="触发对象" required>
+        <a-form-item v-if="execAction.actionType !== 'FUNCTION' && execAction.actionType !== 'WEBHOOK' && execAction.actionType !== 'CREATE' && !execRunRecord" class="ontology-form-grid__full" label="触发对象" required>
           <div class="exec-object-picker">
             <OntFilterBuilder
               v-if="execObjectSet"
@@ -780,6 +801,21 @@
           </template>
           <a-form-item v-else class="ontology-form-grid__full">
             <div class="modal-hint-line">该函数未声明参数，将直接执行。</div>
+          </a-form-item>
+        </template>
+        <template v-else-if="execAction.actionType === 'WEBHOOK'">
+          <a-alert
+            type="warning"
+            show-icon
+            message="Webhook 会产生外部副作用，提交后只在人工确认/Worker 阶段发送请求。"
+            description="响应超时不会自动重放，系统会把记录标记为需对账。"
+            style="margin-bottom:10px;"
+          />
+          <a-form-item v-for="paramName in webhookExecParams" :key="paramName" :label="paramName" required>
+            <a-input v-model:value="execFormValues[paramName]" :placeholder="'请输入 ' + paramName" />
+          </a-form-item>
+          <a-form-item v-if="!webhookExecParams.length" class="ontology-form-grid__full">
+            <div class="modal-hint-line">该 Webhook 没有可替换的参数，将按动作定义直接发送。</div>
           </a-form-item>
         </template>
         <template v-else-if="hasParamConfig">
@@ -1041,6 +1077,19 @@ const aiGenerateOpen = ref(false)
 const title = ref('')
 // 触发来源是每次运行的上下文，不属于动作定义；动作定义只决定是否需要一次人工确认。
 const executionMode = ref('DIRECT')
+const webhookUrl = ref('')
+const webhookMethod = ref('POST')
+const webhookHeadersText = ref('')
+const webhookBodyText = ref('')
+const webhookTimeoutMs = ref(10000)
+const webhookIdempotent = ref(false)
+const webhookMethodOptions = [
+  { value: 'POST', label: 'POST' },
+  { value: 'PUT', label: 'PUT' },
+  { value: 'PATCH', label: 'PATCH' },
+  { value: 'GET', label: 'GET' },
+  { value: 'DELETE', label: 'DELETE' }
+]
 
 // 执行记录状态
 const execLoading = ref(false)
@@ -1358,21 +1407,23 @@ const actionTypeOptions = [
   { value: 'UPDATE', label: '更新' },
   { value: 'DELETE', label: '删除' },
   { value: 'COMPOSITE', label: '多目标动作' },
-  { value: 'FUNCTION', label: '函数' }
+  { value: 'FUNCTION', label: '函数' },
+  { value: 'WEBHOOK', label: 'Webhook' }
 ]
 
 // 动作表单可选类型：新建/更新/删除属于对象浏览器行操作，不在此手工创建
 const formActionTypeOptions = [
   { value: 'COMPOSITE', label: '多步骤' },
-  { value: 'FUNCTION', label: '函数' }
+  { value: 'FUNCTION', label: '函数' },
+  { value: 'WEBHOOK', label: 'Webhook' }
 ]
 
 function actionTypeText(type) {
-  return { CREATE: '新建', UPDATE: '更新', DELETE: '删除', COMPOSITE: '多目标动作', FUNCTION: '函数' }[type] || type
+  return { CREATE: '新建', UPDATE: '更新', DELETE: '删除', COMPOSITE: '多目标动作', FUNCTION: '函数', WEBHOOK: 'Webhook' }[type] || type
 }
 
 function actionTypeColor(type) {
-  return { CREATE: 'green', UPDATE: 'blue', DELETE: 'red', COMPOSITE: 'purple', FUNCTION: 'orange' }[type] || 'default'
+  return { CREATE: 'green', UPDATE: 'blue', DELETE: 'red', COMPOSITE: 'purple', FUNCTION: 'orange', WEBHOOK: 'cyan' }[type] || 'default'
 }
 
 function execStatusText(s) {
@@ -2310,6 +2361,69 @@ function parseParamConfig(json) {
   return parseJsonArray(json)
 }
 
+function parseWebhookHeaders(text) {
+  const headers = {}
+  String(text || '').split(/\r?\n/).forEach(line => {
+    const value = line.trim()
+    if (!value) return
+    const separator = value.indexOf(':')
+    if (separator <= 0) throw new Error('请求头必须使用“名称: 值”格式：' + value)
+    const name = value.slice(0, separator).trim()
+    const headerValue = value.slice(separator + 1).trim()
+    if (!name || !headerValue) throw new Error('请求头名称和值不能为空：' + value)
+    headers[name] = headerValue
+  })
+  return headers
+}
+
+function loadWebhookConfig(json) {
+  let config = json
+  if (typeof config === 'string') {
+    try { config = JSON.parse(config) } catch (e) { throw new Error('Webhook 配置不是合法 JSON') }
+  }
+  if (!config || Array.isArray(config) || typeof config !== 'object') {
+    throw new Error('Webhook 配置必须是 JSON 对象')
+  }
+  webhookUrl.value = config.url || ''
+  webhookMethod.value = String(config.method || 'POST').toUpperCase()
+  webhookTimeoutMs.value = Number(config.timeoutMs || 10000)
+  webhookIdempotent.value = Boolean(config.idempotent)
+  webhookHeadersText.value = Object.entries(config.headers || {}).map(([key, value]) => `${key}: ${value}`).join('\n')
+  webhookBodyText.value = config.bodyTemplate == null ? '' : JSON.stringify(config.bodyTemplate, null, 2)
+}
+
+function buildWebhookConfigJson() {
+  if (!webhookUrl.value || !String(webhookUrl.value).trim()) throw new Error('请输入 Webhook 目标 URL')
+  const headers = parseWebhookHeaders(webhookHeadersText.value)
+  let bodyTemplate
+  if (webhookBodyText.value && webhookBodyText.value.trim()) {
+    try { bodyTemplate = JSON.parse(webhookBodyText.value) } catch (e) { throw new Error('Body 模板必须是合法 JSON') }
+  }
+  const config = {
+    url: String(webhookUrl.value).trim(),
+    method: webhookMethod.value,
+    headers,
+    timeoutMs: Number(webhookTimeoutMs.value || 10000),
+    idempotent: Boolean(webhookIdempotent.value)
+  }
+  if (bodyTemplate !== undefined && !['GET', 'DELETE'].includes(webhookMethod.value)) config.bodyTemplate = bodyTemplate
+  return JSON.stringify(config)
+}
+
+function handleActionTypeChange(type) {
+  if (type === 'WEBHOOK' && !form.value.id) {
+    executionMode.value = 'MANUAL_CONFIRM'
+    form.value.needsApproval = true
+    form.value.approvalLevels = 1
+  }
+  if (type !== 'WEBHOOK') {
+    webhookUrl.value = ''
+    webhookHeadersText.value = ''
+    webhookBodyText.value = ''
+    webhookIdempotent.value = false
+  }
+}
+
 function handleQuery() {
   queryParams.pageNum = 1
   getList()
@@ -2323,6 +2437,12 @@ function resetQuery() {
 
 function reset() {
   form.value = { ontologyId: props.ontologyId, name: undefined, actionType: undefined, conceptId: undefined, functionId: undefined, sourceConceptId: undefined, outputConceptId: undefined, readLimit: 5000, needsApproval: false, approvalLevels: 0, approvalReviewers: undefined, submissionCriteria: undefined, triggerRef: undefined, description: undefined, paramConfig: undefined, executionSteps: undefined }
+  webhookUrl.value = ''
+  webhookMethod.value = 'POST'
+  webhookHeadersText.value = ''
+  webhookBodyText.value = ''
+  webhookTimeoutMs.value = 10000
+  webhookIdempotent.value = false
   executionMode.value = 'DIRECT'
   preconditionRows.value = []
   preconditionLogic.value = 'AND'
@@ -2527,7 +2647,13 @@ function handleUpdate(row) {
     form.value.approvalLevels = form.value.needsApproval ? 1 : 0
     manualApproverId.value = parseManualApprover(form.value.approvalReviewers)
     parseSubmissionCriteria(form.value.submissionCriteria)
-    if (form.value.actionType === 'COMPOSITE') {
+    if (form.value.actionType === 'WEBHOOK') {
+      try {
+        loadWebhookConfig(form.value.executionSteps ?? form.value.execution_steps)
+      } catch (e) {
+        proxy.$modal.msgError(e.message)
+      }
+    } else if (form.value.actionType === 'COMPOSITE') {
       // 多目标步骤中的占位符都相对于触发对象取值，先加载触发对象属性，再回显各目标步骤。
       await loadConceptProperties(form.value.conceptId)
       await loadExecutionSteps(form.value.executionSteps ?? form.value.execution_steps)
@@ -2626,6 +2752,15 @@ function submitForm() {
         .map(m => ({ paramName: m.paramName, kind: 'field', sourcePropertyCode: m.sourcePropertyCode, sourcePropertyId: m.sourcePropertyId }))
       form.value.paramConfig = fieldMappings.length ? JSON.stringify(fieldMappings) : undefined
       form.value.executionSteps = undefined
+    } else if (type === 'WEBHOOK') {
+      try {
+        form.value.executionSteps = buildWebhookConfigJson()
+      } catch (e) {
+        proxy.$modal.msgError(e.message)
+        return
+      }
+      form.value.conceptId = undefined
+      form.value.paramConfig = undefined
     } else if (type === 'COMPOSITE') {
       if (!form.value.conceptId) {
         proxy.$modal.msgError('请选择触发对象类型')
@@ -2712,6 +2847,22 @@ const execRelationSearchTimers = new Map()
 const emptyRelationObjectState = { options: [], loading: false, error: '' }
 
 const hasParamConfig = computed(() => execParamConfigs.value.length > 0)
+const webhookExecParams = computed(() => {
+  if (execAction.value.actionType !== 'WEBHOOK') return []
+  const raw = String(execAction.value.executionSteps ?? execAction.value.execution_steps ?? '')
+  const names = []
+  const seen = new Set()
+  const matcher = new RegExp('\\$\\{(?:param|input)\\.([^{}]+)}', 'g')
+  let match
+  while ((match = matcher.exec(raw)) !== null) {
+    const name = match[1]
+    if (!seen.has(name)) {
+      seen.add(name)
+      names.push(name)
+    }
+  }
+  return names
+})
 
 const aiDecisionOpen = ref(false)
 const aiDecisionLoading = ref(false)
@@ -3252,7 +3403,7 @@ async function openSubmitExec(row, runRecord = null) {
     }
   }
   execOpen.value = true
-  if (!runRecord && action.actionType !== 'FUNCTION' && action.actionType !== 'CREATE') {
+  if (!runRecord && action.actionType !== 'FUNCTION' && action.actionType !== 'WEBHOOK' && action.actionType !== 'CREATE') {
     loadExecObjectSet().catch(() => {})
   }
 }
@@ -3279,6 +3430,13 @@ function submitAndExecuteImmediately(payload) {
 }
 
 function notifyExecutionResult(record) {
+  if (record?.status === 'RECONCILIATION_REQUIRED') {
+    const isWebhook = actionTypeMap.value[record.actionId] === 'WEBHOOK'
+    proxy.$modal.msgWarning(isWebhook
+      ? 'Webhook 响应超时，执行结果不确定，请人工对账后再处理'
+      : '执行结果不确定，请人工对账后再处理')
+    return
+  }
   if (record?.status === 'FAILED') {
     proxy.$modal.msgError(record.errorMessage ? `执行失败：${record.errorMessage}` : '执行失败')
     return
@@ -3298,6 +3456,31 @@ function submitExec() {
     submitAndExecuteImmediately({ actionId: execAction.value.id, inputParams: input, objectKey: execObjectKey.value || undefined }).then(record => {
       notifyExecutionResult(record)
       execOpen.value = false
+      loadExecutions()
+    }).finally(() => {
+      execSaving.value = false
+    })
+    return
+  }
+  if (execAction.value.actionType === 'WEBHOOK') {
+    const params = {}
+    webhookExecParams.value.forEach(name => {
+      const value = execFormValues[name]
+      if (value !== undefined && value !== null && value !== '') params[name] = value
+    })
+    const missing = webhookExecParams.value.filter(name => params[name] === undefined)
+    if (missing.length) {
+      proxy.$modal.msgError('缺少 Webhook 参数: ' + missing.join('、'))
+      return
+    }
+    execSaving.value = true
+    const executionPromise = execRunRecord.value
+      ? runExecution(execRunRecord.value.id, { inputParams: JSON.stringify(params) }).then(res => res.data || execRunRecord.value)
+      : submitAndExecuteImmediately({ actionId: execAction.value.id, inputParams: JSON.stringify(params) })
+    executionPromise.then(record => {
+      notifyExecutionResult(record)
+      execOpen.value = false
+      execRunRecord.value = null
       loadExecutions()
     }).finally(() => {
       execSaving.value = false

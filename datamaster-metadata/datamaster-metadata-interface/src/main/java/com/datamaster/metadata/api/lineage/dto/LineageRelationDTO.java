@@ -1,0 +1,17 @@
+package com.datamaster.metadata.api.lineage.dto;
+
+import lombok.Data;
+import java.io.Serializable;
+
+@Data
+public class LineageRelationDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private LineageEndpointDTO source;
+    private LineageEndpointDTO target;
+    private LineageColumnDTO sourceColumn;
+    private LineageColumnDTO targetColumn;
+    private String unitKey;
+    private String routeKey;
+    private String kind;
+    private String confidence;
+}

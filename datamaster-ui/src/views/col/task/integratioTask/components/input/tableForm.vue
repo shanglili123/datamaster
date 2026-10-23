@@ -1,9 +1,11 @@
 <template>
-    <a-modal v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name"
+    <a-modal wrap-class-name="integration-component-modal" v-model:open="visibleDialog" class="medium-dialog" :title="currentNode?.data?.name"
         :closable="false" :destroy-on-close="true" :mask-closable="false" :width="1200">
         <a-spin :spinning="loading">
         <a-form class="input-form" ref="dpModelRefs" :model="form" :label-col="{ style: { width: '110px' } }" @submit.prevent
             :disabled="info">
+
+<h3 class="etl-section-title">基本信息</h3>
 
             <a-row :gutter="20">
                 <a-col :span="12">
@@ -28,6 +30,7 @@
                     </a-form-item>
                 </a-col>
             </a-row>
+            <h3 class="etl-section-title">输入来源</h3>
             <a-row :gutter="20">
                 <a-col :span="12">
                     <a-form-item label="连接方式" name="clmt">
@@ -146,6 +149,79 @@
                         <div class="form-readonly" v-else>{{ form.taskParams.readModeType == 1 ? '全量' :
                             form.taskParams.readModeType == 2 ?
                                 'id增量' : form.taskParams.readModeType == 3 ? '时间增量' : 'CDC/流式' }}</div>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <h3 class="etl-section-title">来源追溯</h3>
+            <a-row :gutter="20">
+                <a-col :span="12">
+                    <a-form-item label="来源追溯（必写）">
+                        <span>来源表 source_table、写入时间 write_time（转换处理时间）</span>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12" v-if="form.taskParams.sourceMetadata.enabled">
+                    <a-form-item label="来源自然键">
+                        <a-select v-if="!info" v-model:value="form.taskParams.sourceMetadata.naturalKeyColumns"
+                            mode="multiple" allow-clear placeholder="选择源主键字段（可选）">
+                            <a-select-option v-for="field in (ColumnByAssettab || [])" :key="field.columnName"
+                                :value="field.columnName">
+                                {{ field.columnName }}
+                            </a-select-option>
+                        </a-select>
+                        <div class="form-readonly" v-else>
+                            {{ (form.taskParams.sourceMetadata.naturalKeyColumns || []).join(', ') || '-' }}
+                        </div>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20" v-if="form.taskParams.sourceMetadata.enabled">
+                <a-col :span="24">
+                    <a-form-item label="可选来源字段">
+                        <a-space wrap>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceDatasource">来源数据源</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceDatabase">来源数据库</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceTask">来源任务</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceBatch" :disabled="!form.taskParams.sourceMetadata.includeSourceBatch">来源批次（暂不支持，请取消旧配置）</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeRowHash">来源行 Hash</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeSourceUpdateTime">源端更新时间</a-checkbox>
+                            <a-checkbox v-model:checked="form.taskParams.sourceMetadata.includeRecordOp">操作类型</a-checkbox>
+                        </a-space>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <h3 class="etl-section-title">运行检查</h3>
+            <a-row :gutter="20" v-if="!isKafkaReader">
+                <a-col :span="12">
+                    <a-form-item label="Schema 监控">
+                        <span>暂未接入结构变化检测，请使用逻辑集成节点绑定探查任务</span>
+                        
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12" v-if="form.taskParams.schemaMonitoring.enabled">
+                    <a-form-item label="结构变化策略">
+                        <a-select v-if="!info" v-model:value="form.taskParams.schemaMonitoring.onDrift" disabled>
+                            <a-select-option value="FAIL">变化即失败</a-select-option>
+                            <a-select-option value="WARN">变化仅告警</a-select-option>
+                        </a-select>
+                        <div class="form-readonly" v-else>{{ form.taskParams.schemaMonitoring.onDrift || 'FAIL' }}</div>
+                    </a-form-item>
+                </a-col>
+            </a-row>
+            <a-row :gutter="20" v-if="form.taskParams.sourceMetadata.enabled && (form.taskParams.sourceMetadata.includeSourceUpdateTime || form.taskParams.sourceMetadata.includeRecordOp)">
+                <a-col :span="12" v-if="form.taskParams.sourceMetadata.includeSourceUpdateTime">
+                    <a-form-item label="源端更新时间字段">
+                        <a-select v-if="!info" v-model:value="form.taskParams.sourceMetadata.sourceUpdateTimeSourceColumn" allow-clear placeholder="选择源字段">
+                            <a-select-option v-for="field in (ColumnByAssettab || [])" :key="'ut-' + field.columnName" :value="field.columnName">{{ field.columnName }}</a-select-option>
+                        </a-select>
+                        <div class="form-readonly" v-else>{{ form.taskParams.sourceMetadata.sourceUpdateTimeSourceColumn || '-' }}</div>
+                    </a-form-item>
+                </a-col>
+                <a-col :span="12" v-if="form.taskParams.sourceMetadata.includeRecordOp">
+                    <a-form-item label="操作类型字段">
+                        <a-select v-if="!info" v-model:value="form.taskParams.sourceMetadata.recordOpSourceColumn" allow-clear placeholder="选择 CDC 操作字段">
+                            <a-select-option v-for="field in (ColumnByAssettab || [])" :key="'op-' + field.columnName" :value="field.columnName">{{ field.columnName }}</a-select-option>
+                        </a-select>
+                        <div class="form-readonly" v-else>{{ form.taskParams.sourceMetadata.recordOpSourceColumn || '-' }}</div>
                     </a-form-item>
                 </a-col>
             </a-row>
@@ -308,7 +384,7 @@
                 </a-col>
             </a-row>
             <template v-if="form.taskParams.clmt != '2'">
-                <div class="h2-title stream-field-title">
+                <div class="h2-title etl-section-title stream-field-title" role="heading" aria-level="3">
                     <span>属性字段</span>
                     <a-button v-if="isStreamingFieldEditable && !info" size="small" type="primary"
                         @click="addStreamField">添加一行</a-button>
@@ -441,7 +517,7 @@ let loadingList = ref(false);
 let TablesByDataSource = ref([]);
 let ColumnByAssettab = ref([]);
 let dpModelRefs = ref();
-let form = ref({});
+let form = ref({ taskParams: { sourceMetadata: { enabled: true, naturalKeyColumns: [] }, schemaMonitoring: { enabled: false, onDrift: 'FAIL' } } });
 const tableFields = ref([]); // 来源表格
 const createTypeList = ref([]); // 数据源列表
 
@@ -1238,6 +1314,9 @@ const saveData = async () => {
             form.value.code = response.data;
         }
         const taskParams = form.value?.taskParams;
+        if (taskParams.sourceMetadata?.includeSourceBatch && !taskParams.sourceMetadata.sourceBatchValue) {
+            return proxy.$message.warning('自动来源批次尚未支持，请取消旧的来源批次选项');
+        }
         taskParams.tableFields = ColumnByAssettab.value;
         if (taskParams.readModeType == '4' && isStreamReader.value) {
             taskParams.streamFields = ColumnByAssettab.value;
@@ -1251,6 +1330,10 @@ const saveData = async () => {
         }));
         taskParams.columns = taskParams.tableFields.map(({ columnName }) => columnName);
         taskParams.inputFields = taskParams.tableFields;
+        taskParams.sourceMetadata.enabled = true;
+        taskParams.sourceMetadata.includeNaturalKey =
+            Array.isArray(taskParams.sourceMetadata.naturalKeyColumns)
+            && taskParams.sourceMetadata.naturalKeyColumns.length > 0;
 
         emit("confirm", form.value);
 
@@ -1308,6 +1391,20 @@ watch(
         Object.keys(form.value).forEach(k => { delete form.value[k]; });
         Object.assign(form.value, copy);
         form.value.taskParams = form.value.taskParams || {};
+        form.value.taskParams.sourceMetadata = form.value.taskParams.sourceMetadata || {};
+        form.value.taskParams.sourceMetadata.enabled = true;
+        form.value.taskParams.sourceMetadata.naturalKeyColumns = Array.isArray(
+            form.value.taskParams.sourceMetadata.naturalKeyColumns)
+            ? form.value.taskParams.sourceMetadata.naturalKeyColumns : [];
+            ['includeSourceDatasource', 'includeSourceDatabase', 'includeSourceTask', 'includeSourceBatch',
+                'includeRowHash', 'includeSourceUpdateTime', 'includeRecordOp']
+                .forEach(key => { form.value.taskParams.sourceMetadata[key] = !!form.value.taskParams.sourceMetadata[key]; });
+            form.value.taskParams.sourceMetadata.includeNaturalKey =
+                form.value.taskParams.sourceMetadata.includeNaturalKey !== false
+                && form.value.taskParams.sourceMetadata.naturalKeyColumns.length > 0;
+            form.value.taskParams.schemaMonitoring = form.value.taskParams.schemaMonitoring || {};
+            form.value.taskParams.schemaMonitoring.enabled = !!form.value.taskParams.schemaMonitoring.enabled;
+            form.value.taskParams.schemaMonitoring.onDrift = form.value.taskParams.schemaMonitoring.onDrift || 'FAIL';
         normalizeReaderDatasource(form.value.taskParams);
         ensureStreamConfigs();
         const savedTableFields = deepCopy(nodeData.taskParams?.tableFields);

@@ -93,6 +93,7 @@ public class ConceptApiServiceImpl implements IConceptApiService {
 
             SemanticTableDTO table = new SemanticTableDTO();
             table.setConceptId(concept.getId());
+            table.setOntologyId(concept.getOntologyId());
             table.setConceptName(concept.getName());
             table.setConceptCode(concept.getCode());
             table.setConceptDescription(concept.getDescription());

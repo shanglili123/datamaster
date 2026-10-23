@@ -15,6 +15,37 @@
     <dependencies>
         <dependency>
             <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-ontology-core</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-assets-core</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-metadata-core</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-governance-core</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- LangChain4j 0.35.x 仍兼容项目当前 Java 8；用于 Agent Tool Calling 和 ChatMemory。 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>0.35.0</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>0.35.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.datamaster</groupId>
             <artifactId>datamaster-assets-interface</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
@@ -55,6 +86,18 @@
         <dependency>
             <groupId>com.datamaster</groupId>
             <artifactId>datamaster-common-datasource-mgmt</artifactId>
+        </dependency>
+        <!-- 数据服务 Agent Tool 只依赖稳定的服务接口，不把服务模块实现耦合进 AI 模块。 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-service-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <!-- 数据开发 Agent Tool 先复用任务查询/启动的稳定接口，复杂编排后续分阶段开放。 -->
+        <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-collector-interface</artifactId>
+            <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

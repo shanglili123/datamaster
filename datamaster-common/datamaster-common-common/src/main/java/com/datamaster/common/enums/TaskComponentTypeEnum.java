@@ -47,7 +47,10 @@ public enum TaskComponentTypeEnum {
 
     //输出
     DB_WRITER("91", "数据库输出"),
-    TABLE_SPLIT("37", "拆表");
+    TABLE_SPLIT("37", "拆表"),
+
+    // 逻辑集成节点：前端配置单位，发布时展开为实际 DS/FlinkX 节点
+    PIPELINE_NODE("100", "逻辑集成节点");
 
     @Getter
     private String code;

@@ -9,6 +9,9 @@ import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
+import javax.validation.Validator;
+import javax.validation.ConstraintViolation;
+import com.datamaster.module.governance.service.warehouse.ModelNamingGovernanceService;
 
 import org.apache.commons.collections4.CollectionUtils;
 import com.datamaster.common.core.page.PageResult;
@@ -67,6 +70,10 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
 
     @Resource
     private IStandardsDocumentService StandardsDocumentService;
+    @Resource
+    private ModelNamingGovernanceService modelNamingGovernanceService;
+    @Resource
+    private Validator validator;
 
 
     /**
@@ -287,6 +294,7 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
             StandardsModelColumnSaveReqVO.setModelId(row.getId());
             long count = iDpModelColumnService.countByDpModelColumn(StandardsModelColumnSaveReqVO);
             row.setColumnCount(count);
+            modelNamingGovernanceService.describe(row);
 
             //资产
 
@@ -297,18 +305,37 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
 
     @Override
     public Long createDpModel(StandardsModelSaveReqVO createReqVO) {
+        validateModelRequest(createReqVO);
         StandardsModelDO dictType = BeanUtils.toBean(createReqVO, StandardsModelDO.class);
+        populateDatasource(dictType);
+        modelNamingGovernanceService.prepare(dictType, null, createReqVO.getUpgradeNaming(),
+                Boolean.TRUE.equals(createReqVO.getGovernanceProvided()));
         StandardsModelMapper.insert(dictType);
         return dictType.getId();
     }
 
     @Override
     public int updateDpModel(StandardsModelSaveReqVO updateReqVO) {
-        // 相关校验
-
-        // 更新逻辑模型
+        validateModelRequest(updateReqVO);
+        if (updateReqVO.getId() == null) {
+            throw new ServiceException("修改模型必须提供ID");
+        }
+        StandardsModelDO existing = StandardsModelMapper.selectById(updateReqVO.getId());
+        if (existing == null) {
+            throw new ServiceException("逻辑模型不存在");
+        }
         StandardsModelDO updateObj = BeanUtils.toBean(updateReqVO, StandardsModelDO.class);
-        return StandardsModelMapper.updateById(updateObj);
+        populateDatasource(updateObj);
+        modelNamingGovernanceService.prepare(updateObj, existing, updateReqVO.getUpgradeNaming(),
+                Boolean.TRUE.equals(updateReqVO.getGovernanceProvided()));
+        // Only null fields require explicit SET: non-null values are already in the entity SET list.
+        return StandardsModelMapper.update(updateObj, Wrappers.lambdaUpdate(StandardsModelDO.class)
+                .eq(StandardsModelDO::getId, updateObj.getId())
+                .set(updateObj.getBusinessCategoryId() == null, StandardsModelDO::getBusinessCategoryId, null)
+                .set(updateObj.getBusinessCategoryCode() == null, StandardsModelDO::getBusinessCategoryCode, null)
+                .set(updateObj.getDataDomainId() == null, StandardsModelDO::getDataDomainId, null)
+                .set(updateObj.getThemeDomainId() == null, StandardsModelDO::getThemeDomainId, null)
+                .set(updateObj.getThemeDomainCode() == null, StandardsModelDO::getThemeDomainCode, null));
     }
 
     @Override
@@ -328,14 +355,8 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
         if (StandardsModelDO == null) {
             return null;
         }
-        if ("2".equals(StandardsModelDO.getCreateType())) {
-            DatasourceRespDTO datasource = assetsDatasourceApiService.getDatasourceById(StandardsModelDO.getDatasourceId());
-            StandardsModelDO.setPort(datasource.getPort());
-            StandardsModelDO.setIp(datasource.getIp());
-            StandardsModelDO.setDatasourceConfig(datasource.getDatasourceConfig());
-            StandardsModelDO.setDatasourceType(datasource.getDatasourceType());
-            StandardsModelDO.setDatasourceName(datasource.getDatasourceName());
-        }
+        populateDatasource(StandardsModelDO);
+        modelNamingGovernanceService.describe(StandardsModelDO);
         if(StandardsModelDO.getDocumentId() != null){
             StandardsDocumentDO StandardsDocumentById = StandardsDocumentService.getDpDocumentById(StandardsModelDO.getDocumentId());
             StandardsDocumentById = StandardsDocumentById == null ? new StandardsDocumentDO():StandardsDocumentById;
@@ -354,10 +375,15 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
      */
     @Override
     public StandardsModelRespDTO getDpModelByIdApi(Long id) {
-        StandardsModelRespDTO dto = new StandardsModelRespDTO();
-        StandardsModelDO StandardsModelDO = StandardsModelMapper.selectById(id);
-        BeanUtil.copyProperties(StandardsModelDO, dto);
-        return dto;
+        StandardsModelDO model = getDpModelById(id);
+        if (model == null) {
+            return null;
+        }
+        if (ModelNamingGovernanceService.GOVERNED_V1.equals(model.getNamingVersion())
+                && StringUtils.isBlank(model.getPhysicalTableName())) {
+            throw new ServiceException("治理模型缺失已确定物理表名，请修复模型记录");
+        }
+        return BeanUtils.toBean(model, StandardsModelRespDTO.class);
     }
 
 
@@ -400,13 +426,16 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
 
         for (StandardsModelRespVO respVO : importExcelList) {
             try {
-                StandardsModelDO StandardsModelDO = BeanUtils.toBean(respVO, StandardsModelDO.class);
+                StandardsModelSaveReqVO request = BeanUtils.toBean(respVO, StandardsModelSaveReqVO.class);
+                // Legacy workbooks have no presence metadata. Explicit apply/upgrade booleans opt into nullable governance updates.
+                request.setGovernanceProvided(Boolean.TRUE.equals(respVO.getGovernanceProvided())
+                        || Boolean.TRUE.equals(respVO.getUpgradeNaming()));
                 Long StandardsModelId = respVO.getId();
                 if (isUpdateSupport) {
                     if (StandardsModelId != null) {
                         StandardsModelDO existingDpModel = StandardsModelMapper.selectById(StandardsModelId);
                         if (existingDpModel != null) {
-                            StandardsModelMapper.updateById(StandardsModelDO);
+                            updateDpModel(request);
                             successNum++;
                             successMessages.add("数据更新成功，ID为 " + StandardsModelId + " 的逻辑模型记录。");
                         } else {
@@ -418,11 +447,9 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
                         failureMessages.add("数据更新失败，某条记录的ID不存在。");
                     }
                 } else {
-                    QueryWrapper<StandardsModelDO> queryWrapper = new QueryWrapper<>();
-                    queryWrapper.eq("id", StandardsModelId);
-                    StandardsModelDO existingDpModel = StandardsModelMapper.selectOne(queryWrapper);
+                    StandardsModelDO existingDpModel = StandardsModelId == null ? null : StandardsModelMapper.selectById(StandardsModelId);
                     if (existingDpModel == null) {
-                        StandardsModelMapper.insert(StandardsModelDO);
+                        createDpModel(request);
                         successNum++;
                         successMessages.add("数据插入成功，ID为 " + StandardsModelId + " 的逻辑模型记录。");
                     } else {
@@ -460,6 +487,29 @@ public class StandardsModelServiceImpl extends ServiceImpl<StandardsModelMapper,
         return this.update(Wrappers.lambdaUpdate(StandardsModelDO.class)
                 .eq(StandardsModelDO::getId, id)
                 .set(StandardsModelDO::getStatus, status));
+    }
+
+    private void validateModelRequest(StandardsModelSaveReqVO request) {
+        Set<ConstraintViolation<StandardsModelSaveReqVO>> violations = validator.validate(request);
+        if (!violations.isEmpty()) {
+            throw new ServiceException(violations.stream().map(ConstraintViolation::getMessage)
+                    .sorted().collect(Collectors.joining("；")));
+        }
+    }
+
+    private void populateDatasource(StandardsModelDO model) {
+        if (model.getDatasourceId() == null) {
+            return;
+        }
+        DatasourceRespDTO datasource = assetsDatasourceApiService.getDatasourceById(model.getDatasourceId());
+        if (datasource == null) {
+            throw new ServiceException("模型所选数据源不存在");
+        }
+        model.setPort(datasource.getPort());
+        model.setIp(datasource.getIp());
+        model.setDatasourceConfig(datasource.getDatasourceConfig());
+        model.setDatasourceType(datasource.getDatasourceType());
+        model.setDatasourceName(datasource.getDatasourceName());
     }
 
     @Override

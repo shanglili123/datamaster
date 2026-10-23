@@ -25,10 +25,22 @@ public class ManualEditQueryServiceImpl implements IManualEditQueryService {
 
     @Override
     public List<ManualEditDTO> listLatestManualEdits(String targetTable, Integer limit) {
+        return listLatestManualEdits(targetTable, null, limit);
+    }
+
+    @Override
+    public List<ManualEditDTO> listLatestManualEdits(String targetTable, Long spaceId, Integer limit) {
+        return listLatestManualEdits(targetTable, null, spaceId, limit);
+    }
+
+    @Override
+    public List<ManualEditDTO> listLatestManualEdits(String targetTable, Long datasourceId,
+                                                     Long spaceId, Integer limit) {
         if (targetTable == null || targetTable.trim().isEmpty()) {
             return Collections.emptyList();
         }
-        List<ActionExecutionDO> records = executionMapper.selectLatestManualEditsByTable(targetTable.trim(), limit);
+        List<ActionExecutionDO> records = executionMapper.selectLatestManualEditsByTable(
+                targetTable.trim(), datasourceId, spaceId, limit);
         if (records == null || records.isEmpty()) {
             return Collections.emptyList();
         }
@@ -40,6 +52,7 @@ public class ManualEditQueryServiceImpl implements IManualEditQueryService {
             dto.setActionType(null); // 动作类型由调用方按需从执行记录关联动作解析，此处不引入动作表耦合
             dto.setStatus(record.getStatus());
             dto.setTargetTable(record.getTargetTable());
+            dto.setDatasourceId(record.getDatasourceId());
             dto.setBeforeData(record.getBeforeData());
             dto.setAfterData(record.getAfterData());
             dto.setRollbackBeforeData(record.getRollbackBeforeData());

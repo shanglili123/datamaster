@@ -15,6 +15,8 @@ public class AiAskSessionSaveReqVO {
 
     private String mode;
 
+    private String category;
+
     private Long datasourceId;
 
     private String datasourceName;

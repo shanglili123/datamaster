@@ -21,6 +21,9 @@ public class StandardsModelMaterializedRespDTO {
     /** 模型编码 */
     private String modelName;
 
+    /** Actual physical target at materialization time; never recomputed from model metadata. */
+    private String tableName;
+
     /** 模型名称 */
     private String modelAlias;
 

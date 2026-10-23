@@ -14,7 +14,7 @@ public class AssetsAssetOperateApplySaveReqVO extends BaseEntity {
 @Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String tableName;
 @Schema(description = "/", example = "")    @Size(max = 256, message = "/256")    private String tableComment;
 @Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String operateType;
-@Schema(description = "JSON", example = "")    @Size(max = 256, message = "JSON256")    private String operateJson;
+@Schema(description = "JSON", example = "")    @Size(max = 65535, message = "操作 JSON 不能超过 65535 个字符")    private String operateJson;
 @Schema(description = "", example = "")    private Date operateTime;
 @Schema(description = "", example = "")    @Size(max = 256, message = "256")    private String executeFlag;
 @Schema(description = "", example = "")    private Date executeTime;

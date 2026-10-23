@@ -33,6 +33,26 @@
                 <a-select-option v-for="dict in da_asset_type" :key="dict.value" :value="dict.value">{{ dict.label }}</a-select-option>
               </a-select>
             </a-form-item>
+            <a-form-item label="数仓分层" name="dataLayerId">
+              <a-select style="width: 150px" v-model:value="queryParams.dataLayerId" placeholder="请选择分层" allow-clear show-search>
+                <a-select-option v-for="item in governanceOptions.dataLayers" :key="item.id" :value="item.id">{{ item.name }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="业务分类" name="businessCategoryId">
+              <a-select style="width: 150px" v-model:value="queryParams.businessCategoryId" placeholder="请选择业务分类" allow-clear show-search>
+                <a-select-option v-for="item in governanceOptions.businessCategories" :key="item.id" :value="item.id">{{ item.name }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="数据域" name="dataDomainId">
+              <a-select style="width: 150px" v-model:value="queryParams.dataDomainId" placeholder="请选择数据域" allow-clear show-search>
+                <a-select-option v-for="item in governanceOptions.dataDomains" :key="item.id" :value="item.id">{{ item.name }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="主题域" name="themeDomainId">
+              <a-select style="width: 150px" v-model:value="queryParams.themeDomainId" placeholder="请选择主题域" allow-clear show-search>
+                <a-select-option v-for="item in governanceOptions.themeDomains" :key="item.id" :value="item.id">{{ item.name }}</a-select-option>
+              </a-select>
+            </a-form-item>
             <a-form-item>
               <a-button type="primary" @click="handleQuery" @mousedown="(e) => e.preventDefault()">
                 <i class="iconfont-mini icon-a-zu22377 mr5"></i>查询
@@ -96,6 +116,10 @@
               <template v-else-if="column.dataIndex === 'themeName'">
                 {{ record.assetsAssetThemeRelList?.length ? record.assetsAssetThemeRelList.map((ele) => ele.themeName).join(", ") : "-" }}
               </template>
+              <template v-else-if="column.dataIndex === 'dataLayerName'">{{ record.dataLayerName || '-' }}</template>
+              <template v-else-if="column.dataIndex === 'businessCategoryName'">{{ record.businessCategoryName || '-' }}</template>
+              <template v-else-if="column.dataIndex === 'dataDomainName'">{{ record.dataDomainName || '-' }}</template>
+              <template v-else-if="column.dataIndex === 'themeDomainName'">{{ record.themeDomainName || '-' }}</template>
               <template v-else-if="column.dataIndex === 'createTime'">
                 {{ parseTime(record.createTime, "{y}-{m}-{d} {h}:{i}") || "-" }}
               </template>
@@ -103,6 +127,8 @@
                 <overflow-tooltip :text="record.description || '-'" max-width="260px" />
               </template>
               <template v-else-if="column.key === 'actions'">
+                <a-button v-if="isQueryableAsset(record)" v-hasPermi="['ast:dataQuery:list']"
+                  type="link" size="small" @click="queryAsset(record)">数据查询</a-button>
                 <a-button v-if="!unregistered(record)" type="link" size="small" @click="handleUpdate(record, 'register')">注册</a-button>
                 <a-button v-if="unregistered(record)" type="link" size="small" @click="handleView(record)">详情</a-button>
                 <a-button
@@ -407,6 +433,7 @@
 </template>
 
 <script setup name="Asset">
+import { useDataQueryNavigation, isQueryableAsset } from "@/utils/dataQueryNavigation";
 import { h } from 'vue';
 import { EditOutlined, ReloadOutlined, DeleteOutlined, UploadOutlined, DownOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue'
@@ -437,8 +464,17 @@ import { addDaAssetApply } from "@/api/ast/assetApply/assetApply";
 import useUserStore from "@/store/system/user";
 
 import { getThemeList } from "@/api/tax/theme/theme.js";
+import { listDataLayer } from "@/api/mdl/dataLayer/dataLayer.js";
+import { listBusinessCategory } from "@/api/mdl/businessCategory/businessCategory.js";
+import { listDataDomain } from "@/api/mdl/dataDomain/dataDomain.js";
+import { listThemeDomain } from "@/api/mdl/themeDomain/themeDomain.js";
 
 import { normalizePage, pageRows } from "@/utils/page.js";
+const { openDataQuery } = useDataQueryNavigation();
+function queryAsset(record) {
+  if (!isQueryableAsset(record)) return;
+  openDataQuery({ assetId: record.id, datasourceId: record.datasourceId, tableName: record.tableName });
+}
 const { proxy } = getCurrentInstance();
 const { da_assets_status, da_asset_type } = proxy.useDict(
   "da_assets_status",
@@ -482,12 +518,30 @@ const tableColumns = [
   { title: "数据源", dataIndex: "datasourceName", key: "datasourceName", width: 160, ellipsis: true },
   { title: "表名称", dataIndex: "tableName", key: "tableName", width: 160, ellipsis: true },
   { title: "所属目录", dataIndex: "catName", key: "catName", width: 150, ellipsis: true },
+  { title: "数仓分层", dataIndex: "dataLayerName", key: "dataLayerName", width: 120, ellipsis: true },
+  { title: "业务分类", dataIndex: "businessCategoryName", key: "businessCategoryName", width: 140, ellipsis: true },
+  { title: "数据域", dataIndex: "dataDomainName", key: "dataDomainName", width: 120, ellipsis: true },
+  { title: "主题域", dataIndex: "themeDomainName", key: "themeDomainName", width: 120, ellipsis: true },
   { title: "所属主题", dataIndex: "themeName", key: "themeName", width: 170, ellipsis: true },
   { title: "创建时间", dataIndex: "createTime", key: "createTime", width: 160 },
   { title: "资产描述", dataIndex: "description", key: "description", ellipsis: true },
-  { title: "操作", key: "actions", width: 210, fixed: "right" },
+  { title: "操作", key: "actions", width: 290, fixed: "right" },
 ];
 let themeList = ref([]);
+const governanceOptions = reactive({ dataLayers: [], businessCategories: [], dataDomains: [], themeDomains: [] });
+const unwrapRows = (response) => Array.isArray(response?.data) ? response.data : (response?.data?.rows || response?.data?.list || []);
+async function getGovernanceOptions() {
+  const [layers, categories, domains, themes] = await Promise.all([
+    listDataLayer({ pageNum: 1, pageSize: 9999 }),
+    listBusinessCategory({ pageNum: 1, pageSize: 9999 }),
+    listDataDomain({ pageNum: 1, pageSize: 9999 }),
+    listThemeDomain({ pageNum: 1, pageSize: 9999 }),
+  ]);
+  governanceOptions.dataLayers = unwrapRows(layers);
+  governanceOptions.businessCategories = unwrapRows(categories);
+  governanceOptions.dataDomains = unwrapRows(domains);
+  governanceOptions.themeDomains = unwrapRows(themes);
+}
 async function getAssetThemeList() {
   const response = await getThemeList();
   themeList.value = response.data;
@@ -545,6 +599,10 @@ const data = reactive({
     dataCount: null,
     fieldCount: null,
     status: null,
+    dataLayerId: null,
+    businessCategoryId: null,
+    dataDomainId: null,
+    themeDomainId: null,
     description: null,
     createTime: null,
     params: {
@@ -794,6 +852,10 @@ function resetQuery() {
   queryParams.value.catCode = "";
   queryParams.value.pageNum = 1;
   queryParams.value.type = null;
+  queryParams.value.dataLayerId = null;
+  queryParams.value.businessCategoryId = null;
+  queryParams.value.dataDomainId = null;
+  queryParams.value.themeDomainId = null;
   reset();
   proxy.resetForm("queryRef");
   handleQuery();
@@ -937,6 +999,7 @@ queryParams.value.isAsc = defaultSort.value.order;
 // getList();
 getAssetCat();
 getAssetThemeList();
+getGovernanceOptions();
 </script>
 <style scoped lang="scss">
 .pagecont-top {

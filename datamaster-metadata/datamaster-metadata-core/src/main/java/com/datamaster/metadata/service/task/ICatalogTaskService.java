@@ -95,6 +95,12 @@ public interface ICatalogTaskService extends IService<CatalogTaskDO> {
     boolean runDaDiscoveryTask(Long taskId);
 
     /**
+     * 请求停止正在执行的探查任务。任务执行线程会在数据库/表级边界检查取消标记，
+     * 已经发出的单次 JDBC 操作不会被强行中断。
+     */
+    boolean cancelDaDiscoveryTask(Long taskId);
+
+    /**
      * 获取实时采集范围
      *
      * @param id 数据源id

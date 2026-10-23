@@ -25,10 +25,10 @@ public class ActionSaveReqVO {
     @NotBlank(message = "动作类型不能为空")
     private String actionType;
 
-    @Schema(description = "触发对象类型ID（FUNCTION 类型动作不需要）", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "1")
+    @Schema(description = "触发对象类型ID（FUNCTION/WEBHOOK 类型动作不需要）", requiredMode = Schema.RequiredMode.NOT_REQUIRED, example = "1")
     private Long conceptId;
 
-    @Schema(description = "多目标动作的有序执行步骤 JSON 数组；targetType=CONCEPT|RELATION")
+    @Schema(description = "COMPOSITE 为执行步骤数组；WEBHOOK 为配置对象，例如 {url,method,headers,bodyTemplate,timeoutMs,idempotent}")
     private String executionSteps;
 
     @Schema(description = "绑定共享函数ID（actionType=FUNCTION 时必填，来自 ONT_FUNCTION 表）", example = "1")

@@ -22,4 +22,18 @@ public interface IManualEditQueryService {
      * @return 人为编辑列表，无记录时返回空列表
      */
     List<ManualEditDTO> listLatestManualEdits(String targetTable, Integer limit);
+
+    /**
+     * 按目标表和空间查询人工编辑。空间为空时保持兼容，表示不增加空间过滤。
+     * 数据接入在消息携带 __spaceId 时必须使用该重载，避免不同空间同名物理表串用编辑历史。
+     */
+    default List<ManualEditDTO> listLatestManualEdits(String targetTable, Long spaceId, Integer limit) {
+        return listLatestManualEdits(targetTable, limit);
+    }
+
+    /** 按数据源、空间和目标表隔离人工编辑记录。 */
+    default List<ManualEditDTO> listLatestManualEdits(String targetTable, Long datasourceId,
+                                                       Long spaceId, Integer limit) {
+        return listLatestManualEdits(targetTable, spaceId, limit);
+    }
 }

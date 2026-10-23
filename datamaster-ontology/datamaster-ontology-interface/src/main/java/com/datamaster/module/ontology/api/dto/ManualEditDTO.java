@@ -25,6 +25,9 @@ public class ManualEditDTO {
     /** 编辑目标物理表 */
     private String targetTable;
 
+    /** 编辑目标物理表所属数据源 */
+    private Long datasourceId;
+
     /** 编辑前数据快照 (JSON 数组)：人为编辑前的整行数据 */
     private String beforeData;
 
@@ -50,6 +53,8 @@ public class ManualEditDTO {
     public void setStatus(String status) { this.status = status; }
     public String getTargetTable() { return targetTable; }
     public void setTargetTable(String targetTable) { this.targetTable = targetTable; }
+    public Long getDatasourceId() { return datasourceId; }
+    public void setDatasourceId(Long datasourceId) { this.datasourceId = datasourceId; }
     public String getBeforeData() { return beforeData; }
     public void setBeforeData(String beforeData) { this.beforeData = beforeData; }
     public String getAfterData() { return afterData; }

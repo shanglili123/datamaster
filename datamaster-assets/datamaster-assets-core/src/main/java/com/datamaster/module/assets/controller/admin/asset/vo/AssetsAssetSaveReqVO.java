@@ -28,6 +28,10 @@ public class AssetsAssetSaveReqVO extends BaseEntity {
     @Schema(description = "ID")
     private Long id;
 
+    /** 内部安全建表入口：禁止createAsset的兼容性upsert覆盖已有资产。 */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private boolean createOnly;
+
     @Schema(description = "", example = "")
     @Size(max = 256, message = "256")
     private String name;

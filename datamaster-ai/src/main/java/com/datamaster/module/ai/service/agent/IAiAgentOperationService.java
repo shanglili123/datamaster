@@ -13,9 +13,15 @@ public interface IAiAgentOperationService {
 
     AiAgentOperationDO get(String id);
 
-    List<AiAgentOperationDO> listLatest(Long spaceId, String spaceCode, int limit);
+    List<AiAgentOperationDO> listLatest(Long spaceId, String spaceCode, Long creatorId, int limit);
 
     List<AiAgentOperationDO> listRunning();
 
-    AiAgentOperationDO findActiveByDatabaseName(String databaseName);
+    AiAgentOperationDO findActiveByDatabaseName(String databaseName, Long creatorId,
+                                                 Long spaceId, String spaceCode);
+
+    AiAgentOperationDO findByDatasourceAndSpace(Long datasourceId, Long creatorId,
+                                                 Long spaceId, String spaceCode);
+
+    AiAgentOperationDO findByFlowKey(String flowKey, Long creatorId);
 }

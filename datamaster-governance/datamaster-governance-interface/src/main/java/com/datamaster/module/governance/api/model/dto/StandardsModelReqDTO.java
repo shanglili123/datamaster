@@ -44,7 +44,7 @@ public class StandardsModelReqDTO {
      */
     private Long dataLayerId;
     /**
-     * 业务分类id;只有表类型为非应用表是才有值
+     * 可选业务分类标签（所有表类型）；不参与物理表命名
      */
     private Long businessCategoryId;
     /**
@@ -111,4 +111,39 @@ public class StandardsModelReqDTO {
     private Boolean delFlag;
 
 
+
+    // Warehouse governance and frozen target.
+    private String physicalTableName;
+
+    private String namingVersion;
+
+    private String dataLayerCode;
+
+    private String dataLayerName;
+
+    private String dataLayerEngName;
+
+    private String businessCategoryName;
+
+    private String businessCategoryEngName;
+
+    private String dataDomainCode;
+
+    private String dataDomainName;
+
+    private String dataDomainEngName;
+
+    private String themeDomainName;
+
+    private String themeDomainEngName;
+
+    /** True for complete governance updates; null fields then explicitly clear optional metadata. */
+    private Boolean governanceProvided;
+
+    /** Explicit confirmation required to upgrade a historical LEGACY model. */
+    private Boolean upgradeNaming;
+
+    private Long spaceId;
+
+    private String spaceCode;
 }

@@ -5,6 +5,7 @@ import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.module.ai.dal.dataobject.skill.AiSkillDO;
 import com.datamaster.module.ai.dal.mapper.skill.AiSkillMapper;
+import com.datamaster.module.ai.dal.mapper.skill.AiSkillRefMapper;
 import com.datamaster.module.ai.service.dbgpt.IDbGptClientService;
 import com.datamaster.module.ai.service.dbgpt.IDbGptSkillSyncService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -20,13 +24,38 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
     @Resource
     private AiSkillMapper aiSkillMapper;
     @Resource
+    private AiSkillRefMapper aiSkillRefMapper;
+    @Resource
     private IDbGptClientService dbGptClientService;
 
     @Override
     public AjaxResult syncAllSkills() {
+        return syncSkills(aiSkillMapper.selectPublishedSkills(), "数据智能体知识同步完成");
+    }
+
+    @Override
+    public AjaxResult syncSkillsByDatasourceId(Long datasourceId) {
+        if (datasourceId == null) {
+            return syncAllSkills();
+        }
+        Set<Long> relatedIds = new LinkedHashSet<>(
+                aiSkillRefMapper.selectSkillIdsByDatasourceId(datasourceId));
+        relatedIds.addAll(aiSkillMapper.selectIdsByDatasourceBizObject(datasourceId));
+        List<AiSkillDO> candidates = relatedIds.isEmpty()
+                ? java.util.Collections.emptyList()
+                : aiSkillMapper.selectBatchIds(relatedIds);
+        List<AiSkillDO> skills = new ArrayList<>();
+        for (AiSkillDO skill : candidates) {
+            if (skill != null && "PUBLISHED".equals(skill.getStatus())) {
+                skills.add(skill);
+            }
+        }
+        return syncSkills(skills, "当前数据源的智能体知识同步完成");
+    }
+
+    private AjaxResult syncSkills(List<AiSkillDO> skills, String message) {
         int success = 0;
         int failed = 0;
-        List<AiSkillDO> skills = aiSkillMapper.selectPublishedSkills();
         for (AiSkillDO skill : skills) {
             try {
                 syncSkill(skill);
@@ -36,7 +65,7 @@ public class DbGptSkillSyncServiceImpl implements IDbGptSkillSyncService {
                 markFailed(skill, e.getMessage());
             }
         }
-        return AjaxResult.success("数据智能体知识同步完成，成功 " + success + " 个，失败 " + failed + " 个");
+        return AjaxResult.success(message + "，成功 " + success + " 个，失败 " + failed + " 个");
     }
 
     @Override

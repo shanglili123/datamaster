@@ -6,6 +6,8 @@ public interface IDbGptSkillSyncService {
 
     AjaxResult syncAllSkills();
 
+    AjaxResult syncSkillsByDatasourceId(Long datasourceId);
+
     AjaxResult syncSkillById(Long skillId);
 }
 

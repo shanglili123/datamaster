@@ -1,5 +1,5 @@
 <template>
-  <a-modal
+  <a-modal wrap-class-name="integration-component-modal"
     :title="title"
     v-model:open="visible"
     class="medium-dialog max-dialogs-status0"

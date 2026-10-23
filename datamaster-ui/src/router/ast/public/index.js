@@ -8,13 +8,12 @@ export default [
         path: '/ast/asset/detail',
         component: Layout,
         hidden: true,
-        meta: { fullScreen: true, noCache: true },
         children: [
             {
                 path: '',
-                component: () => import('@/views/explore/space.vue'),
+                component: () => import('@/views/col/asset/detail/index.vue'),
                 name: 'daDaAssetDetail',
-                meta: { title: '资产数据详情', fullScreen: true, noCache: true }
+                meta: { title: '资产数据详情', activeMenu: '/ast/asset', noCache: true }
             }
         ]
     },

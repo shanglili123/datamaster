@@ -32,6 +32,15 @@ public class TransformSqlBuilder {
     }
 
     public static String build(JSONArray transitions, List<String> sourceColumns, String sourceTableName) {
+        return build(transitions, sourceColumns, sourceTableName, null);
+    }
+
+    /**
+     * 在普通转换 SQL 之外补充采集来源元数据。该层运行在 Flink SQL 中，
+     * 因此写入时间使用 CURRENT_TIMESTAMP，来源自然键使用稳定的源表+源主键 hash。
+     */
+    public static String build(JSONArray transitions, List<String> sourceColumns, String sourceTableName,
+                               JSONObject sourceMetadata) {
         Map<String, String> colExprs = new LinkedHashMap<>();
         if (sourceColumns.isEmpty()) {
             colExprs.put("*", "*");
@@ -45,6 +54,7 @@ public class TransformSqlBuilder {
         List<String> dedupPartitions = new ArrayList<>();
         List<String> whereClauses = new ArrayList<>();
         boolean hasDedup = false;
+        List<String> outputColumns = null;
 
         if (transitions != null) {
             for (int i = 0; i < transitions.size(); i++) {
@@ -59,6 +69,17 @@ public class TransformSqlBuilder {
                 JSONObject param = trans.getJSONObject("parameter");
                 if (param == null) continue;
 
+                if ("OUTPUT_PROJECTION".equals(componentType)) {
+                    outputColumns = stringList(param.getJSONArray("columns"));
+                    continue;
+                }
+
+                if ("ROW_FILTER".equals(componentType)) {
+                    String condition = param.getString("condition");
+                    if (condition != null && !condition.trim().isEmpty()) whereClauses.add("(" + condition + ")");
+                    continue;
+                }
+
                 if ("DATA_DEDUPLICATION".equals(componentType)) {
                     hasDedup = true;
                 }
@@ -68,6 +89,23 @@ public class TransformSqlBuilder {
                     handler.apply(colExprs, orderByClauses, dedupPartitions, whereClauses, param);
                 }
             }
+        }
+
+        appendSourceMetadata(colExprs, sourceColumns, sourceTableName, sourceMetadata);
+
+        // 按 writer 输入字段的顺序投影，包括已存在或本次生成的治理列。
+        if (outputColumns != null && !isWildcardColumns(outputColumns)) {
+            Map<String, String> selected = new LinkedHashMap<>();
+            for (String column : outputColumns) {
+                String expression = colExprs.get(column);
+                if (expression == null && colExprs.containsKey("*")) expression = quoteId(column);
+                if (expression == null) {
+                    throw new IllegalArgumentException("输出映射引用了不存在的转换字段：" + column);
+                }
+                selected.put(column, expression);
+            }
+            colExprs.clear();
+            colExprs.putAll(selected);
         }
 
         if (colExprs.isEmpty()) return null;
@@ -125,6 +163,273 @@ public class TransformSqlBuilder {
         return sql.toString();
     }
 
+    /** 自定义 SQL 与普通转换保持相同的 writer 输入字段顺序。 */
+    public static String projectCustomSql(String customSql, List<String> outputColumns) {
+        if (isWildcardColumns(outputColumns)) return customSql;
+        String sql = customSql.trim();
+        if (sql.endsWith(";")) sql = sql.substring(0, sql.length() - 1);
+        List<String> items = new ArrayList<>();
+        for (String column : outputColumns) items.add(quoteId(column));
+        return "SELECT " + String.join(", ", items) + " FROM (" + sql + ") AS __dm_output__";
+    }
+
+    /** 为用户自定义转换 SQL 包一层来源元数据投影。 */
+    public static String wrapCustomSql(String customSql, List<String> sourceColumns,
+                                       String sourceTableName, JSONObject metadata) {
+        if (metadata == null || !metadata.getBooleanValue("enabled")
+                || customSql == null || customSql.trim().isEmpty()) {
+            return customSql;
+        }
+        String tableColumn = stringOrDefault(metadata, "sourceTableColumn", "source_table");
+        String sourceTableExpr = containsColumn(sourceColumns, tableColumn)
+                ? "__dm_custom__." + quoteId(tableColumn)
+                : literal(stringOrDefault(metadata, "sourceTableValue", sourceTableName));
+        List<String> items = new ArrayList<>();
+        String writeTimeColumn = stringOrDefault(metadata, "writeTimeColumn", "write_time");
+        if (sourceColumns == null || sourceColumns.isEmpty()
+                || (sourceColumns.size() == 1 && "*".equals(sourceColumns.get(0)))) {
+            items.add("__dm_custom__.*");
+        } else {
+            for (String sourceColumn : sourceColumns) {
+                if (writeTimeColumn.equalsIgnoreCase(sourceColumn)) {
+                    items.add("CAST(CURRENT_TIMESTAMP AS TIMESTAMP(3)) AS " + quoteId(writeTimeColumn));
+                } else {
+                    items.add("__dm_custom__." + quoteId(sourceColumn));
+                }
+            }
+        }
+        addMetadataProjection(items, sourceColumns, metadata, "sourceDatasourceColumn", "source_datasource",
+                literal(metadata.getString("sourceDatasourceValue")), "includeSourceDatasource");
+        addMetadataProjection(items, sourceColumns, metadata, "sourceDatabaseColumn", "source_database",
+                literal(metadata.getString("sourceDatabaseValue")), "includeSourceDatabase");
+        addMetadataProjection(items, sourceColumns, metadata, "sourceTableColumn", "source_table", sourceTableExpr);
+        addMetadataProjection(items, sourceColumns, metadata, "sourceTaskColumn", "source_task",
+                literal(metadata.getString("sourceTaskValue")), "includeSourceTask");
+        addMetadataProjection(items, sourceColumns, metadata, "sourceBatchColumn", "source_batch",
+                literal(metadata.getString("sourceBatchValue")), "includeSourceBatch");
+        // 下游连续输出时允许保留原始 source_* 字段，但 write_time 表示当前层写入时间，
+        // 因此即使自定义 SQL 已返回同名字段，也重新投影当前时间。
+        addMetadataProjection(items, sourceColumns, metadata, "writeTimeColumn", "write_time", "CAST(CURRENT_TIMESTAMP AS TIMESTAMP(3))");
+        List<String> keyColumns = stringList(metadata.getJSONArray("naturalKeyColumns"));
+        if (enabled(metadata, "includeNaturalKey") && !keyColumns.isEmpty()) {
+            List<String> parts = new ArrayList<>();
+            parts.add("CAST(" + sourceTableExpr + " AS STRING)");
+            for (String keyColumn : keyColumns) {
+                parts.add("COALESCE(CAST(__dm_custom__." + quoteId(keyColumn) + " AS STRING), '')");
+            }
+            addMetadataProjection(items, sourceColumns, metadata, "naturalKeyColumn", "source_natural_key",
+                    "MD5(CONCAT_WS('|', " + String.join(", ", parts) + "))");
+        }
+        addConfiguredSourceProjection(items, sourceColumns, metadata, "includeSourceUpdateTime",
+                "sourceUpdateTimeSourceColumn", "sourceUpdateTimeColumn", "source_update_time");
+        addConfiguredSourceProjection(items, sourceColumns, metadata, "includeRecordOp",
+                "recordOpSourceColumn", "recordOpColumn", "record_op");
+        if (enabled(metadata, "includeRowHash")) {
+            String rowHashColumn = stringOrDefault(metadata, "rowHashColumn", "source_row_hash");
+            if (!containsColumn(sourceColumns, rowHashColumn) && !isWildcardColumns(sourceColumns)) {
+                List<String> hashParts = new ArrayList<>();
+                for (String sourceColumn : sourceColumns) {
+                    if (!isGovernanceColumn(sourceColumn, metadata)) {
+                        hashParts.add("COALESCE(CAST(__dm_custom__." + quoteId(sourceColumn) + " AS STRING), '')");
+                    }
+                }
+                if (!hashParts.isEmpty()) {
+                    items.add("MD5(CONCAT_WS('|', " + String.join(", ", hashParts) + ")) AS " + quoteId(rowHashColumn));
+                }
+            }
+        }
+        return "SELECT " + String.join(", ", items) + " FROM (" + customSql + ") AS __dm_custom__";
+    }
+
+    private static void addMetadataProjection(List<String> items, List<String> sourceColumns,
+                                              JSONObject metadata, String key,
+                                              String defaultColumn, String expression) {
+        addMetadataProjection(items, sourceColumns, metadata, key, defaultColumn, expression, null);
+    }
+
+    private static void addMetadataProjection(List<String> items, List<String> sourceColumns,
+                                              JSONObject metadata, String key,
+                                              String defaultColumn, String expression, String includeFlag) {
+        if (includeFlag != null && !enabled(metadata, includeFlag)) return;
+        String column = stringOrDefault(metadata, key, defaultColumn);
+        if (containsColumn(sourceColumns, column)) return;
+        items.add(expression + " AS " + quoteId(column));
+    }
+
+    private static void addConfiguredSourceProjection(List<String> items, List<String> sourceColumns,
+                                                      JSONObject metadata, String includeFlag,
+                                                      String sourceKey, String outputKey, String defaultOutput) {
+        if (!enabled(metadata, includeFlag)) return;
+        String sourceColumn = metadata.getString(sourceKey);
+        if (sourceColumn == null || sourceColumn.trim().isEmpty()) return;
+        String outputColumn = stringOrDefault(metadata, outputKey, defaultOutput);
+        if (containsColumn(sourceColumns, outputColumn)) return;
+        if (!containsColumn(sourceColumns, sourceColumn)) return;
+        items.add("__dm_custom__." + quoteId(sourceColumn) + " AS " + quoteId(outputColumn));
+    }
+
+    private static void appendSourceMetadata(Map<String, String> colExprs, List<String> sourceColumns,
+                                             String sourceTableName, JSONObject metadata) {
+        if (metadata == null || !metadata.getBooleanValue("enabled")) {
+            return;
+        }
+        String datasourceColumn = stringOrDefault(metadata, "sourceDatasourceColumn", "source_datasource");
+        String databaseColumn = stringOrDefault(metadata, "sourceDatabaseColumn", "source_database");
+        String tableColumn = stringOrDefault(metadata, "sourceTableColumn", "source_table");
+        String taskColumn = stringOrDefault(metadata, "sourceTaskColumn", "source_task");
+        String batchColumn = stringOrDefault(metadata, "sourceBatchColumn", "source_batch");
+        String writeTimeColumn = stringOrDefault(metadata, "writeTimeColumn", "write_time");
+        String naturalKeyColumn = stringOrDefault(metadata, "naturalKeyColumn", "source_natural_key");
+
+        String sourceTableExpr;
+        String sourceTableColumn = stringOrDefault(metadata, "sourceTableColumn", "source_table");
+        if (containsColumn(sourceColumns, sourceTableColumn)) {
+            sourceTableExpr = quoteId(sourceTableColumn);
+        } else {
+            sourceTableExpr = literal(stringOrDefault(metadata, "sourceTableValue", sourceTableName));
+        }
+
+        if (enabled(metadata, "includeSourceDatasource")) {
+            putIfAbsent(colExprs, datasourceColumn, literal(metadata.getString("sourceDatasourceValue")));
+        }
+        if (enabled(metadata, "includeSourceDatabase")) {
+            putIfAbsent(colExprs, databaseColumn, literal(metadata.getString("sourceDatabaseValue")));
+        }
+        putIfAbsent(colExprs, tableColumn, sourceTableExpr);
+        if (enabled(metadata, "includeSourceTask")) {
+            putIfAbsent(colExprs, taskColumn, literal(metadata.getString("sourceTaskValue")));
+        }
+        if (enabled(metadata, "includeSourceBatch")) {
+            putIfAbsent(colExprs, batchColumn, literal(metadata.getString("sourceBatchValue")));
+        }
+        colExprs.put(writeTimeColumn, "CAST(CURRENT_TIMESTAMP AS TIMESTAMP(3))");
+
+        List<String> keyColumns = stringList(metadata.getJSONArray("naturalKeyColumns"));
+        if (enabled(metadata, "includeNaturalKey") && !keyColumns.isEmpty()) {
+            List<String> parts = new ArrayList<>();
+            parts.add("CAST(" + sourceTableExpr + " AS STRING)");
+            for (String keyColumn : keyColumns) {
+                parts.add("COALESCE(CAST(" + quoteId(keyColumn) + " AS STRING), '')");
+            }
+            putIfAbsent(colExprs, naturalKeyColumn,
+                    "MD5(CONCAT_WS('|', " + String.join(", ", parts) + "))");
+        }
+        addConfiguredSourceExpression(colExprs, sourceColumns, metadata, "includeSourceUpdateTime",
+                "sourceUpdateTimeSourceColumn", "sourceUpdateTimeColumn", "source_update_time");
+        addConfiguredSourceExpression(colExprs, sourceColumns, metadata, "includeRecordOp",
+                "recordOpSourceColumn", "recordOpColumn", "record_op");
+        if (enabled(metadata, "includeRowHash") && !isWildcardColumns(sourceColumns)) {
+            String rowHashColumn = stringOrDefault(metadata, "rowHashColumn", "source_row_hash");
+            if (!containsColumn(sourceColumns, rowHashColumn)) {
+                List<String> hashParts = new ArrayList<>();
+                for (String sourceColumn : sourceColumns) {
+                    if (!isGovernanceColumn(sourceColumn, metadata)) {
+                        hashParts.add("COALESCE(CAST(" + quoteId(sourceColumn) + " AS STRING), '')");
+                    }
+                }
+                if (!hashParts.isEmpty()) {
+                    putIfAbsent(colExprs, rowHashColumn,
+                            "MD5(CONCAT_WS('|', " + String.join(", ", hashParts) + "))");
+                }
+            }
+        }
+    }
+
+    private static void addConfiguredSourceExpression(Map<String, String> expressions, List<String> sourceColumns,
+                                                      JSONObject metadata, String includeFlag,
+                                                      String sourceKey, String outputKey, String defaultOutput) {
+        if (!enabled(metadata, includeFlag)) return;
+        String sourceColumn = metadata.getString(sourceKey);
+        if (sourceColumn == null || sourceColumn.trim().isEmpty() || !containsColumn(sourceColumns, sourceColumn)) return;
+        String outputColumn = stringOrDefault(metadata, outputKey, defaultOutput);
+        if (!containsColumn(sourceColumns, outputColumn)) {
+            putIfAbsent(expressions, outputColumn, quoteId(sourceColumn));
+        }
+    }
+
+    /**
+     * 行 Hash 只针对业务字段计算。治理列可能使用自定义列名，不能只按 source_ 前缀排除。
+     */
+    private static boolean isGovernanceColumn(String column, JSONObject metadata) {
+        if (column == null) return true;
+        String value = column.trim();
+        JSONArray preservedColumns = metadata == null
+                ? null : metadata.getJSONArray("preservedMetadataColumns");
+        if (preservedColumns != null) {
+            for (int i = 0; i < preservedColumns.size(); i++) {
+                String preserved = preservedColumns.getString(i);
+                if (preserved != null && preserved.equalsIgnoreCase(value)) {
+                    return true;
+                }
+            }
+        }
+        String[] keys = {
+                "sourceTableColumn", "writeTimeColumn", "sourceDatasourceColumn",
+                "sourceDatabaseColumn", "sourceTaskColumn", "sourceBatchColumn",
+                "naturalKeyColumn", "rowHashColumn", "sourceUpdateTimeColumn", "recordOpColumn"
+        };
+        String[] defaults = {
+                "source_table", "write_time", "source_datasource", "source_database",
+                "source_task", "source_batch", "source_natural_key", "source_row_hash",
+                "source_update_time", "record_op"
+        };
+        for (int i = 0; i < keys.length; i++) {
+            String configured = stringOrDefault(metadata, keys[i], defaults[i]);
+            if (configured.equalsIgnoreCase(value) || defaults[i].equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return value.toLowerCase().startsWith("source_");
+    }
+
+    private static boolean isWildcardColumns(List<String> columns) {
+        return columns == null || columns.isEmpty()
+                || (columns.size() == 1 && "*".equals(columns.get(0)));
+    }
+
+    private static boolean enabled(JSONObject metadata, String key) {
+        if (metadata == null) return false;
+        Object value = metadata.get(key);
+        return Boolean.TRUE.equals(value) || "true".equalsIgnoreCase(String.valueOf(value))
+                || "1".equals(String.valueOf(value));
+    }
+
+    private static void putIfAbsent(Map<String, String> values, String key, String expression) {
+        if (key != null && !key.trim().isEmpty() && !values.containsKey(key)) {
+            values.put(key, expression == null ? "NULL" : expression);
+        }
+    }
+
+    private static boolean containsColumn(List<String> columns, String column) {
+        if (columns == null || column == null) return false;
+        for (String item : columns) {
+            if (column.equalsIgnoreCase(item)) return true;
+        }
+        return false;
+    }
+
+    private static String stringOrDefault(JSONObject object, String key, String defaultValue) {
+        String value = object == null ? null : object.getString(key);
+        return value == null || value.trim().isEmpty() ? defaultValue : value.trim();
+    }
+
+    private static String literal(String value) {
+        if (value == null || value.trim().isEmpty() || "null".equalsIgnoreCase(value.trim())) {
+            return "NULL";
+        }
+        return "'" + escapeSql(value) + "'";
+    }
+
+    private static List<String> stringList(JSONArray values) {
+        List<String> result = new ArrayList<>();
+        if (values == null) return result;
+        for (int i = 0; i < values.size(); i++) {
+            String value = values.getString(i);
+            if (value != null && !value.trim().isEmpty()) result.add(value.trim());
+        }
+        return result;
+    }
+
     private static String quoteId(String name) {
         if (name == null || name.isEmpty() || "*".equals(name)) return name;
         if (name.startsWith("`") && name.endsWith("`")) return name;
@@ -134,6 +439,84 @@ public class TransformSqlBuilder {
     private static String escapeSql(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("'", "''");
+    }
+
+    /** Preserve empty strings and the text "null" in field processing. */
+    private static String exactString(String value) {
+        return value == null ? "NULL" : "'" + escapeSql(value) + "'";
+    }
+
+    private static String sqlType(String type, JSONObject config) {
+        switch (type.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "string": case "internetaddress": return "STRING";
+            case "binary": return "BYTES";
+            case "int": case "integer": return "INTEGER";
+            case "long": case "bigint": return "BIGINT";
+            case "double": case "number": return "DOUBLE";
+            case "boolean": return "BOOLEAN";
+            case "date": return "DATE";
+            case "timestamp": return "TIMESTAMP";
+            case "decimal": case "bignumber":
+                int precision = config.getInteger("precision") == null ? 38 : config.getIntValue("precision");
+                int scale = config.getInteger("scale") == null ? 18 : config.getIntValue("scale");
+                if (precision < 1 || precision > 38 || scale < 0 || scale > precision) {
+                    throw new IllegalArgumentException("DECIMAL 要求 1 <= precision <= 38 且 0 <= scale <= precision");
+                }
+                return "DECIMAL(" + precision + ", " + scale + ")";
+            default: throw new IllegalArgumentException("不支持的转换类型: " + type);
+        }
+    }
+
+    private static String typedLiteral(Object value, String type, JSONObject config) {
+        String target = sqlType(type, config);
+        if (value == null) return "CAST(NULL AS " + target + ")";
+        String text = String.valueOf(value);
+        try {
+            switch (type.trim().toLowerCase(java.util.Locale.ROOT)) {
+                case "string": return exactString(text);
+                case "double": case "number":
+                    double number = Double.parseDouble(text);
+                    if (Double.isNaN(number) || Double.isInfinite(number))
+                        throw new IllegalArgumentException("不是有限浮点值: " + text);
+                    break;
+                case "date": java.time.LocalDate.parse(text); break;
+                case "timestamp": java.sql.Timestamp.valueOf(text); break;
+                case "int": case "integer": Integer.parseInt(text); break;
+                case "long": case "bigint": Long.parseLong(text); break;
+                case "decimal": case "bignumber":
+                    java.math.BigDecimal decimal = new java.math.BigDecimal(text);
+                    int scale = config.getInteger("scale") == null ? 18 : config.getIntValue("scale");
+                    int precision = config.getInteger("precision") == null ? 38 : config.getIntValue("precision");
+                    if (decimal.setScale(scale, java.math.RoundingMode.UNNECESSARY).precision() > precision)
+                        throw new IllegalArgumentException("DECIMAL 常量超出精度: " + text);
+                    break;
+                case "boolean":
+                    if (!"true".equalsIgnoreCase(text) && !"false".equalsIgnoreCase(text))
+                        throw new IllegalArgumentException("不是合法布尔值: " + text);
+                    return text.toUpperCase(java.util.Locale.ROOT);
+                default: throw new IllegalArgumentException("值映射不支持的输出类型: " + type);
+            }
+        } catch (ArithmeticException ex) {
+            throw new IllegalArgumentException("常量无法转换为 " + target + ": " + text, ex);
+        }
+        return "CAST(" + exactString(text) + " AS " + target + ")";
+    }
+
+    private static String castExpression(String source, String type, JSONObject config) {
+        String failure = stringOrDefault(config, "castFailure", "FAIL").toUpperCase(java.util.Locale.ROOT);
+        String target = sqlType(type, config);
+        switch (failure) {
+            case "FAIL": return "CAST(" + source + " AS " + target + ")";
+            case "NULL": return "TRY_CAST(" + source + " AS " + target + ")";
+            case "DEFAULT":
+                if (!config.containsKey("defaultValue"))
+                    throw new IllegalArgumentException("castFailure=DEFAULT 必须配置 defaultValue");
+                String attempt = "TRY_CAST(" + source + " AS " + target + ")";
+                // A genuine input NULL remains NULL; the default applies only to failed non-NULL input.
+                return "CASE WHEN " + source + " IS NULL THEN CAST(NULL AS " + target + ") ELSE COALESCE("
+                        + attempt + ", " + typedLiteral(config.get("defaultValue"), type, config) + ") END";
+            default: throw new IllegalArgumentException("未知的转换失败策略: " + failure);
+        }
     }
 
     // ========================================================================
@@ -150,27 +533,60 @@ public class TransformSqlBuilder {
                           JSONObject param) {
             String inputField = param.getString("inputField");
             String outputField = param.getString("outputField");
-            String defaultValue = param.getString("defaultValue");
-            JSONArray tableFields = param.getJSONArray("tableFields");
-            if (inputField == null || outputField == null || tableFields == null || tableFields.isEmpty()) return;
-
-            StringBuilder caseExpr = new StringBuilder("CASE ");
-            caseExpr.append(quoteId(inputField));
-            for (int i = 0; i < tableFields.size(); i++) {
-                JSONObject mapping = tableFields.getJSONObject(i);
-                String source = mapping.getString("source");
-                String target = mapping.getString("target");
-                if (source != null && target != null) {
-                    caseExpr.append(" WHEN '").append(escapeSql(source)).append("' THEN '").append(escapeSql(target)).append("'");
+            JSONArray mappings = param.getJSONArray("tableFields");
+            if (inputField == null || outputField == null || mappings == null || mappings.isEmpty()) return;
+            boolean legacy = !param.containsKey("outputType") && !param.containsKey("unmatched");
+            for (int i = 0; i < mappings.size(); i++) {
+                if (mappings.getJSONObject(i).containsKey("matchType")) legacy = false;
+            }
+            if (legacy) {
+                StringBuilder old = new StringBuilder("CASE ").append(quoteId(inputField));
+                for (int i = 0; i < mappings.size(); i++) {
+                    JSONObject mapping = mappings.getJSONObject(i);
+                    String source = mapping.getString("source");
+                    String target = mapping.getString("target");
+                    if (source != null && target != null) {
+                        old.append(" WHEN ").append(exactString(source)).append(" THEN ").append(exactString(target));
+                    }
                 }
+                String defaultValue = param.getString("defaultValue");
+                old.append(" ELSE ").append(defaultValue == null ? quoteId(inputField) : exactString(defaultValue));
+                colExprs.put(outputField, old.append(" END").toString());
+                return;
             }
-            if (defaultValue != null) {
-                caseExpr.append(" ELSE '").append(escapeSql(defaultValue)).append("'");
-            } else {
-                caseExpr.append(" ELSE ").append(quoteId(inputField));
+            String outputType = stringOrDefault(param, "outputType", "string");
+            String unmatched = stringOrDefault(param, "unmatched",
+                    param.get("defaultValue") == null ? "KEEP" : "DEFAULT").toUpperCase(java.util.Locale.ROOT);
+            if ("FAIL".equals(unmatched)) {
+                throw new IllegalArgumentException("值映射 unmatched=FAIL 暂不支持可靠的逐行失败，请使用 KEEP/DEFAULT/NULL");
             }
-            caseExpr.append(" END");
-            colExprs.put(outputField, caseExpr.toString());
+            String input = colExprs.getOrDefault(inputField, quoteId(inputField));
+            StringBuilder expr = new StringBuilder("CASE");
+            int count = 0;
+            for (int i = 0; i < mappings.size(); i++) {
+                JSONObject mapping = mappings.getJSONObject(i);
+                String match = stringOrDefault(mapping, "matchType", "VALUE").toUpperCase(java.util.Locale.ROOT);
+                String source = mapping.getString("source");
+                if ("VALUE".equals(match) && source == null) continue;
+                if (!mapping.containsKey("target")) continue;
+                String condition;
+                if ("NULL".equals(match)) condition = input + " IS NULL";
+                else if ("EMPTY".equals(match)) condition = "CAST(" + input + " AS STRING) = ''";
+                else if ("VALUE".equals(match)) condition = "CAST(" + input + " AS STRING) = " + exactString(source);
+                else throw new IllegalArgumentException("未知的值映射匹配类型: " + match);
+                expr.append(" WHEN ").append(condition).append(" THEN ")
+                        .append(typedLiteral(mapping.get("target"), outputType, param));
+                count++;
+            }
+            if (count == 0) return;
+            String fallback;
+            switch (unmatched) {
+                case "KEEP": fallback = castExpression(input, outputType, param); break;
+                case "DEFAULT": fallback = typedLiteral(param.get("defaultValue"), outputType, param); break;
+                case "NULL": fallback = "CAST(NULL AS " + sqlType(outputType, param) + ")"; break;
+                default: throw new IllegalArgumentException("未知的值映射未匹配策略: " + unmatched);
+            }
+            colExprs.put(outputField, expr.append(" ELSE ").append(fallback).append(" END").toString());
         }
     }
 
@@ -192,6 +608,23 @@ public class TransformSqlBuilder {
                 applyFieldConcat(colExprs, param);
             } else if ("FIELD_DERIVE_SUBSTRING".equals(type)) {
                 applyFieldSubstring(colExprs, param);
+            } else if ("FIELD_DERIVE_REPLACE".equals(type)) {
+                applyFieldReplace(colExprs, param);
+            } else if ("FIELD_DERIVE_EXPRESSION".equals(type)) {
+                applyFieldExpression(colExprs, param);
+            } else if ("FIELD_DERIVE_HASH".equals(type)) {
+                applyFieldHash(colExprs, param);
+            } else if ("FIELD_DERIVE_REGEX".equals(type)) {
+                applyFieldRegex(colExprs, param);
+            } else if ("FIELD_DERIVE_NULL".equals(type) || "8".equals(type)) {
+                applyFieldNull(colExprs, param);
+            } else if ("FIELD_DERIVE_CONSTANT".equals(type)) {
+                applyFieldConstant(colExprs, param);
+            }
+            String resultType = param.getString("resultType");
+            String output = param.getString("fieldDerivationName");
+            if (resultType != null && !resultType.trim().isEmpty() && colExprs.containsKey(output)) {
+                colExprs.put(output, castExpression(colExprs.get(output), resultType, param));
             }
         }
 
@@ -210,7 +643,14 @@ public class TransformSqlBuilder {
             for (int i = 0; i < tableFields.size(); i++) {
                 String colName = tableFields.getJSONObject(i).getString("columnName");
                 if (colName != null) {
-                    colParts.add("COALESCE(CAST(" + quoteId(colName) + " AS VARCHAR), 'null')");
+                    String source = colExprs.getOrDefault(colName, quoteId(colName));
+                    String part = "CAST(" + source + " AS VARCHAR)";
+                    String mode = stringOrDefault(param, "nullMode", "NULL_LITERAL").toUpperCase(java.util.Locale.ROOT);
+                    if ("NULL_LITERAL".equals(mode)) part = "COALESCE(" + part + ", 'null')";
+                    else if ("EMPTY".equals(mode)) part = "COALESCE(" + part + ", '')";
+                    else if (!"KEEP".equals(mode) && !"SKIP".equals(mode))
+                        throw new IllegalArgumentException("未知的拼接空值策略: " + mode);
+                    colParts.add(part);
                 }
             }
             if (colParts.isEmpty()) return;
@@ -220,7 +660,15 @@ public class TransformSqlBuilder {
             if (!prefix.isEmpty()) {
                 concatParts.add("'" + escapeSql(prefix) + "'");
             }
-            if (delimiter.isEmpty()) {
+            String nullMode = stringOrDefault(param, "nullMode", "NULL_LITERAL").toUpperCase(java.util.Locale.ROOT);
+            if ("KEEP".equals(nullMode)) {
+                List<String> withSeparators = new ArrayList<>();
+                for (String part : colParts) {
+                    if (!withSeparators.isEmpty() && !delimiter.isEmpty()) withSeparators.add(exactString(delimiter));
+                    withSeparators.add(part);
+                }
+                concatParts.addAll(withSeparators);
+            } else if (delimiter.isEmpty() && !"SKIP".equals(nullMode)) {
                 concatParts.addAll(colParts);
             } else {
                 StringBuilder ws = new StringBuilder("CONCAT_WS('");
@@ -276,6 +724,151 @@ public class TransformSqlBuilder {
             }
             colExprs.put(fieldDerivationName, expr.toString());
         }
+
+        private void applyFieldReplace(Map<String, String> colExprs, JSONObject param) {
+            String output = param.getString("fieldDerivationName");
+            String column = firstColumn(param);
+            if (output == null || column == null) return;
+            String search = firstString(param, "searchValue", "oldValue", "search", "pattern");
+            String replacement = firstString(param, "replaceValue", "newValue", "replacement");
+            if (search == null || replacement == null) return;
+            String source = "CAST(" + quoteId(column) + " AS VARCHAR)";
+            colExprs.put(output, "REPLACE(" + source + ", '" + escapeSql(search)
+                    + "', '" + escapeSql(replacement) + "')");
+        }
+
+        private void applyFieldExpression(Map<String, String> colExprs, JSONObject param) {
+            String output = param.getString("fieldDerivationName");
+            String expression = firstString(param, "expression", "formula", "sqlExpression");
+            if (output == null || expression == null || expression.trim().isEmpty()) return;
+            String safeExpression = expression.trim();
+            // 表达式允许使用 ${COLUMN} 占位符，但不能拼接多条 SQL 或注释逃逸到查询外。
+            if (safeExpression.indexOf(';') >= 0 || safeExpression.contains("--")
+                    || safeExpression.contains("/*") || safeExpression.contains("*/")) {
+                throw new IllegalArgumentException("字段派生表达式包含禁止的 SQL 分隔符或注释");
+            }
+            JSONArray fields = param.getJSONArray("tableFields");
+            if (fields != null) {
+                for (int i = 0; i < fields.size(); i++) {
+                    JSONObject field = fields.getJSONObject(i);
+                    if (field == null) continue;
+                    String column = field.getString("columnName");
+                    if (column != null) {
+                        safeExpression = safeExpression.replace("${" + column + "}", quoteId(column));
+                    }
+                }
+            }
+            colExprs.put(output, safeExpression);
+        }
+
+        private void applyFieldHash(Map<String, String> colExprs, JSONObject param) {
+            String output = param.getString("fieldDerivationName");
+            String column = firstColumn(param);
+            if (output == null || column == null) return;
+            String algorithm = firstString(param, "algorithm", "hashAlgorithm");
+            if (algorithm == null || algorithm.trim().isEmpty()) algorithm = "MD5";
+            String normalized = algorithm.replace("-", "").replace("_", "").toUpperCase();
+            String source = "CAST(" + quoteId(column) + " AS VARCHAR)";
+            if ("MD5".equals(normalized)) {
+                colExprs.put(output, "MD5(" + source + ")");
+            } else if ("SHA1".equals(normalized)) {
+                colExprs.put(output, "SHA1(" + source + ")");
+            } else if ("SHA256".equals(normalized) || "SHA2".equals(normalized)) {
+                colExprs.put(output, "SHA2(" + source + ", 256)");
+            } else {
+                throw new IllegalArgumentException("不支持的字段哈希算法: " + algorithm);
+            }
+        }
+
+        private void applyFieldRegex(Map<String, String> colExprs, JSONObject param) {
+            String output = param.getString("fieldDerivationName");
+            String column = firstColumn(param);
+            String regex = firstString(param, "regex", "pattern");
+            if (output == null || column == null || regex == null || regex.isEmpty()) return;
+            int group = 0;
+            Integer configuredGroup = param.getInteger("group");
+            if (configuredGroup == null) configuredGroup = param.getInteger("groupIndex");
+            if (configuredGroup != null) group = Math.max(0, configuredGroup);
+            colExprs.put(output, "REGEXP_EXTRACT(CAST(" + quoteId(column) + " AS VARCHAR), '"
+                    + escapeSql(regex) + "', " + group + ")");
+        }
+
+        private void applyFieldNull(Map<String, String> colExprs, JSONObject param) {
+            String output = param.getString("fieldDerivationName");
+            JSONArray fields = param.getJSONArray("tableFields");
+            if (output == null || fields == null || fields.isEmpty()) return;
+            List<String> parts = new ArrayList<>();
+            for (int i = 0; i < fields.size(); i++) {
+                String column = fields.getJSONObject(i).getString("columnName");
+                if (column == null) continue;
+                String source = "CAST(" + colExprs.getOrDefault(column, quoteId(column)) + " AS STRING)";
+                if (param.getBooleanValue("trimWhitespace")) source = "TRIM(" + source + ")";
+                if (param.getBooleanValue("normalizeEmpty")) source = "NULLIF(" + source + ", '')";
+                parts.add(source);
+            }
+            if (parts.isEmpty()) return;
+            String action = stringOrDefault(param, "nullAction", "COALESCE").toUpperCase(java.util.Locale.ROOT);
+            String expression;
+            switch (action) {
+                case "EMPTY_TO_NULL": expression = "NULLIF(" + parts.get(0) + ", '')"; break;
+                case "DEFAULT": expression = "COALESCE(" + parts.get(0) + ", " + exactString(param.getString("defaultValue")) + ")"; break;
+                case "COALESCE":
+                    if (param.containsKey("defaultValue")) parts.add(exactString(param.getString("defaultValue")));
+                    expression = parts.size() == 1 ? parts.get(0) : "COALESCE(" + String.join(", ", parts) + ")";
+                    break;
+                default: throw new IllegalArgumentException("未知的空值处理: " + action);
+            }
+            colExprs.put(output, expression);
+        }
+
+        private void applyFieldConstant(Map<String, String> colExprs, JSONObject param) {
+            String output = param.getString("fieldDerivationName");
+            if (output == null) return;
+            Object value = param.get("constantValue");
+            if (value == null) value = param.get("value");
+            if (value == null) value = param.get("defaultValue");
+            if (value == null) {
+                colExprs.put(output, "NULL");
+                return;
+            }
+            String type = firstString(param, "constantType", "type", "dataType");
+            String text = String.valueOf(value);
+            if (type != null) {
+                String normalized = type.trim().toLowerCase();
+                if ("int".equals(normalized) || "integer".equals(normalized)
+                        || "long".equals(normalized) || "double".equals(normalized)
+                        || "decimal".equals(normalized) || "float".equals(normalized)) {
+                    if (!text.matches("[-+]?[0-9]+(\\.[0-9]+)?")) {
+                        throw new IllegalArgumentException("常量值不是合法数字: " + text);
+                    }
+                    colExprs.put(output, text);
+                    return;
+                }
+                if ("boolean".equals(normalized)) {
+                    if (!"true".equalsIgnoreCase(text) && !"false".equalsIgnoreCase(text)) {
+                        throw new IllegalArgumentException("常量值不是合法布尔值: " + text);
+                    }
+                    colExprs.put(output, text.toUpperCase());
+                    return;
+                }
+            }
+            colExprs.put(output, "'" + escapeSql(text) + "'");
+        }
+
+        private String firstColumn(JSONObject param) {
+            JSONArray fields = param.getJSONArray("tableFields");
+            if (fields == null || fields.isEmpty()) return null;
+            JSONObject first = fields.getJSONObject(0);
+            return first == null ? null : first.getString("columnName");
+        }
+
+        private String firstString(JSONObject param, String... names) {
+            for (String name : names) {
+                String value = param.getString(name);
+                if (value != null) return value;
+            }
+            return null;
+        }
     }
 
     // ========================================================================
@@ -329,19 +922,16 @@ public class TransformSqlBuilder {
                     String outputField = field.getString("outputField");
                     if (outputField == null || inputField == null) continue;
 
-                    String expr = quoteId(inputField);
+                    String expr = colExprs.getOrDefault(inputField, quoteId(inputField));
                     String type = field.getString("type");
                     Integer length = field.getInteger("length");
                     Integer precision = field.getInteger("precision");
 
                     if (type != null) {
-                        switch (type.toLowerCase()) {
-                            case "string":
-                                expr = "CAST(" + expr + " AS VARCHAR)";
-                                break;
+                        expr = castExpression(expr, type, field);
+                        switch (type.toLowerCase(java.util.Locale.ROOT)) {
                             case "int":
                             case "integer":
-                                expr = "CAST(" + expr + " AS INTEGER)";
                                 if (length != null && length > 0) {
                                     int maxVal = length > 9 ? Integer.MAX_VALUE : (int) Math.pow(10, length) - 1;
                                     expr = "CASE WHEN " + expr + " > " + maxVal + " THEN " + maxVal
@@ -350,25 +940,12 @@ public class TransformSqlBuilder {
                                 }
                                 break;
                             case "long":
-                                expr = "CAST(" + expr + " AS BIGINT)";
                                 if (length != null && length > 0) {
                                     long maxVal = length > 18 ? Long.MAX_VALUE : (long) Math.pow(10, length) - 1;
                                     expr = "CASE WHEN " + expr + " > " + maxVal + " THEN " + maxVal
                                             + " WHEN " + expr + " < " + (-maxVal) + " THEN " + (-maxVal)
                                             + " ELSE " + expr + " END";
                                 }
-                                break;
-                            case "double":
-                                expr = "CAST(" + expr + " AS DOUBLE)";
-                                break;
-                            case "boolean":
-                                expr = "CAST(" + expr + " AS BOOLEAN)";
-                                break;
-                            case "date":
-                                expr = "CAST(" + expr + " AS DATE)";
-                                break;
-                            case "timestamp":
-                                expr = "CAST(" + expr + " AS TIMESTAMP)";
                                 break;
                         }
                     }

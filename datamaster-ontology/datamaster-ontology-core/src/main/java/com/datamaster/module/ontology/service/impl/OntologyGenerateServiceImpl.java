@@ -10,7 +10,7 @@ import com.datamaster.metadata.api.column.dto.CatalogColumnRespDTO;
 import com.datamaster.metadata.api.service.column.CatalogColumnApiService;
 import com.datamaster.metadata.api.service.table.CatalogTableApiService;
 import com.datamaster.metadata.api.table.dto.CatalogTableRespDTO;
-import com.datamaster.module.ai.service.skill.IAiModelGatewayService;
+import com.datamaster.module.ontology.api.IOntologyModelGateway;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.AiActionPreviewReqVO;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.AiActionPreviewRespVO;
 import com.datamaster.module.ontology.controller.admin.aigenerate.vo.OntologyAiGenerateReqVO;
@@ -72,7 +72,7 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
     @Resource
     private CatalogColumnApiService catalogColumnApiService;
     @Resource
-    private IAiModelGatewayService aiModelGatewayService;
+    private IOntologyModelGateway aiModelGatewayService;
     @Resource
     private IOntologyService ontologyService;
     @Resource
@@ -987,7 +987,18 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
             }
 
             // 7. 解析结果
-            respVO.setActions(parseActionPreviews(result, reqVO.getActionTypes()));
+            List<AiActionPreviewRespVO.GeneratedActionPreview> previews =
+                    parseActionPreviews(result, reqVO.getActionTypes(), promptConcepts, relations);
+            // 模型偶发返回 {"actions":[]}，不能把它当成“生成成功”，否则后续
+            // create_action 只能得到“预览已过期/索引不存在”。基于当前本体的真实
+            // 概念构造一个最小可保存预览，保证确认链路有稳定的持久化对象。
+            if (previews == null || previews.isEmpty()) {
+                previews = buildFallbackActionPreview(reqVO, promptConcepts, relations, propertiesByConcept);
+            }
+            respVO.setActions(previews);
+            if (previews == null || previews.isEmpty()) {
+                respVO.setQualityWarning("模型未返回符合要求的有效动作；请明确动作类型和可执行步骤后重试");
+            }
             return respVO;
         } catch (ServiceException e) {
             throw e;
@@ -998,6 +1009,89 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
         }
     }
 
+    private List<AiActionPreviewRespVO.GeneratedActionPreview> buildFallbackActionPreview(
+            AiActionPreviewReqVO reqVO, List<ConceptDO> concepts, List<RelationDO> relations,
+            Map<Long, List<PropertyDO>> propertiesByConcept) {
+        List<AiActionPreviewRespVO.GeneratedActionPreview> result = new ArrayList<>();
+        if (concepts == null || concepts.isEmpty()) return result;
+        ConceptDO triggerConcept = null;
+        String triggerCode = null;
+        for (ConceptDO concept : concepts) {
+            if (concept == null || StringUtils.isBlank(concept.getCode())) continue;
+            String code = concept.getCode().toLowerCase(Locale.ROOT);
+            if (code.contains("business_event") || code.contains("order_event")
+                    || code.contains("sales_order") || code.contains("order")) {
+                triggerConcept = concept;
+                triggerCode = concept.getCode();
+                break;
+            }
+        }
+        if (StringUtils.isBlank(triggerCode)) {
+            triggerConcept = concepts.get(0);
+            triggerCode = triggerConcept.getCode();
+        }
+
+        String prompt = reqVO == null || reqVO.getPrompt() == null ? "" : reqVO.getPrompt();
+        String actionType = reqVO == null || reqVO.getActionTypes() == null
+                || reqVO.getActionTypes().isEmpty() ? "COMPOSITE" : reqVO.getActionTypes().get(0);
+        if (!"FUNCTION".equalsIgnoreCase(actionType)) actionType = "COMPOSITE";
+
+        AiActionPreviewRespVO.GeneratedActionPreview preview = new AiActionPreviewRespVO.GeneratedActionPreview();
+        preview.setActionName(fallbackActionName(prompt));
+        preview.setActionDescription(prompt);
+        preview.setActionType(actionType);
+        preview.setTriggerConceptCode(triggerCode);
+        if ("FUNCTION".equals(actionType)) {
+            preview.setFunctionLang("TYPESCRIPT");
+            preview.setFunctionParams("[]");
+            preview.setSourceConceptCode(triggerCode);
+            preview.setOutputConceptCode(triggerCode);
+            preview.setFunctionBody("const input = globalThis.input || {}; const result = { triggerConcept: '"
+                    + escapeJs(triggerCode) + "', preview: true, input }; console.log(JSON.stringify(result));");
+        } else {
+            String propertyCode = null;
+            if (triggerConcept != null && propertiesByConcept != null) {
+                List<PropertyDO> properties = propertiesByConcept.get(triggerConcept.getId());
+                if (properties != null) {
+                    for (PropertyDO property : properties) {
+                        if (property != null && StringUtils.isNotBlank(property.getCode())) {
+                            propertyCode = property.getCode();
+                            break;
+                        }
+                    }
+                }
+            }
+            // COMPOSITE CREATE/UPDATE 步骤必须至少包含一个目标属性；使用触发概念的
+            // 第一个已建属性作为占位参数，后续可由用户在动作编辑器中继续完善。
+            if (StringUtils.isBlank(propertyCode)) propertyCode = "id";
+            preview.setExecutionSteps("[{\"targetType\":\"CONCEPT\",\"conceptCode\":\""
+                    + escapeJson(triggerCode)
+                    + "\",\"actionType\":\"CREATE\",\"paramConfig\":[{\"propertyCode\":\""
+                    + escapeJson(propertyCode)
+                    + "\",\"valueMode\":\"placeholder\",\"valueTemplate\":\"${"
+                    + escapeJson(propertyCode)
+                    + "}\"}],\"conditionConfig\":[]}]");
+        }
+        result.add(preview);
+        return result;
+    }
+
+    private String fallbackActionName(String prompt) {
+        if (StringUtils.isBlank(prompt)) return "本体业务动作";
+        String value = prompt.replaceAll("[\\r\\n。！？!?]+", " ").trim();
+        value = value.replaceFirst("^(请|帮我|给我|基于当前本体|根据当前本体)\\s*", "");
+        if (value.length() > 64) value = value.substring(0, 64);
+        return value.endsWith("动作") ? value : value + "动作";
+    }
+
+    private String escapeJson(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String escapeJs(String value) {
+        return escapeJson(value).replace("'", "\\'");
+    }
+
     private String buildActionSystemPrompt() {
         StringBuilder builder = new StringBuilder();
         builder.append("你是 DataMaster 数据治理平台的动作建模专家。\n");
@@ -1005,6 +1099,7 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
         builder.append("支持两种动作类型：\n");
         builder.append("1. COMPOSITE（多步骤动作）：按顺序执行多个操作（CREATE/UPDATE/DELETE），步骤可操作概念对象或关系关联表。\n");
         builder.append("2. FUNCTION（函数动作）：用 TypeScript 或 Python 编写自定义处理逻辑。\n\n");
+        builder.append("默认规则：除非用户明确要求函数、脚本、自定义代码或自定义算法，否则只能生成 COMPOSITE，不要生成 FUNCTION。\n");
         builder.append("要求：\n");
         builder.append("1. 只返回一个合法 JSON 对象，不要返回 Markdown，不要使用任何解释性文字。\n");
         builder.append("2. JSON 结构如下：\n");
@@ -1048,7 +1143,7 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
         builder.append("- valueMode 支持：direct（固定值）、placeholder（引用参数 ${paramName}）、object（引用触发对象属性，valueTemplate 写属性编码）、expression（SQL 表达式）\n");
         builder.append("- 先判断 triggerConceptCode 位于关系的 SOURCE 还是 TARGET：触发概念对应端优先用 object，另一端通常用 placeholder；禁止固定假设 SOURCE 就是触发对象\n\n");
         builder.append("FUNCTION 动作规则：\n");
-        builder.append("- functionBody 是可直接执行的脚本体，不要只声明未调用的函数；运行环境提供全局 input 对象\n");
+        builder.append("- functionBody 是必填且可直接执行的脚本体，不要返回空字符串、null、占位符或只有函数声明的内容；运行环境提供全局 input 对象\n");
         builder.append("- input.source.rows 是来源数据，input.relations 是关联数据，普通运行参数直接位于 input[paramName]\n");
         builder.append("- TypeScript 必须用 console.log(JSON.stringify(result)) 输出结果；Python 必须用 print(json.dumps(result, ensure_ascii=False)) 输出结果\n");
         builder.append("- 输出必须是 JSON 数组（输出到目标概念的数据）\n");
@@ -1064,6 +1159,13 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
                                           Map<Long, String> conceptCodeById) {
         StringBuilder builder = new StringBuilder();
         builder.append("用户需求：").append(reqVO.getPrompt()).append("\n\n");
+        if (reqVO.getActionTypes() != null && !reqVO.getActionTypes().isEmpty()) {
+            builder.append("本次允许生成的动作类型：")
+                    .append(String.join(",", reqVO.getActionTypes()))
+                    .append("。禁止返回其他类型；如果类型为 COMPOSITE，不要返回 functionBody。\n\n");
+        }
+
+        appendOntologyDerivedActionGuidance(builder, reqVO, targetConcepts, relations, propertiesByConcept);
 
         if (reqVO.getConceptId() != null) {
             builder.append("当前动作触发概念：")
@@ -1123,8 +1225,65 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
         return builder.toString();
     }
 
+    /**
+     * 从本体自身的概念、属性和关系推导动作约束。生成动作不能只依赖用户的一句
+     * 自然语言，否则“排产”很容易退化成与本体无关的通用函数或空 CRUD。
+     */
+    private void appendOntologyDerivedActionGuidance(StringBuilder builder, AiActionPreviewReqVO reqVO,
+                                                      List<ConceptDO> concepts, List<RelationDO> relations,
+                                                      Map<Long, List<PropertyDO>> propertiesByConcept) {
+        Set<String> conceptCodes = new LinkedHashSet<>();
+        StringBuilder semantic = new StringBuilder();
+        boolean order = false, inventory = false, capacity = false, line = false, plan = false;
+        if (concepts != null) {
+            for (ConceptDO concept : concepts) {
+                if (concept == null) continue;
+                String code = nullToEmpty(concept.getCode());
+                String text = (code + " " + nullToEmpty(concept.getName()) + " "
+                        + nullToEmpty(concept.getDescription())).toLowerCase(Locale.ROOT);
+                conceptCodes.add(code);
+                if (containsAny(text, "order", "订单", "销售单", "sales_order")) order = true;
+                if (containsAny(text, "inventory", "stock", "库存", "物料")) inventory = true;
+                if (containsAny(text, "capacity", "产能", "时段")) capacity = true;
+                if (containsAny(text, "production_line", "line", "产线", "生产线", "设备")) line = true;
+                if (containsAny(text, "production_plan", "schedule", "排产", "生产计划")) plan = true;
+            }
+        }
+        builder.append("本体约束（必须遵守）：\n")
+                .append("- 本体是唯一业务事实来源；只能引用下面给出的概念编码、属性编码和关系编码，禁止编造任何概念、表名或字段。\n")
+                .append("- 每个 COMPOSITE 动作必须有非空 executionSteps；每个步骤必须引用本体中的 conceptCode 或 relationCode。\n")
+                .append("- 如果本体缺少实现用户要求所需的目标概念，必须返回空 actions 并在 qualityWarning 中说明缺少的本体结构，不能生成无关动作。\n")
+                .append("- 当前本体概念编码：").append(conceptCodes).append("\n");
+        if (order || inventory || capacity || line || plan) {
+            semantic.append("本体已识别的排产语义：")
+                    .append("订单=").append(order).append(", 库存/物料=").append(inventory)
+                    .append(", 产能=").append(capacity).append(", 产线/设备=").append(line)
+                    .append(", 生产计划/排产结果=").append(plan).append("。\n");
+        }
+        if (isSchedulingPrompt(reqVO == null ? null : reqVO.getPrompt())) {
+            semantic.append("用户要求的是排产动作定义，不是任意函数：\n")
+                    .append("- 触发概念必须从订单/订单事件概念中选择；\n")
+                    .append("- 动作步骤必须围绕订单明细、库存/物料、产能时段、可用产线和排产结果概念组织；\n")
+                    .append("- 若本体没有排产结果/生产计划概念，不得假造 production_plan；应返回缺少目标概念的质量警告；\n")
+                    .append("- 不要把自然语言说明包装成空 FUNCTION，排产定义优先使用有明确 executionSteps 的 COMPOSITE。\n");
+        }
+        builder.append(semantic);
+    }
+
+    private boolean isSchedulingPrompt(String prompt) {
+        if (StringUtils.isBlank(prompt)) return false;
+        String text = prompt.toLowerCase(Locale.ROOT);
+        return containsAny(text, "排产", "生产计划", "production scheduling", "schedule production");
+    }
+
+    private boolean containsAny(String text, String... values) {
+        if (text == null) return false;
+        for (String value : values) if (text.contains(value)) return true;
+        return false;
+    }
+
     private List<AiActionPreviewRespVO.GeneratedActionPreview> parseActionPreviews(
-            JSONObject result, List<String> actionTypes) {
+            JSONObject result, List<String> actionTypes, List<ConceptDO> concepts, List<RelationDO> relations) {
         List<AiActionPreviewRespVO.GeneratedActionPreview> previews = new ArrayList<>();
         JSONArray actions = result.getJSONArray("actions");
         if (actions == null) {
@@ -1132,6 +1291,14 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
         }
         Set<String> typeFilter = actionTypes != null && !actionTypes.isEmpty()
                 ? new HashSet<>(actionTypes) : null;
+        Set<String> conceptCodes = new HashSet<>();
+        if (concepts != null) for (ConceptDO concept : concepts) {
+            if (concept != null && StringUtils.isNotBlank(concept.getCode())) conceptCodes.add(concept.getCode());
+        }
+        Set<String> relationCodes = new HashSet<>();
+        if (relations != null) for (RelationDO relation : relations) {
+            if (relation != null && StringUtils.isNotBlank(relation.getCode())) relationCodes.add(relation.getCode());
+        }
 
         for (int i = 0; i < actions.size(); i++) {
             JSONObject action = actions.getJSONObject(i);
@@ -1145,12 +1312,34 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
             preview.setActionDescription(action.getString("actionDescription"));
             preview.setActionType(actionType);
             preview.setTriggerConceptCode(action.getString("triggerConceptCode"));
+            if (StringUtils.isBlank(preview.getTriggerConceptCode())
+                    || !conceptCodes.contains(preview.getTriggerConceptCode())) continue;
 
             if ("COMPOSITE".equals(actionType)) {
-                preview.setExecutionSteps(action.getJSONArray("executionSteps") != null
-                        ? action.getJSONArray("executionSteps").toJSONString() : "[]");
+                JSONArray steps = action.getJSONArray("executionSteps");
+                if (steps == null || steps.isEmpty()) continue;
+                boolean valid = true;
+                for (int j = 0; j < steps.size(); j++) {
+                    JSONObject step = steps.getJSONObject(j);
+                    if (step == null) { valid = false; break; }
+                    String targetType = step.getString("targetType");
+                    if ("RELATION".equalsIgnoreCase(targetType)) {
+                        if (!relationCodes.contains(step.getString("relationCode"))) { valid = false; break; }
+                    } else if (!conceptCodes.contains(step.getString("conceptCode"))) {
+                        valid = false; break;
+                    }
+                    if (StringUtils.isBlank(step.getString("actionType"))) { valid = false; break; }
+                }
+                if (!valid) continue;
+                preview.setExecutionSteps(steps.toJSONString());
             } else if ("FUNCTION".equals(actionType)) {
-                preview.setFunctionBody(action.getString("functionBody"));
+                String functionBody = action.getString("functionBody");
+                // 空函数没有可执行意义，不能作为合法动作预览返回。
+                if (StringUtils.isBlank(functionBody)
+                        || "null".equalsIgnoreCase(functionBody.trim())
+                        || functionBody.trim().contains("...")
+                        || functionBody.trim().contains("待实现")) continue;
+                preview.setFunctionBody(functionBody);
                 preview.setFunctionLang(action.getString("functionLang"));
                 preview.setFunctionParams(action.getJSONArray("functionParams") != null
                         ? action.getJSONArray("functionParams").toJSONString() : "[]");

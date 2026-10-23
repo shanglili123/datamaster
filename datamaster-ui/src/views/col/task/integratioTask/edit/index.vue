@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container" ref="app-container">
+  <div class="app-container integration-task-editor" ref="app-container">
     <div class="head-container">
       <div class="head-title">
         <a-tooltip :title="taskType" placement="top">
@@ -148,7 +148,7 @@
             </a-tooltip>
           </template>
         </div>
-        <div class="tabs-container" :style="tabAreaStyle">
+        <div v-show="checkPanelOpen" class="tabs-container">
           <MinusOutlined class="icon-right" @click="minimizeAction" />
           <a-tabs v-model:activeKey="activeTab" class="custom-tabs">
             <a-tab-pane
@@ -190,6 +190,7 @@
   </div>
 </template>
 <script setup>
+import { h } from 'vue';
 import { message, Modal } from 'ant-design-vue'
 import { MinusOutlined } from '@ant-design/icons-vue'
 import { Graph } from "@antv/x6";
@@ -214,6 +215,8 @@ import excelInputForm from "@/views/col/task/integratioTask/components/input/exc
 import csvForm from "@/views/col/task/integratioTask/components/input/csvForm.vue";
 
 import tableMerge from "@/views/col/task/integratioTask/components/input/tableMerge.vue";
+import pipelineNode from "@/views/col/task/integratioTask/components/pipelineNode.vue";
+import logicNode from "@/views/col/task/integratioTask/components/logicNode.vue";
 
 // 转换组件
 
@@ -384,6 +387,8 @@ const currentFormComponent = computed(() => {
       return tableSplit;
     case "38":
       return tableMerge;
+    case "100":
+      return currentNode.value?.data?.taskParams?.logicNode ? logicNode : pipelineNode;
     case "21":
       return StringReplace;
     case "50":
@@ -510,7 +515,19 @@ const handleFormSubmit = async (nodeData = {}) => {
 
   const oldData = node.getProp("data") || {};
   const parent = getParentNode(currentNode.value, graph);
-  const childNodes = getAllChildNodes(node, graph) || [];
+  const childNodes = [];
+  const collectChildren = (parentNode) => {
+    if (parentNode !== node && (parentNode.data?.taskParams?.type == 2
+      || parentNode.data?.taskParams?.logicNode?.mode === 'CONDITION')) return;
+    (graph.getOutgoingEdges(parentNode) || []).forEach(edge => {
+      const child = edge.getTargetCell();
+      if (child && !childNodes.includes(child)) {
+        childNodes.push(child);
+        collectChildren(child);
+      }
+    });
+  };
+  collectChildren(node);
 
   // 判断节点名称是否重复
   if (shouldAbortByName(graph, nodeData)) {
@@ -528,6 +545,35 @@ const handleFormSubmit = async (nodeData = {}) => {
   const taskParams = nodeData.taskParams || {};
   const type = taskParams.type;
   const tableFields = taskParams.tableFields || [];
+
+  // 纯逻辑节点按实际连线透传业务列，目标连接仍由表输出负责。
+  if (taskParams.logicNode) {
+    const data = { ...oldData, ...nodeData, taskParams: { ...taskParams } };
+    node.setData(data);
+    node.setProp('data', data);
+    if (taskParams.logicNode.mode !== 'CONDITION') {
+      (graph.getOutgoingEdges(node) || []).forEach(edge => updateTargetNodeData(node, edge.getTargetCell(), edge));
+    }
+    drawer.value = false;
+    return;
+  }
+  // 历史封装式逻辑节点保留回显和保存。
+  if (String(nodeData.componentType) === "100") {
+    const pipelineData = {
+      ...oldData,
+      ...nodeData,
+      taskParams: {
+        ...oldData.taskParams,
+        ...taskParams,
+        inputFields: oldData.taskParams?.inputFields || [],
+        outputFields: oldData.taskParams?.outputFields || [],
+      },
+    };
+    node.setData(pipelineData);
+    node.setProp("data", pipelineData);
+    drawer.value = false;
+    return;
+  }
 
   let inputFields = [];
   let outputFields = [];
@@ -611,6 +657,20 @@ const handleFormSubmit = async (nodeData = {}) => {
     // 只有输出字段实际变化，才清空子节点
     childNodes.forEach((n) => {
       if (!n?.data?.taskParams || typeof n.setProp !== "function") return;
+      if (n.data.taskParams.logicNode) {
+        if (n.data.taskParams.logicNode.mode !== 'CONDITION') {
+          const incoming = graph.getIncomingEdges(n) || [];
+          if (incoming.length) updateTargetNodeData(incoming[0].getSourceCell(), n, incoming[0]);
+        }
+        return;
+      }
+      // 控制边不能清空后续独立输入的字段。
+      if ((graph.getIncomingEdges(n) || []).some(edge => edge.getSourceCell()?.data?.taskParams?.logicNode?.mode === 'CONDITION')) return;
+      if (String(n.data.taskParams.type) === '2') {
+        const data = { ...n.data, taskParams: { ...n.data.taskParams, inputFields: newInputFields, tableFields: [], columns: [], target_columns: [] } };
+        n.setData(data); n.setProp('data', data);
+        return;
+      }
       const defaultParams = getDefaultTaskParams(n.data);
       const mergedChildData = {
         ...n.data,
@@ -677,6 +737,35 @@ const handleExportData = async (localSave) => {
     }
     // 转换节点数据
     exportData2.value = await transNodeData(graph);
+    // 逻辑集成节点属于草稿级编排信息，随 draftJson 一并保存，避免旧接口丢失该配置。
+    let pipelineDraftJson = null;
+    if (Array.isArray(exportData2.value.pipelineNodes) && exportData2.value.pipelineNodes.length > 0) {
+      let draftConfig = {};
+      try {
+        draftConfig = nodeData.value?.taskConfig?.draftJson
+          ? JSON.parse(nodeData.value.taskConfig.draftJson) : {};
+      } catch (e) {
+        draftConfig = {};
+      }
+      draftConfig.pipelineGraph = {
+        nodes: exportData2.value.pipelineNodes,
+        edges: exportData2.value.pipelineEdges || [],
+      };
+      pipelineDraftJson = JSON.stringify(draftConfig);
+    }
+    if (exportData2.value.usesComponentGraph) {
+      let draft = {};
+      try { draft = JSON.parse(pipelineDraftJson || nodeData.value?.taskConfig?.draftJson || '{}'); } catch (e) { draft = {}; }
+      draft.componentGraph = exportData2.value.componentGraph;
+      delete draft.pipelineGraph;
+      pipelineDraftJson = JSON.stringify(draft);
+    } else if (nodeData.value?.taskConfig?.draftJson) {
+      const draft = JSON.parse(nodeData.value.taskConfig.draftJson);
+      if (draft.componentGraph) {
+        delete draft.componentGraph;
+        pipelineDraftJson = JSON.stringify(draft);
+      }
+    }
     // 将任务相关的配置整合到 exportData2 中
     exportData2.value = {
       ...exportData2.value,
@@ -685,6 +774,7 @@ const handleExportData = async (localSave) => {
       spaceCode: userStore.spaceCode,
       spaceId: userStore.spaceId,
       ...nodeData.value?.taskConfig,
+      ...(pipelineDraftJson ? { draftJson: pipelineDraftJson } : {}),
     };
     // 判断是更新还是创建
     const res =
@@ -775,8 +865,8 @@ function bindShortcuts(graph) {
 function initializeGraph() {
   graph = new Graph({
     container: proxy.$refs.graphContainer,
-    width: "100%",
-    height: "60%",
+    width: proxy.$refs.graphContainer.clientWidth,
+    height: proxy.$refs.graphContainer.clientHeight,
     grid: false, //网格
     background: { color: "#ff0000" },
     autoResize: true, //画布自适应
@@ -876,16 +966,6 @@ async function handleNodeAdded({ node }) {
     const nodeData = graph.getNodes();
     const nodeType = node.data.taskParams.type;
 
-    if (nodeType == "1") {
-      const existingNode = nodeData.find(
-        (item) => item.data.taskParams.type === nodeType && item.id !== node.id
-      );
-      if (existingNode) {
-        handleExistingNode(node);
-        return;
-      }
-    }
-
     if (nodeType !== "1") {
       handleNonInputNode(node);
     }
@@ -895,13 +975,6 @@ async function handleNodeAdded({ node }) {
   }
 }
 
-// 处理已有节点的情况
-function handleExistingNode(node) {
-  if (node.data.taskParams.type == "1") {
-    proxy.$message.warning(`只能有一个输入组件！`);
-  }
-  graph.removeNode(node.id);
-}
 // 处理非输入节点
 function handleNonInputNode(node) {
   const edges = graph.getEdges();
@@ -963,24 +1036,28 @@ function handleDeleteCells(graph, cells, menuController) {
     cancelText: "取消",
     onOk: () => {
       // 重置子节点配置（无论节点还是边）
-      if (sourceNode) {
-        const childNodes = getAllChildNodes(sourceNode, graph);
-        childNodes.forEach((n) => {
-          if (n.data?.taskParams) {
-            const defaultParams = getDefaultTaskParams(n.data);
-            n.data.taskParams = {
-              ...n.data.taskParams,
-              ...defaultParams,
-            };
-          }
+      if (sourceNode && sourceNode.data?.taskParams?.logicNode?.mode !== 'CONDITION') {
+        const outgoing = isEdge ? [target] : (graph.getOutgoingEdges(sourceNode) || []);
+        outgoing.forEach(edge => {
+          const child = edge.getTargetCell?.();
+          if (!child?.data?.taskParams || String(child.data.taskParams.type) === '1') return;
+          const params = child.data.taskParams;
+          child.setData({ ...child.data, taskParams: { ...params,
+            inputFields: [], tableFields: [], outputFields: [], columns: [], target_columns: [],
+          } });
         });
       }
 
       // 执行删除操作
       cells.forEach((cell) => {
         if (cell.isNode?.()) {
+          // 节点删除会连带删除画布边，先把这些边对应的上游引用清掉。
+          graph.getEdges()
+            .filter((edge) => edge.getSourceCell?.() === cell)
+            .forEach((edge) => clearPipelineInputReference(edge.getTargetCell?.(), cell));
           graph.removeNode(cell);
         } else if (cell.isEdge?.()) {
+          clearPipelineInputReference(cell.getTargetCell?.(), cell.getSourceCell?.());
           graph.removeEdge(cell);
         }
       });
@@ -1056,6 +1133,32 @@ function handleNodeContextMenu({ e, node, edge, type = 0 }) {
 }
 
 // 处理连接边事件
+function createsPipelineCycle(source, target) {
+  const sourceId = String(source?.id || '');
+  const targetId = String(target?.id || '');
+  if (!sourceId || !targetId) return false;
+
+  // 新边已被 X6 放入 graph，沿现有依赖从 target 反向寻找 source。
+  // 找到即表示 source -> target 会形成环，不能交给 DS 发布。
+  const adjacency = new Map();
+  graph.getEdges().forEach((item) => {
+    const from = String(item.getSourceCellId?.() || item.getSourceCell?.()?.id || '');
+    const to = String(item.getTargetCellId?.() || item.getTargetCell?.()?.id || '');
+    if (!from || !to) return;
+    const next = adjacency.get(from) || [];
+    next.push(to);
+    adjacency.set(from, next);
+  });
+  const visited = new Set();
+  const visit = (current) => {
+    if (current === sourceId) return true;
+    if (visited.has(current)) return false;
+    visited.add(current);
+    return (adjacency.get(current) || []).some(visit);
+  };
+  return visit(targetId);
+}
+
 function handleEdgeConnected({ edge }) {
   if (!loading.value) {
     hasUnsavedChanges.value = true;
@@ -1072,42 +1175,129 @@ function handleEdgeConnected({ edge }) {
     const sourceType = source.data?.taskParams?.type;
     const targetType = target.data?.taskParams?.type;
 
-    // 类型 1 不能作为目标节点
-    if (targetType == 1) {
-      graph.removeEdge(edge); // 移除边
-      proxy.$modal.msgWarning("连接错误，输入组件不能被连接");
-      return;
-    }
-
-    // 类型 2 不能作为输入节点（源节点）
-    if (sourceType == 2) {
-      graph.removeEdge(edge); // 移除边
-      proxy.$modal.msgWarning("连接错误，输出组件不能连接到其他组件");
-      return;
-    }
-
-    // 类型 2 节点只能作为输出节点连接一次
-    if (targetType == 2) {
-      const targetEdges = graph
-        .getEdges()
-        .filter((e) => e.getTargetCell() === target);
-      if (targetEdges.length > 1) {
-        graph.removeEdge(edge); // 移除边
-        proxy.$modal.msgWarning("连接错误，目标节点只能作为输出连接一次");
-        return;
+    const sourceLegacy = String(source.data?.componentType) === '100' && !source.data?.taskParams?.logicNode;
+    const targetLegacy = String(target.data?.componentType) === '100' && !target.data?.taskParams?.logicNode;
+    if (sourceLegacy || targetLegacy) {
+      if (!(sourceLegacy && targetLegacy)) {
+        graph.removeEdge(edge);
+        return proxy.$modal.msgWarning('旧封装式节点不能与新组件混连，请使用新的逻辑节点');
       }
     }
+    if (createsPipelineCycle(source, target)) {
+      graph.removeEdge(edge);
+      return proxy.$modal.msgWarning('组件依赖不能形成环');
+    }
+    const sourceCondition = source.data?.taskParams?.logicNode?.mode === 'CONDITION';
+    if (sourceCondition && targetType != 1) {
+      graph.removeEdge(edge);
+      return proxy.$modal.msgWarning('条件控制只连接下一阶段表输入，不传递数据');
+    }
+    if (targetType == 1 && !sourceCondition) {
+      graph.removeEdge(edge);
+      return proxy.$modal.msgWarning('表输入不能接收数据连线，请使用逻辑引用读取上游输出');
+    }
+    const targetLogic = target.data?.taskParams?.logicNode;
+    if (sourceType == 2 && !targetLogic) {
+      graph.removeEdge(edge);
+      return proxy.$modal.msgWarning('表输出后只能连接逻辑节点，作为下一阶段的数据来源');
+    }
+    if (targetLogic && sourceType != 2) {
+      graph.removeEdge(edge);
+      return proxy.$modal.msgWarning('逻辑节点必须引用已落库的表输出');
+    }
+    const incoming = graph.getIncomingEdges(target) || [];
+    if (incoming.length > 1 && !['MERGE', 'CONDITION'].includes(targetLogic?.mode) && !targetLegacy) {
+      graph.removeEdge(edge);
+      return proxy.$modal.msgWarning('只有合并或条件控制允许多个上游前置');
+    }
+    if (['SPLIT', 'CONDITION'].includes(source.data?.taskParams?.logicNode?.mode)) selectLogicBranch(edge);
+    if (sourceCondition) return;
 
     updateTargetNodeData(source, target, edge);
   }
 }
+
+// 画布边是逻辑节点之间依赖的唯一事实来源。删除边时同步移除目标节点中的
+// NODE_OUTPUT 引用，避免画布看似断开但发布器仍按旧引用生成 DS 依赖。
+function clearPipelineInputReference(target, source) {
+  if (target?.data?.taskParams?.logicNode) return;
+  if (String(target?.data?.componentType) !== "100") return;
+  const pipeline = target.data?.taskParams?.pipelineNode;
+  if (!pipeline) return;
+  const sourceId = String(source?.id || '');
+  const sourceCode = String(source?.data?.code || sourceId);
+  const inputs = Array.isArray(pipeline.inputs) ? pipeline.inputs : [];
+  if (pipeline.mode === "MERGE") {
+    pipeline.inputs = inputs.filter((item) => {
+      const ref = String(item?.refNodeId || item?.refNodeCode || item);
+      return ref !== sourceId && ref !== sourceCode;
+    });
+  } else {
+    const input = inputs[0];
+    if (input && [sourceId, sourceCode].includes(String(input?.refNodeId || input?.refNodeCode || ''))) {
+      pipeline.inputs = [{ ...input, kind: "TABLE", refNodeId: "", refNodeCode: "", alias: "" }];
+    }
+  }
+  target.data = { ...target.data, taskParams: { ...target.data.taskParams, pipelineNode: pipeline } };
+  target.setData?.(target.data);
+  target.setProp?.("data", target.data);
+}
 // 更新目标节点的数据
 function updateTargetNodeData(source, target, edge) {
-  const childNodes = getAllChildNodes(source, graph);
+  if (source?.data?.taskParams?.logicNode?.mode === 'CONDITION') return;
+  if (target.data?.taskParams?.logicNode) {
+    const logic = target.data.taskParams.logicNode;
+    let fields = logic.mode === 'CONDITION' ? [] : (source.data?.taskParams?.outputFields || source.data?.taskParams?.tableFields || []);
+    if (logic.mode === 'MERGE' && logic.mergeType === 'JOIN') {
+      fields = (logic.joinConfig?.fields || []).map(projection => {
+        const upstream = graph.getCellById(projection.nodeId);
+        const field = (upstream?.data?.taskParams?.outputFields || []).find(item => item.columnName === projection.column) || {};
+        return { ...field, columnName: projection.outputName, pkFlag: '0', nullableFlag: '1' };
+      });
+    }
+    target.data.taskParams = { ...target.data.taskParams, inputFields: fields, tableFields: fields, outputFields: fields };
+    target.setData?.(target.data);
+    return;
+  }
+  if (String(target.data?.componentType) === "100") {
+    const targetParams = target.data.taskParams || {};
+    const pipeline = targetParams.pipelineNode || {};
+    const sourceCode = source.data?.code || source.id;
+    if (pipeline.mode === "MERGE") {
+      const inputs = Array.isArray(pipeline.inputs) ? pipeline.inputs : [];
+      if (!inputs.some(item => (item?.refNodeId || item?.refNodeCode || item) === source.id
+        || (item?.refNodeCode && item.refNodeCode === sourceCode))) {
+        inputs.push({ kind: "NODE_OUTPUT", refNodeId: source.id, refNodeCode: sourceCode, alias: source.data?.name || source.id });
+      }
+      pipeline.inputs = inputs;
+    } else {
+      const input = Array.isArray(pipeline.inputs) && pipeline.inputs.length > 0
+        ? pipeline.inputs[0] : { kind: "NODE_OUTPUT" };
+      input.kind = "NODE_OUTPUT";
+      input.refNodeId = source.id;
+      input.refNodeCode = sourceCode;
+      input.alias = source.data?.name || source.id;
+      pipeline.inputs = [input];
+    }
+    targetParams.pipelineNode = pipeline;
+    target.data = { ...target.data, taskParams: { ...targetParams } };
+    target.setData?.(target.data);
+    target.setProp?.("data", target.data);
+  }
+  // 连线只更新直接下游；字段不能穿越物化输出或控制边覆盖独立阶段。
+  const childNodes = [target];
 
   // 更新子节点的数据
   childNodes.forEach((childNode) => {
     if (childNode.data?.taskParams) {
+      if (String(childNode.data.taskParams.type) === '2') {
+        childNode.setData({ ...childNode.data, taskParams: { ...childNode.data.taskParams,
+          inputFields: source.data.taskParams.outputFields || [], tableFields: [], columns: [], target_columns: [],
+          // 保留实际目标字段名称，重新确认映射前不能把上游别名当物理列。
+          outputFields: childNode.data.taskParams.outputFields || [],
+        } });
+        return;
+      }
       childNode.data.taskParams.inputFields =
         source.data.taskParams.outputFields;
       childNode.data.taskParams.tableFields = [];
@@ -1146,12 +1336,39 @@ function updateTargetNodeData(source, target, edge) {
   }
 }
 
+function selectLogicBranch(edge) {
+  const source = edge.getSourceCell?.();
+  const branches = source?.data?.taskParams?.logicNode?.mode === 'CONDITION'
+    ? [{ id: 'SUCCESS', name: '成功' }, { id: 'FAILURE', name: '失败' }]
+    : source?.data?.taskParams?.logicNode?.branches || [];
+  if (!branches.length) {
+    graph.removeEdge(edge);
+    return proxy.$modal.msgWarning('请先配置分流节点的条件分支，再连接输出');
+  }
+  const options = branches.map(branch => ({ label: branch.name || branch.id, value: branch.id }));
+  const selected = ref(edge.getData?.()?.branchId || options[0].value);
+  Modal.confirm({
+    title: '选择此连线的数据分支',
+    content: () => h('select', { value: selected.value, style: 'width:100%;padding:8px',
+      onChange: event => { selected.value = event.target.value; } }, options.map(option =>
+      h('option', { value: option.value }, option.label))),
+    onOk: () => {
+      edge.setData({ ...(edge.getData?.() || {}), branchId: selected.value });
+      edge.setLabels([{ attrs: { label: { text: options.find(option => option.value === selected.value)?.label || selected.value } } }]);
+      hasUnsavedChanges.value = true;
+    },
+    onCancel: () => { if (!edge.getData?.()?.branchId) graph.removeEdge(edge); },
+  });
+}
+
 // 处理边右键菜单事件
 function handleEdgeContextMenu(event) {
   const edge = event.edge;
   const { x, y } = event;
   let menuController = null;
   const menuItems = [
+    ...(['SPLIT', 'CONDITION'].includes(edge.getSourceCell?.()?.data?.taskParams?.logicNode?.mode)
+      ? [{ label: '选择分流分支', action: () => selectLogicBranch(edge) }] : []),
     {
       label: "删除连接线",
       action: () => {
@@ -1283,26 +1500,18 @@ const tabs = ref([
   { name: "checkMessage", label: "检查消息", content: "检查消息内容" },
   // { name: "log", label: "日志", content: "日志内容" },
 ]);
-// 用于设置标签区域的样式
-const tabAreaStyle = ref({
-  position: "absolute",
-  height: "300px",
-  width: "100%",
-  transition: "bottom 0.3s",
-  bottom: "-9999px",
-  "background-color": "rgb(255, 255, 255)",
-  "margin-left": "15px",
-});
+// 检查面板在画布框内展开，关闭时不再移动到框外制造溢出区域。
+const checkPanelOpen = ref(false);
 // 任务检查
 const minimizeAction = () => {
-  tabAreaStyle.value.bottom = "-9999px";
+  checkPanelOpen.value = false;
 }; // 切换到任务检查标签
 const selectTab = (tabName) => {
   activeTab.value = tabName;
   if (activeTab.value == "checkMessage") {
     isValidClick();
   }
-  tabAreaStyle.value.bottom = "0px";
+  checkPanelOpen.value = true;
 };
 const isValidClick = (tab) => {
   const { isValid, errorMessages } = validateGraph(graph, true);
@@ -1333,10 +1542,13 @@ const getAssetsFile = (url) => {
   margin-left: 5px;
 }
 
-.app-container {
+.integration-task-editor {
   display: flex;
   flex-direction: column;
-  height: calc(87vh - 7px);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
   overflow: hidden;
 
   .tabs-container {
@@ -1442,12 +1654,14 @@ const getAssetsFile = (url) => {
 }
 
 .right-pane {
-  //min-height: 864px;
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
 
   .toolbar {
     position: absolute;
@@ -1491,8 +1705,10 @@ const getAssetsFile = (url) => {
   }
 
   .graph-container {
+    position: relative;
     flex: 1;
-    min-height: 260px;
+    min-width: 0;
+    min-height: 0;
     overflow: hidden;
     border: 1px solid #e8edf5;
     border-radius: 8px;
@@ -1500,7 +1716,15 @@ const getAssetsFile = (url) => {
   }
 
   .tabs-container {
-    position: relative;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 101;
+    max-height: 45%;
+    overflow: auto;
+    background: #fff;
+    border-top: 1px solid #e8edf5;
 
     .icon-right {
       position: absolute;
@@ -1557,15 +1781,16 @@ const getAssetsFile = (url) => {
 
 .graph-container {
   box-shadow: 0 8px 22px rgba(31, 45, 61, 0.05) !important;
-  min-height: 260px !important;
 }
 
 :deep(.ant-spin-nested-loading),
 :deep(.ant-spin-container) {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 :deep(.x6-widget-selection-box) {

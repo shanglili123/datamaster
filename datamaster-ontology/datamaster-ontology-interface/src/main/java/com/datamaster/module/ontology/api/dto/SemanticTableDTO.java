@@ -19,6 +19,9 @@ public class SemanticTableDTO implements Serializable {
     /** 概念ID（ONT_CONCEPT.id） */
     private Long conceptId;
 
+    /** 所属本体ID（ONT_CONCEPT.ontology_id） */
+    private Long ontologyId;
+
     /** 概念业务名称（ONT_CONCEPT.name） */
     private String conceptName;
 

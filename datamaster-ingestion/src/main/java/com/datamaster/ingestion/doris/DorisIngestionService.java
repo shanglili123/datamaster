@@ -8,6 +8,7 @@ import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
 import com.datamaster.ingestion.config.IngestionProperties;
 import com.datamaster.ingestion.model.IngestionResult;
+import com.datamaster.ingestion.service.IngestionSchemaValidator;
 import com.datamaster.module.ontology.api.IManualEditQueryService;
 import com.datamaster.module.ontology.api.dto.ManualEditDTO;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -16,19 +17,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.*;
 
 /**
  * 数据接收核心处理：冲突检查 → 按策略写入数据仓库（Doris）
  *
- * <p>复用 datamaster-common-common 的 SQL 能力（DbQuery / DataSourceFactory / DbQueryProperty），
- * 由数据源元信息（IDatasourceApiService）解析 Doris 数据源连接属性。</p>
+ * <p>复用 datamaster-common-common 的连接能力（DbQuery / DataSourceFactory / DbQueryProperty），
+ * 由数据源元信息（IDatasourceApiService）解析 Doris 数据源连接属性；实际写入使用本服务内的参数化 JDBC，
+ * 避免公共 DbQuery 写入方法在部分方言实现中的空操作。</p>
  *
  * <p>冲突策略（datamaster.ingestion.conflict-strategy）：</p>
  * <ul>
  *   <li>INSERT：不论是否存在同键记录，直接插入（追加）</li>
  *   <li>UPSERT：存在同键记录则按主键更新，否则插入（默认）</li>
  *   <li>SKIP：存在同键记录则跳过</li>
+ *   <li>DELETE：按消息主键删除目标行</li>
  *   <li>ERROR：存在同键记录则报错（不写入）</li>
  * </ul>
  */
@@ -48,6 +53,9 @@ public class DorisIngestionService {
     /** 人为编辑登记查询（冲突仲裁：按表/主键定位人工编辑） */
     @Resource
     private IManualEditQueryService manualEditQueryService;
+
+    @Resource
+    private IngestionSchemaValidator schemaValidator;
 
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
@@ -83,6 +91,10 @@ public class DorisIngestionService {
             if (targetTable == null || targetTable.trim().isEmpty()) {
                 return IngestionResult.fail(IngestionResult.Action.ERROR, "无法解析目标表名");
             }
+            String schemaError = schemaValidator.validate(record, targetTable);
+            if (schemaError != null) {
+                return IngestionResult.fail(IngestionResult.Action.ERROR, schemaError);
+            }
 
             DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
             return doProcess(dbQuery, targetTable, record);
@@ -95,12 +107,23 @@ public class DorisIngestionService {
     private IngestionResult doProcess(DbQuery dbQuery, String targetTable, JSONObject record) {
         // 主键列：消息内 __keys 优先，其次配置 key-columns
         List<String> keyCols = resolveKeyColumns(record);
-        if (keyCols.isEmpty()) {
+        if (keyCols.isEmpty() && properties.getKeyColumns() != null) {
             keyCols = new ArrayList<>(properties.getKeyColumns());
         }
         if (keyCols.isEmpty()) {
+            dbQuery.close();
             return IngestionResult.fail(IngestionResult.Action.ERROR, "未配置冲突判定主键列（key-columns 或消息 __keys）");
         }
+
+        for (String keyCol : keyCols) {
+            if (valueForColumn(record, keyCol) == null) {
+                dbQuery.close();
+                return IngestionResult.fail(IngestionResult.Action.ERROR, "消息缺少主键值: " + keyCol);
+            }
+        }
+
+        String operation = resolveOperation(record);
+        Long spaceId = record.getLong("__spaceId");
 
         String strategyName = properties.getConflictStrategy() == null
                 ? "UPSERT" : properties.getConflictStrategy().trim().toUpperCase(Locale.ROOT);
@@ -111,20 +134,26 @@ public class DorisIngestionService {
             if (entry.getKey().startsWith("__")) {
                 continue;
             }
-            data.put(entry.getKey(), entry.getValue());
+            data.put(canonicalColumnName(entry.getKey(), keyCols), entry.getValue());
         }
 
         try {
+            if ("DELETE".equals(operation)) {
+                int affected = deleteByKeys(dbQuery, targetTable, keyCols, record);
+                return IngestionResult.ok(IngestionResult.Action.DELETE,
+                        affected == 0 ? "目标行不存在，无需删除" : "已删除目标行");
+            }
             boolean conflict = existsConflict(dbQuery, targetTable, keyCols, record);
 
             switch (strategyName) {
                 case "INSERT":
-                    dbQuery.addTableData(targetTable, data);
+                    insertRow(dbQuery, targetTable, data);
                     return IngestionResult.ok(IngestionResult.Action.INSERT, "已插入");
                 case "UPSERT":
                     if (conflict) {
                         // 人为编辑仲裁：命中登记则按编辑值回写/跳过/告警；未命中按源数据直接更新
-                        IngestionResult arbitrated = arbitrateManualEdit(dbQuery, targetTable, keyCols, data);
+                        IngestionResult arbitrated = arbitrateManualEdit(dbQuery, targetTable, keyCols, data,
+                                properties.getDorisDatasourceId(), spaceId);
                         if (arbitrated != null) {
                             return arbitrated;
                         }
@@ -133,22 +162,22 @@ public class DorisIngestionService {
                         if (setCols.isEmpty()) {
                             return IngestionResult.ok(IngestionResult.Action.UPSERT, "同键记录已存在且无非键字段可更新");
                         }
-                        dbQuery.updateTableData(data, setCols, keyCols, targetTable);
+                        upsertRow(dbQuery, targetTable, data, setCols, keyCols);
                         return IngestionResult.ok(IngestionResult.Action.UPSERT, "同键记录存在，已更新");
                     }
-                    dbQuery.addTableData(targetTable, data);
-                    return IngestionResult.ok(IngestionResult.Action.INSERT, "新记录已插入");
+                    upsertRow(dbQuery, targetTable, data, null, keyCols);
+                    return IngestionResult.ok(IngestionResult.Action.UPSERT, "已执行原子 UPSERT");
                 case "SKIP":
                     if (conflict) {
                         return IngestionResult.ok(IngestionResult.Action.SKIP, "同键记录已存在，跳过");
                     }
-                    dbQuery.addTableData(targetTable, data);
+                    insertRow(dbQuery, targetTable, data);
                     return IngestionResult.ok(IngestionResult.Action.INSERT, "新记录已插入");
                 case "ERROR":
                     if (conflict) {
                         return IngestionResult.fail(IngestionResult.Action.ERROR, "冲突策略为 ERROR，存在同键记录，拒绝写入");
                     }
-                    dbQuery.addTableData(targetTable, data);
+                    insertRow(dbQuery, targetTable, data);
                     return IngestionResult.ok(IngestionResult.Action.INSERT, "新记录已插入");
                 default:
                     return IngestionResult.fail(IngestionResult.Action.ERROR, "未知冲突策略: " + strategyName);
@@ -176,9 +205,13 @@ public class DorisIngestionService {
      * @return 已裁决的处理结果，或 null（放行给原逻辑）
      */
     private IngestionResult arbitrateManualEdit(DbQuery dbQuery, String targetTable,
-                                                List<String> keyCols, Map<String, Object> data) {
+                                                List<String> keyCols, Map<String, Object> data,
+                                                Long datasourceId, Long spaceId) {
         try {
-            List<ManualEditDTO> edits = manualEditQueryService.listLatestManualEdits(targetTable, MAX_MANUAL_EDIT_FETCH);
+            // 仅使用内部元数据字段做域隔离，不把 __spaceId 写入业务表。
+            // 调用方在消息未携带空间时保持兼容，但此时无法保证同名表跨空间完全隔离。
+            List<ManualEditDTO> edits = manualEditQueryService.listLatestManualEdits(
+                    targetTable, datasourceId, spaceId, MAX_MANUAL_EDIT_FETCH);
             if (edits == null || edits.isEmpty()) {
                 return null;
             }
@@ -207,7 +240,7 @@ public class DorisIngestionService {
                 if (setCols.isEmpty()) {
                     return IngestionResult.ok(IngestionResult.Action.MANUAL_EDIT_SKIP, "命中人为编辑后无非键字段变化");
                 }
-                dbQuery.updateTableData(merged, setCols, keyCols, targetTable);
+                updateRow(dbQuery, targetTable, merged, setCols, keyCols);
                 return IngestionResult.ok(IngestionResult.Action.MANUAL_EDIT_APPLIED,
                         "命中人为编辑(execId=" + execId + ")，按编辑值回放");
             }
@@ -385,10 +418,9 @@ public class DorisIngestionService {
             Map<String, Object> params = new HashMap<>();
             for (int i = 0; i < keyCols.size(); i++) {
                 String col = keyCols.get(i);
-                Object val = record.get(col);
+                Object val = valueForColumn(record, col);
                 if (val == null) {
-                    // 主键值为空无法判定冲突，视为无冲突尝试写入
-                    return false;
+                    throw new IllegalArgumentException("消息缺少主键值: " + col);
                 }
                 String paramName = "p" + i;
                 where.add("`" + quoteId(col) + "` = :" + paramName);
@@ -397,8 +429,8 @@ public class DorisIngestionService {
             String sql = "SELECT COUNT(1) FROM `" + quoteId(targetTable) + "` WHERE " + String.join(" AND ", where);
             return dbQuery.count(sql, params) > 0;
         } catch (Exception e) {
-            log.warn("冲突检查失败（按冲突策略默认视为无冲突以尝试写入），table={} err={}", targetTable, e.getMessage());
-            return false;
+            log.error("冲突检查失败，拒绝继续写入以避免重复或错误覆盖，table={}", targetTable, e);
+            throw new IllegalStateException("冲突检查失败: " + e.getMessage(), e);
         }
     }
 
@@ -406,15 +438,185 @@ public class DorisIngestionService {
         return name.replace("`", "");
     }
 
+    private Object valueForColumn(JSONObject record, String column) {
+        if (record == null || column == null) {
+            return null;
+        }
+        Object direct = record.get(column);
+        if (direct != null) {
+            return direct;
+        }
+        for (Map.Entry<String, Object> entry : record.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(column)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private String canonicalColumnName(String column, List<String> keyCols) {
+        if (column == null || keyCols == null) {
+            return column;
+        }
+        for (String keyCol : keyCols) {
+            if (keyCol != null && keyCol.equalsIgnoreCase(column)) {
+                return keyCol;
+            }
+        }
+        return column;
+    }
+
     private String resolveTargetTable(JSONObject record, String override) {
         if (override != null && !override.trim().isEmpty()) {
-            return override;
+            return override.trim();
         }
         String inMessage = record.getString("__table");
         if (inMessage != null && !inMessage.trim().isEmpty()) {
             return inMessage.trim();
         }
         return properties.getTargetTable();
+    }
+
+    /** 支持常见 CDC 删除标记；业务字段不使用无前缀 op，避免误判。 */
+    private String resolveOperation(JSONObject record) {
+        String raw = record.getString("__op");
+        if (raw == null || raw.trim().isEmpty()) raw = record.getString("__operation");
+        if (raw == null || raw.trim().isEmpty()) raw = record.getString("__eventType");
+        if (raw == null) return "UPSERT";
+        String value = raw.trim().toUpperCase(Locale.ROOT);
+        if ("D".equals(value) || "DELETE".equals(value) || "REMOVE".equals(value)) return "DELETE";
+        return "UPSERT";
+    }
+
+    private int deleteByKeys(DbQuery dbQuery, String targetTable, List<String> keyCols, JSONObject record) throws Exception {
+        StringBuilder sql = new StringBuilder("DELETE FROM `")
+                .append(quoteId(targetTable)).append("` WHERE ");
+        for (int i = 0; i < keyCols.size(); i++) {
+            if (i > 0) sql.append(" AND ");
+            sql.append('`').append(quoteId(keyCols.get(i))).append("` = ?");
+            if (valueForColumn(record, keyCols.get(i)) == null) {
+                throw new IllegalArgumentException("删除事件缺少主键值: " + keyCols.get(i));
+            }
+        }
+        Connection connection = dbQuery.getConnection();
+        if (connection == null) throw new IllegalStateException("无法获取目标数据源连接");
+        try (PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            for (int i = 0; i < keyCols.size(); i++) {
+                statement.setObject(i + 1, valueForColumn(record, keyCols.get(i)));
+            }
+            return statement.executeUpdate();
+        }
+    }
+
+    /**
+     * 直接使用 JDBC 写入。DbQuery 的通用 addTableData/updateTableData 在部分方言实现中是空操作，
+     * ingestion 不能依赖它们，否则会出现“返回成功但目标表没有数据”的静默丢写。
+     */
+    private int insertRow(DbQuery dbQuery, String targetTable, Map<String, Object> data) throws Exception {
+        if (data == null || data.isEmpty()) {
+            throw new IllegalArgumentException("写入数据不能为空");
+        }
+        List<String> columns = new ArrayList<>(data.keySet());
+        StringBuilder sql = new StringBuilder("INSERT INTO `")
+                .append(quoteId(targetTable)).append("` (");
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) sql.append(", ");
+            sql.append('`').append(quoteId(columns.get(i))).append('`');
+        }
+        sql.append(") VALUES (");
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) sql.append(", ");
+            sql.append('?');
+        }
+        sql.append(')');
+        Connection connection = dbQuery.getConnection();
+        if (connection == null) throw new IllegalStateException("无法获取目标数据源连接");
+        try (PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            for (int i = 0; i < columns.size(); i++) {
+                statement.setObject(i + 1, data.get(columns.get(i)));
+            }
+            return statement.executeUpdate();
+        }
+    }
+
+    /** 按主键执行参数化 UPDATE，避免拼接业务值并确保接入实际落库。 */
+    private int updateRow(DbQuery dbQuery, String targetTable, Map<String, Object> data,
+                          List<String> setCols, List<String> keyCols) throws Exception {
+        if (setCols == null || setCols.isEmpty()) {
+            return 0;
+        }
+        StringBuilder sql = new StringBuilder("UPDATE `")
+                .append(quoteId(targetTable)).append("` SET ");
+        for (int i = 0; i < setCols.size(); i++) {
+            if (i > 0) sql.append(", ");
+            sql.append('`').append(quoteId(setCols.get(i))).append("` = ?");
+        }
+        sql.append(" WHERE ");
+        for (int i = 0; i < keyCols.size(); i++) {
+            if (i > 0) sql.append(" AND ");
+            String key = keyCols.get(i);
+            if (data.get(key) == null) {
+                throw new IllegalArgumentException("更新事件缺少主键值: " + key);
+            }
+            sql.append('`').append(quoteId(key)).append("` = ?");
+        }
+        Connection connection = dbQuery.getConnection();
+        if (connection == null) throw new IllegalStateException("无法获取目标数据源连接");
+        try (PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            int index = 1;
+            for (String column : setCols) {
+                statement.setObject(index++, data.get(column));
+            }
+            for (String key : keyCols) {
+                statement.setObject(index++, data.get(key));
+            }
+            return statement.executeUpdate();
+        }
+    }
+
+    /**
+     * Doris Unique/Duplicate Key 表的原子 UPSERT。
+     * 该语句把“是否存在”和“写入”交给数据库完成，避免并发消费者在 SELECT 后重复 INSERT。
+     */
+    private int upsertRow(DbQuery dbQuery, String targetTable, Map<String, Object> data,
+                          List<String> preferredSetCols, List<String> keyCols) throws Exception {
+        if (data == null || data.isEmpty()) {
+            throw new IllegalArgumentException("写入数据不能为空");
+        }
+        List<String> columns = new ArrayList<>(data.keySet());
+        List<String> setCols = preferredSetCols == null
+                ? new ArrayList<>(columns) : new ArrayList<>(preferredSetCols);
+        setCols.removeAll(keyCols);
+        if (setCols.isEmpty()) {
+            // 只有主键时仍执行 INSERT，确保不存在时可以创建记录。
+            return insertRow(dbQuery, targetTable, data);
+        }
+        StringBuilder sql = new StringBuilder("INSERT INTO `")
+                .append(quoteId(targetTable)).append("` (");
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) sql.append(", ");
+            sql.append('`').append(quoteId(columns.get(i))).append('`');
+        }
+        sql.append(") VALUES (");
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) sql.append(", ");
+            sql.append('?');
+        }
+        sql.append(") ON DUPLICATE KEY UPDATE ");
+        for (int i = 0; i < setCols.size(); i++) {
+            if (i > 0) sql.append(", ");
+            String column = setCols.get(i);
+            sql.append('`').append(quoteId(column)).append("` = VALUES(`")
+                    .append(quoteId(column)).append('`').append(')');
+        }
+        Connection connection = dbQuery.getConnection();
+        if (connection == null) throw new IllegalStateException("无法获取目标数据源连接");
+        try (PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            for (int i = 0; i < columns.size(); i++) {
+                statement.setObject(i + 1, data.get(columns.get(i)));
+            }
+            return statement.executeUpdate();
+        }
     }
 
     private List<String> resolveKeyColumns(JSONObject record) {

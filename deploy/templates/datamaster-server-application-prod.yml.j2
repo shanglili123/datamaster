@@ -1,9 +1,35 @@
 datasource:
   type: PostgreSQL
 
+token:
+  secret: "{{ jwt_secret }}"
+
+user:
+  password:
+    universalPassword: ""
+
+knife4j:
+  enable: false
+  production: true
+  setting:
+    enable-debug: false
+  basic:
+    enable: false
+
 datamaster:
   lineage:
     enabled: {{ lineage_enabled }}
+    jdbc-enabled: {{ lineage_jdbc_enabled }}
+    sync-delay-ms: {{ lineage_sync_delay_ms }}
+  ontology:
+    workflow:
+      worker-enabled: ${WORKFLOW_WORKER_ENABLED:true}
+      worker-delay-ms: ${WORKFLOW_WORKER_DELAY_MS:1000}
+      worker-batch-size: ${WORKFLOW_WORKER_BATCH_SIZE:10}
+      worker-stale-timeout-ms: ${WORKFLOW_WORKER_STALE_TIMEOUT_MS:300000}
+    webhook:
+      allowed-hosts: ${WEBHOOK_ALLOWED_HOSTS:}
+      allowed-ports: ${WEBHOOK_ALLOWED_PORTS:80,443}
   ingestion:
     enabled: {{ ingestion_enabled }}
     kafka:
@@ -12,10 +38,18 @@ datamaster:
       topics: {{ ingestion_kafka_topics }}
       poll-timeout-ms: {{ ingestion_poll_timeout_ms }}
       poll-interval-ms: {{ ingestion_poll_interval_ms }}
+      max-retries: {{ ingestion_kafka_max_retries }}
+      retry-backoff-ms: {{ ingestion_kafka_retry_backoff_ms }}
+      dead-letter-topic: {{ ingestion_kafka_dead_letter_topic }}
+      event-lease-ms: {{ ingestion_kafka_event_lease_ms }}
+      lease-renew-interval-ms: {{ ingestion_kafka_lease_renew_interval_ms }}
     doris-datasource-id: {{ ingestion_doris_datasource_id }}
     conflict-strategy: {{ ingestion_conflict_strategy }}
     key-columns: {{ ingestion_key_columns }}
     target-table: {{ ingestion_target_table }}
+    allowed-tables: {{ ingestion_allowed_tables }}
+    required-columns: {{ ingestion_required_columns }}
+    schema-version: {{ ingestion_schema_version }}
     decision-trigger:
       enabled: {{ ingestion_decision_trigger_enabled }}
       base-url: {{ ingestion_decision_base_url }}
@@ -69,6 +103,10 @@ ds:
     database: 0
     password: {{ redis_password }}
 
+file:
+  storage:
+    root-path: "{{ app_upload_dir }}"
+
 path:
   quality_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/quality/qualityTaskExecutor
   collector_url: http://{{ datamaster_app_ip }}:{{ datamaster_server_port }}/cat/taskExecutor
@@ -88,5 +126,7 @@ ai:
     api-key: {{ dashscope_api_key }}
     model: {{ ai_skill_model_name }}
     timeout: {{ ai_skill_model_timeout }}
+    retry-count: {{ ai_skill_model_retry_count }}
+    retry-interval: {{ ai_skill_model_retry_interval }}
     temperature: {{ ai_skill_model_temperature }}
     max-tokens: {{ ai_skill_model_max_tokens }}

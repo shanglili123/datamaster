@@ -1,6 +1,6 @@
 <template>
   <!-- 清洗规则基础页面   -->
-  <a-modal
+  <a-modal wrap-class-name="integration-component-modal"
     v-model:open="dialogVisible"
     :draggable="true"
     class="medium-dialog"
@@ -24,7 +24,7 @@
       :disabled="dialogStatus == 2"
     >
       <a-form ref="formRef" :model="form" :label-col="{ style: { width: '130px' } }">
-        <div class="h2-title">基础信息</div>
+        <div class="h2-title etl-section-title" role="heading" aria-level="3">基础信息</div>
         <a-row>
           <a-col :span="8">
             <a-form-item
@@ -116,7 +116,7 @@
           </a-col>
         </a-row>
         <!-- 规则配置 -->
-        <div class="h2-title">规则配置</div>
+        <div class="h2-title etl-section-title" role="heading" aria-level="3">规则配置</div>
         <a-row v-if="type != 3">
           <a-col :span="24">
             <a-form-item

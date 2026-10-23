@@ -5,6 +5,7 @@ package com.datamaster.module.collector.service.etl.impl;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -28,6 +29,8 @@ import com.datamaster.api.ds.api.service.etl.IDsEtlSchedulerService;
 import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.core.domain.AjaxResult;
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.database.core.DbColumn;
+import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.common.enums.CatType;
 import com.datamaster.common.enums.ExecuteType;
 import com.datamaster.common.enums.TaskCatEnum;
@@ -43,20 +46,23 @@ import com.datamaster.common.category.dal.mapper.TaxonomyCategoryMapper;
 import com.datamaster.common.category.service.ITaxonomyCategoryService;
 import com.datamaster.common.api.space.ISpaceApi;
 import com.datamaster.module.collector.api.etl.dto.CollectorEtlTaskRespDTO;
+import com.datamaster.module.collector.api.etl.dto.CollectorEtlNodeRespDTO;
+import com.datamaster.module.collector.api.etl.dto.CollectorEtlTaskNodeRelRespDTO;
 import com.datamaster.module.collector.api.service.etl.CollectorEtlTaskService;
 import com.datamaster.module.collector.controller.admin.etl.vo.*;
 import com.datamaster.module.collector.dal.dataobject.etl.*;
 import com.datamaster.module.collector.dal.mapper.etl.CollectorEtlTaskMapper;
 import com.datamaster.module.collector.service.etl.*;
+import com.datamaster.module.collector.utils.ComponentGraphCompiler;
 import com.datamaster.module.collector.utils.IDGeneratorUtils;
 import com.datamaster.flinkx.core.FlinkxEtlTaskConverter;
-import com.datamaster.module.collector.utils.EtlLineageAssembler;
+import com.datamaster.module.collector.utils.PublishedLineageAssembler;
 import com.datamaster.module.collector.utils.TaskConverter;
+import com.datamaster.module.collector.utils.SourceMetadataSupport;
 import com.datamaster.module.collector.utils.model.DsResource;
 import com.datamaster.module.collector.utils.model.FlinkxIncrementalConfig;
 import com.datamaster.mybatis.config.MasterDataSourceConfig;
 import com.datamaster.mybatis.core.util.MyBatisUtils;
-import com.datamaster.neo4j.service.LineageDataService;
 import com.datamaster.redis.service.IRedisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -120,16 +126,21 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @Resource
     private ISpaceApi TaxonomySpaceApi;
 
+    /** 用于发布前确认目标表已经包含逻辑集成节点要求的治理列。 */
+    @Resource
+    private IDatasourceApiService datasourceApiService;
+
     @Value("${ds.incremental_prepare_url:http://127.0.0.1:8080/col/etlTask/incremental/prepare}")
     private String incrementalPrepareUrl;
     @Value("${ds.incremental_complete_url:http://127.0.0.1:8080/col/etlTask/incremental/complete}")
     private String incrementalCompleteUrl;
+    @Value("${ds.collector_url:http://127.0.0.1:8080/cat/taskExecutor/runExecuteTask}")
+    private String catalogTaskExecuteUrl;
+    @Value("${ds.quality_url:http://127.0.0.1:8080/quality/qualityTaskExecutor/runExecuteTask}")
+    private String qualityTaskExecuteUrl;
 
-    /**
-     * 数据血缘服务（可插拔）：LINEAGE_ENABLED=false 或未装配 Neo4j 时为 null，不影响 ETL 任务
-     */
-    @Autowired(required = false)
-    private LineageDataService lineageDataService;
+    @Resource
+    private CollectorLineageSyncService collectorLineageSyncService;
 
     @Override
     public PageResult<CollectorEtlTaskDO> getCollectorEtlTaskPage(CollectorEtlTaskPageReqVO pageReqVO) {
@@ -208,9 +219,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             if (hasDsTask) {
                 dsEtlTaskService.deleteTask(CollectorEtlTaskDO.getSpaceCode(), dsTaskCode);
             }
+            collectorLineageSyncService.lifecycle(CollectorEtlTaskDO, "DELETE");
             sum += CollectorEtlTaskMapper.deleteById(id);
-            // 联动删除 Neo4j 血缘节点（可插拔，LINEAGE_ENABLED=false 时跳过，失败不影响任务删除）
-            deleteTaskLineageSilently(id);
         }
         // 批量删除数据集成任务
         return sum;
@@ -400,6 +410,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             } else {
                 updateTaskStatus(CollectorEtlTaskDO.getId(), "-2");
             }
+            collectorLineageSyncService.lifecycle(CollectorEtlTaskDO, "INACTIVE");
             return new HashMap<>();
         }
 
@@ -419,6 +430,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         } else {
             updateTaskStatus(CollectorEtlTaskDO.getId(), "-3");
         }
+        collectorLineageSyncService.lifecycle(CollectorEtlTaskDO, "ACTIVE");
 
         return null;
     }
@@ -575,6 +587,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             } else {
                 updateTaskStatus(CollectorEtlTaskDO.getId(), "-2");
             }
+            collectorLineageSyncService.lifecycle(CollectorEtlTaskDO, "INACTIVE");
             return;
         }
 
@@ -614,6 +627,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         } else {
             updateTaskStatus(CollectorEtlTaskDO.getId(), "-3");
         }
+        collectorLineageSyncService.lifecycle(CollectorEtlTaskDO, "ACTIVE");
     }
 
     /**
@@ -1324,6 +1338,250 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     }
 
     @Override
+    public List<CollectorEtlTaskRespDTO> listVisibleTasks(Long spaceId, String spaceCode,
+                                                           String name, String status, int limit) {
+        CollectorEtlTaskPageReqVO request = new CollectorEtlTaskPageReqVO();
+        request.setPageNum(1);
+        request.setPageSize(Math.max(1, Math.min(limit <= 0 ? 20 : limit, 100)));
+        request.setType("3");
+        request.setSpaceId(spaceId);
+        request.setSpaceCode(spaceCode);
+        request.setName(StringUtils.isBlank(name) ? null : name.trim());
+        request.setStatus(StringUtils.isBlank(status) ? null : status.trim());
+        PageResult<CollectorEtlTaskRespVO> page = getCollectorEtlTaskPageList(request);
+        if (page == null || page.getRows() == null) return new ArrayList<>();
+        return BeanUtils.toBean(page.getRows(), CollectorEtlTaskRespDTO.class);
+    }
+
+    @Override
+    public CollectorEtlTaskRespDTO getVisibleTask(Long id, Long spaceId, String spaceCode) {
+        if (id == null) return null;
+        CollectorEtlTaskDO task = CollectorEtlTaskMapper.selectById(id);
+        if (!visibleTask(task, spaceId, spaceCode)) return null;
+        return BeanUtils.toBean(task, CollectorEtlTaskRespDTO.class);
+    }
+
+    @Override
+    public List<CollectorEtlNodeRespDTO> listVisibleTaskNodes(Long taskId, Long spaceId, String spaceCode) {
+        CollectorEtlTaskDO task = taskId == null ? null : CollectorEtlTaskMapper.selectById(taskId);
+        if (!visibleTask(task, spaceId, spaceCode)) return new ArrayList<>();
+        CollectorEtlTaskNodeRelPageReqVO relationRequest = new CollectorEtlTaskNodeRelPageReqVO();
+        relationRequest.setTaskId(taskId);
+        relationRequest.setTaskCode(task.getCode());
+        relationRequest.setTaskVersion(task.getVersion());
+        List<CollectorEtlTaskNodeRelRespVO> relations = iCollectorEtlTaskNodeRelService
+                .getCollectorEtlTaskNodeRelRespVOList(relationRequest);
+        Set<String> nodeCodes = new LinkedHashSet<>();
+        if (relations != null) for (CollectorEtlTaskNodeRelRespVO relation : relations) {
+            if (relation == null) continue;
+            if (StringUtils.isNotBlank(relation.getPreNodeCode())) nodeCodes.add(relation.getPreNodeCode());
+            if (StringUtils.isNotBlank(relation.getPostNodeCode())) nodeCodes.add(relation.getPostNodeCode());
+        }
+        CollectorEtlNodePageReqVO nodeRequest = new CollectorEtlNodePageReqVO();
+        nodeRequest.setCodeList(new ArrayList<>(nodeCodes));
+        List<CollectorEtlNodeRespVO> nodes = nodeCodes.isEmpty()
+                ? new ArrayList<>() : iCollectorEtlNodeService.getCollectorEtlNodeRespList(nodeRequest);
+        if (nodes == null) return new ArrayList<>();
+        return BeanUtils.toBean(nodes.stream()
+                .filter(node -> node != null
+                        && Objects.equals(spaceId, node.getSpaceId())
+                        && StringUtils.equals(spaceCode, node.getSpaceCode())
+                        && StringUtils.equals("3", node.getTaskType()))
+                .collect(Collectors.toList()), CollectorEtlNodeRespDTO.class);
+    }
+
+    @Override
+    public List<CollectorEtlTaskNodeRelRespDTO> listVisibleTaskRelations(Long taskId, Long spaceId, String spaceCode) {
+        CollectorEtlTaskDO task = taskId == null ? null : CollectorEtlTaskMapper.selectById(taskId);
+        if (!visibleTask(task, spaceId, spaceCode)) return new ArrayList<>();
+        CollectorEtlTaskNodeRelPageReqVO request = new CollectorEtlTaskNodeRelPageReqVO();
+        request.setTaskId(taskId);
+        request.setTaskCode(task.getCode());
+        request.setTaskVersion(task.getVersion());
+        List<CollectorEtlTaskNodeRelRespVO> relations = iCollectorEtlTaskNodeRelService
+                .getCollectorEtlTaskNodeRelRespVOList(request);
+        if (relations == null) return new ArrayList<>();
+        return BeanUtils.toBean(relations.stream()
+                .filter(rel -> rel != null
+                        && Objects.equals(spaceId, rel.getSpaceId())
+                        && StringUtils.equals(spaceCode, rel.getSpaceCode())
+                        && Objects.equals(taskId, rel.getTaskId()))
+                .collect(Collectors.toList()), CollectorEtlTaskNodeRelRespDTO.class);
+    }
+
+    @Override
+    public Map<String, Object> applyVisibleTaskPlan(Long taskId, Long spaceId, String spaceCode, String planJson) {
+        CollectorEtlTaskDO task = taskId == null ? null : CollectorEtlTaskMapper.selectById(taskId);
+        if (!visibleTask(task, spaceId, spaceCode)) {
+            throw new ServiceException("数据开发任务不存在或不属于当前空间");
+        }
+        if (StringUtils.equals("1", task.getStatus()) || StringUtils.equals("-3", task.getStatus())) {
+            throw new ServiceException("上线任务不允许修改，请先下线");
+        }
+        if (StringUtils.isBlank(planJson)) throw new ServiceException("计划内容不能为空");
+
+        JSONObject plan;
+        try {
+            plan = JSON.parseObject(planJson);
+        } catch (Exception ex) {
+            throw new ServiceException("计划 JSON 格式错误");
+        }
+        if (plan == null) throw new ServiceException("计划 JSON 必须是对象");
+        JSONArray nodes = plan.getJSONArray("nodes");
+        if (nodes == null) nodes = plan.getJSONArray("taskDefinitionList");
+        if (nodes == null || nodes.isEmpty()) throw new ServiceException("计划至少需要一个节点");
+
+        List<Map<String, Object>> nodePayload = new ArrayList<>();
+        Set<String> nodeCodes = new LinkedHashSet<>();
+        for (Object raw : nodes) {
+            if (!(raw instanceof JSONObject)) throw new ServiceException("节点定义必须是对象");
+            JSONObject source = (JSONObject) raw;
+            String code = firstText(source, "code", "nodeCode", "id");
+            String name = firstText(source, "name", "label");
+            String componentType = firstText(source, "taskType", "componentType", "type");
+            if (StringUtils.isBlank(code) || StringUtils.isBlank(name) || StringUtils.isBlank(componentType)) {
+                throw new ServiceException("节点必须包含 code、name、type");
+            }
+            if (!nodeCodes.add(code)) throw new ServiceException("节点编码重复: " + code);
+            Map<String, Object> target = new LinkedHashMap<>();
+            target.put("id", longOrNull(source.get("id")));
+            target.put("code", code);
+            target.put("name", name);
+            target.put("taskType", componentType);
+            target.put("type", componentType);
+            target.put("componentType", firstText(source, "componentType", "type", "taskType"));
+            target.put("version", numberOrDefault(source.get("version"), 1));
+            target.put("description", firstText(source, "description", "desc"));
+            target.put("priority", firstText(source, "priority"));
+            target.put("parameters", JSON.toJSONString(parameterObject(source)));
+            target.put("taskParams", parameterObject(source));
+            nodePayload.add(target);
+        }
+
+        JSONArray relations = plan.getJSONArray("relations");
+        if (relations == null) relations = plan.getJSONArray("taskRelationJson");
+        List<Map<String, Object>> relationPayload = new ArrayList<>();
+        if (relations != null) for (Object raw : relations) {
+            if (!(raw instanceof JSONObject)) throw new ServiceException("依赖关系必须是对象");
+            JSONObject source = (JSONObject) raw;
+            String pre = firstText(source, "preTaskCode", "preNodeCode", "from", "pre", "source");
+            String post = firstText(source, "postTaskCode", "postNodeCode", "to", "post", "target");
+            if (StringUtils.isBlank(pre) || StringUtils.isBlank(post)
+                    || !nodeCodes.contains(pre) || !nodeCodes.contains(post)) {
+                throw new ServiceException("依赖关系引用了不存在的节点");
+            }
+            Map<String, Object> target = new LinkedHashMap<>();
+            target.put("preTaskCode", pre);
+            target.put("postTaskCode", post);
+            target.put("preTaskVersion", numberOrDefault(source.get("preTaskVersion"), 1));
+            target.put("postTaskVersion", numberOrDefault(source.get("postTaskVersion"), 1));
+            target.put("conditionType", source.get("conditionType"));
+            relationPayload.add(target);
+        }
+
+        Long spaceCodeValue;
+        try {
+            spaceCodeValue = Long.valueOf(String.valueOf(task.getSpaceCode()));
+        } catch (Exception ex) {
+            throw new ServiceException("当前空间编码不是数字，无法复用数据开发保存接口");
+        }
+        CollectorEtlNewNodeSaveReqVO request = new CollectorEtlNewNodeSaveReqVO();
+        request.setIdStr(String.valueOf(taskId));
+        request.setSpaceId(spaceId);
+        request.setSpaceCode(spaceCodeValue);
+        request.setType("3");
+        // 保留任务原有的负责人、联系方式和执行配置，确保保存任务日志时满足
+        // COL_ETL_TASK_LOG 的非空约束，并避免应用计划覆盖任务元数据。
+        request.setCatId(task.getCatId());
+        request.setCatCode(task.getCatCode());
+        String personCharge = task.getPersonCharge();
+        if (StringUtils.isBlank(personCharge)) {
+            personCharge = task.getCreatorId() == null
+                    ? String.valueOf(SecurityUtils.getUserId())
+                    : String.valueOf(task.getCreatorId());
+        }
+        request.setPersonCharge(personCharge);
+        request.setContactNumber(task.getContactNumber());
+        request.setExecutionType(task.getExecutionType());
+        request.setTimeout(task.getTimeout());
+        request.setName(firstText(plan, "name", "taskName") == null ? task.getName() : firstText(plan, "name", "taskName"));
+        request.setDescription(plan.getString("description") == null ? task.getDescription() : plan.getString("description"));
+        request.setTaskDefinitionList(JSON.toJSONString(nodePayload));
+        request.setTaskRelationJson(JSON.toJSONString(relationPayload));
+        request.setGlobalParams(plan.getString("globalParams") == null ? "[]" : plan.getString("globalParams"));
+        request.setDraftJson(plan.getString("draftJson") == null ? planJson : plan.getString("draftJson"));
+        request.setCrontab(plan.getString("crontab"));
+        request.setReleaseState("0");
+        request.setSchedulerState("0");
+        request.setStatus("0");
+        CollectorEtlTaskSaveReqVO saved = updateEtlTask(request);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("taskId", String.valueOf(taskId));
+        response.put("success", true);
+        response.put("published", false);
+        response.put("status", saved == null ? "0" : saved.getStatus());
+        response.put("message", "数据开发计划已保存为草稿，尚未发布或启动");
+        return response;
+    }
+
+    private String firstText(JSONObject source, String... keys) {
+        for (String key : keys) {
+            Object value = source.get(key);
+            if (value != null && StringUtils.isNotBlank(String.valueOf(value))) return String.valueOf(value).trim();
+        }
+        return null;
+    }
+
+    private Object parameterObject(JSONObject source) {
+        Object value = source.get("parameters");
+        if (value == null) value = source.get("params");
+        if (value == null) value = source.get("taskParams");
+        if (value instanceof String) {
+            try {
+                Object parsed = JSON.parse((String) value);
+                return parsed == null ? new LinkedHashMap<>() : parsed;
+            } catch (Exception ignored) {
+                return new LinkedHashMap<>();
+            }
+        }
+        return value == null ? new LinkedHashMap<>() : value;
+    }
+
+    private Long longOrNull(Object value) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) return null;
+        try { return Long.valueOf(String.valueOf(value)); } catch (Exception ignored) { return null; }
+    }
+
+    private Integer numberOrDefault(Object value, int fallback) {
+        if (value == null) return fallback;
+        try { return Integer.valueOf(String.valueOf(value)); } catch (Exception ignored) { return fallback; }
+    }
+
+    @Override
+    public Map<String, Object> startVisibleTask(Long id, Long spaceId, String spaceCode) {
+        CollectorEtlTaskDO task = id == null ? null : CollectorEtlTaskMapper.selectById(id);
+        if (!visibleTask(task, spaceId, spaceCode)) {
+            throw new ServiceException("数据开发任务不存在或不属于当前空间");
+        }
+        if (!StringUtils.equals("3", task.getType())) {
+            throw new ServiceException("当前任务不是数据开发任务");
+        }
+        AjaxResult result = startCollectorEtlTask(id);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("taskId", String.valueOf(id));
+        response.put("success", result != null && result.isSuccess());
+        response.put("message", result == null ? null : result.get("msg"));
+        return response;
+    }
+
+    private boolean visibleTask(CollectorEtlTaskDO task, Long spaceId, String spaceCode) {
+        if (task == null || Boolean.TRUE.equals(task.getDelFlag())) return false;
+        if (!StringUtils.equals("3", task.getType())) return false;
+        if (spaceId != null && !Objects.equals(spaceId, task.getSpaceId())) return false;
+        return StringUtils.isBlank(spaceCode) || StringUtils.equals(spaceCode, task.getSpaceCode());
+    }
+
+    @Override
     public CollectorEtlNewNodeSaveReqVO createEtlTaskFront(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
 
         //生成任务编码(本地唯一ID，发布时替换为DS编码)
@@ -1556,6 +1814,17 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         }
         if (StringUtils.isBlank(reqVO.getTaskDefinitionList())) {
             throw new ServiceException("任务配置未完成，请先保存任务配置");
+        }
+
+        // 只编译发布副本，数据库继续保存用户的六组件画布。
+        if (ComponentGraphCompiler.supports(reqVO)) {
+            CollectorEtlNewNodeSaveReqVO compiled = ComponentGraphCompiler.compile(reqVO);
+            // 发布快照保留原始组件拓扑，执行载荷使用独立编译结果。
+            return publishPipelineTask(compiled, taskDO);
+        }
+        // 历史封装式逻辑节点继续使用原发布路径。
+        if (TaskConverter.hasPipelineNodes(reqVO.getTaskDefinitionList())) {
+            return publishPipelineTask(reqVO, taskDO);
         }
 
         CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(taskDO.getId());
@@ -1834,7 +2103,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         taskDO.setStatus("1");
         taskDO.setCode(taskCode); //确保使用DS编码
 
-        //写入数据血缘（可插拔：LINEAGE_ENABLED=false 时 lineageDataService 为 null，失败不影响任务发布）
+        // Capture the exact generated executable job, not editable draft transitions.
+        mainArgs.put("publishedJobJson", flinkxJobJson);
         writeTaskLineageSilently(taskDO, mainArgs);
 
         if (streamingFlinkx) {
@@ -1892,47 +2162,1279 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     }
 
     /**
-     * 发布成功后写入数据血缘（可插拔，静默降级）
-     * <p>
-     * LINEAGE_ENABLED=false 或未装配 Neo4j 时 lineageDataService 为 null，直接跳过；
-     * 血缘写入失败不影响任务发布结果。
-     *
-     * @param taskDO   任务记录（发布成功后已回填 taskCode）
-     * @param mainArgs ETL 任务参数（readerList/writerList），用于构建 TableNode/TaskNode
+     * 发布新版逻辑集成任务。前端的一个 Pipeline Node 在 DS 中对应一个独立的 CHUNJUN 节点，
+     * 画布边关系转换成 DS 的 taskRelation；元数据探查和质量检查按配置追加为 HTTP 节点。
      */
-    private void writeTaskLineageSilently(CollectorEtlTaskDO taskDO, Map<String, Object> mainArgs) {
-        if (lineageDataService == null || taskDO == null || mainArgs == null) {
+    @SuppressWarnings("unchecked")
+    private CollectorEtlTaskSaveReqVO publishPipelineTask(CollectorEtlNewNodeSaveReqVO reqVO,
+                                                           CollectorEtlTaskDO taskDO) {
+        CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(taskDO.getId());
+        ProcessDefinition existing = dsEtlTaskService.getTaskByName(String.valueOf(reqVO.getSpaceCode()), reqVO.getName());
+        boolean firstPublish = taskExt == null || StringUtils.isBlank(taskExt.getEtlTaskCode());
+        String taskCode;
+        if (!firstPublish) {
+            taskCode = taskExt.getEtlTaskCode();
+        } else if (existing != null && StringUtils.isNotBlank(existing.getCode())) {
+            taskCode = existing.getCode();
+        } else {
+            taskCode = String.valueOf(dsEtlNodeService.genCode(reqVO.getSpaceCode()).getData().get(0));
+        }
+
+        String primaryCode = taskExt == null ? null : taskExt.getEtlNodeCode();
+        if (StringUtils.isBlank(primaryCode)) {
+            primaryCode = nextDsNodeCode(reqVO.getSpaceCode());
+        }
+        Map<String, Object> taskInfo = new HashMap<>();
+        taskInfo.put("spaceCode", reqVO.getSpaceCode());
+        taskInfo.put("taskCode", taskCode);
+        taskInfo.put("taskVersion", firstPublish ? 1 : (taskExt.getEtlTaskVersion() == null ? 1 : taskExt.getEtlTaskVersion() + 1));
+        taskInfo.put("name", reqVO.getName());
+
+        PipelinePublishPayload payload = buildPipelinePublishPayload(reqVO, taskInfo, primaryCode, taskExt);
+        DsTaskSaveReqDTO saveReq = new DsTaskSaveReqDTO();
+        saveReq.setName(reqVO.getName());
+        saveReq.setDescription(reqVO.getDescription());
+        saveReq.setExecutionType(StringUtils.isNotBlank(reqVO.getExecutionType()) ? reqVO.getExecutionType() : "SERIAL_WAIT");
+        saveReq.setTaskDefinitionJson(JSON.toJSONString(payload.taskDefinitions));
+        saveReq.setTaskRelationJson(JSON.toJSONString(payload.taskRelations));
+        saveReq.setLocations(JSON.toJSONString(payload.locations));
+
+        DsTaskSaveRespDTO saveResp = firstPublish && (existing == null || StringUtils.isBlank(existing.getCode()))
+                ? dsEtlTaskService.createTask(saveReq, reqVO.getSpaceCode())
+                : updateDsTaskAllowingOnline(saveReq, String.valueOf(reqVO.getSpaceCode()), taskCode);
+        if (saveResp == null || !saveResp.getSuccess()) {
+            throw new ServiceException("发布逻辑集成任务错误:" + (saveResp == null ? "DS 无响应" : saveResp.getMsg()));
+        }
+        ProcessDefinition definition = saveResp.getData();
+        if (definition == null) {
+            throw new ServiceException("发布逻辑集成任务错误:DS 未返回流程定义");
+        }
+        taskCode = definition.getCode();
+
+        TaskDefinition primaryDefinition = getDsTaskDefinition(definition, payload.primaryCode);
+        if (primaryDefinition == null && definition.getTaskDefinitionList() != null && !definition.getTaskDefinitionList().isEmpty()) {
+            primaryDefinition = definition.getTaskDefinitionList().get(0);
+        }
+        ProcessTaskRelation primaryRelation = getDsTaskRelation(definition, payload.primaryCode);
+        CollectorEtlTaskExtSaveReqVO extSave = CollectorEtlTaskExtSaveReqVO.builder()
+                .taskId(taskDO.getId())
+                .etlTaskCode(taskCode)
+                .etlTaskVersion(definition.getVersion())
+                .etlNodeId(primaryDefinition == null ? null : primaryDefinition.getId())
+                .etlNodeName(payload.primaryName)
+                .etlNodeCode(payload.primaryCode)
+                .etlNodeVersion(primaryDefinition == null ? 0 : primaryDefinition.getVersion())
+                .etlRelationId(primaryRelation == null ? null : primaryRelation.getId())
+                .build();
+        if (taskExt == null) {
+            CollectorEtlTaskExtService.createCollectorEtlTaskExt(extSave);
+        } else {
+            copyPublishedExt(extSave, taskExt);
+            clearIncrementalExt(taskExt);
+            taskExt.setEtlTaskCode(taskCode);
+            taskExt.setEtlTaskVersion(definition.getVersion());
+            taskExt.setEtlNodeId(extSave.getEtlNodeId());
+            taskExt.setEtlNodeName(extSave.getEtlNodeName());
+            taskExt.setEtlNodeCode(extSave.getEtlNodeCode());
+            taskExt.setEtlNodeVersion(extSave.getEtlNodeVersion());
+            taskExt.setEtlRelationId(extSave.getEtlRelationId());
+            CollectorEtlTaskExtService.updateById(taskExt);
+        }
+        createTaskLogSnapshotIfAbsent(reqVO, definition, taskCode,
+                JSON.toJSONString(payload.locations), taskDO.getDsId());
+
+        DsStatusRespDTO releaseResp = dsEtlTaskService.releaseTask("ONLINE", String.valueOf(reqVO.getSpaceCode()), taskCode);
+        if (!isDsStatusSuccess(releaseResp)) {
+            throw new ServiceException("上线逻辑集成任务失败！");
+        }
+        updateTaskStatus(taskDO.getId(), "1");
+        taskDO.setStatus("1");
+        taskDO.setCode(taskCode);
+        writeTaskLineageSilently(taskDO, payload.lineageArgs);
+        publishPipelineScheduler(taskDO, reqVO, taskCode);
+        return BeanUtils.toBean(taskDO, CollectorEtlTaskSaveReqVO.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private PipelinePublishPayload buildPipelinePublishPayload(CollectorEtlNewNodeSaveReqVO reqVO,
+                                                                Map<String, Object> taskInfo,
+                                                                String preferredPrimaryCode,
+                                                                CollectorEtlTaskExtDO existingExt) {
+        List<CollectorEtlNodeSaveReqVO> configuredNodes = JSON.parseArray(reqVO.getTaskDefinitionList(), CollectorEtlNodeSaveReqVO.class);
+        if (configuredNodes == null || configuredNodes.isEmpty()) {
+            throw new ServiceException("逻辑集成任务没有可发布节点");
+        }
+        List<CollectorEtlNodeSaveReqVO> pipelineNodes = configuredNodes.stream()
+                .filter(node -> node != null && TaskComponentTypeEnum.PIPELINE_NODE.getCode().equals(node.getComponentType()))
+                .collect(Collectors.toList());
+        if (pipelineNodes.isEmpty()) {
+            throw new ServiceException("逻辑集成任务没有可发布节点");
+        }
+        if (pipelineNodes.size() != configuredNodes.size()) {
+            throw new ServiceException("逻辑集成节点任务不能与旧版输入/转换/输出节点混用，请拆分任务后再发布");
+        }
+
+        Map<String, Object> draft = StringUtils.isBlank(reqVO.getDraftJson())
+                ? new HashMap<>() : JSON.parseObject(reqVO.getDraftJson(), Map.class);
+        Map<String, Object> pipelineGraph = draft.get("pipelineGraph") instanceof Map
+                ? (Map<String, Object>) draft.get("pipelineGraph") : Collections.emptyMap();
+        Map<String, String> nodeIdToConfiguredCode = new HashMap<>();
+        Object graphNodes = pipelineGraph.get("nodes");
+        if (graphNodes instanceof List) {
+            for (Object item : (List<?>) graphNodes) {
+                if (!(item instanceof Map)) continue;
+                Map<String, Object> map = (Map<String, Object>) item;
+                String nodeId = configText(map.get("nodeId"));
+                String nodeCode = configText(map.get("nodeCode"));
+                if (StringUtils.isNotBlank(nodeId) && StringUtils.isNotBlank(nodeCode)) {
+                    // pipelineNodeId 是首选标识；nodeCode 作为旧草稿兼容别名。
+                    nodeIdToConfiguredCode.put(nodeId, nodeId);
+                    nodeIdToConfiguredCode.put(nodeCode, nodeId);
+                }
+            }
+        }
+
+        List<Map<String, Object>> definitions = new ArrayList<>();
+        List<Map<String, Object>> relations = new ArrayList<>();
+        List<Map<String, Object>> locations = new ArrayList<>();
+        Map<String, String> configuredCodeToDsCode = new HashMap<>();
+        Map<String, String> beforeNode = new HashMap<>();
+        Map<String, String> afterNode = new HashMap<>();
+        Map<String, Map<String, Object>> pipelineConfigByCode = new HashMap<>();
+        for (CollectorEtlNodeSaveReqVO node : pipelineNodes) {
+            String configuredCode = resolvePipelineNodeKey(node);
+            if (StringUtils.isBlank(configuredCode)) {
+                throw new ServiceException("逻辑集成节点缺少稳定节点标识");
+            }
+            if (pipelineConfigByCode.containsKey(configuredCode)) {
+                throw new ServiceException("逻辑集成节点标识重复: " + configuredCode);
+            }
+            if (node.getTaskParams() != null && node.getTaskParams().get("pipelineNode") instanceof Map) {
+                Map<String, Object> pipeline = new LinkedHashMap<>(
+                        (Map<String, Object>) node.getTaskParams().get("pipelineNode"));
+                ensurePipelineSourceMetadata(pipeline);
+                if (StringUtils.isNotBlank(node.getCode())) {
+                    pipeline.putIfAbsent("nodeCode", node.getCode());
+                }
+                normalizePipelineConfig(pipeline);
+                if (!"CONDITION".equals(String.valueOf(pipeline.get("mode")))) {
+                    validatePipelineSourceMetadataConfig(pipeline, node.getName());
+                    validatePipelineAuxiliaryConfig(pipeline, node.getName());
+                }
+                pipelineConfigByCode.put(configuredCode, pipeline);
+            }
+        }
+        validatePipelineDependencies(pipelineGraph, nodeIdToConfiguredCode, pipelineConfigByCode);
+        List<Map<String, Object>> publishedLineageUnits = new ArrayList<>();
+        String primaryCode = null;
+        String primaryName = null;
+        int index = 0;
+
+        int codeIndex = 0;
+        for (CollectorEtlNodeSaveReqVO node : pipelineNodes) {
+            configuredCodeToDsCode.put(resolvePipelineNodeKey(node), codeIndex++ == 0 && StringUtils.isNotBlank(preferredPrimaryCode)
+                    ? preferredPrimaryCode : nextDsNodeCode(reqVO.getSpaceCode()));
+        }
+        for (CollectorEtlNodeSaveReqVO node : pipelineNodes) {
+            String configuredCode = resolvePipelineNodeKey(node);
+            if (StringUtils.isBlank(configuredCode)) {
+                throw new ServiceException("逻辑集成节点缺少稳定节点标识");
+            }
+            String dsCode = configuredCodeToDsCode.get(configuredCode);
+            configuredCodeToDsCode.put(configuredCode, dsCode);
+            if (index == 0) {
+                primaryCode = dsCode;
+                primaryName = node.getName();
+            }
+
+            Map<String, Object> perNodeInfo = new HashMap<>(taskInfo);
+            perNodeInfo.put("name", node.getName());
+            Map<String, Object> controlConfig = pipelineConfigByCode.get(configuredCode);
+            if ("CONDITION".equals(String.valueOf(controlConfig.get("mode")))) {
+                Map<String, Object> control = JSON.parseArray(TaskConverter.buildEtlTaskDefinitionJsonFlinkx(
+                        null, node.getName(), dsCode, 0, "{}", reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode())), Map.class).get(0);
+                control.put("taskType", "CONDITIONS");
+                Map<String, Object> parameters = new LinkedHashMap<>();
+                parameters.put("localParams", new ArrayList<>()); parameters.put("resourceList", new ArrayList<>());
+                List<Map<String, Object>> items = new ArrayList<>();
+                for (Object ref : (List<?>) controlConfig.get("controlDependencies")) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("depTaskCode", Long.valueOf(configuredCodeToDsCode.get(String.valueOf(ref))));
+                    item.put("status", "SUCCESS"); items.add(item);
+                }
+                Map<String, Object> group = new LinkedHashMap<>();
+                group.put("relation", controlConfig.get("conditionRelation")); group.put("dependItemList", items);
+                Map<String, Object> dependence = new LinkedHashMap<>();
+                dependence.put("relation", "AND"); dependence.put("dependTaskList", Collections.singletonList(group));
+                parameters.put("dependence", dependence);
+                Map<String, Object> conditionResult = new LinkedHashMap<>();
+                conditionResult.put("conditionSuccess", true);
+                for (String branch : Arrays.asList("successStages", "failedStages")) {
+                    List<Long> targets = new ArrayList<>();
+                    for (Object ref : (List<?>) controlConfig.get(branch)) targets.add(Long.valueOf(configuredCodeToDsCode.get(String.valueOf(ref))));
+                    conditionResult.put("successStages".equals(branch) ? "successNode" : "failedNode", targets);
+                }
+                parameters.put("conditionResult", conditionResult); control.put("taskParams", parameters);
+                definitions.add(control);
+                Map<String, Object> position = new LinkedHashMap<>();
+                position.put("taskCode", Long.valueOf(dsCode)); position.put("x", 120 + index * 260); position.put("y", 120);
+                locations.add(position); index++;
+                continue;
+            }
+            preparePipelineInputs(node, configuredCode, pipelineConfigByCode);
+            Map<String, Object> preparedConfig = pipelineConfigByCode.get(configuredCode);
+            if (!hasConfiguredPipelineColumns(preparedConfig)) {
+                throw new ServiceException("逻辑节点“" + node.getName() + "”未配置源字段，请先读取源表字段");
+            }
+            validatePipelineDataSources(preparedConfig, node.getName());
+            validatePipelineWriteMode(preparedConfig, node.getName());
+            Map<String, Object> args = TaskConverter.buildEtlTaskParams(
+                    JSON.toJSONString(Collections.singletonList(node)), new HashMap<>(), perNodeInfo, new ArrayList<>());
+            Map<String, Object> parsedPipeline = null;
+            Object pipelineList = args.get("pipelineNodes");
+            if (pipelineList instanceof List && !((List<?>) pipelineList).isEmpty()
+                    && ((List<?>) pipelineList).get(0) instanceof Map) {
+                parsedPipeline = (Map<String, Object>) ((List<?>) pipelineList).get(0);
+            }
+            if (parsedPipeline == null || !(args.get("reader") instanceof Map) || !(args.get("writer") instanceof Map)) {
+                throw new ServiceException("逻辑节点“" + node.getName() + "”缺少完整的输入/输出数据源配置");
+            }
+            Map<String, Object> config = parsedPipeline.get("pipelineNode") instanceof Map
+                    ? (Map<String, Object>) parsedPipeline.get("pipelineNode") : Collections.emptyMap();
+            if (parsedPipeline.get("pipelineNode") instanceof Map) {
+                config.putIfAbsent("pipelineNodeId", configuredCode);
+                if (StringUtils.isNotBlank(node.getCode())) config.putIfAbsent("nodeCode", node.getCode());
+            }
+            normalizePipelineConfig(config);
+            validatePipelineSourceMetadataConfig(config, node.getName());
+            validatePipelineAuxiliaryConfig(config, node.getName());
+            pipelineConfigByCode.put(configuredCode, config);
+
+            if (!hasConfiguredPipelineColumns(config)) {
+                throw new ServiceException("逻辑节点“" + node.getName() + "”未配置源字段，请先读取源表字段");
+            }
+            validatePipelineDataSources(config, node.getName());
+            validatePipelineTargetGovernanceColumns(config, node.getName());
+            validatePipelineWriteMode(config, node.getName());
+
+            if ("MERGE".equalsIgnoreCase(String.valueOf(config.get("mode")))) {
+                validatePipelineMergeInputs(config, node.getName(), configuredCode);
+            }
+
+            Object componentTransforms = config.get("transforms");
+            if (componentTransforms instanceof List && !((List<?>) componentTransforms).isEmpty()) {
+                List<CollectorEtlNodeSaveReqVO> transforms = JSON.parseArray(
+                        JSON.toJSONString(componentTransforms), CollectorEtlNodeSaveReqVO.class);
+                Map<String, Object> transformArgs = TaskConverter.buildEtlTaskParams(
+                        JSON.toJSONString(transforms), new HashMap<>(), perNodeInfo, new ArrayList<>());
+                args.put("transition", transformArgs.get("transition"));
+            }
+            if (StringUtils.isNotBlank(configText(config.get("rowFilter")))) {
+                args.put("rowFilter", config.get("rowFilter"));
+            }
+            perNodeInfo.put("componentIds", config.get("componentIds"));
+            args.put("componentStage", config.containsKey("componentIds"));
+            String flinkxJobJson = FlinkxEtlTaskConverter.convertToFlinkxJobJson(args);
+            Map<String, Object> definition = JSON.parseArray(
+                    TaskConverter.buildEtlTaskDefinitionJsonFlinkx(null, node.getName(), dsCode, 0,
+                            flinkxJobJson, reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode())),
+                    Map.class).get(0);
+            if (index == 0 && existingExt != null) {
+                definition.put("id", existingExt.getEtlNodeId());
+                definition.put("version", existingExt.getEtlNodeVersion() == null ? 0 : existingExt.getEtlNodeVersion());
+            }
+            definitions.add(definition);
+            args.put("publishedJobJson", flinkxJobJson);
+            Map<String, Object> lineageUnit = new HashMap<>();
+            lineageUnit.put("unitKey", configuredCode);
+            lineageUnit.put("args", args);
+            publishedLineageUnits.add(lineageUnit);
+            Map<String, Object> position = new HashMap<>();
+            position.put("taskCode", Long.parseLong(dsCode));
+            position.put("x", 120 + index * 260);
+            position.put("y", 120 + (index % 4) * 160);
+            locations.add(position);
+
+            addPipelineAuxiliaryNodes(config, node.getName(), configuredCode, reqVO, definitions, locations,
+                    beforeNode, afterNode, index);
+            index++;
+        }
+
+        // 旧草稿可能没有 pipelineNodeId：若 graph.nodeCode 能对应任务 code，则把画布 nodeId
+        // 映射回旧 code；新草稿则自然映射到 pipelineNodeId。
+        if (graphNodes instanceof List) {
+            for (Object item : (List<?>) graphNodes) {
+                if (!(item instanceof Map)) continue;
+                Map<String, Object> map = (Map<String, Object>) item;
+                String nodeId = configText(map.get("nodeId"));
+                String nodeCode = configText(map.get("nodeCode"));
+                if (StringUtils.isNotBlank(nodeId) && StringUtils.isNotBlank(nodeCode)) {
+                    nodeIdToConfiguredCode.put(nodeId,
+                            configuredCodeToDsCode.containsKey(nodeCode) ? nodeCode : nodeId);
+                }
+            }
+        }
+
+        Object edges = pipelineGraph.get("edges");
+        Set<String> relationKeys = new HashSet<>();
+        Set<String> incoming = new HashSet<>();
+        if (edges instanceof List) {
+            for (Object item : (List<?>) edges) {
+                if (!(item instanceof Map)) continue;
+                Map<String, Object> edge = (Map<String, Object>) item;
+                String sourceConfigured = resolveConfiguredCode(configText(edge.get("source")), nodeIdToConfiguredCode);
+                String targetConfigured = resolveConfiguredCode(configText(edge.get("target")), nodeIdToConfiguredCode);
+                sourceConfigured = resolvePipelineConfigKey(sourceConfigured, pipelineConfigByCode);
+                targetConfigured = resolvePipelineConfigKey(targetConfigured, pipelineConfigByCode);
+                String sourceDs = configuredCodeToDsCode.get(sourceConfigured);
+                String targetDs = configuredCodeToDsCode.get(targetConfigured);
+                if (StringUtils.isBlank(sourceDs) || StringUtils.isBlank(targetDs)) continue;
+                incoming.add(targetConfigured);
+                String pre = afterNode.getOrDefault(sourceConfigured, sourceDs);
+                String post = beforeNode.getOrDefault(targetConfigured, targetDs);
+                addPipelineRelation(relations, relationKeys, pre, post);
+            }
+        }
+        // 兼容没有保存 pipelineGraph.edges 的旧草稿：以节点输入中的 refNodeId/refNodeCode 补建依赖。
+        for (Map.Entry<String, Map<String, Object>> entry : pipelineConfigByCode.entrySet()) {
+            Object inputs = entry.getValue() == null ? null : entry.getValue().get("inputs");
+            if (!(inputs instanceof List)) continue;
+            String targetDs = configuredCodeToDsCode.get(entry.getKey());
+            if (StringUtils.isBlank(targetDs)) continue;
+            for (Object input : (List<?>) inputs) {
+                if (!(input instanceof Map)) continue;
+                Map<String, Object> inputMap = (Map<String, Object>) input;
+                String ref = firstConfigValue(inputMap, "refNodeCode", "refNodeId");
+                ref = resolveConfiguredCode(ref, nodeIdToConfiguredCode);
+                ref = resolvePipelineConfigKey(ref, pipelineConfigByCode);
+                String sourceDs = configuredCodeToDsCode.get(ref);
+                if (StringUtils.isBlank(sourceDs)) continue;
+                incoming.add(entry.getKey());
+                String pre = afterNode.getOrDefault(ref, sourceDs);
+                String post = beforeNode.getOrDefault(entry.getKey(), targetDs);
+                addPipelineRelation(relations, relationKeys, pre, post);
+            }
+        }
+        for (String configuredCode : configuredCodeToDsCode.keySet()) {
+            String nodeDs = configuredCodeToDsCode.get(configuredCode);
+            String first = beforeNode.getOrDefault(configuredCode, nodeDs);
+            if (!incoming.contains(configuredCode)) {
+                addPipelineRelation(relations, relationKeys, "0", first);
+            }
+            if (beforeNode.containsKey(configuredCode)) {
+                addPipelineRelation(relations, relationKeys, beforeNode.get(configuredCode), nodeDs);
+            }
+            if (afterNode.containsKey(configuredCode)) {
+                addPipelineRelation(relations, relationKeys, nodeDs, afterNode.get(configuredCode));
+            }
+        }
+        if (existingExt != null && existingExt.getEtlRelationId() != null) {
+            for (Map<String, Object> relation : relations) {
+                if (String.valueOf(relation.get("postTaskCode")).equals(primaryCode)) {
+                    relation.put("id", existingExt.getEtlRelationId());
+                    break;
+                }
+            }
+        }
+
+        Map<String, Object> lineageArgs = new HashMap<>();
+        lineageArgs.put("lineageUnits", publishedLineageUnits);
+        return new PipelinePublishPayload(definitions, relations, locations, primaryCode, primaryName, lineageArgs);
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean hasConfiguredPipelineColumns(Map<String, Object> config) {
+        if (config == null) return false;
+        Object columns = config.get("columns");
+        if (!(columns instanceof List) || ((List<?>) columns).isEmpty()) {
+            Map<String, Object> input = config.get("input") instanceof Map
+                    ? (Map<String, Object>) config.get("input") : Collections.emptyMap();
+            columns = input.get("columns");
+        }
+        return columns instanceof List && !((List<?>) columns).isEmpty();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void ensurePipelineSourceMetadata(Map<String, Object> pipeline) {
+        if (pipeline == null) return;
+        Map<String, Object> metadata = pipeline.get("sourceMetadata") instanceof Map
+                ? new LinkedHashMap<>((Map<String, Object>) pipeline.get("sourceMetadata"))
+                : new LinkedHashMap<>();
+        if (metadata.isEmpty() && pipeline.get("input") instanceof Map
+                && ((Map<?, ?>) pipeline.get("input")).get("sourceMetadata") instanceof Map) {
+            metadata.putAll((Map<String, Object>) ((Map<?, ?>) pipeline.get("input")).get("sourceMetadata"));
+        }
+        // 逻辑集成节点的 source_table / write_time 是不可关闭的治理契约，
+        // 这里同时兼容早期没有 sourceMetadata 配置的草稿。
+        metadata.put("enabled", true);
+        pipeline.put("sourceMetadata", metadata);
+    }
+
+    /**
+     * 兼容旧草稿中把逗号分隔字符串保存到 selectedColumns / naturalKeyColumns 的情况。
+     * 发布器内部统一使用 List，避免校验通过但 FlinkX writer 丢失更新主键。
+     */
+    @SuppressWarnings("unchecked")
+    private void normalizePipelineConfig(Map<String, Object> pipeline) {
+        if (pipeline == null) return;
+        if (StringUtils.isBlank(configText(pipeline.get("mode")))) {
+            pipeline.put("mode", "INTEGRATION");
+        }
+        if (pipeline.containsKey("columns")) {
+            pipeline.put("columns", normalizePipelineColumnList(pipeline.get("columns")));
+        }
+        if (pipeline.containsKey("targetColumns")) {
+            pipeline.put("targetColumns", normalizePipelineColumnList(pipeline.get("targetColumns")));
+        }
+        Map<String, Object> input = pipeline.get("input") instanceof Map
+                ? (Map<String, Object>) pipeline.get("input") : null;
+        if (input != null) {
+            if (input.containsKey("columns")) {
+                input.put("columns", normalizePipelineColumnList(input.get("columns")));
+            }
+        }
+        Map<String, Object> output = pipeline.get("output") instanceof Map
+                ? (Map<String, Object>) pipeline.get("output") : null;
+        if (output != null) {
+            if (output.containsKey("columns")) {
+                output.put("columns", normalizePipelineColumnList(output.get("columns")));
+            }
+            if (output.containsKey("target_columns")) {
+                output.put("target_columns", normalizePipelineColumnList(output.get("target_columns")));
+            }
+            output.put("selectedColumns", normalizeStringList(output.get("selectedColumns"),
+                    output.get("selectedColumnsText")));
+        }
+        Map<String, Object> metadata = pipeline.get("sourceMetadata") instanceof Map
+                ? (Map<String, Object>) pipeline.get("sourceMetadata") : null;
+        if (metadata != null) {
+            metadata.put("naturalKeyColumns", normalizeStringList(metadata.get("naturalKeyColumns"),
+                    metadata.get("naturalKeyColumnsText")));
+        }
+    }
+
+    private List<String> normalizeStringList(Object primary, Object fallback) {
+        Object raw = primary;
+        if (raw == null || (raw instanceof String && StringUtils.isBlank((String) raw))) raw = fallback;
+        List<String> result = new ArrayList<>();
+        if (raw instanceof Collection) {
+            for (Object item : (Collection<?>) raw) {
+                if (item != null && StringUtils.isNotBlank(String.valueOf(item))) {
+                    result.add(String.valueOf(item).trim());
+                }
+            }
+            return result;
+        }
+        if (raw != null) {
+            for (String item : String.valueOf(raw).split(",")) {
+                if (StringUtils.isNotBlank(item)) result.add(item.trim());
+            }
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> normalizePipelineColumnList(Object raw) {
+        List<String> result = new ArrayList<>();
+        if (raw instanceof Collection) {
+            for (Object item : (Collection<?>) raw) {
+                if (item instanceof Map) {
+                    Map<String, Object> field = (Map<String, Object>) item;
+                    String name = configText(field.get("columnName"));
+                    if (StringUtils.isBlank(name)) name = configText(field.get("name"));
+                    if (StringUtils.isNotBlank(name) && !result.contains(name)) result.add(name);
+                } else if (item != null && StringUtils.isNotBlank(String.valueOf(item))) {
+                    String name = String.valueOf(item).trim();
+                    if (!result.contains(name)) result.add(name);
+                }
+            }
+            return result;
+        }
+        if (raw != null && StringUtils.isNotBlank(String.valueOf(raw))) {
+            for (String item : String.valueOf(raw).split(",")) {
+                if (StringUtils.isNotBlank(item) && !result.contains(item.trim())) result.add(item.trim());
+            }
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validatePipelineDependencies(Map<String, Object> pipelineGraph,
+                                              Map<String, String> nodeIdToConfiguredCode,
+                                              Map<String, Map<String, Object>> pipelineConfigByCode) {
+        Map<String, List<String>> adjacency = new HashMap<>();
+        if (pipelineGraph != null && pipelineGraph.get("edges") instanceof List) {
+            for (Object item : (List<?>) pipelineGraph.get("edges")) {
+                if (!(item instanceof Map)) continue;
+                Map<String, Object> edge = (Map<String, Object>) item;
+                String source = resolveConfiguredCode(configText(edge.get("source")), nodeIdToConfiguredCode);
+                String target = resolveConfiguredCode(configText(edge.get("target")), nodeIdToConfiguredCode);
+                if (StringUtils.isBlank(source) || StringUtils.isBlank(target)) {
+                    throw new ServiceException("逻辑集成节点依赖边必须同时包含 source 和 target");
+                }
+                source = resolvePipelineConfigKey(source, pipelineConfigByCode);
+                target = resolvePipelineConfigKey(target, pipelineConfigByCode);
+                addPipelineDependency(adjacency, source, target, pipelineConfigByCode);
+            }
+        }
+        for (Map.Entry<String, Map<String, Object>> entry : pipelineConfigByCode.entrySet()) {
+            Object inputs = entry.getValue() == null ? null : entry.getValue().get("inputs");
+            if (!(inputs instanceof List)) continue;
+            for (Object item : (List<?>) inputs) {
+                if (!(item instanceof Map)) continue;
+                String ref = firstConfigValue((Map<String, Object>) item, "refNodeCode", "refNodeId");
+                if (StringUtils.isBlank(ref)) continue;
+                ref = resolveConfiguredCode(ref, nodeIdToConfiguredCode);
+                ref = resolvePipelineConfigKey(ref, pipelineConfigByCode);
+                addPipelineDependency(adjacency, ref, entry.getKey(), pipelineConfigByCode);
+            }
+        }
+        Map<String, Integer> colors = new HashMap<>();
+        for (String node : pipelineConfigByCode.keySet()) {
+            if (hasPipelineCycle(node, adjacency, colors)) {
+                throw new ServiceException("逻辑集成节点依赖不能形成环，请按上游到下游配置");
+            }
+        }
+    }
+
+    private void addPipelineDependency(Map<String, List<String>> adjacency, String source, String target,
+                                       Map<String, Map<String, Object>> pipelineConfigByCode) {
+        if (StringUtils.isBlank(source) || StringUtils.isBlank(target)
+                || !pipelineConfigByCode.containsKey(source) || !pipelineConfigByCode.containsKey(target)) {
+            if (StringUtils.isNotBlank(source) && StringUtils.isNotBlank(target)
+                    && (!pipelineConfigByCode.containsKey(source) || !pipelineConfigByCode.containsKey(target))) {
+                throw new ServiceException("逻辑集成节点依赖引用了不存在的节点: " + source + " -> " + target);
+            }
             return;
         }
-        try {
-            EtlLineageAssembler.LineageBuildResult result = EtlLineageAssembler.build(
-                    mainArgs, taskDO.getId(), taskDO.getCode(), taskDO.getName(), taskDO.getType());
-            if (result != null) {
-                lineageDataService.save(result.getReaderTables(), result.getWriterTables(), result.getTaskNode());
-                log.info("数据血缘写入成功，taskId={}，taskCode={}", taskDO.getId(), taskDO.getCode());
-            }
-        } catch (Exception e) {
-            log.warn("数据血缘写入失败，不影响任务发布，taskId={}，原因：{}", taskDO.getId(), e.getMessage(), e);
+        List<String> next = adjacency.computeIfAbsent(source, key -> new ArrayList<>());
+        if (!next.contains(target)) next.add(target);
+    }
+
+    private boolean hasPipelineCycle(String node, Map<String, List<String>> adjacency,
+                                     Map<String, Integer> colors) {
+        Integer color = colors.get(node);
+        if (color != null) return color == 1;
+        colors.put(node, 1);
+        for (String next : adjacency.getOrDefault(node, Collections.emptyList())) {
+            if (hasPipelineCycle(next, adjacency, colors)) return true;
+        }
+        colors.put(node, 2);
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validatePipelineWriteMode(Map<String, Object> config, String nodeName) {
+        if (config == null) return;
+        Map<String, Object> output = config.get("output") instanceof Map
+                ? (Map<String, Object>) config.get("output") : Collections.emptyMap();
+        String mode = String.valueOf(output.getOrDefault("writeModeType", "2"));
+        if (!"3".equals(mode)) return;
+        Object selected = output.get("selectedColumns");
+        boolean hasKey = selected instanceof List && !((List<?>) selected).isEmpty();
+        String dbType = output.get("writerDatasource") instanceof Map
+                ? String.valueOf(((Map<String, Object>) output.get("writerDatasource")).get("datasourceType"))
+                : "";
+        if (!hasKey && !"doris".equalsIgnoreCase(dbType)) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”使用增量更新时必须配置更新主键字段");
         }
     }
 
     /**
-     * 删除任务时联动删除 Neo4j 血缘节点（可插拔，静默降级）
-     * <p>
-     * LINEAGE_ENABLED=false 或未装配 Neo4j 时 lineageDataService 为 null，直接跳过；
-     * 血缘删除失败不影响任务删除结果。
-     *
-     * @param taskId 平台任务ID
+     * 辅助治理任务属于逻辑节点发布配置的一部分。启用开关后必须绑定已有任务，
+     * 否则不能在发布时静默忽略，避免用户误以为已经执行元数据/质量检查。
      */
-    private void deleteTaskLineageSilently(Long taskId) {
-        if (lineageDataService == null || taskId == null) {
+    @SuppressWarnings("unchecked")
+    private void validatePipelineAuxiliaryConfig(Map<String, Object> config, String nodeName) {
+        if (config == null) return;
+        Map<String, Object> schema = config.get("schemaMonitoring") instanceof Map
+                ? (Map<String, Object>) config.get("schemaMonitoring") : Collections.emptyMap();
+        if (schema.isEmpty() && config.get("input") instanceof Map
+                && ((Map<?, ?>) config.get("input")).get("schemaMonitoring") instanceof Map) {
+            schema = (Map<String, Object>) ((Map<?, ?>) config.get("input")).get("schemaMonitoring");
+        }
+        if (isConfigEnabled(schema.get("enabled"))
+                && StringUtils.isBlank(firstConfigValue(schema, "taskId", "catalogTaskId"))) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”已启用元数据探查，但未选择元数据探查任务");
+        }
+        Map<String, Object> output = config.get("output") instanceof Map
+                ? (Map<String, Object>) config.get("output") : Collections.emptyMap();
+        Map<String, Object> quality = output.get("qualityConfig") instanceof Map
+                ? (Map<String, Object>) output.get("qualityConfig") : Collections.emptyMap();
+        if (isConfigEnabled(quality.get("enabled"))
+                && StringUtils.isBlank(firstConfigValue(quality, "taskId", "qualityTaskId"))) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”已启用质量检查，但未选择质量检查任务");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validatePipelineSourceMetadataConfig(Map<String, Object> config, String nodeName) {
+        if (config == null) return;
+        Map<String, Object> metadata = config.get("sourceMetadata") instanceof Map
+                ? (Map<String, Object>) config.get("sourceMetadata") : Collections.emptyMap();
+        if (isConfigEnabled(metadata.get("includeSourceUpdateTime"))
+                && !SourceMetadataSupport.hasConfiguredSourceColumn(config, "sourceUpdateTimeSourceColumn")) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”已启用源端更新时间，但未选择源字段");
+        }
+        if (isConfigEnabled(metadata.get("includeRecordOp"))
+                && !SourceMetadataSupport.hasConfiguredSourceColumn(config, "recordOpSourceColumn")) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”已启用操作类型，但未选择源字段");
+        }
+    }
+
+    /**
+     * 逻辑节点会自动向 writer 增加治理列，但不会修改生产表结构。
+     * 发布前读取目标表字段，提前拦截运行时才发现列不存在的任务。
+     */
+    @SuppressWarnings("unchecked")
+    private void validatePipelineTargetGovernanceColumns(Map<String, Object> config, String nodeName) {
+        if (config == null) {
             return;
         }
-        try {
-            lineageDataService.deleteTask(taskId);
-        } catch (Exception e) {
-            log.warn("数据血缘删除失败，不影响任务删除，taskId={}，原因：{}", taskId, e.getMessage(), e);
+        Map<String, Object> output = config.get("output") instanceof Map
+                ? (Map<String, Object>) config.get("output") : Collections.emptyMap();
+        Map<String, Object> datasource = output.get("writerDatasource") instanceof Map
+                ? (Map<String, Object>) output.get("writerDatasource") : Collections.emptyMap();
+        Long datasourceId = toLong(firstNonNull(datasource.get("datasourceId"),
+                datasource.get("id"), datasource.get("datasource_id")));
+        String tableName = firstConfigValue(output, "table", "target_table_name");
+        if (datasourceId == null || StringUtils.isBlank(tableName)) {
+            return;
         }
+        List<DbColumn> targetColumns;
+        try {
+            targetColumns = datasourceApiService.getDbTableColumns(datasourceId, tableName);
+        } catch (Exception ex) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”无法读取目标表结构，请确认目标数据源、表名和权限");
+        }
+        if (CollectionUtils.isEmpty(targetColumns)) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”目标表不存在或没有字段: " + tableName);
+        }
+        Set<String> actual = targetColumns.stream()
+                .filter(Objects::nonNull)
+                .map(DbColumn::getColName)
+                .filter(StringUtils::isNotBlank)
+                .map(value -> value.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        List<String> required = SourceMetadataSupport.metadataColumns(config);
+        List<String> missing = required.stream()
+                .filter(StringUtils::isNotBlank)
+                .filter(value -> !actual.contains(value.toLowerCase(Locale.ROOT)))
+                .distinct()
+                .collect(Collectors.toList());
+        if (!missing.isEmpty()) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”目标表缺少治理列: "
+                    + String.join(", ", missing));
+        }
+    }
+
+    private Object firstNonNull(Object first, Object second, Object third) {
+        return first != null ? first : (second != null ? second : third);
+    }
+
+    private Long toLong(Object value) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) return null;
+        try {
+            return Long.valueOf(String.valueOf(value).trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validatePipelineDataSources(Map<String, Object> config, String nodeName) {
+        if (config == null) return;
+        Map<String, Object> output = config.get("output") instanceof Map
+                ? (Map<String, Object>) config.get("output") : Collections.emptyMap();
+        if (isDatasourceMissing(output.get("writerDatasource"))) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”未配置目标数据连接");
+        }
+        if (StringUtils.isBlank(firstConfigValue(output, "table", "target_table_name"))) {
+            throw new ServiceException("逻辑节点“" + nodeName + "”未配置目标表");
+        }
+        String mode = String.valueOf(config.getOrDefault("mode", "INTEGRATION"));
+        if ("MERGE".equalsIgnoreCase(mode) && isDatasourceMissing(config.get("readerDatasource"))) {
+            throw new ServiceException("合并节点“" + nodeName + "”未配置读取数据连接");
+        }
+        if ("INTEGRATION".equalsIgnoreCase(mode)) {
+            Object inputs = config.get("inputs");
+            boolean hasUpstream = false;
+            if (inputs instanceof List && !((List<?>) inputs).isEmpty() && ((List<?>) inputs).get(0) instanceof Map) {
+                Map<String, Object> first = (Map<String, Object>) ((List<?>) inputs).get(0);
+                hasUpstream = StringUtils.isNotBlank(firstConfigValue(first, "refNodeCode", "refNodeId"));
+            }
+            if (!hasUpstream) {
+                Map<String, Object> input = config.get("input") instanceof Map
+                        ? (Map<String, Object>) config.get("input") : Collections.emptyMap();
+                Object readerDatasource = input.get("readerDatasource");
+                if (isDatasourceMissing(readerDatasource)) readerDatasource = config.get("readerDatasource");
+                if (isDatasourceMissing(readerDatasource)) {
+                    throw new ServiceException("逻辑节点“" + nodeName + "”未配置源数据连接");
+                }
+                if (StringUtils.isBlank(firstConfigValue(input, "table", "table_name"))
+                        && StringUtils.isBlank(firstConfigValue(config, "sourceTable", "table_name"))) {
+                    throw new ServiceException("逻辑节点“" + nodeName + "”未配置源表");
+                }
+            }
+        } else if ("MERGE".equalsIgnoreCase(mode)) {
+            Object inputs = config.get("inputs");
+            if (!(inputs instanceof List) || ((List<?>) inputs).size() < 2) {
+                throw new ServiceException("合并节点“" + nodeName + "”至少需要两个上游输入");
+            }
+            for (Object item : (List<?>) inputs) {
+                if (!(item instanceof Map)
+                        || StringUtils.isBlank(firstConfigValue((Map<String, Object>) item, "table", "table_name"))) {
+                    throw new ServiceException("合并节点“" + nodeName + "”存在未解析的上游目标表");
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validatePipelineMergeInputs(Map<String, Object> config, String nodeName,
+                                             String configuredCode) {
+        Map<String, Object> mergeConfig = config != null && config.get("mergeConfig") instanceof Map
+                ? (Map<String, Object>) config.get("mergeConfig") : Collections.emptyMap();
+        String mergeType = String.valueOf(mergeConfig.getOrDefault("type", "UNION_ALL"));
+        if (!Arrays.asList("UNION_ALL", "JOIN").contains(mergeType.toUpperCase(Locale.ROOT))) {
+            throw new ServiceException("合并节点“" + nodeName + "”使用了不支持的合并方式");
+        }
+        Object inputs = config == null ? null : config.get("inputs");
+        if (!(inputs instanceof List) || ((List<?>) inputs).size() < 2) {
+            throw new ServiceException("合并节点“" + nodeName + "”至少需要两个上游输入");
+        }
+        Set<String> refs = new HashSet<>();
+        for (Object item : (List<?>) inputs) {
+            if (!(item instanceof Map)) {
+                throw new ServiceException("合并节点“" + nodeName + "”的输入必须引用上游逻辑节点");
+            }
+            Map<String, Object> input = (Map<String, Object>) item;
+            String ref = firstConfigValue(input, "refNodeCode", "refNodeId");
+            if (StringUtils.isBlank(ref)) {
+                throw new ServiceException("合并节点“" + nodeName + "”的每个输入都必须选择上游逻辑节点");
+            }
+            if (StringUtils.equals(ref, configuredCode)
+                    || StringUtils.equals(ref, String.valueOf(config.get("pipelineNodeId")))
+                    || StringUtils.equals(ref, String.valueOf(config.get("nodeCode")))) {
+                throw new ServiceException("合并节点“" + nodeName + "”不能引用自身");
+            }
+            if (!refs.add(ref)) {
+                throw new ServiceException("合并节点“" + nodeName + "”不能重复引用同一个上游节点");
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private String resolvePipelineNodeKey(CollectorEtlNodeSaveReqVO node) {
+        if (node == null) return null;
+        String nestedId = null;
+        Map<String, Object> params = node.getTaskParams();
+        if (params != null && params.get("pipelineNode") instanceof Map) {
+            Object value = ((Map<String, Object>) params.get("pipelineNode")).get("pipelineNodeId");
+            if (value != null) nestedId = String.valueOf(value);
+        }
+        return StringUtils.defaultIfBlank(node.getPipelineNodeId(),
+                StringUtils.defaultIfBlank(nestedId,
+                        StringUtils.defaultIfBlank(node.getCode(), node.getName())));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void preparePipelineInputs(CollectorEtlNodeSaveReqVO node, String configuredCode,
+                                    Map<String, Map<String, Object>> pipelineConfigByCode) {
+        if (node == null || node.getTaskParams() == null) return;
+        Map<String, Object> pipeline = pipelineConfigByCode.get(configuredCode);
+        if (pipeline == null) return;
+        Object inputs = pipeline.get("inputs");
+        String mode = String.valueOf(pipeline.get("mode"));
+        if ("INTEGRATION".equalsIgnoreCase(mode)) {
+            if (!(inputs instanceof List) || ((List<?>) inputs).isEmpty()) return;
+            Object first = ((List<?>) inputs).get(0);
+            if (!(first instanceof Map)) return;
+            Map<String, Object> inputRef = (Map<String, Object>) first;
+            String ref = firstConfigValue(inputRef, "refNodeCode", "refNodeId");
+            if (StringUtils.isBlank(ref)) return;
+            ref = resolvePipelineConfigKey(ref, pipelineConfigByCode);
+            Map<String, Object> upstream = pipelineConfigByCode.get(ref);
+            if (upstream == null) {
+                throw new ServiceException("节点“" + node.getName() + "”引用了不存在的上游节点: " + ref);
+            }
+            if (!(upstream.get("output") instanceof Map)) {
+                throw new ServiceException("上游节点“" + ref + "”缺少输出配置");
+            }
+            Map<String, Object> upstreamOutput = (Map<String, Object>) upstream.get("output");
+            String table = firstConfigValue(upstreamOutput, "table", "target_table_name");
+            if (StringUtils.isBlank(table)) {
+                throw new ServiceException("上游节点“" + ref + "”未配置目标表");
+            }
+            Map<String, Object> input = pipeline.get("input") instanceof Map
+                    ? new LinkedHashMap<>((Map<String, Object>) pipeline.get("input")) : new LinkedHashMap<>();
+            input.put("table", table);
+            input.put("table_name", table);
+            if (upstreamOutput.get("writerDatasource") instanceof Map) {
+                // NODE_OUTPUT 的物理表属于上游 writer 数据源，不能继续使用节点原来残留的源连接。
+                Map<String, Object> upstreamDatasource = new LinkedHashMap<>(
+                        (Map<String, Object>) upstreamOutput.get("writerDatasource"));
+                input.put("readerDatasource", upstreamDatasource);
+                pipeline.put("readerDatasource", upstreamDatasource);
+            }
+            pipeline.put("input", input);
+            pipeline.put("sourceTable", table);
+            preservePipelineSourceMetadata(pipeline, Collections.singletonList(upstream), pipelineConfigByCode);
+            node.getTaskParams().put("pipelineNode", pipeline);
+            return;
+        }
+        if (!(inputs instanceof List)) return;
+        List<Map<String, Object>> resolved = new ArrayList<>();
+        for (Object item : (List<?>) inputs) {
+            if (!(item instanceof Map)) continue;
+            Map<String, Object> source = new LinkedHashMap<>((Map<String, Object>) item);
+            String ref = firstConfigValue(source, "refNodeCode", "refNodeId");
+            if ((source.get("table") == null || StringUtils.isBlank(String.valueOf(source.get("table"))))
+                    && StringUtils.isNotBlank(ref)) {
+                ref = resolvePipelineConfigKey(ref, pipelineConfigByCode);
+                Map<String, Object> upstream = pipelineConfigByCode.get(ref);
+                if (upstream == null) {
+                    throw new ServiceException("合并节点“" + node.getName() + "”引用了不存在的上游节点: " + ref);
+                }
+                if (upstream != null && upstream.get("output") instanceof Map) {
+                    Map<String, Object> output = (Map<String, Object>) upstream.get("output");
+                    String table = firstConfigValue(output, "table", "target_table_name");
+                    if (StringUtils.isBlank(table)) {
+                        throw new ServiceException("上游节点“" + ref + "”未配置目标表，无法生成合并 SQL");
+                    }
+                    source.put("table", table);
+                } else if (upstream != null) {
+                    throw new ServiceException("上游节点“" + ref + "”缺少输出配置，无法生成合并 SQL");
+                }
+            }
+            resolved.add(source);
+        }
+        pipeline.put("inputs", resolved);
+        List<Map<String, Object>> upstreamConfigs = new ArrayList<>();
+        for (Map<String, Object> item : resolved) {
+            String ref = firstConfigValue(item, "refNodeCode", "refNodeId");
+            if (StringUtils.isBlank(ref)) continue;
+            ref = resolvePipelineConfigKey(ref, pipelineConfigByCode);
+            Map<String, Object> upstream = pipelineConfigByCode.get(ref);
+            if (upstream != null) upstreamConfigs.add(upstream);
+        }
+        if (pipeline.get("joinConfig") instanceof Map) {
+            validatePipelineMergeDatasource(node.getName(), pipeline, upstreamConfigs);
+            for (Map<String, Object> source : resolved) {
+                String ref = resolvePipelineConfigKey(firstConfigValue(source, "refNodeCode", "refNodeId"), pipelineConfigByCode);
+                Map<String, Object> upstream = pipelineConfigByCode.get(ref);
+                Map<String, Object> output = upstream == null ? Collections.emptyMap() : (Map<String, Object>) upstream.get("output");
+                source.put("columns", output.get("target_columns"));
+                source.put("refNodeId", ref);
+                source.put("table_name", source.get("table"));
+            }
+            // JOIN 结果是新的复合来源，不继承任意一侧单表追溯列。
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("enabled", true); metadata.put("includeNaturalKey", false);
+            metadata.put("sourceTableColumn", "source_table"); metadata.put("writeTimeColumn", "write_time");
+            pipeline.put("sourceMetadata", metadata);
+            node.getTaskParams().put("pipelineNode", pipeline);
+            return;
+        }
+        if (!upstreamConfigs.isEmpty()) {
+            validatePipelineMergeDatasource(node.getName(), pipeline, upstreamConfigs);
+            validatePipelineMergeMetadataColumns(node.getName(), upstreamConfigs, pipelineConfigByCode);
+            validatePipelineMergeBusinessColumns(node.getName(), pipeline, upstreamConfigs);
+            preservePipelineSourceMetadata(pipeline, upstreamConfigs, pipelineConfigByCode);
+        }
+        node.getTaskParams().put("pipelineNode", pipeline);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void preservePipelineSourceMetadata(Map<String, Object> pipeline,
+                                                Collection<Map<String, Object>> upstreamConfigs,
+                                                Map<String, Map<String, Object>> pipelineConfigByCode) {
+        if (pipeline == null) return;
+        Map<String, Object> metadata = pipeline.get("sourceMetadata") instanceof Map
+                ? new LinkedHashMap<>((Map<String, Object>) pipeline.get("sourceMetadata"))
+                : new LinkedHashMap<>();
+        metadata.put("enabled", true);
+        metadata.put("preserveExistingSource", true);
+        List<String> preservedColumns = new ArrayList<>();
+        if (upstreamConfigs != null) {
+            for (Map<String, Object> upstream : upstreamConfigs) {
+                for (String column : collectPipelineMetadataColumns(upstream, pipelineConfigByCode,
+                        new HashSet<String>())) {
+                    if (!preservedColumns.contains(column)) preservedColumns.add(column);
+                }
+            }
+        }
+        metadata.put("preservedMetadataColumns", preservedColumns);
+        pipeline.put("sourceMetadata", metadata);
+
+        // 下游 reader 必须把上游已有的来源列读出来，转换层才能继续传递自然键/来源表。
+        List<Object> columns = new ArrayList<>();
+        if (pipeline.get("columns") instanceof List) {
+            columns.addAll((List<Object>) pipeline.get("columns"));
+        }
+        for (String column : SourceMetadataSupport.metadataColumns(pipeline)) {
+            boolean exists = false;
+            for (Object item : columns) {
+                String itemName = item instanceof Map
+                        ? String.valueOf(((Map<?, ?>) item).get("columnName"))
+                        : String.valueOf(item);
+                if (item instanceof Map && ("null".equals(itemName) || itemName.trim().isEmpty())) {
+                    itemName = String.valueOf(((Map<?, ?>) item).get("name"));
+                }
+                if (column.equalsIgnoreCase(itemName)) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) columns.add(column);
+        }
+        pipeline.put("columns", columns);
+        if (pipeline.get("input") instanceof Map) {
+            Map<String, Object> input = new LinkedHashMap<>((Map<String, Object>) pipeline.get("input"));
+            input.put("columns", columns);
+            pipeline.put("input", input);
+        }
+    }
+
+    /**
+     * 递归收集上游链路已经落库的治理列。这样 A -> B -> C 的连续输出场景中，
+     * C 即使在发布遍历顺序早于 B，也不会丢失 A 的自然键、行 Hash 等字段。
+     */
+    @SuppressWarnings("unchecked")
+    private List<String> collectPipelineMetadataColumns(Map<String, Object> pipeline,
+                                                        Map<String, Map<String, Object>> pipelineConfigByCode,
+                                                        Set<String> visited) {
+        List<String> result = new ArrayList<>();
+        if (pipeline == null) return result;
+        for (String column : SourceMetadataSupport.metadataColumns(pipeline)) {
+            if (!result.contains(column)) result.add(column);
+        }
+        // JOIN 是复合来源的物化边界，不能递归带回任意单表的自然键/行 Hash。
+        if (pipeline.get("joinConfig") instanceof Map) return result;
+        Object inputs = pipeline.get("inputs");
+        if (!(inputs instanceof List) || pipelineConfigByCode == null) return result;
+        for (Object item : (List<?>) inputs) {
+            if (!(item instanceof Map)) continue;
+            Map<String, Object> input = (Map<String, Object>) item;
+            String ref = firstConfigValue(input, "refNodeCode", "refNodeId");
+            if (StringUtils.isBlank(ref)) continue;
+            ref = resolvePipelineConfigKey(ref, pipelineConfigByCode);
+            if (!visited.add(ref)) continue;
+            Map<String, Object> upstream = pipelineConfigByCode.get(ref);
+            for (String column : collectPipelineMetadataColumns(upstream, pipelineConfigByCode, visited)) {
+                if (!result.contains(column)) result.add(column);
+            }
+        }
+        return result;
+    }
+
+    private void validatePipelineMergeMetadataColumns(String nodeName,
+                                                       Collection<Map<String, Object>> upstreamConfigs,
+                                                       Map<String, Map<String, Object>> pipelineConfigByCode) {
+        Set<String> expected = null;
+        for (Map<String, Object> upstream : upstreamConfigs) {
+            Set<String> current = collectPipelineMetadataColumns(upstream, pipelineConfigByCode,
+                    new HashSet<String>()).stream()
+                    .map(value -> value.toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            if (expected == null) {
+                expected = current;
+            } else if (!expected.equals(current)) {
+                throw new ServiceException("合并节点“" + nodeName
+                        + "”的上游来源治理列不一致，请统一 sourceMetadata 配置后再合并");
+            }
+        }
+    }
+
+    /** UNION ALL 必须在所有分支上读取同一组业务列；治理列单独由上面的规则校验。 */
+    @SuppressWarnings("unchecked")
+    private void validatePipelineMergeBusinessColumns(String nodeName,
+                                                      Map<String, Object> mergePipeline,
+                                                      Collection<Map<String, Object>> upstreamConfigs) {
+        Set<String> governanceColumns = new HashSet<>();
+        governanceColumns.addAll(SourceMetadataSupport.metadataColumns(mergePipeline).stream()
+                .map(value -> value.toLowerCase(Locale.ROOT)).collect(Collectors.toSet()));
+        for (Map<String, Object> upstream : upstreamConfigs) {
+            governanceColumns.addAll(collectPipelineMetadataColumns(upstream, null,
+                    new HashSet<String>()).stream()
+                    .map(value -> value.toLowerCase(Locale.ROOT)).collect(Collectors.toSet()));
+        }
+        Set<String> expected = null;
+        for (Map<String, Object> upstream : upstreamConfigs) {
+            Set<String> current = configuredPipelineBusinessColumns(upstream, governanceColumns);
+            if (current.isEmpty()) {
+                throw new ServiceException("合并节点“" + nodeName + "”存在未配置业务字段的上游节点");
+            }
+            if (expected == null) {
+                expected = current;
+            } else if (!expected.equals(current)) {
+                throw new ServiceException("合并节点“" + nodeName
+                        + "”的上游业务字段不一致，UNION ALL 只能合并结构相同的表");
+            }
+        }
+        Set<String> configured = configuredPipelineBusinessColumns(mergePipeline, governanceColumns);
+        if (!configured.isEmpty() && expected != null && !expected.equals(configured)) {
+            throw new ServiceException("合并节点“" + nodeName
+                    + "”当前字段配置与上游表结构不一致，请重新读取上游字段");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> configuredPipelineBusinessColumns(Map<String, Object> pipeline,
+                                                           Set<String> governanceColumns) {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        if (pipeline == null) return result;
+        Map<String, Object> output = pipeline.get("output") instanceof Map
+                ? (Map<String, Object>) pipeline.get("output") : Collections.emptyMap();
+        Object raw = output.get("target_columns");
+        if (isEmptyPipelineColumns(raw)) raw = output.get("columns");
+        if (isEmptyPipelineColumns(raw)) raw = pipeline.get("targetColumns");
+        if (isEmptyPipelineColumns(raw)) raw = pipeline.get("columns");
+        List<String> columns = normalizePipelineColumnNames(raw);
+        for (String column : columns) {
+            if (governanceColumns == null
+                    || !governanceColumns.contains(column.toLowerCase(Locale.ROOT))) {
+                result.add(column.toLowerCase(Locale.ROOT));
+            }
+        }
+        return result;
+    }
+
+    private boolean isEmptyPipelineColumns(Object value) {
+        if (value == null) return true;
+        if (value instanceof Collection) return ((Collection<?>) value).isEmpty();
+        return StringUtils.isBlank(String.valueOf(value));
+    }
+
+    private List<String> normalizePipelineColumnNames(Object value) {
+        List<String> result = new ArrayList<>();
+        if (value instanceof Collection) {
+            for (Object item : (Collection<?>) value) {
+                addPipelineColumnName(result, item);
+            }
+            return result;
+        }
+        if (value != null) {
+            for (String item : String.valueOf(value).split(",")) {
+                addPipelineColumnName(result, item);
+            }
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addPipelineColumnName(List<String> target, Object item) {
+        if (item == null) return;
+        String name;
+        if (item instanceof Map) {
+            Map<String, Object> field = (Map<String, Object>) item;
+            name = configText(field.get("columnName"));
+            if (StringUtils.isBlank(name)) name = configText(field.get("name"));
+        } else {
+            name = String.valueOf(item).trim();
+        }
+        if (StringUtils.isNotBlank(name) && !target.contains(name)) target.add(name);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validatePipelineMergeDatasource(String nodeName,
+                                                 Map<String, Object> pipeline,
+                                                 Collection<Map<String, Object>> upstreamConfigs) {
+        Map<String, Object> readerDatasource = pipeline.get("readerDatasource") instanceof Map
+                ? (Map<String, Object>) pipeline.get("readerDatasource") : Collections.emptyMap();
+        String readerId = datasourceIdentity(readerDatasource);
+        if (StringUtils.isBlank(readerId)) return;
+        for (Map<String, Object> upstream : upstreamConfigs) {
+            Map<String, Object> output = upstream != null && upstream.get("output") instanceof Map
+                    ? (Map<String, Object>) upstream.get("output") : Collections.emptyMap();
+            Map<String, Object> writerDatasource = output.get("writerDatasource") instanceof Map
+                    ? (Map<String, Object>) output.get("writerDatasource") : Collections.emptyMap();
+            String writerId = datasourceIdentity(writerDatasource);
+            if (StringUtils.isNotBlank(writerId) && !StringUtils.equals(readerId, writerId)) {
+                throw new ServiceException("合并节点“" + nodeName
+                        + "”的读取数据源必须与所有上游节点的目标数据源一致");
+            }
+        }
+    }
+
+    private String datasourceIdentity(Map<String, Object> datasource) {
+        if (datasource == null) return null;
+        Object value = datasource.get("datasourceId");
+        if (value == null) value = datasource.get("id");
+        if (value == null) value = datasource.get("datasource_id");
+        return value == null ? null : String.valueOf(value).trim();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addPipelineAuxiliaryNodes(Map<String, Object> config, String nodeName, String configuredCode,
+                                           CollectorEtlNewNodeSaveReqVO reqVO, List<Map<String, Object>> definitions,
+                                           List<Map<String, Object>> locations, Map<String, String> beforeNode,
+                                           Map<String, String> afterNode, int index) {
+        Map<String, Object> schema = config.get("schemaMonitoring") instanceof Map
+                ? (Map<String, Object>) config.get("schemaMonitoring") : Collections.emptyMap();
+        if (schema.isEmpty() && config.get("input") instanceof Map
+                && ((Map<?, ?>) config.get("input")).get("schemaMonitoring") instanceof Map) {
+            schema = (Map<String, Object>) ((Map<?, ?>) config.get("input")).get("schemaMonitoring");
+        }
+        String schemaTaskId = firstConfigValue(schema, "taskId", "catalogTaskId");
+        if (isConfigEnabled(schema.get("enabled")) && StringUtils.isNotBlank(schemaTaskId)) {
+            String code = nextDsNodeCode(reqVO.getSpaceCode());
+            definitions.add(TaskConverter.buildHttpTaskDefinitionMap(null, nodeName + "-元数据探查", code, 0,
+                    appendTaskId(catalogTaskExecuteUrl, schemaTaskId), reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode())));
+            beforeNode.put(configuredCode, code);
+            addLocation(locations, code, 80 + index * 260, 120 + (index % 4) * 160);
+        }
+        Map<String, Object> output = config.get("output") instanceof Map
+                ? (Map<String, Object>) config.get("output") : Collections.emptyMap();
+        Map<String, Object> quality = output.get("qualityConfig") instanceof Map
+                ? (Map<String, Object>) output.get("qualityConfig") : Collections.emptyMap();
+        String qualityTaskId = firstConfigValue(quality, "taskId", "qualityTaskId");
+        if (isConfigEnabled(quality.get("enabled")) && StringUtils.isNotBlank(qualityTaskId)) {
+            String code = nextDsNodeCode(reqVO.getSpaceCode());
+            definitions.add(TaskConverter.buildHttpTaskDefinitionMap(null, nodeName + "-质量检查", code, 0,
+                    appendTaskId(qualityTaskExecuteUrl, qualityTaskId), reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode())));
+            afterNode.put(configuredCode, code);
+            addLocation(locations, code, 360 + index * 260, 120 + (index % 4) * 160);
+        }
+    }
+
+    private String firstConfigValue(Map<String, Object> map, String first, String second) {
+        String value = map == null || map.get(first) == null ? null : String.valueOf(map.get(first)).trim();
+        if (StringUtils.isBlank(value) || "null".equalsIgnoreCase(value)) {
+            value = map == null || map.get(second) == null ? null : String.valueOf(map.get(second)).trim();
+        }
+        return StringUtils.isBlank(value) || "null".equalsIgnoreCase(value) ? null : value;
+    }
+
+    private String configText(Object value) {
+        if (value == null) return null;
+        String text = String.valueOf(value).trim();
+        return StringUtils.isBlank(text) || "null".equalsIgnoreCase(text) ? null : text;
+    }
+
+    private boolean isConfigEnabled(Object value) {
+        return Boolean.TRUE.equals(value) || "true".equalsIgnoreCase(String.valueOf(value)) || "1".equals(String.valueOf(value));
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean isDatasourceMissing(Object datasource) {
+        if (!(datasource instanceof Map)) return true;
+        Object id = ((Map<String, Object>) datasource).get("datasourceId");
+        if (id == null) id = ((Map<String, Object>) datasource).get("id");
+        if (id == null) id = ((Map<String, Object>) datasource).get("datasource_id");
+        return id == null || StringUtils.isBlank(String.valueOf(id));
+    }
+
+    private String appendTaskId(String baseUrl, String taskId) {
+        String base = StringUtils.isBlank(baseUrl) ? "" : baseUrl.trim();
+        return base.replaceAll("/$", "") + "/" + taskId;
+    }
+
+    private void addLocation(List<Map<String, Object>> locations, String code, double x, double y) {
+        Map<String, Object> location = new HashMap<>();
+        location.put("taskCode", Long.parseLong(code));
+        location.put("x", x);
+        location.put("y", y);
+        locations.add(location);
+    }
+
+    private String resolveConfiguredCode(String value, Map<String, String> nodeIdToConfiguredCode) {
+        return nodeIdToConfiguredCode.getOrDefault(value, value);
+    }
+
+    /** 将旧草稿中的 nodeCode / pipelineNodeId 引用归一化为当前配置索引键。 */
+    @SuppressWarnings("unchecked")
+    private String resolvePipelineConfigKey(String value,
+                                            Map<String, Map<String, Object>> pipelineConfigByCode) {
+        if (StringUtils.isBlank(value) || pipelineConfigByCode == null) return value;
+        if (pipelineConfigByCode.containsKey(value)) return value;
+        for (Map.Entry<String, Map<String, Object>> entry : pipelineConfigByCode.entrySet()) {
+            Map<String, Object> pipeline = entry.getValue();
+            if (pipeline == null) continue;
+            Object id = pipeline.get("pipelineNodeId");
+            Object code = pipeline.get("nodeCode");
+            if (value.equals(String.valueOf(id)) || value.equals(String.valueOf(code))) {
+                return entry.getKey();
+            }
+        }
+        return value;
+    }
+
+    private void addPipelineRelation(List<Map<String, Object>> relations, Set<String> relationKeys,
+                                     String pre, String post) {
+        if (StringUtils.isBlank(post) || StringUtils.equals(pre, post)) return;
+        String key = pre + "->" + post;
+        if (!relationKeys.add(key)) return;
+        Map<String, Object> relation = new LinkedHashMap<>();
+        relation.put("id", null);
+        relation.put("preTaskCode", Long.parseLong(pre));
+        relation.put("preTaskVersion", 0);
+        relation.put("postTaskCode", Long.parseLong(post));
+        relation.put("postTaskVersion", 0);
+        relation.put("conditionType", "NONE");
+        relations.add(relation);
+    }
+
+    private void publishPipelineScheduler(CollectorEtlTaskDO taskDO, CollectorEtlNewNodeSaveReqVO reqVO,
+                                          String taskCode) {
+        CollectorEtlSchedulerDO schedulerDO = getCollectorEtlScheduler(taskCode, taskDO.getId());
+        if (schedulerDO == null || schedulerDO.getId() == null) {
+            schedulerDO = getCollectorEtlScheduler(null, taskDO.getId());
+        }
+        if ((schedulerDO == null || schedulerDO.getId() == null) && StringUtils.isNotBlank(reqVO.getCrontab())) {
+            schedulerDO = iCollectorEtlSchedulerService.createCollectorEtlSchedulerNew(
+                    TaskConverter.convertToCollectorEtlSchedulerSaveReqVO(taskDO.getId(), taskCode, reqVO));
+        }
+        if (schedulerDO != null && schedulerDO.getId() != null && StringUtils.isBlank(schedulerDO.getCronExpression())
+                && StringUtils.isNotBlank(reqVO.getCrontab())) {
+            schedulerDO.setCronExpression(reqVO.getCrontab());
+        }
+        if (schedulerDO != null && StringUtils.isNotEmpty(schedulerDO.getCronExpression())) {
+            try {
+                DsSchedulerRespDTO response = schedulerDO.getDsId() == null || schedulerDO.getDsId() < 1
+                        ? createOrUpdateScheduler(schedulerDO, taskDO) : updateExistingScheduler(schedulerDO, taskDO);
+                if (response != null && response.getData() != null) {
+                    CollectorEtlSchedulerSaveReqVO save = TaskConverter.convertToCollectorEtlSchedulerSaveReqVO(response, taskDO);
+                    save.setId(schedulerDO.getId());
+                    save.setTaskCode(taskCode);
+                    DsStatusRespDTO online = iDsEtlSchedulerService.onlineScheduler(taskDO.getSpaceCode(), save.getDsId());
+                    if (isDsStatusSuccess(online)) {
+                        save.setStatus("1");
+                        iCollectorEtlSchedulerService.updateCollectorEtlScheduler(save);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("逻辑集成任务已发布，但调度器上线失败，taskId={}，原因={}", taskDO.getId(), e.getMessage(), e);
+            }
+        }
+    }
+
+    private static class PipelinePublishPayload {
+        private final List<Map<String, Object>> taskDefinitions;
+        private final List<Map<String, Object>> taskRelations;
+        private final List<Map<String, Object>> locations;
+        private final String primaryCode;
+        private final String primaryName;
+        private final Map<String, Object> lineageArgs;
+
+        private PipelinePublishPayload(List<Map<String, Object>> taskDefinitions,
+                                       List<Map<String, Object>> taskRelations,
+                                       List<Map<String, Object>> locations,
+                                       String primaryCode, String primaryName,
+                                       Map<String, Object> lineageArgs) {
+            this.taskDefinitions = taskDefinitions;
+            this.taskRelations = taskRelations;
+            this.locations = locations;
+            this.primaryCode = primaryCode;
+            this.primaryName = primaryName;
+            this.lineageArgs = lineageArgs;
+        }
+    }
+
+    /** Capture published semantics into the local durable queue, never directly write the legacy graph. */
+    private void writeTaskLineageSilently(CollectorEtlTaskDO taskDO, Map<String, Object> mainArgs) {
+        if (taskDO == null || mainArgs == null || !collectorLineageSyncService.isEnabled()) return;
+        collectorLineageSyncService.enqueue(PublishedLineageAssembler.snapshot(taskDO, mainArgs));
     }
 
     private boolean isStreamingFlinkxTask(Long taskId) {
@@ -2032,6 +3534,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         //更新任务状态为已下线
         updateTaskStatus(taskDO.getId(), "0");
+        collectorLineageSyncService.lifecycle(taskDO, "INACTIVE");
     }
 
     private void stopRunningProcessInstances(Long taskId, String spaceCode, String dsCode) {
@@ -2752,6 +4255,13 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     private void createTaskLogSnapshotIfAbsent(CollectorEtlNewNodeSaveReqVO reqVO, ProcessDefinition data,
                                                String taskCode, String locations, Long fallbackDsId) {
+        if (StringUtils.isNotBlank(reqVO.getDraftJson())) {
+            Map<String, Object> draft = JSON.parseObject(reqVO.getDraftJson(), Map.class);
+            if (draft.get("componentSnapshot") instanceof Map) {
+                reqVO = JSON.parseObject(JSON.toJSONString(draft.get("componentSnapshot")), CollectorEtlNewNodeSaveReqVO.class);
+                locations = JSON.toJSONString(reqVO.getLocations());
+            }
+        }
         CollectorEtlTaskSaveReqVO taskSaveReqVO = TaskConverter.convertToCollectorEtlTaskSaveReqVO(reqVO, data);
         Long dsId = data == null ? null : data.getId();
         if (dsId == null) {

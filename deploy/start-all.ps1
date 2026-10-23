@@ -3,7 +3,10 @@ param(
     [string]$Config = "",
     [string]$Limit = "",
     [string]$Sudo = "sudo",
-    [switch]$Check
+    [switch]$Check,
+    [switch]$RemoteCheck,
+    [switch]$HealthCheck,
+    [switch]$PostHealthCheck
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,6 +34,15 @@ if (-not [string]::IsNullOrWhiteSpace($Sudo)) {
 }
 if ($Check) {
     $arguments += @("--check")
+}
+if ($RemoteCheck) {
+    $arguments += @("--remote-check")
+}
+if ($HealthCheck) {
+    $arguments += @("--health-check")
+}
+if ($PostHealthCheck) {
+    $arguments += @("--post-health-check")
 }
 
 & bash @arguments

@@ -20,6 +20,7 @@ public class OntologyDecisionContextDTO implements Serializable {
     private List<ConceptDTO> concepts;
     private List<RelationDTO> relations;
     private List<ActionDTO> actions;
+    private List<WorkflowDTO> workflows;
 
     @Data
     public static class ConceptDTO implements Serializable {
@@ -76,6 +77,44 @@ public class OntologyDecisionContextDTO implements Serializable {
         private String submissionCriteria;
         private Boolean needsApproval;
         private Integer approvalLevels;
+    }
+
+    @Data
+    public static class WorkflowDTO implements Serializable {
+        private Long id;
+        private String code;
+        private String name;
+        private Long triggerConceptId;
+        private String triggerRef;
+        private String inputSchema;
+        private String outputSchema;
+        private String failurePolicy;
+        private Boolean enabled;
+        private String status;
+        private String description;
+        private List<WorkflowNodeDTO> nodes;
+        private List<WorkflowEdgeDTO> edges;
+    }
+
+    @Data
+    public static class WorkflowNodeDTO implements Serializable {
+        private String nodeKey;
+        private String name;
+        private String nodeType;
+        private Long actionId;
+        private String configJson;
+        private Integer timeoutMs;
+        private String retryPolicy;
+        private Long compensationActionId;
+    }
+
+    @Data
+    public static class WorkflowEdgeDTO implements Serializable {
+        private String edgeKey;
+        private String fromNodeKey;
+        private String toNodeKey;
+        private String conditionExpr;
+        private Integer priority;
     }
 
     @Data

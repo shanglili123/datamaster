@@ -28,6 +28,10 @@ public class StandardsModelMaterializedRespVO implements Serializable {
     @Schema(description = "模型编码", example = "")
     private String modelName;
 
+    /** Actual physical target at materialization time; never recomputed from model metadata. */
+    @Excel(name = "物理表名快照")
+    private String tableName;
+
     @Excel(name = "模型名称")
     @Schema(description = "模型名称", example = "")
     private String modelAlias;

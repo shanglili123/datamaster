@@ -8,11 +8,27 @@ import com.datamaster.mybatis.core.mapper.BaseMapperX;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * AI Skill mapper.
  */
 public interface AiSkillMapper extends BaseMapperX<AiSkillDO> {
+
+    default PageResult<AiSkillDO> selectPage(AiSkillPageReqVO reqVO, List<Long> relatedSkillIds) {
+        return selectPage(reqVO, new LambdaQueryWrapperX<AiSkillDO>()
+                .in(relatedSkillIds != null && !relatedSkillIds.isEmpty(), AiSkillDO::getId, relatedSkillIds)
+                .eq(relatedSkillIds != null && relatedSkillIds.isEmpty(), AiSkillDO::getId, -1L)
+                .eq(reqVO.getId() != null, AiSkillDO::getId, reqVO.getId())
+                .like(StringUtils.isNotBlank(reqVO.getSkillCode()), AiSkillDO::getSkillCode, reqVO.getSkillCode())
+                .like(StringUtils.isNotBlank(reqVO.getSkillName()), AiSkillDO::getSkillName, reqVO.getSkillName())
+                .eq(StringUtils.isNotBlank(reqVO.getSkillType()), AiSkillDO::getSkillType, reqVO.getSkillType())
+                .eq(StringUtils.isNotBlank(reqVO.getStatus()), AiSkillDO::getStatus, reqVO.getStatus())
+                .eq(StringUtils.isNotBlank(reqVO.getSourceType()), AiSkillDO::getSourceType, reqVO.getSourceType())
+                .eq(StringUtils.isNotBlank(reqVO.getBizObjectType()), AiSkillDO::getBizObjectType, reqVO.getBizObjectType())
+                .eq(reqVO.getBizObjectId() != null, AiSkillDO::getBizObjectId, reqVO.getBizObjectId())
+                .orderByDesc(AiSkillDO::getUpdateTime));
+    }
 
     default PageResult<AiSkillDO> selectPage(AiSkillPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<AiSkillDO>()
@@ -36,6 +52,13 @@ public interface AiSkillMapper extends BaseMapperX<AiSkillDO> {
         return selectOne(new LambdaQueryWrapperX<AiSkillDO>()
                 .eq(AiSkillDO::getBizObjectType, bizObjectType)
                 .eq(AiSkillDO::getBizObjectId, bizObjectId));
+    }
+
+    default List<Long> selectIdsByDatasourceBizObject(Long datasourceId) {
+        return selectList(new LambdaQueryWrapperX<AiSkillDO>()
+                .eq(AiSkillDO::getBizObjectType, "DATA_SOURCE")
+                .eq(AiSkillDO::getBizObjectId, datasourceId))
+                .stream().map(AiSkillDO::getId).collect(Collectors.toList());
     }
 
     default List<AiSkillDO> selectPublishedByKeyword(String keyword) {

@@ -1,11 +1,11 @@
 <!-- eslint-disable vue/require-toggle-inside-transition -->
 <template>
-  <section class="app-main">
+  <section class="app-main" :class="{ 'app-main--standalone': standalone }">
     <router-view v-slot="{ Component, route }">
       <transition name="fade-transform" mode="out-in">
         <div class="app-main-inner">
           <keep-alive :include="tagsViewStore.cachedViews">
-            <component v-if="!route.meta.link" :is="Component" :key="route.path"/>
+            <component v-if="!route.meta.link" :is="Component" :key="route.query.id == null ? route.path : `${route.path}:${route.query.id}`"/>
           </keep-alive>
         </div>
       </transition>
@@ -18,52 +18,35 @@
 import iframeToggle from "./IframeToggle/index"
 import useTagsViewStore from '@/store/system/tagsView'
 
+defineProps({ standalone: { type: Boolean, default: false } })
 const tagsViewStore = useTagsViewStore()
 </script>
 
 <style lang="scss" scoped>
 .app-main {
-  background-color: var(--dm-bg-layout, #eef3f8);
   width: 100%;
+  min-width: 0;
   position: relative;
-  /* 由 main-container 撑满剩余高度：header(100px) 与 submenu-tabs 占用的空间已由 flex 布局扣除，
-     不能再写死 min-height: calc(100vh)（会导致内容溢出产生页面级滚动条） */
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  .app-main-inner{
+
+  .app-main-inner {
     width: 100%;
-    height: 100%;
+    min-height: calc(100vh - 222px);
     padding: 16px;
     box-sizing: border-box;
   }
 }
 
-.fixed-header + .app-main {
-  padding-top: 60px;
-}
+.app-main--standalone {
+  min-height: 100vh;
+  background: var(--dm-bg-layout, #eef3f8);
 
-.hasTagsView {
-  .app-main {
-    /* 84 = navbar + tags-view = 60 + 34 */
-    min-height: calc(100vh - 100px);
-  }
-
-  .fixed-header + .app-main {
-    padding-top: 100px;
+  .app-main-inner {
+    min-height: 100vh;
   }
 }
 </style>
 
 <style lang="scss">
-// fix css style bug in open el-dialog
-.el-popup-parent--hidden {
-  .fixed-header {
-    padding-right: 6px;
-  }
-}
-
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

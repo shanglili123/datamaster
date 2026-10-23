@@ -122,10 +122,11 @@ export function generateOntologyDecisionSkill(data) {
 }
 
 // 同步全部已发布 Skill 到决策智能体（底层适配器路由保持兼容）
-export function syncAllSkillToDbgpt() {
+export function syncAllSkillToDbgpt(datasourceId) {
   return request({
     url: '/ai/skill/sync/dbgpt',
-    method: 'post'
+    method: 'post',
+    params: datasourceId ? { datasourceId } : undefined
   })
 }
 

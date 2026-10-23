@@ -26,6 +26,7 @@ import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.common.utils.poi.ExcelUtil;
 import com.datamaster.common.exception.enums.GlobalErrorCodeConstants;
 import com.datamaster.module.assets.controller.admin.assetchild.operate.vo.AssetsAssetOperateApplyPageReqVO;
+import com.datamaster.module.assets.controller.admin.assetchild.operate.vo.AssetsAssetOperateApplyReviewReqVO;
 import com.datamaster.module.assets.controller.admin.assetchild.operate.vo.AssetsAssetOperateApplyRespVO;
 import com.datamaster.module.assets.controller.admin.assetchild.operate.vo.AssetsAssetOperateApplySaveReqVO;
 import com.datamaster.module.assets.convert.assetchild.operate.AssetsAssetOperateApplyConvert;
@@ -70,7 +71,8 @@ public class AssetsAssetOperateApplyController extends BaseController {
         ExcelUtil<AssetsAssetOperateApplyRespVO> util = new ExcelUtil<>(AssetsAssetOperateApplyRespVO.class);
         List<AssetsAssetOperateApplyRespVO> importExcelList = util.importExcel(file.getInputStream());
         String operName = getUsername();
-        String message = AssetsAssetOperateApplyService.importAssetOperateApply(importExcelList, updateSupport, operName);
+        String message = AssetsAssetOperateApplyService.importAssetOperateApply(
+                importExcelList, updateSupport, operName, getUserId());
         return success(message);
     }
 
@@ -102,6 +104,42 @@ public class AssetsAssetOperateApplyController extends BaseController {
         AssetsAssetOperateApply.setUpdateBy(getNickName());
         AssetsAssetOperateApply.setUpdateTime(DateUtil.date());
         return CommonResult.toAjax(AssetsAssetOperateApplyService.updateAssetOperateApply(AssetsAssetOperateApply));
+    }
+
+    @Operation(summary = "提交数据资产操作申请")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateApply:edit')")
+    @Log(title = "数据资产操作申请", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/submit")
+    public CommonResult<Integer> submit(@PathVariable Long id) {
+        return CommonResult.toAjax(AssetsAssetOperateApplyService.submitAssetOperateApply(id, getUserId(), getNickName()));
+    }
+
+    @Operation(summary = "审批通过数据资产操作申请")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateApply:edit')")
+    @Log(title = "数据资产操作申请", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/approve")
+    public CommonResult<Integer> approve(@PathVariable Long id,
+                                         @Valid @RequestBody(required = false) AssetsAssetOperateApplyReviewReqVO request) {
+        return CommonResult.toAjax(AssetsAssetOperateApplyService.approveAssetOperateApply(
+                id, request == null ? null : request.getComment(), getUserId(), getNickName()));
+    }
+
+    @Operation(summary = "驳回数据资产操作申请")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateApply:edit')")
+    @Log(title = "数据资产操作申请", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/reject")
+    public CommonResult<Integer> reject(@PathVariable Long id,
+                                        @Valid @RequestBody AssetsAssetOperateApplyReviewReqVO request) {
+        return CommonResult.toAjax(AssetsAssetOperateApplyService.rejectAssetOperateApply(
+                id, request.getComment(), getUserId(), getNickName()));
+    }
+
+    @Operation(summary = "执行已审批的数据资产操作申请")
+    @PreAuthorize("@ss.hasPermi('ast:assetOperateApply:execute')")
+    @Log(title = "数据资产操作申请", businessType = BusinessType.UPDATE)
+    @PostMapping("/{id}/execute")
+    public CommonResult<Integer> execute(@PathVariable Long id) {
+        return CommonResult.toAjax(AssetsAssetOperateApplyService.executeAssetOperateApply(id, getUserId(), getNickName()));
     }
 
     @Operation(summary = "删除数据资产操作申请")

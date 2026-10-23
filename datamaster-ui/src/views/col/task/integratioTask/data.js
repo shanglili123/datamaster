@@ -2,6 +2,25 @@
 // treeData.js
 export const treeData = [
     {
+        label: '流程编排',
+        level: 1,
+        type: 3,
+        engine: ['FLINK'],
+        children: [
+            {
+                label: '逻辑节点',
+                key: 'pipeline-node',
+                type: 3,
+                level: 2,
+                taskType: 'PIPELINE_NODE',
+                componentType: '100',
+                engine: ['FLINK'],
+                icon: new URL('@/assets/system/images/dpp/zh.svg', import.meta.url).href,
+                icons: '@/assets/system/images/dpp/zh.png'
+            },
+        ]
+    },
+    {
         label: '输入',
         level: 1,
         type: 1,
@@ -206,7 +225,10 @@ export const treeData = [
 
 // 返回知道数据
 export const getTreeData = (taskType) => {
-    let data = [...treeData];
+    // 历史合表/多写组件保留注册与回显，新建统一使用逻辑节点和表输出。
+    let data = treeData.map(group => ({ ...group,
+        children: group.children?.filter(child => !['37', '38'].includes(String(child.componentType)))
+    }));
     data.map(item => {
         if (item.children) {
             item.children.map(child => {

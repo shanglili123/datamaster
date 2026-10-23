@@ -31,6 +31,9 @@ public class AiSkillSaveReqVO {
 
     private Long bizObjectId;
 
+    /** 手工 Skill 关联的数据源。 */
+    private Long datasourceId;
+
     @NotBlank(message = "Skill内容不能为空")
     private String content;
 

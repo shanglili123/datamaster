@@ -54,7 +54,7 @@
         </dependency>
         <dependency>
             <groupId>com.datamaster</groupId>
-            <artifactId>datamaster-system</artifactId>
+            <artifactId>datamaster-system-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>

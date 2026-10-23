@@ -160,6 +160,8 @@ public interface IAssetsDatasourceService extends IService<AssetsDatasourceDO> {
      */
     boolean creaDatasourceTeTable(DatasourceCreaTeTableReqDTO datasourceCreaTeTableReqDTO);
 
+    com.datamaster.module.assets.api.datasource.dto.DatasourceCreateTableRespDTO createTaskTempTable(DatasourceCreaTeTableReqDTO req);
+
     boolean creaDatasourceTeTable(DbQuery dbQuery, DbQueryProperty dbQueryProperty, DatasourceCreaTeTableReqDTO datasourceCreaTeTableReqDTO);
 
     /**

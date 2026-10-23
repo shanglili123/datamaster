@@ -7,6 +7,8 @@ import com.datamaster.common.database.constants.DbType;
 import com.datamaster.common.database.utils.MD5Util;
 import com.datamaster.common.enums.TaskComponentTypeEnum;
 import com.datamaster.module.collector.utils.model.DsResource;
+import com.datamaster.module.collector.utils.SourceMetadataSupport;
+import com.datamaster.module.collector.utils.JoinQueryBuilder;
 
 import java.util.*;
 
@@ -63,6 +65,7 @@ public class TableMergeComponent implements ComponentItem {
 
     @Override
     public Map<String, Object> parse2(String nodeCode, Integer nodeVersion, TaskComponentTypeEnum componentType, Map<String, Object> taskParams, String resourceUrl, List<DsResource> resourceList) {
+        taskParams = SourceMetadataSupport.withRequiredMetadata(taskParams);
         // reader 配置
         Map<String, Object> reader = new HashMap<>();
         // 输入readerDatasource
@@ -91,12 +94,39 @@ public class TableMergeComponent implements ComponentItem {
         if (StringUtils.isNotBlank(readerProperty.getSid())) {
             parameter.put("sid", readerProperty.getSid());
         }
-        parameter.put("column", taskParams.get("columns"));
+        boolean sourceMetadataEnabled = SourceMetadataSupport.enabled(taskParams);
+        if (sourceMetadataEnabled) {
+            // 合表 SQL 会真实返回 source_table；其它来源字段由 transformer 派生。
+            parameter.put("column", taskParams.get("columns"));
+            parameter.put("sourceMetadataColumns", SourceMetadataSupport.appendColumns(
+                    taskParams.get("columns"), Collections.singletonList(
+                            SourceMetadataSupport.column(taskParams, "sourceTableColumn",
+                                    SourceMetadataSupport.SOURCE_TABLE))));
+            Map<String, Object> sourceMetadata = SourceMetadataSupport.copyWithRuntimeValues(
+                    taskParams, nodeCode,
+                    String.valueOf(readerDatasource.get("datasourceId")), "");
+            String sourceDatabase = MapUtils.getString(taskParams, "sourceDatabaseValue", null);
+            sourceDatabase = StringUtils.defaultIfBlank(sourceDatabase,
+                    MapUtils.getString(readerDatasource, "dbname", null));
+            sourceMetadata.putIfAbsent("sourceDatabaseValue",
+                    StringUtils.defaultIfBlank(sourceDatabase, readerProperty.getDbName()));
+            parameter.put("sourceMetadata", sourceMetadata);
+        } else {
+            parameter.put("column", taskParams.get("columns"));
+        }
         parameter.put("tableFields", taskParams.get("tableFields"));
+        parameter.put("schemaMonitoring", taskParams.get("schemaMonitoring"));
 
         Map<String, Object> connection = new HashMap<>();
         // 多源表 UNION ALL 生成 querySql -> 走 customSql 路径
-        connection.put("querySql", buildUnionAllSql(taskParams));
+        if (taskParams.get("joinConfig") instanceof Map) {
+            connection.put("querySql", JoinQueryBuilder.build(
+                    (List<Map<String, Object>>) taskParams.get("sourceTables"),
+                    (Map<String, Object>) taskParams.get("joinConfig"), readerProperty.getDbType(),
+                    SourceMetadataSupport.config(taskParams)));
+        } else {
+            connection.put("querySql", buildUnionAllSql(taskParams));
+        }
         connection.put("jdbcUrl", readerProperty.trainToJdbcUrl());
         parameter.put("connection", connection);
         parameter.put("readerProperty", readerProperty);
@@ -121,6 +151,8 @@ public class TableMergeComponent implements ComponentItem {
             columns.add("*");
         }
         String columnSql = String.join(", ", columns);
+        String sourceTableColumn = SourceMetadataSupport.column(taskParams, "sourceTableColumn",
+                SourceMetadataSupport.SOURCE_TABLE);
 
         Object sourceTablesObj = taskParams.get("sourceTables");
         if (!(sourceTablesObj instanceof List) || ((List<?>) sourceTablesObj).isEmpty()) {
@@ -140,7 +172,13 @@ public class TableMergeComponent implements ComponentItem {
                 continue;
             }
             String where = MapUtils.getString(table, "where");
-            StringBuilder part = new StringBuilder("SELECT ").append(columnSql).append(" FROM ").append(tableName);
+            StringBuilder part = new StringBuilder("SELECT ").append(columnSql);
+            if (SourceMetadataSupport.enabled(taskParams)
+                    && !containsColumn(columns, sourceTableColumn)) {
+                part.append(", '").append(escapeSqlLiteral(tableName)).append("' AS ")
+                        .append(sourceTableColumn);
+            }
+            part.append(" FROM ").append(tableName);
             if (StringUtils.isNotBlank(where)) {
                 part.append(" WHERE ").append(where);
             }
@@ -150,5 +188,17 @@ public class TableMergeComponent implements ComponentItem {
             return null;
         }
         return String.join(" UNION ALL ", selectParts);
+    }
+
+    private boolean containsColumn(List<String> columns, String target) {
+        if (columns == null || target == null) return false;
+        for (String column : columns) {
+            if (target.equalsIgnoreCase(column)) return true;
+        }
+        return false;
+    }
+
+    private String escapeSqlLiteral(String value) {
+        return value == null ? "" : value.replace("'", "''");
     }
 }

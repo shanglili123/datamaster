@@ -8,6 +8,7 @@ import java.util.Date;/** *  Request VO  DA_ASSET_OPERATE_APPLY * * @author DATA
 public class AssetsAssetOperateApplyPageReqVO extends PageParam {
     private static final long serialVersionUID = 1L;
 @Schema(description = "ID", example = "")        private Long id;
+@Schema(description = "创建人 ID", hidden = true)    private Long creatorId;
 @Schema(description = "id", example = "")    private Long assetId;
 @Schema(description = "id", example = "")    private Long datasourceId;
 @Schema(description = "", example = "")    private String tableName;
@@ -16,4 +17,6 @@ public class AssetsAssetOperateApplyPageReqVO extends PageParam {
 @Schema(description = "JSON", example = "")    private String operateJson;
 @Schema(description = "", example = "")    private Date operateTime;
 @Schema(description = "", example = "")    private String executeFlag;
-@Schema(description = "", example = "")    private Date executeTime;}
+@Schema(description = "", example = "")    private Date executeTime;
+@Schema(description = "审批执行状态", example = "PENDING_APPROVAL")    private String approvalStatus;
+}

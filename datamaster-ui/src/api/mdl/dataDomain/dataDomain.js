@@ -10,6 +10,14 @@ export function listDataDomain(query) {
   })
 }
 
+export function listDataDomainByCategoryId(query) {
+  return request({
+    url: '/mdl/dataDomain/listByCategoryId',
+    method: 'get',
+    params: query
+  })
+}
+
 // 查询数据域管理详细
 export function getDataDomain(id) {
   return request({

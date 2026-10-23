@@ -22,6 +22,8 @@ public class AiAskSessionRespVO {
 
     private String mode;
 
+    private String category;
+
     private Long datasourceId;
 
     private String datasourceName;

@@ -1,0 +1,81 @@
+// Ant 弹窗挂载到 body，使用弹窗范围类，不依赖编辑器页面的 DOM 层级。
+.integration-component-modal {
+  .ant-modal-title {
+    color: var(--dm-text-main);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 28px;
+  }
+
+  .ant-modal-body {
+    .etl-section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 38px;
+      margin: 24px 0 16px;
+      padding: 6px 12px;
+      border: 0;
+      border-radius: var(--dm-radius-small, 4px);
+      background: var(--dm-bg-page, #f5f8fc);
+      color: var(--dm-text-main, #111827);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 26px;
+      text-align: left;
+
+      &::before {
+        position: static;
+        flex: 0 0 3px;
+        width: 3px;
+        height: 18px;
+        border: 0;
+        border-radius: 2px;
+        background: var(--dm-color-primary, #4f7cff);
+        content: '';
+      }
+
+      &::after {
+        display: none;
+      }
+
+      > .blue-text {
+        color: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+      }
+
+      // 标题行里已有的“添加字段”操作保持靠右，且不继承标题字号。
+      > .ant-btn {
+        margin-left: auto;
+        font-size: 14px;
+        font-weight: 400;
+      }
+    }
+
+    .ant-form > .etl-section-title:first-child {
+      margin-top: 0;
+    }
+
+    .etl-subsection-title {
+      margin: 12px 0;
+      color: var(--dm-text-regular, #374151);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 24px;
+    }
+
+    .ant-form-item-label > label {
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .form-help {
+      margin-top: 4px;
+      color: var(--dm-text-secondary, #6b7280);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 20px;
+    }
+  }
+}

@@ -31,10 +31,13 @@ public class IngestionLogDO extends BaseEntity {
     /** 消息偏移量（字段名避开 PostgreSQL 保留字 OFFSET） */
     private Long msgOffset;
 
+    /** Kafka 消息 key，死信重放时用于保持原有分区路由语义 */
+    private String messageKey;
+
     /** 目标写入表 */
     private String targetTable;
 
-    /** 处理状态：SUCCESS / CONFLICT_SKIP / CONFLICT_ERROR / FAILED */
+    /** 处理状态：SUCCESS / CONFLICT_SKIP / CONFLICT_ERROR / FAILED / DEAD_LETTER / REPLAYING / REPLAYED */
     private String status;
 
     /** 冲突策略应用结果：INSERT / UPSERT / SKIP / ERROR */
