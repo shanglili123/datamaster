@@ -33,7 +33,7 @@
             <artifactId>datamaster-governance-core</artifactId>
             <version>${dataMaster.version}</version>
         </dependency>
-        <!-- Java 17 迁移期间暂保留 LangChain4j 0.35.0；框架升级另行适配 Tool/Memory API。 -->
+        <!-- LangChain4j 0.35.x 仍兼容项目当前 Java 8；用于 Agent Tool Calling 和 ChatMemory。 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
