@@ -5,6 +5,17 @@ import Layout from '@/layout/index.vue';
 // 系统模块公共路由
 export default [
     {
+        path: '/monitor/model-gateway',
+        component: Layout,
+        hidden: true,
+        children: [{
+            path: '',
+            name: 'ModelGatewayMonitor',
+            component: () => import('@/views/sys/monitor/modelGateway/index.vue'),
+            meta: { title: '模型调用监控', noCache: true }
+        }]
+    },
+    {
         path: '/redirect',
         component: Layout,
         hidden: true,

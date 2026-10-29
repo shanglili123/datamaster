@@ -24,6 +24,9 @@
         <result property="dsId" column="DS_ID"/>
         <result property="validFlag" column="VALID_FLAG"/>
         <result property="delFlag" column="DEL_FLAG"/>
+        <result property="runOwnerToken" column="RUN_OWNER_TOKEN"/>
+        <result property="runGuardStatus" column="RUN_GUARD_STATUS"/>
+        <result property="runLeaseUpdatedAt" column="RUN_LEASE_UPDATED_AT"/>
         <result property="createBy" column="CREATE_BY"/>
         <result property="creatorId" column="CREATOR_ID"/>
         <result property="createTime" column="CREATE_TIME"/>
@@ -53,6 +56,9 @@
                DS_ID,
                VALID_FLAG,
                DEL_FLAG,
+               RUN_OWNER_TOKEN,
+               RUN_GUARD_STATUS,
+               RUN_LEASE_UPDATED_AT,
                CREATE_BY,
                CREATOR_ID,
                CREATE_TIME,
@@ -113,6 +119,9 @@
             <if test="dsId != null">DS_ID,</if>
             <if test="validFlag != null">VALID_FLAG,</if>
             <if test="delFlag != null">DEL_FLAG,</if>
+            <if test="runOwnerToken != null">RUN_OWNER_TOKEN,</if>
+            <if test="runGuardStatus != null">RUN_GUARD_STATUS,</if>
+            <if test="runLeaseUpdatedAt != null">RUN_LEASE_UPDATED_AT,</if>
             <if test="createBy != null">CREATE_BY,</if>
             <if test="creatorId != null">CREATOR_ID,</if>
             <if test="createTime != null">CREATE_TIME,</if>
@@ -141,6 +150,9 @@
             <if test="dsId != null">#{dsId},</if>
             <if test="validFlag != null">#{validFlag},</if>
             <if test="delFlag != null">#{delFlag},</if>
+            <if test="runOwnerToken != null">#{runOwnerToken},</if>
+            <if test="runGuardStatus != null">#{runGuardStatus},</if>
+            <if test="runLeaseUpdatedAt != null">#{runLeaseUpdatedAt},</if>
             <if test="createBy != null">#{createBy},</if>
             <if test="creatorId != null">#{creatorId},</if>
             <if test="createTime != null">#{createTime},</if>
@@ -172,6 +184,9 @@
             <if test="dsId != null">DS_ID = #{dsId},</if>
             <if test="validFlag != null">VALID_FLAG = #{validFlag},</if>
             <if test="delFlag != null">DEL_FLAG = #{delFlag},</if>
+            <if test="runOwnerToken != null">RUN_OWNER_TOKEN = #{runOwnerToken},</if>
+            <if test="runGuardStatus != null">RUN_GUARD_STATUS = #{runGuardStatus},</if>
+            <if test="runLeaseUpdatedAt != null">RUN_LEASE_UPDATED_AT = #{runLeaseUpdatedAt},</if>
             <if test="createBy != null">CREATE_BY = #{createBy},</if>
             <if test="creatorId != null">CREATOR_ID = #{creatorId},</if>
             <if test="createTime != null">CREATE_TIME = #{createTime},</if>
@@ -199,6 +214,12 @@
     <select id="selectOneNew" parameterType="CollectorEtlTaskInstanceDO" resultMap="CollectorEtlTaskInstanceResult">
         <include refid="selectCollectorEtlTaskInstanceVo"/>
         <where>
+            DEL_FLAG = '0'
+            <if test="reqVO.id != null">and ID = #{reqVO.id}</if>
+            <if test="reqVO.taskId != null">and TASK_ID = #{reqVO.taskId}</if>
+            <if test="reqVO.dsId != null">and DS_ID = #{reqVO.dsId}</if>
+            <if test="reqVO.spaceId != null">and SPACE_ID = #{reqVO.spaceId}</if>
+            <if test="reqVO.spaceCode != null and reqVO.spaceCode != ''">and SPACE_CODE = #{reqVO.spaceCode}</if>
             <if test="reqVO.taskCode != null and reqVO.taskCode != ''">and TASK_CODE = #{reqVO.taskCode}</if>
         </where>
         order by CREATE_TIME desc, ID desc

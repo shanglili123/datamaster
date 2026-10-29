@@ -129,6 +129,14 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     /** 用于发布前确认目标表已经包含逻辑集成节点要求的治理列。 */
     @Resource
     private IDatasourceApiService datasourceApiService;
+    @Resource private com.datamaster.module.collector.dal.mapper.etl.CollectorEtlRunMapper runGuardMapper;
+
+    @Value("${ds.run_guard.enabled:false}")
+    private boolean runGuardEnabled;
+    @Value("${ds.run_guard.prepare_url:}")
+    private String runGuardPrepareUrl;
+    @Value("${ds.incremental_fixed_window.enabled:false}") private boolean stageIncrementalEnabled;
+    @Value("${ds.stage_prepare_url:}") private String stagePrepareUrl;
 
     @Value("${ds.incremental_prepare_url:http://127.0.0.1:8080/col/etlTask/incremental/prepare}")
     private String incrementalPrepareUrl;
@@ -159,10 +167,57 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         return result == null ? new ArrayList<>() : result;
     }
 
+    @Resource private com.datamaster.module.collector.dal.mapper.etl.CollectorEtlTaskInstanceMapper runtimeInstanceMapper;
+
     @Override
     public PageResult<CollectorEtlTaskRespVO> getCollectorEtlTaskPageList(CollectorEtlTaskPageReqVO CollectorEtlTask) {
+        Long userId = SecurityUtils.getUserId();
+        if (userId == null) throw new ServiceException("请登录后查询任务");
+        if (!SecurityUtils.isAdmin(userId)) {
+            if ((CollectorEtlTask.getSpaceId() == null && StringUtils.isBlank(CollectorEtlTask.getSpaceCode()))
+                    || !TaxonomySpaceApi.hasUserSpace(userId, CollectorEtlTask.getSpaceId(), CollectorEtlTask.getSpaceCode())) {
+                throw new ServiceException("无权查询该空间任务", 403);
+            }
+        }
         IPage<CollectorEtlTaskRespVO> mpPage = CollectorEtlTaskMapper.getCollectorEtlTaskPage(MyBatisUtils.buildPage(CollectorEtlTask), CollectorEtlTask);//BeanUtils.toBean(CollectorEtlTaskDOPageResult, CollectorEtlTaskRespVO.class);
+        fillComponentLatestRuns(mpPage.getRecords());
         return new PageResult(mpPage.getRecords(), mpPage.getTotal());
+    }
+
+    private void fillComponentLatestRuns(List<CollectorEtlTaskRespVO> rows) {
+        if (rows == null || rows.isEmpty()) return;
+        Set<Long> ids = rows.stream().map(CollectorEtlTaskRespVO::getId).collect(Collectors.toSet());
+        Set<Long> components = new HashSet<>();
+        for (CollectorEtlTaskExtDO ext : CollectorEtlTaskExtService.list(Wrappers.lambdaQuery(CollectorEtlTaskExtDO.class)
+                .in(CollectorEtlTaskExtDO::getTaskId, ids))) {
+            if (StringUtils.isBlank(ext.getFlinkxJobTemplateJson())) continue;
+            JSONObject snapshot = JSON.parseObject(ext.getFlinkxJobTemplateJson());
+            if (CollectorEtlStageRuntimeService.KIND.equals(snapshot.getString("kind"))) components.add(ext.getTaskId());
+        }
+        if (components.isEmpty()) return;
+        Map<Long, CollectorEtlTaskInstanceDO> latest = new HashMap<>();
+        for (CollectorEtlTaskInstanceDO instance : runtimeInstanceMapper.latestMainInstances(components)) {
+            latest.put(instance.getTaskId(), instance);
+        }
+        for (CollectorEtlTaskRespVO row : rows) {
+            if (!components.contains(row.getId())) continue;
+            CollectorEtlTaskInstanceDO instance = latest.get(row.getId());
+            row.setLastExecuteDsId(instance == null ? null : String.valueOf(instance.getDsId()));
+            row.setLastExecuteStatus(instance == null ? null : instance.getStatus());
+            row.setLastExecuteTime(instance == null ? null : instance.getEndTime() != null ? instance.getEndTime()
+                    : instance.getStartTime() != null ? instance.getStartTime() : instance.getCreateTime());
+        }
+    }
+
+    /** 以任务持久化归属校验当前用户空间权限，避免客户端 spaceCode 绕过。 */
+    private void checkTaskSpaceAccess(CollectorEtlTaskDO task) {
+        if (task == null) return;
+        Long userId = SecurityUtils.getUserId();
+        if (userId == null) throw new ServiceException("请登录后访问数据集成任务");
+        if (SecurityUtils.isAdmin(userId)) return;
+        if (!TaxonomySpaceApi.hasUserSpace(userId, task.getSpaceId(), task.getSpaceCode())) {
+            throw new ServiceException("无权访问或操作该空间的数据集成任务");
+        }
     }
 
     @Override
@@ -195,6 +250,15 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     @Override
     public int removeCollectorEtlTask(Collection<Long> idList) {
+        // 批量删除前先校验全部任务归属，避免部分删除后其余任务因权限失败。
+        for (Long id : new TreeSet<>(idList)) {
+            checkTaskSpaceAccess(CollectorEtlTaskMapper.selectById(id));
+            CollectorEtlTaskExtDO ext = CollectorEtlTaskExtService.getByTaskId(id);
+            if (runGuardEnabled && isComponentSnapshot(ext)) {
+                runGuardMapper.lockTask(id);
+                if (!runGuardMapper.findActive(id).isEmpty()) throw new ServiceException("组件任务仍有活动或待核对运行，确认结束前不能删除");
+            }
+        }
         int sum = 0;
         for (Long id : idList) {
             CollectorEtlTaskDO CollectorEtlTaskDO = CollectorEtlTaskMapper.selectById(id);
@@ -367,6 +431,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @Override
     public Map<String, Object> updateReleaseJobTask(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
         CollectorEtlTaskDO CollectorEtlTaskDO = CollectorEtlTaskMapper.selectById(CollectorEtlNewNodeSaveReqVO.getIdStr());
+        checkTaskSpaceAccess(CollectorEtlTaskDO);
         CollectorEtlSchedulerPageReqVO CollectorEtlSchedulerPageReqVO = new CollectorEtlSchedulerPageReqVO();
         CollectorEtlSchedulerPageReqVO.setTaskId(CollectorEtlTaskDO.getId());
         CollectorEtlSchedulerPageReqVO.setTaskCode(CollectorEtlTaskDO.getCode());
@@ -438,6 +503,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @Override
     public Map<String, Object> updateReleaseSchedule(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
         CollectorEtlTaskDO CollectorEtlTaskDO = CollectorEtlTaskMapper.selectById(CollectorEtlNewNodeSaveReqVO.getIdStr());
+        checkTaskSpaceAccess(CollectorEtlTaskDO);
         if (StringUtils.equals("1", CollectorEtlNewNodeSaveReqVO.getSchedulerState())
                 && isStreamingFlinkxTask(CollectorEtlTaskDO.getId())) {
             throw new ServiceException("CDC/流式任务不支持定时调度，请直接发布任务运行");
@@ -517,6 +583,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @Override
     public CollectorEtlTaskSaveReqVO updateEtlTask(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
         CollectorEtlTaskDO CollectorEtlTaskDO = CollectorEtlTaskMapper.selectById(CollectorEtlNewNodeSaveReqVO.getIdStr());
+        checkTaskSpaceAccess(CollectorEtlTaskDO);
         if (StringUtils.equals("1", CollectorEtlTaskDO.getStatus()) || StringUtils.equals("-3", CollectorEtlTaskDO.getStatus())) {
             throw new ServiceException("上线任务，不允许修改，请先下线！");
         }
@@ -527,6 +594,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @Override
     public Map<String, Object> updateReleaseTask(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
         CollectorEtlTaskDO CollectorEtlTaskDO = CollectorEtlTaskMapper.selectById(CollectorEtlNewNodeSaveReqVO.getIdStr());
+        checkTaskSpaceAccess(CollectorEtlTaskDO);
         CollectorEtlSchedulerPageReqVO CollectorEtlSchedulerPageReqVO = new CollectorEtlSchedulerPageReqVO();
         CollectorEtlSchedulerPageReqVO.setTaskId(CollectorEtlTaskDO.getId());
         CollectorEtlSchedulerPageReqVO.setTaskCode(CollectorEtlTaskDO.getCode());
@@ -732,6 +800,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (CollectorEtlTaskDO == null) {
             throw new ServiceException("数据集成任务不存在，ID: " + id);
         }
+        checkTaskSpaceAccess(CollectorEtlTaskDO);
         fillLastExecuteInfo(CollectorEtlTaskDO);
         CollectorEtlTaskRespVO bean = BeanUtils.toBean(CollectorEtlTaskDO, CollectorEtlTaskRespVO.class);
 
@@ -749,6 +818,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @Override
     public Map<String, Object> releaseTaskCrontab(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
         CollectorEtlTaskDO CollectorEtlTaskDO = CollectorEtlTaskMapper.selectById(CollectorEtlNewNodeSaveReqVO.getIdStr());
+        checkTaskSpaceAccess(CollectorEtlTaskDO);
         String dsTaskCode = CollectorEtlTaskDO.getCode();
         CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(CollectorEtlTaskDO.getId());
         if (taskExt != null && StringUtils.isNotEmpty(taskExt.getEtlTaskCode())) {
@@ -813,6 +883,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (collectorEtlTaskDO == null) {
             throw new ServiceException("数据集成任务不存在，ID: " + id);
         }
+        checkTaskSpaceAccess(collectorEtlTaskDO);
         // 单独查询创建人名称
         MPJLambdaWrapper<CollectorEtlTaskDO> nameWrapper = new MPJLambdaWrapper<>();
         nameWrapper.selectAll(CollectorEtlTaskDO.class)
@@ -1036,6 +1107,15 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (CollectorEtlTaskDO == null) {
             return error("任务不存在，请刷新后重试！");
         }
+        checkTaskSpaceAccess(CollectorEtlTaskDO);
+        CollectorEtlTaskExtDO runtime = CollectorEtlTaskExtService.getByTaskId(id);
+        if (isComponentSnapshot(runtime)) {
+            runGuardMapper.lockTask(id);
+            CollectorEtlTaskOpsEventDO pendingRecovery = recoveryEvents.latestComponent(id);
+            if (pendingRecovery != null && "STARTING".equals(pendingRecovery.getActionStatus())) return error("自动恢复启动请求尚在确认，请勿重复启动");
+            if (!StringUtils.equals("1", CollectorEtlTaskDO.getStatus())) return error("组件任务未发布，请先发布后再运行");
+            if (runGuardEnabled && !runGuardMapper.findActive(id).isEmpty()) return error("组件任务已有活动或待核对实例，请确认结束后再启动");
+        }
         if (!StringUtils.equals("1", CollectorEtlTaskDO.getStatus())) {
             CollectorEtlNewNodeSaveReqVO nodeSaveReqVO = new CollectorEtlNewNodeSaveReqVO();
             nodeSaveReqVO.setIdStr(String.valueOf(id));
@@ -1046,14 +1126,48 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         CollectorEtlTaskDO.setCode(resolvePublishedDsTaskCode(CollectorEtlTaskDO));
 
 
-        DsStartTaskReqDTO dsStartTaskReqDTO = TaskConverter.createDsStartTaskReqDTO(CollectorEtlTaskDO.getCode(), getProjectWorkerGroup(CollectorEtlTaskDO.getSpaceCode()));
-
-        DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.startTask(dsStartTaskReqDTO, CollectorEtlTaskDO.getSpaceCode());
+        DsStatusRespDTO dsStatusRespDTO = startPublishedWorkflow(CollectorEtlTaskDO, CollectorEtlTaskDO.getCode());
 
         return Boolean.TRUE.equals(dsStatusRespDTO == null ? null : dsStatusRespDTO.getSuccess())
                 ? success() : error(dsStatusRespDTO == null ? "DolphinScheduler无响应" : dsStatusRespDTO.getMsg());
     }
 
+
+    @Resource private com.datamaster.module.collector.dal.mapper.etl.CollectorEtlTaskOpsEventMapper recoveryEvents;
+    @Resource private ICollectorEtlTaskOpsPolicyService recoveryPolicies;
+    @Resource @org.springframework.context.annotation.Lazy private CollectorComponentRecoveryService componentRecovery;
+
+    @Override
+    public DsStatusRespDTO startComponentRecovery(Long eventId) {
+        CollectorEtlTaskOpsEventDO event = recoveryEvents.selectById(eventId);
+        if (event == null || !"RESTART_COMPONENT_TASK".equals(event.getAction()) || !"STARTING".equals(event.getActionStatus())) {
+            throw new ServiceException("自动恢复事件未取得启动资格");
+        }
+        runGuardMapper.lockTask(event.getTaskId());
+        event = recoveryEvents.lockEvent(eventId);
+        if (event == null || !"STARTING".equals(event.getActionStatus())) throw new ServiceException("恢复事件已取消");
+        CollectorEtlTaskDO task = CollectorEtlTaskMapper.selectById(event.getTaskId());
+        CollectorEtlTaskExtDO ext = CollectorEtlTaskExtService.getByTaskId(event.getTaskId());
+        CollectorEtlTaskOpsPolicyDO policy = recoveryPolicies.getByTaskId(event.getTaskId());
+        JSONObject recovery = JSON.parseObject(event.getAiRawResult()).getJSONObject("recovery");
+        if (recovery == null) throw new ServiceException("恢复元数据无效");
+        if (task == null || !"1".equals(task.getStatus()) || !isComponentSnapshot(ext) || policy == null
+                || Boolean.TRUE.equals(policy.getFailStopEnabled()) || !Boolean.TRUE.equals(policy.getAiManaged())
+                || !Boolean.TRUE.equals(policy.getAutoRecoverEnabled()) || !"SAFE_AUTO".equals(policy.getRecoverStrategy())
+                || !Objects.equals(ext.getEtlTaskCode(), recovery.getString("workflowCode"))
+                || !Objects.equals(String.valueOf(ext.getEtlTaskVersion()), recovery.getString("workflowVersion"))
+                || !runGuardMapper.findActive(task.getId()).isEmpty()) throw new ServiceException("恢复条件已变化，禁止启动");
+        CollectorEtlTaskInstanceDO latestRun = runtimeInstanceMapper.latestMainInstance(event.getTaskId());
+        if (latestRun != null && !Objects.equals(latestRun.getId(), recovery.getLong("beforeExecutionId"))) {
+            throw new ServiceException("已有更新执行，取消自动重复提交");
+        }
+        return startPublishedWorkflow(task, ext.getEtlTaskCode());
+    }
+
+    private DsStatusRespDTO startPublishedWorkflow(CollectorEtlTaskDO task, String workflowCode) {
+        DsStartTaskReqDTO request = TaskConverter.createDsStartTaskReqDTO(workflowCode, getProjectWorkerGroup(task.getSpaceCode()));
+        return dsEtlTaskService.startTask(request, task.getSpaceCode());
+    }
 
     @Override
     public List<CollectorEtlTaskTreeRespVO> getCollectorEtlTaskListTree(CollectorEtlTaskPageReqVO reqVO) {
@@ -1583,7 +1697,16 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     @Override
     public CollectorEtlNewNodeSaveReqVO createEtlTaskFront(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO) {
-
+        if (StringUtils.equals("1", CollectorEtlNewNodeSaveReqVO.getType())) {
+            normalizeProjectCode(CollectorEtlNewNodeSaveReqVO);
+            CollectorEtlTaskDO scope = new CollectorEtlTaskDO();
+            scope.setSpaceId(CollectorEtlNewNodeSaveReqVO.getSpaceId());
+            scope.setSpaceCode(String.valueOf(CollectorEtlNewNodeSaveReqVO.getSpaceCode()));
+            if (scope.getSpaceId() == null || CollectorEtlNewNodeSaveReqVO.getSpaceCode() == null) {
+                throw new ServiceException("新建组件任务必须指定有效空间");
+            }
+            checkTaskSpaceAccess(scope);
+        }
         //生成任务编码(本地唯一ID，发布时替换为DS编码)
         String taskCode = String.valueOf(IdUtils.generateArtificialId());
 
@@ -1670,6 +1793,20 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             throw new ServiceException("任务不存在");
         }
         String taskCode = taskDO.getCode();
+        boolean componentSave = ComponentGraphCompiler.supports(reqVO) || (StringUtils.isNotBlank(taskDO.getDraftJson())
+                && JSON.parseObject(taskDO.getDraftJson()).get("componentGraph") instanceof Map);
+        if (componentSave) {
+            if (runGuardEnabled && isComponentSnapshot(CollectorEtlTaskExtService.getByTaskId(taskId))) {
+                runGuardMapper.lockTask(taskId);
+                taskDO = CollectorEtlTaskMapper.selectById(taskId);
+                if (taskDO == null) throw new ServiceException("任务不存在");
+            }
+            checkTaskSpaceAccess(taskDO);
+            bindComponentTaskOwner(reqVO, taskDO);
+            if (StringUtils.equals("1", taskDO.getStatus()) || StringUtils.equals("-3", taskDO.getStatus())) {
+                throw new ServiceException("组件任务已发布，请下线后再修改");
+            }
+        }
 
         CollectorEtlTaskSaveReqVO taskSaveReqVO = BeanUtils.toBean(taskDO, CollectorEtlTaskSaveReqVO.class);
         taskSaveReqVO.setName(reqVO.getName());
@@ -1680,6 +1817,23 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
         //处理节点数据
         List<CollectorEtlNodeSaveReqVO> nodeList = JSON.parseArray(reqVO.getTaskDefinitionList(), CollectorEtlNodeSaveReqVO.class);
+        if (componentSave) {
+            Set<String> ownedCodes = new HashSet<>();
+            for (CollectorEtlTaskNodeRelDO relation : iCollectorEtlTaskNodeRelService.list(
+                    Wrappers.lambdaQuery(CollectorEtlTaskNodeRelDO.class).eq(CollectorEtlTaskNodeRelDO::getTaskId, taskId))) {
+                ownedCodes.add(relation.getPreNodeCode()); ownedCodes.add(relation.getPostNodeCode());
+            }
+            if (nodeList == null || nodeList.isEmpty()) throw new ServiceException("组件任务没有可保存节点");
+            for (CollectorEtlNodeSaveReqVO node : nodeList) {
+                if (node == null || StringUtils.isBlank(node.getCode())) throw new ServiceException("组件缺少稳定标识");
+                Long existingId = iCollectorEtlNodeService.getNodeIdByNodeCode(node.getCode());
+                if (existingId != null && !ownedCodes.contains(node.getCode())) {
+                    throw new ServiceException("组件标识已属于其他任务，请重新添加该组件");
+                }
+                // 不信任页面提交的本地节点主键，更新身份只从本任务已有节点解析。
+                node.setId(existingId);
+            }
+        }
         List<CollectorEtlNodeSaveReqVO> newTaskDefinitionLogs = new ArrayList<>();
         List<CollectorEtlNodeSaveReqVO> updateTaskDefinitionLogs = new ArrayList<>();
         List<CollectorEtlNodeDO> nodeDOList = new ArrayList<>();
@@ -1699,13 +1853,16 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             CollectorEtlNodeLogDO nodeCodeAndVersion = iCollectorEtlNodeLogService.getByNodeCodeAndVersion(
                     createReqVO.getCode(), createReqVO.getVersion());
             if (nodeCodeAndVersion == null) {
+                if (componentSave && createReqVO.getId() != null) {
+                    throw new ServiceException("组件版本与已保存节点不一致，请重新打开任务后保存");
+                }
                 createReqVO.setCreatorId(reqVO.getCreatorId());
                 createReqVO.setCreateBy(reqVO.getCreateBy());
                 createReqVO.setCreateTime(reqVO.getCreateTime());
                 newTaskDefinitionLogs.add(createReqVO);
                 continue;
             } else {
-                if (StringUtils.equals(TaskComponentTypeEnum.DB_READER.getCode(), String.valueOf(createReqVO.getTaskParams().get("type"))) &&
+                if (!componentSave && StringUtils.equals(TaskComponentTypeEnum.DB_READER.getCode(), String.valueOf(createReqVO.getTaskParams().get("type"))) &&
                         StringUtils.equals("2", String.valueOf(createReqVO.getTaskParams().get("readModeType")))) {
                     JSONObject idIncrementConfig = JSONObject.parseObject(String.valueOf(createReqVO.getTaskParams().get("idIncrementConfig")));
                     String incrementColumn = idIncrementConfig.getString("incrementColumn");
@@ -1803,21 +1960,24 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     @Override
     public CollectorEtlTaskSaveReqVO publishTask(CollectorEtlNewNodeSaveReqVO reqVO) {
-        reqVO = fillPublishPayload(reqVO);
         Long taskId = resolveTaskId(reqVO);
         CollectorEtlTaskDO taskDO = CollectorEtlTaskMapper.selectById(taskId);
         if (taskDO == null) {
             throw new ServiceException("任务不存在");
         }
+        checkTaskSpaceAccess(taskDO);
         if (StringUtils.equals("1", taskDO.getStatus()) || StringUtils.equals("-3", taskDO.getStatus())) {
             throw new ServiceException("任务已发布，无需重复发布");
         }
+        reqVO = fillPublishPayload(reqVO);
+        if (ComponentGraphCompiler.supports(reqVO)) bindComponentTaskOwner(reqVO, taskDO);
         if (StringUtils.isBlank(reqVO.getTaskDefinitionList())) {
             throw new ServiceException("任务配置未完成，请先保存任务配置");
         }
 
         // 只编译发布副本，数据库继续保存用户的六组件画布。
         if (ComponentGraphCompiler.supports(reqVO)) {
+            canonicalizeComponentDatasources(reqVO, taskDO);
             CollectorEtlNewNodeSaveReqVO compiled = ComponentGraphCompiler.compile(reqVO);
             // 发布快照保留原始组件拓扑，执行载荷使用独立编译结果。
             return publishPipelineTask(compiled, taskDO);
@@ -1939,6 +2099,15 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 locations = TaskConverter.buildEtlTaskLocationsJson(reqVO.getLocations(), nodeCode);
             }
 
+            if (runGuardEnabled && isFlinkx) {
+                List<Map<String, Object>> guardedDefinitions = (List) JSON.parseArray(taskDefinition, Map.class);
+                List<Map<String, Object>> guardedRelations = (List) JSON.parseArray(taskRelation, Map.class);
+                List<Map<String, Object>> guardedLocations = (List) JSON.parseArray(locations, Map.class);
+                addWorkflowRunGuard(reqVO, guardedDefinitions, guardedRelations, guardedLocations);
+                taskDefinition = JSON.toJSONString(guardedDefinitions);
+                taskRelation = JSON.toJSONString(guardedRelations);
+                locations = JSON.toJSONString(guardedLocations);
+            }
             dsTaskSaveReqDTO.setTaskDefinitionJson(taskDefinition);
             dsTaskSaveReqDTO.setTaskRelationJson(taskRelation);
             dsTaskSaveReqDTO.setLocations(locations);
@@ -2060,6 +2229,15 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 locations = TaskConverter.buildEtlTaskLocationsJson(reqVO.getLocations(), nodeCode);
             }
 
+            if (runGuardEnabled && isFlinkx) {
+                List<Map<String, Object>> guardedDefinitions = (List) JSON.parseArray(taskDefinition, Map.class);
+                List<Map<String, Object>> guardedRelations = (List) JSON.parseArray(taskRelation, Map.class);
+                List<Map<String, Object>> guardedLocations = (List) JSON.parseArray(locations, Map.class);
+                addWorkflowRunGuard(reqVO, guardedDefinitions, guardedRelations, guardedLocations);
+                taskDefinition = JSON.toJSONString(guardedDefinitions);
+                taskRelation = JSON.toJSONString(guardedRelations);
+                locations = JSON.toJSONString(guardedLocations);
+            }
             dsTaskSaveReqDTO.setTaskDefinitionJson(taskDefinition);
             dsTaskSaveReqDTO.setTaskRelationJson(taskRelation);
             dsTaskSaveReqDTO.setLocations(locations);
@@ -2168,8 +2346,17 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @SuppressWarnings("unchecked")
     private CollectorEtlTaskSaveReqVO publishPipelineTask(CollectorEtlNewNodeSaveReqVO reqVO,
                                                            CollectorEtlTaskDO taskDO) {
+        boolean componentWorkflow = isCompiledComponentWorkflow(reqVO);
+        if (componentWorkflow) {
+            runGuardMapper.lockTask(taskDO.getId());
+            componentRecovery.cancelPending(taskDO.getId(), "任务重新发布，取消旧版本恢复");
+        }
         CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(taskDO.getId());
-        ProcessDefinition existing = dsEtlTaskService.getTaskByName(String.valueOf(reqVO.getSpaceCode()), reqVO.getName());
+        if (runGuardEnabled && componentWorkflow && !runGuardMapper.findActive(taskDO.getId()).isEmpty()) {
+            throw new ServiceException("任务仍有活动或待核对运行，不能覆盖其已发布阶段快照，请先等待运行确认结束");
+        }
+        ProcessDefinition existing = componentWorkflow ? null
+                : dsEtlTaskService.getTaskByName(String.valueOf(reqVO.getSpaceCode()), reqVO.getName());
         boolean firstPublish = taskExt == null || StringUtils.isBlank(taskExt.getEtlTaskCode());
         String taskCode;
         if (!firstPublish) {
@@ -2190,7 +2377,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         taskInfo.put("taskVersion", firstPublish ? 1 : (taskExt.getEtlTaskVersion() == null ? 1 : taskExt.getEtlTaskVersion() + 1));
         taskInfo.put("name", reqVO.getName());
 
-        PipelinePublishPayload payload = buildPipelinePublishPayload(reqVO, taskInfo, primaryCode, taskExt);
+        String callbackToken = componentWorkflow && runGuardEnabled ? CollectorEtlCallbackTokenService.generate() : null;
+        PipelinePublishPayload payload = buildPipelinePublishPayload(reqVO, taskInfo, primaryCode, taskExt, callbackToken);
         DsTaskSaveReqDTO saveReq = new DsTaskSaveReqDTO();
         saveReq.setName(reqVO.getName());
         saveReq.setDescription(reqVO.getDescription());
@@ -2203,7 +2391,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 ? dsEtlTaskService.createTask(saveReq, reqVO.getSpaceCode())
                 : updateDsTaskAllowingOnline(saveReq, String.valueOf(reqVO.getSpaceCode()), taskCode);
         if (saveResp == null || !saveResp.getSuccess()) {
-            throw new ServiceException("发布逻辑集成任务错误:" + (saveResp == null ? "DS 无响应" : saveResp.getMsg()));
+            throw new ServiceException("发布逻辑集成任务错误:" + (saveResp == null ? "DS 无响应"
+                    : componentWorkflow ? "DS 拒绝保存流程定义，请核对任务配置" : saveResp.getMsg()));
         }
         ProcessDefinition definition = saveResp.getData();
         if (definition == null) {
@@ -2240,6 +2429,16 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             taskExt.setEtlRelationId(extSave.getEtlRelationId());
             CollectorEtlTaskExtService.updateById(taskExt);
         }
+        if (componentWorkflow) {
+            Map<String, Object> runtime = new LinkedHashMap<>();
+            runtime.put("kind", CollectorEtlStageRuntimeService.KIND); runtime.put("workflowCode", taskCode);
+            runtime.put("workflowVersion", definition.getVersion()); runtime.put("stages", payload.runtimeStages);
+            runtime.put("resourcesJson", payload.resourcesJson); runtime.put("guardNodeCode", payload.guardNodeCode);
+            if (callbackToken != null) runtime.put("callbackTokenHash", CollectorEtlCallbackTokenService.hash(callbackToken));
+            CollectorEtlTaskExtDO savedExt = CollectorEtlTaskExtService.getByTaskId(taskDO.getId());
+            savedExt.setFlinkxJobTemplateJson(JSON.toJSONString(runtime));
+            CollectorEtlTaskExtService.updateById(savedExt);
+        }
         createTaskLogSnapshotIfAbsent(reqVO, definition, taskCode,
                 JSON.toJSONString(payload.locations), taskDO.getDsId());
 
@@ -2259,7 +2458,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     private PipelinePublishPayload buildPipelinePublishPayload(CollectorEtlNewNodeSaveReqVO reqVO,
                                                                 Map<String, Object> taskInfo,
                                                                 String preferredPrimaryCode,
-                                                                CollectorEtlTaskExtDO existingExt) {
+                                                                CollectorEtlTaskExtDO existingExt, String callbackToken) {
         List<CollectorEtlNodeSaveReqVO> configuredNodes = JSON.parseArray(reqVO.getTaskDefinitionList(), CollectorEtlNodeSaveReqVO.class);
         if (configuredNodes == null || configuredNodes.isEmpty()) {
             throw new ServiceException("逻辑集成任务没有可发布节点");
@@ -2299,6 +2498,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         List<Map<String, Object>> locations = new ArrayList<>();
         Map<String, String> configuredCodeToDsCode = new HashMap<>();
         Map<String, String> beforeNode = new HashMap<>();
+        Map<String, String> prepareTail = new HashMap<>();
+        Map<String, Object> runtimeStages = new LinkedHashMap<>();
         Map<String, String> afterNode = new HashMap<>();
         Map<String, Map<String, Object>> pipelineConfigByCode = new HashMap<>();
         for (CollectorEtlNodeSaveReqVO node : pipelineNodes) {
@@ -2354,6 +2555,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 Map<String, Object> control = JSON.parseArray(TaskConverter.buildEtlTaskDefinitionJsonFlinkx(
                         null, node.getName(), dsCode, 0, "{}", reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode())), Map.class).get(0);
                 control.put("taskType", "CONDITIONS");
+                control.remove("taskGroupId"); control.remove("taskGroupPriority");
                 Map<String, Object> parameters = new LinkedHashMap<>();
                 parameters.put("localParams", new ArrayList<>()); parameters.put("resourceList", new ArrayList<>());
                 List<Map<String, Object>> items = new ArrayList<>();
@@ -2457,6 +2659,42 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
             addPipelineAuxiliaryNodes(config, node.getName(), configuredCode, reqVO, definitions, locations,
                     beforeNode, afterNode, index);
+            Map<String, Object> incremental = config.get("incremental") instanceof Map
+                    ? (Map<String, Object>) config.get("incremental") : Collections.emptyMap();
+            if (isCompiledComponentWorkflow(reqVO) && incremental.get("sources") instanceof List
+                    && !((List<?>) incremental.get("sources")).isEmpty()) {
+                if (!stageIncrementalEnabled || !runGuardEnabled) throw new ServiceException("组件增量需要先启用阶段窗口和大任务运行保护");
+                if (StringUtils.isBlank(stagePrepareUrl) || callbackToken == null) {
+                    throw new ServiceException("阶段增量需配置 DS 可访问的 stage_prepare_url 并生成任务回调凭据");
+                }
+                validateIncrementalStagePrimaryKey(config, node.getName());
+                String prepareCode = nextDsNodeCode(reqVO.getSpaceCode());
+                String prepareName = "增量准备-" + prepareCode;
+                Map<String, Object> prepare = TaskConverter.buildHttpTaskDefinitionMap(null, prepareName, prepareCode, 0,
+                        stagePrepareUrl.replaceAll("/+$", "") + "/" + resolveTaskId(reqVO), reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
+                Map<String, Object> http = (Map<String, Object>) prepare.get("taskParams");
+                List<Map<String, Object>> parameters = new ArrayList<>();
+                parameters.add(httpParameter("executionId", "PARAMETER", ""));
+                parameters.add(httpParameter("stageKey", "PARAMETER", configuredCode));
+                parameters.add(httpParameter(CollectorEtlCallbackTokenService.HEADER, "HEADERS", callbackToken));
+                http.put("httpParams", parameters); http.put("httpCheckCondition", "STATUS_CODE_DEFAULT");
+                prepare.put("failRetryTimes", 0); definitions.add(prepare);
+                String previous = beforeNode.get(configuredCode);
+                if (previous == null) beforeNode.put(configuredCode, prepareCode);
+                else {
+                    Map<String, Object> relation = new LinkedHashMap<>();
+                    relation.put("preTaskCode", Long.valueOf(previous)); relation.put("preTaskVersion", 0);
+                    relation.put("postTaskCode", Long.valueOf(prepareCode)); relation.put("postTaskVersion", 0);
+                    relation.put("conditionType", "NONE"); relations.add(relation);
+                }
+                prepareTail.put(configuredCode, prepareCode);
+                ((Map<String, Object>) definition.get("taskParams")).put("json", "${" + prepareName + ".response}");
+                Map<String, Object> runtime = new LinkedHashMap<>();
+                runtime.put("config", config); runtime.put("args", args); runtime.put("dsNodeCode", dsCode);
+                runtime.put("prepareNodeCode", prepareCode);
+                runtime.put("configHash", com.datamaster.module.collector.utils.StageRuntimeFingerprint.of(flinkxJobJson, incremental));
+                runtimeStages.put(configuredCode, JSON.parseObject(JSON.toJSONString(runtime), Map.class));
+            }
             index++;
         }
 
@@ -2475,6 +2713,26 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             }
         }
 
+        // 条件节点选择的是实际分支入口；有阶段prepare时不能仍指向CHUNJUN正文。
+        if (isCompiledComponentWorkflow(reqVO)) {
+            Map<String, String> branchEntries = new HashMap<>();
+            for (Map.Entry<String, String> node : configuredCodeToDsCode.entrySet()) {
+                branchEntries.put(node.getValue(), beforeNode.getOrDefault(node.getKey(), node.getValue()));
+            }
+            for (Map<String, Object> definition : definitions) {
+                if (!"CONDITIONS".equals(definition.get("taskType"))) continue;
+                Map<String, Object> params = (Map<String, Object>) definition.get("taskParams");
+                Map<String, Object> condition = (Map<String, Object>) params.get("conditionResult");
+                for (String branch : Arrays.asList("successNode", "failedNode")) {
+                    List<Long> entries = new ArrayList<>();
+                    for (Object target : (List<?>) condition.get(branch)) {
+                        String code = String.valueOf(target);
+                        entries.add(Long.valueOf(branchEntries.getOrDefault(code, code)));
+                    }
+                    condition.put(branch, entries);
+                }
+            }
+        }
         Object edges = pipelineGraph.get("edges");
         Set<String> relationKeys = new HashSet<>();
         Set<String> incoming = new HashSet<>();
@@ -2522,7 +2780,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                 addPipelineRelation(relations, relationKeys, "0", first);
             }
             if (beforeNode.containsKey(configuredCode)) {
-                addPipelineRelation(relations, relationKeys, beforeNode.get(configuredCode), nodeDs);
+                addPipelineRelation(relations, relationKeys, prepareTail.getOrDefault(configuredCode, beforeNode.get(configuredCode)), nodeDs);
             }
             if (afterNode.containsKey(configuredCode)) {
                 addPipelineRelation(relations, relationKeys, nodeDs, afterNode.get(configuredCode));
@@ -2537,9 +2795,97 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             }
         }
 
+        Map<String, Object> guardContext = Collections.emptyMap();
+        if (runGuardEnabled && isCompiledComponentWorkflow(reqVO)) {
+            guardContext = addWorkflowRunGuard(reqVO, definitions, relations, locations, callbackToken);
+        }
         Map<String, Object> lineageArgs = new HashMap<>();
         lineageArgs.put("lineageUnits", publishedLineageUnits);
-        return new PipelinePublishPayload(definitions, relations, locations, primaryCode, primaryName, lineageArgs);
+        PipelinePublishPayload result = new PipelinePublishPayload(definitions, relations, locations, primaryCode, primaryName, lineageArgs);
+        result.runtimeStages = runtimeStages;
+        result.resourcesJson = (String) guardContext.get("resourcesJson");
+        result.guardNodeCode = (String) guardContext.get("guardNodeCode");
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validateIncrementalStagePrimaryKey(Map<String, Object> config, String nodeName) {
+        Map<String, Object> output = (Map<String, Object>) config.get("output");
+        Map<String, Object> datasource = (Map<String, Object>) output.get("writerDatasource");
+        Long id = toLong(firstNonNull(datasource.get("datasourceId"), datasource.get("id"), null));
+        List<DbColumn> physical = datasourceApiService.getDbTableColumns(id, firstConfigValue(output, "table", "target_table_name"));
+        Set<String> primary = new LinkedHashSet<>();
+        for (DbColumn column : physical) if (Boolean.TRUE.equals(column.getColKey())) primary.add(column.getColName());
+        Set<String> selected = new LinkedHashSet<>(normalizePipelineColumnNames(output.get("selectedColumns")));
+        Set<String> mapped = new LinkedHashSet<>(normalizePipelineColumnNames(output.get("target_columns")));
+        if (primary.isEmpty() || !primary.equals(selected) || !mapped.containsAll(primary)) {
+            throw new ServiceException("增量阶段“" + nodeName + "”的更新键必须覆盖实际目标表主键并包含于字段映射；唯一索引场景暂不自动认定");
+        }
+    }
+
+    private Map<String, Object> httpParameter(String name, String type, String value) {
+        Map<String, Object> parameter = new LinkedHashMap<>(); parameter.put("prop", name);
+        parameter.put("httpParametersType", type); parameter.put("value", value); return parameter;
+    }
+
+    private boolean isComponentSnapshot(CollectorEtlTaskExtDO ext) {
+        return ext != null && StringUtils.isNotBlank(ext.getFlinkxJobTemplateJson())
+                && CollectorEtlStageRuntimeService.KIND.equals(JSON.parseObject(ext.getFlinkxJobTemplateJson()).getString("kind"));
+    }
+
+    private boolean isCompiledComponentWorkflow(CollectorEtlNewNodeSaveReqVO request) {
+        return StringUtils.isNotBlank(request.getDraftJson())
+                && JSON.parseObject(request.getDraftJson()).get("componentSnapshot") instanceof Map;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> addWorkflowRunGuard(CollectorEtlNewNodeSaveReqVO request, List<Map<String, Object>> definitions,
+                                     List<Map<String, Object>> relations, List<Map<String, Object>> locations) {
+        return Collections.emptyMap();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> addWorkflowRunGuard(CollectorEtlNewNodeSaveReqVO request, List<Map<String, Object>> definitions,
+                                     List<Map<String, Object>> relations, List<Map<String, Object>> locations, String callbackToken) {
+        if (!isCompiledComponentWorkflow(request)) return Collections.emptyMap();
+        if (StringUtils.isBlank(runGuardPrepareUrl)) throw new ServiceException("启用运行保护必须配置 DS 可访问的 prepare_url");
+        if (callbackToken == null) throw new ServiceException("任务回调凭据尚未生成");
+        // 只保护大任务自身，不申请跨任务目标表独占。
+        Long taskId = resolveTaskId(request);
+        String resources = "[]";
+        String code = nextDsNodeCode(request.getSpaceCode());
+        String guardName = "工作流运行准入-" + code;
+        Map<String, Object> guard = TaskConverter.buildHttpTaskDefinitionMap(null, guardName, code, 0,
+                runGuardPrepareUrl.replaceAll("/+$", "") + "/" + taskId, request.getDraftJson(), getProjectWorkerGroup(request.getSpaceCode()));
+        Map<String, Object> params = (Map<String, Object>) guard.get("taskParams");
+        params.put("httpMethod", "POST");
+        params.put("httpBody", JSON.toJSONString(Collections.singletonMap("resourcesJson", resources)));
+        List<Map<String, Object>> httpParams = new ArrayList<>();
+        httpParams.add(httpParameter(CollectorEtlCallbackTokenService.HEADER, "HEADERS", callbackToken));
+        Map<String, Object> contentType = new LinkedHashMap<>(); contentType.put("prop", "Content-Type");
+        contentType.put("httpParametersType", "HEADERS"); contentType.put("value", "application/json"); httpParams.add(contentType);
+        params.put("httpParams", httpParams);
+        params.put("httpCheckCondition", "STATUS_CODE_DEFAULT");
+        for (Map<String, Object> definition : definitions) {
+            if (!(definition.get("taskParams") instanceof Map)) continue;
+            Map<String, Object> stageParams = (Map<String, Object>) definition.get("taskParams");
+            if (!(stageParams.get("httpParams") instanceof List)) continue;
+            for (Map<String, Object> parameter : (List<Map<String, Object>>) stageParams.get("httpParams")) {
+                if ("executionId".equals(parameter.get("prop"))) parameter.put("value", "${" + guardName + ".response}");
+            }
+        }
+        guard.put("failRetryTimes", 0);
+        Set<String> seen = new HashSet<>();
+        for (Map<String, Object> relation : relations) {
+            if ("0".equals(String.valueOf(relation.get("preTaskCode")))) relation.put("preTaskCode", Long.valueOf(code));
+        }
+        addPipelineRelation(relations, seen, "0", code);
+        definitions.add(guard);
+        Map<String, Object> position = new LinkedHashMap<>(); position.put("taskCode", Long.valueOf(code)); position.put("x", 0); position.put("y", 0);
+        locations.add(position);
+        Map<String, Object> context = new LinkedHashMap<>();
+        context.put("resourcesJson", resources); context.put("guardNodeCode", code);
+        return context;
     }
 
     @SuppressWarnings("unchecked")
@@ -3416,6 +3762,9 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         private final String primaryCode;
         private final String primaryName;
         private final Map<String, Object> lineageArgs;
+        private Map<String, Object> runtimeStages = new LinkedHashMap<>();
+        private String resourcesJson;
+        private String guardNodeCode;
 
         private PipelinePublishPayload(List<Map<String, Object>> taskDefinitions,
                                        List<Map<String, Object>> taskRelations,
@@ -3486,6 +3835,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         if (taskDO == null) {
             throw new ServiceException("任务不存在");
         }
+        checkTaskSpaceAccess(taskDO);
 
         CollectorEtlTaskExtDO taskExt = CollectorEtlTaskExtService.getByTaskId(taskDO.getId());
         String dsCode;
@@ -3495,8 +3845,18 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             dsCode = taskDO.getCode();
         }
 
+        boolean component = isComponentSnapshot(taskExt);
+        if (component) {
+            runGuardMapper.lockTask(taskId);
+            componentRecovery.cancelPending(taskId, "用户下线任务，取消自动恢复");
+        }
         stopRunningProcessInstances(taskDO.getId(), String.valueOf(taskDO.getSpaceCode()), dsCode);
-        collectorEtlIncrementalService.forceReleaseIncrementalTask(taskDO.getId());
+        if (component && runGuardEnabled) {
+            for (com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlRunDO run : runGuardMapper.findActive(taskId)) {
+                dsEtlTaskService.stopWorkflowInstance(taskDO.getSpaceCode(), run.getWorkflowInstanceId());
+            }
+        }
+        if (!component) collectorEtlIncrementalService.forceReleaseIncrementalTask(taskDO.getId());
 
         //下线DS任务
         DsStatusRespDTO dsStatusRespDTO = dsEtlTaskService.releaseTask("OFFLINE", String.valueOf(taskDO.getSpaceCode()), dsCode);
@@ -3528,7 +3888,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
             }
             iCollectorEtlSchedulerService.updateCollectorEtlScheduler(schedulerSaveReqVO);
         }
-        if (processDefinitionMissing && taskExt != null) {
+        if (processDefinitionMissing && taskExt != null && !component) {
             CollectorEtlTaskExtService.removeById(taskExt.getId());
         }
 
@@ -3541,7 +3901,8 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         Set<Long> processInstanceIds = new LinkedHashSet<>();
         Long runningTaskInstanceId = CollectorEtlTaskInstanceService.getRunTaskInstance(taskId);
         if (runningTaskInstanceId != null) {
-            processInstanceIds.add(runningTaskInstanceId);
+            CollectorEtlTaskInstanceDO local = CollectorEtlTaskInstanceService.getById(runningTaskInstanceId);
+            processInstanceIds.add(local != null && local.getDsId() != null ? local.getDsId() : runningTaskInstanceId);
         }
 
         try {
@@ -3606,7 +3967,45 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         return dsEtlTaskService.updateTask(request, spaceCode, taskCode);
     }
 
+    private void canonicalizeComponentDatasources(CollectorEtlNewNodeSaveReqVO request, CollectorEtlTaskDO task) {
+        List<CollectorEtlNodeSaveReqVO> nodes = JSON.parseArray(request.getTaskDefinitionList(), CollectorEtlNodeSaveReqVO.class);
+        Map<Long, Map<String, Object>> registered = new HashMap<>();
+        for (CollectorEtlNodeSaveReqVO node : nodes) {
+            if (node == null || node.getTaskParams() == null) throw new ServiceException("组件缺少配置");
+            Map<String, Object> params = node.getTaskParams();
+            for (String key : Arrays.asList("readerDatasource", "writerDatasource")) {
+                if (!(params.get(key) instanceof Map)) continue;
+                Map<?, ?> supplied = (Map<?, ?>) params.get(key);
+                Long id = toLong(supplied.get("datasourceId") == null ? supplied.get("id") : supplied.get("datasourceId"));
+                if (id == null || !datasourceApiService.hasDatasourceSpace(id, task.getSpaceId(), task.getSpaceCode())) {
+                    throw new ServiceException("组件数据源未授权给当前任务空间");
+                }
+                Map<String, Object> canonical = registered.get(id);
+                if (canonical == null) {
+                    com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO source = datasourceApiService.getDatasourceById(id);
+                    if (source == null || Boolean.FALSE.equals(source.getValidFlag())) throw new ServiceException("组件数据源不存在或已停用");
+                    canonical = JSON.parseObject(JSON.toJSONString(source), Map.class);
+                    canonical.put("datasourceId", id);
+                    registered.put(id, canonical);
+                }
+                params.put(key, new LinkedHashMap<>(canonical));
+            }
+        }
+        request.setTaskDefinitionList(JSON.toJSONString(nodes));
+    }
+
+    private void bindComponentTaskOwner(CollectorEtlNewNodeSaveReqVO request, CollectorEtlTaskDO task) {
+        request.setId(task.getId()); request.setIdStr(String.valueOf(task.getId()));
+        request.setSpaceId(task.getSpaceId());
+        request.setSpaceCode(JSONUtils.convertToLong(task.getSpaceCode()));
+        request.setType(task.getType());
+    }
+
     private Long resolveTaskId(CollectorEtlNewNodeSaveReqVO reqVO) {
+        if (reqVO.getId() != null && StringUtils.isNotBlank(reqVO.getIdStr())
+                && !reqVO.getId().equals(JSONUtils.convertToLong(reqVO.getIdStr()))) {
+            throw new ServiceException("任务ID与idStr不一致");
+        }
         if (reqVO.getId() != null) {
             return reqVO.getId();
         }
@@ -3655,9 +4054,24 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
 
     @Override
     public CollectorEtlTaskUpdateQueryRespVO getupdateQueryFront(Long id) {
+        CollectorEtlTaskDO taskForCheck = CollectorEtlTaskMapper.selectById(id);
+        checkTaskSpaceAccess(taskForCheck);
+        return loadUpdateQueryFront(taskForCheck);
+    }
 
-        CollectorEtlTaskDO CollectorEtlTaskDO = CollectorEtlTaskMapper.selectById(id);
+    /** 内部读取已保存定义；新组件运行准入改用发布快照，不再依赖此入口。 */
+    @Override
+    public CollectorEtlTaskUpdateQueryRespVO getSavedTaskForRunGuard(Long id) {
+        return loadUpdateQueryFront(CollectorEtlTaskMapper.selectById(id));
+    }
+
+    private CollectorEtlTaskUpdateQueryRespVO loadUpdateQueryFront(CollectorEtlTaskDO CollectorEtlTaskDO) {
+        if (CollectorEtlTaskDO == null) throw new ServiceException("任务不存在");
         CollectorEtlTaskUpdateQueryRespVO bean = new CollectorEtlTaskUpdateQueryRespVO(CollectorEtlTaskDO);
+        CollectorEtlTaskRespVO task = BeanUtils.toBean(CollectorEtlTaskDO, CollectorEtlTaskRespVO.class);
+        List<CollectorEtlTaskNodeRelRespVO> relations = getTaskNodeRelList(task);
+        bean.setTaskRelationJsonFromNodeRelList(relations);
+        bean.setTaskDefinitionList(removeDuplicateById(getNodeRespListByTaskNodeRelList(relations), task.getType()));
 
         CollectorEtlSchedulerDO CollectorEtlSchedulerById = getCollectorEtlScheduler(bean.getCode(), bean.getId());
         bean.setCrontab(CollectorEtlSchedulerById.getCronExpression());

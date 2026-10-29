@@ -24,9 +24,41 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService, IOntol
 
     @Resource
     private AiSkillModelProperties properties;
+    @Resource
+    private com.datamaster.module.ai.service.gateway.ActiveModelResolver activeModelResolver;
+    @Resource
+    private com.datamaster.module.ai.service.gateway.AiInvocationGateway invocationGateway;
+    @Resource
+    private com.datamaster.module.ai.service.gateway.StructuredModelService structured;
+
+    @Override
+    public com.datamaster.module.ai.service.skill.dto.ReportTemplateOutput generateReportTemplate(String system, String user) {
+        return structured.report(system, user);
+    }
+
+    @Override
+    public com.datamaster.module.ai.service.skill.dto.SkillEnhancementOutput enhanceSkill(String system, String user) {
+        return structured.skill(system, user);
+    }
+
+    @Override
+    public com.datamaster.module.ontology.api.dto.OntologyModelOutput generateOntology(String system, String user) {
+        return structured.ontology(system, user);
+    }
+
+    @Override
+    public com.datamaster.module.ontology.api.dto.ActionGenerationOutput generateActions(String system, String user) {
+        return structured.actions(system, user);
+    }
+
+    @Override
+    public com.datamaster.module.ontology.api.dto.ActionDecisionOutput decideAction(String system, String user) {
+        return structured.decision(system, user);
+    }
 
     @Override
     public boolean available() {
+        AiSkillModelProperties properties = activeModelResolver.resolve(this.properties);
         return Boolean.TRUE.equals(properties.getEnabled()) && StringUtils.isNotBlank(properties.getApiUrl());
     }
 
@@ -36,23 +68,27 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService, IOntol
         if (modelConfig == null) {
             throw new ServiceException("决策智能体模型未启用或未配置API地址");
         }
-        int maxAttempts = Math.max(1, modelConfig.getRetryCount() + 1);
-        ServiceException lastFailure = null;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                return requestCompletion(systemPrompt, userPrompt, modelConfig);
-            } catch (ServiceException e) {
-                lastFailure = e;
-                if (!isRetryable(e) || attempt >= maxAttempts) {
-                    throw e;
+        try (com.datamaster.module.ai.service.gateway.AiInvocationGateway.Invocation call =
+                     invocationGateway.begin("MODEL", "TEXT_COMPLETION", modelConfig.provider, modelConfig.getModel(), false,
+                             com.datamaster.module.ai.service.gateway.AiInvocationGateway.snapshotContext())) {
+            int maxAttempts = Math.max(1, modelConfig.getRetryCount() + 1);
+            ServiceException lastFailure = null;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    String text = requestCompletion(systemPrompt, userPrompt, modelConfig, call);
+                    return text;
+                } catch (ServiceException e) {
+                    lastFailure = e;
+                    if (!isRetryable(e) || attempt >= maxAttempts) throw e;
+                    sleepBeforeRetry(modelConfig.getRetryInterval(), attempt);
                 }
-                sleepBeforeRetry(modelConfig.getRetryInterval(), attempt);
             }
+            throw lastFailure == null ? new ServiceException("AI模型调用失败") : lastFailure;
         }
-        throw lastFailure == null ? new ServiceException("AI模型调用失败") : lastFailure;
     }
 
-    private String requestCompletion(String systemPrompt, String userPrompt, ModelConfig modelConfig) {
+    private String requestCompletion(String systemPrompt, String userPrompt, ModelConfig modelConfig,
+                                     com.datamaster.module.ai.service.gateway.AiInvocationGateway.Invocation call) {
         DbGptChatCompletionRequest request = new DbGptChatCompletionRequest();
         request.setModel(modelConfig.getModel());
         request.setTemperature(modelConfig.getTemperature());
@@ -71,23 +107,30 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService, IOntol
                 .execute()) {
             String body = response.body();
             if (response.getStatus() != 200) {
-                throw new ServiceException("AI模型调用失败，状态码: " + response.getStatus() + "，响应: " + body);
+                call.failure("HTTP", response.getStatus());
+                throw new ServiceException("AI模型调用失败，状态码: " + response.getStatus());
             }
             DbGptChatCompletionResponse result = JSON.parseObject(body, DbGptChatCompletionResponse.class);
             if (result != null && result.getChoices() != null && !result.getChoices().isEmpty()
                     && result.getChoices().get(0).getMessage() != null) {
+                com.datamaster.module.ai.service.gateway.InvocationUsage usage =
+                        com.datamaster.module.ai.service.gateway.InvocationUsage.fromJson(body);
+                call.success(usage.getInput(), usage.getOutput());
                 return result.getChoices().get(0).getMessage().getContent();
             }
             JSONObject raw = JSON.parseObject(body);
             String text = raw.getString("content");
             if (StringUtils.isNotBlank(text)) {
+                com.datamaster.module.ai.service.gateway.InvocationUsage usage = com.datamaster.module.ai.service.gateway.InvocationUsage.fromJson(body);
+                call.success(usage.getInput(), usage.getOutput());
                 return text;
             }
             throw new ServiceException("AI模型响应为空");
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
-            throw new ServiceException("AI模型调用异常: " + e.getMessage());
+            call.failure("NETWORK", null);
+            throw new ServiceException("AI模型调用异常，请检查模型连接配置");
         }
     }
 
@@ -124,8 +167,10 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService, IOntol
     }
 
     private ModelConfig resolveModelConfig() {
+        AiSkillModelProperties properties = activeModelResolver.resolve(this.properties);
         if (Boolean.TRUE.equals(properties.getEnabled()) && StringUtils.isNotBlank(properties.getApiUrl())) {
             ModelConfig modelConfig = new ModelConfig();
+            modelConfig.provider = properties.getProvider();
             modelConfig.setModel(defaultText(properties.getModel(), "qwen-plus"));
             modelConfig.setApiUrl(properties.getApiUrl());
             modelConfig.setApiKey(resolveApiKey(properties.getApiKey()));
@@ -172,6 +217,7 @@ public class AiModelGatewayServiceImpl implements IAiModelGatewayService, IOntol
     }
 
     private static class ModelConfig {
+        private String provider;
         private String model;
         private String apiUrl;
         private String apiKey;

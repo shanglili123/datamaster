@@ -9,6 +9,7 @@ import com.datamaster.module.collector.controller.admin.etl.vo.CollectorEtlNodeI
 import com.datamaster.module.collector.controller.admin.etl.vo.CollectorEtlNodeInstanceRespVO;
 import com.datamaster.module.collector.controller.admin.etl.vo.CollectorEtlNodeInstanceSaveReqVO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeInstanceDO;
+import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskInstanceDO;
 
 import java.util.Collection;
 import java.util.List;
@@ -100,6 +101,12 @@ public interface ICollectorEtlNodeInstanceService extends IService<CollectorEtlN
      * @return
      */
     Boolean updateNodeInstance(TaskInstance taskInstance);
+
+    /**
+     * 仅供新登记组件运行的调度对账调用。调用方须在事务内持有父任务的 owner 行锁。
+     * 节点按 DS 身份幂等同步，本地父实例 ID 与 DS 工作流实例 ID 分开保存。
+     */
+    void synchronizeSchedulerNodes(CollectorEtlTaskInstanceDO parent, List<TaskInstance> nodes);
 
     /**
      * 根据dsId获取数据

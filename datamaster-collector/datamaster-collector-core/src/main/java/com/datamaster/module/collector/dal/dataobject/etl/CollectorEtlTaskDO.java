@@ -121,4 +121,13 @@ public class CollectorEtlTaskDO extends BaseEntity {
 
     @Schema(description = "草稿任务配置信息", example = "")
     private String draftJson;
+
+    /** Current owned run identity and guard state */
+    private Long activeRunId;
+    private Long runWorkflowInstanceId;
+    private Long runWorkflowCode;
+    private String runOwnerToken;
+    private String runGuardStatus;
+    private String runResourcesJson;
+    private Date runLeaseUpdatedAt;
 }

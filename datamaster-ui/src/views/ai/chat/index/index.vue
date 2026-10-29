@@ -4,7 +4,7 @@
       <div class="ai-local-nav">
         <button type="button" class="ai-local-nav-item is-active">
           <span class="ai-local-nav-dot"></span>
-          决策智能体
+          数据分析
         </button>
         <button type="button" class="ai-local-nav-item" @click="openWorkflowHome">
           <span class="ai-local-nav-dot workflow"></span>
@@ -25,7 +25,12 @@
           <a-segmented v-model:value="form.mode" :options="modeOptions" class="mode-switch" />
         </div>
         <div class="chat-option-group">
-          <span class="chat-option-label">数据源</span>
+          <span class="chat-option-label">指标本体（正式指标分析）</span>
+          <a-select v-model:value="form.ontologyId" :options="ontologyOptions" :loading="ontologyLoading" show-search option-filter-prop="label" allow-clear placeholder="选择已发布指标所属本体" :disabled="sending" />
+          <span class="chat-option-hint">正式指标走受控分析；探索明细仍使用下方数据源和数据分析服务。平台流程与指标草稿生成请使用 Data Agent。</span>
+        </div>
+        <div class="chat-option-group">
+          <span class="chat-option-label">数据源（探索分析）</span>
           <a-select
             v-model:value="form.datasourceId"
             placeholder="选择数据源"
@@ -55,7 +60,12 @@
               {{ item.skillName }}
             </a-select-option>
           </a-select>
-          <span v-if="form.mode === 'decision'" class="chat-option-hint">查询真实数据后形成经营分析与优化建议，不执行本体动作。</span>
+          <span v-if="form.mode === 'decision'" class="chat-option-hint">默认只分析，预览确认后按已有审批执行。</span>
+        </div>
+        <div v-if="form.mode === 'decision'" class="chat-option-group">
+          <span class="chat-option-label">对象主键（可选）</span>
+          <a-input v-model:value="form.objectKey" :disabled="sending" allow-clear placeholder="可在此填写，也可在本次问题中补充" />
+          <span class="chat-option-hint">用于绑定具体业务对象，提交前以服务端预览为准；未选本体时请先选择本体。</span>
         </div>
         <div v-if="form.mode === 'report'" class="chat-option-group">
           <span class="chat-option-label">报告模板</span>
@@ -82,8 +92,8 @@
         </div>
         <div v-if="activeMessages.length === 0" class="empty-state">
           <h1>想查什么，直接问</h1>
-          <p v-if="form.mode === 'decision'">决策建议模式会先查询真实数据，再给出可量化的经营分析和优化建议，不会直接执行动作。</p>
-          <p v-else>选择数据源后，决策智能体会结合数据源和 Skill，提供数据查询、分析与报告。</p>
+          <p v-if="form.mode === 'decision'">决策分析模式默认只分析，预览确认后按已有审批执行；影响估算不等于实际改善。</p>
+          <p v-else>选择指标本体开展正式指标分析，或选择数据源进行探索问数；后台按问题分流，不在问数中执行平台管理流程。</p>
           <div class="examples">
             <button v-for="item in examples" :key="item" @click="prompt = item">
               {{ item }}
@@ -140,9 +150,31 @@
               </div>
             </div>
             <div v-if="message.responseMode === 'decision'" class="decision-analysis-banner">
-              <strong>经营决策分析</strong>
-              <span>基于真实查询结果形成建议，不执行本体动作</span>
+              <strong>决策分析</strong>
+              <span>默认只分析，预览确认后按已有审批执行</span>
             </div>
+            <DecisionProposal
+              v-if="message.decisionId"
+              :key="`${decisionContextKey}:${message.id}:${message.decisionId}`"
+              :decision-id="message.decisionId"
+              :snapshot="message.decision"
+              :context-key="decisionContextKey"
+              :ontology-id="form.ontologyId"
+              :disabled="sending"
+              @updated="updateDecisionMessage(message, $event)"
+            />
+            <a-alert v-if="message.analysisNotice" type="info" show-icon :message="message.analysisNotice" style="margin-bottom: 12px" />
+            <a-alert v-if="message.agentOperationStatus === 'NEED_CONFIRMATION'" type="warning" show-icon message="待确认保存分析条件" description="确认的是本条消息对应的服务端名称、指标版本、维度、过滤和时间条件，不保存查询结果。">
+              <template #action><a-button type="primary" size="small" :loading="message.agentConfirming" :disabled="sending || !message.agentOperationId" @click="confirmMetricAnalysis(message)">确认保存</a-button></template>
+            </a-alert>
+            <details v-if="message.semanticAnalysisResults?.length" class="agent-fold">
+              <summary>查看后端确定性分析结果</summary>
+              <pre>{{ JSON.stringify(message.semanticAnalysisResults, null, 2) }}</pre>
+            </details>
+            <details v-if="message.agentOperationStatus === 'NEED_CONFIRMATION' && message.agentConfirmation?.arguments" class="agent-fold">
+              <summary>查看待保存名称和完整查询条件</summary>
+              <pre>{{ JSON.stringify(message.agentConfirmation.arguments, null, 2) }}</pre>
+            </details>
             <ReportTemplateRenderer
               v-if="message.reportTemplate && message.reportData"
               :template="message.reportTemplate"
@@ -155,12 +187,12 @@
               <a-empty description="暂无查询结果" />
             </div>
             <MarkdownView
-              v-if="!message.reportTemplate && !message.reportData && !message.tableRows?.length && (message.displayContent || message.content)"
+              v-if="!message.reportTemplate && !message.reportData && (message.displayContent || message.content)"
               class="message-content"
               :content="message.displayContent || message.content"
             />
             <div
-              v-if="!message.reportTemplate && !message.reportData && !message.tableRows?.length && !message.displayContent && !message.content"
+              v-if="!message.decisionId && !message.reportTemplate && !message.reportData && !message.tableRows?.length && !message.displayContent && !message.content"
               class="typing"
             >
               <span></span>
@@ -258,7 +290,7 @@
 </template>
 
 <script setup>
-import { computed, h, inject, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, h, inject, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CopyOutlined, DeleteOutlined, EditOutlined, FileTextOutlined, PlusOutlined, SendOutlined, StopOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
@@ -268,7 +300,9 @@ import request from '@/utils/request'
 import { getToken } from '@/utils/auth'
 import MarkdownView from '@/components/MarkdownView/index.vue'
 import ReportTemplateRenderer from './components/ReportTemplateRenderer.vue'
-import { askDataDbgptReport } from '@/api/ai/askData'
+import DecisionProposal from './components/DecisionProposal.vue'
+import { listOntology } from '@/api/ont/ontology'
+import { loadPagedOptions } from '@/api/ont/metricOptions'
 import { normalizeAgentText } from '@/utils/agentText'
 import { listSkill, listSkillReportTemplates } from '@/api/ai/skill'
 import {
@@ -285,6 +319,10 @@ import useUserStore from '@/store/system/user'
 import { buildReportTemplateFormatText } from './reportTemplateFormat'
 
 const datasourceList = ref([])
+const ontologyOptions = ref([])
+const ontologyLoading = ref(false)
+let askContextVersion = 0
+let ontologyLoadVersion = 0
 const skillList = ref([])
 const templateList = ref([])
 const conversations = ref([])
@@ -315,6 +353,8 @@ const messageWindow = reactive({
 })
 
 const form = reactive({
+  ontologyId: null,
+  objectKey: '',
   datasourceId: null,
   mode: 'qa',
   skillId: null,
@@ -324,7 +364,7 @@ const form = reactive({
 
 const modeOptions = [
   { label: '问答', value: 'qa' },
-  { label: '决策建议', value: 'decision' },
+  { label: '决策分析', value: 'decision' },
   { label: '报告', value: 'report' }
 ]
 
@@ -340,6 +380,10 @@ const activeConversation = computed(() =>
 )
 
 const activeMessages = computed(() => activeConversation.value?.messages || [])
+const decisionRequestVersion = ref(0)
+const decisionContextKey = computed(() => JSON.stringify([
+  userStore.spaceId, userStore.spaceCode, activeConversationId.value, decisionRequestVersion.value
+]))
 
 const selectedDatasource = computed(() =>
   datasourceList.value.find((item) => String(item.id) === String(form.datasourceId))
@@ -354,6 +398,7 @@ const selectedSkill = computed(() =>
 const availableSkillList = computed(() => skillList.value)
 
 onMounted(async () => {
+  await loadOntologies()
   await loadDatasources()
   await loadSkills()
   await loadConversations()
@@ -376,9 +421,32 @@ watch(() => [form.datasourceId, form.skillId, form.templateId, form.returnSql], 
 })
 
 watch(() => [userStore.spaceId, userStore.spaceCode], async () => {
+  ++askContextVersion
+  activeAbortController.value?.abort()
+  activeAbortController.value = null
+  sending.value = false
+  form.ontologyId = null
+  form.objectKey = ''
+  form.datasourceId = null
+  await loadOntologies()
   await loadDatasources()
   await loadConversations()
 })
+
+onBeforeUnmount(() => { ++askContextVersion; ++ontologyLoadVersion; activeAbortController.value?.abort() })
+
+async function loadOntologies() {
+  const version = ++ontologyLoadVersion
+  ontologyOptions.value = []
+  ontologyLoading.value = true
+  try {
+    const rows = await loadPagedOptions(listOntology, { spaceId: userStore.spaceId, spaceCode: userStore.spaceCode })
+    if (version !== ontologyLoadVersion) return
+    ontologyOptions.value = rows.map(item => ({ value: String(item.id), label: item.name }))
+  } catch (error) {
+    if (version === ontologyLoadVersion) ontologyOptions.value = []
+  } finally { if (version === ontologyLoadVersion) ontologyLoading.value = false }
+}
 
 async function loadDatasources() {
   const res = await request({
@@ -506,11 +574,21 @@ async function createConversation() {
 }
 
 async function selectConversation(id) {
+  if (id !== activeConversationId.value) {
+    form.objectKey = ''
+    ++askContextVersion
+    activeAbortController.value?.abort()
+    activeAbortController.value = null
+    sending.value = false
+    activeAssistantMessage.value = null
+  }
   activeConversationId.value = id
   resetPromptHistory()
   const session = activeConversation.value
   if (!session) return
+  const context = askContextVersion
   await applySessionToForm(session)
+  if (context !== askContextVersion || id !== activeConversationId.value) return
   await loadSessionMessages(id)
 }
 
@@ -539,7 +617,9 @@ async function removeConversation(id) {
 }
 
 async function loadSessionMessages(sessionId) {
+  const context = askContextVersion
   const res = await listAskMessages(sessionId, { limit: 10 })
+  if (context !== askContextVersion || sessionId !== activeConversationId.value) return
   const data = res.data || {}
   const session = conversations.value.find((item) => item.id === sessionId)
   if (!session) return
@@ -569,6 +649,7 @@ function openWorkflowHome() {
 async function loadMoreMessages(direction) {
   const session = activeConversation.value
   if (!session || !session.messages.length) return
+  const context = askContextVersion
   const isBefore = direction === 'before'
   if (isBefore && messageWindow.loadingBefore) return
   if (!isBefore && messageWindow.loadingAfter) return
@@ -582,6 +663,7 @@ async function loadMoreMessages(direction) {
     if (isBefore) params.beforeId = session.messages[0].id
     else params.afterId = session.messages[session.messages.length - 1].id
     const res = await listAskMessages(session.id, params)
+    if (context !== askContextVersion || session.id !== activeConversationId.value) return
     const data = res.data || {}
     const rows = (data.rows || []).map(normalizeMessage)
     if (isBefore) {
@@ -689,6 +771,8 @@ function normalizeMessage(row) {
         displayContent: normalizeVisibleLineBreaks(normalizeAgentText(payload.displayContent || row.displayContent || '')),
         agentSteps: normalizeAgentText(payload.agentSteps || ''),
         agentConfirmation: payload.agentConfirmation || null,
+        decisionId: payload.decisionId ? String(payload.decisionId) : (payload.decision?.id ? String(payload.decision.id) : ''),
+        decision: payload.decision || null,
         agentConfirming: false
       }
       normalizeReportPayload(message)
@@ -863,8 +947,8 @@ function waitForImages(doc) {
 }
 
 function reportFileName(message) {
-  const raw = activeConversation.value?.title || message?.title || '决策智能体报告'
-  const safe = raw.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60) || '决策智能体报告'
+  const raw = activeConversation.value?.title || message?.title || '数据分析报告'
+  const safe = raw.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60) || '数据分析报告'
   return `${safe}.pdf`
 }
 
@@ -912,12 +996,14 @@ function isSqlOnlyDisplay(content) {
 }
 
 async function applySessionToForm(session) {
+  const context = askContextVersion
   syncingSession.value = true
   try {
     // 流程编排已经迁移到流程首页；旧会话中的 agent 模式回落为普通问答。
     form.mode = session.mode === 'agent' ? 'qa' : (session.mode || 'qa')
     form.datasourceId = session.datasourceId == null ? null : String(session.datasourceId)
     await loadSkills()
+    if (context !== askContextVersion || session.id !== activeConversationId.value) return
     form.skillId = session.skillId == null ? null : String(session.skillId)
     form.templateId = session.templateId || null
     form.returnSql = Boolean(session.returnSql)
@@ -982,9 +1068,13 @@ function serializeMessage(message) {
     agentSteps: message.agentSteps || '',
     queryExecuted: Boolean(message.queryExecuted),
     responseMode: message.responseMode || 'qa',
+    decisionId: message.decisionId || '',
+    decision: message.decision || null,
     agentOperationId: message.agentOperationId || '',
     agentOperationStatus: message.agentOperationStatus || '',
     agentConfirmation: message.agentConfirmation || null,
+    analysisNotice: message.analysisNotice || '',
+    semanticAnalysisResults: message.semanticAnalysisResults || [],
     tableRows: message.tableRows || [],
     tableColumns: message.tableColumns || [],
     reportTemplate: message.reportTemplate || null,
@@ -1115,11 +1205,13 @@ async function sendMessage() {
     message.warning('请输入问题')
     return
   }
-  if (!form.datasourceId) {
-    message.warning('请先选择数据源')
+  // 指标查询由发布来源决定，不要求前端预先选择DB-GPT数据源。
+  const decisionRequest = form.mode === 'decision'
+  if (decisionRequest && !form.ontologyId) {
+    message.warning('请先选择指标本体，再发起决策分析')
     return
   }
-  const decisionRequest = form.mode === 'decision'
+  ++decisionRequestVersion.value
   // 明确提出“生成/输出报告”时，即使当前开关仍在问答，也自动走报告链路。
   // 报告 Skill/模板由后端结合当前数据源自动解析，避免用户为了同一问题重复配置。
   const reportRequest = !decisionRequest && (form.mode === 'report' || isReportIntent(question))
@@ -1128,9 +1220,12 @@ async function sendMessage() {
   }
 
   const conversation = activeConversation.value
+  if (!conversation) return
+  const context = askContextVersion
   if (conversation.messages.length === 0) {
     conversation.title = question.slice(0, 20)
     await updateAskSession(conversation.id, buildSessionPayload({ title: conversation.title }))
+    if (context !== askContextVersion) return
   }
   conversation.datasourceName = selectedDatasourceName()
   const userMessage = {
@@ -1141,6 +1236,7 @@ async function sendMessage() {
   conversation.messages.push(userMessage)
   trimActiveMessagesToLatest()
   await persistMessage(userMessage)
+  if (context !== askContextVersion) return
 
   const assistantMessage = reactive({
     id: Date.now() + 1,
@@ -1165,7 +1261,8 @@ async function sendMessage() {
   conversation.messages.push(assistantMessage)
   trimActiveMessagesToLatest()
   activeAssistantMessage.value = assistantMessage
-  activeAbortController.value = new AbortController()
+  const controller = new AbortController()
+  activeAbortController.value = controller
   autoScroll.value = true
 
   prompt.value = ''
@@ -1175,23 +1272,24 @@ async function sendMessage() {
 
   try {
     setActiveStep(assistantMessage, 'connect')
-    if (reportRequest) {
-      setActiveStep(assistantMessage, 'answer')
-      await generateReportMessage(question, assistantMessage)
-    } else {
-      await streamAskData({
+    await streamAskData({
         question,
         datasourceId: form.datasourceId,
+        ontologyId: form.ontologyId,
+        ...(decisionRequest && form.objectKey.trim() ? { objectKey: form.objectKey.trim() } : {}),
+        sessionId: conversation.id,
+        reportTemplateId: form.templateId,
         chatMode: 'chat_with_db_qa',
         conversationId: String(conversation.id),
         history: buildConversationHistory(conversation, question),
         skillIds: form.skillId ? [form.skillId] : [],
-        responseMode: decisionRequest ? 'decision' : 'qa',
+        responseMode: reportRequest ? 'report' : decisionRequest ? 'decision' : 'qa',
         returnSql: form.returnSql,
         spaceId: userStore.spaceId || null,
         spaceCode: userStore.spaceCode || ''
       }, {
         onMessage(chunk) {
+          if (context !== askContextVersion) return
           if (!assistantMessage.content) {
             setActiveStep(assistantMessage, 'answer')
           }
@@ -1199,41 +1297,54 @@ async function sendMessage() {
           scrollToBottom()
         },
         onSql(sql) {
+          if (context !== askContextVersion) return
           appendSqlToMessage(assistantMessage, sql)
           scrollToBottom()
         },
         onSteps(steps) {
+          if (context !== askContextVersion) return
           appendAgentStepsToMessage(assistantMessage, steps)
           scrollToBottom()
         },
+        onResult(data) {
+          if (context !== askContextVersion) return
+          applyAskAgentResult(assistantMessage, data)
+          scrollToBottom()
+        },
+        onReport(data) { if (context === askContextVersion) applyAskReport(assistantMessage, data) },
         onError(message) {
-          assistantMessage.content = normalizeAgentText(message) || '决策智能体调用失败'
+          if (context !== askContextVersion) return
+          assistantMessage.content = normalizeAgentText(message) || '问数调用失败'
           finishSteps(assistantMessage)
         }
-      }, activeAbortController.value.signal)
+      }, controller.signal)
+      if (context !== askContextVersion) return
       hydrateStructuredData(assistantMessage)
       hydrateNativeExecutionData(assistantMessage)
-    }
     finishSteps(assistantMessage)
     await persistMessage(assistantMessage)
   } catch (error) {
+    if (context !== askContextVersion) return
     if (isAbortError(error)) {
       assistantMessage.content = assistantMessage.content || '已停止生成'
     } else {
-      assistantMessage.content = normalizeAgentText(error?.message) || '决策智能体调用失败'
+      assistantMessage.content = normalizeAgentText(error?.message) || '数据分析调用失败'
     }
     finishSteps(assistantMessage)
     await persistMessage(assistantMessage)
   } finally {
-    sending.value = false
-    activeAbortController.value = null
-    activeAssistantMessage.value = null
-    await scrollToBottom()
+    if (context === askContextVersion) {
+      sending.value = false
+      activeAbortController.value = null
+      activeAssistantMessage.value = null
+      await scrollToBottom()
+    }
   }
 }
 
 function stopGeneration() {
   if (!sending.value) return
+  message.info('仅停止接收生成内容，不会撤销已提交的业务执行；请通过提案刷新运行状态。')
   const assistantMessage = activeAssistantMessage.value
   if (assistantMessage) {
     assistantMessage.content = assistantMessage.content || '已停止生成'
@@ -1248,40 +1359,95 @@ function isAbortError(error) {
   return error?.name === 'AbortError' || error?.code === 'ERR_CANCELED' || /canceled|aborted/i.test(error?.message || '')
 }
 
-async function generateReportMessage(question, assistantMessage) {
-  const res = await askDataDbgptReport({
-    question,
-    datasourceId: form.datasourceId,
-    spaceId: userStore.spaceId || null,
-    spaceCode: userStore.spaceCode || '',
-    conversationId: String(activeConversation.value?.id || ''),
-    history: buildConversationHistory(activeConversation.value, question),
-    skillId: form.skillId,
-    templateId: form.templateId,
-    returnSql: form.returnSql
-  }, { signal: activeAbortController.value?.signal })
-  if (activeAbortController.value?.signal.aborted) return
-  const data = res.data || {}
-  if (data.qualityWarning) {
-    assistantMessage.content = normalizeAgentText(data.qualityWarning)
-  }
+function applyAskReport(assistantMessage, data) {
+  if (data.qualityWarning) assistantMessage.content = normalizeAgentText(data.qualityWarning)
   if (data.templateContent && data.reportData) {
-    const reportTemplate = parseMaybeJson(data.templateContent) || data.templateContent
-    const reportData = parseMaybeJson(data.reportData) || data.reportData
-    const sql = data.sql || reportData?.sql
-    assistantMessage.returnedSql = sql || ''
+    assistantMessage.reportTemplate = parseMaybeJson(data.templateContent) || data.templateContent
+    assistantMessage.reportData = parseMaybeJson(data.reportData) || data.reportData
+    assistantMessage.returnedSql = data.sql || assistantMessage.reportData?.sql || ''
     assistantMessage.displayContent = ''
-    if (reportTemplate && reportData) {
-      assistantMessage.reportTemplate = reportTemplate
-      assistantMessage.reportData = reportData
-      return
-    }
-    assistantMessage.content = '报告生成失败，模板或报告数据格式不正确'
-    assistantMessage.displayContent = assistantMessage.content
     return
   }
   assistantMessage.content = normalizeVisibleLineBreaks(normalizeAgentText(data.rawReply || data.qualityWarning)) || '报告生成失败，未返回结构化数据'
   assistantMessage.displayContent = assistantMessage.content
+}
+
+function applyAskAgentResult(target, data) {
+  if (data.decision) {
+    target.responseMode = 'decision'
+    target.decision = data.decision
+    target.decisionId = String(data.decision.id || '')
+    target.content = normalizeAgentText(data.text || data.message || data.decision.message || '')
+    target.displayContent = target.content
+    // 决策执行只走 decision 的版本化预览/确认，不复用 save_analysis 的 confirmed 协议。
+    target.agentOperationId = ''
+    target.agentOperationStatus = ''
+    target.agentConfirmation = null
+    target.queryExecuted = false
+    target.tableRows = []
+    target.tableColumns = []
+    target.semanticAnalysisResults = []
+    return
+  }
+  target.agentOperationId = data.operationId || ''
+  target.agentOperationStatus = data.status || ''
+  const tools = data.toolResults || []
+  const pending = [...tools].reverse().find(item => item.toolName === 'save_analysis' && item.status === 'NEED_CONFIRMATION')
+  target.agentConfirmation = data.status === 'NEED_CONFIRMATION' && pending
+    ? { ontologyId: form.ontologyId, sessionId: activeConversation.value?.id, arguments: pending.metadata?.arguments }
+    : null
+  target.content = normalizeAgentText(data.text || data.message || '')
+  target.displayContent = target.content
+  target.agentSteps = tools.map(item => `${item.toolName || '工具'}：${item.message || item.status || ''}`).join('\n')
+  const query = [...tools].reverse().find(item => item.toolName === 'execute_metric_analysis' && item.status === 'SUCCEEDED')
+  const source = query?.data || [...tools].reverse().find(item => item.toolName === 'build_chart_spec' && item.status === 'SUCCEEDED')?.data
+  if (source?.rows) {
+    target.queryExecuted = true
+    target.tableRows = source.rows || []
+    target.tableColumns = (source.columns || []).map(column => ({ prop: column.key, label: column.label || column.key }))
+    target.analysisNotice = [source.truncated ? '结果已截断，不能视为全量统计。' : '', source.notice || ''].filter(Boolean).join(' ')
+  }
+  target.semanticAnalysisResults = tools.filter(item => ['compare_periods', 'analyze_distribution', 'analyze_trend'].includes(item.toolName) && item.status === 'SUCCEEDED')
+    .map(item => ({ tool: item.toolName, data: item.data }))
+  const chart = [...tools].reverse().find(item => item.toolName === 'build_chart_spec' && item.status === 'SUCCEEDED')
+  if (chart?.data) target.analysisNotice = [target.analysisNotice, '已生成声明式展示配置；此页面暂不渲染新图表。'].filter(Boolean).join(' ')
+}
+
+function updateDecisionMessage(target, proposal) {
+  // 组件只在原空间/会话/请求仍有效时发出更新。历史保存的是展示快照，不作为提交参数来源。
+  if (!activeMessages.value.includes(target) || String(target.decisionId) !== String(proposal.id)) return
+  target.decision = proposal
+}
+
+async function confirmMetricAnalysis(target) {
+  if (sending.value || target.decisionId || target.agentConfirming || !target.agentOperationId) return
+  const selection = target.agentConfirmation
+  if (!selection?.ontologyId || String(selection.sessionId) !== String(activeConversationId.value)) {
+    message.warning('请回到原会话及指标本体后确认')
+    return
+  }
+  const context = askContextVersion
+  const session = activeConversation.value
+  sending.value = true
+  target.agentConfirming = true
+  const controller = new AbortController()
+  activeAbortController.value = controller
+  try {
+    await streamAskData({
+      question: '确认保存分析条件', confirmed: true, operationId: target.agentOperationId,
+      ontologyId: selection.ontologyId, sessionId: selection.sessionId,
+      conversationId: String(selection.sessionId), spaceId: userStore.spaceId, spaceCode: userStore.spaceCode
+    }, {
+      onResult(data) { if (context === askContextVersion) applyAskAgentResult(target, data) },
+      onError(text) { throw new Error(text || '保存确认失败') }
+    }, controller.signal)
+    if (context === askContextVersion && session?.id === activeConversationId.value) await persistMessage(target)
+  } catch (error) {
+    if (context === askContextVersion && !isAbortError(error)) message.error(error?.message || '保存失败，请读取状态后重试')
+  } finally {
+    target.agentConfirming = false
+    if (context === askContextVersion) { sending.value = false; activeAbortController.value = null }
+  }
 }
 
 function hydrateStructuredData(message) {
@@ -1797,7 +1963,7 @@ function finishSteps(message) {
 
 async function streamAskData(payload, callbacks, signal) {
   const baseUrl = import.meta.env.VITE_APP_BASE_API || ''
-  const response = await fetch(baseUrl + '/ai/ask-data/dbgpt/chat/stream', {
+  const response = await fetch(baseUrl + '/ai/ask-data/chat/stream', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1809,7 +1975,7 @@ async function streamAskData(payload, callbacks, signal) {
   })
 
   if (!response.ok) {
-    throw new Error(normalizeAgentText(await response.text()) || '决策智能体请求失败')
+    throw new Error(normalizeAgentText(await response.text()) || '数据分析请求失败')
   }
   if (!response.body) {
     throw new Error('浏览器不支持流式响应')
@@ -1853,6 +2019,10 @@ function handleSseEvent(raw, callbacks) {
     callbacks.onSql?.(text)
   } else if (eventName === 'steps') {
     callbacks.onSteps?.(normalizeAgentText(text))
+  } else if (eventName === 'result') {
+    callbacks.onResult?.(JSON.parse(text))
+  } else if (eventName === 'report') {
+    callbacks.onReport?.(JSON.parse(text))
   } else if (eventName === 'error') {
     callbacks.onError?.(normalizeAgentText(text))
   }

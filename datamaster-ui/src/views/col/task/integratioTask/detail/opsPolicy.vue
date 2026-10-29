@@ -12,11 +12,11 @@
         </a-form-item>
         <a-form-item label="自动恢复">
           <a-switch v-model:checked="form.autoRecoverEnabled" :disabled="!form.aiManaged" />
-          <span class="form-tip">AI 判断可恢复时自动从失败节点重跑</span>
+          <span class="form-tip">AI结合日志给出诊断；新组件整流程新执行，复用失败窗口，不跳过prepare</span>
         </a-form-item>
         <a-form-item label="恢复次数">
-          <a-input-number v-model:value="form.maxRecoverTimes" :min="1" :max="10" :disabled="!form.autoRecoverEnabled" />
-          <span class="form-tip">达到上限后自动下线任务</span>
+          <a-input-number v-model:value="form.maxRecoverTimes" :min="0" :max="10" :disabled="!form.autoRecoverEnabled" />
+          <span class="form-tip">新组件按一次连续故障计数，真实成功后重新计数；重试等待1/3/10分钟，达到上限下线</span>
         </a-form-item>
         <a-form-item label="恢复策略">
           <a-select v-model:value="form.recoverStrategy" :disabled="!form.autoRecoverEnabled" style="width:200px">

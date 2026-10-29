@@ -29,6 +29,12 @@ public interface IRedisService {
      */
     boolean setIfAbsent(String key, String value, long timeout);
 
+    /** 仅持有者可续租，不能让过期持有者覆盖新锁。 */
+    boolean renewIfOwner(String key, String owner, long timeout);
+
+    /** 原子比较持有者后删除，避免 GET 后 DELETE 的竞态。 */
+    boolean deleteIfOwner(String key, String owner);
+
     String get(String key);
 
     boolean delete(String key);

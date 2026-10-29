@@ -129,6 +129,32 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
     }
 
     @Override
+    public JSONObject getLatestWorkflowInstance(String projectCode, String workflowCode) {
+        if (StringUtils.isBlank(projectCode) || StringUtils.isBlank(workflowCode)) {
+            throw new com.datamaster.common.exception.ServiceException("缺少DS项目或工作流code");
+        }
+        Map<String, Object> params = new HashMap<>();
+        params.put("pageNo", 1); params.put("pageSize", 100);
+        params.put("workflowDefinitionCode", workflowCode);
+        params.put("orderBy", "id"); params.put("orderType", "DESC");
+        JSONObject response = DsRequestUtils.request("/projects/" + projectCode + "/workflow-instances", "GET", null, params, JSONObject.class);
+        if (response == null || !Integer.valueOf(0).equals(response.getInteger("code")) || response.getJSONObject("data") == null) {
+            throw new com.datamaster.common.exception.ServiceException("无法按code查询DS最新执行");
+        }
+        com.alibaba.fastjson2.JSONArray rows = response.getJSONObject("data").getJSONArray("totalList");
+        if (rows == null || rows.isEmpty()) throw new com.datamaster.common.exception.ServiceException("DS尚无对应工作流执行");
+        JSONObject latest = null;
+        for (int index = 0; index < rows.size(); index++) {
+            JSONObject candidate = rows.getJSONObject(index);
+            String code = candidate.getString("workflowDefinitionCode");
+            if (code == null) code = candidate.getString("processDefinitionCode");
+            if (!workflowCode.equals(code) || candidate.getLong("id") == null) throw new com.datamaster.common.exception.ServiceException("DS最新执行code不一致");
+            if (latest == null || candidate.getLongValue("id") > latest.getLongValue("id")) latest = candidate;
+        }
+        return getWorkflowInstance(projectCode, latest.getLong("id"));
+    }
+
+    @Override
     public List<TaskInstance> listTaskInstances(String projectCode, Long processInstanceId) {
         if (StringUtils.isBlank(projectCode) || processInstanceId == null) {
             return java.util.Collections.emptyList();
@@ -150,6 +176,68 @@ public class DsEtlTaskServiceImpl implements IDsEtlTaskService {
         }
         List<TaskInstance> list = data.getList("totalList", TaskInstance.class);
         return list == null ? java.util.Collections.emptyList() : list;
+    }
+
+    @Override
+    public List<TaskInstance> listTaskInstancesStrict(String projectCode, Long processInstanceId) {
+        if (StringUtils.isBlank(projectCode) || processInstanceId == null || processInstanceId <= 0) {
+            throw new com.datamaster.common.exception.ServiceException("缺少有效的DS项目或流程实例");
+        }
+        List<TaskInstance> result = new java.util.ArrayList<>();
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        Long expectedTotal = null;
+        for (int page = 1; page <= 1000; page++) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("pageNo", page); params.put("pageSize", 100);
+            params.put("workflowInstanceId", processInstanceId);
+            JSONObject response = DsRequestUtils.request("/projects/" + projectCode + "/task-instances", "GET", null, params, JSONObject.class);
+            if (response == null || !Integer.valueOf(0).equals(response.getInteger("code")) || response.getJSONObject("data") == null) {
+                throw new com.datamaster.common.exception.ServiceException("无法完整确认 DS 子任务状态");
+            }
+            JSONObject data = response.getJSONObject("data");
+            List<TaskInstance> rows = data.getList("totalList", TaskInstance.class);
+            if (rows == null) throw new com.datamaster.common.exception.ServiceException("DS 子任务状态响应不完整");
+            Long total = data.getLong("total");
+            if (total == null || total < 0 || (expectedTotal != null && !expectedTotal.equals(total))) {
+                throw new com.datamaster.common.exception.ServiceException("DS 子任务分页总数缺失或查询期间变化");
+            }
+            expectedTotal = total;
+            for (TaskInstance row : rows) {
+                if (row == null || row.getId() == null || row.getState() == null
+                        || !processInstanceId.equals(row.getProcessInstanceId()) || !seen.add(row.getId())) {
+                    throw new com.datamaster.common.exception.ServiceException("DS 子任务分页重复、身份或状态无效");
+                }
+            }
+            result.addAll(rows);
+            if (result.size() > total || (rows.size() < 100 && result.size() != total)) {
+                throw new com.datamaster.common.exception.ServiceException("DS 子任务分页数量不完整");
+            }
+            if (result.size() == total) return result;
+        }
+        throw new com.datamaster.common.exception.ServiceException("DS 子任务数量超过安全查询上限");
+    }
+
+    @Override
+    public JSONObject getWorkflowInstance(String projectCode, Long processInstanceId) {
+        JSONObject response = DsRequestUtils.request("/projects/" + projectCode + "/workflow-instances/" + processInstanceId,
+                "GET", null, null, JSONObject.class);
+        if (response == null || !(Integer.valueOf(0).equals(response.getInteger("code"))
+                || Boolean.TRUE.equals(response.getBoolean("success"))) || response.getJSONObject("data") == null) {
+            throw new com.datamaster.common.exception.ServiceException("无法确认 DolphinScheduler 流程实例状态");
+        }
+        JSONObject instance = response.getJSONObject("data");
+        if (!java.util.Objects.equals(processInstanceId, instance.getLong("id")) || instance.getString("state") == null) {
+            throw new com.datamaster.common.exception.ServiceException("DS流程响应身份或状态不完整");
+        }
+        return instance;
+    }
+
+    @Override
+    public DsStatusRespDTO stopWorkflowInstance(String projectCode, Long processInstanceId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("workflowInstanceId", processInstanceId);
+        params.put("executeType", "STOP");
+        return DsRequestUtils.requestForm("/projects/" + projectCode + "/executors/execute", "POST", params, DsStatusRespDTO.class);
     }
 
     @Override

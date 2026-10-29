@@ -87,7 +87,16 @@ public interface IDsEtlTaskService {
      */
     DsTaskSaveRespDTO batchCopy(String code, String projectCode);
 
+    com.alibaba.fastjson2.JSONObject getLatestWorkflowInstance(String projectCode, String workflowCode);
+
     List<TaskInstance> listTaskInstances(String projectCode, Long processInstanceId);
+
+    List<TaskInstance> listTaskInstancesStrict(String projectCode, Long processInstanceId);
+
+    /** 强一致终态核对使用；查询失败必须抛出，不能将空结果当成终态。 */
+    com.alibaba.fastjson2.JSONObject getWorkflowInstance(String projectCode, Long processInstanceId);
+
+    DsStatusRespDTO stopWorkflowInstance(String projectCode, Long processInstanceId);
 
     String getTaskInstanceLog(Long taskInstanceId);
 

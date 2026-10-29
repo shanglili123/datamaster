@@ -1,6 +1,6 @@
 ﻿# DataMaster 项目说明
 
-DataMaster 是一个面向银行金融数据治理场景的数据中台系统，采用 Java 8 多模块 Maven 后端和 Vue 3 + Vite 前端。系统覆盖空间管理、数据源管理、数据资产、元数据目录、数据标准、数据采集、ETL、质量探查、数据服务、数据建模和数据智能体等能力。
+DataMaster 是一个面向银行金融数据治理场景的数据中台系统，采用 Java 17 多模块 Maven 后端和 Vue 3 + Vite 前端。系统覆盖空间管理、数据源管理、数据资产、元数据目录、数据标准、数据采集、ETL、质量探查、数据服务、数据建模和数据智能体等能力。
 
 本文档记录项目整体架构、模块职责、核心流程、启动依赖和排查入口。重构目标、字段规范化、已改模块清单等改造过程记录单独维护在：
 
@@ -50,7 +50,7 @@ DataMaster 是一个企业级数据中台和数据治理平台，不是单纯的
 
 ### 后端
 
-- Java 8
+- Java 17
 - Spring Boot 2.5.x
 - Spring Security
 - MyBatis-Plus
@@ -600,7 +600,7 @@ flowchart TD
 
 #### 5.11.1 Agent 调度与 DB-GPT 分工
 
-平台自主调度使用 **LangChain4j**（当前项目 Java 8 采用 0.35.0），由配置的模型通过 Tool Calling 自主选择和串联 DataMaster 能力。DB-GPT 只是数据能力适配器，继续负责数据问答、查询分析和报告生成，不承担平台工具编排。
+平台自主调度使用 **LangChain4j**（当前项目 Java 17 采用 0.35.0），由配置的模型通过 Tool Calling 自主选择和串联 DataMaster 能力。DB-GPT 只是数据能力适配器，继续负责数据问答、查询分析和报告生成，不承担平台工具编排。
 
 Tool 使用双层注解：`dev.langchain4j.agent.tool.Tool` 标注 `execute` 方法，提供唯一的框架层名称和描述；平台自定义 `@AgentTool` 标注类，只提供风险、确认、权限与审计治理元数据。缺少框架名称会在启动扫描时直接失败。
 
@@ -1246,7 +1246,7 @@ npm run build:prod
 ## 14. 开发约定
 
 - 后端包名保持在 `com.datamaster` 下。
-- Java 保持 Java 8 兼容。
+- Java 保持 Java 17 兼容。
 - 前端代码位于 `datamaster-ui/src`。
 - 数据库脚本放入 `sql/`。
 - 项目说明和专题文档放入 `docs/`。

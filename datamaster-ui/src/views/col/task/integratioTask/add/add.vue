@@ -147,6 +147,19 @@
           </a-form-item>
         </a-col>
         <a-col :span="12">
+          <a-form-item label="DS资源任务组" name="taskGroupId">
+            <a-input-number v-if="title != '任务详情'" v-model:value="form.taskGroupId" :min="0" :precision="0" style="width:100%" placeholder="已在DS配置的任务组ID，0表示不限制" />
+            <div v-else class="form-readonly">{{ form.taskGroupId || '未启用资源排队' }}</div>
+            <div style="font-size:12px;color:#6b7280">仅数据作业占用资源；须先在DS设置真实任务组容量，Worker分组不等于并发限制。</div>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
+          <a-form-item label="资源排队优先级" name="taskGroupPriority">
+            <a-input-number v-if="title != '任务详情'" v-model:value="form.taskGroupPriority" :min="0" :precision="0" style="width:100%" />
+            <div v-else class="form-readonly">{{ form.taskGroupPriority || 0 }}</div>
+          </a-form-item>
+        </a-col>
+        <a-col :span="12">
           <a-form-item label="失败重试次数" name="failRetryTimes">
             <a-input
               v-if="title != '任务详情'"

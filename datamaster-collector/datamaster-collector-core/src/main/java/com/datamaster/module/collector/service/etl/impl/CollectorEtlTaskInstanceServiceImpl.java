@@ -42,6 +42,7 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeInstan
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeInstanceLogDO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlNodeLogDO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskDO;
+import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlIncrementalWindowDO;
 import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskInstanceDO;
 import com.datamaster.module.collector.dal.mapper.etl.CollectorEtlTaskInstanceMapper;
 import com.datamaster.module.collector.service.etl.*;
@@ -103,13 +104,188 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     @Resource
     private CollectorEtlTaskStatusPushService collectorEtlTaskStatusPushService;
 
+    @Resource private com.datamaster.module.collector.dal.mapper.etl.CollectorEtlTaskMapper ownerTaskMapper;
+    @Resource private ICollectorEtlTaskExtService ownerTaskExtService;
+    @Resource private CollectorEtlIncrementalWindowService stageWindowService;
+    @Resource @Lazy private CollectorEtlRunGuardService componentRunGuard;
+    @org.springframework.beans.factory.annotation.Value("${ds.incremental_fixed_window.enabled:false}") private boolean stageWindowsEnabled;
+
+    @Override
+    public List<CollectorEtlStageWindowRespVO> getStageWindows(Long taskInstanceId) {
+        CollectorEtlTaskInstanceDO parent = requireInstance(taskInstanceId);
+        if (!stageWindowsEnabled || parent.getDsId() == null) return Collections.emptyList();
+        List<CollectorEtlStageWindowRespVO> result = new ArrayList<>();
+        for (CollectorEtlIncrementalWindowDO window : stageWindowService.listWindows(parent.getTaskId(), parent.getId())) {
+            Map<String, String> starts = CollectorEtlIncrementalWindowService.parse(window.getStartValue());
+            Map<String, String> ends = CollectorEtlIncrementalWindowService.parse(window.getEndValue());
+            Set<String> sources = new TreeSet<>(starts.keySet()); sources.addAll(ends.keySet());
+            Map<String, JSONObject> descriptions = new HashMap<>();
+            if (StringUtils.isNotBlank(window.getSourcesJson())) {
+                for (JSONObject source : com.alibaba.fastjson2.JSON.parseArray(window.getSourcesJson(), JSONObject.class)) {
+                    descriptions.put(source.getString("nodeId"), source);
+                }
+            }
+            for (String source : sources) {
+                CollectorEtlStageWindowRespVO row = new CollectorEtlStageWindowRespVO();
+                row.setTaskId(parent.getTaskId()); row.setTaskInstanceId(parent.getId()); row.setWorkflowInstanceId(parent.getDsId());
+                row.setStageKey(window.getStageKey()); row.setSourceNodeId(source);
+                row.setReplayFromId(window.getReplayFromId());
+                JSONObject description = descriptions.get(source);
+                if (description != null) {
+                    row.setSourceTable(description.getString("table")); row.setCursorColumn(description.getString("cursorColumn"));
+                    row.setCursorType(description.getString("cursorType"));
+                }
+                row.setStartValue(starts.get(source)); row.setEndValue(ends.get(source)); row.setEmpty(ends.get(source) == null);
+                row.setStatus(window.getStatus()); result.add(row);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void synchronizeComponentRun(Long taskId, JSONObject remote, List<TaskInstance> nodes) {
+        if (taskId == null || remote == null || remote.getLong("id") == null) throw new ServiceException("缺少组件运行身份");
+        if (CollectorEtlTaskInstanceMapper.lockOwnerTask(taskId) == null) throw new ServiceException("运行所属任务不存在");
+        com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskExtDO ext = ownerTaskExtService.getByTaskId(taskId);
+        JSONObject snapshot = ext == null || ext.getFlinkxJobTemplateJson() == null ? null : JSONObject.parseObject(ext.getFlinkxJobTemplateJson());
+        if (snapshot == null || !CollectorEtlStageRuntimeService.KIND.equals(snapshot.getString("kind"))
+                || !Objects.equals(snapshot.getString("workflowCode"), remote.getString("workflowDefinitionCode"))
+                || !Objects.equals(snapshot.getString("workflowVersion"), remote.getString("workflowDefinitionVersion"))) {
+            throw new ServiceException("组件运行与已发布快照不一致");
+        }
+        synchronizeSchedulerInstance(taskId, remote);
+        CollectorEtlTaskInstanceDO parent = CollectorEtlTaskInstanceMapper.lockBySchedulerId(remote.getLong("id"));
+        CollectorEtlTNodeInstanceService.synchronizeSchedulerNodes(parent, nodes);
+    }
+
+    @Override
+    public void synchronizeSchedulerInstance(Long taskId, JSONObject remote) {
+        if (taskId == null || remote == null || remote.getLong("id") == null) throw new ServiceException("缺少调度实例身份");
+        if (CollectorEtlTaskInstanceMapper.lockOwnerTask(taskId) == null) throw new ServiceException("实例所属任务不存在");
+        CollectorEtlTaskDO task = ownerTaskMapper.selectById(taskId);
+        com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskExtDO ext = ownerTaskExtService.getByTaskId(taskId);
+        String workflowCode = remote.getString("workflowDefinitionCode");
+        if (ext == null || workflowCode == null || !workflowCode.equals(ext.getEtlTaskCode())) throw new ServiceException("DS实例不属于该任务已发布工作流");
+        String rawState = remote.getString("state");
+        com.datamaster.common.enums.WorkflowExecutionStatus state;
+        try { state = com.datamaster.common.enums.WorkflowExecutionStatus.valueOf(rawState); }
+        catch (Exception ex) { throw new ServiceException("无法识别DS工作流状态，保留原状态等待核对"); }
+        boolean terminal = Arrays.asList("SUCCESS", "FAILURE", "STOP").contains(rawState);
+        if (terminal && remote.get("endTime") == null) throw new ServiceException("DS终态缺少结束时间");
+        CollectorEtlTaskInstanceDO instance = CollectorEtlTaskInstanceMapper.lockBySchedulerId(remote.getLong("id"));
+        if (instance != null) {
+            if (!taskId.equals(instance.getTaskId())) throw new ServiceException("实例任务归属不一致");
+            if (Arrays.asList("5", "6", "7").contains(instance.getStatus())) return;
+        } else {
+            instance = CollectorEtlTaskInstanceDO.builder()
+                    .id(com.datamaster.common.utils.uuid.IdUtils.generateArtificialId()).taskId(taskId).dsId(remote.getLong("id"))
+                    .catId(task.getCatId()).catCode(task.getCatCode()).taskType(task.getType())
+                    .taskCode(workflowCode).taskVersion(remote.getInteger("workflowDefinitionVersion"))
+                    .name(remote.getString("name")).spaceId(task.getSpaceId()).spaceCode(task.getSpaceCode())
+                    .subTaskFlag(String.valueOf(Flag.NO.getCode()))
+                    .personCharge(task.getPersonCharge()).contactNumber(task.getContactNumber()).build();
+        }
+        instance.setStatus(String.valueOf(state.getCode()));
+        Date start = remote.getDate("startTime");
+        if (start != null) instance.setStartTime(start);
+        if (terminal) instance.setEndTime(remote.getDate("endTime"));
+        Integer times = remote.getInteger("runTimes"); if (times != null) instance.setRunTimes(times);
+        Date schedule = remote.getDate("scheduleTime"); if (schedule != null) instance.setScheduleTime(schedule);
+        String command = remote.getString("commandType");
+        if (command != null) {
+            for (com.datamaster.common.enums.CommandType type : com.datamaster.common.enums.CommandType.values()) {
+                if (type.name().equals(command)) instance.setCommandType(String.valueOf(type.getCode()));
+            }
+        }
+        CollectorEtlTaskInstanceDO old = CollectorEtlTaskInstanceMapper.selectById(instance.getId());
+        if (old == null ? !save(instance) : !updateById(instance)) {
+            throw new ServiceException("调度实例记录保存失败");
+        }
+        CollectorEtlTaskInstanceDO committedInstance = instance;
+        boolean component = isComponentRuntimeInstance(instance);
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() {
+                            try { pushConfirmedInstance(committedInstance, component); }
+                            catch (RuntimeException ex) { log.warn("调度状态已入库，页面推送失败 instanceId={}", committedInstance.getId()); }
+                        }
+                    });
+        } else {
+            pushConfirmedInstance(committedInstance, component);
+        }
+    }
+
+    private void pushConfirmedInstance(CollectorEtlTaskInstanceDO instance, boolean component) {
+        if (component) {
+            collectorEtlTaskStatusPushService.pushComponentTaskInstanceStatus(instance.getTaskId(), instance.getDsId());
+        } else {
+            collectorEtlTaskStatusPushService.pushTaskInstanceStatus(instance);
+        }
+    }
+
+    private void requireSpace(Long spaceId, String spaceCode) {
+        Long userId = com.datamaster.common.utils.SecurityUtils.getUserId();
+        if (com.datamaster.common.utils.SecurityUtils.isAdmin(userId)) return;
+        if ((spaceId == null && StringUtils.isBlank(spaceCode))
+                || !attProjectApi.hasUserSpace(userId, spaceId, spaceCode)) {
+            throw new ServiceException("无权访问该空间的任务实例", 403);
+        }
+    }
+
+    private CollectorEtlTaskDO requireOwnerTask(Long taskId) {
+        CollectorEtlTaskDO task = taskId == null ? null : ownerTaskMapper.selectById(taskId);
+        if (task == null) throw new ServiceException("实例所属任务不存在");
+        requireSpace(task.getSpaceId(), task.getSpaceCode());
+        return task;
+    }
+
+    private CollectorEtlTaskInstanceDO requireInstance(Long instanceId) {
+        CollectorEtlTaskInstanceDO instance = instanceId == null ? null : baseMapper.selectById(instanceId);
+        if (instance == null) throw new ServiceException("任务实例不存在");
+        CollectorEtlTaskDO task = requireOwnerTask(instance.getTaskId());
+        if (!Objects.equals(task.getSpaceId(), instance.getSpaceId())
+                || !Objects.equals(task.getSpaceCode(), instance.getSpaceCode())) {
+            throw new ServiceException("任务实例空间归属不一致");
+        }
+        return instance;
+    }
+
+    private void requireQueryScope(CollectorEtlTaskInstancePageReqVO request) {
+        if (request.getId() != null) {
+            CollectorEtlTaskInstanceDO instance = requireInstance(request.getId());
+            request.setSpaceId(instance.getSpaceId()); request.setSpaceCode(instance.getSpaceCode());
+        }
+        if (request.getTaskId() != null) {
+            CollectorEtlTaskDO task = requireOwnerTask(request.getTaskId());
+            request.setSpaceId(task.getSpaceId()); request.setSpaceCode(task.getSpaceCode());
+        }
+        if (request.getDsId() != null) {
+            CollectorEtlTaskInstanceDO instance = getByDsId(request.getDsId());
+            if (instance == null) throw new ServiceException("调度实例不存在");
+            requireInstance(instance.getId());
+            request.setSpaceId(instance.getSpaceId()); request.setSpaceCode(instance.getSpaceCode());
+        }
+        requireSpace(request.getSpaceId(), request.getSpaceCode());
+        if (request.getSpaceId() != null) {
+            String resolved = attProjectApi.getSpaceCodeBySpaceId(request.getSpaceId());
+            if (StringUtils.isBlank(resolved)) throw new ServiceException("查询空间不存在或未配置编码");
+            if (StringUtils.isNotBlank(request.getSpaceCode()) && !Objects.equals(resolved, request.getSpaceCode())) {
+                throw new ServiceException("查询空间编码与空间ID不一致");
+            }
+            request.setSpaceCode(resolved);
+        }
+    }
+
     @Override
     public PageResult<CollectorEtlTaskInstanceDO> getCollectorEtlTaskInstancePage(CollectorEtlTaskInstancePageReqVO pageReqVO) {
+        requireQueryScope(pageReqVO);
         return CollectorEtlTaskInstanceMapper.selectPage(pageReqVO);
     }
 
     @Override
     public CollectorEtlTaskInstanceRespVO getCollectorEtlTaskInstanceById(CollectorEtlTaskInstancePageReqVO reqVO) {
+        requireQueryScope(reqVO);
 //        MPJLambdaWrapper<CollectorEtlTaskInstanceDO> wrapper = new MPJLambdaWrapper<>();
 //        wrapper.selectAll(CollectorEtlTaskInstanceDO.class)
 //                .eq(StringUtils.isNotBlank(reqVO.getTaskCode()), CollectorEtlTaskInstanceDO::getTaskCode, reqVO.getTaskCode())
@@ -124,12 +300,18 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
         CollectorEtlTaskInstanceDO dictType = BeanUtils.toBean(reqVO, CollectorEtlTaskInstanceDO.class);
 
         CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = CollectorEtlTaskInstanceMapper.selectOneNew(dictType);
+        if (CollectorEtlTaskInstanceDO != null) requireInstance(CollectorEtlTaskInstanceDO.getId());
 
         return BeanUtils.toBean(CollectorEtlTaskInstanceDO, CollectorEtlTaskInstanceRespVO.class);
     }
 
     @Override
     public Long createCollectorEtlTaskInstance(CollectorEtlTaskInstanceSaveReqVO createReqVO) {
+        if (!com.datamaster.common.utils.SecurityUtils.isAdmin(com.datamaster.common.utils.SecurityUtils.getUserId())) {
+            throw new ServiceException("运行实例由调度器同步创建，不允许普通用户手工写入", 403);
+        }
+        CollectorEtlTaskDO task = requireOwnerTask(createReqVO.getTaskId());
+        createReqVO.setSpaceId(task.getSpaceId()); createReqVO.setSpaceCode(task.getSpaceCode());
         CollectorEtlTaskInstanceDO dictType = BeanUtils.toBean(createReqVO, CollectorEtlTaskInstanceDO.class);
         CollectorEtlTaskInstanceMapper.insert(dictType);
         return dictType.getId();
@@ -137,6 +319,17 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public int updateCollectorEtlTaskInstance(CollectorEtlTaskInstanceSaveReqVO updateReqVO) {
+        if (!com.datamaster.common.utils.SecurityUtils.isAdmin(com.datamaster.common.utils.SecurityUtils.getUserId())) {
+            throw new ServiceException("运行状态只能由调度核对更新", 403);
+        }
+        CollectorEtlTaskInstanceDO existing = requireInstance(updateReqVO.getId());
+        if (existing.getRunOwnerToken() != null) throw new ServiceException("组件运行记录不允许手工编辑");
+        if (updateReqVO.getTaskId() != null && !Objects.equals(existing.getTaskId(), updateReqVO.getTaskId())) {
+            throw new ServiceException("不允许修改运行实例的任务归属");
+        }
+        updateReqVO.setTaskId(existing.getTaskId());
+        updateReqVO.setSpaceId(existing.getSpaceId()); updateReqVO.setSpaceCode(existing.getSpaceCode());
+        updateReqVO.setDsId(existing.getDsId());
         // 相关校验
 
         // 更新数据集成任务实例
@@ -146,13 +339,16 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public int removeCollectorEtlTaskInstance(Collection<Long> idList) {
-        // 批量删除数据集成任务实例
+        for (Long id : idList) {
+            CollectorEtlTaskInstanceDO instance = requireInstance(id);
+            if (instance.getRunOwnerToken() != null) throw new ServiceException("组件运行记录承载阶段水位与重放历史，暂不允许单独删除");
+        }
         return CollectorEtlTaskInstanceMapper.deleteBatchIds(idList);
     }
 
     @Override
     public CollectorEtlTaskInstanceDO getCollectorEtlTaskInstanceById(Long id) {
-        return CollectorEtlTaskInstanceMapper.selectById(id);
+        return requireInstance(id);
     }
 
     @Override
@@ -183,6 +379,9 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
      */
     @Override
     public String importCollectorEtlTaskInstance(List<CollectorEtlTaskInstanceRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+        if (!com.datamaster.common.utils.SecurityUtils.isAdmin(com.datamaster.common.utils.SecurityUtils.getUserId())) {
+            throw new ServiceException("运行实例导入仅允许管理员操作", 403);
+        }
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("导入数据不能为空！");
         }
@@ -200,6 +399,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
                     if (CollectorEtlTaskInstanceId != null) {
                         CollectorEtlTaskInstanceDO existingCollectorEtlTaskInstance = CollectorEtlTaskInstanceMapper.selectById(CollectorEtlTaskInstanceId);
                         if (existingCollectorEtlTaskInstance != null) {
+                            if (existingCollectorEtlTaskInstance.getRunOwnerToken() != null) throw new ServiceException("组件运行记录不允许导入覆盖");
                             CollectorEtlTaskInstanceMapper.updateById(CollectorEtlTaskInstanceDO);
                             successNum++;
                             successMessages.add("数据更新成功，ID为 " + CollectorEtlTaskInstanceId + " 的数据集成任务实例记录。");
@@ -365,6 +565,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public PageResult<CollectorEtlTaskInstanceTreeListRespVO> treeList(CollectorEtlTaskInstanceTreeListReqVO reqVO) {
+        requireSpace(null, reqVO.getSpaceCode());
         if (StringUtils.isBlank(reqVO.getTaskType())) {
             reqVO.setTaskType("1");
         }
@@ -401,11 +602,13 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public AjaxResult execute(Long taskInstanceId, ExecuteType executeType) {
-        CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = this.getById(taskInstanceId);
+        if (executeType == null || ExecuteType.NONE == executeType) return error("无效的运行控制命令");
+        CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = requireInstance(taskInstanceId);
         if (CollectorEtlTaskInstanceDO == null) {
             return error("任务实例不存在，请刷新后重试！");
         }
         String status = CollectorEtlTaskInstanceDO.getStatus();
+        boolean componentRuntime = isComponentRuntimeInstance(CollectorEtlTaskInstanceDO);
         if (ExecuteType.REPEAT_RUNNING.getCode() == executeType.getCode() && !StringUtils.equals(status, "3") &&
                 !StringUtils.equals(status, "5") &&
                 !StringUtils.equals(status, "6") &&
@@ -418,19 +621,49 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
                 !StringUtils.equals(status, "2") &&
                 !StringUtils.equals(status, "3") &&
                 !StringUtils.equals(status, "12") &&
-                !StringUtils.equals(status, "14")) {
+                !StringUtils.equals(status, "14") &&
+                !(componentRuntime && Arrays.asList("4", "15", "16", "17").contains(status))) {
             return error("当前状态无法停止，请刷新后重试！");
         }
+        if (componentRuntime && (ExecuteType.START_FAILURE_TASK_PROCESS == executeType || ExecuteType.EXECUTE_TASK == executeType)) {
+            return error("组件运行不允许跳过前置准入执行单节点或恢复失败节点，请重跑整个任务以创建新实例");
+        }
+        if (componentRuntime && ExecuteType.RECOVER_SUSPENDED_PROCESS == executeType) {
+            if (CollectorEtlTaskInstanceDO.getDsId() == null) return error("组件实例缺少DS运行身份，不能恢复");
+            DsStatusRespDTO response = componentRunGuard.resumePaused(CollectorEtlTaskInstanceDO.getTaskId(), CollectorEtlTaskInstanceDO.getDsId());
+            return Boolean.TRUE.equals(response == null ? null : response.getSuccess())
+                    ? success() : error(response == null ? "DolphinScheduler无响应" : response.getMsg());
+        }
+        if (componentRuntime && ExecuteType.REPEAT_RUNNING.getCode() == executeType.getCode()) {
+            if ("3".equals(status)) return error("暂停实例请恢复或确认停止后再重跑，暂停期间仍保留运行资格");
+            // DS原实例重跑可能复用instanceId且跳过根prepare，不能越过已结束的owner/窗口。
+            // 启动新的大任务实例保留原历史，失败窗口由新实例在prepare中安全接管。
+            return CollectorEtlTaskService.startCollectorEtlTask(CollectorEtlTaskInstanceDO.getTaskId());
+        }
         DsStatusRespDTO dsStatusRespDTO = dsEtlExecutorService.execute(DSExecuteDTO.builder()
-                .processInstanceId(taskInstanceId)
+                .processInstanceId(CollectorEtlTaskInstanceDO.getDsId() == null ? taskInstanceId : CollectorEtlTaskInstanceDO.getDsId())
                 .executeType(executeType)
                 .build(), CollectorEtlTaskInstanceDO.getSpaceCode());
         return Boolean.TRUE.equals(dsStatusRespDTO == null ? null : dsStatusRespDTO.getSuccess())
                 ? success() : error(dsStatusRespDTO == null ? "DolphinScheduler无响应" : dsStatusRespDTO.getMsg());
     }
 
+    private boolean isComponentRuntimeInstance(CollectorEtlTaskInstanceDO instance) {
+        com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskExtDO ext = ownerTaskExtService.getByTaskId(instance.getTaskId());
+        if (ext == null || StringUtils.isBlank(ext.getFlinkxJobTemplateJson())) return false;
+        JSONObject snapshot = JSONObject.parseObject(ext.getFlinkxJobTemplateJson());
+        return CollectorEtlStageRuntimeService.KIND.equals(snapshot.getString("kind"))
+                && StringUtils.isNotBlank(snapshot.getString("guardNodeCode"))
+                && Objects.equals(instance.getTaskCode(), snapshot.getString("workflowCode"));
+    }
+
     @Override
     public List<CollectorEtlTaskInstanceTreeListRespVO> subNodelist(Long taskInstanceId, Long nodeInstanceId) {
+        requireInstance(taskInstanceId);
+        CollectorEtlNodeInstanceDO parentNode = CollectorEtlTNodeInstanceService.getById(nodeInstanceId);
+        if (parentNode == null || !Objects.equals(taskInstanceId, parentNode.getTaskInstanceId())) {
+            throw new ServiceException("子任务节点不属于该流程实例");
+        }
         List<CollectorEtlTaskInstanceTreeListRespVO> list = baseMapper.listSubNodeInstance(taskInstanceId, nodeInstanceId);
         if (list != null && list.size() > 0) {
             list.stream().forEach(e -> {
@@ -454,10 +687,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     public CollectorEtlTaskInstanceLogStatusRespDTO getLogByTaskInstanceId(Long taskInstanceId, Integer skipLineNum, Integer limit) {
         int fromLineNum = Math.max(skipLineNum == null ? 0 : skipLineNum, 0);
         int safeLimit = limit == null || limit <= 0 ? 2000 : Math.min(limit, 10000);
-        CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = this.getById(taskInstanceId);
-        if (CollectorEtlTaskInstanceDO == null) {
-            throw new RuntimeException("任务实例不存在");
-        }
+        CollectorEtlTaskInstanceDO CollectorEtlTaskInstanceDO = requireInstance(taskInstanceId);
         //获取节点数据
         List<CollectorEtlNodeInstanceDO> CollectorEtlNodeInstanceDOList = CollectorEtlTNodeInstanceService.list(Wrappers.lambdaQuery(CollectorEtlNodeInstanceDO.class)
                 .select(CollectorEtlNodeInstanceDO::getId,
@@ -486,10 +716,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public String downloadLogByTaskInstanceId(Long taskInstanceId) {
-        CollectorEtlTaskInstanceDO taskInstance = this.getById(taskInstanceId);
-        if (taskInstance == null) {
-            throw new RuntimeException("任务实例不存在");
-        }
+        CollectorEtlTaskInstanceDO taskInstance = requireInstance(taskInstanceId);
         List<CollectorEtlNodeInstanceDO> nodeInstances = CollectorEtlTNodeInstanceService.list(
                 Wrappers.lambdaQuery(CollectorEtlNodeInstanceDO.class)
                         .select(CollectorEtlNodeInstanceDO::getId,
@@ -629,6 +856,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public Long getRunTaskInstance(Long taskId) {
+        requireOwnerTask(taskId);
         List<CollectorEtlTaskInstanceDO> collectorEtlTaskInstanceDOS = this.list(Wrappers.lambdaQuery(CollectorEtlTaskInstanceDO.class)
                 .eq(CollectorEtlTaskInstanceDO::getTaskId, taskId)
                 .in(CollectorEtlTaskInstanceDO::getStatus, "0", "1", "12")
@@ -641,6 +869,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public CollectorEtlTaskUpdateQueryRespVO getTaskInfo(Long id) {
+        requireInstance(id);
         //根据任务实例id获取任务信息
         MPJLambdaWrapper<CollectorEtlTaskInstanceDO> lambdaWrapper = new MPJLambdaWrapper();
         lambdaWrapper.selectAll(CollectorEtlTaskInstanceDO.class)

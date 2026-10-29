@@ -8,6 +8,8 @@ import lombok.Data;
 public class ActionWorkflowRunReqVO {
     @Schema(description = "运行输入 JSON")
     private String inputParams;
+    @Schema(description = "可选：启动时要求匹配的已发布定义版本")
+    private Integer expectedVersion;
     @Schema(description = "当前对象主键")
     private String objectKey;
     @Schema(description = "空间 ID")

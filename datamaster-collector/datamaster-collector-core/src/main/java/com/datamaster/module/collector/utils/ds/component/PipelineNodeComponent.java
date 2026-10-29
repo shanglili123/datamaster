@@ -75,6 +75,7 @@ public class PipelineNodeComponent implements ComponentItem {
             readerParams.put("mergeConfig", pipeline.get("mergeConfig"));
             readerParams.put("joinConfig", pipeline.get("joinConfig"));
             readerParams.put("tableFields", pipeline.get("tableFields"));
+            readerParams.put("componentStage", pipeline.containsKey("componentIds"));
             if (readerParams.get("readerDatasource") instanceof Map) {
                 result.put("reader", new TableMergeComponent().parse2(nodeCode, nodeVersion,
                         TaskComponentTypeEnum.TABLE_MERGE, readerParams, resourceUrl, resourceList));

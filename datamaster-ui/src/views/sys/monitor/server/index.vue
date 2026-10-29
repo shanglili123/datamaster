@@ -1,5 +1,6 @@
 <template>
   <div class="app-container">
+    <a-button v-hasPermi="['ai:ask-data:query']" style="margin-bottom: 16px" @click="$router.push('/monitor/model-gateway')">模型调用监控与配置</a-button>
     <a-row :gutter="15">
       <a-col :span="12" class="card-box">
         <a-card>

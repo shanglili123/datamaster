@@ -18,6 +18,14 @@ export function getDppEtlTaskInstance(id) {
   })
 }
 
+// 查询任务实例各阶段实际固定的增量窗口（使用本地实例 ID）
+export function getStageWindows(localId) {
+  return request({
+    url: '/col/etlTaskInstance/' + localId + '/stage-windows',
+    method: 'get'
+  })
+}
+
 // 新增数据集成任务实例
 export function addDppEtlTaskInstance(data) {
   return request({

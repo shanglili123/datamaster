@@ -50,6 +50,8 @@ public class ConceptServiceImpl implements IConceptService {
     private IConceptTableService conceptTableService;
     @Resource
     private IRelationService relationService;
+    @Resource
+    private MetricReferenceGuard metricReferenceGuard;
 
     @Override
     public PageResult<ConceptRespVO> getConceptPage(ConceptPageReqVO pageReqVO) {
@@ -80,6 +82,7 @@ public class ConceptServiceImpl implements IConceptService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer deleteConcept(Long id) {
+        metricReferenceGuard.assertConceptDeletable(id);
         for (RelationDO relation : relationMapper.selectList(new LambdaQueryWrapperX<RelationDO>()
                 .and(wrapper -> wrapper.eq(RelationDO::getSourceConceptId, id)
                         .or().eq(RelationDO::getTargetConceptId, id)))) {

@@ -41,7 +41,18 @@ public class RelationalIncrementalBoundaryQuery implements IncrementalBoundaryQu
         validateDatasource(datasource);
         validateIdentifier("表名", tableName);
         validateIdentifier("字段名", columnName);
+        return executeMax(datasource, tableName, columnName,
+                "SELECT MAX(" + columnName + ") AS MAX_VALUE FROM " + tableName);
+    }
 
+    @Override
+    public Object queryComponentMaxValue(DatasourceRespDTO datasource, String tableName, String columnName) {
+        validateDatasource(datasource);
+        String sql = com.datamaster.module.collector.utils.StageIncrementalSql.maxQuery(tableName, columnName, datasource.getDatasourceType());
+        return executeMax(datasource, tableName, columnName, sql);
+    }
+
+    private Object executeMax(DatasourceRespDTO datasource, String tableName, String columnName, String sql) {
         RuntimeException lastException = null;
         for (int attempt = 1; attempt <= MAX_RETRY_TIMES; attempt++) {
             DbQuery dbQuery = null;
@@ -50,8 +61,7 @@ public class RelationalIncrementalBoundaryQuery implements IncrementalBoundaryQu
                         datasource.getDatasourceType(), datasource.getIp(),
                         datasource.getPort(), datasource.getDatasourceConfig());
                 dbQuery = dataSourceFactory.createDbQuery(property);
-                List<Map<String, Object>> rows = dbQuery.queryList(
-                        "SELECT MAX(" + columnName + ") AS MAX_VALUE FROM " + tableName);
+                List<Map<String, Object>> rows = dbQuery.queryList(sql);
                 return firstValue(rows);
             } catch (RuntimeException e) {
                 lastException = e;

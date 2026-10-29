@@ -135,7 +135,7 @@
       </a-layout-content>
     </a-layout>
 
-    <TaskLogDialog ref="logDialogRef" />
+    <TaskLogDialog ref="logDialogRef" :show-stage-windows="true" />
   </div>
 </template>
 

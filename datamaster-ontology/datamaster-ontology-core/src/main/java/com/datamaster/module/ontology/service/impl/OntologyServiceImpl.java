@@ -42,6 +42,7 @@ public class OntologyServiceImpl implements IOntologyService {
     @Resource private ActionExecutionMapper actionExecutionMapper;
     @Resource private FunctionExecutionMapper functionExecutionMapper;
     @Resource private IConceptService conceptService;
+    @Resource private MetricReferenceGuard metricReferenceGuard;
 
     @Override
     public PageResult<OntologyRespVO> getOntologyPage(OntologyPageReqVO pageReqVO) {
@@ -72,6 +73,7 @@ public class OntologyServiceImpl implements IOntologyService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer deleteOntology(Long id) {
+        metricReferenceGuard.assertOntologyDeletable(id);
         for (ConceptDO concept : conceptMapper.selectList(new LambdaQueryWrapperX<ConceptDO>()
                 .eq(ConceptDO::getOntologyId, id))) {
             conceptService.deleteConcept(concept.getId());

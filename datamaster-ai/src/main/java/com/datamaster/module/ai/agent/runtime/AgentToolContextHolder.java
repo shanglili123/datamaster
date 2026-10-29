@@ -61,6 +61,36 @@ public final class AgentToolContextHolder {
         return results == null || results.isEmpty() ? null : results.get(results.size() - 1);
     }
 
+    /** Nested agents must restore all outer tool state, not just the identity context. */
+    public static Scope scope(AgentToolContext context) {
+        Scope scope = new Scope(CONTEXT.get(), RESULTS.get(), CALLS.get());
+        set(context);
+        return scope;
+    }
+
+    public static final class Scope implements AutoCloseable {
+        private final AgentToolContext context;
+        private final List<AgentToolResult> results;
+        private final List<ToolCall> calls;
+        private boolean closed;
+
+        private Scope(AgentToolContext context, List<AgentToolResult> results, List<ToolCall> calls) {
+            this.context = context;
+            this.results = results;
+            this.calls = calls;
+        }
+
+        @Override
+        public void close() {
+            if (closed) return;
+            closed = true;
+            clear();
+            if (context != null) CONTEXT.set(context);
+            if (results != null) RESULTS.set(results);
+            if (calls != null) CALLS.set(calls);
+        }
+    }
+
     public static void clear() {
         CONTEXT.remove();
         RESULTS.remove();

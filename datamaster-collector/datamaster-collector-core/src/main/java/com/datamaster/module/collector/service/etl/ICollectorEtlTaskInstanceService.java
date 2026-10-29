@@ -111,6 +111,14 @@ public interface ICollectorEtlTaskInstanceService extends IService<CollectorEtlT
      */
     CollectorEtlTaskInstanceDO getByDsId(Long dsId);
 
+    /** 仅供服务端向 DS 核验后的状态对账，不接受客户端上报的成功/失败标志。 */
+    void synchronizeSchedulerInstance(Long taskId, com.alibaba.fastjson2.JSONObject confirmedInstance);
+
+    List<CollectorEtlStageWindowRespVO> getStageWindows(Long taskInstanceId);
+
+    void synchronizeComponentRun(Long taskId, com.alibaba.fastjson2.JSONObject confirmedInstance,
+                                 List<com.datamaster.api.ds.api.etl.ds.TaskInstance> confirmedNodes);
+
     /**
      * 根据ds流程实例id获取中任务实例的id
      *

@@ -16,12 +16,22 @@ public class CollectorEtlTaskOpsEventServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public PageResult<CollectorEtlTaskOpsEventDO> pageByTask(Long taskId, Integer pageNum, Integer pageSize) {
+        if (taskId == null) throw new com.datamaster.common.exception.ServiceException("运维事件查询必须指定任务");
         Page<CollectorEtlTaskOpsEventDO> page = new Page<CollectorEtlTaskOpsEventDO>(
-                pageNum == null ? 1 : pageNum,
-                pageSize == null ? 10 : pageSize);
+                pageNum == null ? 1 : Math.max(1, pageNum),
+                pageSize == null ? 10 : Math.max(1, Math.min(100, pageSize)));
         IPage<CollectorEtlTaskOpsEventDO> result = page(page, Wrappers.lambdaQuery(CollectorEtlTaskOpsEventDO.class)
                 .eq(taskId != null, CollectorEtlTaskOpsEventDO::getTaskId, taskId)
                 .orderByDesc(CollectorEtlTaskOpsEventDO::getCreateTime));
+        for (CollectorEtlTaskOpsEventDO event : result.getRecords()) {
+            if (CollectorComponentRecoveryService.ACTION.equals(event.getAction())) {
+                com.alibaba.fastjson2.JSONObject meta = CollectorComponentRecoveryService.recovery(event);
+                event.setRecoveryAttempt(meta.getInteger("attempt"));
+                if (meta.getLongValue("nextRetryAt") > 0 && "WAITING".equals(event.getActionStatus())) event.setNextRetryAt(new java.util.Date(meta.getLongValue("nextRetryAt")));
+                event.setRecoveryExecutionId(meta.getString("executionId"));
+                event.setLogExcerpt(null);
+            }
+        }
         return new PageResult<CollectorEtlTaskOpsEventDO>(result.getRecords(), result.getTotal());
     }
 }

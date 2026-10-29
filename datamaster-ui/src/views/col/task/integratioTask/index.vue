@@ -284,6 +284,7 @@
             :max="10"
             :disabled="!opsForm.autoRecoverEnabled"
           />
+          <span class="ml10">新组件整流程重跑；连续故障限次，成功后重新计数</span>
         </a-form-item>
         <a-form-item label="恢复策略">
           <a-select v-model:value="opsForm.recoverStrategy">
@@ -321,6 +322,7 @@ import {
 import { getTaskOpsPolicy, saveTaskOpsPolicy } from "@/api/col/taskOps.js";
 import { usePageRefresh } from "@/composables/usePageRefresh";
 import { cronToZh } from "@/utils/cronUtils";
+import { getToken } from "@/utils/auth";
 import Crontab from "@/components/Crontab/index.vue";
 import instance from "@/views/col/components/instance.vue";
 const userStore = useUserStore();
@@ -494,11 +496,83 @@ const searchStore = reactive({
   ],
 });
 
+// Page-local ordering only: component instance IDs must never pass through Number.
+const taskStatusByKey = new Map();
+
+function normalizeExecuteDsId(value) {
+  if (typeof value === "number" && !Number.isSafeInteger(value)) {
+    return null;
+  }
+  const id = String(value ?? "").trim();
+  if (!/^\d+$/.test(id)) {
+    return null;
+  }
+  return id.replace(/^0+/, "") || null;
+}
+
+function compareExecuteDsIds(left, right) {
+  if (left.length !== right.length) {
+    return left.length > right.length ? 1 : -1;
+  }
+  return left === right ? 0 : left > right ? 1 : -1;
+}
+
+function isTerminalExecuteStatus(status) {
+  // Workflow terminal states only; PAUSE can resume within the same instance.
+  return ["5", "6", "7"].includes(String(status));
+}
+
+function mergeTaskStatus(taskId, incoming, spaceId) {
+  const patch = {
+    lastExecuteStatus: incoming.lastExecuteStatus,
+    lastExecuteTime: incoming.lastExecuteTime,
+  };
+  const id = normalizeExecuteDsId(incoming.lastExecuteDsId);
+  const key = JSON.stringify([String(spaceId), String(taskId)]);
+  const cached = taskStatusByKey.get(key);
+  if (!id) {
+    // Legacy payloads remain arrival-ordered only until a component ID is known.
+    return cached || patch;
+  }
+  const order = cached ? compareExecuteDsIds(id, cached.lastExecuteDsId) : 1;
+  if (
+    order < 0 ||
+    (order === 0 &&
+      isTerminalExecuteStatus(cached.lastExecuteStatus) &&
+      !isTerminalExecuteStatus(patch.lastExecuteStatus))
+  ) {
+    return cached;
+  }
+  patch.lastExecuteDsId = id;
+  taskStatusByKey.set(key, patch);
+  return patch;
+}
+
 function listWrapper(params) {
   const p = { ...params };
   p.spaceId = userStore.spaceId;
   p.spaceCode = userStore.spaceCode;
-  return listDppEtlTask(p);
+  return listDppEtlTask(p).then((response) => {
+    // Match dm-table's supported page envelopes without changing the response shape.
+    const data = response?.data ?? response ?? {};
+    const rows = Array.isArray(data)
+      ? data
+      : Array.isArray(data.rows)
+        ? data.rows
+        : Array.isArray(data.list)
+          ? data.list
+          : Array.isArray(data.records)
+            ? data.records
+            : Array.isArray(response?.rows)
+              ? response.rows
+              : [];
+    rows.forEach((row) => {
+      if (row?.id !== null && row?.id !== undefined) {
+        Object.assign(row, mergeTaskStatus(row.id, row, p.spaceId));
+      }
+    });
+    return response;
+  });
 }
 
 function handleQuery() {
@@ -851,6 +925,11 @@ const taskInstanceStatusMap = {
   9: { label: "已杀死", type: "error" },
   10: { label: "等待线程", type: "default" },
   11: { label: "等待依赖", type: "default" },
+  12: { label: "延迟执行", type: "default" },
+  14: { label: "串行排队", type: "default" },
+  15: { label: "准备阻塞", type: "warning" },
+  16: { label: "阻塞", type: "warning" },
+  17: { label: "等待调度", type: "default" },
 };
 
 function taskInstanceStatusLabel(status) {
@@ -907,10 +986,11 @@ const taskStatusWs = ref(null);
 let taskStatusReconnectTimer = null;
 
 function updateTaskStatusRow(payload) {
-  return tableRef.value?.updateRowByKey?.("id", payload.taskId, {
-    lastExecuteStatus: payload.lastExecuteStatus,
-    lastExecuteTime: payload.lastExecuteTime,
-  });
+  if (payload.taskId === null || payload.taskId === undefined) {
+    return false;
+  }
+  const patch = mergeTaskStatus(payload.taskId, payload, userStore.spaceId);
+  return tableRef.value?.updateRowByKey?.("id", payload.taskId, patch);
 }
 
 function handleTaskStatusMessage(event) {
@@ -944,9 +1024,17 @@ function initTaskStatusWebSocket() {
     import.meta.env.VITE_APP_WEBSOCKET_API +
     "/websocket/etlTask/" +
     userStore.id;
-  taskStatusWs.value = new WebSocket(wsUri);
-  taskStatusWs.value.onmessage = handleTaskStatusMessage;
-  taskStatusWs.value.onclose = () => {
+  const socket = new WebSocket(wsUri);
+  taskStatusWs.value = socket;
+  socket.onopen = () => {
+    const token = getToken();
+    if (token && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "authenticate", token }));
+    }
+  };
+  socket.onmessage = handleTaskStatusMessage;
+  socket.onclose = () => {
+    if (taskStatusWs.value !== socket) return;
     taskStatusWs.value = null;
     if (taskStatusReconnectTimer) {
       clearTimeout(taskStatusReconnectTimer);
@@ -963,8 +1051,12 @@ function closeTaskStatusWebSocket() {
     taskStatusReconnectTimer = null;
   }
   if (taskStatusWs.value) {
-    taskStatusWs.value.close();
+    const socket = taskStatusWs.value;
     taskStatusWs.value = null;
+    socket.onclose = null;
+    socket.onopen = null;
+    socket.onmessage = null;
+    socket.close();
   }
 }
 
@@ -980,6 +1072,7 @@ watch(
 watch(
   () => userStore.id,
   (value) => {
+    taskStatusByKey.clear();
     if (value) {
       initTaskStatusWebSocket();
     } else {
@@ -995,6 +1088,7 @@ if (userStore.spaceId) {
 usePageRefresh("integratioTask", () => handleQuery());
 
 onBeforeUnmount(() => {
+  taskStatusByKey.clear();
   closeTaskStatusWebSocket();
 });
 </script>

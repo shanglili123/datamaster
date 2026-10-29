@@ -64,6 +64,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
                 throw new ServiceException("DB-GPT调用失败，状态码: " + response.getStatus() + "，响应: " + responseBody);
             }
 
+            com.datamaster.module.ai.service.gateway.DbGptInvocationUsage.accept(responseBody);
             return JSON.parseObject(responseBody, DbGptChatCompletionResponse.class);
         } catch (ServiceException e) {
             throw e;
@@ -259,12 +260,20 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         if (line == null) {
             return null;
         }
+        com.datamaster.module.ai.service.gateway.DbGptInvocationUsage.accept(line);
         String value = line.trim();
         if (value.isEmpty() || value.startsWith(":")) {
             return null;
         }
         if (value.startsWith("data:")) {
             value = value.substring(5).trim();
+        }
+        if (value.startsWith("{")) {
+            try {
+                JSONObject frame = JSON.parseObject(value);
+                if (frame.containsKey("usage") && !frame.containsKey("content") && !frame.containsKey("text")
+                        && (!frame.containsKey("choices") || frame.getJSONArray("choices") == null || frame.getJSONArray("choices").isEmpty())) return null;
+            } catch (RuntimeException ignored) { /* Preserve existing parser behavior for non-usage frames. */ }
         }
         if ("[DONE]".equals(value)) {
             return "[DONE]";

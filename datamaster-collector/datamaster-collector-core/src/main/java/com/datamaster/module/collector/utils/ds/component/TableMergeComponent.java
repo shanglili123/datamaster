@@ -125,7 +125,7 @@ public class TableMergeComponent implements ComponentItem {
                     (Map<String, Object>) taskParams.get("joinConfig"), readerProperty.getDbType(),
                     SourceMetadataSupport.config(taskParams)));
         } else {
-            connection.put("querySql", buildUnionAllSql(taskParams));
+            connection.put("querySql", buildUnionAllSql(taskParams, readerProperty.getDbType()));
         }
         connection.put("jdbcUrl", readerProperty.trainToJdbcUrl());
         parameter.put("connection", connection);
@@ -137,7 +137,8 @@ public class TableMergeComponent implements ComponentItem {
      * 由多个源表生成 UNION ALL SQL。
      * SELECT 字段列表取 taskParams.columns；每个源表可带独立 where 条件。
      */
-    private String buildUnionAllSql(Map<String, Object> taskParams) {
+    private String buildUnionAllSql(Map<String, Object> taskParams, String dbType) {
+        boolean component = Boolean.TRUE.equals(taskParams.get("componentStage"));
         Object columnsObj = taskParams.get("columns");
         List<String> columns = new ArrayList<>();
         if (columnsObj instanceof List) {
@@ -150,7 +151,9 @@ public class TableMergeComponent implements ComponentItem {
         if (columns.isEmpty()) {
             columns.add("*");
         }
-        String columnSql = String.join(", ", columns);
+        String columnSql = columns.stream().map(column -> component && !"*".equals(column)
+                ? com.datamaster.module.collector.utils.StageIncrementalSql.quotedColumn(column, dbType) : column)
+                .collect(java.util.stream.Collectors.joining(", "));
         String sourceTableColumn = SourceMetadataSupport.column(taskParams, "sourceTableColumn",
                 SourceMetadataSupport.SOURCE_TABLE);
 
@@ -176,9 +179,10 @@ public class TableMergeComponent implements ComponentItem {
             if (SourceMetadataSupport.enabled(taskParams)
                     && !containsColumn(columns, sourceTableColumn)) {
                 part.append(", '").append(escapeSqlLiteral(tableName)).append("' AS ")
-                        .append(sourceTableColumn);
+                        .append(component ? com.datamaster.module.collector.utils.StageIncrementalSql.quotedColumn(sourceTableColumn, dbType) : sourceTableColumn);
             }
-            part.append(" FROM ").append(tableName);
+            part.append(" FROM ").append(component
+                    ? com.datamaster.module.collector.utils.StageIncrementalSql.quotedTable(tableName, dbType) : tableName);
             if (StringUtils.isNotBlank(where)) {
                 part.append(" WHERE ").append(where);
             }

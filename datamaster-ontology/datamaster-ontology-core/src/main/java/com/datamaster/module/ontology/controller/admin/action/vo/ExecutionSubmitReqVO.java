@@ -14,6 +14,9 @@ public class ExecutionSubmitReqVO {
     @NotNull(message = "动作ID不能为空")
     private Long actionId;
 
+    @Schema(description = "可选：提交时要求匹配的动作定义版本，定义变化则拒绝")
+    private Integer expectedVersion;
+
     @Schema(description = "输入参数JSON", example = "{\"name\":\"张三\",\"age\":30}")
     private String inputParams;
 

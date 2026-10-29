@@ -50,7 +50,15 @@ public class CollectorEtlTaskOpsEventDO extends BaseEntity {
 
     private String logExcerpt;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String aiRawResult;
+
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private Integer recoveryAttempt;
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private java.util.Date nextRetryAt;
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String recoveryExecutionId;
 
     private Boolean validFlag;
 

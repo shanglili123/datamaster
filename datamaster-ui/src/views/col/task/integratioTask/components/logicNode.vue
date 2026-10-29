@@ -84,6 +84,42 @@
       <a-alert v-else-if="logic.mode === 'BROADCAST'" type="info" show-icon message="广播将同一份业务列传给全部下游，不配置条件或目标表。" />
       <a-alert v-else-if="logic.mode === 'REFERENCE'" type="info" show-icon message="引用上游表输出，业务列原样透传，不配置输入输出组件。" />
 
+      <template v-if="logic.mode !== 'CONDITION'">
+        <a-alert v-if="logic.mode === 'MERGE' && logic.mergeType === 'JOIN'" type="warning" show-icon
+          message="增量 JOIN 按任一来源窗口变化重算关联；关联键变化、旧关联失效、LEFT JOIN 补匹配不会自动撤回旧结果。仅在业务保证结果键和关联关系稳定时使用，目标必须有实际主键。" />
+        <a-alert v-if="logic.mode === 'SPLIT'" type="warning" show-icon
+          message="增量分流更新不会自动删除旧分支中的记录；需要记录始终只属于当前分支时，应另行处理旧分支清理，不能仅靠 Upsert。" />
+        <h3 class="etl-section-title">增量游标配置（定时增量工作流需要）</h3>
+        <a-alert type="info" show-icon
+          message="上游读取源为增量同步（id 增量／时间增量）或上游逻辑节点已有增量游标配置时，须为本节点每个读取源配置游标字段；全量工作流可留空。" />
+        <a-table class="logic-table" :data-source="incrementalSources" :columns="incrementalColumns" :row-key="record => incrementalSources.indexOf(record)" :pagination="false">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'table'">
+              {{ record.table }}
+              <template v-if="!upstreams.some(node => String(node.id) === String(record.nodeId))">
+                <div class="logic-warning">来源已失效，请删除或恢复连线</div>
+              </template>
+              <template v-if="incrementalSources.filter(source => String(source?.nodeId) === String(record.nodeId)).length > 1">
+                <div class="logic-warning">存在重复来源引用，请删除重复项</div>
+              </template>
+              <a-button v-if="!info && (!upstreams.some(node => String(node.id) === String(record.nodeId)) || incrementalSources.filter(source => String(source?.nodeId) === String(record.nodeId)).length > 1)"
+                type="link" danger size="small" @click="removeIncrementalSource(record)">删除此项</a-button>
+            </template>
+            <template v-else-if="column.dataIndex === 'cursorColumn'">
+              <a-select v-model:value="record.cursorColumn" :options="cursorColumnOptions(record)" :disabled="Boolean(info)"
+                allow-clear show-search placeholder="请选择游标字段" class="logic-full" />
+              <div v-if="record.cursorColumn && !isCursorColumnValid(record)" class="logic-warning">原游标字段已失效，请重新选择；不会自动替换。</div>
+            </template>
+            <template v-else-if="column.dataIndex === 'cursorType'">
+              <a-select v-model:value="record.cursorType" :options="cursorTypeOptions" :disabled="Boolean(info)" class="logic-full" />
+            </template>
+            <template v-else-if="column.dataIndex === 'initialValue'">
+              <a-input v-model:value="record.initialValue" :disabled="Boolean(info)" placeholder="配置增量时必填首次起始值" />
+            </template>
+          </template>
+        </a-table>
+      </template>
+
       <h3 class="etl-section-title">业务字段（只读）</h3>
       <a-table :data-source="businessFields" :columns="fieldColumns" row-key="columnName" :pagination="false" :scroll="{ y: 260 }" />
     </a-form>
@@ -108,7 +144,7 @@ const props = defineProps({
 const emit = defineEmits(['update', 'confirm']);
 const visibleDialog = computed({ get: () => props.visible, set: value => emit('update', value) });
 const clone = value => JSON.parse(JSON.stringify(value));
-const defaultLogic = () => ({ mode: 'REFERENCE', mergeType: 'UNION_ALL', matchStrategy: 'ALL', unmatchedPolicy: 'DROP', branches: [], conditionRelation: 'AND', joinConfig: { sources: [], joins: [], fields: [] } });
+const defaultLogic = () => ({ mode: 'REFERENCE', mergeType: 'UNION_ALL', matchStrategy: 'ALL', unmatchedPolicy: 'DROP', branches: [], conditionRelation: 'AND', joinConfig: { sources: [], joins: [], fields: [] }, incremental: { sources: [] } });
 const form = ref({ name: '', taskParams: { logicNode: defaultLogic() } });
 const logic = computed(() => form.value.taskParams.logicNode);
 const joinConfigRef = ref(null);
@@ -136,6 +172,16 @@ const branchColumns = [
   { title: 'Flink SQL 条件', dataIndex: 'condition', width: 270 },
   { title: '默认', dataIndex: 'isDefault', width: 65 },
   { title: '操作', key: 'actions', width: 215 },
+];
+const incrementalColumns = [
+  { title: '源表名', dataIndex: 'table', width: 240 },
+  { title: '游标字段', dataIndex: 'cursorColumn' },
+  { title: '游标类型', dataIndex: 'cursorType', width: 160 },
+  { title: '初始值', dataIndex: 'initialValue', width: 220 },
+];
+const cursorTypeOptions = [
+  { label: '时间（TIME）', value: 'TIME' },
+  { label: '自增 ID（ID）', value: 'ID' },
 ];
 
 // X6 的图模型不属于 Vue 响应式状态，监听连线/上游数据变化使只读来源同步刷新。
@@ -194,6 +240,7 @@ const upstreams = computed(() => {
       name: data.name || node.id,
       table: params.target_table_name || params.tableName || params.table_name || params.pipelineNode?.output?.table || '上游逻辑表输出',
       fields: sourceFields(params),
+      physicalFields: Array.isArray(params.toColumnsList) ? params.toColumnsList : [],
       datasourceId: params.writerDatasource?.datasourceId || params.writerDatasource?.id || '',
       datasourceType: params.writerDatasource?.datasourceType || '',
     });
@@ -220,6 +267,72 @@ const upstreamError = computed(() => {
   if (upstreams.value.some(node => !node.fields.length)) return '上游尚未提供 taskParams.outputFields / target_columns，请先保存上游表输出。';
   return '';
 });
+
+// 保留编辑中的对象、失效引用及重复引用，避免刷新时静默丢弃配置；保存时统一校验。
+const incrementalSources = computed(() => logic.value.incremental?.sources || []);
+function availableCursorFields(nodeId) {
+  const upstream = upstreams.value.find(item => String(item.id) === String(nodeId));
+  if (!upstream) return [];
+  const fields = new Map();
+  [...upstream.fields, ...upstream.physicalFields, { columnName: 'write_time', columnType: 'TIMESTAMP' }].forEach(raw => {
+    const field = typeof raw === 'string' ? { columnName: raw } : (raw || {});
+    const columnName = String(field.columnName || field.name || '').trim();
+    if (columnName) fields.set(columnName, { columnName, columnType: field.columnType || field.dataType || field.type || '' });
+  });
+  return [...fields.values()];
+}
+function isCursorColumnValid(source) {
+  return availableCursorFields(source.nodeId).some(field => field.columnName === String(source.cursorColumn || '').trim());
+}
+function cursorColumnOptions(source) {
+  const options = availableCursorFields(source.nodeId).map(field => ({
+    label: field.columnType ? `${field.columnName}（${field.columnType}）` : field.columnName,
+    value: field.columnName,
+  }));
+  if (source.cursorColumn && !options.some(option => option.value === source.cursorColumn)) {
+    options.push({ label: `${source.cursorColumn}（已失效，请重新选择）`, value: source.cursorColumn, disabled: true });
+  }
+  return options;
+}
+function removeIncrementalSource(source) {
+  if (props.info) return;
+  const index = incrementalSources.value.indexOf(source);
+  if (index >= 0) incrementalSources.value.splice(index, 1);
+}
+function syncIncrementalSources() {
+  if (!logic.value.incremental || !Array.isArray(logic.value.incremental.sources)) {
+    logic.value.incremental = { ...logic.value.incremental, sources: [] };
+  }
+  const sources = logic.value.incremental.sources;
+  upstreams.value.forEach(node => {
+    const entries = sources.filter(source => source && String(source.nodeId) === String(node.id));
+    if (!entries.length) {
+      sources.push({ nodeId: node.id, table: node.table, cursorColumn: '', cursorType: 'TIME', initialValue: '' });
+    } else {
+      entries.forEach(entry => { entry.table = node.table; });
+    }
+  });
+}
+// 仅沿当前画布的实际入边 DFS，不读取/展开外部工作流；控制节点切断数据增量传播。
+const incrementalUpstream = computed(() => {
+  graphRevision.value;
+  const graph = props.graph;
+  const visited = new Set([String(props.currentNode?.id)]);
+  function visit(id) {
+    if (id == null || visited.has(String(id))) return false;
+    visited.add(String(id));
+    const cell = graph?.getCellById?.(id);
+    if (!cell) return false;
+    const params = dataOf(cell).taskParams || {};
+    if (params.logicNode?.mode === 'CONDITION') return false;
+    const sources = params.logicNode?.incremental?.sources;
+    if (Array.isArray(sources) && sources.length) return true;
+    if (String(params.type) === '1' && ['2', '3'].includes(String(params.readModeType))) return true;
+    return (graph.getIncomingEdges?.(cell) || []).some(edge => visit(edge.getSourceCellId?.() ?? edge.getSourceCell?.()?.id));
+  }
+  return upstreams.value.some(item => visit(item.id));
+});
+watch(upstreams, () => { if (props.visible) syncIncrementalSources(); });
 
 // 同时识别显式分支引用及 X6 source.port；不通过边标签猜测分支。
 function referencedBranchIds() {
@@ -281,6 +394,7 @@ watch(() => [props.visible, props.currentNode?.id], ([visible]) => {
   }));
   originalBranches = logic.value.branches.map(branch => branch.id);
   originalMode = logic.value.mode;
+  syncIncrementalSources();
   refreshGraph();
 }, { immediate: true });
 
@@ -289,9 +403,26 @@ function saveData() {
   if (props.info) return;
   if (!form.value.name.trim()) return message.warning('请输入节点名称');
   if (!modeOptions.some(option => option.value === logic.value.mode)) return message.warning('请选择有效的逻辑模式');
-  // 先保存模式才能连接第二个合并输入；完整拓扑在保存任务/发布时校验。
-  if (upstreamError.value) message.info('已保存逻辑配置，请按提示补齐上游连线和字段后再保存任务');
   const config = logic.value;
+  syncIncrementalSources();
+  const requiresIncremental = config.mode !== 'CONDITION' && (incrementalUpstream.value
+    || incrementalSources.value.some(source => String(source?.cursorColumn || '').trim()));
+  if (requiresIncremental) {
+    if (upstreamError.value) return message.warning(`增量配置不可部分保存：${upstreamError.value}`);
+    const seen = new Set();
+    const upstreamIds = new Set(upstreams.value.map(source => String(source.id)));
+    for (const source of incrementalSources.value) {
+      const id = String(source?.nodeId ?? '');
+      if (!upstreamIds.has(id) || seen.has(id)) return message.warning('增量配置包含重复或失效的上游引用，请删除重复/失效配置或恢复连线');
+      seen.add(id);
+      if (!isCursorColumnValid(source)) return message.warning(`请为来源 ${source.table || id} 选择有效的增量游标字段`);
+      if (!['TIME', 'ID'].includes(source.cursorType)) return message.warning('增量游标类型只能为 TIME 或 ID');
+      if (!String(source.initialValue ?? '').trim()) return message.warning(`来源 ${source.table || id} 的增量游标初始值不能为空`);
+    }
+    if (seen.size !== upstreamIds.size) return message.warning('增量配置必须覆盖每个读取源，不可部分保存');
+  }
+  // 无增量的空模式可先保存以便连接 MERGE 输入，完整拓扑仍在保存任务/发布时校验。
+  const emptyMerge = config.mode === 'MERGE' && !upstreams.value.length && !requiresIncremental;
   if (!['UNION_ALL', 'JOIN'].includes(config.mergeType)) return message.warning('请选择有效的合并方式');
   const referenced = referencedBranchIds();
   if (originalBranches.some(id => referenced.has(id) && !config.branches.some(branch => branch.id === id))) {
@@ -302,7 +433,7 @@ function saveData() {
     return message.warning('请先移除分支引用边，再切换逻辑模式');
   }
   if (config.mode === 'CONDITION' && !['AND', 'OR'].includes(config.conditionRelation)) return message.warning('请选择有效的前置状态关系');
-  if (config.mode === 'MERGE' && config.mergeType === 'JOIN') {
+  if (config.mode === 'MERGE' && config.mergeType === 'JOIN' && !emptyMerge) {
     const connections = new Set(upstreams.value.map(source => String(source.datasourceId || '')));
     if (connections.size > 1 || connections.has('')) return message.warning('JOIN 的全部上游输出必须位于同一个已登记数据源连接');
     const error = joinConfigRef.value?.validate?.();
@@ -334,6 +465,7 @@ function saveData() {
       return message.warning('默认分支最多一个，DEFAULT 策略必须配置一个默认分支');
     }
   }
+  if (upstreamError.value) message.info('已保存逻辑配置，请按提示补齐上游连线和字段后再保存任务');
   const result = clone(form.value);
   result.name = result.name.trim();
   // 纯逻辑节点不携带旧集成节点的数据源、物理目标或输入输出包装配置。
@@ -347,6 +479,16 @@ function saveData() {
       branches: clone(config.branches).map(branch => ({
         id: branch.id, name: branch.name.trim(), condition: branch.isDefault ? '' : branch.condition.trim(), isDefault: branch.isDefault,
       })),
+      incremental: !requiresIncremental ? { sources: [] } : {
+        sources: clone(config.incremental?.sources || [])
+          .map(source => ({
+            nodeId: source.nodeId,
+            table: source.table || '',
+            cursorColumn: String(source.cursorColumn).trim(),
+            cursorType: source.cursorType,
+            initialValue: String(source.initialValue).trim(),
+          })),
+      },
     },
     tableFields: clone(businessFields.value),
     inputFields: clone(businessFields.value),
@@ -362,4 +504,6 @@ function saveData() {
 .logic-help { color: var(--ant-color-text-secondary, #666); font-size: 12px; margin: 8px 0 16px; }
 .logic-add { margin-top: 16px; }
 .logic-id { overflow-wrap: anywhere; font-family: monospace; }
+.logic-full { width: 100%; }
+.logic-warning { color: var(--ant-color-warning, #d48806); font-size: 12px; margin-top: 4px; }
 </style>

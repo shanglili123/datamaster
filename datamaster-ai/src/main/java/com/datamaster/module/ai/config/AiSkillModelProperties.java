@@ -20,6 +20,9 @@ public class AiSkillModelProperties {
 
     private String model = "qwen-plus";
 
+    /** 现有默认供应商；动态空间配置优先，统计不按模型名猜测供应商。 */
+    private String provider = "BAILIAN";
+
     /** 单次模型调用超时时间，默认 3 分钟，适配本体大表结构生成。 */
     private Integer timeout = 180000;
 

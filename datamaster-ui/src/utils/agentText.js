@@ -5,8 +5,8 @@
 export function normalizeAgentText(value) {
   if (value === undefined || value === null) return value
   return String(value)
-    .replace(/DB[-_ ]?GPT/gi, '决策智能体')
-    .replace(/AI问数/g, '决策智能体')
+    .replace(/DB[-_ ]?GPT/gi, '数据分析')
+    .replace(/AI问数|决策智能体/g, '数据分析')
     // Skill 是内部上下文，模型偶尔会把文档追加到回答末尾，前端也要做一次兜底清理。
     .replace(/(?:^|\n)[ \t]*Skill\s*:\s*[^\r\n]*(?:[\r\n]+[\s\S]*)?$/i, '')
     // 不把 react-agent 的内部工具轨迹、容器目录列表展示给用户。

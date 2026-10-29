@@ -60,9 +60,9 @@ public class AiActionDecisionServiceImpl implements IAiActionDecisionService {
                     Collections.singletonList("action"));
         }
 
-        String reply;
+        com.datamaster.module.ontology.api.dto.ActionDecisionOutput decision;
         try {
-            reply = aiModelGatewayService.complete(buildSystemPrompt(), buildUserPrompt(reqVO, actions));
+            decision = aiModelGatewayService.decideAction(buildSystemPrompt(), buildUserPrompt(reqVO, actions));
         } catch (Exception e) {
             log.warn("AI 动作决策调用失败: {}", e.getMessage());
             return result(DECISION_ASK_HUMAN, null, null, normalizeInput(reqVO.getInputParams()),
@@ -70,21 +70,25 @@ public class AiActionDecisionServiceImpl implements IAiActionDecisionService {
                     Collections.singletonList("action"));
         }
 
-        JsonNode decision = extractJson(reply);
         if (decision == null) {
             return result(DECISION_ASK_HUMAN, null, null, normalizeInput(reqVO.getInputParams()),
                     "AI 未返回合法结构化决策，请人工确认", 0D, true,
                     Collections.singletonList("action"));
         }
 
-        String decisionType = normalizeDecision(decision.path("decision").asText(null));
-        Long actionId = decision.hasNonNull("actionId") ? decision.get("actionId").asLong() : null;
+        String decisionType = decision.getDecision() == null ? DECISION_ASK_HUMAN : decision.getDecision().name();
+        Long actionId = null;
+        try {
+            if (decision.getActionId() != null && decision.getActionId().matches("[1-9][0-9]{0,18}")) actionId = Long.valueOf(decision.getActionId());
+        } catch (NumberFormatException ignored) { /* Invalid IDs are handled as unmatched candidates. */ }
         ActionDO selected = findAction(actions, actionId);
-        double confidence = decision.has("confidence") ? decision.path("confidence").asDouble(0D) : 0D;
-        confidence = Math.max(0D, Math.min(1D, confidence));
-        String reason = StringUtils.defaultIfBlank(decision.path("reason").asText(null), "AI 未提供决策理由");
-        List<String> missing = readStringList(decision.path("missingFields"));
-        String aiParams = normalizeInputNode(decision.get("inputParams"));
+        double confidence = decision.getConfidence() == null ? 0D : decision.getConfidence();
+        confidence = Double.isNaN(confidence) || Double.isInfinite(confidence) ? 0D : Math.max(0D, Math.min(1D, confidence));
+        String reason = StringUtils.defaultIfBlank(decision.getReason(), "AI 未提供决策理由");
+        List<String> missing = new ArrayList<>();
+        if (decision.getMissingFields() != null) for (String field : decision.getMissingFields())
+            if (StringUtils.isNotBlank(field)) missing.add(field);
+        String aiParams = normalizeInputNode(objectMapper.valueToTree(decision.getInputParams()));
 
         if (selected == null) {
             return result(DECISION_ASK_HUMAN, null, null, aiParams,
@@ -130,7 +134,7 @@ public class AiActionDecisionServiceImpl implements IAiActionDecisionService {
                 "只能返回 JSON，不得生成 SQL、脚本或新动作。" +
                 "如果意图、参数、引用对象不完整，decision 必须为 ASK_HUMAN；" +
                 "只有动作和参数都明确时才可返回 ALLOW；明确不应执行时返回 REJECT。" +
-                "JSON 格式：{decision:'ALLOW|ASK_HUMAN|REJECT',actionId:number|null," +
+                "JSON 格式：{decision:'ALLOW|ASK_HUMAN|REJECT',actionId:string|null," +
                 "inputParams:object,reason:string,confidence:number,missingFields:string[]}.";
     }
 
@@ -138,7 +142,7 @@ public class AiActionDecisionServiceImpl implements IAiActionDecisionService {
         ArrayNode candidates = objectMapper.createArrayNode();
         for (ActionDO action : actions) {
             ObjectNode node = candidates.addObject();
-            node.put("actionId", action.getId());
+            node.put("actionId", String.valueOf(action.getId()));
             node.put("name", action.getName());
             node.put("actionType", action.getActionType());
             node.put("conceptId", action.getConceptId());
@@ -175,41 +179,6 @@ public class AiActionDecisionServiceImpl implements IAiActionDecisionService {
         result.setRequiresHuman(requiresHuman);
         result.setMissingFields(missingFields == null ? new ArrayList<>() : missingFields);
         return result;
-    }
-
-    private JsonNode extractJson(String reply) {
-        if (StringUtils.isBlank(reply)) return null;
-        String candidate = reply.trim();
-        int fenceStart = candidate.indexOf("```json");
-        if (fenceStart >= 0) {
-            int start = fenceStart + 7;
-            int end = candidate.indexOf("```", start);
-            if (end > start) candidate = candidate.substring(start, end);
-        }
-        int start = candidate.indexOf('{');
-        int end = candidate.lastIndexOf('}');
-        if (start < 0 || end <= start) return null;
-        try {
-            return objectMapper.readTree(candidate.substring(start, end + 1));
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private String normalizeDecision(String value) {
-        if (value == null) return DECISION_ASK_HUMAN;
-        String normalized = value.trim().toUpperCase();
-        return DECISION_ALLOW.equals(normalized) || DECISION_REJECT.equals(normalized)
-                ? normalized : DECISION_ASK_HUMAN;
-    }
-
-    private List<String> readStringList(JsonNode node) {
-        if (node == null || !node.isArray()) return new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        for (JsonNode item : node) {
-            if (item != null && item.isValueNode() && StringUtils.isNotBlank(item.asText())) values.add(item.asText());
-        }
-        return values;
     }
 
     private String normalizeInput(String input) {

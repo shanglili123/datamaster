@@ -15,6 +15,9 @@ public class DbGptProperties {
 
     private String model = "qwen-plus";
 
+    /** DB-GPT内部供应商的运维声明，不从模型名推断；切换须同步服务端配置。 */
+    private String provider = "BAILIAN";
+
     private String chatMode = "chat_with_db_qa";
 
     private String skillSpaceName = "datamaster-skills";

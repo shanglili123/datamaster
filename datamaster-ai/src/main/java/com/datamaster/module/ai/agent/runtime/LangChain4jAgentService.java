@@ -78,7 +78,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
                     + "如果上一轮同一 Agent 会话上下文已经有 datasourceName 或 datasourceId，用户随后说“开始探查元数据”或“继续探查”，必须把该数据源视为当前目标；先用 get_datasource 回读，再使用真实 datasourceId 和 databaseName 查询或复用探查任务。不要再次列出全部数据源要求用户选择，也不要因为任务存在就自动发布或执行。"
                     + "如果当前操作已经记录 datasourceId/datasourceName，用户说“决策数据源”“决策数据库”“决策库”或“当前数据源”时，这些是当前目标数据源的语义别名，不是新数据源名称；必须直接使用当前真实数据源，不得要求用户确认是否另有 decision_db/ai_decision，也不得因为名称不含 decision 而暂停。"
                     + "查询或根据实际数据生成内容时，不要从历史消息猜测 datasourceId；优先使用当前操作记录中的实际目标数据源，或先按名称调用 get_datasource。"
-                    + "数据查询、分析和报告使用对应的 DB-GPT Tool，不要把 DB-GPT 当作平台流程调度器。"
+                    + "日常数据问答、指标分析和报告请提示用户进入AI问数；此入口只建设平台流程，不调用DB-GPT或指标分析工具。"
                     + "用户要求查询已发布的数据服务时，先用 list_data_services 或 get_data_service 确认当前空间内的真实 serviceId 和请求字段，再调用 invoke_data_service；不得把数据服务 ID、SQL、连接配置或密钥交给模型自行编造。invoke_data_service 只支持表单查询型已发布服务，返回结果后再进行总结。"
                     + "用户要求创建订单、客户订单或其他数据接口服务时，不要因为 list_data_services 为空就结束；先用当前真实 datasourceId 调用 list_assets 搜索订单相关表。候选唯一且表结构可用时，调用 create_data_service 创建只读表单查询服务草稿；如果候选为空或有多个，才向用户说明并请求选择。create_data_service 成功后明确告知草稿 serviceId 和接口路径，不要自动发布，等待用户明确要求发布。"
                     + "用户明确要求发布某个数据服务草稿时，先用 get_data_service 回读真实 serviceId 和契约，再调用 publish_data_service；发布是独立写操作，必须要求用户确认同一个 serviceId。"
@@ -87,13 +87,18 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
                     + "严格区分本体与动作：用户说生成本体、概念、属性或关系时才调用 generate_ontology；用户说生成动作、生成动作草稿、查询动作定义、分析动作定义、更新动作定义或动作预览时，必须调用 generate_actions，它需要 ontologyId 和 prompt，但不需要 actionId；只有用户明确要求提交、试运行或执行某个已经存在的动作，并且已有真实 actionId 时，才调用 submit_action。不得用 submit_action 处理‘生成动作’。用户说生成动作编排、动作流程或工作流时才调用 generate_action_workflow。generate_ontology 的确认文案必须称为‘生成本体模型’，不能称为‘生成本体动作’。页面上下文中若包含 ontologyId，它代表用户所说的‘当前本体’，优先级高于历史会话中的 ontologyId。"
                     + "generate_actions 返回动作预览后，保存必须分阶段进行：用户确认后对每个预览逐个调用 create_action，传入 ontologyId、预览中的 name/actionType 和从 0 开始的 previewIndex；不要在确认阶段回显 functionBody 或整段 executionSteps，也不要一次调用保存全部动作。create_action 会从最近一次预览解析真实概念/关系 ID，并为 FUNCTION 预览创建共享函数后再绑定动作。"
                     + "若用户明确要求完整标准接入，优先调用 run_standard_data_onboarding，但仍须根据各步骤返回的实际状态跳过已完成步骤，不得重复创建或重复执行。"
-                    + "经营决策建议必须先用 dbgpt_query 或 dbgpt_report 获取真实数据，再由模型总结建议；建议转成业务修改时只能 submit_action，未经审批和人工确认不能 execute_action。";
+                    + "指标建设属于流程能力：用preview_metrics基于真实概念和字段生成候选预览，业务口径不明确时要求补充；再用save_metric_draft请求用户确认并保存单个草稿。"
+                    + "默认不发布指标、不执行指标查询、不创建ADS物理表。预览不是经过确认的正式口径，不能把候选聚合结果当作已验证指标。";
 
     @Resource
     private AgentToolCatalog toolCatalog;
 
     @Resource
     private AiSkillModelProperties modelProperties;
+    @Resource
+    private com.datamaster.module.ai.service.gateway.ActiveModelResolver activeModelResolver;
+    @Resource
+    private com.datamaster.module.ai.service.gateway.AiInvocationGateway invocationGateway;
 
     @Resource
     private IAiAgentOperationService operationService;
@@ -151,7 +156,19 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
         request.setConversationId(conversationId);
         ensureOperation(operationId, request, context);
         AgentToolContext executionContext = context == null ? null : context.withConversationId(conversationId);
-        ChatLanguageModel model = createModel();
+        AgentRunResponse metricDraft = confirmMetricDraft(request, executionContext, operationId, conversationId);
+        if (metricDraft != null) return metricDraft;
+        // Data Agent 仅建设平台资源和指标草稿；问数与指标分析在独立问数入口运行。
+        final java.util.Set<String> routedTools = toolCatalog.managementToolNames();
+        ChatLanguageModel model;
+        try (com.datamaster.module.ai.service.gateway.AiInvocationContext.Scope ignored =
+                     com.datamaster.module.ai.service.gateway.AiInvocationContext.scope(
+                             new com.datamaster.module.ai.service.gateway.AiInvocationGateway.Context(
+                                     executionContext == null ? null : executionContext.getUserId(),
+                                     executionContext == null ? null : executionContext.getSpaceId(),
+                                     executionContext == null ? null : executionContext.getSpaceCode(), operationId))) {
+            model = createModel();
+        }
         if (model == null) {
             AgentRunResponse failure = AgentRunResponse.failure("决策智能体模型未启用或未配置 API 地址");
             failure.setOperationId(operationId);
@@ -195,9 +212,6 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
                 request, operationId, executionContext, result, explicitlyConfirmed);
         if (deterministicOrderService != null) return deterministicOrderService;
 
-        // “决策数据源/当前决策库”是对本轮已确认数据源的引用，不是一个新的
-        // 数据源名称搜索请求。直接回读可信 datasourceId，避免模型把语义别名误判为
-        // decision_db 等候选名称并反复向用户索要确认。
         AgentRunResponse currentDatasource = resolveCurrentDatasourceAlias(request, operationId,
                 executionContext, result);
         if (currentDatasource != null) return currentDatasource;
@@ -228,6 +242,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
             prompt = "请继续处理上一条任务；如果仍缺少信息或需要确认，请立即停止并明确告知用户。";
         }
         prompt = appendOperationContext(operationId, prompt, context);
+        prompt = "本轮是平台流程建设入口，不承接日常数据查询、指标分析或报告。此类请求请提示进入AI问数。\n" + prompt;
         if (isDecisionOrderServiceIntent(request.getGoal()) && hasBoundDatasource(operationId)) {
             if (explicitlyConfirmed) {
                 prompt = "当前流程已解析到真实决策数据源，用户已确认创建订单只读数据服务。"
@@ -369,7 +384,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
                     .chatMemory(memory)
                     // AiServices 负责模型 Tool Calling、参数转换和调度；Catalog 只做
                     // Spring AOP 代理到框架 ToolExecutor 的兼容适配，不自行循环调度。
-                    .tools(toolCatalog.frameworkTools())
+                    .tools(toolCatalog.frameworkTools(routedTools))
                     .build();
             executionStage = "model_chat";
             String text;
@@ -387,7 +402,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
                 AutonomousAssistant retryAssistant = AiServices.builder(AutonomousAssistant.class)
                         .chatLanguageModel(model)
                         .chatMemory(retryMemory)
-                        .tools(toolCatalog.frameworkTools())
+                        .tools(toolCatalog.frameworkTools(routedTools))
                         .build();
                 text = retryAssistant.chat(prompt);
             }
@@ -677,6 +692,27 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
             return user + ":" + space + ":agent-session:" + request.getSessionId();
         }
         return user + ":" + space + ":" + conversationId;
+    }
+
+    private AgentRunResponse confirmMetricDraft(AgentRunRequest request, AgentToolContext context,
+                                                String operationId, String conversationId) {
+        if (context == null || !Boolean.TRUE.equals(request.getConfirmed())
+                || !Boolean.TRUE.equals(context.getAttributes().get("confirmed"))) return null;
+        AiAgentOperationDO operation = operationService.get(operationId);
+        if (operation == null) return null;
+        requireAccess(operation, context);
+        AgentToolResult pending = com.datamaster.module.ai.controller.agent.tool.metricdraft.MetricDraftConfirmation.pending(
+                operation.getStatus(), operation.getResultJson());
+        if (pending == null) return null;
+        Object arguments = com.datamaster.module.ai.controller.agent.tool.metricdraft.MetricDraftConfirmation.arguments(pending);
+        Map<String, Object> values = JSON.parseObject(JSON.toJSONString(arguments), Map.class);
+        AgentToolResult saved = toolCatalog.invoke("save_metric_draft", context, values);
+        AgentRunResponse response = new AgentRunResponse();
+        response.setOperationId(operationId); response.setConversationId(conversationId); response.setSessionId(request.getSessionId());
+        response.setSuccess(AgentToolResult.SUCCEEDED.equals(saved.getStatus())); response.setStatus(saved.getStatus());
+        response.setMessage(saved.getMessage()); response.setText(saved.getMessage()); response.getToolResults().add(saved);
+        persistOperation(operationId, request, response);
+        return response;
     }
 
     private boolean isActionWriteFollowup(String goal, String operationId) {
@@ -1235,6 +1271,8 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
         try {
             AiAgentOperationDO operation = operationService.get(operationId);
             if (operation == null) return;
+            if (com.datamaster.module.ai.controller.agent.tool.metricdraft.MetricDraftConfirmation.pending(
+                    operation.getStatus(), operation.getResultJson()) != null) return;
             operation.setStatus(AgentToolResult.RUNNING);
             operation.setMessage("已确认，Agent 正在继续调用平台 Tool");
             operation.setUpdateTime(new java.util.Date());
@@ -1497,6 +1535,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
     }
 
     private ChatLanguageModel createModel() {
+        AiSkillModelProperties modelProperties = activeModelResolver.resolve(this.modelProperties);
         if (!Boolean.TRUE.equals(modelProperties.getEnabled()) || StringUtils.isBlank(modelProperties.getApiUrl())) {
             return null;
         }
@@ -1511,7 +1550,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
         }
         Integer timeout = modelProperties.getTimeout() == null ? 180000 : modelProperties.getTimeout();
         Integer retries = modelProperties.getRetryCount() == null ? 2 : modelProperties.getRetryCount();
-        return OpenAiChatModel.builder()
+        return new com.datamaster.module.ai.service.gateway.GovernedChatLanguageModel(OpenAiChatModel.builder()
                 .baseUrl(normalizeBaseUrl(modelProperties.getApiUrl()))
                 .apiKey(StringUtils.isBlank(apiKey) ? "none" : apiKey)
                 .modelName(StringUtils.isBlank(modelProperties.getModel()) ? "qwen-plus" : modelProperties.getModel())
@@ -1521,7 +1560,8 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
                 .maxRetries(Math.max(0, retries))
                 .parallelToolCalls(false)
                 .strictTools(false)
-                .build();
+                .build(), invocationGateway, "DATA_AGENT", modelProperties.getProvider(),
+                StringUtils.isBlank(modelProperties.getModel()) ? "qwen-plus" : modelProperties.getModel());
     }
 
     /**

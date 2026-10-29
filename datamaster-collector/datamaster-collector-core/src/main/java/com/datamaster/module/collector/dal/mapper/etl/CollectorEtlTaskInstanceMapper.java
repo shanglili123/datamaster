@@ -16,6 +16,7 @@ import com.datamaster.module.collector.dal.dataobject.etl.CollectorEtlTaskInstan
 import com.datamaster.mybatis.config.MasterDataSourceConfig;
 import com.datamaster.mybatis.core.mapper.BaseMapperX;
 
+import java.util.Collection;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +29,26 @@ import java.util.Set;
  * @date 2025-02-13
  */
 public interface CollectorEtlTaskInstanceMapper extends BaseMapperX<CollectorEtlTaskInstanceDO> {
+
+    @org.apache.ibatis.annotations.Select("SELECT id FROM col_etl_task WHERE id=#{taskId} FOR UPDATE")
+    Long lockOwnerTask(@Param("taskId") Long taskId);
+
+    @org.apache.ibatis.annotations.Select("SELECT * FROM col_etl_task_instance WHERE ds_id=#{dsId} FOR UPDATE")
+    CollectorEtlTaskInstanceDO lockBySchedulerId(@Param("dsId") Long dsId);
+
+    @org.apache.ibatis.annotations.Select("SELECT * FROM col_etl_task_instance WHERE task_id=#{taskId} AND del_flag='0' " +
+            "AND ds_id IS NOT NULL AND parent_task_instance_id IS NULL AND (sub_task_flag IS NULL OR sub_task_flag <> '1') " +
+            "ORDER BY ds_id DESC, id DESC LIMIT 1")
+    CollectorEtlTaskInstanceDO latestMainInstance(@Param("taskId") Long taskId);
+
+    @org.apache.ibatis.annotations.Select({"<script>",
+            "SELECT i.* FROM col_etl_task_instance i WHERE i.del_flag='0' AND i.parent_task_instance_id IS NULL",
+            "AND (i.sub_task_flag IS NULL OR i.sub_task_flag &lt;&gt; '1') AND i.task_id IN",
+            "<foreach collection='taskIds' item='taskId' open='(' separator=',' close=')'>#{taskId}</foreach>",
+            "AND i.ds_id=(SELECT MAX(m.ds_id) FROM col_etl_task_instance m WHERE m.task_id=i.task_id",
+            "AND m.del_flag='0' AND m.parent_task_instance_id IS NULL AND (m.sub_task_flag IS NULL OR m.sub_task_flag &lt;&gt; '1'))",
+            "</script>"})
+    List<CollectorEtlTaskInstanceDO> latestMainInstances(@Param("taskIds") Collection<Long> taskIds);
 
     default PageResult<CollectorEtlTaskInstanceDO> selectPage(CollectorEtlTaskInstancePageReqVO reqVO) {
 

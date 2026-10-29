@@ -346,6 +346,21 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     }
 
     @Override
+    public boolean hasDatasourceSpace(Long datasourceId, Long spaceId, String spaceCode) {
+        if (datasourceId == null || (spaceId == null && StringUtils.isBlank(spaceCode))) {
+            return false;
+        }
+        AssetsDatasourceSpaceRelDO condition = new AssetsDatasourceSpaceRelDO();
+        condition.setDatasourceId(datasourceId);
+        condition.setSpaceId(spaceId);
+        condition.setSpaceCode(StringUtils.isBlank(spaceCode) ? null : spaceCode);
+        List<AssetsDatasourceSpaceRelDO> relations = assetsDatasourceSpaceRelService.getJoinSpaceAndDatasource(condition);
+        return relations != null && relations.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(relation -> !Boolean.FALSE.equals(relation.getValidFlag()));
+    }
+
+    @Override
     public AssetsDatasourceDO getDatasourceDOById(Long id) {
         AssetsDatasourceDO AssetsDatasourceDO = AssetsDatasourceMapper.selectById(id);
         if (AssetsDatasourceDO == null) {

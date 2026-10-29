@@ -112,7 +112,6 @@ MySQL:
   url: jdbc:mysql://127.0.0.1:3306/DATAMASTER?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
   username: DATAMASTER
   password: o5KjnPYxswsiURZHCPwd
-
 PostgreSQL:
   driver-class-name: org.postgresql.Driver
   url: jdbc:postgresql://192.168.93.174:5432/datamaster?currentSchema=public&sslmode=disable&stringtype=unspecified
@@ -135,6 +134,12 @@ Oracle:
   driver-class-name: org.postgresql.Driver
   url: jdbc:postgresql://127.0.0.1:5432/DATAMASTER?currentSchema=public
 ds:
+  run_guard:
+    enabled: true
+    prepare_url: http://192.168.93.1:8989/col/etlTask/run-guard/prepare
+  incremental_fixed_window:
+    enabled: true
+  stage_prepare_url: http://192.168.93.1:8989/col/etlTask/stage-incremental/prepare
   base_url: http://192.168.93.175:12345/dolphinscheduler
   quality_url: http://192.168.93.175:8989/quality/qualityTaskExecutor/runExecuteTask
   incremental_prepare_url: ${DS_INCREMENTAL_PREPARE_URL:http://192.168.93.175:8989/col/etlTask/incremental/prepare}

@@ -20,6 +20,8 @@ import java.util.Map;
  */
 public interface ICollectorEtlTaskService extends IService<CollectorEtlTaskDO> {
 
+    com.datamaster.api.ds.api.base.DsStatusRespDTO startComponentRecovery(Long eventId);
+
     /**
      * 获得数据集成任务分页列表
      *
@@ -132,6 +134,9 @@ public interface ICollectorEtlTaskService extends IService<CollectorEtlTaskDO> {
     CollectorEtlTaskSaveReqVO createEtlTaskFrontPostposition(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
 
     CollectorEtlTaskUpdateQueryRespVO getupdateQueryFront(Long id);
+
+    /** 运行准入签名回调专用读取，不做用户空间校验。 */
+    CollectorEtlTaskUpdateQueryRespVO getSavedTaskForRunGuard(Long id);
 
     CollectorEtlTaskSaveReqVO copyCreateEtl(CollectorEtlNewNodeSaveReqVO CollectorEtlNewNodeSaveReqVO);
 

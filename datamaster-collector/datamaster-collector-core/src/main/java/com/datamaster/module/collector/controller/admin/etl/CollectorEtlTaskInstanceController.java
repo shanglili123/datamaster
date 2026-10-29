@@ -90,6 +90,12 @@ public class CollectorEtlTaskInstanceController extends BaseController {
         return CommonResult.success(BeanUtils.toBean(CollectorEtlTaskInstanceDO, CollectorEtlTaskInstanceRespVO.class));
     }
 
+    @Operation(summary = "查询实例各阶段实际固定的增量窗口")
+    @GetMapping("/{id}/stage-windows")
+    public CommonResult<List<CollectorEtlStageWindowRespVO>> stageWindows(@PathVariable Long id) {
+        return CommonResult.success(CollectorEtlTaskInstanceService.getStageWindows(id));
+    }
+
     @Operation(summary = "新增数据集成任务实例")
 //    @PreAuthorize("@ss.hasPermi('col:etlTaskInstance:add')")
     @Log(title = "数据集成任务实例", businessType = BusinessType.INSERT)

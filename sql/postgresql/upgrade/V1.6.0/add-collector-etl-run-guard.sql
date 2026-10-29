@@ -1,0 +1,3 @@
+-- Superseded before execution by the approved existing task/task-instance/node-instance design.
+-- Do not create col_etl_run or col_etl_run_resource for new component workflows.
+-- Use add-collector-component-runtime.sql. No existing table is dropped by this placeholder.

@@ -22,6 +22,7 @@ public class AgentRunResponse {
     private String currentStep;
     private String confirmationType;
     private String confirmationMessage;
+    private com.datamaster.module.ai.agent.decision.DecisionModels.Proposal decision;
     private List<String> requiredFields = new ArrayList<>();
     private List<String> output = new ArrayList<>();
     private List<AgentToolResult> toolResults = new ArrayList<>();

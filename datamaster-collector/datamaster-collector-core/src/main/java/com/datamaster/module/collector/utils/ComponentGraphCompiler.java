@@ -56,6 +56,15 @@ public final class ComponentGraphCompiler {
                 compiler.control(key);
             }
         }
+        boolean incrementalWorkflow = compiler.stages.values().stream()
+                .anyMatch(stage -> !list(map(stage.get("incremental")).get("sources")).isEmpty());
+        if (incrementalWorkflow) {
+            for (Map<String, Object> stage : compiler.stages.values()) {
+                if (!"CONDITION".equals(text(stage.get("mode"))) && list(map(stage.get("incremental")).get("sources")).isEmpty()) {
+                    fail("定时增量工作流中的每个读取阶段都必须配置增量字段，请补齐输入或逻辑节点游标");
+                }
+            }
+        }
         if (compiler.stages.isEmpty()) fail("组件编排至少需要一个表输出");
         for (String key : compiler.nodes.keySet()) {
             boolean consumed = false;
@@ -116,6 +125,8 @@ public final class ComponentGraphCompiler {
         map(config.get("output")).put("table", first(outputNode.getTaskParams(), "target_table_name", "target_asset_id"));
         config.put("transforms", transforms); config.put("componentIds", path);
         Map<String, Object> reader;
+        Map<String, Object> logic = new LinkedHashMap<>();
+        List<String> upstreamIds = new ArrayList<>();
         config.put("inputComponentCode", nodes.get(current).getCode());
         if (isInput(current)) {
             if (!"1".equals(nodes.get(current).getComponentType())) fail("多阶段编排目前只支持关系表输入，旧文件任务请保持原格式");
@@ -131,9 +142,9 @@ public final class ComponentGraphCompiler {
             config.put("inputs", Collections.singletonList(Collections.singletonMap("table", first(reader, "table_name", "asset_id"))));
             config.put("sourceMetadata", new LinkedHashMap<>(SourceMetadataSupport.config(reader)));
         } else {
-            Map<String, Object> logic = map(nodes.get(current).getTaskParams().get("logicNode"));
+            logic = map(nodes.get(current).getTaskParams().get("logicNode"));
             String mode = text(logic.get("mode"));
-            List<String> upstreamIds = parents.get(current);
+            upstreamIds = parents.get(current);
             if (upstreamIds.isEmpty()) fail("逻辑节点必须连接上游表输出");
             if (!"MERGE".equals(mode) && upstreamIds.size() != 1) fail("除合并外的逻辑节点只能有一个上游表输出");
             List<Map<String, Object>> inputs = new ArrayList<>();
@@ -243,7 +254,19 @@ public final class ComponentGraphCompiler {
             fail("表输出必须配置完整且等长的字段映射：" + outputNode.getName());
         }
         Object readMode = reader.get("readModeType");
-        if (readMode != null && !"1".equals(text(readMode))) fail("组件阶段编排本次仅支持全量读取；增量/CDC任务请保留旧任务模式");
+        if (readMode != null && Arrays.asList("4", "CDC").contains(text(readMode))) fail("组件式多阶段 CDC 不能按批次增量执行，请使用流式任务");
+        if (Arrays.asList("2", "3").contains(text(readMode)) && !text(reader.get("querySql")).isEmpty()) {
+            fail("自定义读取SQL暂不能自动注入增量窗口，请使用明确源表读取");
+        }
+        config.put("incremental", incrementalSources(current, logic, config, upstreamIds));
+        if (!list(map(config.get("incremental")).get("sources")).isEmpty()) {
+            if (!"3".equals(text(output.get("writeModeType"))) || list(output.get("selectedColumns")).isEmpty()) {
+                fail("增量阶段必须选择增量更新(Upsert)并配置结果唯一键：" + outputNode.getName());
+            }
+            if (!com.datamaster.common.utils.sql.SqlStatementParser.parse(output.get("preSql")).isEmpty()) {
+                fail("增量阶段不允许配置前置清理 SQL，请使用独立补数任务：" + outputNode.getName());
+            }
+        }
         Map<String, Object> schema = map(reader.get("schemaMonitoring"));
         if (Boolean.TRUE.equals(schema.get("enabled"))) fail("普通输入结构监控未接入执行，请关闭旧配置后发布");
         if (Boolean.TRUE.equals(map(map(config.get("output")).get("qualityConfig")).get("enabled"))
@@ -252,6 +275,82 @@ public final class ComponentGraphCompiler {
         }
         stages.put(outputId, config); visiting.remove(outputId);
         return config;
+    }
+
+    private Map<String, Object> incrementalSources(String inputId, Map<String, Object> logic,
+                                                   Map<String, Object> stage, List<String> upstreamIds) {
+        List<Map<String, Object>> sources = new ArrayList<>();
+        if (isInput(inputId)) {
+            Map<String, Object> reader = map(stage.get("input"));
+            String mode = text(reader.get("readModeType"));
+            if ("2".equals(mode) || "3".equals(mode)) {
+                Map<String, Object> cursor = new LinkedHashMap<>();
+                cursor.put("nodeId", inputId);
+                cursor.put("table", first(reader, "table_name", "asset_id"));
+                if ("2".equals(mode)) {
+                    Map<String, Object> config = map(reader.get("idIncrementConfig"));
+                    cursor.put("cursorColumn", config.get("incrementColumn"));
+                    cursor.put("cursorType", "ID"); cursor.put("initialValue", config.get("incrementStart"));
+                } else {
+                    Map<String, Object> config = map(reader.get("dateIncrementConfig"));
+                    List<Object> columns = list(config.get("column"));
+                    if (columns.size() != 1) fail("时间增量必须配置一个明确游标字段");
+                    Map<String, Object> field = map(columns.get(0));
+                    cursor.put("cursorColumn", field.get("incrementColumn"));
+                    cursor.put("cursorType", "TIME"); cursor.put("initialValue", field.get("cursorTime"));
+                }
+                validateCursor(cursor, list(stage.get("columns")));
+                sources.add(cursor);
+            }
+        } else {
+            boolean required = false;
+            for (String upstream : upstreamIds) {
+                if (!list(map(stages.get(upstream).get("incremental")).get("sources")).isEmpty()) required = true;
+            }
+            List<Object> configured = list(map(logic.get("incremental")).get("sources"));
+            if (required || !configured.isEmpty()) {
+                Set<String> seen = new HashSet<>();
+                for (Object raw : configured) {
+                    Map<String, Object> cursor = new LinkedHashMap<>(map(raw));
+                    String upstream = text(cursor.get("nodeId"));
+                    if (!upstreamIds.contains(upstream) || !seen.add(upstream)) fail("增量配置包含重复或失效的上游表，请重新选择");
+                    Map<String, Object> output = map(stages.get(upstream).get("output"));
+                    cursor.put("table", first(output, "table", "target_table_name"));
+                    List<Object> available = new ArrayList<>(list(output.get("target_columns")));
+                    for (Object field : list(output.get("toColumnsList"))) {
+                        String fieldName = text(first(map(field), "columnName", "name"));
+                        if (!fieldName.isEmpty() && !available.contains(fieldName)) available.add(fieldName);
+                    }
+                    available.addAll(SourceMetadataSupport.metadataColumns(stages.get(upstream)));
+                    validateCursor(cursor, available); sources.add(cursor);
+                }
+                if (seen.size() != upstreamIds.size()) {
+                    fail("上游为增量同步，请为逻辑节点每个读取源选择增量表和字段：" + nodes.get(inputId).getName());
+                }
+            }
+        }
+        Map<String, Object> result = new LinkedHashMap<>(); result.put("sources", sources); return result;
+    }
+
+    private void validateCursor(Map<String, Object> cursor, List<Object> columns) {
+        String name = text(cursor.get("cursorColumn"));
+        if (columns != null) {
+            boolean present = false;
+            for (Object column : columns) {
+                String value = column instanceof Map ? text(first(map(column), "name", "columnName")) : text(column);
+                if (name.equals(value)) present = true;
+            }
+            if (name.isEmpty() || !present) fail("增量字段未配置或不属于该读取表：" + name);
+        }
+        if (!Arrays.asList("TIME", "ID").contains(text(cursor.get("cursorType")))) fail("增量游标类型只能为 TIME 或 ID");
+        if (text(cursor.get("initialValue")).isEmpty()) fail("增量游标初始值不能为空");
+        Map<String, Object> datasource = isInput(text(cursor.get("nodeId")))
+                ? map(nodes.get(text(cursor.get("nodeId"))).getTaskParams().get("readerDatasource"))
+                : map(map(stages.get(text(cursor.get("nodeId"))).get("output")).get("writerDatasource"));
+        StageIncrementalSql.maxQuery(text(cursor.get("table")), name, text(datasource.get("datasourceType")));
+        StageIncrementalSql.predicate(name, text(cursor.get("cursorType")), text(cursor.get("initialValue")),
+                text(cursor.get("initialValue")), text(datasource.get("datasourceType")), null);
+        cursor.put("cursorColumn", name);
     }
 
     private void control(String id) {

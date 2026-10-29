@@ -121,4 +121,15 @@ public class CollectorEtlNodeInstanceDO extends BaseEntity {
      */
     @TableField(exist = false)
     private String commandType;
+
+    /** Stable stage identity and incremental window snapshot */
+    private String stableStageKey;
+    private String incrementalStartValue;
+    private String incrementalEndValue;
+    private Boolean incrementalWindowEmpty;
+    private String incrementalConfigHash;
+    private String incrementalWindowStatus;
+    private String incrementalSuccessfulValue;
+    private Long incrementalReplayFromId;
+    private String incrementalSourcesJson;
 }

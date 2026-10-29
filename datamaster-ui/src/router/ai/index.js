@@ -13,7 +13,7 @@ const aiRouter = [
         path: 'ask',
         component: () => import('@/views/ai/chat/index/index.vue'),
         name: 'Ask',
-        meta: { title: '决策智能体', icon: 'message' }
+        meta: { title: '数据分析', icon: 'message' }
       },
       {
         path: 'skill',

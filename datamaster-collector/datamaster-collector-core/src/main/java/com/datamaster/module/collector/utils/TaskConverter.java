@@ -1141,6 +1141,13 @@ public class TaskConverter {
         taskMap.put("taskPriority", MapUtils.getObject(definitionJsonMap, "taskPriority", DEFAULT_TASK_PRIORITY));
         taskMap.put("taskType", "CHUNJUN");
         taskMap.put("taskExecuteType", "BATCH");
+        Object taskGroupId = definitionJsonMap.get("taskGroupId");
+        if (taskGroupId != null && StringUtils.isNotBlank(String.valueOf(taskGroupId))) {
+            long group = Long.parseLong(String.valueOf(taskGroupId));
+            if (group < 0) throw new IllegalArgumentException("DS 任务组ID不能为负数");
+            taskMap.put("taskGroupId", group);
+            taskMap.put("taskGroupPriority", MapUtils.getObject(definitionJsonMap, "taskGroupPriority", 0));
+        }
         taskMap.put("failRetryTimes", MapUtils.getObject(definitionJsonMap, "failRetryTimes", DEFAULT_TASK_failRetryTimes));
         taskMap.put("delayTime", MapUtils.getObject(definitionJsonMap, "delayTime", DEFAULT_TASK_delayTime));
         taskMap.put("failRetryInterval", MapUtils.getObject(definitionJsonMap, "failRetryInterval", DEFAULT_TASK_failRetryInterval));

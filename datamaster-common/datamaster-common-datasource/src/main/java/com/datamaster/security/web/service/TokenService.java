@@ -64,8 +64,18 @@ public class TokenService
      */
     public LoginUser getLoginUser(HttpServletRequest request)
     {
-        // 获取请求携带的令牌
-        String token = getToken(request);
+        return getLoginUserByToken(request.getHeader(header));
+    }
+
+    /**
+     * 根据签名令牌和 Redis 登录缓存获取用户，不刷新登录有效期。
+     */
+    public LoginUser getLoginUserByToken(String token)
+    {
+        if (StringUtils.isNotEmpty(token) && token.startsWith(Constants.TOKEN_PREFIX))
+        {
+            token = token.replace(Constants.TOKEN_PREFIX, "");
+        }
         if (StringUtils.isNotEmpty(token))
         {
             try
@@ -73,13 +83,18 @@ public class TokenService
                 Claims claims = parseToken(token);
                 // 解析对应的权限以及用户信息
                 String uuid = (String) claims.get(Constants.LOGIN_USER_KEY);
+                if (StringUtils.isEmpty(uuid))
+                {
+                    return null;
+                }
                 String userKey = getTokenKey(uuid);
                 LoginUser user = redisCache.getCacheObject(userKey);
                 return user;
             }
             catch (Exception e)
             {
-                log.error("获取用户信息异常'{}'", e.getMessage());
+                // JWT parser exceptions may include token contents; keep the failure sanitized.
+                log.warn("获取用户信息失败");
             }
         }
         return null;
@@ -209,22 +224,6 @@ public class TokenService
     {
         Claims claims = parseToken(token);
         return claims.getSubject();
-    }
-
-    /**
-     * 获取请求token
-     *
-     * @param request
-     * @return token
-     */
-    private String getToken(HttpServletRequest request)
-    {
-        String token = request.getHeader(header);
-        if (StringUtils.isNotEmpty(token) && token.startsWith(Constants.TOKEN_PREFIX))
-        {
-            token = token.replace(Constants.TOKEN_PREFIX, "");
-        }
-        return token;
     }
 
     private String getTokenKey(String uuid)

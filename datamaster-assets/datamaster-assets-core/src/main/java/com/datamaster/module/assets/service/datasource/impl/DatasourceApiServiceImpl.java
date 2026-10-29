@@ -88,6 +88,11 @@ public class DatasourceApiServiceImpl implements IDatasourceApiService {
         return assetsDatasourceApiService.getSpaceCodeByDatasourceId(datasourceId);
     }
 
+    @Override
+    public boolean hasDatasourceSpace(Long datasourceId, Long spaceId, String spaceCode) {
+        return assetsDatasourceApiService.hasDatasourceSpace(datasourceId, spaceId, spaceCode);
+    }
+
     private com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO toAssetsReqDTO(DatasourceCreaTeTableReqDTO dto) {
         return BeanUtils.toBean(dto, com.datamaster.module.assets.api.datasource.dto.DatasourceCreaTeTableReqDTO.class);
     }

@@ -16,7 +16,7 @@ export const CHAT_TYPES = [
   },
   {
     value: "askData",
-    label: "决策智能体",
+    label: "数据分析",
     icon: FundOutlined,
     disabled: false,
   },

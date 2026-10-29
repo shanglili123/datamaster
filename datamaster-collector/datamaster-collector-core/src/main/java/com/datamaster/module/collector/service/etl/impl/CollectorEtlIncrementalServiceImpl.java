@@ -36,6 +36,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -74,9 +75,15 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
         validateProcessInstanceId(processInstanceId);
         CollectorEtlTaskDO task = collectorEtlTaskMapper.selectById(taskId);
         CollectorEtlTaskExtDO taskExt = collectorEtlTaskExtService.getByTaskId(taskId);
+        validateTask(task, taskExt);
+        requireTaskSpace(task);
+        JSONObject remote = dsEtlTaskService.getWorkflowInstance(task.getSpaceCode(), processInstanceId);
+        if (!taskExt.getEtlTaskCode().equals(remote.getString("workflowDefinitionCode"))
+                || !java.util.Arrays.asList("RUNNING_EXECUTION", "DELAY_EXECUTION").contains(remote.getString("state"))) {
+            throw new ServiceException("增量准备实例不属于当前活动工作流");
+        }
         acquireRunningSlot(taskId, processInstanceId);
         try {
-            validateTask(task, taskExt);
             DatasourceRespDTO source = assetsDatasourceApiService.getDatasourceById(taskExt.getSourceDatasourceId());
             DatasourceRespDTO target = assetsDatasourceApiService.getDatasourceById(taskExt.getTargetDatasourceId());
 
@@ -111,67 +118,35 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
     @Override
     public void completeIncrementalTask(Long taskId, Long processInstanceId, Integer status) {
         validateProcessInstanceId(processInstanceId);
-        CollectorEtlTaskInstanceDO instance = collectorEtlTaskInstanceService.getByDsId(processInstanceId);
-        Date now = new Date();
-        if (instance == null) {
-            CollectorEtlTaskDO task = collectorEtlTaskMapper.selectById(taskId);
-            CollectorEtlTaskExtDO taskExt = collectorEtlTaskExtService.getByTaskId(taskId);
-            if (task == null) {
-                log.warn("FLINKX完成回调: 任务不存在, taskId={}", taskId);
-                return;
-            }
-            String taskType = task.getType();
-            if (taskType == null) {
-                taskType = "1";
-            }
-            // 🏆 关键改进：根据status参数决定任务状态
-            instance = CollectorEtlTaskInstanceDO.builder()
-                    .id(processInstanceId)
-                    .catId(task.getCatId())
-                    .catCode(task.getCatCode())
-                    .taskId(task.getId())
-                    .taskCode(resolveTaskCode(task, taskExt))
-                    .taskType(taskType)
-                    .taskVersion(resolveTaskVersion(taskExt))
-                    .name(task.getName())
-                    .personCharge(task.getPersonCharge())
-                    .contactNumber(task.getContactNumber())
-                    .spaceId(task.getSpaceId())
-                    .spaceCode(task.getSpaceCode())
-                    // 🏆 根据status参数设置任务状态
-                    .status(status == 1 ? String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()) : String.valueOf(WorkflowExecutionStatus.FAILURE.getCode()))
-                    .endTime(now)
-                    .startTime(now)
-                    .dsId(processInstanceId)
-                    .build();
-            collectorEtlTaskInstanceService.save(instance);
-        } else {
-            if (!taskId.equals(instance.getTaskId())) {
-                throw new ServiceException("DolphinScheduler流程实例不属于当前增量任务");
-            }
-            // 如果前端已经传递了status，直接使用前端传入的状态
-            if (status != null && status >= 0) {
-                // 🏆 根据status参数确定任务最终状态
-                if (status == 1) {
-                    instance.setStatus(String.valueOf(WorkflowExecutionStatus.SUCCESS.getCode()));
-                    log.info("任务 {} 标记为成功，status={}", taskId, status);
-                } else {
-                    instance.setStatus(String.valueOf(WorkflowExecutionStatus.FAILURE.getCode()));
-                    log.info("任务 {} 标记为失败，status={}", taskId, status);
-                }
-            } else {
-                instance.setStatus(String.valueOf(WorkflowExecutionStatus.FAILURE.getCode()));
-                log.warn("FLINKX任务 {} 完成回调未携带状态，默认标记为失败", taskId);
-            }
-            instance.setEndTime(now);
-            if (instance.getStartTime() == null) {
-                instance.setStartTime(now);
-            }
-            collectorEtlTaskInstanceService.updateById(instance);
+        CollectorEtlTaskDO task = collectorEtlTaskMapper.selectById(taskId);
+        CollectorEtlTaskExtDO ext = collectorEtlTaskExtService.getByTaskId(taskId);
+        if (task == null || ext == null) throw new ServiceException("回调任务不存在");
+        requireTaskSpace(task);
+        JSONObject remote = dsEtlTaskService.getWorkflowInstance(task.getSpaceCode(), processInstanceId);
+        if (!ext.getEtlTaskCode().equals(remote.getString("workflowDefinitionCode"))) {
+            throw new ServiceException("完成回调实例不属于当前任务的已发布工作流");
         }
-        collectorEtlTaskStatusPushService.pushTaskInstanceStatus(instance);
-        triggerOpsIfFailed(instance);
-        releaseRunningSlot(taskId, processInstanceId);
+        // status 是阶段回调提示，不是工作流终态证据；只采用服务端从DS查询的状态。
+        String state = remote.getString("state");
+        boolean terminal = java.util.Arrays.asList("SUCCESS", "FAILURE", "STOP").contains(state);
+        if (terminal && (remote.get("endTime") == null
+                || dsEtlTaskService.listTaskInstancesStrict(task.getSpaceCode(), processInstanceId).stream()
+                .anyMatch(node -> node.getState() == null || !java.util.Arrays.asList("SUCCESS", "FAILURE", "STOP", "KILL", "FORCED_SUCCESS")
+                        .contains(node.getState().name())))) {
+            throw new ServiceException("流程终态尚未确认所有子任务退出");
+        }
+        collectorEtlTaskInstanceService.synchronizeSchedulerInstance(taskId, remote);
+        if (terminal) releaseRunningSlot(taskId, processInstanceId);
+    }
+
+    @Resource private com.datamaster.common.api.space.ISpaceApi taskSpaceApi;
+
+    private void requireTaskSpace(CollectorEtlTaskDO task) {
+        Long user = com.datamaster.common.utils.SecurityUtils.getUserId();
+        if (!com.datamaster.common.utils.SecurityUtils.isAdmin(user)
+                && !taskSpaceApi.hasUserSpace(user, task.getSpaceId(), task.getSpaceCode())) {
+            throw new ServiceException("无权访问该空间增量任务");
+        }
     }
 
     @Override
@@ -320,7 +295,7 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
         if (redisService.setIfAbsent(key, owner, incrementalRunningTtlSeconds)) {
             return;
         }
-        if (!owner.equals(redisService.get(key))) {
+        if (!redisService.renewIfOwner(key, owner, incrementalRunningTtlSeconds)) {
             throw new ServiceException("增量同步任务正在运行，禁止重叠执行");
         }
     }
@@ -330,9 +305,7 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
             return;
         }
         String key = runningKey(taskId);
-        if (String.valueOf(processInstanceId).equals(redisService.get(key))) {
-            redisService.delete(key);
-        }
+        redisService.deleteIfOwner(key, String.valueOf(processInstanceId));
     }
 
     private String runningKey(Long taskId) {

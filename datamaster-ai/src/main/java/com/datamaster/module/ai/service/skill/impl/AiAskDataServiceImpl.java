@@ -141,7 +141,9 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         AiAskDataSqlRespVO respVO = new AiAskDataSqlRespVO();
         respVO.setQuestion(reqVO.getQuestion());
         String reply = "";
-        try {
+        try (com.datamaster.module.ai.service.gateway.AiInvocationContext.Scope ignored =
+                     com.datamaster.module.ai.service.gateway.AiInvocationContext.scope(
+                             new com.datamaster.module.ai.service.gateway.AiInvocationGateway.Context(userId, reqVO.getSpaceId(), reqVO.getSpaceCode(), null))) {
             DbGptChatCompletionResponse gptResponse = dbGptClientService.chatCompletionV1(gptRequest);
             reply = normalizeAskReply(extractReply(gptResponse));
         } catch (Exception e) {
@@ -169,8 +171,12 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         SseEmitter emitter = new SseEmitter(0L);
         Long userPermissionLevel = currentUserDataPermissionLevel();
         Long requestUserId = currentUserId();
+        com.datamaster.module.ai.service.gateway.AiInvocationGateway.Context invocationContext =
+                new com.datamaster.module.ai.service.gateway.AiInvocationGateway.Context(requestUserId,
+                        reqVO == null ? null : reqVO.getSpaceId(), reqVO == null ? null : reqVO.getSpaceCode(), null);
         CompletableFuture.runAsync(() -> {
-            try {
+            try (com.datamaster.module.ai.service.gateway.AiInvocationContext.Scope ignored =
+                         com.datamaster.module.ai.service.gateway.AiInvocationContext.scope(invocationContext)) {
                 if (reqVO == null || StringUtils.isBlank(reqVO.getQuestion())) {
                     sendSse(emitter, "error", "用户问题不能为空");
                     emitter.complete();
@@ -367,7 +373,9 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
             respVO.setSkillId(reqVO.getSkillId());
         }
 
-        try {
+        try (com.datamaster.module.ai.service.gateway.AiInvocationContext.Scope ignored =
+                     com.datamaster.module.ai.service.gateway.AiInvocationContext.scope(
+                             new com.datamaster.module.ai.service.gateway.AiInvocationGateway.Context(userId, reqVO.getSpaceId(), reqVO.getSpaceCode(), null))) {
             // 报告也必须走原生 react-agent，这条链路才具备真实的数据源查询能力。
             // v2 chat/completions 只负责文本生成，无法保证执行 SQL 后返回报告数据。
             DbGptChatCompletionResponse gptResponse = dbGptClientService.chatCompletionV1(gptRequest);

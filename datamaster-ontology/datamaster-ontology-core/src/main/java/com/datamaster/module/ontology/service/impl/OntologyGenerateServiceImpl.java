@@ -429,55 +429,29 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
      * 模型由系统配置决定（默认 qwen-plus），不再支持请求级指定模型。
      */
     private JSONObject callAiGenerateModel(List<TableColumns> tableColumnsList) {
-        String systemPrompt = buildSystemPrompt();
-        String userPrompt = buildUserPrompt(tableColumnsList);
-
-        String reply = aiModelGatewayService.complete(systemPrompt, userPrompt);
-        if (StringUtils.isBlank(reply)) {
-            return null;
+        try {
+            com.datamaster.module.ontology.api.dto.OntologyModelOutput output = aiModelGatewayService.generateOntology(
+                    buildSystemPrompt(), buildUserPrompt(tableColumnsList));
+            if (output == null || output.getConcepts() == null || output.getConcepts().isEmpty()) return null;
+            return JSON.parseObject(JSON.toJSONString(output));
+        } catch (RuntimeException error) {
+            if (tableColumnsList.size() > 3 && isStructuredOutputFailure(error)) {
+                log.warn("本体结构化输出解析失败，缩小上下文重试：{} -> 3 张表", tableColumnsList.size());
+                return callAiGenerateModel(new ArrayList<>(tableColumnsList.subList(0, 3)));
+            }
+            throw error;
         }
-        JSONObject model = extractJsonObject(reply);
-        if (model == null && tableColumnsList.size() > 3) {
-            // 大数据源的输出可能达到模型 token 上限，自动用更小的上下文重试一次，避免返回半截 JSON。
-            log.warn("本体 AI 输出未闭合，缩小上下文重试：{} -> 3 张表", tableColumnsList.size());
-            return callAiGenerateModel(new ArrayList<>(tableColumnsList.subList(0, 3)));
-        }
-        return model;
     }
 
-    /**
-     * 从 LLM 回复中提取 JSON 对象：优先取 ```json 代码块，其次取首个 { 到最后一个 } 区间。
-     */
-    private JSONObject extractJsonObject(String reply) {
-        // 某些模型会在长输出中混入 ASCII 控制字符（例如截断标记），先清理后再解析。
-        String candidate = reply == null ? "" : reply.replaceAll("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]", "");
-        // 尝试 ```json 代码块
-        int fenceStart = reply.indexOf("```json");
-        if (fenceStart >= 0) {
-            int contentStart = fenceStart + "```json".length();
-            int fenceEnd = reply.indexOf("```", contentStart);
-            if (fenceEnd > contentStart) {
-                candidate = reply.substring(contentStart, fenceEnd);
-            }
-        } else {
-            int fenceStartPlain = reply.indexOf("```");
-            int fenceEndPlain = fenceStartPlain >= 0 ? reply.indexOf("```", fenceStartPlain + 3) : -1;
-            if (fenceStartPlain >= 0 && fenceEndPlain > fenceStartPlain + 3) {
-                candidate = reply.substring(fenceStartPlain + 3, fenceEndPlain);
-            }
+    private boolean isStructuredOutputFailure(Throwable error) {
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            String name = cause.getClass().getName();
+            if (name.contains("OutputParsing") || name.contains("JsonProcessing")
+                    || name.contains("JsonParse") || name.contains("JsonSyntax") || name.contains("MalformedJson")
+                    || name.contains("MismatchedInput")) return true;
+            if (cause.getCause() == cause) break;
         }
-        // 截取首个 { 到最后一个 }
-        int start = candidate.indexOf('{');
-        int end = candidate.lastIndexOf('}');
-        if (start >= 0 && end > start) {
-            candidate = candidate.substring(start, end + 1);
-        }
-        try {
-            return JSON.parseObject(candidate);
-        } catch (Exception e) {
-            log.warn("AI 回复 JSON 解析失败：{}", e.getMessage());
-            return null;
-        }
+        return false;
     }
 
     private String buildSystemPrompt() {
@@ -974,17 +948,13 @@ public class OntologyGenerateServiceImpl implements IOntologyGenerateService {
                     conceptNameById, conceptCodeById);
 
             // 6. 调用 AI
-            String reply = aiModelGatewayService.complete(systemPrompt, userPrompt);
-            if (StringUtils.isBlank(reply)) {
-                respVO.setQualityWarning("AI 未返回有效结果");
+            com.datamaster.module.ontology.api.dto.ActionGenerationOutput output =
+                    aiModelGatewayService.generateActions(systemPrompt, userPrompt);
+            if (output == null) {
+                respVO.setQualityWarning("AI 未返回有效结构化结果");
                 return respVO;
             }
-
-            JSONObject result = extractJsonObject(reply);
-            if (result == null) {
-                respVO.setQualityWarning("AI 返回的 JSON 解析失败");
-                return respVO;
-            }
+            JSONObject result = JSON.parseObject(JSON.toJSONString(output));
 
             // 7. 解析结果
             List<AiActionPreviewRespVO.GeneratedActionPreview> previews =

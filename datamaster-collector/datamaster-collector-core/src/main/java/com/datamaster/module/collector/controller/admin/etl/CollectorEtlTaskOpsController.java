@@ -30,15 +30,25 @@ public class CollectorEtlTaskOpsController {
     @Resource
     private ICollectorEtlTaskOpsEventService eventService;
 
+    @Resource
+    private com.datamaster.module.collector.service.etl.ICollectorEtlTaskService taskService;
+
+    private void requireTask(Long taskId) {
+        if (taskId == null) throw new com.datamaster.common.exception.ServiceException("任务ID不能为空");
+        taskService.getCollectorEtlTaskById(taskId);
+    }
+
     @Operation(summary = "获取任务运维策略")
     @GetMapping("/policy")
     public CommonResult<CollectorEtlTaskOpsPolicyDO> getPolicy(@RequestParam Long taskId) {
+        requireTask(taskId);
         return CommonResult.success(policyService.getByTaskId(taskId));
     }
 
     @Operation(summary = "保存任务运维策略")
     @PostMapping("/policy")
     public CommonResult<CollectorEtlTaskOpsPolicyDO> savePolicy(@RequestBody CollectorEtlTaskOpsPolicySaveReqVO reqVO) {
+        requireTask(reqVO == null ? null : reqVO.getTaskId());
         return CommonResult.success(policyService.saveOrUpdatePolicy(reqVO));
     }
 
@@ -47,6 +57,7 @@ public class CollectorEtlTaskOpsController {
     public CommonResult<PageResult<CollectorEtlTaskOpsEventDO>> events(@RequestParam(required = false) Long taskId,
                                                                        @RequestParam(required = false) Integer pageNum,
                                                                        @RequestParam(required = false) Integer pageSize) {
+        requireTask(taskId);
         return CommonResult.success(eventService.pageByTask(taskId, pageNum, pageSize));
     }
 }

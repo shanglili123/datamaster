@@ -43,6 +43,8 @@ public class ConceptTableServiceImpl implements IConceptTableService {
     private IDatasourceApiService datasourceApiService;
     @Resource
     private DataSourceFactory dataSourceFactory;
+    @Resource
+    private MetricReferenceGuard metricReferenceGuard;
 
     @Override
     public PageResult<ConceptTableRespVO> getConceptTablePage(ConceptTablePageReqVO pageReqVO) {
@@ -101,6 +103,7 @@ public class ConceptTableServiceImpl implements IConceptTableService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer deleteConceptTable(Long id) {
+        metricReferenceGuard.assertTableBindingDeletable(id);
         propertyColumnMapper.deleteByConceptTableId(id);
         return conceptTableMapper.deleteById(id);
     }

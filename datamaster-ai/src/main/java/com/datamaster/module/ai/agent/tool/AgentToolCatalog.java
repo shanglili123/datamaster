@@ -66,8 +66,21 @@ public class AgentToolCatalog {
      * 代理无法直接暴露目标类 @Tool 注解的问题，不维护第二套工具协议。
      */
     public Map<ToolSpecification, dev.langchain4j.service.tool.ToolExecutor> frameworkTools() {
+        return frameworkTools(null);
+    }
+
+    /** 管理流程不暴露正式指标和 DB-GPT 查询工具，避免跨路径降级。 */
+    public java.util.Set<String> managementToolNames() {
+        java.util.Set<String> names = new java.util.HashSet<>(descriptors.keySet());
+        names.removeAll(java.util.Arrays.asList("search_metrics", "get_metric_definition", "execute_metric_analysis", "compare_periods", "analyze_distribution", "analyze_trend", "build_chart_spec", "save_analysis", "dbgpt_query", "dbgpt_report", "generate_report_template"));
+        return names;
+    }
+
+    /** A null allowlist keeps the full catalogue for existing callers; empty means no tools. */
+    public Map<ToolSpecification, dev.langchain4j.service.tool.ToolExecutor> frameworkTools(java.util.Set<String> allowedNames) {
         Map<ToolSpecification, dev.langchain4j.service.tool.ToolExecutor> result = new LinkedHashMap<>();
         for (Descriptor descriptor : descriptors.values()) {
+            if (allowedNames != null && !allowedNames.contains(descriptor.specification.name())) continue;
             final dev.langchain4j.service.tool.ToolExecutor delegate =
                     new DefaultToolExecutor(descriptor.bean, descriptor.execute);
             result.put(descriptor.specification, (request, memoryId) -> {

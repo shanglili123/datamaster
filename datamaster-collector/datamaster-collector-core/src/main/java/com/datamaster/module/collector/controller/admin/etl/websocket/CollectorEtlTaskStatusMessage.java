@@ -22,6 +22,9 @@ public class CollectorEtlTaskStatusMessage {
 
     private String taskType;
 
+    /** DolphinScheduler component instance ID, encoded as a decimal string. */
+    private String lastExecuteDsId;
+
     private String lastExecuteStatus;
 
     private String lastExecuteTime;

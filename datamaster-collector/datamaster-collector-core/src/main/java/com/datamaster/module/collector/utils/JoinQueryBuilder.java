@@ -138,6 +138,31 @@ public final class JoinQueryBuilder {
             throw invalid("All upstream sources must participate in the join");
         }
 
+        // 增量窗口必须作用于连接结果：任一侧在本轮变化的配对行重算，另一侧保持全量参与。
+        Object rawFilters = joinConfig.get("sourceFilters");
+        if (rawFilters instanceof List && !((List<?>) rawFilters).isEmpty()) {
+            List<String> changes = new ArrayList<>();
+            for (Object item : (List<?>) rawFilters) {
+                Map<?, ?> filter = map(item, "sourceFilter");
+                String nodeId = text(filter.get("nodeId"), "sourceFilter.nodeId");
+                Source source = source(byId, nodeId);
+                String column = identifier(filter.get("column"), "sourceFilter.column");
+                if (!source.hasColumn(column)) {
+                    throw invalid("Unknown cursor column " + column + " for alias " + source.alias);
+                }
+                Object end = filter.get("end");
+                if (end == null || String.valueOf(end).trim().isEmpty()) {
+                    changes.add("1 = 0");
+                    continue;
+                }
+                Object start = filter.get("start");
+                changes.add(StageIncrementalSql.predicate(column,
+                        text(filter.get("cursorType"), "sourceFilter.cursorType"),
+                        start == null ? null : String.valueOf(start), String.valueOf(end), dbType, source.alias));
+            }
+            from.append(" WHERE (").append(String.join(" OR ", changes)).append(")");
+        }
+
         List<?> fields = list(joinConfig.get("fields"), "fields");
         if (fields.isEmpty()) {
             throw invalid("At least one output field is required");
@@ -230,6 +255,10 @@ public final class JoinQueryBuilder {
                 throw invalid("Unknown column " + column + " for alias " + alias);
             }
             return dialect.quote(alias) + "." + dialect.quote(column);
+        }
+
+        private boolean hasColumn(String column) {
+            return column != null && columns.contains(column);
         }
     }
 

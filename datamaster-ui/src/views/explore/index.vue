@@ -195,7 +195,7 @@
                 <a-button v-if="agentOperationStatus === 'NEED_CONFIRMATION'" type="primary" :loading="agentPlanning" @click="confirmMetadataTask">确认发布并执行</a-button>
                 <a-button v-if="agentOperationStatus === 'FAILED' || agentOperationStatus === 'INTERRUPTED'" type="primary" :loading="agentPlanning" @click="retryAgentOperation">从当前步骤重试</a-button>
                 <a-button v-if="agentOperationStatus === 'RUNNING'" danger :loading="agentCanceling" @click="cancelAgentOperation">取消流程</a-button>
-                <a-button v-if="agentOperationStatus === 'SUCCEEDED' || agentOperationStatus === 'PARTIAL'" type="primary" @click="selectFlow('ai')">打开决策智能体</a-button>
+                <a-button v-if="agentOperationStatus === 'SUCCEEDED' || agentOperationStatus === 'PARTIAL'" type="primary" @click="selectFlow('ai')">打开数据分析</a-button>
               </div>
             </div>
           </div>
@@ -297,6 +297,8 @@ const AssetOperateApplyView = defineAsyncComponent(() => import("@/views/ast/ass
 const DataQueryView = defineAsyncComponent(() => import("@/views/ast/dataQuery/index.vue"));
 const OntologyView = defineAsyncComponent(() => import("@/views/ont/ontology/index.vue"));
 const OntologyWorkspaceView = defineAsyncComponent(() => import("@/views/ont/workspace/index.vue"));
+const MetricAnalysisView = defineAsyncComponent(() => import("@/views/ont/metricAnalysis/index.vue"));
+const OntMetricView = defineAsyncComponent(() => import("@/views/ont/metric/index.vue"));
 const OntFunctionView = defineAsyncComponent(() => import("@/views/ont/function/index.vue"));
 const OntWebhookView = defineAsyncComponent(() => import("@/views/ont/webhook/index.vue"));
 const AiAskView = defineAsyncComponent(() => import("@/views/ai/chat/index/index.vue"));
@@ -333,6 +335,7 @@ const flows = [
       { id: "asset-audit", title: "资产审核", description: "审核数据资产登记、变更和发布状态。", pagePath: "/ast/assetApply", component: AssetAuditView },
       { id: "asset-operate-apply", title: "操作申请", description: "提交、审批并执行数据资产的新增、修改和删除操作。", pagePath: "/ast/assetOperateApply", component: AssetOperateApplyView },
       { id: "data-security", title: "数据安全", description: "配置数据脱敏规则和安全控制，保护敏感数据使用过程。", pagePath: "/ast/security/desensitizeRule", component: DataSecurityView },
+      { id: "metric-analysis", title: "指标分析", description: "按本体已发布指标版本执行受控 ADS 查询，并保存个人分析条件。", pagePath: "/ont/metric-analysis", component: MetricAnalysisView },
       { id: "data-query", title: "数据查询", description: "基于已授权资产进行数据检索。", pagePath: "/ast/dataQuery", component: DataQueryView },
     ],
   },
@@ -348,6 +351,7 @@ const flows = [
       { id: "ontology-list", title: "本体管理", description: "创建本体并进入可视化本体工作台。", pagePath: "/ont/ontology", component: OntologyView },
       { id: "ontology-concept", title: "概念管理", description: "在本体工作台中管理业务概念和主属性。", pagePath: "/ont/ontology", component: OntologyView },
       { id: "ontology-relation", title: "关系管理", description: "在本体工作台中管理概念之间的业务关系。", pagePath: "/ont/ontology", component: OntologyView },
+      { id: "ontology-metric", title: "指标管理", description: "统一指标业务定义、ADS 字段映射和发布版本；计算入口见指标分析。", pagePath: "/ont/metric", component: OntMetricView },
       { id: "ontology-action", title: "动作管理", description: "在本体工作台中配置可执行的业务动作。", pagePath: "/ont/ontology", component: OntologyView },
       { id: "ontology-workflow", title: "动作编排", description: "在本体工作台中编排动作执行流程。", pagePath: "/ont/ontology", component: OntologyView },
       { id: "ontology-function", title: "函数管理", description: "管理本体动作和计算所使用的函数。", pagePath: "/ont/function", component: OntFunctionView },
@@ -363,7 +367,7 @@ const flows = [
     color: "#e36f3d",
     softColor: "#fff0e9",
     children: [
-      { id: "ai-ask", title: "决策智能体", description: "基于本体的数据查询、分析与决策建议。", component: AiAskView },
+      { id: "ai-ask", title: "数据分析", description: "基于本体的数据查询、分析与决策建议。", component: AiAskView },
       { id: "ai-skill", title: "Skill 管理", description: "配置数据查询、分析和决策建议所需的知识能力。", component: AiSkillView },
     ],
   },
@@ -917,7 +921,7 @@ function buildAgentPlanItems() {
     { title: "生成本体模型", description: "根据资产语义生成概念、属性和关系草案。", status: "待执行" },
     { title: "生成本体动作", description: "基于业务目标生成可审核的动作配置。", status: "待执行" },
     { title: "生成决策 Skill", description: "整理本体查询、分析和决策规则。", status: "待执行" },
-    { title: "同步智能体能力", description: "同步知识和数据源，供决策智能体使用。", status: "待执行" },
+    { title: "同步智能体能力", description: "同步知识和数据源，供数据分析使用。", status: "待执行" },
   ];
 }
 
@@ -1207,7 +1211,7 @@ onBeforeUnmount(() => {
 .explore-station__module :deep(.app-container) { min-height: calc(100vh - 230px); }
 .explore-station__module :deep(.ask-data-page) { height: calc(100vh - 230px); min-height: 560px; border-radius: 16px; }
 
-/* 决策智能体直接进入聊天工作区，不重复显示公共二级导航和介绍横幅。 */
+/* 数据分析直接进入聊天工作区，不重复显示公共二级导航和介绍横幅。 */
 .explore-station.is-ai-flow .explore-station__secondary,
 .explore-station.is-ai-flow .explore-station__workspace-head {
   display: none;

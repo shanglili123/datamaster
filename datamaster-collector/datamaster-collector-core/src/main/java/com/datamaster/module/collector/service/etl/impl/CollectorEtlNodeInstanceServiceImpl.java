@@ -54,13 +54,48 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
     @Resource
     private ICollectorEtlNodeInstanceLogService CollectorEtlNodeInstanceLogService;
 
+    private void requireNodeSpace(Long spaceId, String spaceCode) {
+        Long user = com.datamaster.common.utils.SecurityUtils.getUserId();
+        if (com.datamaster.common.utils.SecurityUtils.isAdmin(user)) return;
+        if ((spaceId == null && StringUtils.isBlank(spaceCode)) || !attProjectApi.hasUserSpace(user, spaceId, spaceCode)) {
+            throw new ServiceException("无权访问该空间的节点实例", 403);
+        }
+    }
+
+    private void requireManualAdministrator() {
+        if (!com.datamaster.common.utils.SecurityUtils.isAdmin(com.datamaster.common.utils.SecurityUtils.getUserId())) {
+            throw new ServiceException("节点运行记录由调度器同步，不允许普通用户手工修改", 403);
+        }
+    }
+
     @Override
     public PageResult<CollectorEtlNodeInstanceDO> getCollectorEtlNodeInstancePage(CollectorEtlNodeInstancePageReqVO pageReqVO) {
+        if (pageReqVO.getId() != null) {
+            CollectorEtlNodeInstanceDO node = getCollectorEtlNodeInstanceById(pageReqVO.getId());
+            CollectorEtlTaskInstanceDO parent = CollectorEtlTaskInstanceService.getCollectorEtlTaskInstanceById(node.getTaskInstanceId());
+            pageReqVO.setSpaceId(parent.getSpaceId()); pageReqVO.setSpaceCode(parent.getSpaceCode());
+        }
+        if (pageReqVO.getTaskInstanceId() != null) {
+            CollectorEtlTaskInstanceDO parent = CollectorEtlTaskInstanceService.getCollectorEtlTaskInstanceById(pageReqVO.getTaskInstanceId());
+            pageReqVO.setSpaceId(parent.getSpaceId()); pageReqVO.setSpaceCode(parent.getSpaceCode());
+        }
+        requireNodeSpace(pageReqVO.getSpaceId(), pageReqVO.getSpaceCode());
+        if (pageReqVO.getSpaceId() != null) {
+            String code = attProjectApi.getSpaceCodeBySpaceId(pageReqVO.getSpaceId());
+            if (StringUtils.isBlank(code)) throw new ServiceException("节点查询空间不存在或未配置编码");
+            if (StringUtils.isNotBlank(pageReqVO.getSpaceCode()) && !Objects.equals(code, pageReqVO.getSpaceCode())) {
+                throw new ServiceException("节点查询空间ID与编码不一致");
+            }
+            pageReqVO.setSpaceCode(code);
+        }
         return CollectorEtlNodeInstanceMapper.selectPage(pageReqVO);
     }
 
     @Override
     public Long createCollectorEtlNodeInstance(CollectorEtlNodeInstanceSaveReqVO createReqVO) {
+        requireManualAdministrator();
+        CollectorEtlTaskInstanceDO parent = CollectorEtlTaskInstanceService.getCollectorEtlTaskInstanceById(createReqVO.getTaskInstanceId());
+        createReqVO.setSpaceId(parent.getSpaceId()); createReqVO.setSpaceCode(parent.getSpaceCode());
         CollectorEtlNodeInstanceDO dictType = BeanUtils.toBean(createReqVO, CollectorEtlNodeInstanceDO.class);
         CollectorEtlNodeInstanceMapper.insert(dictType);
         return dictType.getId();
@@ -68,6 +103,15 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public int updateCollectorEtlNodeInstance(CollectorEtlNodeInstanceSaveReqVO updateReqVO) {
+        requireManualAdministrator();
+        CollectorEtlNodeInstanceDO existing = getCollectorEtlNodeInstanceById(updateReqVO.getId());
+        if (existing.getIncrementalWindowStatus() != null) throw new ServiceException("增量阶段运行记录不允许手工编辑");
+        if (updateReqVO.getTaskInstanceId() != null && !Objects.equals(existing.getTaskInstanceId(), updateReqVO.getTaskInstanceId())) {
+            throw new ServiceException("不允许修改节点所属流程实例");
+        }
+        updateReqVO.setTaskInstanceId(existing.getTaskInstanceId());
+        updateReqVO.setSpaceId(existing.getSpaceId()); updateReqVO.setSpaceCode(existing.getSpaceCode());
+        updateReqVO.setDsId(existing.getDsId());
         // 相关校验
 
         // 更新数据集成节点实例
@@ -77,13 +121,19 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
 
     @Override
     public int removeCollectorEtlNodeInstance(Collection<Long> idList) {
-        // 批量删除数据集成节点实例
+        for (Long id : idList) {
+            CollectorEtlNodeInstanceDO record = getCollectorEtlNodeInstanceById(id);
+            if (record.getIncrementalWindowStatus() != null) throw new ServiceException("阶段记录承载成功水位或重放窗口，暂不允许单独删除");
+        }
         return CollectorEtlNodeInstanceMapper.deleteBatchIds(idList);
     }
 
     @Override
     public CollectorEtlNodeInstanceDO getCollectorEtlNodeInstanceById(Long id) {
-        return CollectorEtlNodeInstanceMapper.selectById(id);
+        CollectorEtlNodeInstanceDO node = CollectorEtlNodeInstanceMapper.selectById(id);
+        if (node == null) throw new ServiceException("任务节点实例不存在");
+        CollectorEtlTaskInstanceService.getCollectorEtlTaskInstanceById(node.getTaskInstanceId());
+        return node;
     }
 
     @Override
@@ -114,6 +164,7 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
      */
     @Override
     public String importCollectorEtlNodeInstance(List<CollectorEtlNodeInstanceRespVO> importExcelList, boolean isUpdateSupport, String operName) {
+        requireManualAdministrator();
         if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
             throw new ServiceException("导入数据不能为空！");
         }
@@ -131,6 +182,7 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
                     if (CollectorEtlNodeInstanceId != null) {
                         CollectorEtlNodeInstanceDO existingCollectorEtlNodeInstance = CollectorEtlNodeInstanceMapper.selectById(CollectorEtlNodeInstanceId);
                         if (existingCollectorEtlNodeInstance != null) {
+                            if (existingCollectorEtlNodeInstance.getIncrementalWindowStatus() != null) throw new ServiceException("增量阶段记录不允许导入覆盖");
                             CollectorEtlNodeInstanceMapper.updateById(CollectorEtlNodeInstanceDO);
                             successNum++;
                             successMessages.add("数据更新成功，ID为 " + CollectorEtlNodeInstanceId + " 的数据集成节点实例记录。");
@@ -227,6 +279,77 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
                 .status(String.valueOf(taskInstance.getState().getCode()))
                 .build();
         return this.saveOrUpdate(CollectorEtlTaskInstanceDO);
+    }
+
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY, rollbackFor = Exception.class)
+    public void synchronizeSchedulerNodes(CollectorEtlTaskInstanceDO parent, List<TaskInstance> nodes) {
+        if (parent == null || parent.getId() == null || parent.getTaskId() == null
+                || parent.getDsId() == null || nodes == null) {
+            throw new ServiceException("缺少已登记运行的父实例或调度节点列表");
+        }
+        // 调用方在同一事务持有父任务 owner 行锁；不复用旧回调的 DS ID = 本地 ID 假设。
+        for (TaskInstance node : nodes) {
+            if (node == null || node.getId() == null || node.getState() == null
+                    || !Objects.equals(parent.getDsId(), node.getProcessInstanceId())) {
+                throw new ServiceException("调度节点身份、状态或所属工作流不一致");
+            }
+            if (StringUtils.isNotBlank(node.getProjectCode())
+                    && !Objects.equals(parent.getSpaceCode(), node.getProjectCode())) {
+                throw new ServiceException("调度节点与父实例空间不一致");
+            }
+            CollectorEtlNodeInstanceDO existing = getByDsId(node.getId());
+            if (existing == null) existing = CollectorEtlNodeInstanceMapper.findByParentCode(parent.getId(), node.getTaskCode());
+            if (existing != null && !Objects.equals(existing.getNodeCode(), node.getTaskCode())) throw new ServiceException("DS节点code与阶段记录不一致");
+            if (existing != null && existing.getDsId() != null && !existing.getDsId().equals(node.getId())
+                    && existing.getIncrementalWindowStatus() != null) {
+                if (existing.getDsId() > node.getId()) continue;
+                if (CollectorEtlNodeInstanceMapper.clearPreviousAttempt(existing.getId(), existing.getDsId()) != 1) {
+                    throw new ServiceException("阶段重试身份已变化，请重新同步");
+                }
+            }
+            if (existing != null && !Objects.equals(parent.getDsId(), existing.getDsTaskInstanceId())) {
+                throw new ServiceException("已有节点调度身份属于其他工作流实例");
+            }
+            CollectorEtlNodeInstanceDO instance = CollectorEtlNodeInstanceDO.builder()
+                    .id(existing == null ? com.datamaster.common.utils.uuid.IdUtils.generateArtificialId() : existing.getId())
+                    .taskType(parent.getTaskType())
+                    .name(node.getName())
+                    .nodeType(node.getTaskType())
+                    .nodeId(existing == null || existing.getNodeId() == null ? 0L : existing.getNodeId())
+                    .parameters(existing == null || existing.getParameters() == null ? "{}" : existing.getParameters())
+                    .nodeCode(node.getTaskCode())
+                    .nodeVersion(node.getTaskDefinitionVersion())
+                    .taskInstanceId(parent.getId())
+                    .taskInstanceName(parent.getName())
+                    .spaceId(parent.getSpaceId())
+                    .spaceCode(parent.getSpaceCode())
+                    .submitTime(node.getSubmitTime())
+                    .startTime(node.getStartTime())
+                    .endTime(node.getEndTime())
+                    .executePath(node.getExecutePath())
+                    .logPath(node.getLogPath())
+                    .priority(node.getTaskInstancePriority() == null ? null : String.valueOf(node.getTaskInstancePriority().getCode()))
+                    .retryTimes(node.getRetryTimes())
+                    .delayTime(node.getDelayTime())
+                    .cpuQuota(node.getCpuQuota())
+                    .memoryMax(node.getMemoryMax())
+                    .status(String.valueOf(node.getState().getCode()))
+                    .dsId(node.getId())
+                    .dsTaskInstanceId(parent.getDsId())
+                    .stableStageKey(existing == null ? null : existing.getStableStageKey())
+                    .build();
+            // 新发布的辅助节点可能没有历史节点日志，仍保留其真实运行状态和日志路径。
+            CollectorEtlNodeLogDO metadata = StringUtils.isBlank(node.getTaskCode()) ? null
+                    : CollectorEtlNodeLogService.getByNodeCodeAndVersion(node.getTaskCode(), node.getTaskDefinitionVersion());
+            if (metadata != null) {
+                instance.setNodeId(metadata.getId());
+                instance.setComponentType(metadata.getComponentType());
+                instance.setParameters(metadata.getParameters());
+            }
+            boolean saved = existing == null ? save(instance) : updateById(instance);
+            if (!saved) throw new ServiceException("调度节点运行记录同步失败");
+        }
     }
 
     @Override

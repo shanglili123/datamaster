@@ -115,6 +115,9 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
         if (action == null) {
             throw new RuntimeException("动作不存在: " + reqVO.getActionId());
         }
+        if (reqVO.getExpectedVersion() != null && !reqVO.getExpectedVersion().equals(defaultVersion(action.getVersion()))) {
+            throw new IllegalArgumentException("动作定义已变化，请重新预览确认");
+        }
         Long actionDatasourceId = resolveActionDatasourceId(action);
         // autoExecute 表示“无需人工确认，提交后由 Worker 直接执行”，与触发来源无关。
         Map<String, Object> submittedInputParams = parseParams(reqVO.getInputParams());

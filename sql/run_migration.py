@@ -28,6 +28,8 @@ def parse_args():
     parser.add_argument('--db', default=DEFAULT_DB)
     parser.add_argument('--user', default=DEFAULT_USER)
     parser.add_argument('--password', default=DEFAULT_PASSWORD)
+    parser.add_argument('--whole-file', action='store_true',
+                        help='整份 SQL 一次提交给 PostgreSQL，支持 DO/函数的 dollar quoting；事务边界由 SQL 自身声明')
     return parser.parse_args()
 
 
@@ -110,7 +112,7 @@ def main():
     with open(args.sql_file, 'r', encoding='utf-8') as f:
         sql_text = f.read()
 
-    statements = split_statements(sql_text)
+    statements = [sql_text] if args.whole_file and sql_text.strip() else split_statements(sql_text)
     if not statements:
         print('没有可执行的 SQL 语句')
         return 1

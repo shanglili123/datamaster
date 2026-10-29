@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import java.util.Collections;
 import org.springframework.stereotype.Service;
 import com.datamaster.redis.service.IRedisService;
 
@@ -40,6 +42,21 @@ public class RedisServiceImpl implements IRedisService {
     public boolean setIfAbsent(String key, String value, long timeout) {
         Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(key, value, timeout, TimeUnit.SECONDS);
         return Boolean.TRUE.equals(success);
+    }
+
+    @Override
+    public boolean renewIfOwner(String key, String owner, long timeout) {
+        if (timeout <= 0) throw new IllegalArgumentException("锁续租时间必须大于0");
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>(
+                "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('expire', KEYS[1], ARGV[2]) else return 0 end", Long.class);
+        return Long.valueOf(1).equals(stringRedisTemplate.execute(script, Collections.singletonList(key), owner, String.valueOf(timeout)));
+    }
+
+    @Override
+    public boolean deleteIfOwner(String key, String owner) {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>(
+                "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end", Long.class);
+        return Long.valueOf(1).equals(stringRedisTemplate.execute(script, Collections.singletonList(key), owner));
     }
 
     @Override

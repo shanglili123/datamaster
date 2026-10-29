@@ -11,4 +11,9 @@ public interface IncrementalBoundaryQuery {
      * Returns the maximum non-null value of the requested column.
      */
     Object queryMaxValue(DatasourceRespDTO datasource, String tableName, String columnName);
+
+    /** Component workflows must use the same dialect and physical names as their reader. */
+    default Object queryComponentMaxValue(DatasourceRespDTO datasource, String tableName, String columnName) {
+        throw new UnsupportedOperationException("Component incremental boundaries are not supported");
+    }
 }

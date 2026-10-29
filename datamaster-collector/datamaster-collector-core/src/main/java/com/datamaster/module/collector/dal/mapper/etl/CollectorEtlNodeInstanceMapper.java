@@ -20,6 +20,16 @@ import com.datamaster.mybatis.core.mapper.BaseMapperX;
  */
 public interface CollectorEtlNodeInstanceMapper extends BaseMapperX<CollectorEtlNodeInstanceDO> {
 
+    @org.apache.ibatis.annotations.Select("SELECT * FROM col_etl_node_instance WHERE task_instance_id=#{parentId} " +
+            "AND node_code=#{nodeCode} AND del_flag='0' ORDER BY id LIMIT 1")
+    CollectorEtlNodeInstanceDO findByParentCode(@org.apache.ibatis.annotations.Param("parentId") Long parentId,
+                                              @org.apache.ibatis.annotations.Param("nodeCode") String nodeCode);
+
+    @org.apache.ibatis.annotations.Update("UPDATE col_etl_node_instance SET end_time=NULL, execute_path=NULL, log_path=NULL " +
+            "WHERE id=#{id} AND ds_id=#{previousDsId} AND stable_stage_key IS NOT NULL")
+    int clearPreviousAttempt(@org.apache.ibatis.annotations.Param("id") Long id,
+                             @org.apache.ibatis.annotations.Param("previousDsId") Long previousDsId);
+
     default PageResult<CollectorEtlNodeInstanceDO> selectPage(CollectorEtlNodeInstancePageReqVO reqVO) {
 
         MPJLambdaWrapper<CollectorEtlNodeInstanceDO> lambdaWrapper = new MPJLambdaWrapper();
@@ -34,6 +44,7 @@ public interface CollectorEtlNodeInstanceMapper extends BaseMapperX<CollectorEtl
                 .eq(StringUtils.isNotBlank(reqVO.getTaskType()), CollectorEtlNodeInstanceDO::getTaskType, reqVO.getTaskType())
                 .likeRight(StringUtils.isNotBlank(reqVO.getCatCode()), CollectorEtlTaskInstanceDO::getCatCode, reqVO.getCatCode())
                 .like(StringUtils.isNotBlank(reqVO.getName()), CollectorEtlNodeInstanceDO::getName, reqVO.getName())
+                .eq(reqVO.getId() != null, CollectorEtlNodeInstanceDO::getId, reqVO.getId())
                 .eq(StringUtils.isNotBlank(reqVO.getNodeType()), CollectorEtlNodeInstanceDO::getNodeType, reqVO.getNodeType())
                 .eq(reqVO.getNodeId() != null, CollectorEtlNodeInstanceDO::getNodeId, reqVO.getNodeId())
                 .eq(StringUtils.isNotBlank(reqVO.getNodeCode()), CollectorEtlNodeInstanceDO::getNodeCode, reqVO.getNodeCode())

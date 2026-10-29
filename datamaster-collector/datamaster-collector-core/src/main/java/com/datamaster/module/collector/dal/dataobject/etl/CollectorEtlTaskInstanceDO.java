@@ -159,4 +159,9 @@ public class CollectorEtlTaskInstanceDO extends BaseEntity {
      */
     @TableLogic
     private Boolean delFlag;
+
+    /** Per-instance run guard audit */
+    private String runOwnerToken;
+    private String runGuardStatus;
+    private Date runLeaseUpdatedAt;
 }

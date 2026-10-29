@@ -26,6 +26,12 @@ public interface IAssetsDatasourceApiService {
 
     String getSpaceCodeByDatasourceId(Long datasourceId);
 
+    /**
+     * 检查数据源是否关联指定空间；空间 ID 和编码同时提供时须同时匹配。
+     * 参数不完整或关联已失效时返回 false，不创建或修改关联。
+     */
+    boolean hasDatasourceSpace(Long datasourceId, Long spaceId, String spaceCode);
+
     public boolean creaDatasourceTeTableApi(DatasourceCreaTeTableReqDTO datasourceCreaTeTableReqDTO);
     public boolean creaDatasourceTeTableApi(DbQuery dbQuery, DbQueryProperty dbQueryProperty, DatasourceCreaTeTableReqDTO creaTeTableReqDTO);
     public boolean creaDatasourceTeTableListApi(DatasourceCreaTeTableListReqDTO datasourceCreaTeTableListReqDTO);

@@ -55,6 +55,8 @@ import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -182,7 +184,8 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "只能输出一个合法 JSON 对象，禁止 Markdown、代码围栏和解释文字。"
                 + "JSON 必须包含 dataSchema、layout、style、prompt 四个顶级字段；"
                 + "dataSchema.fields 描述报告数据字段，layout.sections 只能绑定 dataSchema 中的字段，"
-                + "图表和表格必须使用数组字段，prompt.instruction 必须说明如何生成报告数据。";
+                + "图表和表格必须使用数组字段，prompt.instruction 必须说明如何生成报告数据。"
+                + "metricGrid列数填写gridColumns整数，columns仅供table列定义使用。";
         StringBuilder userPrompt = new StringBuilder();
         userPrompt.append("【用户模板需求】\n").append(reqVO.getPrompt().trim()).append("\n\n");
         userPrompt.append("【当前Skill】\n");
@@ -192,20 +195,60 @@ public class AiSkillServiceImpl implements IAiSkillService {
         if (content != null && content.length() > 12000) content = content.substring(0, 12000);
         userPrompt.append("内容：\n").append(defaultText(content, "暂无Skill内容")).append("\n\n");
         userPrompt.append("请根据需求输出完整模板 JSON，字段命名使用英文 camelCase，显示标题和说明使用中文。\n");
-        String generated = aiModelGatewayService.complete(systemPrompt, userPrompt.toString());
-        String json = extractJson(generated);
-        if (StringUtils.isBlank(json)) throw new ServiceException("AI未返回合法报告模板JSON");
         try {
-            JSONObject object = JSON.parseObject(json);
-            if (object == null || object.getJSONObject("dataSchema") == null
-                    || object.getJSONObject("layout") == null || object.getJSONObject("style") == null) {
-                throw new ServiceException("AI生成的模板缺少dataSchema、layout或style");
+            com.datamaster.module.ai.service.skill.dto.ReportTemplateOutput output =
+                    aiModelGatewayService.generateReportTemplate(systemPrompt, userPrompt.toString());
+            validateGeneratedTemplate(output);
+            JSONObject compatible = JSON.parseObject(JSON.toJSONString(output));
+            JSONArray sections = compatible.getJSONObject("layout").getJSONArray("sections");
+            for (int i = 0; i < sections.size(); i++) {
+                JSONObject section = sections.getJSONObject(i);
+                if ("metricGrid".equals(section.getString("type"))) {
+                    section.put("columns", section.getInteger("gridColumns") == null ? 3 : section.getInteger("gridColumns"));
+                }
+                section.remove("gridColumns");
             }
-            return JSON.toJSONString(object);
+            return JSON.toJSONString(compatible);
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
             throw new ServiceException("AI生成的报告模板JSON格式不正确");
+        }
+    }
+
+    private void validateGeneratedTemplate(com.datamaster.module.ai.service.skill.dto.ReportTemplateOutput output) {
+        if (output == null || output.getDataSchema() == null || output.getLayout() == null || output.getStyle() == null
+                || output.getPrompt() == null || StringUtils.isBlank(output.getPrompt().getInstruction()))
+            throw new ServiceException("AI模板缺少dataSchema、layout、style或prompt.instruction");
+        if (output.getDataSchema().getFields() == null || output.getLayout().getSections() == null
+                || output.getDataSchema().getFields().isEmpty() || output.getLayout().getSections().isEmpty())
+            throw new ServiceException("AI模板字段和章节不能为空");
+        Map<String, String> types = new HashMap<>();
+        for (com.datamaster.module.ai.service.skill.dto.ReportTemplateOutput.Field field : output.getDataSchema().getFields()) {
+            if (field == null || StringUtils.isBlank(field.getName()) || StringUtils.isBlank(field.getType()) || types.containsKey(field.getName()))
+                throw new ServiceException("模板字段名称/类型为空或重复");
+            types.put(field.getName(), field.getType());
+        }
+        if (output.getDataSchema().getRequired() != null) for (String name : output.getDataSchema().getRequired())
+            if (!types.containsKey(name)) throw new ServiceException("模板required引用了未定义字段");
+        for (com.datamaster.module.ai.service.skill.dto.ReportTemplateOutput.Section section : output.getLayout().getSections()) {
+            if (section == null || StringUtils.isBlank(section.getType())) throw new ServiceException("模板章节缺少类型");
+            if (!Arrays.asList("title", "paragraph", "metricGrid", "lineChart", "barChart", "pieChart", "table", "insightList", "warningList").contains(section.getType()))
+                throw new ServiceException("模板章节类型不受支持");
+            if ("metricGrid".equals(section.getType()) && section.getGridColumns() != null
+                    && (section.getGridColumns() < 1 || section.getGridColumns() > 12)) throw new ServiceException("指标卡片列数必须为1至12");
+            if (Arrays.asList("lineChart", "barChart", "pieChart", "table", "insightList", "warningList").contains(section.getType())
+                    && StringUtils.isBlank(section.getBind())) throw new ServiceException("列表、图表和表格必须绑定数组字段");
+            if (StringUtils.isNotBlank(section.getBind())) {
+                String root = section.getBind().split("\\.")[0];
+                if (!types.containsKey(root)) throw new ServiceException("模板章节引用了未定义字段：" + root);
+                if (Arrays.asList("lineChart", "barChart", "pieChart", "table", "insightList", "warningList").contains(section.getType())
+                        && !"array".equalsIgnoreCase(types.get(root))) throw new ServiceException("列表、图表和表格必须绑定数组字段");
+            }
+            if (section.getItems() != null) for (com.datamaster.module.ai.service.skill.dto.ReportTemplateOutput.Item item : section.getItems()) {
+                if (item == null || StringUtils.isBlank(item.getBind()) || !types.containsKey(item.getBind().split("\\.")[0]))
+                    throw new ServiceException("指标卡片引用了未定义字段");
+            }
         }
     }
 
@@ -814,7 +857,7 @@ public class AiSkillServiceImpl implements IAiSkillService {
                 + "只输出 JSON，不要输出 Markdown，不要输出解释。";
         String userPrompt = tableEnhancementPrompt(asset, datasource, columns, manualNotes);
         try {
-            String generated = aiModelGatewayService.complete(systemPrompt, userPrompt);
+            com.datamaster.module.ai.service.skill.dto.SkillEnhancementOutput generated = aiModelGatewayService.enhanceSkill(systemPrompt, userPrompt);
             return parseEnhancement(generated, allowedFields);
         } catch (Exception e) {
             String message = e.getMessage() == null ? "模型调用失败" : e.getMessage();
@@ -856,44 +899,40 @@ public class AiSkillServiceImpl implements IAiSkillService {
         return prompt.toString();
     }
 
-    private SkillEnhancement parseEnhancement(String generated, Set<String> allowedFields) {
+    private SkillEnhancement parseEnhancement(com.datamaster.module.ai.service.skill.dto.SkillEnhancementOutput generated, Set<String> allowedFields) {
         SkillEnhancement enhancement = new SkillEnhancement();
-        String json = extractJson(generated);
-        if (StringUtils.isBlank(json)) {
-            enhancement.warning = "模型未返回JSON增强内容";
+        if (generated == null) {
+            enhancement.warning = "模型未返回结构化增强内容";
             return enhancement;
         }
-        try {
-            JSONObject object = JSON.parseObject(json);
-            enhancement.businessSummary = safeText(object.getString("businessSummary"), allowedFields);
-            enhancement.metricHints = safeList(object.getJSONArray("metricHints"), allowedFields);
-            enhancement.timeHints = safeList(object.getJSONArray("timeHints"), allowedFields);
-            enhancement.exampleQuestions = safeList(object.getJSONArray("exampleQuestions"), allowedFields);
-            enhancement.sqlRules = safeList(object.getJSONArray("sqlRules"), allowedFields);
-            enhancement.qualityHints = safeList(object.getJSONArray("qualityHints"), allowedFields);
-            JSONArray fieldUsages = object.getJSONArray("fieldUsages");
-            if (fieldUsages != null) {
-                for (int i = 0; i < fieldUsages.size() && enhancement.fieldUsages.size() < MAX_AI_LIST_SIZE; i++) {
-                    JSONObject item = fieldUsages.getJSONObject(i);
-                    if (item == null) {
-                        continue;
-                    }
-                    String field = firstNonBlank(item.getString("field"), item.getString("fieldName"), item.getString("columnName"));
-                    if (!allowedFields.contains(field)) {
-                        continue;
-                    }
-                    FieldEnhancement fieldEnhancement = new FieldEnhancement();
-                    fieldEnhancement.field = field;
-                    fieldEnhancement.usage = safeText(item.getString("usage"), allowedFields);
-                    fieldEnhancement.notice = safeText(item.getString("notice"), allowedFields);
-                    enhancement.fieldUsages.add(fieldEnhancement);
-                }
+        enhancement.businessSummary = safeText(generated.getBusinessSummary(), allowedFields);
+        enhancement.metricHints = safeStrings(generated.getMetricHints(), allowedFields);
+        enhancement.timeHints = safeStrings(generated.getTimeHints(), allowedFields);
+        enhancement.exampleQuestions = safeStrings(generated.getExampleQuestions(), allowedFields);
+        enhancement.sqlRules = safeStrings(generated.getSqlRules(), allowedFields);
+        enhancement.qualityHints = safeStrings(generated.getQualityHints(), allowedFields);
+        if (generated.getFieldUsages() != null) {
+            for (com.datamaster.module.ai.service.skill.dto.SkillEnhancementOutput.FieldUsage item : generated.getFieldUsages()) {
+                if (enhancement.fieldUsages.size() >= MAX_AI_LIST_SIZE) break;
+                if (item == null || !allowedFields.contains(item.getField())) continue;
+                FieldEnhancement field = new FieldEnhancement(); field.field = item.getField();
+                field.usage = safeText(item.getUsage(), allowedFields); field.notice = safeText(item.getNotice(), allowedFields);
+                enhancement.fieldUsages.add(field);
             }
-        } catch (Exception e) {
-            enhancement.warning = "模型增强JSON解析失败";
         }
         return enhancement;
     }
+
+    private List<String> safeStrings(List<String> values, Set<String> allowedFields) {
+        List<String> result = new ArrayList<>();
+        if (values != null) for (String value : values) {
+            if (result.size() >= MAX_AI_LIST_SIZE) break;
+            String safe = safeText(value, allowedFields);
+            if (StringUtils.isNotBlank(safe)) result.add(safe);
+        }
+        return result;
+    }
+
 
     private void insertVersion(AiSkillDO skill, String changeType, String changeRemark) {
         AiSkillVersionDO version = new AiSkillVersionDO();
@@ -1607,41 +1646,6 @@ public class AiSkillServiceImpl implements IAiSkillService {
             }
         }
         return names;
-    }
-
-    private String extractJson(String text) {
-        if (StringUtils.isBlank(text)) {
-            return "";
-        }
-        String value = text.trim();
-        int fenceStart = value.indexOf("```");
-        if (fenceStart >= 0) {
-            int contentStart = value.indexOf('\n', fenceStart);
-            int fenceEnd = value.indexOf("```", contentStart + 1);
-            if (contentStart > fenceStart && fenceEnd > contentStart) {
-                value = value.substring(contentStart + 1, fenceEnd).trim();
-            }
-        }
-        int begin = value.indexOf('{');
-        int end = value.lastIndexOf('}');
-        if (begin >= 0 && end > begin) {
-            return value.substring(begin, end + 1);
-        }
-        return "";
-    }
-
-    private List<String> safeList(JSONArray array, Set<String> allowedFields) {
-        List<String> values = new ArrayList<>();
-        if (array == null) {
-            return values;
-        }
-        for (int i = 0; i < array.size() && values.size() < MAX_AI_LIST_SIZE; i++) {
-            String value = safeText(array.getString(i), allowedFields);
-            if (StringUtils.isNotBlank(value)) {
-                values.add(value);
-            }
-        }
-        return values;
     }
 
     private String safeText(String text, Set<String> allowedFields) {

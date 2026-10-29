@@ -30,10 +30,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updaterId"    column="UPDATER_ID"    />
         <result property="updateTime"    column="UPDATE_TIME"    />
         <result property="remark"    column="REMARK"    />
+        <result property="activeRunId" column="ACTIVE_RUN_ID" />
+        <result property="runWorkflowInstanceId" column="RUN_WORKFLOW_INSTANCE_ID" />
+        <result property="runWorkflowCode" column="RUN_WORKFLOW_CODE" />
+        <result property="runOwnerToken" column="RUN_OWNER_TOKEN" />
+        <result property="runGuardStatus" column="RUN_GUARD_STATUS" />
+        <result property="runResourcesJson" column="RUN_RESOURCES_JSON" />
+        <result property="runLeaseUpdatedAt" column="RUN_LEASE_UPDATED_AT" />
     </resultMap>
 
     <sql id="selectCollectorEtlTaskVo">
-        select ID, TYPE, NAME, CODE, VERSION, SPACE_ID,EXECUTION_TYPE, SPACE_CODE, PERSON_CHARGE, LOCATIONS, DESCRIPTION, TIMEOUT, EXTRACTION_COUNT, WRITE_COUNT, STATUS, DS_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK from COL_ETL_TASK
+        select ID, TYPE, NAME, CODE, VERSION, SPACE_ID,EXECUTION_TYPE, SPACE_CODE, PERSON_CHARGE, LOCATIONS, DESCRIPTION, TIMEOUT, EXTRACTION_COUNT, WRITE_COUNT, STATUS, DS_ID, VALID_FLAG, DEL_FLAG, CREATE_BY, CREATOR_ID, CREATE_TIME, UPDATE_BY, UPDATER_ID, UPDATE_TIME, REMARK, ACTIVE_RUN_ID, RUN_WORKFLOW_INSTANCE_ID, RUN_WORKFLOW_CODE, RUN_OWNER_TOKEN, RUN_GUARD_STATUS, RUN_RESOURCES_JSON, RUN_LEASE_UPDATED_AT from COL_ETL_TASK
     </sql>
 
     <select id="selectCollectorEtlTaskList" parameterType="CollectorEtlTaskDO" resultMap="CollectorEtlTaskResult">
@@ -90,6 +97,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">UPDATE_BY,</if>
             <if test="updaterId != null">UPDATER_ID,</if>
             <if test="updateTime != null">UPDATE_TIME,</if>
+            <if test="activeRunId != null">ACTIVE_RUN_ID,</if>
+            <if test="runWorkflowInstanceId != null">RUN_WORKFLOW_INSTANCE_ID,</if>
+            <if test="runWorkflowCode != null">RUN_WORKFLOW_CODE,</if>
+            <if test="runOwnerToken != null">RUN_OWNER_TOKEN,</if>
+            <if test="runGuardStatus != null">RUN_GUARD_STATUS,</if>
+            <if test="runResourcesJson != null">RUN_RESOURCES_JSON,</if>
+            <if test="runLeaseUpdatedAt != null">RUN_LEASE_UPDATED_AT,</if>
             <if test="remark != null">REMARK,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -117,6 +131,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updaterId != null">#{updaterId},</if>
             <if test="updateTime != null">#{updateTime},</if>
+            <if test="activeRunId != null">#{activeRunId},</if>
+            <if test="runWorkflowInstanceId != null">#{runWorkflowInstanceId},</if>
+            <if test="runWorkflowCode != null">#{runWorkflowCode},</if>
+            <if test="runOwnerToken != null">#{runOwnerToken},</if>
+            <if test="runGuardStatus != null">#{runGuardStatus},</if>
+            <if test="runResourcesJson != null">#{runResourcesJson},</if>
+            <if test="runLeaseUpdatedAt != null">#{runLeaseUpdatedAt},</if>
             <if test="remark != null">#{remark},</if>
          </trim>
     </insert>

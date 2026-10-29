@@ -33,8 +33,11 @@
         </template>
         <template v-else-if="column.key === 'actionStatus'">
           <a-tag :type="record.actionStatus === 'SUCCESS' ? 'success' : record.actionStatus === 'FAILED' ? 'error' : 'default'">
-            {{ record.actionStatus || '-' }}
+            {{ recoveryStatusLabel(record) }}
           </a-tag>
+        </template>
+        <template v-else-if="column.key === 'nextRetryAt'">
+          {{ record.nextRetryAt ? parseTime(record.nextRetryAt, '{y}-{m}-{d} {h}:{i}:{s}') : '-' }}
         </template>
         <template v-else-if="column.key === 'createTime'">
           {{ parseTime(record.createTime, '{y}-{m}-{d} {h}:{i}') || '-' }}
@@ -75,14 +78,28 @@ const columns = [
   { title: '风险等级', dataIndex: 'riskLevel', key: 'riskLevel', width: 90, align: 'left' },
   { title: '执行动作', dataIndex: 'action', key: 'action', width: 110, align: 'left' },
   { title: '动作状态', dataIndex: 'actionStatus', key: 'actionStatus', width: 90, align: 'left' },
+  { title: '原失败实例', dataIndex: 'taskInstanceId', key: 'taskInstanceId', width: 190 },
+  { title: '恢复执行实例', dataIndex: 'recoveryExecutionId', key: 'recoveryExecutionId', width: 190 },
+  { title: '已尝试次数', dataIndex: 'recoveryAttempt', key: 'recoveryAttempt', width: 100 },
+  { title: '下次重试', dataIndex: 'nextRetryAt', key: 'nextRetryAt', width: 180 },
   { title: '原因', dataIndex: 'reason', key: 'reason', minWidth: 200, align: 'left', ellipsis: true },
   { title: '建议', dataIndex: 'suggestion', key: 'suggestion', minWidth: 200, align: 'left', ellipsis: true },
   { title: '发生时间', dataIndex: 'createTime', key: 'createTime', width: 160, align: 'left' },
 ];
 
+function recoveryStatusLabel(record) {
+  if (record.action !== 'RESTART_COMPONENT_TASK') return record.actionStatus || '-';
+  return {
+    PENDING_ANALYSIS: '等待诊断', WAITING: '等待重试', STARTING: '启动待确认',
+    RUNNING: '恢复执行中', SUCCESS: '恢复成功', EXHAUSTED: '次数耗尽/失败即停',
+    MANUAL: '等待人工', CANCELLED: '已取消',
+  }[record.actionStatus] || record.actionStatus || '-';
+}
+
 function actionLabel(action) {
   const map = {
     UNLOAD_TASK: "下线任务",
+    RESTART_COMPONENT_TASK: "整流程恢复",
     RECOVER_FROM_FAILURE: "从失败恢复",
     SUGGEST_RECOVER: "建议恢复",
     WAIT_MANUAL_RECOVER: "等待人工恢复",

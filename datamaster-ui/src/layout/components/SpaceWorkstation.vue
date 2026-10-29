@@ -34,14 +34,13 @@
               <svg-icon :icon-class="group.iconName" /><span>{{ group.title }}</span><DownOutlined class="space-station__group-arrow" />
             </button>
             <template v-if="!collapsedGroups.has(group.id)">
-              <template v-for="item in group.items" :key="item.id">
-                <button type="button" class="space-station__menu-item" :class="{ 'is-active': selectedItem?.id === item.id }" @click="selectItem(item)">
-                  <svg-icon :icon-class="item.iconName" /><span>{{ item.title }}</span><RightOutlined class="space-station__menu-arrow" />
-                </button>
-                <div v-if="item.pages.length > 1" class="space-station__subpages">
-                  <button v-for="page in item.pages" :key="page.path" type="button" :class="{ 'is-active': selectedPage?.path === page.path }" @click="navigateToPage(page)">{{ page.title }}</button>
-                </div>
-              </template>
+              <workstation-menu-item
+                v-for="item in group.children"
+                :key="item.path"
+                :item="item"
+                :active-path="selectedPage?.path || route.path"
+                @navigate="navigateToPage"
+              />
             </template>
           </section>
         </div>
@@ -62,7 +61,8 @@
 <script setup name="SpaceWorkstationLayout">
 import { computed, onMounted, provide, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { DownOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
+import { DownOutlined, LeftOutlined } from '@ant-design/icons-vue';
+import WorkstationMenuItem from './WorkstationMenuItem.vue';
 import { Modal, message } from 'ant-design-vue';
 import useUserStore from '@/store/system/user';
 import usePermissionStore from '@/store/system/permission';
@@ -84,12 +84,6 @@ const isSpaceWorkspace = computed(() => isSpaceModuleRoute(route.path));
 const spaceOptions = computed(() => spaces.value.map((space) => ({ value: String(space.id), label: space.name || space.spaceName || space.code || space.spaceCode })));
 const menuSource = computed(() => isSpaceWorkspace.value ? permissionStore.topbarRouters : permissionStore.homeRoutes);
 
-const iconMap = {
-  data: 'da-database', database: 'da-database', table: 'table', message: 'message',
-  'mind-map': 'mind-map', 'node-tree': 'node-tree', folder: 'file-list-2-line', scan: 'search',
-  setting: 'settings-line', tool: 'tool', service: 'server', skill: 'skill', asset: 'money-dollar-box-line', catalog: 'tree-table',
-};
-
 function joinPath(parent, path) {
   if (/^https?:\/\//i.test(path || '')) return path;
   if (path?.startsWith('/')) return path;
@@ -97,7 +91,7 @@ function joinPath(parent, path) {
 }
 
 function hidden(record) {
-  return !record || record.hidden || record.meta?.hidden || record.path === '/index' || record.path === 'index' || record.meta?.title === '首页';
+  return !record || record.hidden || record.meta?.hidden;
 }
 
 function collectPages(record, parent = '') {
@@ -115,9 +109,22 @@ function createItem(record, parent) {
   return {
     id: `${record.name || 'page'}:${joinPath(parent, record.path)}`,
     title: record.meta?.title || record.name || pages[0].title,
-    iconName: iconMap[record.meta?.icon] || record.meta?.icon || 'file-list-2-line',
+    iconName: record.meta?.icon || 'file-list-2-line',
     pages,
   };
+}
+
+function buildMenuItems(records, parent) {
+  return (records || []).filter((record) => !hidden(record)).map((record) => {
+    const path = joinPath(parent, record.path);
+    return {
+      path,
+      title: record.meta?.title || record.name || path,
+      iconName: record.meta?.icon || 'file-list-2-line',
+      query: parseRouteQuery(record.query),
+      children: buildMenuItems(record.children, path),
+    };
+  });
 }
 
 function createGroups(records, parent = '') {
@@ -126,9 +133,9 @@ function createGroups(records, parent = '') {
     const path = joinPath(parent, record.path);
     const children = (record.children || []).filter((child) => !hidden(child));
     if (path === '/' && !record.meta?.title) return createGroups(children, path);
-    if (!isSpaceWorkspace.value && isSpaceModuleRoute(path)) return [];
     const items = (children.length ? children.map((child) => createItem(child, path)) : [createItem(record, parent)]).filter(Boolean);
-    return items.length ? [{ id: `${record.name || 'group'}:${path}`, title: record.meta?.title || record.name || path, iconName: iconMap[record.meta?.icon] || record.meta?.icon || 'file-list-2-line', items }] : [];
+    const menuChildren = children.length ? buildMenuItems(children, path) : buildMenuItems([record], parent);
+    return menuChildren.length ? [{ id: `${record.name || 'group'}:${path}`, title: record.meta?.title || record.name || path, iconName: record.meta?.icon || 'file-list-2-line', items, children: menuChildren }] : [];
   });
 }
 
@@ -160,9 +167,6 @@ const pageDescription = computed(() => {
   return `管理${pageTitle.value}相关数据、配置和业务流程。`;
 });
 
-function isActivePath(path) {
-  return normalizePath(path) === activePath.value;
-}
 function toggleGroup(id) {
   const next = new Set(collapsedGroups.value);
   if (next.has(id)) next.delete(id);
@@ -191,13 +195,10 @@ function navigateToPage(page, replace = false) {
     message.error('页面打开失败，请刷新后重试');
   });
 }
-function selectItem(item) {
-  navigateToPage(item.pages.find((page) => isActivePath(page.path)) || item.pages[0]);
-}
 watch(() => [route.path, allPages.value, permissionStore.menuMode], () => {
   if (route.path !== '/space' || permissionStore.menuMode !== 'space') return;
   const pages = allPages.value.filter((entry) => !/^https?:\/\//i.test(entry.path) && entry.path !== '/space');
-  const page = pages.find((entry) => entry.title.includes('数据统计') || entry.path.toLowerCase().includes('statistics')) || pages[0];
+  const page = pages[0];
   if (page) navigateToPage(page, true);
 }, { immediate: true });
 
@@ -313,15 +314,6 @@ function handleUserCommand({ key }) {
 .space-station__menu-title :deep(svg) { color: #6178e8; font-size: 14px; }
 .space-station__group-arrow { margin-left: auto; color: #9aa7ba !important; font-size: 11px !important; transition: transform .2s ease; }
 .space-station__menu-title.is-collapsed .space-station__group-arrow { transform: rotate(-90deg); }
-.space-station__menu-group > button:not(.space-station__menu-title) { position: relative; display: flex; align-items: center; gap: 9px; width: 100%; padding: 10px; color: #68758d; font-size: 12px; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 9px; cursor: pointer; transition: .2s ease; }
-.space-station__menu-group > button:not(.space-station__menu-title):hover { color: #425ad2; background: #f5f7ff; }
-.space-station__menu-group > button:not(.space-station__menu-title).is-active { color: #4058d4; font-weight: 600; background: #edf0ff; border-color: #e0e5ff; box-shadow: inset 3px 0 #6076e9; }
-.space-station__menu-group > button:not(.space-station__menu-title) :deep(svg) { color: currentColor; font-size: 15px; }
-.space-station__subpages { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 8px 24px; padding-left: 10px; border-left: 1px solid #e1e7f0; }
-.space-station__subpages button { padding: 7px 10px; color: #78849a; font-size: 12px; text-align: left; background: transparent; border: 0; border-radius: 6px; cursor: pointer; }
-.space-station__subpages button:hover { color: #425ad2; background: #f5f7ff; }
-.space-station__subpages button.is-active { color: #4058d4; font-weight: 600; background: #edf0ff; }
-.space-station__menu-arrow { margin-left: auto; color: #b6bfd0 !important; font-size: 10px !important; }
 .space-station__content { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px 16px 16px; overflow: hidden; }
 .space-station__intro { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; margin-bottom: 8px; }
 .space-station__intro p { min-width: 0; margin: 0; overflow: hidden; color: #78849a; font-size: 13px; line-height: 22px; text-overflow: ellipsis; white-space: nowrap; }

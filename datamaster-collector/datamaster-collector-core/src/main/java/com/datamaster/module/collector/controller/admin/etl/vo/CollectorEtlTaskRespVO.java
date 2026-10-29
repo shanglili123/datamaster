@@ -151,6 +151,10 @@ public class CollectorEtlTaskRespVO implements Serializable {
     @TableField(exist = false)
     private String lastExecuteStatus;
 
+    @Schema(description = "最近执行的DolphinScheduler组件实例ID（十进制字符串）")
+    @TableField(exist = false)
+    private String lastExecuteDsId;
+
 
     @Schema(description = "草稿任务配置信息", example = "")
     private String draftJson;

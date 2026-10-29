@@ -73,7 +73,7 @@
       </div>
     </template>
   </a-modal>
-  <TaskLogDialog ref="logDialogRef" />
+  <TaskLogDialog ref="logDialogRef" :show-stage-windows="String(taskType) === '1'" />
 </template>
 
 <script setup>

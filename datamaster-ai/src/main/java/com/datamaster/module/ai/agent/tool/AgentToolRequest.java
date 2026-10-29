@@ -23,6 +23,107 @@ public final class AgentToolRequest {
      * 参数，又避免框架在启动生成 Schema 时触发该缺陷。
      */
     @Data
+    public static class SearchMetrics {
+        @Schema(description = "本体 ID；优先使用当前 Agent 上下文中的本体，模型不能跨当前空间指定")
+        private String ontologyId;
+        @Schema(description = "指标名称，支持模糊匹配")
+        private String name;
+        @Schema(description = "指标编码；仅在当前首屏候选中精确过滤，searchComplete=false 时不能据此断言不存在")
+        private String code;
+        @Schema(description = "可省略或固定为 PUBLISHED；分析工具不检索草稿和停用指标")
+        private String status;
+        @Schema(description = "最多返回条数，范围 1 到 50，默认 20")
+        private Integer limit;
+    }
+
+    @Data
+    public static class AnalysisFilter {
+        @Schema(description = "过滤属性 ID，必须是 search_metrics 返回的允许维度或时间属性")
+        private String propertyId;
+        @Schema(description = "过滤运算符：EQ、NE、GT、GE、LT、LE、IN、IS_NULL、IS_NOT_NULL")
+        private String operator;
+        @Schema(description = "标量过滤值；IN 时不要填写")
+        private String value;
+        @Schema(description = "IN 过滤值列表；仅 operator=IN 使用")
+        private List<String> valueList;
+    }
+
+    @Data
+    public static class ExecuteMetricAnalysis {
+        @NotBlank
+        @Schema(description = "search_metrics 返回的真实指标 ID", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String metricId;
+        @NotBlank
+        @Schema(description = "search_metrics 返回的已发布版本号", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String version;
+        @Schema(description = "要分组的允许维度 ID 列表，最多 5 个")
+        private List<String> dimensionPropertyIds;
+        @Schema(description = "结构化过滤条件；不要传 SQL")
+        private List<AnalysisFilter> filters;
+        @Schema(description = "开始时间；有时间属性时必须与 endTime 同时提供")
+        private String startTime;
+        @Schema(description = "结束时间；有时间属性时必须与 startTime 同时提供")
+        private String endTime;
+        @Schema(description = "最多返回 1 到 100 行；工具输出最多保留 20 行")
+        private Integer limit;
+    }
+
+
+    @Data
+    public static class GetMetricDefinition {
+        @NotBlank @Schema(description = "本轮 search_metrics 返回的指标ID")
+        private String metricId;
+        @NotBlank @Schema(description = "本轮 search_metrics 返回的发布版本")
+        private String version;
+    }
+
+    @Data
+    public static class CompareMetricPeriods {
+        @NotBlank @Schema(description = "本轮 search_metrics 返回的指标ID")
+        private String metricId;
+        @NotBlank @Schema(description = "明确的发布版本；两个时间段使用相同口径")
+        private String version;
+        @Schema(description = "本期开始（包含）；date使用YYYY-MM-DD，datetime使用ISO本地时间")
+        private String currentStartTime;
+        @Schema(description = "本期结束（不包含）")
+        private String currentEndTime;
+        @Schema(description = "基期开始（包含）；必须明确提供，不自动推测同比或环比日期")
+        private String baselineStartTime;
+        @Schema(description = "基期结束（不包含）；两个区间不能重叠")
+        private String baselineEndTime;
+        @Schema(description = "两期共用的分析过滤，仅允许已发布维度；不支持分组比较或额外时间过滤")
+        private List<AnalysisFilter> filters;
+    }
+
+    @Data
+    public static class AnalyzeMetricResult {
+        @Schema(description = "本轮最近一次execute_metric_analysis结果的指标ID")
+        private String metricId;
+        @Schema(description = "本轮查询的明确发布版本")
+        private String version;
+    }
+
+    @Data
+    public static class BuildMetricChartSpec {
+        @Schema(description = "本轮最近一次execute_metric_analysis结果的指标ID")
+        private String metricId;
+        @Schema(description = "本轮查询的明确发布版本")
+        private String version;
+        @Schema(description = "AUTO/TABLE/BAR/LINE；只生成声明式配置，不执行脚本或绘制图表")
+        private String chartType;
+    }
+
+    @Data
+    public static class SaveMetricAnalysis {
+        @Schema(description = "分析名称，最多100字")
+        private String name;
+        @Schema(description = "说明，最多1000字")
+        private String description;
+        @Schema(description = "本轮成功执行的相同查询条件；确认阶段原样重放，不得改口径、日期或过滤")
+        private ExecuteMetricAnalysis query;
+    }
+
+    @Data
     public static class ConversationHistoryItem {
         @Schema(description = "消息角色，例如 user 或 assistant")
         private String role;

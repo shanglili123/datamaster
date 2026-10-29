@@ -28,6 +28,12 @@
         <a-tab-pane key="relation" tab="关系管理">
           <RelationPanel ref="relationPanelRef" v-if="visited.relation" v-show="activeTab === 'relation'" :ontology-id="ontologyId" />
         </a-tab-pane>
+        <a-tab-pane key="metric" tab="指标管理">
+          <MetricPanel ref="metricPanelRef" v-if="visited.metric" v-show="activeTab === 'metric'" :ontology-id="ontologyId" />
+        </a-tab-pane>
+        <a-tab-pane key="metric-analysis" tab="指标分析">
+          <MetricAnalysisPanel v-if="visited['metric-analysis']" v-show="activeTab === 'metric-analysis'" :ontology-id="ontologyId" />
+        </a-tab-pane>
         <a-tab-pane key="action" tab="动作管理">
           <ActionPanel ref="actionPanelRef" v-if="visited.action" v-show="activeTab === 'action'" :ontology-id="ontologyId" @changed="onActionChanged" />
         </a-tab-pane>
@@ -51,6 +57,8 @@ import RelationPanel from './components/RelationPanel.vue'
 import GraphPanel from './components/GraphPanel.vue'
 import ActionPanel from './components/ActionPanel.vue'
 import WorkflowPanel from './components/WorkflowPanel.vue'
+import MetricAnalysisPanel from './components/MetricAnalysisPanel.vue'
+import MetricPanel from './components/MetricPanel.vue'
 import ObjectPanel from './components/ObjectPanel.vue'
 
 const route = useRoute()
@@ -64,23 +72,24 @@ const activeTab = ref('graph')
 const visited = reactive({ graph: true })
 // 支持外部直达：对象实例页待审批时 ?tab=action 跳转到审批中心（动作管理 tab）
 const queriedTab = route.query.tab
-if (queriedTab && ['graph', 'concept', 'property', 'relation', 'action', 'workflow', 'object'].includes(queriedTab)) {
+if (queriedTab && ['graph', 'concept', 'property', 'relation', 'metric', 'metric-analysis', 'action', 'workflow', 'object'].includes(queriedTab)) {
   activeTab.value = queriedTab
   visited[queriedTab] = true
 }
 const conceptPanelRef = ref(null)
 const propertyPanelRef = ref(null)
 const relationPanelRef = ref(null)
+const metricPanelRef = ref(null)
 const actionPanelRef = ref(null)
 const workflowPanelRef = ref(null)
 const objectPanelRef = ref(null)
 // 图谱变更后仅标记各面板为脏，切换到对应面板时再刷新，避免一次性触发全部请求
-const dirty = reactive({ concept: false, property: false, relation: false, action: false, workflow: false, object: false })
+const dirty = reactive({ concept: false, property: false, relation: false, metric: false, action: false, workflow: false, object: false })
 
 watch(activeTab, key => {
   visited[key] = true
-  if (dirty[key]) {
-    const panelRef = { concept: conceptPanelRef, property: propertyPanelRef, relation: relationPanelRef, action: actionPanelRef, workflow: workflowPanelRef, object: objectPanelRef }[key]
+  if (dirty[key] || key === 'metric') {
+    const panelRef = { concept: conceptPanelRef, property: propertyPanelRef, relation: relationPanelRef, metric: metricPanelRef, action: actionPanelRef, workflow: workflowPanelRef, object: objectPanelRef }[key]
     if (panelRef?.value && typeof panelRef.value.reload === 'function') {
       panelRef.value.reload()
       dirty[key] = false
@@ -92,6 +101,7 @@ function onGraphChanged() {
   dirty.concept = true
   dirty.property = true
   dirty.relation = true
+  dirty.metric = true
   dirty.action = true
   dirty.workflow = true
   dirty.object = true

@@ -324,10 +324,12 @@ export const transNodeData = async (graph) => {
               pipelineNodeId: String(item.id),
               taskParams: {
                 ...(item.data?.taskParams || {}),
-                pipelineNode: {
-                  ...(item.data?.taskParams?.pipelineNode || {}),
-                  pipelineNodeId: String(item.id),
-                },
+                ...(!item.data?.taskParams?.logicNode ? {
+                  pipelineNode: {
+                    ...(item.data?.taskParams?.pipelineNode || {}),
+                    pipelineNodeId: String(item.id),
+                  },
+                } : {}),
               },
             }
           : {}),
@@ -528,6 +530,28 @@ export const validateGraph = (graph, flag) => {
         addErrorMessage(`${data.name} 的上游数量不符合逻辑类型要求`);
       }
       if (!(graph.getOutgoingEdges(node) || []).length) addErrorMessage(`${data.name} 缺少下游输出`);
+      if (logic.mode !== 'CONDITION') {
+        const visited = new Set([String(node.id)]);
+        const upstreamIncremental = current => {
+          if (!current || visited.has(String(current.id))) return false;
+          visited.add(String(current.id));
+          const params = current.data?.taskParams || {};
+          if (params.logicNode?.mode === 'CONDITION') return false;
+          if (String(params.type) === '1' && ['2', '3'].includes(String(params.readModeType))) return true;
+          if ((params.logicNode?.incremental?.sources || []).some(source => String(source.cursorColumn || '').trim())) return true;
+          return (graph.getIncomingEdges(current) || []).some(edge => upstreamIncremental(edge.getSourceCell()));
+        };
+        const sources = logic.incremental?.sources || [];
+        if (incoming.some(edge => upstreamIncremental(edge.getSourceCell())) || sources.length) {
+          const required = new Set(incoming.map(edge => String(edge.getSourceCellId())));
+          const configured = new Set(sources.map(source => String(source.nodeId)));
+          if (sources.length !== required.size || configured.size !== required.size
+            || [...required].some(id => !configured.has(id))
+            || sources.some(source => !String(source.cursorColumn || '').trim() || !String(source.initialValue ?? '').trim())) {
+            addErrorMessage(`${data.name} 上游已配置增量，请补齐每个来源表的增量字段和初始值`);
+          }
+        }
+      }
       if (logic.mode === 'SPLIT' || logic.mode === 'CONDITION') {
         const branches = logic.mode === 'CONDITION' ? ['SUCCESS', 'FAILURE'] : (logic.branches || []).map(branch => branch.id);
         const outgoing = graph.getOutgoingEdges(node) || [];

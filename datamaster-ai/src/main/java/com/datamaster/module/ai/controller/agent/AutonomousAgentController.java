@@ -39,6 +39,7 @@ public class AutonomousAgentController extends BaseController {
             request.setOperationId(UUID.randomUUID().toString());
         }
         Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("entrypoint", "DATA_AGENT");
         attributes.put("confirmed", Boolean.TRUE.equals(request == null ? null : request.getConfirmed()));
         attributes.put("confirmedExecutionId", request == null ? null : request.getConfirmedExecutionId());
         attributes.put("confirmedDatasourceId", request == null ? null : request.getConfirmedDatasourceId());

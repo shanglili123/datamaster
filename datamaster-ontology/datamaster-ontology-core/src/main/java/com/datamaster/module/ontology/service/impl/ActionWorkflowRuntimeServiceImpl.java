@@ -64,6 +64,9 @@ public class ActionWorkflowRuntimeServiceImpl implements IActionWorkflowRuntimeS
     public ActionWorkflowRunRespVO start(Long workflowId, ActionWorkflowRunReqVO reqVO) {
         ActionWorkflowDO workflow = requirePublishedWorkflow(workflowId);
         accessGuard.assertWorkflowAccess(workflow);
+        if (reqVO != null && reqVO.getExpectedVersion() != null
+                && !reqVO.getExpectedVersion().equals(workflow.getVersion() == null ? 1 : workflow.getVersion()))
+            throw new ServiceException("Workflow 定义已变化，请重新预览确认");
         String idempotencyKey = reqVO == null ? null : StringUtils.trim(reqVO.getIdempotencyKey());
         if (StringUtils.isBlank(idempotencyKey) && reqVO != null && StringUtils.isNotBlank(reqVO.getEventId())) {
             idempotencyKey = "event:" + StringUtils.trim(reqVO.getEventId());

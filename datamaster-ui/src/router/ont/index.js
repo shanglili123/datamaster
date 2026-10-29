@@ -16,6 +16,18 @@ const ontRouter = [
         meta: { title: '本体管理', icon: 'organization-chart', noCache: true }
       },
       {
+        path: 'metric',
+        component: () => import('@/views/ont/metric/index.vue'),
+        name: 'OntologyMetric',
+        meta: { title: '指标管理', activeMenu: '/ont/ontology', noCache: true, hidden: true }
+      },
+      {
+        path: 'metric-analysis',
+        component: () => import('@/views/ont/metricAnalysis/index.vue'),
+        name: 'MetricAnalysis',
+        meta: { title: '指标分析', activeMenu: '/ont/ontology', noCache: true, hidden: true }
+      },
+      {
         path: 'workspace/:ontologyId',
         component: () => import('@/views/ont/workspace/index.vue'),
         name: 'OntWorkspace',

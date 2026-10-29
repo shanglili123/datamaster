@@ -1,0 +1,3 @@
+-- Superseded before execution: stage window and committed watermark now share col_etl_node_instance.
+-- Do not create col_etl_incremental_checkpoint or col_etl_incremental_window for new workflows.
+-- Use add-collector-component-runtime.sql. No existing table is dropped by this placeholder.

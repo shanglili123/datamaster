@@ -20,6 +20,7 @@ import javax.annotation.Resource;
 @Slf4j
 @RestController
 @RequestMapping("/col/etlTask/incremental")
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('admin') or @ss.hasPermi('col:etlTask:runCallback')")
 public class CollectorEtlIncrementalController {
 
     @Resource
