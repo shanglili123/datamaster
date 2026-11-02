@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a Java 8 multi-module Maven project with a Vue 3 frontend. The root `pom.xml` aggregates backend modules such as `datamaster-common`, `datamaster-system`, `datamaster-assets`, `datamaster-collector`, `datamaster-service`, `datamaster-catalog`, `datamaster-quality`, `datamaster-etl`, and `datamaster-server`. The backend entry point is `datamaster-server/src/main/java/com/datamaster/server/DataMasterApplication.java`.
+This repository is a Java 17 multi-module Maven project with a Vue 3 frontend. The root `pom.xml` aggregates backend modules such as `datamaster-common`, `datamaster-system`, `datamaster-assets`, `datamaster-collector`, `datamaster-service`, `datamaster-catalog`, `datamaster-quality`, `datamaster-etl`, and `datamaster-server`. The backend entry point is `datamaster-server/src/main/java/com/datamaster/server/DataMasterApplication.java`.
 
 Backend source follows Maven layout: `src/main/java`, `src/main/resources`, and `src/test`. Frontend code lives in `datamaster-ui/src`; Vite configuration is in `datamaster-ui/vite.config.js` and plugins are under `datamaster-ui/vite`. Database scripts are under `sql/`, deployment assets under `docker/`, and runtime uploads under `upload/`.
 
@@ -14,6 +14,8 @@ The repository now has 17 Maven modules plus `datamaster-common` sub-modules. In
 
 Build, Test, and Development Commands
 
+Use JDK 17+ and Maven 3.6.3+; the compiler and Enforcer plugins do not support Maven 3.6.0. Select these per IDE/command without changing the JVM used by DolphinScheduler/Flink/CHUNJUN.
+
 - `mvn clean package`: build all Maven modules from the repository root.
 - `mvn test`: run backend tests across modules.
 - `mvn -pl datamaster-server -am package`: build the server and required dependencies.
@@ -24,7 +26,7 @@ Build, Test, and Development Commands
 
 ## Coding Style & Naming Conventions
 
-Use UTF-8 and Java 8-compatible code. Keep Java package names under `com.datamaster`, matching the owning module. Follow existing suffixes: `*Controller`, `*Service`, `*Mapper`, `*Convert`, and `*DO`. Vue files use the established style in `datamaster-ui/src`; run ESLint before submitting frontend changes.
+Use UTF-8 and Java 17-compatible code. Keep Java package names under `com.datamaster`, matching the owning module. Follow existing suffixes: `*Controller`, `*Service`, `*Mapper`, `*Convert`, and `*DO`. Vue files use the established style in `datamaster-ui/src`; run ESLint before submitting frontend changes.
 
 ## Testing Guidelines
 

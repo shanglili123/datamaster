@@ -71,6 +71,7 @@ public class CollectorEtlTaskInstanceServiceImpl extends ServiceImpl<CollectorEt
     private ISpaceApi attProjectApi;
 
     @Resource
+    @org.springframework.context.annotation.Lazy
     private ICollectorEtlTaskService CollectorEtlTaskService;
 
     @Resource

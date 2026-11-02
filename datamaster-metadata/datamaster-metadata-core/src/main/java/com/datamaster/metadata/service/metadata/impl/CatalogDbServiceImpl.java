@@ -44,14 +44,17 @@ public class CatalogDbServiceImpl  extends ServiceImpl<CatalogDbMapper,CatalogDb
     @Resource
     private CatalogDbMapper CatalogDbMapper;
     @Resource
+    @org.springframework.context.annotation.Lazy
     private IDatasourceApiService daDatasourceApiService;
 
     @Resource
     private CatalogTableMapper tableMapper;
     @Resource
+    @org.springframework.context.annotation.Lazy
     private ICatalogTableService CatalogTableService;
 
     @Resource
+    @org.springframework.context.annotation.Lazy
     private ICatalogColumnService CatalogColumnService;
 
 

@@ -46,6 +46,7 @@ public class CollectorEtlNodeInstanceServiceImpl extends ServiceImpl<CollectorEt
     private ICollectorEtlNodeLogService CollectorEtlNodeLogService;
 
     @Resource
+    @org.springframework.context.annotation.Lazy
     private ICollectorEtlTaskInstanceService CollectorEtlTaskInstanceService;
 
     @Resource

@@ -110,7 +110,10 @@ public class MappingHandlerMapping {
     }
 
     private RequestMappingInfo getRequestMapping(ServiceApiDO api) {
-        return RequestMappingInfo.paths(getRequestPath(api.getApiVersion(), api.getApiUrl())).methods(RequestMethod.valueOf(RequestMethodEnum.getValByKey(api.getReqMethod()).toUpperCase())).build();
+        return RequestMappingInfo.paths(getRequestPath(api.getApiVersion(), api.getApiUrl()))
+                .methods(RequestMethod.valueOf(RequestMethodEnum.getValByKey(api.getReqMethod()).toUpperCase()))
+                .options(requestMappingHandlerMapping.getBuilderConfiguration())
+                .build();
     }
 
     /**

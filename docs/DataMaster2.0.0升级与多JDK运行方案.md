@@ -1,5 +1,7 @@
 # DataMaster 2.0.0 升级与多 JDK 运行方案
 
+> 当前实施状态（2026-11-02）：仅在 `dev_1029_2.0` 继续 Java 17 迁移，保留已升级的 Boot 2.7.18；未修改旧分支 `dev_1023`，未执行构建、启动或数据库迁移。本文跨前后端版本统一等内容为整体规划，不代表本轮全部落地，具体以 `docs/Java17迁移记录.md` 为准。
+
 ## 1. 目标与范围
 
 版本统一为2.0.0：父Maven的dataMaster.version、继承的后端模块、前端package版本、独立db-init及server示例镜像标签。第三方组件版本和历史数据库备份不批量替换；.flattened-pom.xml属于生成产物，由后续构建重新生成，不手工改写。
@@ -55,7 +57,9 @@ JAVA_HOME=/opt/jdks/jdk-17 PATH=/opt/jdks/jdk-17/bin:$PATH \
 
 ### DataMaster容器
 
-主服务Dockerfile已改用eclipse-temurin:17-jre，代码示例标签统一2.0.0。私网/离线环境需要将真实可用的17镜像同步到受信仓库再引用；不能假设原私库已有相同标签。
+部署配置 `datamaster_java_bin` 和 `database_init_java_bin` 分别指定后端主机、PostgreSQL 主机上的 Java 17+ 绝对路径。部署脚本执行版本检查，systemd 与初始化工具显式使用所选 JVM，不修改全局环境。路径只是示例，需预先安装对应主机/架构的 JDK/JRE。
+
+主服务Dockerfile已改用eclipse-temurin:17-jre。私网/离线环境需要将真实可用的17镜像同步到受信仓库再引用；不能假设原私库已有相同标签。
 
 ## 4. 分阶段升级
 
@@ -63,7 +67,7 @@ JAVA_HOME=/opt/jdks/jdk-17 PATH=/opt/jdks/jdk-17/bin:$PATH \
 
 - 后端统一2.0.0，前端2.0.0，db-init2.0.0。
 - compiler3.13.0、release17、Enforcer17+、Surefire3.2.5。
-- 暂留Boot2.5.15、Framework5.3.33、Security5.7.12、LangChain4j0.35.0，先验证JDK变化。
+- 保留Boot2.7.18、Framework5.3.33、Security5.7.12、LangChain4j0.35.0，本轮只验证JDK变化。
 - 不为迁移而批量改写业务语法或javax命名空间。
 
 ### 阶段B：构建与启动验证
@@ -108,4 +112,4 @@ Java17运行基线通过后，再选择具体LangChain4j目标版本，核对Too
 
 ## 8. 本次落地状态
 
-已写方案、修改版本源和已有示例镜像标签。Java17构建/镜像基线此前已修改。没有安装JDK、改动DS/Flink容器、运行构建/测试/迁移、发布镜像或重启服务。配置变更不等于兼容验证通过。
+2026-11-02 已继续落地 Java17 构建、容器和部署 JVM 选择配置，并迁移 CA 工具的 JDK 内部 API；本轮不调整前端或独立 db-init 的发布版本。没有安装JDK、改动DS/Flink容器、运行构建/测试/迁移、发布镜像或重启服务。配置变更不等于兼容验证通过。

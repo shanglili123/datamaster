@@ -29,6 +29,7 @@ import java.util.List;
 public class DatasourceApiServiceImpl implements IDatasourceApiService {
 
     @Resource
+    @org.springframework.context.annotation.Lazy
     private IAssetsDatasourceApiService assetsDatasourceApiService;
 
     @Override

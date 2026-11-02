@@ -4,6 +4,12 @@ package com.datamaster.common.utils.ca;
 
 import cn.hutool.core.lang.Validator;
 import cn.hutool.core.util.ReUtil;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.bouncycastle.util.io.pem.PemWriter;
@@ -11,7 +17,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
-import sun.security.x509.*;
 
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpServletRequest;
@@ -47,62 +52,48 @@ public class CaCertificateIssuer {
      */
     public static List<MultipartFile> issueCertificate(String userName, String certUrl,
                                                        String privateKeyUrl, Long validity) throws Exception {
-        X500Principal userDnName = new X500Principal(userName);
-        List<MultipartFile> fileList = new ArrayList<>();
-
         // 加载根证书和私钥
         X509Certificate rootCertificate = loadRootCertificate(certUrl);
         PrivateKey rootPrivateKey = loadRootPrivateKey(privateKeyUrl);
+        return issueCertificate(userName, rootCertificate, rootPrivateKey, validity);
+    }
+
+    static List<MultipartFile> issueCertificate(String userName, X509Certificate rootCertificate,
+                                               PrivateKey rootPrivateKey, Long validity) throws Exception {
+        X500Principal userDnName = new X500Principal(userName);
+        List<MultipartFile> fileList = new ArrayList<>();
 
         // 获取根证书的主体信息，作为用户证书的颁发者信息
         X500Principal rootDnName = rootCertificate.getSubjectX500Principal();
-        X500Name rootX500Name = new X500Name(rootDnName.getName());
 
         // 生成用户的密钥对（公钥和私钥）
         KeyPair userKeyPair = generateUserKeyPair();
         PublicKey userPublicKey = userKeyPair.getPublic();
         PrivateKey userPrivateKey = userKeyPair.getPrivate();
 
-        // 定义用户证书的主体信息
-        X500Name userX500Name = new X500Name(userDnName.getName());
-
-        // 创建 X.509 用户证书信息对象
-        X509CertInfo userCertInfo = new X509CertInfo();
-        userCertInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
-        userCertInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(BigInteger.valueOf(System.currentTimeMillis())));
-        userCertInfo.set(X509CertInfo.SUBJECT, userX500Name);
-        userCertInfo.set(X509CertInfo.ISSUER, rootX500Name);
-        userCertInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(new Date(), new Date(System.currentTimeMillis() + validity * 365L * 24L * 60L * 60L * 1000L)));
-        userCertInfo.set(X509CertInfo.KEY, new CertificateX509Key(userPublicKey));
-        userCertInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(AlgorithmId.get("SHA256withRSA")));
+        // 使用公开 API 创建 X.509 用户证书
+        long currentTime = System.currentTimeMillis();
+        JcaX509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                rootDnName, BigInteger.valueOf(currentTime), new Date(currentTime),
+                new Date(currentTime + validity * 365L * 24L * 60L * 60L * 1000L),
+                userDnName, userPublicKey);
 
         // 添加主题扩展字段 (SAN)，用于浏览器 https 验证
-        String dnsName = ReUtil.get("CN=([^,]+)", userX500Name.getName(), 1);
+        String dnsName = ReUtil.get("CN=([^,]+)", userDnName.getName(), 1);
         // 判断是否是IP地址或域名
         boolean isIpAddress = Validator.isIpv4(dnsName);
         // 判断是否是域名
         boolean isDomain = ReUtil.isMatch("^(\\*\\.)?([\\w-]+\\.)+[a-zA-Z]{2,}$", dnsName);
 
-        CertificateExtensions extensions = new CertificateExtensions();
-        GeneralNames san = new GeneralNames();
-
-        if (isIpAddress) {
-            // 如果是IP地址，使用IPAddress类型添加到SAN
-            san.add(new GeneralName(new IPAddressName(dnsName)));
-        } else if (isDomain) {
-            // 如果是域名，使用DNSName类型添加到SAN
-            san.add(new GeneralName(new DNSName(dnsName)));
-        }
-
         if (isIpAddress || isDomain) {
-            extensions.set(SubjectAlternativeNameExtension.NAME, new SubjectAlternativeNameExtension(san));
-            // 将扩展添加到证书信息中
-            userCertInfo.set(X509CertInfo.EXTENSIONS, extensions);
+            GeneralName san = new GeneralName(
+                    isIpAddress ? GeneralName.iPAddress : GeneralName.dNSName, dnsName);
+            certBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(san));
         }
 
         // 使用根证书的私钥签署用户证书
-        X509CertImpl userCertificate = new X509CertImpl(userCertInfo);
-        userCertificate.sign(rootPrivateKey, "SHA256withRSA");
+        X509Certificate userCertificate = new JcaX509CertificateConverter().getCertificate(
+                certBuilder.build(new JcaContentSignerBuilder("SHA256withRSA").build(rootPrivateKey)));
 
         // 将用户证书转换为 MultipartFile
         fileList.add(convertCertificateToMultipartFile(userCertificate, dnsName + "_certificate.cer"));
@@ -133,7 +124,7 @@ public class CaCertificateIssuer {
      * @return MultipartFile 形式的证书
      * @throws Exception 如果转换过程中发生错误
      */
-    private static MultipartFile convertCertificateToMultipartFile(X509CertImpl certificate, String fileName) throws Exception {
+    private static MultipartFile convertCertificateToMultipartFile(X509Certificate certificate, String fileName) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.US_ASCII))) {
             writer.write("-----BEGIN CERTIFICATE-----\n");

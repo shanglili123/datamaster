@@ -3,21 +3,22 @@
 package com.datamaster.common.utils.ca;
 
 import cn.hutool.crypto.SecureUtil;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
-import sun.security.x509.*;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
@@ -53,21 +54,13 @@ public class CaGenerateRootCertificate {
             // 使用当前时间作为序列号
             BigInteger certSerialNumber = new BigInteger(Long.toString(currentTime));
 
-            // 创建 X.509 证书对象
-            X509CertInfo certInfo = new X509CertInfo();
-            certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
-            certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(certSerialNumber));
-            certInfo.set(X509CertInfo.SUBJECT, new X500Name(dnName.getName()));
-            certInfo.set(X509CertInfo.ISSUER, new X500Name(dnName.getName()));
-            certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(startDate, endDate));
-            certInfo.set(X509CertInfo.KEY, new CertificateX509Key(publicKey));
-            certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(AlgorithmId.get("SHA256withRSA")));
+            // 使用公开 API 创建并签名 X.509 证书，避免依赖 JDK 内部包
+            JcaX509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                    dnName, certSerialNumber, startDate, endDate, dnName, publicKey);
+            X509Certificate certificate = new JcaX509CertificateConverter().getCertificate(
+                    certBuilder.build(new JcaContentSignerBuilder("SHA256withRSA").build(privateKey)));
 
-            // 创建证书
-            X509CertImpl certificate = new X509CertImpl(certInfo);
-            certificate.sign(privateKey, "SHA256withRSA");
-
-            // 保存证书为 .cer 文件
+            // 将证书编码为 PEM
             String certFilePath = "rootCA.cer";
             ByteArrayOutputStream certOutputStream = new ByteArrayOutputStream();
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(certOutputStream, StandardCharsets.US_ASCII))) {
@@ -75,7 +68,6 @@ public class CaGenerateRootCertificate {
                 writer.write(Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(certificate.getEncoded()));
                 writer.write("\n-----END CERTIFICATE-----\n");
             }
-            Files.write(Paths.get(certFilePath), certOutputStream.toByteArray());
 
             // 保存私钥为 PEM 文件
             String privateKeyFilePath = "privateKey.pem";
@@ -86,37 +78,16 @@ public class CaGenerateRootCertificate {
             }
 
             // 将生成的文件转换为 MultipartFile
-            files.add(convertFileToMultipartFile(certFilePath, "rootCA.cer"));
+            files.add(new MockMultipartFile(certFilePath, certFilePath, "application/x-x509-ca-cert", certOutputStream.toByteArray()));
             files.add(new MockMultipartFile(privateKeyFilePath, privateKeyFilePath, "application/x-pem-file", pemOutputStream.toByteArray()));
 
-            // 删除原始文件
-            deleteFile(certFilePath);
-            deleteFile(privateKeyFilePath);
-
-            System.out.println("根证书和私钥已生成、转换为 MultipartFile 对象并删除原始文件");
+            System.out.println("根证书和私钥已生成并转换为 MultipartFile 对象");
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return files;
-    }
-
-    private static MultipartFile convertFileToMultipartFile(String filePath, String fileName) throws Exception {
-        File file = new File(filePath);
-        try (FileInputStream input = new FileInputStream(file)) {
-            return new MockMultipartFile(fileName, fileName, "application/x-x509-ca-cert", input);
-        }
-    }
-
-    private static void deleteFile(String filePath) {
-        try {
-            Files.delete(Paths.get(filePath));
-            System.out.println("文件已删除: " + filePath);
-        } catch (Exception e) {
-            System.out.println("文件删除失败: " + filePath);
-            e.printStackTrace();
-        }
     }
 
     public static void main(String[] args) {

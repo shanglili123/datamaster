@@ -11,6 +11,7 @@ import com.datamaster.module.collector.dal.mapper.etl.*;
 import com.datamaster.module.collector.service.etl.*;
 import com.datamaster.module.collector.utils.ComponentRecoverySupport;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -29,6 +30,8 @@ import java.util.*;
 @Service
 public class CollectorComponentRecoveryService {
     public static final String ACTION = "RESTART_COMPONENT_TASK";
+    @Value("${ds.component-recovery.startup-enabled:true}")
+    private boolean startupRecoveryEnabled = true;
     @Resource private CollectorEtlTaskOpsEventMapper events;
     @Resource private CollectorEtlTaskInstanceMapper instances;
     @Resource private CollectorEtlNodeInstanceMapper nodes;
@@ -127,6 +130,7 @@ public class CollectorComponentRecoveryService {
     /** 启动时仅补查一次，正常运行由事件提交触发，不定期扫描事件表。 */
     @EventListener(ApplicationReadyEvent.class)
     public void restorePendingEvents() {
+        if (!startupRecoveryEnabled) return;
         long afterId = 0;
         while (true) {
             List<CollectorEtlTaskOpsEventDO> batch;

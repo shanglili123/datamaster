@@ -50,6 +50,7 @@ public class TaxonomyTagAssetRelServiceImpl extends ServiceImpl<TaxonomyTagAsset
     private TaxonomyTagAssetRelMapper taxonomyTagAssetRelMapper;
 
     @Resource
+    @org.springframework.context.annotation.Lazy
     private ITaxonomyTagService taxonomyTagService;
 
     @Override

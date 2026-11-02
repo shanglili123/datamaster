@@ -45,6 +45,7 @@ public class AssetsAssetColumnServiceImpl extends ServiceImpl<AssetsAssetColumnM
     @Resource
     private IDataElemRuleRelService dataElemRuleRelService;
     @Resource
+    @org.springframework.context.annotation.Lazy
     private IAssetsAssetService AssetsAssetService;
 
     @Override

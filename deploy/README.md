@@ -542,6 +542,15 @@ dbgpt_image_tar_src: packages/components/dbgpt-openai-latest.tar
 
 主服务当前使用 `java -jar` + systemd 部署，不使用 DataMaster 后端容器。
 
+DataMaster 2.0 的主服务和重新构建的数据库初始化工具要求 Java 17+。部署前分别在后端主机、PostgreSQL 主机安装兼容的 JDK/JRE，并在 `deploy.yml` 中填写实际存在的绝对路径：
+
+```yaml
+datamaster_java_bin: /opt/jdks/jdk-17/bin/java
+database_init_java_bin: /opt/jdks/jdk-17/bin/java
+```
+
+两项路径允许不同，示例目录不会由脚本自动安装。预检和实际部署都会检查所选 Java 的版本，后端使用该路径生成 systemd `ExecStart`，初始化工具使用另一项显式执行；不会修改系统 `PATH`、`JAVA_HOME` 或 DolphinScheduler/Flink/CHUNJUN 的 JVM。旧版自定义 `deploy.yml` 必须补充这两个键。
+
 脚本会创建远程目录：
 
 ```text

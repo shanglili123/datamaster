@@ -1,4 +1,60 @@
-# Spring Boot 2.7.18 过渡升级记录（1023已撤回，仅保留历史）
+# Spring Boot 2.7.18 过渡升级记录
+
+## 后续 Java 17 阶段（2026-11-02，当前状态优先）
+
+用户要求继续升级，当前 `dev_1029_2.0` 保留 Boot 2.7.18，Java 编译与主服务运行基线现改为 17，详见 `docs/Java17迁移记录.md`。随后经用户授权，使用 JDK 17.0.19 + Maven 3.8.1 完成主服务及依赖 36 个反应堆项目、独立 db-init 的主源码编译，均 BUILD SUCCESS；未运行测试、打包或启动。下文 2026-10-30 的启动成功结果只属于当时的 Java 8 产物，不证明 Java 17 运行已经通过验证。旧分支 `dev_1023` 未修改。
+
+## 当前升级分支（2026-10-30）
+
+### 启动验证结果（已通过）
+
+2026-10-30 18:38 在 `dev_1029_2.0` 分支以 JDK8 完成 `mvn -pl datamaster-server -am package -DskipTests`（BUILD SUCCESS），实际启动 `datamaster-server.jar`：**Started DataMasterApplication in 32.138 seconds**，服务已启动。
+
+验证条件：隔离端口18989、主库连接附加 `default_transaction_read_only=on`（防启动副作用写库）、关闭动作执行/工作流 worker、run guard 和血缘同步。HTTP冒烟：`/captchaImage` 返回200成功；`/login` GET 正确拒绝；未带Token访问 `/getInfo`、`/ai/model-gateway/stats` 均返回业务401认证失败，Security过滤链在Boot2.7下正常。验证后已停止测试实例。
+
+### 启动期修复的依赖环（Boot2.6+默认禁止循环引用）
+
+均为单点 `@Lazy` 延迟业务期依赖或移除无调用注入，未开启 `spring.main.allow-circular-references`：
+
+| 类 | 修复 |
+| --- | --- |
+| AssetsDatasourceServiceImpl | standardsModelApiService、collectorEtlTaskService 延迟 |
+| DatasourceApiServiceImpl | assetsDatasourceApiService（适配器唯一依赖）延迟 |
+| AssetsAssetServiceImpl | IAssetsDatasourceService、CollectorEtlTaskService、CollectorEtlTaskInstanceService 延迟 |
+| AssetsAssetColumnServiceImpl | IAssetsAssetService 延迟 |
+| CatalogDbServiceImpl | 数据源接口、表服务、列服务延迟 |
+| CatalogTableServiceImpl | 移除未使用的资产接口注入；CatalogTaskService 延迟 |
+| CollectorEtlTaskInstanceServiceImpl | ICollectorEtlTaskService 延迟 |
+| CollectorEtlNodeInstanceServiceImpl | ICollectorEtlTaskInstanceService 延迟 |
+| TaxonomyTagAssetRelServiceImpl | ITaxonomyTagService 延迟 |
+
+另修复打包问题：server 模块默认 maven-jar-plugin 2.4 增量打包可能沿用旧 BOOT-INF/lib 导致修复不生效，已显式配置 maven-jar-plugin 3.1.1 + forceCreation。
+
+### 仍未验证
+
+- **单元测试未运行**：此前一次带测试构建中 datamaster-metadata-core 39个测试19个失败（JSqlParser血缘提取与资产身份），需确认是否为升级前既有失败；治理模块45个测试通过。
+- 关闭的后台 worker（动作执行/工作流/血缘/run guard）、嵌入式Redis、SSE问数、DB-GPT、模型调用、ETL任务链路、前端联调均未在本轮启动验证覆盖。
+- 生产/开发正常配置（非只读、worker开启）下的启动未验证。
+
+以下为更早的排查过程记录。
+
+### 实际启动排查（历史）
+
+已按用户要求在当前分支JDK8运行依赖模块package（跳过测试）并多次实际启动18989端口。构建通过不代表启动通过；此前启动连续暴露元数据库/表/列、任务/实例/节点实例、数据源适配器、标签关联的初始化依赖环，已逐项限定延迟注入或移除无实际调用的资产接口。
+
+另发现server使用默认maven-jar-plugin2.4增量打包时可能沿用旧BOOT-INF/lib。已显式配置既有版本属性3.1.1并forceCreation=true，核对嵌套metadata class与本轮target/classes一致后才继续启动。
+
+测试启动使用独立18989端口、主连接只读选项及关闭动作执行/工作流队列/run guard开关；没有停止用户既有服务、没有调用模型或执行写业务验收。后台启动尚在排查，最终成功与否以后续实际HTTP和日志结果为准。本轮没有重新运行单元测试，先前39个元数据测试19失败仍未解决。
+
+
+已确认并仅修改当前`dev_1029_2.0`分支：后端版本2.0.0，Boot BOM与server打包插件统一2.7.18，Java编译目标仍1.8，LangChain4j仍0.35.0。重新加入数据源反向依赖的单点@Lazy、匿名注解发现Ant/PathPattern兼容和动态API的BuilderConfiguration匹配。不修改SecurityConfig白名单或任务Token校验，不开启全局循环依赖。
+
+本轮仅代码迁移，未再次运行构建、测试、启动或数据库迁移。此前构建与测试结果属于当时工作区，不能作为当前分支验证结果。没有切换、提交或修改dev_1023。
+
+用户随后启动报告第二条循环：DatasourceApiServiceImpl → AssetsDatasourceServiceImpl → AssetsTableGovernanceApiServiceImpl → CatalogTableServiceImpl → CatalogDbServiceImpl → DatasourceApiServiceImpl。已将CatalogDbServiceImpl的数据源接口延迟注入，该接口仅在详情查询时使用，无初始化调用。另发现CatalogDbServiceImpl与CatalogTableServiceImpl存在直接双向注入，将库服务持有的表服务延迟注入；不改变业务方法、不开放全局循环引用。本次未执行编译或重启，尚不能确认所有启动依赖环均已消除。
+
+以下为旧分支撤回经过与先前验证的历史记录，不覆盖以上当前状态。
+
 
 ## 最终分支口径（2026-10-30，优先于下文）
 

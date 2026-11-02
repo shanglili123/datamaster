@@ -13,7 +13,6 @@ import com.datamaster.common.core.domain.BatchDeleteCheck;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
-import com.datamaster.module.assets.api.service.asset.IAssetsAssetApiOutService;
 import com.datamaster.metadata.api.service.table.CatalogTableApiService;
 import com.datamaster.metadata.api.table.dto.CatalogTableRespDTO;
 import com.datamaster.metadata.controller.admin.metadata.vo.CatalogDbRespVO;
@@ -63,8 +62,7 @@ public class CatalogTableServiceImpl extends ServiceImpl<CatalogTableMapper,Cata
     @Resource
     private ISysUserService sysUserService;
     @Resource
-    private IAssetsAssetApiOutService daAssetApiOutService;
-    @Resource
+    @Lazy
     private ICatalogTaskService CatalogTaskService;
 
     @Override

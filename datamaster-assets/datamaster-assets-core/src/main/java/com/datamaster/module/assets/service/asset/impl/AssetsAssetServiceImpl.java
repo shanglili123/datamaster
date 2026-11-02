@@ -141,6 +141,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Resource
     private IDataElemRuleRelService elemRuleRelService;
     @Resource
+    @org.springframework.context.annotation.Lazy
     private IAssetsDatasourceService IAssetsDatasourceService;
     @Resource
     private AssetsAssetColumnMapper AssetsAssetColumnMapper;
@@ -155,6 +156,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Resource
     private AssetsAssetApplyMapper AssetsAssetApplyMapper;
     @Resource
+    @org.springframework.context.annotation.Lazy
     private CollectorEtlTaskService collectorEtlTaskService;
     @Resource
     private IAssetsAssetThemeRelService AssetsAssetThemeRelService;
@@ -173,6 +175,7 @@ public class AssetsAssetServiceImpl extends ServiceImpl<AssetsAssetMapper, Asset
     @Autowired(required = false)
     private LineageDataService lineageDataService;
     @Resource
+    @org.springframework.context.annotation.Lazy
     private CollectorEtlTaskInstanceService collectorEtlTaskInstanceService;
     @Resource
     private IModelingThemeDomainApiService modelingThemeDomainApiService;

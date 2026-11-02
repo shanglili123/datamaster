@@ -86,6 +86,9 @@ nginx_image_tar_src: "packages/components/{{ nginx_image_tar }}"
 # * 后端使用 java -jar 部署，不再使用 DataMaster 后端镜像容器。
 datamaster_server_jar_src: "packages/components/datamaster-server.jar"
 datamaster_ui_dist_src: "packages/components/dist"
+# Java 17 executable on the backend hosts; keep DS/Flink's JVM unchanged.
+# 后端主机上已安装的 Java 17 绝对路径，不覆盖系统 Java 或 DS/Flink 的 JAVA_HOME。
+datamaster_java_bin: "/opt/jdks/jdk-17/bin/java"
 
 # * Must confirm: PostgreSQL port, admin account, business database, and business user.
 # * 必须确认：PostgreSQL 端口、管理员账号、业务库名、业务用户名。
@@ -107,6 +110,9 @@ postgresql_app_upgrade_sql_src: "../sql/update_20261012_ingestion_reliability.sq
 # * These paths are local paths relative to deploy/. The script uploads them before initialization.
 # * 这些是相对于 deploy/ 的本地路径，脚本会在初始化前上传到远程。
 database_init_jar_src: "packages/components/datamaster-db-init.jar"
+# Java 17 executable on PostgreSQL hosts that run the initialization tool.
+# 在执行初始化工具的 PostgreSQL 主机上单独确认此路径。
+database_init_java_bin: "/opt/jdks/jdk-17/bin/java"
 dolphinscheduler_database: dolphinscheduler
 dolphinscheduler_init_sql_src: "packages/sql/dolphinscheduler.sql"
 

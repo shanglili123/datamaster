@@ -378,6 +378,15 @@ require_defined() {
   fi
 }
 
+require_java_bin() {
+  local key="$1"
+  require_var "$key"
+  if [[ ! "${VARS[$key]}" =~ ^/[A-Za-z0-9_./+-]+$ ]]; then
+    echo "$key must be an absolute Java executable path without spaces or shell metacharacters" >&2
+    exit 1
+  fi
+}
+
 require_local_file_if_group() {
   local group="$1" key="$2" path entry
   local -a paths
@@ -399,6 +408,7 @@ validate_config() {
   local key row row_group row_name row_host row_user row_port
   for key in base_dir timezone; do require_var "$key"; done
   if should_deploy_group postgresql_servers; then
+    require_java_bin database_init_java_bin
     for key in postgresql_ip postgresql_port postgresql_image postgresql_image_tar postgresql_image_tar_src postgresql_admin_database postgresql_admin_user postgresql_admin_password postgresql_database postgresql_user postgresql_password database_init_jar_src postgresql_init_sql_src dolphinscheduler_database dolphinscheduler_init_sql_src dolphinscheduler_tenant_code dolphinscheduler_token datamaster_app_ip datamaster_server_port remote_package_dir remote_init_sql_dir postgresql_data_dir postgresql_conf_dir postgresql_log_dir; do require_var "$key"; done
   fi
   if should_deploy_group redis_servers; then
@@ -411,6 +421,7 @@ validate_config() {
     for key in dbgpt_port dbgpt_image dbgpt_image_tar dbgpt_image_tar_src dbgpt_data_dir dbgpt_message_dir dashscope_api_key; do require_var "$key"; done
   fi
   if should_deploy_group datamaster_app_servers; then
+    require_java_bin datamaster_java_bin
     for key in datamaster_server_jar_src app_conf_dir app_log_dir app_upload_dir app_jar_path postgresql_ip postgresql_port postgresql_database postgresql_user postgresql_password redis_ip redis_port dolphinscheduler_ip dolphinscheduler_api_port dolphinscheduler_token dolphinscheduler_tenant_code dolphinscheduler_resource_dir datamaster_app_ip datamaster_server_port dbgpt_ip dbgpt_port dbgpt_model dbgpt_chat_mode dbgpt_skill_space_name dbgpt_skill_space_owner ai_skill_model_enabled ai_skill_model_api_url ai_skill_model_name ai_skill_model_timeout ai_skill_model_retry_count ai_skill_model_retry_interval ai_skill_model_temperature ai_skill_model_max_tokens ingestion_enabled ingestion_kafka_servers ingestion_kafka_topics ingestion_poll_timeout_ms ingestion_poll_interval_ms ingestion_kafka_max_retries ingestion_kafka_retry_backoff_ms ingestion_kafka_event_lease_ms ingestion_kafka_lease_renew_interval_ms ingestion_doris_datasource_id ingestion_conflict_strategy ingestion_key_columns ingestion_allowed_tables ingestion_required_columns ingestion_decision_trigger_enabled ingestion_decision_path lineage_enabled lineage_jdbc_enabled lineage_sync_delay_ms neo4j_uri neo4j_username; do require_var "$key"; done
     for key in redis_password dashscope_api_key jwt_secret neo4j_password ingestion_kafka_dead_letter_topic ingestion_target_table ingestion_schema_version ingestion_decision_base_url ingestion_decision_trigger_ref ingestion_decision_trigger_secret; do require_defined "$key"; done
   fi
@@ -548,6 +559,26 @@ remote_exec_capture() {
   ssh "${SSH_OPTS[@]}" -p "$port" "$target" "$command"
 }
 
+java17_check_command() {
+  printf 'java_bin=%s; ' "$(sq "$1")"
+  cat <<'EOF'
+if [ ! -x "$java_bin" ]; then
+  echo "ERROR: Java 17 executable not found: $java_bin" >&2
+  exit 1
+fi
+java_settings=$("$java_bin" -XshowSettings:properties -version 2>&1) || {
+  echo "ERROR: unable to run Java: $java_bin" >&2
+  exit 1
+}
+java_major=$(printf '%s\n' "$java_settings" | awk -F= '/^[[:space:]]*java.specification.version[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2; exit}')
+if ! [ "$java_major" -ge 17 ] 2>/dev/null; then
+  echo "ERROR: Java 17+ required at $java_bin (found ${java_major:-unknown})" >&2
+  exit 1
+fi
+printf 'Java %s: %s\n' "$java_major" "$java_bin"
+EOF
+}
+
 remote_check_host() {
   local name="$1" host="$2" user="$3" port="$4"
   local command_list="" port_list="" path port_item
@@ -598,7 +629,14 @@ remote_check_host() {
     command_list+="if ! command -v docker >/dev/null 2>&1; then echo 'ERROR: docker command not found'; fail=1; elif ! $SUDO -n docker info >/dev/null 2>&1; then echo 'ERROR: docker daemon is unavailable'; fail=1; fi;"
   fi
   if [[ "$needs_java" -eq 1 ]]; then
-    command_list+="if ! command -v java >/dev/null 2>&1; then echo 'ERROR: java command not found'; fail=1; else java -version 2>&1 | head -n 1; fi;"
+    if [[ "$name" == "datamaster_app" ]]; then
+      command_list+="$(java17_check_command "${VARS[datamaster_java_bin]}")"$'\n'
+    else
+      command_list+="if ! command -v java >/dev/null 2>&1; then echo 'ERROR: java command not found'; fail=1; else java -version 2>&1 | head -n 1; fi;"
+    fi
+  fi
+  if [[ "$name" == "postgresql" ]]; then
+    command_list+="$(java17_check_command "${VARS[database_init_java_bin]}")"$'\n'
   fi
   if [[ "$needs_systemctl" -eq 1 ]]; then
     command_list+="if ! command -v systemctl >/dev/null 2>&1; then echo 'ERROR: systemctl command not found'; fail=1; fi;"
@@ -763,6 +801,7 @@ deploy_postgresql() {
   local name="$1" host="$2" user="$3" port="$4" image_tar
   echo
   echo "Deploying postgresql_servers to $(target_of "$host" "$user")..."
+  remote_exec "$host" "$user" "$port" "$(java17_check_command "${VARS[database_init_java_bin]}")"
   remote_exec "$host" "$user" "$port" "$SUDO mkdir -p $(sq "${VARS[postgresql_data_dir]}") $(sq "${VARS[postgresql_conf_dir]}") $(sq "${VARS[postgresql_log_dir]}")"
   image_tar="$(resolve_local_path "${VARS[postgresql_image_tar_src]}")"
   load_docker_image_if_present "$host" "$user" "$port" "$image_tar" "${VARS[postgresql_image_tar]}"
@@ -784,7 +823,7 @@ deploy_database_init() {
   install_remote_file "$host" "$user" "$port" "$app_sql" "$sql_dir/datamaster.sql"
   install_remote_file "$host" "$user" "$port" "$ds_sql" "$sql_dir/dolphinscheduler.sql"
   remote_exec "$host" "$user" "$port" "until $SUDO docker exec datamaster-postgresql pg_isready -U $(sq "${VARS[postgresql_admin_user]}") -d $(sq "${VARS[postgresql_admin_database]}"); do sleep 2; done"
-  remote_exec "$host" "$user" "$port" "java -jar $(sq "$package_dir/datamaster-db-init.jar") --host=${VARS[postgresql_ip]} --port=${VARS[postgresql_port]} --admin-db=${VARS[postgresql_admin_database]} --admin-user=${VARS[postgresql_admin_user]} --admin-password=${VARS[postgresql_admin_password]} --app-db=${VARS[postgresql_database]} --ds-db=${VARS[dolphinscheduler_database]} --app-user=${VARS[postgresql_user]} --app-password=${VARS[postgresql_password]} --app-sql=$(sq "$sql_dir/datamaster.sql") --ds-sql=$(sq "$sql_dir/dolphinscheduler.sql")"
+  remote_exec "$host" "$user" "$port" "$(sq "${VARS[database_init_java_bin]}") -jar $(sq "$package_dir/datamaster-db-init.jar") --host=${VARS[postgresql_ip]} --port=${VARS[postgresql_port]} --admin-db=${VARS[postgresql_admin_database]} --admin-user=${VARS[postgresql_admin_user]} --admin-password=${VARS[postgresql_admin_password]} --app-db=${VARS[postgresql_database]} --ds-db=${VARS[dolphinscheduler_database]} --app-user=${VARS[postgresql_user]} --app-password=${VARS[postgresql_password]} --app-sql=$(sq "$sql_dir/datamaster.sql") --ds-sql=$(sq "$sql_dir/dolphinscheduler.sql")"
   if [[ -n "${VARS[postgresql_app_upgrade_sql_src]:-}" ]]; then
     IFS=',' read -r -a app_upgrade_sources <<< "${VARS[postgresql_app_upgrade_sql_src]}"
     upgrade_index=0
@@ -925,6 +964,7 @@ deploy_app() {
   local name="$1" host="$2" user="$3" port="$4" app unit jar
   echo
   echo "Deploying datamaster_app_servers to $(target_of "$host" "$user") with java -jar..."
+  remote_exec "$host" "$user" "$port" "$SUDO bash -c $(sq "$(java17_check_command "${VARS[datamaster_java_bin]}")")"
   remote_exec "$host" "$user" "$port" "$SUDO mkdir -p $(sq "${VARS[app_conf_dir]}") $(sq "${VARS[app_log_dir]}") $(sq "${VARS[app_upload_dir]}")"
   jar="$(resolve_local_path "${VARS[datamaster_server_jar_src]}")"
   install_remote_file "$host" "$user" "$port" "$jar" "${VARS[app_jar_path]}" "0755"

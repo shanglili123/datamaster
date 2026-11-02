@@ -90,6 +90,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     @Autowired
     private DataSourceFactory DataSourceFactory;
     @Resource
+    @org.springframework.context.annotation.Lazy
     private IStandardsModelApiService standardsModelApiService;
     @Resource
     private IAssetsDatasourceSpaceRelService assetsDatasourceSpaceRelService;
@@ -98,6 +99,7 @@ public class AssetsDatasourceServiceImpl extends ServiceImpl<AssetsDatasourceMap
     @Resource
     private ISpaceApi taxonomySpaceApi;
     @Resource
+    @org.springframework.context.annotation.Lazy
     private CollectorEtlTaskService collectorEtlTaskService;
     @Autowired
     private IRedisService redisService;

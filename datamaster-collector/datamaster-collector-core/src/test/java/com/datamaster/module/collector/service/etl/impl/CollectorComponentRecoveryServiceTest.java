@@ -54,6 +54,12 @@ public class CollectorComponentRecoveryServiceTest {
             CollectorEtlTaskExtDO ext = new CollectorEtlTaskExtDO(); ext.setEtlTaskCode("900"); ext.setEtlTaskVersion(1); return ext;
         }));
     }
+    @Test public void disabledStartupRecoveryDoesNotScanOrSchedule() throws Exception {
+        inject("startupRecoveryEnabled", false);
+        service.restorePendingEvents();
+        assertEquals(0, scheduled);
+        assertEquals(0, inserted);
+    }
     @Test public void diagnosisIsScheduledOnlyAfterCommit() {
         org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
         try {
