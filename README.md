@@ -601,7 +601,7 @@ flowchart TD
 
 #### 5.11.1 Agent 调度与 DB-GPT 分工
 
-平台自主调度使用 **LangChain4j**（当前保留 0.35.0，本轮 Java 17 迁移不同时升级 SDK），由配置的模型通过 Tool Calling 自主选择和串联 DataMaster 能力。DB-GPT 只是数据能力适配器，继续负责数据问答、查询分析和报告生成，不承担平台工具编排。
+平台自主调度使用 **LangChain4j**（当前源配置升级至 1.23.0，需重新编译与回归），由配置的模型通过 Tool Calling 自主选择和串联 DataMaster 能力。模型监听与可选分级路由复用现有统一请求网关，部署说明见 `docs/LangChain4j框架监控与路由增强.md`。DB-GPT 只是数据能力适配器，继续负责数据问答、查询分析和报告生成，不承担平台工具编排。
 
 Tool 使用双层注解：`dev.langchain4j.agent.tool.Tool` 标注 `execute` 方法，提供唯一的框架层名称和描述；平台自定义 `@AgentTool` 标注类，只提供风险、确认、权限与审计治理元数据。缺少框架名称会在启动扫描时直接失败。
 

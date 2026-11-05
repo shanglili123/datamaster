@@ -36,6 +36,11 @@ public final class DecisionModels {
         private String effectMessage = "尚未复查业务效果；执行成功不代表目标改善";
         private CalculationContext calculationContext;
         private Comparison comparison;
+        /** Live, bounded execution projection; never accepted from a model or mutation request. */
+        private Map<String, Object> executionDetails;
+        private boolean resumeAllowed;
+        private String resumeToken;
+        private String resumeMessage;
     }
 
     @Data
@@ -105,6 +110,20 @@ public final class DecisionModels {
         private String candidateId;
         private String previewDigest;
         private Integer revision;
+    }
+
+    @Data
+    public static class AmendmentRequest extends Request {
+        private String type;
+        private String targetId;
+        private String objectKey;
+        private String inputParams;
+    }
+
+    @Data
+    public static class ResumeRequest extends Request {
+        private String runId;
+        private String resumeToken;
     }
 
     @Data

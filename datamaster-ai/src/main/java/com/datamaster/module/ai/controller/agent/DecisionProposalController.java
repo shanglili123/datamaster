@@ -27,6 +27,18 @@ public class DecisionProposalController {
         return CommonResult.success(proposals.calculate(request));
     }
 
+    @PostMapping("/amend")
+    @PreAuthorize("@ss.hasPermi('ai:ask-data:query') and @ss.hasPermi('ont:action:edit')")
+    public CommonResult<Proposal> amend(@RequestBody com.datamaster.module.ai.agent.decision.DecisionModels.AmendmentRequest request) {
+        return CommonResult.success(proposals.amend(request));
+    }
+
+    @PostMapping("/resume")
+    @PreAuthorize("@ss.hasPermi('ai:ask-data:query') and @ss.hasPermi('ont:action:edit')")
+    public CommonResult<Proposal> resume(@RequestBody com.datamaster.module.ai.agent.decision.DecisionModels.ResumeRequest request) {
+        return CommonResult.success(proposals.resume(request));
+    }
+
     @PostMapping("/prepare")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query') and @ss.hasPermi('ont:action:edit')")
     public CommonResult<Proposal> prepare(@RequestBody Request request) {

@@ -20,6 +20,8 @@
         <spring-framework.version>5.3.33</spring-framework.version>
         <spring-security.version>5.7.12</spring-security.version>
         <bouncycastle.version>1.83</bouncycastle.version>
+        <langchain4j.version>1.23.0</langchain4j.version>
+        <jackson.version>2.22.4</jackson.version>
         <druid.version>1.2.23</druid.version>
         <bitwalker.version>1.21</bitwalker.version>
         <swagger.version>3.0.0</swagger.version>
@@ -52,6 +54,14 @@
     <!-- 依赖声明 -->
     <dependencyManagement>
         <dependencies>
+            <!-- 新版模型 SDK 使用的 Jackson 与平台保持同一版本，避免 Boot BOM 降级。 -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- SpringFramework的依赖配置-->
             <dependency>
                 <groupId>org.springframework</groupId>

@@ -22,4 +22,6 @@ public class ActionWorkflowRunReqVO {
     private String idempotencyKey;
     @Schema(description = "是否异步提交；true 时由 Workflow Worker 后台运行")
     private Boolean async;
+    @Schema(description = "受控审批续跑令牌；指定时仅推进同一批已执行成功的审批节点，不重试失败步骤")
+    private String approvalResumeToken;
 }

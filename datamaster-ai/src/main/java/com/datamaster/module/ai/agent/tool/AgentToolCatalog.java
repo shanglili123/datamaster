@@ -3,10 +3,8 @@ package com.datamaster.module.ai.agent.tool;
 import com.alibaba.fastjson2.JSON;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolParameters;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
-import dev.langchain4j.service.tool.DefaultToolExecutor;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -82,7 +80,7 @@ public class AgentToolCatalog {
         for (Descriptor descriptor : descriptors.values()) {
             if (allowedNames != null && !allowedNames.contains(descriptor.specification.name())) continue;
             final dev.langchain4j.service.tool.ToolExecutor delegate =
-                    new DefaultToolExecutor(descriptor.bean, descriptor.execute);
+                    AgentToolExecutors.create(descriptor.bean, descriptor.execute);
             result.put(descriptor.specification, (request, memoryId) -> {
                 String value;
                 try {
@@ -119,7 +117,7 @@ public class AgentToolCatalog {
             item.put("risk", definition == null ? AgentToolRisk.READ_ONLY.name() : definition.risk().name());
             item.put("requiresConfirmation", definition != null
                     && definition.risk() != AgentToolRisk.READ_ONLY && definition.requiresConfirmation());
-            item.put("inputSchema", parameters(descriptor.specification.parameters()));
+            item.put("inputSchema", parameters(descriptor.specification));
             result.add(item);
         }
         return result;
@@ -144,7 +142,7 @@ public class AgentToolCatalog {
                 .build();
         com.datamaster.module.ai.agent.runtime.AgentToolContextHolder.set(context);
         try {
-            String value = new DefaultToolExecutor(descriptor.bean, descriptor.execute).execute(request, null);
+            String value = AgentToolExecutors.create(descriptor.bean, descriptor.execute).execute(request, null);
             AgentToolResult recorded = com.datamaster.module.ai.agent.runtime.AgentToolContextHolder.lastResult();
             if (recorded != null && recorded.getStatus() != null
                     && !AgentToolResult.SUCCEEDED.equals(recorded.getStatus())
@@ -154,6 +152,12 @@ public class AgentToolCatalog {
             result.setToolName(name);
             if (result.getOperationId() == null && context != null) result.setOperationId(context.getOperationId());
             return result;
+        } catch (com.datamaster.module.ai.agent.runtime.AgentToolFlowHaltException ex) {
+            AgentToolResult halted = ex.getResult();
+            if (halted == null) return AgentToolResult.failure("Tool 流程已停止");
+            halted.setToolName(name);
+            if (halted.getOperationId() == null && context != null) halted.setOperationId(context.getOperationId());
+            return halted;
         } catch (Exception ex) {
             return AgentToolResult.of(AgentToolResult.FAILED, null,
                     ex.getMessage() == null ? "Tool 参数或执行失败" : ex.getMessage(),
@@ -163,13 +167,9 @@ public class AgentToolCatalog {
         }
     }
 
-    private Map<String, Object> parameters(ToolParameters parameters) {
-        if (parameters == null) return Collections.singletonMap("type", "object");
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("type", parameters.type());
-        schema.put("properties", parameters.properties());
-        if (parameters.required() != null && !parameters.required().isEmpty()) schema.put("required", parameters.required());
-        return schema;
+    private Map<String, Object> parameters(ToolSpecification specification) {
+        if (specification.parameters() == null) return Collections.singletonMap("type", "object");
+        return JSON.parseObject(specification.toJson()).getJSONObject("parameters");
     }
 
     private Method findExecuteMethod(Class<?> type) {

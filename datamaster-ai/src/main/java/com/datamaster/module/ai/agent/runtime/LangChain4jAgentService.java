@@ -7,7 +7,6 @@ import com.datamaster.module.ai.agent.tool.AgentToolContext;
 import com.datamaster.module.ai.agent.tool.AgentToolCatalog;
 import com.datamaster.module.ai.agent.tool.AgentToolResult;
 import com.datamaster.module.ai.agent.tool.AgentToolRequest;
-import com.datamaster.module.ai.config.AiSkillModelProperties;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiAskMessageRespVO;
 import com.datamaster.module.ai.controller.admin.skill.vo.AiAskMessageWindowRespVO;
 import com.datamaster.module.ai.controller.agent.tool.GenerateActionsTool;
@@ -22,7 +21,6 @@ import com.datamaster.module.ai.controller.agent.tool.CreateActionTool;
 import com.datamaster.module.ai.dal.dataobject.agent.AiAgentOperationDO;
 import com.datamaster.module.ai.service.agent.IAiAgentOperationService;
 import com.datamaster.module.ai.service.skill.IAiAskSessionService;
-import com.datamaster.common.utils.AesEncryptUtil;
 import com.datamaster.common.api.space.ISpaceApi;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.exception.ServiceException;
@@ -31,15 +29,14 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.ToolExecutionErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.Resource;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -94,11 +91,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
     private AgentToolCatalog toolCatalog;
 
     @Resource
-    private AiSkillModelProperties modelProperties;
-    @Resource
-    private com.datamaster.module.ai.service.gateway.ActiveModelResolver activeModelResolver;
-    @Resource
-    private com.datamaster.module.ai.service.gateway.AiInvocationGateway invocationGateway;
+    private com.datamaster.module.ai.service.gateway.GovernedChatModelFactory modelFactory;
 
     @Resource
     private IAiAgentOperationService operationService;
@@ -160,7 +153,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
         if (metricDraft != null) return metricDraft;
         // Data Agent 仅建设平台资源和指标草稿；问数与指标分析在独立问数入口运行。
         final java.util.Set<String> routedTools = toolCatalog.managementToolNames();
-        ChatLanguageModel model;
+        ChatModel model;
         try (com.datamaster.module.ai.service.gateway.AiInvocationContext.Scope ignored =
                      com.datamaster.module.ai.service.gateway.AiInvocationContext.scope(
                              new com.datamaster.module.ai.service.gateway.AiInvocationGateway.Context(
@@ -380,11 +373,12 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
         try {
             executionStage = "build_assistant";
             AutonomousAssistant assistant = AiServices.builder(AutonomousAssistant.class)
-                    .chatLanguageModel(model)
+                    .chatModel(model)
                     .chatMemory(memory)
                     // AiServices 负责模型 Tool Calling、参数转换和调度；Catalog 只做
                     // Spring AOP 代理到框架 ToolExecutor 的兼容适配，不自行循环调度。
                     .tools(toolCatalog.frameworkTools(routedTools))
+                    .toolExecutionErrorHandler(ToolExecutionErrorHandler.failInvocation())
                     .build();
             executionStage = "model_chat";
             String text;
@@ -400,9 +394,10 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
                         .build();
                 retryMemory.add(SystemMessage.from(SYSTEM_PROMPT));
                 AutonomousAssistant retryAssistant = AiServices.builder(AutonomousAssistant.class)
-                        .chatLanguageModel(model)
+                        .chatModel(model)
                         .chatMemory(retryMemory)
                         .tools(toolCatalog.frameworkTools(routedTools))
+                        .toolExecutionErrorHandler(ToolExecutionErrorHandler.failInvocation())
                         .build();
                 text = retryAssistant.chat(prompt);
             }
@@ -1534,61 +1529,8 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
         return null;
     }
 
-    private ChatLanguageModel createModel() {
-        AiSkillModelProperties modelProperties = activeModelResolver.resolve(this.modelProperties);
-        if (!Boolean.TRUE.equals(modelProperties.getEnabled()) || StringUtils.isBlank(modelProperties.getApiUrl())) {
-            return null;
-        }
-        String apiKey = modelProperties.getApiKey();
-        if (StringUtils.isNotBlank(apiKey) && looksLikeEncryptedApiKey(apiKey)) {
-            try {
-                String decrypted = AesEncryptUtil.desEncrypt(apiKey);
-                if (StringUtils.isNotBlank(decrypted)) apiKey = decrypted.trim();
-            } catch (Exception ignored) {
-                // 未加密的 API Key 直接使用。
-            }
-        }
-        Integer timeout = modelProperties.getTimeout() == null ? 180000 : modelProperties.getTimeout();
-        Integer retries = modelProperties.getRetryCount() == null ? 2 : modelProperties.getRetryCount();
-        return new com.datamaster.module.ai.service.gateway.GovernedChatLanguageModel(OpenAiChatModel.builder()
-                .baseUrl(normalizeBaseUrl(modelProperties.getApiUrl()))
-                .apiKey(StringUtils.isBlank(apiKey) ? "none" : apiKey)
-                .modelName(StringUtils.isBlank(modelProperties.getModel()) ? "qwen-plus" : modelProperties.getModel())
-                .temperature(modelProperties.getTemperature() == null ? 0.2D : modelProperties.getTemperature())
-                .maxTokens(modelProperties.getMaxTokens() == null ? 8192 : modelProperties.getMaxTokens())
-                .timeout(Duration.ofMillis(Math.max(1000, timeout)))
-                .maxRetries(Math.max(0, retries))
-                .parallelToolCalls(false)
-                .strictTools(false)
-                .build(), invocationGateway, "DATA_AGENT", modelProperties.getProvider(),
-                StringUtils.isBlank(modelProperties.getModel()) ? "qwen-plus" : modelProperties.getModel());
-    }
-
-    /**
-     * 只有看起来像 DataMaster AES 密文时才尝试解密。
-     * 明文 API Key、截断密文或旧配置中的普通字符串不能交给 AES/CBC/NoPadding，
-     * 否则 AesEncryptUtil 会打印 IllegalBlockSizeException，干扰 Agent 后台执行日志。
-     */
-    private boolean looksLikeEncryptedApiKey(String value) {
-        String text = value == null ? "" : value.trim();
-        if (text.length() == 0 || text.length() % 4 != 0 || !text.matches("^[A-Za-z0-9+/=]+$")) {
-            return false;
-        }
-        try {
-            byte[] decoded = java.util.Base64.getDecoder().decode(text);
-            return decoded.length > 0 && decoded.length % 16 == 0;
-        } catch (IllegalArgumentException ex) {
-            return false;
-        }
-    }
-
-    private String normalizeBaseUrl(String apiUrl) {
-        String url = apiUrl.trim();
-        while (url.endsWith("/")) url = url.substring(0, url.length() - 1);
-        if (url.endsWith("/chat/completions")) {
-            url = url.substring(0, url.length() - "/chat/completions".length());
-        }
-        return url;
+    private ChatModel createModel() {
+        return modelFactory.create("DATA_AGENT");
     }
 
     /**

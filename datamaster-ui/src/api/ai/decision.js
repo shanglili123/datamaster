@@ -18,6 +18,14 @@ export function confirmDecision({ decisionId, revision, candidateId, previewDige
   return request({ url: '/ai/decision/confirm', method: 'post', data: { decisionId, revision, candidateId, previewDigest } })
 }
 
+export function amendDecision({ decisionId, revision, candidateId, type, targetId, objectKey, inputParams }) {
+  return request({ url: '/ai/decision/amend', method: 'post', data: { decisionId, revision, candidateId, type, targetId, objectKey, inputParams } })
+}
+
+export function resumeDecision({ decisionId, revision, runId, resumeToken }) {
+  return request({ url: '/ai/decision/resume', method: 'post', data: { decisionId, revision, runId, resumeToken } })
+}
+
 export function getDecisionStatus(id) {
   return request({ url: decisionUrl(id) + '/status', method: 'get' })
 }

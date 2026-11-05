@@ -12,8 +12,9 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.*;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.ToolExecutionErrorHandler;
 import dev.langchain4j.service.tool.ToolExecutor;
 import org.springframework.stereotype.Service;
 
@@ -73,7 +74,7 @@ public class AskMetricAgentService {
         ChatMemory memory = null;
         AgentToolContextHolder.set(context);
         try {
-            ChatLanguageModel model = createModel();
+            ChatModel model = createModel();
             if (model == null) throw new IllegalStateException("Model not configured");
             Object sharedBudget = context.getAttributes().get("decisionBudget");
             if (sharedBudget instanceof com.datamaster.module.ai.agent.decision.DecisionBudget)
@@ -88,8 +89,9 @@ public class AskMetricAgentService {
             Map<ToolSpecification, ToolExecutor> tools = boundedTools(cancelled, progress, operation.getId());
             boolean readOnly = Boolean.TRUE.equals(context.getAttributes().get("decisionReadOnly"));
             if (tools.size() != TOOLS.size() - (readOnly ? 1 : 0)) throw new IllegalStateException("Metric tools not available");
-            MetricAssistant assistant = AiServices.builder(MetricAssistant.class).chatLanguageModel(model)
-                    .chatMemory(memory).tools(tools).build();
+            MetricAssistant assistant = AiServices.builder(MetricAssistant.class).chatModel(model)
+                    .chatMemory(memory).tools(tools)
+                    .toolExecutionErrorHandler(ToolExecutionErrorHandler.failInvocation()).build();
             checkCancelled(cancelled);
             String text = assistant.chat("可信当前时间(UTC)=" + Instant.now() + "；业务时区未配置，不能据此猜相对日期。"
                     + "当前ontologyId=" + request.getOntologyId() + "；回答模式=" + request.getResponseMode()
@@ -162,8 +164,7 @@ public class AskMetricAgentService {
             wrapped.put(entry.getKey(), (request, memoryId) -> {
                 checkCancelled(cancelled);
                 if (budget != null) budget.use("正在执行只读指标分析");
-                // 0.35.0 AiServices has no public max-tool-round builder method.
-                // AiServices owns the loop; this execution boundary caps tool invocations, not rounds.
+                // AiServices owns the loop; this boundary caps individual executions, not model rounds.
                 if (calls.incrementAndGet() > 12) {
                     AgentToolResult limit = AgentToolResult.of(AgentToolResult.NEED_INPUT, null, "本轮工具调用已达上限，请缩小问题范围", operationId);
                     limit.setToolName(name); AgentToolContextHolder.record(limit);
@@ -282,11 +283,11 @@ public class AskMetricAgentService {
         return "正在执行指标分析";
     }
 
-    public ChatLanguageModel createModel() {
+    public ChatModel createModel() {
         return createModel("ASK_METRIC");
     }
 
-    public ChatLanguageModel createModel(String scene) {
+    public ChatModel createModel(String scene) {
         return modelFactory.create(scene);
     }
 

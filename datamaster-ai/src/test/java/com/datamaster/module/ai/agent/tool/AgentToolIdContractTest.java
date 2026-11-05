@@ -55,7 +55,9 @@ public class AgentToolIdContractTest {
             for (Method method : type.getMethods()) {
                 if (method.getAnnotation(Tool.class) == null) continue;
                 ToolSpecification specification = ToolSpecifications.toolSpecificationFrom(method);
-                if (specification.parameters() != null) assertIdSchemas(specification.parameters().properties());
+                if (specification.parameters() != null) {
+                    assertIdSchemas(JSON.parseObject(specification.toJson()).getJSONObject("parameters").getJSONObject("properties"));
+                }
                 checked++;
             }
         }

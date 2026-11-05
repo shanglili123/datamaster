@@ -47,6 +47,49 @@ public class DecisionProposalService {
     @Resource private ActionExecutionMapper executionMapper;
     @Resource private ActionWorkflowRunMapper runMapper;
     @Resource private DecisionCalculationService calculations;
+    @Resource private ActionWorkflowStepMapper workflowStepMapper;
+
+    public Proposal amend(AmendmentRequest request) {
+        requirePermission(true);
+        Row row = checkedRequest(request, false); assertLive(row.proposal);
+        if (!Arrays.asList("PROPOSED", "PREVIEW_READY").contains(row.proposal.getStatus()) || dispatch(row.proposal.getId()) != null)
+            throw new ServiceException("只有未提交的候选提案可补充执行绑定");
+        Candidate selected = candidate(row.proposal, request.getCandidateId());
+        if (selected.isBaseline()) throw new ServiceException("不干预基线不能绑定执行动作");
+        Binding input = DecisionAmendment.binding(request);
+        Binding resolved = bindingResolver.resolve(input, row.ontologyId, row.spaceId, row.spaceCode);
+        Proposal next = DecisionAmendment.apply(row.proposal, request.getCandidateId(), resolved);
+        return shortTransaction().execute(tx -> {
+            Row current = checkedRequest(request, true); assertLive(current.proposal);
+            if (dispatch(next.getId()) != null || !Objects.equals(current.proposal.getStatus(), row.proposal.getStatus()))
+                throw new ServiceException("提案已提交或状态已变化，请刷新");
+            insert(current, next); return copy(next);
+        });
+    }
+
+    /** Explicit user continuation only; GET/status never advances business work. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public Proposal resume(ResumeRequest request) {
+        requirePermission(true);
+        Row row = checkedRequest(request, false);
+        Dispatch d = dispatch(row.proposal.getId());
+        if (d == null || !Objects.equals(d.revision, row.proposal.getRevision()) || !"WORKFLOW".equals(d.bindingType))
+            throw new ServiceException("当前提案没有可续跑的 Workflow");
+        ActionWorkflowRunDO run = checkedWorkflowRun(row, d);
+        if (run == null || !Objects.equals(String.valueOf(run.getId()), request.getRunId()))
+            throw new ServiceException("Workflow 运行与提案不一致，请刷新");
+        String token = approvalResumeToken(run);
+        if (StringUtils.isBlank(request.getResumeToken()) || !request.getResumeToken().equals(token))
+            throw new ServiceException("审批等待节点已变化，请刷新后重新确认");
+        Binding binding = row.proposal.getBinding();
+        if (binding == null || !"WORKFLOW".equals(binding.getType())
+                || !Objects.equals(binding.getTargetId(), String.valueOf(d.targetId)))
+            throw new ServiceException("Workflow 执行绑定不一致");
+        ActionWorkflowRunReqVO req = new ActionWorkflowRunReqVO();
+        req.setAsync(true); req.setExpectedVersion(binding.getVersion()); req.setApprovalResumeToken(token);
+        workflows.resume(run.getId(), req);
+        return refresh(row.proposal.getId());
+    }
 
     public Proposal create(AskUnifiedReqVO request, AgentToolContext context) {
         requirePermission(false);
@@ -74,9 +117,7 @@ public class DecisionProposalService {
     }
 
     public Proposal get(String id) {
-        requirePermission(false);
-        Row row = latest(id, false); authorize(row);
-        return overlay(row.proposal, dispatch(id));
+        return refresh(id);
     }
 
     public Proposal saveAnalysis(Proposal generated, AgentToolContext context) {
@@ -263,14 +304,24 @@ public class DecisionProposalService {
     private Proposal reconcile(Row row, Dispatch d) {
         if (d == null) return copy(row.proposal);
         if (!Objects.equals(d.revision, row.proposal.getRevision())) throw new ServiceException("执行绑定版本不一致，需人工对账");
-        Long executionId = d.executionId; Long runId = d.runId;
+        Map<String, Object> details = null;
+        String resumeToken = null;
+        String resumeMessage = null;
         // Lookup by stable server-owned key also recovers submit-committed/store-update-failed cases.
         if ("WORKFLOW".equals(d.bindingType)) {
-            ActionWorkflowRunDO run = runMapper.selectByWorkflowIdAndIdempotencyKey(d.targetId, d.idempotencyKey);
+            ActionWorkflowRunDO run = checkedWorkflowRun(row, d);
             if (run != null) {
-                if (!Objects.equals(run.getCreatorId(), row.ownerId)) throw new ServiceException("运行所有者不一致");
                 ActionWorkflowRunRespVO result = workflows.get(run.getId());
                 record(row.proposal, null, result.getId(), result.getStatus(), result.getErrorMessage());
+                details = DecisionExecutionDetails.workflow(result);
+                if ("WAITING_APPROVAL".equals(run.getStatus())) {
+                    try {
+                        resumeToken = approvalResumeToken(run);
+                        resumeMessage = "本次审批等待节点已执行成功，可明确确认继续后续步骤；不会重新执行已完成节点";
+                    } catch (ServiceException notReady) {
+                        resumeMessage = "审批节点尚未全部执行成功或关联待核对，请完成审批并刷新；失败/驳回不在此入口重试";
+                    }
+                }
             } else markUnknown(row.proposal, d);
         } else {
             ActionExecutionDO execution = executionMapper.selectByActionIdAndIdempotencyKey(d.targetId, d.idempotencyKey);
@@ -281,11 +332,33 @@ public class DecisionProposalService {
                         || !Objects.equals(execution.getSpaceCode(), row.spaceCode)) {
                     throw new ServiceException("执行上下文不一致，需人工对账");
                 }
-                executions.getExecutionById(execution.getId()); // Retain existing service permission/response semantics.
+                ExecutionRespVO result = executions.getExecutionById(execution.getId());
+                if (result != null) details = DecisionExecutionDetails.action(result);
                 record(row.proposal, execution.getId(), null, execution.getStatus(), execution.getErrorMessage());
             } else markUnknown(row.proposal, d);
         }
-        return overlay(row.proposal, dispatch(row.proposal.getId()));
+        Proposal result = overlay(row.proposal, dispatch(row.proposal.getId()));
+        result.setExecutionDetails(details); result.setResumeAllowed(resumeToken != null);
+        result.setResumeToken(resumeToken); result.setResumeMessage(resumeMessage);
+        return result;
+    }
+
+    private ActionWorkflowRunDO checkedWorkflowRun(Row row, Dispatch d) {
+        ActionWorkflowRunDO run = runMapper.selectByWorkflowIdAndIdempotencyKey(d.targetId, d.idempotencyKey);
+        if (run == null) return null;
+        if (!Objects.equals(run.getCreatorId(), row.ownerId)) throw new ServiceException("运行所有者不一致");
+        com.alibaba.fastjson2.JSONObject context;
+        try { context = JSON.parseObject(run.getOutputContext()); }
+        catch (RuntimeException invalid) { throw new ServiceException("运行上下文无法核对"); }
+        if (context == null || !Objects.equals(context.getLong("spaceId"), row.spaceId)
+                || !Objects.equals(context.getString("spaceCode"), row.spaceCode))
+            throw new ServiceException("Workflow 运行空间不一致，需人工对账");
+        return run;
+    }
+
+    private String approvalResumeToken(ActionWorkflowRunDO run) {
+        return com.datamaster.module.ontology.service.impl.WorkflowApprovalResumeGuard.token(
+                run, workflowStepMapper.selectByRunId(run.getId()), executionMapper::selectById);
     }
 
     private void markUnknown(Proposal proposal, Dispatch d) {

@@ -202,16 +202,35 @@ public class ActionWorkflowRuntimeServiceImpl implements IActionWorkflowRuntimeS
             throw new ServiceException("当前运行状态不能续跑：" + run.getStatus());
         }
         ActionWorkflowDO workflow = requirePublishedWorkflow(run.getWorkflowId());
+        if (reqVO != null && reqVO.getExpectedVersion() != null
+                && !reqVO.getExpectedVersion().equals(workflow.getVersion() == null ? 1 : workflow.getVersion()))
+            throw new ServiceException("Workflow 定义已变化，停止续跑，请人工核对");
+        boolean approvalOnly = reqVO != null && reqVO.getApprovalResumeToken() != null;
+        Integer approvalStepCount = null;
+        if (approvalOnly) {
+            List<ActionWorkflowStepDO> approvalSteps = stepMapper.selectByRunId(runId);
+            String token = WorkflowApprovalResumeGuard.token(run, approvalSteps, executionMapper::selectById);
+            approvalStepCount = approvalSteps.size();
+            if (!token.equals(reqVO.getApprovalResumeToken()))
+                throw new ServiceException("审批等待节点已变化，请刷新后重新确认续跑");
+        }
         validateWorkflowInput(workflow, run.getInputParams());
         boolean async = reqVO != null && Boolean.TRUE.equals(reqVO.getAsync());
-        int resumed = runMapper.update(null, new LambdaUpdateWrapper<ActionWorkflowRunDO>()
+        LambdaUpdateWrapper<ActionWorkflowRunDO> resumeUpdate = new LambdaUpdateWrapper<ActionWorkflowRunDO>()
                 .eq(ActionWorkflowRunDO::getId, runId)
-                .in(ActionWorkflowRunDO::getStatus, WAITING_APPROVAL, FAILED)
+                .in(ActionWorkflowRunDO::getStatus, approvalOnly ? Collections.singletonList(WAITING_APPROVAL)
+                        : Arrays.asList(WAITING_APPROVAL, FAILED))
                 .set(ActionWorkflowRunDO::getStatus, async ? QUEUED : RUNNING)
                 .set(ActionWorkflowRunDO::getErrorMessage, null)
                 .set(ActionWorkflowRunDO::getFinishedTime, null)
                 .set(ActionWorkflowRunDO::getCancelRequested, 0)
-                .set(ActionWorkflowRunDO::getUpdateTime, new Date()));
+                .set(ActionWorkflowRunDO::getUpdateTime, new Date());
+        if (approvalOnly) {
+            // Reject a delayed duplicate if the worker has already reached a later approval node (ABA).
+            resumeUpdate.apply("(SELECT COUNT(*) FROM ONT_ACTION_WORKFLOW_STEP s WHERE s.RUN_ID = {0}) = {1}",
+                    runId, approvalStepCount);
+        }
+        int resumed = runMapper.update(null, resumeUpdate);
         if (resumed == 0) {
             throw new ServiceException("Workflow 运行状态已变化，请刷新后重试：" + requireRun(runId).getStatus());
         }

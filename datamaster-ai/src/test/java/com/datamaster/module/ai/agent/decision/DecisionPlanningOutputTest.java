@@ -2,14 +2,13 @@ package com.datamaster.module.ai.agent.decision;
 
 import com.datamaster.module.ai.agent.runtime.DecisionAgentService;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.AiServices;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -17,7 +16,7 @@ public class DecisionPlanningOutputTest {
     @Test
     public void aiServiceReturnsTypedPlanningResultWithoutManualJsonExtraction() {
         DecisionAgentService.PlanningAssistant planner = AiServices.builder(DecisionAgentService.PlanningAssistant.class)
-                .chatLanguageModel(model("{\"candidates\":[{\"name\":\"调拨\",\"rationale\":\"补齐缺口\","
+                .chatModel(model("{\"candidates\":[{\"name\":\"调拨\",\"rationale\":\"补齐缺口\","
                         + "\"evidenceIds\":[\"E1\"],\"constraints\":[{\"name\":\"库存\",\"status\":\"UNKNOWN\"}],"
                         + "\"suggestedBinding\":{\"type\":\"ACTION\",\"targetId\":\"9007199254740993\",\"inputParams\":\"{}\"}}],\"missingInformation\":[]}"))
                 .build();
@@ -33,7 +32,7 @@ public class DecisionPlanningOutputTest {
     @Test
     public void missingInformationHasItsOwnTypedField() {
         DecisionAgentService.PlanningAssistant planner = AiServices.builder(DecisionAgentService.PlanningAssistant.class)
-                .chatLanguageModel(model("{\"candidates\":[],\"missingInformation\":[\"请提供交期\"]}"))
+                .chatModel(model("{\"candidates\":[],\"missingInformation\":[\"请提供交期\"]}"))
                 .build();
         assertEquals(Collections.singletonList("请提供交期"), planner.plan("测试").getMissingInformation());
     }
@@ -54,15 +53,15 @@ public class DecisionPlanningOutputTest {
     @Test(expected = RuntimeException.class)
     public void invalidOutputFailsRatherThanGuessingAnArraySubstring() {
         AiServices.builder(DecisionAgentService.PlanningAssistant.class)
-                .chatLanguageModel(model("not valid structured output"))
+                .chatModel(model("not valid structured output"))
                 .build().plan("测试");
     }
 
-    private ChatLanguageModel model(final String json) {
-        return new ChatLanguageModel() {
+    private ChatModel model(final String json) {
+        return new ChatModel() {
             @Override
-            public Response<AiMessage> generate(List<ChatMessage> messages) {
-                return Response.from(AiMessage.from(json));
+            public ChatResponse doChat(ChatRequest request) {
+                return ChatResponse.builder().aiMessage(AiMessage.from(json)).build();
             }
         };
     }

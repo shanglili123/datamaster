@@ -10,8 +10,15 @@ import javax.annotation.Resource;
 public class ActiveModelResolver {
     @Resource private AiModelProfileService profiles;
     public AiSkillModelProperties resolve(AiSkillModelProperties fallback) {
+        return resolve(fallback, null);
+    }
+
+    public AiSkillModelProperties resolve(AiSkillModelProperties fallback, Long profileId) {
         Long spaceId = AiInvocationGateway.snapshotContext().getSpaceId();
-        AiModelProfileService.Resolved selected = profiles.resolve(spaceId);
+        if (profileId != null && spaceId == null) {
+            throw new com.datamaster.common.exception.ServiceException("模型路由需要可信空间上下文");
+        }
+        AiModelProfileService.Resolved selected = profiles.resolve(spaceId, profileId);
         if (selected == null) return fallback;
         AiSkillModelProperties result = new AiSkillModelProperties();
         result.setEnabled(selected.getEnabled()); result.setApiUrl(selected.getApiUrl());

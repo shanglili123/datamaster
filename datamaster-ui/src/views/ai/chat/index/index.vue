@@ -64,7 +64,7 @@
         </div>
         <div v-if="form.mode === 'decision'" class="chat-option-group">
           <span class="chat-option-label">对象主键（可选）</span>
-          <a-input v-model:value="form.objectKey" :disabled="sending" allow-clear placeholder="可在此填写，也可在本次问题中补充" />
+          <a-input v-model:value="form.objectKey" :disabled="sending" allow-clear placeholder="请明确填写业务对象主键（不从问题自动提取）" />
           <span class="chat-option-hint">用于绑定具体业务对象，提交前以服务端预览为准；未选本体时请先选择本体。</span>
         </div>
         <div v-if="form.mode === 'report'" class="chat-option-group">

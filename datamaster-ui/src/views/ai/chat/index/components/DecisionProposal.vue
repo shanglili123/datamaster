@@ -7,7 +7,7 @@
     </header>
     <p><strong>目标：</strong>{{ proposal.goal || '尚未提供' }}</p>
     <p class="muted">默认只分析，预览确认后按已有审批执行。估计影响不代表实际改善，也不代表最优方案。</p>
-    <p>本体：{{ proposal.ontologyId || '未选择' }} · 对象主键：{{ proposal.objectKey || '未提供，请在当前请求或上下文中补充' }}</p>
+    <p>本体：{{ proposal.ontologyId || '未选择' }} · 对象主键：{{ proposal.objectKey || '未提供，请明确填写对象主键' }}</p>
     <a-alert v-if="!ontologyId" type="warning" show-icon message="请先选择指标本体；历史提案仍按服务端原本体校验，不会改绑到当前选择。" />
     <a-alert v-if="!canExecute" type="info" show-icon message="当前账号没有业务执行权限（ont:action:edit），可查看提案及刷新状态。" />
     <a-alert v-if="errorText" type="warning" show-icon :message="errorText" />
@@ -26,13 +26,13 @@
       <p v-if="!proposal.evidence?.length" class="muted">暂无可核验证据，不能据此声称效果已验证。</p>
     </details>
 
-    <DecisionCalculation :proposal="proposal" :context-key="contextKey" :disabled="disabled || Boolean(busy) || !fresh || locked" @updated="applyCalculation" />
+    <DecisionCalculation :proposal="proposal" :context-key="contextKey" :disabled="disabled || Boolean(busy) || !fresh || locked || draftDirty" @updated="applyCalculation" />
 
     <div class="proposal-section">
       <strong>候选方案（请选择后准备预览）</strong>
       <article v-for="candidate in proposal.candidates || []" :key="candidate.id" class="candidate-card" :class="{ selected: selectedId === candidate.id }">
         <label class="candidate-heading">
-          <input v-model="selectedId" type="radio" :value="candidate.id" :disabled="busy || locked || candidate.baseline || !fresh" />
+          <input v-model="selectedId" type="radio" :value="candidate.id" :disabled="busy || disabled || locked || candidate.baseline || !fresh || draftDirty" />
           <strong>{{ candidate.name || candidate.id }}</strong>
           <a-tag v-if="candidate.baseline">不干预基线 · 不可执行</a-tag>
         </label>
@@ -61,6 +61,25 @@
       <p v-if="!proposal.candidates?.length">服务端尚未生成候选方案，请补充目标、本体或对象信息。</p>
     </div>
 
+    <details v-if="(selected && !selected.baseline && !locked) || draftDirty" class="proposal-section">
+      <summary>补充所选候选的绑定与参数（{{ draft.candidateId || '未选择' }}）</summary>
+      <p class="muted">仅未提交提案可补充。保存会清空已有测算和旧预览，之后需重新测算、准备预览并确认；不会直接执行。</p>
+      <a-alert v-if="draftDirty" type="info" show-icon message="有未保存补充，已暂停切换候选、测算和预览提交。后台刷新不会覆盖草稿；放弃草稿后才能切换。" />
+      <a-alert v-if="draft.revision !== proposal.revision" type="warning" show-icon message="提案版本已变化，草稿不会自动覆盖新版本。请放弃草稿并核对最新内容后重新补充。" />
+      <fieldset class="amend-fields" :disabled="!canEditBinding || Boolean(busy)">
+        <label>绑定类型
+          <select v-model="draft.type"><option value="ACTION">ACTION · 业务动作</option><option value="WORKFLOW">WORKFLOW · 工作流</option></select>
+        </label>
+        <label>目标 ID（必填，字符串）<input v-model="draft.targetId" type="text" placeholder="填写动作或工作流 ID" /></label>
+        <label>对象主键（更新/删除必填，其他按定义校验）<input v-model="draft.objectKey" type="text" placeholder="明确填写业务对象主键；不从问题自动提取" /></label>
+        <label>输入参数（JSON 对象）<textarea v-model="draft.inputParams" rows="6" spellcheck="false" placeholder="{}" /></label>
+      </fieldset>
+      <div class="proposal-actions">
+        <a-button v-hasPermi="['ont:action:edit']" :loading="busy === 'amend'" :disabled="!canAmend" @click="amend">确认保存补充</a-button>
+        <a-button :disabled="Boolean(busy) || disabled" @click="discardDraft">放弃草稿并载入当前候选建议</a-button>
+      </div>
+    </details>
+
     <section v-if="proposal.previewDigest && proposal.binding" class="proposal-section preview-section">
       <strong>服务端执行预览</strong>
       <p>已准备候选：{{ proposal.selectedCandidateId || '未知' }} · 绑定：{{ proposal.binding.name || proposal.binding.targetId }}（{{ proposal.binding.type }}）</p>
@@ -78,6 +97,9 @@
       <a-alert v-if="reconciliationRequired" type="warning" show-icon message="RECONCILIATION_REQUIRED：执行结果待核对；不要重复提交，请刷新并联系业务人员核对。" />
       <p v-if="proposal.status === 'SUBMITTED' || proposal.executionStatus === 'SUBMITTED'" class="warning-text">SUBMITTED 仅表示已提交，不代表执行成功或指标改善。</p>
       <p v-if="proposal.executionId || proposal.runId">执行 ID：{{ proposal.executionId || '无' }} · 运行 ID：{{ proposal.runId || '无' }}</p>
+      <p v-if="proposal.resumeMessage">续跑说明：{{ proposal.resumeMessage }}</p>
+      <p v-if="resumeAvailable" class="muted">续跑仅推进服务端确认已执行（EXECUTED）的审批节点，不重试 FAILED 节点，不代表执行成功或实际改善。</p>
+      <details v-if="proposal.executionDetails"><summary>只读执行详情（服务端有限脱敏结果）</summary><pre>{{ formatValue(proposal.executionDetails) }}</pre></details>
       <p>效果复查：{{ reviewUnknown ? 'UNKNOWN' : (proposal.effectStatus || 'UNKNOWN') }} · {{ reviewNotice || proposal.effectMessage || '尚未进行真实只读复查，实际效果未知。' }}</p>
       <p class="muted">刷新、关闭页面或 SSE 断连不会撤销已提交的业务执行。效果复查只查询真实数据，不自动声称改善。</p>
     </section>
@@ -85,6 +107,7 @@
       <a-button :loading="busy === 'load'" :disabled="Boolean(busy) || disabled" @click="loadLatest">重新加载提案</a-button>
       <a-button v-hasPermi="['ont:action:edit']" :loading="busy === 'prepare'" :disabled="!canPrepare" @click="prepare">准备执行预览</a-button>
       <a-button v-hasPermi="['ont:action:edit']" type="primary" :loading="busy === 'confirm'" :disabled="!canConfirm" @click="confirm">明确确认并提交</a-button>
+      <a-button v-if="resumeAvailable" v-hasPermi="['ont:action:edit']" :loading="busy === 'resume'" :disabled="!canResume" @click="resume">明确确认续跑工作流</a-button>
       <a-button :loading="busy === 'status'" :disabled="Boolean(busy) || disabled || !decisionId" @click="refreshStatus">刷新运行状态</a-button>
       <a-button :loading="busy === 'review'" :disabled="Boolean(busy) || disabled || !decisionId" @click="review">只读复查指标</a-button>
     </div>
@@ -96,7 +119,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { checkPermi } from '@/utils/permission'
 import DecisionCalculation from './DecisionCalculation.vue'
-import { confirmDecision, getDecision, getDecisionStatus, prepareDecision, reviewDecision } from '@/api/ai/decision'
+import { amendDecision, confirmDecision, getDecision, getDecisionStatus, prepareDecision, resumeDecision, reviewDecision } from '@/api/ai/decision'
 
 const props = defineProps({
   decisionId: { type: String, required: true },
@@ -113,6 +136,9 @@ const fresh = ref(false)
 const errorText = ref('')
 const reviewNotice = ref('')
 const reviewUnknown = ref(false)
+const draft = ref({ candidateId: '', revision: null, type: 'ACTION', targetId: '', objectKey: '', inputParams: '{}' })
+const draftInitial = ref('')
+const draftDirty = computed(() => Boolean(draftInitial.value) && JSON.stringify(draft.value) !== draftInitial.value)
 let generation = 0
 let disposed = false
 const canExecute = computed(() => checkPermi(['ont:action:edit']))
@@ -121,10 +147,97 @@ const reconciliationRequired = computed(() => [proposal.value.status, proposal.v
 const locked = computed(() => Boolean(proposal.value.executionId || proposal.value.runId || proposal.value.executionStatus ||
   !['PROPOSED', 'PREVIEW_READY'].includes(proposal.value.status)))
 const selected = computed(() => (proposal.value.candidates || []).find(item => item.id === selectedId.value))
-const canPrepare = computed(() => !busy.value && !props.disabled && fresh.value && canExecute.value && Boolean(props.ontologyId) &&
+const canEditBinding = computed(() => !props.disabled && fresh.value && canExecute.value && Boolean(props.ontologyId) &&
+  !locked.value && Boolean(selected.value) && !selected.value.baseline && draft.value.candidateId === selectedId.value && draft.value.revision === proposal.value.revision)
+const canAmend = computed(() => canEditBinding.value && !busy.value)
+const resumeAvailable = computed(() => isResumable(proposal.value))
+const canResume = computed(() => resumeAvailable.value && fresh.value && canExecute.value && !props.disabled && !busy.value && !draftDirty.value)
+const canPrepare = computed(() => !busy.value && !draftDirty.value && !props.disabled && fresh.value && canExecute.value && Boolean(props.ontologyId) &&
   !locked.value && Boolean(selected.value) && !selected.value.baseline && !hasFailedConstraint(selected.value))
 const canConfirm = computed(() => canPrepare.value && proposal.value.status === 'PREVIEW_READY' && Boolean(proposal.value.binding && proposal.value.previewDigest) && proposal.value.selectedCandidateId === selectedId.value)
 
+function discardDraft() {
+  const candidate = selected.value
+  // 只允许同一候选复用已确认绑定；绝不把其他候选的 proposal.binding 带入草稿。
+  const binding = candidate?.suggestedBinding || (candidate && proposal.value.selectedCandidateId === candidate.id ? proposal.value.binding : null) || {}
+  draft.value = {
+    candidateId: candidate?.id || '',
+    revision: proposal.value.revision,
+    type: binding.type === 'WORKFLOW' ? 'WORKFLOW' : 'ACTION',
+    targetId: binding.targetId == null ? '' : String(binding.targetId),
+    objectKey: String(binding.objectKey ?? proposal.value.objectKey ?? ''),
+    inputParams: binding.inputParams == null ? '{}' : formatValue(binding.inputParams)
+  }
+  draftInitial.value = JSON.stringify(draft.value)
+}
+function isResumable(data) {
+  return data?.resumeAllowed === true && data.binding?.type === 'WORKFLOW' &&
+    typeof data.runId === 'string' && Boolean(data.runId.trim()) &&
+    typeof data.resumeToken === 'string' && Boolean(data.resumeToken.trim()) &&
+    ![data.status, data.executionStatus].includes('FAILED')
+}
+function resumeAllowedNow() {
+  return fresh.value && !props.disabled && canExecute.value && !draftDirty.value && isResumable(proposal.value)
+}
+async function amend() {
+  if (!canAmend.value || isExpired()) return
+  const token = context()
+  const draftSnapshot = JSON.stringify(draft.value)
+  busy.value = 'amend'
+  try {
+    const params = JSON.parse(draft.value.inputParams)
+    if (!params || typeof params !== 'object' || Array.isArray(params)) throw new Error('输入参数必须是 JSON 对象，不能为数组、null 或其他类型。')
+    const targetId = draft.value.targetId.trim()
+    const objectKey = draft.value.objectKey.trim()
+    if (!['ACTION', 'WORKFLOW'].includes(draft.value.type) || !targetId) throw new Error('请选择绑定类型并明确填写目标 ID；更新/删除类动作还必须填写对象主键。')
+    const request = { decisionId: token.id, revision: draft.value.revision, candidateId: draft.value.candidateId, type: draft.value.type, targetId, objectKey, inputParams: JSON.stringify(params) }
+    await ElMessageBox.confirm('确认保存当前候选的补充信息？已有测算和旧执行预览将被清空，之后必须重新测算、准备预览并明确确认；此步骤不会提交执行。', '确认保存决策补充', { type: 'warning', confirmButtonText: '保存补充', cancelButtonText: '取消', closeOnClickModal: false })
+    if (!isCurrent(token) || !canEditBinding.value || isExpired() || JSON.stringify(draft.value) !== draftSnapshot) return
+    const applied = applyProposal((await amendDecision(request)).data, token)
+    if (applied) {
+      // 保存成功才丢弃本地草稿；失败或后台刷新均不得悄悄覆盖用户输入。
+      selectedId.value = request.candidateId
+      discardDraft()
+      reviewNotice.value = ''
+      reviewUnknown.value = false
+    }
+  } catch (error) {
+    if (isCurrent(token) && error !== 'cancel' && error !== 'close') {
+      fresh.value = false
+      errorText.value = error instanceof SyntaxError ? '输入参数不是有效的 JSON 对象，请重新加载提案后修正草稿。' : (error?.message || '保存失败，请重新加载最新提案并核对；旧测算和预览不能作为执行依据。')
+    }
+  } finally {
+    if (isCurrent(token)) busy.value = ''
+  }
+}
+async function resume() {
+  if (!canResume.value || !resumeAllowedNow()) return
+  const token = context()
+  const request = { decisionId: token.id, revision: proposal.value.revision, runId: proposal.value.runId, resumeToken: proposal.value.resumeToken }
+  busy.value = 'resume'
+  let requested = false
+  try {
+    await ElMessageBox.confirm('确认继续当前工作流？服务端仅推进审批节点已 EXECUTED 的运行，不重试 FAILED 节点。可能继续进入下一审批或执行步骤，续跑不代表成功或实际改善。', '明确确认续跑工作流', { type: 'warning', confirmButtonText: '确认续跑', cancelButtonText: '取消', closeOnClickModal: false })
+    if (!isCurrent(token) || !resumeAllowedNow()) return
+    const latest = (await getDecision(token.id)).data
+    if (!isCurrent(token)) return
+    const unchanged = latest?.revision === request.revision && latest?.runId === request.runId && latest?.resumeToken === request.resumeToken
+    applyProposal(latest, token)
+    if (!unchanged || !resumeAllowedNow()) {
+      errorText.value = '工作流版本、运行或审批节点已变化，未续跑。请核对最新状态后重新明确确认。'
+      return
+    }
+    requested = true
+    applyProposal((await resumeDecision(request)).data, token)
+  } catch (error) {
+    if (isCurrent(token) && error !== 'cancel' && error !== 'close') {
+      fresh.value = false
+      errorText.value = requested ? '续跑结果未知，请刷新运行状态核对，勿重复续跑；断连不表示撤销执行。' : (error?.message || '续跑前校验失败，未发送续跑，请重新加载。')
+    }
+  } finally {
+    if (isCurrent(token)) busy.value = ''
+  }
+}
 function hasFailedConstraint(candidate) {
   return (candidate?.constraints || []).some(item => item.status === 'FAIL') || candidate?.evaluation?.status === 'FAIL'
 }
@@ -137,8 +250,12 @@ function isCurrent(token) {
 function applyProposal(data, token) {
   if (!isCurrent(token)) return false
   if (!data || String(data.id) !== props.decisionId || !Number.isInteger(data.revision)) throw new Error('服务端未返回有效的提案 ID 或版本，请重新加载。')
+  const preserveDraft = draftDirty.value
   proposal.value = data
-  selectedId.value = data.selectedCandidateId || ''
+  if (!preserveDraft) {
+    selectedId.value = data.selectedCandidateId || ((data.candidates || []).some(item => item.id === selectedId.value) ? selectedId.value : '')
+    discardDraft()
+  }
   fresh.value = true
   errorText.value = ''
   emit('updated', data)
@@ -154,7 +271,7 @@ function isExpired() {
   return Number.isFinite(time) && time <= Date.now()
 }
 function mutationAllowed() {
-  if (!fresh.value || props.disabled || !canExecute.value || !props.ontologyId || locked.value || !selected.value || selected.value.baseline || hasFailedConstraint(selected.value)) return false
+  if (!fresh.value || draftDirty.value || props.disabled || !canExecute.value || !props.ontologyId || locked.value || !selected.value || selected.value.baseline || hasFailedConstraint(selected.value)) return false
   if (isExpired()) {
     errorText.value = '提案已过期，请重新发起决策分析。'
     return false
@@ -264,8 +381,12 @@ function impactLabel(value) {
   const key = String(value || 'unknown').toLowerCase()
   return ({ computed: 'computed · 已计算（非实际效果）', estimated: 'estimated · 估计', unverified: 'unverified · 未核验', unknown: 'unknown · 未知' })[key] || `unknown · 未识别测算方式（${value}）`
 }
+watch(selectedId, () => {
+  if (!draftDirty.value) discardDraft()
+}, { flush: 'sync' })
 watch(() => [props.decisionId, props.contextKey], () => {
   ++generation
+  draftInitial.value = ''
   busy.value = ''
   fresh.value = false
   errorText.value = ''
@@ -273,6 +394,7 @@ watch(() => [props.decisionId, props.contextKey], () => {
   reviewUnknown.value = false
   proposal.value = props.snapshot || {}
   selectedId.value = ''
+  discardDraft()
   loadLatest()
 }, { immediate: true, flush: 'sync' })
 watch(() => props.disabled, (disabled) => {
@@ -297,6 +419,10 @@ onBeforeUnmount(() => { disposed = true; ++generation })
 .proposal-actions { margin-top: 16px; }
 .decision-proposal :deep(.ant-alert) { margin: 10px 0; }
 pre { max-height: 240px; overflow: auto; white-space: pre-wrap; background: #f6f8fa; padding: 10px; border-radius: 4px; }
+.amend-fields { display: grid; gap: 12px; margin-top: 12px; padding: 0; border: 0; min-width: 0; }
+.amend-fields label { display: grid; gap: 6px; }
+.amend-fields input, .amend-fields select, .amend-fields textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d9dfe8; border-radius: 4px; font: inherit; }
+.amend-fields textarea { resize: vertical; font-family: monospace; }
 .digest { font-size: 12px; word-break: break-all; }
 summary { cursor: pointer; }
 </style>
