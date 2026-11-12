@@ -17,6 +17,8 @@ public class AiAskSessionSaveReqVO {
 
     private String category;
 
+    private Long ontologyId;
+
     private Long datasourceId;
 
     private String datasourceName;

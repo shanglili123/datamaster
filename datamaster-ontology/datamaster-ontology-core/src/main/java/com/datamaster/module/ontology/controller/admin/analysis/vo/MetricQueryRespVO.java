@@ -16,6 +16,13 @@ public class MetricQueryRespVO {
     private Boolean truncated;
     private Date executedAt;
     private Long elapsedMs;
+    private Integer pageNum;
+    private Boolean hasMore;
     private Integer limit;
+    private String sourceTimeOffset;
+    private String businessTimeOffset;
+    private String timeBucket;
+    private String sortBy;
+    private String sortDirection;
     private String notice;
 }

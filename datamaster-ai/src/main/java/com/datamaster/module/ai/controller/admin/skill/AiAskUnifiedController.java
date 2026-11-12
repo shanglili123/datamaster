@@ -82,6 +82,20 @@ public class AiAskUnifiedController {
         validateOntology(request);
         if (request.getDatasourceId() != null && !resourceGuard.datasourceVisible(request.getDatasourceId(), context))
             throw new ServiceException("数据源不属于当前可访问空间");
+        if (StringUtils.isNotBlank(request.getAnalysisOperationId())) {
+            if (!"decision".equalsIgnoreCase(request.getResponseMode())) throw new ServiceException("正式分析引用仅用于新建决策");
+            operations.restoreDecisionGoal(request, user.getUserId());
+        }
+        boolean metricContinuation = false;
+        if (StringUtils.isNotBlank(request.getContinuationOperationId())) {
+            if (Boolean.TRUE.equals(request.getConfirmed()) || StringUtils.isNotBlank(request.getOperationId()))
+                throw new ServiceException("补充分析条件不能同时提交保存或执行确认");
+            if ("decision".equalsIgnoreCase(request.getResponseMode())) decisions.restoreInput(request, context);
+            else {
+                operations.restoreInput(request, user.getUserId());
+                metricContinuation = true;
+            }
+        }
         // Decision confirmations have their own immutable proposal protocol, never metric-save semantics.
         if ("decision".equalsIgnoreCase(request.getResponseMode())) {
             if (Boolean.TRUE.equals(request.getConfirmed()) || StringUtils.isNotBlank(request.getOperationId()))
@@ -90,7 +104,7 @@ public class AiAskUnifiedController {
         }
         AiAgentOperationDO existing = null;
         if (StringUtils.isNotBlank(request.getOperationId())) existing = operations.require(request, user.getUserId());
-        IntentRouter.Intent intent = IntentRouter.route(request.getQuestion());
+        IntentRouter.Intent intent = metricContinuation ? IntentRouter.Intent.METRIC : IntentRouter.route(request.getQuestion());
         if (Boolean.TRUE.equals(request.getConfirmed())) {
             if (existing == null || operations.pending(existing) == null)
                 return immediate(request, AgentToolResult.FAILED, "没有可确认的保存预览，请重新执行查询并请求保存");

@@ -1,6 +1,10 @@
 <template>
   <div class="metric-panel">
+    <AnalysisFlowNavigation stage="metric" :ontology-id="ontologyId" />
     <a-alert type="info" show-icon message="指标定义与版本管理" description="本页管理指标口径和字段映射；发布校验不执行 SQL，不代表数据质量、数据权限或 BI 集成已验证。受控查询请进入指标分析，BI 看板待后续接入。" />
+    <a-alert v-if="recentlyPublished" type="success" show-icon :message="`已发布「${recentlyPublished.name}」V${recentlyPublished.publishedVersion}，下一步可核对时间范围后试查。发布不代表查询已验证。`">
+      <template #action><a-button v-hasPermi="['ont:metric:execute']" @click="tryMetric(recentlyPublished)">前往试查</a-button></template>
+    </a-alert>
     <div class="panel-toolbar">
       <a-input v-model:value="query.name" placeholder="指标名称" allow-clear style="width: 180px" @pressEnter="search" />
       <a-select v-model:value="query.conceptId" :options="conceptOptions" placeholder="全部概念" allow-clear style="width: 180px" @change="search" />
@@ -17,6 +21,7 @@
         </template>
         <template v-else-if="column.key === 'version'">{{ record.publishedVersion ? `V${record.publishedVersion}` : '未发布' }}</template>
         <template v-else-if="column.key === 'action'">
+          <a-button v-if="record.status === 'PUBLISHED'" type="link" size="small" v-hasPermi="['ont:metric:execute']" @click="tryMetric(record)">试查/分析</a-button>
           <a-button type="link" size="small" v-hasPermi="['ont:metric:query']" @click="openRead(record)">详情</a-button>
           <a-button type="link" size="small" v-hasPermi="['ont:metric:edit']" @click="openEdit(record)">编辑</a-button>
           <a-button type="link" size="small" v-hasPermi="['ont:metric:edit']" @click="check(record)">校验</a-button>
@@ -38,13 +43,24 @@
           <a-col :span="12"><a-form-item label="指标名称" name="name"><a-input v-model:value="form.name" :maxlength="100" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="负责人"><a-input v-model:value="form.owner" :maxlength="100" placeholder="发布前必填" /></a-form-item></a-col>
           <a-col :span="24"><a-form-item label="业务定义" name="description"><a-textarea v-model:value="form.description" :maxlength="2000" :rows="3" placeholder="统计对象、业务含义及适用范围" /></a-form-item></a-col>
-          <a-col :span="12"><a-form-item label="单位"><a-input v-model:value="form.unit" :maxlength="50" placeholder="元 / 人 / 次；发布前必填" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item label="单位"><a-input v-model:value="form.unit" :maxlength="110" placeholder="元 / 人 / 次；发布前必填" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="数据粒度"><a-input v-model:value="form.grain" :maxlength="500" placeholder="一行代表什么，例如 日期 × 机构；发布前必填" /></a-form-item></a-col>
-          <a-col :span="24"><a-form-item label="来源表绑定"><a-select v-model:value="form.conceptTableId" :options="tableOptions" allow-clear placeholder="选择概念已有表绑定；发布要求 Doris ADS 来源" @change="loadMappings" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item label="来源时间偏移（可选）"><a-input v-model:value="form.sourceTimeOffset" :maxlength="6" placeholder="如 +00:00；留空沿用原来源时间" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item label="业务时间偏移（与来源成对）"><a-input v-model:value="form.businessTimeOffset" :maxlength="6" placeholder="如 +08:00；固定偏移，不自动处理夏令时" /></a-form-item></a-col>
+          <a-col :span="24"><a-form-item label="来源表绑定"><a-select v-model:value="form.conceptTableId" :options="tableOptions" allow-clear placeholder="选择概念已有表绑定；支持 Doris/MySQL/PostgreSQL，消费按空间流程检查" @change="loadMappings" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="聚合方式"><a-select v-model:value="form.aggregation" :options="aggregations" allow-clear /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="度量属性"><a-select v-model:value="form.valuePropertyId" :options="measureOptions" allow-clear :placeholder="form.aggregation === 'COUNT' ? '留空表示 COUNT(*)' : '请选择度量属性'" /></a-form-item></a-col>
-          <a-col :span="12"><a-form-item label="时间属性"><a-select v-model:value="form.timePropertyId" :options="timeOptions" allow-clear placeholder="可选，必须已绑定来源表字段" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item label="正式派生运算"><a-select v-model:value="form.derivedOperation" :options="derivedOptions" @change="changeDerived" /></a-form-item></a-col>
+          <template v-if="form.derivedOperation && form.derivedOperation !== 'NONE'">
+            <a-col :span="12"><a-form-item label="第二聚合方式"><a-select v-model:value="form.secondaryAggregation" :options="aggregations" /></a-form-item></a-col>
+            <a-col :span="12"><a-form-item label="第二度量属性"><a-select v-model:value="form.secondaryValuePropertyId" :options="secondaryMeasureOptions" allow-clear placeholder="聚合结果须为数值，COUNT/去重计数可选文本标识" /></a-form-item></a-col>
+            <a-col :span="12"><a-form-item label="主聚合单位"><a-input v-model:value="form.primaryUnit" :maxlength="50" placeholder="如 元 / 笔" /></a-form-item></a-col>
+            <a-col :span="12"><a-form-item label="第二聚合单位"><a-input v-model:value="form.secondaryUnit" :maxlength="50" placeholder="比率同单位时结果单位填1，否则填主单位/次单位" /></a-form-item></a-col>
+            <a-col :span="24"><p class="hint">同一来源和筛选内先分别聚合再派生，不是逐行比率再求和。分母零返回缺失；不支持任意表达式、跨表或其他指标实时依赖。相加仅同类SUM/COUNT，单位需一致。</p></a-col>
+          </template>
+          <a-col :span="12"><a-form-item label="时间属性"><a-select v-model:value="form.timePropertyId" :options="timeOptions" allow-clear placeholder="可选，必须已绑定来源表字段" @change="value => { if (!value) { form.sourceTimeOffset = null; form.businessTimeOffset = null } }" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="允许分析的维度"><a-select v-model:value="form.dimensionPropertyIds" mode="multiple" :options="propertyOptions" placeholder="选择已映射属性" /></a-form-item></a-col>
+          <a-col :span="24"><p class="hint">固定过滤中的日期时间须严格ISO格式（例如2026-01-01T00:00:00）；这是物理来源字段时间，不随业务偏移自动平移。</p></a-col>
         </a-row>
         <div class="filter-heading"><strong>固定口径过滤</strong><a-button size="small" @click="form.fixedFilters.push({ propertyId: undefined, operator: 'EQ', value: '' })">添加条件</a-button></div>
         <p class="hint">条件之间为 AND。条件值按属性类型转换；日期使用 YYYY-MM-DD，布尔值使用 true/false。IN 使用 JSON 数组，例如 [1,2] 或 ["已支付","已完成"]。这不是权限过滤。</p>
@@ -62,7 +78,7 @@
 
     <a-modal v-model:open="versionsOpen" title="已发布指标版本" width="660px" :footer="null" wrap-class-name="ontology-workspace-modal ontology-modal--compact">
       <a-table :data-source="versions" :loading="versionsLoading" row-key="id" :pagination="false" :columns="versionColumns">
-        <template #bodyCell="{ column, record }"><a-button v-if="column.key === 'action'" type="link" @click="readVersion(record.version)">查看快照 V{{ record.version }}</a-button></template>
+        <template #bodyCell="{ column, record }"><template v-if="column.key === 'action'"><a-button type="link" @click="readVersion(record.version)">查看快照 V{{ record.version }}</a-button><a-button type="link" v-hasPermi="['ont:metric:edit']" @click="restoreVersion(record.version)">复制为草稿</a-button></template></template>
       </a-table>
     </a-modal>
     <a-modal v-model:open="detailOpen" :title="detailTitle" width="900px" :footer="null" wrap-class-name="ontology-workspace-modal ontology-modal--form">
@@ -88,9 +104,14 @@ import { listConcept } from '@/api/ont/concept'
 import { listConceptTable } from '@/api/ont/conceptTable'
 import { listProperty } from '@/api/ont/property'
 import { listPropertyColumn } from '@/api/ont/propertyColumn'
-import { addMetric, updateMetric, getMetric, listMetric, delMetric, validateMetric, publishMetric, disableMetric, listMetricVersions, getMetricVersion } from '@/api/ont/metric'
+import AnalysisFlowNavigation from '@/components/AnalysisFlowNavigation.vue'
+import { useAnalysisNavigation } from '@/utils/analysisNavigation'
+import { addMetric, updateMetric, getMetric, listMetric, delMetric, validateMetric, publishMetric, disableMetric, listMetricVersions, getMetricVersion, restoreMetricDraft } from '@/api/ont/metric'
 
 const props = defineProps({ ontologyId: { type: [String, Number], required: true } })
+const { openMetricAnalysis } = useAnalysisNavigation()
+const recentlyPublished = ref(null)
+function tryMetric(row) { return openMetricAnalysis({ ontologyId: props.ontologyId, metricId: row.id, version: row.publishedVersion }) }
 const rows = ref([])
 const total = ref(0)
 const loading = ref(false)
@@ -116,6 +137,10 @@ let listSequence = 0
 let optionsSequence = 0
 let contextSequence = 0
 const statuses = [{ value: 'DRAFT', label: '草稿' }, { value: 'PUBLISHED', label: '已发布' }, { value: 'DISABLED', label: '已停用' }]
+const derivedOptions = [{ value: 'NONE', label: '无（单聚合）' }, { value: 'RATIO', label: '主聚合 / 第二聚合' }, { value: 'DIFFERENCE', label: '主聚合 − 第二聚合' }, { value: 'SUM', label: '两聚合相加' }]
+function changeDerived(value) {
+  if (!value || value === 'NONE') Object.assign(form.value, { secondaryAggregation: null, secondaryValuePropertyId: null, primaryUnit: null, secondaryUnit: null })
+}
 const aggregations = ['SUM', 'COUNT', 'COUNT_DISTINCT', 'AVG', 'MIN', 'MAX'].map(value => ({ value, label: value }))
 const operators = ['EQ', 'NE', 'GT', 'GE', 'LT', 'LE', 'IN', 'IS_NULL', 'IS_NOT_NULL'].map(value => ({ value, label: value }))
 const columns = [
@@ -135,10 +160,13 @@ const conceptOptions = computed(() => concepts.value.map(item => ({ value: item.
 const tableOptions = computed(() => tables.value.map(item => ({ value: item.id, label: [item.databaseName, item.schemaName, item.tableName].filter(Boolean).join('.') })))
 const boundProperties = computed(() => properties.value.filter(item => mappings.value.some(binding => String(binding.propertyId) === String(item.id))))
 const propertyOptions = computed(() => boundProperties.value.map(item => ({ value: item.id, label: `${item.name} (${item.dataType})` })))
+const numericPropertyOptions = computed(() => propertyOptions.value.filter(item => ['integer', 'decimal', 'number', 'long', 'int', 'double', 'float', 'numeric', 'bigint', 'smallint'].includes(boundProperties.value.find(prop => String(prop.id) === String(item.value))?.dataType?.toLowerCase())))
 const measureOptions = computed(() => ['SUM', 'AVG'].includes(form.value.aggregation)
-  ? propertyOptions.value.filter(item => ['integer', 'decimal'].includes(boundProperties.value.find(prop => String(prop.id) === String(item.value))?.dataType))
+  || form.value.derivedOperation && form.value.derivedOperation !== 'NONE' && !['COUNT', 'COUNT_DISTINCT'].includes(form.value.aggregation)
+  ? numericPropertyOptions.value
   : propertyOptions.value)
-const timeOptions = computed(() => propertyOptions.value.filter(item => boundProperties.value.find(prop => String(prop.id) === String(item.value))?.dataType === 'date'))
+const secondaryMeasureOptions = computed(() => ['COUNT', 'COUNT_DISTINCT'].includes(form.value.secondaryAggregation) ? propertyOptions.value : numericPropertyOptions.value)
+const timeOptions = computed(() => propertyOptions.value.filter(item => ['date', 'datetime', 'timestamp'].includes(boundProperties.value.find(prop => String(prop.id) === String(item.value))?.dataType?.toLowerCase())))
 const nullOperator = operator => ['IS_NULL', 'IS_NOT_NULL'].includes(operator)
 const conceptLabel = id => concepts.value.find(item => String(item.id) === String(id))?.name || id
 const statusLabel = value => statuses.find(item => item.value === value)?.label || value
@@ -161,6 +189,7 @@ async function loadList() {
 function search() { query.value.pageNum = 1; loadList() }
 async function reload() {
   const sequence = ++contextSequence
+  recentlyPublished.value = null; saving.value = false
   concepts.value = []
   try {
     const items = await loadPagedOptions(listConcept, { ontologyId: props.ontologyId })
@@ -203,12 +232,12 @@ async function loadMappings() {
   }
 }
 function changeConcept() {
-  Object.assign(form.value, { conceptTableId: undefined, valuePropertyId: undefined, timePropertyId: undefined, dimensionPropertyIds: [], fixedFilters: [] })
+  Object.assign(form.value, { conceptTableId: undefined, valuePropertyId: undefined, timePropertyId: undefined, sourceTimeOffset: null, businessTimeOffset: null, derivedOperation: 'NONE', secondaryAggregation: null, secondaryValuePropertyId: null, primaryUnit: null, secondaryUnit: null, dimensionPropertyIds: [], fixedFilters: [] })
   loadOptions()
 }
 function openCreate() {
   if (!concepts.value.length) { message.warning('请先创建业务概念'); return }
-  form.value = { ontologyId: props.ontologyId, conceptId: concepts.value[0].id, code: '', name: '', description: '', owner: '', unit: '', grain: '', aggregation: 'COUNT', dimensionPropertyIds: [], fixedFilters: [] }
+  form.value = { ontologyId: props.ontologyId, conceptId: concepts.value[0].id, code: '', name: '', description: '', owner: '', unit: '', grain: '', aggregation: 'COUNT', derivedOperation: 'NONE', dimensionPropertyIds: [], fixedFilters: [] }
   saveError.value = ''
   editorOpen.value = true
   loadOptions()
@@ -217,7 +246,7 @@ async function openEdit(row) {
   const context = contextSequence
   const response = await getMetric(row.id)
   if (context !== contextSequence) return
-  form.value = { ...response.data, dimensionPropertyIds: response.data.dimensionPropertyIds || [], fixedFilters: (response.data.fixedFilters || []).map(filter => ({ ...filter, value: filter.operator === 'IN' ? JSON.stringify(filter.value) : filter.value == null ? '' : String(filter.value) })) }
+  form.value = { ...response.data, derivedOperation: response.data.derivedOperation || 'NONE', dimensionPropertyIds: response.data.dimensionPropertyIds || [], fixedFilters: (response.data.fixedFilters || []).map(filter => ({ ...filter, value: filter.operator === 'IN' ? JSON.stringify(filter.value) : filter.value == null ? '' : String(filter.value) })) }
   saveError.value = ''
   editorOpen.value = true
   loadOptions()
@@ -259,30 +288,55 @@ function normalizeFilters(filters) {
   })
 }
 async function save() {
+  const context = contextSequence
   try { await formRef.value.validate() } catch (error) { return }
+  if (context !== contextSequence) return
   saving.value = true; saveError.value = ''
   try {
-    const data = { ...form.value, conceptTableId: form.value.conceptTableId ?? null, valuePropertyId: form.value.valuePropertyId ?? null, timePropertyId: form.value.timePropertyId ?? null, fixedFilters: normalizeFilters(form.value.fixedFilters) }
+    const data = { ...form.value, derivedOperation: form.value.derivedOperation === 'NONE' ? null : form.value.derivedOperation, sourceTimeOffset: form.value.sourceTimeOffset?.trim() || null, businessTimeOffset: form.value.businessTimeOffset?.trim() || null, conceptTableId: form.value.conceptTableId ?? null, valuePropertyId: form.value.valuePropertyId ?? null, timePropertyId: form.value.timePropertyId ?? null, fixedFilters: normalizeFilters(form.value.fixedFilters) }
     if (data.id) await updateMetric(data)
     else await addMetric(data)
+    if (context !== contextSequence) return
     editorOpen.value = false
     message.success('指标草稿已保存')
     loadList()
-  } catch (error) { saveError.value = errorText(error) }
-  finally { saving.value = false }
+  } catch (error) { if (context === contextSequence) saveError.value = errorText(error) }
+  finally { if (context === contextSequence) saving.value = false }
 }
 async function check(row) {
   await validateMetric(row.id, row.revision)
   message.success('元数据与指标定义校验通过；未执行数据查询')
 }
 function publish(row) {
-  Modal.confirm({ title: `发布指标「${row.name}」？`, content: '发布将冻结当前口径和字段映射并生成版本。此操作不执行 SQL，也不代表数据质量、数据权限已验证。', async onOk() { await publishMetric(row.id, row.revision); message.success('指标已发布'); loadList() } })
+  const context = contextSequence
+  Modal.confirm({ title: `发布指标「${row.name}」？`, content: '发布将冻结当前口径和字段映射并生成版本。此操作不执行 SQL，也不代表数据质量、数据权限已验证。', async onOk() {
+    if (context !== contextSequence) return
+    await publishMetric(row.id, row.revision)
+    if (context !== contextSequence) return
+    message.success('指标已发布')
+    loadList()
+    try {
+      const published = (await getMetric(row.id)).data
+      if (context !== contextSequence) return
+      recentlyPublished.value = published?.status === 'PUBLISHED' ? published : null
+    } catch { if (context === contextSequence) message.warning('发布成功，但详情暂不可读取；请从指标列表选择试查') }
+  } })
 }
 function disable(row) {
-  Modal.confirm({ title: `停用指标「${row.name}」？`, content: '保留历史版本；后续重新发布将生成新版本。', async onOk() { await disableMetric(row.id, row.revision); message.success('指标已停用'); loadList() } })
+  const context = contextSequence
+  Modal.confirm({ title: `停用指标「${row.name}」？`, content: '保留历史版本；后续重新发布将生成新版本。', async onOk() {
+    if (context !== contextSequence) return
+    await disableMetric(row.id, row.revision)
+    if (context === contextSequence) { message.success('指标已停用'); loadList() }
+  } })
 }
 function remove(row) {
-  Modal.confirm({ title: `删除草稿「${row.name}」？`, content: '仅允许删除从未发布的指标。', async onOk() { await delMetric(row.id); loadList() } })
+  const context = contextSequence
+  Modal.confirm({ title: `删除草稿「${row.name}」？`, content: '仅允许删除从未发布的指标。', async onOk() {
+    if (context !== contextSequence) return
+    await delMetric(row.id)
+    if (context === contextSequence) loadList()
+  } })
 }
 async function openRead(row) {
   const context = contextSequence
@@ -297,6 +351,18 @@ async function showVersions(row) {
     const response = await listMetricVersions(row.id)
     if (context === contextSequence && versionMetricId.value === row.id) versions.value = response.data || []
   } finally { if (context === contextSequence) versionsLoading.value = false }
+}
+async function restoreVersion(version) {
+  const id = versionMetricId.value, context = contextSequence
+  try {
+    const current = (await getMetric(id)).data
+    if (context !== contextSequence || id !== versionMetricId.value) return
+    Modal.confirm({ title: `复制历史 V${version} 为当前草稿？`, content: '覆盖当前已保存草稿，保留线上发布版本与停用状态。只复制业务口径、固定偏移和派生定义，不复制来源权限；重新发布时重新校验并冻结当前来源。', async onOk() {
+      if (context !== contextSequence || id !== versionMetricId.value) return
+      await restoreMetricDraft(id, version, current.revision)
+      if (context === contextSequence) { message.success('已恢复到草稿，线上规则未改变'); await loadList() }
+    } })
+  } catch (failure) { if (context === contextSequence) message.error(errorText(failure)) }
 }
 async function readVersion(version) {
   const id = versionMetricId.value

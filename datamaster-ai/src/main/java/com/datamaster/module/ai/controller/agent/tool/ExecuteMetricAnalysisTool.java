@@ -10,6 +10,7 @@ import com.datamaster.module.ontology.controller.admin.analysis.vo.MetricQueryCo
 import com.datamaster.module.ontology.controller.admin.analysis.vo.MetricQueryReqVO;
 import com.datamaster.module.ontology.controller.admin.analysis.vo.MetricQueryRespVO;
 import com.datamaster.module.ontology.service.IMetricAnalysisService;
+import com.datamaster.module.ontology.controller.admin.metric.vo.MetricRespVO;
 import dev.langchain4j.agent.tool.Tool;
 import org.springframework.stereotype.Component;
 
@@ -39,7 +40,7 @@ public class ExecuteMetricAnalysisTool {
             if (!support.wasOffered(metricId, version, context)) {
                 return support.result(AgentToolResult.NEED_INPUT, null, "必须先调用 search_metrics 并原样使用其真实指标和发布版本", context);
             }
-            support.published(metricId, version, context);
+            MetricRespVO published = support.published(metricId, version, context);
             List<String> dimensions = input.getDimensionPropertyIds();
             if (dimensions != null && dimensions.size() > 5) throw new IllegalArgumentException("维度最多5个");
             MetricQueryReqVO request = new MetricQueryReqVO();
@@ -79,6 +80,15 @@ public class ExecuteMetricAnalysisTool {
             data.put("startTime", request.getStartTime());
             data.put("endTime", request.getEndTime());
             data.put("queryDefinition", request);
+            // Semantic metadata only: no physical source mapping or connection details.
+            Map<String, Object> scope = new LinkedHashMap<>();
+            scope.put("version", "METRIC_SCOPE_V1");
+            scope.put("ontologyId", String.valueOf(published.getOntologyId()));
+            scope.put("conceptId", String.valueOf(published.getConceptId()));
+            scope.put("timePropertyId", published.getTimePropertyId() == null ? null : String.valueOf(published.getTimePropertyId()));
+            scope.put("grain", published.getGrain());
+            scope.put("fixedFilters", published.getFixedFilters());
+            data.put("scopeContract", scope);
             AgentToolResult result = support.result(AgentToolResult.SUCCEEDED, data, "指标分析完成，可解释结果", context);
             result.setNextHints(Collections.singletonList("根据指标名称、单位和列口径解释结果；numeric 字符串原样保留，不要改写为近似数字"));
             return result;

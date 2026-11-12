@@ -3,6 +3,12 @@ import request from '@/utils/request'
 export function queryMetric(data) {
   return request({ url: '/ont/metric-analysis/query', method: 'post', data, timeout: 70000 })
 }
+export function queryMultipleMetrics(data) {
+  return request({ url: '/ont/metric-analysis/multi-query', method: 'post', data, timeout: 270000 })
+}
+export function compareMetric(data) {
+  return request({ url: '/ont/metric-analysis/compare', method: 'post', data, timeout: 140000 })
+}
 export function listMetricAnalysis(params) {
   return request({ url: '/ont/metric-analysis/page', method: 'get', params })
 }

@@ -93,6 +93,7 @@
             {{ record.remark || "-" }}
           </template>
           <template v-else-if="column.key === 'actions'">
+            <a-button type="link" size="small" v-hasPermi="['tax:space:query']" @click="flowSpace = record; flowOpen = true">功能流程</a-button>
             <a-button
               type="link"
               size="small"
@@ -131,6 +132,7 @@
       />
     </div>
 
+    <SpaceFlowDialog :open="flowOpen" :space="flowSpace" @close="flowOpen = false" />
     <!-- 新增或修改空间对话框 -->
     <a-modal
       :title="title"
@@ -305,6 +307,9 @@ import {
   updateSpace,
   editSpaceStatus,
 } from "@/api/tax/space/space.js";
+import SpaceFlowDialog from './SpaceFlowDialog.vue'
+const flowOpen = ref(false)
+const flowSpace = ref(null)
 import { getToken } from "@/utils/auth.js";
 import { normalizePage, pageRows } from "@/utils/page.js";
 

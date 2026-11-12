@@ -86,6 +86,9 @@ public class MetricRulesTest {
         rejected(() -> MetricRules.validateTypedFilter(filter("EQ", "NaN"), "decimal"));
         rejected(() -> MetricRules.validateTypedFilter(filter("EQ", "1 OR 1=1"), "integer"));
         rejected(() -> MetricRules.validateTypedFilter(filter("EQ", true), "integer"));
+        rejected(() -> MetricRules.validateTypedFilter(filter("EQ", "1.5"), "integer"));
+        rejected(() -> MetricRules.validateTypedFilter(filter("EQ", "1e1000000000"), "decimal"));
+        rejected(() -> MetricRules.validateTypedFilter(filter("EQ", "2026-01-01 00:00:00"), "datetime"));
         MetricRules.validateTypedFilter(filter("EQ", "2026-10-27"), "date");
         rejected(() -> MetricRules.validateTypedFilter(filter("EQ", "2026-02-30"), "date"));
     }
@@ -145,6 +148,13 @@ public class MetricRulesTest {
         assertFalse(MetricRules.definitionJson(working).contains("createBy"));
     }
 
+    @Test public void publishedTimeOffsetsAreCopiedAndChangeDefinitionIdentity() {
+        MetricSaveReqVO vo = draft(); vo.setTimePropertyId(3L); vo.setSourceTimeOffset("+00:00"); vo.setBusinessTimeOffset("+08:00");
+        MetricSaveReqVO copy = MetricRules.normalize(vo); assertEquals("+08:00", copy.getBusinessTimeOffset());
+        String before = MetricRules.definitionJson(copy); vo.setBusinessTimeOffset("+09:00");
+        assertNotEquals(before, MetricRules.definitionJson(MetricRules.normalize(vo)));
+        vo.setBusinessTimeOffset(null); rejected(() -> MetricRules.normalize(vo));
+    }
     @Test
     public void sourceLayerAndAttributeTypesAreExplicit() {
         assertTrue(MetricRules.adsSource("warehouse", "ads_orders"));

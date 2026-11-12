@@ -24,6 +24,8 @@ public class AiAskSessionRespVO {
 
     private String category;
 
+    private Long ontologyId;
+
     private Long datasourceId;
 
     private String datasourceName;

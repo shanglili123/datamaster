@@ -318,7 +318,7 @@ function isValuesOperator(op) {
 function buildSpec() {
   // 忠实反映本地编辑状态（含未填字段的空条件行、含空条件组），
   // 使 v-model 回环（本组件 emit -> 父组件写回 -> 本组件 watch 再同步）能原样还原，
-  // 避免「添加条件/添加组」的新行被同步拥抱掉。空条件行向后端传递会被白名单忽略，无副作用。
+  // 保留未完成编辑行以支持v-model回环；提交含未完成行时，严格消费接口会拒绝，不再静默丢弃。
   const groups = (localGroups.value || [])
     .map(g => ({
       connector: g.connector === 'OR' ? 'OR' : 'AND',

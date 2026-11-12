@@ -3,7 +3,6 @@
 package com.datamaster.module.service.service.api.impl;
 
 
-import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +22,6 @@ import com.datamaster.common.database.core.PageResult;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.PageUtil;
 import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
-import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
 import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO;
 import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.module.assets.api.service.governance.IAssetsTableGovernanceApiService;
@@ -31,7 +29,6 @@ import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.module.service.dal.dataobject.api.ServiceApiDO;
 import com.datamaster.module.service.dal.dataobject.api.ExecuteConfig;
-import com.datamaster.module.service.dal.dataobject.dto.ReqParam;
 import com.datamaster.module.service.dal.dataobject.dto.ResParam;
 import com.datamaster.module.service.utils.JsonUtil;
 import com.datamaster.module.service.utils.SqlBuilderUtil;
@@ -61,6 +58,20 @@ public class ApiMappingEngine {
 
     @Resource
     private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
+    @Resource private ApiSourceGuard apiSourceGuard;
+    @Resource private com.datamaster.module.service.dal.mapper.api.ServiceApiMapper apiMapper;
+
+    /** Dynamic mappings are routing hints, not a frozen execution/authorization snapshot. */
+    public ServiceApiDO currentRegisteredApi(ServiceApiDO registered) {
+        if (registered == null || registered.getId() == null) throw new ServiceException("API路由不可用");
+        ServiceApiDO current = apiMapper.selectById(registered.getId());
+        if (current == null || Boolean.TRUE.equals(current.getDelFlag()) || Boolean.FALSE.equals(current.getValidFlag()) || !"1".equals(current.getStatus())) throw new ServiceException("API已停用、删除或未发布");
+        if (!Objects.equals(registered.getApiUrl(), current.getApiUrl()) || !Objects.equals(registered.getApiVersion(), current.getApiVersion())
+                || !Objects.equals(registered.getReqMethod(), current.getReqMethod())) throw new ServiceException("API路由已变更，请等待重新发布映射");
+        apiSourceGuard.normalizeSpace(current, false);
+        apiSourceGuard.assertNonQueryService(current);
+        return current;
+    }
 
 
     public Object execute(ServiceApiDO dataApi, Map<String, Object> params) {
@@ -72,8 +83,8 @@ public class ApiMappingEngine {
         String configJson = dataApi.getConfigJson();
         ExecuteConfig executeConfig = JSONObject.parseObject(configJson, ExecuteConfig.class);
         dataApi.setExecuteConfig(executeConfig);
-        dataSource = iAssetsDatasourceApiService.getDatasourceById(Long.valueOf(executeConfig.getSourceId()));
         AssetsTableGovernanceRespDTO governanceResp = checkTableGovernance(dataApi, executeConfig);
+        dataSource = iAssetsDatasourceApiService.getDatasourceById(Long.valueOf(executeConfig.getSourceId()));
 
         com.datamaster.common.database.constants.DbQueryProperty dbQueryProperty = new DbQueryProperty(
                 dataSource.getDatasourceType(),
@@ -81,7 +92,7 @@ public class ApiMappingEngine {
                 dataSource.getPort(),
                 dataSource.getDatasourceConfig()
         );
-        DbQuery dbQuery = dataSourceFactory.createDbQuery(dbQueryProperty);
+        // 来源检查和SQL生成完成后再创建查询资源，避免构造失败泄漏连接。
 
         // 参数
         //Integer pageNum = Integer.parseInt((String) params.getOrDefault("pageNum", 1));
@@ -91,7 +102,7 @@ public class ApiMappingEngine {
         PageUtil pageUtil = new PageUtil(pageNum, pageSize);
         Integer offset = pageUtil.getOffset();
 
-        if(com.datamaster.common.utils.StringUtils.isEmpty(executeConfig.getSqlText())){
+        if(com.datamaster.common.enums.ConfigType.FORM.getKey().equals(executeConfig.getApiServiceType())){
             try {
                 String s = sqlJdbcNamedParameterBuild(dataApi, governanceResp);
                 executeConfig.setSqlText(s);
@@ -111,6 +122,7 @@ public class ApiMappingEngine {
 
 
         Object result = null;
+        DbQuery dbQuery = dataSourceFactory.createDbQuery(dbQueryProperty);
         try {
 //            Integer cacheSwitch = Integer.parseInt(dataApi.getCacheSwitch());
             Integer cacheSwitch = 0;
@@ -141,31 +153,12 @@ public class ApiMappingEngine {
     }
 
     private AssetsTableGovernanceRespDTO checkTableGovernance(ServiceApiDO dataApi, ExecuteConfig executeConfig) {
-        if (executeConfig == null || com.datamaster.common.utils.StringUtils.isEmpty(executeConfig.getSourceId())
-                || com.datamaster.common.utils.StringUtils.isEmpty(executeConfig.getTableName())) {
-            return null;
-        }
-        AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
-        reqDTO.setDatasourceId(Long.valueOf(executeConfig.getSourceId()));
-        reqDTO.setTableName(executeConfig.getTableName());
-        reqDTO.setSpaceId(dataApi.getSpaceId());
-        reqDTO.setSpaceCode(dataApi.getSpaceCode());
-        reqDTO.setEntrance("DATA_SERVICE");
-        AssetsTableGovernanceRespDTO respDTO = assetsTableGovernanceApiService.resolveTable(reqDTO);
-        if (Boolean.FALSE.equals(respDTO.getAccessAllowed())) {
-            throw new ServiceException(respDTO.getMessage());
-        }
-        return respDTO;
+        return apiSourceGuard.check(dataApi, executeConfig, "DATA_SERVICE");
     }
 
     private String sqlJdbcNamedParameterBuild(ServiceApiDO dataApi, AssetsTableGovernanceRespDTO governanceResp) throws JSQLParserException {
         String tableName = dataApi.getExecuteConfig().getTableName();
-        String resParams1 = dataApi.getResParams();
-        String reqParams = dataApi.getReqParams();
-        //转成
-        List<ReqParam> reqParams1 = JSONArray.parseArray(reqParams, ReqParam.class);
-        dataApi.setReqParamsList(reqParams1);
-        List<ResParam> resParamsList = JSONArray.parseArray(resParams1, ResParam.class);
+        List<ResParam> resParamsList = dataApi.getResParamsList();
         resParamsList = filterAllowedColumns(resParamsList, governanceResp);
         resParamsList = filterDesensitizeHideColumns(resParamsList, governanceResp);
         dataApi.setResParamsList(resParamsList);
@@ -235,7 +228,8 @@ public class ApiMappingEngine {
             Long userPermissionLevel = currentUserPermissionLevel();
             Set<String> hideColumns = assetsTableGovernanceApiService.getDesensitizeHideColumns(
                     governanceResp.getAssetId(), userId, userPermissionLevel, SCENE_DATA_SERVICE);
-            if (hideColumns == null || hideColumns.isEmpty()) {
+            if (hideColumns == null) throw new ServiceException("隐藏字段核验未返回有效结论");
+            if (hideColumns.isEmpty()) {
                 return resParamsList;
             }
             Set<String> hideLower = hideColumns.stream()
@@ -251,8 +245,7 @@ public class ApiMappingEngine {
             }
             return filtered;
         } catch (Exception e) {
-            log.warn("前置过滤脱敏隐藏列异常: {}", e.getMessage());
-            return resParamsList;
+            throw new ServiceException("隐藏字段核验失败，禁止返回未处理数据");
         }
     }
 
@@ -267,11 +260,12 @@ public class ApiMappingEngine {
         try {
             Long userId = SecurityUtils.getUserId();
             Long userPermissionLevel = currentUserPermissionLevel();
-            return assetsTableGovernanceApiService.desensitizeResultData(
+            List<Map<String,Object>> masked = assetsTableGovernanceApiService.desensitizeResultData(
                     governanceResp.getAssetId(), data, userId, userPermissionLevel, SCENE_DATA_SERVICE);
+            if (masked == null) throw new ServiceException("脱敏结果不可用");
+            return masked;
         } catch (Exception e) {
-            log.warn("数据服务脱敏异常，返回原始数据: {}", e.getMessage());
-            return data;
+            throw new ServiceException("数据服务脱敏失败，禁止返回原始数据");
         }
     }
 
@@ -286,10 +280,10 @@ public class ApiMappingEngine {
             List<Map<String, Object>> singleList = new ArrayList<>();
             singleList.add(mapData);
             List<Map<String, Object>> masked = desensitizeData(singleList, governanceResp);
-            return (masked != null && !masked.isEmpty()) ? masked.get(0) : mapData;
+            if (masked == null || masked.isEmpty()) throw new ServiceException("数据服务脱敏未返回有效结果");
+            return masked.get(0);
         } catch (Exception e) {
-            log.warn("数据服务单条脱敏异常，返回原始数据: {}", e.getMessage());
-            return mapData;
+            throw new ServiceException("数据服务单条脱敏失败，禁止返回原始数据");
         }
     }
 

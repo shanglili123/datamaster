@@ -47,6 +47,16 @@ public class DecisionAgentService {
     @Resource private IActionWorkflowService workflows;
     @Resource private AgentToolAuditService audit;
 
+    /** Explicit input continuation reanalyses the stored goal; no candidates, previews or dispatch are reused. */
+    public void restoreInput(AskUnifiedReqVO request, AgentToolContext context) {
+        requireIdentity(context);
+        if (Boolean.TRUE.equals(request.getConfirmed()) || StringUtils.isNotBlank(request.getOperationId()))
+            throw new ServiceException("补充条件不能作为决策执行确认");
+        String id = request.getContinuationOperationId();
+        if (id == null || !id.matches("ASK_DECISION_[0-9a-fA-F-]{36}")) throw new ServiceException("决策续接标识无效");
+        AskInputContinuation.restoreDecision(operations.get(id), request, context);
+    }
+
     public AgentRunResponse run(AskUnifiedReqVO request, AgentToolContext source,
                                 AtomicBoolean cancelled, Consumer<String> progress) {
         requireIdentity(source);

@@ -13,7 +13,7 @@ import java.util.Map;
  * 类型化查询编译器 — 把 {@link TypedQuerySpec} 编译为白名单校验过、NamedParameter 参数化的安全 SQL 片段。
  *
  * 安全策略（d5/d6）：
- *   - 所有字段（过滤列 / 排序列 / 投影列）必须命中物理表列白名单，否则丢弃该条件（保持既有"取不到元数据则退化为全量"语义）；
+ *   - strict消费入口拒绝未知字段/无效条件；旧compile兼容入口仍保留丢弃行为供分步迁移；
  *   - 值一律经 NamedParameter 占位符绑定，杜绝字符串拼接注入；
  *   - 不产生跨表物理 JOIN（关系跳转由上层用目标表值过滤实现，见 d8）。
  *
@@ -94,6 +94,136 @@ public class TypedQueryBuilder {
         }
     }
 
+    /** Consumption entrances must not silently drop malformed or unauthorized predicates. */
+    public static TypedQuerySpec parseStrict(String json) {
+        if (!StringUtils.hasText(json)) return new TypedQuerySpec();
+        if (json.length() > 50000) throw new com.datamaster.common.exception.ServiceException("查询条件过长");
+        try {
+            if (!json.trim().startsWith("{")) throw new IllegalArgumentException();
+            com.alibaba.fastjson2.JSONObject raw = JSON.parseObject(json);
+            rejectUnknownKeys(raw, java.util.Set.of("groups", "orderBy", "columns", "keyword"));
+            if (raw.get("keyword") != null && !(raw.get("keyword") instanceof String)) throw new IllegalArgumentException();
+            if (raw.get("columns") != null) {
+                if (!(raw.get("columns") instanceof java.util.List)) throw new IllegalArgumentException();
+                for (Object column : (java.util.List<?>) raw.get("columns")) if (!(column instanceof String)) throw new IllegalArgumentException();
+            }
+            if (raw.get("groups") != null) {
+                if (!(raw.get("groups") instanceof java.util.List)) throw new IllegalArgumentException();
+                for (Object item : (java.util.List<?>) raw.get("groups")) {
+                    if (!(item instanceof com.alibaba.fastjson2.JSONObject)) throw new IllegalArgumentException();
+                    com.alibaba.fastjson2.JSONObject group = (com.alibaba.fastjson2.JSONObject) item;
+                    rejectUnknownKeys(group, java.util.Set.of("connector", "filters"));
+                    rawText(group, "connector");
+                    if (group.get("filters") != null) {
+                        if (!(group.get("filters") instanceof java.util.List)) throw new IllegalArgumentException();
+                        for (Object condition : (java.util.List<?>) group.get("filters")) {
+                            if (!(condition instanceof com.alibaba.fastjson2.JSONObject)) throw new IllegalArgumentException();
+                            com.alibaba.fastjson2.JSONObject filter = (com.alibaba.fastjson2.JSONObject) condition;
+                            rejectUnknownKeys(filter, java.util.Set.of("connector", "field", "op", "value", "values"));
+                            rawText(filter, "connector"); rawText(filter, "field"); rawText(filter, "op");
+                            if (filter.get("values") != null && !(filter.get("values") instanceof java.util.List)) throw new IllegalArgumentException();
+                        }
+                    }
+                }
+            }
+            if (raw.get("orderBy") != null) {
+                if (!(raw.get("orderBy") instanceof java.util.List)) throw new IllegalArgumentException();
+                for (Object item : (java.util.List<?>) raw.get("orderBy")) {
+                    if (!(item instanceof com.alibaba.fastjson2.JSONObject)) throw new IllegalArgumentException();
+                    rejectUnknownKeys((com.alibaba.fastjson2.JSONObject) item, java.util.Set.of("field", "dir"));
+                    rawText((com.alibaba.fastjson2.JSONObject) item, "field"); rawText((com.alibaba.fastjson2.JSONObject) item, "dir");
+                }
+            }
+            TypedQuerySpec spec = raw.toJavaObject(TypedQuerySpec.class);
+            if (spec == null) throw new IllegalArgumentException();
+            return spec;
+        } catch (RuntimeException invalid) { throw new com.datamaster.common.exception.ServiceException("查询条件JSON无效，不能降级为无条件查询"); }
+    }
+    private static void rawText(com.alibaba.fastjson2.JSONObject object, String field) {
+        if (object.get(field) != null && !(object.get(field) instanceof String)) throw new IllegalArgumentException("Query member must be text");
+    }
+    private static void rejectUnknownKeys(com.alibaba.fastjson2.JSONObject object, java.util.Set<String> allowed) {
+        if (object == null || !allowed.containsAll(object.keySet())) throw new IllegalArgumentException("Unknown structured query member");
+    }
+    public static Compiled compileStrict(TypedQuerySpec spec, List<String> whitelist, java.util.Set<String> textColumns) {
+        if (whitelist == null || whitelist.isEmpty()) throw new com.datamaster.common.exception.ServiceException("缺少查询字段白名单");
+        if (spec == null) throw new com.datamaster.common.exception.ServiceException("查询条件不能为空");
+        // Isolate from caller mutation while validating/compiling the same structured request.
+        spec = JSON.parseObject(JSON.toJSONString(spec, com.alibaba.fastjson2.JSONWriter.Feature.WriteMapNullValue), TypedQuerySpec.class);
+        if (spec.getColumns() != null) {
+            if (spec.getColumns().size() > 200) throw new com.datamaster.common.exception.ServiceException("投影字段超过200项");
+            for (String column : spec.getColumns()) strictField(column, whitelist);
+        }
+        if (spec.getOrderBy() != null) {
+            if (spec.getOrderBy().size() > 10) throw new com.datamaster.common.exception.ServiceException("排序最多10项");
+            for (TypedQuerySpec.OrderByField order : spec.getOrderBy()) {
+                if (order == null || order.getDir() == null || !("asc".equalsIgnoreCase(order.getDir()) || "desc".equalsIgnoreCase(order.getDir()))) throw new com.datamaster.common.exception.ServiceException("查询排序无效");
+                strictField(order.getField(), whitelist);
+            }
+        }
+        int total = 0;
+        if (spec.getGroups() != null) {
+            if (spec.getGroups().size() > 20) throw new com.datamaster.common.exception.ServiceException("过滤组最多20项");
+            for (TypedQuerySpec.FilterGroup group : spec.getGroups()) {
+                if (group == null) throw new com.datamaster.common.exception.ServiceException("过滤组不能为空");
+                strictConnector(group.getConnector(), false);
+                if (group.getFilters() == null) throw new com.datamaster.common.exception.ServiceException("过滤组条件列表不能为空");
+                // UI editors retain one explicit empty placeholder group before any filter is added.
+                if (group.getFilters().isEmpty()) continue;
+                for (TypedFilter filter : group.getFilters()) {
+                    if (++total > 100 || filter == null || filter.getOp() == null) throw new com.datamaster.common.exception.ServiceException("过滤条件无效或超过100项");
+                    strictField(filter.getField(), whitelist); strictConnector(filter.getConnector(), true);
+                    String op = filter.getOp().toLowerCase(java.util.Locale.ROOT);
+                    filter.setOp(op);
+                    if (!java.util.Set.of("eq", "ne", "gt", "ge", "lt", "le", "like", "in", "between", "isnull", "isnotnull").contains(op)) throw new com.datamaster.common.exception.ServiceException("过滤运算符无效");
+                    if ("isnull".equals(op) || "isnotnull".equals(op)) {
+                        if (filter.getValue() != null || filter.getValues() != null && !filter.getValues().isEmpty()) throw new com.datamaster.common.exception.ServiceException("空值判断不能携带其他条件值");
+                    } else if ("in".equals(op) || "between".equals(op)) {
+                        if (filter.getValue() != null) throw new com.datamaster.common.exception.ServiceException("多值运算不能同时携带单值条件");
+                        if (filter.getValues() == null || filter.getValues().isEmpty() || filter.getValues().size() > 100 || "between".equals(op) && filter.getValues().size() != 2) throw new com.datamaster.common.exception.ServiceException("IN/BETWEEN条件值无效");
+                        for (Object value : filter.getValues()) strictScalar(value);
+                    } else {
+                        if (filter.getValues() != null && !filter.getValues().isEmpty()) throw new com.datamaster.common.exception.ServiceException("单值运算不能携带values数组");
+                        strictScalar(filter.getValue());
+                    }
+                }
+            }
+        }
+        if (spec.getKeyword() != null && spec.getKeyword().length() > 2000) throw new com.datamaster.common.exception.ServiceException("关键字超过2000字符");
+        if (StringUtils.hasText(spec.getKeyword()) && textColumns != null && textColumns.isEmpty()) throw new com.datamaster.common.exception.ServiceException("当前对象无可用文本字段，不能静默忽略关键字");
+        String keyword = spec.getKeyword(); spec.setKeyword(null);
+        Compiled grouped = compile(spec, whitelist, textColumns);
+        if (!StringUtils.hasText(keyword)) return grouped;
+        TypedQuerySpec keywordOnly = new TypedQuerySpec(); keywordOnly.setKeyword(keyword);
+        Compiled keywordClause = compile(keywordOnly, whitelist, textColumns);
+        if (!keywordClause.hasWhere()) throw new com.datamaster.common.exception.ServiceException("关键字未形成有效查询条件");
+        // Existing group OR terms must be parenthesized before AND keyword restriction.
+        Map<String,Object> params = new LinkedHashMap<>(grouped.params);
+        String condition = keywordClause.where;
+        for (Map.Entry<String,Object> item : keywordClause.params.entrySet()) {
+            String distinct = "strict_" + item.getKey();
+            condition = condition.replaceAll(java.util.regex.Pattern.quote(":" + item.getKey()) + "(?![A-Za-z0-9_])", ":" + distinct);
+            params.put(distinct, item.getValue());
+        }
+        String where = grouped.hasWhere() ? "(" + grouped.where + ") AND " + condition : condition;
+        return new Compiled(grouped.projection, where, grouped.orderBy, params);
+    }
+    private static void strictField(String field, List<String> whitelist) {
+        if (field == null || !field.matches("[A-Za-z_][A-Za-z0-9_$]*") || !whitelist.contains(field)) throw new com.datamaster.common.exception.ServiceException("查询字段不属于当前已授权白名单");
+    }
+    private static void strictConnector(String connector, boolean allowNot) {
+        if (connector != null && !connector.isBlank() && !("AND".equalsIgnoreCase(connector) || "OR".equalsIgnoreCase(connector) || allowNot && "NOT".equalsIgnoreCase(connector))) throw new com.datamaster.common.exception.ServiceException("过滤连接符无效");
+    }
+    private static void strictScalar(Object value) {
+        if (!(value instanceof String || value instanceof Number || value instanceof Boolean) || String.valueOf(value).length() > 2000) throw new com.datamaster.common.exception.ServiceException("过滤值必须为有效有界标量");
+        if (value instanceof Number) {
+            try {
+                java.math.BigDecimal number = new java.math.BigDecimal(String.valueOf(value));
+                if (number.precision() > 1000 || Math.abs((long) number.scale()) > 1000) throw new IllegalArgumentException();
+            } catch (RuntimeException invalid) { throw new com.datamaster.common.exception.ServiceException("过滤数值无效或超限"); }
+        }
+    }
+
     /**
      * 按白名单编译查询说明为安全 SQL 片段。
      *
@@ -125,7 +255,7 @@ public class TypedQueryBuilder {
                     } else {
                         String conn = "AND".equalsIgnoreCase(group.getConnector())
                                 || "OR".equalsIgnoreCase(group.getConnector())
-                                ? group.getConnector().toUpperCase() : "AND";
+                                ? group.getConnector().toUpperCase(java.util.Locale.ROOT) : "AND";
                         whereParts.add(" " + conn + " " + groupSql);
                     }
                 }
@@ -224,13 +354,13 @@ public class TypedQueryBuilder {
                 continue;
             }
             if (first) {
-                conds.add(cond);
+                conds.add(CONN_NOT.equalsIgnoreCase(filter.getConnector()) ? "NOT (" + cond + ")" : cond);
                 first = false;
             } else {
                 String fConn = filter.getConnector() == null
-                        ? CONN_AND : filter.getConnector().toUpperCase();
+                        ? CONN_AND : filter.getConnector().toUpperCase(java.util.Locale.ROOT);
                 if (CONN_NOT.equals(fConn)) {
-                    conds.add(" NOT (" + cond + ")");
+                    conds.add(" AND NOT (" + cond + ")");
                 } else {
                     String sep = CONN_OR.equals(fConn) ? " OR " : " AND ";
                     conds.add(sep + cond);
@@ -248,7 +378,7 @@ public class TypedQueryBuilder {
      */
     private static String buildCondition(TypedFilter filter, Map<String, Object> params, IntRef idx) {
         String col = filter.getField();
-        String op = filter.getOp() == null ? OP_EQ : filter.getOp().toLowerCase();
+        String op = filter.getOp() == null ? OP_EQ : filter.getOp().toLowerCase(java.util.Locale.ROOT);
         switch (op) {
             case OP_IS_NULL:
                 return col + " IS NULL";

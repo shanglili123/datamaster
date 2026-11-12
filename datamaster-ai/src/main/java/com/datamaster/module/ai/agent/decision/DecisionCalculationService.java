@@ -15,7 +15,7 @@ public class DecisionCalculationService {
     @Resource private StandardCostCapacityEvaluator evaluator;
     @Resource private DecisionComparisonService comparison;
 
-    public boolean usesMetric(CalculationRequest request) {
+    private List<MeasureRef> values(CalculationRequest request) {
         List<MeasureRef> values = new ArrayList<>();
         if (request.getContext() != null) {
             values.add(request.getContext().getDemand()); values.add(request.getContext().getExistingSupply()); values.add(request.getContext().getBudget());
@@ -27,7 +27,11 @@ public class DecisionCalculationService {
                 values.add(line.getQuantity()); values.add(line.getUnitPrice()); values.add(line.getOutputPerUnit());
             }
         }
-        return values.stream().anyMatch(ref -> ref != null && "METRIC".equals(ref.getSource()));
+        return values;
+    }
+
+    public boolean usesMetric(CalculationRequest request) {
+        return values(request).stream().anyMatch(ref -> ref != null && "METRIC".equals(ref.getSource()));
     }
 
     public void calculate(Proposal proposal, CalculationRequest request, String userId) {
@@ -50,12 +54,19 @@ public class DecisionCalculationService {
             if (spec == null || !candidateIds.contains(spec.getCandidateId()) || specs.put(spec.getCandidateId(), spec) != null)
                 throw new ServiceException("测算候选不存在、重复或为不干预基线");
         }
+        // Validate the complete comparison before mutating any candidate or aligned parameters.
+        String scopeDigest = DecisionMetricScope.validate(proposal, context, values(request));
         for (Candidate candidate : proposal.getCandidates()) {
             candidate.setCalculation(null); candidate.setCalculationSpec(null);
             CalculationSpec spec = specs.get(candidate.getId());
             if (!candidate.isBaseline() && spec == null) continue;
+            candidate.setSuggestedBinding(DecisionBindingNormalization.effective(candidate.getSuggestedBinding(), proposal.getObjectKey()));
             CalculationResult result = new CalculationResult();
             result.setConfirmedBy(userId); result.setConfirmedAt(new Date());
+            result.setMetricScopeDigest(scopeDigest);
+            result.getLimitations().add(scopeDigest == null
+                    ? "仅使用人工确认假设；对象范围与统计窗口没有正式指标口径核验"
+                    : "正式指标已与用户选择的基准按概念、粒度、时间、固定过滤、分析过滤和分组值严格匹配；不证明人工描述、业务可比性或数据新鲜度");
             try {
                 BigDecimal demand = resolve(proposal, context.getDemand(), context.getQuantityUnit(), "demand", result);
                 BigDecimal existing = resolve(proposal, context.getExistingSupply(), context.getQuantityUnit(), "existingSupply", result);
@@ -173,8 +184,15 @@ public class DecisionCalculationService {
 
     /** Called at preview, confirmation and immediately before dispatch. */
     public void assertExecution(Candidate candidate, Binding binding) {
-        if (candidate.getCalculation() == null) return;
+        if (candidate.getCalculation() == null) {
+            if (candidate.getCalculationSpec() != null)
+                throw new ServiceException("保留的测算输入尚未重新核验，请先重新测算再准备执行");
+            return;
+        }
         CalculationResult result = candidate.getCalculation();
+        if (result.getSources().values().stream().anyMatch(source -> source != null && source.startsWith("VERIFIED_METRIC;"))
+                && result.getMetricScopeDigest() == null)
+            throw new ServiceException("历史指标测算未验证共同口径，请重新选择基准并测算");
         if (!"COMPUTED".equals(result.getStatus()) || "FAIL".equals(result.getBudgetStatus()))
             throw new ServiceException("测算未完成或超过预算，不可提交");
         CalculationSpec spec = candidate.getCalculationSpec();

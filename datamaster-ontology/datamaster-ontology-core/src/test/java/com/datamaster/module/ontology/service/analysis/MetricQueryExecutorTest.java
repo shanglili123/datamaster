@@ -55,12 +55,31 @@ public class MetricQueryExecutorTest {
         assertTrue(f.connectionClosed.get()); assertTrue(f.statementClosed.get()); assertTrue(f.queryClosed.get());
         assertTrue(policy.tryAcquire()); policy.release();
     }
+    @Test public void completeModeRejectsOverflowAndStillClosesEveryResource() {
+        Fixture f = new Fixture(); MetricQueryPolicy policy = new MetricQueryPolicy(true, "40", "reader", 15, 1);
+        MetricQueryReqVO request = MetricQueryBuilderTest.request(); request.setLimit(1); request.setRequireComplete(true);
+        try {
+            new MetricQueryExecutor(f.factory(), policy).execute(MetricQueryBuilderTest.snapshot(), MetricQueryBuilder.compile(MetricQueryBuilderTest.snapshot(), request), property());
+            fail("Must not return a partial trend");
+        } catch (ServiceException error) { assertEquals("完整结果超出上限，请缩小区间或使用更粗时间粒度", error.getMessage()); }
+        assertTrue(f.connectionClosed.get()); assertTrue(f.statementClosed.get()); assertTrue(f.resultClosed.get()); assertTrue(f.queryClosed.get());
+        assertTrue(policy.tryAcquire()); policy.release();
+    }
+    @Test public void oversizedSourceDecimalRejectsBeforePlainStringAndClosesResources() {
+        Fixture f = new Fixture(); f.numericValue = new BigDecimal("1e100000");
+        MetricQueryPolicy policy = new MetricQueryPolicy(true, "40", "reader", 15, 1);
+        MetricQueryBuilderTest.rejected(() -> new MetricQueryExecutor(f.factory(), policy).execute(MetricQueryBuilderTest.snapshot(),
+                MetricQueryBuilder.compile(MetricQueryBuilderTest.snapshot(), MetricQueryBuilderTest.request()), property()));
+        assertTrue(f.connectionClosed.get()); assertTrue(f.statementClosed.get()); assertTrue(f.resultClosed.get()); assertTrue(f.queryClosed.get());
+        assertTrue(policy.tryAcquire()); policy.release();
+    }
     private static DbQueryProperty property() {
         return new DbQueryProperty("DORIS", "unused", "reader", null, 1, "ads", null);
     }
     private static class Fixture {
         final AtomicBoolean connectionClosed = new AtomicBoolean(), statementClosed = new AtomicBoolean(), resultClosed = new AtomicBoolean(), queryClosed = new AtomicBoolean();
         final AtomicInteger timeout = new AtomicInteger(), maxRows = new AtomicInteger(), cursor = new AtomicInteger(), prepares = new AtomicInteger(), factoryCalls = new AtomicInteger();
+        BigDecimal numericValue = new BigDecimal("9007199254740993.25");
         boolean failReadOnly, failExecute;
         DataSourceFactory factory() {
             return property -> {
@@ -98,7 +117,7 @@ public class MetricQueryExecutorTest {
             return proxy(ResultSet.class, (object, method, args) -> {
                 switch (method.getName()) {
                     case "next": return cursor.incrementAndGet() <= 2;
-                    case "getBigDecimal": return new BigDecimal("9007199254740993.25");
+                    case "getBigDecimal": return numericValue;
                     case "getMetaData": return proxy(ResultSetMetaData.class, (o, m, a) -> {
                         if ("getColumnCount".equals(m.getName())) return 1;
                         if ("getColumnLabel".equals(m.getName())) return "metric_value";

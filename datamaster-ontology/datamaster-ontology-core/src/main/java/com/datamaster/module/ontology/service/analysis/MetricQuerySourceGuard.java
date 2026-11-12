@@ -27,6 +27,8 @@ public class MetricQuerySourceGuard {
     // Both types are existing assets-interface classes, not assets-core dependencies.
     @Resource private AssetsAssetColumnMapper assetColumnMapper;
     @Resource private ConceptTableMapper conceptTableMapper;
+    @Resource private com.datamaster.module.governance.api.flow.ISpaceFlowApi spaceFlows;
+    @Resource private org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public DbQueryProperty authorize(MetricRespVO snapshot, MetricQueryBuilder.Plan plan, OntologyDO ontology) {
         policy.assertBinding(snapshot.getConceptTableId());
@@ -38,29 +40,57 @@ public class MetricQuerySourceGuard {
                 && Objects.equals(binding.getSchemaName(), snapshot.getSourceSnapshot().get("schemaName")),
                 "当前批准绑定已改变，历史快照不可自动获得新来源授权");
         DatasourceRespDTO ds = datasourceApiService.getDatasourceById(plan.getDatasourceId());
-        require(ds != null && Objects.equals(ds.getId(), plan.getDatasourceId())
-                && "DORIS".equalsIgnoreCase(ds.getDatasourceType()), "来源数据源不存在或已非Doris");
+        MetricSqlDialect dialect = MetricSqlDialect.forSource(snapshot);
+        require(ds != null && !Boolean.FALSE.equals(ds.getValidFlag()) && Objects.equals(ds.getId(), plan.getDatasourceId())
+                && dialect.sameType(ds.getDatasourceType()), "来源数据源不存在或类型已改变");
         DbQueryProperty property;
         try { property = new DbQueryProperty(ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig()); }
         catch (RuntimeException ex) { throw new ServiceException("指标来源数据源配置不可用"); }
         policy.assertReadonlyUsername(property.getUsername());
         require(plan.getDatabaseName().equals(property.getDbName()), "发布数据库与当前数据源数据库不一致，拒绝跨库查询");
+        if (dialect.postgres()) require(Objects.equals(binding.getSchemaName(), property.getSid()), "发布schema与当前数据源配置不一致，拒绝跨schema查询");
         // Never routeTo/setDbName: a snapshot cannot retarget a saved connection.
         AssetsTableGovernanceReqDTO request = new AssetsTableGovernanceReqDTO();
         request.setDatasourceId(plan.getDatasourceId()); request.setTableName(plan.getTableName());
         request.setSpaceId(ontology.getSpaceId()); request.setSpaceCode(ontology.getSpaceCode());
         request.setColumnNames(new ArrayList<>(plan.getUsedColumns())); request.setEntrance("ONTOLOGY_METRIC_QUERY");
         AssetsTableGovernanceRespDTO response = governance.resolveTable(request);
-        assertGovernance(response, plan.getUsedColumns(), plan.getDatasourceId(), plan.getTableName());
-        Set<String> hidden = governance.getDesensitizeHideColumns(response.getAssetId(), SecurityUtils.getUserId(), null, "2");
-        require(hidden != null, "敏感列检查不可用");
-        for (String used : plan.getUsedColumns()) {
-            for (String denied : hidden) require(!used.equalsIgnoreCase(denied), "查询包含需要隐藏的敏感字段");
+        com.datamaster.module.governance.api.flow.ISpaceFlowApi.Policy flow = spaceFlows.policy(ontology.getSpaceId(), ontology.getSpaceCode());
+        boolean spaceMode = "SPACE_FLOW".equals(snapshot.getSourceSnapshot().get("sourceMode"));
+        // Existing publications retain strict asset checks. A new publication explicitly opts into space policy.
+        if (!spaceMode || flow.isAssetRequired()) {
+            assertGovernance(response, plan.getUsedColumns(), plan.getDatasourceId(), plan.getTableName());
+            Set<String> hidden = governance.getDesensitizeHideColumns(response.getAssetId(), SecurityUtils.getUserId(), null, "2");
+            require(hidden != null, "敏感列检查不可用");
+            for (String used : plan.getUsedColumns()) for (String denied : hidden) require(!used.equalsIgnoreCase(denied), "查询包含需要隐藏的敏感字段");
+            assertNonsensitiveColumns(plan.getUsedColumns(), assetColumnMapper.findByAssetId(response.getAssetId()));
+        } else {
+            require(datasourceApiService.hasDatasourceSpace(plan.getDatasourceId(), ontology.getSpaceId(), ontology.getSpaceCode()), "轻量指标数据源未有效关联当前空间");
+            require(response != null && Boolean.TRUE.equals(response.getAccessAllowed()), "当前空间来源准入未通过");
+            if (Boolean.TRUE.equals(response.getEnabled()) && "strict".equals(response.getMode())) {
+                // A global strict policy cannot become a metadata bypass merely because no asset matched.
+                assertGovernance(response, plan.getUsedColumns(), plan.getDatasourceId(), plan.getTableName());
+                Set<String> hidden = governance.getDesensitizeHideColumns(response.getAssetId(), SecurityUtils.getUserId(), null, "2");
+                require(hidden != null, "敏感列检查不可用");
+                for (String used : plan.getUsedColumns()) for (String denied : hidden) require(!used.equalsIgnoreCase(denied), "查询包含需要隐藏的敏感字段");
+                assertNonsensitiveColumns(plan.getUsedColumns(), assetColumnMapper.findByAssetId(response.getAssetId()));
+            }
+            assertMetadataSource(ontology, binding, plan);
         }
-        // Aggregation does not mask sensitive inputs. Reject any sensitivity metadata (including
-        // potential ACTION_REPLACE), even for users whose masking action would currently pass.
-        assertNonsensitiveColumns(plan.getUsedColumns(), assetColumnMapper.findByAssetId(response.getAssetId()));
         return property;
+    }
+
+    /** Light mode uses registered metadata in the actual space, not an asset bypass or a guessed table. */
+    private void assertMetadataSource(OntologyDO ontology, ConceptTableDO binding, MetricQueryBuilder.Plan plan) {
+        List<Map<String,Object>> tables = jdbc.queryForList("SELECT id,safety_level_id FROM cat_table WHERE datasource_id=? AND table_name=? AND db_name=? AND COALESCE(schema_name,'')=COALESCE(?,'') AND space_id=? AND (del_flag IS NULL OR del_flag=false) AND valid_flag=true", plan.getDatasourceId(), plan.getTableName(), plan.getDatabaseName(), binding.getSchemaName(), ontology.getSpaceId());
+        require(tables.size() == 1, "轻量指标来源必须唯一登记在本空间元数据中（明确库/schema）");
+        require(tables.get(0).get("safety_level_id") == null, "安全分级表不能通过轻量指标路径读取，请使用严格资产授权路径");
+        List<Map<String,Object>> columns = jdbc.queryForList("SELECT column_name,safety_level_id FROM cat_column WHERE table_id=? AND (del_flag IS NULL OR del_flag=false) AND valid_flag=true", tables.get(0).get("id"));
+        for (String used : plan.getUsedColumns()) {
+            List<Map<String,Object>> matches = new ArrayList<>();
+            for (Map<String,Object> column : columns) if (used.equalsIgnoreCase(String.valueOf(column.get("column_name")))) matches.add(column);
+            require(matches.size() == 1 && matches.get(0).get("safety_level_id") == null, "轻量指标参与字段未唯一登记或存在安全等级，请走严格资产授权");
+        }
     }
 
     public static void assertGovernance(AssetsTableGovernanceRespDTO response, Set<String> used, Long datasourceId, String tableName) {

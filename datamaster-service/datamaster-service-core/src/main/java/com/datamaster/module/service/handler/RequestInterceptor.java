@@ -79,7 +79,7 @@ public class RequestInterceptor implements HandlerInterceptor {
         params.remove("client_token");
         // 参数校验
         if (MapUtil.isNotEmpty(params)) {
-            api.getReqParamsList().forEach(param -> {
+            if (api.getReqParamsList() != null) api.getReqParamsList().forEach(param -> {
                 if (params.containsKey(param.getParamName())) {
                     // 参数类型是否正确
                     ParamType.parse(ParamType.getParamType(param.getParamType()), params.get(param.getParamName()));

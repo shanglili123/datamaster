@@ -22,7 +22,7 @@ public class MetricQueryExecutor {
     }
     public MetricQueryRespVO execute(MetricRespVO snapshot, MetricQueryBuilder.Plan plan, DbQueryProperty property) {
         policy.assertBinding(snapshot.getConceptTableId());
-        require("DORIS".equalsIgnoreCase(property.getDbType()), "仅支持Doris数据源");
+        require(MetricSqlDialect.forSource(snapshot).sameType(property.getDbType()), "指标数据源类型不匹配");
         policy.assertReadonlyUsername(property.getUsername());
         require(plan.getDatabaseName().equals(property.getDbName()), "指标数据库不匹配");
         require(policy.tryAcquire(), "指标查询繁忙，请稍后重试");
@@ -59,14 +59,22 @@ public class MetricQueryExecutor {
                                 rows.add(row);
                             }
                             boolean truncated = rows.size() > limit;
+                            if (Boolean.TRUE.equals(plan.getRequest().getRequireComplete()) && truncated) throw new CompleteResultLimitException();
                             if (truncated) rows.remove(rows.size() - 1);
                             MetricQueryRespVO result = new MetricQueryRespVO();
                             result.setMetricId(snapshot.getId()); result.setVersion(plan.getRequest().getVersion());
                             result.setMetricName(snapshot.getName()); result.setUnit(snapshot.getUnit());
-                            result.setColumns(plan.getColumns()); result.setRows(rows); result.setTruncated(truncated);
+                            result.setPageNum(plan.getRequest().getPageNum()); result.setHasMore(truncated);
+                            result.setColumns(plan.getColumns()); result.setRows(rows); result.setTruncated(truncated || plan.getRequest().getPageNum() > 1);
                             result.setLimit(limit); result.setExecutedAt(executedAt);
                             result.setElapsedMs((System.nanoTime() - started) / 1000000L);
-                            result.setNotice("仅执行明确发布版本；固定口径与用户条件AND；时间范围为[start,end)，不自动分桶或变换粒度。访问隔离依赖预先批准的只读ADS视图和账号，并非全量行权限引擎。");
+                            result.setSourceTimeOffset(snapshot.getSourceTimeOffset()); result.setBusinessTimeOffset(snapshot.getBusinessTimeOffset());
+                            result.setTimeBucket(plan.getRequest().getTimeBucket());
+                            result.setSortBy(plan.getRequest().getSortBy()); result.setSortDirection(plan.getRequest().getSortDirection());
+                            result.setNotice("仅执行明确发布版本；固定口径与用户条件AND。" + MetricTimeRules.description(snapshot) + "；起止时间按业务口径输入，范围为[start,end)，配置偏移时转换为来源时间；固定/附加时间字段过滤按原物理字段口径。分桶先按已发布偏移转换再在来源数据库完整聚合排序，未满桶仅统计所选区间、不补零。"
+                                    + (truncated || plan.getRequest().getPageNum() > 1 ? "当前仅为有界分页/前N组，不能代表完整分组；页间查询不冻结源数据，不返回估算总数。" : "当前分组未截断。")
+                                    + "访问隔离仍依赖已批准的只读来源和账号，并非全量行权限引擎。");
+                            MetricTrendRules.completeCalendar(plan.getRequest(), result);
                             return result;
                         }
                     }
@@ -74,14 +82,18 @@ public class MetricQueryExecutor {
             } finally {
                 if (query != null) query.close();
             }
+        } catch (CompleteResultLimitException ex) {
+            throw new ServiceException("完整结果超出上限，请缩小区间或使用更粗时间粒度");
         } catch (Exception ex) {
             // No SQL, filter values, connection configuration, credentials, or raw driver errors in response/logs.
             throw new ServiceException("受控指标查询失败，请联系管理员核对安全数据源及治理配置");
         } finally { policy.release(); }
     }
+    private static final class CompleteResultLimitException extends RuntimeException { }
     private static Object read(ResultSet result, int index, String type) throws SQLException {
         if (MetricRules.numeric(type)) {
             java.math.BigDecimal value = result.getBigDecimal(index);
+            require(value == null || value.precision() <= 1000 && Math.abs((long) value.scale()) <= 1000, "来源数值超出安全返回范围");
             return value == null ? null : value.toPlainString();
         }
         if ("boolean".equalsIgnoreCase(type)) {

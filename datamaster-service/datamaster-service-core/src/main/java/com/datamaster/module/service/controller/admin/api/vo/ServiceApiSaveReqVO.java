@@ -95,6 +95,12 @@ public class ServiceApiSaveReqVO extends BaseEntity {
     @Size(max = 256, message = "描述长度不能超过256个字符")
     private String description;
 
+    @Schema(description = "所属空间ID，创建必须明确ID或编码，普通编辑不可变更归属")
+    private Long spaceId;
+
+    @Schema(description = "所属空间编码，创建时与空间ID一致")
+    private String spaceCode;
+
     @Schema(description = "状态", example = "")
     @Size(max = 256, message = "状态长度不能超过256个字符")
     private String status;

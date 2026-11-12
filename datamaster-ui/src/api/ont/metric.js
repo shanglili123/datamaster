@@ -3,6 +3,9 @@ import request from '@/utils/request'
 export function listMetric(params) {
   return request({ url: '/ont/metric/page', method: 'get', params })
 }
+export function listPublishedMetric(params) {
+  return request({ url: '/ont/metric/published-page', method: 'get', params })
+}
 export function getMetric(id) {
   return request({ url: `/ont/metric/${id}`, method: 'get' })
 }
@@ -23,6 +26,9 @@ export function publishMetric(id, revision) {
 }
 export function disableMetric(id, revision) {
   return request({ url: `/ont/metric/${id}/disable`, method: 'post', params: { revision } })
+}
+export function restoreMetricDraft(id, version, revision) {
+  return request({ url: `/ont/metric/${id}/versions/${version}/restore-draft`, method: 'post', params: { revision } })
 }
 export function listMetricVersions(id) {
   return request({ url: `/ont/metric/${id}/versions`, method: 'get' })

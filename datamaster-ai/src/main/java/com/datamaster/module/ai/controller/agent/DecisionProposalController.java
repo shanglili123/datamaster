@@ -15,6 +15,24 @@ import javax.annotation.Resource;
 public class DecisionProposalController {
     @Resource private DecisionProposalService proposals;
 
+    @GetMapping("/tasks")
+    @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
+    public CommonResult<java.util.List<Proposal>> tasks(@RequestParam Long spaceId, @RequestParam String spaceCode) {
+        return CommonResult.success(proposals.listMine(spaceId, spaceCode));
+    }
+
+    @PostMapping("/disposition")
+    @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
+    public CommonResult<Proposal> disposition(@RequestBody com.datamaster.module.ai.agent.decision.DecisionModels.DispositionRequest request) {
+        return CommonResult.success(proposals.dispose(request));
+    }
+
+    @PostMapping("/effect-plan")
+    @PreAuthorize("@ss.hasPermi('ai:ask-data:query') and @ss.hasPermi('ont:metric:query') and @ss.hasPermi('ont:metric:execute')")
+    public CommonResult<Proposal> effectPlan(@RequestBody com.datamaster.module.ai.agent.decision.DecisionModels.EffectPlanRequest request) {
+        return CommonResult.success(proposals.configureEffect(request));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
     public CommonResult<Proposal> get(@PathVariable String id) {

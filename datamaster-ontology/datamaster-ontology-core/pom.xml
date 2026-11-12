@@ -59,6 +59,11 @@
             <version>${dataMaster.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.datamaster</groupId>
+            <artifactId>datamaster-governance-interface</artifactId>
+            <version>${dataMaster.version}</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>

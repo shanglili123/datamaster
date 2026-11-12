@@ -8,6 +8,9 @@ import com.datamaster.module.ontology.controller.admin.action.vo.*;
  */
 public interface IActionExecutionService {
 
+    /** Independent bounded SELECT-only impact summary; never submits or executes business writes. */
+    ActionImpactPreviewVO previewImpact(ExecutionSubmitReqVO request);
+
     /** 提交执行（生成SQL + dry-run） */
     ExecutionRespVO submitExecution(ExecutionSubmitReqVO submitReqVO);
 

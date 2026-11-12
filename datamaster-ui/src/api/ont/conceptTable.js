@@ -61,7 +61,7 @@ export function delConceptTable(id) {
 }
 
 // 预览概念表绑定物理表数据（filters: 类型化查询 spec 对象，可选，JSON.stringify 后服务端白名单编译 WHERE）
-// spec 形如：{"groups":[{"connector":"AND","negate":false,"filters":[{"field":"<物理列>","op":"eq","value":x}]}],
+// spec 形如：{"groups":[{"connector":"AND","filters":[{"field":"<物理列>","op":"eq","value":x}]}],
 //            "orderBy":[{"field":"<物理列>","dir":"asc"}],"columns":["<物理列>"],"keyword":"模糊"}
 export function previewConceptTable(id, limit = 20, filters) {
   const params = { limit }

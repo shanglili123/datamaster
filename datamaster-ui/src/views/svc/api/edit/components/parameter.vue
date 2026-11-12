@@ -179,6 +179,8 @@ import {
 } from "@/api/ast/dataSource/dataSource.js";
 
 import { sqlParse } from "@/api/svc/api/api.js";
+import useUserStore from '@/store/system/user'
+const userStore = useUserStore()
 
 const { proxy } = getCurrentInstance();
 const {
@@ -344,6 +346,9 @@ function sqlParseFunction() {
   const data = {};
   data.sourceId = props.form2.sourceId;
   data.sqlText = props.form2.sqlText;
+  data.apiId = props.form2.persistedApiId || null;
+  data.spaceId = props.form2.spaceId || userStore.spaceId || null;
+  data.spaceCode = props.form2.spaceCode || userStore.spaceCode || null;
   sqlParse(data).then((response) => {
     if (response.code === 200) {
       const { data } = response;

@@ -49,6 +49,25 @@ public final class MetricQueryBuilder {
         }
         copy.setFilters(copied);
         copy.setStartTime(input.getStartTime()); copy.setEndTime(input.getEndTime());
+        String bucket = input.getTimeBucket() == null ? "NONE" : input.getTimeBucket();
+        require(Arrays.asList("NONE", "DAY", "MONTH", "YEAR").contains(bucket), "不支持的时间分桶");
+        copy.setTimeBucket(bucket);
+        String sortBy = input.getSortBy(), direction = input.getSortDirection();
+        require((sortBy == null) == (direction == null), "排序字段和方向必须同时提供");
+        if (sortBy != null) {
+            require("ASC".equals(direction) || "DESC".equals(direction), "排序方向仅支持ASC/DESC");
+            Set<String> sortable = new HashSet<>(); sortable.add("metric_value");
+            for (Long id : dimensions) sortable.add("d_" + id);
+            if (!"NONE".equals(bucket)) sortable.add("time_bucket");
+            require(sortable.contains(sortBy), "只能按指标值或本次选中的分组排序");
+        }
+        copy.setSortBy(sortBy); copy.setSortDirection(direction);
+        copy.setRequireComplete(Boolean.TRUE.equals(input.getRequireComplete()));
+        copy.setPageNum(input.getPageNum() == null ? 1 : input.getPageNum());
+        require(!copy.getRequireComplete() || copy.getPageNum() == 1, "完整结果模式不能翻页，请缩小范围而不是拼接不同时刻的分页");
+        if (copy.getRequireComplete() && !"NONE".equals(bucket) && dimensions.isEmpty()) require(sortBy == null || "time_bucket".equals(sortBy) && "ASC".equals(direction), "完整趋势须按时间桶升序，不可把指标值TopN顺序标作趋势");
+        require(copy.getPageNum() >= 1 && copy.getPageNum() <= 1000, "分页页码必须在1到1000之间");
+        require(copy.getPageNum() == 1 || !dimensions.isEmpty() || !"NONE".equals(bucket), "总量查询只有一页");
         copy.setLimit(input.getLimit() == null ? 100 : input.getLimit());
         require(copy.getLimit() >= 1 && copy.getLimit() <= 500, "limit必须在1到500之间");
         require((copy.getStartTime() == null) == (copy.getEndTime() == null), "开始和结束时间必须同时提供");
@@ -82,55 +101,76 @@ public final class MetricQueryBuilder {
         require(fixed != null && fixed.size() + req.getFilters().size() <= 20, "固定及用户过滤条件合计最多20个");
         require(publishedDimensions.containsAll(req.getDimensionPropertyIds()), "只能选择已发布维度");
         Map<String, Object> source = snapshot.getSourceSnapshot();
-        require(source != null && "DORIS".equalsIgnoreCase(text(source.get("datasourceType")))
-                && "METADATA_ONLY".equals(source.get("validationScope")), "不支持的来源快照");
+        require(source != null && "METADATA_ONLY".equals(source.get("validationScope")), "不支持的来源快照");
+        MetricSqlDialect dialect = MetricSqlDialect.forSource(snapshot);
+        MetricTimeRules.validate(snapshot);
+        if (MetricTimeRules.businessShiftMinutes(snapshot) != 0) {
+            require(!req.getDimensionPropertyIds().contains(snapshot.getTimePropertyId()), "跨时间偏移时请用业务时间桶，不直接按物理时间属性分组");
+        }
         Long datasourceId = positiveId(source.get("datasourceId"));
         String database = identifier(text(source.get("databaseName")));
         String table = identifier(text(source.get("tableName")));
         String schema = text(source.get("schemaName"));
-        require(schema == null || schema.isEmpty() || schema.equals(database), "仅支持与数据库相同或空的schema");
-        require(MetricRules.adsSource(database, table), "仅支持已批准的Doris ADS表或视图");
+        dialect.validateSource(database, schema, table, !"SPACE_FLOW".equals(source.get("sourceMode")));
         Object rawColumns = source.get("propertyColumns");
         require(rawColumns instanceof Map && ((Map<?, ?>) rawColumns).size() <= 32, "发布字段映射无效或超限");
         Map<?, ?> mappings = (Map<?, ?>) rawColumns;
-        // Validate the entire definition, even dimensions omitted from this particular grouping.
-        Set<Long> definitionIds = new LinkedHashSet<>(publishedDimensions);
-        if (snapshot.getValuePropertyId() != null) definitionIds.add(snapshot.getValuePropertyId());
-        if (snapshot.getTimePropertyId() != null) definitionIds.add(snapshot.getTimePropertyId());
-        for (MetricFilterVO filter : fixed) {
-            require(filter != null && filter.getPropertyId() != null, "固定条件无效");
-            definitionIds.add(filter.getPropertyId());
-        }
-        for (Long id : definitionIds) field(mappings, id);
+        // Validate every published mapping, including the second aggregate of a formal derivation.
+        for (MetricFilterVO filter : fixed) require(filter != null && filter.getPropertyId() != null, "固定条件无效");
+        for (Long id : MetricRules.usedProperties(snapshot)) field(mappings, id);
         List<String> select = new ArrayList<>();
         List<String> group = new ArrayList<>();
+        Map<String, String> groupExpressions = new LinkedHashMap<>();
         List<MetricQueryColumnVO> columns = new ArrayList<>();
         Set<String> usedColumns = new LinkedHashSet<>();
+        if (!"NONE".equals(req.getTimeBucket())) {
+            require(snapshot.getTimePropertyId() != null, "该指标未发布可用于分桶的时间属性");
+            Field time = field(mappings, snapshot.getTimePropertyId());
+            require(MetricRules.temporal(time.type), "时间属性类型无效");
+            usedColumns.add(time.column);
+            if ("date".equals(time.type)) require(MetricTimeRules.businessShiftMinutes(snapshot) == 0, "date属性无时刻信息，不支持跨时间偏移转换");
+            String bucket = bucketExpression(dialect, time.column, req.getTimeBucket(), snapshot);
+            select.add(bucket + " AS " + dialect.quote("time_bucket")); group.add(bucket);
+            groupExpressions.put("time_bucket", bucket);
+            columns.add(column("time_bucket", time.label + "（" + req.getTimeBucket() + "）", "string"));
+        }
         for (Long id : req.getDimensionPropertyIds()) {
             Field f = field(mappings, id); usedColumns.add(f.column);
-            String key = "d_" + id;
-            select.add(quote(f.column) + " AS " + quote(key)); group.add(quote(f.column));
+            String key = "d_" + id, expression = dialect.quote(f.column);
+            select.add(expression + " AS " + dialect.quote(key)); group.add(expression);
+            groupExpressions.put(key, expression);
             columns.add(column(key, f.label, f.type));
         }
+        boolean derived = com.datamaster.module.ontology.service.metric.MetricDerivedRules.active(snapshot);
+        com.datamaster.module.ontology.service.metric.MetricDerivedRules.validate(snapshot, true);
         Field valueField = snapshot.getValuePropertyId() == null ? null : field(mappings, snapshot.getValuePropertyId());
         require(valueField != null || "COUNT".equals(aggregation), "聚合缺少度量属性");
         if ("SUM".equals(aggregation) || "AVG".equals(aggregation)) {
             require(valueField != null && MetricRules.numeric(valueField.type), "SUM/AVG只支持数值属性");
         }
-        String value = valueField == null ? "*" : quote(valueField.column);
+        String value = valueField == null ? "*" : dialect.quote(valueField.column);
         if (valueField != null) usedColumns.add(valueField.column);
-        String expression = "COUNT_DISTINCT".equals(aggregation) ? "COUNT(DISTINCT " + value + ")" : aggregation + "(" + value + ")";
-        select.add(expression + " AS `metric_value`");
-        columns.add(column("metric_value", snapshot.getName(), aggregation.startsWith("COUNT") ? "long"
+        String expression = aggregateExpression(aggregation, value);
+        if (derived) {
+            require(valueField == null || aggregation.startsWith("COUNT") || MetricRules.numeric(valueField.type), "派生主聚合必须返回数值");
+            Field secondary = snapshot.getSecondaryValuePropertyId() == null ? null : field(mappings, snapshot.getSecondaryValuePropertyId());
+            require(secondary != null || "COUNT".equals(snapshot.getSecondaryAggregation()), "第二聚合缺少度量属性");
+            require(secondary == null || snapshot.getSecondaryAggregation().startsWith("COUNT") || MetricRules.numeric(secondary.type), "派生第二聚合必须返回数值");
+            if (secondary != null) usedColumns.add(secondary.column);
+            String secondExpression = aggregateExpression(snapshot.getSecondaryAggregation(), secondary == null ? "*" : dialect.quote(secondary.column));
+            expression = com.datamaster.module.ontology.service.metric.MetricDerivedRules.expression(expression, secondExpression, snapshot.getDerivedOperation(), dialect.postgres());
+        }
+        select.add(expression + " AS " + dialect.quote("metric_value"));
+        columns.add(column("metric_value", snapshot.getName(), derived ? "decimal" : aggregation.startsWith("COUNT") ? "long"
                 : ("AVG".equals(aggregation) || "SUM".equals(aggregation)) ? "decimal" : valueField.type));
         List<String> conditions = new ArrayList<>();
         List<Object> parameters = new ArrayList<>();
-        for (MetricFilterVO filter : fixed) appendFilter(filter, mappings, usedColumns, conditions, parameters);
+        for (MetricFilterVO filter : fixed) appendFilter(filter, mappings, usedColumns, conditions, parameters, dialect);
         Set<Long> filterable = new HashSet<>(publishedDimensions);
         if (snapshot.getTimePropertyId() != null) filterable.add(snapshot.getTimePropertyId());
         for (MetricFilterVO filter : req.getFilters()) {
             require(filterable.contains(filter.getPropertyId()), "用户只能过滤已发布维度或时间属性");
-            appendFilter(filter, mappings, usedColumns, conditions, parameters);
+            appendFilter(filter, mappings, usedColumns, conditions, parameters, dialect);
         }
         if (snapshot.getTimePropertyId() != null) {
             Field time = field(mappings, snapshot.getTimePropertyId()); usedColumns.add(time.column);
@@ -138,25 +178,55 @@ public final class MetricQueryBuilder {
             require(req.getStartTime() != null, "含时间属性的指标必须提供开始和结束时间");
             Object start = typedValue(req.getStartTime(), time.type);
             Object end = typedValue(req.getEndTime(), time.type);
+            if ("date".equals(time.type)) require(MetricTimeRules.businessShiftMinutes(snapshot) == 0, "date属性无时刻信息，不支持跨时间偏移转换");
+            else if (snapshot.getSourceTimeOffset() != null) {
+                try {
+                    start = Timestamp.valueOf(MetricTimeRules.toSource(LocalDateTime.parse(req.getStartTime()), snapshot));
+                    end = Timestamp.valueOf(MetricTimeRules.toSource(LocalDateTime.parse(req.getEndTime()), snapshot));
+                } catch (java.time.DateTimeException | ArithmeticException invalidRange) {
+                    throw new ServiceException("业务时间偏移转换超出有效日期范围");
+                }
+            }
             boolean ordered = start instanceof java.sql.Date ? ((java.sql.Date) start).before((java.sql.Date) end)
                     : ((Timestamp) start).before((Timestamp) end);
             require(ordered, "开始时间必须小于结束时间");
-            conditions.add(quote(time.column) + " >= ?"); parameters.add(start);
-            conditions.add(quote(time.column) + " < ?"); parameters.add(end);
+            conditions.add(dialect.quote(time.column) + " >= ?"); parameters.add(start);
+            conditions.add(dialect.quote(time.column) + " < ?"); parameters.add(end);
         } else require(req.getStartTime() == null, "该指标未发布可用时间属性");
-        String sql = "SELECT " + String.join(", ", select) + " FROM " + quote(database) + "." + quote(table);
+        MetricTrendRules.validateCalendar(req);
+        String sql = "SELECT " + String.join(", ", select) + " FROM " + dialect.table(database, schema, table);
         if (!conditions.isEmpty()) sql += " WHERE " + String.join(" AND ", conditions);
-        // Total-only queries have neither GROUP BY nor raw-dimension ORDER BY.
-        if (!group.isEmpty()) sql += " GROUP BY " + String.join(", ", group) + " ORDER BY " + String.join(", ", group);
-        sql += " LIMIT ?"; parameters.add(req.getLimit() + 1);
+        if (!group.isEmpty()) sql += " GROUP BY " + String.join(", ", group);
+        List<String> order = new ArrayList<>();
+        if (req.getSortBy() != null) {
+            String primary = "metric_value".equals(req.getSortBy()) ? dialect.quote("metric_value")
+                    : groupExpressions.get(req.getSortBy());
+            require(primary != null, "排序分组不可用");
+            order.add(primary + " " + req.getSortDirection());
+            // Complete grouping is a unique group identity; stable tie-breaks precede database LIMIT.
+            for (Map.Entry<String, String> entry : groupExpressions.entrySet()) {
+                if (!entry.getKey().equals(req.getSortBy())) order.add(entry.getValue() + " ASC");
+            }
+        } else order.addAll(group); // Preserve exact legacy ordering for saved requests without sorting.
+        if (!order.isEmpty()) sql += " ORDER BY " + String.join(", ", order);
+        sql += dialect.limitClause(); parameters.add(req.getLimit() + 1);
+        if (req.getPageNum() > 1) { sql += " OFFSET ?"; parameters.add((req.getPageNum() - 1) * req.getLimit()); }
         return new Plan(sql, parameters, usedColumns, columns, datasourceId, database, table, req);
     }
 
+    private static String aggregateExpression(String aggregation, String value) {
+        require(AGGREGATIONS.contains(aggregation), "聚合方式不合法");
+        return "COUNT_DISTINCT".equals(aggregation) ? "COUNT(DISTINCT " + value + ")" : aggregation + "(" + value + ")";
+    }
+    private static String bucketExpression(MetricSqlDialect dialect, String column, String grain, MetricRespVO publication) {
+        return dialect.bucket(dialect.shiftMinutes(dialect.quote(column), MetricTimeRules.businessShiftMinutes(publication)), grain);
+    }
+
     private static void appendFilter(MetricFilterVO filter, Map<?, ?> mappings, Set<String> used,
-                                     List<String> conditions, List<Object> parameters) {
+                                     List<String> conditions, List<Object> parameters, MetricSqlDialect dialect) {
         require(filter != null && filter.getPropertyId() != null, "过滤属性无效");
         Field f = field(mappings, filter.getPropertyId()); used.add(f.column);
-        String name = quote(f.column), op = filter.getOperator();
+        String name = dialect.quote(f.column), op = filter.getOperator();
         if ("IS_NULL".equals(op) || "IS_NOT_NULL".equals(op)) {
             require(filter.getValue() == null, "NULL条件不得携带过滤值");
             conditions.add(name + ("IS_NULL".equals(op) ? " IS NULL" : " IS NOT NULL"));
@@ -194,8 +264,14 @@ public final class MetricQueryBuilder {
             }
             if (MetricRules.temporal(type)) {
                 require(value instanceof String, "日期必须为严格ISO字符串");
-                return "date".equals(type) ? java.sql.Date.valueOf(LocalDate.parse((String) value))
-                        : Timestamp.valueOf(LocalDateTime.parse((String) value));
+                if ("date".equals(type)) {
+                    LocalDate date = LocalDate.parse((String) value);
+                    require(date.getYear() >= 1 && date.getYear() <= 9999, "来源日期仅支持0001至9999年");
+                    return java.sql.Date.valueOf(date);
+                }
+                LocalDateTime timestamp = LocalDateTime.parse((String) value);
+                require(timestamp.getYear() >= 1 && timestamp.getYear() <= 9999, "来源日期时间仅支持0001至9999年");
+                return Timestamp.valueOf(timestamp);
             }
             require(value instanceof String, "文本属性只接受字符串");
             return value;
@@ -208,7 +284,6 @@ public final class MetricQueryBuilder {
         require(value != null && value.matches("^[A-Za-z_][A-Za-z0-9_]*$"), "物理标识符格式不安全");
         return value;
     }
-    private static String quote(String value) { return "`" + identifier(value) + "`"; }
     private static String text(Object value) { require(value == null || value instanceof String, "快照字段类型无效"); return (String) value; }
     private static Long positiveId(Object value) {
         try {
@@ -217,6 +292,7 @@ public final class MetricQueryBuilder {
             require(id > 0, "快照数据源ID无效"); return id;
         } catch (ArithmeticException | NumberFormatException ex) { throw new ServiceException("快照数据源ID无效"); }
     }
+    public static void validateDataType(String value) { type(value); }
     private static String type(String value) {
         require(value != null, "发布属性缺少数据类型"); String type = value.toLowerCase(Locale.ROOT);
         require(MetricRules.numeric(type) || MetricRules.temporal(type) || Arrays.asList("boolean", "string", "text", "varchar", "char").contains(type), "不支持的发布属性类型");

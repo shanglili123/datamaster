@@ -20,9 +20,18 @@ public class MetricSaveReqVO {
     private String owner;
     private String unit;
     private String grain;
+    /** Explicit fixed offsets, e.g. +00:00 / +08:00. Both omitted preserves legacy source-local time. */
+    private String sourceTimeOffset;
+    private String businessTimeOffset;
     private String aggregation;
     private Long conceptTableId;
     private Long valuePropertyId;
+    /** Inline, same-source aggregate derivation; no arbitrary formula or live metric dependency. */
+    private String derivedOperation;
+    private String secondaryAggregation;
+    private Long secondaryValuePropertyId;
+    private String primaryUnit;
+    private String secondaryUnit;
     private Long timePropertyId;
     private List<Long> dimensionPropertyIds = new ArrayList<>();
     @Valid private List<MetricFilterVO> fixedFilters = new ArrayList<>();

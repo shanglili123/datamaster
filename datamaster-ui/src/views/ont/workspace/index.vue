@@ -13,6 +13,13 @@
       </div>
     </div>
 
+    <a-alert v-if="returnDecisionId" type="info" show-icon message="当前从决策任务进入审批/执行记录。请按原流程处理，完成后返回任务刷新状态；返回不会重复提交。">
+      <template #action><a-button type="primary" @click="returnToDecision">返回原决策任务</a-button></template>
+    </a-alert>
+    <p v-if="returnDecisionId && (route.query.executionId || route.query.runId)" class="decision-reference">
+      关联执行：{{ route.query.executionId || '无单动作执行ID' }} · 工作流运行：{{ route.query.runId || '无' }}
+      <a-button v-if="positiveRouteId(route.query.executionId)" type="link" @click="viewLinkedExecution">查看关联执行详情</a-button>
+    </p>
     <!-- 工作台 Tabs -->
     <div class="workspace-body">
       <a-tabs v-model:activeKey="activeTab">
@@ -32,7 +39,7 @@
           <MetricPanel ref="metricPanelRef" v-if="visited.metric" v-show="activeTab === 'metric'" :ontology-id="ontologyId" />
         </a-tab-pane>
         <a-tab-pane key="metric-analysis" tab="指标分析">
-          <MetricAnalysisPanel v-if="visited['metric-analysis']" v-show="activeTab === 'metric-analysis'" :ontology-id="ontologyId" />
+          <MetricAnalysisPanel v-if="visited['metric-analysis']" v-show="activeTab === 'metric-analysis'" :ontology-id="ontologyId" :initial-selection="analysisSelection" />
         </a-tab-pane>
         <a-tab-pane key="action" tab="动作管理">
           <ActionPanel ref="actionPanelRef" v-if="visited.action" v-show="activeTab === 'action'" :ontology-id="ontologyId" @changed="onActionChanged" />
@@ -49,6 +56,7 @@
 </template>
 
 <script setup name="OntWorkspace">
+import { useAnalysisNavigation, positiveRouteId, decisionRouteId } from '@/utils/analysisNavigation'
 import { getOntology } from '@/api/ont/ontology'
 import { ArrowLeftOutlined } from '@ant-design/icons-vue'
 import ConceptPanel from './components/ConceptPanel.vue'
@@ -64,6 +72,11 @@ import ObjectPanel from './components/ObjectPanel.vue'
 const route = useRoute()
 const router = useRouter()
 const stationNavigation = inject('spaceWorkstationNavigation', null)
+const { openDecisionTask } = useAnalysisNavigation()
+const returnDecisionId = computed(() => decisionRouteId(route.query.returnDecisionId))
+const analysisSelection = computed(() => activeTab.value === 'metric-analysis'
+  ? { metricId: positiveRouteId(route.query.metricId), version: positiveRouteId(route.query.version) } : null)
+function returnToDecision() { return openDecisionTask({ decisionId: returnDecisionId.value, ontologyId: ontologyId.value }) }
 
 const ontologyId = computed(() => route.params.ontologyId)
 const ontology = ref({})
@@ -96,6 +109,21 @@ watch(activeTab, key => {
     }
   }
 })
+
+watch(() => route.query.tab, key => {
+  if (typeof key === 'string' && ['graph', 'concept', 'property', 'relation', 'metric', 'metric-analysis', 'action', 'workflow', 'object'].includes(key)) {
+    visited[key] = true; activeTab.value = key
+    if (key === 'action') nextTick(() => actionPanelRef.value?.reload?.())
+  }
+})
+
+async function viewLinkedExecution() {
+  const id = positiveRouteId(route.query.executionId)
+  if (!id) return
+  visited.action = true; activeTab.value = 'action'
+  await nextTick()
+  await actionPanelRef.value?.openExecution?.(id)
+}
 
 function onGraphChanged() {
   dirty.concept = true

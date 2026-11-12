@@ -45,7 +45,6 @@ import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.common.utils.StringUtils;
 import com.datamaster.common.utils.object.BeanUtils;
 import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
-import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceReqDTO;
 import com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO;
 import com.datamaster.module.assets.api.sensitiveLevel.dto.AssetsSensitiveLevelRespDTO;
 import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
@@ -102,29 +101,33 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
 
     @Resource
     private IAssetsTableGovernanceApiService assetsTableGovernanceApiService;
+    @Resource private ApiSourceGuard apiSourceGuard;
 
     @Override
     public void releaseDataApi(String id, Long updateId, String updateBy) {
-        // 获取详细信息
+        // 发布前检查空间流程，拒绝异常不得被发布的兼容catch吞掉。
         ServiceApiDO dataApiEntity = ServiceApiMapper.selectById(id);
+        if (dataApiEntity == null) throw new ServiceException("API不存在");
+        if (Boolean.TRUE.equals(dataApiEntity.getDelFlag()) || Boolean.FALSE.equals(dataApiEntity.getValidFlag())) throw new ServiceException("API已删除或失效，不能发布");
+        apiSourceGuard.normalizeSpace(dataApiEntity, true);
+        apiSourceGuard.hydrate(dataApiEntity);
+        checkTableGovernance(dataApiEntity, dataApiEntity.getExecuteConfig());
         ServiceApiLogDO apiLogEntity = null;
         try {
-            invokeReleaseOrCancelApi(id, "1");
-
             LambdaUpdateWrapper<ServiceApiDO> updateWrapper = new LambdaUpdateWrapper<>();
             updateWrapper.set(ServiceApiDO::getStatus, DataConstant.EnableState.ENABLE.getKey());
             updateWrapper.set(ServiceApiDO::getUpdateBy, updateBy);
             updateWrapper.set(ServiceApiDO::getUpdateTime, LocalDateTime.now());
             updateWrapper.eq(ServiceApiDO::getId, id);
-            ServiceApiMapper.update(null, updateWrapper);
+            if (ServiceApiMapper.update(null, updateWrapper) != 1) throw new ServiceException("API发布状态更新失败");
+            dispatchMapping(id, "1", dataApiEntity);
 
             // 封装信息
             apiLogEntity = packApiLogEntity(
                     dataApiEntity, updateId, updateBy, id, 1, "", "1", 5);
         } catch (Exception e) {
-            // 封装信息
-            apiLogEntity = packApiLogEntity(
-                    dataApiEntity, updateId, updateBy, id, 0, e.getMessage().toString(), "0", 5);
+            apiLogEntity = packApiLogEntity(dataApiEntity, updateId, updateBy, id, 0, "发布失败", "0", 5);
+            throw new ServiceException("API发布失败，未确认映射与状态一致，请刷新后检查");
         } finally {
             // 封装信息进行异步存储日志
             // asyncTask.doTask(apiLogEntity);
@@ -133,34 +136,43 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
     }
 
     private void invokeReleaseOrCancelApi(String id, String type) {
-        Map<String, Object> map = new HashMap<>(2);
-        map.put("id", id);
-        map.put("type", type);
-        asyncTask.releaseOrCancelDataApi(map);
+        dispatchMapping(id, type, ServiceApiMapper.selectById(id));
+    }
+    private void dispatchMapping(String id, String type, ServiceApiDO registered) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", id); map.put("type", type);
+        if (registered != null) map.put("api", registered);
+        Runnable dispatch = () -> asyncTask.releaseOrCancelDataApi(map);
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()
+                && org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override public void afterCommit() { dispatch.run(); }
+            });
+        } else dispatch.run();
     }
 
     @Override
     public void cancelDataApi(String id, Long updateId, String updateBy) {
         // 获取详细信息
         ServiceApiDO dataApiEntity = ServiceApiMapper.selectById(id);
+        if (dataApiEntity == null) throw new ServiceException("API不存在");
+        apiSourceGuard.normalizeSpace(dataApiEntity, true);
         ServiceApiLogDO apiLogEntity = null;
         try {
-            invokeReleaseOrCancelApi(id, "2");
-
             LambdaUpdateWrapper<ServiceApiDO> updateWrapper = new LambdaUpdateWrapper<>();
             updateWrapper.set(ServiceApiDO::getStatus, DataConstant.EnableState.DISABLE.getKey());
             updateWrapper.set(ServiceApiDO::getUpdateBy, updateBy);
             updateWrapper.set(ServiceApiDO::getUpdateTime, LocalDateTime.now());
             updateWrapper.eq(ServiceApiDO::getId, id);
-            ServiceApiMapper.update(null, updateWrapper);
+            if (ServiceApiMapper.update(null, updateWrapper) != 1) throw new ServiceException("API注销状态更新失败");
+            dispatchMapping(id, "2", dataApiEntity);
 
             // 封装信息
             apiLogEntity = packApiLogEntity(
                     dataApiEntity, updateId, updateBy, id, 1, "", "1", 6);
         } catch (Exception e) {
-            // 封装信息
-            apiLogEntity = packApiLogEntity(
-                    dataApiEntity, updateId, updateBy, id, 0, e.getMessage().toString(), "0", 6);
+            apiLogEntity = packApiLogEntity(dataApiEntity, updateId, updateBy, id, 0, "注销失败", "0", 6);
+            throw new ServiceException("API注销失败，请刷新后核对当前状态");
         } finally {
             // 封装信息进行异步存储日志
             // asyncTask.doTask(apiLogEntity);
@@ -182,8 +194,9 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AjaxResult updateDataApi(ServiceApiDO dataApi) {
-        fillProjectOnUpdate(dataApi);
+        bindApiSpace(dataApi, true);
         ServiceApiDO apiDO = shareCode(dataApi);
+        checkEnabledPublication(apiDO);
         dataApiDaoUpdateById(apiDO);
         return AjaxResult.success();
     }
@@ -197,7 +210,9 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AjaxResult saveDataApi(ServiceApiDO dataApi) {
+        apiSourceGuard.normalizeSpace(dataApi, true);
         ServiceApiDO apiDO = shareCode(dataApi);
+        checkEnabledPublication(apiDO);
         dataApiDaoInsert(apiDO);
         return AjaxResult.success();
     }
@@ -210,6 +225,9 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
      */
     @Override
     public Object serviceTesting(ServiceApiDO dataApi) {
+        bindApiSpace(dataApi, false);
+        apiSourceGuard.hydrate(dataApi);
+        AssetsTableGovernanceRespDTO governanceResp = checkTableGovernance(dataApi, dataApi.getExecuteConfig());
         ServiceApiDO dataApiEntity = shareCode(dataApi);
         List<ResParam> resParamsList = dataApiEntity.getResParamsList();
         Map<String, Object> params = dataApi.getParams();
@@ -219,14 +237,12 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         String resDataType = dataApiEntity.getResDataType();
         DatasourceRespDTO dataSource = iAssetsDatasourceApiService
                 .getDatasourceById(Long.valueOf(dataApiEntity.getExecuteConfig().getSourceId()));
-        AssetsTableGovernanceRespDTO governanceResp = checkTableGovernance(dataApiEntity, dataApiEntity.getExecuteConfig());
-
         DbQueryProperty dbQueryProperty = new DbQueryProperty(
                 dataSource.getDatasourceType(),
                 dataSource.getIp(),
                 dataSource.getPort(),
                 dataSource.getDatasourceConfig());
-        DbQuery dbQuery = dataSourceFactory.createDbQuery(dbQueryProperty);
+        // 查询资源在参数与SQL过滤构造完成后再创建。
         // 参数
 
         Integer pageNum = Integer.parseInt(MapUtils.getString(params, "pageNum", "1"));
@@ -244,6 +260,7 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         Map<String, Object> acceptedFilters = sqlFilterResult.getAcceptedFilters();
 
         Object result = null;
+        DbQuery dbQuery = dataSourceFactory.createDbQuery(dbQueryProperty);
         try {
             // Integer cacheSwitch = Integer.parseInt(dataApiEntity.getCacheSwitch());
             Integer cacheSwitch = 1;
@@ -292,28 +309,8 @@ public class ServiceApiServiceImpl extends ServiceImpl<ServiceApiMapper, Service
         }), Feature.OrderedField);
     }
 
-private AssetsTableGovernanceRespDTO checkTableGovernance(ServiceApiDO dataApi, ExecuteConfig executeConfig) {
-        if (executeConfig == null || StringUtils.isEmpty(executeConfig.getSourceId())
-                || StringUtils.isEmpty(executeConfig.getTableName())) {
-            return null;
-        }
-        AssetsTableGovernanceReqDTO reqDTO = new AssetsTableGovernanceReqDTO();
-        reqDTO.setDatasourceId(Long.valueOf(executeConfig.getSourceId()));
-        reqDTO.setTableName(executeConfig.getTableName());
-        reqDTO.setSpaceId(dataApi.getSpaceId());
-        reqDTO.setSpaceCode(dataApi.getSpaceCode());
-        if (dataApi.getResParamsList() != null) {
-            reqDTO.setColumnNames(dataApi.getResParamsList().stream()
-                    .map(ResParam::getFieldName)
-                    .filter(StringUtils::isNotBlank)
-                    .collect(Collectors.toList()));
-        }
-reqDTO.setEntrance("DATA_SERVICE_TEST");
-        AssetsTableGovernanceRespDTO respDTO = assetsTableGovernanceApiService.resolveTable(reqDTO);
-        if (Boolean.FALSE.equals(respDTO.getAccessAllowed())) {
-            throw new ServiceException(respDTO.getMessage());
-        }
-        return respDTO;
+    private AssetsTableGovernanceRespDTO checkTableGovernance(ServiceApiDO dataApi, ExecuteConfig executeConfig) {
+        return apiSourceGuard.check(dataApi, executeConfig, "DATA_SERVICE_TEST");
     }
 
     /**
@@ -327,11 +324,12 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
         try {
             Long userId = SecurityUtils.getUserId();
             Long userPermissionLevel = currentUserPermissionLevel();
-            return assetsTableGovernanceApiService.desensitizeResultData(
+            List<Map<String,Object>> masked = assetsTableGovernanceApiService.desensitizeResultData(
                     governanceResp.getAssetId(), data, userId, userPermissionLevel, SCENE_DATA_SERVICE);
+            if (masked == null) throw new ServiceException("脱敏结果不可用");
+            return masked;
         } catch (Exception e) {
-            log.warn("数据服务测试结果脱敏异常，返回原始数据: {}", e.getMessage());
-            return data;
+            throw new ServiceException("数据服务调试脱敏失败，禁止返回原始数据");
         }
     }
 
@@ -347,7 +345,7 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
         singleList.add(mapData);
         List<Map<String, Object>> desensitizedList = desensitizeServiceResult(singleList, governanceResp);
         if (desensitizedList == null || desensitizedList.isEmpty()) {
-            return mapData;
+            throw new ServiceException("数据服务调试脱敏未返回有效结果");
         }
         return desensitizedList.get(0);
     }
@@ -371,22 +369,22 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
         }
     }
 
-    private void fillProjectOnUpdate(ServiceApiDO dataApi) {
-        if (dataApi == null || dataApi.getId() == null) {
-            return;
+    private void bindApiSpace(ServiceApiDO request, boolean requireExisting) {
+        if (request == null) throw new ServiceException("API不能为空");
+        if (request.getId() != null) {
+            apiSourceGuard.bindStoredSpace(request, ServiceApiMapper.selectById(request.getId()));
+        } else {
+            if (requireExisting) throw new ServiceException("API更新必须明确ID");
+            apiSourceGuard.normalizeSpace(request, true);
         }
-        if (dataApi.getSpaceId() != null && StringUtils.isNotBlank(dataApi.getSpaceCode())) {
-            return;
-        }
-        ServiceApiDO old = ServiceApiMapper.selectById(dataApi.getId());
-        if (old == null) {
-            return;
-        }
-        if (dataApi.getSpaceId() == null) {
-            dataApi.setSpaceId(old.getSpaceId());
-        }
-        if (StringUtils.isBlank(dataApi.getSpaceCode())) {
-            dataApi.setSpaceCode(old.getSpaceCode());
+    }
+
+    private void checkEnabledPublication(ServiceApiDO api) {
+        if (DataConstant.EnableState.ENABLE.getKey().equals(api.getStatus())) {
+            if (Boolean.TRUE.equals(api.getDelFlag()) || Boolean.FALSE.equals(api.getValidFlag())) throw new ServiceException("失效或删除的API不能直接启用");
+            apiSourceGuard.hydrate(api);
+            checkTableGovernance(api, api.getExecuteConfig());
+            shareCode(api);
         }
     }
 
@@ -438,8 +436,14 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
      */
     @Override
     public SqlParseVo sqlParse(SqlParseDto sqlParseDto) {
-
+        ServiceApiDO context = new ServiceApiDO(); context.setId(sqlParseDto.getApiId());
+        context.setSpaceId(sqlParseDto.getSpaceId()); context.setSpaceCode(sqlParseDto.getSpaceCode());
+        bindApiSpace(context, false);
+        apiSourceGuard.assertSqlInspectionAllowed(context);
         String sourceId = sqlParseDto.getSourceId();
+        Long inspectionSource;
+        try { inspectionSource = Long.valueOf(sourceId); } catch (RuntimeException invalid) { throw new ServiceException("数据源ID不合法"); }
+        apiSourceGuard.assertDatasourceSpace(context, inspectionSource);
         String sql = sqlParseDto.getSqlText();
         sql = sql.replace(SqlBuilderUtil.getInstance().MARK_KEY_START, "");
         sql = sql.replace(SqlBuilderUtil.getInstance().MARK_KEY_END, "");
@@ -449,6 +453,7 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
         } catch (JSQLParserException e) {
             throw new ServiceException("SQL语法有问题，解析出错");
         }
+        if (!(stmt instanceof Select)) throw new ServiceException("SQL解析仅支持SELECT查询，不支持写入或DDL");
         // 查询数据源信息
         DatasourceRespDTO datasourceById = iAssetsDatasourceApiService.getDatasourceById(Long.valueOf(sourceId));
         DbQueryProperty dbQueryProperty = new DbQueryProperty(
@@ -457,6 +462,7 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
                 datasourceById.getPort(),
                 datasourceById.getDatasourceConfig());
         DbQuery dbQuery = dataSourceFactory.createDbQuery(dbQueryProperty);
+        try {
         // 维护元数据缓存数据
         TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
         List<String> tables = tablesNamesFinder.getTableList(stmt);
@@ -521,8 +527,8 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
             }
         }
         sqlParseVo.setResParams(resParams);
-        dbQuery.close();
         return sqlParseVo;
+        } finally { if (dbQuery != null) dbQuery.close(); }
     }
 
     /**
@@ -533,15 +539,12 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
     private void dataApiDaoUpdateById(ServiceApiDO dataApi) {
         ServiceApiLogDO apiLogEntity = null;
         try {
-            baseMapper.updateById(dataApi);
+            ServiceApiDO previous = ServiceApiMapper.selectById(dataApi.getId());
+            if (previous == null || baseMapper.updateById(dataApi) != 1) throw new ServiceException("API更新记录不存在");
             // 封装信息
             apiLogEntity = packApiLogEntity(
                     dataApi, dataApi.getUpdatorId(), dataApi.getUpdateBy(), dataApi.toString(), 1, "", "1", 3);
-            if (StringUtils.equals("1",dataApi.getStatus())) {
-                invokeReleaseOrCancelApi(String.valueOf(dataApi.getId()), "1");
-            } else {
-                invokeReleaseOrCancelApi(String.valueOf(dataApi.getId()), "2");
-            }
+            dispatchMapping(String.valueOf(dataApi.getId()), "1".equals(dataApi.getStatus()) ? "1" : "2", previous);
         } catch (Exception e) {
             // 封装信息
             apiLogEntity = packApiLogEntity(
@@ -560,7 +563,7 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
     private void dataApiDaoInsert(ServiceApiDO dataApi) {
         ServiceApiLogDO apiLogEntity = null;
         try {
-            baseMapper.insert(dataApi);
+            if (baseMapper.insert(dataApi) != 1) throw new ServiceException("API未插入记录");
             // 封装信息
             apiLogEntity = packApiLogEntity(
                     dataApi, dataApi.getCreatorId(), dataApi.getCreateBy(), dataApi.toString(), 1, "", "1", 2);
@@ -689,19 +692,23 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
     }
 
     private ServiceApiDO shareCode(ServiceApiDO dataApiDto) {
-        if (dataApiDto.getExecuteConfig() == null
-                || org.apache.commons.lang3.StringUtils.isBlank(dataApiDto.getExecuteConfig().getApiServiceType())) {
-            return dataApiDto;
-        }
+        if ("4".equals(dataApiDto.getApiServiceType())) { apiSourceGuard.assertNonQueryService(dataApiDto); return dataApiDto; }
+        apiSourceGuard.hydrate(dataApiDto);
+        if (dataApiDto.getExecuteConfig() == null || StringUtils.isBlank(dataApiDto.getExecuteConfig().getApiServiceType())) throw new ServiceException("API执行配置及配置方式不能为空");
         String configType = dataApiDto.getExecuteConfig().getApiServiceType();
         if (ConfigType.FORM.getKey().equals(configType)) {
+            apiSourceGuard.prepareForm(dataApiDto, dataApiDto.getExecuteConfig());
             try {
                 dataApiDto.getExecuteConfig().setSqlText(sqlJdbcNamedParameterBuild(dataApiDto));
             } catch (JSQLParserException e) {
                 throw new ServiceException("SQL语法有问题，解析出错");
             }
-        } else if (ConfigType.SCRIPT.getKey().equals(configType)) {
+        } else if (!ConfigType.SCRIPT.getKey().equals(configType)) {
+            throw new ServiceException("API配置方式不合法");
         }
+        dataApiDto.setConfigJson(com.alibaba.fastjson2.JSON.toJSONString(dataApiDto.getExecuteConfig()));
+        dataApiDto.setReqParams(com.alibaba.fastjson2.JSON.toJSONString(dataApiDto.getReqParamsList()));
+        dataApiDto.setResParams(com.alibaba.fastjson2.JSON.toJSONString(dataApiDto.getResParamsList()));
         return dataApiDto;
     }
 
@@ -1030,24 +1037,34 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
 
     @Override
     public Long createServiceApi(ServiceApiSaveReqVO createReqVO) {
-        ServiceApiDO dictType = BeanUtils.toBean(createReqVO, ServiceApiDO.class);
-        ServiceApiMapper.insert(dictType);
-        return dictType.getId();
+        ServiceApiDO api = BeanUtils.toBean(createReqVO, ServiceApiDO.class);
+        apiSourceGuard.normalizeSpace(api, true);
+        shareCode(api); checkEnabledPublication(api);
+        dataApiDaoInsert(api);
+        return api.getId();
     }
 
     @Override
     public int updateServiceApi(ServiceApiSaveReqVO updateReqVO) {
-        // 相关校验
-
-        // 更新API服务
-        ServiceApiDO updateObj = BeanUtils.toBean(updateReqVO, ServiceApiDO.class);
-        return ServiceApiMapper.updateById(updateObj);
+        ServiceApiDO api = BeanUtils.toBean(updateReqVO, ServiceApiDO.class);
+        bindApiSpace(api, true);
+        shareCode(api); checkEnabledPublication(api);
+        dataApiDaoUpdateById(api);
+        return 1;
     }
 
     @Override
     public int removeServiceApi(Collection<Long> idList) {
-        // 批量删除API服务
-        return ServiceApiMapper.deleteBatchIds(idList);
+        if (idList == null || idList.isEmpty() || idList.size() > 100) throw new ServiceException("删除API须明确1至100个ID");
+        List<ServiceApiDO> originals = new ArrayList<>();
+        for (Long id : new LinkedHashSet<>(idList)) {
+            ServiceApiDO stored = ServiceApiMapper.selectById(id);
+            if (stored == null) throw new ServiceException("API不存在");
+            apiSourceGuard.normalizeSpace(stored, true); originals.add(stored);
+        }
+        int changed = ServiceApiMapper.deleteBatchIds(idList);
+        for (ServiceApiDO original : originals) dispatchMapping(String.valueOf(original.getId()), "2", original);
+        return changed;
     }
 
     @Override
@@ -1063,11 +1080,13 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
     @Override
     public List<ServiceApiRespDTO> listVisibleServiceApis(Long spaceId, String spaceCode,
                                                             String name, String status, int limit) {
+        ServiceApiDO scope = new ServiceApiDO(); scope.setSpaceId(spaceId); scope.setSpaceCode(spaceCode);
+        apiSourceGuard.normalizeSpace(scope, true);
         ServiceApiPageReqVO request = new ServiceApiPageReqVO();
         request.setPageNum(1);
         request.setPageSize(Math.max(1, Math.min(limit <= 0 ? 100 : limit, 200)));
-        request.setSpaceId(spaceId);
-        request.setSpaceCode(spaceCode);
+        request.setSpaceId(scope.getSpaceId());
+        request.setSpaceCode(scope.getSpaceCode());
         request.setName(StringUtils.isBlank(name) ? null : name.trim());
         request.setStatus(StringUtils.isBlank(status) ? DataConstant.EnableState.ENABLE.getKey() : status.trim());
         PageResult<ServiceApiDO> page = getServiceApiPage(request);
@@ -1143,7 +1162,9 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
         api.setReqParams(JSON.toJSONString(api.getReqParamsList()));
         api.setResParams(JSON.toJSONString(api.getResParamsList()));
         api.setConfigJson(JSON.toJSONString(api.getExecuteConfig()));
+        apiSourceGuard.normalizeSpace(api, true);
         ServiceApiDO prepared = shareCode(api);
+        checkEnabledPublication(prepared);
         dataApiDaoInsert(prepared);
         return prepared.getId();
     }
@@ -1161,10 +1182,12 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
     private ServiceApiDO requireVisibleServiceApi(Long id, Long spaceId, String spaceCode,
                                                    boolean requirePublished) {
         if (id == null) return null;
+        ServiceApiDO scope = new ServiceApiDO(); scope.setSpaceId(spaceId); scope.setSpaceCode(spaceCode);
+        apiSourceGuard.normalizeSpace(scope, true);
         ServiceApiDO item = ServiceApiMapper.selectById(id);
-        if (item == null || Boolean.TRUE.equals(item.getDelFlag())) return null;
-        if (spaceId != null && !Objects.equals(spaceId, item.getSpaceId())) return null;
-        if (StringUtils.isNotBlank(spaceCode) && !spaceCode.trim().equals(item.getSpaceCode())) return null;
+        if (item == null || Boolean.TRUE.equals(item.getDelFlag()) || Boolean.FALSE.equals(item.getValidFlag())) return null;
+        apiSourceGuard.normalizeSpace(item, false);
+        if (!Objects.equals(scope.getSpaceId(), item.getSpaceId()) || !Objects.equals(scope.getSpaceCode(), item.getSpaceCode())) return null;
         if (requirePublished && !DataConstant.EnableState.ENABLE.getKey().equals(item.getStatus())) return null;
         return item;
     }
@@ -1222,8 +1245,8 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
      */
     @Override
     public String importServiceApi(List<ServiceApiRespVO> importExcelList, boolean isUpdateSupport, String operName) {
-        if (StringUtils.isNull(importExcelList) || importExcelList.size() == 0) {
-            throw new ServiceException("导入数据不能为空！");
+        if (StringUtils.isNull(importExcelList) || importExcelList.isEmpty() || importExcelList.size() > 1000) {
+            throw new ServiceException("导入数据须包含1至1000条，超过请分批");
         }
 
         int successNum = 0;
@@ -1239,7 +1262,10 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
                     if (ServiceApiId != null) {
                         ServiceApiDO existingServiceApi = ServiceApiMapper.selectById(ServiceApiId);
                         if (existingServiceApi != null) {
-                            ServiceApiMapper.updateById(ServiceApiDO);
+                            apiSourceGuard.bindStoredSpace(ServiceApiDO, existingServiceApi);
+                            shareCode(ServiceApiDO); checkEnabledPublication(ServiceApiDO);
+                            if (ServiceApiMapper.updateById(ServiceApiDO) != 1) throw new ServiceException("导入API更新未命中记录");
+                            dispatchMapping(String.valueOf(ServiceApiId), "1".equals(ServiceApiDO.getStatus()) ? "1" : "2", existingServiceApi);
                             successNum++;
                             successMessages.add("数据更新成功，ID为 " + ServiceApiId + " 的API服务记录。");
                         } else {
@@ -1255,7 +1281,10 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
                     queryWrapper.eq("id", ServiceApiId);
                     ServiceApiDO existingServiceApi = ServiceApiMapper.selectOne(queryWrapper);
                     if (existingServiceApi == null) {
-                        ServiceApiMapper.insert(ServiceApiDO);
+                        apiSourceGuard.normalizeSpace(ServiceApiDO, true);
+                        shareCode(ServiceApiDO); checkEnabledPublication(ServiceApiDO);
+                        if (ServiceApiMapper.insert(ServiceApiDO) != 1) throw new ServiceException("导入API未插入记录");
+                        if ("1".equals(ServiceApiDO.getStatus())) invokeReleaseOrCancelApi(String.valueOf(ServiceApiDO.getId()), "1");
                         successNum++;
                         successMessages.add("数据插入成功，ID为 " + ServiceApiId + " 的API服务记录。");
                     } else {
@@ -1265,9 +1294,9 @@ reqDTO.setEntrance("DATA_SERVICE_TEST");
                 }
             } catch (Exception e) {
                 failureNum++;
-                String errorMsg = "数据导入失败，错误信息：" + e.getMessage();
+                String errorMsg = "数据导入失败，请核对该行空间归属、执行配置与启用准入要求";
                 failureMessages.add(errorMsg);
-                log.error(errorMsg, e);
+                log.warn("API导入行校验失败，未返回内部配置或驱动错误");
             }
         }
         StringBuilder resultMsg = new StringBuilder();

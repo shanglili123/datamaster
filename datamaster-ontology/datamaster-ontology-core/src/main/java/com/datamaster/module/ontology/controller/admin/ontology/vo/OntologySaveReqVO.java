@@ -29,7 +29,7 @@ public class OntologySaveReqVO {
     @Schema(description = "描述", example = "客户域本体模型")
     private String description;
 
-    @Schema(description = "所属空间ID", example = "1")
+    @Schema(description = "所属空间ID，创建时必须明确ID或编码，普通编辑不可更改归属", example = "1")
     private Long spaceId;
 
     @Schema(description = "空间编码", example = "space01")

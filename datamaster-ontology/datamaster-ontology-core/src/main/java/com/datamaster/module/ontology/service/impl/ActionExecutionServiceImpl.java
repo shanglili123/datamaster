@@ -108,6 +108,197 @@ public class ActionExecutionServiceImpl implements IActionExecutionService {
     private static final String RELATION_SOURCE_VALUE = "__relation_source__";
     private static final String RELATION_TARGET_VALUE = "__relation_target__";
 
+    private static final int IMPACT_ROW_LIMIT = 1000;
+    private static final int IMPACT_TIMEOUT_SECONDS = 5;
+
+    /**
+     * 独立只读路径。不能复用 executeDryRun 的 DML 分支：它会 executeUpdate 后 rollback，
+     * 仍可能触发不可回滚的函数、序列或外部副作用。此处仅复用生成器，执行 SELECT 1。
+     */
+    @Override
+    public ActionImpactPreviewVO previewImpact(ExecutionSubmitReqVO reqVO) {
+        if (reqVO == null || reqVO.getActionId() == null) {
+            throw new IllegalArgumentException("缺少动作ID");
+        }
+        ActionDO action = actionMapper.selectById(reqVO.getActionId());
+        if (action == null) {
+            throw new IllegalArgumentException("动作不存在");
+        }
+        if (reqVO.getExpectedVersion() != null
+                && !reqVO.getExpectedVersion().equals(defaultVersion(action.getVersion()))) {
+            throw new IllegalArgumentException("动作定义已变化，请重新预览确认");
+        }
+        ActionImpactPreviewVO result = new ActionImpactPreviewVO();
+        result.setPreconditionStatus("NOT_EVALUATED");
+        String type = action.getActionType();
+        if (!("CREATE".equals(type) || "UPDATE".equals(type) || "DELETE".equals(type))
+                || reqVO.getWorkflowRunId() != null || reqVO.getWorkflowStepId() != null) {
+            return finishImpact(result, "UNKNOWN", "UNSUPPORTED_ACTION_TYPE", "NONE");
+        }
+        Map<String, Object> raw = parseParams(reqVO.getInputParams());
+        if (raw == null) throw new IllegalArgumentException("执行参数必须为JSON对象");
+        // 先按原写入口校验目标表/字段；拒绝权限不能被降级为 UNKNOWN。
+        assertTableAccess(action, reqVO.getSpaceId(), reqVO.getSpaceCode(),
+                extractActionColumns(action, raw), type);
+        // 既有 object.* 解析器虽 LIMIT 1，但无 JDBC 超时，且关系读取不独立鉴权。
+        // 不在此绕过它或无界调用；这些定义保守标记 UNKNOWN，原提交/执行仍按原逻辑处理。
+        if (requiresUnboundedImpactResolution(action)) {
+            return finishImpact(result, "UNKNOWN", "UNBOUNDED_OBJECT_RESOLUTION", "NONE");
+        }
+        if (isManualReferenceRequired(action, raw)) {
+            return finishImpact(result, "UNKNOWN", "REFERENCE_SELECTION_REQUIRED", "NONE");
+        }
+        String objectKey = deriveObjectKey(action, reqVO);
+        Map<String, Object> params = applyParamConfig(action, raw, objectKey);
+        assertTableAccess(action, reqVO.getSpaceId(), reqVO.getSpaceCode(),
+                extractActionColumns(action, params), type);
+        if (!safeImpactValues(params.values())) {
+            return finishImpact(result, "UNKNOWN", "UNSAFE_EXPRESSION_OR_VALUE", "NONE");
+        }
+        List<ConceptTableDO> tables = conceptTableMapper.selectByConceptId(action.getConceptId());
+        if (tables == null || tables.isEmpty() || tables.get(0).getDatasourceId() == null) {
+            return finishImpact(result, "UNKNOWN", "MISSING_STORAGE", "NONE");
+        }
+        ConceptTableDO table = tables.get(0);
+        List<ColumnMapping> mappings = resolveColumnMappings(action.getConceptId(), table.getId());
+        if (!safeImpactIdentifier(table.getTableName()) || mappings.stream()
+                .anyMatch(m -> !safeImpactIdentifier(m.physicalColumn))) {
+            return finishImpact(result, "UNKNOWN", "UNSUPPORTED_STORAGE_IDENTIFIER", "NONE");
+        }
+        // 避免 generateSql 隐式进入无超时的物理主键 metadata 兜底。
+        if (!"CREATE".equals(type) && resolveConditionSpecs(action).isEmpty()
+                && mappings.stream().noneMatch(m -> m.primaryKey)) {
+            return finishImpact(result, "UNKNOWN", "PHYSICAL_KEY_LOOKUP_REQUIRED", "NONE");
+        }
+        String criteria = approvalService.evaluateCriteria(action, reqVO.getInputParams(), objectKey);
+        boolean passed = isCriteriaPassed(criteria);
+        result.setPreconditionStatus(passed ? "PASS" : "REJECT");
+        if (!passed) {
+            return finishImpact(result, "BLOCKED", "PRECONDITION_FAILED", "NONE");
+        }
+        String sql = generateSql(action, params);
+        if ("CREATE".equals(type)) {
+            // 单 VALUES 的计划插入，不执行 INSERT；约束/默认值/触发器/序列不预测。
+            result.setRowCount(1L);
+            return finishImpact(result, "AVAILABLE", "INSERT_INTENT_NOT_EXECUTION", "PLANNED_INSERT");
+        }
+        String select = impactSelect(sql, table.getTableName());
+        if (select == null) {
+            return finishImpact(result, "UNKNOWN", "UNSUPPORTED_SQL_SHAPE", "NONE");
+        }
+        DbQuery dbQuery = null;
+        try {
+            dbQuery = getDbQuery(action.getConceptId());
+            try (Connection connection = dbQuery.getConnection()) {
+                connection.setReadOnly(true);
+                if (!connection.isReadOnly()) throw new IllegalStateException("只读连接不可用");
+                readImpactCount(connection, select, result);
+            }
+            return finishImpact(result, "AVAILABLE", "MATCH_COUNT_NOT_WRITE_COUNT", "MATCHED_ROWS");
+        } catch (Exception e) {
+            // 不把底层异常（可能含 SQL/连接信息）返回给调用方，也不伪装零影响。
+            result.setRowCount(null);
+            result.setTruncated(false);
+            return finishImpact(result, "UNKNOWN", "READ_UNAVAILABLE_OR_TIMEOUT", "NONE");
+        } finally {
+            closeDbQuery(dbQuery);
+        }
+    }
+
+    private boolean requiresUnboundedImpactResolution(ActionDO action) {
+        try {
+            if (StringUtils.isNotBlank(action.getSubmissionCriteria())) {
+                JsonNode criteria = objectMapper.readTree(action.getSubmissionCriteria());
+                for (JsonNode condition : criteria.path("conditions")) {
+                    if (condition.path("field").asText("").startsWith("object.")) return true;
+                }
+            }
+            if (StringUtils.isBlank(action.getParamConfig())) return false;
+            JsonNode configs = objectMapper.readTree(action.getParamConfig());
+            if (!configs.isArray()) throw new IllegalArgumentException("动作参数配置必须为数组");
+            for (JsonNode cfg : configs) {
+                String mode = cfg.path("valueMode").asText("direct");
+                boolean condition = cfg.path("condition").asBoolean(false);
+                if (cfg.path("objectValue").asBoolean(false)
+                        || (condition && !"PARAM".equalsIgnoreCase(cfg.path("conditionValueSource").asText()))
+                        || (cfg.path("valueTemplate").asText("").contains("object.")
+                            && ("placeholder".equals(mode) || "relative".equals(mode)))) return true;
+            }
+            return false;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("动作预览配置无效");
+        }
+    }
+
+    private boolean safeImpactIdentifier(String identifier) {
+        return identifier != null && identifier.matches("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*");
+    }
+
+    private boolean safeImpactValues(Collection<?> values) {
+        for (Object value : values) {
+            if (value instanceof Collection) {
+                if (!safeImpactValues((Collection<?>) value)) return false;
+            } else if (value instanceof CurrentValueExpression) {
+                if (!safeImpactValues(Collections.singleton(((CurrentValueExpression) value).operand))) return false;
+            } else if (!(value == null || value instanceof String || value instanceof Number || value instanceof Boolean)
+                    || (value instanceof String && (((String) value).contains("\\")
+                        || ((String) value).indexOf('\0') >= 0))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** 仅处理本服务生成的单 DML；跳过 SQL 字符串常量中的 WHERE/分号。 */
+    private String impactSelect(String sql, String table) {
+        StringBuilder shape = new StringBuilder();
+        boolean quoted = false;
+        for (int i = 0; i < sql.length(); i++) {
+            char c = sql.charAt(i);
+            if (c == '\'') {
+                if (quoted && i + 1 < sql.length() && sql.charAt(i + 1) == '\'') {
+                    shape.append("  "); i++; continue;
+                }
+                quoted = !quoted;
+                shape.append(' ');
+            } else {
+                shape.append(quoted ? ' ' : c);
+            }
+        }
+        String masked = shape.toString().toUpperCase(Locale.ROOT);
+        int where = masked.indexOf(" WHERE ");
+        if (quoted || where < 0 || masked.contains(";") || masked.contains("--") || masked.contains("/*")) {
+            return null;
+        }
+        return "SELECT 1 FROM " + table + sql.substring(where);
+    }
+
+    /** JDBC 双重行上限 + 查询超时；只读常量列，不读取整行。 */
+    private void readImpactCount(Connection connection, String select, ActionImpactPreviewVO result) throws Exception {
+        int count = 0;
+        try (Statement statement = connection.createStatement()) {
+            statement.setQueryTimeout(IMPACT_TIMEOUT_SECONDS);
+            statement.setMaxRows(IMPACT_ROW_LIMIT + 1);
+            try (ResultSet rows = statement.executeQuery(select)) {
+                while (count <= IMPACT_ROW_LIMIT && rows.next()) count++;
+            }
+        }
+        result.setRowCount((long) Math.min(count, IMPACT_ROW_LIMIT));
+        result.setTruncated(count > IMPACT_ROW_LIMIT);
+    }
+
+    private ActionImpactPreviewVO finishImpact(ActionImpactPreviewVO result, String status,
+                                               String reason, String summaryType) {
+        result.setStatus(status);
+        result.setReason(reason);
+        result.setSummaryType(summaryType);
+        // 固定顺序/版本协议，不含时钟、SQL、参数、条件明细；不能证明行身份/值一致。
+        result.setDigest(sha256(String.join("|", result.getSchemaVersion(), status, reason, summaryType,
+                String.valueOf(result.getRowCount()), String.valueOf(result.isTruncated()),
+                String.valueOf(result.getRowLimit()), result.getPreconditionStatus(), result.getConsistency())));
+        return result;
+    }
+
     @Override
     @Transactional
     public ExecutionRespVO submitExecution(ExecutionSubmitReqVO reqVO) {

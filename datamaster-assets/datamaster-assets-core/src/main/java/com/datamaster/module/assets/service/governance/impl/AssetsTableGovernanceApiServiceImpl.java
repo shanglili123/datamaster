@@ -66,9 +66,35 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
     @Resource
     private DesensitizeHelper desensitizeHelper;
 
+    @Resource private com.datamaster.module.governance.api.flow.ISpaceFlowApi spaceFlows;
+    @Resource private com.datamaster.common.api.space.ISpaceApi flowSpaces;
+
     @Override
     public AssetsTableGovernanceRespDTO resolveTable(AssetsTableGovernanceReqDTO reqDTO) {
         AssetsTableGovernanceRespDTO respDTO = baseResp(reqDTO);
+        com.datamaster.module.governance.api.flow.ISpaceFlowApi.Policy flow = spaceFlows.policy(
+                reqDTO == null ? null : reqDTO.getSpaceId(), reqDTO == null ? null : reqDTO.getSpaceCode());
+        if (flow.isConfigured() && (flow.isAssetRequired() || flow.isQualityRequired())) {
+            if (reqDTO == null || reqDTO.getDatasourceId() == null || StringUtils.isBlank(reqDTO.getTableName()))
+                throw new ServiceException("空间已配置严格流程，必须明确本次使用的数据来源");
+            if (reqDTO.getSpaceId() == null) reqDTO.setSpaceId(flowSpaces.getSpaceIdBySpaceCode(reqDTO.getSpaceCode()));
+            reqDTO.setSpaceCode(flowSpaces.getSpaceCodeBySpaceId(reqDTO.getSpaceId()));
+            respDTO.setEnabled(true); respDTO.setMode(MODE_STRICT);
+            if (flow.isAssetRequired()) {
+                List<AssetsAssetDO> matches = assetsAssetMapper.findByDatasourceIdAndTableName(reqDTO.getDatasourceId(), reqDTO.getTableName());
+                if (matches == null || matches.size() != 1) throw new ServiceException("空间已配置资产管理：来源未唯一登记为资产，禁止回退元数据");
+                AssetsAssetDO asset = matches.get(0);
+                if (!Boolean.TRUE.equals(asset.getValidFlag()) || Boolean.TRUE.equals(asset.getDelFlag()) || !"2".equals(asset.getStatus())) throw new ServiceException("资产未发布、未启用或已删除");
+                respDTO.setSource(AssetsTableGovernanceRespDTO.SOURCE_ASSET); respDTO.setAssetId(asset.getId());
+                fillAssetAccess(respDTO, reqDTO, asset);
+                if (!Boolean.TRUE.equals(respDTO.getAccessAllowed())) return respDTO;
+                if (respDTO.getDeniedColumns() != null && !respDTO.getDeniedColumns().isEmpty()) throw new ServiceException("严格空间流程禁止部分字段越权");
+            }
+            spaceFlows.assertQuality(reqDTO.getSpaceId(), reqDTO.getSpaceCode(), reqDTO.getDatasourceId(), reqDTO.getTableName());
+            if (flow.isAssetRequired()) return respDTO;
+            // Quality-only flow validates availability; legacy asset policy still applies below.
+            respDTO = baseResp(reqDTO);
+        }
         if (!Boolean.TRUE.equals(properties.getEnabled()) || MODE_OFF.equals(respDTO.getMode())) {
             respDTO.setSource(AssetsTableGovernanceRespDTO.SOURCE_NONE);
             respDTO.setAccessAllowed(true);
@@ -178,7 +204,8 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
         Long count = assetsAssetSpaceRelMapper.selectCount(Wrappers.<AssetsAssetSpaceRelDO>lambdaQuery()
                 .eq(AssetsAssetSpaceRelDO::getAssetId, assetId)
                 .eq(reqDTO.getSpaceId() != null, AssetsAssetSpaceRelDO::getSpaceId, reqDTO.getSpaceId())
-                .eq(StringUtils.isNotBlank(reqDTO.getSpaceCode()), AssetsAssetSpaceRelDO::getSpaceCode, reqDTO.getSpaceCode()));
+                .eq(StringUtils.isNotBlank(reqDTO.getSpaceCode()), AssetsAssetSpaceRelDO::getSpaceCode, reqDTO.getSpaceCode())
+                .eq(AssetsAssetSpaceRelDO::getValidFlag, true));
         return count != null && count > 0;
     }
 
@@ -187,7 +214,8 @@ public class AssetsTableGovernanceApiServiceImpl implements IAssetsTableGovernan
                 .eq(AssetsAssetApplyDO::getAssetId, assetId)
                 .eq(reqDTO.getSpaceId() != null, AssetsAssetApplyDO::getSpaceId, reqDTO.getSpaceId())
                 .eq(StringUtils.isNotBlank(reqDTO.getSpaceCode()), AssetsAssetApplyDO::getSpaceCode, reqDTO.getSpaceCode())
-                .eq(AssetsAssetApplyDO::getStatus, APPLY_APPROVED));
+                .eq(AssetsAssetApplyDO::getStatus, APPLY_APPROVED)
+                .eq(AssetsAssetApplyDO::getValidFlag, true));
         return count != null && count > 0;
     }
 

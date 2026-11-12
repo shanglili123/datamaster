@@ -1044,10 +1044,10 @@
 </template>
 
 <script setup name="ActionPanel">
-import { listAction, getAction, addAction, updateAction, delAction, aiActionDecision, submitExecution, approveExecution, rejectExecution, runExecution, rollbackExecution, listExecution, getApprovalChain } from '@/api/ont/action'
+import { listAction, getAction, addAction, updateAction, delAction, aiActionDecision, submitExecution, approveExecution, rejectExecution, runExecution, rollbackExecution, getExecution, listExecution, getApprovalChain } from '@/api/ont/action'
 import { listConcept, getConcept } from '@/api/ont/concept'
 import { listProperty } from '@/api/ont/property'
-import { listConceptTable, previewConceptTable } from '@/api/ont/conceptTable'
+import { listConceptTable } from '@/api/ont/conceptTable'
 import { listPropertyColumn } from '@/api/ont/propertyColumn'
 import { listFunction, getFunction, addFunction } from '@/api/ont/function'
 import { listRelation, getRelation } from '@/api/ont/relation'
@@ -3043,34 +3043,15 @@ async function loadExecRelationObjects(cfg, keyword = '') {
     }
     const filterSpec = { groups: [], orderBy: [], columns: [], keyword: keyword || '' }
     let rows = []
-    let previewLoaded = false
     try {
       const res = await queryObjects({
-        ontologyId: props.ontologyId,
-        conceptId: objectSet.conceptId,
-        tableBindingId: objectSet.tableBindingId,
-        pageNum: 1,
-        pageSize: 30,
-        filters: JSON.stringify(filterSpec)
+        ontologyId: props.ontologyId, conceptId: objectSet.conceptId, tableBindingId: objectSet.tableBindingId,
+        pageNum: 1, pageSize: 30, filters: JSON.stringify(filterSpec)
       })
       rows = res.data?.rows || []
     } catch (queryError) {
-      try {
-        const previewRes = await previewConceptTable(objectSet.tableBindingId, 30, filterSpec)
-        rows = previewRes.data?.rows || []
-        previewLoaded = true
-      } catch (previewError) {
-        state.error = previewError?.response?.data?.msg || previewError?.message || '公司实体加载失败'
-        return
-      }
-    }
-    if (!rows.length && !previewLoaded) {
-      try {
-        const previewRes = await previewConceptTable(objectSet.tableBindingId, 30, filterSpec)
-        rows = previewRes.data?.rows || []
-      } catch (e) {
-        // 主查询已成功时，兜底失败不覆盖其结果状态。
-      }
+      if (requestNo === state.requestNo) state.error = queryError?.response?.data?.msg || queryError?.message || '关联实体查询失败，未回退预览'
+      return
     }
     if (requestNo !== state.requestNo) return
     const primaryProperty = (objectSet.properties || []).find(property => property.isPrimary)
@@ -3800,6 +3781,17 @@ const rollbackSnapshotColumns = computed(() => {
 })
 
 defineExpose({
+  async openExecution(id) {
+    const ontology = props.ontologyId
+    const response = await getExecution(id)
+    if (String(ontology) !== String(props.ontologyId)) return
+    const record = response.data
+    if (!record || String(record.ontologyId) !== String(ontology)) {
+      proxy.$modal.msgWarning('关联执行不属于当前本体或无权查看')
+      return
+    }
+    handleViewResult(record)
+  },
   reload() {
     getList()
     loadExecutions()

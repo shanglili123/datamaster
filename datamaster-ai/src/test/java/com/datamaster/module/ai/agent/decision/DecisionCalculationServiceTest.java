@@ -74,9 +74,10 @@ public class DecisionCalculationServiceTest {
         evidence.getDetails().put("queryEvidence", Collections.singletonList(tool)); proposal.getEvidence().add(evidence);
         MeasureRef ref = new MeasureRef(); ref.setSource("METRIC"); ref.setEvidenceId("E1"); ref.setToolIndex(0); ref.setRowIndex(0); ref.setColumnKey("metric_value"); ref.setUnit("件");
         request.getContext().setDemand(ref); request.getCandidates().add(spec("C1", "60", "5", "1", "0"));
-        service().calculate(proposal, request, "7");
-        assertEquals("UNKNOWN", candidate(proposal, "C1").getCalculation().getStatus());
-        assertTrue(proposal.getComparison().getRecommendedIds().isEmpty());
+        request.getContext().setMetricScopeReference(ref);
+        try { service().calculate(proposal, request, "7"); fail("Must reject unverifiable metric scope before calculating"); }
+        catch (com.datamaster.common.exception.ServiceException expected) { assertNotNull(expected.getMessage()); }
+        assertNull(candidate(proposal, "C1").getCalculation());
     }
 
     @Test
@@ -103,9 +104,11 @@ public class DecisionCalculationServiceTest {
         Binding binding = new Binding(); binding.setType("ACTION"); binding.setTargetId("9"); binding.setInputParams("{\"quantity\":\"10\",\"warehouse\":\"A\"}");
         candidate(proposal, "C1").setSuggestedBinding(binding);
         DecisionCalculationService service = service(); service.calculate(proposal, request, "7");
-        service.assertExecution(candidate(proposal, "C1"), binding);
-        assertEquals("60", com.alibaba.fastjson2.JSON.parseObject(binding.getInputParams()).getString("quantity"));
-        assertEquals("A", com.alibaba.fastjson2.JSON.parseObject(binding.getInputParams()).getString("warehouse"));
+        Binding effective = candidate(proposal, "C1").getSuggestedBinding();
+        service.assertExecution(candidate(proposal, "C1"), effective);
+        assertEquals("60", com.alibaba.fastjson2.JSON.parseObject(effective.getInputParams()).getString("quantity"));
+        assertEquals("A", com.alibaba.fastjson2.JSON.parseObject(effective.getInputParams()).getString("warehouse"));
+        assertEquals("10", com.alibaba.fastjson2.JSON.parseObject(binding.getInputParams()).getString("quantity"));
     }
 
     @Test
@@ -113,15 +116,53 @@ public class DecisionCalculationServiceTest {
         Proposal proposal = proposal(); CalculationRequest request = request();
         Evidence evidence = new Evidence(); evidence.setId("E1"); evidence.setOperationId("metric-operation"); evidence.setVerification("VERIFIED_METRIC");
         Map<String, Object> data = new LinkedHashMap<>(); data.put("truncated", false); data.put("unit", "件");
+        data.put("metricId", "10"); data.put("version", "1"); proposal.setOntologyId("1");
+        Map<String, Object> query = new LinkedHashMap<>(); query.put("metricId", "10"); query.put("version", "1");
+        data.put("queryDefinition", query);
+        Map<String, Object> scope = new LinkedHashMap<>(); scope.put("version", "METRIC_SCOPE_V1");
+        scope.put("ontologyId", "1"); scope.put("conceptId", "2"); scope.put("grain", "每对象一行");
+        scope.put("timePropertyId", null); scope.put("fixedFilters", Collections.emptyList()); data.put("scopeContract", scope);
         data.put("rows", Collections.singletonList(Collections.singletonMap("metric_value", "100")));
         Map<String, Object> column = new LinkedHashMap<>(); column.put("key", "metric_value"); column.put("dataType", "decimal"); data.put("columns", Collections.singletonList(column));
         Map<String, Object> tool = new LinkedHashMap<>(); tool.put("toolName", "execute_metric_analysis"); tool.put("status", "SUCCEEDED"); tool.put("operationId", "metric-operation"); tool.put("data", data);
         evidence.getDetails().put("queryEvidence", Collections.singletonList(tool)); proposal.getEvidence().add(evidence);
         MeasureRef ref = new MeasureRef(); ref.setSource("METRIC"); ref.setEvidenceId("E1"); ref.setToolIndex(0); ref.setRowIndex(0); ref.setColumnKey("metric_value"); ref.setUnit("件"); ref.setValue("999999");
-        request.getContext().setDemand(ref); request.getCandidates().add(spec("C1", "60", "5", "1", "0"));
+        request.getContext().setDemand(ref); request.getContext().setMetricScopeReference(ref);
+        request.getCandidates().add(spec("C1", "60", "5", "1", "0"));
         service().calculate(proposal, request, "7");
+        assertNotNull(candidate(proposal, "C1").getCalculation().getMetricScopeDigest());
         assertEquals("100", candidate(proposal, "C1").getCalculation().getInputs().get("demand"));
         assertEquals("0", candidate(proposal, "C1").getCalculation().getRemainingGap());
+    }
+
+    @Test
+    public void legacyMetricCalculationCannotExecuteWithoutScopeVerification() throws Exception {
+        Candidate candidate = new Candidate(); CalculationResult result = new CalculationResult();
+        result.setStatus("COMPUTED"); result.getSources().put("demand", "VERIFIED_METRIC;E1");
+        candidate.setCalculation(result);
+        try { service().assertExecution(candidate, new Binding()); fail("Must require recalculation of legacy metric inputs"); }
+        catch (com.datamaster.common.exception.ServiceException expected) { assertTrue(expected.getMessage().contains("共同口径")); }
+    }
+
+    @Test
+    public void calculationAndPreviewUseTheSameInheritedObjectKey() throws Exception {
+        Proposal proposal = proposal(); proposal.setObjectKey(" ORD-1 ");
+        CalculationRequest request = request(); request.getCandidates().add(spec("C1", "60", "5", "1", "0"));
+        Binding original = new Binding(); original.setType("action"); original.setTargetId("9");
+        original.setObjectKey(" "); original.setInputParams("{\"quantity\":\"60\"}");
+        candidate(proposal, "C1").setSuggestedBinding(original);
+        DecisionCalculationService service = service(); service.calculate(proposal, request, "7");
+        Binding preview = DecisionBindingNormalization.effective(original, proposal.getObjectKey());
+        service.assertExecution(candidate(proposal, "C1"), preview);
+        assertEquals("ORD-1", preview.getObjectKey()); assertEquals("ACTION", preview.getType());
+        assertEquals(" ", original.getObjectKey());
+    }
+
+    @Test
+    public void retainedCalculationInputsCannotBypassRecalculationAfterAmendment() throws Exception {
+        Candidate candidate = new Candidate(); candidate.setCalculationSpec(new CalculationSpec());
+        try { service().assertExecution(candidate, new Binding()); fail("Must recalculate invalidated results"); }
+        catch (com.datamaster.common.exception.ServiceException expected) { assertTrue(expected.getMessage().contains("重新测算")); }
     }
 
     private DecisionCalculationService service() throws Exception {

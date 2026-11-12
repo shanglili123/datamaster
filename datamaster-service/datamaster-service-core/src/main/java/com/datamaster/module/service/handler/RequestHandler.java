@@ -103,7 +103,7 @@ public class RequestHandler {
         String cat_code = "";
         Long space_id = null;
         try {
-            api = MappingHandlerMapping.getMappingApiInfo(request);
+            api = apiMappingEngine.currentRegisteredApi(MappingHandlerMapping.getMappingApiInfo(request));
             {//封装参数
                 api_id = api.getId();
                 cat_id = api.getCatId();

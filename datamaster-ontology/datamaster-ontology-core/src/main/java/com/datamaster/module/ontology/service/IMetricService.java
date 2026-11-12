@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface IMetricService {
     PageResult<MetricRespVO> getPage(MetricPageReqVO req);
+    /** Formal discovery uses published names and exact immutable codes before pagination. */
+    PageResult<MetricRespVO> getPublishedPage(MetricPageReqVO req, String code);
     MetricRespVO get(Long id);
     Long create(MetricSaveReqVO req);
     Integer update(MetricSaveReqVO req);
@@ -13,6 +15,7 @@ public interface IMetricService {
     void validate(Long id);
     void publish(Long id, Integer revision);
     void disable(Long id, Integer revision);
+    Integer restoreDraft(Long id, Integer version, Integer revision);
     List<MetricVersionRespVO> versions(Long id);
     MetricRespVO version(Long id, Integer version);
 }

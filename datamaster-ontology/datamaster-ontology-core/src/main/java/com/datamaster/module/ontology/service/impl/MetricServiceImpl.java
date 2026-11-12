@@ -1,6 +1,7 @@
 package com.datamaster.module.ontology.service.impl;
 
 import com.alibaba.fastjson2.JSON;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.datamaster.common.core.page.PageResult;
 import com.datamaster.common.datasource.mgmt.api.IDatasourceApiService;
 import com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO;
@@ -10,6 +11,8 @@ import com.datamaster.module.ontology.dal.dataobject.*;
 import com.datamaster.module.ontology.dal.mapper.*;
 import com.datamaster.module.ontology.service.IMetricService;
 import com.datamaster.module.ontology.service.metric.MetricRules;
+import com.datamaster.module.ontology.service.analysis.MetricQueryBuilder;
+import com.datamaster.mybatis.core.util.MyBatisUtils;
 import com.datamaster.mybatis.core.query.LambdaQueryWrapperX;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -30,12 +33,32 @@ public class MetricServiceImpl implements IMetricService {
     @Resource private IDatasourceApiService datasourceApiService;
     @Resource private MetricAccessGuard accessGuard;
     @Resource private MetricMetadataLockMapper metadataLockMapper;
+    @Resource private OntologyMapper ontologyMapper;
+    @Resource private com.datamaster.module.governance.api.flow.ISpaceFlowApi spaceFlows;
 
     @Override
     public PageResult<MetricRespVO> getPage(MetricPageReqVO req) {
         accessGuard.assertOntologyAccess(req.getOntologyId());
         PageResult<MetricDO> page = metricMapper.selectPage(req);
         return new PageResult<>(page.getRows().stream().map(this::response).collect(Collectors.toList()), page.getTotal());
+    }
+
+    @Override
+    public PageResult<MetricRespVO> getPublishedPage(MetricPageReqVO req, String code) {
+        MetricRules.require(req != null && req.getOntologyId() != null, "本体ID不能为空");
+        MetricRules.require(code == null || code.length() <= 100 && code.matches("[A-Za-z][A-Za-z0-9_]*"), "指标编码检索格式无效");
+        accessGuard.assertOntologyAccess(req.getOntologyId());
+        MetricRules.require(req.getPageNum() != null && req.getPageNum() > 0
+                && req.getPageSize() != null && req.getPageSize() >= 1 && req.getPageSize() <= 100,
+                "分页参数无效");
+        IPage<MetricDO> page = metricMapper.selectPublishedPage(MyBatisUtils.buildPage(req), req, code);
+        List<MetricRespVO> published = page.getRecords().stream().map(metric -> {
+            MetricRespVO snapshot = loadVersion(metric.getId(), metric.getPublishedVersion());
+            MetricQueryBuilder.checkIdentity(
+                    metric, snapshot, metric.getId(), metric.getPublishedVersion());
+            return snapshot;
+        }).collect(Collectors.toList());
+        return new PageResult<>(published, page.getTotal());
     }
 
     @Override
@@ -51,7 +74,7 @@ public class MetricServiceImpl implements IMetricService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(MetricSaveReqVO req) {
-        MetricRules.require(req.getId() == null, "新增指标不能指定ID");
+        MetricRules.require(req != null && req.getId() == null, "新增指标不能指定ID");
         accessGuard.assertOntologyAccess(req.getOntologyId());
         lockOntology(req.getOntologyId());
         MetricSaveReqVO definition = MetricRules.normalize(req);
@@ -150,6 +173,27 @@ public class MetricServiceImpl implements IMetricService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Integer restoreDraft(Long id, Integer version, Integer revision) {
+        MetricDO current = accessible(id, true);
+        MetricRules.checkRevision(revision, current.getRevision());
+        MetricRules.require(current.getPublishedVersion() != null && current.getPublishedVersion() > 0, "未发布指标没有可恢复历史");
+        MetricRespVO historical = loadVersion(id, version);
+        MetricQueryBuilder.checkIdentity(current, historical, id, version);
+        MetricSaveReqVO definition = MetricRules.normalize(historical);
+        validateDraftReferences(definition);
+        String json = MetricRules.definitionJson(definition);
+        if (json.equals(current.getDefinitionJson())) return 0;
+        applyDefinition(current, definition);
+        current.setRevision(Math.addExact(current.getRevision(), 1));
+        MetricRespVO latest = loadVersion(id, current.getPublishedVersion());
+        MetricQueryBuilder.checkIdentity(current, latest, id, current.getPublishedVersion());
+        current.setDraftChanged(!json.equals(MetricRules.definitionJson(latest)));
+        if (metricMapper.updateById(current) != 1) throw new ServiceException("指标草稿恢复未更新记录");
+        return 1;
+    }
+
+    @Override
     public List<MetricVersionRespVO> versions(Long id) {
         accessible(id, false);
         return metricVersionMapper.selectList(new LambdaQueryWrapperX<MetricVersionDO>()
@@ -163,8 +207,10 @@ public class MetricServiceImpl implements IMetricService {
 
     @Override
     public MetricRespVO version(Long id, Integer version) {
-        accessible(id, false);
-        return loadVersion(id, version);
+        MetricDO current = accessible(id, false);
+        MetricRespVO publication = loadVersion(id, version);
+        MetricQueryBuilder.checkIdentity(current, publication, id, version);
+        return publication;
     }
 
     private MetricRespVO loadVersion(Long id, Integer version) {
@@ -172,7 +218,13 @@ public class MetricServiceImpl implements IMetricService {
         MetricVersionDO row = metricVersionMapper.selectOne(new LambdaQueryWrapperX<MetricVersionDO>()
                 .eq(MetricVersionDO::getMetricId, id).eq(MetricVersionDO::getVersion, version));
         if (row == null) throw new ServiceException("指标发布版本不存在");
-        return JSON.parseObject(row.getSnapshotJson(), MetricRespVO.class);
+        try {
+            MetricRespVO publication = JSON.parseObject(row.getSnapshotJson(), MetricRespVO.class);
+            MetricRules.require(publication != null && Objects.equals(id, publication.getId())
+                    && Objects.equals(version, publication.getPublishedVersion()) && "PUBLISHED".equals(publication.getStatus()), "指标发布快照身份无效");
+            return publication;
+        } catch (ServiceException invalid) { throw invalid; }
+        catch (RuntimeException malformed) { throw new ServiceException("指标发布快照不可用"); }
     }
 
     private MetricDO accessible(Long id, boolean lock) {
@@ -233,7 +285,7 @@ public class MetricServiceImpl implements IMetricService {
         }
     }
 
-    /** Metadata only. Does NOT connect to Doris, execute SQL, verify data or grant source access. */
+    /** Metadata only. Does not connect to the source, execute SQL, verify data or grant source access. */
     private Map<String, Object> validateForPublication(MetricRespVO input) {
         MetricSaveReqVO vo = MetricRules.normalize(input);
         MetricRules.requirePublishFields(vo);
@@ -245,11 +297,12 @@ public class MetricServiceImpl implements IMetricService {
         }
         DatasourceRespDTO datasource = table.getDatasourceId() == null ? null
                 : datasourceApiService.getDatasourceById(table.getDatasourceId());
-        MetricRules.require(datasource != null && "DORIS".equalsIgnoreCase(datasource.getDatasourceType()),
-                "第一批指标仅支持Doris数据源元数据");
-        MetricRules.require(MetricRules.notBlank(table.getDatabaseName()), "表绑定必须明确数据库名");
-        MetricRules.require(MetricRules.adsSource(table.getDatabaseName(), table.getTableName()),
-                "指标仅支持ads_表/视图，或ads数据库中的表/视图；命名不是数据访问授权");
+        MetricRules.require(datasource != null && !Boolean.FALSE.equals(datasource.getValidFlag()), "指标来源数据源不存在或已停用");
+        OntologyDO ontology = ontologyMapper.selectById(vo.getOntologyId());
+        MetricRules.require(ontology != null && (ontology.getSpaceId() != null || MetricRules.notBlank(ontology.getSpaceCode())), "本体必须明确可信空间");
+        spaceFlows.policy(ontology.getSpaceId(), ontology.getSpaceCode());
+        com.datamaster.module.ontology.service.analysis.MetricSqlDialect dialect = com.datamaster.module.ontology.service.analysis.MetricSqlDialect.of(datasource.getDatasourceType());
+        dialect.validateSource(table.getDatabaseName(), table.getSchemaName(), table.getTableName(), false);
         Map<Long, PropertyColumnDO> columns = new LinkedHashMap<>();
         Set<Long> used = MetricRules.usedProperties(vo);
         for (PropertyColumnDO column : propertyColumnMapper.selectByConceptTableId(table.getId())) {
@@ -262,13 +315,20 @@ public class MetricServiceImpl implements IMetricService {
         for (Long id : used) {
             PropertyDO property = propertyMapper.selectById(id);
             PropertyColumnDO column = columns.get(id);
-            MetricRules.require(column != null, "属性未绑定当前概念表字段: " + id);
+            MetricRules.require(column != null && property != null, "属性或当前概念表字段绑定已失效: " + id);
+            dialect.quote(column.getColumnName());
+            MetricQueryBuilder.validateDataType(property.getDataType());
             if (Objects.equals(id, vo.getValuePropertyId())
                     && ("SUM".equals(vo.getAggregation()) || "AVG".equals(vo.getAggregation()))) {
                 MetricRules.require(MetricRules.numeric(property.getDataType()), "SUM/AVG必须使用数值属性");
             }
+            if (com.datamaster.module.ontology.service.metric.MetricDerivedRules.active(vo)) {
+                if (Objects.equals(id, vo.getValuePropertyId()) && !vo.getAggregation().startsWith("COUNT")) MetricRules.require(MetricRules.numeric(property.getDataType()), "派生主聚合必须返回数值");
+                if (Objects.equals(id, vo.getSecondaryValuePropertyId()) && !vo.getSecondaryAggregation().startsWith("COUNT")) MetricRules.require(MetricRules.numeric(property.getDataType()), "派生第二聚合必须返回数值");
+            }
             if (Objects.equals(id, vo.getTimePropertyId())) {
                 MetricRules.require(MetricRules.temporal(property.getDataType()), "时间属性必须是date/datetime/timestamp类型");
+                if ("date".equalsIgnoreCase(property.getDataType())) MetricRules.require(com.datamaster.module.ontology.service.analysis.MetricTimeRules.businessShiftMinutes(vo) == 0, "date属性不能配置不同时区偏移");
             }
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("propertyId", id);
@@ -286,6 +346,7 @@ public class MetricServiceImpl implements IMetricService {
         snapshot.put("tableName", table.getTableName());
         snapshot.put("propertyColumns", mapping);
         snapshot.put("validationScope", "METADATA_ONLY");
+        snapshot.put("sourceMode", "SPACE_FLOW");
         return snapshot;
     }
 }

@@ -53,14 +53,13 @@ public class SearchMetricsTool {
             request.setStatus("PUBLISHED");
             request.setPageNum(1);
             request.setPageSize(support.limit(input == null ? null : input.getLimit(), 20, 50));
-            PageResult<MetricRespVO> page = metricService.getPage(request);
+            String code = text(input == null ? null : input.getCode());
+            PageResult<MetricRespVO> page = metricService.getPublishedPage(request, code);
             List<MetricRespVO> candidates = page == null || page.getRows() == null
                     ? Collections.<MetricRespVO>emptyList() : page.getRows();
-            String code = text(input == null ? null : input.getCode());
             List<Map<String, Object>> rows = new ArrayList<>();
             for (MetricRespVO metric : candidates) {
-                if (metric == null || (code != null && !code.equalsIgnoreCase(metric.getCode()))) continue;
-                rows.add(summary(metric));
+                if (metric != null) rows.add(summary(metric));
             }
             long total = page == null || page.getTotal() == null ? candidates.size() : page.getTotal();
             boolean complete = total <= candidates.size();
@@ -92,7 +91,7 @@ public class SearchMetricsTool {
         row.put("publishedVersion", versionNumber == null ? null : String.valueOf(versionNumber));
         if ("PUBLISHED".equals(metric.getStatus()) && versionNumber != null && versionNumber > 0) {
             try {
-                MetricRespVO published = metricService.version(metric.getId(), versionNumber);
+                MetricRespVO published = metric; // Already selected and identity-checked by getPublishedPage.
                 row.put("name", published.getName());
                 row.put("unit", published.getUnit());
                 row.put("grain", published.getGrain());

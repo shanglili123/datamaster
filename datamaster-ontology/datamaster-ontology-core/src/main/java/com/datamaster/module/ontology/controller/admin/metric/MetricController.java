@@ -25,6 +25,13 @@ public class MetricController {
         return CommonResult.success(metricService.getPage(req));
     }
 
+    @PreAuthorize("@ss.hasPermi('ont:metric:list')")
+    @GetMapping("/published-page")
+    public CommonResult<PageResult<MetricRespVO>> publishedPage(@Valid MetricPageReqVO req,
+            @RequestParam(required = false) String code) {
+        return CommonResult.success(metricService.getPublishedPage(req, code));
+    }
+
     @PreAuthorize("@ss.hasPermi('ont:metric:query')")
     @GetMapping("/{id}")
     public CommonResult<MetricRespVO> get(@PathVariable Long id) {
@@ -71,6 +78,13 @@ public class MetricController {
                                          @RequestParam(required = false) Integer revision) {
         metricService.disable(id, revision);
         return CommonResult.success(true);
+    }
+
+    @PreAuthorize("@ss.hasPermi('ont:metric:edit')")
+    @PostMapping("/{id}/versions/{version}/restore-draft")
+    public CommonResult<Integer> restoreDraft(@PathVariable Long id, @PathVariable Integer version,
+            @RequestParam Integer revision) {
+        return CommonResult.success(metricService.restoreDraft(id, version, revision));
     }
 
     @PreAuthorize("@ss.hasPermi('ont:metric:query')")

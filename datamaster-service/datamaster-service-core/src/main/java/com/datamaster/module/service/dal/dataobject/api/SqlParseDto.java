@@ -12,6 +12,10 @@ public class SqlParseDto implements Serializable {
 
     private static final long serialVersionUID=1L;
 
+    private Long apiId;
+    private Long spaceId;
+    private String spaceCode;
+
     @NotBlank(message = "数据源不能为空")
     private String sourceId;
 

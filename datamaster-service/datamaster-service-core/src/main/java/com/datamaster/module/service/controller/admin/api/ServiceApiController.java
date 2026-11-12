@@ -184,6 +184,7 @@ public class ServiceApiController extends BaseController {
      * @return
      */
     @Operation(summary = "修改Api信息")
+    @PreAuthorize("@ss.hasPermi('ast:asset:edit')")
     @PutMapping
     public AjaxResult updateDataApi(@RequestBody ServiceApiDO dataApi) {
 //        if (dataApi.getExecuteConfig() != null && StringUtils.isNotBlank(dataApi.getExecuteConfig().getSqlText())) {

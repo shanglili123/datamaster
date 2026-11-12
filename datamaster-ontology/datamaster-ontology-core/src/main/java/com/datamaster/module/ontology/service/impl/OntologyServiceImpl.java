@@ -1,6 +1,9 @@
 package com.datamaster.module.ontology.service.impl;
 
+import com.datamaster.common.api.space.ISpaceApi;
 import com.datamaster.common.core.page.PageResult;
+import com.datamaster.common.exception.ServiceException;
+import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.module.ontology.convert.OntologyConvert;
 import com.datamaster.module.ontology.controller.admin.ontology.vo.OntologyPageReqVO;
 import com.datamaster.module.ontology.controller.admin.ontology.vo.OntologyRespVO;
@@ -43,6 +46,7 @@ public class OntologyServiceImpl implements IOntologyService {
     @Resource private FunctionExecutionMapper functionExecutionMapper;
     @Resource private IConceptService conceptService;
     @Resource private MetricReferenceGuard metricReferenceGuard;
+    @Resource private ISpaceApi spaceApi;
 
     @Override
     public PageResult<OntologyRespVO> getOntologyPage(OntologyPageReqVO pageReqVO) {
@@ -59,15 +63,43 @@ public class OntologyServiceImpl implements IOntologyService {
 
     @Override
     public Long createOntology(OntologySaveReqVO createReqVO) {
+        if (createReqVO == null || createReqVO.getId() != null) throw new ServiceException("新建本体不得指定已有ID");
         OntologyDO ontology = OntologyConvert.INSTANCE.convert(createReqVO);
+        normalizeSpace(ontology);
         ontologyMapper.insert(ontology);
         return ontology.getId();
     }
 
     @Override
     public Integer updateOntology(OntologySaveReqVO updateReqVO) {
+        if (updateReqVO.getId() == null) throw new ServiceException("本体ID不能为空");
+        OntologyDO existing = ontologyMapper.selectById(updateReqVO.getId());
+        if (existing == null) throw new ServiceException("本体不存在");
+        // Published metrics derive their policy from this ownership; ordinary edits must not migrate it.
+        normalizeSpace(existing);
+        if ((updateReqVO.getSpaceId() != null && !existing.getSpaceId().equals(updateReqVO.getSpaceId()))
+                || (updateReqVO.getSpaceCode() != null && !updateReqVO.getSpaceCode().isBlank()
+                && !existing.getSpaceCode().equals(updateReqVO.getSpaceCode()))) {
+            throw new ServiceException("普通编辑不能更改本体所属空间；跨空间迁移须单独审核并重新授权指标");
+        }
         OntologyDO ontology = OntologyConvert.INSTANCE.convert(updateReqVO);
+        ontology.setSpaceId(existing.getSpaceId());
+        ontology.setSpaceCode(existing.getSpaceCode());
         return ontologyMapper.updateById(ontology);
+    }
+
+    private void normalizeSpace(OntologyDO ontology) {
+        Long id = ontology.getSpaceId();
+        String code = ontology.getSpaceCode();
+        if (id == null && code != null && !code.isBlank()) id = spaceApi.getSpaceIdBySpaceCode(code);
+        if (id == null || id <= 0) throw new ServiceException("本体必须明确所属空间，历史缺失归属需先维护");
+        String actualCode = spaceApi.getSpaceCodeBySpaceId(id);
+        if (actualCode == null || actualCode.isBlank()
+                || (code != null && !code.isBlank() && !actualCode.equals(code))) {
+            throw new ServiceException("本体空间标识不一致或空间不存在");
+        }
+        if (!spaceApi.hasUserSpace(SecurityUtils.getUserId(), id, actualCode)) throw new ServiceException("无权维护此空间本体");
+        ontology.setSpaceId(id); ontology.setSpaceCode(actualCode);
     }
 
     @Override

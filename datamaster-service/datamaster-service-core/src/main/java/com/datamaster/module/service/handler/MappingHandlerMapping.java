@@ -75,19 +75,17 @@ public class MappingHandlerMapping {
      *
      * @param api
      */
-    public void registerMapping(ServiceApiDO api) {
+    public synchronized void registerMapping(ServiceApiDO api) {
         String mappingKey = getMappingKey(api);
-        if (mappings.containsKey(mappingKey)) {
-            // 取消注册
-            mappings.remove(mappingKey);
-            requestMappingHandlerMapping.unregisterMapping(getRequestMapping(api));
-        }
+        ServiceApiDO previous = mappings.get(mappingKey);
+        if (previous != null && !java.util.Objects.equals(previous.getId(), api.getId())) throw new com.datamaster.common.exception.ServiceException("API路由已被其他服务占用，不能覆盖");
         RequestMappingInfo requestMapping = getRequestMapping(api);
-        mappings.put(mappingKey, api);
+        if (previous != null) {
+            requestMappingHandlerMapping.unregisterMapping(getRequestMapping(previous));
+            mappings.remove(mappingKey);
+        }
         requestMappingHandlerMapping.registerMapping(requestMapping, handler, method);
-        mappings.keySet().forEach(key -> {
-//            log.info("已注册接口:{}", mappings.get(key));
-        });
+        mappings.put(mappingKey, api);
     }
 
     /**
@@ -95,23 +93,25 @@ public class MappingHandlerMapping {
      *
      * @param api
      */
-    public void unregisterMapping(ServiceApiDO api) {
-        log.info("取消注册接口:{}", api.getName());
+    public synchronized void unregisterMapping(ServiceApiDO api) {
         String mappingKey = getMappingKey(api);
-        if (mappings.containsKey(mappingKey)) {
-            // 取消注册
+        ServiceApiDO registered = mappings.get(mappingKey);
+        if (registered != null && java.util.Objects.equals(registered.getId(), api.getId())) {
+            requestMappingHandlerMapping.unregisterMapping(getRequestMapping(registered));
             mappings.remove(mappingKey);
-            requestMappingHandlerMapping.unregisterMapping(getRequestMapping(api));
         }
     }
 
     private String getMappingKey(ServiceApiDO api) {
+        if (api == null || api.getId() == null || api.getReqMethod() == null) throw new com.datamaster.common.exception.ServiceException("API映射身份或请求方式缺失");
         return buildMappingKey(api.getReqMethod().toUpperCase(), getRequestPath(api.getApiVersion(), api.getApiUrl()));
     }
 
     private RequestMappingInfo getRequestMapping(ServiceApiDO api) {
+        String verb = RequestMethodEnum.getValByKey(api.getReqMethod());
+        if (verb == null) throw new com.datamaster.common.exception.ServiceException("API仅支持已声明的GET/POST请求方式");
         return RequestMappingInfo.paths(getRequestPath(api.getApiVersion(), api.getApiUrl()))
-                .methods(RequestMethod.valueOf(RequestMethodEnum.getValByKey(api.getReqMethod()).toUpperCase()))
+                .methods(RequestMethod.valueOf(verb.toUpperCase()))
                 .options(requestMappingHandlerMapping.getBuilderConfiguration())
                 .build();
     }
@@ -123,9 +123,8 @@ public class MappingHandlerMapping {
      * @return
      */
     private String getRequestPath(String version, String path) {
-        if (version != null) {
-            prefix = version;
-        }
-        return separator + ignore + separator + prefix + (path.startsWith(separator) ? path : (separator + path));
+        if (path == null || path.isBlank()) throw new com.datamaster.common.exception.ServiceException("API路径不能为空");
+        String effectiveVersion = version == null || version.isBlank() ? prefix : version;
+        return separator + ignore + separator + effectiveVersion + (path.startsWith(separator) ? path : (separator + path));
     }
 }

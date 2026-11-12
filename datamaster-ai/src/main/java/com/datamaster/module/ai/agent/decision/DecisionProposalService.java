@@ -34,6 +34,8 @@ import java.util.*;
 @Service
 public class DecisionProposalService {
     private static final long TTL = 30 * 60 * 1000L;
+    private static final long DRAFT_TTL = 7 * 24 * 60 * 60 * 1000L;
+    @Resource private DecisionEffectService effects;
     @Resource private JdbcTemplate jdbc;
     @Resource private PlatformTransactionManager transactionManager;
     @Resource private PermissionService permissions;
@@ -49,6 +51,77 @@ public class DecisionProposalService {
     @Resource private DecisionCalculationService calculations;
     @Resource private ActionWorkflowStepMapper workflowStepMapper;
 
+    public List<Proposal> listMine(Long spaceId, String spaceCode) {
+        requirePermission(false);
+        Long user = SecurityUtils.getUserId();
+        if (StringUtils.isBlank(spaceCode) || spaceId == null || !Objects.equals(spaceCode, spaceApi.getSpaceCodeBySpaceId(spaceId))
+                || !spaceApi.hasUserSpace(user, spaceId, spaceCode)) throw new ServiceException("无权访问当前空间任务");
+        List<Row> rows = jdbc.query("SELECT p.* FROM ai_decision_proposal p WHERE p.owner_id=? AND p.space_id=? AND p.space_code=? "
+                        + "AND NOT EXISTS (SELECT 1 FROM ai_decision_proposal newer WHERE newer.decision_id=p.decision_id AND newer.revision>p.revision) "
+                        + "ORDER BY p.created_at DESC LIMIT 50", (rs, n) -> row(rs), user, spaceId, spaceCode);
+        List<Proposal> result = new ArrayList<>();
+        for (Row row : rows) {
+            // Stale/deleted sessions are omitted without exposing their payload.
+            try { authorize(row); } catch (ServiceException inaccessible) { continue; }
+            Dispatch currentDispatch = dispatch(row.proposal.getId());
+            Proposal item = currentDispatch == null ? copy(row.proposal) : reconcile(row, currentDispatch);
+            if (item.getStatus() != null && !Arrays.asList("SUBMITTED", "RUNNING", "WAITING_APPROVAL", "RECONCILIATION_REQUIRED").contains(item.getStatus())
+                    && item.getExpiresAt() != null && item.getExpiresAt().before(new Date()) &&
+                    Arrays.asList("ANALYZING", "NEED_INPUT", "PROPOSED", "PREVIEW_READY").contains(item.getStatus())) item.setMessage("草稿已过期，仍可查看或复制目标重新分析");
+            item.setEvidence(new ArrayList<>()); item.setCandidates(new ArrayList<>()); item.setCalculationContext(null);
+            item.setBinding(null); item.setEffectPlan(null); item.setImpactPreview(null); item.setEffectObservation(null);
+            item.setExecutionDetails(null); item.setPreviewDigest(null); item.setDefinitionDigest(null); item.setResumeToken(null);
+            result.add(item);
+        }
+        return result;
+    }
+
+    public Proposal dispose(DispositionRequest request) {
+        requirePermission(false);
+        return shortTransaction().execute(tx -> {
+            Row row = checkedRequest(request, true);
+            if (dispatch(row.proposal.getId()) != null) throw new ServiceException("已提交任务不能改为未提交处置");
+            if ("REOPEN".equals(request.getDisposition())) assertLive(row.proposal);
+            Proposal next = DecisionLifecycle.apply(row.proposal, request, new Date()); insert(row, next); return copy(next);
+        });
+    }
+
+    public Proposal configureEffect(EffectPlanRequest request) {
+        requirePermission(false);
+        if (!permissions.hasPermi("ont:metric:query") || !permissions.hasPermi("ont:metric:execute"))
+            throw new ServiceException("配置效果目标需要指标查询及执行权限");
+        Row row = checkedRequest(request, false); assertLive(row.proposal); assertEvidenceFresh(row.proposal);
+        if (!Arrays.asList("PROPOSED", "PREVIEW_READY").contains(row.proposal.getStatus()) || dispatch(row.proposal.getId()) != null)
+            throw new ServiceException("只能为未提交任务配置效果目标");
+        EffectPlan plan = effects.validatePlan(row.proposal, request.getPlan());
+        return shortTransaction().execute(tx -> {
+            Row current = checkedRequest(request, true); assertLive(current.proposal); assertEvidenceFresh(current.proposal);
+            if (dispatch(current.proposal.getId()) != null) throw new ServiceException("任务已提交");
+            Proposal next = copy(current.proposal); next.setRevision(next.getRevision() + 1); next.setEffectPlan(plan);
+            next.setBinding(null); next.setPreviewDigest(null); next.setDefinitionDigest(null); next.setPreviewExpiresAt(null); next.setImpactPreview(null);
+            next.setStatus("PROPOSED"); next.setMessage("效果观察计划已保存，旧预览失效；执行成功后按明确观察窗口复查，不做因果归因");
+            insert(current, next); return copy(next);
+        });
+    }
+
+    public Proposal reviewEffect(String id) {
+        requirePermission(false);
+        if (!permissions.hasPermi("ont:metric:query") || !permissions.hasPermi("ont:metric:execute")) throw new ServiceException("缺少指标复查权限");
+        Proposal current = refresh(id);
+        if (!"SUCCEEDED".equals(current.getStatus())) throw new ServiceException("执行尚未成功，不能复查效果");
+        Map<String, Object> observation;
+        try { observation = effects.review(current); }
+        catch (RuntimeException unavailable) {
+            observation = new LinkedHashMap<>(); observation.put("status", "UNKNOWN");
+            observation.put("notice", "当前指标权限、来源或查询条件不可用，复查未完成；不能沿用上次观测为当前效果结论");
+        }
+        String json = JSON.toJSONString(observation);
+        if (json.length() > 20000) throw new ServiceException("效果观测超过保存上限");
+        jdbc.update("UPDATE ai_decision_dispatch SET effect_status=?,effect_message=?,effect_observation_json=?,updated_at=CURRENT_TIMESTAMP,lock_version=lock_version+1 WHERE decision_id=? AND revision=?",
+                observation.get("status"), truncate(String.valueOf(observation.get("notice"))), json, current.getId(), current.getRevision());
+        return refresh(id);
+    }
+
     public Proposal amend(AmendmentRequest request) {
         requirePermission(true);
         Row row = checkedRequest(request, false); assertLive(row.proposal);
@@ -56,7 +129,7 @@ public class DecisionProposalService {
             throw new ServiceException("只有未提交的候选提案可补充执行绑定");
         Candidate selected = candidate(row.proposal, request.getCandidateId());
         if (selected.isBaseline()) throw new ServiceException("不干预基线不能绑定执行动作");
-        Binding input = DecisionAmendment.binding(request);
+        Binding input = DecisionBindingNormalization.effective(DecisionAmendment.binding(request), row.proposal.getObjectKey());
         Binding resolved = bindingResolver.resolve(input, row.ontologyId, row.spaceId, row.spaceCode);
         Proposal next = DecisionAmendment.apply(row.proposal, request.getCandidateId(), resolved);
         return shortTransaction().execute(tx -> {
@@ -109,7 +182,8 @@ public class DecisionProposalService {
         Proposal proposal = new Proposal();
         proposal.setId(UUID.randomUUID().toString()); proposal.setRevision(1); proposal.setStatus("ANALYZING");
         proposal.setOperationId(context.getOperationId()); proposal.setOntologyId(String.valueOf(row.ontologyId));
-        proposal.setGoal(request.getQuestion()); proposal.setExpiresAt(new Date(System.currentTimeMillis() + TTL));
+        proposal.setGoal(request.getQuestion()); proposal.setExpiresAt(new Date(System.currentTimeMillis() + DRAFT_TTL));
+        proposal.setEvidenceExpiresAt(new Date(System.currentTimeMillis() + TTL));
         proposal.setObjectKey(request.getObjectKey());
         proposal.setMessage("正在形成有证据的决策提案；尚未准备或提交动作"); row.proposal = proposal;
         authorize(row); insert(row, proposal);
@@ -150,13 +224,14 @@ public class DecisionProposalService {
                 .anyMatch(spec -> spec != null && Boolean.TRUE.equals(spec.getAlignExecutionQuantities()))
                 && !permissions.hasPermi("ont:action:edit")) throw new ServiceException("同步执行参数需要动作编辑权限");
         Request identity = new Request(); identity.setDecisionId(request.getDecisionId()); identity.setRevision(request.getRevision());
-        Row row = checkedRequest(identity, false); assertLive(row.proposal);
+        Row row = checkedRequest(identity, false); assertLive(row.proposal); assertEvidenceFresh(row.proposal);
         if (!Arrays.asList("PROPOSED", "PREVIEW_READY").contains(row.proposal.getStatus()) || dispatch(row.proposal.getId()) != null)
             throw new ServiceException("只有未提交的候选提案可以测算");
         Proposal next = copy(row.proposal);
         calculations.calculate(next, request, String.valueOf(SecurityUtils.getUserId()));
         next.setRevision(next.getRevision() + 1); next.setStatus("PROPOSED");
         next.setBinding(null); next.setSelectedCandidateId(null); next.setPreviewDigest(null); next.setDefinitionDigest(null);
+        next.setImpactPreview(null); next.setPreviewExpiresAt(null);
         next.setMessage("确定性测算已完成并生成新版本，旧预览已失效；未知项不代表通过，仍需准备和确认执行");
         return shortTransaction().execute(tx -> {
             Row current = checkedRequest(identity, true); assertLive(current.proposal);
@@ -168,12 +243,13 @@ public class DecisionProposalService {
 
     public Proposal prepare(Request request) {
         requirePermission(true);
-        Row row = checkedRequest(request, false); assertLive(row.proposal);
+        Row row = checkedRequest(request, false); assertLive(row.proposal); assertEvidenceFresh(row.proposal);
         if (dispatch(row.proposal.getId()) != null) throw new ServiceException("提案已提交，不能重新准备");
         if (!Arrays.asList("PROPOSED", "PREVIEW_READY").contains(row.proposal.getStatus())) {
             throw new ServiceException("当前状态不能准备动作");
         }
         Candidate candidate = candidate(row.proposal, request.getCandidateId());
+        if (row.proposal.getEffectPlan() != null) effects.validatePlan(row.proposal, row.proposal.getEffectPlan());
         if (candidate.isBaseline()) throw new ServiceException("基线方案不执行动作");
         if (candidate.getConstraints() != null) for (Constraint constraint : candidate.getConstraints()) {
             if (constraint != null && "FAIL".equalsIgnoreCase(constraint.getStatus())) {
@@ -196,15 +272,19 @@ public class DecisionProposalService {
             suggested = new Binding(); suggested.setType("ACTION"); suggested.setTargetId(String.valueOf(decision.getActionId()));
             suggested.setInputParams(decision.getInputParams());
         }
-        if (StringUtils.isBlank(suggested.getObjectKey())) suggested.setObjectKey(row.proposal.getObjectKey());
+        suggested = DecisionBindingNormalization.effective(suggested, row.proposal.getObjectKey());
         Binding resolved = bindingResolver.resolve(suggested, row.ontologyId, row.spaceId, row.spaceCode);
         calculations.assertExecution(candidate, resolved);
+        Map<String, Object> impact = impact(resolved, row);
+        if ("BLOCKED".equals(impact.get("status"))) throw new ServiceException("动作前置条件未通过，不能准备执行");
         Proposal prepared = copy(row.proposal);
         prepared.setRevision(prepared.getRevision() + 1); prepared.setStatus("PREVIEW_READY");
         prepared.setSelectedCandidateId(candidate.getId()); prepared.setBinding(resolved);
+        prepared.setImpactPreview(impact);
         prepared.setObjectKey(resolved.getObjectKey()); prepared.setDefinitionDigest(resolved.getDefinitionDigest());
-        prepared.setExpiresAt(new Date(System.currentTimeMillis() + TTL));
-        prepared.setMessage("只读准备完成：目标、参数、定义版本已冻结；尚未提交、未执行。提交时仍需前置条件、字段权限、dry-run及原审批流程。");
+        prepared.setPreviewExpiresAt(new Date(Math.min(System.currentTimeMillis() + TTL,
+                evidenceExpiry(row.proposal).getTime())));
+        prepared.setMessage("只读影响概要与目标参数已冻结；匹配数不是实际写入数，不锁定数据。提交时重检摘要并沿用原审批执行；未知副作用须单独知悉");
         prepared.setPreviewDigest(previewDigest(row, prepared));
         return shortTransaction().execute(tx -> {
             Row current = checkedRequest(request, true); assertLive(current.proposal);
@@ -228,15 +308,17 @@ public class DecisionProposalService {
         }
         Dispatch existing = dispatch(row.proposal.getId());
         if (existing != null) return reconcile(row, existing);
-        assertLive(row.proposal);
+        assertLive(row.proposal); assertEvidenceFresh(row.proposal); assertPreviewLive(row.proposal);
+        if (row.proposal.getEffectPlan() != null) effects.validatePlan(row.proposal, row.proposal.getEffectPlan());
         calculations.assertExecution(candidate(row.proposal, row.proposal.getSelectedCandidateId()), row.proposal.getBinding());
         Binding current = bindingResolver.resolve(row.proposal.getBinding(), row.ontologyId, row.spaceId, row.spaceCode);
         if (!Objects.equals(current.getDefinitionDigest(), row.proposal.getDefinitionDigest())
                 || !Objects.equals(current.getVersion(), row.proposal.getBinding().getVersion())) {
             throw new ServiceException("动作或 Workflow 定义已变化，必须重新创建提案并预览");
         }
+        verifyImpact(row, current, request);
         boolean claimed = Boolean.TRUE.equals(shortTransaction().execute(tx -> {
-            Row locked = checkedRequest(request, true); assertLive(locked.proposal);
+            Row locked = checkedRequest(request, true); assertLive(locked.proposal); assertEvidenceFresh(locked.proposal); assertPreviewLive(locked.proposal);
             if (dispatch(locked.proposal.getId()) != null) return false;
             Binding b = locked.proposal.getBinding();
             jdbc.update("INSERT INTO ai_decision_dispatch(decision_id,revision,idempotency_key,binding_type,target_id,status) VALUES(?,?,?,?,?,?)",
@@ -252,6 +334,7 @@ public class DecisionProposalService {
             Binding rechecked = bindingResolver.resolve(b, row.ontologyId, row.spaceId, row.spaceCode);
             if (!Objects.equals(rechecked.getDefinitionDigest(), row.proposal.getDefinitionDigest()))
                 throw new ServiceException("定义或对象状态已变化，停止提交，请重新预览");
+            verifyImpact(row, rechecked, request);
             if ("WORKFLOW".equals(b.getType())) {
                 ActionWorkflowRunReqVO req = new ActionWorkflowRunReqVO();
                 req.setExpectedVersion(b.getVersion());
@@ -284,21 +367,6 @@ public class DecisionProposalService {
         Row row = latest(id, false); authorize(row);
         Dispatch dispatch = dispatch(id);
         return dispatch == null ? copy(row.proposal) : reconcile(row, dispatch);
-    }
-
-    /** Effect assessment is independent of execution and cannot change a prepared binding. */
-    public Proposal updateEffect(String id, Integer revision, String status, String message) {
-        requirePermission(false);
-        Row row = latest(id, false); authorize(row);
-        if (!Objects.equals(revision, row.proposal.getRevision()) || dispatch(id) == null) {
-            throw new ServiceException("没有可复查的当前执行");
-        }
-        if (!Arrays.asList("UNKNOWN", "IMPROVED", "NOT_IMPROVED", "INCONCLUSIVE").contains(status)) {
-            throw new ServiceException("不支持的效果复查状态");
-        }
-        jdbc.update("UPDATE ai_decision_dispatch SET effect_status=?,effect_message=?,updated_at=CURRENT_TIMESTAMP,lock_version=lock_version+1 WHERE decision_id=? AND revision=?",
-                status, truncate(message), id, revision);
-        return get(id);
     }
 
     private Proposal reconcile(Row row, Dispatch d) {
@@ -441,12 +509,46 @@ public class DecisionProposalService {
     private void assertLive(Proposal p) {
         if (p.getExpiresAt() == null || p.getExpiresAt().getTime() < System.currentTimeMillis()) throw new ServiceException("提案已过期，请重新分析和准备");
     }
+    private Map<String, Object> impact(Binding binding, Row row) {
+        if ("WORKFLOW".equals(binding.getType())) {
+            Map<String, Object> unknown = new LinkedHashMap<>(); unknown.put("status", "UNKNOWN");
+            unknown.put("reason", "WORKFLOW_SIDE_EFFECTS_NOT_PREDICTED"); unknown.put("summaryType", "NONE");
+            unknown.put("digest", DecisionBindingResolver.sha256("WORKFLOW_SIDE_EFFECTS_NOT_PREDICTED")); return unknown;
+        }
+        ExecutionSubmitReqVO req = new ExecutionSubmitReqVO(); req.setActionId(DecisionBindingResolver.positiveId(binding.getTargetId()));
+        req.setExpectedVersion(binding.getVersion()); req.setObjectKey(binding.getObjectKey()); req.setInputParams(binding.getInputParams());
+        req.setSpaceId(row.spaceId); req.setSpaceCode(row.spaceCode); req.setCreatorId(row.ownerId);
+        ActionImpactPreviewVO preview = executions.previewImpact(req);
+        if (preview == null) throw new ServiceException("只读影响预览不可用");
+        return JSON.parseObject(JSON.toJSONString(preview), Map.class);
+    }
+    private void verifyImpact(Row row, Binding binding, Request request) {
+        Map<String, Object> frozen = row.proposal.getImpactPreview();
+        if (frozen == null || frozen.get("digest") == null) throw new ServiceException("旧预览不包含影响概要，请重新准备");
+        Map<String, Object> current = impact(binding, row);
+        if ("BLOCKED".equals(current.get("status")) || !Objects.equals(frozen.get("digest"), current.get("digest")))
+            throw new ServiceException("实际匹配影响或前置条件已变化，请重新准备预览");
+        if ((!"AVAILABLE".equals(current.get("status")) || Boolean.TRUE.equals(current.get("truncated"))) && !Boolean.TRUE.equals(request.getAcknowledgeUnknownImpact()))
+            throw new ServiceException("副作用无法完整预测或匹配数已截断，必须单独明确知悉影响边界后才可提交");
+    }
+
+    private Date evidenceExpiry(Proposal p) { return p.getEvidenceExpiresAt() == null ? p.getExpiresAt() : p.getEvidenceExpiresAt(); }
+    private void assertEvidenceFresh(Proposal p) {
+        if (evidenceExpiry(p) == null || evidenceExpiry(p).getTime() < System.currentTimeMillis())
+            throw new ServiceException("证据已过时，草稿仍保留；请按原目标重新分析后再测算或准备执行");
+    }
+    private void assertPreviewLive(Proposal p) {
+        Date expiry = p.getPreviewExpiresAt() == null ? p.getExpiresAt() : p.getPreviewExpiresAt();
+        if (expiry == null || expiry.getTime() < System.currentTimeMillis()) throw new ServiceException("执行预览已过期，请重新准备并确认");
+    }
     private String previewDigest(Row row, Proposal p) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("owner", row.ownerId); value.put("spaceId", row.spaceId); value.put("spaceCode", row.spaceCode);
         value.put("session", row.sessionId); value.put("conversation", row.conversationId); value.put("ontology", row.ontologyId);
         value.put("id", p.getId()); value.put("revision", p.getRevision()); value.put("candidate", p.getSelectedCandidateId());
         value.put("binding", p.getBinding()); value.put("expiresAt", p.getExpiresAt().getTime());
+        value.put("previewExpiresAt", p.getPreviewExpiresAt()); value.put("effectPlan", p.getEffectPlan());
+        value.put("impactPreview", p.getImpactPreview());
         Candidate selected = candidate(p, p.getSelectedCandidateId());
         value.put("calculation", selected.getCalculation()); value.put("calculationSpec", selected.getCalculationSpec());
         value.put("calculationContext", p.getCalculationContext());
@@ -489,6 +591,8 @@ public class DecisionProposalService {
             d.bindingType = rs.getString("binding_type"); d.targetId = number(rs, "target_id"); d.status = rs.getString("status");
             d.executionId = number(rs, "execution_id"); d.runId = number(rs, "run_id"); d.executionStatus = rs.getString("execution_status");
             d.message = rs.getString("message"); d.effectStatus = rs.getString("effect_status"); d.effectMessage = rs.getString("effect_message");
+            String observation = rs.getString("effect_observation_json");
+            d.effectObservation = observation == null ? null : JSON.parseObject(observation, Map.class);
             d.updatedAt = rs.getTimestamp("updated_at"); return d;
         }, id);
         return result.isEmpty() ? null : result.get(0);
@@ -502,6 +606,11 @@ public class DecisionProposalService {
         result.setMessage(StringUtils.defaultIfBlank(d.message, "已提交到现有执行流程；审批、执行及业务效果须分别确认"));
         result.setEffectStatus(StringUtils.defaultIfBlank(d.effectStatus, "UNKNOWN"));
         if (d.effectMessage != null) result.setEffectMessage(d.effectMessage);
+        result.setEffectObservation(d.effectObservation);
+        if (!"SUCCEEDED".equals(d.status) && d.effectObservation != null) {
+            result.setEffectStatus("INCONCLUSIVE");
+            result.setEffectMessage("执行状态已变化，历史观测仅供追溯，不能继续作为当前效果结论");
+        }
         return result;
     }
     private static class Row {
@@ -513,6 +622,7 @@ public class DecisionProposalService {
         Integer revision;
         Long targetId, executionId, runId;
         String bindingType, idempotencyKey, status, executionStatus, message, effectStatus, effectMessage;
+        Map<String, Object> effectObservation;
         Date updatedAt;
     }
 }

@@ -439,7 +439,6 @@
 
 <script setup name="OntObjectPanel">
 import { listObjectSets, queryObjects, rowPreview, rowConfirm } from '@/api/ont/objectInstance'
-import { previewConceptTable } from '@/api/ont/conceptTable'
 import { listRelation, getRelation } from '@/api/ont/relation'
 import { listRelationColumn } from '@/api/ont/relationColumn'
 import { listRelationTable } from '@/api/ont/relationTable'
@@ -890,29 +889,12 @@ async function loadObjectActionRelationObjects(param, keyword = '') {
       return
     }
     const filterSpec = { groups: [], orderBy: [], columns: [], keyword: keyword || '' }
-    let rows = []
-    try {
-      const res = await queryObjects({
-        ontologyId: props.ontologyId,
-        conceptId: objectSet.conceptId,
-        tableBindingId: objectSet.tableBindingId,
-        pageNum: 1,
-        pageSize: 30,
-        filters: JSON.stringify(filterSpec)
-      })
-      rows = res.data?.rows || []
-    } catch (queryError) {
-      const previewRes = await previewConceptTable(objectSet.tableBindingId, 30, filterSpec)
-      rows = previewRes.data?.rows || []
-    }
-    if (!rows.length) {
-      try {
-        const previewRes = await previewConceptTable(objectSet.tableBindingId, 30, filterSpec)
-        rows = previewRes.data?.rows || []
-      } catch (previewError) {
-        // 主查询已返回空结果时，保留空列表并在下方给出可读提示。
-      }
-    }
+    const res = await queryObjects({
+      ontologyId: props.ontologyId, conceptId: objectSet.conceptId, tableBindingId: objectSet.tableBindingId,
+      pageNum: 1, pageSize: 30, filters: JSON.stringify(filterSpec)
+    })
+    // A denied query or a valid empty result must not trigger another consumption path.
+    const rows = res.data?.rows || []
     if (requestNo !== state.requestNo) return
     state.options = rows.map(record => {
       const value = objectRecordValue(record, { physicalColumnName: referenceColumn, propertyCode: referenceColumn })

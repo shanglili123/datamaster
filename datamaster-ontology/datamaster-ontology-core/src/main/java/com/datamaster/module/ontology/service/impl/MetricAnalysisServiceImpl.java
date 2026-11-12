@@ -40,6 +40,53 @@ public class MetricAnalysisServiceImpl implements IMetricAnalysisService {
     }
 
     @Override
+    public MetricMultiQueryRespVO multiQuery(MetricMultiQueryReqVO input) {
+        policy.assertEnabled();
+        require(input != null && input.getQueries() != null && input.getQueries().size() >= 2 && input.getQueries().size() <= 4, "请选择2至4个指标");
+        List<MetricQueryReqVO> queries = new ArrayList<>(); List<MetricRespVO> publications = new ArrayList<>();
+        List<MetricQueryBuilder.Plan> plans = new ArrayList<>(); List<com.datamaster.common.database.constants.DbQueryProperty> sources = new ArrayList<>();
+        for (MetricQueryReqVO item : input.getQueries()) {
+            MetricQueryReqVO query = MetricQueryBuilder.normalize(item); queries.add(query);
+            publications.add(snapshot(query, null, true));
+        }
+        MetricMultiQueryRules.comparable(publications, queries, input.getDerivedOperation());
+        for (int i = 0; i < publications.size(); i++) {
+            MetricRespVO publication = publications.get(i); MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(publication, queries.get(i));
+            if (!"NONE".equals(input.getDerivedOperation())) require(plan.getColumns().stream().anyMatch(column -> "metric_value".equals(column.getKey())
+                    && com.datamaster.module.ontology.service.metric.MetricRules.numeric(column.getDataType())), "临时派生要求各指标聚合输出为数值");
+            plans.add(plan); sources.add(sourceGuard.authorize(publication, plan, access.ontology(publication.getOntologyId())));
+        }
+        List<MetricQueryRespVO> results = new ArrayList<>();
+        for (int i = 0; i < publications.size(); i++) results.add(executor.execute(publications.get(i), plans.get(i), sources.get(i)));
+        return MetricMultiQueryRules.align(results, input.getDerivedOperation());
+    }
+
+    @Override
+    public MetricComparisonRespVO compare(MetricComparisonReqVO input) {
+        policy.assertEnabled();
+        MetricQueryReqVO current = MetricQueryBuilder.normalize(input == null ? null : input.getQuery());
+        MetricQueryReqVO baseline = MetricComparisonRules.baseline(input);
+        MetricRespVO publication = snapshot(current, null, true);
+        MetricComparisonRules.validateFilters(publication, current);
+        OntologyDO ontology = access.ontology(publication.getOntologyId());
+        MetricQueryBuilder.Plan currentPlan = MetricQueryBuilder.compile(publication, current);
+        MetricQueryBuilder.Plan baselinePlan = MetricQueryBuilder.compile(publication, baseline);
+        require(currentPlan.getColumns().stream().anyMatch(column -> "metric_value".equals(column.getKey())
+                && com.datamaster.module.ontology.service.metric.MetricRules.numeric(column.getDataType())), "两期变化计算只支持数值指标");
+        // Authorize both before executing either. Both use one exact publication, never current draft definitions.
+        com.datamaster.common.database.constants.DbQueryProperty currentSource = sourceGuard.authorize(publication, currentPlan, ontology);
+        com.datamaster.common.database.constants.DbQueryProperty baselineSource = sourceGuard.authorize(publication, baselinePlan, ontology);
+        MetricComparisonRespVO result = new MetricComparisonRespVO(); result.setMode(input.getMode());
+        result.setCurrent(executor.execute(publication, currentPlan, currentSource));
+        result.setBaseline(executor.execute(publication, baselinePlan, baselineSource));
+        result.setCurrentStartTime(current.getStartTime()); result.setCurrentEndTime(current.getEndTime());
+        result.setBaselineStartTime(baseline.getStartTime()); result.setBaselineEndTime(baseline.getEndTime());
+        MetricPeriodBucketRules.calculate(result, current, baseline);
+        result.setNotice("同一明确发布版本、固定口径与相同维度筛选分别查询两期；只对未截断的完整分组对齐，缺失不补零，分组结果不求和冒充总量。上一期为等长区间，上一月/年为日历平移（月底截到有效日期），实际区间已列出；时间桶只对齐完整、等数量日历桶的序号并显示对应基期桶，不猜测业务日期等价；时间属性额外过滤不支持。百分比=(本期-基期)/|基期|，基期为零或缺失时不计算。两次查询不是源库同一事务快照；时间口径与偏移按同一发布版本执行，不猜测时区或夏令时。");
+        return result;
+    }
+
+    @Override
     public PageResult<MetricAnalysisRespVO> page(MetricAnalysisPageReqVO req) {
         access.ontology(req.getOntologyId());
         require(req.getPageNum() != null && req.getPageNum() > 0 && req.getPageSize() != null

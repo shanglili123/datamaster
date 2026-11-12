@@ -1,9 +1,12 @@
 <template>
   <details class="calculation-panel">
     <summary>标准测算：成本、预算与需求缺口</summary>
+    <p>适用模板：标准成本—产能缺口比较。仅用于投入、单价与产出系数可明确约定的场景，不是通用经营决策或排产优化器。</p>
     <p>公式：增量成本＝Σ投入数量×单价＋一次固定费；新增供给＝Σ投入数量×单位产出；缺口＝max(需求－已有供给－新增供给, 0)。不证明交期或设备可行。</p>
     <label>对象范围 <input v-model="form.scope" :disabled="disabled || busy" placeholder="同一批订单/业务对象" /></label>
-    <label>统计窗口 <input v-model="form.period" :disabled="disabled || busy" placeholder="明确日期、时区或生产窗口" /></label>
+    <label>统计窗口说明 <input v-model="form.period" :disabled="disabled || busy" placeholder="人工说明；引用指标以所选口径基准为准" /></label>
+    <div class="field"><strong>正式指标共同口径基准（引用指标时必选）</strong><DecisionMeasureInput v-model="form.metricScopeReference" unit="口径参考，不参与数值计算" :cells="cells" :disabled="disabled || busy" /></div>
+    <p>基准的概念、粒度、时间范围、固定过滤、分析过滤和所选分组值将由服务端逐项比较；任何不一致会拒绝整次测算。对象范围与窗口说明仅是人工备注，不替代结构化口径。历史证据缺少口径时需重新分析。</p>
     <label>币种 <input v-model="form.currency" :disabled="disabled || busy" placeholder="例如 CNY" /></label>
     <label>产出数量单位 <input v-model="form.quantityUnit" :disabled="disabled || busy" placeholder="例如 件" /></label>
     <div class="field"><strong>需求数量</strong><DecisionMeasureInput v-model="form.demand" :unit="form.quantityUnit" :cells="cells" :disabled="disabled || busy" /></div>
@@ -23,13 +26,17 @@
           <div class="field"><strong>投入数量</strong><DecisionMeasureInput v-model="line.quantity" :unit="line.inputUnit" :cells="cells" :disabled="disabled || busy" /></div>
           <div class="field"><strong>单价</strong><DecisionMeasureInput v-model="line.unitPrice" :unit="`${form.currency}/${line.inputUnit}`" :cells="cells" :disabled="disabled || busy" /></div>
           <div class="field"><strong>每单位投入的新增产出</strong><DecisionMeasureInput v-model="line.outputPerUnit" :unit="`${form.quantityUnit}/${line.inputUnit}`" :cells="cells" :disabled="disabled || busy" /></div>
-          <label>执行数量参数 <input v-model="line.quantityParameter" :disabled="disabled || busy" placeholder="已有动作顶层参数，例如 quantity；留空仅比较" /></label>
+          <details class="execution-mapping">
+            <summary>执行数量映射（仅比较时可不配置）</summary>
+            <label>已有执行数量参数 <input v-model="line.quantityParameter" :disabled="disabled || busy" placeholder="已有动作顶层参数，例如 quantity；留空仅比较" /></label>
+            <p>业务投入量用于计算；此映射仅用于将计算与既有动作对应，不新增参数、不自动提交。</p>
+          </details>
           <button type="button" :disabled="disabled || busy || item.lines.length === 1" @click="item.lines.splice(index, 1)">删除投入</button>
         </div>
         <button type="button" :disabled="disabled || busy || item.lines.length >= 10" @click="item.lines.push(newLine())">增加投入</button>
       </template>
     </article>
-    <p>正式指标必须发布单位一致且未截断；人工参数是经确认的假设。所有候选按同一范围、窗口和单位比较，不自动换算。不干预基线由共同需求/供给自动测算。</p>
+    <p>正式指标必须发布单位一致、未截断且与共同口径基准严格匹配；人工参数仍是经确认的假设。不同概念、粒度或口径暂不自动换算。不干预基线由共同需求/供给自动测算。</p>
     <a-button :loading="busy" :disabled="disabled || busy || !candidateForms.some(item => item.enabled)" @click="submit">核对来源并确认测算（不执行）</a-button>
     <p v-if="error" role="alert">{{ error }}</p>
     <section v-if="proposal.comparison">
@@ -53,7 +60,7 @@ const props = defineProps({ proposal: { type: Object, required: true }, disabled
 const emit = defineEmits(['updated'])
 const measure = () => ({ source: 'USER', value: '' })
 const newLine = () => ({ name: '', inputUnit: '', fractionalQuantity: false, quantity: measure(), unitPrice: measure(), outputPerUnit: measure(), quantityParameter: '' })
-const form = reactive({ scope: '', period: '', currency: '', quantityUnit: '', strategy: 'MEET_DEMAND_MIN_COST', noBudgetLimit: false, demand: measure(), existingSupply: measure(), budget: measure() })
+const form = reactive({ scope: '', period: '', metricScopeReference: { source: 'METRIC' }, currency: '', quantityUnit: '', strategy: 'MEET_DEMAND_MIN_COST', noBudgetLimit: false, demand: measure(), existingSupply: measure(), budget: measure() })
 const candidateForms = ref([])
 const busy = ref(false)
 const error = ref('')
@@ -68,7 +75,7 @@ const cells = computed(() => {
       for (const [rowIndex, row] of (data.rows || []).entries()) {
         if (typeof row?.metric_value !== 'string') continue
         const dimensions = Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'metric_value'))
-        result.push({ key: `${evidence.id}:${toolIndex}:${rowIndex}`, evidenceId: evidence.id, toolIndex, rowIndex, label: `${evidence.id} ${data.metricName || data.metricId} 第${rowIndex + 1}行 ${JSON.stringify(dimensions)}：${row.metric_value} ${data.unit || '单位未定义'}；${data.startTime || ''}~${data.endTime || ''}` })
+        result.push({ key: `${evidence.id}:${toolIndex}:${rowIndex}`, evidenceId: evidence.id, toolIndex, rowIndex, label: `${evidence.id} ${data.metricName || data.metricId} 第${rowIndex + 1}行 ${JSON.stringify(dimensions)}：${row.metric_value} ${data.unit || '单位未定义'}；${data.startTime || '无时间窗口'}~${data.endTime || ''}；粒度 ${data.scopeContract?.grain || '历史证据缺少口径'}；固定过滤 ${JSON.stringify(data.scopeContract?.fixedFilters || [])}；分析过滤 ${JSON.stringify(data.queryDefinition?.filters || [])}` })
       }
     }
   }
@@ -77,7 +84,7 @@ const cells = computed(() => {
 watch(() => [props.proposal.id, props.proposal.revision, props.contextKey], () => {
   ++generation; busy.value = false; error.value = ''
   const saved = props.proposal.calculationContext
-  Object.assign(form, { scope: '', period: '', currency: '', quantityUnit: '', strategy: 'MEET_DEMAND_MIN_COST', noBudgetLimit: false, demand: measure(), existingSupply: measure(), budget: measure() }, saved ? JSON.parse(JSON.stringify(saved)) : {})
+  Object.assign(form, { scope: '', period: '', metricScopeReference: { source: 'METRIC' }, currency: '', quantityUnit: '', strategy: 'MEET_DEMAND_MIN_COST', noBudgetLimit: false, demand: measure(), existingSupply: measure(), budget: measure() }, saved ? JSON.parse(JSON.stringify(saved)) : {})
   if (!form.budget) form.budget = measure()
   candidateForms.value = (props.proposal.candidates || []).filter(item => !item.baseline).map(item => ({ candidateId: item.id, name: item.name, enabled: Boolean(item.calculationSpec), fixedCost: measure(), lines: [newLine()], ...(item.calculationSpec ? JSON.parse(JSON.stringify(item.calculationSpec)) : {}) }))
 }, { immediate: true })
@@ -91,7 +98,7 @@ async function submit() {
   const candidates = candidateForms.value.filter(item => item.enabled).map(item => ({ candidateId: item.candidateId, alignExecutionQuantities: Boolean(item.alignExecutionQuantities), fixedCost: withUnit(item.fixedCost, form.currency), lines: item.lines.map(line => ({ ...line, quantity: withUnit(line.quantity, line.inputUnit), unitPrice: withUnit(line.unitPrice, `${form.currency}/${line.inputUnit}`), outputPerUnit: withUnit(line.outputPerUnit, `${form.quantityUnit}/${line.inputUnit}`) })) }))
   busy.value = true; error.value = ''
   try {
-    await ElMessageBox.confirm('请确认对象范围、统计窗口、单位、指标单元格映射与人工假设准确；固定费每方案一次，预算比较干预增量成本。确认测算将创建新版本并作废旧执行预览。若勾选同步，会更新映射的已有数值参数；仍不会提交执行。', '确认测算输入与来源', { type: 'warning', closeOnClickModal: false, confirmButtonText: '确认并测算', cancelButtonText: '取消' })
+    await ElMessageBox.confirm('请核对所选正式指标口径基准、单位、指标单元格映射与人工假设；服务端会严格比较引用指标的概念、粒度、日期、过滤和分组值，对象范围/窗口文字仅为备注。固定费每方案一次，预算比较干预增量成本。确认将创建新版本并作废旧预览；勾选同步会更新已有数值参数，仍不会提交执行。', '确认测算输入与来源', { type: 'warning', closeOnClickModal: false, confirmButtonText: '确认并测算', cancelButtonText: '取消' })
     if (token !== generation || props.disabled) return
     const response = await calculateDecision({ decisionId: id, revision, confirmedInputs: true, context, candidates })
     if (token === generation && id === props.proposal.id) emit('updated', response.data)

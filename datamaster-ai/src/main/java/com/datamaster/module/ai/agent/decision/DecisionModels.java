@@ -32,6 +32,14 @@ public final class DecisionModels {
         private List<Candidate> candidates = new ArrayList<>();
         private Binding binding;
         private Date expiresAt;
+        private Date evidenceExpiresAt;
+        private Date previewExpiresAt;
+        private String dispositionReason;
+        private Date reviewAfter;
+        private Date decidedAt;
+        private EffectPlan effectPlan;
+        private Map<String, Object> effectObservation;
+        private Map<String, Object> impactPreview;
         private String effectStatus = "UNKNOWN";
         private String effectMessage = "尚未复查业务效果；执行成功不代表目标改善";
         private CalculationContext calculationContext;
@@ -110,6 +118,33 @@ public final class DecisionModels {
         private String candidateId;
         private String previewDigest;
         private Integer revision;
+        private Boolean acknowledgeUnknownImpact;
+    }
+
+    @Data
+    public static class DispositionRequest extends Request {
+        /** ACCEPT_NO_ACTION, DEFER, ABANDON, REOPEN. */
+        private String disposition;
+        private String reason;
+        private Date reviewAfter;
+    }
+
+    @Data
+    public static class EffectPlanRequest extends Request {
+        private EffectPlan plan;
+    }
+
+    @Data
+    public static class EffectPlan {
+        /** Reference to server-owned successful ungrouped numeric metric evidence. */
+        private MeasureRef baseline;
+        private String observationStart;
+        private String observationEnd;
+        private String direction;
+        /** Nonnegative absolute change required from baseline. */
+        private String minimumChange;
+        /** Explicit ISO date-time with offset: observation end plus expected ingestion lag. */
+        private String readyAt;
     }
 
     @Data
@@ -149,6 +184,8 @@ public final class DecisionModels {
     public static class CalculationContext {
         private String scope;
         private String period;
+        /** Server-recorded cell selected by the user as the common metric scope/window. */
+        private MeasureRef metricScopeReference;
         private String currency;
         private String quantityUnit;
         private String strategy;
@@ -198,7 +235,8 @@ public final class DecisionModels {
         private String budgetStatus;
         private String inputDigest;
         private String bindingInputDigest;
-        private String version = "COST_CAPACITY_V1";
+        private String metricScopeDigest;
+        private String version = "COST_CAPACITY_V2";
         private Integer rank;
         private boolean recommended;
         private boolean conditional = true;

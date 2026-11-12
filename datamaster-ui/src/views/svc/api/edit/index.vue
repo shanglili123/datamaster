@@ -427,8 +427,11 @@ function getDataApiById(id) {
             form1.value.resParams = JSON.parse(form1.value.resParams);
             form1.value.headerJson = JSON.parse(form1.value.headerJson);
             form2.value = form1.value.executeConfig;
-            form2.reqParams = form1.value.reqParams;
-            form2.resParams = form1.value.resParams;
+            form2.value.persistedApiId = form1.value.id;
+            form2.value.spaceId = form1.value.spaceId;
+            form2.value.spaceCode = form1.value.spaceCode;
+            form2.value.reqParams = form1.value.reqParams;
+            form2.value.resParams = form1.value.resParams;
             form2.value.headerJson = form1.value.headerJson;
             await getTablesByDataSourceId({
                 datasourceId: form2.value.sourceId

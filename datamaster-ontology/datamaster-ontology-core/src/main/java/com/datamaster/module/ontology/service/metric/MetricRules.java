@@ -23,9 +23,12 @@ public final class MetricRules {
         require(notBlank(vo.getDescription()), "业务定义不能为空");
         if (notBlank(vo.getAggregation())) require(AGGREGATIONS.contains(vo.getAggregation()), "不支持的聚合方式");
         else vo.setAggregation(null);
+        com.datamaster.module.ontology.service.analysis.MetricTimeRules.validate(vo);
+        MetricDerivedRules.validate(vo, false);
         List<Long> dimensions = vo.getDimensionPropertyIds();
-        require(!dimensions.contains(null), "维度属性不能为空");
+        require(dimensions.size() <= 5 && !dimensions.contains(null), "维度最多5个且属性不能为空");
         vo.setDimensionPropertyIds(new ArrayList<>(new LinkedHashSet<>(dimensions)));
+        require(vo.getFixedFilters().size() <= 20, "固定过滤最多20项");
         for (MetricFilterVO filter : vo.getFixedFilters()) {
             require(filter != null && filter.getPropertyId() != null, "过滤条件属性不能为空");
             require(OPERATORS.contains(filter.getOperator()), "不支持的过滤运算符");
@@ -34,7 +37,7 @@ public final class MetricRules {
             } else if ("IN".equals(filter.getOperator())) {
                 require(filter.getValue() instanceof Collection, "IN需要非空数组");
                 Collection<?> values = (Collection<?>) filter.getValue();
-                require(!values.isEmpty(), "IN需要非空数组");
+                require(!values.isEmpty() && values.size() <= 100, "IN需要1至100项非空数组");
                 for (Object value : values) require(isScalar(value), "IN元素必须是非空标量");
             } else {
                 require(isScalar(filter.getValue()), "过滤值必须是非空标量，不接受对象或数组");
@@ -45,11 +48,12 @@ public final class MetricRules {
 
     public static void requirePublishFields(MetricSaveReqVO vo) {
         require(notBlank(vo.getOwner()), "发布前请填写负责人");
-        require(notBlank(vo.getUnit()), "发布前请填写单位");
+        require(notBlank(vo.getUnit()) && vo.getUnit().length() <= 110, "发布前请填写单位（最多110字符）");
         require(notBlank(vo.getGrain()), "发布前请填写一行粒度说明");
         require(AGGREGATIONS.contains(vo.getAggregation()), "发布前请选择聚合方式");
         require(vo.getConceptTableId() != null, "发布前请绑定概念表");
         require("COUNT".equals(vo.getAggregation()) || vo.getValuePropertyId() != null, "该聚合方式必须指定度量属性");
+        MetricDerivedRules.validate(vo, true);
     }
 
     public static void checkRevision(Integer expected, Integer actual) {
@@ -66,6 +70,7 @@ public final class MetricRules {
 
     /** Independent VO copy excludes revision/id/status/audit fields and drops unknown client fields. */
     public static MetricSaveReqVO copyDefinition(MetricSaveReqVO input) {
+        require(input != null, "指标定义不能为空");
         MetricSaveReqVO copy = new MetricSaveReqVO();
         BeanUtils.copyProperties(input, copy);
         copy.setId(null);
@@ -101,34 +106,18 @@ public final class MetricRules {
     }
 
     public static void validateTypedFilter(MetricFilterVO filter, String dataType) {
+        require(filter != null && filter.getOperator() != null && OPERATORS.contains(filter.getOperator()), "过滤运算符无效");
         if ("IS_NULL".equals(filter.getOperator()) || "IS_NOT_NULL".equals(filter.getOperator())) return;
-        Collection<?> values = "IN".equals(filter.getOperator())
-                ? (Collection<?>) filter.getValue() : Collections.singletonList(filter.getValue());
-        if (numeric(dataType)) {
-            for (Object value : values) {
-                require(value instanceof Number || value instanceof String, "数值属性过滤值必须为数值");
-                try {
-                    new java.math.BigDecimal(String.valueOf(value));
-                } catch (NumberFormatException ex) {
-                    throw new ServiceException("数值属性过滤值格式不正确");
-                }
-            }
-        } else if ("boolean".equalsIgnoreCase(dataType)) {
-            for (Object value : values) require(value instanceof Boolean
-                    || "true".equals(value) || "false".equals(value), "布尔属性过滤值必须为true/false");
-        } else if (temporal(dataType)) {
-            for (Object value : values) {
-                require(value instanceof String, "日期属性过滤值必须为ISO日期/时间字符串");
-                try {
-                    String text = (String) value;
-                    if ("date".equalsIgnoreCase(dataType)) java.time.LocalDate.parse(text);
-                    else java.time.LocalDateTime.parse(text.replace(' ', 'T'));
-                } catch (java.time.format.DateTimeParseException ex) {
-                    throw new ServiceException("日期属性过滤值格式不正确");
-                }
-            }
-        }
+        Collection<?> values;
+        if ("IN".equals(filter.getOperator())) {
+            require(filter.getValue() instanceof Collection, "IN需要非空数组");
+            values = (Collection<?>) filter.getValue();
+            require(!values.isEmpty() && values.size() <= 100, "IN需要1至100项非空数组");
+        } else values = Collections.singletonList(filter.getValue());
+        // Publication and execution must agree on integer precision, scalar types and strict ISO time.
+        for (Object value : values) com.datamaster.module.ontology.service.analysis.MetricQueryBuilder.typedValue(value, dataType);
     }
+
     public static boolean numeric(String type) {
         return type != null && Arrays.asList("integer", "decimal", "number", "long", "int", "double", "float", "numeric", "bigint", "smallint").contains(type.toLowerCase(Locale.ROOT));
     }
@@ -142,6 +131,7 @@ public final class MetricRules {
     public static Set<Long> usedProperties(MetricSaveReqVO vo) {
         Set<Long> ids = new LinkedHashSet<>(vo.getDimensionPropertyIds());
         if (vo.getValuePropertyId() != null) ids.add(vo.getValuePropertyId());
+        if (MetricDerivedRules.active(vo) && vo.getSecondaryValuePropertyId() != null) ids.add(vo.getSecondaryValuePropertyId());
         if (vo.getTimePropertyId() != null) ids.add(vo.getTimePropertyId());
         for (MetricFilterVO filter : vo.getFixedFilters()) ids.add(filter.getPropertyId());
         return ids;

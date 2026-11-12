@@ -54,15 +54,17 @@ public class AsyncTask {
             String id =(String) map.get("id");
             String type = (String) map.get("type");//0:取消 1:发布
             ServiceApiDO ServiceApiById = IServiceApiService.getServiceApiById(Long.valueOf(id));
-            if (ServiceApiById != null) {
-                if (HANDLER_RELEASE.equals(type)) {
-                    mappingHandlerMapping.registerMapping(ServiceApiById);
-                } else if (HANDLER_CANCEL.equals(type)) {
-                    mappingHandlerMapping.unregisterMapping(ServiceApiById);
-                }
-            }
-        }catch (Exception e){
-            e.printStackTrace();
+            if (!HANDLER_RELEASE.equals(type) && !HANDLER_CANCEL.equals(type)) return;
+            Object original = map.get("api");
+            ServiceApiDO route = original instanceof ServiceApiDO ? (ServiceApiDO) original : ServiceApiById;
+            // Messages may arrive out of order. Reconcile to current committed state, not stale command intent.
+            if (route != null && (ServiceApiById == null || !java.util.Objects.equals(route.getApiUrl(), ServiceApiById.getApiUrl())
+                    || !java.util.Objects.equals(route.getApiVersion(), ServiceApiById.getApiVersion()) || !java.util.Objects.equals(route.getReqMethod(), ServiceApiById.getReqMethod()))) mappingHandlerMapping.unregisterMapping(route);
+            if (ServiceApiById != null && "1".equals(ServiceApiById.getStatus()) && !Boolean.FALSE.equals(ServiceApiById.getValidFlag())
+                    && !Boolean.TRUE.equals(ServiceApiById.getDelFlag())) mappingHandlerMapping.registerMapping(ServiceApiById);
+            else if (route != null && ServiceApiById != null) mappingHandlerMapping.unregisterMapping(route);
+        } catch (Exception error) {
+            log.error("API映射对账失败，apiId={}，请核对当前发布状态", map.get("id"));
         }
     }
 }

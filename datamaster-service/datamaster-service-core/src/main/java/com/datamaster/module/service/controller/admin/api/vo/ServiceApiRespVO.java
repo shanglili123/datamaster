@@ -26,6 +26,12 @@ public class ServiceApiRespVO implements Serializable {
     @Schema(description = "ID", example = "")
     private Long id;
 
+    @Excel(name = "空间ID")
+    private Long spaceId;
+
+    @Excel(name = "空间编码")
+    private String spaceCode;
+
     @Excel(name = "类目id")
     @Schema(description = "类目id")
     private Long catId;

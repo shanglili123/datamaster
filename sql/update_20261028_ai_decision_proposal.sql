@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS ai_decision_dispatch (
     message varchar(1000),
     effect_status varchar(40) NOT NULL DEFAULT 'UNKNOWN',
     effect_message varchar(1000),
+    effect_observation_json text,
     lock_version integer NOT NULL DEFAULT 0,
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

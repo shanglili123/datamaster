@@ -6,7 +6,7 @@
       <span>按已发布指标版本查询，保存个人分析条件</span>
     </div>
     <a-alert v-if="error" type="error" show-icon :message="error" />
-    <MetricAnalysisPanel v-if="ontologyId" :key="`${spaceKey}:${ontologyId}`" :ontology-id="ontologyId" />
+    <MetricAnalysisPanel v-if="ontologyId" :key="`${spaceKey}:${ontologyId}`" :ontology-id="ontologyId" :initial-selection="initialSelection" />
     <a-empty v-else-if="!loading" description="当前空间暂无可选本体，请先创建本体并发布指标。" />
   </div>
 </template>
@@ -16,8 +16,14 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import useUserStore from '@/store/system/user'
 import { listOntology } from '@/api/ont/ontology'
 import { loadPagedOptions } from '@/api/ont/metricOptions'
+import { useRoute } from 'vue-router'
+import { positiveRouteId, routeText } from '@/utils/analysisNavigation'
 import MetricAnalysisPanel from '../workspace/components/MetricAnalysisPanel.vue'
 
+const route = useRoute()
+const initialSelection = computed(() => String(route.query.ontologyId || '') === String(ontologyId.value || '') ? {
+  metricId: positiveRouteId(route.query.metricId), version: positiveRouteId(route.query.version)
+} : null)
 const userStore = useUserStore()
 const spaceKey = computed(() => `${userStore.spaceId || ''}:${userStore.spaceCode || ''}`)
 const options = ref([])
@@ -25,7 +31,7 @@ const ontologyId = ref()
 const loading = ref(false)
 const error = ref('')
 let sequence = 0
-watch(spaceKey, async () => {
+watch(() => [spaceKey.value, route.query.ontologyId, route.query.metricId, route.query.version, route.query.spaceId], async () => {
   const current = ++sequence
   options.value = []; ontologyId.value = undefined; error.value = ''; loading.value = false
   if (!userStore.spaceId && !userStore.spaceCode) return
@@ -33,8 +39,11 @@ watch(spaceKey, async () => {
   try {
     const items = await loadPagedOptions(listOntology, { spaceId: userStore.spaceId, spaceCode: userStore.spaceCode })
     if (current !== sequence) return
-    options.value = items.map(item => ({ value: item.id, label: item.name }))
-    ontologyId.value = options.value[0]?.value
+    if (routeText(route.query.spaceId) && String(route.query.spaceId) !== String(userStore.spaceId)) { error.value = '此分析链接属于其他空间，请切回原空间后打开'; return }
+    options.value = items.map(item => ({ value: String(item.id), label: item.name }))
+    const requested = positiveRouteId(route.query.ontologyId)
+    if (requested && !options.value.some(item => item.value === requested)) { error.value = '链接中的本体不属于当前可访问空间'; return }
+    ontologyId.value = requested || options.value[0]?.value
   } catch (failure) {
     if (current === sequence) error.value = '本体列表加载失败，请检查当前空间及本体查询权限。'
   } finally { if (current === sequence) loading.value = false }

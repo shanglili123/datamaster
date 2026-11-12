@@ -496,6 +496,9 @@ function openEmbeddedPage({ path, query = {}, component, title, routeName, meta 
     }
   }
   let resolvedComponent = component;
+  if (!resolvedComponent && path === "/ai/ask") resolvedComponent = AiAskView;
+  if (!resolvedComponent && path === "/ont/metric-analysis") resolvedComponent = MetricAnalysisView;
+  if (!resolvedComponent && path === "/ont/metric") resolvedComponent = OntMetricView;
   if (!resolvedComponent && path === "/meta/catalog/table/detail") resolvedComponent = MetadataDetailView;
   if (!resolvedComponent && path === "/col/asset/detail") resolvedComponent = AssetDetailView;
   if (!resolvedComponent && path === "/ast/asset/detail") resolvedComponent = AssetDetailView;
@@ -503,7 +506,10 @@ function openEmbeddedPage({ path, query = {}, component, title, routeName, meta 
   if (!resolvedComponent && path.startsWith("/ont/workspace/")) resolvedComponent = OntologyWorkspaceView;
   if (!resolvedComponent) return false;
   const resolvedTitle = title || (
-    path.includes("asset/detail") ? "资产详情"
+    path === "/ai/ask" ? "数据分析与决策"
+      : path === "/ont/metric-analysis" ? "指标分析"
+        : path === "/ont/metric" ? "指标管理"
+          : path.includes("asset/detail") ? "资产详情"
       : path.includes("catalog/table/detail") ? "元数据详情"
         : path.includes("probeTaskInstance/detail") ? "探查质量报告"
           : path.startsWith("/ont/workspace/") ? "本体工作台" : "详情"

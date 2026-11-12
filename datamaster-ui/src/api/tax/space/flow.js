@@ -1,0 +1,10 @@
+import request from '@/utils/request'
+export const getSpaceFlow = params => request({ url: '/tax/space-flow', method: 'get', params })
+export const saveSpaceFlow = data => request({ url: '/tax/space-flow', method: 'put', data })
+export const validateSpaceFlow = data => request({ url: '/tax/space-flow/validate', method: 'post', data })
+export const previewSpaceFlow = data => request({ url: '/tax/space-flow/publish-preview', method: 'post', data })
+export const getSpaceFlowImpacts = params => request({ url: '/tax/space-flow/consumer-impacts', method: 'get', params })
+export const getSpaceFlowVersions = params => request({ url: '/tax/space-flow/versions', method: 'get', params })
+export const publishSpaceFlow = data => request({ url: '/tax/space-flow/publish', method: 'post', data })
+export const getSpaceQualityHistory = params => request({ url: '/tax/space-flow/quality-confirmations', method: 'get', params })
+export const confirmSpaceQuality = data => request({ url: '/tax/space-flow/quality-confirmation', method: 'post', data })

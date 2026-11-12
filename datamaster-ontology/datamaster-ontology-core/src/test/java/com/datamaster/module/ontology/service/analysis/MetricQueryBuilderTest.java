@@ -118,6 +118,142 @@ public class MetricQueryBuilderTest {
         rejected(() -> MetricQueryBuilder.compile(invalid, request()));
     }
 
+    @Test public void legacyRequestsDefaultToNoBucketAndRetainOriginalOrdering() {
+        MetricQueryReqVO req = request(); req.setTimeBucket(null);
+        req.setDimensionPropertyIds(Arrays.asList(2L, 4L));
+        MetricRespVO metric = snapshot(); metric.setDimensionPropertyIds(Arrays.asList(2L, 4L));
+        MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(metric, req);
+        assertEquals("NONE", plan.getRequest().getTimeBucket());
+        assertNull(plan.getRequest().getSortBy()); assertNull(plan.getRequest().getSortDirection());
+        assertTrue(plan.getSql().endsWith("GROUP BY `region`, `active` ORDER BY `region`, `active` LIMIT ?"));
+        assertFalse(plan.getSql().contains("time_bucket"));
+    }
+    @Test public void metricTopNIsOrderedInSqlBeforeLimitWithAllGroupTieBreaks() {
+        MetricRespVO metric = snapshot(); metric.setDimensionPropertyIds(Arrays.asList(2L, 4L));
+        for (String direction : Arrays.asList("ASC", "DESC")) {
+            MetricQueryReqVO req = request(); req.setDimensionPropertyIds(Arrays.asList(2L, 4L));
+            req.setSortBy("metric_value"); req.setSortDirection(direction); req.setLimit(7);
+            MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(metric, req);
+            assertTrue(plan.getSql().endsWith("ORDER BY `metric_value` " + direction + ", `region` ASC, `active` ASC LIMIT ?"));
+            assertEquals(8, plan.getParameters().get(plan.getParameters().size() - 1));
+            assertFalse(plan.getParameters().contains(direction));
+        }
+    }
+    @Test public void dimensionSortUsesOnlySelectedGroupsAndStableRemainingDimensions() {
+        MetricRespVO metric = snapshot(); metric.setDimensionPropertyIds(Arrays.asList(2L, 4L));
+        for (String direction : Arrays.asList("ASC", "DESC")) {
+            MetricQueryReqVO req = request(); req.setDimensionPropertyIds(Arrays.asList(2L, 4L));
+            req.setSortBy("d_4"); req.setSortDirection(direction);
+            assertTrue(MetricQueryBuilder.compile(metric, req).getSql()
+                    .endsWith("ORDER BY `active` " + direction + ", `region` ASC LIMIT ?"));
+        }
+        MetricQueryReqVO total = request(); total.setSortBy("metric_value"); total.setSortDirection("DESC");
+        String sql = MetricQueryBuilder.compile(snapshot(), total).getSql();
+        assertFalse(sql.contains("GROUP BY")); assertTrue(sql.endsWith("ORDER BY `metric_value` DESC LIMIT ?"));
+    }
+    @Test public void rejectsSortInjectionUnselectedDimensionsAndUnpairedSortFields() {
+        for (String key : Arrays.asList("region", "d_2", "metric_value DESC", "metric_value;DROP", "time_bucket", "d_999")) {
+            MetricQueryReqVO req = request(); req.setSortBy(key); req.setSortDirection("DESC");
+            rejected(() -> MetricQueryBuilder.compile(snapshot(), req));
+        }
+        for (String direction : Arrays.asList("desc", "DESC NULLS LAST", "DESC;DROP", "")) {
+            MetricQueryReqVO req = request(); req.setSortBy("metric_value"); req.setSortDirection(direction);
+            rejected(() -> MetricQueryBuilder.normalize(req));
+        }
+        MetricQueryReqVO req = request(); req.setSortBy("metric_value");
+        rejected(() -> MetricQueryBuilder.normalize(req));
+        req.setSortBy(null); req.setSortDirection("ASC"); rejected(() -> MetricQueryBuilder.normalize(req));
+    }
+    @Test public void calendarBucketsAreSourceAggregationsWithBoundHalfOpenRange() {
+        for (String grain : Arrays.asList("DAY", "MONTH", "YEAR")) {
+            MetricQueryReqVO req = request(); req.setTimeBucket(grain);
+            req.setStartTime("2026-01-15T10:30:00"); req.setEndTime("2026-02-03T11:00:00");
+            MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(snapshot(), req);
+            String bucket = MetricSqlDialect.of("DORIS").bucket("`event_time`", grain);
+            assertTrue(plan.getSql().startsWith("SELECT " + bucket + " AS `time_bucket`, SUM(`amount`)"));
+            assertTrue(plan.getSql().endsWith("GROUP BY " + bucket + " ORDER BY " + bucket + " LIMIT ?"));
+            assertTrue(plan.getSql().contains("`event_time` >= ? AND `event_time` < ?"));
+            assertEquals(java.sql.Timestamp.valueOf("2026-01-15 10:30:00"), plan.getParameters().get(1));
+            assertEquals(java.sql.Timestamp.valueOf("2026-02-03 11:00:00"), plan.getParameters().get(2));
+            assertEquals("time_bucket", plan.getColumns().get(0).getKey());
+            assertEquals("string", plan.getColumns().get(0).getDataType());
+            assertEquals("metric_value", plan.getColumns().get(1).getKey());
+            assertTrue(plan.getUsedColumns().contains("event_time"));
+            assertFalse(plan.getUsedColumns().contains("region"));
+        }
+    }
+    @Test public void bucketAndDimensionAreGroupedTogetherBeforeTopN() {
+        MetricQueryReqVO req = request(); req.setTimeBucket("MONTH"); req.setDimensionPropertyIds(Collections.singletonList(2L));
+        req.setSortBy("metric_value"); req.setSortDirection("DESC");
+        String bucket = MetricSqlDialect.of("DORIS").bucket("`event_time`", "MONTH");
+        MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(snapshot(), req);
+        assertTrue(plan.getSql().contains("GROUP BY " + bucket + ", `region` ORDER BY `metric_value` DESC, " + bucket + " ASC, `region` ASC LIMIT ?"));
+        req.setSortBy("time_bucket"); req.setSortDirection("DESC");
+        assertTrue(MetricQueryBuilder.compile(snapshot(), req).getSql().endsWith("ORDER BY " + bucket + " DESC, `region` ASC LIMIT ?"));
+        req.setTimeBucket("NONE"); rejected(() -> MetricQueryBuilder.compile(snapshot(), req));
+    }
+    @Test public void rejectsBucketsWithoutPublishedTimeOrWithInvalidGrainAndType() {
+        MetricQueryReqVO req = request(); req.setTimeBucket("DAY"); req.setStartTime(null); req.setEndTime(null);
+        MetricRespVO noTime = snapshot(); noTime.setTimePropertyId(null);
+        rejected(() -> MetricQueryBuilder.compile(noTime, req));
+        MetricRespVO invalidTime = snapshot(); mapping(invalidTime, 3L).put("dataType", "string");
+        rejected(() -> MetricQueryBuilder.compile(invalidTime, req));
+        rejected(() -> MetricQueryBuilder.compile(snapshot(), req));
+        for (String grain : Arrays.asList("day", "WEEK", "DAY);DROP", "")) {
+            req.setTimeBucket(grain); rejected(() -> MetricQueryBuilder.normalize(req));
+        }
+        req.setTimeBucket("NONE"); MetricQueryBuilder.compile(noTime, req);
+    }
+    @Test public void dateBucketsPreservePartialDayRangeAndNormalizationCopiesControls() {
+        MetricRespVO metric = snapshot(); mapping(metric, 3L).put("dataType", "date");
+        MetricQueryReqVO req = request(); req.setTimeBucket("YEAR"); req.setSortBy("time_bucket"); req.setSortDirection("ASC");
+        req.setStartTime("2026-01-15"); req.setEndTime("2026-02-03");
+        MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(metric, req);
+        assertEquals(java.sql.Date.valueOf("2026-01-15"), plan.getParameters().get(1));
+        assertEquals(java.sql.Date.valueOf("2026-02-03"), plan.getParameters().get(2));
+        MetricQueryReqVO normalized = MetricQueryBuilder.normalize(req);
+        req.setTimeBucket("NONE"); req.setSortBy(null);
+        assertEquals("YEAR", normalized.getTimeBucket()); assertEquals("time_bucket", normalized.getSortBy());
+        assertEquals("ASC", normalized.getSortDirection());
+    }
+    @Test public void flowSourcesUseDialectForEveryIdentifierAndBucketButLegacyStaysRestricted() {
+        for (String type : Arrays.asList("MYSQL", "POSTGRESQL")) {
+            MetricRespVO metric = snapshot(); Map<String, Object> source = metric.getSourceSnapshot();
+            source.put("datasourceType", type); source.put("sourceMode", "SPACE_FLOW");
+            source.put("databaseName", "business"); source.put("schemaName", "POSTGRESQL".equals(type) ? "reporting" : null);
+            source.put("tableName", "orders");
+            MetricQueryReqVO req = request(); req.setTimeBucket("MONTH"); req.setDimensionPropertyIds(Collections.singletonList(2L));
+            req.setSortBy("metric_value"); req.setSortDirection("DESC"); req.setFilters(Collections.singletonList(filter(2L, "EQ", "west")));
+            MetricSqlDialect dialect = MetricSqlDialect.of(type);
+            MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(metric, req);
+            String bucket = dialect.bucket(dialect.quote("event_time"), "MONTH");
+            assertTrue(plan.getSql().contains("FROM " + dialect.table("business", (String) source.get("schemaName"), "orders")));
+            assertTrue(plan.getSql().contains(dialect.quote("region") + " = ?"));
+            assertTrue(plan.getSql().contains("GROUP BY " + bucket + ", " + dialect.quote("region")));
+            assertTrue(plan.getSql().contains("ORDER BY " + dialect.quote("metric_value") + " DESC"));
+            if ("POSTGRESQL".equals(type)) { assertFalse(plan.getSql().contains("`")); assertTrue(plan.getSql().contains("TO_CHAR(")); }
+            else assertTrue(plan.getSql().contains("DATE_FORMAT("));
+            source.remove("sourceMode"); rejected(() -> MetricQueryBuilder.compile(metric, req));
+        }
+    }
+
+    @Test public void serverPaginationUsesBoundOffsetAndRetainsStableOrdering() {
+        MetricQueryReqVO query = request(); query.setDimensionPropertyIds(List.of(2L)); query.setPageNum(3); query.setLimit(20);
+        MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(snapshot(), query);
+        assertTrue(plan.getSql().endsWith("ORDER BY `region` LIMIT ? OFFSET ?"));
+        assertEquals(21, plan.getParameters().get(plan.getParameters().size() - 2));
+        assertEquals(40, plan.getParameters().get(plan.getParameters().size() - 1));
+        query.setPageNum(3); query.setRequireComplete(true); rejected(() -> MetricQueryBuilder.normalize(query));
+        query.setRequireComplete(false);
+        query.setPageNum(1001); rejected(() -> MetricQueryBuilder.normalize(query));
+        query.setPageNum(2); query.setDimensionPropertyIds(List.of()); rejected(() -> MetricQueryBuilder.normalize(query));
+    }
+    @Test public void completeTrendRejectsMetricRankingAndKeepsCanonicalTimeOrder() {
+        MetricQueryReqVO query = request(); query.setTimeBucket("DAY"); query.setRequireComplete(true);
+        query.setSortBy("metric_value"); query.setSortDirection("DESC"); rejected(() -> MetricQueryBuilder.normalize(query));
+        query.setSortBy("time_bucket"); query.setSortDirection("DESC"); rejected(() -> MetricQueryBuilder.normalize(query));
+        query.setSortDirection("ASC"); assertEquals("time_bucket", MetricQueryBuilder.normalize(query).getSortBy());
+    }
     static MetricQueryReqVO request() {
         MetricQueryReqVO req = new MetricQueryReqVO(); req.setMetricId(10L); req.setVersion(1);
         req.setStartTime("2026-01-01T00:00:00"); req.setEndTime("2026-02-01T00:00:00"); return req;

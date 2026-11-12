@@ -66,6 +66,7 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
     private ActionExecutionMapper actionExecutionMapper;
     @Resource
     private IAssetsTableGovernanceApiService tableGovernanceApiService;
+    @Resource private com.datamaster.module.ontology.service.analysis.OntologyConsumptionContext consumptionContext;
 
     @Override
     public ObjectLineageRespVO objectLineage(Long conceptId, Long spaceId, String spaceCode) {
@@ -77,6 +78,8 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
             respVO.setConceptId(concept.getId());
         }
 
+        com.datamaster.module.ontology.dal.dataobject.OntologyDO ontology = consumptionContext.resolve(concept, null, spaceId, spaceCode);
+        spaceId = ontology.getSpaceId(); spaceCode = ontology.getSpaceCode();
         // 支撑表绑定：用于数据维度 / 版本维度 / 权限维度上下文
         ConceptTableDO binding = resolvePrimaryBinding(conceptId);
         if (binding != null) {
@@ -84,15 +87,12 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
             respVO.setTableName(binding.getTableName());
         }
 
-        // 1. 数据 + 决策维度（Neo4j，可插拔）
+        // Check before returning snapshots/lineage data; a denied permission summary is not a data permit.
+        ObjectPermissionVO permission = buildPermission(binding, spaceId, spaceCode);
+        respVO.setPermission(permission);
+        if (!Boolean.TRUE.equals(permission.getAccessible())) return respVO;
         fillDataAndDecision(respVO, conceptId);
-
-        // 2. 版本维度（SQL 快照派生，不依赖 Neo4j）
         respVO.setVersions(buildVersions(conceptId));
-
-        // 3. 权限维度（资产统一入口实时计算）
-        respVO.setPermission(buildPermission(binding, spaceId, spaceCode));
-
         return respVO;
     }
 
@@ -179,8 +179,8 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
     private ObjectPermissionVO buildPermission(ConceptTableDO binding, Long spaceId, String spaceCode) {
         ObjectPermissionVO vo = new ObjectPermissionVO();
         if (binding == null || binding.getDatasourceId() == null || binding.getTableName() == null) {
-            vo.setAccessible(Boolean.TRUE);
-            vo.setMessage("对象未绑定可解析的物理表，权限维度暂缺省");
+            vo.setAccessible(Boolean.FALSE);
+            vo.setMessage("对象未绑定可解析来源，不能据此确认准入");
             return vo;
         }
         AssetsTableGovernanceReqDTO req = new AssetsTableGovernanceReqDTO();
@@ -191,14 +191,16 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
         req.setEntrance(ENTRANCE_ONTOLOGY_OBJECT_QUERY);
         try {
             AssetsTableGovernanceRespDTO resp = tableGovernanceApiService.resolveTable(req);
-            vo.setAccessible(resp.getAccessAllowed());
-            vo.setMessage(resp.getMessage());
+            vo.setAccessible(Boolean.TRUE.equals(resp.getAccessAllowed())
+                    && (resp.getDeniedColumns() == null || resp.getDeniedColumns().isEmpty())
+                    && resp.getAllowedColumns() == null);
+            vo.setMessage(Boolean.TRUE.equals(vo.getAccessible()) ? resp.getMessage() : "血缘包含完整对象快照，部分字段授权不能用于返回全量快照；请使用受控对象查询");
             vo.setDeniedColumns(resp.getDeniedColumns());
             vo.setAllowedColumns(resp.getAllowedColumns());
         } catch (Exception e) {
-            log.warn("对象血缘(权限维度)计算异常，按放行处理: {}", e.getMessage());
-            vo.setAccessible(Boolean.TRUE);
-            vo.setMessage("权限维度计算异常，默认放行: " + e.getMessage());
+            log.warn("对象血缘权限摘要不可用，未取得准入结论");
+            vo.setAccessible(Boolean.FALSE);
+            vo.setMessage("权限/流程核验不可用或未通过，不能视为放行");
         }
         return vo;
     }

@@ -5,6 +5,8 @@ import com.datamaster.module.ontology.controller.admin.analysis.vo.*;
 
 public interface IMetricAnalysisService {
     MetricQueryRespVO query(MetricQueryReqVO req);
+    MetricComparisonRespVO compare(MetricComparisonReqVO req);
+    MetricMultiQueryRespVO multiQuery(MetricMultiQueryReqVO req);
     PageResult<MetricAnalysisRespVO> page(MetricAnalysisPageReqVO req);
     Long create(MetricAnalysisSaveReqVO req);
     Integer update(MetricAnalysisSaveReqVO req);

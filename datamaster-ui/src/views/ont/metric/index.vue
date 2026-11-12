@@ -3,7 +3,7 @@
     <div class="metric-entry__toolbar">
       <strong>本体指标</strong>
       <a-select v-model:value="ontologyId" :options="options" :loading="loading" placeholder="选择本体管理指标" show-search option-filter-prop="label" style="width: 360px" />
-      <span>业务定义、ADS 字段映射与发布版本</span>
+      <span>业务定义、来源字段映射与发布版本</span>
     </div>
     <a-alert v-if="error" type="error" show-icon :message="error" />
     <MetricPanel v-if="ontologyId" :key="`${spaceKey}:${ontologyId}`" :ontology-id="ontologyId" />
@@ -16,8 +16,11 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import useUserStore from '@/store/system/user'
 import { loadPagedOptions } from '@/api/ont/metricOptions'
 import { listOntology } from '@/api/ont/ontology'
+import { useRoute } from 'vue-router'
+import { positiveRouteId, routeText } from '@/utils/analysisNavigation'
 import MetricPanel from '../workspace/components/MetricPanel.vue'
 
+const route = useRoute()
 const userStore = useUserStore()
 const spaceKey = computed(() => `${userStore.spaceId || ''}:${userStore.spaceCode || ''}`)
 const options = ref([])
@@ -25,7 +28,7 @@ const ontologyId = ref()
 const loading = ref(false)
 const error = ref('')
 let sequence = 0
-watch(spaceKey, async () => {
+watch(() => [spaceKey.value, route.query.ontologyId, route.query.spaceId], async () => {
   const current = ++sequence
   options.value = []; ontologyId.value = undefined; error.value = ''
   if (!userStore.spaceId && !userStore.spaceCode) return
@@ -33,8 +36,11 @@ watch(spaceKey, async () => {
   try {
     const items = await loadPagedOptions(listOntology, { spaceId: userStore.spaceId, spaceCode: userStore.spaceCode })
     if (current !== sequence) return
-    options.value = items.map(item => ({ value: item.id, label: item.name }))
-    ontologyId.value = options.value[0]?.value
+    if (routeText(route.query.spaceId) && String(route.query.spaceId) !== String(userStore.spaceId)) { error.value = '指标管理链接属于其他空间，请切回原空间'; return }
+    options.value = items.map(item => ({ value: String(item.id), label: item.name }))
+    const requested = positiveRouteId(route.query.ontologyId)
+    if (requested && !options.value.some(item => item.value === requested)) { error.value = '链接中的本体不属于当前可访问空间'; return }
+    ontologyId.value = requested || options.value[0]?.value
   } catch (failure) {
     if (current === sequence) error.value = '本体列表加载失败，请检查当前空间及本体查询权限。'
   } finally {

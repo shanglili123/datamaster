@@ -17,6 +17,10 @@ public class AskUnifiedReqVO extends AiAskDataSqlReqVO {
     private Long sessionId;
     @Schema(description = "指标问数操作ID；只接受服务端返回的ASK_METRIC_命名空间")
     private String operationId;
+    @Schema(description = "明确补充待输入任务的服务端操作ID；只恢复目标，不恢复确认或执行权限")
+    private String continuationOperationId;
+    @Schema(description = "从正式分析进入决策的服务端操作引用；只恢复目标，重新查询，不接收客户端数据行")
+    private String analysisOperationId;
     @Schema(description = "明确确认服务端已展示的保存分析参数")
     private Boolean confirmed;
     @Schema(description = "探索报告模板ID，仅responseMode=report生效")

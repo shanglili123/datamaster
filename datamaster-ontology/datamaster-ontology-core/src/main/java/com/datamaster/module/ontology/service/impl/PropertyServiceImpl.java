@@ -31,9 +31,22 @@ public class PropertyServiceImpl implements IPropertyService {
     private PropertyMapper propertyMapper;
     @Resource
     private PropertyColumnMapper propertyColumnMapper;
+    @Resource private com.datamaster.module.ontology.dal.mapper.ConceptMapper concepts;
+    @Resource private com.datamaster.module.ontology.service.analysis.OntologyConsumptionContext contexts;
+    @Resource private com.datamaster.module.ontology.dal.mapper.MetricMetadataLockMapper metadataLocks;
+
+    private void assertConceptOwnership(Long conceptId) {
+        com.datamaster.module.ontology.dal.dataobject.ConceptDO concept = concepts.selectById(conceptId);
+        com.datamaster.module.ontology.dal.dataobject.OntologyDO owner = contexts.resolve(concept, null, null, null);
+        if (metadataLocks.lockOntology(owner.getId()) == null) throw new com.datamaster.common.exception.ServiceException("本体不存在");
+        com.datamaster.module.ontology.dal.dataobject.ConceptDO lockedConcept = concepts.selectById(conceptId);
+        if (lockedConcept == null || !java.util.Objects.equals(owner.getId(), lockedConcept.getOntologyId())) throw new com.datamaster.common.exception.ServiceException("概念已变化，请刷新");
+        contexts.resolve(lockedConcept, null, null, null);
+    }
 
     @Override
     public PageResult<PropertyRespVO> getPropertyPage(PropertyPageReqVO pageReqVO) {
+        contexts.resolve(concepts.selectById(pageReqVO.getConceptId()), null, null, null);
         PageResult<PropertyDO> pageResult = propertyMapper.selectPage(pageReqVO);
         List<PropertyRespVO> list = PropertyConvert.INSTANCE.convertList(pageResult.getRows());
         return new PageResult<>(list, pageResult.getTotal());
@@ -42,25 +55,37 @@ public class PropertyServiceImpl implements IPropertyService {
     @Override
     public PropertyRespVO getPropertyById(Long id) {
         PropertyDO property = propertyMapper.selectById(id);
+        if (property != null) contexts.resolve(concepts.selectById(property.getConceptId()), null, null, null);
         return property != null ? PropertyConvert.INSTANCE.convert(property) : null;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createProperty(PropertySaveReqVO createReqVO) {
+        if (createReqVO == null || createReqVO.getId() != null) throw new com.datamaster.common.exception.ServiceException("新建属性不得指定已有ID");
+        assertConceptOwnership(createReqVO.getConceptId());
         PropertyDO property = PropertyConvert.INSTANCE.convert(createReqVO);
-        propertyMapper.insert(property);
+        if (propertyMapper.insert(property) != 1) throw new com.datamaster.common.exception.ServiceException("属性保存失败");
         return property.getId();
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Integer updateProperty(PropertySaveReqVO updateReqVO) {
-        PropertyDO property = PropertyConvert.INSTANCE.convert(updateReqVO);
+        if (updateReqVO == null || updateReqVO.getId() == null) throw new com.datamaster.common.exception.ServiceException("编辑属性必须明确ID");
+        PropertyDO previous = propertyMapper.selectById(updateReqVO.getId());
+        if (previous == null) throw new com.datamaster.common.exception.ServiceException("属性不存在");
+        assertConceptOwnership(previous.getConceptId());
+        if (updateReqVO.getConceptId() != null && !java.util.Objects.equals(previous.getConceptId(), updateReqVO.getConceptId())) throw new com.datamaster.common.exception.ServiceException("普通编辑不能变更属性所属概念");
+        PropertyDO property = PropertyConvert.INSTANCE.convert(updateReqVO); property.setConceptId(previous.getConceptId());
         return propertyMapper.updateById(property);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer setPrimaryProperties(PropertyPrimaryReqVO reqVO) {
+        if (reqVO == null || reqVO.getPropertyIds() == null || reqVO.getPropertyIds().isEmpty() || reqVO.getPropertyIds().contains(null) || reqVO.getPropertyIds().size() > 20) throw new com.datamaster.common.exception.ServiceException("主属性选择列表缺失或超过20项");
+        assertConceptOwnership(reqVO.getConceptId());
         Set<Long> selectedIds = new HashSet<>(reqVO.getPropertyIds());
         List<PropertyDO> properties = propertyMapper.selectList(
                 new com.datamaster.mybatis.core.query.LambdaQueryWrapperX<PropertyDO>()
@@ -92,6 +117,9 @@ public class PropertyServiceImpl implements IPropertyService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer deleteProperty(Long id) {
+        PropertyDO previous = propertyMapper.selectById(id);
+        if (previous == null) throw new com.datamaster.common.exception.ServiceException("属性不存在");
+        assertConceptOwnership(previous.getConceptId());
         propertyColumnMapper.deleteByPropertyId(id);
         return propertyMapper.deleteById(id);
     }

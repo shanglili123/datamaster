@@ -42,6 +42,39 @@ public class AskMetricOperationStore {
         return operation;
     }
 
+    public void restoreDecisionGoal(AskUnifiedReqVO request, Long userId) {
+        if (request.getOperationId() != null || request.getContinuationOperationId() != null || Boolean.TRUE.equals(request.getConfirmed()))
+            throw new ServiceException("分析转决策不能携带旧确认或续接");
+        request.setOperationId(request.getAnalysisOperationId());
+        AiAgentOperationDO prior;
+        try { prior = require(request, userId); } finally { request.setOperationId(null); }
+        if (!AgentToolResult.SUCCEEDED.equals(prior.getStatus())) throw new ServiceException("只有已完成的正式分析可转为决策");
+        AgentRunResponse saved = saved(prior);
+        boolean queried = saved != null && saved.getToolResults() != null && saved.getToolResults().stream().anyMatch(t ->
+                AgentToolResult.SUCCEEDED.equals(t.getStatus()) && ("execute_metric_analysis".equals(t.getToolName()) || "compare_periods".equals(t.getToolName())));
+        if (!queried) throw new ServiceException("原操作没有正式查询证据");
+        request.setQuestion(AskInputContinuation.question(prior.getGoal(), request.getQuestion()));
+        request.setAnalysisOperationId(null);
+    }
+
+    public void restoreInput(AskUnifiedReqVO request, Long userId) {
+        if (Boolean.TRUE.equals(request.getConfirmed()) || request.getOperationId() != null)
+            throw new ServiceException("补充条件不能同时提交保存确认");
+        String continuation = request.getContinuationOperationId();
+        request.setOperationId(continuation);
+        AiAgentOperationDO operation;
+        try { operation = require(request, userId); }
+        finally { request.setOperationId(null); }
+        if (!AgentToolResult.NEED_INPUT.equals(operation.getStatus()))
+            throw new ServiceException("只有待补充条件的指标任务可以续接");
+        AskUnifiedReqVO stored = JSON.parseObject(operation.getRequestJson(), AskUnifiedReqVO.class);
+        if (stored == null || !Objects.equals(stored.getDatasourceId(), request.getDatasourceId())
+                || "decision".equalsIgnoreCase(stored.getResponseMode()))
+            throw new ServiceException("指标续接不能更换数据源或使用决策任务");
+        request.setQuestion(AskInputContinuation.question(operation.getGoal(), request.getQuestion()));
+        request.setContinuationOperationId(null);
+    }
+
     public AiAgentOperationDO create(AskUnifiedReqVO request, AgentToolContext context) {
         AiAgentOperationDO operation = new AiAgentOperationDO();
         operation.setId(PREFIX + UUID.randomUUID());

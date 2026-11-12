@@ -32,15 +32,17 @@ final class DecisionAmendment {
                 && candidateId.equals(c.getId()) && !c.isBaseline()).findFirst()
                 .orElseThrow(() -> new ServiceException("请选择当前提案的处置候选"));
         selected.setSuggestedBinding(JSON.parseObject(JSON.toJSONString(validated), Binding.class));
-        // Changing an execution target/quantity invalidates the comparison as a whole, not only the old preview.
+        // Keep user inputs for correction, but never retain computed authority after binding changes.
         for (Candidate candidate : next.getCandidates()) {
-            candidate.setCalculation(null); candidate.setCalculationSpec(null);
+            candidate.setCalculation(null);
+            if (candidate.getCalculationSpec() != null) candidate.getCalculationSpec().setAlignExecutionQuantities(false);
         }
-        next.setCalculationContext(null); next.setComparison(null);
+        next.setComparison(null);
         next.setBinding(null); next.setSelectedCandidateId(null); next.setPreviewDigest(null); next.setDefinitionDigest(null);
+        next.setImpactPreview(null); next.setPreviewExpiresAt(null);
         next.setExecutionDetails(null); next.setResumeAllowed(false); next.setResumeToken(null); next.setResumeMessage(null);
         next.setRevision(original.getRevision() + 1); next.setStatus("PROPOSED");
-        next.setMessage("执行绑定已人工补充并通过只读校验；旧预览和测算已失效，请重新测算、准备预览并明确确认；尚未提交执行");
+        next.setMessage("执行绑定已补充；旧测算结果、排名和预览已作废，保留输入条件供重新核验。请重新测算（如需要）、准备预览并明确确认；尚未提交执行");
         return next;
     }
 }

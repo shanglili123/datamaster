@@ -23,6 +23,16 @@ public class MetricAnalysisController {
     public CommonResult<MetricQueryRespVO> query(@Valid @RequestBody MetricQueryReqVO req) {
         return CommonResult.success(service.query(req));
     }
+    @PostMapping("/multi-query")
+    @PreAuthorize("@ss.hasPermi('ont:metric:execute')")
+    public CommonResult<MetricMultiQueryRespVO> multiQuery(@Valid @RequestBody MetricMultiQueryReqVO req) {
+        return CommonResult.success(service.multiQuery(req));
+    }
+    @PostMapping("/compare")
+    @PreAuthorize("@ss.hasPermi('ont:metric:execute')")
+    public CommonResult<MetricComparisonRespVO> compare(@Valid @RequestBody MetricComparisonReqVO req) {
+        return CommonResult.success(service.compare(req));
+    }
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPermi('ont:analysis:list')")
     public CommonResult<PageResult<MetricAnalysisRespVO>> page(@Valid MetricAnalysisPageReqVO req) {

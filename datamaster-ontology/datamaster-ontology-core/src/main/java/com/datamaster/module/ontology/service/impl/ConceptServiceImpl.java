@@ -52,9 +52,12 @@ public class ConceptServiceImpl implements IConceptService {
     private IRelationService relationService;
     @Resource
     private MetricReferenceGuard metricReferenceGuard;
+    @Resource private com.datamaster.module.ontology.service.analysis.MetricAnalysisAccessGuard ownership;
+    @Resource private com.datamaster.module.ontology.dal.mapper.MetricMetadataLockMapper metadataLocks;
 
     @Override
     public PageResult<ConceptRespVO> getConceptPage(ConceptPageReqVO pageReqVO) {
+        ownership.ontology(pageReqVO.getOntologyId());
         PageResult<ConceptDO> pageResult = conceptMapper.selectPage(pageReqVO);
         List<ConceptRespVO> list = ConceptConvert.INSTANCE.convertList(pageResult.getRows());
         return new PageResult<>(list, pageResult.getTotal());
@@ -63,25 +66,46 @@ public class ConceptServiceImpl implements IConceptService {
     @Override
     public ConceptRespVO getConceptById(Long id) {
         ConceptDO concept = conceptMapper.selectById(id);
+        if (concept != null) ownership.ontology(concept.getOntologyId());
         return concept != null ? ConceptConvert.INSTANCE.convert(concept) : null;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createConcept(ConceptSaveReqVO createReqVO) {
+        if (createReqVO == null || createReqVO.getId() != null) throw new com.datamaster.common.exception.ServiceException("新建概念不得指定已有ID");
+        ownership.ontology(createReqVO.getOntologyId());
+        if (metadataLocks.lockOntology(createReqVO.getOntologyId()) == null) throw new com.datamaster.common.exception.ServiceException("本体不存在");
+        ownership.ontology(createReqVO.getOntologyId());
         ConceptDO concept = ConceptConvert.INSTANCE.convert(createReqVO);
-        conceptMapper.insert(concept);
+        if (conceptMapper.insert(concept) != 1) throw new com.datamaster.common.exception.ServiceException("概念保存失败");
         return concept.getId();
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Integer updateConcept(ConceptSaveReqVO updateReqVO) {
+        if (updateReqVO == null || updateReqVO.getId() == null) throw new com.datamaster.common.exception.ServiceException("编辑概念必须指定ID");
+        ConceptDO existing = conceptMapper.selectById(updateReqVO.getId());
+        if (existing == null) throw new com.datamaster.common.exception.ServiceException("概念不存在");
+        ownership.ontology(existing.getOntologyId());
+        Long ontologyId = existing.getOntologyId();
+        if (metadataLocks.lockOntology(ontologyId) == null) throw new com.datamaster.common.exception.ServiceException("本体不存在");
+        existing = conceptMapper.selectById(updateReqVO.getId());
+        if (existing == null || !java.util.Objects.equals(ontologyId, existing.getOntologyId())) throw new com.datamaster.common.exception.ServiceException("概念已变化，请刷新");
+        ownership.ontology(ontologyId);
+        if (updateReqVO.getOntologyId() != null && !java.util.Objects.equals(existing.getOntologyId(), updateReqVO.getOntologyId())) throw new com.datamaster.common.exception.ServiceException("普通编辑不能更改概念所属本体");
         ConceptDO concept = ConceptConvert.INSTANCE.convert(updateReqVO);
+        concept.setOntologyId(existing.getOntologyId());
         return conceptMapper.updateById(concept);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer deleteConcept(Long id) {
+        ConceptDO existing = conceptMapper.selectById(id);
+        if (existing == null) throw new com.datamaster.common.exception.ServiceException("概念不存在");
+        ownership.ontology(existing.getOntologyId());
         metricReferenceGuard.assertConceptDeletable(id);
         for (RelationDO relation : relationMapper.selectList(new LambdaQueryWrapperX<RelationDO>()
                 .and(wrapper -> wrapper.eq(RelationDO::getSourceConceptId, id)

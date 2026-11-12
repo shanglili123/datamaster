@@ -767,6 +767,8 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         checkAskDataGovernance(reqVO, currentUserId());
     }
 
+    @Resource private com.datamaster.module.governance.api.flow.ISpaceFlowApi spaceFlows;
+
     private void checkAskDataGovernance(AiAskDataSqlReqVO reqVO, Long userId) {
         if (reqVO == null) {
             return;
@@ -779,6 +781,9 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
                 && (spaceApi == null || !spaceApi.hasUserSpace(userId, reqVO.getSpaceId(), reqVO.getSpaceCode()))) {
             throw new ServiceException("当前用户无权访问该空间");
         }
+        com.datamaster.module.governance.api.flow.ISpaceFlowApi.Policy flow = spaceFlows.policy(reqVO.getSpaceId(), reqVO.getSpaceCode());
+        if (flow.isAssetRequired() || flow.isQualityRequired())
+            throw new ServiceException("当前空间已配置严格流程；远端探索问数无法验证实际参与的全部表，请使用正式指标受控分析");
         if (reqVO.getAssetId() == null) {
             checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode(), userId);
             return;

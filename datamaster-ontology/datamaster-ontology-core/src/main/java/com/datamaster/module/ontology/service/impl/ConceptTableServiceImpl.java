@@ -45,9 +45,12 @@ public class ConceptTableServiceImpl implements IConceptTableService {
     private DataSourceFactory dataSourceFactory;
     @Resource
     private MetricReferenceGuard metricReferenceGuard;
+    @Resource private com.datamaster.module.ontology.service.analysis.ConceptTableConsumptionGuard consumption;
+    @Resource private com.datamaster.module.ontology.dal.mapper.MetricMetadataLockMapper metadataLocks;
 
     @Override
     public PageResult<ConceptTableRespVO> getConceptTablePage(ConceptTablePageReqVO pageReqVO) {
+        ConceptTableDO scope = new ConceptTableDO(); scope.setConceptId(pageReqVO.getConceptId()); consumption.ownership(scope);
         PageResult<ConceptTableDO> pageResult = conceptTableMapper.selectPage(pageReqVO);
         List<ConceptTableRespVO> list = ConceptTableConvert.INSTANCE.convertList(pageResult.getRows());
         return new PageResult<>(list, pageResult.getTotal());
@@ -55,6 +58,7 @@ public class ConceptTableServiceImpl implements IConceptTableService {
 
     @Override
     public List<ConceptTableRespVO> getConceptTableByConceptId(Long conceptId) {
+        ConceptTableDO scope = new ConceptTableDO(); scope.setConceptId(conceptId); consumption.ownership(scope);
         List<ConceptTableDO> list = conceptTableMapper.selectByConceptId(conceptId);
         return ConceptTableConvert.INSTANCE.convertList(list);
     }
@@ -62,6 +66,7 @@ public class ConceptTableServiceImpl implements IConceptTableService {
     @Override
     public ConceptTableRespVO getConceptTableById(Long id) {
         ConceptTableDO entity = conceptTableMapper.selectById(id);
+        if (entity != null) consumption.ownership(entity);
         return entity != null ? ConceptTableConvert.INSTANCE.convert(entity) : null;
     }
 
@@ -71,15 +76,21 @@ public class ConceptTableServiceImpl implements IConceptTableService {
         if (entity == null) {
             throw new RuntimeException("概念表绑定不存在: id=" + id);
         }
+        com.datamaster.module.ontology.dal.dataobject.OntologyDO ontology = consumption.source(entity);
+        consumption.admit(entity, ontology, null);
         DatasourceRespDTO ds = datasourceApiService.getDatasourceById(entity.getDatasourceId());
-        if (ds == null) {
+        if (ds == null || Boolean.FALSE.equals(ds.getValidFlag())) {
             throw new RuntimeException("数据源不存在: id=" + entity.getDatasourceId());
         }
         DbQueryProperty property = new DbQueryProperty(
                 ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig());
+        consumption.connection(entity, property);
         DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
         try {
-            return dbQuery.getTableColumns(property, entity.getTableName());
+            List<DbColumn> columns = dbQuery.getTableColumns(property, entity.getTableName());
+            List<String> names = new ArrayList<>(); if (columns != null) for (DbColumn column : columns) names.add(column.getColName());
+            consumption.admit(entity, ontology, names);
+            return columns;
         } finally {
             if (dbQuery != null) {
                 dbQuery.close();
@@ -88,21 +99,37 @@ public class ConceptTableServiceImpl implements IConceptTableService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createConceptTable(ConceptTableSaveReqVO createReqVO) {
+        if (createReqVO == null) throw new com.datamaster.common.exception.ServiceException("概念表定义不能为空");
         ConceptTableDO entity = ConceptTableConvert.INSTANCE.convert(createReqVO);
-        conceptTableMapper.insert(entity);
+        if (entity.getId() != null) throw new com.datamaster.common.exception.ServiceException("新建概念表不得指定ID");
+        com.datamaster.module.ontology.dal.dataobject.OntologyDO owner = consumption.source(entity);
+        if (metadataLocks.lockOntology(owner.getId()) == null) throw new com.datamaster.common.exception.ServiceException("本体不存在");
+        consumption.source(entity);
+        if (conceptTableMapper.insert(entity) != 1) throw new com.datamaster.common.exception.ServiceException("概念表保存失败");
         return entity.getId();
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Integer updateConceptTable(ConceptTableSaveReqVO updateReqVO) {
+        if (updateReqVO == null || updateReqVO.getId() == null) throw new com.datamaster.common.exception.ServiceException("编辑概念表必须指定ID");
+        ConceptTableDO previous = conceptTableMapper.selectById(updateReqVO.getId());
+        com.datamaster.module.ontology.dal.dataobject.OntologyDO owner = consumption.ownership(previous);
+        if (metadataLocks.lockOntology(owner.getId()) == null) throw new com.datamaster.common.exception.ServiceException("本体不存在");
+        previous = conceptTableMapper.selectById(updateReqVO.getId());
+        consumption.ownership(previous);
         ConceptTableDO entity = ConceptTableConvert.INSTANCE.convert(updateReqVO);
+        if (!java.util.Objects.equals(previous.getConceptId(), entity.getConceptId())) throw new com.datamaster.common.exception.ServiceException("普通编辑不能变更概念表所属概念");
+        consumption.source(entity);
         return conceptTableMapper.updateById(entity);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer deleteConceptTable(Long id) {
+        consumption.ownership(conceptTableMapper.selectById(id));
         metricReferenceGuard.assertTableBindingDeletable(id);
         propertyColumnMapper.deleteByConceptTableId(id);
         return conceptTableMapper.deleteById(id);
@@ -117,16 +144,19 @@ public class ConceptTableServiceImpl implements IConceptTableService {
         if (entity.getDatasourceId() == null) {
             throw new RuntimeException("概念表绑定缺少数据源配置: id=" + id);
         }
+        com.datamaster.module.ontology.dal.dataobject.OntologyDO ontology = consumption.source(entity);
+        consumption.admit(entity, ontology, null);
         DatasourceRespDTO ds = datasourceApiService.getDatasourceById(entity.getDatasourceId());
-        if (ds == null) {
+        if (ds == null || Boolean.FALSE.equals(ds.getValidFlag())) {
             throw new RuntimeException("数据源不存在: id=" + entity.getDatasourceId());
         }
         DbQueryProperty property = new DbQueryProperty(
                 ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig());
+        consumption.connection(entity, property);
         DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
         try {
             int safeLimit = (limit == null || limit <= 0) ? 20 : Math.min(limit, 100);
-            // 列以元数据为准（保证顺序与类型），取不到元数据时退化为按首行 key 兜底
+            // 必须取得可验证物理字段；字段读取失败时拒绝预览而非回退SELECT *。
             List<String> columns = new ArrayList<>();
             java.util.Set<String> textColumns = new java.util.HashSet<>();
             try {
@@ -141,16 +171,17 @@ public class ConceptTableServiceImpl implements IConceptTableService {
             }
             // 类型化过滤/排序/投影/关键字：统一白名单校验 + NamedParameter 防注入；
             // 跨列模糊仅作用于文本列，避免数值/日期列 LIKE 类型错误
-            List<String> whitelist = columns.isEmpty() ? Collections.emptyList()
-                    : Collections.unmodifiableList(columns);
-            TypedQuerySpec spec = TypedQueryBuilder.parse(filters);
-            TypedQueryBuilder.Compiled compiled = TypedQueryBuilder.compile(spec, whitelist, textColumns);
+            consumption.admit(entity, ontology, columns);
+            List<String> whitelist = Collections.unmodifiableList(columns);
+            TypedQuerySpec spec = TypedQueryBuilder.parseStrict(filters);
+            TypedQueryBuilder.Compiled compiled = TypedQueryBuilder.compileStrict(spec, whitelist, textColumns);
 
+            String physicalTable = consumption.physicalTable(entity, property);
             StringBuilder sql = new StringBuilder();
             if (compiled.hasProjection()) {
-                sql.append("SELECT ").append(compiled.projection).append(" FROM ").append(entity.getTableName());
+                sql.append("SELECT ").append(compiled.projection).append(" FROM ").append(physicalTable);
             } else {
-                sql.append("SELECT * FROM ").append(entity.getTableName());
+                sql.append("SELECT ").append(String.join(", ", columns)).append(" FROM ").append(physicalTable);
             }
             if (compiled.hasWhere()) {
                 sql.append(" WHERE ").append(compiled.where);
@@ -158,15 +189,12 @@ public class ConceptTableServiceImpl implements IConceptTableService {
             if (compiled.hasOrderBy()) {
                 sql.append(" ORDER BY ").append(compiled.orderBy);
             }
-            sql.append(" LIMIT ").append(safeLimit);
-            List<Map<String, Object>> rows = dbQuery.queryList(sql.toString(), compiled.params, 0);
-            if (columns.isEmpty() && !rows.isEmpty()) {
-                columns = new ArrayList<>(rows.get(0).keySet());
-            }
+            com.datamaster.common.database.core.PageResult<Map<String,Object>> page = dbQuery.queryByPage(sql.toString(), compiled.params, 0, safeLimit, 0);
+            List<Map<String,Object>> rows = page.getData() == null ? Collections.emptyList() : page.getData();
             ConceptTablePreviewRespVO respVO = new ConceptTablePreviewRespVO();
             respVO.setTableName(entity.getTableName());
             respVO.setColumns(columns);
-            respVO.setRows(rows);
+            respVO.setRows(consumption.mask(entity, ontology, rows));
             return respVO;
         } finally {
             if (dbQuery != null) {

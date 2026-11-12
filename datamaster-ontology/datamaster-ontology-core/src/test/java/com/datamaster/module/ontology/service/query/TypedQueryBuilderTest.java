@@ -58,7 +58,7 @@ public class TypedQueryBuilderTest {
                 filter("AND", "name", TypedQueryBuilder.OP_EQ, "张三", null),
                 filter("NOT", "status", TypedQueryBuilder.OP_EQ, "1", null));
         TypedQueryBuilder.Compiled c = TypedQueryBuilder.compile(spec, WHITELIST, TEXT_COLUMNS);
-        assertEquals("(name = :p0 NOT (status = :p1))", c.where);
+        assertEquals("(name = :p0 AND NOT (status = :p1))", c.where);
     }
 
     @Test
@@ -188,7 +188,7 @@ public class TypedQueryBuilderTest {
                 + "\"columns\":[\"id\",\"name\"]}";
         TypedQuerySpec spec = TypedQueryBuilder.parse(json);
         TypedQueryBuilder.Compiled c = TypedQueryBuilder.compile(spec, WHITELIST, TEXT_COLUMNS);
-        assertEquals("(name LIKE :p0 NOT (age > :p1))", c.where);
+        assertEquals("(name LIKE :p0 AND NOT (age > :p1))", c.where);
         assertEquals("id ASC", c.orderBy);
         assertEquals("id, name", c.projection);
         assertEquals("%张%", c.params.get("p0"));

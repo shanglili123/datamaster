@@ -26,7 +26,8 @@
         class="report-section"
       >
         <h3>{{ section.title }}</h3>
-        <div class="chart" :ref="(el) => setChartRef(sectionKey(section, index), el)" :style="chartStyle(section)" />
+        <DeclarativeChartRenderer v-if="section.type !== 'pieChart'" :rows="arrayOf(section.bind)" :x-field="section.xField" :y-field="section.yField" :chart-type="section.type === 'lineChart' ? 'line' : 'bar'" :title="section.title" />
+        <div v-else class="chart" :ref="(el) => setChartRef(sectionKey(section, index), el)" :style="chartStyle(section)" />
       </div>
 
       <div v-else-if="section.type === 'table'" class="report-section">
@@ -46,6 +47,7 @@
 
 <script setup>
 import * as echarts from 'echarts'
+import DeclarativeChartRenderer from '@/components/DeclarativeChartRenderer.vue'
 
 const props = defineProps({
   template: {
@@ -94,7 +96,7 @@ function setChartRef(key, el) {
 
 function renderCharts() {
   sections.value
-    .filter((section) => ['lineChart', 'barChart', 'pieChart'].includes(section.type))
+    .filter((section) => section.type === 'pieChart')
     .forEach((section, index) => {
       const key = sectionKey(section, index)
       const el = chartRefs.get(key)

@@ -16,12 +16,16 @@ public class DecisionAmendmentTest {
         assertNull(result.getPreviewDigest()); assertNull(result.getBinding());
         assertNull(result.getSelectedCandidateId()); assertNull(result.getComparison());
         for (Candidate candidate : result.getCandidates()) {
-            assertNull(candidate.getCalculation()); assertNull(candidate.getCalculationSpec());
+            assertNull(candidate.getCalculation()); assertNotNull(candidate.getCalculationSpec());
+            assertEquals(Boolean.FALSE, candidate.getCalculationSpec().getAlignExecutionQuantities());
         }
         assertEquals("2100228457732182017", result.getCandidates().get(0).getSuggestedBinding().getTargetId());
         assertEquals("ORD-1", result.getCandidates().get(0).getSuggestedBinding().getObjectKey());
         assertEquals("old-preview", original.getPreviewDigest());
         assertNotNull(original.getCandidates().get(0).getCalculation());
+        assertNotNull(result.getCalculationContext());
+        assertEquals("保留输入", result.getCalculationContext().getScope());
+        assertEquals(Boolean.TRUE, original.getCandidates().get(0).getCalculationSpec().getAlignExecutionQuantities());
         assertEquals(original.getExpiresAt(), result.getExpiresAt());
     }
     @Test(expected = ServiceException.class) public void submittedProposalCannotBeAmended() {
@@ -47,6 +51,8 @@ public class DecisionAmendmentTest {
         p.setExpiresAt(new Date(System.currentTimeMillis() + 60000)); p.setPreviewDigest("old-preview");
         p.setBinding(new Binding()); p.setSelectedCandidateId("C1"); p.setComparison(new Comparison());
         Candidate c = new Candidate(); c.setId("C1"); c.setCalculation(new CalculationResult()); c.setCalculationSpec(new CalculationSpec());
+        c.getCalculationSpec().setAlignExecutionQuantities(true);
+        CalculationContext context = new CalculationContext(); context.setScope("保留输入"); p.setCalculationContext(context);
         p.setCandidates(new ArrayList<>(Collections.singletonList(c))); return p;
     }
 }
