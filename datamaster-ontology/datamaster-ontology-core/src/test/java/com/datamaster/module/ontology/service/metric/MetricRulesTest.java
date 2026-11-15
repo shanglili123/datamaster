@@ -64,6 +64,12 @@ public class MetricRulesTest {
         assertTrue(MetricRules.normalize(vo).getFixedFilters().isEmpty());
     }
 
+    @Test public void immutableAndNullContainingDimensionInputsHaveExplicitOutcomes() {
+        MetricSaveReqVO request = draft(); request.setDimensionPropertyIds(List.of(3L, 5L));
+        assertEquals(List.of(3L, 5L), MetricRules.normalize(request).getDimensionPropertyIds());
+        request.setDimensionPropertyIds(Arrays.asList(3L, null)); rejected(() -> MetricRules.normalize(request));
+    }
+
     @Test
     public void filtersRejectObjectsArraysAndEmptyIn() {
         MetricSaveReqVO vo = draft();
@@ -91,6 +97,11 @@ public class MetricRulesTest {
         rejected(() -> MetricRules.validateTypedFilter(filter("EQ", "2026-01-01 00:00:00"), "datetime"));
         MetricRules.validateTypedFilter(filter("EQ", "2026-10-27"), "date");
         rejected(() -> MetricRules.validateTypedFilter(filter("EQ", "2026-02-30"), "date"));
+    }
+
+    @Test public void countersRejectOverflowInsteadOfWrappingToNegativeVersions() {
+        assertEquals(1, MetricRules.nextCounter(0)); assertEquals(Integer.MAX_VALUE, MetricRules.nextCounter(Integer.MAX_VALUE - 1));
+        rejected(() -> MetricRules.nextCounter(Integer.MAX_VALUE)); rejected(() -> MetricRules.nextCounter(-1)); rejected(() -> MetricRules.nextCounter(null));
     }
 
     @Test

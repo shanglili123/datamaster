@@ -31,6 +31,8 @@
           </template>
         </template>
       </a-table>
+      <a-divider />
+      <ModelRoutingPanel :space-id="user.spaceId" :space-code="user.spaceCode || ''" :profiles="profiles" :profiles-error="profileError" :editable="checkPermi(['ai:model-config:edit'])" />
     </section>
     <a-modal v-model:open="open" :title="form.id?'编辑模型':'新增模型'" :confirm-loading="saving" @ok="save" ok-text="保存" cancel-text="取消" destroy-on-close>
       <a-form layout="vertical">
@@ -49,10 +51,11 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { checkPermi } from '@/utils/permission'
 import useUserStore from '@/store/system/user'
+import ModelRoutingPanel from './ModelRoutingPanel.vue'
 import { modelStats, listModelProfiles, addModelProfile, updateModelProfile, activateModelProfile, deleteModelProfile } from '@/api/ai/modelGateway'
 const user = useUserStore()
 const days = ref(7), provider = ref(), modelKeyword = ref(''), rows = ref([]), loading = ref(false), error = ref('')
-const profiles = ref([]), profileLoading = ref(false), open = ref(false), saving = ref(false), form = ref({})
+const profiles = ref([]), profileLoading = ref(false), profileError = ref(''), open = ref(false), saving = ref(false), form = ref({})
 let sequence = 0
 const scope = () => ({spaceId:user.spaceId,spaceCode:user.spaceCode})
 const canManage = computed(() => checkPermi(['ai:model-config:list']))
@@ -63,7 +66,7 @@ const statusText = status => ({SUCCESS:'成功',FAILURE:'失败',REJECTED:'容�
 const columns = [{title:'来源',key:'kind',width:130},{title:'供应商',dataIndex:'provider',width:140},{title:'模型',dataIndex:'model',width:170},{title:'场景',dataIndex:'scene',width:170},{title:'状态',key:'status',width:90},{title:'调用数',dataIndex:'attempts'},{title:'平均耗时(ms)',dataIndex:'durationmsaverage'},{title:'实测输入Token',dataIndex:'inputtokens'},{title:'实测输出Token',dataIndex:'outputtokens'},{title:'用量覆盖',key:'usage',width:160}]
 const profileColumns=[{title:'名称',dataIndex:'name'},{title:'供应商',dataIndex:'provider'},{title:'模型',dataIndex:'model'},{title:'状态',key:'active'},{title:'Token',key:'key'},{title:'操作',key:'action',width:240}]
 async function loadStats(){const current=sequence;loading.value=true;error.value='';try{const response=await modelStats({...scope(),days:days.value});if(current!==sequence)return;rows.value=(response.data?.groups || []).map((row,index)=>({...row,rowKey:String(index)}))}catch(failure){if(current===sequence){rows.value=[];error.value=failure?.message || '统计读取失败，请检查迁移和权限'}}finally{if(current===sequence)loading.value=false}}
-async function loadProfiles(){if(!canManage.value)return;const current=sequence;profileLoading.value=true;try{const response=await listModelProfiles(scope());if(current===sequence)profiles.value=response.data || []}catch(failure){if(current===sequence)message.error(failure?.message || '模型配置加载失败')}finally{if(current===sequence)profileLoading.value=false}}
+async function loadProfiles(){if(!canManage.value)return;const current=sequence;profileLoading.value=true;profileError.value='正在加载模型配置';try{const response=await listModelProfiles(scope());if(current===sequence){profiles.value=response.data || [];profileError.value=''}}catch(failure){if(current===sequence){profiles.value=[];profileError.value=failure?.message || '模型配置加载失败';message.error(profileError.value)}}finally{if(current===sequence)profileLoading.value=false}}
 function edit(row){form.value=row?{id:row.id,name:row.name,provider:row.provider,model:row.model,apiUrl:row.apiUrl,enabled:row.enabled,active:row.active,apiKey:''}:{name:'',provider:'BAILIAN',model:'qwen-plus',apiUrl:'',apiKey:'',enabled:true};open.value=true}
 async function save(){if(!form.value.name?.trim() || !form.value.model?.trim() || !form.value.apiUrl?.trim()){message.warning('请填写名称、模型和API地址');return}const current=sequence;saving.value=true;try{const data={...scope(),name:form.value.name,provider:form.value.provider,model:form.value.model,apiUrl:form.value.apiUrl,apiKey:form.value.apiKey,enabled:form.value.enabled};if(form.value.id)await updateModelProfile(form.value.id,data);else await addModelProfile(data);if(current!==sequence)return;form.value.apiKey='';open.value=false;message.success('模型配置已保存');loadProfiles()}finally{if(current===sequence)saving.value=false}}
 function activate(row){const current=sequence;Modal.confirm({title:`将「${row.name}」设为当前空间默认模型？`,content:'后续新建模型客户端使用该配置；在途请求不切换。此操作不修改数据分析服务内部配置。',async onOk(){await activateModelProfile(row.id,scope());if(current===sequence)loadProfiles()}})}

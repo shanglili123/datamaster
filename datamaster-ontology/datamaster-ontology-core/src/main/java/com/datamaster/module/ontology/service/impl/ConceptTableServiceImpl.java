@@ -190,10 +190,11 @@ public class ConceptTableServiceImpl implements IConceptTableService {
                 sql.append(" ORDER BY ").append(compiled.orderBy);
             }
             com.datamaster.common.database.core.PageResult<Map<String,Object>> page = dbQuery.queryByPage(sql.toString(), compiled.params, 0, safeLimit, 0);
-            List<Map<String,Object>> rows = page.getData() == null ? Collections.emptyList() : page.getData();
+            if (page == null || page.getData() == null) throw new com.datamaster.common.exception.ServiceException("概念预览未取得有效结果，不能当作空数据");
+            List<Map<String,Object>> rows = page.getData();
             ConceptTablePreviewRespVO respVO = new ConceptTablePreviewRespVO();
             respVO.setTableName(entity.getTableName());
-            respVO.setColumns(columns);
+            respVO.setColumns(compiled.hasProjection() ? new ArrayList<>(spec.getColumns()) : columns);
             respVO.setRows(consumption.mask(entity, ontology, rows));
             return respVO;
         } finally {

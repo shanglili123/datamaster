@@ -39,6 +39,12 @@ public class TypedQueryStrictTest {
             reject(() -> TypedQueryBuilder.compileStrict(TypedQueryBuilder.parseStrict(json), List.of("id"), Set.of()));
         }
     }
+    @Test public void uiValueShapesRemainAcceptedWithoutAmbiguousUnusedValues() {
+        TypedQuerySpec request = TypedQueryBuilder.parseStrict("{\"groups\":[{\"filters\":[{\"field\":\"id\",\"op\":\"in\",\"values\":[1,2]},{\"field\":\"id\",\"op\":\"between\",\"values\":[1,3]},{\"field\":\"id\",\"op\":\"isnotnull\"}]}]}");
+        TypedQueryBuilder.Compiled result = TypedQueryBuilder.compileStrict(request, List.of("id"), Set.of());
+        assertTrue(result.where.contains(" IN ")); assertTrue(result.where.contains(" BETWEEN "));
+        assertTrue(result.where.contains("IS NOT NULL")); assertEquals(4, result.params.size());
+    }
     @Test public void notHasValidBooleanSemanticsForFirstAndLaterCondition() {
         TypedQuerySpec request = TypedQueryBuilder.parseStrict("{\"groups\":[{\"filters\":[{\"connector\":\"NOT\",\"field\":\"id\",\"op\":\"eq\",\"value\":1},{\"connector\":\"NOT\",\"field\":\"id\",\"op\":\"eq\",\"value\":2}]}]}");
         TypedQueryBuilder.Compiled result = TypedQueryBuilder.compileStrict(request, List.of("id"), Set.of());

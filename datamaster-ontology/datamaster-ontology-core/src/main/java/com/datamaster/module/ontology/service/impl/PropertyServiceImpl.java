@@ -84,7 +84,7 @@ public class PropertyServiceImpl implements IPropertyService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer setPrimaryProperties(PropertyPrimaryReqVO reqVO) {
-        if (reqVO == null || reqVO.getPropertyIds() == null || reqVO.getPropertyIds().isEmpty() || reqVO.getPropertyIds().contains(null) || reqVO.getPropertyIds().size() > 20) throw new com.datamaster.common.exception.ServiceException("主属性选择列表缺失或超过20项");
+        if (reqVO == null || reqVO.getPropertyIds() == null || reqVO.getPropertyIds().isEmpty() || reqVO.getPropertyIds().stream().anyMatch(java.util.Objects::isNull) || reqVO.getPropertyIds().size() > 20) throw new com.datamaster.common.exception.ServiceException("主属性选择列表缺失或超过20项");
         assertConceptOwnership(reqVO.getConceptId());
         Set<Long> selectedIds = new HashSet<>(reqVO.getPropertyIds());
         List<PropertyDO> properties = propertyMapper.selectList(

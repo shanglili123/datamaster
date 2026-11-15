@@ -23,10 +23,10 @@ public class ObjectInstanceQueryReqVO extends PageParam {
     @Schema(description = "概念ID（对象类型ID）", example = "1")
     private Long conceptId;
 
-    @Schema(description = "表绑定ID（ONT_CONCEPT_TABLE.id），为空时取概念第一张绑定表", example = "1")
+    @Schema(description = "表绑定ID（ONT_CONCEPT_TABLE.id）；仅单绑定概念允许省略，多表必须明确选择", example = "1")
     private Long tableBindingId;
 
-    @Schema(description = "过滤条件 JSON（类型化结构化：groups[connector/negate/filters[field/op/value(s)]] + orderBy + columns + keyword），"
+    @Schema(description = "过滤条件 JSON（类型化结构化：groups[connector/filters[connector/field/op/value(s)]] + orderBy + columns + keyword），"
             + "列名须命中表元数据白名单防注入",
             example = "{\"groups\":[{\"connector\":\"AND\",\"filters\":[{\"field\":\"name\",\"op\":\"like\",\"value\":\"张\"}]}],"
             + "\"orderBy\":[{\"field\":\"id\",\"dir\":\"desc\"}],\"columns\":[\"id\",\"name\"]}")

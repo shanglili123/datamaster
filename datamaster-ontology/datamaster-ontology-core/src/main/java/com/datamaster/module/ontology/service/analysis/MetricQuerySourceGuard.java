@@ -55,6 +55,7 @@ public class MetricQuerySourceGuard {
         request.setSpaceId(ontology.getSpaceId()); request.setSpaceCode(ontology.getSpaceCode());
         request.setColumnNames(new ArrayList<>(plan.getUsedColumns())); request.setEntrance("ONTOLOGY_METRIC_QUERY");
         AssetsTableGovernanceRespDTO response = governance.resolveTable(request);
+        assertParticipatingColumns(response, plan.getUsedColumns(), plan.getDatasourceId(), plan.getTableName());
         com.datamaster.module.governance.api.flow.ISpaceFlowApi.Policy flow = spaceFlows.policy(ontology.getSpaceId(), ontology.getSpaceCode());
         boolean spaceMode = "SPACE_FLOW".equals(snapshot.getSourceSnapshot().get("sourceMode"));
         // Existing publications retain strict asset checks. A new publication explicitly opts into space policy.
@@ -82,10 +83,10 @@ public class MetricQuerySourceGuard {
 
     /** Light mode uses registered metadata in the actual space, not an asset bypass or a guessed table. */
     private void assertMetadataSource(OntologyDO ontology, ConceptTableDO binding, MetricQueryBuilder.Plan plan) {
-        List<Map<String,Object>> tables = jdbc.queryForList("SELECT id,safety_level_id FROM cat_table WHERE datasource_id=? AND table_name=? AND db_name=? AND COALESCE(schema_name,'')=COALESCE(?,'') AND space_id=? AND (del_flag IS NULL OR del_flag=false) AND valid_flag=true", plan.getDatasourceId(), plan.getTableName(), plan.getDatabaseName(), binding.getSchemaName(), ontology.getSpaceId());
+        List<Map<String,Object>> tables = jdbc.queryForList("SELECT id,safety_level_id FROM cat_table WHERE datasource_id=? AND table_name=? AND db_name=? AND COALESCE(schema_name,'')=COALESCE(?,'') AND space_id=? AND (del_flag IS NULL OR del_flag='0') AND valid_flag='1'", plan.getDatasourceId(), plan.getTableName(), plan.getDatabaseName(), binding.getSchemaName(), ontology.getSpaceId());
         require(tables.size() == 1, "轻量指标来源必须唯一登记在本空间元数据中（明确库/schema）");
         require(tables.get(0).get("safety_level_id") == null, "安全分级表不能通过轻量指标路径读取，请使用严格资产授权路径");
-        List<Map<String,Object>> columns = jdbc.queryForList("SELECT column_name,safety_level_id FROM cat_column WHERE table_id=? AND (del_flag IS NULL OR del_flag=false) AND valid_flag=true", tables.get(0).get("id"));
+        List<Map<String,Object>> columns = jdbc.queryForList("SELECT column_name,safety_level_id FROM cat_column WHERE table_id=? AND (del_flag IS NULL OR del_flag='0') AND valid_flag='1'", tables.get(0).get("id"));
         for (String used : plan.getUsedColumns()) {
             List<Map<String,Object>> matches = new ArrayList<>();
             for (Map<String,Object> column : columns) if (used.equalsIgnoreCase(String.valueOf(column.get("column_name")))) matches.add(column);
@@ -97,6 +98,12 @@ public class MetricQuerySourceGuard {
         require(response != null && Boolean.TRUE.equals(response.getEnabled()) && "strict".equals(response.getMode())
                 && "ASSET".equals(response.getSource()) && response.getAssetId() != null
                 && Boolean.TRUE.equals(response.getAccessAllowed()), "严格资产治理未授权该指标来源");
+        assertParticipatingColumns(response, used, datasourceId, tableName);
+    }
+
+    /** Column grants apply in light/warn modes too; table access alone never authorizes every input. */
+    private static void assertParticipatingColumns(AssetsTableGovernanceRespDTO response, Set<String> used, Long datasourceId, String tableName) {
+        require(response != null && Boolean.TRUE.equals(response.getAccessAllowed()), "当前空间来源准入未通过");
         require(Objects.equals(response.getDatasourceId(), datasourceId) && Objects.equals(response.getTableName(), tableName),
                 "治理来源身份不一致");
         require(response.getDeniedColumns() == null || response.getDeniedColumns().isEmpty(), "存在未获授权的参与字段");

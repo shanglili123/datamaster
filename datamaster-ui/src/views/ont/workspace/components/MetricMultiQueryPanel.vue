@@ -14,8 +14,9 @@
           <a-select-option value="NONE">并列比较</a-select-option><a-select-option value="RATIO">本指标 / 第二指标</a-select-option>
           <a-select-option value="DIFFERENCE">本指标 − 第二指标</a-select-option><a-select-option value="SUM">两指标相加</a-select-option>
         </a-select>
-        <a-button v-hasPermi="['ont:metric:execute']" :loading="busy" :disabled="disabled || busy || !query || !complete" @click="execute">查询并比较</a-button>
+        <a-button v-hasPermi="['ont:metric:execute']" :loading="busy" :disabled="disabled || busy || Boolean(blockedReason) || !complete" @click="execute">查询并比较</a-button>
       </a-space>
+      <p v-if="blockedReason" role="status">{{ blockedReason }}</p>
       <p v-if="selections.length > 1">三、四项仅支持并列比较；临时算术须保留两项指标。</p>
       <p v-for="selection in selections.filter(item => item.error)" :key="`error:${selection.key}`" role="alert">{{ selection.error }}</p>
       <p v-if="error" role="alert">{{ error }}</p>
@@ -23,7 +24,7 @@
         <p v-for="metric in result.metrics" :key="`${metric.metricId}:${metric.version}`">{{ metric.metricName }} · V{{ metric.version }} · {{ metric.unit }} · {{ metric.executedAt }}</p>
         <p>{{ result.notice }}</p>
         <a-table :columns="result.columns.map(column => ({ title: column.label, dataIndex: column.key }))" :data-source="result.rows" :row-key="(_, index) => String(index)" :pagination="false" size="small" :scroll="{ x: 'max-content' }">
-          <template #bodyCell="{ text }">{{ text == null ? '缺失' : text }}</template>
+          <template #bodyCell="{ text }">{{ metricDisplayValue(text, '缺失') }}</template>
         </a-table>
       </template>
     </a-collapse-panel>
@@ -33,10 +34,13 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { listMetricVersions } from '@/api/ont/metric'
 import { queryMultipleMetrics } from '@/api/ont/metricAnalysis'
-const props = defineProps({ query: Object, options: { type: Array, default: () => [] }, disabled: Boolean })
+import { metricDisplayValue } from '@/utils/metricDisplay'
+import { metricComparisonBlockReason } from '@/utils/metricComparison'
+const props = defineProps({ query: { type: Object, default: null }, queryError: { type: String, default: '' }, options: { type: Array, default: () => [] }, disabled: Boolean })
 let nextKey = 0, generation = 0, disposed = false
 const createSelection = () => ({ key: ++nextKey, metricId: undefined, version: undefined, versions: [], loading: false, error: '', metadataGeneration: 0 })
 const selections = ref([createSelection()]), operation = ref('NONE'), busy = ref(false), result = ref(null), error = ref('')
+const blockedReason = computed(() => props.queryError || metricComparisonBlockReason(props.query))
 const complete = computed(() => selections.value.every(item => !item.loading && !item.error && item.metricId && item.version && item.versions.some(version => version.version === item.version)))
 function availableOptions(selection) {
   const occupied = new Set([String(props.query?.metricId), ...selections.value.filter(item => item.key !== selection.key).map(item => String(item.metricId))])
@@ -65,7 +69,7 @@ async function loadVersions(selection) {
   } finally { if (current()) selection.loading = false }
 }
 async function execute() {
-  if (!props.query || busy.value || props.disabled || !complete.value) return
+  if (blockedReason.value || busy.value || props.disabled || !complete.value) return
   const identities = [String(props.query.metricId), ...selections.value.map(item => String(item.metricId))]
   if (new Set(identities).size !== identities.length) { error.value = '请勿重复选择指标'; return }
   const token = ++generation; busy.value = true; result.value = null; error.value = ''
@@ -78,7 +82,7 @@ async function execute() {
   finally { if (token === generation) busy.value = false }
 }
 onBeforeUnmount(() => { disposed = true; ++generation; selections.value.forEach(item => { ++item.metadataGeneration }) })
-watch(() => JSON.stringify([props.query, selections.value.map(item => [item.key, item.metricId, item.version]), operation.value, props.disabled]), () => { ++generation; busy.value = false; result.value = null; error.value = '' }, { flush: 'sync' })
+watch(() => JSON.stringify([props.query, props.queryError, selections.value.map(item => [item.key, item.metricId, item.version]), operation.value, props.disabled]), () => { ++generation; busy.value = false; result.value = null; error.value = '' }, { flush: 'sync' })
 </script>
 <style scoped>
 .metric-selection { display: flex; margin-bottom: 8px; }

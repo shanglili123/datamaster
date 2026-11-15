@@ -66,7 +66,9 @@ public class MetricServiceImpl implements IMetricService {
         MetricDO metric = accessible(id, false);
         MetricRespVO result = response(metric);
         if (metric.getPublishedVersion() > 0) {
-            result.setSourceSnapshot(loadVersion(id, metric.getPublishedVersion()).getSourceSnapshot());
+            MetricRespVO publication = loadVersion(id, metric.getPublishedVersion());
+            MetricQueryBuilder.checkIdentity(metric, publication, id, metric.getPublishedVersion());
+            result.setSourceSnapshot(publication.getSourceSnapshot());
         }
         return result;
     }
@@ -89,7 +91,7 @@ public class MetricServiceImpl implements IMetricService {
         metric.setRevision(0);
         applyDefinition(metric, definition);
         try {
-            metricMapper.insert(metric);
+            MetricRules.require(metricMapper.insert(metric) == 1 && metric.getId() != null, "指标草稿保存失败，未取得有效记录");
         } catch (DuplicateKeyException ex) {
             throw new ServiceException("该本体下指标编码已存在");
         }
@@ -99,7 +101,7 @@ public class MetricServiceImpl implements IMetricService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer update(MetricSaveReqVO req) {
-        MetricRules.require(req.getId() != null, "修改指标必须指定ID");
+        MetricRules.require(req != null && req.getId() != null, "修改指标必须指定ID");
         MetricDO metric = accessible(req.getId(), true);
         MetricRules.checkRevision(req.getRevision(), metric.getRevision());
         MetricRules.checkIdentity(metric, req);
@@ -109,10 +111,15 @@ public class MetricServiceImpl implements IMetricService {
         if (json.equals(metric.getDefinitionJson())) return 0;
         applyDefinition(metric, definition);
         // Preserve PUBLISHED/DISABLED and the currently available immutable version.
-        metric.setDraftChanged(metric.getPublishedVersion() > 0 && !json.equals(MetricRules.definitionJson(
-                loadVersion(metric.getId(), metric.getPublishedVersion()))));
-        metric.setRevision(metric.getRevision() + 1);
-        return metricMapper.updateById(metric);
+        MetricRespVO publication = null;
+        if (metric.getPublishedVersion() > 0) {
+            publication = loadVersion(metric.getId(), metric.getPublishedVersion());
+            MetricQueryBuilder.checkIdentity(metric, publication, metric.getId(), metric.getPublishedVersion());
+        }
+        metric.setDraftChanged(publication != null && !json.equals(MetricRules.definitionJson(publication)));
+        metric.setRevision(MetricRules.nextCounter(metric.getRevision()));
+        MetricRules.require(metricMapper.updateById(metric) == 1, "指标草稿保存失败，请重新加载后重试");
+        return 1;
     }
 
     @Override
@@ -121,13 +128,20 @@ public class MetricServiceImpl implements IMetricService {
         MetricDO metric = accessible(id, true);
         MetricRules.require("DRAFT".equals(metric.getStatus()) && metric.getPublishedVersion() == 0,
                 "只有从未发布的草稿指标可删除，已发布指标请停用");
-        return metricMapper.deleteById(id);
+        MetricRules.require(metricMapper.deleteById(id) == 1, "指标草稿删除失败，请重新加载后重试");
+        return 1;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void validate(Long id) {
+    public void validate(Long id) { validate(id, null); }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void validate(Long id, Integer revision) {
         MetricDO metric = accessible(id, true);
+        // Legacy internal callers may omit revision; an explicitly supplied revision is never ignored.
+        if (revision != null) MetricRules.checkRevision(revision, metric.getRevision());
         validateForPublication(response(metric));
     }
 
@@ -138,13 +152,17 @@ public class MetricServiceImpl implements IMetricService {
         MetricRules.checkRevision(revision, metric.getRevision());
         MetricRespVO definition = response(metric);
         Map<String, Object> source = validateForPublication(definition);
-        if ("PUBLISHED".equals(metric.getStatus()) && metric.getPublishedVersion() > 0
-                && MetricRules.samePublishedDefinition(definition, source,
-                        loadVersion(id, metric.getPublishedVersion()))) {
+        MetricRespVO currentPublication = null;
+        if (metric.getPublishedVersion() > 0) {
+            currentPublication = loadVersion(id, metric.getPublishedVersion());
+            MetricQueryBuilder.checkIdentity(metric, currentPublication, id, metric.getPublishedVersion());
+        }
+        if ("PUBLISHED".equals(metric.getStatus()) && currentPublication != null
+                && MetricRules.samePublishedDefinition(definition, source, currentPublication)) {
             return;
         }
-        int nextVersion = metric.getPublishedVersion() + 1;
-        int nextRevision = metric.getRevision() + 1;
+        int nextVersion = MetricRules.nextCounter(metric.getPublishedVersion());
+        int nextRevision = MetricRules.nextCounter(metric.getRevision());
         MetricRespVO snapshot = MetricRules.snapshot(definition, source, nextVersion, nextRevision);
         MetricVersionDO version = new MetricVersionDO();
         version.setMetricId(id);
@@ -152,12 +170,12 @@ public class MetricServiceImpl implements IMetricService {
         version.setSnapshotJson(JSON.toJSONString(snapshot,
                 com.alibaba.fastjson2.JSONWriter.Feature.WriteMapNullValue));
         // INSERT ONLY. Never update/upsert a historical snapshot.
-        metricVersionMapper.insert(version);
+        MetricRules.require(metricVersionMapper.insert(version) == 1, "指标发布快照保存失败");
         metric.setStatus("PUBLISHED");
         metric.setPublishedVersion(nextVersion);
         metric.setDraftChanged(false);
         metric.setRevision(nextRevision);
-        metricMapper.updateById(metric);
+        MetricRules.require(metricMapper.updateById(metric) == 1, "指标发布状态更新失败");
     }
 
     @Override
@@ -168,8 +186,8 @@ public class MetricServiceImpl implements IMetricService {
         if ("DISABLED".equals(metric.getStatus())) return;
         MetricRules.require(metric.getPublishedVersion() > 0, "未发布的草稿不能停用");
         metric.setStatus("DISABLED");
-        metric.setRevision(metric.getRevision() + 1);
-        metricMapper.updateById(metric);
+        metric.setRevision(MetricRules.nextCounter(metric.getRevision()));
+        MetricRules.require(metricMapper.updateById(metric) == 1, "指标停用状态更新失败");
     }
 
     @Override
@@ -185,7 +203,7 @@ public class MetricServiceImpl implements IMetricService {
         String json = MetricRules.definitionJson(definition);
         if (json.equals(current.getDefinitionJson())) return 0;
         applyDefinition(current, definition);
-        current.setRevision(Math.addExact(current.getRevision(), 1));
+        current.setRevision(MetricRules.nextCounter(current.getRevision()));
         MetricRespVO latest = loadVersion(id, current.getPublishedVersion());
         MetricQueryBuilder.checkIdentity(current, latest, id, current.getPublishedVersion());
         current.setDraftChanged(!json.equals(MetricRules.definitionJson(latest)));
@@ -246,7 +264,12 @@ public class MetricServiceImpl implements IMetricService {
     }
 
     private MetricRespVO response(MetricDO metric) {
-        MetricSaveReqVO definition = JSON.parseObject(metric.getDefinitionJson(), MetricSaveReqVO.class);
+        MetricSaveReqVO definition;
+        try {
+            definition = JSON.parseObject(metric.getDefinitionJson(), MetricSaveReqVO.class);
+            MetricRules.require(definition != null, "指标草稿定义缺失，请联系管理员核对");
+        } catch (ServiceException invalid) { throw invalid; }
+        catch (RuntimeException malformed) { throw new ServiceException("指标草稿定义损坏，请联系管理员核对"); }
         MetricRespVO vo = new MetricRespVO();
         BeanUtils.copyProperties(definition, vo);
         vo.setId(metric.getId());

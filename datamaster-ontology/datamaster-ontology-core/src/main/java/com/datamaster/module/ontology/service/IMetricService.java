@@ -13,6 +13,7 @@ public interface IMetricService {
     Integer update(MetricSaveReqVO req);
     Integer delete(Long id);
     void validate(Long id);
+    void validate(Long id, Integer revision);
     void publish(Long id, Integer revision);
     void disable(Long id, Integer revision);
     Integer restoreDraft(Long id, Integer version, Integer revision);

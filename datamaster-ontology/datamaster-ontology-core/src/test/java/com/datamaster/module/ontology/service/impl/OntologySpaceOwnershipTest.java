@@ -75,6 +75,24 @@ public class OntologySpaceOwnershipTest {
         reject(() -> service.updateOntology(request));
         verify(mapper, never()).updateById(any(OntologyDO.class));
     }
+    @Test public void emptyOntologyCannotBypassMembershipOnDeletion() throws Exception {
+        MetricReferenceGuard references = mock(MetricReferenceGuard.class); inject(service, "metricReferenceGuard", references);
+        when(spaces.hasUserSpace(7L, 1L, "space01")).thenReturn(false);
+        reject(() -> service.deleteOntology(10L));
+        verifyNoInteractions(references); verify(mapper, never()).deleteById(anyLong());
+    }
+    @Test public void deletionRechecksParentAfterReferenceGuardAcquiresLock() throws Exception {
+        MetricReferenceGuard references = mock(MetricReferenceGuard.class); inject(service, "metricReferenceGuard", references);
+        OntologyDO existing = new OntologyDO(); existing.setId(10L); existing.setSpaceId(1L); existing.setSpaceCode("space01");
+        when(mapper.selectById(10L)).thenReturn(existing, null);
+        reject(() -> service.deleteOntology(10L));
+        org.mockito.InOrder order = inOrder(mapper, references);
+        order.verify(mapper).selectById(10L); order.verify(references).assertOntologyDeletable(10L); order.verify(mapper).selectById(10L);
+        verify(mapper, never()).deleteById(anyLong());
+    }
+    @Test public void nullEditIsReportedAsBusinessError() {
+        reject(() -> service.updateOntology(null)); verifyNoInteractions(mapper);
+    }
     private static OntologySaveReqVO request() {
         OntologySaveReqVO request = new OntologySaveReqVO(); request.setId(10L); request.setName("订单本体"); request.setCode("orders"); return request;
     }

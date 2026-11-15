@@ -37,12 +37,12 @@ public class ObjectInstanceServiceImpl implements IObjectInstanceApiService {
     private PropertyColumnMapper propertyColumnMapper;
     @Resource
     private PropertyMapper propertyMapper;
+    @Resource
+    private com.datamaster.module.ontology.service.analysis.MetricAnalysisAccessGuard access;
 
     @Override
     public List<ObjectInstanceApiDTO> listObjectSets(Long ontologyId) {
-        if (ontologyId == null) {
-            return Collections.emptyList();
-        }
+        access.ontology(ontologyId);
 
         // 1. 查该本体下所有概念
         List<ConceptDO> concepts = conceptMapper.selectList(new LambdaQueryWrapperX<ConceptDO>()
@@ -56,11 +56,13 @@ public class ObjectInstanceServiceImpl implements IObjectInstanceApiService {
         // 2. 为每个概念加载表绑定，同时收集属性列映射与属性元信息
         List<ObjectInstanceApiDTO> result = new ArrayList<>();
         for (ConceptDO concept : concepts) {
+            if (concept == null || !java.util.Objects.equals(ontologyId, concept.getOntologyId())) throw new com.datamaster.common.exception.ServiceException("对象集概念归属无效");
             List<ConceptTableDO> bindings = conceptTableMapper.selectByConceptId(concept.getId());
             if (bindings == null || bindings.isEmpty()) {
                 continue; // 概念未绑定物理表，不构成对象集
             }
             for (ConceptTableDO binding : bindings) {
+                if (binding == null || !java.util.Objects.equals(concept.getId(), binding.getConceptId())) throw new com.datamaster.common.exception.ServiceException("对象集表绑定归属无效");
                 if (binding.getDatasourceId() == null || binding.getTableName() == null) {
                     continue;
                 }
@@ -75,7 +77,7 @@ public class ObjectInstanceServiceImpl implements IObjectInstanceApiService {
                 dto.setTableName(binding.getTableName());
                 dto.setDatabaseName(binding.getDatabaseName());
                 dto.setSchemaName(binding.getSchemaName());
-                dto.setProperties(buildProperties(binding.getId()));
+                dto.setProperties(buildProperties(binding.getId(), concept.getId()));
                 // 对象集列表只负责返回本体绑定信息，不在这里建立外部数据库连接。
                 // 之前的物理主键兜底会对每个对象集调用 getTableMetadata，数据源响应慢或不可达时
                 // 会让“对象”面板一直转圈；真正查询数据时再按已配置的属性映射执行。
@@ -89,21 +91,18 @@ public class ObjectInstanceServiceImpl implements IObjectInstanceApiService {
     /**
      * 组装概念在某表绑定上的属性语义列表（含物理列映射）。
      */
-    private List<SemanticPropertyDTO> buildProperties(Long conceptTableId) {
+    private List<SemanticPropertyDTO> buildProperties(Long conceptTableId, Long conceptId) {
         List<PropertyColumnDO> propertyColumns = propertyColumnMapper.selectByConceptTableId(conceptTableId);
-        if (propertyColumns == null || propertyColumns.isEmpty()) {
+        if (propertyColumns == null) throw new com.datamaster.common.exception.ServiceException("对象集字段映射读取不可用");
+        if (propertyColumns.isEmpty()) {
             return Collections.emptyList();
         }
         Map<Long, PropertyDO> propertyMap = new HashMap<>();
         List<SemanticPropertyDTO> properties = new ArrayList<>();
         for (PropertyColumnDO pc : propertyColumns) {
-            if (pc.getPropertyId() == null || pc.getColumnName() == null) {
-                continue;
-            }
+            if (pc == null || pc.getPropertyId() == null || pc.getColumnName() == null || pc.getColumnName().isBlank()) throw new com.datamaster.common.exception.ServiceException("对象集属性映射不完整");
             PropertyDO prop = propertyMap.computeIfAbsent(pc.getPropertyId(), propertyMapper::selectById);
-            if (prop == null) {
-                continue;
-            }
+            if (prop == null || !java.util.Objects.equals(conceptId, prop.getConceptId())) throw new com.datamaster.common.exception.ServiceException("对象集属性不属于当前概念");
             SemanticPropertyDTO dto = new SemanticPropertyDTO();
             dto.setPropertyId(prop.getId());
             dto.setPropertyName(prop.getName());

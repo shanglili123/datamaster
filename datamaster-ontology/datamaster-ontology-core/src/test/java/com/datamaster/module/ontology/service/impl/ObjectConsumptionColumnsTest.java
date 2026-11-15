@@ -44,7 +44,22 @@ public class ObjectConsumptionColumnsTest {
         Method same = service.getClass().getDeclaredMethod("samePhysicalTable", com.datamaster.module.ontology.dal.dataobject.RelationTableDO.class, ConceptTableDO.class); same.setAccessible(true);
         assertEquals(false, same.invoke(service, relation, table));
         relation.setSchemaName("reporting"); assertEquals(true, same.invoke(service, relation, table));
+        relation.setDatabaseName("business"); relation.setTableName("Orders"); assertEquals(false, same.invoke(service, relation, table));
+        relation.setTableName(" orders "); assertEquals(false, same.invoke(service, relation, table));
+        relation.setTableName("orders"); assertEquals(true, same.invoke(service, relation, table));
         relation.setDatabaseName("other"); assertEquals(false, same.invoke(service, relation, table));
+    }
+    @Test public void lightFlowCannotIgnoreAnExplicitColumnGrantBeforeQuerying() throws Exception {
+        ObjectInstanceQueryServiceImpl service = new ObjectInstanceQueryServiceImpl();
+        ISpaceFlowApi flows = mock(ISpaceFlowApi.class); IAssetsTableGovernanceApiService governance = mock(IAssetsTableGovernanceApiService.class);
+        inject(service, "spaceFlows", flows); inject(service, "tableGovernanceApiService", governance);
+        when(flows.policy(1L, "space01")).thenReturn(new ISpaceFlowApi.Policy());
+        AssetsTableGovernanceRespDTO partial = new AssetsTableGovernanceRespDTO(); partial.setAccessAllowed(true); partial.setAllowedColumns(List.of("id"));
+        when(governance.resolveTable(any())).thenReturn(partial);
+        ConceptTableDO table = new ConceptTableDO(); table.setDatasourceId(9L); table.setTableName("orders");
+        Method check = service.getClass().getDeclaredMethod("assertQueryColumns", ConceptTableDO.class, Long.class, String.class, List.class); check.setAccessible(true);
+        rejected(() -> check.invoke(service, table, 1L, "space01", List.of("id", "secret")));
+        check.invoke(service, table, 1L, "space01", List.of("id"));
     }
     private interface Call { void run() throws Exception; }
     private static void rejected(Call call) throws Exception {

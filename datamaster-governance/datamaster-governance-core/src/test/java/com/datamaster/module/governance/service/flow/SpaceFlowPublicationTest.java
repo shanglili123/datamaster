@@ -36,6 +36,12 @@ public class SpaceFlowPublicationTest {
     }
     @After public void tearDown() { SecurityContextHolder.clearContext(); }
 
+    @Test public void spaceLookupUsesStoredStringDeleteFlag() {
+        when(jdbc.queryForList(contains("SELECT revision,draft_json,published_version,published_json"), eq(1L))).thenReturn(List.of());
+        assertEquals(0, service.get(1L, "space01").get("revision"));
+        verify(jdbc).queryForObject(contains("del_flag='0'"), eq(Long.class), eq(1L));
+    }
+
     @Test public void previewUsesSavedDefinitionRatherThanClientCandidate() {
         Map<String,Object> current = new HashMap<>();
         current.put("revision", 4); current.put("published_version", 2);
@@ -102,6 +108,78 @@ public class SpaceFlowPublicationTest {
         inject(service, "impactProviders", List.of(provider));
         when(jdbc.queryForList(contains("SELECT revision,draft_json,published_version FROM"), eq(1L))).thenReturn(List.of(Map.of("revision", 5)));
         reject(() -> service.impacts(request(4), "API", 1, 10)); verifyNoInteractions(provider);
+    }
+    @Test public void publicationHistoryInsertFailureNeverUpdatesActiveFlow() {
+        when(jdbc.queryForList(contains("FOR UPDATE"), eq(1L))).thenReturn(List.of(Map.of("revision", 4, "published_version", 2, "draft_json", JSON.toJSONString(chain("METADATA", "ASSET")))));
+        reject(() -> service.publish(request(4)));
+        verify(jdbc).update(contains("INSERT INTO gov_space_flow_version"), eq(1L), eq(3), anyString(), eq(7L));
+        verify(jdbc, never()).update(contains("UPDATE gov_space_flow SET published_json"), anyString(), anyInt(), anyLong(), anyLong());
+    }
+    @Test public void publicationStateUpdateFailureIsReportedInsteadOfReturningSuccess() {
+        when(jdbc.queryForList(contains("FOR UPDATE"), eq(1L))).thenReturn(List.of(Map.of("revision", 4, "published_version", 2, "draft_json", JSON.toJSONString(chain("METADATA", "ASSET")))));
+        when(jdbc.update(contains("INSERT INTO gov_space_flow_version"), eq(1L), eq(3), anyString(), eq(7L))).thenReturn(1);
+        reject(() -> service.publish(request(4)));
+        verify(jdbc).update(contains("UPDATE gov_space_flow SET published_json"), anyString(), eq(3), eq(7L), eq(1L));
+        verify(jdbc, never()).queryForList(contains("SELECT revision,draft_json,published_version,published_json"), eq(1L));
+    }
+    @Test public void malformedDraftAndHistoryNeverReachEditorAsValidDefinitions() {
+        for (String invalid : List.of("broken", "null", "{}", "{\"nodes\":[\"UNKNOWN\"],\"edges\":[]}")) {
+            when(jdbc.queryForList(contains("SELECT revision,draft_json,published_version,published_json"), eq(1L)))
+                    .thenReturn(List.of(Map.of("revision", 1, "published_version", 0, "draft_json", invalid)));
+            reject(() -> service.get(1L, "space01"));
+            when(jdbc.queryForList(contains("ORDER BY version DESC LIMIT ? OFFSET ?"), eq(1L), eq(10), eq(0)))
+                    .thenReturn(List.of(Map.of("version", 1, "definition_json", invalid)));
+            reject(() -> service.versions(1L, "space01", 1, 10));
+        }
+    }
+    @Test public void positivePublicationVersionWithMissingDefinitionCannotBecomeUnconfiguredPolicy() {
+        when(jdbc.queryForList(contains("SELECT published_version,published_json"), eq(1L))).thenReturn(List.of(Map.of("published_version", 2)));
+        reject(() -> service.policy(1L, "space01"));
+        when(jdbc.queryForList(contains("SELECT published_version,published_json"), eq(1L))).thenReturn(List.of(Map.of("published_version", 0)));
+        assertFalse(service.policy(1L, "space01").isConfigured());
+        when(jdbc.queryForList(contains("SELECT published_version,published_json"), eq(1L))).thenReturn(List.of(Map.of("published_version", 0, "published_json", JSON.toJSONString(chain("METADATA")))));
+        reject(() -> service.policy(1L, "space01"));
+    }
+    @Test public void validLegacyDefinitionWithoutLayoutCanStillBeRead() {
+        String definition = "{\"nodes\":[\"METADATA\",\"API\",\"ANALYSIS\"],\"edges\":[{\"from\":\"METADATA\",\"to\":\"API\"},{\"from\":\"METADATA\",\"to\":\"ANALYSIS\"}]}";
+        when(jdbc.queryForList(contains("SELECT revision,draft_json,published_version,published_json"), eq(1L)))
+                .thenReturn(List.of(Map.of("revision", 1, "published_version", 0, "draft_json", definition)));
+        Map<String,Object> result = service.get(1L, "space01");
+        assertTrue(result.get("draft") instanceof Definition); assertNull(result.get("published"));
+    }
+    @Test public void corruptStoredDraftCannotBePublishedOrUsedForPreview() {
+        Map<String,Object> invalid = Map.of("revision", 4, "published_version", 0, "draft_json", "null");
+        when(jdbc.queryForList(contains("SELECT revision,draft_json,published_version,published_json"), eq(1L))).thenReturn(List.of(invalid));
+        when(jdbc.queryForList(contains("FOR UPDATE"), eq(1L))).thenReturn(List.of(invalid));
+        reject(() -> service.preview(request(4))); reject(() -> service.publish(request(4)));
+        verify(jdbc, never()).update(contains("INSERT INTO gov_space_flow_version"), anyLong(), anyInt(), anyString(), anyLong());
+        verify(jdbc, never()).update(contains("UPDATE gov_space_flow SET published_json"), anyString(), anyInt(), anyLong(), anyLong());
+    }
+    @Test public void successfulPublicationPersistsHistoryThenActiveVersionAndReturnsNewRevision() {
+        String definition = JSON.toJSONString(chain("METADATA", "ASSET"));
+        when(jdbc.queryForList(contains("FOR UPDATE"), eq(1L))).thenReturn(List.of(Map.of("revision", 4, "published_version", 2, "draft_json", definition)));
+        when(jdbc.update(contains("INSERT INTO gov_space_flow_version"), eq(1L), eq(3), eq(definition), eq(7L))).thenReturn(1);
+        when(jdbc.update(contains("UPDATE gov_space_flow SET published_json"), eq(definition), eq(3), eq(7L), eq(1L))).thenReturn(1);
+        when(jdbc.queryForList(contains("SELECT revision,draft_json,published_version,published_json"), eq(1L)))
+                .thenReturn(List.of(Map.of("revision", 5, "published_version", 3, "draft_json", definition, "published_json", definition)));
+        Map<String,Object> result = service.publish(request(4));
+        assertEquals(5, result.get("revision")); assertEquals(3, result.get("publishedVersion")); assertTrue(result.get("published") instanceof Definition);
+        org.mockito.InOrder order = inOrder(jdbc);
+        order.verify(jdbc).queryForObject(contains("manager_id"), eq(Long.class), eq(1L));
+        order.verify(jdbc).queryForList(contains("FOR UPDATE"), eq(1L));
+        order.verify(jdbc).update(contains("INSERT INTO gov_space_flow_version"), eq(1L), eq(3), eq(definition), eq(7L));
+        order.verify(jdbc).update(contains("UPDATE gov_space_flow SET published_json"), eq(definition), eq(3), eq(7L), eq(1L));
+    }
+    @Test public void exhaustedVersionOrRevisionNeverWritesWrappedCounters() {
+        String definition = JSON.toJSONString(chain("METADATA"));
+        SaveRequest save = request(Integer.MAX_VALUE); save.setDefinition(chain("METADATA")); reject(() -> service.save(save));
+        when(jdbc.queryForList(contains("FOR UPDATE"), eq(1L)))
+                .thenReturn(List.of(Map.of("revision", 4, "published_version", Integer.MAX_VALUE, "draft_json", definition)));
+        reject(() -> service.publish(request(4)));
+        when(jdbc.queryForList(contains("FOR UPDATE"), eq(1L)))
+                .thenReturn(List.of(Map.of("revision", Integer.MAX_VALUE, "published_version", 2, "draft_json", definition)));
+        reject(() -> service.publish(request(Integer.MAX_VALUE)));
+        verify(jdbc, never()).update(anyString(), anyLong(), anyInt(), anyString(), anyLong());
     }
     private static SaveRequest request(Integer revision) {
         SaveRequest request = new SaveRequest(); request.setSpaceId(1L); request.setSpaceCode("space01"); request.setRevision(revision); return request;

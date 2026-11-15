@@ -25,8 +25,9 @@ public class SpaceFlowReadinessService {
             else consumer.getPendingChecks().add("脚本来源未解析，保留原路径不等于已验证安全");
         } else if (!("DECLARED_SINGLE_TABLE".equals(consumer.getSourceCoverage()) || "PUBLISHED_SOURCE_SNAPSHOT".equals(consumer.getSourceCoverage()))
                 || consumer.getDatasourceId() == null || consumer.getDatasourceId() <= 0 || consumer.getTableName() == null || consumer.getTableName().isBlank()) {
+            if (strict) missing(consumer, "UNVERIFIED_SOURCE", "补齐真实来源与发布版本，再重新预览；严格流程不能核验不完整来源");
+            else consumer.getNextSteps().add("补齐真实来源与发布版本，再重新预览");
             consumer.getPendingChecks().add("来源快照或执行配置不完整，无法确认参与表");
-            consumer.getNextSteps().add("补齐真实来源与发布版本，再重新预览");
         } else {
             if (draft.getNodes().contains("ASSET")) asset(consumer, spaceId, spaceCode);
             if (draft.getNodes().contains("QUALITY")) {

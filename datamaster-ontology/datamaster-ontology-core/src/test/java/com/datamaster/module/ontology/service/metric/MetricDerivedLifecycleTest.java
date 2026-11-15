@@ -49,6 +49,7 @@ public class MetricDerivedLifecycleTest {
         assertEquals("RATIO", publication.getDerivedOperation()); assertEquals("COUNT", publication.getSecondaryAggregation()); assertEquals("SPACE_FLOW", publication.getSourceSnapshot().get("sourceMode"));
         service.disable(10L, 1); assertEquals("DISABLED", metric.getStatus()); assertEquals(1, saved.size());
         definition.setName("每笔新金额"); metric.setName(definition.getName()); metric.setDefinitionJson(MetricRules.definitionJson(definition));
+        when(versions.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(saved.get(0));
         service.publish(10L, 2);
         assertEquals(Integer.valueOf(2), metric.getPublishedVersion()); assertEquals(2, saved.size()); assertEquals(frozen, saved.get(0).getSnapshotJson());
         assertEquals("每笔新金额", JSON.parseObject(saved.get(1).getSnapshotJson(), MetricRespVO.class).getName());
@@ -59,7 +60,7 @@ public class MetricDerivedLifecycleTest {
         assertEquals("PUBLISHED", metric.getStatus()); assertTrue(metric.getDraftChanged()); assertEquals(frozen, saved.get(0).getSnapshotJson());
         try { service.restoreDraft(10L, 1, revision); fail("Stale revision must reject recovery"); } catch (com.datamaster.common.exception.ServiceException expected) { assertNotNull(expected.getMessage()); }
         verify(versions, times(2)).insert(any(MetricVersionDO.class));
-        verify(versions, times(2)).selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class)); verifyNoMoreInteractions(versions);
+        verify(versions, times(3)).selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class)); verifyNoMoreInteractions(versions);
     }
     private static void inject(Object bean, String name, Object value) throws Exception { Field field = bean.getClass().getDeclaredField(name); field.setAccessible(true); field.set(bean, value); }
 }

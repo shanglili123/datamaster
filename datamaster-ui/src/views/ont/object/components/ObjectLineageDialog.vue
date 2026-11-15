@@ -9,10 +9,13 @@
     @cancel="emit('update:visible', false)"
   >
     <a-spin :spinning="loading">
+      <a-alert v-if="error" type="error" show-icon :message="error" />
+      <a-button v-if="error || lineage?.permission?.accessible !== true" size="small" :disabled="loading || !visible || !conceptId" @click="retry += 1">重新核验并加载</a-button>
       <template v-if="lineage">
+        <a-alert v-if="lineage.permission?.accessible !== true" type="warning" show-icon message="当前未取得完整对象血缘准入" :description="lineage.permission?.message || '权限摘要缺失，不能视为允许访问'" style="margin-bottom: 12px" />
         <a-tabs v-model:activeKey="activeTab">
           <!-- 数据维度：对象 -[MATERIALIZES]-> 支撑表 -->
-          <a-tab-pane key="graph" tab="血缘图">
+          <a-tab-pane v-if="lineage.permission?.accessible === true" key="graph" tab="血缘图">
             <a-alert
               type="info"
               show-icon
@@ -29,7 +32,7 @@
           </a-tab-pane>
 
           <!-- 决策维度：作用于对象的动作执行 -->
-          <a-tab-pane key="decision" tab="决策">
+          <a-tab-pane v-if="lineage.permission?.accessible === true" key="decision" tab="决策">
             <a-alert
               type="info"
               show-icon
@@ -52,7 +55,7 @@
           </a-tab-pane>
 
           <!-- 版本维度：快照派生时间线 -->
-          <a-tab-pane key="version" tab="版本">
+          <a-tab-pane v-if="lineage.permission?.accessible === true" key="version" tab="版本">
             <a-alert
               type="info"
               show-icon
@@ -93,8 +96,8 @@
             <template v-if="lineage.permission">
               <a-descriptions bordered :column="1" size="small">
                 <a-descriptions-item label="允许访问">
-                  <a-tag :color="lineage.permission.accessible ? 'green' : 'red'">
-                    {{ lineage.permission.accessible ? '允许' : '拒绝' }}
+                  <a-tag :color="lineage.permission.accessible === true ? 'green' : 'red'">
+                    {{ lineage.permission.accessible === true ? '允许' : '拒绝 / 未核验' }}
                   </a-tag>
                 </a-descriptions-item>
                 <a-descriptions-item label="判定消息">{{ lineage.permission.message || '-' }}</a-descriptions-item>
@@ -102,7 +105,7 @@
                   {{ formatList(lineage.permission.deniedColumns) }}
                 </a-descriptions-item>
                 <a-descriptions-item label="允许查询字段">
-                  {{ formatList(lineage.permission.allowedColumns) || '(空 = 全量放行)' }}
+                  {{ lineage.permission.allowedColumns == null ? '未限定字段集合（不单独代表放行）' : lineage.permission.allowedColumns.length ? formatList(lineage.permission.allowedColumns) : '空集合（没有允许字段）' }}
                 </a-descriptions-item>
               </a-descriptions>
             </template>
@@ -110,12 +113,13 @@
           </a-tab-pane>
         </a-tabs>
       </template>
-      <a-empty v-else-if="!loading" description="暂无血缘数据" />
+      <a-empty v-else-if="!loading && !error" description="暂无血缘数据" />
     </a-spin>
   </a-modal>
 </template>
 
 <script setup name="OntObjectLineageDialog">
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { getObjectLineage } from '@/api/ont/objectInstance'
 import useUserStore from '@/store/system/user'
 import ObjectLineageGraph from './ObjectLineageGraph.vue'
@@ -130,6 +134,8 @@ const emit = defineEmits(['update:visible'])
 
 const userStore = useUserStore()
 const loading = ref(false)
+const error = ref(''), retry = ref(0)
+let generation = 0
 const lineage = ref(null)
 const activeTab = ref('graph')
 const graphKey = ref(0)
@@ -137,7 +143,7 @@ const graphKey = ref(0)
 const title = computed(() => `对象血缘 - ${props.conceptName || props.tableName || props.conceptId}`)
 
 const decisionColumns = [
-  { title: '执行ID', dataIndex: 'actionId', key: 'actionId', width: 90 },
+  { title: '执行ID', dataIndex: 'executionId', key: 'executionId', width: 90 },
   { title: '动作名称', dataIndex: 'actionName', key: 'actionName' },
   { title: '动作类型', dataIndex: 'actionType', key: 'actionType', width: 110 },
   { title: '物理表', dataIndex: 'tableName', key: 'tableName' },
@@ -171,7 +177,7 @@ function formatSnapshot(data) {
   if (!data) return '（空）'
   try {
     return typeof data === 'string' ? data : JSON.stringify(data, null, 2)
-  } catch (e) {
+  } catch {
     return String(data)
   }
 }
@@ -182,21 +188,27 @@ function formatList(list) {
 }
 
 watch(
-  () => props.visible,
-  async (val) => {
-    if (!val || !props.conceptId) return
+  () => [props.visible, props.conceptId, userStore.spaceId, userStore.spaceCode, retry.value],
+  async () => {
+    const token = ++generation
+    lineage.value = null; error.value = ''; loading.value = false
+    activeTab.value = 'permission'; graphKey.value = token
+    if (!props.visible || !props.conceptId) return
+    const conceptId = props.conceptId
     loading.value = true
-    lineage.value = null
-    activeTab.value = 'graph'
-    graphKey.value = Date.now()
     try {
-      const res = await getObjectLineage(props.conceptId, userStore.spaceId, userStore.spaceCode)
-      lineage.value = res.data || null
-    } finally {
-      loading.value = false
-    }
-  }
+      const res = await getObjectLineage(conceptId, userStore.spaceId, userStore.spaceCode)
+      if (token !== generation) return
+      if (!res.data || String(res.data.conceptId) !== String(conceptId)) throw new Error('对象血缘响应与当前概念不一致')
+      lineage.value = res.data
+      activeTab.value = res.data.permission?.accessible === true ? 'graph' : 'permission'
+    } catch (failure) {
+      if (token === generation) error.value = failure?.response?.data?.msg || failure?.message || '血缘加载失败，不能视为没有血缘'
+    } finally { if (token === generation) loading.value = false }
+  },
+  { immediate: true, flush: 'sync' }
 )
+onBeforeUnmount(() => { ++generation })
 </script>
 
 <style lang="scss" scoped>

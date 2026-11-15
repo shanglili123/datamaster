@@ -108,7 +108,7 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         ConceptTableDO binding = resolveTableBinding(reqVO, concept.getId());
 
         // 2. 组装属性语义映射（物理列 → 语义）
-        List<SemanticPropertyDTO> properties = buildProperties(binding.getId());
+        List<SemanticPropertyDTO> properties = buildProperties(binding.getId(), concept.getId());
 
         // 3. 表级权限校验（复用统一治理入口）
         assertTableAccess(binding, reqVO.getSpaceId(), reqVO.getSpaceCode());
@@ -119,15 +119,15 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
             throw new RuntimeException("数据源不存在: id=" + binding.getDatasourceId());
         }
 
-        // 4.5 对象血缘「数据维度」写钩子：实例查询时把对象-物理表 MATERIALIZES 落图（可插拔）
-        writeObjectLineageSilently(concept, binding, ds);
-
         DbQueryProperty property = new DbQueryProperty(
                 ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig());
         sourceIdentity.connection(binding, property);
         DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
         try {
-            return doQuery(reqVO, concept, binding, properties, dbQuery, property);
+            ObjectInstanceQueryRespVO result = doQuery(reqVO, concept, binding, properties, dbQuery, property);
+            // Record only an admitted, successfully read/masked consumption, never a rejected attempt.
+            writeObjectLineageSilently(concept, binding, ds);
+            return result;
         } finally {
             if (dbQuery != null) {
                 try {
@@ -167,13 +167,7 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         }
         if (!Objects.equals(relation.getOntologyId(), sourceConcept.getOntologyId()) || !Objects.equals(relation.getSourceConceptId(), sourceConcept.getId())) throw new com.datamaster.common.exception.ServiceException("关系不属于当前本体或源概念");
         List<RelationColumnDO> relationColumns = relationColumnMapper.selectByRelationId(reqVO.getRelationId());
-        RelationColumnDO colBinding = null;
-        for (RelationColumnDO rc : relationColumns) {
-            if (sourceBinding.getId().equals(rc.getSourceConceptTableId())) {
-                colBinding = rc;
-                break;
-            }
-        }
+        RelationColumnDO colBinding = resolveRelationColumn(sourceBinding.getId(), relationColumns);
         if (colBinding == null || colBinding.getTargetConceptTableId() == null
                 || colBinding.getTargetColumn() == null || colBinding.getSourceColumn() == null) {
             throw new RuntimeException("关系未配置可跳转的关联字段: relationId=" + reqVO.getRelationId());
@@ -212,12 +206,12 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         if (ds == null || Boolean.FALSE.equals(ds.getValidFlag())) {
             throw new RuntimeException("数据源不存在: id=" + targetBinding.getDatasourceId());
         }
+        List<SemanticPropertyDTO> targetProperties = buildProperties(targetBinding.getId(), targetConcept.getId());
         DbQueryProperty property = new DbQueryProperty(
                 ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig());
         sourceIdentity.connection(targetBinding, property);
         DbQuery dbQuery = dataSourceFactory.createDbQuery(property);
         try {
-            List<SemanticPropertyDTO> targetProperties = buildProperties(targetBinding.getId());
             return doRelatedQuery(reqVO, colBinding, targetBinding, targetConcept, targetProperties,
                     targetValues, dbQuery, property);
         } finally {
@@ -307,19 +301,18 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
 
         com.datamaster.common.database.core.PageResult<Map<String, Object>> pageResult =
                 dbQuery.queryByPage(sql.toString(), queryParams, offset, pageSize, 0);
-        List<Map<String, Object>> rows = pageResult.getData() == null
-                ? Collections.emptyList() : pageResult.getData();
-        int total = pageResult.getTotal() == null ? 0 : pageResult.getTotal();
-        if (columns.isEmpty() && !rows.isEmpty()) {
-            columns = new ArrayList<>(rows.get(0).keySet());
-        }
+        if (pageResult == null || pageResult.getData() == null || pageResult.getTotal() == null || pageResult.getTotal() < 0)
+            throw new com.datamaster.common.exception.ServiceException("对象查询未取得有效分页结果，不能当作空数据");
+        List<Map<String, Object>> rows = pageResult.getData();
+        int total = pageResult.getTotal();
+        List<String> returnedColumns = compiled.hasProjection() ? new ArrayList<>(spec.getColumns()) : columns;
 
         ObjectInstanceQueryRespVO respVO = new ObjectInstanceQueryRespVO();
         respVO.setConceptId(targetBinding.getConceptId());
         respVO.setConceptName(targetConcept != null ? targetConcept.getName() : null);
         respVO.setTableBindingId(targetBinding.getId());
         respVO.setTableName(targetBinding.getTableName());
-        respVO.setColumns(columns);
+        respVO.setColumns(returnedColumns);
         respVO.setProperties(targetProperties);
         respVO.setRows(maskObjectRows(targetBinding, reqVO.getSpaceId(), reqVO.getSpaceCode(), rows));
         respVO.setTotal((long) total);
@@ -352,6 +345,7 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
             String sql = "SELECT " + endpoints[1] + " AS relation_target FROM " + sourceIdentity.physicalTable(relationSource, property)
                     + " WHERE " + endpoints[0] + " IN (" + String.join(", ", placeholders) + ")";
             com.datamaster.common.database.core.PageResult<Map<String,Object>> page = query.queryByPage(sql, params, 0, 101, 0);
+            if (page == null || page.getData() == null) throw new com.datamaster.common.exception.ServiceException("关系端点查询未取得有效结果，不能当作无关系");
             List<Map<String,Object>> rows = page.getData();
             if (page.getTotal() != null && page.getTotal() > 100 || rows != null && rows.size() > 100) throw new com.datamaster.common.exception.ServiceException("关系端点超过100项，请缩小源对象范围，不能截断后冒充完整关系");
             List<Object> values = new ArrayList<>();
@@ -416,38 +410,45 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
                 || relationTable.getDatasourceId() == null || conceptTable.getDatasourceId() == null
                 || !Objects.equals(relationTable.getDatasourceId(), conceptTable.getDatasourceId())
                 || relationTable.getTableName() == null || conceptTable.getTableName() == null
-                || !relationTable.getTableName().trim().equalsIgnoreCase(conceptTable.getTableName().trim())) {
+                || !Objects.equals(relationTable.getTableName(), conceptTable.getTableName())) {
             return false;
         }
         return Objects.equals(relationTable.getDatabaseName(), conceptTable.getDatabaseName())
                 && Objects.equals(relationTable.getSchemaName(), conceptTable.getSchemaName());
     }
 
-    /**
-     * 按概念 + 可选表绑定ID 解析表绑定：指定时精确匹配，未指定取该概念第一张绑定表。
-     */
+    private RelationColumnDO resolveRelationColumn(Long sourceBindingId, List<RelationColumnDO> mappings) {
+        RelationColumnDO selected = null;
+        if (mappings != null) for (RelationColumnDO mapping : mappings) {
+            if (mapping == null) throw new com.datamaster.common.exception.ServiceException("关系字段映射损坏，请先维护");
+            if (Objects.equals(sourceBindingId, mapping.getSourceConceptTableId())) {
+                if (selected != null) throw new com.datamaster.common.exception.ServiceException("当前来源存在多条关系字段映射，不能只取第一条执行");
+                selected = mapping;
+            }
+        }
+        return selected;
+    }
+
+    /** Resolve an explicit binding, or the sole stored binding. Never guess among multiple sources. */
     private ConceptTableDO resolveBinding(Long conceptId, Long tableBindingId) {
         List<ConceptTableDO> bindings = conceptTableMapper.selectByConceptId(conceptId);
-        if (bindings == null || bindings.isEmpty()) {
-            throw new RuntimeException("概念未绑定物理表: conceptId=" + conceptId);
-        }
-        if (tableBindingId != null) {
-            for (ConceptTableDO b : bindings) {
-                if (tableBindingId.equals(b.getId())) {
-                    return b;
-                }
+        if (bindings == null || bindings.isEmpty()) throw new com.datamaster.common.exception.ServiceException("概念未绑定物理表");
+        if (tableBindingId == null && bindings.size() != 1) throw new com.datamaster.common.exception.ServiceException("概念绑定多张表，请明确选择本次对象查询的表绑定");
+        ConceptTableDO selected = null;
+        for (ConceptTableDO binding : bindings) {
+            if (binding == null || binding.getId() == null || !Objects.equals(conceptId, binding.getConceptId())) throw new com.datamaster.common.exception.ServiceException("概念表绑定归属无效，请先维护");
+            if (tableBindingId == null || tableBindingId.equals(binding.getId())) {
+                if (selected != null) throw new com.datamaster.common.exception.ServiceException("概念表绑定标识不唯一");
+                selected = binding;
             }
-            throw new RuntimeException("表绑定不存在: id=" + tableBindingId);
         }
-        ConceptTableDO binding = bindings.get(0);
-        if (binding.getDatasourceId() == null || binding.getTableName() == null) {
-            throw new RuntimeException("对象集缺少数据源或物理表配置: bindingId=" + binding.getId());
-        }
-        return binding;
+        if (selected == null) throw new com.datamaster.common.exception.ServiceException("指定表绑定不属于当前概念");
+        if (selected.getDatasourceId() == null || selected.getDatasourceId() <= 0 || selected.getTableName() == null || selected.getTableName().isBlank()) throw new com.datamaster.common.exception.ServiceException("对象集缺少有效数据源或物理表配置");
+        return selected;
     }
 
     private ConceptDO resolveConcept(ObjectInstanceQueryReqVO reqVO) {
-        if (reqVO.getConceptId() == null) {
+        if (reqVO == null || reqVO.getConceptId() == null) {
             throw new RuntimeException("对象实例查询缺少概念ID");
         }
         ConceptDO concept = conceptMapper.selectById(reqVO.getConceptId());
@@ -458,40 +459,21 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
     }
 
     private ConceptTableDO resolveTableBinding(ObjectInstanceQueryReqVO reqVO, Long conceptId) {
-        List<ConceptTableDO> bindings = conceptTableMapper.selectByConceptId(conceptId);
-        if (bindings == null || bindings.isEmpty()) {
-            throw new RuntimeException("概念未绑定物理表，无法查询对象实例: conceptId=" + conceptId);
-        }
-        ConceptTableDO binding;
-        if (reqVO.getTableBindingId() != null) {
-            binding = bindings.stream()
-                    .filter(b -> reqVO.getTableBindingId().equals(b.getId()))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("表绑定不存在: id=" + reqVO.getTableBindingId()));
-        } else {
-            binding = bindings.get(0);
-        }
-        if (binding.getDatasourceId() == null || binding.getTableName() == null) {
-            throw new RuntimeException("对象集缺少数据源或物理表配置: bindingId=" + binding.getId());
-        }
-        return binding;
+        return resolveBinding(conceptId, reqVO.getTableBindingId());
     }
 
-    private List<SemanticPropertyDTO> buildProperties(Long conceptTableId) {
+    private List<SemanticPropertyDTO> buildProperties(Long conceptTableId, Long conceptId) {
         List<PropertyColumnDO> propertyColumns = propertyColumnMapper.selectByConceptTableId(conceptTableId);
-        if (propertyColumns == null || propertyColumns.isEmpty()) {
+        if (propertyColumns == null) throw new com.datamaster.common.exception.ServiceException("对象字段映射读取不可用，禁止回退物理字段");
+        if (propertyColumns.isEmpty()) {
             return Collections.emptyList();
         }
         List<SemanticPropertyDTO> properties = new ArrayList<>();
         Map<Long, PropertyDO> propertyMap = new LinkedHashMap<>();
         for (PropertyColumnDO pc : propertyColumns) {
-            if (pc.getPropertyId() == null || pc.getColumnName() == null) {
-                continue;
-            }
+            if (pc == null || pc.getPropertyId() == null || pc.getColumnName() == null || pc.getColumnName().isBlank()) throw new com.datamaster.common.exception.ServiceException("对象属性映射不完整，禁止丢弃后回退其他字段");
             PropertyDO prop = propertyMap.computeIfAbsent(pc.getPropertyId(), propertyMapper::selectById);
-            if (prop == null) {
-                continue;
-            }
+            if (prop == null || !Objects.equals(conceptId, prop.getConceptId())) throw new com.datamaster.common.exception.ServiceException("对象映射属性不属于当前概念");
             SemanticPropertyDTO dto = new SemanticPropertyDTO();
             dto.setPropertyId(prop.getId());
             dto.setPropertyName(prop.getName());
@@ -506,15 +488,15 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
     }
 
     private void assertQueryColumns(ConceptTableDO binding, Long spaceId, String spaceCode, List<String> columns) {
-        com.datamaster.module.governance.api.flow.ISpaceFlowApi.Policy policy = spaceFlows.policy(spaceId, spaceCode);
+        spaceFlows.policy(spaceId, spaceCode);
         if (columns == null || columns.isEmpty()) throw new com.datamaster.common.exception.ServiceException("对象查询无法确认参与字段，禁止回退SELECT *，请维护映射或元数据");
         if (columns != null) for (String column : columns) if (!isSafeColumn(column)) throw new com.datamaster.common.exception.ServiceException("对象字段映射不是安全标识符");
         AssetsTableGovernanceReqDTO request = new AssetsTableGovernanceReqDTO(); request.setDatasourceId(binding.getDatasourceId()); request.setTableName(binding.getTableName());
         request.setSpaceId(spaceId); request.setSpaceCode(spaceCode); request.setColumnNames(columns); request.setEntrance(ENTRANCE_ONTOLOGY_OBJECT_QUERY);
         com.datamaster.module.assets.api.governance.dto.AssetsTableGovernanceRespDTO response = tableGovernanceApiService.resolveTable(request);
         if (response == null || !Boolean.TRUE.equals(response.getAccessAllowed()) || response.getDeniedColumns() != null && !response.getDeniedColumns().isEmpty()) throw new com.datamaster.common.exception.ServiceException("对象查询存在无权参与的字段，请先维护映射和字段授权");
-        if (policy.isAssetRequired() && response.getAllowedColumns() != null) {
-            java.util.Set<String> allowed = new java.util.HashSet<>(); for (String column : response.getAllowedColumns()) allowed.add(column.toLowerCase(java.util.Locale.ROOT));
+        if (response.getAllowedColumns() != null) {
+            java.util.Set<String> allowed = new java.util.HashSet<>(); for (String column : response.getAllowedColumns()) if (column != null) allowed.add(column.toLowerCase(java.util.Locale.ROOT));
             for (String column : columns) if (!allowed.contains(column.toLowerCase(java.util.Locale.ROOT))) throw new com.datamaster.common.exception.ServiceException("对象查询参与字段未全部授权");
         }
         if (response.getAssetId() != null) {
@@ -596,7 +578,7 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         if (pageNum < 1 || pageSize < 1 || pageNum > 1000000) throw new com.datamaster.common.exception.ServiceException("对象分页参数无效");
         long offset = (long) (pageNum - 1) * pageSize;
 
-        // 列以元数据白名单为准（保证顺序与类型），取不到时退化为按首行 key 兜底
+        // Columns come from verified mappings or physical metadata; unavailable columns never fall back to SELECT *.
         List<String> columns = new ArrayList<>();
         java.util.Set<String> textColumns = new java.util.HashSet<>();
         // 本体属性映射已经是可信字段白名单，优先使用它，避免每次打开对象都再次连接外部库读取
@@ -648,19 +630,18 @@ public class ObjectInstanceQueryServiceImpl implements IObjectInstanceQueryServi
         // 分页查询（内部按方言分页并统计总数，兼容 LIMIT/OFFSET 与 ROWNUM 等方言差异）
         com.datamaster.common.database.core.PageResult<Map<String, Object>> pageResult =
                 dbQuery.queryByPage(sql.toString(), compiled.params, offset, pageSize, 0);
-        List<Map<String, Object>> rows = pageResult.getData() == null
-                ? Collections.emptyList() : pageResult.getData();
-        int total = pageResult.getTotal() == null ? 0 : pageResult.getTotal();
-        if (columns.isEmpty() && !rows.isEmpty()) {
-            columns = new ArrayList<>(rows.get(0).keySet());
-        }
+        if (pageResult == null || pageResult.getData() == null || pageResult.getTotal() == null || pageResult.getTotal() < 0)
+            throw new com.datamaster.common.exception.ServiceException("对象查询未取得有效分页结果，不能当作空数据");
+        List<Map<String, Object>> rows = pageResult.getData();
+        int total = pageResult.getTotal();
+        List<String> returnedColumns = compiled.hasProjection() ? new ArrayList<>(spec.getColumns()) : columns;
 
         ObjectInstanceQueryRespVO respVO = new ObjectInstanceQueryRespVO();
         respVO.setConceptId(concept.getId());
         respVO.setConceptName(concept.getName());
         respVO.setTableBindingId(binding.getId());
         respVO.setTableName(binding.getTableName());
-        respVO.setColumns(columns);
+        respVO.setColumns(returnedColumns);
         respVO.setProperties(properties);
         respVO.setRows(maskObjectRows(binding, reqVO.getSpaceId(), reqVO.getSpaceCode(), rows));
         respVO.setTotal((long) total);

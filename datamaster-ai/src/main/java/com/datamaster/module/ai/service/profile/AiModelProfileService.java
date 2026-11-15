@@ -25,6 +25,8 @@ public class AiModelProfileService {
             + "(api_key_ciphertext IS NOT NULL AND api_key_ciphertext <> '') AS has_api_key";
     private final JdbcTemplate jdbc;
     private final AiModelProfileCipher cipher;
+    @javax.annotation.Resource
+    private com.datamaster.module.ai.config.AiModelRoutingProperties routingDefaults = new com.datamaster.module.ai.config.AiModelRoutingProperties();
 
     public AiModelProfileService(JdbcTemplate jdbc, AiModelProfileCipher cipher) {
         this.jdbc = jdbc;
@@ -68,6 +70,7 @@ public class AiModelProfileService {
         try {
             lockSpace(spaceId);
             AiModelProfileRespVO existing = requireProfile(id, spaceId);
+            if (!Boolean.TRUE.equals(request.getEnabled())) assertNotRouted(id, spaceId);
             if (Boolean.TRUE.equals(existing.getActive()) && !Boolean.TRUE.equals(request.getEnabled()))
                 throw new ServiceException("不能停用当前默认模型，请先启用其他默认模型");
             // Never copy request/entity objects. A blank token updates metadata only.
@@ -104,6 +107,7 @@ public class AiModelProfileService {
             lockSpace(spaceId);
             if (Boolean.TRUE.equals(requireProfile(id, spaceId).getActive()))
                 throw new ServiceException("不能删除当前默认模型，请先启用其他默认模型");
+            assertNotRouted(id, spaceId);
             jdbc.update("DELETE FROM ai_model_profile WHERE id = ? AND space_id = ? AND active = FALSE", id, spaceId);
         } catch (DataAccessException ignored) { throw storageError(); }
     }
@@ -130,6 +134,18 @@ public class AiModelProfileService {
             }
             return rows.get(0);
         } catch (DataAccessException ignored) { throw storageError(); }
+    }
+
+    private void assertNotRouted(Long id, Long spaceId) {
+        List<Long> stored = jdbc.query("SELECT space_id FROM ai_model_routing WHERE space_id=?", (rs, n) -> rs.getLong(1), spaceId);
+        if (!stored.isEmpty()) {
+            List<Long> references = jdbc.query("SELECT space_id FROM ai_model_routing WHERE space_id=? AND (economy_profile_id=? OR advanced_profile_id=? OR decision_profile_id=?)", (rs, n) -> rs.getLong(1), spaceId, id, id, id);
+            if (!references.isEmpty()) throw new ServiceException("模型被当前空间路由引用，请先修改路由选择");
+        } else if (routingDefaults.isEnabled()) {
+            com.datamaster.module.ai.config.AiModelRoutingProperties.SpaceRoutes route = routingDefaults.getSpaces().get(spaceId);
+            if (route != null && (id.equals(route.getEconomyProfileId()) || id.equals(route.getAdvancedProfileId()) || id.equals(route.getDecisionProfileId())))
+                throw new ServiceException("模型被部署路由引用，请先保存不再引用该模型的页面路由配置");
+        }
     }
 
     private void lockSpace(Long spaceId) {

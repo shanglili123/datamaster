@@ -11,6 +11,7 @@ import com.datamaster.metadata.dal.dataobject.metadata.CatalogTableDO;
 import com.datamaster.metadata.dal.dataobject.metadata.CatalogColumnDO;
 import com.datamaster.metadata.dal.mapper.lineage.LineageAccessMapper;
 import com.datamaster.common.database.constants.DbQueryProperty;
+import com.datamaster.common.database.constants.DbType;
 import com.datamaster.module.assets.api.datasource.dto.AssetsDatasourceRespDTO;
 import com.datamaster.module.assets.api.service.asset.IAssetsDatasourceApiService;
 import com.datamaster.module.assets.dal.dataobject.asset.AssetsAssetDO;
@@ -103,7 +104,9 @@ public class LineageGuard {
             AssetsDatasourceRespDTO datasource = datasourceApi.getDatasourceById(asset.getDatasourceId());
             if (datasource == null || !Objects.equals(datasource.getId(), asset.getDatasourceId())) return null;
             // This constructor only parses existing registration; no DbQuery, JDBC URL or remote call.
-            DbQueryProperty property = new DbQueryProperty(datasource.getDatasourceType(), datasource.getIp(), datasource.getPort(), datasource.getDatasourceConfig());
+            DbType dbType = DbType.getDbType(datasource.getDatasourceType());
+            if (dbType == null) return null;
+            DbQueryProperty property = new DbQueryProperty(dbType.getDb(), datasource.getIp(), datasource.getPort(), datasource.getDatasourceConfig());
             String type = property.getDbType() == null ? "" : property.getDbType().toLowerCase(Locale.ROOT);
             String catalog = nullIfEmpty(property.getDbName());
             String schema;

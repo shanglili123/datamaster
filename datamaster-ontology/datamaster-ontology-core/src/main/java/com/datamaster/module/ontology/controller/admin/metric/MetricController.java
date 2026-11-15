@@ -60,7 +60,7 @@ public class MetricController {
     @PostMapping("/{id}/validate")
     public CommonResult<Boolean> validate(@PathVariable Long id,
                                           @RequestParam(required = false) Integer revision) {
-        metricService.validate(id);
+        metricService.validate(id, revision);
         return CommonResult.success(true);
     }
 

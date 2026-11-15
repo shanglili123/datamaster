@@ -69,13 +69,18 @@
     </template>
       </a-collapse-panel>
     </a-collapse>
-    <a-modal :open="Boolean(publicationPreview)" title="确认流程规则变更" width="1100px" :confirm-loading="busy" :ok-button-props="{ disabled: dirty || !loaded }" ok-text="确认发布新版本" cancel-text="返回修改" @ok="publish" @cancel="publicationPreview = null" destroy-on-close>
+    <a-modal :open="Boolean(publicationPreview)" title="确认流程规则变更" width="1100px" :confirm-loading="busy" :closable="!busy" :mask-closable="!busy" :keyboard="!busy" :cancel-button-props="{ disabled: busy }" :ok-button-props="{ disabled: dirty || !loaded }" ok-text="确认发布新版本" cancel-text="返回修改" @ok="publish" @cancel="publicationPreview = null" destroy-on-close>
       <template v-if="publicationPreview">
         <p>已保存草稿 revision {{ publicationPreview.revision }}：版本 {{ publicationPreview.publishedVersion }} → {{ publicationPreview.nextVersion }}</p>
         <p>当前规则：{{ describeDefinition(publicationPreview.published) }}</p>
         <p>发布后：{{ describeDefinition(publicationPreview.draft) }}</p>
         <p>新增前置要求：{{ describeRequirements(publicationPreview.addedRequirements) }}</p>
         <p>移除前置要求：{{ describeRequirements(publicationPreview.removedRequirements) }}</p>
+        <div v-if="publicationPreview.addedEdges?.length || publicationPreview.removedEdges?.length">
+          <p>新增连线：</p><ul v-if="publicationPreview.addedEdges?.length"><li v-for="edge in publicationPreview.addedEdges" :key="`added:${edge}`">{{ describeEdge(edge) }}</li></ul><p v-else>无</p>
+          <p>移除连线：</p><ul v-if="publicationPreview.removedEdges?.length"><li v-for="edge in publicationPreview.removedEdges" :key="`removed:${edge}`">{{ describeEdge(edge) }}</li></ul><p v-else>无</p>
+          <p>连线变化按规则展示；发布仍只更新准入约束，不按画布顺序启动任务。</p>
+        </div>
         <a-alert v-if="publicationPreview.removedRequirements.length" type="warning" show-icon message="本次降低了空间准入要求，请确认这是有意的配置变更。" />
         <a-alert v-if="!publicationPreview.definitionChanged" type="warning" show-icon message="规则定义未变化；发布仍会生成新版本，不是无副作用操作。" />
         <a-alert v-if="publicationPreview.qualityEvidenceReset" type="warning" show-icon message="新版本要求质量准入：旧版本可用性确认不会自动继承，需要重新建立依据。" />
@@ -104,7 +109,7 @@ import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue'
 import { Modal, message } from 'ant-design-vue'
 import SpaceFlowEditor from './SpaceFlowEditor.vue'
 import { getSpaceFlow, saveSpaceFlow, publishSpaceFlow, confirmSpaceQuality, getSpaceQualityHistory, validateSpaceFlow, previewSpaceFlow, getSpaceFlowVersions, getSpaceFlowImpacts } from '@/api/tax/space/flow'
-const props = defineProps({ open: Boolean, space: Object })
+const props = defineProps({ open: Boolean, space: { type: Object, default: null } })
 const emit = defineEmits(['close'])
 function requestClose() {
   const token = generation
@@ -136,6 +141,7 @@ const versionColumns = [
 ]
 const nodeLabels = { METADATA: '元数据', ASSET: '资产权限', QUALITY: '质量准入', API: 'API', ANALYSIS: '分析' }
 function describeRequirements(nodes = []) { return nodes.map(node => nodeLabels[node] || node).join('、') || '无' }
+function describeEdge(edge) { return String(edge).split(' → ').map(node => nodeLabels[node] || node).join(' → ') }
 function describeDefinition(value) {
   if (!value) return '尚未发布（沿用原治理配置）'
   return value.edges.map(edge => `${nodeLabels[edge.from] || edge.from} → ${nodeLabels[edge.to] || edge.to}`).join('；')

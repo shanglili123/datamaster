@@ -28,6 +28,6 @@ public class ObjectPermissionVO implements Serializable {
     @Schema(description = "被拒绝的字段（表级+字段级）")
     private List<String> deniedColumns;
 
-    @Schema(description = "允许查询的字段清单；为空表示全量放行")
+    @Schema(description = "允许查询字段；null表示未限定集合，空列表表示无允许字段，均须结合accessible判定，不能单独作为放行许可")
     private List<String> allowedColumns;
 }

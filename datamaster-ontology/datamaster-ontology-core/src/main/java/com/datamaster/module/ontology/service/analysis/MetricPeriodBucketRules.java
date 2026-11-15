@@ -74,7 +74,7 @@ public final class MetricPeriodBucketRules {
             return Year.parse((String) value).atDay(1);
         } catch (DateTimeException error) { throw new com.datamaster.common.exception.ServiceException("来源时间桶标签无效"); }
     }
-    private static String format(LocalDate value, String grain) { return "DAY".equals(grain) ? value.toString() : "MONTH".equals(grain) ? YearMonth.from(value).toString() : Year.from(value).toString(); }
+    private static String format(LocalDate value, String grain) { return MetricTrendRules.calendarLabel(value, grain); }
     private static final class Bounds {
         final LocalDate current, baseline; final ChronoUnit unit; final long count;
         Bounds(LocalDate current, LocalDate baseline, ChronoUnit unit, long count) { this.current = current; this.baseline = baseline; this.unit = unit; this.count = count; }

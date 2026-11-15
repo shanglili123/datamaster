@@ -48,6 +48,25 @@ public class ConceptTablePreviewAdmissionTest {
         order.verify(f.guard).source(any(ConceptTableDO.class)); order.verify(locks).lockOntology(20L); order.verify(f.guard).source(any(ConceptTableDO.class));
         verify(f.mapper, never()).insert(any(ConceptTableDO.class)); verifyNoInteractions(f.factory);
     }
+    @Test public void explicitProjectionAlsoDefinesResponseHeaders() throws Exception {
+        Fixture f = new Fixture(); DbQuery query = mock(DbQuery.class); when(f.factory.createDbQuery(any())).thenReturn(query);
+        DbColumn id = new DbColumn(); id.setColName("id"); id.setDataType("integer");
+        DbColumn name = new DbColumn(); name.setColName("name"); name.setDataType("varchar");
+        when(query.getTableColumns(any(com.datamaster.common.database.constants.DbQueryProperty.class), eq("orders"))).thenReturn(List.of(id, name));
+        when(query.queryByPage(anyString(), anyMap(), eq(0L), eq(20L), eq(0))).thenReturn(new com.datamaster.common.database.core.PageResult<>(1, List.of(Map.of("id", "1"))));
+        when(f.guard.mask(eq(f.table), eq(f.ontology), anyList())).thenAnswer(invocation -> invocation.getArgument(2));
+        var result = f.service.previewData(40L, 20, "{\"columns\":[\"id\"]}");
+        assertEquals(List.of("id"), result.getColumns()); assertEquals(1, result.getRows().size()); verify(query).close();
+    }
+    @Test public void missingResultDataIsNotPresentedAsAnEmptyPreview() throws Exception {
+        Fixture f = new Fixture(); DbQuery query = mock(DbQuery.class); when(f.factory.createDbQuery(any())).thenReturn(query);
+        DbColumn id = new DbColumn(); id.setColName("id"); id.setDataType("integer");
+        when(query.getTableColumns(any(com.datamaster.common.database.constants.DbQueryProperty.class), eq("orders"))).thenReturn(List.of(id));
+        when(query.queryByPage(anyString(), anyMap(), eq(0L), eq(20L), eq(0))).thenReturn(new com.datamaster.common.database.core.PageResult<>(0, null));
+        try { f.service.previewData(40L, 20, null); fail("Missing result must not look like zero rows"); }
+        catch (com.datamaster.common.exception.ServiceException expected) { assertNotNull(expected.getMessage()); }
+        verify(f.guard, never()).mask(any(), any(), anyList()); verify(query).close();
+    }
     private static class Fixture {
         final ConceptTableServiceImpl service = new ConceptTableServiceImpl(); final ConceptTableMapper mapper = mock(ConceptTableMapper.class);
         final ConceptTableConsumptionGuard guard = mock(ConceptTableConsumptionGuard.class); final DataSourceFactory factory = mock(DataSourceFactory.class);

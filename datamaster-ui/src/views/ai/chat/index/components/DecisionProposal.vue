@@ -142,7 +142,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { ElMessageBox } from 'element-plus'
+import { confirmDecisionInput } from '@/utils/decisionConfirmation'
 import { checkPermi } from '@/utils/permission'
 import DecisionCalculation from './DecisionCalculation.vue'
 import DecisionEffectPlan from './DecisionEffectPlan.vue'
@@ -213,7 +213,7 @@ async function dispose(disposition) {
   const token = context(); const revision = proposal.value.revision
   busy.value = 'disposition'
   try {
-    await ElMessageBox.confirm('此操作只记录人工决策，不提交或取消任何业务动作。是否确认？', '记录决策处置', { type: 'warning' })
+    await confirmDecisionInput('此操作只记录人工决策，不提交或取消任何业务动作。是否确认？', '记录决策处置', { type: 'warning' })
     if (!isCurrent(token) || props.disabled) return
     const data = (await disposeDecision({ decisionId: token.id, revision, disposition, reason: dispositionReason.value.trim(), reviewAfter: time == null ? null : new Date(time).toISOString() })).data
     if (!isCurrent(token)) return
@@ -260,7 +260,7 @@ async function amend() {
     const objectKey = draft.value.objectKey.trim()
     if (!['ACTION', 'WORKFLOW'].includes(draft.value.type) || !targetId) throw new Error('请选择绑定类型并明确填写目标 ID；更新/删除类动作还必须填写对象主键。')
     const request = { decisionId: token.id, revision: draft.value.revision, candidateId: draft.value.candidateId, type: draft.value.type, targetId, objectKey, inputParams: JSON.stringify(params) }
-    await ElMessageBox.confirm('确认保存当前候选的补充信息？旧测算结果、排名和执行预览会作废，输入条件保留供重新核验；之后需重新测算（如需要）、准备预览并明确确认，此步骤不会提交执行。', '确认保存决策补充', { type: 'warning', confirmButtonText: '保存补充', cancelButtonText: '取消', closeOnClickModal: false })
+    await confirmDecisionInput('确认保存当前候选的补充信息？旧测算结果、排名和执行预览会作废，输入条件保留供重新核验；之后需重新测算（如需要）、准备预览并明确确认，此步骤不会提交执行。', '确认保存决策补充', { type: 'warning', confirmButtonText: '保存补充', cancelButtonText: '取消', closeOnClickModal: false })
     if (!isCurrent(token) || !canEditBinding.value || isExpired() || JSON.stringify(draft.value) !== draftSnapshot) return
     const applied = applyProposal((await amendDecision(request)).data, token)
     if (applied) {
@@ -286,7 +286,7 @@ async function resume() {
   busy.value = 'resume'
   let requested = false
   try {
-    await ElMessageBox.confirm('确认继续当前工作流？服务端仅推进审批节点已 EXECUTED 的运行，不重试 FAILED 节点。可能继续进入下一审批或执行步骤，续跑不代表成功或实际改善。', '明确确认续跑工作流', { type: 'warning', confirmButtonText: '确认续跑', cancelButtonText: '取消', closeOnClickModal: false })
+    await confirmDecisionInput('确认继续当前工作流？服务端仅推进审批节点已 EXECUTED 的运行，不重试 FAILED 节点。可能继续进入下一审批或执行步骤，续跑不代表成功或实际改善。', '明确确认续跑工作流', { type: 'warning', confirmButtonText: '确认续跑', cancelButtonText: '取消', closeOnClickModal: false })
     if (!isCurrent(token) || !resumeAllowedNow()) return
     const latest = (await getDecision(token.id)).data
     if (!isCurrent(token)) return
@@ -390,10 +390,10 @@ async function confirm() {
   busy.value = 'confirm'
   let requested = false
   try {
-    await ElMessageBox.confirm('确认按上方服务端预览提交业务操作？提交后可能进入审批或执行；提交成功不等于执行成功，关闭页面不能撤销。请核对对象、只读参数和风险。', '明确确认提交决策', { type: 'warning', confirmButtonText: '确认并提交', cancelButtonText: '取消', closeOnClickModal: false })
+    await confirmDecisionInput('确认按上方服务端预览提交业务操作？提交后可能进入审批或执行；提交成功不等于执行成功，关闭页面不能撤销。请核对对象、只读参数和风险。', '明确确认提交决策', { type: 'warning', confirmButtonText: '确认并提交', cancelButtonText: '取消', closeOnClickModal: false })
     if (!isCurrent(token) || !mutationAllowed()) return
     if (proposal.value.impactPreview?.status !== 'AVAILABLE' || proposal.value.impactPreview?.truncated === true) {
-      await ElMessageBox.confirm('此类型或来源无法安全预测实际副作用，或匹配数超过上限而仅能显示下界。服务端不会试跑函数、回调或工作流；你是否明确知悉这些影响边界，仍按既有审批策略提交？', '单独知悉影响边界', { type: 'warning', confirmButtonText: '知悉未知影响并继续', cancelButtonText: '取消', closeOnClickModal: false })
+      await confirmDecisionInput('此类型或来源无法安全预测实际副作用，或匹配数超过上限而仅能显示下界。服务端不会试跑函数、回调或工作流；你是否明确知悉这些影响边界，仍按既有审批策略提交？', '单独知悉影响边界', { type: 'warning', confirmButtonText: '知悉未知影响并继续', cancelButtonText: '取消', closeOnClickModal: false })
       if (!isCurrent(token) || !mutationAllowed()) return
       request.acknowledgeUnknownImpact = true
     }

@@ -78,6 +78,33 @@ public class MetricPublishedSearchTest {
         try { service.version(10L, 1); fail("Must reject null snapshot"); } catch (com.datamaster.common.exception.ServiceException expected) { assertNotNull(expected.getMessage()); }
     }
 
+    @Test public void currentDraftDetailsCannotBorrowSourceFromForeignPublication() throws Exception {
+        MetricDO current = new MetricDO(); current.setId(10L); current.setOntologyId(1L); current.setConceptId(2L); current.setCode("sales"); current.setPublishedVersion(1);
+        MetricSaveReqVO definition = new MetricSaveReqVO(); definition.setOntologyId(1L); definition.setConceptId(2L); definition.setCode("sales"); definition.setName("当前草稿");
+        current.setDefinitionJson(JSON.toJSONString(definition));
+        MetricRespVO foreign = new MetricRespVO(); foreign.setId(10L); foreign.setOntologyId(99L); foreign.setConceptId(2L); foreign.setCode("sales"); foreign.setPublishedVersion(1); foreign.setStatus("PUBLISHED");
+        foreign.setSourceSnapshot(Map.of("datasourceId", 99L, "tableName", "private_orders"));
+        MetricVersionDO version = new MetricVersionDO(); version.setSnapshotJson(JSON.toJSONString(foreign));
+        MetricServiceImpl service = new MetricServiceImpl();
+        inject(service, "accessGuard", new MetricAccessGuard() { @Override public void assertOntologyAccess(Long id) { assertEquals(Long.valueOf(1L), id); } });
+        inject(service, "metricMapper", Proxy.newProxyInstance(MetricMapper.class.getClassLoader(), new Class<?>[]{MetricMapper.class}, (proxy, method, args) -> current));
+        inject(service, "metricVersionMapper", Proxy.newProxyInstance(MetricVersionMapper.class.getClassLoader(), new Class<?>[]{MetricVersionMapper.class}, (proxy, method, args) -> version));
+        try { service.get(10L); fail("Current detail must validate publication parent identity"); }
+        catch (com.datamaster.common.exception.ServiceException expected) { assertNotNull(expected.getMessage()); }
+    }
+
+    @Test public void malformedDraftDetailsReturnBusinessErrorsInsteadOfNullCopyFailures() throws Exception {
+        MetricDO current = new MetricDO(); current.setId(10L); current.setOntologyId(1L); current.setPublishedVersion(0);
+        MetricServiceImpl service = new MetricServiceImpl();
+        inject(service, "accessGuard", new MetricAccessGuard() { @Override public void assertOntologyAccess(Long id) { assertEquals(Long.valueOf(1L), id); } });
+        inject(service, "metricMapper", Proxy.newProxyInstance(MetricMapper.class.getClassLoader(), new Class<?>[]{MetricMapper.class}, (proxy, method, args) -> current));
+        for (String invalid : Arrays.asList(null, "null", "broken")) {
+            current.setDefinitionJson(invalid);
+            try { service.get(10L); fail("Malformed draft must fail with a business error"); }
+            catch (com.datamaster.common.exception.ServiceException expected) { assertTrue(expected.getMessage().contains("草稿定义")); }
+        }
+    }
+
     private static void inject(Object bean, String name, Object value) throws Exception {
         Field field = bean.getClass().getDeclaredField(name); field.setAccessible(true); field.set(bean, value);
     }

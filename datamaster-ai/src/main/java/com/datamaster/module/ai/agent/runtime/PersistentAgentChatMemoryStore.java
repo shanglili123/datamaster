@@ -116,7 +116,7 @@ public class PersistentAgentChatMemoryStore implements ChatMemoryStore {
             if (message == null) continue;
             StoredMessage stored = new StoredMessage();
             stored.type = message.type().name();
-            stored.text = message.text();
+            stored.text = ChatMessageText.text(message);
             if (message instanceof ToolExecutionResultMessage) {
                 ToolExecutionResultMessage tool = (ToolExecutionResultMessage) message;
                 stored.id = tool.id();

@@ -13,12 +13,13 @@
         <a-input v-if="mode === 'CUSTOM'" v-model:value="baselineEnd" :disabled="busy" placeholder="基期结束（不含）" style="width: 260px" />
         <a-button v-hasPermi="['ont:metric:execute']" :loading="busy" :disabled="disabled || busy || !canCompare" @click="execute">执行两期比较</a-button>
       </a-space>
+      <p v-if="blockedReason" role="status">{{ blockedReason }}</p>
       <p v-if="error" role="alert">{{ error }}</p>
       <template v-if="result">
         <p>{{ result.notice }}</p>
         <p>本期：[{{ result.currentStartTime }}, {{ result.currentEndTime }})；基期：[{{ result.baselineStartTime }}, {{ result.baselineEndTime }}) · {{ result.current.unit }}</p>
         <a-table :row-key="(_, index) => String(index)" size="small" :pagination="false" :columns="result.columns.map(column => ({ title: column.label, dataIndex: column.key }))" :data-source="result.rows" :scroll="{ x: 'max-content' }">
-          <template #bodyCell="{ text, column }">{{ text == null ? '缺失 / 不可计算' : column.dataIndex === 'change_percent' ? `${text}%` : text }}</template>
+          <template #bodyCell="{ text, column }">{{ text == null ? '缺失 / 不可计算' : column.dataIndex === 'change_percent' ? `${text}%` : metricDisplayValue(text) }}</template>
         </a-table>
         <p v-if="!result.grouped">差值（本期−基期）：{{ result.difference ?? '不可计算（缺失值）' }}；变化率：{{ result.changePercent == null ? '不可计算（基期为零或缺失）' : `${result.changePercent}%` }}</p>
         <p v-else>以上为各组独立比较，不累计分组值、均值或去重计数来生成全量结论。</p>
@@ -29,13 +30,14 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { compareMetric } from '@/api/ont/metricAnalysis'
-const props = defineProps({ query: Object, disabled: Boolean })
+import { metricDisplayValue } from '@/utils/metricDisplay'
+import { metricComparisonBlockReason, metricCustomBaselineReason } from '@/utils/metricComparison'
+const props = defineProps({ query: { type: Object, default: null }, queryError: { type: String, default: '' }, disabled: Boolean })
 const mode = ref('PREVIOUS_PERIOD'), baselineStart = ref(''), baselineEnd = ref(''), busy = ref(false), result = ref(null), error = ref('')
 let generation = 0
-const canCompare = computed(() => props.query?.metricId && props.query?.version && props.query?.startTime && props.query?.endTime
-  && (props.query.pageNum || 1) === 1
-  && ((!props.query.dimensionPropertyIds?.length && (!props.query.timeBucket || props.query.timeBucket === 'NONE')) || !props.query.sortBy
-    || props.query.timeBucket !== 'NONE' && props.query.sortBy === 'time_bucket' && props.query.sortDirection === 'ASC'))
+const blockedReason = computed(() => props.queryError || metricComparisonBlockReason(props.query, { period: true })
+  || (mode.value === 'CUSTOM' ? metricCustomBaselineReason(props.query, baselineStart.value, baselineEnd.value) : ''))
+const canCompare = computed(() => !blockedReason.value)
 async function execute() {
   if (!canCompare.value || busy.value || props.disabled) return
   const token = ++generation; busy.value = true; error.value = ''; result.value = null
@@ -46,7 +48,7 @@ async function execute() {
   finally { if (token === generation) busy.value = false }
 }
 onBeforeUnmount(() => { ++generation })
-watch(() => JSON.stringify([props.query, mode.value, baselineStart.value, baselineEnd.value, props.disabled]), () => {
+watch(() => JSON.stringify([props.query, props.queryError, mode.value, baselineStart.value, baselineEnd.value, props.disabled]), () => {
   ++generation; busy.value = false; result.value = null; error.value = ''
 }, { flush: 'sync' })
 </script>

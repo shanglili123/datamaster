@@ -37,7 +37,7 @@ watch(() => [spaceKey.value, route.query.ontologyId, route.query.metricId, route
   if (!userStore.spaceId && !userStore.spaceCode) return
   loading.value = true
   try {
-    const items = await loadPagedOptions(listOntology, { spaceId: userStore.spaceId, spaceCode: userStore.spaceCode })
+    const items = await loadPagedOptions(listOntology, { spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }, { isCurrent: () => current === sequence })
     if (current !== sequence) return
     if (routeText(route.query.spaceId) && String(route.query.spaceId) !== String(userStore.spaceId)) { error.value = '此分析链接属于其他空间，请切回原空间后打开'; return }
     options.value = items.map(item => ({ value: String(item.id), label: item.name }))
@@ -45,7 +45,7 @@ watch(() => [spaceKey.value, route.query.ontologyId, route.query.metricId, route
     if (requested && !options.value.some(item => item.value === requested)) { error.value = '链接中的本体不属于当前可访问空间'; return }
     ontologyId.value = requested || options.value[0]?.value
   } catch (failure) {
-    if (current === sequence) error.value = '本体列表加载失败，请检查当前空间及本体查询权限。'
+    if (current === sequence) error.value = `本体列表加载失败：${failure?.response?.data?.msg || failure?.message || '请检查当前空间及本体查询权限'}`
   } finally { if (current === sequence) loading.value = false }
 }, { immediate: true })
 onBeforeUnmount(() => { ++sequence })

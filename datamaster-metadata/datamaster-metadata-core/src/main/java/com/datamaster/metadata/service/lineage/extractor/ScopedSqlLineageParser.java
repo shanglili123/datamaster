@@ -418,9 +418,9 @@ final class ScopedSqlLineageParser {
         endpoint.setTable(unquote(table.getName()));
         endpoint.setTableQuoted(quoted(table.getName()));
         endpoint.setSchema(catalogPrefix ? null : blank(prefix) ? context.getSchema() : unquote(prefix));
-        endpoint.setSchemaQuoted(catalogPrefix ? null : blank(prefix) ? context.getSchemaQuoted() : quoted(prefix));
+        endpoint.setSchemaQuoted(catalogPrefix ? null : blank(prefix) ? context.getSchemaQuoted() : Boolean.valueOf(quoted(prefix)));
         endpoint.setCatalog(catalogPrefix ? unquote(prefix) : blank(catalog) ? context.getCatalog() : unquote(catalog));
-        endpoint.setCatalogQuoted(catalogPrefix ? quoted(prefix) : blank(catalog) ? context.getCatalogQuoted() : quoted(catalog));
+        endpoint.setCatalogQuoted(catalogPrefix ? Boolean.valueOf(quoted(prefix)) : blank(catalog) ? context.getCatalogQuoted() : Boolean.valueOf(quoted(catalog)));
         validateEndpoint(endpoint);
         return endpoint;
     }

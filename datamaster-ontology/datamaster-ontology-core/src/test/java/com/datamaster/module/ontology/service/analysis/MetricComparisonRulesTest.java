@@ -57,6 +57,17 @@ public class MetricComparisonRulesTest {
         assertEquals("2025-01-01", MetricComparisonRules.baseline(request).getStartTime());
         request.setBaselineEndTime("2025-01-01"); rejected(() -> MetricComparisonRules.baseline(request));
     }
+    @Test public void baselineRejectsOutOfRangeYearsAndNonLocalIsoInputsBeforeSourceAuthorization() {
+        rejected(() -> MetricComparisonRules.baseline(request("PREVIOUS_YEAR", "0001-01-01", "0001-02-01")));
+        rejected(() -> MetricComparisonRules.baseline(request("PREVIOUS_PERIOD", "0001-01-01", "0001-01-03")));
+        rejected(() -> MetricComparisonRules.baseline(request("PREVIOUS_MONTH", "0000-01-01", "0000-02-01")));
+        MetricComparisonReqVO custom = request("CUSTOM", "2026-01-01T00:00", "2026-02-01T00:00");
+        custom.setBaselineStartTime("2025-01-01T00:00:00.123456789"); custom.setBaselineEndTime("2025-02-01T00:00");
+        assertEquals("2025-01-01T00:00:00.123456789", MetricComparisonRules.baseline(custom).getStartTime());
+        custom.setBaselineStartTime("2025-01-01T00:00Z"); rejected(() -> MetricComparisonRules.baseline(custom));
+        custom.setBaselineStartTime("2025-01-01 00:00:00"); rejected(() -> MetricComparisonRules.baseline(custom));
+        custom.setBaselineStartTime("2025-01-01"); rejected(() -> MetricComparisonRules.baseline(custom));
+    }
     @Test public void computesDecimalDifferenceWithoutFloatingPointAndLeavesZeroRateUnknown() {
         MetricComparisonRespVO result = new MetricComparisonRespVO(); result.setCurrent(value("9007199254740993.10")); result.setBaseline(value("9007199254740993.00"));
         MetricComparisonRules.calculate(result); assertEquals("0.10", result.getDifference());
@@ -71,8 +82,10 @@ public class MetricComparisonRulesTest {
         result.setBaseline(grouped(List.of(group("A", "5"), group("B", "7"))));
         MetricComparisonRules.calculate(result);
         assertTrue(result.isGrouped()); assertEquals(3, result.getRows().size());
-        assertEquals("100", result.getRows().get(0).get("change_percent"));
-        assertNull(result.getRows().get(1).get("baseline_value")); assertNull(result.getRows().get(1).get("difference"));
+        assertNull(result.getRows().get(0).get("d_2"));
+        assertNull(result.getRows().get(0).get("baseline_value")); assertNull(result.getRows().get(0).get("difference"));
+        assertEquals("A", result.getRows().get(1).get("d_2")); assertEquals("100", result.getRows().get(1).get("change_percent"));
+        assertEquals("B", result.getRows().get(2).get("d_2"));
         assertNull(result.getRows().get(2).get("current_value")); assertNull(result.getRows().get(2).get("difference"));
         assertNull(result.getDifference());
     }

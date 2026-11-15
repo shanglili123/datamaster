@@ -6,6 +6,7 @@ import com.datamaster.api.ds.api.service.etl.IDsEtlTaskService;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.module.collector.dal.dataobject.etl.*;
 import com.datamaster.module.collector.dal.mapper.etl.*;
+import com.datamaster.module.collector.utils.RunAdmissionDiagnostics;
 import com.datamaster.redis.service.IRedisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,21 +36,40 @@ public class CollectorEtlRunGuardService {
 
     /** 根HTTP按工作流code定位本次执行；返回本地执行ID给后续阶段。 */
     public CollectorEtlRunDO prepareLatestComponent(Long taskId, String resourcesJson) {
-        if (!enabled) throw new ServiceException("运行保护未启用");
-        return new TransactionTemplate(transactionManager).execute(status -> {
-            if (runMapper.lockTask(taskId) == null) throw new ServiceException("任务不存在");
-            CollectorEtlTaskDO task = taskMapper.selectById(taskId);
-            CollectorEtlTaskExtDO ext = extService.getByTaskId(taskId);
-            if (task == null || ext == null) throw new ServiceException("任务发布配置不存在");
-            JSONObject latest = dsTaskService.getLatestWorkflowInstance(task.getSpaceCode(), ext.getEtlTaskCode());
-            return prepareComponent(taskId, latest.getLong("id"), resourcesJson);
+        return prepareLatestComponent(taskId, resourcesJson, new RunAdmissionDiagnostics(taskId));
+    }
+
+    public CollectorEtlRunDO prepareLatestComponent(Long taskId, String resourcesJson, RunAdmissionDiagnostics diagnostics) {
+        return diagnostics.execute(() -> {
+            diagnostics.step("FEATURE_CHECK");
+            if (!enabled) throw new ServiceException("运行保护未启用");
+            return new TransactionTemplate(transactionManager).execute(status -> {
+                diagnostics.step("PUBLICATION_LOOKUP");
+                if (runMapper.lockTask(taskId) == null) throw new ServiceException("任务不存在");
+                CollectorEtlTaskDO task = taskMapper.selectById(taskId);
+                CollectorEtlTaskExtDO ext = extService.getByTaskId(taskId);
+                if (task == null || ext == null) throw new ServiceException("任务发布配置不存在");
+                diagnostics.step("DS_LATEST_LOOKUP");
+                JSONObject latest = dsTaskService.getLatestWorkflowInstance(task.getSpaceCode(), ext.getEtlTaskCode());
+                diagnostics.schedulerInstance(latest.getLong("id"));
+                return prepareComponent(taskId, latest.getLong("id"), resourcesJson, diagnostics);
+            });
         });
     }
 
     public CollectorEtlRunDO prepareComponent(Long taskId, Long instanceId, String resourcesJson) {
+        return prepareComponent(taskId, instanceId, resourcesJson, new RunAdmissionDiagnostics(taskId));
+    }
+
+    private CollectorEtlRunDO prepareComponent(Long taskId, Long instanceId, String resourcesJson,
+                                              RunAdmissionDiagnostics diagnostics) {
+        diagnostics.schedulerInstance(instanceId);
+        return diagnostics.execute(() -> {
+        diagnostics.step("COMPONENT_ARGUMENTS");
         if (!enabled) throw new ServiceException("运行保护未启用");
         if (taskId == null || instanceId == null || instanceId <= 0) throw new ServiceException("无效的运行准入实例");
         return new TransactionTemplate(transactionManager).execute(status -> {
+            diagnostics.step("SNAPSHOT_CHECK");
             if (runMapper.lockTask(taskId) == null) throw new ServiceException("运行所属任务不存在");
             CollectorEtlTaskDO task = taskMapper.selectById(taskId);
             if (task == null || !"1".equals(task.getStatus())) throw new ServiceException("组件任务未发布或已下线，禁止准入/恢复");
@@ -61,25 +81,44 @@ public class CollectorEtlRunGuardService {
                     || !snapshot.getString("resourcesJson").equals(resourcesJson)) {
                 throw new ServiceException("准入请求与已发布组件快照不一致，请重新发布任务");
             }
+            diagnostics.step("DS_WORKFLOW_LOOKUP");
             JSONObject remote = dsTaskService.getWorkflowInstance(task.getSpaceCode(), instanceId);
+            diagnostics.step("WORKFLOW_VERSION_STATE_CHECK");
+            diagnostics.workflow(snapshot.getLong("workflowCode"), snapshot.getInteger("workflowVersion"),
+                    remote.getLong("workflowDefinitionCode"), remote.getInteger("workflowDefinitionVersion"), remote.getString("state"));
             if (!Objects.equals(snapshot.getString("workflowCode"), remote.getString("workflowDefinitionCode"))
                     || !Objects.equals(snapshot.getString("workflowVersion"), remote.getString("workflowDefinitionVersion"))
                     || !Arrays.asList("RUNNING_EXECUTION", "DELAY_EXECUTION").contains(remote.getString("state"))) {
                 throw new ServiceException("运行实例不属于已发布组件版本或已结束");
             }
+            diagnostics.step("DS_GUARD_TASK_LOOKUP");
             List<com.datamaster.api.ds.api.etl.ds.TaskInstance> nodes = dsTaskService.listTaskInstancesStrict(task.getSpaceCode(), instanceId);
+            diagnostics.step("GUARD_NODE_RUNNING_CHECK");
             boolean runningGuard = nodes.stream()
                     .anyMatch(node -> snapshot.getString("guardNodeCode").equals(node.getTaskCode())
                             && node.getState() != null && "RUNNING_EXECUTION".equals(node.getState().name()));
-            if (!runningGuard) throw new ServiceException("工作流运行准入节点未在执行");
+            if (!runningGuard) {
+                String observedState = nodes.stream().filter(node -> snapshot.getString("guardNodeCode").equals(node.getTaskCode()))
+                        .map(node -> node.getState() == null ? "UNKNOWN" : node.getState().name())
+                        .findFirst().orElse("NOT_VISIBLE");
+                diagnostics.guard(snapshot.getLong("guardNodeCode"), nodes.size(), observedState);
+                throw new ServiceException("工作流运行准入节点未在执行");
+            }
+            diagnostics.step("INSTANCE_SYNCHRONIZATION");
             instanceService.synchronizeComponentRun(taskId, remote, nodes);
-            CollectorEtlRunDO run = prepare(taskId, instanceId, snapshot.getLong("workflowCode"), Collections.emptyList());
+            CollectorEtlRunDO run = prepare(taskId, instanceId, snapshot.getLong("workflowCode"), Collections.emptyList(), diagnostics);
+            diagnostics.execution(run.getId());
+            diagnostics.step("RECOVERY_ASSOCIATION");
             recoveryService.admitted(run, snapshot.getInteger("workflowVersion"));
+            diagnostics.step("ADMISSION_TRANSACTION_COMMIT");
             return run;
+        });
         });
     }
 
-    private CollectorEtlRunDO prepare(Long taskId, Long instanceId, Long workflowCode, Collection<String> targets) {
+    private CollectorEtlRunDO prepare(Long taskId, Long instanceId, Long workflowCode, Collection<String> targets,
+                                      RunAdmissionDiagnostics diagnostics) {
+        diagnostics.step("OWNER_ARGUMENTS");
         if (!enabled) throw new ServiceException("运行保护未启用，请先完成运行表迁移和回调配置");
         if (taskId == null || instanceId == null || workflowCode == null || targets == null) {
             throw new ServiceException("运行保护缺少任务、实例或写目标集合");
@@ -88,6 +127,7 @@ public class CollectorEtlRunGuardService {
         SortedSet<String> keys = new TreeSet<>();
         keys.add("etl-task:" + taskId);
         CollectorEtlRunDO run = new TransactionTemplate(transactionManager).execute(status -> {
+            diagnostics.step("OWNER_PUBLICATION_RECHECK");
             if (runMapper.lockTask(taskId) == null) throw new ServiceException("运行所属任务不存在");
             CollectorEtlTaskDO task = taskMapper.selectById(taskId);
             if (task == null || !"1".equals(task.getStatus())) throw new ServiceException("组件任务未发布或已下线，禁止准入/恢复");
@@ -98,6 +138,7 @@ public class CollectorEtlRunGuardService {
                     || !String.valueOf(ext.getEtlTaskVersion()).equals(instance.getString("workflowDefinitionVersion"))) {
                 throw new ServiceException("准入过程中发布版本已变化，拒绝登记旧快照");
             }
+            diagnostics.step("OWNER_INITIALIZATION");
             CollectorEtlRunDO candidate = new CollectorEtlRunDO();
             candidate.setTaskId(taskId); candidate.setWorkflowInstanceId(instanceId);
             candidate.setWorkflowCode(workflowCode); candidate.setOwnerToken(UUID.randomUUID().toString());
@@ -105,6 +146,8 @@ public class CollectorEtlRunGuardService {
             CollectorEtlRunDO current = runMapper.getByWorkflowInstance(taskId, instanceId);
             if (current == null) throw new ServiceException("流程实例运行owner初始化失败");
             current = runMapper.lockById(current.getId());
+            diagnostics.execution(current.getId());
+            diagnostics.step("OWNER_STATE_CHECK");
             if (!"ACTIVE".equals(current.getStatus())) throw new ServiceException("运行已暂停、待核对或结束，不能重新准入");
             if (!workflowCode.equals(current.getWorkflowCode())) {
                 throw new ServiceException("运行写目标或工作流已变化，禁止重试覆盖原执行上下文");
@@ -122,8 +165,10 @@ public class CollectorEtlRunGuardService {
                             }
                         });
             }
+            diagnostics.step("TASK_OWNERSHIP_ACQUIRE");
             if (runMapper.acquireTask(current) != 1) throw new ServiceException("同一任务已有运行资格，等待原实例确认结束");
             current.setResourcesJson(JSON.toJSONString(keys));
+            diagnostics.step("REDIS_LEASE_ACQUIRE");
             // 首次准入在数据库事务提交前建立租约；对账器不会读到半初始化的运行。
             for (String key : keys) {
                 String redisKey = redisKey(key);
@@ -132,6 +177,7 @@ public class CollectorEtlRunGuardService {
                     throw new ServiceException("运行租约冲突，禁止启动写入");
                 }
             }
+            diagnostics.step("OWNER_HEARTBEAT");
             runMapper.heartbeat(current.getId(), current.getOwnerToken());
             return current;
         });
@@ -253,6 +299,7 @@ public class CollectorEtlRunGuardService {
             return;
         }
         instanceService.synchronizeComponentRun(run.getTaskId(), remote, nodes);
+        stageRuntimeService.progress(run.getTaskId(), run.getWorkflowInstanceId(), run.getWorkflowCode(), nodes);
         String next = "PAUSE".equals(state) || "READY_PAUSE".equals(state) ? "PAUSED"
                 : Arrays.asList("RUNNING_EXECUTION", "DELAY_EXECUTION").contains(state) ? "ACTIVE" : "UNCERTAIN";
         mark(run, next);

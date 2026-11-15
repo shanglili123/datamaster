@@ -51,7 +51,7 @@ public final class MetricMultiQueryRules {
         MetricMultiQueryRespVO output = new MetricMultiQueryRespVO(); output.setMetrics(results); output.setDerivedOperation(operation);
         List<MetricQueryColumnVO> columns = new ArrayList<>(); List<MetricQueryColumnVO> dimensions = new ArrayList<>();
         for (MetricQueryColumnVO column : results.get(0).getColumns()) if (!"metric_value".equals(column.getKey())) { dimensions.add(column); columns.add(column); }
-        Map<String,Map<String,Object>> rows = new TreeMap<>();
+        Map<String,Map<String,Object>> rows = new LinkedHashMap<>();
         for (int i = 0; i < results.size(); i++) {
             MetricQueryRespVO result = results.get(i); require(result != null && Boolean.FALSE.equals(result.getTruncated()), "多指标结果存在截断，禁止把不完整分组合并；请缩小范围或提高上限");
             String measureType = measureType(result);
@@ -79,8 +79,10 @@ public final class MetricMultiQueryRules {
             output.setDerivedUnit(unit); columns.add(column("derived_value", operation + "（" + unit + "）"));
             for (Map<String,Object> row : rows.values()) row.put("derived_value", derive(row.get("m_0"), row.get("m_1"), operation));
         }
-        output.setColumns(columns); output.setRows(new ArrayList<>(rows.values()));
-        output.setNotice("同源同粒度、明确发布版本分别查询后按完整分组对齐；缺失不补零，不把分组去重之和当总去重，不跨桶再聚合。派生为当前分析临时白名单运算，不创建正式派生指标；比率分母零返回缺失。来源两次查询不冻结底层数据。");
+        List<Map<String,Object>> orderedRows = new ArrayList<>(rows.values());
+        orderedRows.sort(MetricGroupIdentity.ascending(dimensions));
+        output.setColumns(columns); output.setRows(orderedRows);
+        output.setNotice("同源同粒度、明确发布版本分别查询后按完整分组对齐；缺失不补零，不把分组去重之和当总去重，不跨桶再聚合。派生为当前分析临时白名单运算，不创建正式派生指标；比率分母零返回缺失。各项来源分别查询，不冻结底层数据；仅对完整结果并集按维度类型升序展示，null在前，文本使用确定性字符序，不承诺与来源库排序规则一致。");
         return output;
     }
     private static boolean unitPresent(String unit) { return unit != null && !unit.isBlank(); }

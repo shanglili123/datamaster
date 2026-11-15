@@ -791,12 +791,14 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
         if (existing == null || StringUtils.isBlank(text)) return false;
         String candidate = text.trim();
         for (dev.langchain4j.data.message.ChatMessage message : existing) {
-            if (message == null || message.text() == null) continue;
+            if (message == null) continue;
             boolean sameRole = ("user".equalsIgnoreCase(role) && message instanceof UserMessage)
                     || (("assistant".equalsIgnoreCase(role) || "ai".equalsIgnoreCase(role))
                     && message instanceof AiMessage);
             if (!sameRole) continue;
-            String current = message.text().trim();
+            String messageText = ChatMessageText.text(message);
+            if (messageText == null) continue;
+            String current = messageText.trim();
             if (current.equals(candidate)
                     || current.contains("用户目标：" + candidate)
                     || candidate.contains(current) && current.length() > 20) return true;

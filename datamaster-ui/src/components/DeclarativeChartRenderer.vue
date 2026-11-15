@@ -36,7 +36,7 @@
 </template>
 <script setup>
 import { computed, ref, watch } from 'vue'
-const props = defineProps({ rows: { type: Array, default: () => [] }, xField: { type: String, required: true }, yField: { type: String, required: true }, chartType: { type: String, default: 'bar' }, title: String, unit: String, notice: String, showTable: { type: Boolean, default: true } })
+const props = defineProps({ rows: { type: Array, default: () => [] }, xField: { type: String, required: true }, yField: { type: String, required: true }, chartType: { type: String, default: 'bar' }, title: { type: String, default: '' }, unit: { type: String, default: '' }, notice: { type: String, default: '' }, showTable: { type: Boolean, default: true } })
 const activeIndex = ref(null)
 const points = computed(() => props.rows.map(row => {
   const exact = row?.[props.yField], numeric = exact == null || exact === '' ? null : Number(exact)

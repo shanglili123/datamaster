@@ -29,5 +29,7 @@ public class ApiSpaceFlowImpactProviderTest {
         assertEquals(2L, page.getTotal()); assertEquals("CUSTOM_SQL_UNRESOLVED", page.getRows().get(0).getSourceCoverage());
         assertEquals("UNKNOWN", page.getRows().get(1).getSourceCoverage());
         assertFalse(com.alibaba.fastjson2.JSON.toJSONString(page).contains("SECRET_SQL"));
+        verify(jdbc).queryForObject(contains("del_flag='0'"), eq(Long.class), eq(1L), eq("space01"));
+        verify(jdbc).queryForList(contains("del_flag='0'"), eq(1L), eq("space01"), eq(10), eq(0));
     }
 }

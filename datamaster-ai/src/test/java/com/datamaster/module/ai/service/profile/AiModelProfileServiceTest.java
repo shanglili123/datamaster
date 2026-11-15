@@ -33,8 +33,9 @@ public class AiModelProfileServiceTest {
         rejected(() -> new AiModelProfileCipher("").encrypt("test-credential", 10L));
         rejected(() -> new AiModelProfileCipher("invalid").decrypt(encrypted, 10L));
         rejected(() -> cipher.decrypt("plaintext", 10L));
-        char last = encrypted.charAt(encrypted.length() - 3);
-        String tampered = encrypted.substring(0, encrypted.length() - 3) + (last == 'A' ? 'B' : 'A') + encrypted.substring(encrypted.length() - 2);
+        byte[] payload = Base64.getDecoder().decode(encrypted.substring("gcm1:".length()));
+        payload[payload.length - 1] ^= 1;
+        String tampered = "gcm1:" + Base64.getEncoder().encodeToString(payload);
         rejected(() -> cipher.decrypt(tampered, 10L));
     }
 
@@ -72,6 +73,14 @@ public class AiModelProfileServiceTest {
         assertEquals(0, jdbc.writes);
     }
 
+    @Test public void routingReferencesBlockDisableAndDeleteBeforeWrites() {
+        MemoryJdbc jdbc = new MemoryJdbc(); jdbc.routingReference = true;
+        AiModelProfileService service = new AiModelProfileService(jdbc, new AiModelProfileCipher(KEY));
+        AiModelProfileSaveReqVO request = valid(); request.setEnabled(false);
+        rejected(() -> service.update(7L, 10L, "space10", request));
+        rejected(() -> service.delete(7L, 10L)); assertEquals(0, jdbc.writes);
+    }
+
     @Test public void resolverScopesSelectionAndDoesNotFallbackAfterDecryptionFailure() {
         MemoryJdbc jdbc = new MemoryJdbc();
         AiModelProfileService service = new AiModelProfileService(jdbc, new AiModelProfileCipher(KEY));
@@ -106,9 +115,11 @@ public class AiModelProfileServiceTest {
         boolean active;
         boolean enabled = true;
         boolean empty;
+        boolean routingReference;
         @Override public int update(String sql, Object... args) { statements.add(sql); writes++; return 1; }
         @Override public <T> List<T> query(String sql, RowMapper<T> mapper, Object... args) {
             statements.add(sql); lastArgs = args;
+            if (sql.contains("FROM ai_model_routing")) return routingReference ? Collections.singletonList((T) Long.valueOf(10L)) : Collections.emptyList();
             if (empty) return Collections.emptyList();
             Map<String, Object> values = new HashMap<>();
             values.put("id", 7L); values.put("space_id", 10L); values.put("space_code", "space10");

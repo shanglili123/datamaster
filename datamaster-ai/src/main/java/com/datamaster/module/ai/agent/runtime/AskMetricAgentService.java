@@ -203,9 +203,11 @@ public class AskMetricAgentService {
             if (user && i == window.getRows().size() - 1 && request.getQuestion().trim().equals(text.trim())) continue;
             boolean found = false;
             for (ChatMessage message : memory.messages()) {
-                if ((user && message instanceof UserMessage || ai && message instanceof AiMessage)
-                        && message.text() != null && (text.equals(message.text())
-                        || user && message.text().endsWith("用户问题：" + text))) { found = true; break; }
+                if (user && message instanceof UserMessage || ai && message instanceof AiMessage) {
+                    String current = ChatMessageText.text(message);
+                    if (current != null && (text.equals(current)
+                            || user && current.endsWith("用户问题：" + text))) { found = true; break; }
+                }
             }
             if (!found) memory.add(user ? UserMessage.from(text) : AiMessage.from(text));
         }

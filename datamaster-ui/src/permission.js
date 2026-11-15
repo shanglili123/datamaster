@@ -9,7 +9,6 @@ import useUserStore from "@/store/system/user";
 import useSettingsStore from "@/store/system/settings";
 import usePermissionStore from "@/store/system/permission";
 import { getRoutersDpp } from "@/api/system/menu";
-import { currentUser } from "@/api/tax/space/space";
 import { isSpaceModuleRoute } from "@/utils/moduleRoute";
 
 NProgress.configure({ showSpinner: false });
@@ -107,27 +106,14 @@ function retryNavigation(target, next) {
 async function ensureSpaceRoutes(to) {
   if (!isSpaceModuleRoute(to.path)) return;
 
-  let spaceId = localStorage.getItem("dataMasterSpaceId");
-
   const userStore = useUserStore();
   const permissionStore = usePermissionStore();
-  if (!spaceId || !userStore.spaceCode || !userStore.spaceName) {
-    const spaceResponse = await currentUser();
-    const spaces = spaceResponse?.data || [];
-    const currentSpace = spaceId
-      ? spaces.find((item) => String(item.id) === String(spaceId))
-      : spaces[0];
-    if (!currentSpace?.id) return;
-
-    spaceId = currentSpace.id;
-    localStorage.setItem("dataMasterSpaceId", spaceId);
-    userStore.spaceCode = currentSpace.code || currentSpace.spaceCode || "";
-    userStore.spaceName = currentSpace.name || currentSpace.spaceName || "";
+  if (!userStore.spaceId || !userStore.spaceCode || !userStore.spaceName) {
+    await userStore.initializeSpace();
   }
+  if (!userStore.spaceId) return;
 
-  userStore.spaceId = spaceId;
-
-  const response = await getRoutersDpp(spaceId);
+  const response = await getRoutersDpp(userStore.spaceId);
   permissionStore.updateTopbarRoutes(response?.data || []);
 }
 

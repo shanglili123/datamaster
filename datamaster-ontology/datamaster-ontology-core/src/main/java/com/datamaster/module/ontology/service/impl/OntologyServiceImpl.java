@@ -72,7 +72,7 @@ public class OntologyServiceImpl implements IOntologyService {
 
     @Override
     public Integer updateOntology(OntologySaveReqVO updateReqVO) {
-        if (updateReqVO.getId() == null) throw new ServiceException("本体ID不能为空");
+        if (updateReqVO == null || updateReqVO.getId() == null) throw new ServiceException("本体ID不能为空");
         OntologyDO existing = ontologyMapper.selectById(updateReqVO.getId());
         if (existing == null) throw new ServiceException("本体不存在");
         // Published metrics derive their policy from this ownership; ordinary edits must not migrate it.
@@ -105,7 +105,13 @@ public class OntologyServiceImpl implements IOntologyService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer deleteOntology(Long id) {
+        OntologyDO existing = ontologyMapper.selectById(id);
+        if (existing == null) throw new ServiceException("本体不存在");
+        normalizeSpace(existing);
         metricReferenceGuard.assertOntologyDeletable(id);
+        existing = ontologyMapper.selectById(id);
+        if (existing == null) throw new ServiceException("本体已删除，请刷新");
+        normalizeSpace(existing);
         for (ConceptDO concept : conceptMapper.selectList(new LambdaQueryWrapperX<ConceptDO>()
                 .eq(ConceptDO::getOntologyId, id))) {
             conceptService.deleteConcept(concept.getId());

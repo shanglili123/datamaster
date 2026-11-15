@@ -71,6 +71,38 @@ public class CollectorEtlIncrementalWindowServiceTest {
         });
     }
 
+    @Test public void nullRecordedAndTargetWatermarkFallsBackToConfiguredInitial() {
+        prepare(101L,null,null); service.finish(7L,"stage",101L,"H",true); owner = 102L;
+        service.prepare(7L,"stage",102L,"H",values("5"),types(),() -> values(null),() -> values("20"),old -> true);
+        assertEquals(values("5"), CollectorEtlIncrementalWindowService.parse(records.get(102L).getIncrementalStartValue()));
+    }
+
+    @Test public void normalRunPrefersFreshTargetMaximumAndNullFallsBackToRecord() {
+        service.prepare(7L,"stage",101L,"H",values("10"),types(),() -> values("15"),() -> values("20"),old -> true);
+        assertEquals(values("15"), CollectorEtlIncrementalWindowService.parse(records.get(101L).getIncrementalStartValue()));
+        service.finish(7L,"stage",101L,"H",true);
+        owner = 102L;
+        service.prepare(7L,"stage",102L,"H",values("0"),types(),() -> values(null),() -> values("30"),old -> true);
+        assertEquals(values("20"), CollectorEtlIncrementalWindowService.parse(records.get(102L).getIncrementalStartValue()));
+    }
+
+    @Test public void failedRecoveryDoesNotQueryEitherMaximum() {
+        prepare(101L,"10","20"); service.finish(7L,"stage",101L,"H",false); owner = 102L;
+        service.prepare(7L,"stage",102L,"H",values("0"),types(),
+                () -> { throw new AssertionError("must not query target during replay"); },
+                () -> { throw new AssertionError("must not query source during replay"); },old -> true);
+        assertEquals(values("10"), CollectorEtlIncrementalWindowService.parse(records.get(102L).getIncrementalStartValue()));
+        assertEquals(values("20"), CollectorEtlIncrementalWindowService.parse(records.get(102L).getIncrementalEndValue()));
+    }
+
+    @Test public void targetMaximumQueryFailureCannotBecomeEmptyTableFallback() {
+        try {
+            service.prepare(7L,"stage",101L,"H",values("10"),types(),
+                    () -> { throw new ServiceException("target unavailable"); },() -> values("20"),old -> true);
+            fail();
+        } catch (ServiceException expected) { assertTrue(records.isEmpty()); }
+    }
+
     @Test public void sameOwnerRetryDoesNotRereadMax() {
         AtomicInteger calls = new AtomicInteger();
         service.prepare(7L,"stage",101L,"H",values("10"),types(),() -> { calls.incrementAndGet(); return values("20"); },old -> false);

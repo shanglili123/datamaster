@@ -35,5 +35,23 @@ public class RelationQueryRestrictionTest {
         method.invoke(service, request, relation, table, null, List.of(), List.of(3), query, new DbQueryProperty("MySql", "unused", "reader", null, 1, "business", null));
         verify(query).queryByPage(argThat(sql -> sql.contains("WHERE ((id = :p0) OR (id = :p1)) AND id IN (:rel0)")), argThat(params -> Integer.valueOf(3).equals(params.get("rel0"))), eq(0L), eq(20L), eq(0));
     }
+    @Test public void failedTargetPageCannotBeReturnedAsAnEmptyRelationship() throws Exception {
+        ObjectInstanceQueryServiceImpl service = new ObjectInstanceQueryServiceImpl(); DbQuery query = mock(DbQuery.class);
+        ISpaceFlowApi flows = mock(ISpaceFlowApi.class); IAssetsTableGovernanceApiService governance = mock(IAssetsTableGovernanceApiService.class);
+        com.datamaster.module.ontology.service.analysis.ConceptTableConsumptionGuard identity = mock(com.datamaster.module.ontology.service.analysis.ConceptTableConsumptionGuard.class);
+        when(identity.physicalTable(any(), any())).thenReturn("orders"); inject(service, "sourceIdentity", identity);
+        inject(service, "spaceFlows", flows); inject(service, "tableGovernanceApiService", governance);
+        when(flows.policy(1L, "space01")).thenReturn(new ISpaceFlowApi.Policy());
+        AssetsTableGovernanceRespDTO allowed = new AssetsTableGovernanceRespDTO(); allowed.setAccessAllowed(true); when(governance.resolveTable(any())).thenReturn(allowed);
+        DbColumn id = new DbColumn(); id.setColName("id"); id.setDataType("integer");
+        when(query.getTableColumns(any(DbQueryProperty.class), eq("orders"))).thenReturn(List.of(id));
+        when(query.queryByPage(anyString(), anyMap(), eq(0L), eq(20L), eq(0))).thenReturn(new com.datamaster.common.database.core.PageResult<>(0, null));
+        RelationJumpReqVO request = new RelationJumpReqVO(); request.setSpaceId(1L); request.setSpaceCode("space01"); request.setPageNum(1); request.setPageSize(20);
+        ConceptTableDO table = new ConceptTableDO(); table.setId(40L); table.setConceptId(30L); table.setDatasourceId(9L); table.setTableName("orders");
+        RelationColumnDO relation = new RelationColumnDO(); relation.setTargetColumn("id");
+        Method method = service.getClass().getDeclaredMethod("doRelatedQuery", RelationJumpReqVO.class, RelationColumnDO.class, ConceptTableDO.class, ConceptDO.class, List.class, List.class, DbQuery.class, DbQueryProperty.class); method.setAccessible(true);
+        try { method.invoke(service, request, relation, table, null, List.of(), List.of(3), query, new DbQueryProperty("MySql", "unused", "reader", null, 1, "business", null)); fail("Must reject absent result data"); }
+        catch (InvocationTargetException failure) { assertTrue(failure.getCause() instanceof com.datamaster.common.exception.ServiceException); }
+    }
     private static void inject(Object bean, String name, Object value) throws Exception { Field field = bean.getClass().getDeclaredField(name); field.setAccessible(true); field.set(bean, value); }
 }

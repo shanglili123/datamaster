@@ -42,6 +42,14 @@ public class PropertyOwnershipTest {
         order.verify(concepts).selectById(30L); order.verify(locks).lockOntology(20L); order.verify(concepts).selectById(30L);
         verify(mapper, never()).insert(any(PropertyDO.class));
     }
+    @Test public void immutablePrimarySelectionReachesOwnershipCheckWithoutNullLookupFailure() throws Exception {
+        PropertyServiceImpl service = new PropertyServiceImpl(); ConceptMapper concepts = mock(ConceptMapper.class);
+        OntologyConsumptionContext contexts = mock(OntologyConsumptionContext.class);
+        inject(service, "concepts", concepts); inject(service, "contexts", contexts);
+        when(contexts.resolve(isNull(), isNull(), isNull(), isNull())).thenThrow(new com.datamaster.common.exception.ServiceException("概念不存在"));
+        PropertyPrimaryReqVO request = new PropertyPrimaryReqVO(); request.setConceptId(30L); request.setPropertyIds(List.of(1L));
+        reject(() -> service.setPrimaryProperties(request)); verify(concepts).selectById(30L);
+    }
     private static void reject(Runnable call) { try { call.run(); fail("Must reject invalid ownership change"); } catch (com.datamaster.common.exception.ServiceException expected) { assertNotNull(expected.getMessage()); } }
     private static void inject(Object bean, String name, Object value) throws Exception { Field field = bean.getClass().getDeclaredField(name); field.setAccessible(true); field.set(bean, value); }
 }

@@ -2668,30 +2668,16 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
                     throw new ServiceException("阶段增量需配置 DS 可访问的 stage_prepare_url 并生成任务回调凭据");
                 }
                 validateIncrementalStagePrimaryKey(config, node.getName());
-                String prepareCode = nextDsNodeCode(reqVO.getSpaceCode());
-                String prepareName = "增量准备-" + prepareCode;
-                Map<String, Object> prepare = TaskConverter.buildHttpTaskDefinitionMap(null, prepareName, prepareCode, 0,
-                        stagePrepareUrl.replaceAll("/+$", "") + "/" + resolveTaskId(reqVO), reqVO.getDraftJson(), getProjectWorkerGroup(reqVO.getSpaceCode()));
-                Map<String, Object> http = (Map<String, Object>) prepare.get("taskParams");
-                List<Map<String, Object>> parameters = new ArrayList<>();
-                parameters.add(httpParameter("executionId", "PARAMETER", ""));
-                parameters.add(httpParameter("stageKey", "PARAMETER", configuredCode));
-                parameters.add(httpParameter(CollectorEtlCallbackTokenService.HEADER, "HEADERS", callbackToken));
-                http.put("httpParams", parameters); http.put("httpCheckCondition", "STATUS_CODE_DEFAULT");
-                prepare.put("failRetryTimes", 0); definitions.add(prepare);
-                String previous = beforeNode.get(configuredCode);
-                if (previous == null) beforeNode.put(configuredCode, prepareCode);
-                else {
-                    Map<String, Object> relation = new LinkedHashMap<>();
-                    relation.put("preTaskCode", Long.valueOf(previous)); relation.put("preTaskVersion", 0);
-                    relation.put("postTaskCode", Long.valueOf(prepareCode)); relation.put("postTaskVersion", 0);
-                    relation.put("conditionType", "NONE"); relations.add(relation);
-                }
-                prepareTail.put(configuredCode, prepareCode);
-                ((Map<String, Object>) definition.get("taskParams")).put("json", "${" + prepareName + ".response}");
+                String callbackUrl = stagePrepareUrl.replaceAll("/+$", "") + "/" + resolveTaskId(reqVO);
+                String script = com.datamaster.module.collector.utils.StageRuntimeScript.prepare(callbackUrl, callbackToken, configuredCode);
+                definition.put("taskType", "SHELL");
+                Map<String, Object> stageParams = new LinkedHashMap<>();
+                stageParams.put("localParams", new ArrayList<>()); stageParams.put("resourceList", new ArrayList<>());
+                stageParams.put("rawScript", script); definition.put("taskParams", stageParams);
+                definition.put("failRetryTimes", 0);
                 Map<String, Object> runtime = new LinkedHashMap<>();
                 runtime.put("config", config); runtime.put("args", args); runtime.put("dsNodeCode", dsCode);
-                runtime.put("prepareNodeCode", prepareCode);
+                runtime.put("prepareNodeCode", dsCode);
                 runtime.put("configHash", com.datamaster.module.collector.utils.StageRuntimeFingerprint.of(flinkxJobJson, incremental));
                 runtimeStages.put(configuredCode, JSON.parseObject(JSON.toJSONString(runtime), Map.class));
             }
@@ -2811,6 +2797,7 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
     @SuppressWarnings("unchecked")
     private void validateIncrementalStagePrimaryKey(Map<String, Object> config, String nodeName) {
         Map<String, Object> output = (Map<String, Object>) config.get("output");
+        if (!"3".equals(String.valueOf(output.get("writeModeType")))) return;
         Map<String, Object> datasource = (Map<String, Object>) output.get("writerDatasource");
         Long id = toLong(firstNonNull(datasource.get("datasourceId"), datasource.get("id"), null));
         List<DbColumn> physical = datasourceApiService.getDbTableColumns(id, firstConfigValue(output, "table", "target_table_name"));
@@ -2858,22 +2845,11 @@ public class CollectorEtlTaskServiceImpl extends ServiceImpl<CollectorEtlTaskMap
         Map<String, Object> guard = TaskConverter.buildHttpTaskDefinitionMap(null, guardName, code, 0,
                 runGuardPrepareUrl.replaceAll("/+$", "") + "/" + taskId, request.getDraftJson(), getProjectWorkerGroup(request.getSpaceCode()));
         Map<String, Object> params = (Map<String, Object>) guard.get("taskParams");
-        params.put("httpMethod", "POST");
-        params.put("httpBody", JSON.toJSONString(Collections.singletonMap("resourcesJson", resources)));
-        List<Map<String, Object>> httpParams = new ArrayList<>();
-        httpParams.add(httpParameter(CollectorEtlCallbackTokenService.HEADER, "HEADERS", callbackToken));
-        Map<String, Object> contentType = new LinkedHashMap<>(); contentType.put("prop", "Content-Type");
-        contentType.put("httpParametersType", "HEADERS"); contentType.put("value", "application/json"); httpParams.add(contentType);
-        params.put("httpParams", httpParams);
-        params.put("httpCheckCondition", "STATUS_CODE_DEFAULT");
-        for (Map<String, Object> definition : definitions) {
-            if (!(definition.get("taskParams") instanceof Map)) continue;
-            Map<String, Object> stageParams = (Map<String, Object>) definition.get("taskParams");
-            if (!(stageParams.get("httpParams") instanceof List)) continue;
-            for (Map<String, Object> parameter : (List<Map<String, Object>>) stageParams.get("httpParams")) {
-                if ("executionId".equals(parameter.get("prop"))) parameter.put("value", "${" + guardName + ".response}");
-            }
-        }
+        params.clear();
+        params.put("localParams", new ArrayList<>()); params.put("resourceList", new ArrayList<>());
+        params.put("rawScript", com.datamaster.module.collector.utils.StageRuntimeScript.guard(
+                runGuardPrepareUrl.replaceAll("/+$", "") + "/" + taskId, callbackToken));
+        guard.put("taskType", "SHELL");
         guard.put("failRetryTimes", 0);
         Set<String> seen = new HashSet<>();
         for (Map<String, Object> relation : relations) {

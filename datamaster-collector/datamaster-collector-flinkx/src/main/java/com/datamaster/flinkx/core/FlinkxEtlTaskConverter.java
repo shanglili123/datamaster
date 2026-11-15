@@ -226,6 +226,15 @@ public class FlinkxEtlTaskConverter {
 
             String writeModeType = param.get("writeModeType") == null ? null : String.valueOf(param.get("writeModeType"));
             wp.put("writeMode", resolveWriteMode(writeModeType, param.get("selectedColumns"), dbType));
+            wp.put("mode", "3".equals(writeModeType) ? "update" : "insert");
+            if ("3".equals(writeModeType)) {
+                List<String> keys = new ArrayList<>();
+                if (param.get("selectedColumns") instanceof List) {
+                    for (Object key : (List<?>) param.get("selectedColumns")) keys.add(String.valueOf(key));
+                }
+                if (keys.isEmpty()) throw new IllegalArgumentException("更新写入必须配置更新键");
+                wp.put("uniqueKey", keys);
+            }
 
             Object preSql = param.get("preSql");
             if (preSql != null) {

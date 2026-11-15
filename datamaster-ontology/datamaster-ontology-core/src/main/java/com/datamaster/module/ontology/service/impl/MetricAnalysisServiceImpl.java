@@ -82,7 +82,7 @@ public class MetricAnalysisServiceImpl implements IMetricAnalysisService {
         result.setCurrentStartTime(current.getStartTime()); result.setCurrentEndTime(current.getEndTime());
         result.setBaselineStartTime(baseline.getStartTime()); result.setBaselineEndTime(baseline.getEndTime());
         MetricPeriodBucketRules.calculate(result, current, baseline);
-        result.setNotice("同一明确发布版本、固定口径与相同维度筛选分别查询两期；只对未截断的完整分组对齐，缺失不补零，分组结果不求和冒充总量。上一期为等长区间，上一月/年为日历平移（月底截到有效日期），实际区间已列出；时间桶只对齐完整、等数量日历桶的序号并显示对应基期桶，不猜测业务日期等价；时间属性额外过滤不支持。百分比=(本期-基期)/|基期|，基期为零或缺失时不计算。两次查询不是源库同一事务快照；时间口径与偏移按同一发布版本执行，不猜测时区或夏令时。");
+        result.setNotice("同一明确发布版本、固定口径与相同维度筛选分别查询两期；只对未截断的完整分组对齐，缺失不补零，分组结果不求和冒充总量。上一期为等长区间，上一月/年为日历平移（月底截到有效日期），实际区间已列出；时间桶只对齐完整、等数量日历桶的序号并显示对应基期桶，不猜测业务日期等价；时间属性额外过滤不支持。百分比=(本期-基期)/|基期|，基期为零或缺失时不计算。完整并集按维度类型升序展示，null在前，文本为确定性字符序而非源库排序规则。两次查询不是源库同一事务快照；时间口径与偏移按同一发布版本执行，不猜测时区或夏令时。");
         return result;
     }
 
@@ -105,7 +105,9 @@ public class MetricAnalysisServiceImpl implements IMetricAnalysisService {
         MetricQueryBuilder.compile(snapshot(query, req.getOntologyId(), false), query);
         MetricAnalysisDO row = new MetricAnalysisDO();
         row.setOntologyId(req.getOntologyId()); row.setOwnerId(userId()); row.setRevision(0);
-        apply(row, req, query); analysisMapper.insert(row); return row.getId();
+        apply(row, req, query);
+        require(analysisMapper.insert(row) == 1 && row.getId() != null, "分析条件保存失败，未取得有效记录");
+        return row.getId();
     }
 
     @Override
@@ -119,8 +121,9 @@ public class MetricAnalysisServiceImpl implements IMetricAnalysisService {
         MetricQueryReqVO query = MetricQueryBuilder.normalize(req.getQuery());
         MetricQueryBuilder.compile(snapshot(query, row.getOntologyId(), false), query);
         // Row lock covers owner/revision check and update until transaction commit.
-        apply(row, req, query); row.setRevision(Math.addExact(row.getRevision(), 1));
-        return analysisMapper.updateById(row);
+        apply(row, req, query); row.setRevision(com.datamaster.module.ontology.service.metric.MetricRules.nextCounter(row.getRevision()));
+        require(analysisMapper.updateById(row) == 1, "分析条件保存失败，请重新加载后重试");
+        return 1;
     }
 
     @Override
@@ -130,7 +133,8 @@ public class MetricAnalysisServiceImpl implements IMetricAnalysisService {
     @Transactional(rollbackFor = Exception.class)
     public Integer delete(Long id) {
         MetricAnalysisDO row = owned(id, true);
-        return analysisMapper.deleteById(row.getId());
+        require(analysisMapper.deleteById(row.getId()) == 1, "分析条件删除失败，请重新加载后重试");
+        return 1;
     }
 
     private MetricAnalysisDO owned(Long id, boolean lock) {

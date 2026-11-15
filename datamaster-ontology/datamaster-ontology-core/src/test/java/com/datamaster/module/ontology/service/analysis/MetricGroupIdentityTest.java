@@ -23,6 +23,29 @@ public class MetricGroupIdentityTest {
         MetricMultiQueryRespVO multi = MetricMultiQueryRules.align(List.of(response("1.0", "10"), response("1.00", "5")), "RATIO");
         assertEquals(1, multi.getRows().size()); assertEquals("2", multi.getRows().get(0).get("derived_value"));
     }
+    @Test public void completeUnionsSortNumericDimensionsNumericallyIncludingBaselineOnlyGroups() {
+        MetricQueryRespVO first = response("10", "10"), second = response("2", "5");
+        MetricMultiQueryRespVO multi = MetricMultiQueryRules.align(List.of(first, second), "NONE");
+        assertEquals("2", multi.getRows().get(0).get("d_2")); assertEquals("10", multi.getRows().get(1).get("d_2"));
+        MetricComparisonRespVO comparison = new MetricComparisonRespVO(); comparison.setCurrent(first); comparison.setBaseline(second);
+        MetricComparisonRules.calculate(comparison);
+        assertEquals("2", comparison.getRows().get(0).get("d_2")); assertNull(comparison.getRows().get(0).get("current_value"));
+        assertEquals("10", comparison.getRows().get(1).get("d_2"));
+    }
+    @Test public void textOrderIsLexicalWhileTemporalOrderComparesActualLocalTimes() {
+        List<Map<String,Object>> text = new ArrayList<>(List.of(Map.of("d_2", "2"), Map.of("d_2", "10")));
+        text.sort(MetricGroupIdentity.ascending(List.of(dimension("string")))); assertEquals("10", text.get(0).get("d_2"));
+        List<Map<String,Object>> times = new ArrayList<>(List.of(Map.of("d_2", "2026-11-12T10:00:00.000000001"), Map.of("d_2", "2026-11-12T10:00:00")));
+        times.sort(MetricGroupIdentity.ascending(List.of(dimension("datetime"))));
+        assertEquals("2026-11-12T10:00:00", times.get(0).get("d_2"));
+    }
+    @Test public void nullSortsSeparatelyFromZeroAndLargeNumbersStayExact() {
+        Map<String,Object> absent = new HashMap<>(); absent.put("d_2", null);
+        List<Map<String,Object>> values = new ArrayList<>(List.of(Map.of("d_2", "9007199254740993"), Map.of("d_2", "9007199254740992"), Map.of("d_2", "0"), absent));
+        values.sort(MetricGroupIdentity.ascending(List.of(dimension("decimal"))));
+        assertNull(values.get(0).get("d_2")); assertEquals("0", values.get(1).get("d_2"));
+        assertEquals("9007199254740992", values.get(2).get("d_2")); assertEquals("9007199254740993", values.get(3).get("d_2"));
+    }
     private static MetricQueryColumnVO dimension(String type) { MetricQueryColumnVO column = new MetricQueryColumnVO(); column.setKey("d_2"); column.setDataType(type); return column; }
     private static MetricQueryRespVO response(String key, String value) {
         MetricQueryRespVO result = new MetricQueryRespVO(); result.setTruncated(false); result.setUnit("元"); result.setMetricName("金额");

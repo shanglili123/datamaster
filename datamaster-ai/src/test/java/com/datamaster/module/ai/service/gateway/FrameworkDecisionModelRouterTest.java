@@ -49,6 +49,28 @@ public class FrameworkDecisionModelRouterTest {
         assertEquals(0, calls.get());
     }
 
+    @Test
+    public void classifierSeesTheWholeConversationRatherThanOnlyLastQuestion() {
+        ChatModel classifier = new ChatModel() {
+            @Override public ChatResponse doChat(ChatRequest request) {
+                String text = request.messages().stream().filter(message -> message instanceof UserMessage)
+                        .map(message -> ((UserMessage) message).singleText()).collect(java.util.stream.Collectors.joining("\n"));
+                assertTrue(text.contains("historical-risk-context"));
+                assertTrue(text.contains("latest-short-question"));
+                return ChatResponse.builder().aiMessage(AiMessage.from("{\"answers\":[{\"name\":\"classify\",\"value\":\"ADVANCED\",\"refused\":false}]}")).build();
+            }
+        };
+        ChatResponse response = router("REPORT_TEMPLATE", classifier).chat(ChatRequest.builder().messages(
+                UserMessage.from("historical-risk-context"), AiMessage.from("prior answer"),
+                UserMessage.from("latest-short-question")).build());
+        assertEquals("advanced", response.aiMessage().text());
+    }
+
+    @Test
+    public void unknownChoiceDoesNotAuthorizeEconomyRoute() {
+        assertEquals("advanced", router("REPORT_TEMPLATE", classifier("UNREGISTERED_ROUTE", false, new AtomicInteger())).chat("summary"));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void unrelatedClassifierConfigurationFailureMustStillPropagate() {
         ChatModel classifier = new ChatModel() {

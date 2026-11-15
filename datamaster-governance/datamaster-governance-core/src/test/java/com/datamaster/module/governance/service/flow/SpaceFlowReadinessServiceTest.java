@@ -51,6 +51,16 @@ public class SpaceFlowReadinessServiceTest {
         Consumer light = source(); service.assess(light, definition(), 1L, "space01", 3);
         assertEquals("PENDING_RUNTIME_CHECKS", light.getReadiness()); assertTrue(light.getMissingRequirements().isEmpty()); verifyNoInteractions(jdbc);
     }
+    @Test public void strictUnknownOrBrokenSingleTableIsAnExplicitMissingRequirement() throws Exception {
+        JdbcTemplate jdbc = mock(JdbcTemplate.class); SpaceFlowReadinessService service = service(jdbc);
+        Consumer unknown = new Consumer(); unknown.setSourceCoverage("UNKNOWN");
+        service.assess(unknown, definition("ASSET"), 1L, "space01", 3);
+        assertEquals("MISSING_REQUIREMENTS", unknown.getReadiness()); assertEquals(List.of("UNVERIFIED_SOURCE"), unknown.getMissingRequirements());
+        Consumer broken = source(); broken.setDatasourceId(null);
+        service.assess(broken, definition("QUALITY"), 1L, "space01", 3);
+        assertEquals("MISSING_REQUIREMENTS", broken.getReadiness()); assertEquals(List.of("UNVERIFIED_SOURCE"), broken.getMissingRequirements());
+        assertFalse(broken.getNextSteps().isEmpty()); verifyNoInteractions(jdbc);
+    }
     private static SpaceFlowReadinessService service(JdbcTemplate jdbc) throws Exception {
         SpaceFlowReadinessService service = new SpaceFlowReadinessService(); Field field = service.getClass().getDeclaredField("jdbc"); field.setAccessible(true); field.set(service, jdbc); return service;
     }

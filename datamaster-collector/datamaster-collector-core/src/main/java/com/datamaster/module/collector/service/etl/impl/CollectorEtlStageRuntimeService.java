@@ -40,6 +40,8 @@ public class CollectorEtlStageRuntimeService {
         if (executionId == null || runMapper.lockTask(taskId) == null) throw new ServiceException("本地执行记录不存在");
         CollectorEtlRunDO run = runMapper.lockById(executionId);
         if (run == null || !taskId.equals(run.getTaskId()) || !Objects.equals(executionId, runMapper.taskOwner(taskId))) {
+            org.slf4j.LoggerFactory.getLogger(getClass()).warn("阶段运行资格不一致 taskId={} executionId={} runPresent={} taskMatches={} ownerMatches={}",
+                    taskId, executionId, run != null, run != null && taskId.equals(run.getTaskId()), Objects.equals(executionId, runMapper.taskOwner(taskId)));
             throw new ServiceException("本地执行记录不属于当前任务运行");
         }
         return prepare(taskId, stageKey, run.getWorkflowInstanceId());
@@ -74,10 +76,17 @@ public class CollectorEtlStageRuntimeService {
         java.util.List<com.datamaster.api.ds.api.etl.ds.TaskInstance> prepareNodes = dsService.listTaskInstancesStrict(task.getSpaceCode(), instanceId);
         boolean activePrepare = prepareNodes.stream().anyMatch(node -> stage.getString("prepareNodeCode").equals(node.getTaskCode())
                 && node.getState() != null && "RUNNING_EXECUTION".equals(node.getState().name()));
-        if (!activePrepare) throw new ServiceException("当前阶段的准备节点未在运行，禁止提前查询下游增量边界");
+        if (!activePrepare) {
+            List<String> observed = new ArrayList<>();
+            for (com.datamaster.api.ds.api.etl.ds.TaskInstance node : prepareNodes) {
+                observed.add(node.getTaskCode() + ":" + (node.getState() == null ? "UNKNOWN" : node.getState().name()));
+            }
+            org.slf4j.LoggerFactory.getLogger(getClass()).warn("阶段准备状态未就绪 taskId={} instanceId={} expectedNode={} observed={}", taskId, instanceId, stage.getString("prepareNodeCode"), observed);
+            throw new ServiceException("当前阶段的准备节点未在运行，禁止提前查询下游增量边界");
+        }
         JSONObject config = stage.getJSONObject("config");
         com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO source = publishedDatasource(config.getJSONObject("readerDatasource"), task);
-        publishedDatasource(config.getJSONObject("output").getJSONObject("writerDatasource"), task);
+        com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO target = publishedDatasource(config.getJSONObject("output").getJSONObject("writerDatasource"), task);
         List<JSONObject> cursors = config.getJSONObject("incremental").getJSONArray("sources").toJavaList(JSONObject.class);
         Map<String, String> initials = new TreeMap<>(), cursorTypes = new TreeMap<>();
         for (JSONObject cursor : cursors) {
@@ -85,7 +94,7 @@ public class CollectorEtlStageRuntimeService {
             cursorTypes.put(cursor.getString("nodeId"), cursor.getString("cursorType"));
         }
         CollectorEtlIncrementalWindowDO window = windowService.prepare(taskId, stageKey, run.getId(),
-                stage.getString("configHash"), initials, cursorTypes, () -> {
+                stage.getString("configHash"), initials, cursorTypes, () -> targetMaxima(config, cursors, target), () -> {
                     Map<String, String> maxima = new TreeMap<>();
                     for (JSONObject cursor : cursors) {
                         Object maximum = boundaryQuery.queryComponentMaxValue(source,
@@ -144,9 +153,20 @@ public class CollectorEtlStageRuntimeService {
         return FlinkxEtlTaskConverter.convertToFlinkxJobJson(args);
     }
 
-    /** 由已确认整个工作流终态的对账器调用；同事务提交所有已准备阶段。 */
+    /** Reconcile each stage from its own latest real task result, independently of sibling results. */
     @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY, rollbackFor = Exception.class)
     public void finish(Long taskId, Long instanceId, Long workflowCode, boolean success,
+                       List<com.datamaster.api.ds.api.etl.ds.TaskInstance> nodes) {
+        reconcileStages(taskId, instanceId, workflowCode, true, success, nodes);
+    }
+
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY, rollbackFor = Exception.class)
+    public void progress(Long taskId, Long instanceId, Long workflowCode,
+                         List<com.datamaster.api.ds.api.etl.ds.TaskInstance> nodes) {
+        reconcileStages(taskId, instanceId, workflowCode, false, false, nodes);
+    }
+
+    private void reconcileStages(Long taskId, Long instanceId, Long workflowCode, boolean workflowTerminal, boolean success,
                        List<com.datamaster.api.ds.api.etl.ds.TaskInstance> nodes) {
         CollectorEtlTaskExtDO ext = extService.getByTaskId(taskId);
         if (ext == null || ext.getFlinkxJobTemplateJson() == null) throw new ServiceException("组件运行缺少发布快照，保留运行资格等待核对");
@@ -162,29 +182,67 @@ public class CollectorEtlStageRuntimeService {
         }
         for (String stageKey : new TreeSet<>(stages.keySet())) {
             JSONObject stage = stages.getJSONObject(stageKey);
-            if (success) {
-                List<com.datamaster.api.ds.api.etl.ds.TaskInstance> executed = new ArrayList<>();
-                for (com.datamaster.api.ds.api.etl.ds.TaskInstance node : nodes) {
-                    if (stage.getString("dsNodeCode").equals(node.getTaskCode())) executed.add(node);
-                }
-                // 条件跳过的阶段没有窗口；强制成功不证明数据已写完，不能自动提交水位。
-                CollectorEtlIncrementalWindowDO window = windowService.getWindow(taskId, stageKey, localRun.getId());
-                if (executed.isEmpty()) {
-                    if (window != null) throw new ServiceException("增量阶段已有窗口但未确认实际数据任务成功");
-                    continue;
-                }
-                com.datamaster.api.ds.api.etl.ds.TaskInstance latest = null;
-                for (com.datamaster.api.ds.api.etl.ds.TaskInstance attempt : executed) {
-                    if (latest == null || (attempt.getId() != null && (latest.getId() == null || attempt.getId() > latest.getId()))) latest = attempt;
-                }
-                if (window == null || latest == null || latest.getState() == null
-                        || !"SUCCESS".equals(latest.getState().name())) {
-                    throw new ServiceException("增量阶段缺少固定窗口或最新数据任务未实际成功，禁止推进水位");
-                }
+            com.datamaster.api.ds.api.etl.ds.TaskInstance latest = null;
+            for (com.datamaster.api.ds.api.etl.ds.TaskInstance node : nodes) {
+                if (stage.getString("dsNodeCode").equals(node.getTaskCode())
+                        && (latest == null || node.getId() > latest.getId())) latest = node;
             }
-            windowService.finish(taskId, stageKey, localRun.getId(), stage.getString("configHash"), success);
+            CollectorEtlIncrementalWindowDO window = windowService.getWindow(taskId, stageKey, localRun.getId());
+            if (latest == null) {
+                if (workflowTerminal && window != null) throw new ServiceException("增量阶段已有窗口但未确认实际数据任务成功");
+                continue;
+            }
+            String state = latest.getState() == null ? null : latest.getState().name();
+            if ("SUCCESS".equals(state)) {
+                if (window == null) throw new ServiceException("增量阶段缺少固定窗口，禁止推进水位");
+                if (CollectorEtlIncrementalWindowDO.FAILURE.equals(window.getStatus())) throw new ServiceException("已失败阶段不能被后续状态静默改为成功，请恢复原窗口");
+                windowService.finish(taskId, stageKey, localRun.getId(), stage.getString("configHash"), true);
+            } else if (state != null && Arrays.asList("FAILURE", "STOP", "KILL", "FORCED_SUCCESS").contains(state)) {
+                if (workflowTerminal && success) throw new ServiceException("增量阶段最新数据任务未实际成功，禁止推进水位");
+                if (window != null) windowService.finish(taskId, stageKey, localRun.getId(), stage.getString("configHash"), false);
+            } else if (workflowTerminal) {
+                throw new ServiceException("工作流终态但阶段尚未确认结束");
+            }
         }
     }
+    private Map<String, String> targetMaxima(JSONObject config, List<JSONObject> cursors,
+            com.datamaster.common.datasource.mgmt.api.dto.DatasourceRespDTO target) {
+        JSONObject output = config.getJSONObject("output");
+        String table = output.getString("table");
+        if (table == null || table.isBlank()) table = output.getString("target_table_name");
+        List<String> sourceColumns = columnNames(output.get("columns"));
+        List<String> targetColumns = columnNames(output.get("target_columns"));
+        Map<String, String> result = new TreeMap<>();
+        for (JSONObject cursor : cursors) {
+            String sourceColumn = cursor.getString("cursorColumn");
+            int index = sourceColumns.indexOf(sourceColumn);
+            // Without a unique direct physical mapping, do not guess a target cursor for JOIN/derived fields.
+            boolean transformed = config.get("transforms") instanceof List && !config.getJSONArray("transforms").isEmpty();
+            if (cursors.size() != 1 || config.get("joinConfig") != null || transformed || index < 0
+                    || sourceColumns.lastIndexOf(sourceColumn) != index || targetColumns.size() != sourceColumns.size()
+                    || targetColumns.get(index).isBlank() || Collections.frequency(targetColumns, targetColumns.get(index)) != 1
+                    || table == null || table.isBlank()) {
+                result.put(cursor.getString("nodeId"), null);
+                continue;
+            }
+            result.put(cursor.getString("nodeId"), boundary(boundaryQuery.queryComponentMaxValue(target, table, targetColumns.get(index))));
+        }
+        return result;
+    }
+    private List<String> columnNames(Object raw) {
+        List<String> result = new ArrayList<>();
+        if (!(raw instanceof List)) return result;
+        for (Object item : (List<?>) raw) {
+            if (item instanceof Map) {
+                Map<?, ?> field = (Map<?, ?>) item;
+                Object name = field.get("columnName");
+                if (name == null) name = field.get("name");
+                result.add(name == null ? "" : String.valueOf(name));
+            } else result.add(item == null ? "" : String.valueOf(item));
+        }
+        return result;
+    }
+
     private JSONObject snapshot(CollectorEtlTaskExtDO ext) {
         if (ext.getFlinkxJobTemplateJson() == null) throw new ServiceException("缺少已发布阶段快照");
         JSONObject value = JSON.parseObject(ext.getFlinkxJobTemplateJson());

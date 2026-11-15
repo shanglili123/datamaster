@@ -17,6 +17,7 @@ public final class StageRuntimeFingerprint {
         Map<String, Object> semantics = new TreeMap<>();
         semantics.put("job", JSON.parseObject(jobJson));
         semantics.put("incremental", incremental);
+        semantics.put("windowPolicy", "TIME_CLOSED_ID_OPEN_TARGET_MAX_STAGE_COMMIT_V2");
         return "JOB_V1:" + MD5Util.encrypt(JSON.toJSONString(canonical(semantics)));
     }
 

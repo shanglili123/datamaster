@@ -51,6 +51,7 @@ public class IngestionSchemaValidatorTest {
 
     @Test
     public void shouldRejectSchemaMismatchAndUnsafeKeyColumn() {
+        properties.setKeyColumns(Arrays.asList("id"));
         properties.setSchemaVersion("v2");
         JSONObject message = new JSONObject();
         message.put("__schemaVersion", "v1");

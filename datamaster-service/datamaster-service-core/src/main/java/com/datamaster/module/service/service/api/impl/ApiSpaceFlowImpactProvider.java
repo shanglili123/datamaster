@@ -13,7 +13,7 @@ import java.util.*;
 @Component
 public class ApiSpaceFlowImpactProvider implements SpaceFlowImpactProvider {
     @Resource private JdbcTemplate jdbc;
-    private static final String SCOPE = " FROM svc_api WHERE (del_flag IS NULL OR del_flag=false) AND (space_id=? OR (space_id IS NULL AND space_code=?))";
+    private static final String SCOPE = " FROM svc_api WHERE (del_flag IS NULL OR del_flag='0') AND (space_id=? OR (space_id IS NULL AND space_code=?))";
     @Override public String type() { return "API"; }
     @Override public Page inventory(Long spaceId, String spaceCode, int page, int pageSize) {
         Long total = jdbc.queryForObject("SELECT count(*)" + SCOPE, Long.class, spaceId, spaceCode);

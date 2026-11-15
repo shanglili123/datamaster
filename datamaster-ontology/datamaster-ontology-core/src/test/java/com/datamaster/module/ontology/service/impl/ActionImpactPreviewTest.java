@@ -121,6 +121,7 @@ public class ActionImpactPreviewTest {
         Fixture f = new Fixture(); f.failReadOnly = true;
         assertEquals("UNKNOWN", f.service.previewImpact(f.request()).getStatus());
         assertNull(f.sql);
+        assertEquals(1, f.connections);
         assertTrue(f.connectionClosed && f.queryClosed);
     }
 
@@ -140,6 +141,8 @@ public class ActionImpactPreviewTest {
         assertEquals("READ_UNAVAILABLE_OR_TIMEOUT", result.getReason());
         assertNull(result.getRowCount());
         assertFalse(new ObjectMapper().writeValueAsString(result).contains("SECRET"));
+        assertEquals(1, f.connections);
+        assertNotNull(f.sql);
         assertTrue(f.connectionClosed && f.statementClosed && f.queryClosed);
     }
 
@@ -173,7 +176,8 @@ public class ActionImpactPreviewTest {
             }));
             inject("executionMapper", proxy(ActionExecutionMapper.class, (o,m,a) -> { throw new AssertionError("Execution record access"); }));
             DatasourceRespDTO ds = new DatasourceRespDTO();
-            ds.setDatasourceType("MYSQL"); ds.setDatasourceConfig("{}");
+            ds.setDatasourceType("MYSQL");
+            ds.setDatasourceConfig("{\"username\":\"unit_reader\",\"password\":\"unit-test-only\"}");
             inject("datasourceApiService", proxy(IDatasourceApiService.class, (o,m,a) -> ds));
             inject("dataSourceFactory", (DataSourceFactory) property -> proxy(DbQuery.class, (o,m,a) -> {
                 if (m.getName().equals("getConnection")) { connections++; cursor = 0; return connection(); }

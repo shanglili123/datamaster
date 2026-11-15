@@ -27,7 +27,7 @@ public class SpaceFlowService implements ISpaceFlowApi {
         if (member) {
             Long user = SecurityUtils.getUserId();
             if (!spaces.hasUserSpace(user, id, actual)) throw new ServiceException("无权管理此空间流程");
-            Long manager = jdbc.queryForObject("SELECT manager_id FROM tax_space WHERE id=? AND (del_flag IS NULL OR del_flag=false)", Long.class, id);
+            Long manager = jdbc.queryForObject("SELECT manager_id FROM tax_space WHERE id=? AND (del_flag IS NULL OR del_flag='0')", Long.class, id);
             if (!Objects.equals(user, manager) && !SecurityUtils.hasPermi("*:*:*")) throw new ServiceException("仅空间管理员或平台管理员可配置流程及确认质量");
         }
         return actual;
@@ -38,14 +38,15 @@ public class SpaceFlowService implements ISpaceFlowApi {
         if (rows.isEmpty()) return new LinkedHashMap<>(Map.of("revision", 0, "publishedVersion", 0));
         Map<String,Object> row = rows.get(0), result = new LinkedHashMap<>();
         result.put("revision", row.get("revision")); result.put("publishedVersion", row.get("published_version"));
-        result.put("draft", row.get("draft_json") == null ? null : JSON.parse(String.valueOf(row.get("draft_json"))));
-        result.put("published", row.get("published_json") == null ? null : JSON.parse(String.valueOf(row.get("published_json"))));
+        result.put("draft", storedDefinition(row.get("draft_json")));
+        result.put("published", publishedDefinition(row));
         return result;
     }
     @Transactional(rollbackFor = Exception.class)
     public Map<String,Object> save(SaveRequest r) {
         space(r.getSpaceId(), r.getSpaceCode(), true); SpaceFlowRules.validate(r.getDefinition());
         if (r.getRevision() == null || r.getRevision() < 0) throw new ServiceException("缺少流程revision");
+        nextCounter(r.getRevision());
         String json = JSON.toJSONString(r.getDefinition());
         int changed;
         if (r.getRevision() == 0) changed = jdbc.update("INSERT INTO gov_space_flow(space_id,revision,draft_json,published_version,updated_by) VALUES(?,1,?,0,?) ON CONFLICT(space_id) DO NOTHING", r.getSpaceId(), json, SecurityUtils.getUserId());
@@ -64,18 +65,18 @@ public class SpaceFlowService implements ISpaceFlowApi {
         space(r.getSpaceId(), r.getSpaceCode(), true);
         List<Map<String,Object>> rows = jdbc.queryForList("SELECT revision,draft_json,published_version,published_json FROM gov_space_flow WHERE space_id=?", r.getSpaceId());
         Map<String,Object> current = requireRevision(rows, r.getRevision());
-        Definition draft = JSON.parseObject(String.valueOf(current.get("draft_json")), Definition.class);
-        Definition published = current.get("published_json") == null ? null : JSON.parseObject(String.valueOf(current.get("published_json")), Definition.class);
+        Definition draft = storedDefinition(current.get("draft_json"));
+        Definition published = publishedDefinition(current);
         Map<String,Object> result = SpaceFlowRules.changes(published, draft);
         int version = ((Number) current.get("published_version")).intValue();
         result.put("revision", r.getRevision()); result.put("publishedVersion", version);
-        result.put("nextVersion", version + 1); result.put("published", published); result.put("draft", draft);
+        result.put("nextVersion", nextCounter(version)); result.put("published", published); result.put("draft", draft);
         result.put("qualityEvidenceReset", draft.getNodes().contains("QUALITY"));
         // Configuration differences are exact; do not label unknown runtime consumer impact as zero.
         result.put("consumerImpactKnown", false);
         result.put("impactNotice", "下方按已保存草稿和下一版本，只读核对本空间API/正式指标声明来源的已知准入缺项；不执行来源查询或任务，也不授予权限。外部消费、未登记空间和脚本全部来源仍未知，实际使用仍须核验当前用户、字段、绑定与连接。");
         List<Map<String,Object>> inventories = new ArrayList<>();
-        for (String type : List.of("API", "METRIC")) inventories.add(consumerInventory(r, type, 1, 10, draft, version + 1));
+        for (String type : List.of("API", "METRIC")) inventories.add(consumerInventory(r, type, 1, 10, draft, nextCounter(version)));
         result.put("inventories", inventories);
         return result;
     }
@@ -84,8 +85,8 @@ public class SpaceFlowService implements ISpaceFlowApi {
     public Map<String,Object> impacts(SaveRequest request, String type, int page, int pageSize) {
         space(request.getSpaceId(), request.getSpaceCode(), true);
         Map<String,Object> current = requireRevision(jdbc.queryForList("SELECT revision,draft_json,published_version FROM gov_space_flow WHERE space_id=?", request.getSpaceId()), request.getRevision());
-        Definition draft = JSON.parseObject(String.valueOf(current.get("draft_json")), Definition.class); SpaceFlowRules.validate(draft);
-        return consumerInventory(request, type, page, pageSize, draft, ((Number) current.get("published_version")).intValue() + 1);
+        Definition draft = storedDefinition(current.get("draft_json"));
+        return consumerInventory(request, type, page, pageSize, draft, nextCounter(((Number) current.get("published_version")).intValue()));
     }
 
     private Map<String,Object> consumerInventory(SaveRequest request, String type, int page, int pageSize, Definition draft, int nextVersion) {
@@ -116,12 +117,32 @@ public class SpaceFlowService implements ISpaceFlowApi {
         List<Map<String,Object>> versions = new ArrayList<>();
         for (Map<String,Object> row : rows) {
             Map<String,Object> item = new LinkedHashMap<>(row);
-            item.put("definition", JSON.parseObject(String.valueOf(item.remove("definition_json")), Definition.class));
+            item.put("definition", storedDefinition(item.remove("definition_json")));
             versions.add(item);
         }
         Map<String,Object> result = new LinkedHashMap<>(); result.put("rows", versions); result.put("total", total); return result;
     }
 
+    private int nextCounter(int value) {
+        if (value < 0 || value == Integer.MAX_VALUE) throw new ServiceException("流程版本或revision无效或已达上限，请联系管理员处理");
+        return value + 1;
+    }
+    private Definition storedDefinition(Object json) {
+        try {
+            if (json == null) throw new IllegalArgumentException();
+            return SpaceFlowRules.validate(JSON.parseObject(String.valueOf(json), Definition.class));
+        } catch (RuntimeException invalid) {
+            throw new ServiceException("存储流程定义损坏，请联系管理员核对；不能视为未配置或回退放行");
+        }
+    }
+    private Definition publishedDefinition(Map<String,Object> row) {
+        Object rawVersion = row.get("published_version");
+        if (!(rawVersion instanceof Number) || ((Number) rawVersion).intValue() < 0) throw new ServiceException("流程发布版本无效");
+        int version = ((Number) rawVersion).intValue();
+        if (version == 0 && row.get("published_json") == null) return null;
+        if (version == 0) throw new ServiceException("流程发布版本与定义不一致");
+        return storedDefinition(row.get("published_json"));
+    }
     private Map<String,Object> requireRevision(List<Map<String,Object>> rows, Integer revision) {
         if (revision == null || revision <= 0 || rows.isEmpty()
                 || ((Number) rows.get(0).get("revision")).intValue() != revision) throw new ServiceException("流程版本已变化或未保存，请重新加载并保存草稿");
@@ -133,11 +154,14 @@ public class SpaceFlowService implements ISpaceFlowApi {
         space(r.getSpaceId(), r.getSpaceCode(), true);
         List<Map<String,Object>> rows = jdbc.queryForList("SELECT * FROM gov_space_flow WHERE space_id=? FOR UPDATE", r.getSpaceId());
         Map<String,Object> current = requireRevision(rows, r.getRevision());
-        Definition d = JSON.parseObject(String.valueOf(current.get("draft_json")), Definition.class); SpaceFlowRules.validate(d);
-        int version = ((Number) current.get("published_version")).intValue() + 1;
+        Definition d = storedDefinition(current.get("draft_json"));
+        int version = nextCounter(((Number) current.get("published_version")).intValue());
+        nextCounter(r.getRevision());
         String json = JSON.toJSONString(d);
-        jdbc.update("INSERT INTO gov_space_flow_version(space_id,version,definition_json,published_by) VALUES(?,?,?,?)", r.getSpaceId(), version, json, SecurityUtils.getUserId());
-        jdbc.update("UPDATE gov_space_flow SET published_json=?,published_version=?,revision=revision+1,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE space_id=?", json, version, SecurityUtils.getUserId(), r.getSpaceId());
+        if (jdbc.update("INSERT INTO gov_space_flow_version(space_id,version,definition_json,published_by) VALUES(?,?,?,?)", r.getSpaceId(), version, json, SecurityUtils.getUserId()) != 1)
+            throw new ServiceException("流程发布历史保存失败");
+        if (jdbc.update("UPDATE gov_space_flow SET published_json=?,published_version=?,revision=revision+1,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE space_id=?", json, version, SecurityUtils.getUserId(), r.getSpaceId()) != 1)
+            throw new ServiceException("流程发布状态更新失败");
         return get(r.getSpaceId(), r.getSpaceCode());
     }
     @Override public Policy policy(Long id, String code) {
@@ -149,8 +173,9 @@ public class SpaceFlowService implements ISpaceFlowApi {
         if (id == null) return p;
         space(id, code, false);
         List<Map<String,Object>> rows = jdbc.queryForList("SELECT published_version,published_json FROM gov_space_flow WHERE space_id=?", id);
-        if (rows.isEmpty() || rows.get(0).get("published_json") == null) return p;
-        Definition d = JSON.parseObject(String.valueOf(rows.get(0).get("published_json")), Definition.class); SpaceFlowRules.validate(d);
+        if (rows.isEmpty()) return p;
+        Definition d = publishedDefinition(rows.get(0));
+        if (d == null) return p;
         p.setConfigured(true); p.setVersion(((Number) rows.get(0).get("published_version")).intValue());
         p.setAssetRequired(d.getNodes().contains("ASSET")); p.setQualityRequired(d.getNodes().contains("QUALITY")); return p;
     }

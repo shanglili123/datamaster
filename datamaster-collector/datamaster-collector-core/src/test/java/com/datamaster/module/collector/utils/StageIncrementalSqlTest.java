@@ -16,10 +16,10 @@ public class StageIncrementalSqlTest {
     }
 
     @Test
-    public void idUsesInclusiveStartAndEndAndCanonicalNumbers() {
-        assertEquals("(`s`.`RecordId` >= 100 AND `s`.`RecordId` <= 201.5)",
+    public void idUsesExclusiveStartInclusiveEndAndCanonicalNumbers() {
+        assertEquals("(`s`.`RecordId` > 100 AND `s`.`RecordId` <= 201.5)",
                 StageIncrementalSql.predicate("RecordId", "ID", "1E+2", "201.500", "MySql", "s"));
-        assertEquals("(\"id\" >= -2.5 AND \"id\" <= 0)",
+        assertEquals("(\"id\" > -2.5 AND \"id\" <= 0)",
                 StageIncrementalSql.predicate("\"id\"", "ID", "-2.50", "-0.00"));
     }
 
@@ -43,13 +43,13 @@ public class StageIncrementalSqlTest {
 
     @Test
     public void dialectQuotesPreservePhysicalCase() {
-        assertEquals("(\"src\".\"MixedCase\" >= 1 AND \"src\".\"MixedCase\" <= 2)",
+        assertEquals("(\"src\".\"MixedCase\" > 1 AND \"src\".\"MixedCase\" <= 2)",
                 StageIncrementalSql.predicate("MixedCase", "ID", "1", "2", "PostgreSQL", "src"));
         for (String db : new String[]{"Oracle11", "Oracle", "DM8", "Kingbase8", "DB2", "H2"}) {
             assertEquals("(\"MixedCase\" <= 2)",
                     StageIncrementalSql.predicate("MixedCase", "ID", null, "2", db, null));
         }
-        assertEquals("([s].[Order] >= 1 AND [s].[Order] <= 2)",
+        assertEquals("([s].[Order] > 1 AND [s].[Order] <= 2)",
                 StageIncrementalSql.predicate("Order", "ID", "1", "2", "SQLServer", "s"));
     }
 
@@ -104,7 +104,7 @@ public class StageIncrementalSqlTest {
     public void fragmentCanBeUsedInJoinWithoutWhere() {
         String fragment = StageIncrementalSql.predicate("id", "ID", "1", "2", "MYSQL", "s");
         assertFalse(fragment.contains("WHERE"));
-        assertEquals("JOIN source s ON s.key = t.key AND (`s`.`id` >= 1 AND `s`.`id` <= 2)",
+        assertEquals("JOIN source s ON s.key = t.key AND (`s`.`id` > 1 AND `s`.`id` <= 2)",
                 "JOIN source s ON s.key = t.key AND " + fragment);
     }
 

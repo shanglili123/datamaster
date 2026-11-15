@@ -235,7 +235,7 @@ public class CollectorEtlIncrementalServiceImpl implements ICollectorEtlIncremen
         } else {
             String column = taskExt.getSourceIncrementColumn();
             if (FlinkxIncrementalConfig.TYPE_TIME.equals(taskExt.getIncrementalType())) {
-                dynamicWhere = column + " > '" + escapeSql(startValue) + "' AND "
+                dynamicWhere = column + " >= '" + escapeSql(startValue) + "' AND "
                         + column + " <= '" + escapeSql(endValue) + "'";
             } else if (FlinkxIncrementalConfig.TYPE_ID.equals(taskExt.getIncrementalType())) {
                 validateNumber(startValue);

@@ -42,8 +42,9 @@
             <a-col :xs="24" :md="12"><a-form-item label="结束时间（不含，使用该发布版本的业务时间口径）" required><a-input v-model:value="spec.endTime" :placeholder="dateOnly ? '2026-11-01' : '2026-11-01T00:00:00'" /></a-form-item></a-col>
           </a-row>
           <p v-if="snapshot.timePropertyId" class="analysis-hint">{{ snapshot.sourceTimeOffset ? `发布口径：来源 UTC${snapshot.sourceTimeOffset} → 业务 UTC${snapshot.businessTimeOffset}（固定偏移，不自动处理夏令时）` : '未声明时间偏移，沿用来源业务本地时间，不推断时区' }}。起止区间为 [开始, 结束)，按业务时间输入；时间桶按发布口径生成。额外时间字段过滤仍按物理来源时间；未满桶仅统计所选区间、空桶不补零。</p>
-          <div class="filter-heading"><strong>分析过滤（AND，不替换指标固定口径）</strong><a-button size="small" :disabled="spec.filters.length >= 20" @click="spec.filters.push({ propertyId: undefined, operator: 'EQ', value: '' })">添加条件</a-button></div>
-          <p class="analysis-hint">数值、日期和布尔值按字段类型校验。日期使用 ISO 格式；IN 输入 JSON 数组，大整数及小数请写为字符串，例如 ["9007199254740993","12.50"]。</p>
+          <div class="filter-heading"><strong>分析过滤（AND，不替换指标固定口径）</strong><a-button size="small" :disabled="spec.filters.length >= filterBudget" @click="spec.filters.push({ propertyId: undefined, operator: 'EQ', value: '' })">添加条件</a-button></div>
+          <p class="analysis-hint">固定过滤与分析过滤合计最多20项，当前还可添加 {{ Math.max(0, filterBudget - spec.filters.length) }} 项。数值、日期和布尔值按字段类型校验。日期使用 ISO 格式；IN 输入 JSON 数组，大整数及小数请写为字符串，例如 ["9007199254740993","12.50"]。</p>
+          <p class="analysis-hint">文本空字符串是有效过滤值（不同于SQL空值）；查询SQL空值请选择IS_NULL。数值、日期和布尔输入不能留空。</p>
           <div v-for="(filter, index) in spec.filters" :key="index" class="filter-row">
             <a-select v-model:value="filter.propertyId" :options="filterOptions" placeholder="已发布维度或时间属性" style="flex: 1" />
             <a-select v-model:value="filter.operator" :options="operators" style="width: 140px" @change="filter.value = ''" />
@@ -63,8 +64,8 @@
       </a-form>
     </a-spin>
     <a-space v-if="drillHistory.length" class="analysis-toolbar"><span>已下钻 {{ drillHistory.length }} 层</span><a-button :disabled="executing || metadataLoading" @click="drillBack">返回上一级条件（不查询）</a-button></a-space>
-    <MetricComparisonPanel v-if="snapshot" :key="`${ontologyId}:${spec.metricId}:${spec.version}`" :query="comparisonQuery" :disabled="executing || metadataLoading || handoffBusy" />
-    <MetricMultiQueryPanel v-if="snapshot" :key="`multi:${ontologyId}:${spec.metricId}:${spec.version}`" :query="comparisonQuery" :options="metricOptions" :disabled="executing || metadataLoading" />
+    <MetricComparisonPanel v-if="snapshot" :key="`${ontologyId}:${spec.metricId}:${spec.version}`" :query="comparisonQuery" :query-error="comparisonInput.error" :disabled="executing || metadataLoading || handoffBusy" />
+    <MetricMultiQueryPanel v-if="snapshot" :key="`multi:${ontologyId}:${spec.metricId}:${spec.version}`" :query="comparisonQuery" :query-error="comparisonInput.error" :options="metricOptions" :disabled="executing || metadataLoading" />
     <template v-if="result">
       <a-alert :type="result.truncated ? 'warning' : 'info'" show-icon :message="result.truncated ? `第 ${result.pageNum || 1} 页返回 ${result.rows?.length || 0} 组；当前不是完整分组，不能据此计算全量汇总` : `查询完成，当前 ${result.rows?.length || 0} 组未截断`" :description="result.notice" />
       <p class="analysis-hint">指标：{{ result.metricName }} · V{{ result.version }} · 单位：{{ result.unit }} · 执行时间：{{ result.executedAt }} · 耗时：{{ result.elapsedMs }} ms。执行时间不是源数据刷新时间；历史版本固定口径，不冻结底层数据。</p>
@@ -85,8 +86,8 @@
       </a-space>
     </template>
     <a-empty v-else-if="!executing" description="选择指标和版本后执行；修改条件会清除旧结果，保存分析不会触发查询。" />
-    <a-modal v-model:open="saveOpen" :title="saveAsNew ? '另存为我的分析' : '保存分析修改'" :confirm-loading="saving" ok-text="保存" cancel-text="取消" @ok="saveAnalysis">
-      <a-form layout="vertical">
+    <a-modal v-model:open="saveOpen" :title="saveAsNew ? '另存为我的分析' : '保存分析修改'" :confirm-loading="saving" :closable="!saving" :mask-closable="!saving" :keyboard="!saving" :cancel-button-props="{ disabled: saving }" ok-text="保存" cancel-text="取消" @ok="saveAnalysis">
+      <a-form :disabled="saving" layout="vertical">
         <a-form-item label="分析名称" required><a-input v-model:value="saveName" :maxlength="100" /></a-form-item>
         <a-form-item label="说明"><a-textarea v-model:value="saveDescription" :maxlength="1000" :rows="3" /></a-form-item>
       </a-form>
@@ -103,7 +104,11 @@ import DeclarativeChartRenderer from '@/components/DeclarativeChartRenderer.vue'
 import MetricComparisonPanel from './MetricComparisonPanel.vue'
 import MetricMultiQueryPanel from './MetricMultiQueryPanel.vue'
 import { useAnalysisNavigation } from '@/utils/analysisNavigation'
-import { metricBucketRange, nextMetricDrillDimension } from '@/utils/metricDrilldown'
+import { metricBucketRange, metricDrillFilters, nextMetricDrillDimension } from '@/utils/metricDrilldown'
+import { metricQuickTimeRange } from '@/utils/metricTimeRange'
+import { metricFilterScalar } from '@/utils/metricFilter'
+import { metricDisplayValue } from '@/utils/metricDisplay'
+import { metricTemporalRange } from '@/utils/metricTemporal'
 import { checkPermi } from '@/utils/permission'
 import { listPublishedMetric, listMetricVersions, getMetricVersion } from '@/api/ont/metric'
 import { loadPagedOptions } from '@/api/ont/metricOptions'
@@ -146,6 +151,7 @@ let metadataSequence = 0
 let executionSequence = 0
 let savedSequence = 0
 let savedDetailSequence = 0
+let conditionsSequence = 0
 let alive = true
 const bucketOptions = [{ value: 'NONE', label: '不分桶' }, { value: 'DAY', label: '按日' }, { value: 'MONTH', label: '按月' }, { value: 'YEAR', label: '按年' }]
 const directionOptions = [{ value: 'ASC', label: '升序 ASC' }, { value: 'DESC', label: '降序 DESC' }]
@@ -162,6 +168,7 @@ const sortOptions = computed(() => [
   ...(spec.value.timeBucket !== 'NONE' ? [{ value: 'time_bucket', label: '时间分桶' }] : []),
   ...(spec.value.dimensionPropertyIds || []).map(id => ({ value: `d_${id}`, label: propertyOption(id).label }))
 ])
+const filterBudget = computed(() => Math.max(0, 20 - (snapshot.value?.fixedFilters?.length || 0)))
 const filterOptions = computed(() => [...new Set([...(snapshot.value?.dimensionPropertyIds || []), snapshot.value?.timePropertyId].filter(id => id != null))].map(propertyOption))
 const timeLabel = computed(() => propertyMap.value[String(snapshot.value?.timePropertyId)]?.propertyName || '业务时间')
 const dateOnly = computed(() => propertyMap.value[String(snapshot.value?.timePropertyId)]?.dataType?.toLowerCase() === 'date')
@@ -169,10 +176,11 @@ const sourceLabel = computed(() => [snapshot.value?.sourceSnapshot?.databaseName
 const resultColumns = computed(() => (result.value?.columns || []).map(column => ({ title: column.label, key: column.key, dataIndex: column.key })))
 const nullOperator = operator => ['IS_NULL', 'IS_NOT_NULL'].includes(operator)
 const errorText = failure => failure?.response?.data?.msg || failure?.message || '请求失败，请重试'
-const displayValue = value => value == null ? '—' : typeof value === 'object' ? JSON.stringify(value) : String(value)
+const displayValue = metricDisplayValue
 
 function clearResult() { ++executionSequence; result.value = null; lastExecutedQuery.value = null; executing.value = false }
-watch(spec, () => { queryPage.value = 1; clearResult() }, { deep: true, flush: 'sync' })
+watch(spec, () => { ++conditionsSequence; queryPage.value = 1; clearResult() }, { deep: true, flush: 'sync' })
+watch(queryPage, () => { ++conditionsSequence }, { flush: 'sync' })
 watch(() => [spec.value.dimensionPropertyIds, spec.value.timeBucket], () => {
   if (spec.value.sortBy && !sortOptions.value.some(option => option.value === spec.value.sortBy)) {
     spec.value.sortBy = ''; spec.value.sortDirection = 'ASC'
@@ -187,10 +195,10 @@ async function loadSavedList() {
   const sequence = ++savedSequence
   savedLoading.value = true
   try {
-    const items = await loadPagedOptions(listMetricAnalysis, { ontologyId: props.ontologyId })
+    const items = await loadPagedOptions(listMetricAnalysis, { ontologyId: props.ontologyId }, { isCurrent: () => alive && context === contextSequence && sequence === savedSequence })
     if (context === contextSequence && sequence === savedSequence) savedRows.value = items
   } catch (failure) {
-    if (context === contextSequence && sequence === savedSequence) { savedRows.value = []; error.value = '我的分析加载失败，请检查分析列表权限' }
+    if (context === contextSequence && sequence === savedSequence) { savedRows.value = []; error.value = `我的分析加载失败：${errorText(failure)}` }
   } finally { if (context === contextSequence && sequence === savedSequence) savedLoading.value = false }
 }
 async function loadSnapshot(sequence) {
@@ -209,7 +217,7 @@ async function changeMetric() {
   const sequence = ++metadataSequence
   snapshot.value = null; versions.value = []; error.value = ''
   Object.assign(spec.value, { version: undefined, dimensionPropertyIds: [], filters: [], startTime: '', endTime: '', timeBucket: 'NONE', sortBy: '', sortDirection: 'ASC', requireComplete: false })
-  if (!spec.value.metricId) return
+  if (!spec.value.metricId) { metadataLoading.value = false; return }
   metadataLoading.value = true
   try {
     const response = await listMetricVersions(spec.value.metricId)
@@ -270,26 +278,17 @@ async function loadSaved(id) {
   } finally { if (metadata === metadataSequence) metadataLoading.value = false }
 }
 function applyTimeRange(mode) {
-  let now = new Date()
-  const businessOffset = snapshot.value?.businessTimeOffset
-  if (/^[+-]\d{2}:\d{2}$/.test(businessOffset || '')) {
-    const sign = businessOffset[0] === '-' ? -1 : 1
-    const minutes = sign * (Number(businessOffset.slice(1, 3)) * 60 + Number(businessOffset.slice(4, 6)))
-    const shifted = new Date(Date.now() + minutes * 60000)
-    now = new Date(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate())
-  }
-  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  let start = new Date(day), end = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1)
-  if (mode === 'LAST_7_DAYS') start.setDate(start.getDate() - 6)
-  if (mode === 'THIS_MONTH') start = new Date(day.getFullYear(), day.getMonth(), 1)
-  if (mode === 'LAST_MONTH') { start = new Date(day.getFullYear(), day.getMonth() - 1, 1); end = new Date(day.getFullYear(), day.getMonth(), 1) }
-  const format = value => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}${dateOnly.value ? '' : 'T00:00:00'}`
-  spec.value.startTime = format(start); spec.value.endTime = format(end)
+  try { Object.assign(spec.value, metricQuickTimeRange(mode, snapshot.value?.businessTimeOffset, dateOnly.value)) }
+  catch (failure) { message.warning(errorText(failure)) }
 }
 function payload() {
   if (!snapshot.value || !spec.value.version) throw new Error('请先选择有效指标版本')
   if (spec.value.dimensionPropertyIds.length > 5) throw new Error('最多选择五个维度')
+  if (spec.value.filters.length > filterBudget.value) throw new Error('固定过滤与分析过滤合计最多20项')
   if (snapshot.value.timePropertyId && (!spec.value.startTime || !spec.value.endTime)) throw new Error('该指标必须提供开始时间和结束时间')
+  if (snapshot.value.timePropertyId) {
+    metricTemporalRange(spec.value.startTime, spec.value.endTime, propertyMap.value[String(snapshot.value.timePropertyId)]?.dataType)
+  } else if (spec.value.startTime || spec.value.endTime) throw new Error('该版本未声明可用时间属性，不能附加时间区间')
   if (!bucketOptions.some(option => option.value === spec.value.timeBucket)) throw new Error('请选择有效时间分桶')
   if (!snapshot.value.timePropertyId && spec.value.timeBucket !== 'NONE') throw new Error('该版本没有可用的分桶时间属性')
   if (!sortOptions.value.some(option => option.value === spec.value.sortBy)) throw new Error('排序字段必须为指标值或当前分组')
@@ -299,25 +298,10 @@ function payload() {
     if (nullOperator(filter.operator)) return { propertyId: filter.propertyId, operator: filter.operator, value: null }
     let value = filter.value
     if (filter.operator === 'IN') {
-      try { value = JSON.parse(value) } catch (failure) { throw new Error('IN 值必须为合法 JSON 数组') }
+      try { value = JSON.parse(value) } catch { throw new Error('IN 值必须为合法 JSON 数组') }
       if (!Array.isArray(value) || !value.length || value.length > 100) throw new Error('IN 数组必须包含 1～100 个值')
     }
-    const convert = item => {
-      if (item == null || typeof item === 'object') throw new Error('过滤值不能为 null、对象或嵌套数组')
-      const type = propertyMap.value[String(filter.propertyId)]?.dataType?.toLowerCase()
-      if (['integer', 'decimal', 'number', 'long', 'int', 'double', 'float', 'numeric', 'bigint', 'smallint'].includes(type)) {
-        if (typeof item === 'number' && !Number.isSafeInteger(item)) throw new Error('大整数及小数请使用带双引号的字符串，避免精度丢失')
-        const text = String(item).trim()
-        if (!text || !Number.isFinite(Number(text))) throw new Error('数值属性需要有效数字')
-        return text
-      }
-      if (type === 'boolean') {
-        if (![true, false, 'true', 'false'].includes(item)) throw new Error('布尔值只能为 true 或 false')
-        return item === true || item === 'true'
-      }
-      return String(item)
-    }
-    if (value === '') throw new Error('请填写分析过滤值')
+    const convert = item => metricFilterScalar(item, propertyMap.value[String(filter.propertyId)]?.dataType)
     return { propertyId: filter.propertyId, operator: filter.operator, value: Array.isArray(value) ? value.map(convert) : convert(value) }
   })
   return {
@@ -326,22 +310,22 @@ function payload() {
     sortBy: spec.value.sortBy || null, sortDirection: spec.value.sortBy ? spec.value.sortDirection : null, limit: spec.value.limit, pageNum: queryPage.value, requireComplete: Boolean(spec.value.requireComplete)
   }
 }
-const comparisonQuery = computed(() => { try { return payload() } catch { return null } })
+const comparisonInput = computed(() => {
+  try { return { query: payload(), error: '' } }
+  catch (failure) { return { query: null, error: errorText(failure) } }
+})
+const comparisonQuery = computed(() => comparisonInput.value.query)
 function drillDown(row) {
   if (!lastExecutedQuery.value || executing.value || metadataLoading.value) return
   const selected = [...spec.value.dimensionPropertyIds]
   const hasBucket = spec.value.timeBucket !== 'NONE' && row.time_bucket != null
   if (!selected.length && !hasBucket) { message.info('当前没有可下钻的分组或时间桶'); return }
-  if (spec.value.filters.length + selected.length > 20 || drillHistory.value.length >= 20) { message.info('下钻筛选或历史已达20项上限'); return }
+  if (spec.value.filters.length + selected.length > filterBudget.value || drillHistory.value.length >= 20) { message.info('固定过滤与下钻筛选合计最多20项，历史最多20层'); return }
   const next = nextMetricDrillDimension(snapshot.value?.dimensionPropertyIds, selected, [...spec.value.filters, ...(snapshot.value?.fixedFilters || [])], snapshot.value?.timePropertyId)
   const previous = JSON.parse(JSON.stringify(spec.value))
   try {
     const bucket = hasBucket ? metricBucketRange(String(row.time_bucket), spec.value.timeBucket, dateOnly.value, spec.value.startTime, spec.value.endTime) : null
-    const newFilters = selected.map(id => {
-      if (!Object.prototype.hasOwnProperty.call(row, `d_${id}`)) throw new Error('分组键缺失，不能构造下钻条件')
-      const value = row[`d_${id}`]
-      return { propertyId: id, operator: value == null ? 'IS_NULL' : 'EQ', value: value == null ? '' : String(value) }
-    })
+    const newFilters = metricDrillFilters(selected, row)
     drillHistory.value.push(previous)
     spec.value = { ...previous, ...(bucket || {}), filters: [...previous.filters, ...newFilters], dimensionPropertyIds: next == null ? [] : [next],
       timeBucket: bucket ? 'NONE' : previous.timeBucket, sortBy: '', sortDirection: 'ASC', requireComplete: false }
@@ -360,6 +344,7 @@ function executeCompleteTrend() {
   execute({ complete: true })
 }
 async function execute(options = {}) {
+  if (executing.value || metadataLoading.value || !snapshot.value) return
   let request
   try {
     request = payload()
@@ -370,7 +355,7 @@ async function execute(options = {}) {
   } catch (failure) { error.value = errorText(failure); return }
   const sequence = ++executionSequence
   const context = contextSequence
-  error.value = ''; result.value = null; executing.value = true
+  error.value = ''; result.value = null; lastExecutedQuery.value = null; executing.value = true
   try {
     const response = await queryMetric(request)
     if (sequence === executionSequence && context === contextSequence && alive) {
@@ -389,30 +374,35 @@ function openSave(asNew) {
   saveOpen.value = true
 }
 async function saveAnalysis() {
+  if (saving.value) return
   if (!saveName.value.trim()) { message.warning('请填写分析名称'); return }
-  const context = contextSequence
+  const context = contextSequence, metadata = metadataSequence, detailSequence = savedDetailSequence, conditions = conditionsSequence
+  const asNew = saveAsNew.value, targetId = savedId.value, revision = savedRecord.value?.revision
+  const current = () => context === contextSequence && metadata === metadataSequence && detailSequence === savedDetailSequence && conditions === conditionsSequence && alive
   saving.value = true; error.value = ''
   try {
     const data = { ontologyId: props.ontologyId, name: saveName.value.trim(), description: saveDescription.value, query: payload() }
-    if (!saveAsNew.value) { data.id = savedId.value; data.revision = savedRecord.value?.revision }
-    const response = saveAsNew.value ? await addMetricAnalysis(data) : await updateMetricAnalysis(data)
-    if (context !== contextSequence || !alive) return
-    const id = saveAsNew.value ? response.data : savedId.value
+    if (!asNew) { data.id = targetId; data.revision = revision }
+    const response = asNew ? await addMetricAnalysis(data) : await updateMetricAnalysis(data)
+    if (!current()) return
+    const id = asNew ? response.data : targetId
     saveOpen.value = false; message.success('分析条件已保存，未执行查询')
     await loadSavedList()
-    if (context !== contextSequence || !alive) return
+    if (!current()) return
     savedId.value = id
     await loadSaved(id)
-  } catch (failure) { if (context === contextSequence) error.value = errorText(failure) }
+  } catch (failure) { if (current()) error.value = errorText(failure) }
   finally { if (context === contextSequence) saving.value = false }
 }
 function removeSaved() {
   const id = savedId.value
-  const context = contextSequence
+  const context = contextSequence, detailSequence = savedDetailSequence
   Modal.confirm({ title: '删除当前保存的分析？', content: '仅删除分析条件，不删除指标或数据。', async onOk() {
+    if (context !== contextSequence || !alive || detailSequence !== savedDetailSequence || id !== savedId.value) return
     await delMetricAnalysis(id)
     if (context !== contextSequence || !alive) return
-    resetAnalysis(); loadSavedList()
+    if (detailSequence === savedDetailSequence && id === savedId.value) resetAnalysis()
+    loadSavedList()
   } })
 }
 async function formDecision() {
@@ -453,10 +443,10 @@ async function reload() {
   resetAnalysis(); metrics.value = []; savedRows.value = []; saving.value = false
   metadataLoading.value = true
   try {
-    const items = await loadPagedOptions(listPublishedMetric, { ontologyId: props.ontologyId })
+    const items = await loadPagedOptions(listPublishedMetric, { ontologyId: props.ontologyId }, { isCurrent: () => alive && context === contextSequence })
     if (context !== contextSequence || !alive) return
     metrics.value = items
-  } catch (failure) { if (context === contextSequence) error.value = '已发布指标加载失败，请检查指标列表权限' }
+  } catch (failure) { if (context === contextSequence) error.value = `已发布指标加载失败：${errorText(failure)}` }
   finally { if (context === contextSequence) metadataLoading.value = false }
   if (context === contextSequence && alive) {
     await applySelection()

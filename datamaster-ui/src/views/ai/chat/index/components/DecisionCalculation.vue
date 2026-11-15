@@ -53,7 +53,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
-import { ElMessageBox } from 'element-plus'
+import { confirmDecisionInput } from '@/utils/decisionConfirmation'
 import { calculateDecision } from '@/api/ai/decision'
 import DecisionMeasureInput from './DecisionMeasureInput.vue'
 const props = defineProps({ proposal: { type: Object, required: true }, disabled: { type: Boolean, default: false }, contextKey: { type: String, required: true } })
@@ -98,7 +98,7 @@ async function submit() {
   const candidates = candidateForms.value.filter(item => item.enabled).map(item => ({ candidateId: item.candidateId, alignExecutionQuantities: Boolean(item.alignExecutionQuantities), fixedCost: withUnit(item.fixedCost, form.currency), lines: item.lines.map(line => ({ ...line, quantity: withUnit(line.quantity, line.inputUnit), unitPrice: withUnit(line.unitPrice, `${form.currency}/${line.inputUnit}`), outputPerUnit: withUnit(line.outputPerUnit, `${form.quantityUnit}/${line.inputUnit}`) })) }))
   busy.value = true; error.value = ''
   try {
-    await ElMessageBox.confirm('请核对所选正式指标口径基准、单位、指标单元格映射与人工假设；服务端会严格比较引用指标的概念、粒度、日期、过滤和分组值，对象范围/窗口文字仅为备注。固定费每方案一次，预算比较干预增量成本。确认将创建新版本并作废旧预览；勾选同步会更新已有数值参数，仍不会提交执行。', '确认测算输入与来源', { type: 'warning', closeOnClickModal: false, confirmButtonText: '确认并测算', cancelButtonText: '取消' })
+    await confirmDecisionInput('请核对所选正式指标口径基准、单位、指标单元格映射与人工假设；服务端会严格比较引用指标的概念、粒度、日期、过滤和分组值，对象范围/窗口文字仅为备注。固定费每方案一次，预算比较干预增量成本。确认将创建新版本并作废旧预览；勾选同步会更新已有数值参数，仍不会提交执行。', '确认测算输入与来源', { type: 'warning', closeOnClickModal: false, confirmButtonText: '确认并测算', cancelButtonText: '取消' })
     if (token !== generation || props.disabled) return
     const response = await calculateDecision({ decisionId: id, revision, confirmedInputs: true, context, candidates })
     if (token === generation && id === props.proposal.id) emit('updated', response.data)

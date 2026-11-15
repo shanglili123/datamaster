@@ -31,7 +31,7 @@ public final class MetricQueryBuilder {
         MetricQueryReqVO copy = new MetricQueryReqVO();
         copy.setMetricId(input.getMetricId()); copy.setVersion(input.getVersion());
         List<Long> dimensions = input.getDimensionPropertyIds() == null ? Collections.emptyList() : input.getDimensionPropertyIds();
-        require(dimensions.size() <= 5 && !dimensions.contains(null), "查询维度最多5个且不能为空");
+        require(dimensions.size() <= 5 && !dimensions.stream().anyMatch(Objects::isNull), "查询维度最多5个且不能为空");
         require(new HashSet<>(dimensions).size() == dimensions.size(), "查询维度不能重复");
         copy.setDimensionPropertyIds(new ArrayList<>(dimensions));
         List<MetricFilterVO> filters = input.getFilters() == null ? Collections.emptyList() : input.getFilters();
@@ -96,7 +96,7 @@ public final class MetricQueryBuilder {
         require(AGGREGATIONS.contains(aggregation), "不支持的聚合方式");
         List<Long> publishedDimensions = snapshot.getDimensionPropertyIds();
         List<MetricFilterVO> fixed = snapshot.getFixedFilters();
-        require(publishedDimensions != null && publishedDimensions.size() <= 5 && !publishedDimensions.contains(null)
+        require(publishedDimensions != null && publishedDimensions.size() <= 5 && !publishedDimensions.stream().anyMatch(Objects::isNull)
                 && new HashSet<>(publishedDimensions).size() == publishedDimensions.size(), "发布维度无效或超限");
         require(fixed != null && fixed.size() + req.getFilters().size() <= 20, "固定及用户过滤条件合计最多20个");
         require(publishedDimensions.containsAll(req.getDimensionPropertyIds()), "只能选择已发布维度");

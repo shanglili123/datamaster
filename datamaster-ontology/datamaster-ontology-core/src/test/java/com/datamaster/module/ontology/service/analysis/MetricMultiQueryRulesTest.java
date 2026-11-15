@@ -73,6 +73,41 @@ public class MetricMultiQueryRulesTest {
         first.setRequireComplete(false); first.setSortDirection("DESC");
         rejected(() -> MetricMultiQueryRules.comparable(List.of(a, b), List.of(MetricQueryBuilder.normalize(first), MetricQueryBuilder.normalize(second)), "NONE"));
     }
+    @Test public void fourMetricUnionPreservesEachMeasureAndDoesNotInventMissingValues() {
+        MetricMultiQueryRespVO result = MetricMultiQueryRules.align(List.of(
+                response("10", "A"), response("20", "A"), response("30", "B"), response("40", "B")), "NONE");
+        assertEquals(5, result.getColumns().size()); assertEquals(2, result.getRows().size());
+        Map<String,Map<String,Object>> groups = new HashMap<>();
+        for (Map<String,Object> row : result.getRows()) groups.put((String) row.get("d_2"), row);
+        assertEquals("10", groups.get("A").get("m_0")); assertEquals("20", groups.get("A").get("m_1"));
+        assertNull(groups.get("A").get("m_2")); assertNull(groups.get("A").get("m_3"));
+        assertNull(groups.get("B").get("m_0")); assertNull(groups.get("B").get("m_1"));
+        assertEquals("30", groups.get("B").get("m_2")); assertEquals("40", groups.get("B").get("m_3"));
+        assertFalse(result.getRows().get(0).containsKey("derived_value"));
+    }
+    @Test public void numericDimensionScaleAlignsAcrossAllFourMetrics() {
+        List<MetricQueryRespVO> results = new ArrayList<>();
+        for (String scale : List.of("1", "1.0", "1.00", "1.000")) {
+            MetricQueryRespVO response = response("2", scale); response.getColumns().get(0).setDataType("decimal"); results.add(response);
+        }
+        MetricMultiQueryRespVO result = MetricMultiQueryRules.align(results, "NONE");
+        assertEquals(1, result.getRows().size());
+        for (int index = 0; index < 4; index++) assertEquals("2", result.getRows().get(0).get("m_" + index));
+    }
+    @Test public void timeBucketsRemainPrimaryAndNumericDimensionsSortWithinEachBucket() {
+        MetricQueryRespVO first = response("1", "10"), second = response("2", "2");
+        MetricQueryColumnVO time = new MetricQueryColumnVO(); time.setKey("time_bucket"); time.setDataType("string");
+        for (MetricQueryRespVO response : List.of(first, second)) {
+            response.getColumns().get(0).setDataType("decimal");
+            response.setColumns(List.of(time, response.getColumns().get(0), response.getColumns().get(1)));
+        }
+        first.setRows(List.of(Map.of("time_bucket", "2026-02", "d_2", "10", "metric_value", "1"), Map.of("time_bucket", "2026-01", "d_2", "10", "metric_value", "3")));
+        second.setRows(List.of(Map.of("time_bucket", "2026-01", "d_2", "2", "metric_value", "2")));
+        MetricMultiQueryRespVO result = MetricMultiQueryRules.align(List.of(first, second), "NONE");
+        assertEquals("2026-01", result.getRows().get(0).get("time_bucket")); assertEquals("2", result.getRows().get(0).get("d_2"));
+        assertEquals("10", result.getRows().get(1).get("d_2")); assertEquals("2026-02", result.getRows().get(2).get("time_bucket"));
+        assertEquals("3", result.getRows().get(1).get("m_0")); assertNull(result.getRows().get(1).get("m_1"));
+    }
     private static MetricQueryRespVO response(String value, String group) {
         MetricQueryRespVO response = new MetricQueryRespVO(); response.setMetricName("销售额"); response.setUnit("元"); response.setTruncated(false);
         MetricQueryColumnVO dimension = new MetricQueryColumnVO(); dimension.setKey("d_2"); dimension.setLabel("地区"); dimension.setDataType("string");

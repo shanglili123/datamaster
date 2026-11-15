@@ -1,6 +1,6 @@
 <template>
   <section class="flow-editor" aria-label="空间功能流程编辑器">
-    <p>拖动节点整理布局；选择起点、终点新增连线。节点与连线仅修改草稿，不会运行任务。</p>
+    <p>拖动节点或聚焦后用方向键整理布局（Shift加快）；选择起点、终点新增连线。节点与连线仅修改草稿，不会运行任务。</p>
     <a-space wrap>
       <a-checkbox :checked="modelValue.nodes.includes('ASSET')" :disabled="disabled" @change="event => toggle('ASSET', event.target.checked)">资产权限节点</a-checkbox>
       <a-checkbox :checked="modelValue.nodes.includes('QUALITY')" :disabled="disabled" @change="event => toggle('QUALITY', event.target.checked)">质量准入节点</a-checkbox>
@@ -18,7 +18,7 @@
         <defs><marker :id="arrowId" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" /></marker></defs>
         <path v-for="edge in modelValue.edges" :key="`${edge.from}:${edge.to}`" :d="path(edge)" fill="none" stroke="currentColor" stroke-width="1.5" :marker-end="`url(#${arrowId})`"><title>{{ labels[edge.from] }} → {{ labels[edge.to] }}</title></path>
       </svg>
-      <button v-for="node in modelValue.nodes" :key="node" type="button" class="flow-node" :style="{ left: `${positions[node].x / 8.4}%`, top: `${positions[node].y / 2.8}%` }" :disabled="disabled" :aria-label="`${labels[node]}节点，可拖动；连线通过上方控件编辑`" @pointerdown="event => start(event, node)">{{ labels[node] }}</button>
+      <button v-for="node in modelValue.nodes" :key="node" type="button" class="flow-node" :style="{ left: `${positions[node].x / 8.4}%`, top: `${positions[node].y / 2.8}%` }" :disabled="disabled" :aria-label="`${labels[node]}节点，可拖动或用方向键移动；连线通过上方控件编辑`" @keydown="event => nudge(event, node)" @lostpointercapture="stop" @pointerdown="event => start(event, node)">{{ labels[node] }}</button>
     </div>
     <p v-if="!modelValue.edges.length" role="alert">尚无连线，请连接元数据到 API、分析，并让所有选中前置节点约束两种消费。</p>
     <ul class="flow-connection-list" aria-label="连线列表">
@@ -64,19 +64,32 @@ function path(edge) {
   const x1 = a.x + 140, y1 = a.y + 22, x2 = b.x, y2 = b.y + 22
   return `M ${x1} ${y1} C ${x1 + 45} ${y1}, ${x2 - 45} ${y2}, ${x2} ${y2}`
 }
+function nudge(event, node) {
+  if (props.disabled) return
+  const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
+  const direction = directions[event.key]
+  if (!direction) return
+  event.preventDefault()
+  const step = event.shiftKey ? 20 : 5, position = positions[node]
+  const x = Math.max(0, Math.min(695, position.x + direction[0] * step))
+  const y = Math.max(0, Math.min(232, position.y + direction[1] * step))
+  if (x === position.x && y === position.y) return
+  positions[node] = { x, y }; update(props.modelValue.nodes, props.modelValue.edges)
+}
 function start(event, node) {
   if (props.disabled || event.button !== 0) return
-  event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId)
+  event.preventDefault(); event.currentTarget.focus(); event.currentTarget.setPointerCapture(event.pointerId)
   dragging = { node, x: event.clientX, y: event.clientY, initialX: positions[node].x, initialY: positions[node].y }
 }
 function move(event) {
   if (!dragging || !stage.value || props.disabled) return
   const rect = stage.value.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return
   positions[dragging.node].x = Math.max(0, Math.min(695, dragging.initialX + (event.clientX - dragging.x) * 840 / rect.width))
   positions[dragging.node].y = Math.max(0, Math.min(232, dragging.initialY + (event.clientY - dragging.y) * 280 / rect.height))
 }
 function stop() {
-  if (dragging && !props.disabled) update(props.modelValue.nodes, props.modelValue.edges)
+  if (dragging && !props.disabled && (positions[dragging.node].x !== dragging.initialX || positions[dragging.node].y !== dragging.initialY)) update(props.modelValue.nodes, props.modelValue.edges)
   dragging = null
 }
 watch(() => props.modelValue.layout, layout => {

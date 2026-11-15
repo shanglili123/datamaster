@@ -25,5 +25,13 @@ public class MetricTrendRulesTest {
         result.setTruncated(false); result.setRows(List.of(Map.of("time_bucket", "2026-02-01", "metric_value", "3")));
         rejected(() -> MetricTrendRules.completeCalendar(request, result));
     }
+    @Test public void annualLabelsUseFourDigitsLikeSqlBucketsAndFrontendDrilldown() {
+        MetricQueryReqVO request = request(); request.setTimeBucket("YEAR"); request.setStartTime("0001-01-01"); request.setEndTime("0003-01-01");
+        MetricQueryRespVO result = new MetricQueryRespVO(); result.setTruncated(false);
+        result.setRows(List.of(Map.of("time_bucket", "0001", "metric_value", "7")));
+        MetricTrendRules.validateCalendar(request); MetricTrendRules.completeCalendar(request, result);
+        assertEquals("0001", result.getRows().get(0).get("time_bucket")); assertEquals("7", result.getRows().get(0).get("metric_value"));
+        assertEquals("0002", result.getRows().get(1).get("time_bucket")); assertNull(result.getRows().get(1).get("metric_value"));
+    }
     private static MetricQueryReqVO request() { MetricQueryReqVO request = new MetricQueryReqVO(); request.setMetricId(10L); request.setVersion(1); request.setTimeBucket("DAY"); request.setRequireComplete(true); request.setStartTime("2026-01-01T12:00:00"); request.setEndTime("2026-01-04T00:00:00"); request.setLimit(500); return request; }
 }

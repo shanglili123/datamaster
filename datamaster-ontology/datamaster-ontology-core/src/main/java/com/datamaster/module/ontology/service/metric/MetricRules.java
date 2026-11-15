@@ -26,7 +26,7 @@ public final class MetricRules {
         com.datamaster.module.ontology.service.analysis.MetricTimeRules.validate(vo);
         MetricDerivedRules.validate(vo, false);
         List<Long> dimensions = vo.getDimensionPropertyIds();
-        require(dimensions.size() <= 5 && !dimensions.contains(null), "维度最多5个且属性不能为空");
+        require(dimensions.size() <= 5 && !dimensions.stream().anyMatch(Objects::isNull), "维度最多5个且属性不能为空");
         vo.setDimensionPropertyIds(new ArrayList<>(new LinkedHashSet<>(dimensions)));
         require(vo.getFixedFilters().size() <= 20, "固定过滤最多20项");
         for (MetricFilterVO filter : vo.getFixedFilters()) {
@@ -54,6 +54,11 @@ public final class MetricRules {
         require(vo.getConceptTableId() != null, "发布前请绑定概念表");
         require("COUNT".equals(vo.getAggregation()) || vo.getValuePropertyId() != null, "该聚合方式必须指定度量属性");
         MetricDerivedRules.validate(vo, true);
+    }
+
+    public static int nextCounter(Integer value) {
+        require(value != null && value >= 0 && value < Integer.MAX_VALUE, "指标版本或revision已达上限或无效，请联系管理员处理");
+        return value + 1;
     }
 
     public static void checkRevision(Integer expected, Integer actual) {

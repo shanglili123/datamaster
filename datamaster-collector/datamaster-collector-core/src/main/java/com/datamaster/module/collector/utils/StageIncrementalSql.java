@@ -11,7 +11,7 @@ import java.time.temporal.ChronoField;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-/** Builds a single [start, end] predicate, never a WHERE clause or a SQL expression. */
+/** Builds TIME [start,end] or numeric (start,end] predicates; never a WHERE clause. */
 public final class StageIncrementalSql {
 
     private static final Pattern IDENTIFIER = Pattern.compile("[\\p{L}_][\\p{L}\\p{N}_$]*");
@@ -96,7 +96,7 @@ public final class StageIncrementalSql {
         if (startLiteral == null) {
             return "(" + column + " <= " + endLiteral + ")";
         }
-        return "(" + column + " >= " + startLiteral + " AND " + column + " <= " + endLiteral + ")";
+        return "(" + column + (type == CursorType.TIME ? " >= " : " > ") + startLiteral + " AND " + column + " <= " + endLiteral + ")";
     }
 
     /** 成功水位只能前进；空源或源MAX回退都不能覆盖已有成功边界。 */

@@ -4,7 +4,7 @@
 
 在现有统一请求网关上增强，不创建第二套计量系统。源 POM 的 LangChain4j 从 0.35.0 改为 1.23.0，保留 Java 17 / Boot 2.7.18。版本和接口依据 Maven Central 发布元数据与对应 sources.jar 核对，而非猜测 API。
 
-**本轮未运行编译、构建、测试、依赖解析、数据库迁移、服务启动或真实模型调用。此前 Java 17 编译/打包成功属于旧 SDK，不能证明本轮 1.23.0 改动已验证。**
+**历史状态：最初未运行编译、构建或测试。2026-11-13 已获授权开展 SDK/Agent 专项回归，当前最新结果见文末“2026-11-13 专项运行验证”；不要将旧SDK验证或本机模拟测试当作真实供应商验收。**
 
 ## 关机交接快照（2026-11-02，下次先读）
 
@@ -151,3 +151,34 @@ ai:
 - https://repo.maven.apache.org/maven2/dev/langchain4j/langchain4j-core/1.23.0/langchain4j-core-1.23.0-sources.jar
 - https://repo.maven.apache.org/maven2/dev/langchain4j/langchain4j/1.23.0/langchain4j-1.23.0-sources.jar
 - https://repo.maven.apache.org/maven2/dev/langchain4j/langchain4j-open-ai/1.23.0/langchain4j-open-ai-1.23.0-sources.jar
+
+## 页面路由配置（2026-11-14）
+
+现有`/monitor/model-gateway`页面新增“当前空间路由策略”，无需新建菜单。仅平台管理员或具备当前空间成员身份的平台系统运维，且拥有`ai:model-config:list/edit`权限，才能读取/保存；复用模型配置控制器的可信空间及header/query/body一致性检查。
+
+- 支持启用开关、经济/高级模型、复杂输入阈值1–16000、语义分类及可选分类模型、严格JSON Schema开关；模型ID保持字符串精度，只能选择当前空间已启用且有凭据的配置。保存时后端再次验证同空间/启用/凭据可解密，不探测端点、不调用模型。
+- 新迁移`sql/update_20261113_ai_model_routing.sql`已在独立测试库及开发库`192.168.93.174/datamaster`执行。开发库策略行数为0，没有启用任何路由，不存密钥、不自动授予角色权限。
+- 无数据库配置时保留原YAML路由；保存后当前空间数据库策略优先，关闭明确覆盖YAML已启用状态。每次创建新模型客户端重新读取策略，在途请求不切换；存储异常明确拒绝，不静默改供应商。
+- 空间行锁及revision防止并发覆盖；配置引用的模型不能删除/停用，需先调整路由。原部署YAML引用也受保护。保留严格Schema为显式人工兼容确认，不把开关当供应商认证；语义分类明确提示额外调用。
+- 实测19项真实HTTP测试全部通过：默认读取、错误空间拒绝、虚拟模型配置创建、跨空间/缺模型/错误阈值拒绝、保存/重载/旧revision拒绝、模型引用保护、分类/Schema/阈值保存、关闭清引用及清理临时模型。所有写操作在独立库，未向占位端点发送请求。测试占位凭据使用进程内临时加密key，临时模型已删除。
+- 前端新增5项参数测试通过，全部Node工具测试47项通过；相关Vue/JS的ESLint通过，生产构建通过。最终完整后端构建与测试通过（595项，0失败/错误/跳过），包含控制器权限注解契约。未做真实浏览器点击/截图验收，不宣称布局已视觉验证。
+- 开发后端已更新，真实登录后GET `/ai/model-routing?spaceId=1&spaceCode=174954643786848` 返回200，enabled=false、revision=0、source=DEPLOYMENT；当前模型列表为空。页面`http://127.0.0.1:8080/monitor/model-gateway` HTTP200。未创建真实模型、未替用户启用策略，保存模型仍需部署原有`AI_MODEL_PROFILES_ENCRYPTION_KEY`，本轮未生成或设置开发密钥。
+
+## 2026-11-13 专项运行验证（本节覆盖上述历史“未运行”状态）
+
+用户明确要求验证框架升级及Agent优化；本轮使用Windows本机JDK17.0.19、Maven3.8.1，不使用WSL，不调用外部模型或业务工具、不修改开发数据库和模型开关。
+
+### 实际结果
+
+- 命令：`mvn -B -pl datamaster-ai -am test -Ddocker.build.skip=true -Ddocker.push.skip=true`，最终 **BUILD SUCCESS**。本次AI及其反应堆依赖共 **466项，0 failures / 0 errors / 0 skipped**；其中AI模块 **162项全部通过**，比此前147项增加15项。
+- 新增`PersistentAgentChatMemoryStoreTest`4项：真实SDK System/User/AI/tool消息经真实加密→模拟JDBC→新建store恢复，工具ID/名称及大ID/精确小数参数保留；更新/删除/不同memoryId隔离；非单文本内容拒绝且不覆盖旧记录；缺失/null/损坏密文不当作可信内容返回。未连接真实数据库，不证明持久化并发无竞争；tool-only消息本轮检查调用链保留，不要求null与空文本表示完全相同。
+- 新增`DecisionBudgetTest`3项：预取消零进度、24次共享预算之后拒绝、一次活动后取消阻止续接。没有等待真实240秒，不据此声称实际超时计时验收完成。
+- 扩展`AgentToolContextScopeTest`2项：两个线程同时操作不同用户/空间，身份、结果、成功调用记录不串；嵌套异常后恢复外层状态，close幂等。ThreadLocal不等于框架异步自动传播，未启用并行工具。
+- 新增`ModelSdkLoopbackTest`4项：真实1.23.0 SDK HTTP客户端连接仅绑定127.0.0.1的JDK模拟服务，验证消息JSON/响应/usage、大ID工具参数/tool_call_id、429无重试且保留HTTP异常，以及真实`AiServices`完成“SDK HTTP→模拟工具→SDK HTTP”的两轮闭环。使用虚拟测试key，未访问外部供应商、无模型费用或业务副作用。这不是模型质量或外部厂商可用性证明。
+- 扩展`FrameworkDecisionModelRouterTest`2项：分类器读取完整对话而非仅最后一句，未知等级不授权economy。最终该类8项通过；规则路由2项、工具终止9项、补充续接7项、保存确认3项、会话归属5项、单次监控/容量/超时/HTTP分类4项等原有测试同轮通过。拒绝/失败后不续模型、同批后续工具不执行，正常成功允许续轮。
+
+### 依赖核对与边界
+
+- 独立`dependency:tree -am`尝试因内部模块尚未install至本机仓库而失败，不报告成功，也未通过安装旧制品绕过。改为核对实际Surefire运行classPath：核心LangChain4j/langchain4j-open-ai/http-client/jdk客户端均1.23.0；reactive-streaming为该SDK传递的1.23.0-beta33。Jackson core/databind及jdk8/jsr310/parameter-names均2.22.4，annotations为BOM选定2.22；SLF4J1.7.36及Logback1.2.12仍由Boot2.7管理。本机HTTP协议测试未出现链接/序列化异常，不据此声称全库绝无依赖风险。
+- 当前正常前后端仍保持8080/8989监听；本轮仅新增测试和更新验证记录，没有修改生产逻辑、路由配置、真实凭据、业务数据或应用运行制品。
+- 尚未验证真实供应商路由质量、原生严格Schema支持、真实流式协议/断流、实际超时/取消HTTP请求、真实数据库记忆并发与跨进程恢复、模型计费及完整Agent端到端业务效果。不得把162项测试全绿写成全部AI功能验收完成。

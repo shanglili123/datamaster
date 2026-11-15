@@ -31,6 +31,16 @@ public class CollectorEtlIncrementalWindowService {
                                                    Map<String, String> initialValues, Map<String, String> cursorTypes,
                                                    Supplier<Map<String, String>> sourceMax,
                                                    Predicate<Long> previousConfirmedStopped) {
+        return prepare(taskId, stage, instanceId, configHash, initialValues, cursorTypes,
+                () -> { Map<String, String> empty = new TreeMap<>(); initialValues.keySet().forEach(key -> empty.put(key, null)); return empty; },
+                sourceMax, previousConfirmedStopped);
+    }
+
+    public CollectorEtlIncrementalWindowDO prepare(Long taskId, String stage, Long instanceId, String configHash,
+                                                   Map<String, String> initialValues, Map<String, String> cursorTypes,
+                                                   Supplier<Map<String, String>> targetMax,
+                                                   Supplier<Map<String, String>> sourceMax,
+                                                   Predicate<Long> previousConfirmedStopped) {
         if (taskId == null || stage == null || stage.trim().isEmpty() || instanceId == null || instanceId <= 0
                 || configHash == null || configHash.trim().isEmpty() || initialValues == null || initialValues.isEmpty()
                 || cursorTypes == null || !initialValues.keySet().equals(cursorTypes.keySet())) {
@@ -60,7 +70,11 @@ public class CollectorEtlIncrementalWindowService {
                     throw new ServiceException("历史阶段窗口状态无效，禁止自动重算");
                 }
                 if (CollectorEtlIncrementalWindowDO.SUCCESS.equals(previous.getIncrementalWindowStatus())) {
-                    start = parse(previous.getIncrementalSuccessfulValue());
+                    Map<String, String> recorded = parse(previous.getIncrementalSuccessfulValue());
+                    if (!recorded.keySet().equals(initialValues.keySet())) throw new ServiceException("成功水位来源集合不一致");
+                    for (Map.Entry<String, String> value : recorded.entrySet()) {
+                        if (value.getValue() != null) start.put(value.getKey(), value.getValue());
+                    }
                 } else {
                     if (!previousConfirmedStopped.test(previous.getTaskInstanceId())) {
                         throw new ServiceException("旧实例未确认结束，禁止接管");
@@ -72,6 +86,11 @@ public class CollectorEtlIncrementalWindowService {
             }
             if (!start.keySet().equals(initialValues.keySet())) throw new ServiceException("成功水位来源集合不一致");
             if (end == null) {
+                Map<String, String> targets = new TreeMap<>(targetMax.get());
+                if (!targets.keySet().equals(start.keySet())) throw new ServiceException("目标边界集合不完整");
+                for (Map.Entry<String, String> target : targets.entrySet()) {
+                    if (target.getValue() != null) start.put(target.getKey(), target.getValue());
+                }
                 end = new TreeMap<>(sourceMax.get());
                 if (!end.keySet().equals(start.keySet())) throw new ServiceException("源边界集合不完整");
                 for (Map.Entry<String, String> boundary : end.entrySet()) {

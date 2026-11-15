@@ -3,7 +3,6 @@ package com.datamaster.module.ai.service.gateway;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.AesEncryptUtil;
 import com.datamaster.common.utils.StringUtils;
-import com.datamaster.module.ai.config.AiModelRoutingProperties;
 import com.datamaster.module.ai.config.AiSkillModelProperties;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.Capability;
@@ -21,30 +20,30 @@ public class GovernedChatModelFactory {
     @Resource private AiSkillModelProperties properties;
     @Resource private ActiveModelResolver resolver;
     @Resource private AiInvocationGateway gateway;
-    @Resource private AiModelRoutingProperties routing;
+    @Resource private com.datamaster.module.ai.service.profile.AiModelRoutingService routingService;
 
     public boolean available() {
-        AiModelRoutingProperties.SpaceRoutes routes = routes();
+        com.datamaster.module.ai.controller.admin.profile.vo.AiModelRoutingRespVO routes = routes();
         AiSkillModelProperties selected = resolver.resolve(properties, routes == null ? null : routes.getAdvancedProfileId());
         return Boolean.TRUE.equals(selected.getEnabled()) && StringUtils.isNotBlank(selected.getApiUrl());
     }
 
     public ChatModel create(String scene) {
-        AiModelRoutingProperties.SpaceRoutes routes = routes();
+        com.datamaster.module.ai.controller.admin.profile.vo.AiModelRoutingRespVO routes = routes();
         if (routes == null) return client(resolver.resolve(properties), scene, false);
-        ChatModel economy = client(resolver.resolve(properties, routes.getEconomyProfileId()), scene, routes.isStrictJsonSchema());
-        ChatModel advanced = client(resolver.resolve(properties, routes.getAdvancedProfileId()), scene, routes.isStrictJsonSchema());
+        ChatModel economy = client(resolver.resolve(properties, routes.getEconomyProfileId()), scene, routes.getStrictJsonSchema());
+        ChatModel advanced = client(resolver.resolve(properties, routes.getAdvancedProfileId()), scene, routes.getStrictJsonSchema());
         if (economy == null || advanced == null) throw new ServiceException("模型路由配置不可用");
         dev.langchain4j.model.chat.router.ChatModelRouter router =
-                new TaskComplexityModelRouter(scene, routing.getComplexInputCharacters());
-        if (routes.isSemanticDecisionEnabled()) {
+                new TaskComplexityModelRouter(scene, routes.getComplexInputCharacters());
+        if (routes.getSemanticDecisionEnabled()) {
             Long classifierId = routes.getDecisionProfileId() == null
                     ? routes.getEconomyProfileId() : routes.getDecisionProfileId();
             if (classifierId <= 0) throw new ServiceException("决策模型配置ID无效");
             // Direct client construction is intentional: create() here would recursively invoke routing.
             ChatModel classifier = client(resolver.resolve(properties, classifierId), "MODEL_ROUTE_DECISION", false);
             if (classifier == null) throw new ServiceException("决策分类模型不可用");
-            router = new FrameworkDecisionModelRouter(scene, routing.getComplexInputCharacters(), classifier);
+            router = new FrameworkDecisionModelRouter(scene, routes.getComplexInputCharacters(), classifier);
         }
         return RoutingChatModel.builder()
                 .route("economy", economy).route("advanced", advanced)
@@ -53,15 +52,15 @@ public class GovernedChatModelFactory {
                 .build();
     }
 
-    private AiModelRoutingProperties.SpaceRoutes routes() {
-        if (!routing.isEnabled()) return null;
+    private com.datamaster.module.ai.controller.admin.profile.vo.AiModelRoutingRespVO routes() {
         Long spaceId = AiInvocationGateway.snapshotContext().getSpaceId();
         if (spaceId == null) return null;
-        AiModelRoutingProperties.SpaceRoutes routes = routing.getSpaces().get(spaceId);
-        if (routes == null) return null;
+        com.datamaster.module.ai.controller.admin.profile.vo.AiModelRoutingRespVO routes = routingService.effective(spaceId);
+        if (routes == null || !Boolean.TRUE.equals(routes.getEnabled())) return null;
         if (routes.getEconomyProfileId() == null || routes.getEconomyProfileId() <= 0
-                || routes.getAdvancedProfileId() == null || routes.getAdvancedProfileId() <= 0) {
-            throw new ServiceException("模型路由必须配置同一空间的经济与高级模型ID");
+                || routes.getAdvancedProfileId() == null || routes.getAdvancedProfileId() <= 0
+                || routes.getComplexInputCharacters() == null || routes.getComplexInputCharacters() < 1 || routes.getComplexInputCharacters() > 16000) {
+            throw new ServiceException("模型路由配置无效，请检查当前空间模型及阈值");
         }
         return routes;
     }

@@ -5,6 +5,7 @@
     <a-alert v-if="recentlyPublished" type="success" show-icon :message="`已发布「${recentlyPublished.name}」V${recentlyPublished.publishedVersion}，下一步可核对时间范围后试查。发布不代表查询已验证。`">
       <template #action><a-button v-hasPermi="['ont:metric:execute']" @click="tryMetric(recentlyPublished)">前往试查</a-button></template>
     </a-alert>
+    <a-alert v-if="listError || conceptError" type="error" show-icon :message="[conceptError, listError].filter(Boolean).join('；')" />
     <div class="panel-toolbar">
       <a-input v-model:value="query.name" placeholder="指标名称" allow-clear style="width: 180px" @pressEnter="search" />
       <a-select v-model:value="query.conceptId" :options="conceptOptions" placeholder="全部概念" allow-clear style="width: 180px" @change="search" />
@@ -34,9 +35,9 @@
     </a-table>
     <pagination v-show="total > 0" :total="total" v-model:page="query.pageNum" v-model:limit="query.pageSize" @pagination="loadList" />
 
-    <a-modal v-model:open="editorOpen" :title="form.id ? '编辑指标草稿' : '新增指标草稿'" width="940px" wrap-class-name="ontology-workspace-modal ontology-modal--form" :confirm-loading="saving" destroy-on-close ok-text="保存草稿" cancel-text="取消" @ok="save">
+    <a-modal v-model:open="editorOpen" :title="form.id ? '编辑指标草稿' : '新增指标草稿'" width="940px" wrap-class-name="ontology-workspace-modal ontology-modal--form" :confirm-loading="saving" :ok-button-props="{ disabled: optionsLoading || mappingsLoading || Boolean(optionsError || mappingsError) }" :closable="!saving" :mask-closable="!saving" :keyboard="!saving" :cancel-button-props="{ disabled: saving }" destroy-on-close ok-text="保存草稿" cancel-text="取消" @ok="save">
       <a-alert v-if="form.publishedVersion > 0" type="warning" show-icon message="保存仅修改草稿，原发布版本保持不变；重新发布后生成新版本。" style="margin-bottom: 16px" />
-      <a-form ref="formRef" :model="form" :rules="rules" layout="vertical">
+      <a-form ref="formRef" :model="form" :rules="rules" :disabled="saving || optionsLoading" layout="vertical">
         <a-row :gutter="16">
           <a-col :span="12"><a-form-item label="所属概念" name="conceptId"><a-select v-model:value="form.conceptId" :options="conceptOptions" :disabled="!!form.id" @change="changeConcept" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="指标编码" name="code"><a-input v-model:value="form.code" :disabled="!!form.id" :maxlength="100" placeholder="例如 paid_amount；创建后不可修改" /></a-form-item></a-col>
@@ -62,8 +63,9 @@
           <a-col :span="12"><a-form-item label="允许分析的维度"><a-select v-model:value="form.dimensionPropertyIds" mode="multiple" :options="propertyOptions" placeholder="选择已映射属性" /></a-form-item></a-col>
           <a-col :span="24"><p class="hint">固定过滤中的日期时间须严格ISO格式（例如2026-01-01T00:00:00）；这是物理来源字段时间，不随业务偏移自动平移。</p></a-col>
         </a-row>
-        <div class="filter-heading"><strong>固定口径过滤</strong><a-button size="small" @click="form.fixedFilters.push({ propertyId: undefined, operator: 'EQ', value: '' })">添加条件</a-button></div>
+        <div class="filter-heading"><strong>固定口径过滤</strong><a-button size="small" :disabled="(form.fixedFilters?.length || 0) >= 20" @click="form.fixedFilters.push({ propertyId: undefined, operator: 'EQ', value: '' })">添加条件</a-button></div>
         <p class="hint">条件之间为 AND。条件值按属性类型转换；日期使用 YYYY-MM-DD，布尔值使用 true/false。IN 使用 JSON 数组，例如 [1,2] 或 ["已支付","已完成"]。这不是权限过滤。</p>
+        <p class="hint">文本空字符串是有效口径值，不等于SQL空值；SQL空值使用IS_NULL。数值、日期和布尔输入不能留空。</p>
         <div v-for="(filter, index) in form.fixedFilters" :key="index" class="filter-row">
           <a-select v-model:value="filter.propertyId" :options="propertyOptions" placeholder="属性" style="flex: 1" />
           <a-select v-model:value="filter.operator" :options="operators" style="width: 140px" @change="filter.value = ''" />
@@ -71,12 +73,15 @@
           <span v-else class="hint" style="flex: 1">无需条件值</span>
           <a-button danger @click="form.fixedFilters.splice(index, 1)">移除</a-button>
         </div>
-        <a-alert v-if="optionsError" type="error" show-icon :message="optionsError" />
+        <p v-if="optionsLoading || mappingsLoading" role="status">正在加载当前概念属性及来源字段映射，完成前不能保存。</p>
+        <a-alert v-if="optionsError || mappingsError" type="error" show-icon :message="[optionsError, mappingsError].filter(Boolean).join('；')" />
+        <a-button v-if="optionsError || mappingsError" size="small" :disabled="saving || optionsLoading || mappingsLoading" @click="loadOptions">重新加载当前概念选项与映射（保留草稿）</a-button>
         <a-alert v-if="saveError" type="error" show-icon :message="saveError" />
       </a-form>
     </a-modal>
 
     <a-modal v-model:open="versionsOpen" title="已发布指标版本" width="660px" :footer="null" wrap-class-name="ontology-workspace-modal ontology-modal--compact">
+      <a-alert v-if="versionsError" type="error" show-icon :message="versionsError" />
       <a-table :data-source="versions" :loading="versionsLoading" row-key="id" :pagination="false" :columns="versionColumns">
         <template #bodyCell="{ column, record }"><template v-if="column.key === 'action'"><a-button type="link" @click="readVersion(record.version)">查看快照 V{{ record.version }}</a-button><a-button type="link" v-hasPermi="['ont:metric:edit']" @click="restoreVersion(record.version)">复制为草稿</a-button></template></template>
       </a-table>
@@ -106,6 +111,7 @@ import { listProperty } from '@/api/ont/property'
 import { listPropertyColumn } from '@/api/ont/propertyColumn'
 import AnalysisFlowNavigation from '@/components/AnalysisFlowNavigation.vue'
 import { useAnalysisNavigation } from '@/utils/analysisNavigation'
+import { metricFilterScalar } from '@/utils/metricFilter'
 import { addMetric, updateMetric, getMetric, listMetric, delMetric, validateMetric, publishMetric, disableMetric, listMetricVersions, getMetricVersion, restoreMetricDraft } from '@/api/ont/metric'
 
 const props = defineProps({ ontologyId: { type: [String, Number], required: true } })
@@ -115,6 +121,7 @@ function tryMetric(row) { return openMetricAnalysis({ ontologyId: props.ontology
 const rows = ref([])
 const total = ref(0)
 const loading = ref(false)
+const listError = ref(''), conceptError = ref('')
 const concepts = ref([])
 const query = ref({ pageNum: 1, pageSize: 10 })
 const editorOpen = ref(false)
@@ -124,10 +131,12 @@ const form = ref({})
 const properties = ref([])
 const tables = ref([])
 const mappings = ref([])
-const optionsError = ref('')
+const optionsError = ref(''), mappingsError = ref('')
+const optionsLoading = ref(false), mappingsLoading = ref(false)
 const saveError = ref('')
 const versionsOpen = ref(false)
 const versionsLoading = ref(false)
+const versionsError = ref('')
 const versions = ref([])
 const versionMetricId = ref()
 const detailOpen = ref(false)
@@ -135,7 +144,11 @@ const detail = ref(null)
 const detailTitle = ref('指标定义')
 let listSequence = 0
 let optionsSequence = 0
+let mappingsSequence = 0
 let contextSequence = 0
+let editorSequence = 0
+let detailSequence = 0
+let versionsSequence = 0
 const statuses = [{ value: 'DRAFT', label: '草稿' }, { value: 'PUBLISHED', label: '已发布' }, { value: 'DISABLED', label: '已停用' }]
 const derivedOptions = [{ value: 'NONE', label: '无（单聚合）' }, { value: 'RATIO', label: '主聚合 / 第二聚合' }, { value: 'DIFFERENCE', label: '主聚合 − 第二聚合' }, { value: 'SUM', label: '两聚合相加' }]
 function changeDerived(value) {
@@ -174,14 +187,14 @@ const errorText = error => error?.response?.data?.msg || error?.message || '操�
 
 async function loadList() {
   const sequence = ++listSequence
-  loading.value = true
+  loading.value = true; listError.value = ''
   try {
     const response = await listMetric({ ...query.value, ontologyId: props.ontologyId })
     if (sequence !== listSequence) return
     rows.value = response.data?.rows || []
     total.value = response.data?.total || 0
   } catch (error) {
-    if (sequence === listSequence) { rows.value = []; total.value = 0 }
+    if (sequence === listSequence) { rows.value = []; total.value = 0; listError.value = `指标列表加载失败：${errorText(error)}` }
   } finally {
     if (sequence === listSequence) loading.value = false
   }
@@ -189,123 +202,122 @@ async function loadList() {
 function search() { query.value.pageNum = 1; loadList() }
 async function reload() {
   const sequence = ++contextSequence
-  recentlyPublished.value = null; saving.value = false
+  ++listSequence; ++optionsSequence; ++mappingsSequence; ++editorSequence; ++detailSequence; ++versionsSequence
+  editorOpen.value = false; versionsOpen.value = false; detailOpen.value = false
+  optionsLoading.value = false; mappingsLoading.value = false; versionsLoading.value = false; loading.value = false
+  rows.value = []; total.value = 0
+  recentlyPublished.value = null; saving.value = false; listError.value = ''; conceptError.value = ''
   concepts.value = []
   try {
-    const items = await loadPagedOptions(listConcept, { ontologyId: props.ontologyId })
+    const items = await loadPagedOptions(listConcept, { ontologyId: props.ontologyId }, { isCurrent: () => sequence === contextSequence })
     if (sequence !== contextSequence) return
     concepts.value = items
   } catch (error) {
     if (sequence !== contextSequence) return
+    conceptError.value = `概念选项加载失败：${errorText(error)}`
   }
   if (sequence === contextSequence) loadList()
 }
 async function loadOptions() {
-  const sequence = ++optionsSequence
-  properties.value = []; tables.value = []; mappings.value = []; optionsError.value = ''
-  if (!form.value.conceptId) return
+  const sequence = ++optionsSequence, conceptId = form.value.conceptId
+  ++mappingsSequence
+  properties.value = []; tables.value = []; mappings.value = []; optionsError.value = ''; mappingsError.value = ''
+  optionsLoading.value = Boolean(conceptId); mappingsLoading.value = false
+  if (!conceptId) return
   try {
     const [propertyResponse, tableResponse] = await Promise.all([
-      loadPagedOptions(listProperty, { conceptId: form.value.conceptId }),
-      listConceptTable({ conceptId: form.value.conceptId })
+      loadPagedOptions(listProperty, { conceptId }, { isCurrent: () => sequence === optionsSequence }),
+      listConceptTable({ conceptId })
     ])
     if (sequence !== optionsSequence) return
+    if (!Array.isArray(tableResponse.data)) throw new Error('表绑定响应无效')
     properties.value = propertyResponse
-    tables.value = tableResponse.data || []
-    if (form.value.conceptTableId) {
-      const response = await listPropertyColumn(form.value.conceptTableId)
-      if (sequence === optionsSequence) mappings.value = response.data || []
-    }
+    tables.value = tableResponse.data
+    await loadMappings()
   } catch (error) {
-    if (sequence === optionsSequence) optionsError.value = '字段或表绑定加载失败，请检查查询权限后重新打开编辑器。'
-  }
+    if (sequence === optionsSequence) optionsError.value = `字段或表绑定加载失败：${errorText(error)}`
+  } finally { if (sequence === optionsSequence) optionsLoading.value = false }
 }
 async function loadMappings() {
-  const sequence = ++optionsSequence
-  mappings.value = []; optionsError.value = ''
-  if (!form.value.conceptTableId) return
+  const sequence = ++mappingsSequence, options = optionsSequence, bindingId = form.value.conceptTableId
+  mappings.value = []; mappingsError.value = ''; mappingsLoading.value = Boolean(bindingId)
+  if (!bindingId) return
   try {
-    const response = await listPropertyColumn(form.value.conceptTableId)
-    if (sequence === optionsSequence) mappings.value = response.data || []
+    const response = await listPropertyColumn(bindingId)
+    if (sequence !== mappingsSequence || options !== optionsSequence) return
+    if (!Array.isArray(response.data)) throw new Error('字段映射响应无效')
+    mappings.value = response.data
   } catch (error) {
-    if (sequence === optionsSequence) optionsError.value = '字段映射加载失败，请重新选择表绑定。'
-  }
+    if (sequence === mappingsSequence && options === optionsSequence) mappingsError.value = `字段映射加载失败：${errorText(error)}`
+  } finally { if (sequence === mappingsSequence && options === optionsSequence) mappingsLoading.value = false }
 }
 function changeConcept() {
   Object.assign(form.value, { conceptTableId: undefined, valuePropertyId: undefined, timePropertyId: undefined, sourceTimeOffset: null, businessTimeOffset: null, derivedOperation: 'NONE', secondaryAggregation: null, secondaryValuePropertyId: null, primaryUnit: null, secondaryUnit: null, dimensionPropertyIds: [], fixedFilters: [] })
   loadOptions()
 }
 function openCreate() {
-  if (!concepts.value.length) { message.warning('请先创建业务概念'); return }
+  ++editorSequence
+  if (!concepts.value.length) { message.warning(conceptError.value || '请先创建业务概念'); return }
   form.value = { ontologyId: props.ontologyId, conceptId: concepts.value[0].id, code: '', name: '', description: '', owner: '', unit: '', grain: '', aggregation: 'COUNT', derivedOperation: 'NONE', dimensionPropertyIds: [], fixedFilters: [] }
   saveError.value = ''
   editorOpen.value = true
   loadOptions()
 }
 async function openEdit(row) {
-  const context = contextSequence
-  const response = await getMetric(row.id)
-  if (context !== contextSequence) return
-  form.value = { ...response.data, derivedOperation: response.data.derivedOperation || 'NONE', dimensionPropertyIds: response.data.dimensionPropertyIds || [], fixedFilters: (response.data.fixedFilters || []).map(filter => ({ ...filter, value: filter.operator === 'IN' ? JSON.stringify(filter.value) : filter.value == null ? '' : String(filter.value) })) }
-  saveError.value = ''
-  editorOpen.value = true
-  loadOptions()
+  const context = contextSequence, sequence = ++editorSequence
+  try {
+    const response = await getMetric(row.id)
+    if (context !== contextSequence || sequence !== editorSequence) return
+    const record = response.data
+    if (!record || String(record.id) !== String(row.id) || String(record.ontologyId) !== String(props.ontologyId)) throw new Error('指标详情身份不一致')
+    form.value = { ...record, derivedOperation: record.derivedOperation || 'NONE', dimensionPropertyIds: record.dimensionPropertyIds || [], fixedFilters: (record.fixedFilters || []).map(filter => ({ ...filter, value: filter.operator === 'IN' ? JSON.stringify(filter.value) : filter.value == null ? '' : String(filter.value) })) }
+    saveError.value = ''
+    editorOpen.value = true
+    loadOptions()
+  } catch (failure) { if (context === contextSequence && sequence === editorSequence) message.error(errorText(failure)) }
 }
 function normalizeFilters(filters) {
+  if (filters.length > 20) throw new Error('固定过滤最多20项')
   return filters.map(filter => {
     if (!filter.propertyId) throw new Error('请选择固定过滤的属性')
     if (nullOperator(filter.operator)) return { propertyId: filter.propertyId, operator: filter.operator, value: null }
     const property = properties.value.find(item => String(item.id) === String(filter.propertyId))
     if (!property) throw new Error('固定过滤属性已失效，请重新选择')
-    const convert = value => {
-      if (value == null || typeof value === 'object') throw new Error('过滤值不能为 null、对象或嵌套数组')
-      if (['integer', 'decimal'].includes(property.dataType)) {
-        const text = String(value).trim()
-        if (typeof value === 'number' && (!Number.isSafeInteger(value) || !Number.isInteger(value))) {
-          throw new Error('IN 数组中的大整数和小数请加双引号，避免 JSON 数值解析丢失精度')
-        }
-        if (!text || !Number.isFinite(Number(text))) throw new Error('数值属性的过滤条件必须是有效数字')
-        // 数值保留文本，避免大整数或高精度小数经过 JavaScript Number 丢失精度。
-        return text
-      }
-      if (property.dataType === 'boolean') {
-        if (![true, false, 'true', 'false'].includes(value)) throw new Error('布尔属性的过滤值只能为 true 或 false')
-        return value === true || value === 'true'
-      }
-      return String(value)
-    }
+    const convert = value => metricFilterScalar(value, property.dataType)
     let value
     if (filter.operator === 'IN') {
       let items
-      try { items = JSON.parse(filter.value) } catch (error) { throw new Error('IN 条件请输入合法 JSON 数组') }
-      if (!Array.isArray(items) || !items.length) throw new Error('IN 条件必须是非空数组')
+      try { items = JSON.parse(filter.value) } catch { throw new Error('IN 条件请输入合法 JSON 数组') }
+      if (!Array.isArray(items) || !items.length || items.length > 100) throw new Error('IN 条件必须包含1至100个值')
       value = items.map(convert)
     } else {
-      if (filter.value === '') throw new Error('请填写固定过滤值')
       value = convert(filter.value)
     }
     return { propertyId: filter.propertyId, operator: filter.operator, value }
   })
 }
 async function save() {
-  const context = contextSequence
-  try { await formRef.value.validate() } catch (error) { return }
-  if (context !== contextSequence) return
+  if (saving.value) return
+  if (optionsLoading.value || mappingsLoading.value || optionsError.value || mappingsError.value) { saveError.value = optionsError.value || mappingsError.value || '请等待字段及表绑定选项加载完成'; return }
+  const context = contextSequence, editor = editorSequence
+  try { await formRef.value.validate() } catch { return }
+  if (context !== contextSequence || editor !== editorSequence || !editorOpen.value || saving.value || optionsLoading.value || mappingsLoading.value || optionsError.value || mappingsError.value) return
   saving.value = true; saveError.value = ''
   try {
     const data = { ...form.value, derivedOperation: form.value.derivedOperation === 'NONE' ? null : form.value.derivedOperation, sourceTimeOffset: form.value.sourceTimeOffset?.trim() || null, businessTimeOffset: form.value.businessTimeOffset?.trim() || null, conceptTableId: form.value.conceptTableId ?? null, valuePropertyId: form.value.valuePropertyId ?? null, timePropertyId: form.value.timePropertyId ?? null, fixedFilters: normalizeFilters(form.value.fixedFilters) }
     if (data.id) await updateMetric(data)
     else await addMetric(data)
-    if (context !== contextSequence) return
+    if (context !== contextSequence || editor !== editorSequence) return
     editorOpen.value = false
     message.success('指标草稿已保存')
     loadList()
-  } catch (error) { if (context === contextSequence) saveError.value = errorText(error) }
+  } catch (error) { if (context === contextSequence && editor === editorSequence) saveError.value = errorText(error) }
   finally { if (context === contextSequence) saving.value = false }
 }
 async function check(row) {
+  const context = contextSequence
   await validateMetric(row.id, row.revision)
-  message.success('元数据与指标定义校验通过；未执行数据查询')
+  if (context === contextSequence) message.success('元数据与指标定义校验通过；未执行数据查询')
 }
 function publish(row) {
   const context = contextSequence
@@ -339,26 +351,34 @@ function remove(row) {
   } })
 }
 async function openRead(row) {
-  const context = contextSequence
-  const response = await getMetric(row.id)
-  if (context !== contextSequence) return
-  detail.value = response.data; detailTitle.value = '当前指标定义'; detailOpen.value = true
+  const context = contextSequence, sequence = ++detailSequence
+  try {
+    const response = await getMetric(row.id)
+    if (context !== contextSequence || sequence !== detailSequence) return
+    if (!response.data || String(response.data.id) !== String(row.id) || String(response.data.ontologyId) !== String(props.ontologyId)) throw new Error('指标详情身份不一致')
+    detail.value = response.data; detailTitle.value = '当前指标定义'; detailOpen.value = true
+  } catch (failure) { if (context === contextSequence && sequence === detailSequence) message.error(errorText(failure)) }
 }
 async function showVersions(row) {
-  versionMetricId.value = row.id; versions.value = []; versionsOpen.value = true; versionsLoading.value = true
-  const context = contextSequence
+  versionMetricId.value = row.id; versions.value = []; versionsOpen.value = true; versionsLoading.value = true; versionsError.value = ''
+  const context = contextSequence, sequence = ++versionsSequence
   try {
     const response = await listMetricVersions(row.id)
-    if (context === contextSequence && versionMetricId.value === row.id) versions.value = response.data || []
-  } finally { if (context === contextSequence) versionsLoading.value = false }
+    if (context !== contextSequence || sequence !== versionsSequence || versionMetricId.value !== row.id) return
+    if (!Array.isArray(response.data)) throw new Error('版本列表响应无效')
+    versions.value = response.data
+  } catch (failure) {
+    if (context === contextSequence && sequence === versionsSequence) versionsError.value = `版本加载失败：${errorText(failure)}`
+  } finally { if (context === contextSequence && sequence === versionsSequence) versionsLoading.value = false }
 }
 async function restoreVersion(version) {
-  const id = versionMetricId.value, context = contextSequence
+  const id = versionMetricId.value, context = contextSequence, sequence = versionsSequence
+  const currentSelection = () => context === contextSequence && sequence === versionsSequence && versionsOpen.value && id === versionMetricId.value
   try {
     const current = (await getMetric(id)).data
-    if (context !== contextSequence || id !== versionMetricId.value) return
+    if (!currentSelection()) return
     Modal.confirm({ title: `复制历史 V${version} 为当前草稿？`, content: '覆盖当前已保存草稿，保留线上发布版本与停用状态。只复制业务口径、固定偏移和派生定义，不复制来源权限；重新发布时重新校验并冻结当前来源。', async onOk() {
-      if (context !== contextSequence || id !== versionMetricId.value) return
+      if (!currentSelection()) return
       await restoreMetricDraft(id, version, current.revision)
       if (context === contextSequence) { message.success('已恢复到草稿，线上规则未改变'); await loadList() }
     } })
@@ -366,18 +386,25 @@ async function restoreVersion(version) {
 }
 async function readVersion(version) {
   const id = versionMetricId.value
-  const context = contextSequence
-  const response = await getMetricVersion(id, version)
-  if (context !== contextSequence || id !== versionMetricId.value) return
-  detail.value = response.data; detailTitle.value = `指标发布快照 V${version}`; detailOpen.value = true
+  const context = contextSequence, sequence = ++detailSequence
+  try {
+    const response = await getMetricVersion(id, version)
+    if (context !== contextSequence || sequence !== detailSequence || id !== versionMetricId.value) return
+    if (!response.data || String(response.data.id) !== String(id) || Number(response.data.publishedVersion) !== Number(version)
+      || String(response.data.ontologyId) !== String(props.ontologyId) || response.data.status !== 'PUBLISHED') throw new Error('发布快照身份不一致')
+    detail.value = response.data; detailTitle.value = `指标发布快照 V${version}`; detailOpen.value = true
+  } catch (failure) { if (context === contextSequence && sequence === detailSequence) message.error(errorText(failure)) }
 }
+watch(editorOpen, open => { if (!open) { ++editorSequence; ++optionsSequence; ++mappingsSequence; optionsLoading.value = false; mappingsLoading.value = false } }, { flush: 'sync' })
+watch(detailOpen, open => { if (!open) ++detailSequence }, { flush: 'sync' })
+watch(versionsOpen, open => { if (!open) { ++versionsSequence; ++detailSequence } }, { flush: 'sync' })
 watch(() => props.ontologyId, () => {
   ++listSequence; ++optionsSequence
   editorOpen.value = false; versionsOpen.value = false; detailOpen.value = false
   query.value = { pageNum: 1, pageSize: 10 }; rows.value = []; total.value = 0
   reload()
 }, { immediate: true })
-onBeforeUnmount(() => { ++listSequence; ++optionsSequence; ++contextSequence })
+onBeforeUnmount(() => { ++listSequence; ++optionsSequence; ++mappingsSequence; ++contextSequence })
 defineExpose({ reload })
 </script>
 

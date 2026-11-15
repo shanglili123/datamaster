@@ -2,6 +2,8 @@
 import { login, logout, getInfo } from '@/api/system/login.js';
 import { getToken, setToken, removeToken } from '@/utils/auth';
 import defAva from '@/assets/images/defaultAvatar.svg';
+import { currentUser } from '@/api/tax/space/space';
+import { selectAccessibleSpace } from '@/utils/spaceSelection';
 
 const useUserStore = defineStore('user', {
     state: () => ({
@@ -40,7 +42,7 @@ const useUserStore = defineStore('user', {
         getInfo() {
             return new Promise((resolve, reject) => {
                 getInfo()
-                    .then((res) => {
+                    .then(async (res) => {
                         const user = res.user;
                         const avatar =
                             user.avatar == '' || user.avatar == null
@@ -59,12 +61,31 @@ const useUserStore = defineStore('user', {
                         this.nickName = user.nickName;
                         this.phonenumber = user.phonenumber;
 
+                        await this.initializeSpace();
                         resolve(res);
                     })
                     .catch((error) => {
                         reject(error);
                     });
             });
+        },
+        async initializeSpace() {
+            const preferred = this.spaceId || localStorage.getItem('dataMasterSpaceId');
+            try {
+                const response = await currentUser();
+                const space = selectAccessibleSpace(response?.data, preferred);
+                this.spaceId = space?.id || '';
+                this.spaceCode = space?.code || space?.spaceCode || '';
+                this.spaceName = space?.name || space?.spaceName || '';
+                if (space) localStorage.setItem('dataMasterSpaceId', String(space.id));
+                else localStorage.removeItem('dataMasterSpaceId');
+                return space;
+            } catch (error) {
+                this.spaceId = '';
+                this.spaceCode = '';
+                this.spaceName = '';
+                throw error;
+            }
         },
         // 退出系统
         logOut() {

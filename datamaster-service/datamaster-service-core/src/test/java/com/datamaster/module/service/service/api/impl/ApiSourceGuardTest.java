@@ -49,7 +49,7 @@ public class ApiSourceGuardTest {
         when(spaces.hasUserSpace(7L, 1L, "space01")).thenReturn(true);
         policy = new ISpaceFlowApi.Policy(); policy.setConfigured(true); policy.setQualityRequired(true); policy.setVersion(2);
         when(flows.policy(1L, "space01")).thenReturn(policy);
-        source = new DatasourceRespDTO(); source.setId(9L); source.setDatasourceType("mysql"); source.setDatasourceConfig("{\"dbname\":\"business\"}");
+        source = new DatasourceRespDTO(); source.setId(9L); source.setDatasourceType("mysql"); source.setDatasourceConfig("{\"dbname\":\"business\",\"username\":\"unit_reader\",\"password\":\"unit-test-only\"}");
         when(datasources.getDatasourceById(9L)).thenReturn(source);
         when(datasources.hasDatasourceSpace(9L, 1L, "space01")).thenReturn(true);
         AssetsTableGovernanceRespDTO allowed = new AssetsTableGovernanceRespDTO(); allowed.setAccessAllowed(true);

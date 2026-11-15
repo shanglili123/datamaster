@@ -43,6 +43,13 @@ public class MetricPeriodBucketRulesTest {
         assertNull(result.getRows().get(0).get("d_2")); assertNull(result.getRows().get(0).get("baseline_value"));
         assertNull(result.getRows().get(0).get("difference"));
     }
+    @Test public void annualAlignmentKeepsZeroPaddedLabelsAcrossCenturyBoundary() {
+        var current = query("0100-01-01", "0102-01-01", "YEAR"); var baseline = query("0098-01-01", "0100-01-01", "YEAR");
+        MetricComparisonRespVO result = new MetricComparisonRespVO(); result.setCurrent(response("0100", "10")); result.setBaseline(response("0098", "5"));
+        MetricPeriodBucketRules.calculate(result, current, baseline);
+        assertEquals("0100", result.getRows().get(0).get("time_bucket")); assertEquals("0098", result.getRows().get(0).get("baseline_time_bucket"));
+        assertEquals("100", result.getRows().get(0).get("change_percent"));
+    }
     private static MetricQueryReqVO query(String start, String end, String bucket) { var query = new MetricQueryReqVO(); query.setMetricId(10L); query.setVersion(1); query.setStartTime(start); query.setEndTime(end); query.setTimeBucket(bucket); return query; }
     private static MetricQueryRespVO response(String bucket, String amount) {
         MetricQueryRespVO response = new MetricQueryRespVO(); response.setTruncated(false); response.setRows(List.of(new LinkedHashMap<>(Map.of("time_bucket", bucket, "metric_value", amount))));

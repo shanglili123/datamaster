@@ -1,3 +1,5 @@
+import { metricTemporalValue } from './metricTemporal.js'
+
 // Calendar labels are business-local labels, not browser Date instants.
 export function metricBucketRange(label, grain, dateOnly, originalStart, originalEnd) {
   const pad = value => String(value).padStart(2, '0')
@@ -16,11 +18,7 @@ export function metricBucketRange(label, grain, dateOnly, originalStart, origina
   if (end.getUTCFullYear() > 9999) throw new Error('桶结束时间超出支持范围')
   const format = value => `${String(value.getUTCFullYear()).padStart(4, '0')}-${pad(value.getUTCMonth() + 1)}-${pad(value.getUTCDate())}${dateOnly ? '' : 'T00:00:00'}`
   const normalize = value => {
-    if (typeof value !== 'string' || !(dateOnly ? /^\d{4}-\d{2}-\d{2}$/ : /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?$/).test(value)) throw new Error('原时间范围不是有效业务时间格式')
-    const y = Number(value.slice(0, 4)), m = Number(value.slice(5, 7)), d = Number(value.slice(8, 10))
-    const check = new Date(0); check.setUTCFullYear(y, m - 1, d); check.setUTCHours(0, 0, 0, 0)
-    if (y < 1 || y > 9999 || check.getUTCFullYear() !== y || check.getUTCMonth() !== m - 1 || check.getUTCDate() !== d) throw new Error('原时间范围日期不存在')
-    if (!dateOnly && (Number(value.slice(11, 13)) > 23 || Number(value.slice(14, 16)) > 59 || Number(value.slice(17, 19) || 0) > 59)) throw new Error('原时间范围时刻不存在')
+    metricTemporalValue(value, dateOnly ? 'date' : 'datetime')
     if (dateOnly) return value
     const full = value.length === 16 ? `${value}:00` : value
     const [seconds, fraction = ''] = full.split('.')
@@ -32,6 +30,19 @@ export function metricBucketRange(label, grain, dateOnly, originalStart, origina
   const narrowedEnd = after < bucketEnd ? after : bucketEnd
   if (narrowedStart >= narrowedEnd) throw new Error('该桶不在当前查询范围内')
   return { startTime: narrowedStart, endTime: narrowedEnd }
+}
+
+// These are editor values; SQL null is represented by IS_NULL, never by a guessed string.
+export function metricDrillFilters(selected, row) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('分组结果行无效')
+  return selected.map(id => {
+    const key = `d_${id}`
+    if (!Object.prototype.hasOwnProperty.call(row, key)) throw new Error('分组键缺失，不能构造下钻条件')
+    const value = row[key]
+    if (value === undefined || value !== null && !['string', 'number', 'boolean'].includes(typeof value)) throw new Error('分组值无效，不能构造下钻条件')
+    if (typeof value === 'number' && !Number.isSafeInteger(value)) throw new Error('分组数值精度不可确认，不能构造下钻条件')
+    return { propertyId: id, operator: value === null ? 'IS_NULL' : 'EQ', value: value === null ? '' : String(value) }
+  })
 }
 
 export function nextMetricDrillDimension(published, selected, filters, timePropertyId) {

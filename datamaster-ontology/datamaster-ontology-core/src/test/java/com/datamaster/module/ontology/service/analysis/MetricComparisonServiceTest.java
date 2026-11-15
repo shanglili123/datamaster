@@ -39,6 +39,21 @@ public class MetricComparisonServiceTest {
         request.getQuery().setFilters(List.of(MetricQueryBuilderTest.filter(3L, "GE", "2026-01-01T00:00:00")));
         rejected(() -> fixture.service.compare(request)); verifyNoInteractions(fixture.guard, fixture.executor);
     }
+    @Test public void shiftedYearUnderflowRejectsBeforePublicationOrSourceAccess() throws Exception {
+        Fixture fixture = new Fixture(); MetricComparisonReqVO request = fixture.request();
+        request.setMode("PREVIOUS_YEAR"); request.getQuery().setStartTime("0001-01-01T00:00:00"); request.getQuery().setEndTime("0001-02-01T00:00:00");
+        rejected(() -> fixture.service.compare(request)); verifyNoInteractions(fixture.metrics, fixture.versions, fixture.guard, fixture.executor);
+    }
+    @Test public void invalidCustomBaselineNeverAuthorizesOrExecutesEitherPeriod() throws Exception {
+        Fixture fixture = new Fixture(); MetricComparisonReqVO request = fixture.request(); request.setMode("CUSTOM");
+        request.setBaselineStartTime("2025-02-30T00:00:00"); request.setBaselineEndTime("2025-03-01T00:00:00");
+        rejected(() -> fixture.service.compare(request));
+        request.setBaselineStartTime("2025-03-02T00:00:00");
+        rejected(() -> fixture.service.compare(request));
+        request.setBaselineStartTime("2025-01-01"); request.setBaselineEndTime("2025-02-01");
+        rejected(() -> fixture.service.compare(request));
+        verifyNoInteractions(fixture.metrics, fixture.versions, fixture.guard, fixture.executor);
+    }
     private static MetricQueryRespVO value(String amount) {
         MetricQueryRespVO response = new MetricQueryRespVO(); response.setTruncated(false); response.setRows(List.of(Map.of("metric_value", amount)));
         MetricQueryColumnVO column = new MetricQueryColumnVO(); column.setKey("metric_value"); column.setDataType("decimal"); response.setColumns(List.of(column)); return response;

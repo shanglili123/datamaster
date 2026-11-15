@@ -260,11 +260,8 @@ public final class ComponentGraphCompiler {
         }
         config.put("incremental", incrementalSources(current, logic, config, upstreamIds));
         if (!list(map(config.get("incremental")).get("sources")).isEmpty()) {
-            if (!"3".equals(text(output.get("writeModeType"))) || list(output.get("selectedColumns")).isEmpty()) {
-                fail("增量阶段必须选择增量更新(Upsert)并配置结果唯一键：" + outputNode.getName());
-            }
-            if (!com.datamaster.common.utils.sql.SqlStatementParser.parse(output.get("preSql")).isEmpty()) {
-                fail("增量阶段不允许配置前置清理 SQL，请使用独立补数任务：" + outputNode.getName());
+            if ("3".equals(text(output.get("writeModeType"))) && list(output.get("selectedColumns")).isEmpty()) {
+                fail("更新写入模式必须配置更新键：" + outputNode.getName());
             }
         }
         Map<String, Object> schema = map(reader.get("schemaMonitoring"));

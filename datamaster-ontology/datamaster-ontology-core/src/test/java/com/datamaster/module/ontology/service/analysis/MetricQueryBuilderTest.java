@@ -10,6 +10,15 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 public class MetricQueryBuilderTest {
+    @Test public void immutableDimensionsAreAcceptedWhileActualNullElementsAreRejected() {
+        MetricRespVO metric = snapshot(); metric.setDimensionPropertyIds(List.of(2L));
+        MetricQueryReqVO request = request(); request.setDimensionPropertyIds(List.of(2L));
+        assertEquals(List.of(2L), MetricQueryBuilder.normalize(request).getDimensionPropertyIds());
+        assertTrue(MetricQueryBuilder.compile(metric, request).getSql().contains("GROUP BY"));
+        request.setDimensionPropertyIds(Arrays.asList(2L, null)); rejected(() -> MetricQueryBuilder.normalize(request));
+        request.setDimensionPropertyIds(List.of(2L)); metric.setDimensionPropertyIds(Arrays.asList(2L, null));
+        rejected(() -> MetricQueryBuilder.compile(metric, request));
+    }
     @Test public void parameterizesInjectionAndUsesExplicitDimensionOrder() {
         MetricRespVO metric = snapshot(); MetricQueryReqVO query = request();
         query.setDimensionPropertyIds(Collections.singletonList(2L));
@@ -81,6 +90,16 @@ public class MetricQueryBuilderTest {
         MetricQueryReqVO req = request(); req.setFilters(Collections.singletonList(filter(2L, "LIKE", "x")));
         rejected(() -> MetricQueryBuilder.compile(snapshot(), req));
     }
+    @Test public void decimalStringsBeyondJavascriptRangeRemainExactAndBounded() {
+        for (String value : List.of("9007199254740993", "1e400", "1e-400", ".50", "+1.", "1e1000", "1e-1000")) {
+            assertEquals(new BigDecimal(value), MetricQueryBuilder.typedValue(value, "decimal"));
+        }
+        for (String value : List.of("0x10", "0b10", "Infinity", "1_000", "1e1001", "1e-1001", "1".repeat(1001))) {
+            rejected(() -> MetricQueryBuilder.typedValue(value, "decimal"));
+        }
+        for (String value : List.of("1.00", "100e-2", "1.20e1", "0.000")) assertEquals(new BigDecimal(value), MetricQueryBuilder.typedValue(value, "integer"));
+        for (String value : List.of("1.20", "1e-1", "100e-3")) rejected(() -> MetricQueryBuilder.typedValue(value, "integer"));
+    }
     @Test public void inAndNullFiltersAreBoundAndValidated() {
         MetricQueryReqVO req = request(); req.setFilters(Collections.singletonList(filter(2L, "IN", Arrays.asList("a", "b"))));
         assertTrue(MetricQueryBuilder.compile(snapshot(), req).getSql().contains("`region` IN (?, ?)"));
@@ -94,6 +113,14 @@ public class MetricQueryBuilderTest {
         rejected(() -> MetricQueryBuilder.compile(snapshot(), req));
         req.setFilters(Collections.singletonList(filter(2L, "IS_NULL", null)));
         assertTrue(MetricQueryBuilder.compile(snapshot(), req).getSql().contains("`region` IS NULL"));
+    }
+    @Test public void emptyTextFilterRemainsBoundAndIsDistinctFromSqlNull() {
+        MetricQueryReqVO request = request(); request.setFilters(List.of(filter(2L, "EQ", "")));
+        MetricQueryBuilder.Plan empty = MetricQueryBuilder.compile(snapshot(), request);
+        assertTrue(empty.getSql().contains("`region` = ?")); assertTrue(empty.getParameters().contains(""));
+        request.setFilters(List.of(filter(2L, "IS_NULL", null)));
+        MetricQueryBuilder.Plan sqlNull = MetricQueryBuilder.compile(snapshot(), request);
+        assertTrue(sqlNull.getSql().contains("`region` IS NULL")); assertFalse(sqlNull.getParameters().contains(""));
     }
     @Test public void capsFixedPlusUserFiltersAndDimensionsAndLimits() {
         MetricRespVO metric = snapshot(); metric.setFixedFilters(Collections.nCopies(21, filter(4L, "EQ", true)));

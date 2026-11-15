@@ -67,6 +67,7 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
     @Resource
     private IAssetsTableGovernanceApiService tableGovernanceApiService;
     @Resource private com.datamaster.module.ontology.service.analysis.OntologyConsumptionContext consumptionContext;
+    @Resource private com.datamaster.common.datasource.mgmt.api.IDatasourceApiService datasources;
 
     @Override
     public ObjectLineageRespVO objectLineage(Long conceptId, Long spaceId, String spaceCode) {
@@ -81,11 +82,19 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
         com.datamaster.module.ontology.dal.dataobject.OntologyDO ontology = consumptionContext.resolve(concept, null, spaceId, spaceCode);
         spaceId = ontology.getSpaceId(); spaceCode = ontology.getSpaceCode();
         // 支撑表绑定：用于数据维度 / 版本维度 / 权限维度上下文
-        ConceptTableDO binding = resolvePrimaryBinding(conceptId);
-        if (binding != null) {
-            respVO.setTableBindingId(binding.getId());
-            respVO.setTableName(binding.getTableName());
+        List<ConceptTableDO> bindings = conceptTableMapper.selectByConceptId(conceptId);
+        if (bindings == null || bindings.size() != 1) {
+            ObjectPermissionVO unknown = new ObjectPermissionVO(); unknown.setAccessible(Boolean.FALSE);
+            unknown.setMessage("概念级血缘快照要求唯一来源绑定；当前无绑定或存在多张来源，不能只核验第一张表后返回完整快照");
+            respVO.setPermission(unknown); return respVO;
         }
+        ConceptTableDO binding = bindings.get(0);
+        if (binding == null || !java.util.Objects.equals(conceptId, binding.getConceptId())) {
+            ObjectPermissionVO invalid = new ObjectPermissionVO(); invalid.setAccessible(Boolean.FALSE); invalid.setMessage("血缘来源绑定归属无效");
+            respVO.setPermission(invalid); return respVO;
+        }
+        respVO.setTableBindingId(binding.getId());
+        respVO.setTableName(binding.getTableName());
 
         // Check before returning snapshots/lineage data; a denied permission summary is not a data permit.
         ObjectPermissionVO permission = buildPermission(binding, spaceId, spaceCode);
@@ -178,7 +187,8 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
 
     private ObjectPermissionVO buildPermission(ConceptTableDO binding, Long spaceId, String spaceCode) {
         ObjectPermissionVO vo = new ObjectPermissionVO();
-        if (binding == null || binding.getDatasourceId() == null || binding.getTableName() == null) {
+        if (binding == null || binding.getDatasourceId() == null || binding.getDatasourceId() <= 0
+                || binding.getTableName() == null || binding.getTableName().isBlank()) {
             vo.setAccessible(Boolean.FALSE);
             vo.setMessage("对象未绑定可解析来源，不能据此确认准入");
             return vo;
@@ -190,11 +200,27 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
         req.setSpaceCode(spaceCode);
         req.setEntrance(ENTRANCE_ONTOLOGY_OBJECT_QUERY);
         try {
+            if (!datasources.hasDatasourceSpace(binding.getDatasourceId(), spaceId, spaceCode)) {
+                vo.setAccessible(Boolean.FALSE);
+                vo.setMessage("血缘来源数据源未有效关联当前本体空间，不能读取历史快照");
+                return vo;
+            }
             AssetsTableGovernanceRespDTO resp = tableGovernanceApiService.resolveTable(req);
+            if (resp == null) {
+                vo.setAccessible(Boolean.FALSE);
+                vo.setMessage("权限/流程核验未返回结论，不能视为放行");
+                return vo;
+            }
             vo.setAccessible(Boolean.TRUE.equals(resp.getAccessAllowed())
                     && (resp.getDeniedColumns() == null || resp.getDeniedColumns().isEmpty())
                     && resp.getAllowedColumns() == null);
-            vo.setMessage(Boolean.TRUE.equals(vo.getAccessible()) ? resp.getMessage() : "血缘包含完整对象快照，部分字段授权不能用于返回全量快照；请使用受控对象查询");
+            if (!Boolean.TRUE.equals(resp.getAccessAllowed())) {
+                vo.setMessage(resp.getMessage() == null || resp.getMessage().isBlank()
+                        ? "当前来源权限或空间流程未通过，不能读取完整血缘快照" : resp.getMessage());
+            } else {
+                vo.setMessage(Boolean.TRUE.equals(vo.getAccessible()) ? resp.getMessage()
+                        : "血缘包含完整对象快照，部分字段授权不能用于返回全量快照；请使用受控对象查询");
+            }
             vo.setDeniedColumns(resp.getDeniedColumns());
             vo.setAllowedColumns(resp.getAllowedColumns());
         } catch (Exception e) {
@@ -205,16 +231,4 @@ public class ObjectLineageServiceImpl implements IObjectLineageService {
         return vo;
     }
 
-    // ==================== 工具 ====================
-
-    private ConceptTableDO resolvePrimaryBinding(Long conceptId) {
-        if (conceptId == null) {
-            return null;
-        }
-        List<ConceptTableDO> bindings = conceptTableMapper.selectByConceptId(conceptId);
-        if (bindings == null || bindings.isEmpty()) {
-            return null;
-        }
-        return bindings.get(0);
-    }
 }

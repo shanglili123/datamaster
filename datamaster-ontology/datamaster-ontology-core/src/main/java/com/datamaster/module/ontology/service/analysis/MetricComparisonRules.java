@@ -34,6 +34,8 @@ public final class MetricComparisonRules {
             } else if ("PREVIOUS_YEAR".equals(mode)) { beforeStart = start.minusYears(1); beforeEnd = end.minusYears(1); }
             else if ("PREVIOUS_MONTH".equals(mode)) { beforeStart = start.minusMonths(1); beforeEnd = end.minusMonths(1); }
             else { beforeEnd = start; beforeStart = start.minus(Duration.between(start, end)); }
+            require(beforeStart.getYear() >= 1 && beforeStart.getYear() <= 9999
+                    && beforeEnd.getYear() >= 1 && beforeEnd.getYear() <= 9999, "比较区间平移后超出0001至9999年，请明确自定义区间");
             require(beforeStart.isBefore(beforeEnd), "比较区间为空或日期平移后不合法，请明确自定义区间");
             baseline.setStartTime(format(beforeStart, dateOnly)); baseline.setEndTime(format(beforeEnd, dateOnly));
             MetricPeriodBucketRules.validate(current, baseline);
@@ -43,7 +45,11 @@ public final class MetricComparisonRules {
         }
     }
     private static LocalDateTime parse(String value, boolean dateOnly) {
-        return dateOnly ? LocalDate.parse(value).atStartOfDay() : LocalDateTime.parse(value);
+        require(value != null && value.matches(dateOnly ? "[0-9]{4}-[0-9]{2}-[0-9]{2}"
+                : "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]{1,9})?)?"), "比较区间须为严格ISO业务本地日期或时间");
+        LocalDateTime result = dateOnly ? LocalDate.parse(value).atStartOfDay() : LocalDateTime.parse(value);
+        require(result.getYear() >= 1 && result.getYear() <= 9999, "比较日期仅支持0001至9999年");
+        return result;
     }
     private static String format(LocalDateTime value, boolean dateOnly) { return dateOnly ? value.toLocalDate().toString() : value.toString(); }
     /** Dimension filters apply unchanged to both periods; time filters must not pin the baseline to current dates. */
@@ -78,7 +84,9 @@ public final class MetricComparisonRules {
         List<MetricQueryColumnVO> columns = new ArrayList<>(dimensions);
         columns.add(column("current_value", "本期值", "decimal")); columns.add(column("baseline_value", "基期值", "decimal"));
         columns.add(column("difference", "差值（本期−基期）", "decimal")); columns.add(column("change_percent", "变化率（%）", "decimal"));
-        result.setColumns(columns); result.setRows(new ArrayList<>(aligned.values()));
+        List<Map<String,Object>> orderedRows = new ArrayList<>(aligned.values());
+        orderedRows.sort(MetricGroupIdentity.ascending(dimensions));
+        result.setColumns(columns); result.setRows(orderedRows);
         result.setDifference(null); result.setChangePercent(null);
         if (!result.isGrouped()) {
             require(result.getRows().size() == 1, "两期总量返回结构异常");

@@ -53,5 +53,11 @@ public final class MetricTrendRules {
         require("YEAR".equals(grain), "趋势分桶粒度无效"); return LocalDate.of(value.getYear(), 1, 1).atStartOfDay();
     }
     private static LocalDateTime next(LocalDateTime value, String grain) { return "DAY".equals(grain) ? value.plusDays(1) : "MONTH".equals(grain) ? value.plusMonths(1) : value.plusYears(1); }
-    private static String label(LocalDateTime value, String grain) { return "DAY".equals(grain) ? value.toLocalDate().toString() : "MONTH".equals(grain) ? YearMonth.from(value).toString() : Year.from(value).toString(); }
+    private static String label(LocalDateTime value, String grain) { return calendarLabel(value.toLocalDate(), grain); }
+    static String calendarLabel(LocalDate value, String grain) {
+        if ("DAY".equals(grain)) return value.toString();
+        if ("MONTH".equals(grain)) return YearMonth.from(value).toString();
+        require("YEAR".equals(grain), "时间桶粒度无效");
+        return String.format(Locale.ROOT, "%04d", value.getYear());
+    }
 }

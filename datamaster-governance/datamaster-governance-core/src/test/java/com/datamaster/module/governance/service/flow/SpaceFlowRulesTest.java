@@ -44,7 +44,8 @@ public class SpaceFlowRulesTest {
         assertEquals(true, changed.get("definitionChanged"));
         assertEquals(List.of(), changed.get("addedRequirements"));
         assertEquals(List.of(), changed.get("removedRequirements"));
-        assertFalse(((List<?>) changed.get("addedEdges")).isEmpty());
+        assertEquals(List.of("ASSET → ANALYSIS", "ASSET → API", "METADATA → QUALITY", "QUALITY → ASSET"), changed.get("addedEdges"));
+        assertEquals(List.of("ASSET → QUALITY", "METADATA → ASSET", "QUALITY → ANALYSIS", "QUALITY → API"), changed.get("removedEdges"));
     }
     @Test public void validatesBoundedLayoutWithoutTreatingItAsPolicyChange() {
         Definition draft = chain("METADATA", "ASSET"); Position position = new Position(); position.setX(20D); position.setY(50D);
