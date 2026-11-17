@@ -1,5 +1,16 @@
 # DataMaster 一键部署
 
+## 当前部署范围与更新边界
+
+- 后端继续使用单个 `datamaster-server.jar` + systemd，前端 `dist` 由 Nginx 提供；不按 Maven 业务模块拆分服务。
+- 2026-11-16 已按用户要求使用 `sql/backup_database.py` 从当前开发库导出，并原样替换 `deploy/packages/sql/datamaster.sql`：231 张表、48,371 行数据，未清洗或过滤，未执行恢复验证。导出包含现有用户、数据源配置、日志及测试数据，仅按已确认范围用于当前部署，不应未经审阅作为对外通用安装包发布。
+- 全量 SQL 只导入空库；已有用户对象的库跳过全量导入，不自动删表/重灌。正常应用更新建议只选 `datamaster_app_servers,nginx_servers`。
+- PostgreSQL 容器使用自带 `psql` 导入，支持 `COPY FROM stdin`；主部署不再调用初始化 JAR，也不要求 PostgreSQL 主机安装 Java。
+- Redis 容器内固定 `6379`，宿主端口由 `redis_port` 控制；服务端和应用使用同一密码，健康检查执行认证 PING。
+- Nginx 对 `/prod-api/ai/ask-data/chat/stream`、`/prod-api/ai/ask-data/dbgpt/chat/stream` 单独关闭代理缓冲，普通 API 保持原配置。
+- DB-GPT 容器直接启动镜像内程序，不在启动时安装 Python 依赖；离线镜像须提前包含 `psycopg2-binary` 等所需依赖。
+- 不改模型动态路由、指标授权等业务能力，不调整旧 Docker 构建脚本或 ingestion 子部署脚本。
+
 主入口是 Bash 脚本：
 
 ```bash
@@ -142,8 +153,7 @@ deploy/packages
 │   ├── dbgpt-openai-latest.tar
 │   ├── datamaster-server.jar
 │   ├── dist/
-│   ├── apache-dolphinscheduler-<dolphinscheduler_version>-bin.tar.gz
-│   └── datamaster-db-init.jar
+│   └── apache-dolphinscheduler-<dolphinscheduler_version>-bin.tar.gz
 ├── soft
 │   ├── chunjun/
 │   └── flink/
@@ -159,7 +169,6 @@ postgresql_image_tar: postgres-15.8-alpine.tar
 redis_image_tar: redis-6-alpine.tar
 dolphinscheduler_version: "3.4.1"
 dolphinscheduler_install_tgz: apache-dolphinscheduler-{{ dolphinscheduler_version }}-bin.tar.gz
-database_init_jar_src: packages/components/datamaster-db-init.jar
 postgresql_init_sql_src: packages/sql/datamaster.sql
 dolphinscheduler_init_sql_src: packages/sql/dolphinscheduler.sql
 soft_package_src: packages/soft
@@ -169,8 +178,7 @@ soft_package_src: packages/soft
 
 - `components/*.tar`：存在则上传到远程 `{{ base_dir }}/packages` 并执行 `docker load -i`；不存在则跳过，继续使用服务器已有镜像。
 - `components/*.tar.gz`：上传到远程 `{{ base_dir }}/packages`，DolphinScheduler 安装脚本会自动解压。
-- `components/datamaster-db-init.jar`：上传到远程后执行，用于创建数据库、用户并导入 SQL。
-- `sql/datamaster.sql` 和 `sql/dolphinscheduler.sql`：上传到远程 `{{ base_dir }}/init-sql` 后由初始化 jar 导入。
+- `sql/datamaster.sql` 和 `sql/dolphinscheduler.sql`：以受限权限上传到远程 `{{ base_dir }}/init-sql`，由 PostgreSQL 容器内的 `psql` 仅向空库导入；不需要 `datamaster-db-init.jar`。
 - `soft/chunjun/` 和 `soft/flink/`：目录里有实际文件时上传到远程 `{{ base_dir }}/soft`。
 - 文件通过 SSH 用户可写的 `/tmp/datamaster-deploy-file.*` 临时文件上传，再由 sudo `install` 写入最终路径；目录通过 `/tmp/datamaster-deploy-dir.*` 暂存后由 sudo 替换目标目录。部署失败时可能残留临时文件/目录，应由运维按命名前缀清理。
 
@@ -193,9 +201,8 @@ ingestion 消费代码随 DataMaster server 运行；Kafka、Doris 集群单独�
 1. 读取 `deploy/deploy.yml`，把模板里的 `{{ variable }}` 替换成实际值。
 2. 通过 `ssh`/`scp` 连接每台目标机器，创建 `base_dir` 下的组件目录。
 3. 部署 PostgreSQL：上传镜像 tar 并 `docker load`，再用 `docker run` 启动 PG。
-4. 初始化数据库：上传 `datamaster-db-init.jar`、`datamaster.sql`、`dolphinscheduler.sql`，然后执行 jar 创建库、用户并导入 SQL；部署脚本会把种子任务中旧的 DataMaster `:8080` 回调地址重写为当前 `datamaster_app_ip:datamaster_server_port`，再写入 DS tenant 和 DS API token。
-5. 应用业务升级 SQL：`deploy.yml` 默认配置为执行六个逗号分隔的迁移文件：[`sql/update_20261012_ingestion_reliability.sql`](../sql/update_20261012_ingestion_reliability.sql)、[`sql/update_20261013_asset_operate_apply_workflow.sql`](../sql/update_20261013_asset_operate_apply_workflow.sql)、[`sql/update_20261013_ingestion_permissions.sql`](../sql/update_20261013_ingestion_permissions.sql)、[`sql/update_20261014_workflow_alert_template.sql`](../sql/update_20261014_workflow_alert_template.sql)、[`sql/update_20261015_workflow_compensation_status.sql`](../sql/update_20261015_workflow_compensation_status.sql) 和 [`sql/update_20261016_workflow_version.sql`](../sql/update_20261016_workflow_version.sql)。脚本会按顺序上传并执行；如需关闭可将 `postgresql_app_upgrade_sql_src` 置空。接入监控使用 `/ingestion/metrics`，支持用 `/ingestion/pause`、`/ingestion/resume` 做维护期优雅启停，死信支持单条和批量重放；数据资产申请支持提交、审批、驳回和执行状态流转；Workflow 失败和人工对账状态会向运行发起人发送站内告警。Workflow 人工补偿计划复用现有动作执行表和审批链，迁移只增加运行汇总状态字段；部署后可通过 `/ont/workflow/runs/{runId}/compensate` 发起，补偿动作不会自动执行。Workflow 发布版本迁移会创建不可变定义快照表，历史版本回滚只生成草稿，不会直接覆盖线上版本。
-补偿状态为 `FAILED` 或 `PARTIAL` 时，可通过 `/ont/workflow/runs/{runId}/compensate/retry` 重新提交明确失败/驳回的补偿动作；需人工对账的补偿不会被脚本自动重放。
+4. 准备数据库：通过容器内 `psql` 创建缺失的用户和数据库，分别判断业务库/DS 库是否为空；仅向空库导入完整 SQL。已有用户对象则跳过，不修改已有数据库所有者或重置已有用户密码。DS 新装成功后才进行旧回调地址适配；部署仍会按配置写入 DS tenant/API token，因此重部署 PostgreSQL 组并非完全只读。
+5. 可选业务升级 SQL：`postgresql_app_upgrade_sql_src` 默认空，完整新基线不再重复执行历史六份增量。只有现场明确需要升级已有库时，才填写经过审核且尚未执行的脚本（逗号分隔）；脚本不会自动推断迁移状态。
 6. 部署 Redis：上传镜像 tar、生成 `redis.conf`，再用 `docker run` 启动 Redis。
 7. 部署 DolphinScheduler：上传 tar 包、Chunjun、Flink，解压后自动修改 DS 数据源、JDBC 注册中心和运行环境，再生成 systemd 服务。
 8. 部署 DB-GPT：上传镜像 tar 并用 `docker run` 启动 `datamaster-dbgpt`。
@@ -295,21 +302,24 @@ backend: app, datamaster-server
 
 > 注意：`service.sh` 只负责远程 Docker/systemd 启停，不会自动检查端口、磁盘、Docker 镜像 tag、Java/Python 版本或数据库备份。上线前请结合根目录的 [`docs/项目现状与缺陷分析.md`](../docs/项目现状与缺陷分析.md) 完成环境核对。
 
-## 初始化 jar
+## 完整数据库 SQL 与初始化
 
-重新生成数据库初始化 jar：
+主部署使用 PostgreSQL 镜像自带 `psql`，不再调用 `deploy/db-init` 的 JDBC 分号执行器。历史初始化工具源码/构建入口保留，但不是当前主部署步骤。
+
+请从已完成结构更新的数据库导出完整普通文本 SQL，包含结构及所需初始化数据，例如在有 PostgreSQL 客户端的环境中执行（连接信息通过安全方式配置，不在命令中写密码）：
 
 ```bash
-./deploy/build-db-init.sh
+pg_dump --format=plain --no-owner --no-privileges --file=datamaster.sql datamaster
 ```
 
-jar 会初始化：
+将审核后的文件替换到 `deploy/packages/sql/datamaster.sql`。导出中不要包含 `--create` 产生的建库/切库指令、额外 `BEGIN/COMMIT`、角色/所有者切换或只能在超级用户下恢复的内容；客户端版本应与目标 PostgreSQL 15 兼容。允许默认的 `COPY FROM stdin`，不必强制转换成 INSERT。排除实际密钥、不需要的业务/测试数据；不要把生产全量数据作为通用安装包提交。
 
-- 业务库：`datamaster`
-- DS 库：`dolphinscheduler`
-- 业务用户：`datamaster/datamaster`
+业务库和 DS 库分别检查：只要存在用户表、视图、序列、函数或类型等对象，就不执行对应的完整 SQL。空库导入在同一事务内检查并执行，使用事务级 advisory lock 防止本脚本并发重复导入；失败即退出，不继续部署。该锁不能阻止其他工具同时操作数据库，初始化期间仍须避免外部写入。
 
-PG 容器管理员账号默认是 `postgres/postgres`，只用于初始化。
+- 默认 `postgresql_app_upgrade_sql_src: ""`，不重复执行已包含在完整基线中的历史迁移。
+- 已有库不会被完整 SQL 更新；需要变更时人工备份后选择明确的升级 SQL，不通过删库重灌升级。
+- 已存在用户的密码和数据库所有者不会被重置；配置必须与现场实际值一致，密码轮换另行处理。
+- 文件备份不等于数据库备份；恢复数据库必须另行明确授权执行。
 
 DS API token 不需要提前知道。`deploy.yml` 里的 `dolphinscheduler_token` 留空时，脚本会第一次运行时生成：
 
@@ -386,7 +396,7 @@ docker load -i {{ remote_package_dir }}/postgres-15.8-alpine.tar
 日志目录：{{ postgresql_log_dir }} -> /var/log/postgresql
 ```
 
-PG 启动后，脚本会等待 `pg_isready` 成功，再执行数据库初始化 jar。
+PG 启动后，脚本等待 `pg_isready` 成功，使用容器内 `psql` 创建缺失用户/库，再仅向空库导入完整 SQL。不会调用初始化 JAR，也不会在已有库重新执行全量 dump。
 
 ## Redis 执行流程
 
@@ -421,11 +431,13 @@ bind 0.0.0.0
 port 6379
 appendonly yes
 dir /data
-logfile /logs/redis.log
-requirepass {{ redis_password }}
+logfile ""
+requirepass "<经过转义的 redis_password>"
 ```
 
-如果 `redis_password` 为空，就不会写 `requirepass`。最后会删除旧容器并重新启动：
+`redis_port` 只控制宿主端口，容器内固定监听 `6379`。密码以字符串转义后同时下发 Redis 服务端、Spring Redis 和 DS Redis 客户端，避免空格、引号、`#` 等改变配置含义。空密码渲染为 `requirepass ""`，仅用于明确隔离的开发环境，生产预检仍拒绝空密码。健康检查通过 `REDISCLI_AUTH` 执行真实 PING，不再因配置了密码就跳过认证检查；命令展示会脱敏。
+
+最后会删除旧容器并重新启动：
 
 ```text
 容器名：datamaster-redis
@@ -538,18 +550,19 @@ dbgpt_image_tar_src: packages/components/dbgpt-openai-latest.tar
 
 `dashscope_api_key` 会注入为 `DASHSCOPE_API_KEY`。如果现场不用通义代理模型，需要同步调整 `dbgpt_image` 或 DB-GPT 启动命令。
 
+容器直接执行 `dbgpt start webserver --config /app/configs/dbgpt-proxy-tongyi.toml`，启动时不再执行 `pip install`。离线镜像必须提前包含 PostgreSQL 驱动 `psycopg2-binary` 及该版本所需依赖；本次脚本修改未构建或检查镜像内容。
+
 ## DataMaster Server 执行流程
 
 主服务当前使用 `java -jar` + systemd 部署，不使用 DataMaster 后端容器。
 
-DataMaster 2.0 的主服务和重新构建的数据库初始化工具要求 Java 17+。部署前分别在后端主机、PostgreSQL 主机安装兼容的 JDK/JRE，并在 `deploy.yml` 中填写实际存在的绝对路径：
+DataMaster 2.0 主服务要求 Java 17+。部署前在后端主机安装兼容的 JDK/JRE，并在 `deploy.yml` 中填写实际存在的绝对路径：
 
 ```yaml
 datamaster_java_bin: /opt/jdks/jdk-17/bin/java
-database_init_java_bin: /opt/jdks/jdk-17/bin/java
 ```
 
-两项路径允许不同，示例目录不会由脚本自动安装。预检和实际部署都会检查所选 Java 的版本，后端使用该路径生成 systemd `ExecStart`，初始化工具使用另一项显式执行；不会修改系统 `PATH`、`JAVA_HOME` 或 DolphinScheduler/Flink/CHUNJUN 的 JVM。旧版自定义 `deploy.yml` 必须补充这两个键。
+示例目录不会由脚本自动安装。预检和实际部署都会检查所选 Java 的版本，后端使用该路径生成 systemd `ExecStart`；不会修改系统 `PATH`、`JAVA_HOME` 或 DolphinScheduler/Flink/CHUNJUN 的 JVM。PostgreSQL 初始化已改用容器内 `psql`，不再读取 `database_init_java_bin` 或 `database_init_jar_src`，旧私有配置中的这两个键可移除。
 
 脚本会创建远程目录：
 
@@ -571,7 +584,7 @@ datamaster_server_jar_src: packages/components/datamaster-server.jar
 {{ app_jar_path }}
 ```
 
-脚本会根据 `deploy/templates/datamaster-server-application-prod.yml.j2` 生成：
+脚本只使用 `deploy/config/datamaster-server-application-prod.yml.j2` 生成：
 
 ```text
 {{ app_conf_dir }}/application-prod.yml
@@ -613,7 +626,9 @@ AI_SKILL_MODEL_API_KEY
 ## 配置文件
 
 - 统一配置：`deploy/deploy.yml`
-- 主服务配置模板：`deploy/config`（脚本优先使用）；其他组件模板：`deploy/templates`
+- 应用、systemd、Nginx 配置模板：`deploy/config`，脚本显式读取该目录，不回退到旧副本。
+- Redis、DolphinScheduler 安装模板：`deploy/templates`。
+- `deploy/templates/datamaster-server-application-prod.yml.j2` 仅保留旧路径说明，不再保存第二份应用配置。
 
 `deploy/deploy.yml` 同时声明 SSH 目标、组件 IP、端口、镜像、账号密码、组件目录。远程统一部署根目录也在这里：
 

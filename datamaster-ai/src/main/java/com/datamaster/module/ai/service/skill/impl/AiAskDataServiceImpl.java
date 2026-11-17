@@ -78,6 +78,8 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
 
     @Resource
     private DbGptProperties dbGptProperties;
+    @Resource
+    private com.datamaster.module.ai.service.dbgpt.DbGptModelSelectionService dbGptModels;
 
     private static final Pattern SQL_BLOCK_PATTERN = Pattern.compile(
             "(?i)```sql\\s*\\n?([\\s\\S]*?)\\s*```");
@@ -97,13 +99,13 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
                 // pass through — let AI handle it
             }
         DbGptChatCompletionRequest gptRequest = new DbGptChatCompletionRequest();
-        gptRequest.setModel(firstNonBlank(reqVO.getModel(), dbGptProperties.getModel()));
+        gptRequest.setModel(dbGptModels.resolve(userId, reqVO.getSpaceId(), reqVO.getSpaceCode(), reqVO.getModelProfileId(), reqVO.getModel()));
         gptRequest.setTemperature(0.6);
         gptRequest.setMaxTokens(4000);
         gptRequest.setStream(false);
         gptRequest.setChatMode(firstNonBlank(reqVO.getChatMode(), dbGptProperties.getChatMode()));
         gptRequest.setSpaceName(dbGptProperties.getSkillSpaceName());
-        gptRequest.setConvUid(buildConversationUid(reqVO.getConversationId(), "datamaster-ai-"));
+        gptRequest.setConvUid(dbGptModels.conversation(userId, reqVO.getSpaceId(), reqVO.getSpaceCode(), reqVO.getConversationId(), "datamaster-ai-"));
         Long datasourceId = reqVO.getDatasourceId();
         if (reqVO.getDatasourceId() != null) {
             DatasourceDO datasource = datasourceMgmtService.getDatasourceDOById(reqVO.getDatasourceId());
@@ -188,7 +190,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
                 }
 
                 StringBuilder fullReply = new StringBuilder();
-                DbGptChatCompletionRequest gptRequest = buildDbGptAskRequest(reqVO, true, userPermissionLevel);
+                DbGptChatCompletionRequest gptRequest = buildDbGptAskRequest(reqVO, true, userPermissionLevel, requestUserId);
                 dbGptClientService.chatCompletionV1Stream(gptRequest, chunk -> {
                     fullReply.append(chunk);
                 });
@@ -359,7 +361,7 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         }
         checkDatasourceAccess(reqVO.getDatasourceId(), reqVO.getSpaceId(), reqVO.getSpaceCode(), userId);
         AiSkillReportTemplateDO template = resolveReportTemplate(reqVO);
-        DbGptChatCompletionRequest gptRequest = buildDbGptReportRequest(reqVO, template);
+        DbGptChatCompletionRequest gptRequest = buildDbGptReportRequest(reqVO, template, userId);
 
         AiAskDataReportRespVO respVO = new AiAskDataReportRespVO();
         respVO.setQuestion(reqVO.getQuestion());
@@ -450,15 +452,15 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         return false;
     }
 
-    private DbGptChatCompletionRequest buildDbGptReportRequest(AiAskDataReportReqVO reqVO, AiSkillReportTemplateDO template) {
+    private DbGptChatCompletionRequest buildDbGptReportRequest(AiAskDataReportReqVO reqVO, AiSkillReportTemplateDO template, Long userId) {
         DbGptChatCompletionRequest gptRequest = new DbGptChatCompletionRequest();
-        gptRequest.setModel(firstNonBlank(reqVO.getModel(), dbGptProperties.getModel()));
+        gptRequest.setModel(dbGptModels.resolve(userId, reqVO.getSpaceId(), reqVO.getSpaceCode(), reqVO.getModelProfileId(), reqVO.getModel()));
         gptRequest.setTemperature(0.4);
         gptRequest.setMaxTokens(6000);
         gptRequest.setStream(false);
         gptRequest.setChatMode(dbGptProperties.getChatMode());
         gptRequest.setSpaceName(dbGptProperties.getSkillSpaceName());
-        gptRequest.setConvUid(buildConversationUid(reqVO.getConversationId(), "datamaster-ai-"));
+        gptRequest.setConvUid(dbGptModels.conversation(userId, reqVO.getSpaceId(), reqVO.getSpaceCode(), reqVO.getConversationId(), "datamaster-ai-"));
 
         DatasourceDO datasource = datasourceMgmtService.getDatasourceDOById(reqVO.getDatasourceId());
         if (datasource == null) {
@@ -603,15 +605,15 @@ public class AiAskDataServiceImpl implements IAiAskDataService {
         }
     }
 
-    private DbGptChatCompletionRequest buildDbGptAskRequest(AiAskDataSqlReqVO reqVO, boolean stream, Long userPermissionLevel) {
+    private DbGptChatCompletionRequest buildDbGptAskRequest(AiAskDataSqlReqVO reqVO, boolean stream, Long userPermissionLevel, Long userId) {
         DbGptChatCompletionRequest gptRequest = new DbGptChatCompletionRequest();
-        gptRequest.setModel(firstNonBlank(reqVO.getModel(), dbGptProperties.getModel()));
+        gptRequest.setModel(dbGptModels.resolve(userId, reqVO.getSpaceId(), reqVO.getSpaceCode(), reqVO.getModelProfileId(), reqVO.getModel()));
         gptRequest.setTemperature(0.6);
         gptRequest.setMaxTokens(4000);
         gptRequest.setStream(stream);
         gptRequest.setChatMode(firstNonBlank(reqVO.getChatMode(), dbGptProperties.getChatMode()));
         gptRequest.setSpaceName(dbGptProperties.getSkillSpaceName());
-        gptRequest.setConvUid(buildConversationUid(reqVO.getConversationId(), "datamaster-ai-"));
+        gptRequest.setConvUid(dbGptModels.conversation(userId, reqVO.getSpaceId(), reqVO.getSpaceCode(), reqVO.getConversationId(), "datamaster-ai-"));
         if (reqVO.getDatasourceId() != null) {
             DatasourceDO datasource = datasourceMgmtService.getDatasourceDOById(reqVO.getDatasourceId());
             if (datasource != null) {

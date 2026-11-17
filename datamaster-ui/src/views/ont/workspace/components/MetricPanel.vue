@@ -12,6 +12,7 @@
       <a-select v-model:value="query.status" :options="statuses" placeholder="全部状态" allow-clear style="width: 150px" @change="search" />
       <a-button @click="search">查询</a-button>
       <a-button type="primary" v-hasPermi="['ont:metric:add']" @click="openCreate">新增指标</a-button>
+      <a-button v-if="canManageSources" @click="openSourceConfig">查询来源配置</a-button>
     </div>
     <a-table :columns="columns" :data-source="rows" :loading="loading" row-key="id" :pagination="false" :scroll="{ x: 1150 }">
       <template #bodyCell="{ column, record }">
@@ -111,11 +112,16 @@ import { listProperty } from '@/api/ont/property'
 import { listPropertyColumn } from '@/api/ont/propertyColumn'
 import AnalysisFlowNavigation from '@/components/AnalysisFlowNavigation.vue'
 import { useAnalysisNavigation } from '@/utils/analysisNavigation'
+import { checkPermi } from '@/utils/permission'
+import useUserStore from '@/store/system/user'
 import { metricFilterScalar } from '@/utils/metricFilter'
 import { addMetric, updateMetric, getMetric, listMetric, delMetric, validateMetric, publishMetric, disableMetric, listMetricVersions, getMetricVersion, restoreMetricDraft } from '@/api/ont/metric'
 
 const props = defineProps({ ontologyId: { type: [String, Number], required: true } })
-const { openMetricAnalysis } = useAnalysisNavigation()
+const { openMetricAnalysis, open } = useAnalysisNavigation()
+const sourceUser = useUserStore()
+const canManageSources = computed(() => checkPermi(['ont:metric-source:query', 'ont:metric-source:approve', 'ont:metric-source:revoke']))
+function openSourceConfig() { return open(`/ont/workspace/${props.ontologyId}`, { spaceId: String(sourceUser.spaceId || ''), tab: 'metric-source' }) }
 const recentlyPublished = ref(null)
 function tryMetric(row) { return openMetricAnalysis({ ontologyId: props.ontologyId, metricId: row.id, version: row.publishedVersion }) }
 const rows = ref([])

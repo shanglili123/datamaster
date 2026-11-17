@@ -90,7 +90,7 @@ public class AskMetricAgentService {
             boolean readOnly = Boolean.TRUE.equals(context.getAttributes().get("decisionReadOnly"));
             if (tools.size() != TOOLS.size() - (readOnly ? 1 : 0)) throw new IllegalStateException("Metric tools not available");
             MetricAssistant assistant = AiServices.builder(MetricAssistant.class).chatModel(model)
-                    .chatMemory(memory).tools(tools)
+                    .chatMemory(memory).toolProvider(new MetricAnalysisToolProvider(tools, operation.getId()))
                     .toolExecutionErrorHandler(ToolExecutionErrorHandler.failInvocation()).build();
             checkCancelled(cancelled);
             String text = assistant.chat("可信当前时间(UTC)=" + Instant.now() + "；业务时区未配置，不能据此猜相对日期。"

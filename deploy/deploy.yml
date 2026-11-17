@@ -92,8 +92,10 @@ datamaster_java_bin: "/opt/jdks/jdk-17/bin/java"
 
 # * Must confirm: PostgreSQL port, admin account, business database, and business user.
 # * 必须确认：PostgreSQL 端口、管理员账号、业务库名、业务用户名。
-# * The init jar uses these values to create databases/users and import SQL.
-# * 初始化 jar 会用这些值创建数据库/用户并导入 SQL。
+# * Complete plain-text pg_dump baseline: schema plus required seed data.
+# * 完整 SQL 由当前数据库重新导出；仅对空库导入，已有对象的库不会重灌。
+# * Use --format=plain --no-owner --no-privileges; do not use --create or transaction wrappers.
+# * 使用普通文本格式，不包含建库/切库、所有者/权限及额外事务控制语句。
 postgresql_port: 5432
 postgresql_admin_database: postgres
 postgresql_admin_user: postgres
@@ -102,24 +104,21 @@ postgresql_database: datamaster
 postgresql_user: datamaster
 postgresql_password: "datamaster"
 postgresql_init_sql_src: "packages/sql/datamaster.sql"
-# 可重复执行的应用增量迁移，多个文件用逗号分隔。
-postgresql_app_upgrade_sql_src: "../sql/update_20261012_ingestion_reliability.sql,../sql/update_20261013_asset_operate_apply_workflow.sql,../sql/update_20261013_ingestion_permissions.sql,../sql/update_20261014_workflow_alert_template.sql,../sql/update_20261015_workflow_compensation_status.sql,../sql/update_20261016_workflow_version.sql"
+# Optional, explicitly reviewed upgrades only; full baselines already include historical changes.
+# 默认不再执行历史增量；已有库需要升级时，仅显式填写审阅过的脚本，逗号分隔。
+postgresql_app_upgrade_sql_src: ""
 
-# * Must confirm: database initialization jar and SQL files.
-# * 必须确认：数据库初始化 jar 和 SQL 文件。
-# * These paths are local paths relative to deploy/. The script uploads them before initialization.
-# * 这些是相对于 deploy/ 的本地路径，脚本会在初始化前上传到远程。
-database_init_jar_src: "packages/components/datamaster-db-init.jar"
-# Java 17 executable on PostgreSQL hosts that run the initialization tool.
-# 在执行初始化工具的 PostgreSQL 主机上单独确认此路径。
-database_init_java_bin: "/opt/jdks/jdk-17/bin/java"
+# SQL paths are relative to deploy/. Import uses psql inside the PostgreSQL container.
+# SQL 路径相对于 deploy/；主部署不再需要初始化 jar 或 PostgreSQL 主机 Java。
 dolphinscheduler_database: dolphinscheduler
 dolphinscheduler_init_sql_src: "packages/sql/dolphinscheduler.sql"
 
 # * Must confirm: Redis port and password.
 # * 必须确认：Redis 端口和密码。
-# * Empty password means Redis auth is disabled; app config and Redis config must stay consistent.
-# * 密码为空表示不启用 Redis 认证；应用配置和 Redis 配置必须保持一致。
+# * redis_port is the host port; the container always listens on 6379.
+# * redis_port 仅为宿主映射端口；容器内始终监听 6379。
+# * Empty password disables authentication in isolated dev only; production preflight rejects it.
+# * 空密码只用于隔离开发环境；生产预检拒绝空密码，服务端与应用使用同一密码。
 redis_port: 6379
 redis_password: ""
 

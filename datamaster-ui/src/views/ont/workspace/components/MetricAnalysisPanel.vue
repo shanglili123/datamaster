@@ -1,7 +1,7 @@
 <template>
   <div class="metric-analysis-panel">
     <AnalysisFlowNavigation stage="analysis" :ontology-id="ontologyId" :disabled="executing || handoffBusy" />
-    <a-alert type="info" show-icon message="按已发布版本开展指标分析" description="仅查询已授权并批准的只读来源；后台执行默认关闭。保存的是分析条件，不保存结果。支持服务端排序、完整有界趋势、分页、日/月/年分桶、两期总量/分组/时间桶与受限同源多指标比较；不支持跨库 JOIN 或 BI 看板嵌入。" />
+    <a-alert type="info" show-icon message="按已发布版本开展指标分析" description="仅查询已授权并批准的只读来源；来源由查询来源配置页面管理，未批准默认拒绝。保存的是分析条件，不保存结果。支持服务端排序、完整有界趋势、分页、日/月/年分桶、两期总量/分组/时间桶与受限同源多指标比较；不支持跨库 JOIN 或 BI 看板嵌入。" />
     <div class="analysis-toolbar">
       <a-select v-model:value="savedId" :options="savedOptions" :loading="savedLoading" allow-clear show-search option-filter-prop="label" placeholder="加载我的分析" style="width: 280px" @change="loadSaved" />
       <a-button @click="resetAnalysis">新分析</a-button>
@@ -17,6 +17,9 @@
           <a-col :xs="24" :md="6"><a-form-item label="每页分组数 / TopN"><a-input-number v-model:value="spec.limit" :min="1" :max="500" style="width: 100%" /></a-form-item></a-col>
         </a-row>
         <template v-if="snapshot">
+          <a-alert v-if="sourceStatus || sourceStatusError" :type="sourceStatus?.available ? 'info' : 'warning'" show-icon :message="sourceStatusError || sourceStatus?.notice" style="margin-bottom: 16px">
+            <template #action><a-space><a-button :loading="sourceStatusLoading" @click="loadSourceStatus">刷新状态</a-button><a-button v-if="canManageSources" @click="openSourceConfig">查询来源配置</a-button></a-space></template>
+          </a-alert>
           <a-descriptions bordered size="small" :column="2" style="margin-bottom: 16px">
             <a-descriptions-item label="口径">{{ snapshot.description }}</a-descriptions-item>
             <a-descriptions-item label="计算">{{ snapshot.aggregation }} / {{ snapshot.unit }}</a-descriptions-item>
@@ -112,13 +115,18 @@ import { metricTemporalRange } from '@/utils/metricTemporal'
 import { checkPermi } from '@/utils/permission'
 import { listPublishedMetric, listMetricVersions, getMetricVersion } from '@/api/ont/metric'
 import { loadPagedOptions } from '@/api/ont/metricOptions'
+import { getMetricSourceStatus } from '@/api/ont/metricSourceApproval'
+import useUserStore from '@/store/system/user'
 import { queryMetric, listMetricAnalysis, getMetricAnalysis, addMetricAnalysis, updateMetricAnalysis, delMetricAnalysis } from '@/api/ont/metricAnalysis'
 
 const props = defineProps({
   ontologyId: { type: [String, Number], required: true },
   initialSelection: { type: Object, default: null }
 })
-const { openManualDecision } = useAnalysisNavigation()
+const { openManualDecision, open } = useAnalysisNavigation()
+const sourceUser = useUserStore()
+const canManageSources = computed(() => checkPermi(['ont:metric-source:query', 'ont:metric-source:approve', 'ont:metric-source:revoke']))
+function openSourceConfig() { return open(`/ont/workspace/${props.ontologyId}`, { spaceId: String(sourceUser.spaceId || ''), tab: 'metric-source' }) }
 const queryPage = ref(1)
 const drillHistory = ref([])
 const lastExecutedQuery = ref(null)
@@ -128,6 +136,22 @@ const spec = ref(emptySpec())
 const metrics = ref([])
 const versions = ref([])
 const snapshot = ref(null)
+const sourceStatus = ref(null), sourceStatusError = ref(''), sourceStatusLoading = ref(false)
+let sourceStatusSequence = 0
+async function loadSourceStatus() {
+  const token = ++sourceStatusSequence
+  sourceStatus.value = null; sourceStatusError.value = ''; sourceStatusLoading.value = false
+  if (!snapshot.value?.conceptTableId || !checkPermi(['ont:metric:execute'])) return
+  sourceStatusLoading.value = true
+  try {
+    const response = await getMetricSourceStatus({ ontologyId: props.ontologyId, bindingId: snapshot.value.conceptTableId })
+    if (token !== sourceStatusSequence) return
+    sourceStatus.value = response.data
+  } catch (failure) { if (token === sourceStatusSequence) sourceStatusError.value = failure?.message || '来源批准状态暂不可用，执行时仍由服务端核验' }
+  finally { if (token === sourceStatusSequence) sourceStatusLoading.value = false }
+}
+watch(() => [props.ontologyId, sourceUser.spaceId, sourceUser.spaceCode, snapshot.value], loadSourceStatus)
+onBeforeUnmount(() => { ++sourceStatusSequence })
 const metadataLoading = ref(false)
 const savedLoading = ref(false)
 const savedRows = ref([])

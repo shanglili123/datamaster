@@ -9,6 +9,8 @@ public class DatasourceRespDTO {
 
     private Long id;
 
+    private Long sourceAuthRevision;
+
     private String datasourceName;
 
     private String datasourceType;

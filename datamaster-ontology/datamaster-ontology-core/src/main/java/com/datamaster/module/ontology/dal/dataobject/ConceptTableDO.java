@@ -2,6 +2,8 @@ package com.datamaster.module.ontology.dal.dataobject;
 
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.datamaster.common.core.domain.BaseEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,6 +23,10 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class ConceptTableDO extends BaseEntity {
+
+    /** Maintained by database trigger, including identity changes followed by restoration. */
+    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
+    private Long sourceAuthRevision;
 
     /** 所属概念ID */
     private Long conceptId;

@@ -17,7 +17,12 @@ public class DecisionToolSchemaTest {
             for (Method method : type.getMethods()) {
                 Tool tool = method.getAnnotation(Tool.class);
                 if (tool == null) continue;
-                assertNotNull(ToolSpecifications.toolSpecificationFrom(method));
+                var specification = ToolSpecifications.toolSpecificationFrom(method);
+                assertNotNull(specification);
+                if (method.getParameterCount() == 1) {
+                    assertTrue(specification.parameters().properties().containsKey("input"));
+                    assertFalse(specification.parameters().properties().containsKey("arg0"));
+                }
                 assertFalse(tool.name().contains("submit"));
                 assertFalse(tool.name().contains("execute"));
                 count++;

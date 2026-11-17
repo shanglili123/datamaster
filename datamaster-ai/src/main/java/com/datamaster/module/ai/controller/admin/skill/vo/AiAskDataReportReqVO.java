@@ -33,7 +33,10 @@ public class AiAskDataReportReqVO {
     @Schema(description = "报告模板ID，不传时使用Skill默认模板")
     private Long templateId;
 
-    @Schema(description = "模型名称")
+    @Schema(description = "当前空间模型配置ID；不传则使用空间路由")
+    private Long modelProfileId;
+
+    @Schema(description = "旧独立配置模式模型名；接口同步模式不可使用")
     private String model;
 
     @Schema(description = "是否要求返回SQL用于校验")

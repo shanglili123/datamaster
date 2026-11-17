@@ -41,7 +41,7 @@ public class MetricAnalysisPersistenceTest {
         access = mock(MetricAnalysisAccessGuard.class); sources = mock(MetricQuerySourceGuard.class); executor = mock(MetricQueryExecutor.class);
         inject("analysisMapper", analyses); inject("metricMapper", metrics); inject("versionMapper", versions);
         inject("access", access); inject("sourceGuard", sources); inject("executor", executor);
-        inject("policy", new MetricQueryPolicy(true, "40", "reader", 15, 1));
+        inject("policy", new MetricQueryPolicy(true, 15, 1));
         metric = new MetricDO(); metric.setId(10L); metric.setOntologyId(20L); metric.setConceptId(30L);
         metric.setCode("sales"); metric.setStatus("PUBLISHED"); metric.setPublishedVersion(1);
         when(metrics.selectById(10L)).thenReturn(metric);

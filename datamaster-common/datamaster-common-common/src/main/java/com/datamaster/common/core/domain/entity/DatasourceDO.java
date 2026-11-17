@@ -21,6 +21,10 @@ public class DatasourceDO extends BaseEntity {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
+    /** Database-maintained identity revision; never accepted from an update payload. */
+    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
+    private Long sourceAuthRevision;
+
     @Schema(description = "数据源名称")
     private String datasourceName;
 

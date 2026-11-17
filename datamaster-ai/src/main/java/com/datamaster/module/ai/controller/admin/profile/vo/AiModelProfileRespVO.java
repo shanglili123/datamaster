@@ -17,4 +17,9 @@ public class AiModelProfileRespVO {
     private Boolean enabled;
     private Boolean active;
     private Boolean hasApiKey;
+    private Boolean dbgptSyncEnabled;
+    private String dbgptSyncStatus;
+    private String dbgptSyncError;
+    private String dbgptLastAttemptAt;
+    private String dbgptRemoteAlias;
 }

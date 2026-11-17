@@ -30,7 +30,10 @@ public class AiAskDataSqlReqVO {
     @Schema(description = "空间编码", example = "174954643786848")
     private String spaceCode;
 
-    @Schema(description = "模型名称（可选，默认使用配置文件模型）", example = "qwen-plus")
+    @Schema(description = "模型配置ID；接口同步模式仅允许当前空间配置，不传则使用当前空间路由")
+    private Long modelProfileId;
+
+    @Schema(description = "旧独立配置模式模型名；启用接口同步后不可使用")
     private String model;
 
     @Schema(description = "决策智能体模式", example = "chat_with_db_qa")

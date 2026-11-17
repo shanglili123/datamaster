@@ -44,10 +44,13 @@ public class MetricLightSourceGuardTest {
         for (String name : plan.getUsedColumns()) { Map<String,Object> column = new HashMap<>(); column.put("column_name", name); column.put("safety_level_id", null); columns.add(column); }
         when(jdbc.queryForList(contains("FROM cat_column"), eq(60L))).thenReturn(columns);
         MetricQuerySourceGuard guard = new MetricQuerySourceGuard();
-        inject(guard, "policy", new MetricQueryPolicy(true, "40", "metric_reader", 15, 1)); inject(guard, "conceptTableMapper", bindings);
+        MetricSourceApprovalService approvals = mock(MetricSourceApprovalService.class);
+        MetricSourceApprovalService.ExecutionContext execution = new MetricSourceApprovalService.ExecutionContext(20L,40L,1,"test",new DbQueryProperty(source.getDatasourceType(),source.getIp(),source.getPort(),source.getDatasourceConfig()),source);
+        when(approvals.authorize(snapshot)).thenReturn(execution);
+        inject(guard, "approvals", approvals); inject(guard, "conceptTableMapper", bindings);
         inject(guard, "datasourceApiService", datasources); inject(guard, "governance", governance); inject(guard, "spaceFlows", flows); inject(guard, "jdbc", jdbc);
         OntologyDO ontology = new OntologyDO(); ontology.setSpaceId(1L); ontology.setSpaceCode("space01");
-        DbQueryProperty property = guard.authorize(snapshot, plan, ontology); assertEquals("business", property.getDbName());
+        DbQueryProperty property = guard.authorize(snapshot, plan, ontology).getProperty(); assertEquals("business", property.getDbName());
         verify(jdbc).queryForList(contains("del_flag='0') AND valid_flag='1'"), eq(50L), eq("orders"), eq("business"), isNull(), eq(1L));
         verify(jdbc).queryForList(contains("del_flag='0') AND valid_flag='1'"), eq(60L));
         clearInvocations(jdbc);
@@ -60,7 +63,7 @@ public class MetricLightSourceGuardTest {
         allowed.setTableName("orders"); allowed.setDatasourceId(99L);
         rejected(() -> guard.authorize(snapshot, plan, ontology)); verifyNoInteractions(jdbc);
         allowed.setDatasourceId(50L);
-        assertEquals("business", guard.authorize(snapshot, plan, ontology).getDbName()); // Explicit full-column grants still work in light mode.
+        assertEquals("business", guard.authorize(snapshot, plan, ontology).getProperty().getDbName()); // Explicit full-column grants still work in light mode.
         allowed.setAllowedColumns(null);
         allowed.setEnabled(true); allowed.setMode("strict"); allowed.setSource("CATALOG");
         rejected(() -> guard.authorize(snapshot, plan, ontology)); // Light mode cannot erase an enabled global strict asset policy.

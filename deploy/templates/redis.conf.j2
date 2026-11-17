@@ -1,6 +1,8 @@
 bind 0.0.0.0
-port {{ redis_port }}
+# Container port stays fixed; redis_port controls only the host mapping.
+port 6379
 protected-mode no
+requirepass {{ redis_password_quoted }}
 appendonly yes
 dir /data
 logfile ""

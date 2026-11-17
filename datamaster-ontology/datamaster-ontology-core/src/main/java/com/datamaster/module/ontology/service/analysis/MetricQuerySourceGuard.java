@@ -21,7 +21,7 @@ import static com.datamaster.module.ontology.service.metric.MetricRules.require;
 /** All checks run before factory creation / external connection. No fallbacks. */
 @Component
 public class MetricQuerySourceGuard {
-    @Resource private MetricQueryPolicy policy;
+    @Resource private MetricSourceApprovalService approvals;
     @Resource private IDatasourceApiService datasourceApiService;
     @Resource private IAssetsTableGovernanceApiService governance;
     // Both types are existing assets-interface classes, not assets-core dependencies.
@@ -30,8 +30,8 @@ public class MetricQuerySourceGuard {
     @Resource private com.datamaster.module.governance.api.flow.ISpaceFlowApi spaceFlows;
     @Resource private org.springframework.jdbc.core.JdbcTemplate jdbc;
 
-    public DbQueryProperty authorize(MetricRespVO snapshot, MetricQueryBuilder.Plan plan, OntologyDO ontology) {
-        policy.assertBinding(snapshot.getConceptTableId());
+    public MetricSourceApprovalService.ExecutionContext authorize(MetricRespVO snapshot, MetricQueryBuilder.Plan plan, OntologyDO ontology) {
+        MetricSourceApprovalService.ExecutionContext execution = approvals.authorize(snapshot);
         ConceptTableDO binding = conceptTableMapper.selectById(snapshot.getConceptTableId());
         require(binding != null && Objects.equals(binding.getConceptId(), snapshot.getConceptId())
                 && Objects.equals(binding.getDatasourceId(), plan.getDatasourceId())
@@ -39,14 +39,11 @@ public class MetricQuerySourceGuard {
                 && Objects.equals(binding.getTableName(), plan.getTableName())
                 && Objects.equals(binding.getSchemaName(), snapshot.getSourceSnapshot().get("schemaName")),
                 "当前批准绑定已改变，历史快照不可自动获得新来源授权");
-        DatasourceRespDTO ds = datasourceApiService.getDatasourceById(plan.getDatasourceId());
+        DatasourceRespDTO ds = execution.getDatasource();
         MetricSqlDialect dialect = MetricSqlDialect.forSource(snapshot);
         require(ds != null && !Boolean.FALSE.equals(ds.getValidFlag()) && Objects.equals(ds.getId(), plan.getDatasourceId())
                 && dialect.sameType(ds.getDatasourceType()), "来源数据源不存在或类型已改变");
-        DbQueryProperty property;
-        try { property = new DbQueryProperty(ds.getDatasourceType(), ds.getIp(), ds.getPort(), ds.getDatasourceConfig()); }
-        catch (RuntimeException ex) { throw new ServiceException("指标来源数据源配置不可用"); }
-        policy.assertReadonlyUsername(property.getUsername());
+        DbQueryProperty property = execution.getProperty();
         require(plan.getDatabaseName().equals(property.getDbName()), "发布数据库与当前数据源数据库不一致，拒绝跨库查询");
         if (dialect.postgres()) require(Objects.equals(binding.getSchemaName(), property.getSid()), "发布schema与当前数据源配置不一致，拒绝跨schema查询");
         // Never routeTo/setDbName: a snapshot cannot retarget a saved connection.
@@ -78,7 +75,7 @@ public class MetricQuerySourceGuard {
             }
             assertMetadataSource(ontology, binding, plan);
         }
-        return property;
+        return execution;
     }
 
     /** Light mode uses registered metadata in the actual space, not an asset bypass or a guessed table. */

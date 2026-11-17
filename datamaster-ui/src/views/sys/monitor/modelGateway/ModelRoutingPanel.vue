@@ -20,7 +20,7 @@
       <a-button v-if="editable" type="primary" :loading="saving" :disabled="!loaded || loading || !!profilesError" @click="save">保存当前空间策略</a-button>
     </a-space>
     <p v-if="profilesError" role="alert">{{ profilesError }}；无法确认模型选项，暂不能保存。</p>
-    <p>不跨空间选择模型，不自动切换失败供应商；模型被路由引用后，需先调整路由才能停用或删除。</p>
+    <p>不跨空间选择模型，不自动切换失败供应商；模型被路由引用后，需先调整路由才能停用或删除。DB-GPT接口同步模式下，远程工具问数/报告使用高级模型，关闭路由则使用空间默认模型，且须已同步在线；不控制其内部每一步的路由。</p>
   </section>
 </template>
 <script setup>

@@ -198,6 +198,9 @@ public class AgentToolExecutionHaltTest {
             fail("must stop on failed decision tool");
         } catch (AgentToolFlowHaltException expected) {
             assertEquals(AgentToolResult.FAILED, expected.getResult().getStatus());
+            assertNotNull(expected.getResult().getMetadata().get("diagnosticId"));
+            assertEquals("TOOL_INTERNAL_ERROR", expected.getResult().getMetadata().get("failureCategory"));
+            assertFalse(com.alibaba.fastjson2.JSON.toJSONString(expected.getResult()).contains("must not reach model"));
             assertEquals(1, AgentToolContextHolder.results().size());
             assertEquals(AgentToolResult.FAILED, AgentToolContextHolder.lastResult().getStatus());
         } finally {

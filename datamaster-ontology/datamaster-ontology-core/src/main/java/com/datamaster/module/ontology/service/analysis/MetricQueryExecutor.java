@@ -17,18 +17,22 @@ import static com.datamaster.module.ontology.service.metric.MetricRules.require;
 public class MetricQueryExecutor {
     private final DataSourceFactory factory;
     private final MetricQueryPolicy policy;
-    public MetricQueryExecutor(DataSourceFactory factory, MetricQueryPolicy policy) {
-        this.factory = factory; this.policy = policy;
+    private final MetricSourceApprovalService approvals;
+    public MetricQueryExecutor(DataSourceFactory factory, MetricQueryPolicy policy, MetricSourceApprovalService approvals) {
+        this.factory = factory; this.policy = policy; this.approvals = approvals;
     }
-    public MetricQueryRespVO execute(MetricRespVO snapshot, MetricQueryBuilder.Plan plan, DbQueryProperty property) {
-        policy.assertBinding(snapshot.getConceptTableId());
+    public MetricQueryRespVO execute(MetricRespVO snapshot, MetricQueryBuilder.Plan plan, MetricSourceApprovalService.ExecutionContext execution) {
+        policy.assertEnabled();
+        require(execution != null, "缺少指标来源准入上下文");
+        DbQueryProperty property = execution.getProperty();
         require(MetricSqlDialect.forSource(snapshot).sameType(property.getDbType()), "指标数据源类型不匹配");
-        policy.assertReadonlyUsername(property.getUsername());
         require(plan.getDatabaseName().equals(property.getDbName()), "指标数据库不匹配");
         require(policy.tryAcquire(), "指标查询繁忙，请稍后重试");
         long started = System.nanoTime();
         java.util.Date executedAt = new java.util.Date();
         try {
+            // Current committed admission must still match immediately before any external connection.
+            approvals.recheck(execution, snapshot);
             DbQuery query = null;
             try {
                 query = factory.createDbQuery(property);

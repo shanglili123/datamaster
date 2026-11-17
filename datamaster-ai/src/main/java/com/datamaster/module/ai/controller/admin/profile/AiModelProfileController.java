@@ -71,6 +71,16 @@ public class AiModelProfileController {
         return CommonResult.success(profiles.activate(id, scope.id));
     }
 
+    @PostMapping("/{id}/dbgpt-sync")
+    @PreAuthorize("@ss.hasPermi('ai:model-config:edit')")
+    public CommonResult<Boolean> sync(@PathVariable("id") Long id,
+            @RequestParam(value = "spaceId", required = false) Long spaceId,
+            @RequestParam(value = "spaceCode", required = false) String code, HttpServletRequest http) {
+        Scope scope = scope(SecurityUtils.getLoginUser(), spaceId, code, http, true);
+        profiles.retryDbGpt(id, scope.id);
+        return CommonResult.success(true);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("@ss.hasPermi('ai:model-config:remove')")
     public CommonResult<Boolean> delete(@PathVariable("id") Long id,

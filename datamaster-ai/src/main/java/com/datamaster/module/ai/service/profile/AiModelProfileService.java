@@ -18,13 +18,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
-/** OpenAI-compatible MODEL endpoints only; does not reconfigure DB-GPT's independent model service. */
+/** Per-space provider-compatible profiles with optional persistent DB-GPT model synchronization. */
 @Service
 public class AiModelProfileService {
     private static final String SUMMARY = "id, space_id, space_code, name, provider, model, api_url, enabled, active, "
             + "(api_key_ciphertext IS NOT NULL AND api_key_ciphertext <> '') AS has_api_key";
     private final JdbcTemplate jdbc;
     private final AiModelProfileCipher cipher;
+    @javax.annotation.Resource private DbGptModelSyncService dbGptSync;
     @javax.annotation.Resource
     private com.datamaster.module.ai.config.AiModelRoutingProperties routingDefaults = new com.datamaster.module.ai.config.AiModelRoutingProperties();
 
@@ -36,7 +37,9 @@ public class AiModelProfileService {
     public List<AiModelProfileRespVO> list(Long spaceId) {
         requireSpace(spaceId);
         try {
-            return jdbc.query("SELECT " + SUMMARY + " FROM ai_model_profile WHERE space_id = ? ORDER BY active DESC, id", SUMMARY_MAPPER, spaceId);
+            List<AiModelProfileRespVO> rows = jdbc.query("SELECT " + SUMMARY + " FROM ai_model_profile WHERE space_id = ? ORDER BY active DESC, id", SUMMARY_MAPPER, spaceId);
+            if (dbGptSync != null) rows.forEach(dbGptSync::describe);
+            return rows;
         } catch (DataAccessException ignored) { throw storageError(); }
     }
 
@@ -59,6 +62,7 @@ public class AiModelProfileService {
                             + "VALUES (?, ?, ?, ?, ?, ?, ?, FALSE, ?) RETURNING id", Long.class,
                     spaceId, spaceCode, request.getName().trim(), request.getProvider().trim(), request.getModel().trim(),
                     request.getApiUrl().trim(), request.getEnabled(), encrypted);
+            if (dbGptSync != null) dbGptSync.enqueue(id, spaceId);
             return requireProfile(id, spaceId);
         } catch (DuplicateKeyException ignored) { throw new ServiceException("当前空间已存在同名模型配置"); }
         catch (DataAccessException ignored) { throw storageError(); }
@@ -73,6 +77,9 @@ public class AiModelProfileService {
             if (!Boolean.TRUE.equals(request.getEnabled())) assertNotRouted(id, spaceId);
             if (Boolean.TRUE.equals(existing.getActive()) && !Boolean.TRUE.equals(request.getEnabled()))
                 throw new ServiceException("不能停用当前默认模型，请先启用其他默认模型");
+            // Credentials/connection changes get a new remote alias; display-only edits keep their version.
+            jdbc.update("UPDATE ai_model_profile SET config_revision=config_revision+1 WHERE id=? AND space_id=? AND (provider IS DISTINCT FROM ? OR model IS DISTINCT FROM ? OR api_url IS DISTINCT FROM ? OR enabled IS DISTINCT FROM ? OR ?)",
+                    id, spaceId, request.getProvider().trim(), request.getModel().trim(), request.getApiUrl().trim(), request.getEnabled(), !blank(request.getApiKey()));
             // Never copy request/entity objects. A blank token updates metadata only.
             jdbc.update("UPDATE ai_model_profile SET space_code = ?, name = ?, provider = ?, model = ?, api_url = ?, enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND space_id = ?",
                     spaceCode, request.getName().trim(), request.getProvider().trim(), request.getModel().trim(),
@@ -80,6 +87,7 @@ public class AiModelProfileService {
             if (!blank(request.getApiKey()))
                 jdbc.update("UPDATE ai_model_profile SET api_key_ciphertext = ? WHERE id = ? AND space_id = ?",
                         cipher.encrypt(request.getApiKey().trim(), spaceId), id, spaceId);
+            if (dbGptSync != null) dbGptSync.enqueue(id, spaceId);
             return requireProfile(id, spaceId);
         } catch (DuplicateKeyException ignored) { throw new ServiceException("当前空间已存在同名模型配置"); }
         catch (DataAccessException ignored) { throw storageError(); }
@@ -97,6 +105,7 @@ public class AiModelProfileService {
             resolve(spaceId, id);
             jdbc.update("UPDATE ai_model_profile SET active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE space_id = ? AND active = TRUE", spaceId);
             jdbc.update("UPDATE ai_model_profile SET active = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND space_id = ?", id, spaceId);
+            if (dbGptSync != null) dbGptSync.enqueue(id, spaceId);
             return requireProfile(id, spaceId);
         } catch (DataAccessException ignored) { throw storageError(); }
     }
@@ -110,6 +119,13 @@ public class AiModelProfileService {
             assertNotRouted(id, spaceId);
             jdbc.update("DELETE FROM ai_model_profile WHERE id = ? AND space_id = ? AND active = FALSE", id, spaceId);
         } catch (DataAccessException ignored) { throw storageError(); }
+    }
+
+    @Transactional
+    public void retryDbGpt(Long id, Long spaceId) {
+        lockSpace(spaceId); requireProfile(id, spaceId);
+        if (dbGptSync == null) throw new ServiceException("DB-GPT同步服务不可用");
+        dbGptSync.retry(id, spaceId);
     }
 
     public Resolved resolve(Long spaceId) { return resolve(spaceId, null); }

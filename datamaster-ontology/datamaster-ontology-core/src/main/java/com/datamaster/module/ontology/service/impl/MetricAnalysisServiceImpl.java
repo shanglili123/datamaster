@@ -44,7 +44,7 @@ public class MetricAnalysisServiceImpl implements IMetricAnalysisService {
         policy.assertEnabled();
         require(input != null && input.getQueries() != null && input.getQueries().size() >= 2 && input.getQueries().size() <= 4, "请选择2至4个指标");
         List<MetricQueryReqVO> queries = new ArrayList<>(); List<MetricRespVO> publications = new ArrayList<>();
-        List<MetricQueryBuilder.Plan> plans = new ArrayList<>(); List<com.datamaster.common.database.constants.DbQueryProperty> sources = new ArrayList<>();
+        List<MetricQueryBuilder.Plan> plans = new ArrayList<>(); List<MetricSourceApprovalService.ExecutionContext> sources = new ArrayList<>();
         for (MetricQueryReqVO item : input.getQueries()) {
             MetricQueryReqVO query = MetricQueryBuilder.normalize(item); queries.add(query);
             publications.add(snapshot(query, null, true));
@@ -74,8 +74,8 @@ public class MetricAnalysisServiceImpl implements IMetricAnalysisService {
         require(currentPlan.getColumns().stream().anyMatch(column -> "metric_value".equals(column.getKey())
                 && com.datamaster.module.ontology.service.metric.MetricRules.numeric(column.getDataType())), "两期变化计算只支持数值指标");
         // Authorize both before executing either. Both use one exact publication, never current draft definitions.
-        com.datamaster.common.database.constants.DbQueryProperty currentSource = sourceGuard.authorize(publication, currentPlan, ontology);
-        com.datamaster.common.database.constants.DbQueryProperty baselineSource = sourceGuard.authorize(publication, baselinePlan, ontology);
+        MetricSourceApprovalService.ExecutionContext currentSource = sourceGuard.authorize(publication, currentPlan, ontology);
+        MetricSourceApprovalService.ExecutionContext baselineSource = sourceGuard.authorize(publication, baselinePlan, ontology);
         MetricComparisonRespVO result = new MetricComparisonRespVO(); result.setMode(input.getMode());
         result.setCurrent(executor.execute(publication, currentPlan, currentSource));
         result.setBaseline(executor.execute(publication, baselinePlan, baselineSource));

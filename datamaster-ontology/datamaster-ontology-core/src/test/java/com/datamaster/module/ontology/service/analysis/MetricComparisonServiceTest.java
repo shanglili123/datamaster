@@ -63,10 +63,10 @@ public class MetricComparisonServiceTest {
         final MetricMapper metrics = mock(MetricMapper.class); final MetricVersionMapper versions = mock(MetricVersionMapper.class);
         final MetricAnalysisAccessGuard access = mock(MetricAnalysisAccessGuard.class);
         final MetricQuerySourceGuard guard = mock(MetricQuerySourceGuard.class); final MetricQueryExecutor executor = mock(MetricQueryExecutor.class);
-        final DbQueryProperty source = new DbQueryProperty("DORIS", "unused", "reader", null, 1, "ads", null);
+        final MetricSourceApprovalService.ExecutionContext source = new MetricSourceApprovalService.ExecutionContext(20L, 40L, 1, "test", new DbQueryProperty("DORIS", "unused", "reader", null, 1, "ads", null), null);
         Fixture() throws Exception {
             inject(service, "metricMapper", metrics); inject(service, "versionMapper", versions); inject(service, "access", access);
-            inject(service, "sourceGuard", guard); inject(service, "executor", executor); inject(service, "policy", new MetricQueryPolicy(true, "40", "reader", 15, 1));
+            inject(service, "sourceGuard", guard); inject(service, "executor", executor); inject(service, "policy", new MetricQueryPolicy(true, 15, 1));
             MetricRespVO publication = MetricQueryBuilderTest.snapshot();
             MetricDO metric = new MetricDO(); metric.setId(10L); metric.setOntologyId(20L); metric.setConceptId(30L); metric.setCode("sales"); metric.setStatus("PUBLISHED");
             when(metrics.selectById(10L)).thenReturn(metric);

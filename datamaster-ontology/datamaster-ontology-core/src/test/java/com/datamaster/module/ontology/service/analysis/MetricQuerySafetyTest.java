@@ -8,19 +8,17 @@ import static org.junit.Assert.*;
 import static com.datamaster.module.ontology.service.analysis.MetricQueryBuilderTest.rejected;
 
 public class MetricQuerySafetyTest {
-    @Test public void deploymentIsClosedByDefaultAndAllowlistsAreStrict() {
-        MetricQueryPolicy disabled = new MetricQueryPolicy(false, "", "", 15, 4);
+    @Test public void deploymentOnlyControlsEmergencyStopAndResourceBounds() {
+        MetricQueryPolicy disabled = new MetricQueryPolicy(false, 15, 4);
         rejected(disabled::assertEnabled);
-        MetricQueryPolicy policy = new MetricQueryPolicy(true, "40", "ads_metric_reader", 15, 1);
-        policy.assertBinding(40L); policy.assertReadonlyUsername("ads_metric_reader");
-        rejected(() -> policy.assertBinding(41L)); rejected(() -> policy.assertReadonlyUsername("root"));
+        assertFalse(disabled.isEnabled());
+        MetricQueryPolicy policy = new MetricQueryPolicy(true, 15, 1);
+        policy.assertEnabled(); assertTrue(policy.isEnabled());
+        assertEquals(15, policy.getTimeoutSeconds()); assertEquals(1, policy.getMaxConcurrent());
         assertTrue(policy.tryAcquire()); assertFalse(policy.tryAcquire()); policy.release(); assertTrue(policy.tryAcquire()); policy.release();
-        for (String text : Arrays.asList("1,", "1,,2", "1,x", "0", "-1", "1.0", "1,1", "9223372036854775808")) {
-            rejected(() -> MetricQueryPolicy.parseBindingIds(text));
-        }
-        rejected(() -> new MetricQueryPolicy(true, "40", "reader", 61, 4));
-        rejected(() -> new MetricQueryPolicy(true, "40", "reader", 15, 0));
-        rejected(() -> new MetricQueryPolicy(true, "40", "reader", 15, 17));
+        rejected(() -> new MetricQueryPolicy(true, 61, 4));
+        rejected(() -> new MetricQueryPolicy(true, 15, 0));
+        rejected(() -> new MetricQueryPolicy(true, 15, 17));
     }
     @Test public void rejectsGovernanceOffWarnCatalogAccessPartialAndWrongIdentity() {
         Set<String> used = new LinkedHashSet<>(Arrays.asList("amount", "region"));

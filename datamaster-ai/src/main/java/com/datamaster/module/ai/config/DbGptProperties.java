@@ -23,5 +23,21 @@ public class DbGptProperties {
     private String skillSpaceName = "datamaster-skills";
 
     private String skillSpaceOwner = "datamaster";
+
+    private ModelSync modelSync = new ModelSync();
+
+    @Data
+    public static class ModelSync {
+        /** Opt in once after securing the management endpoint. Never auto-export keys on upgrade. */
+        private boolean enabled;
+        private String managementUrl;
+        @lombok.ToString.Exclude
+        private String managementToken;
+        private String namespace;
+        private boolean allowInsecureHttp;
+        private int timeoutMillis = 15000;
+        private int concurrency = 4;
+        private int maxAttempts = 3;
+    }
 }
 

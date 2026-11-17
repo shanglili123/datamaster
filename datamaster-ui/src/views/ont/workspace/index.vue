@@ -41,6 +41,9 @@
         <a-tab-pane key="metric-analysis" tab="指标分析">
           <MetricAnalysisPanel v-if="visited['metric-analysis']" v-show="activeTab === 'metric-analysis'" :ontology-id="ontologyId" :initial-selection="analysisSelection" />
         </a-tab-pane>
+        <a-tab-pane v-if="canManageMetricSources" key="metric-source" tab="查询来源配置">
+          <MetricSourceApprovalPanel v-if="visited['metric-source']" :active="activeTab === 'metric-source'" :ontology-id="ontologyId" />
+        </a-tab-pane>
         <a-tab-pane key="action" tab="动作管理">
           <ActionPanel ref="actionPanelRef" v-if="visited.action" v-show="activeTab === 'action'" :ontology-id="ontologyId" @changed="onActionChanged" />
         </a-tab-pane>
@@ -68,6 +71,9 @@ import WorkflowPanel from './components/WorkflowPanel.vue'
 import MetricAnalysisPanel from './components/MetricAnalysisPanel.vue'
 import MetricPanel from './components/MetricPanel.vue'
 import ObjectPanel from './components/ObjectPanel.vue'
+import MetricSourceApprovalPanel from './components/MetricSourceApprovalPanel.vue'
+import { checkPermi } from '@/utils/permission'
+const canManageMetricSources = computed(() => checkPermi(['ont:metric-source:query', 'ont:metric-source:approve', 'ont:metric-source:revoke']))
 
 const route = useRoute()
 const router = useRouter()
@@ -85,7 +91,7 @@ const activeTab = ref('graph')
 const visited = reactive({ graph: true })
 // 支持外部直达：对象实例页待审批时 ?tab=action 跳转到审批中心（动作管理 tab）
 const queriedTab = route.query.tab
-if (queriedTab && ['graph', 'concept', 'property', 'relation', 'metric', 'metric-analysis', 'action', 'workflow', 'object'].includes(queriedTab)) {
+if (queriedTab && ['graph', 'concept', 'property', 'relation', 'metric', 'metric-analysis', 'metric-source', 'action', 'workflow', 'object'].includes(queriedTab)) {
   activeTab.value = queriedTab
   visited[queriedTab] = true
 }
@@ -111,7 +117,7 @@ watch(activeTab, key => {
 })
 
 watch(() => route.query.tab, key => {
-  if (typeof key === 'string' && ['graph', 'concept', 'property', 'relation', 'metric', 'metric-analysis', 'action', 'workflow', 'object'].includes(key)) {
+  if (typeof key === 'string' && ['graph', 'concept', 'property', 'relation', 'metric', 'metric-analysis', 'metric-source', 'action', 'workflow', 'object'].includes(key)) {
     visited[key] = true; activeTab.value = key
     if (key === 'action') nextTick(() => actionPanelRef.value?.reload?.())
   }
