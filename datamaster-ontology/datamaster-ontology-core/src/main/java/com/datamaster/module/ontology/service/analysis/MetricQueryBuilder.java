@@ -125,6 +125,7 @@ public final class MetricQueryBuilder {
         Set<String> usedColumns = new LinkedHashSet<>();
         if (!"NONE".equals(req.getTimeBucket())) {
             require(snapshot.getTimePropertyId() != null, "该指标未发布可用于分桶的时间属性");
+            require(req.getStartTime() != null, "时间分桶需要明确的开始和结束时间");
             Field time = field(mappings, snapshot.getTimePropertyId());
             require(MetricRules.temporal(time.type), "时间属性类型无效");
             usedColumns.add(time.column);
@@ -175,7 +176,7 @@ public final class MetricQueryBuilder {
         if (snapshot.getTimePropertyId() != null) {
             Field time = field(mappings, snapshot.getTimePropertyId()); usedColumns.add(time.column);
             require(MetricRules.temporal(time.type), "时间属性类型无效");
-            require(req.getStartTime() != null, "含时间属性的指标必须提供开始和结束时间");
+            if (req.getStartTime() != null) {
             Object start = typedValue(req.getStartTime(), time.type);
             Object end = typedValue(req.getEndTime(), time.type);
             if ("date".equals(time.type)) require(MetricTimeRules.businessShiftMinutes(snapshot) == 0, "date属性无时刻信息，不支持跨时间偏移转换");
@@ -192,6 +193,7 @@ public final class MetricQueryBuilder {
             require(ordered, "开始时间必须小于结束时间");
             conditions.add(dialect.quote(time.column) + " >= ?"); parameters.add(start);
             conditions.add(dialect.quote(time.column) + " < ?"); parameters.add(end);
+            }
         } else require(req.getStartTime() == null, "该指标未发布可用时间属性");
         MetricTrendRules.validateCalendar(req);
         String sql = "SELECT " + String.join(", ", select) + " FROM " + dialect.table(database, schema, table);

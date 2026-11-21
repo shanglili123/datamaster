@@ -262,7 +262,7 @@ import { listConcept, getConcept, addConcept, updateConcept, delConcept } from '
 import { getRelation, addRelation, updateRelation, delRelation } from '@/api/ont/relation'
 import { listConceptTable, previewConceptTable } from '@/api/ont/conceptTable'
 import { listPropertyColumn } from '@/api/ont/propertyColumn'
-import { addProperty, listProperty } from '@/api/ont/property'
+import { addProperty, listPropertiesForConcepts } from '@/api/ont/property'
 import ConceptMappingModal from './bindings/ConceptMappingModal.vue'
 import RelColumnModal from './bindings/RelColumnModal.vue'
 import { ReloadOutlined, PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
@@ -335,13 +335,12 @@ const CANVAS_SHRUNK_HEIGHT = 300
 const previewBindingOptions = computed(() => nodeBindings.value.map(b => ({ value: b.id, label: b.tableName })))
 
 // 加载本体属性字典（属性名 → 表头 / 过滤条件翻译）
-function loadProperties() {
-  listProperty({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 200 }).then(res => {
-    const rows = (res.data && res.data.rows) || []
-    const dict = {}
-    rows.forEach(p => { dict[p.id] = p })
-    propertyDict.value = dict
-  })
+async function loadProperties(concepts) {
+  propertyDict.value = {}
+  const rows = await listPropertiesForConcepts(concepts.map(concept => concept.id))
+  const dict = {}
+  rows.forEach(p => { dict[p.id] = p })
+  propertyDict.value = dict
 }
 
 // 按选中绑定加载预览：列表头=属性名（映射失败退化为物理列名），最多 5 行；过滤值走服务端 WHERE
@@ -461,7 +460,8 @@ async function loadGraph() {
       listConcept({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 1000 })
     ])
     const { nodes, edges } = res.data || {}
-    const rows = (cRes.data && cRes.data.rows) || []
+    const rows = rowsOf(cRes)
+    await loadProperties(rows)
     const colorMap = {}
     rows.forEach(c => {
       if (c && c.id != null) colorMap[c.id] = c.color
@@ -1005,7 +1005,6 @@ async function onBindingChanged() {
 
 onMounted(() => {
   nextTick(() => {
-    loadProperties()
     loadGraph()
   })
 })

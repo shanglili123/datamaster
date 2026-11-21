@@ -1046,7 +1046,7 @@
 <script setup name="ActionPanel">
 import { listAction, getAction, addAction, updateAction, delAction, aiActionDecision, submitExecution, approveExecution, rejectExecution, runExecution, rollbackExecution, getExecution, listExecution, getApprovalChain } from '@/api/ont/action'
 import { listConcept, getConcept } from '@/api/ont/concept'
-import { listProperty } from '@/api/ont/property'
+import { listPropertiesForConcepts } from '@/api/ont/property'
 import { listConceptTable } from '@/api/ont/conceptTable'
 import { listPropertyColumn } from '@/api/ont/propertyColumn'
 import { listFunction, getFunction, addFunction } from '@/api/ont/function'
@@ -1689,8 +1689,10 @@ async function loadConceptProperties(conceptId) {
 }
 
 async function loadProperties() {
-  const res = await listProperty({ ontologyId: props.ontologyId, pageNum: 1, pageSize: 1000 })
-  const rows = (res.data && res.data.rows) || []
+  ontologyProperties.value = []
+  propertyDict.value = {}
+  const concepts = await loadConcepts()
+  const rows = await listPropertiesForConcepts(concepts.map(concept => concept.id))
   ontologyProperties.value = rows
   const dict = {}
   rows.forEach(p => { dict[p.id] = p })
@@ -3798,7 +3800,6 @@ defineExpose({
   }
 })
 
-loadConcepts()
 loadProperties()
 loadFunctions()
 loadRelations()

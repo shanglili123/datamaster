@@ -11,7 +11,7 @@ public class DbGptProperties {
 
     private String url = "http://localhost:5670";
 
-    private Integer timeout = 60000;
+    private Integer timeout = 180000;
 
     private String model = "qwen-plus";
 

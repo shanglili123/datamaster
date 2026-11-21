@@ -15,9 +15,17 @@ public interface AiAgentOperationMapper extends BaseMapperX<AiAgentOperationDO> 
                 .eq(spaceCode != null && !spaceCode.trim().isEmpty(), "space_code", spaceCode)
                 .eq(creatorId != null, "creator_id", creatorId)
                 .eq("del_flag", false)
+                .and(scope -> scope.isNull("current_step").or().ne("current_step", "统一问数"))
                 .orderByDesc("update_time")
                 .last("LIMIT " + Math.max(1, Math.min(limit, 20)));
         return selectList(wrapper);
+    }
+
+    default List<AiAgentOperationDO> selectRecentUnifiedTurns(String key, Long creatorId) {
+        return selectList(new QueryWrapper<AiAgentOperationDO>()
+                .likeRight("flow_key", key + ":").eq("creator_id", creatorId)
+                .eq("current_step", "统一问数").in("status", "SUCCEEDED", "PARTIAL")
+                .eq("del_flag", false).orderByDesc("create_time", "id").last("LIMIT 12"));
     }
 
     default List<AiAgentOperationDO> selectRunning() {

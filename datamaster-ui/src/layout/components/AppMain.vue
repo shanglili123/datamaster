@@ -36,6 +36,19 @@ const tagsViewStore = useTagsViewStore()
   }
 }
 
+.app-main:has(:deep(.explore-station.is-ai-flow)) {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+
+  .app-main-inner {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 .app-main--standalone {
   min-height: 100vh;
   background: var(--dm-bg-layout, #eef3f8);

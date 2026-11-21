@@ -28,6 +28,18 @@ public class AiAskDataController {
 
     @Resource
     private IAiAskDataService aiAskDataService;
+    @Resource
+    private com.datamaster.module.ai.service.skill.AiAskOntologyContextService ontologyContexts;
+
+    @Operation(summary = "解析本体绑定的数据源和已发布指标")
+    @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")
+    @GetMapping("/ontology-context")
+    public CommonResult<com.datamaster.module.ai.controller.admin.skill.vo.AiAskOntologyContextRespVO> ontologyContext(
+            @RequestParam Long ontologyId, @RequestParam(required = false) Long spaceId,
+            @RequestParam(required = false) String spaceCode) {
+        return CommonResult.success(ontologyContexts.context(ontologyId, spaceId, spaceCode,
+                com.datamaster.common.utils.SecurityUtils.getUserId()));
+    }
 
     @Operation(summary = "决策智能体对话")
     @PreAuthorize("@ss.hasPermi('ai:ask-data:query')")

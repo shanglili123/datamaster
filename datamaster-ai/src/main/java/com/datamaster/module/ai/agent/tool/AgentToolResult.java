@@ -37,6 +37,17 @@ public class AgentToolResult {
         return result;
     }
 
+    /** Safe to return to the model only when validation stopped the call before execution. */
+    public static AgentToolResult recoverableInput(String message, String operationId) {
+        AgentToolResult result = of(NEED_INPUT, null, message, operationId);
+        result.metadata.put("recoverableInput", true);
+        return result;
+    }
+
+    public boolean mayRetryInput() {
+        return NEED_INPUT.equals(status) && Boolean.TRUE.equals(getMetadata().get("recoverableInput"));
+    }
+
     public static AgentToolResult failure(String message) {
         return of(FAILED, null, message, null);
     }

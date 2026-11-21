@@ -21,6 +21,9 @@ public class AiAskDataSqlReqVO {
     @Schema(description = "资产ID（可选，用于聚焦特定表）", example = "123")
     private Long assetId;
 
+    @Schema(description = "业务本体ID；传入时数据源必须来自本体绑定，不传数据源时默认首个可用绑定")
+    private Long ontologyId;
+
     @Schema(description = "数据源ID（可选，用于决策智能体）", example = "12")
     private Long datasourceId;
 

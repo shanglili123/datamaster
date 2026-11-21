@@ -244,6 +244,7 @@ public class DecisionProposalService {
     public Proposal prepare(Request request) {
         requirePermission(true);
         Row row = checkedRequest(request, false); assertLive(row.proposal); assertEvidenceFresh(row.proposal);
+        assertEvidenceAllowsExecution(row.proposal);
         if (dispatch(row.proposal.getId()) != null) throw new ServiceException("提案已提交，不能重新准备");
         if (!Arrays.asList("PROPOSED", "PREVIEW_READY").contains(row.proposal.getStatus())) {
             throw new ServiceException("当前状态不能准备动作");
@@ -309,6 +310,7 @@ public class DecisionProposalService {
         Dispatch existing = dispatch(row.proposal.getId());
         if (existing != null) return reconcile(row, existing);
         assertLive(row.proposal); assertEvidenceFresh(row.proposal); assertPreviewLive(row.proposal);
+        assertEvidenceAllowsExecution(row.proposal);
         if (row.proposal.getEffectPlan() != null) effects.validatePlan(row.proposal, row.proposal.getEffectPlan());
         calculations.assertExecution(candidate(row.proposal, row.proposal.getSelectedCandidateId()), row.proposal.getBinding());
         Binding current = bindingResolver.resolve(row.proposal.getBinding(), row.ontologyId, row.spaceId, row.spaceCode);
@@ -360,6 +362,23 @@ public class DecisionProposalService {
                     "提交结果未知，需按幂等键对账；禁止自动重放", row.proposal.getId(), row.proposal.getRevision());
         }
         return reconcile(row, dispatch(row.proposal.getId()));
+    }
+
+    /** Scope check precedes reconciliation; another conversation's ID is not authority. */
+    public Proposal refreshInConversation(String id, AskUnifiedReqVO request, AgentToolContext context) {
+        requirePermission(false);
+        Row row = latest(id, false);
+        authorize(row);
+        if (!Objects.equals(row.ownerId, context.getUserId())
+                || !Objects.equals(row.spaceId, context.getSpaceId())
+                || !Objects.equals(row.spaceCode, context.getSpaceCode())
+                || !Objects.equals(row.ontologyId, request.getOntologyId())
+                || !Objects.equals(row.sessionId, request.getSessionId())
+                || !Objects.equals(row.conversationId, request.getConversationId())) {
+            throw new ServiceException("提案不属于当前问数会话");
+        }
+        Dispatch dispatch = dispatch(id);
+        return dispatch == null ? copy(row.proposal) : reconcile(row, dispatch);
     }
 
     public Proposal refresh(String id) {
@@ -533,6 +552,13 @@ public class DecisionProposalService {
     }
 
     private Date evidenceExpiry(Proposal p) { return p.getEvidenceExpiresAt() == null ? p.getExpiresAt() : p.getEvidenceExpiresAt(); }
+    private static void assertEvidenceAllowsExecution(Proposal proposal) {
+        if (proposal.getEvidence() != null && proposal.getEvidence().stream().filter(Objects::nonNull).anyMatch(
+                evidence -> "UNVERIFIED_EXPLORATORY".equals(evidence.getVerification()))) {
+            throw new ServiceException("含未核验探索结果的方案仅供参考；请用正式查询证据重新制定方案后再准备动作");
+        }
+    }
+
     private void assertEvidenceFresh(Proposal p) {
         if (evidenceExpiry(p) == null || evidenceExpiry(p).getTime() < System.currentTimeMillis())
             throw new ServiceException("证据已过时，草稿仍保留；请按原目标重新分析后再测算或准备执行");

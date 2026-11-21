@@ -10,6 +10,7 @@
     <p>本体：{{ proposal.ontologyId || '未选择' }} · 对象主键：{{ proposal.objectKey || '未提供，请明确填写对象主键' }}</p>
     <a-alert v-if="!ontologyId" type="warning" show-icon message="请先选择指标本体；历史提案仍按服务端原本体校验，不会改绑到当前选择。" />
     <a-alert v-if="!canExecute" type="info" show-icon message="当前账号没有业务执行权限（ont:action:edit），可查看提案及刷新状态。" />
+    <a-alert v-if="exploratoryProposal" type="info" show-icon message="此方案含未核验的探索结果，仅供参考。请用正式查询证据重新制定方案后再准备动作。" />
     <a-alert v-if="errorText" type="warning" show-icon :message="errorText" />
     <a-alert v-if="!fresh" type="info" show-icon message="展示数据仅供参考，需成功加载服务端最新提案后才能准备或提交。" />
     <p v-if="proposal.message">{{ proposal.message }}</p>
@@ -195,7 +196,8 @@ const canEditBinding = computed(() => !props.disabled && fresh.value && canExecu
 const canAmend = computed(() => canEditBinding.value && !busy.value)
 const resumeAvailable = computed(() => isResumable(proposal.value))
 const canResume = computed(() => resumeAvailable.value && fresh.value && canExecute.value && !props.disabled && !busy.value && !draftDirty.value)
-const canPrepare = computed(() => !busy.value && !draftDirty.value && !props.disabled && fresh.value && canExecute.value && Boolean(props.ontologyId) &&
+const exploratoryProposal = computed(() => (proposal.value.evidence || []).some(item => item.verification === 'UNVERIFIED_EXPLORATORY'))
+const canPrepare = computed(() => !exploratoryProposal.value && !busy.value && !draftDirty.value && !props.disabled && fresh.value && canExecute.value && Boolean(props.ontologyId) &&
   !locked.value && Boolean(selected.value) && !selected.value.baseline && !hasFailedConstraint(selected.value) &&
   !(selected.value.calculationSpec && !selected.value.calculation))
 const canConfirm = computed(() => canPrepare.value && proposal.value.status === 'PREVIEW_READY' && Boolean(proposal.value.binding && proposal.value.previewDigest && proposal.value.impactPreview) && proposal.value.selectedCandidateId === selectedId.value)

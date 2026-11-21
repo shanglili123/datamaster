@@ -18,6 +18,9 @@ public class AiAskDataReportReqVO {
     @NotBlank(message = "用户问题不能为空")
     private String question;
 
+    @Schema(description = "业务本体ID；用于解析报告所需的绑定数据源")
+    private Long ontologyId;
+
     @Schema(description = "数据源ID")
     private Long datasourceId;
 

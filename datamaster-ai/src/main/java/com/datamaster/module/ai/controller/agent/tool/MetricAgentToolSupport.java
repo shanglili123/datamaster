@@ -32,7 +32,7 @@ public class MetricAgentToolSupport {
             }
             for (String permission : permissions) {
                 if (login.getPermissions() == null || !SecurityUtils.hasPermi(permission)) {
-                    return result(AgentToolResult.FAILED, null, "当前用户没有所需指标权限", context);
+                    return com.datamaster.module.ai.agent.runtime.AgentToolRejection.Reason.PERMISSION_DENIED.result(context.getOperationId());
                 }
             }
             if (!resourceGuard.hasSpace(context)) {

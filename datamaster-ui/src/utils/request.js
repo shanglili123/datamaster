@@ -33,6 +33,8 @@ service.interceptors.request.use(config => {
   // 自动注入当前空间ID/编码
   const userStore = useUserStore();
   if (userStore.spaceId && !config.url?.includes('/system/role/list')) {
+    // 不向页面持有的响应式查询对象写入空间，避免切换后仍携带旧空间。
+    if (config.method === 'get') config.params = { ...(config.params || {}) };
     if (config.method === 'get' && config.params) {
       if (!hasSpaceValue(config.params.spaceId)) {
         config.params.spaceId = userStore.spaceId;

@@ -58,6 +58,19 @@ public class MetricAnalysisToolProviderTest {
         }
     }
 
+    @Test public void dataQaChoiceRequiresCompleteDiscoveryAndIsNotExposedToDecisionSpecialist() {
+        try (AgentToolContextHolder.Scope ignored=AgentToolContextHolder.scope(new AgentToolContext("current",1L,"test",2L,"space",Collections.emptyMap()))) {
+            MetricAnalysisToolProvider ordinary=new MetricAnalysisToolProvider(tools("current"),"current",true);
+            assertFalse(names(ordinary).contains("use_data_qa"));
+            Map<String,Object> catalogue=new LinkedHashMap<>(offered());catalogue.put("catalogSearch",true);catalogue.put("searchComplete",true);
+            record("search_metrics",AgentToolResult.SUCCEEDED,"current",catalogue);
+            assertTrue(names(ordinary).contains("use_data_qa"));
+            assertFalse(names(new MetricAnalysisToolProvider(tools("current"),"current",false)).contains("use_data_qa"));
+            record("execute_metric_analysis",AgentToolResult.FAILED,"current",Collections.emptyMap());
+            assertFalse(names(ordinary).contains("use_data_qa"));
+        }
+    }
+
     private static Set<String> names(MetricAnalysisToolProvider provider) {
         return provider.provideTools(null).tools().keySet().stream().map(ToolSpecification::name).collect(Collectors.toSet());
     }

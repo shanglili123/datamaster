@@ -19,6 +19,16 @@
             </a-menu>
           </template>
         </a-dropdown>
+        <a-select
+          :value="userStore.spaceId ? String(userStore.spaceId) : undefined"
+          :options="spaceOptions"
+          :loading="loading"
+          placeholder="选择当前空间"
+          show-search
+          option-filter-prop="label"
+          style="width: 180px"
+          @change="selectSpaceById"
+        />
         <a-button :icon="h(ReloadOutlined)" @click="loadSpaces">刷新</a-button>
         <a-button
           v-if="canCreateSpace"
@@ -138,7 +148,7 @@
                   {{ space.code || space.spaceCode || "暂无编码" }}
                 </div>
                 <div class="space-card__footer">
-                  <span>点击查看统计，双击进入</span>
+                  <span>点击切换当前空间，双击进入</span>
                   <a-button
                     type="link"
                     @click.stop="enterSpace(space)"
@@ -214,7 +224,7 @@
 </template>
 
 <script setup name="Index">
-import { computed, onMounted, reactive, ref, h } from "vue";
+import { computed, onMounted, reactive, ref, h, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   ApartmentOutlined,
@@ -239,7 +249,6 @@ import {
   WarningFilled,
 } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
-import { currentUser } from "@/api/tax/space/space";
 import { getRoutersDpp } from "@/api/system/menu";
 import { homeList } from "@/api/system/home";
 import usePermissionStore from "@/store/system/permission";
@@ -251,11 +260,13 @@ const userStore = useUserStore();
 const permissionStore = usePermissionStore();
 const userAvatar = computed(() => userStore.avatar || defaultAvatar);
 
-const loading = ref(false);
+const loading = computed(() => userStore.spacesLoading);
 const statsLoading = ref(false);
 const keyword = ref("");
-const spaceList = ref([]);
-const activeSpace = ref(null);
+const spaceList = computed(() => userStore.spaces);
+const activeSpace = computed(() => spaceList.value.find(space => String(space.id) === String(userStore.spaceId)) || null);
+const spaceOptions = computed(() => spaceList.value.map(space => ({ value: String(space.id), label: space.name || space.spaceName || space.code || space.spaceCode })));
+let statsRequestVersion = 0;
 
 const stats = reactive({
   integrationTotal: "--",
@@ -356,38 +367,31 @@ function resetStats() {
 }
 
 async function loadSpaces() {
-  loading.value = true;
   try {
-    const response = await currentUser();
-    spaceList.value = response?.data || [];
-    if (spaceList.value.length > 0) {
-      const storedSpaceId = localStorage.getItem("dataMasterSpaceId");
-      const storedSpace = spaceList.value.find(
-        (space) => String(space.id) === String(storedSpaceId)
-      );
-      selectSpace(storedSpace || spaceList.value[0]);
-    } else {
-      activeSpace.value = null;
-      resetStats();
-    }
+    await userStore.loadSpaces();
+    await loadSpaceStats(activeSpace.value);
   } catch {
-    spaceList.value = [];
-    activeSpace.value = null;
     resetStats();
     message.error("空间列表加载失败");
-  } finally {
-    loading.value = false;
   }
 }
 
 function selectSpace(space) {
-  activeSpace.value = space;
-  loadSpaceStats(space);
+  if (space?.id) userStore.setCurrentSpace(space);
 }
 
+function selectSpaceById(id) {
+  selectSpace(spaceList.value.find(space => String(space.id) === String(id)));
+}
+
+watch(() => [userStore.spaceId, userStore.spaceCode], () => loadSpaceStats(activeSpace.value), { immediate: true });
+
 async function loadSpaceStats(space) {
+  const version = ++statsRequestVersion;
+  const isCurrent = () => version === statsRequestVersion && String(space?.id || '') === String(userStore.spaceId || '');
   if (!space?.id) {
     resetStats();
+    statsLoading.value = false;
     return;
   }
 
@@ -398,6 +402,7 @@ async function loadSpaceStats(space) {
       spaceId: space.id,
       spaceCode: space.code || space.spaceCode || "",
     });
+    if (!isCurrent()) return;
     const data = response?.data || {};
     stats.integrationTotal = data.integrationTaskTotal ?? "--";
     stats.integrationFailed = data.integrationTaskFailed ?? "--";
@@ -414,19 +419,16 @@ async function loadSpaceStats(space) {
     stats.collectTaskTotal = data.collectTaskTotal ?? "--";
     stats.documentTotal = data.documentTotal ?? "--";
   } catch {
-    resetStats();
+    if (isCurrent()) resetStats();
   } finally {
-    statsLoading.value = false;
+    if (version === statsRequestVersion) statsLoading.value = false;
   }
 }
 
 async function enterSpace(space) {
   if (!space?.id) return;
 
-  userStore.spaceId = space.id;
-  userStore.spaceCode = space.code || space.spaceCode || "";
-  userStore.spaceName = space.name || space.spaceName || "";
-  localStorage.setItem("dataMasterSpaceId", space.id);
+  userStore.setCurrentSpace(space);
 
   try {
     const response = await getRoutersDpp(space.id);
@@ -446,20 +448,8 @@ async function openDataExplore() {
   // 从首页直接进入流程工作站时可能尚未选择空间；默认使用当前用户的第一个空间，
   // 这样流程创建、元数据探查和资产同步都会带上正确的空间上下文。
   if (!userStore.spaceId || !userStore.spaceName) {
-    try {
-      const response = await currentUser();
-      const spaces = response?.data || [];
-      if (spaces.length) {
-        const storedId = userStore.spaceId || localStorage.getItem("dataMasterSpaceId");
-        const selected = spaces.find((space) => String(space.id) === String(storedId)) || spaces[0];
-        userStore.spaceId = selected.id;
-        userStore.spaceCode = selected.code || selected.spaceCode || "";
-        userStore.spaceName = selected.name || selected.spaceName || "";
-        localStorage.setItem("dataMasterSpaceId", String(selected.id));
-      }
-    } catch {
-      // 流程工作站自身还会再次尝试加载空间，不阻断页面打开。
-    }
+    try { await userStore.loadSpaces(); }
+    catch { message.warning('空间列表加载失败，可在数据探索中重试'); }
   }
   router.push("/explore");
 }

@@ -12,7 +12,7 @@ public class DecisionBudgetTest {
         AtomicBoolean cancelled = new AtomicBoolean(true); AtomicInteger calls = new AtomicInteger();
         DecisionBudget budget = new DecisionBudget(cancelled, message -> calls.incrementAndGet());
         try { budget.use("must not run"); fail(); }
-        catch (AgentToolFlowHaltException expected) { assertEquals(AgentToolResult.NEED_INPUT, expected.getResult().getStatus()); }
+        catch (AgentToolFlowHaltException expected) { assertEquals(AgentToolResult.FAILED, expected.getResult().getStatus()); }
         assertEquals(0, calls.get());
     }
     @Test public void sharedBudgetAllowsExactlyTwentyFourActivities() {

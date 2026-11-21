@@ -28,6 +28,7 @@ public class GetMetricDefinitionTool {
             if (!support.wasOffered(id, version, context)) return support.result(AgentToolResult.NEED_INPUT, null, "请先search_metrics并选择其返回的指标版本", context);
             MetricRespVO snapshot = support.published(id, version, context);
             Map<String, Object> data = new LinkedHashMap<>();
+            data.put("verification", "DEFINITION_ONLY");
             data.put("metricId", String.valueOf(id)); data.put("version", String.valueOf(version));
             data.put("code", snapshot.getCode()); data.put("name", snapshot.getName());
             data.put("description", snapshot.getDescription()); data.put("owner", snapshot.getOwner());
@@ -35,7 +36,8 @@ public class GetMetricDefinitionTool {
             data.put("valueProperty", support.semanticProperty(snapshot, snapshot.getValuePropertyId()));
             data.put("countAllRows", "COUNT".equals(snapshot.getAggregation()) && snapshot.getValuePropertyId() == null);
             data.put("timeProperty", support.semanticProperty(snapshot, snapshot.getTimePropertyId()));
-            data.put("requiresTimeRange", snapshot.getTimePropertyId() != null);
+            data.put("requiresTimeRange", false);
+            data.put("supportsTimeFilter", snapshot.getTimePropertyId() != null);
             List<Map<String, Object>> dimensions = new ArrayList<>();
             if (snapshot.getDimensionPropertyIds() != null) for (Long property : snapshot.getDimensionPropertyIds()) dimensions.add(support.semanticProperty(snapshot, property));
             data.put("allowedDimensions", dimensions);

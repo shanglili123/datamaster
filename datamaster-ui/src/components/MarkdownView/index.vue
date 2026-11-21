@@ -59,6 +59,7 @@
 <script setup>
 import { useClipboard } from "@vueuse/core";
 import MarkdownIt from "markdown-it";
+import { normalizeTableMarkdown, headerlessTablePlugin } from "@/utils/tableMarkdown";
 import "highlight.js/styles/xcode.min.css";
 import "@/assets/ai/style/dify_table.css";
 import hljs from "highlight.js";
@@ -72,6 +73,7 @@ import tet from "@/assets/ai/office/TET.png";
 
 // 定义组件属性
 const props = defineProps({
+  safeMarkdownOnly: Boolean,
   messageId: {
     type: Number,
     required: false,
@@ -123,7 +125,7 @@ const md = new MarkdownIt({
   highlight: function (str, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
-        const copyHtml = `<div id="copy" data-copy='${str}' style="position: absolute; right: 10px; top: 5px; color: #fff;cursor: pointer;">复制</div>`;
+        const copyHtml = `<div id="copy" data-copy="${md.utils.escapeHtml(str)}" style="position: absolute; right: 10px; top: 5px; color: #fff;cursor: pointer;">复制</div>`;
         return `<pre style="position: relative;">${copyHtml}<code class="hljs">${
           hljs.highlight(lang, str, true).value
         }</code></pre>`;
@@ -133,6 +135,12 @@ const md = new MarkdownIt({
     return `<pre style="position: relative;"><code class="hljs">${escaped}</code></pre>`;
   },
 });
+
+const safeMd = new MarkdownIt({ html: false });
+safeMd.use(headerlessTablePlugin);
+md.use(headerlessTablePlugin);
+md.renderer.rules.table_open = () => '<div class="markdown-table-scroll" tabindex="0" role="region" aria-label="数据表格，可横向滚动"><table>';
+md.renderer.rules.table_close = () => '</table></div>\n';
 
 const showDetail = (id, index) => {
   title.value = props.documentNameList[index];
@@ -156,6 +164,7 @@ const copyContent = async () => {
 };
 
 const deepThinking = computed(() => {
+  if (props.safeMarkdownOnly) return "";
   const content = props.content;
   const startTag = "<think";
   const endTag = "</think>";
@@ -182,7 +191,8 @@ const deepThinking = computed(() => {
 /** 渲染 markdown */
 const renderedMarkdown = computed(() => {
   const content = props.content;
-  let remainingContent = normalizeIndentedHtml(renderContent(content));
+  if (props.safeMarkdownOnly) return safeMd.render(normalizeTableMarkdown(content));
+  const remainingContent = normalizeTableMarkdown(normalizeIndentedHtml(renderContent(content)));
   return md.render(remainingContent);
 });
 
@@ -191,7 +201,7 @@ const htmlDocumentContent = computed(() => {
 });
 
 const isFullHtmlDocument = computed(() => {
-  return /<!doctype\s+html|<html[\s>]/i.test(htmlDocumentContent.value);
+  return !props.safeMarkdownOnly && /<!doctype\s+html|<html[\s>]/i.test(htmlDocumentContent.value);
 });
 
 const normalizeHtmlDocument = (content = "") => {
@@ -290,33 +300,67 @@ defineExpose({ copyContent }); // 提供方法给 parent 调用
     }
   }
 
-  :deep(table) {
-    border-spacing: 0;
-    border-collapse: collapse;
-    display: block;
-    width: max-content;
+  :deep(.markdown-table-scroll) {
+    width: 100%;
     max-width: 100%;
-    overflow: auto;
-    margin-bottom: 12px;
+    margin: 16px 0 20px;
+    overflow-x: auto;
+    border: 1px solid #e8eaed;
+    border-radius: 16px;
+    background: #ffffff;
   }
 
-  :deep(table th) {
-    font-weight: 600;
-    white-space: nowrap;
+  :deep(.markdown-table-scroll:focus-visible) {
+    outline: 2px solid #94bfff;
+    outline-offset: 2px;
   }
 
-  :deep(table td),
-  :deep(table th) {
-    padding: 6px 13px;
-    border: 1px solid #d0d7de;
+  :deep(.markdown-table-scroll table) {
+    display: table;
+    width: 100%;
+    min-width: 100%;
+    max-width: none;
+    margin: 0;
+    overflow: visible;
+    border: 0;
+    border-spacing: 0;
+    border-collapse: separate;
+    font-size: 14px;
+    line-height: 1.65;
   }
 
-  :deep(table tr) {
-    border-top: 1px solid #d8dee4;
+  :deep(.markdown-table-scroll th),
+  :deep(.markdown-table-scroll td) {
+    min-width: 100px;
+    max-width: 360px;
+    padding: 13px 18px;
+    border: 0;
+    border-right: 1px solid #eceef1;
+    border-bottom: 1px solid #eceef1;
+    vertical-align: middle;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
-  :deep(table tr:nth-child(2n)) {
-    background-color: #f6f8fa;
+  :deep(.markdown-table-scroll th) {
+    background: #f7f7f8;
+    color: #303133;
+    font-weight: 500;
+  }
+
+  :deep(.markdown-table-scroll tr),
+  :deep(.markdown-table-scroll tr:nth-child(2n)) {
+    border: 0;
+    background: #ffffff;
+  }
+
+  :deep(.markdown-table-scroll tr > :last-child) {
+    border-right: 0;
+  }
+
+  :deep(.markdown-table-scroll tbody tr:last-child td) {
+    border-bottom: 0;
   }
 
   :deep(.section) {

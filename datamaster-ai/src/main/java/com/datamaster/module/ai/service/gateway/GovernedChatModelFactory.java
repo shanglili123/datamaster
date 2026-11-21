@@ -65,8 +65,78 @@ public class GovernedChatModelFactory {
         return routes;
     }
 
-    private ChatModel client(AiSkillModelProperties selected, String scene, boolean strictJsonSchema) {
-        if (!Boolean.TRUE.equals(selected.getEnabled()) || StringUtils.isBlank(selected.getApiUrl())) return null;
+    /** Final-answer streaming uses the configured advanced/default model without another classification round. */
+    public String streamAnswer(String scene, dev.langchain4j.model.chat.request.ChatRequest request,
+                               java.util.concurrent.atomic.AtomicBoolean cancelled, long remainingMillis,
+                               java.util.function.Consumer<String> output) {
+        var route = routes();
+        AiSkillModelProperties selected = resolver.resolve(properties, route == null ? null : route.getAdvancedProfileId());
+        if (!Boolean.TRUE.equals(selected.getEnabled()) || StringUtils.isBlank(selected.getApiUrl()))
+            throw new ServiceException("问数模型未配置");
+        String key = apiKey(selected);
+        String model = modelName(selected);
+        int timeout = (int) Math.min(Math.max(1, remainingMillis), Math.max(1000, selected.getTimeout() == null ? 180000 : selected.getTimeout()));
+        var stream = dev.langchain4j.model.openai.OpenAiStreamingChatModel.builder().baseUrl(baseUrl(selected))
+                .apiKey(StringUtils.isBlank(key) ? "none" : key).modelName(model)
+                .maxTokens(selected.getMaxTokens() == null ? 8192 : selected.getMaxTokens())
+                .returnThinking(false)
+                .timeout(Duration.ofMillis(timeout)).logRequests(false).logResponses(false).build();
+        var completion = new java.util.concurrent.CompletableFuture<dev.langchain4j.model.chat.response.ChatResponse>();
+        var handle = new java.util.concurrent.atomic.AtomicReference<dev.langchain4j.model.chat.response.StreamingHandle>();
+        try (var invocation = gateway.begin("MODEL", scene, selected.getProvider(), model, true, AiInvocationGateway.snapshotContext())) {
+            try {
+                stream.chat(request, new dev.langchain4j.model.chat.response.StreamingChatResponseHandler() {
+                    @Override public void onPartialResponse(String text) {
+                        if (!cancelled.get() && !completion.isDone()) output.accept(text);
+                    }
+                    @Override public void onPartialResponse(dev.langchain4j.model.chat.response.PartialResponse part,
+                                                            dev.langchain4j.model.chat.response.PartialResponseContext context) {
+                        handle.set(context.streamingHandle());
+                        if (cancelled.get() || completion.isDone()) context.streamingHandle().cancel();
+                        else onPartialResponse(part.text());
+                    }
+                    @Override public void onCompleteResponse(dev.langchain4j.model.chat.response.ChatResponse result) {
+                        completion.complete(result);
+                    }
+                    @Override public void onError(Throwable error) { completion.completeExceptionally(error); }
+                });
+                long until = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(timeout);
+                while (!cancelled.get() && System.nanoTime() < until) {
+                    try {
+                        var result = completion.get(200, java.util.concurrent.TimeUnit.MILLISECONDS);
+                        InvocationChatModelListener.markSuccess(invocation, result.tokenUsage());
+                        if (result.finishReason() != null && result.finishReason() != dev.langchain4j.model.output.FinishReason.STOP)
+                            throw new IncompleteAnswerException();
+                        return result.aiMessage().text();
+                    } catch (java.util.concurrent.TimeoutException notReady) {
+                        // Check cancellation between waits even when the provider is silent.
+                    }
+                }
+                throw new IllegalStateException("最终回答已停止或超时");
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                InvocationFailureClassifier.mark(invocation, ex);
+                throw new IllegalStateException("最终回答已中断", ex);
+            } catch (java.util.concurrent.ExecutionException ex) {
+                InvocationFailureClassifier.mark(invocation, ex.getCause());
+                throw new IllegalStateException("最终回答生成失败", ex.getCause());
+            } catch (IncompleteAnswerException ex) {
+                // The provider completed and reported usage, but the application must not treat the body as final.
+                throw ex;
+            } catch (RuntimeException ex) {
+                InvocationFailureClassifier.mark(invocation, ex);
+                throw ex;
+            } finally {
+                if (completion.cancel(false) && handle.get() != null) handle.get().cancel();
+            }
+        }
+    }
+
+    public static final class IncompleteAnswerException extends RuntimeException {
+        private IncompleteAnswerException() { super("模型未正常结束正文输出"); }
+    }
+
+    private static String apiKey(AiSkillModelProperties selected) {
         String key = selected.getApiKey();
         if (StringUtils.isNotBlank(key) && key.length() % 4 == 0 && key.matches("^[A-Za-z0-9+/=]+$")) {
             try {
@@ -77,11 +147,25 @@ public class GovernedChatModelFactory {
                 }
             } catch (Exception ignored) { /* Preserve existing plaintext-key compatibility. */ }
         }
+        return key;
+    }
+
+    private static String baseUrl(AiSkillModelProperties selected) {
         String url = selected.getApiUrl().trim();
         while (url.endsWith("/")) url = url.substring(0, url.length() - 1);
         if (url.endsWith("/chat/completions")) url = url.substring(0, url.length() - "/chat/completions".length());
-        String model = StringUtils.isBlank(selected.getModel()) ? "qwen-plus" : selected.getModel();
-        OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder().baseUrl(url)
+        return url;
+    }
+
+    private static String modelName(AiSkillModelProperties selected) {
+        return StringUtils.isBlank(selected.getModel()) ? "qwen-plus" : selected.getModel();
+    }
+
+    private ChatModel client(AiSkillModelProperties selected, String scene, boolean strictJsonSchema) {
+        if (!Boolean.TRUE.equals(selected.getEnabled()) || StringUtils.isBlank(selected.getApiUrl())) return null;
+        String key = apiKey(selected);
+        String model = modelName(selected);
+        OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder().baseUrl(baseUrl(selected))
                 .apiKey(StringUtils.isBlank(key) ? "none" : key).modelName(model)
                 .temperature(selected.getTemperature() == null ? 0.2D : selected.getTemperature())
                 .maxTokens(selected.getMaxTokens() == null ? 8192 : selected.getMaxTokens())

@@ -294,13 +294,17 @@ public class PlatformAgentOperationService {
 
     public OperationState get(String id) {
         AiAgentOperationDO persisted = operationPersistence.get(id);
-        return persisted == null ? null : toState(persisted);
+        return persisted == null || isUnifiedAskTurn(persisted) ? null : toState(persisted);
+    }
+
+    private static boolean isUnifiedAskTurn(AiAgentOperationDO operation) {
+        return operation.getId() != null && operation.getId().startsWith("ASK_UNIFIED_");
     }
 
     /** Tool 查询流程状态时使用的资源归属校验，避免 Agent 读取其他用户的流程记录。 */
     public boolean belongsTo(String id, Long userId, Long spaceId, String spaceCode) {
         AiAgentOperationDO persisted = operationPersistence.get(id);
-        if (persisted == null || userId == null || !userId.equals(persisted.getCreatorId())) return false;
+        if (persisted == null || isUnifiedAskTurn(persisted) || userId == null || !userId.equals(persisted.getCreatorId())) return false;
         if (spaceId != null && !spaceId.equals(persisted.getSpaceId())) return false;
         return spaceCode == null || spaceCode.trim().isEmpty()
                 || spaceCode.equalsIgnoreCase(persisted.getSpaceCode());
@@ -317,7 +321,7 @@ public class PlatformAgentOperationService {
         List<AiAgentOperationDO> persistedRows = operationPersistence.listLatest(spaceId, spaceCode, userId, limit);
         if (persistedRows == null) return result;
         for (AiAgentOperationDO item : persistedRows) {
-            if (item == null || userId != null && !userId.equals(item.getCreatorId())) continue;
+            if (item == null || isUnifiedAskTurn(item) || userId != null && !userId.equals(item.getCreatorId())) continue;
             result.add(toState(item));
         }
         return result;

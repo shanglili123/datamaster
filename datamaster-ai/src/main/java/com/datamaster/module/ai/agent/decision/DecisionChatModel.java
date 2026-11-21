@@ -13,15 +13,21 @@ import java.util.Set;
 public final class DecisionChatModel implements ChatModel {
     private final ChatModel delegate;
     private final DecisionBudget budget;
+    private final String activity;
 
     public DecisionChatModel(ChatModel delegate, DecisionBudget budget) {
+        this(delegate, budget, "正在组织决策分析");
+    }
+
+    public DecisionChatModel(ChatModel delegate, DecisionBudget budget, String activity) {
         this.delegate = delegate;
         this.budget = budget;
+        this.activity = activity;
     }
 
     @Override
     public ChatResponse chat(ChatRequest request, ChatRequestOptions options) {
-        budget.use("正在组织决策分析");
+        budget.use(activity);
         ChatResponse result = delegate.chat(request, options);
         budget.check();
         return result;

@@ -25,23 +25,18 @@
       </nav>
 
       <div class="explore-station__header-actions">
-        <a-dropdown v-if="spaceList.length" :trigger="['click']">
-          <a-button class="explore-station__space-switch" :loading="spaceLoading" :title="`当前空间：${spaceName || '未选择空间'}`">
-            <span>空间切换</span>
-            <template #icon><DownOutlined /></template>
-          </a-button>
-          <template #overlay>
-            <a-menu :selected-keys="spaceName ? [String(userStore.spaceId)] : []" @click="handleSpaceSwitch">
-              <a-menu-item v-for="space in spaceList" :key="String(space.id)">
-                {{ space.name || space.spaceName || space.code || space.spaceCode || "未命名空间" }}
-              </a-menu-item>
-            </a-menu>
-          </template>
-        </a-dropdown>
-        <a-button v-else class="explore-station__space-switch" :loading="spaceLoading" @click="ensureExploreSpace">
-          空间切换
-          <template #icon><DownOutlined /></template>
-        </a-button>
+        <a-select
+          class="explore-station__space-switch"
+          :value="userStore.spaceId ? String(userStore.spaceId) : undefined"
+          :options="spaceOptions"
+          :loading="spaceLoading"
+          placeholder="选择空间"
+          show-search
+          option-filter-prop="label"
+          :title="`当前空间：${spaceName || '未选择空间'}`"
+          @change="handleSpaceSwitch"
+          @dropdown-visible-change="open => open && ensureExploreSpace()"
+        />
         <a-button v-if="activeFlow" @click="goFlowHome">
           <template #icon><HomeOutlined /></template>
           流程首页
@@ -99,11 +94,11 @@
             <strong>{{ activeFlowIndex + 1 }} / {{ flows.length }}</strong>
           </div>
         </div>
-        <section class="explore-station__module">
+        <section class="explore-station__module" :class="{ 'is-chat-module': (embeddedPage?.component || activeSubFlow?.component) === AiAskView }">
           <component
             :is="embeddedPage?.component || activeSubFlow?.component"
             v-if="embeddedPage?.component || activeSubFlow?.component"
-            :key="embeddedPage?.id || activeSubFlow?.id"
+            :key="`${userStore.spaceId || ''}:${userStore.spaceCode || ''}:${embeddedPage?.id || activeSubFlow?.id}`"
           />
         </section>
       </main>
@@ -267,7 +262,6 @@ import {
   ArrowRightOutlined,
   CheckOutlined,
   DatabaseOutlined,
-  DownOutlined,
   HomeOutlined,
   MessageOutlined,
   NodeIndexOutlined,
@@ -277,7 +271,6 @@ import {
 import useUserStore from "@/store/system/user";
 import { startPlatformAgent, getPlatformAgentOperation, getPlatformAgentOperationPage, resumePlatformAgent, retryPlatformAgent, confirmPlatformAgentMetadata, cancelPlatformAgent } from "@/api/ai/platformAgent";
 import { encrypt } from "@/utils/aesEncrypt";
-import { currentUser } from "@/api/tax/space/space";
 import { checkPermi } from "@/utils/permission";
 import { normalizeDataQueryTarget } from "@/utils/dataQueryNavigation";
 
@@ -380,8 +373,9 @@ const activeFlowId = ref("");
 const activeSubId = ref("");
 const embeddedPage = ref(null);
 const embeddedPreviousPage = ref(null);
-const spaceList = ref([]);
-const spaceLoading = ref(false);
+const spaceList = computed(() => userStore.spaces);
+const spaceLoading = computed(() => userStore.spacesLoading);
+const spaceOptions = computed(() => spaceList.value.map(space => ({ value: String(space.id), label: space.name || space.spaceName || space.code || space.spaceCode })));
 const agentIntent = ref("");
 const agentPlanning = ref(false);
 const agentPlanReady = ref(false);
@@ -397,6 +391,13 @@ const agentCanceling = ref(false);
 const agentConnection = ref({ databaseName: "", datasourceType: "PostgreSQL", ip: "", port: 5432, datasourceConfig: "" });
 const agentOutputRef = ref();
 let agentPlanTimer = null;
+let agentHistoryVersion = 0;
+let agentContextVersion = 0;
+function agentContextGuard() {
+  const version = agentContextVersion;
+  const space = JSON.stringify([userStore.spaceId, userStore.spaceCode]);
+  return () => version === agentContextVersion && space === JSON.stringify([userStore.spaceId, userStore.spaceCode]);
+}
 const AGENT_OPERATION_STORAGE_KEY = "dataMasterCurrentAgentOperationId";
 const AGENT_POLL_INTERVAL = 5000;
 const currentAgentSpaceId = () => userStore.spaceId || localStorage.getItem("dataMasterSpaceId") || null;
@@ -417,38 +418,15 @@ const agentExamples = [
   "根据资产生成本体和决策 Skill",
 ];
 
-function applyExploreSpace(space) {
-  if (!space?.id) return false;
-  userStore.spaceId = space.id;
-  userStore.spaceCode = space.code || space.spaceCode || "";
-  userStore.spaceName = space.name || space.spaceName || "";
-  localStorage.setItem("dataMasterSpaceId", String(space.id));
-  return true;
-}
-
 async function ensureExploreSpace() {
-  if (spaceLoading.value) return;
-  spaceLoading.value = true;
-  try {
-    const response = await currentUser();
-    spaceList.value = response?.data || [];
-    if (!spaceList.value.length) return;
-    const storedId = userStore.spaceId || localStorage.getItem("dataMasterSpaceId");
-    const selected = spaceList.value.find((space) => String(space.id) === String(storedId)) || spaceList.value[0];
-    applyExploreSpace(selected);
-  } catch (error) {
-    // 空间获取失败不阻断流程页，用户仍可点击空间切换重试。
-  } finally {
-    spaceLoading.value = false;
-  }
+  try { await userStore.loadSpaces(); }
+  catch { message.warning('空间列表加载失败，请重新打开空间列表重试'); }
 }
 
-function handleSpaceSwitch({ key }) {
-  const selected = spaceList.value.find((space) => String(space.id) === String(key));
+function handleSpaceSwitch(id) {
+  const selected = spaceList.value.find(space => String(space.id) === String(id));
   if (!selected || String(selected.id) === String(userStore.spaceId)) return;
-  applyExploreSpace(selected);
-  resetAgentPlan();
-  restoreAgentOperation();
+  userStore.setCurrentSpace(selected);
 }
 
 // 流程工作站内嵌业务页面时，给子页面提供当前工作站自己的路由上下文。
@@ -644,10 +622,12 @@ function isFixedWorkflowOperation(operation) {
 }
 
 async function selectAgentOperation(operation) {
+  const isCurrent = agentContextGuard();
   applyAgentOperation(operation);
   if (!operation?.id) return;
   try {
     const res = await getPlatformAgentOperation(operation.id);
+    if (!isCurrent()) return;
     applyAgentOperation(res?.data || res);
   } catch (error) {
     // 列表中的历史状态仍可展示，详情刷新失败不阻断页面操作。
@@ -684,6 +664,7 @@ function goSystemHome() {
 }
 
 function startAgentConversation() {
+  const isCurrent = agentContextGuard();
   const prompt = agentIntent.value.trim();
   if (!prompt) {
     message.warning("请先描述要完成的数据工作");
@@ -720,8 +701,9 @@ function startAgentConversation() {
     spaceCode: userStore.spaceCode || '',
   };
   startPlatformAgent(payload).then((res) => {
-    applyAgentOperation(res?.data || res);
+    if (isCurrent()) applyAgentOperation(res?.data || res);
   }).catch((error) => {
+    if (!isCurrent()) return;
     agentPlanning.value = false;
     agentOperationStatus.value = "FAILED";
     agentPlanOutput.value = [...agentPlanOutput.value, `> 启动失败：${error?.message || "无法连接平台数据智能体"}`];
@@ -730,6 +712,7 @@ function startAgentConversation() {
 
 function resumeAgentOperation() {
   if (!agentOperationId.value) return;
+  const isCurrent = agentContextGuard();
   agentPlanning.value = true;
   resumePlatformAgent(agentOperationId.value, {
     goal: agentIntent.value.trim(),
@@ -739,7 +722,8 @@ function resumeAgentOperation() {
     ip: agentConnection.value.ip,
     port: agentConnection.value.port,
     datasourceConfig: agentConnection.value.datasourceConfig,
-  }).then((res) => applyAgentOperation(res?.data || res)).catch((error) => {
+  }).then((res) => { if (isCurrent()) applyAgentOperation(res?.data || res); }).catch((error) => {
+    if (!isCurrent()) return;
     agentPlanning.value = false;
     agentOperationStatus.value = "FAILED";
     agentPlanOutput.value = [...agentPlanOutput.value, `> 继续执行失败：${error?.message || "请求失败"}`];
@@ -749,8 +733,10 @@ function resumeAgentOperation() {
 
 async function retryAgentOperation() {
   if (!agentOperationId.value) return;
+  const isCurrent = agentContextGuard();
   try {
     const latestResponse = await getPlatformAgentOperation(agentOperationId.value);
+    if (!isCurrent()) return;
     const latest = latestResponse?.data || latestResponse;
     applyAgentOperation(latest);
     if (latest?.status !== "FAILED" && latest?.status !== "INTERRUPTED") {
@@ -758,13 +744,14 @@ async function retryAgentOperation() {
       return;
     }
   } catch (error) {
-    message.error("无法读取最新流程状态，请刷新后重试");
+    if (isCurrent()) message.error("无法读取最新流程状态，请刷新后重试");
     return;
   }
   agentPlanning.value = true;
   retryPlatformAgent(agentOperationId.value)
-    .then((res) => applyAgentOperation(res?.data || res))
+    .then((res) => { if (isCurrent()) applyAgentOperation(res?.data || res); })
     .catch((error) => {
+      if (!isCurrent()) return;
       agentPlanning.value = false;
       agentOperationStatus.value = "FAILED";
       agentPlanOutput.value = [...agentPlanOutput.value, `> 重试失败：${error?.message || "请求失败"}`];
@@ -773,8 +760,10 @@ async function retryAgentOperation() {
 
 async function cancelAgentOperation() {
   if (!agentOperationId.value || agentCanceling.value) return;
+  const isCurrent = agentContextGuard();
   try {
     const latestResponse = await getPlatformAgentOperation(agentOperationId.value);
+    if (!isCurrent()) return;
     const latest = latestResponse?.data || latestResponse;
     applyAgentOperation(latest);
     if (latest?.status !== "RUNNING") {
@@ -783,12 +772,13 @@ async function cancelAgentOperation() {
     }
     agentCanceling.value = true;
     const res = await cancelPlatformAgent(agentOperationId.value);
+    if (!isCurrent()) return;
     applyAgentOperation(res?.data || res);
     message.success("已提交流程取消请求");
   } catch (error) {
-    message.error(`取消流程失败：${error?.message || "请求失败"}`);
+    if (isCurrent()) message.error(`取消流程失败：${error?.message || "请求失败"}`);
   } finally {
-    agentCanceling.value = false;
+    if (isCurrent()) agentCanceling.value = false;
   }
 }
 
@@ -834,8 +824,10 @@ function applyAgentOperation(operation) {
 
 async function confirmMetadataTask() {
   if (!agentOperationId.value) return;
+  const isCurrent = agentContextGuard();
   try {
     const latestResponse = await getPlatformAgentOperation(agentOperationId.value);
+    if (!isCurrent()) return;
     const latest = latestResponse?.data || latestResponse;
     applyAgentOperation(latest);
     if (latest?.status !== "NEED_CONFIRMATION") {
@@ -843,13 +835,14 @@ async function confirmMetadataTask() {
       return;
     }
   } catch (error) {
-    message.error("无法读取最新流程状态，请刷新后重试");
+    if (isCurrent()) message.error("无法读取最新流程状态，请刷新后重试");
     return;
   }
   agentPlanning.value = true;
   confirmPlatformAgentMetadata(agentOperationId.value)
-    .then((res) => applyAgentOperation(res?.data || res))
+    .then((res) => { if (isCurrent()) applyAgentOperation(res?.data || res); })
     .catch((error) => {
+      if (!isCurrent()) return;
       agentPlanning.value = false;
       agentOperationStatus.value = "FAILED";
       agentPlanOutput.value = [...agentPlanOutput.value, `> 确认发布失败：${error?.message || "请求失败"}`];
@@ -858,9 +851,11 @@ async function confirmMetadataTask() {
 
 function pollAgentOperation() {
   if (!agentOperationId.value || agentOperationStatus.value !== "RUNNING") return;
+  const isCurrent = agentContextGuard();
   getPlatformAgentOperation(agentOperationId.value)
-    .then((res) => applyAgentOperation(res?.data || res))
+    .then((res) => { if (isCurrent()) applyAgentOperation(res?.data || res); })
     .catch((error) => {
+      if (!isCurrent()) return;
       agentPlanning.value = false;
       agentOperationStatus.value = "FAILED";
       agentPlanOutput.value = [...agentPlanOutput.value, `> 查询流程状态失败：${error?.message || "请求失败"}`];
@@ -931,7 +926,8 @@ function buildAgentPlanItems() {
   ];
 }
 
-function resetAgentPlan() {
+function resetAgentPlan(clearStored = true) {
+  ++agentContextVersion;
   if (agentPlanTimer) clearTimeout(agentPlanTimer);
   agentPlanning.value = false;
   agentCanceling.value = false;
@@ -942,7 +938,7 @@ function resetAgentPlan() {
   agentOperationId.value = "";
   agentOperationStatus.value = "";
   agentRequiredFields.value = [];
-  localStorage.removeItem(agentOperationStorageKey());
+  if (clearStored) localStorage.removeItem(agentOperationStorageKey());
 }
 
 function agentStepStatus(index) {
@@ -960,12 +956,16 @@ function agentStepStatus(index) {
 }
 
 async function restoreAgentOperation() {
+  const version = ++agentHistoryVersion;
+  const space = JSON.stringify([userStore.spaceId, userStore.spaceCode]);
+  if (!userStore.spaceId) { agentOperationHistory.value = []; return; }
   try {
     const response = await getPlatformAgentOperationPage({
       spaceId: currentAgentSpaceId() || undefined,
       spaceCode: userStore.spaceCode || undefined,
       limit: 100,
     });
+    if (version !== agentHistoryVersion || space !== JSON.stringify([userStore.spaceId, userStore.spaceCode])) return;
     const operations = response?.data || response || [];
     agentOperationHistory.value = Array.isArray(operations)
       ? operations.filter(isFixedWorkflowOperation)
@@ -975,11 +975,17 @@ async function restoreAgentOperation() {
   }
 }
 
-// 空间信息可能在页面挂载后才由顶部空间选择器恢复，恢复完成后再加载一次该空间的流程记录。
-watch(() => [userStore.spaceId, userStore.spaceCode], ([spaceId, spaceCode], oldValue) => {
-  if ((spaceId || spaceCode) && (!oldValue || spaceId !== oldValue[0] || spaceCode !== oldValue[1])) {
-    restoreAgentOperation();
-  }
+// 所有入口共用全局空间；切换时丢弃旧详情与内嵌页面状态，重新挂载当前列表。
+watch(() => [userStore.spaceId, userStore.spaceCode], () => {
+  resetAgentPlan(false);
+  agentOperationHistory.value = [];
+  agentIntent.value = '';
+  agentPlanDatabase.value = '待选择数据源';
+  agentConnection.value = { databaseName: '', datasourceType: 'PostgreSQL', ip: '', port: 5432, datasourceConfig: '' };
+  embeddedPage.value = null;
+  embeddedPreviousPage.value = null;
+  updateStationRoute(activeSubFlow.value || { path: '/explore', name: 'DataExploreStation' });
+  restoreAgentOperation();
 });
 
 onMounted(() => {
@@ -987,6 +993,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  ++agentHistoryVersion; ++agentContextVersion;
   if (agentPlanTimer) clearTimeout(agentPlanTimer);
 });
 </script>
@@ -1089,7 +1096,7 @@ onBeforeUnmount(() => {
 
 .explore-station__step { color: #64718b; font-size: 10px; font-weight: 700; }
 .explore-station__header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.explore-station__space-switch { display: inline-flex; align-items: center; gap: 6px; }
+.explore-station__space-switch { width: 180px; }
 
 .explore-station__secondary {
   position: sticky;
@@ -1223,19 +1230,46 @@ onBeforeUnmount(() => {
   display: none;
 }
 
+/* 聊天工作区固定在视口内，只有内部消息列表和侧栏滚动。 */
+.explore-station.is-ai-flow {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.explore-station.is-ai-flow .explore-station__header {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .explore-station.is-ai-flow .explore-station__workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 .explore-station.is-ai-flow .explore-station__module {
-  min-height: calc(100vh - 76px);
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
   border: 0;
   border-radius: 0;
   box-shadow: none;
 }
 
+.explore-station.is-ai-flow .explore-station__module.is-chat-module {
+  overflow: hidden;
+}
+
 .explore-station.is-ai-flow .explore-station__module :deep(.ask-data-page) {
-  height: calc(100vh - 76px);
+  height: 100%;
   min-height: 0;
   border: 0;
   border-radius: 0;

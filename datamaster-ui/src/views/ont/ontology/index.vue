@@ -147,7 +147,7 @@
 </template>
 
 <script setup name="OntologyList">
-import { computed, inject, reactive, ref } from 'vue'
+import { computed, inject, reactive, ref, watch, onBeforeUnmount } from 'vue'
 import { listOntology, getOntology, addOntology, updateOntology, delOntology } from '@/api/ont/ontology'
 import { aiGenerate, listAiGenerateTables } from '@/api/ont/aiGenerate'
 import { listDaDatasource } from '@/api/ast/dataSource/dataSource'
@@ -215,13 +215,18 @@ function statusColor(status) {
   return map[status] || 'default'
 }
 
+let listVersion = 0
 function getList() {
+  const version = ++listVersion
+  const space = JSON.stringify([userStore.spaceId, userStore.spaceCode])
+  if (!userStore.spaceId) { cardList.value = []; total.value = 0; loading.value = false; return }
   loading.value = true
-  listOntology(queryParams).then(res => {
+  listOntology({ ...queryParams, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode }).then(res => {
+    if (version !== listVersion || space !== JSON.stringify([userStore.spaceId, userStore.spaceCode])) return
     cardList.value = res.data?.rows || []
     total.value = Number(res.data?.total) || 0
   }).finally(() => {
-    loading.value = false
+    if (version === listVersion) loading.value = false
   })
 }
 
@@ -358,7 +363,15 @@ function cancel() {
   reset()
 }
 
-getList()
+watch(() => [userStore.spaceId, userStore.spaceCode], () => {
+  queryParams.pageNum = 1
+  cardList.value = []; total.value = 0
+  open.value = false
+  datasourceList.value = []; tableOptions.value = []
+  aiDatasourceId.value = undefined; aiTableName.value = undefined
+  getList()
+}, { immediate: true })
+onBeforeUnmount(() => { ++listVersion })
 </script>
 
 <style lang="scss" scoped>

@@ -14,6 +14,8 @@ public class AgentRunResponse {
     private String status;
     private String message;
     private String text;
+    /** Provider-returned query text, for optional display only; not an execution receipt. */
+    private String returnedSql;
     private String conversationId;
     private Long sessionId;
     private String operationId;

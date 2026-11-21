@@ -5,16 +5,13 @@ import com.datamaster.common.core.domain.model.LoginUser;
 import com.datamaster.common.exception.ServiceException;
 import com.datamaster.common.utils.SecurityUtils;
 import com.datamaster.common.utils.StringUtils;
-import com.datamaster.module.ai.agent.intent.IntentRouter;
 import com.datamaster.module.ai.agent.runtime.*;
 import com.datamaster.module.ai.agent.tool.AgentToolContext;
 import com.datamaster.module.ai.agent.tool.AgentToolResult;
 import com.datamaster.module.ai.controller.admin.skill.vo.*;
 import com.datamaster.module.ai.controller.agent.tool.AgentToolResourceGuard;
-import com.datamaster.module.ai.dal.dataobject.agent.AiAgentOperationDO;
 import com.datamaster.module.ai.dal.dataobject.skill.AiAskSessionDO;
 import com.datamaster.module.ai.dal.mapper.skill.AiAskSessionMapper;
-import com.datamaster.module.ai.service.skill.IAiAskDataService;
 import com.datamaster.module.ai.service.skill.IAiAskSessionService;
 import com.datamaster.module.ontology.dal.dataobject.OntologyDO;
 import com.datamaster.module.ontology.dal.mapper.OntologyMapper;
@@ -45,9 +42,9 @@ public class AiAskUnifiedController {
     @Resource private OntologyMapper ontologyMapper;
     @Resource private AgentToolResourceGuard resourceGuard;
     @Resource private AskMetricOperationStore operations;
-    @Resource private AskMetricAgentService metrics;
     @Resource private DecisionAgentService decisions;
-    @Resource private IAiAskDataService askData;
+    @Resource private UnifiedAskAgentService unifiedAsk;
+    @Resource private com.datamaster.module.ai.service.skill.AiAskOntologyContextService ontologyContexts;
     private final ExecutorService executor = new ThreadPoolExecutor(2, 8, 60L, TimeUnit.SECONDS,
             new ArrayBlockingQueue<Runnable>(64), new ThreadPoolExecutor.AbortPolicy());
     private final Set<String> inFlight = ConcurrentHashMap.newKeySet();
@@ -80,54 +77,36 @@ public class AiAskUnifiedController {
         AgentToolContext context = new AgentToolContext(null, user.getUserId(), user.getUsername(),
                 request.getSpaceId(), request.getSpaceCode(), attributes);
         validateOntology(request);
+        // Validate any supplied selection before dispatch, but don't require an exploratory
+        // source for formal metrics/decisions, which resolve their own approved sources.
+        if (request.getOntologyId() != null && request.getDatasourceId() != null)
+            ontologyContexts.resolveDatasource(request.getOntologyId(), request.getDatasourceId(),
+                    request.getSpaceId(), request.getSpaceCode(), user.getUserId(), false);
         if (request.getDatasourceId() != null && !resourceGuard.datasourceVisible(request.getDatasourceId(), context))
-            throw new ServiceException("数据源不属于当前可访问空间");
-        if (StringUtils.isNotBlank(request.getAnalysisOperationId())) {
-            if (!"decision".equalsIgnoreCase(request.getResponseMode())) throw new ServiceException("正式分析引用仅用于新建决策");
-            operations.restoreDecisionGoal(request, user.getUserId());
+            throw new ServiceException("数据源不属于当前可访问空间", 403);
+        if (Boolean.TRUE.equals(request.getConfirmed()) || StringUtils.isNotBlank(request.getOperationId())) {
+            return immediate(request, AgentToolResult.NEED_INPUT,
+                    "请在原提案中确认动作；个人分析条件可在指标分析页面保存");
         }
-        boolean metricContinuation = false;
+        if (StringUtils.isNotBlank(request.getAnalysisOperationId())) {
+            if (!unifiedAsk.isUnifiedReference(request.getAnalysisOperationId())) operations.restoreDecisionGoal(request, user.getUserId());
+            else if (StringUtils.isNotBlank(request.getContinuationOperationId())) throw new ServiceException("分析引用不能与续接同时使用");
+            request.setResponseMode("decision");
+        }
         if (StringUtils.isNotBlank(request.getContinuationOperationId())) {
-            if (Boolean.TRUE.equals(request.getConfirmed()) || StringUtils.isNotBlank(request.getOperationId()))
-                throw new ServiceException("补充分析条件不能同时提交保存或执行确认");
-            if ("decision".equalsIgnoreCase(request.getResponseMode())) decisions.restoreInput(request, context);
-            else {
+            if (unifiedAsk.isUnifiedReference(request.getContinuationOperationId())) {
+                unifiedAsk.restoreInput(request, context);
+            } else if (request.getContinuationOperationId().startsWith("ASK_DECISION_")) {
+                decisions.restoreInput(request, context);
+                request.setResponseMode("decision");
+            } else {
                 operations.restoreInput(request, user.getUserId());
-                metricContinuation = true;
             }
         }
-        // Decision confirmations have their own immutable proposal protocol, never metric-save semantics.
-        if ("decision".equalsIgnoreCase(request.getResponseMode())) {
-            if (Boolean.TRUE.equals(request.getConfirmed()) || StringUtils.isNotBlank(request.getOperationId()))
-                return immediate(request, AgentToolResult.NEED_INPUT, "请通过决策方案的准备/确认入口操作，不能重放问数保存确认");
-            return start(request, context, authentication, false);
-        }
-        AiAgentOperationDO existing = null;
-        if (StringUtils.isNotBlank(request.getOperationId())) existing = operations.require(request, user.getUserId());
-        IntentRouter.Intent intent = metricContinuation ? IntentRouter.Intent.METRIC : IntentRouter.route(request.getQuestion());
-        if (Boolean.TRUE.equals(request.getConfirmed())) {
-            if (existing == null || operations.pending(existing) == null)
-                return immediate(request, AgentToolResult.FAILED, "没有可确认的保存预览，请重新执行查询并请求保存");
-            intent = IntentRouter.Intent.METRIC;
-        }
-        if (intent == IntentRouter.Intent.MANAGEMENT)
-            return immediate(request, AgentToolResult.NEED_INPUT, "平台接入、本体生成和指标草稿等管理操作请前往Data Agent；本页仅负责问数和分析");
-        if (intent == IntentRouter.Intent.CLARIFY)
-            return immediate(request, AgentToolResult.NEED_INPUT, "请明确是按已发布指标口径分析，还是探索明细数据；混合需求请拆分");
-        if (intent == IntentRouter.Intent.METRIC && request.getOntologyId() == null)
-            return immediate(request, AgentToolResult.NEED_INPUT, "请先选择当前本体，再进行正式指标问数");
-        boolean report = intent == IntentRouter.Intent.EXPLORATORY && "report".equalsIgnoreCase(request.getResponseMode());
-        if (intent == IntentRouter.Intent.EXPLORATORY && request.getDatasourceId() == null)
-            return immediate(request, AgentToolResult.NEED_INPUT, "探索问数或报告需要选择当前空间的数据源");
-        if (intent == IntentRouter.Intent.EXPLORATORY && !report) {
-            // Preserve the real existing native DB-GPT stream and all its governance.
-            // Its implementation captures the request user here; it has no explicit-user stream overload.
-            return askData.chatWithDbGptStream(request);
-        }
-        return start(request, context, authentication, report);
+        return start(request, context, authentication);
     }
 
-    private SseEmitter start(AskUnifiedReqVO request, AgentToolContext context, Authentication authentication, boolean report) {
+    private SseEmitter start(AskUnifiedReqVO request, AgentToolContext context, Authentication authentication) {
         SseEmitter emitter = new SseEmitter(300000L);
         AtomicBoolean cancelled = new AtomicBoolean();
         emitter.onCompletion(() -> cancelled.set(true));
@@ -135,7 +114,7 @@ public class AiAskUnifiedController {
         emitter.onError(error -> cancelled.set(true));
         String key = context.getUserId() + ":" + context.getSpaceId() + ":" + request.getConversationId();
         if (!inFlight.add(key)) {
-            send(emitter, cancelled, "result", AskMetricAgentService.response(request, null, AgentToolResult.NEED_INPUT, "当前会话已有请求执行中，请等待完成；不会自动取消或重开SQL"));
+            send(emitter, cancelled, "result", UnifiedAskAgentService.response(request, null, AgentToolResult.NEED_INPUT, "当前会话已有请求执行中，请等待完成；不会自动取消或重开SQL"));
             emitter.complete(); return emitter;
         }
         try {
@@ -146,13 +125,10 @@ public class AiAskUnifiedController {
                 SecurityContextHolder.setContext(captured);
                 try {
                     if (cancelled.get()) return;
-                    send(emitter, cancelled, "steps", "decision".equalsIgnoreCase(request.getResponseMode())
-                            ? "正在组织决策分析" : report ? "正在生成探索报告" : "正在处理正式指标问数");
-                    AgentRunResponse response;
-                    if ("decision".equalsIgnoreCase(request.getResponseMode()))
-                        response = decisions.run(request, context, cancelled, step -> send(emitter, cancelled, "steps", step));
-                    else if (report) response = generateReport(request, context.getUserId(), emitter, cancelled);
-                    else response = metrics.run(request, context, cancelled, step -> send(emitter, cancelled, "steps", step));
+                    AgentRunResponse response = unifiedAsk.run(request, context, cancelled,
+                            step -> send(emitter, cancelled, "steps", step),
+                            report -> send(emitter, cancelled, "report", report),
+                            chunk -> send(emitter, cancelled, "answer_delta", com.alibaba.fastjson2.JSON.toJSONString(chunk)));
                     // A disconnected/timed-out request must not publish a late result.
                     if (cancelled.get()) return;
                     send(emitter, cancelled, "result", response);
@@ -160,7 +136,7 @@ public class AiAskUnifiedController {
                     emitter.complete();
                 } catch (Exception ex) {
                     if (!cancelled.get()) {
-                        send(emitter, cancelled, "result", AskMetricAgentService.response(request, request.getOperationId(), AgentToolResult.FAILED, "问数未完成，请检查权限、配置和查询条件后重试"));
+                        send(emitter, cancelled, "result", UnifiedAskAgentService.response(request, request.getOperationId(), AgentToolResult.FAILED, "问数未完成，请检查权限、配置和查询条件后重试"));
                         send(emitter, cancelled, "error", "问数未完成，请稍后重试");
                         emitter.complete();
                     }
@@ -173,31 +149,10 @@ public class AiAskUnifiedController {
             });
         } catch (RejectedExecutionException ex) {
             inFlight.remove(key);
-            send(emitter, cancelled, "result", AskMetricAgentService.response(request, null, AgentToolResult.FAILED, "问数服务繁忙，请稍后重试"));
+            send(emitter, cancelled, "result", UnifiedAskAgentService.response(request, null, AgentToolResult.FAILED, "问数服务繁忙，请稍后重试"));
             emitter.complete();
         }
         return emitter;
-    }
-
-    private AgentRunResponse generateReport(AskUnifiedReqVO request, Long userId, SseEmitter emitter, AtomicBoolean cancelled) {
-        if (cancelled.get()) throw new IllegalStateException("Request closed");
-        AiAskDataReportReqVO report = new AiAskDataReportReqVO();
-        report.setQuestion(request.getQuestion()); report.setDatasourceId(request.getDatasourceId());
-        report.setSpaceId(request.getSpaceId()); report.setSpaceCode(request.getSpaceCode());
-        report.setModel(request.getModel()); report.setReturnSql(request.getReturnSql());
-        report.setConversationId(request.getConversationId()); report.setHistory(request.getHistory());
-        report.setTemplateId(request.getReportTemplateId()); report.setParams(request.getReportParams());
-        if (request.getSkillIds() != null && !request.getSkillIds().isEmpty()) report.setSkillId(request.getSkillIds().get(0));
-        AiAskDataReportRespVO result = askData.generateReport(report, userId);
-        if (cancelled.get()) throw new IllegalStateException("Request closed");
-        if (result == null || StringUtils.isBlank(result.getRawReply()) && result.getReportData() == null)
-            return AskMetricAgentService.response(request, null, AgentToolResult.FAILED, "报告生成未完成，请检查数据源、模板和配置后重试");
-        // Legacy quality warnings can contain provider error details; never forward those exceptions.
-        if (StringUtils.isNotBlank(result.getQualityWarning())) result.setQualityWarning("报告存在质量提示，请检查数据与模板");
-        send(emitter, cancelled, "report", result);
-        AgentRunResponse response = AskMetricAgentService.response(request, null, AgentToolResult.SUCCEEDED, "探索报告已生成");
-        response.setText(result.getRawReply());
-        return response;
     }
 
     private void normalizeSpace(AskUnifiedReqVO request, Long userId) {
@@ -234,7 +189,7 @@ public class AiAskUnifiedController {
     private SseEmitter immediate(AskUnifiedReqVO request, String status, String message) {
         SseEmitter emitter = new SseEmitter(90000L);
         AtomicBoolean cancelled = new AtomicBoolean();
-        send(emitter, cancelled, "result", AskMetricAgentService.response(request, request.getOperationId(), status, message));
+        send(emitter, cancelled, "result", UnifiedAskAgentService.response(request, request.getOperationId(), status, message));
         send(emitter, cancelled, "done", "[DONE]"); emitter.complete(); return emitter;
     }
 

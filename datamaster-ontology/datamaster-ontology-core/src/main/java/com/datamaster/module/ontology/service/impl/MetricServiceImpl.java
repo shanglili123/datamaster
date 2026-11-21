@@ -51,7 +51,11 @@ public class MetricServiceImpl implements IMetricService {
         MetricRules.require(req.getPageNum() != null && req.getPageNum() > 0
                 && req.getPageSize() != null && req.getPageSize() >= 1 && req.getPageSize() <= 100,
                 "分页参数无效");
-        IPage<MetricDO> page = metricMapper.selectPublishedPage(MyBatisUtils.buildPage(req), req, code);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<MetricDO> pagination = MyBatisUtils.buildPage(req);
+        // PostgreSQL JSON operators are valid SQL but not supported by the bundled
+        // count optimizer parser. Use its wrapped COUNT, retaining identical filters.
+        pagination.setOptimizeCountSql(false);
+        IPage<MetricDO> page = metricMapper.selectPublishedPage(pagination, req, code);
         List<MetricRespVO> published = page.getRecords().stream().map(metric -> {
             MetricRespVO snapshot = loadVersion(metric.getId(), metric.getPublishedVersion());
             MetricQueryBuilder.checkIdentity(

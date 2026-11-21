@@ -35,7 +35,8 @@ public class MetricDraftSupport {
     }
 
     public void assertOperation(AiAgentOperationDO operation, AgentToolContext context) {
-        if (operation == null || operation.getId() != null && operation.getId().startsWith("ASK_METRIC_")
+        if (operation == null || operation.getId() != null && (operation.getId().startsWith("ASK_METRIC_")
+                || operation.getId().startsWith("ASK_UNIFIED_"))
                 || Boolean.TRUE.equals(operation.getDelFlag())
                 || !Objects.equals(operation.getId(), context.getOperationId())
                 || !Objects.equals(operation.getCreatorId(), context.getUserId())) throw new IllegalArgumentException("操作归属无效");

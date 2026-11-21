@@ -18,6 +18,9 @@ public @interface AgentTool {
 
     AgentToolRisk risk() default AgentToolRisk.READ_ONLY;
 
+    /** Permission codes required for every call; resource-specific access stays with the service. */
+    String[] permissions() default {};
+
     /** 写操作默认需要确认；查询类工具由 risk=READ_ONLY 自动免确认。 */
     boolean requiresConfirmation() default true;
 

@@ -16,11 +16,19 @@ public interface IAiAskDataService {
     /** Agent 后台线程调用时显式传递已认证的用户身份，避免依赖丢失的 SecurityContext。 */
     AiAskDataSqlRespVO chatWithDbGpt(AiAskDataSqlReqVO reqVO, Long userId);
 
+    /** References are selected server-side from current authorized tool results, not from the HTTP payload. */
+    AiAskDataSqlRespVO chatWithDbGpt(AiAskDataSqlReqVO reqVO, Long userId, String referenceJson);
+
     SseEmitter chatWithDbGptStream(AiAskDataSqlReqVO reqVO);
+
+    /** Selects an authorized published template without running a query or calling a model. */
+    AiAskDataReportRespVO findReportTemplate(AiAskDataReportReqVO reqVO, Long userId);
 
     AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO);
 
     /** Agent 后台线程调用时显式传递已认证的用户身份。 */
     AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO, Long userId);
+
+    AiAskDataReportRespVO generateReport(AiAskDataReportReqVO reqVO, Long userId, String referenceJson);
 }
 

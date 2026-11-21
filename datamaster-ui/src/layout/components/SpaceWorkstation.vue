@@ -8,8 +8,7 @@
       <div class="space-station__header-actions">
         <template v-if="isSpaceWorkspace">
           <span>当前空间</span>
-          <a-select v-if="spaces.length" :value="userStore.spaceId ? String(userStore.spaceId) : undefined" :loading="spacesLoading" :options="spaceOptions" placeholder="选择空间" @change="switchSpace" />
-          <strong v-else>{{ userStore.spaceName || '未命名空间' }}</strong>
+          <a-select :value="userStore.spaceId ? String(userStore.spaceId) : undefined" :loading="spacesLoading" :options="spaceOptions" placeholder="选择空间" show-search option-filter-prop="label" @change="switchSpace" @dropdown-visible-change="open => open && loadSpaces()" />
         </template>
         <a-button type="text" @click="goHome">返回首页</a-button>
         <a-dropdown :trigger="['click']">
@@ -66,7 +65,6 @@ import WorkstationMenuItem from './WorkstationMenuItem.vue';
 import { Modal, message } from 'ant-design-vue';
 import useUserStore from '@/store/system/user';
 import usePermissionStore from '@/store/system/permission';
-import { currentUser } from '@/api/tax/space/space';
 import { isSpaceModuleRoute } from '@/utils/moduleRoute';
 import { parseRouteQuery } from '@/utils/routeQuery';
 import { checkPermi } from '@/utils/permission';
@@ -76,8 +74,8 @@ const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const permissionStore = usePermissionStore();
-const spaces = ref([]);
-const spacesLoading = ref(false);
+const spaces = computed(() => userStore.spaces);
+const spacesLoading = computed(() => userStore.spacesLoading);
 const collapsedGroups = ref(new Set());
 const knownGroups = ref(new Set());
 const isSpaceWorkspace = computed(() => isSpaceModuleRoute(route.path));
@@ -254,14 +252,10 @@ provide('spaceWorkstationNavigation', { openPage, back });
 
 async function loadSpaces() {
   if (!isSpaceWorkspace.value) return;
-  spacesLoading.value = true;
   try {
-    const response = await currentUser();
-    spaces.value = response?.data || [];
+    await userStore.loadSpaces();
   } catch {
-    message.warning('空间列表加载失败，可返回首页重新选择空间');
-  } finally {
-    spacesLoading.value = false;
+    message.warning('空间列表加载失败，请重新打开空间列表重试');
   }
 }
 onMounted(loadSpaces);
@@ -273,10 +267,7 @@ function switchSpace(id) {
   // 切换前保留当前空间，先让编辑器处理未保存内容；导航成功后刷新，清理旧空间缓存。
   router.push('/index').then((failure) => {
     if (failure) return;
-    localStorage.setItem('dataMasterSpaceId', String(id));
-    userStore.spaceId = id;
-    userStore.spaceCode = space.code || space.spaceCode || '';
-    userStore.spaceName = space.name || space.spaceName || '';
+    userStore.setCurrentSpace(space);
     window.location.assign('/space');
   });
 }
@@ -324,6 +315,8 @@ function handleUserCommand({ key }) {
 .space-station__module :deep(.app-container) { min-height: 100%; }
 .space-station__module :deep(.integration-task-editor) { height: 100%; min-height: 0; margin: 0; }
 .space-station__module :deep(.ask-data-page) { height: 100%; min-height: 0; border-radius: 16px; }
+.space-station__module:has(:deep(.ask-data-page)) { overflow: hidden; }
+.space-station__module :deep(.app-main-inner:has(.ask-data-page)) { padding: 0; overflow: hidden; }
 @media (max-width: 900px) {
   .space-station__header { flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
   .space-station__header-actions { flex-wrap: wrap; margin-left: auto; }

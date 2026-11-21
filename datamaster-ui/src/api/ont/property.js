@@ -9,6 +9,26 @@ export function listProperty(query) {
   })
 }
 
+// 按真实概念 ID 汇总属性，保留服务端逐概念的归属与权限校验。
+export async function listPropertiesForConcepts(conceptIds = []) {
+  const ids = [...new Set(conceptIds.filter(id => id != null && id !== ''))]
+  const groups = await Promise.all(ids.map(async conceptId => {
+    const rows = []
+    const pageSize = 200
+    let pageNum = 1
+    while (true) {
+      const res = await listProperty({ conceptId, pageNum, pageSize })
+      const data = res.data
+      const page = Array.isArray(data) ? data : (data?.rows || [])
+      rows.push(...page)
+      if (!page.length || Array.isArray(data) || rows.length >= Number(data?.total ?? rows.length)) break
+      pageNum += 1
+    }
+    return rows
+  }))
+  return groups.flat()
+}
+
 // 查询属性详情
 export function getProperty(id) {
   return request({

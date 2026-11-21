@@ -30,8 +30,6 @@ public final class AgentToolRequest {
         private String name;
         @Schema(description = "指标编码；仅在当前首屏候选中精确过滤，searchComplete=false 时不能据此断言不存在")
         private String code;
-        @Schema(description = "可省略或固定为 PUBLISHED；分析工具不检索草稿和停用指标")
-        private String status;
         @Schema(description = "最多返回条数，范围 1 到 50，默认 20")
         private Integer limit;
     }
@@ -60,11 +58,13 @@ public final class AgentToolRequest {
         private List<String> dimensionPropertyIds;
         @Schema(description = "结构化过滤条件；不要传 SQL")
         private List<AnalysisFilter> filters;
-        @Schema(description = "开始时间；有时间属性时必须与 endTime 同时提供")
+        @Schema(description = "可选时间过滤下界；与 endTime 成对，均省略表示不加时间范围过滤；业务本地ISO时间")
         private String startTime;
-        @Schema(description = "结束时间；有时间属性时必须与 startTime 同时提供")
+        @Schema(description = "可选时间过滤上界，不包含此时刻；与 startTime 成对，固定口径过滤始终保留")
         private String endTime;
-        @Schema(description = "最多返回 1 到 100 行；工具输出最多保留 20 行")
+        @Schema(description = "新增时间条件时，逐字引用本轮用户的时间要求；没有要求时不加时间条件")
+        private String timeScopeQuote;
+        @Schema(description = "仅分组查询使用，可省略；范围 1 到 100，工具输出最多保留 20 行。无分组聚合无需填写")
         private Integer limit;
     }
 
@@ -91,6 +91,8 @@ public final class AgentToolRequest {
         private String baselineStartTime;
         @Schema(description = "基期结束（不包含）；两个区间不能重叠")
         private String baselineEndTime;
+        @Schema(description = "逐字引用本轮用户提出的比较期间要求；不能把系统当前日期当作用户要求")
+        private String timeScopeQuote;
         @Schema(description = "两期共用的分析过滤，仅允许已发布维度；不支持分组比较或额外时间过滤")
         private List<AnalysisFilter> filters;
     }

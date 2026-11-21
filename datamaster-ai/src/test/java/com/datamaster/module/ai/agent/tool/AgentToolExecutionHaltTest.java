@@ -1,7 +1,6 @@
 package com.datamaster.module.ai.agent.tool;
 
 import com.datamaster.module.ai.agent.runtime.AgentToolContextHolder;
-import com.datamaster.module.ai.agent.runtime.AgentToolAuditService;
 import com.datamaster.module.ai.agent.runtime.DecisionAgentService;
 import com.datamaster.module.ai.agent.decision.DecisionBudget;
 import com.datamaster.module.ai.agent.runtime.AgentToolFlowHaltException;
@@ -183,12 +182,12 @@ public class AgentToolExecutionHaltTest {
     @Test
     public void decisionBoundaryRecordsFailureInsteadOfTreatingExceptionTextAsSuccess() throws Exception {
         DecisionAgentService service = new DecisionAgentService();
-        java.lang.reflect.Field auditField = DecisionAgentService.class.getDeclaredField("audit");
-        auditField.setAccessible(true);
-        auditField.set(service, new AgentToolAuditService() {
-            @Override public void record(String name, AgentToolContext context, Map<String, Object> arguments,
-                                         AgentToolResult result, long durationMs) { /* No database. */ }
-        });
+        var factory = new org.springframework.aop.aspectj.annotation.AspectJProxyFactory(
+                new com.datamaster.module.ai.agent.runtime.AgentToolInvocation());
+        factory.addAspect(new com.datamaster.module.ai.agent.runtime.AgentToolAspect());
+        java.lang.reflect.Field invocation = DecisionAgentService.class.getDeclaredField("toolInvocation");
+        invocation.setAccessible(true);
+        invocation.set(service, factory.getProxy());
         AgentToolContext context = new AgentToolContext("operation", 1L, "tester", 2L, "space", Collections.emptyMap());
         Map<ToolSpecification, ToolExecutor> tools = service.bounded(new FailingTool(), context,
                 new DecisionBudget(new java.util.concurrent.atomic.AtomicBoolean(), activity -> { }));

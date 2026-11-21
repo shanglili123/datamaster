@@ -53,10 +53,15 @@ public class MetricQueryBuilderTest {
         rejected(() -> MetricQueryBuilder.typedValue("2026-01-01T00:00:00Z", "datetime"));
         rejected(() -> MetricQueryBuilder.typedValue("2026-02-30", "date"));
     }
-    @Test public void timeRequiredAndMustBePairedIncreasing() {
+    @Test public void optionalTimeFilterStillMustBePairedAndIncreasing() {
         MetricQueryReqVO req = request(); req.setStartTime(null);
         rejected(() -> MetricQueryBuilder.compile(snapshot(), req));
-        req.setEndTime(null); rejected(() -> MetricQueryBuilder.compile(snapshot(), req));
+        req.setEndTime(null);
+        MetricQueryBuilder.Plan plan = MetricQueryBuilder.compile(snapshot(), req);
+        assertFalse(plan.getSql().contains("`event_time` >= ?"));
+        assertFalse(plan.getSql().contains("`event_time` < ?"));
+        assertTrue(plan.getSql().contains("`active` = ?"));
+        assertTrue(plan.getUsedColumns().contains("event_time"));
         req.setStartTime("2026-02-01T00:00:00"); req.setEndTime("2026-01-01T00:00:00");
         rejected(() -> MetricQueryBuilder.compile(snapshot(), req));
     }

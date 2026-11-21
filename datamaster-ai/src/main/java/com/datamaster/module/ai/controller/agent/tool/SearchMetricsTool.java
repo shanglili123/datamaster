@@ -22,7 +22,7 @@ import java.util.Map;
 
 /** Read-only metric discovery. It never exposes mutable draft definitions or physical source metadata. */
 @Component
-@AgentTool(risk = AgentToolRisk.READ_ONLY)
+@AgentTool(risk = AgentToolRisk.READ_ONLY, permissions = {"ont:metric:list", "ont:metric:query"})
 public class SearchMetricsTool {
     @Resource private IMetricService metricService;
     @Resource private MetricAgentToolSupport support;
@@ -46,33 +46,54 @@ public class SearchMetricsTool {
             MetricPageReqVO request = new MetricPageReqVO();
             request.setOntologyId(ontologyId);
             request.setName(text(input == null ? null : input.getName()));
-            String status = text(input == null ? null : input.getStatus());
-            if (status != null && !"PUBLISHED".equals(status)) {
-                return support.result(AgentToolResult.NEED_INPUT, null, "分析工具只检索已发布指标；草稿和停用指标请在指标管理查看", context);
-            }
+            // Publication is a server-side scope, not a model-supplied search condition.
             request.setStatus("PUBLISHED");
             request.setPageNum(1);
             request.setPageSize(support.limit(input == null ? null : input.getLimit(), 20, 50));
             String code = text(input == null ? null : input.getCode());
+            // Models may repeat a human-readable name in the code field. Never pass
+            // that through as an invalid identifier or silently discard a distinct filter.
+            if (code != null && !code.matches("[A-Za-z][A-Za-z0-9_]{0,99}")) {
+                if (request.getName() == null || code.equals(request.getName())) {
+                    request.setName(code);
+                    code = null;
+                } else {
+                    return AgentToolResult.recoverableInput("指标名称和编码条件不一致，请按名称重新检索",
+                            context == null ? null : context.getOperationId());
+                }
+            }
             PageResult<MetricRespVO> page = metricService.getPublishedPage(request, code);
-            List<MetricRespVO> candidates = page == null || page.getRows() == null
-                    ? Collections.<MetricRespVO>emptyList() : page.getRows();
+            boolean catalogSearch = request.getName() == null && code == null;
+            boolean broadened = false;
+            // A literal business phrase is not necessarily the registered metric name.
+            // Retry discovery within the SAME authorized ontology, never source execution.
+            if (!catalogSearch && page != null && Long.valueOf(0).equals(page.getTotal())) {
+                request.setName(null);
+                page = metricService.getPublishedPage(request, null);
+                catalogSearch = true;
+                broadened = true;
+            }
+            if (page == null || page.getRows() == null || page.getTotal() == null)
+                throw new IllegalStateException("Missing published metric catalogue response");
+            List<MetricRespVO> candidates = page.getRows();
             List<Map<String, Object>> rows = new ArrayList<>();
             for (MetricRespVO metric : candidates) {
                 if (metric != null) rows.add(summary(metric));
             }
-            long total = page == null || page.getTotal() == null ? candidates.size() : page.getTotal();
+            long total = page.getTotal();
             boolean complete = total <= candidates.size();
             Map<String, Object> data = new LinkedHashMap<>();
             data.put("rows", rows);
             data.put("total", total);
             data.put("searchComplete", complete);
-            data.put("uniqueMatch", complete && rows.size() == 1);
-            data.put("searchedCode", code);
+            data.put("uniqueMatch", !broadened && complete && rows.size() == 1);
+            data.put("searchedCode", broadened ? null : code);
+            data.put("catalogSearch", catalogSearch);
+            data.put("broadenedSearch", broadened);
             data.put("searchedOntologyId", String.valueOf(ontologyId));
             AgentToolResult result = support.result(AgentToolResult.SUCCEEDED, data,
                     rows.isEmpty() ? (complete ? "当前条件未找到已发布指标" : "当前首屏候选未命中；searchComplete=false，请缩小名称条件，不能断言指标不存在")
-                            : "已返回指标候选；多条候选需请用户选择，唯一匹配时按返回的已发布口径和维度继续分析",
+                            : "已返回指标候选；按业务定义和粒度判断是否适用，候选项本身不是查询结果",
                     context);
             result.setToolName("search_metrics");
             return result;
@@ -97,7 +118,8 @@ public class SearchMetricsTool {
                 row.put("grain", published.getGrain());
                 row.put("aggregation", published.getAggregation());
                 row.put("timeProperty", property(published, published.getTimePropertyId()));
-                row.put("requiresTimeRange", published.getTimePropertyId() != null);
+                row.put("requiresTimeRange", false);
+                row.put("supportsTimeFilter", published.getTimePropertyId() != null);
                 row.put("timeRangeConvention", "[startTime,endTime)，使用源数据业务时间，不自动分桶");
                 row.put("description", published.getDescription());
                 row.put("allowedDimensions", dimensions(published));

@@ -6,10 +6,6 @@
           <span class="ai-local-nav-dot"></span>
           数据分析
         </button>
-        <button type="button" class="ai-local-nav-item" @click="openWorkflowHome">
-          <span class="ai-local-nav-dot workflow"></span>
-          流程编排
-        </button>
         <button type="button" class="ai-local-nav-item" @click="openSkillManagement">
           <span class="ai-local-nav-dot skill"></span>
           Skill 管理
@@ -20,38 +16,45 @@
         <span>问答与报告参数</span>
       </div>
       <div class="chat-options">
-        <div class="chat-option-group">
-          <span class="chat-option-label">工作模式</span>
-          <a-segmented v-model:value="form.mode" :options="modeOptions" class="mode-switch" />
+        <div class="chat-option-group ontology-option">
+          <span class="chat-option-label">业务本体</span>
+          <a-select v-model:value="form.ontologyId" :options="ontologyOptions" :loading="ontologyLoading" show-search option-filter-prop="label" placeholder="请选择业务本体" :disabled="sending || ontologyLoading || syncingSession" />
+          <span class="chat-option-hint">选择本体后，自动关联指标、绑定数据源及可用 Skill。</span>
         </div>
-        <div class="chat-option-group">
-          <span class="chat-option-label">指标本体（正式指标分析）</span>
-          <a-select v-model:value="form.ontologyId" :options="ontologyOptions" :loading="ontologyLoading" show-search option-filter-prop="label" allow-clear placeholder="选择已发布指标所属本体" :disabled="sending" />
-          <span class="chat-option-hint">正式指标走受控分析；探索明细仍使用下方数据源和数据分析服务。平台流程与指标草稿生成请使用 Data Agent。</span>
+        <div class="ontology-context" :class="{ 'has-error': ontologyContextError }">
+          <a-spin v-if="ontologyContextLoading" size="small" tip="正在解析本体绑定…" />
+          <span v-else-if="ontologyContextError" class="chat-option-hint">{{ ontologyContextError }}</span>
+          <template v-else-if="form.ontologyId">
+            <div class="ontology-context-title">本体关联指标</div>
+            <strong>{{ selectedOntologyName }}</strong>
+            <span class="chat-option-hint">{{ ontologyMetrics.length ? `已关联 ${ontologyMetrics.length} 个已发布指标，问数时自动按问题匹配。` : '暂无已发布指标；可使用绑定数据源开展探索分析。' }}</span>
+            <details v-if="ontologyMetrics.length" class="ontology-metric-list">
+              <summary>查看关联指标</summary>
+              <ul><li v-for="metric in ontologyMetrics" :key="metric.id">{{ metric.name }} · V{{ metric.publishedVersion }}</li></ul>
+            </details>
+          </template>
+          <span v-else class="chat-option-hint">请先选择本体，加载对应的分析上下文。</span>
         </div>
-        <div class="chat-option-group">
-          <span class="chat-option-label">数据源（探索分析）</span>
-          <a-select
-            v-model:value="form.datasourceId"
-            placeholder="选择数据源"
-            show-search
-            allow-clear
-            @change="handleDatasourceChange"
-          >
-            <a-select-option v-for="item in datasourceList" :key="item.id" :value="item.id">
-              <span>{{ item.datasourceName }}</span>
-              <span class="option-meta">{{ syncText(item.dbgptSyncStatus) }}</span>
-            </a-select-option>
+        <div v-if="datasourceList.length > 1" class="chat-option-group">
+          <span class="chat-option-label">本体绑定数据源</span>
+          <a-select v-model:value="form.datasourceId" :disabled="sending || ontologyContextLoading" @change="handleDatasourceChange">
+            <a-select-option v-for="item in datasourceList" :key="item.id" :value="item.id">{{ item.datasourceName }}</a-select-option>
           </a-select>
-          <a-tag :color="syncTag(selectedDatasource?.dbgptSyncStatus)">
-            {{ syncText(selectedDatasource?.dbgptSyncStatus) }}
-          </a-tag>
+          <span class="chat-option-hint">已默认选中第一个绑定项；探索查询、Skill 和模板使用此项，正式指标仍按发布来源查询。</span>
         </div>
+        <div v-else-if="selectedDatasource" class="bound-datasource-summary">
+          <span>自动解析的数据源</span>
+          <strong>{{ selectedDatasource.datasourceName }}</strong>
+        </div>
+        <span v-else-if="form.ontologyId && !ontologyContextLoading && !ontologyContextError" class="chat-option-hint">本体尚未绑定可用数据源；正式指标按其已批准的发布来源查询。</span>
         <div class="chat-option-group">
-          <span class="chat-option-label">{{ form.mode === 'decision' ? '分析 Skill' : '知识 Skill' }}</span>
+          <span class="chat-option-label">Skill（可选）</span>
           <a-select
             v-model:value="form.skillId"
-            :placeholder="form.mode === 'decision' ? '选择数据分析 Skill（可选）' : '选择 Skill'"
+            :disabled="sending || ontologyContextLoading || !form.datasourceId"
+            :loading="skillLoading"
+            :not-found-content="skillLoading ? '加载中…' : (skillLoadError || '没有已发布的关联 Skill')"
+            placeholder="自动匹配 Skill（可切换）"
             show-search
             allow-clear
             @change="handleSkillChange"
@@ -60,25 +63,23 @@
               {{ item.skillName }}
             </a-select-option>
           </a-select>
-          <span v-if="form.mode === 'decision'" class="chat-option-hint">默认只分析，预览确认后按已有审批执行。</span>
         </div>
-        <div v-if="form.mode === 'decision'" class="chat-option-group">
+        <div class="chat-option-group">
+          <a-checkbox v-model:checked="form.returnSql" :disabled="sending">返回 SQL</a-checkbox>
+        </div>
+        <div class="chat-option-group">
           <span class="chat-option-label">对象主键（可选）</span>
           <a-input v-model:value="form.objectKey" :disabled="sending" allow-clear placeholder="请明确填写业务对象主键（不从问题自动提取）" />
           <span class="chat-option-hint">用于绑定具体业务对象，提交前以服务端预览为准；未选本体时请先选择本体。</span>
         </div>
-        <div v-if="form.mode === 'report'" class="chat-option-group">
-          <span class="chat-option-label">报告模板</span>
-          <a-select v-model:value="form.templateId" placeholder="选择报告模板" show-search allow-clear>
+        <div class="chat-option-group">
+          <span class="chat-option-label">报告模板（可选）</span>
+          <a-select v-model:value="form.templateId" placeholder="自动匹配报告模板" :disabled="sending || ontologyContextLoading || !form.skillId" :loading="templateLoading" show-search allow-clear>
             <a-select-option v-for="item in templateList" :key="item.id" :value="item.id">
               {{ templateOptionLabel(item) }}
             </a-select-option>
           </a-select>
           <a-button block :icon="h(FileTextOutlined)" @click="openTemplateFormat">模板格式</a-button>
-        </div>
-        <div class="chat-option-footer">
-          <a-switch v-model:checked="form.returnSql" checked-children="SQL" un-checked-children="" class="sql-switch" />
-          <span>返回 SQL</span>
         </div>
       </div>
     </aside>
@@ -103,8 +104,7 @@
         </div>
         <div v-if="activeMessages.length === 0" class="empty-state">
           <h1>想查什么，直接问</h1>
-          <p v-if="form.mode === 'decision'">决策分析模式默认只分析，预览确认后按已有审批执行；影响估算不等于实际改善。</p>
-          <p v-else>选择指标本体开展正式指标分析，或选择数据源进行探索问数；后台按问题分流，不在问数中执行平台管理流程。</p>
+          <p>选择业务本体即可开始；适用指标、Skill 与普通问数会自动组合，报告和方案只在需要时生成。影响估算不等于实际改善，动作仍需原有预览与审批。</p>
           <div class="examples">
             <button v-for="item in examples" :key="item" @click="prompt = item">
               {{ item }}
@@ -134,8 +134,8 @@
               </a-tooltip>
             </div>
             <div v-if="message.agentSteps" class="agent-fold">
-              <details>
-                <summary>执行步骤</summary>
+              <details :open="sending && message === activeAssistantMessage">
+                <summary>执行进度</summary>
                 <pre>{{ message.agentSteps }}</pre>
               </details>
             </div>
@@ -160,7 +160,7 @@
                 <span>{{ step.label }}</span>
               </div>
             </div>
-            <div v-if="message.responseMode === 'decision'" class="decision-analysis-banner">
+            <div v-if="message.decisionId" class="decision-analysis-banner">
               <strong>决策分析</strong>
               <span>默认只分析，预览确认后按已有审批执行</span>
             </div>
@@ -175,10 +175,16 @@
               @updated="updateDecisionMessage(message, $event)"
               @reanalyze="reanalyzeDecision"
             />
-            <a-button v-if="!message.decisionId && message.agentOperationStatus === 'SUCCEEDED' && message.queryExecuted && message.inputBinding" :disabled="sending" size="small" @click="decisionFromAnalysis(message)">基于本次正式分析制定方案</a-button>
+            <a-button v-if="!message.decisionId && ['SUCCEEDED', 'PARTIAL'].includes(message.agentOperationStatus) && message.queryExecuted && message.inputBinding" :disabled="sending" size="small" @click="decisionFromAnalysis(message)">基于本次正式分析制定方案</a-button>
             <a-alert v-if="message.inputContinuation?.operationId" type="info" show-icon message="当前任务需要补充条件；可沿用原目标补充，不会沿用任何执行确认。">
               <template #action><a-button :disabled="sending" size="small" @click="selectInputContinuation(message)">补充本次条件</a-button></template>
             </a-alert>
+            <MarkdownView
+              v-if="(message.unifiedResult || (!message.reportTemplate && !message.reportData)) && (message.displayContent || message.content)"
+              class="message-content"
+              safe-markdown-only
+              :content="message.displayContent || message.content"
+            />
             <a-alert v-if="message.analysisNotice" type="info" show-icon :message="message.analysisNotice" style="margin-bottom: 12px" />
             <a-alert v-if="message.agentOperationStatus === 'NEED_CONFIRMATION'" type="warning" show-icon message="待确认保存分析条件" description="确认的是本条消息对应的服务端名称、指标版本、维度、过滤和时间条件，不保存查询结果。">
               <template #action><a-button type="primary" size="small" :loading="message.agentConfirming" :disabled="sending || !message.agentOperationId" @click="confirmMetricAnalysis(message)">确认保存</a-button></template>
@@ -196,17 +202,17 @@
               :template="message.reportTemplate"
               :data="message.reportData"
             />
-            <div v-else-if="message.tableRows?.length" class="data-table-wrap">
+            <div v-for="(table, index) in message.queryTables || []" :key="index" class="data-table-wrap">
+              <p>{{ table.name }}<template v-if="table.truncated">（结果已截断）</template></p>
+              <a-table v-if="table.rows.length" :data-source="table.rows" :columns="buildTableColumns(table.columns)" :pagination="false" size="small" :scroll="{ y: 320 }" />
+              <a-empty v-else description="该查询没有结果" />
+            </div>
+            <div v-if="!message.queryTables?.length && message.tableRows?.length" class="data-table-wrap">
               <a-table :data-source="message.tableRows" :columns="buildTableColumns(message.tableColumns)" :pagination="false" size="small" :scroll="{ y: 320 }" />
             </div>
-            <div v-else-if="message.queryExecuted" class="data-empty-wrap">
+            <div v-else-if="!message.queryTables?.length && message.queryExecuted" class="data-empty-wrap">
               <a-empty description="暂无查询结果" />
             </div>
-            <MarkdownView
-              v-if="!message.reportTemplate && !message.reportData && (message.displayContent || message.content)"
-              class="message-content"
-              :content="message.displayContent || message.content"
-            />
             <div
               v-if="!message.decisionId && !message.reportTemplate && !message.reportData && !message.tableRows?.length && !message.displayContent && !message.content"
               class="typing"
@@ -344,6 +350,13 @@ import { buildReportTemplateFormatText } from './reportTemplateFormat'
 const datasourceList = ref([])
 const ontologyOptions = ref([])
 const ontologyLoading = ref(false)
+const ontologyContextLoading = ref(false)
+const ontologyContextError = ref('')
+const ontologyMetrics = ref([])
+const skillLoading = ref(false)
+const skillLoadError = ref('')
+const templateLoading = ref(false)
+let ontologyContextVersion = 0
 let askContextVersion = 0
 let ontologyLoadVersion = 0
 const skillList = ref([])
@@ -415,7 +428,7 @@ async function applyNavigationTarget() {
       // Use a fresh conversation; handoff is editable intent, never a tool-result or confirmation replay.
       await createConversation()
       if (sequence !== navigationSequence || key !== navigationKey() || space !== String(userStore.spaceId)) return
-      form.ontologyId = requestedOntology; form.mode = 'decision'; form.objectKey = ''
+      form.ontologyId = requestedOntology; form.objectKey = ''
       manualDecisionReturn.value = { ontologyId: requestedOntology, metricId: draft.query.metricId, version: draft.query.version }
       manualDecisionNotice.value = `已带入「${draft.metricName || draft.query.metricId}」V${draft.query.version}的分析条件。请补充业务目标并发送；服务端将重新查询核验，未沿用页面结果或执行确认。`
       prompt.value = `请严格按以下正式指标版本和结构化条件重新查询，再根据结果提出处置候选、约束和风险；条件无法支持时先询问，不改用其他版本或探索查询。\n指标：${draft.metricName}\n分析条件：${JSON.stringify(draft.query)}\n业务目标：请补充需要解决的问题。`
@@ -456,17 +469,10 @@ const form = reactive({
   ontologyId: null,
   objectKey: '',
   datasourceId: null,
-  mode: 'qa',
   skillId: null,
   templateId: null,
   returnSql: false
 })
-
-const modeOptions = [
-  { label: '问答', value: 'qa' },
-  { label: '决策分析', value: 'decision' },
-  { label: '报告', value: 'report' }
-]
 
 const examples = computed(() => [
   '查询下前5条订单数据',
@@ -485,7 +491,7 @@ const inputContinuation = ref(null)
 const decisionAnalysisReference = ref(null)
 function reanalyzeDecision(proposal) {
   if (sending.value || !proposal?.ontologyId || !proposal?.goal) return
-  form.ontologyId = String(proposal.ontologyId); form.mode = 'decision'; form.objectKey = proposal.objectKey || ''
+  form.ontologyId = String(proposal.ontologyId); form.objectKey = proposal.objectKey || ''
   inputContinuation.value = null; decisionAnalysisReference.value = null
   prompt.value = proposal.goal
   message.info('已载入原目标。请核对日期、对象与约束后发送；将重新查询并生成新提案，不沿用旧确认')
@@ -495,7 +501,6 @@ function decisionFromAnalysis(target) {
       String(target.inputBinding.ontologyId) !== String(form.ontologyId) || String(target.inputBinding.spaceId) !== String(userStore.spaceId)) {
     message.warning('请回到原会话、本体和空间后制定方案'); return
   }
-  form.mode = 'decision'
   decisionAnalysisReference.value = { operationId: target.agentOperationId, ontologyId: form.ontologyId, sessionId: activeConversationId.value, spaceId: userStore.spaceId }
   prompt.value = '请基于该分析结果提出可执行的处置候选，说明约束与风险；重新核验正式指标，不直接执行。'
 }
@@ -504,8 +509,7 @@ function continuationMatches(binding) {
   const sameId = (a, b) => String(a ?? '') === String(b ?? '')
   return binding && sameId(binding.sessionId, activeConversationId.value) &&
     sameId(binding.spaceId, userStore.spaceId) && sameId(binding.spaceCode, userStore.spaceCode) && sameId(binding.ontologyId, form.ontologyId) &&
-    sameId(binding.datasourceId, form.datasourceId) && binding.mode === form.mode &&
-    (binding.mode !== 'decision' || String(binding.objectKey || '') === form.objectKey.trim())
+    sameId(binding.datasourceId, form.datasourceId) && String(binding.objectKey || '') === form.objectKey.trim()
 }
 function selectInputContinuation(target) {
   if (sending.value || !continuationMatches(target.inputContinuation)) {
@@ -515,12 +519,16 @@ function selectInputContinuation(target) {
   inputContinuation.value = { ...target.inputContinuation }
   message.info('请在输入框填写缺少的日期、时区或业务约束，再发送')
 }
-watch(() => [userStore.spaceId, userStore.spaceCode, activeConversationId.value, form.ontologyId, form.datasourceId, form.mode, form.objectKey], () => {
+watch(() => [userStore.spaceId, userStore.spaceCode, activeConversationId.value, form.ontologyId, form.datasourceId, form.objectKey], () => {
   if (inputContinuation.value && !continuationMatches(inputContinuation.value)) inputContinuation.value = null
 }, { flush: 'sync' })
 const decisionContextKey = computed(() => JSON.stringify([
   userStore.spaceId, userStore.spaceCode, activeConversationId.value, form.ontologyId, decisionRequestVersion.value
 ]))
+
+const selectedOntologyName = computed(() =>
+  ontologyOptions.value.find(item => String(item.value) === String(form.ontologyId))?.label || '当前本体'
+)
 
 const selectedDatasource = computed(() =>
   datasourceList.value.find((item) => String(item.id) === String(form.datasourceId))
@@ -538,9 +546,6 @@ onMounted(async () => {
   const initialSpace = JSON.stringify([userStore.spaceId, userStore.spaceCode])
   await loadOntologies()
   if (initialSpace !== JSON.stringify([userStore.spaceId, userStore.spaceCode])) return
-  await loadDatasources()
-  if (initialSpace !== JSON.stringify([userStore.spaceId, userStore.spaceCode])) return
-  await loadSkills()
   await loadConversations()
   if (initialSpace !== JSON.stringify([userStore.spaceId, userStore.spaceCode])) return
   navigationReady = true
@@ -551,14 +556,6 @@ onMounted(async () => {
   }
 })
 
-watch(() => form.mode, () => {
-  if (!availableSkillList.value.some((item) => item.id === form.skillId)) {
-    form.skillId = null
-  }
-  refreshReportTemplates()
-  syncActiveSessionSelection()
-})
-
 watch(() => [form.datasourceId, form.skillId, form.templateId, form.returnSql], () => {
   syncActiveSessionSelection()
 })
@@ -566,13 +563,11 @@ watch(() => [form.datasourceId, form.skillId, form.templateId, form.returnSql], 
 watch(() => form.datasourceId, () => {
   if (!syncingSession.value) invalidateAskContext()
 }, { flush: 'sync' })
-watch(() => form.mode, () => {
-  if (!syncingSession.value) invalidateAskContext()
-}, { flush: 'sync' })
 watch(() => form.ontologyId, () => {
-  if (!syncingSession.value) invalidateAskContext()
+  if (syncingSession.value) return
+  invalidateAskContext()
   form.objectKey = ''
-  if (!syncingSession.value) syncActiveSessionSelection()
+  loadOntologyContext().then(() => syncActiveSessionSelection())
 }, { flush: 'sync' })
 
 watch(() => [userStore.spaceId, userStore.spaceCode], async () => {
@@ -582,17 +577,19 @@ watch(() => [userStore.spaceId, userStore.spaceCode], async () => {
   invalidateAskContext(); syncingSession.value = false
   activeConversationId.value = null; conversations.value = []
   form.ontologyId = null; form.objectKey = ''; form.datasourceId = null
+  ++ontologyContextVersion; datasourceList.value = []; ontologyMetrics.value = []
+  skillList.value = []; templateList.value = []; form.skillId = null; form.templateId = null
+  ontologyContextLoading.value = false; ontologyContextError.value = ''
   const context = askContextVersion
   const space = JSON.stringify([userStore.spaceId, userStore.spaceCode])
   await loadOntologies(); if (context !== askContextVersion) return
-  await loadDatasources(); if (context !== askContextVersion) return
   await loadConversations()
   if (space !== JSON.stringify([userStore.spaceId, userStore.spaceCode])) return
   navigationReady = true
   await applyNavigationTarget()
 }, { flush: 'sync' })
 
-onBeforeUnmount(() => { navigationReady = false; ++navigationSequence; ++askContextVersion; ++ontologyLoadVersion; activeAbortController.value?.abort() })
+onBeforeUnmount(() => { navigationReady = false; ++navigationSequence; ++askContextVersion; ++ontologyLoadVersion; ++ontologyContextVersion; activeAbortController.value?.abort() })
 
 async function loadOntologies() {
   const version = ++ontologyLoadVersion
@@ -607,51 +604,79 @@ async function loadOntologies() {
   } finally { if (version === ontologyLoadVersion) ontologyLoading.value = false }
 }
 
-async function loadDatasources() {
-  const context = askContextVersion
-  const res = await request({
-    url: '/ast/dataSource/getDatasourceList',
-    method: 'get',
-    params: {
-      pageSize: 200,
-      spaceId: userStore.spaceId,
-      spaceCode: userStore.spaceCode
+async function loadOntologyContext(preferred = {}) {
+  const version = ++ontologyContextVersion
+  ++skillLoadVersion; ++templateLoadVersion
+  skillLoading.value = false; templateLoading.value = false
+  const ontologyId = form.ontologyId == null ? null : String(form.ontologyId)
+  const space = JSON.stringify(currentSpaceParams())
+  const isCurrent = () => version === ontologyContextVersion && ontologyId === String(form.ontologyId ?? '') && space === JSON.stringify(currentSpaceParams())
+  datasourceList.value = []; ontologyMetrics.value = []
+  skillList.value = []; templateList.value = []
+  form.datasourceId = null; form.skillId = null; form.templateId = null
+  ontologyContextError.value = ''
+  ontologyContextLoading.value = Boolean(ontologyId)
+  if (!ontologyId) return
+  try {
+    const res = await request({
+      url: '/ai/ask-data/ontology-context', method: 'get',
+      params: { ontologyId, ...currentSpaceParams() }
+    })
+    if (!isCurrent()) return
+    datasourceList.value = (res.data?.datasources || []).map(item => ({ ...item, id: String(item.id) }))
+    ontologyMetrics.value = res.data?.metrics || []
+    form.datasourceId = datasourceList.value.find(item => item.id === String(preferred.datasourceId))?.id || datasourceList.value[0]?.id || null
+    try {
+      await loadSkills(preferred.skillId)
+      if (!isCurrent()) return
+      form.templateId = preferred.templateId == null ? null : String(preferred.templateId)
+      await refreshReportTemplates()
+    } catch (error) {
+      if (isCurrent()) message.warning(error?.message || 'Skill 或模板加载失败，仍可在当前数据源问数')
     }
-  })
-  if (context !== askContextVersion) return
-  datasourceList.value = (res.data || []).map((item) => ({
-    ...item,
-    id: item?.id == null ? item?.id : String(item.id)
-  }))
+  } catch (error) {
+    if (isCurrent()) {
+      datasourceList.value = []; ontologyMetrics.value = []; skillList.value = []; templateList.value = []
+      form.datasourceId = null; form.skillId = null; form.templateId = null
+      ontologyContextError.value = error?.message || '本体绑定解析失败，请重新选择本体后重试'
+    }
+  } finally {
+    if (version === ontologyContextVersion) ontologyContextLoading.value = false
+  }
 }
 
-async function loadSkills() {
+async function loadSkills(preferredSkillId = form.skillId) {
   const context = askContextVersion, sequence = ++skillLoadVersion
-  if (!form.datasourceId) {
-    skillList.value = []
-    form.skillId = null
-    return
-  }
   const datasourceId = form.datasourceId == null ? null : String(form.datasourceId)
-  const res = await listSkill({
-    pageNum: 1,
-    pageSize: 200,
-    status: 'PUBLISHED',
-    datasourceId: datasourceId || undefined
-  })
-  if (context !== askContextVersion || sequence !== skillLoadVersion || String(form.datasourceId) !== datasourceId) return
-  skillList.value = (res.data?.rows || []).map((item) => ({
-    ...item,
-    id: item?.id == null ? item?.id : String(item.id)
-  }))
-  if (form.skillId && !skillList.value.some((item) => String(item.id) === String(form.skillId))) {
-    form.skillId = null
+  skillList.value = []
+  form.skillId = null
+  skillLoadError.value = ''
+  if (!datasourceId) { skillLoading.value = false; return }
+  skillLoading.value = true
+  const isCurrent = () => context === askContextVersion && sequence === skillLoadVersion && String(form.datasourceId) === datasourceId
+  try {
+    const rows = await loadPagedOptions(listSkill, {
+      status: 'PUBLISHED', datasourceId,
+      spaceId: userStore.spaceId, spaceCode: userStore.spaceCode
+    }, { isCurrent })
+    if (!isCurrent()) return
+    skillList.value = rows.map(item => ({ ...item, id: String(item.id) }))
+    form.skillId = skillList.value.find(item => item.id === String(preferredSkillId))?.id || skillList.value[0]?.id || null
+  } catch (error) {
+    if (!isCurrent()) return
+    skillLoadError.value = error?.message || 'Skill 加载失败，请重试'
+    throw error
+  } finally {
+    if (sequence === skillLoadVersion) skillLoading.value = false
   }
 }
 
 async function handleDatasourceChange() {
-  await loadSkills()
-  await refreshReportTemplates()
+  form.skillId = null; form.templateId = null; templateList.value = []
+  try {
+    await loadSkills()
+    await refreshReportTemplates()
+  } catch (error) { message.warning(error?.message || 'Skill 加载失败，请重试') }
 }
 
 async function handleSkillChange() {
@@ -662,19 +687,24 @@ async function refreshReportTemplates() {
   const context = askContextVersion, sequence = ++templateLoadVersion, skillId = form.skillId
   const currentTemplateId = form.templateId
   templateList.value = []
-  if (form.mode !== 'report' || !form.datasourceId || !form.skillId) {
+  templateLoading.value = false
+  if (!form.datasourceId || !form.skillId) {
     form.templateId = null
     return
   }
-  const res = await listSkillReportTemplates(skillId)
-  if (context !== askContextVersion || sequence !== templateLoadVersion || skillId !== form.skillId) return
-  templateList.value = res.data || []
-  if (currentTemplateId && templateList.value.some((item) => item.id === currentTemplateId)) {
-    form.templateId = currentTemplateId
-    return
+  templateLoading.value = true
+  try {
+    const res = await listSkillReportTemplates(skillId)
+    if (context !== askContextVersion || sequence !== templateLoadVersion || skillId !== form.skillId) return
+    templateList.value = (res.data || []).filter(item => item.status === 'PUBLISHED').map(item => ({ ...item, id: String(item.id) }))
+    if (currentTemplateId && templateList.value.some(item => item.id === String(currentTemplateId))) {
+      form.templateId = String(currentTemplateId)
+      return
+    }
+    form.templateId = null
+  } finally {
+    if (sequence === templateLoadVersion) templateLoading.value = false
   }
-  const preferredTemplate = templateList.value.find((item) => item.defaultFlag) || latestReportTemplate(templateList.value)
-  form.templateId = preferredTemplate ? preferredTemplate.id : null
 }
 
 function latestReportTemplate(templates) {
@@ -800,14 +830,6 @@ function openSkillManagement() {
   router.push('/ai/skill')
 }
 
-function openWorkflowHome() {
-  if (stationNavigation?.goFlowHome) {
-    stationNavigation.goFlowHome()
-    return
-  }
-  router.push('/explore')
-}
-
 async function loadMoreMessages(direction) {
   const session = activeConversation.value
   if (!session || !session.messages.length) return
@@ -850,10 +872,11 @@ async function loadMoreMessages(direction) {
 function handleMessageScroll() {
   const el = messageScrollRef.value
   if (!el) return
-  autoScroll.value = el.scrollHeight - el.scrollTop - el.clientHeight <= 40
-  if (el.scrollTop <= 8 && messageWindow.hasBefore) {
+  const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+  autoScroll.value = distanceFromBottom <= 40
+  if (el.scrollTop <= 8 && distanceFromBottom > 8 && messageWindow.hasBefore) {
     loadMoreMessages('before')
-  } else if (el.scrollHeight - el.scrollTop - el.clientHeight <= 8 && messageWindow.hasAfter) {
+  } else if (distanceFromBottom <= 8 && messageWindow.hasAfter) {
     loadMoreMessages('after')
   }
 }
@@ -977,7 +1000,7 @@ function normalizeReportPayload(message) {
 }
 
 function rebuildDisplayContentFromContent(message) {
-  if (!message || message.role !== 'assistant' || !message.content) return
+  if (!message || message.unifiedResult || message.role !== 'assistant' || !message.content) return
   if (message.displayContent) {
     message.displayContent = normalizeVisibleLineBreaks(removeValidationSqlSection(message.displayContent).trim())
   }
@@ -996,7 +1019,7 @@ function rebuildDisplayContentFromContent(message) {
 }
 
 function isFullHtmlMessage(message) {
-  if (!message || message.role === 'user') return false
+  if (!message || message.role === 'user' || message.unifiedResult) return false
   const content = message.displayContent || message.content || ''
   return /<!doctype\s+html|<html[\s>]/i.test(content)
 }
@@ -1162,18 +1185,12 @@ async function applySessionToForm(session) {
   const context = askContextVersion, restore = ++sessionRestoreVersion
   syncingSession.value = true
   try {
-    form.ontologyId = session.ontologyId == null ? null : String(session.ontologyId)
+    const storedOntology = session.ontologyId == null ? null : String(session.ontologyId)
+    form.ontologyId = ontologyOptions.value.some(item => item.value === storedOntology) ? storedOntology : null
     form.objectKey = ''
-    // 流程编排已经迁移到流程首页；旧会话中的 agent 模式回落为普通问答。
-    form.mode = session.mode === 'agent' ? 'qa' : (session.mode || 'qa')
-    form.datasourceId = session.datasourceId == null ? null : String(session.datasourceId)
-    const restoreContext = askContextVersion
-    await loadSkills()
-    if (restoreContext !== askContextVersion || context !== askContextVersion || session.id !== activeConversationId.value || restore !== sessionRestoreVersion) return
-    form.skillId = session.skillId == null ? null : String(session.skillId)
-    form.templateId = session.templateId || null
     form.returnSql = Boolean(session.returnSql)
-    await refreshReportTemplates()
+    await loadOntologyContext({ datasourceId: session.datasourceId, skillId: session.skillId, templateId: session.templateId })
+    if (context !== askContextVersion || session.id !== activeConversationId.value || restore !== sessionRestoreVersion) return
   } finally {
     await nextTick()
     if (restore === sessionRestoreVersion) syncingSession.value = false
@@ -1183,7 +1200,7 @@ async function applySessionToForm(session) {
 function buildSessionPayload(extra = {}) {
   return {
     title: activeConversation.value?.title || extra.title || '新对话',
-    mode: form.mode,
+    mode: 'qa',
     ontologyId: form.ontologyId == null ? null : String(form.ontologyId),
     datasourceId: form.datasourceId,
     datasourceName: selectedDatasourceName(),
@@ -1198,7 +1215,7 @@ function buildSessionPayload(extra = {}) {
 }
 
 async function syncActiveSessionSelection() {
-  if (syncingSession.value || !sessionReady.value || !activeConversationId.value) return
+  if (syncingSession.value || ontologyContextLoading.value || !sessionReady.value || !activeConversationId.value) return
   const context = askContextVersion, id = activeConversationId.value
   const payload = buildSessionPayload(), version = ++sessionSaveVersion
   const valid = () => context === askContextVersion && id === activeConversationId.value && String(payload.spaceId) === String(userStore.spaceId) && payload.spaceCode === (userStore.spaceCode || '')
@@ -1237,12 +1254,14 @@ function serializeMessage(message) {
     content: message.content || '',
     displayContent: message.displayContent || '',
     agentSteps: message.agentSteps || '',
+    unifiedResult: Boolean(message.unifiedResult),
     queryExecuted: Boolean(message.queryExecuted),
     responseMode: message.responseMode || 'qa',
     decisionId: message.decisionId || '',
     decision: message.decision || null,
     agentOperationId: message.agentOperationId || '',
     agentOperationStatus: message.agentOperationStatus || '',
+    askResultStatus: message.askResultStatus || '',
     agentConfirmation: message.agentConfirmation || null,
     inputBinding: message.inputBinding || null,
     inputContinuation: message.inputContinuation || null,
@@ -1250,30 +1269,13 @@ function serializeMessage(message) {
     semanticAnalysisResults: message.semanticAnalysisResults || [],
     tableRows: message.tableRows || [],
     tableColumns: message.tableColumns || [],
+    queryTables: message.queryTables || [],
     reportTemplate: message.reportTemplate || null,
     reportData: message.reportData || null,
     returnedSql: message.returnedSql || '',
     sqlUnavailable: Boolean(message.sqlUnavailable),
     steps: message.steps || []
   }
-}
-
-function buildConversationHistory(session, currentQuestion) {
-  const rows = (session?.messages || [])
-    .filter((item) => ['user', 'assistant'].includes(String(item?.role || '').toLowerCase()))
-    .map((item) => ({
-      role: String(item.role).toLowerCase(),
-      content: String(item.displayContent || item.content || '').trim()
-    }))
-    .filter((item) => item.content)
-  const last = rows[rows.length - 1]
-  if (last?.role === 'user' && last.content === String(currentQuestion || '').trim()) {
-    rows.pop()
-  }
-  return rows.slice(-8).map((item) => ({
-    ...item,
-    content: item.content.slice(0, 2000)
-  }))
 }
 
 function currentSpaceParams() {
@@ -1370,8 +1372,30 @@ function resetPromptHistory(clearDraft = true) {
   if (clearDraft) promptHistoryDraft.value = ''
 }
 
+let submittingMessage = false
 async function sendMessage() {
-  if (sending.value) return
+  if (submittingMessage || sending.value) return
+  submittingMessage = true
+  try {
+    await submitMessage()
+  } finally {
+    submittingMessage = false
+  }
+}
+
+async function submitMessage() {
+  if (ontologyContextLoading.value || skillLoading.value || templateLoading.value || syncingSession.value) {
+    message.info('正在加载本体分析上下文，请稍候')
+    return
+  }
+  if (!form.ontologyId) {
+    message.warning('请先选择业务本体')
+    return
+  }
+  if (ontologyContextError.value) {
+    message.warning(ontologyContextError.value)
+    return
+  }
 
   const question = prompt.value.trim()
   if (!question) {
@@ -1385,19 +1409,10 @@ async function sendMessage() {
   }
   const continuation = inputContinuation.value ? { ...inputContinuation.value } : null
   const analysisReference = decisionAnalysisReference.value
-  if (analysisReference && (form.mode !== 'decision' || String(analysisReference.sessionId) !== String(activeConversationId.value) || String(analysisReference.ontologyId) !== String(form.ontologyId) || String(analysisReference.spaceId) !== String(userStore.spaceId))) {
+  if (analysisReference && (String(analysisReference.sessionId) !== String(activeConversationId.value) || String(analysisReference.ontologyId) !== String(form.ontologyId) || String(analysisReference.spaceId) !== String(userStore.spaceId))) {
     decisionAnalysisReference.value = null; message.warning('原分析上下文已变化，请重新选择'); return
   }
-  // 指标查询由发布来源决定，不要求前端预先选择DB-GPT数据源。
-  const decisionRequest = form.mode === 'decision'
-  if (decisionRequest && !form.ontologyId) {
-    message.warning('请先选择指标本体，再发起决策分析')
-    return
-  }
   ++decisionRequestVersion.value
-  // 明确提出“生成/输出报告”时，即使当前开关仍在问答，也自动走报告链路。
-  // 报告 Skill/模板由后端结合当前数据源自动解析，避免用户为了同一问题重复配置。
-  const reportRequest = !decisionRequest && (form.mode === 'report' || isReportIntent(question))
   if (!activeConversation.value) {
     await createConversation()
   }
@@ -1430,7 +1445,7 @@ async function sendMessage() {
     queryExecuted: false,
     tableRows: [],
     tableColumns: [],
-    responseMode: form.mode,
+    responseMode: 'qa',
     reportTemplate: null,
     reportData: null,
     agentOperationId: '',
@@ -1441,10 +1456,10 @@ async function sendMessage() {
     sqlUnavailable: false,
     inputBinding: {
       sessionId: conversation.id, spaceId: userStore.spaceId, spaceCode: userStore.spaceCode, ontologyId: form.ontologyId,
-      datasourceId: form.datasourceId, mode: form.mode, objectKey: form.objectKey.trim()
+      datasourceId: form.datasourceId, objectKey: form.objectKey.trim()
     },
     inputContinuation: null,
-    steps: createAskSteps(form.mode)
+    steps: createAskSteps()
   })
   conversation.messages.push(assistantMessage)
   trimActiveMessagesToLatest()
@@ -1460,6 +1475,7 @@ async function sendMessage() {
   sending.value = true
   await scrollToBottom(true)
 
+  let receivedResult = false
   try {
     setActiveStep(assistantMessage, 'connect')
     await streamAskData({
@@ -1468,15 +1484,15 @@ async function sendMessage() {
         ...(analysisReference ? { analysisOperationId: analysisReference.operationId } : {}),
         datasourceId: form.datasourceId,
         ontologyId: form.ontologyId,
-        ...(decisionRequest && form.objectKey.trim() ? { objectKey: form.objectKey.trim() } : {}),
+        ...(form.objectKey.trim() ? { objectKey: form.objectKey.trim() } : {}),
         sessionId: conversation.id,
         reportTemplateId: form.templateId,
         chatMode: 'chat_with_db_qa',
         conversationId: String(conversation.id),
-        history: buildConversationHistory(conversation, question),
         skillIds: form.skillId ? [form.skillId] : [],
-        responseMode: reportRequest ? 'report' : decisionRequest ? 'decision' : 'qa',
         returnSql: form.returnSql,
+        // Only explicit decision navigation supplies this legacy hint; no client intent routing.
+        ...(analysisReference ? { responseMode: 'decision' } : {}),
         spaceId: userStore.spaceId || null,
         spaceCode: userStore.spaceCode || ''
       }, {
@@ -1486,6 +1502,12 @@ async function sendMessage() {
             setActiveStep(assistantMessage, 'answer')
           }
           assistantMessage.content = mergeStreamContent(assistantMessage.content, chunk)
+          scrollToBottom()
+        },
+        onAnswerDelta(chunk) {
+          if (context !== askContextVersion || typeof chunk !== 'string') return
+          assistantMessage.content += chunk
+          assistantMessage.displayContent = assistantMessage.content
           scrollToBottom()
         },
         onSql(sql) {
@@ -1500,30 +1522,41 @@ async function sendMessage() {
         },
         onResult(data) {
           if (context !== askContextVersion) return
+          receivedResult = true
           applyAskAgentResult(assistantMessage, data)
           scrollToBottom()
         },
-        onReport(data) { if (context === askContextVersion) applyAskReport(assistantMessage, data) },
-        onError(message) {
+        onReport(data) {
           if (context !== askContextVersion) return
+          applyAskReport(assistantMessage, data)
+          scrollToBottom()
+        },
+        onError(message) {
+          if (context !== askContextVersion || receivedResult) return
           assistantMessage.content = normalizeAgentText(message) || '问数调用失败'
-          finishSteps(assistantMessage)
+          assistantMessage.displayContent = assistantMessage.content
+          assistantMessage.askResultStatus = 'FAILED'
         }
       }, controller.signal)
-      if (context !== askContextVersion) return
-      hydrateStructuredData(assistantMessage)
-      hydrateNativeExecutionData(assistantMessage)
+    if (context !== askContextVersion) return
+    if (!receivedResult && assistantMessage.askResultStatus !== 'FAILED') {
+      throw new Error('连接已结束，但未收到问数结果；生成片段不能作为查询结论')
+    }
     finishSteps(assistantMessage)
     await persistMessage(assistantMessage)
   } catch (error) {
     if (context !== askContextVersion) return
-    if (isAbortError(error)) {
-      assistantMessage.content = assistantMessage.content || '已停止生成'
-    } else {
-      assistantMessage.content = normalizeAgentText(error?.message) || '数据分析调用失败'
+    if (!receivedResult) {
+      const aborted = isAbortError(error)
+      assistantMessage.content = aborted ? '已停止生成，未完成的回答不作为查询结论。'
+        : normalizeAgentText(error?.message) || '数据分析调用失败'
+      assistantMessage.displayContent = assistantMessage.content
+      assistantMessage.askResultStatus = aborted ? 'CANCELLED' : 'FAILED'
+      finishSteps(assistantMessage)
+      await persistMessage(assistantMessage)
+    } else if (!isAbortError(error)) {
+      message.warning('已收到问数结果；连接收尾或会话保存未完成，请保留当前结果。')
     }
-    finishSteps(assistantMessage)
-    await persistMessage(assistantMessage)
   } finally {
     if (context === askContextVersion) {
       sending.value = false
@@ -1537,13 +1570,6 @@ async function sendMessage() {
 function stopGeneration() {
   if (!sending.value) return
   message.info('仅停止接收生成内容，不会撤销已提交的业务执行；请通过提案刷新运行状态。')
-  const assistantMessage = activeAssistantMessage.value
-  if (assistantMessage) {
-    assistantMessage.content = assistantMessage.content || '已停止生成'
-    assistantMessage.displayContent = assistantMessage.displayContent || assistantMessage.content
-    finishSteps(assistantMessage)
-    persistMessage(assistantMessage)
-  }
   activeAbortController.value?.abort()
 }
 
@@ -1565,8 +1591,10 @@ function applyAskReport(assistantMessage, data) {
 }
 
 function applyAskAgentResult(target, data) {
+  target.unifiedResult = data.currentStep === '统一问数'
+  target.askResultStatus = data.status || (data.success === false ? 'FAILED' : '')
   target.inputContinuation = data.status === 'NEED_INPUT' && target.inputBinding &&
-    /^ASK_(METRIC|DECISION)_/.test(data.operationId || '')
+    /^ASK_(METRIC|DECISION|UNIFIED)_/.test(data.operationId || '')
     ? { ...target.inputBinding, operationId: data.operationId } : null
   if (data.decision) {
     target.responseMode = 'decision'
@@ -1574,15 +1602,7 @@ function applyAskAgentResult(target, data) {
     target.decisionId = String(data.decision.id || '')
     target.content = normalizeAgentText(data.text || data.message || data.decision.message || '')
     target.displayContent = target.content
-    // 决策执行只走 decision 的版本化预览/确认，不复用 save_analysis 的 confirmed 协议。
-    target.agentOperationId = ''
-    target.agentOperationStatus = ''
-    target.agentConfirmation = null
-    target.queryExecuted = false
-    target.tableRows = []
-    target.tableColumns = []
-    target.semanticAnalysisResults = []
-    return
+    // 提案确认独立于问数操作；同一消息仍可保留查询和报告。
   }
   target.agentOperationId = data.operationId || ''
   target.agentOperationStatus = data.status || ''
@@ -1592,16 +1612,32 @@ function applyAskAgentResult(target, data) {
     ? { ontologyId: form.ontologyId, sessionId: activeConversation.value?.id, arguments: pending.metadata?.arguments }
     : null
   target.content = normalizeAgentText(data.text || data.message || '')
-  target.displayContent = target.content
-  target.agentSteps = tools.map(item => `${item.toolName || '工具'}：${item.message || item.status || ''}`).join('\n')
-  const query = [...tools].reverse().find(item => item.toolName === 'execute_metric_analysis' && item.status === 'SUCCEEDED')
-  const source = query?.data || [...tools].reverse().find(item => item.toolName === 'build_chart_spec' && item.status === 'SUCCEEDED')?.data
-  if (source?.rows) {
-    target.queryExecuted = true
-    target.tableRows = source.rows || []
-    target.tableColumns = (source.columns || []).map(column => ({ prop: column.key, label: column.label || column.key }))
-    target.analysisNotice = [source.truncated ? '结果已截断，不能视为全量统计。' : '', source.notice || ''].filter(Boolean).join(' ')
+  target.displayContent = normalizeVisibleLineBreaks(target.content)
+  if (data.output?.includes('NATIVE_REPLY_DISPLAYED')) {
+    target.returnedSql = data.returnedSql || ''
   }
+  if (data.output?.includes('UNVERIFIED_EXPLORATORY')) {
+    target.analysisNotice = data.output.includes('NATIVE_REPLY_DISPLAYED')
+      ? '以上为AI分析，仅供参考'
+      : '远端答复未提供可核验的执行结果，未计入本轮查询结论。'
+  }
+  if (data.output?.includes('REQUESTED_TEMPLATE_NOT_APPLIED')) {
+    target.analysisNotice = [target.analysisNotice, '指定模板未应用：模板不可用，或本轮证据不足以填充必需字段。'].filter(Boolean).join(' ')
+  }
+  if (!target.unifiedResult || !target.agentSteps) {
+    target.agentSteps = tools.map(item => `${item.toolName || '工具'}：${item.message || item.status || ''}`).join('\n')
+  }
+  const queries = tools.filter(item => item.toolName === 'execute_metric_analysis' && item.status === 'SUCCEEDED' && Array.isArray(item.data?.rows))
+  target.queryTables = queries.map(({ data: result }) => ({
+    name: result.metricName || '正式指标查询',
+    rows: result.rows,
+    columns: (result.columns || []).map(column => ({ prop: column.key, label: column.label || column.key })),
+    truncated: result.truncated,
+    notice: result.notice
+  }))
+  target.queryExecuted = queries.length > 0 || tools.some(item => item.toolName === 'compare_periods' && item.status === 'SUCCEEDED')
+  const notices = target.queryTables.map(table => table.notice).filter(Boolean)
+  target.analysisNotice = [target.analysisNotice, ...new Set(notices)].filter(Boolean).join(' ')
   target.semanticAnalysisResults = tools.filter(item => ['compare_periods', 'analyze_distribution', 'analyze_trend'].includes(item.toolName) && item.status === 'SUCCEEDED')
     .map(item => ({ tool: item.toolName, data: item.data }))
   const chart = [...tools].reverse().find(item => item.toolName === 'build_chart_spec' && item.status === 'SUCCEEDED')
@@ -1690,12 +1726,6 @@ function mergeStreamContent(current, chunk) {
   return normalizeVisibleLineBreaks(normalizeAgentText(before + chunk))
 }
 
-function isReportIntent(question) {
-  const text = String(question || '').trim().toLowerCase()
-  if (!text) return false
-  return /(生成|输出|制作|导出|形成|创建).{0,20}(数据统计|报告|报表|看板)|统计报告|分析报告|报告模板/.test(text)
-}
-
 function looksLikeCompleteJson(value) {
   if (!value || typeof value !== 'string') return false
   const text = value.trim()
@@ -1743,7 +1773,7 @@ function appendSqlToMessage(message, sql) {
 function appendAgentStepsToMessage(message, steps) {
   const value = (steps || '').trim()
   if (value) {
-    message.agentSteps = value
+    message.agentSteps = [...new Set([...(message.agentSteps || '').split('\n').filter(Boolean), value])].slice(-12).join('\n')
   }
 }
 
@@ -2128,11 +2158,11 @@ function buildColumns(rows, labels = []) {
   }))
 }
 
-function createAskSteps(mode = 'qa') {
+function createAskSteps() {
   return [
     { key: 'understand', label: '理解问题', status: 'active' },
-    { key: 'connect', label: '连接数据源', status: 'pending' },
-    { key: 'answer', label: mode === 'decision' ? '生成决策建议' : '生成回答', status: 'pending' }
+    { key: 'connect', label: '调度可用能力', status: 'pending' },
+    { key: 'answer', label: '生成回答', status: 'pending' }
   ]
 }
 
@@ -2151,8 +2181,15 @@ function setActiveStep(message, key) {
 
 function finishSteps(message) {
   if (!message.steps?.length) return
+  const status = message.askResultStatus || message.agentOperationStatus
+  const unsuccessful = status !== 'SUCCEEDED'
   message.steps.forEach((step) => {
-    step.status = 'done'
+    // A stream ending does not prove that a source was connected or a query succeeded.
+    if (unsuccessful) {
+      step.status = 'pending'
+    } else {
+      step.status = 'done'
+    }
   })
 }
 
@@ -2169,8 +2206,14 @@ async function streamAskData(payload, callbacks, signal) {
     body: JSON.stringify(payload)
   })
 
-  if (!response.ok) {
-    throw new Error(normalizeAgentText(await response.text()) || '数据分析请求失败')
+  const contentType = response.headers.get('content-type') || ''
+  if (!response.ok || !contentType.includes('text/event-stream')) {
+    const error = contentType.includes('json') ? await response.json().catch(() => null) : null
+    const code = Number(error?.code || response.status)
+    if (code === 401) throw new Error('登录已失效，请重新登录后重试')
+    if (code === 403) throw new Error('当前账号无权发起问数或访问所选资源')
+    if (code === 429) throw new Error('问数请求过多，请稍后重试')
+    throw new Error('问数请求未能建立，请检查当前会话和空间后重试')
   }
   if (!response.body) {
     throw new Error('浏览器不支持流式响应')
@@ -2214,6 +2257,8 @@ function handleSseEvent(raw, callbacks) {
     callbacks.onSql?.(text)
   } else if (eventName === 'steps') {
     callbacks.onSteps?.(normalizeAgentText(text))
+  } else if (eventName === 'answer_delta') {
+    callbacks.onAnswerDelta?.(JSON.parse(text))
   } else if (eventName === 'result') {
     callbacks.onResult?.(JSON.parse(text))
   } else if (eventName === 'report') {
@@ -2253,12 +2298,11 @@ function syncTag(status) {
 
 async function scrollToBottom(force = false) {
   if (!force && !autoScroll.value) return
+  const context = askContextVersion
   await nextTick()
-  await new Promise((r) => requestAnimationFrame(r))
+  if (context !== askContextVersion || (!force && !autoScroll.value)) return
   const el = messageScrollRef.value
-  if (el) {
-    el.scrollTop = el.scrollHeight
-  }
+  if (el) el.scrollTop = el.scrollHeight
 }
 </script>
 
@@ -2266,8 +2310,9 @@ async function scrollToBottom(force = false) {
 .ask-data-page {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr) 280px;
-  height: calc(100vh - 96px);
-  min-height: 620px;
+  grid-template-rows: minmax(0, 1fr);
+  height: calc(100dvh - 96px);
+  min-height: 0;
   padding: 0;
   overflow: hidden;
   border: 1px solid #e6eaf0;
@@ -2282,6 +2327,9 @@ async function scrollToBottom(force = false) {
   flex-direction: column;
   gap: 16px;
   padding: 22px 16px 16px;
+  overflow-y: auto;
+  min-height: 0;
+  min-width: 0;
   background: linear-gradient(180deg, #f8fbff 0%, #f5f7fb 100%);
   border-right: 1px solid #e8edf4;
 }
@@ -2290,6 +2338,8 @@ async function scrollToBottom(force = false) {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   gap: 16px;
   padding: 22px 16px 16px;
   background: #fbfcfe;
@@ -2372,11 +2422,6 @@ async function scrollToBottom(force = false) {
   box-shadow: 0 0 0 3px rgba(255, 125, 0, .14);
 }
 
-.ai-local-nav-dot.workflow {
-  background: #00a870;
-  box-shadow: 0 0 0 3px rgba(0, 168, 112, .14);
-}
-
 .panel-title strong,
 .panel-title span {
   display: block;
@@ -2440,6 +2485,64 @@ async function scrollToBottom(force = false) {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+}
+
+.ontology-option .chat-option-label {
+  color: #1d2129;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ontology-context {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #dce8fb;
+  border-radius: 8px;
+  background: #f4f8ff;
+}
+
+.ontology-context-title,
+.bound-datasource-summary > span {
+  color: #6b7fa3;
+  font-size: 11px;
+}
+
+.ontology-context strong,
+.bound-datasource-summary strong {
+  color: #1d2129;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ontology-metric-list {
+  color: #4e5969;
+  font-size: 11px;
+}
+
+.ontology-metric-list summary {
+  cursor: pointer;
+}
+
+.ontology-metric-list ul {
+  max-height: 140px;
+  margin: 6px 0 0;
+  padding-left: 16px;
+  overflow-y: auto;
+}
+
+.ontology-context.has-error {
+  border-color: #ffe2b5;
+  background: #fffaf0;
+}
+
+.bound-datasource-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid #edf0f5;
 }
 
 .chat-option-label {
@@ -2550,10 +2653,22 @@ async function scrollToBottom(force = false) {
 }
 
 .chat-shell {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  --chat-content-width: 800px;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
+}
+
+.chat-shell > :not(.message-list) {
+  flex: 0 0 auto;
+}
+
+.chat-shell > .message-list {
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
 }
 
 .mode-switch {
@@ -2599,16 +2714,20 @@ async function scrollToBottom(force = false) {
 
 .message-list {
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable both-edges;
   height: 100%;
-  padding: 30px 28px 42px;
-  background: #f7f9fc;
-  scroll-behavior: smooth;
+  padding: 32px 28px 48px;
+  background: #ffffff;
+  // 流式回复需要立即贴底，避免动画中间位置被判定为离开底部。
+  scroll-behavior: auto;
 }
 
 .history-loader {
   display: flex;
   justify-content: center;
-  max-width: 960px;
+  max-width: var(--chat-content-width);
   margin: 0 auto 12px;
 }
 
@@ -2659,8 +2778,8 @@ async function scrollToBottom(force = false) {
   align-items: flex-start;
   gap: 0;
   width: 100%;
-  max-width: 1120px;
-  margin: 0 auto 42px;
+  max-width: var(--chat-content-width);
+  margin: 0 auto 60px;
 }
 
 .message-row.user {
@@ -2671,8 +2790,9 @@ async function scrollToBottom(force = false) {
   position: relative;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   min-height: 32px;
-  padding: 3px 0;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -2709,24 +2829,27 @@ async function scrollToBottom(force = false) {
 
 .message-actions {
   position: absolute;
-  right: 0;
-  bottom: -31px;
+  left: -4px;
+  bottom: -38px;
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 4px;
-  border: 1px solid #e8edf4;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, .96);
-  box-shadow: 0 3px 10px rgba(31, 45, 61, .08);
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.message-row.user .message-actions {
+  left: auto;
+  right: 0;
   opacity: 0;
   pointer-events: none;
   transition: opacity .18s ease;
 }
 
-.message-row:hover .message-actions,
-.message-actions:hover {
+.message-row.user:hover .message-actions,
+.message-row.user:focus-within .message-actions {
   opacity: 1;
   pointer-events: auto;
 }
@@ -2755,15 +2878,14 @@ async function scrollToBottom(force = false) {
 
 .message-row:not(.user) .message-bubble {
   width: 100%;
-  padding-right: 8px;
 }
 
 .message-row.user .message-bubble {
   width: auto;
-  max-width: min(760px, 78%);
+  max-width: 80%;
   min-height: 0;
-  padding: 6px 15px;
-  border: 1px solid #d8e9fb;
+  padding: 11px 16px;
+  border: 0;
   border-radius: 18px;
   background: #eaf4ff;
   color: #1f2937;
@@ -2771,7 +2893,8 @@ async function scrollToBottom(force = false) {
 }
 
 .message-row.user .message-content {
-  line-height: 1.45;
+  white-space: pre-wrap;
+  line-height: 1.6;
 }
 
 .message-row.user .message-content :deep(p),
@@ -2782,23 +2905,30 @@ async function scrollToBottom(force = false) {
 }
 
 .message-content {
-  white-space: pre-wrap;
+  white-space: normal;
   overflow-wrap: anywhere;
-  line-height: 1.72;
-  font-size: 14px;
+  line-height: 1.8;
+  font-size: 15px;
   color: #1f2937 !important;
 }
 
-.message-content :deep(table) {
-  display: block;
-  max-width: 100%;
-  overflow-x: auto;
-  margin: 6px 0 10px;
-  color: #1f2937;
+.message-content :deep(p) {
+  margin: 0 0 16px;
 }
 
-.message-content :deep(th) {
-  background: #f7f8fa;
+.message-content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.message-content :deep(pre) {
+  white-space: pre;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.message-content :deep(.markdown-table-scroll) {
+  max-width: 100%;
+  margin: 16px 0 20px;
 }
 
 .data-table-wrap {
@@ -2960,23 +3090,23 @@ async function scrollToBottom(force = false) {
 }
 
 .composer-wrap {
-  padding: 16px 26px 18px;
-  border-top: 1px solid #e8edf4;
-  background: rgba(255,255,255,.96);
-  box-shadow: 0 -8px 20px rgba(31, 45, 61, .04);
+  padding: 8px 28px 16px;
+  background: #ffffff;
 }
 
 .composer {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: stretch;
   gap: 10px;
-  max-width: 1180px;
+  width: 100%;
+  max-width: var(--chat-content-width);
   margin: 0 auto;
-  min-height: 86px;
-  padding: 12px 12px 10px 18px;
-  border: 1px solid #d8e0eb;
-  border-radius: 22px;
-  box-shadow: 0 4px 14px rgba(31, 45, 61, .05);
+  min-height: 100px;
+  padding: 14px 16px 12px;
+  border: 1px solid #e0e3e8;
+  border-radius: 24px;
+  box-shadow: 0 2px 8px rgba(31, 45, 61, .03);
   background: #ffffff;
 }
 
@@ -2987,14 +3117,13 @@ async function scrollToBottom(force = false) {
 .composer :deep(.ant-input) {
   flex: 1 1 auto;
   min-width: 0;
-  align-self: center;
-  width: auto;
-  min-height: 24px !important;
-  padding: 2px 0 8px;
+  width: 100%;
+  min-height: 28px !important;
+  padding: 2px 4px;
   border: none !important;
   box-shadow: none !important;
-  line-height: 22px;
-  font-size: 14px;
+  line-height: 24px;
+  font-size: 15px;
 }
 
 .composer-actions {
@@ -3028,10 +3157,11 @@ async function scrollToBottom(force = false) {
 }
 
 .composer-tip {
-  max-width: 1180px;
+  max-width: var(--chat-content-width);
   margin: 6px auto 0;
   color: #a9aeb8;
-  font-size: 12px;
+  font-size: 11px;
+  text-align: center;
 }
 
 @media (max-width: 960px) {

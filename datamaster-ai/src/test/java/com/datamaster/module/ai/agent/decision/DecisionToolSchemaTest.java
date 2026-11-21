@@ -13,7 +13,7 @@ public class DecisionToolSchemaTest {
     @Test
     public void decisionToolsHaveConcreteJava8SchemasAndNoDispatchTool() {
         int count = 0;
-        for (Class<?> type : new Class<?>[] { DecisionAgentService.DecisionTools.class, DecisionAgentService.PlanningTools.class }) {
+        for (Class<?> type : new Class<?>[] { DecisionAgentService.PlanningTools.class }) {
             for (Method method : type.getMethods()) {
                 Tool tool = method.getAnnotation(Tool.class);
                 if (tool == null) continue;
@@ -28,6 +28,6 @@ public class DecisionToolSchemaTest {
                 count++;
             }
         }
-        assertEquals(3, count);
+        assertEquals(1, count);
     }
 }

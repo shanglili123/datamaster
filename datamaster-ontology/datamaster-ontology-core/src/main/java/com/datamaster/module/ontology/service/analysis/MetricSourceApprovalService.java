@@ -38,7 +38,7 @@ public class MetricSourceApprovalService {
             + "d.datasource_name,d.datasource_type,d.ip,d.port,d.datasource_config,d.source_auth_revision AS datasource_auth_revision "
             + "FROM ont_concept_table b JOIN ont_concept c ON c.id=b.concept_id "
             + "JOIN ast_datasource d ON d.id=b.datasource_id WHERE b.id=? AND c.ontology_id=? "
-            + "AND b.del_flag=0 AND c.del_flag=0 AND (d.del_flag IS NULL OR d.del_flag='0') AND d.valid_flag='1'";
+            + "AND b.del_flag=0 AND c.del_flag=0 AND (d.del_flag IS NULL OR d.del_flag='0') AND d.valid_flag IN ('1','true')";
     private static final String BINDINGS = " FROM ont_concept_table b JOIN ont_concept c ON c.id=b.concept_id WHERE c.ontology_id=? AND b.del_flag=0 AND c.del_flag=0";
 
     /** Request-local capability: never serialized or accepted from an HTTP request. */

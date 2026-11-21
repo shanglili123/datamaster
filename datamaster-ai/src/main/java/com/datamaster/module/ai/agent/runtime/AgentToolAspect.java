@@ -33,22 +33,20 @@ public class AgentToolAspect {
 
     @Around("execution(public * execute(..)) && @within(com.datamaster.module.ai.agent.tool.AgentTool)")
     public Object invoke(ProceedingJoinPoint joinPoint) {
-        long started = System.currentTimeMillis();
         AgentTool tool = AopUtils.getTargetClass(joinPoint.getTarget()).getAnnotation(AgentTool.class);
         String toolName = frameworkToolName(joinPoint);
         AgentToolContext context = context(joinPoint.getArgs());
         Map<String, Object> arguments = arguments(joinPoint.getArgs());
-        AgentToolResult result;
-        try {
+        return governed(toolName, context, arguments, tool.permissions(), () -> {
             if (tool.risk() != AgentToolRisk.READ_ONLY
                     && AgentToolContextHolder.hasSuccessfulCall(toolName, arguments)) {
                 // LangChain4j 可能在同一轮继续请求同一个写 Tool；成功后禁止重复写入，
                 // 否则模型会在“已成功”与“继续修改”之间循环。
-                result = AgentToolResult.of(AgentToolResult.NEED_INPUT, null,
+                return AgentToolResult.of(AgentToolResult.NEED_INPUT, null,
                         "该写操作已使用相同参数成功执行，本轮不再重复调用，请直接向用户返回已完成结果",
                         context == null ? null : context.getOperationId());
             } else if (needsConfirmation(tool) && !confirmed(tool, context, arguments)) {
-                result = AgentToolResult.of(AgentToolResult.NEED_CONFIRMATION, null,
+                AgentToolResult result = AgentToolResult.of(AgentToolResult.NEED_CONFIRMATION, null,
                         confirmationLabel(toolName) + "属于写操作，需要用户确认后执行",
                         context == null ? null : context.getOperationId());
                 Map<String, Object> metadata = new LinkedHashMap<>();
@@ -61,19 +59,51 @@ public class AgentToolAspect {
                             tool.confirmationArgument(), arguments.get(tool.confirmationArgument())));
                 }
                 result.setMetadata(metadata);
-            } else {
-                Object value = joinPoint.proceed();
-                result = value instanceof AgentToolResult
-                        ? (AgentToolResult) value
-                        : AgentToolResult.of(AgentToolResult.SUCCEEDED, value, "Tool 执行完成",
-                        context == null ? null : context.getOperationId());
+                return result;
             }
+            return joinPoint.proceed();
+        });
+    }
+
+    @Around("execution(public * com.datamaster.module.ai.agent.runtime.AgentToolInvocation.execute(..))")
+    @SuppressWarnings("unchecked")
+    public Object invokeTurnTool(ProceedingJoinPoint joinPoint) {
+        Object[] args = joinPoint.getArgs();
+        return governed((String) args[0], (AgentToolContext) args[1],
+                (Map<String, Object>) args[3], (String[]) args[2], joinPoint::proceed);
+    }
+
+    @FunctionalInterface
+    private interface ToolBody { Object execute() throws Throwable; }
+
+    private AgentToolResult governed(String toolName, AgentToolContext context, Map<String, Object> arguments,
+                                     String[] permissions, ToolBody body) {
+        long started = System.currentTimeMillis();
+        String operationId = context == null ? null : context.getOperationId();
+        AgentToolResult result;
+        try {
+            if (!hasPermissions(context, permissions)) {
+                result = AgentToolRejection.Reason.PERMISSION_DENIED.result(operationId);
+            } else {
+                Object value = body.execute();
+                result = value instanceof AgentToolResult outcome ? outcome
+                        : AgentToolResult.of(AgentToolResult.SUCCEEDED, value, "工具已返回", operationId);
+            }
+        } catch (AgentToolFlowHaltException halt) {
+            if (halt.getResult() == null || halt.getResult().getOperationId() == null) throw halt;
+            var stopped = halt.getResult();
+            result = AgentToolResult.of(stopped.getStatus(), null, stopped.getMessage(), operationId);
+            result.setMetadata(stopped.getMetadata());
         } catch (Throwable ex) {
-            log.error("Agent Tool 执行异常，toolName={}，arguments={}", toolName,
-                    AgentPayloadSanitizer.sanitizeValue(null, arguments), ex);
-            result = AgentToolResult.of(AgentToolResult.FAILED, null,
-                    describeException(ex),
-                    context == null ? null : context.getOperationId());
+            if (ex instanceof Error error) throw error;
+            result = AgentToolRejection.classifiedFailure(ex, operationId);
+            if (result == null) {
+                var diagnostic = AgentToolFailureDiagnostics.capture(ex);
+                log.warn("工具调用失败 tool={} operationId={} diagnosticId={}", toolName, operationId, diagnostic.getId(), diagnostic.getStack());
+                result = AgentToolResult.of(AgentToolResult.FAILED, null, "能力调用未完成", operationId);
+                result.getMetadata().put("diagnosticId", diagnostic.getId());
+                result.getMetadata().put("failureCategory", diagnostic.getCategory());
+            }
         }
         result.setToolName(toolName);
         if (result.getOperationId() == null && context != null) result.setOperationId(context.getOperationId());
@@ -84,14 +114,13 @@ public class AgentToolAspect {
         return result;
     }
 
-    private String describeException(Throwable error) {
-        Throwable root = error;
-        while (root != null && root.getCause() != null && root.getCause() != root) root = root.getCause();
-        if (root == null) return "Tool 执行失败";
-        String message = root.getMessage();
-        return message == null || message.trim().isEmpty()
-                ? "Tool 执行失败: " + root.getClass().getSimpleName()
-                : "Tool 执行失败: " + root.getClass().getSimpleName() + ": " + message.trim();
+    private boolean hasPermissions(AgentToolContext context, String[] permissions) {
+        if (permissions.length == 0) return true;
+        var authentication = com.datamaster.common.utils.SecurityUtils.getAuthentication();
+        return context != null && context.getUserId() != null && authentication != null && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof com.datamaster.common.core.domain.model.LoginUser login
+                && context.getUserId().equals(login.getUserId())
+                && java.util.Arrays.stream(permissions).allMatch(com.datamaster.common.utils.SecurityUtils::hasPermi);
     }
 
     private String frameworkToolName(ProceedingJoinPoint joinPoint) {

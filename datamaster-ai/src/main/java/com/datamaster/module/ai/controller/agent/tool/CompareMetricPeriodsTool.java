@@ -23,6 +23,15 @@ public class CompareMetricPeriodsTool {
 
     @Tool(name = "compare_periods", value = "比较本轮检索指标的本期和基期总量。必须明确同一指标版本、两个非重叠时间范围以及共用过滤；只支持数值总量，不分组、不自动推测同比环比日期。后端确定性计算差值及增长率；基期零/负数或无数据会明确标记，不自由SQL、不保存分析。")
     public AgentToolResult execute(AgentToolRequest.CompareMetricPeriods input) {
+        return compare(input, false);
+    }
+
+    /** Only for server-owned references checked by the conversation store, not registered as a model tool. */
+    public AgentToolResult replay(AgentToolRequest.CompareMetricPeriods input) {
+        return compare(input, true);
+    }
+
+    private AgentToolResult compare(AgentToolRequest.CompareMetricPeriods input, boolean replay) {
         AgentToolContext context = AgentToolContextHolder.get();
         AgentToolResult denied = support.guard(context, "ont:metric:query", "ont:metric:execute");
         if (denied != null) return denied;
@@ -30,12 +39,21 @@ public class CompareMetricPeriodsTool {
             if (input == null) return support.result(AgentToolResult.NEED_INPUT, null, "请提供指标版本及明确的本期、基期时间范围", context);
             Long id = support.positiveId(input.getMetricId());
             Integer version = support.positiveVersion(input.getVersion());
-            if (!support.wasOffered(id, version, context)) return support.result(AgentToolResult.NEED_INPUT, null, "请先search_metrics并选择其返回的指标版本", context);
+            if (!replay && !support.wasOffered(id, version, context)) return support.result(AgentToolResult.NEED_INPUT, null, "请先search_metrics并选择其返回的指标版本", context);
             MetricRespVO snapshot = support.published(id, version, context);
+            if (!replay) {
+                AgentToolResult scopeCheck = AskTimeScope.validate(context, true, input.getTimeScopeQuote());
+                if (scopeCheck != null) return scopeCheck;
+            }
             Map<String, Object> time = support.semanticProperty(snapshot, snapshot.getTimePropertyId());
             if (time == null) return support.result(AgentToolResult.NEED_INPUT, null, "该指标没有已发布的时间属性，不能比较时间段", context);
-            boolean sameDuration = MetricPeriodComparison.validateRanges((String) time.get("dataType"),
-                    input.getCurrentStartTime(), input.getCurrentEndTime(), input.getBaselineStartTime(), input.getBaselineEndTime());
+            boolean sameDuration;
+            try {
+                sameDuration = MetricPeriodComparison.validateRanges((String) time.get("dataType"),
+                        input.getCurrentStartTime(), input.getCurrentEndTime(), input.getBaselineStartTime(), input.getBaselineEndTime());
+            } catch (IllegalArgumentException | java.time.format.DateTimeParseException invalidRange) {
+                return AgentToolResult.recoverableInput("比较需要两个有效、互不重叠的时间范围；本轮未执行比较查询", context.getOperationId());
+            }
             List<MetricFilterVO> filters = support.filters(input.getFilters());
             // 避免共享时间过滤与两段范围交叉，造成其中一期被意外过滤为空。
             for (MetricFilterVO filter : filters) {
@@ -61,12 +79,18 @@ public class CompareMetricPeriodsTool {
             data.put("currentPeriod", period(input.getCurrentStartTime(), input.getCurrentEndTime(), currentResult));
             data.put("baselinePeriod", period(input.getBaselineStartTime(), input.getBaselineEndTime(), baselineResult));
             data.put("equalDuration", sameDuration);
+            data.put("appliedFilters", filters);
+            data.put("fixedFilters", snapshot.getFixedFilters());
+            data.put("comparisonDefinition", input);
             data.put("notice", "按相同发布版本和过滤分别查询两期总量；区间[start,end)。"
                     + (sameDuration ? "两期时长相同。" : "两期时长不同，未按天或时长归一化，不能直接认定为标准同比/环比。")
                     + "两次查询不保证同一数据快照；执行时间不是刷新时间。基期为零/负数时不定义增长率；不做因果归因。");
             return support.result(AgentToolResult.SUCCEEDED, data, "两期总量比较完成；差值及增长率由后端十进制计算", context);
-        } catch (Exception ex) {
-            return support.result(AgentToolResult.FAILED, null, "时间段比较失败，请核对日期、数值指标口径、过滤及执行授权", context);
+        } catch (RuntimeException ex) {
+            AgentToolResult classified = com.datamaster.module.ai.agent.runtime.AgentToolRejection.classifiedFailure(ex,
+                    context == null ? null : context.getOperationId());
+            if (classified != null) return classified;
+            throw ex;
         }
     }
 

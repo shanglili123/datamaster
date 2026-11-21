@@ -167,7 +167,7 @@ file:
 
 db-gpt:
   url: http://192.168.93.176:5670
-  timeout: 60000
+  timeout: 180000
   model: qwen-plus
   chat-mode: chat_with_db_qa
   skill-space-name: datamaster-skills

@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -78,7 +77,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         String url = dbGptProperties.getUrl() + CHAT_REACT_AGENT_PATH;
         String jsonBody = buildReactAgentBody(request).toJSONString();
 
-        log.debug("DB-GPT v1 chat request: {}", jsonBody.length() > 500 ? jsonBody.substring(0, 500) + "..." : jsonBody);
+        log.debug("DB-GPT v1 chat request prepared; payload length={}", jsonBody.length());
 
         HttpURLConnection connection = null;
         try {
@@ -86,7 +85,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
             connection.setRequestMethod("POST");
             connection.setDoOutput(true);
             connection.setConnectTimeout(dbGptProperties.getTimeout());
-            connection.setReadTimeout(0);
+            connection.setReadTimeout(Math.max(1000, dbGptProperties.getTimeout()));
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("Accept", "text/event-stream, application/json");
             try (OutputStream outputStream = connection.getOutputStream()) {
@@ -94,15 +93,19 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
             }
 
             int status = connection.getResponseCode();
-            String responseBody = readResponseBody(connection, status);
             if (status != 200) {
-                throw new ServiceException("DB-GPT原生问数调用失败，状态码: " + status + "，响应: " + responseBody);
+                throw new ServiceException("DB-GPT原生问数调用失败，状态码: " + status);
             }
-            return toChatCompletionResponse(responseBody);
+            NativeResponseBody responseBody = readResponseBody(connection);
+            return responseBody.assembledFromEvents()
+                    ? emptyResponse(responseBody.text()) : tryParseSingleJson(responseBody.text());
         } catch (ServiceException e) {
             throw e;
         } catch (Exception e) {
-            throw new ServiceException("DB-GPT原生问数调用异常: " + e.getMessage());
+            // Keep the original cause so timeout classification survives the tool boundary.
+            ServiceException failure = new ServiceException("DB-GPT原生问数调用异常: " + e.getMessage());
+            failure.initCause(e);
+            throw failure;
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -123,7 +126,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
             connection.setRequestMethod("POST");
             connection.setDoOutput(true);
             connection.setConnectTimeout(dbGptProperties.getTimeout());
-            connection.setReadTimeout(0);
+            connection.setReadTimeout(Math.max(1000, dbGptProperties.getTimeout()));
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("Accept", "text/event-stream, application/json");
             try (OutputStream outputStream = connection.getOutputStream()) {
@@ -132,8 +135,7 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
 
             int status = connection.getResponseCode();
             if (status != 200) {
-                String responseBody = readResponseBody(connection, status);
-                throw new ServiceException("DB-GPT原生问数调用失败，状态码: " + status + "，响应: " + responseBody);
+                throw new ServiceException("DB-GPT原生问数调用失败，状态码: " + status);
             }
             streamResponseBody(connection, onMessage);
         } catch (ServiceException e) {
@@ -172,88 +174,31 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         }
     }
 
-    private DbGptChatCompletionResponse toChatCompletionResponse(String responseBody) {
-        if (responseBody == null || responseBody.isEmpty()) {
-            return emptyResponse("");
-        }
-        if (!responseBody.startsWith("data: ")) {
-            return tryParseSingleJson(responseBody);
-        }
-        String fullContent = parseSseContent(responseBody);
-        return emptyResponse(fullContent != null ? fullContent : responseBody);
-    }
+    private record NativeResponseBody(String text, boolean assembledFromEvents) { }
 
-    private String parseSseContent(String sseBody) {
-        String lastContent = null;
-        String[] events = sseBody.split("\n\n");
-        for (String event : events) {
-            if (event == null || !event.startsWith("data: ")) {
-                continue;
-            }
-            String data = event.substring(6).trim();
-            if ("[DONE]".equals(data)) {
-                continue;
-            }
-            try {
-                JSONObject obj = JSON.parseObject(data);
-                JSONArray choices = obj.getJSONArray("choices");
-                if (choices != null && !choices.isEmpty()) {
-                    JSONObject msg = choices.getJSONObject(0).getJSONObject("message");
-                    if (msg != null && msg.getString("content") != null) {
-                        lastContent = msg.getString("content");
-                    }
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return lastContent;
-    }
-
-    private String readResponseBody(HttpURLConnection connection, int status) throws Exception {
-        InputStream inputStream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-        if (inputStream == null) {
-            return "";
-        }
+    private NativeResponseBody readResponseBody(HttpURLConnection connection) throws Exception {
+        InputStream inputStream = connection.getInputStream();
+        if (inputStream == null) return new NativeResponseBody("", false);
         StringBuilder raw = new StringBuilder();
         StringBuilder content = new StringBuilder();
+        boolean eventStream = false;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             String line;
-            try {
-                while ((line = reader.readLine()) != null) {
-                    raw.append(line).append('\n');
-                    String parsed = parseSseLine(line);
-                    if (parsed == null) {
-                        continue;
-                    }
-                    if ("[DONE]".equals(parsed)) {
-                        break;
-                    }
-                    mergeIncrementalContent(content, parsed);
-                    if (hasCompleteSqlBlock(content.toString())) {
-                        break;
-                    }
+            while ((line = reader.readLine()) != null) {
+                if (line.length() > 1_000_000 - raw.length() - 1) {
+                    throw new ServiceException("DB-GPT 响应超出大小限制");
                 }
-            } catch (SocketTimeoutException e) {
-                if (content.length() == 0 && raw.length() == 0) {
-                    throw e;
-                }
-                log.warn("DB-GPT流式响应等待超时，返回已接收内容。contentLength={}, rawLength={}",
-                        content.length(), raw.length());
+                raw.append(line).append('\n');
+                if (!line.stripLeading().startsWith("data:")) continue;
+                eventStream = true;
+                String parsed = parseSseLine(line);
+                if (parsed == null) continue;
+                if ("[DONE]".equals(parsed)) break;
+                // SQL text is not a terminal event; the actual answer can arrive later.
+                mergeIncrementalContent(content, parsed);
             }
         }
-        return content.length() > 0 ? content.toString() : raw.toString();
-    }
-
-    private boolean hasCompleteSqlBlock(String content) {
-        if (content == null) {
-            return false;
-        }
-        String lower = content.toLowerCase();
-        int start = lower.indexOf("```sql");
-        if (start < 0) {
-            return false;
-        }
-        return lower.indexOf("```", start + 6) > start;
+        return new NativeResponseBody(eventStream ? content.toString() : raw.toString(), eventStream);
     }
 
     private String parseSseLine(String line) {
@@ -268,24 +213,32 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
         if (value.startsWith("data:")) {
             value = value.substring(5).trim();
         }
-        if (value.startsWith("{")) {
-            try {
-                JSONObject frame = JSON.parseObject(value);
-                if (frame.containsKey("usage") && !frame.containsKey("content") && !frame.containsKey("text")
-                        && (!frame.containsKey("choices") || frame.getJSONArray("choices") == null || frame.getJSONArray("choices").isEmpty())) return null;
-            } catch (RuntimeException ignored) { /* Preserve existing parser behavior for non-usage frames. */ }
-        }
         if ("[DONE]".equals(value)) {
             return "[DONE]";
         }
+        JSONObject object;
         try {
-            JSONObject object = JSON.parseObject(value);
-            if (isNativeAgentEvent(object)) {
-                return JSON.toJSONString(object);
-            }
-            return extractContent(object);
-        } catch (Exception ignored) {
+            object = JSON.parseObject(value);
+        } catch (RuntimeException ignored) {
             return value;
+        }
+        if (object == null) return null;
+        assertNoRemoteError(object);
+        if (isNativeAgentEvent(object)) return JSON.toJSONString(object);
+        return extractContent(object);
+    }
+
+    private void assertNoRemoteError(JSONObject frame) {
+        Integer code = frame.getInteger("error_code");
+        if (frame.get("error") != null || Boolean.FALSE.equals(frame.get("success")) || code != null && code != 0) {
+            throw new ServiceException("DB-GPT 返回执行失败");
+        }
+        JSONArray choices = frame.getJSONArray("choices");
+        if (choices == null || choices.isEmpty()) return;
+        JSONObject choice = choices.getJSONObject(0);
+        String finish = choice == null ? null : choice.getString("finish_reason");
+        if ("length".equalsIgnoreCase(finish) || "content_filter".equalsIgnoreCase(finish)) {
+            throw new ServiceException("DB-GPT 未返回完整答复");
         }
     }
 
@@ -382,14 +335,16 @@ public class DbGptClientServiceImpl implements IDbGptClientService {
     }
 
     private DbGptChatCompletionResponse tryParseSingleJson(String responseBody) {
+        JSONObject object;
         try {
-            JSONObject object = JSON.parseObject(responseBody);
-            String content = firstNonBlank(extractContent(object), responseBody);
-            return emptyResponse(content);
-        } catch (Exception ignored) {
-            log.debug("DB-GPT response is not a single JSON object: {}", ignored.getMessage());
+            object = JSON.parseObject(responseBody);
+        } catch (RuntimeException notJson) {
+            return emptyResponse(responseBody);
         }
-        return emptyResponse(responseBody);
+        if (object == null) return emptyResponse("");
+        assertNoRemoteError(object);
+        if (object.containsKey("choices")) return emptyResponse(extractContent(object));
+        return emptyResponse(firstNonBlank(extractContent(object), responseBody));
     }
 
     private JSONObject buildReactAgentBody(DbGptChatCompletionRequest request) {

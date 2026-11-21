@@ -1280,6 +1280,7 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
     }
 
     private void ensureOperation(String operationId, AgentRunRequest request, AgentToolContext context) {
+            rejectUnifiedAskOperation(operationId);
             AiAgentOperationDO existing = operationService.get(operationId);
             if (existing != null) {
                 requireAccess(existing, context);
@@ -1304,7 +1305,14 @@ public class LangChain4jAgentService implements IAutonomousAgentService {
             operationService.create(operation);
     }
 
+    private static void rejectUnifiedAskOperation(String operationId) {
+        if (operationId != null && operationId.startsWith("ASK_UNIFIED_")) {
+            throw new ServiceException("问数操作不能作为 Data Agent 流程使用");
+        }
+    }
+
     private void requireAccess(AiAgentOperationDO operation, AgentToolContext context) {
+        rejectUnifiedAskOperation(operation.getId());
         boolean spaceMatch = context != null
                 && (context.getSpaceId() == null || Objects.equals(operation.getSpaceId(), context.getSpaceId()))
                 && (context.getSpaceCode() == null || Objects.equals(operation.getSpaceCode(), context.getSpaceCode()));

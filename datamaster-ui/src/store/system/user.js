@@ -5,6 +5,9 @@ import defAva from '@/assets/images/defaultAvatar.svg';
 import { currentUser } from '@/api/tax/space/space';
 import { selectAccessibleSpace } from '@/utils/spaceSelection';
 
+let spacesRequest = null;
+let spacesVersion = 0;
+
 const useUserStore = defineStore('user', {
     state: () => ({
         token: getToken(),
@@ -17,7 +20,9 @@ const useUserStore = defineStore('user', {
         permissions: [],
         spaceId: '',
         spaceCode: '',
-        spaceName: ''
+        spaceName: '',
+        spaces: [],
+        spacesLoading: false
     }),
     actions: {
         // 登录
@@ -69,21 +74,48 @@ const useUserStore = defineStore('user', {
                     });
             });
         },
+        setCurrentSpace(space) {
+            const selected = space?.id != null
+                ? this.spaces.find(item => String(item.id) === String(space.id))
+                : null;
+            if (space && !selected) throw new Error('请选择当前用户可访问的空间');
+            this.$patch({
+                spaceId: selected?.id || '',
+                spaceCode: selected?.code || selected?.spaceCode || '',
+                spaceName: selected?.name || selected?.spaceName || ''
+            });
+            if (selected) localStorage.setItem('dataMasterSpaceId', String(selected.id));
+            else localStorage.removeItem('dataMasterSpaceId');
+            return selected;
+        },
+        async loadSpaces() {
+            if (spacesRequest) return spacesRequest;
+            const version = ++spacesVersion;
+            this.spacesLoading = true;
+            spacesRequest = (async () => {
+                try {
+                    const response = await currentUser();
+                    if (version !== spacesVersion) return [];
+                    if (!Array.isArray(response?.data)) throw new Error('空间列表响应无效');
+                    this.spaces = response.data.filter(space => selectAccessibleSpace([space], space?.id));
+                    const preferred = this.spaceId || localStorage.getItem('dataMasterSpaceId');
+                    this.setCurrentSpace(selectAccessibleSpace(this.spaces, preferred));
+                    return this.spaces;
+                } finally {
+                    if (version === spacesVersion) {
+                        this.spacesLoading = false;
+                        spacesRequest = null;
+                    }
+                }
+            })();
+            return spacesRequest;
+        },
         async initializeSpace() {
-            const preferred = this.spaceId || localStorage.getItem('dataMasterSpaceId');
             try {
-                const response = await currentUser();
-                const space = selectAccessibleSpace(response?.data, preferred);
-                this.spaceId = space?.id || '';
-                this.spaceCode = space?.code || space?.spaceCode || '';
-                this.spaceName = space?.name || space?.spaceName || '';
-                if (space) localStorage.setItem('dataMasterSpaceId', String(space.id));
-                else localStorage.removeItem('dataMasterSpaceId');
-                return space;
+                await this.loadSpaces();
+                return selectAccessibleSpace(this.spaces, this.spaceId);
             } catch (error) {
-                this.spaceId = '';
-                this.spaceCode = '';
-                this.spaceName = '';
+                this.setCurrentSpace(null);
                 throw error;
             }
         },
@@ -95,6 +127,10 @@ const useUserStore = defineStore('user', {
                         this.token = '';
                         this.roles = [];
                         this.permissions = [];
+                        ++spacesVersion;
+                        spacesRequest = null;
+                        this.spaces = [];
+                        this.spacesLoading = false;
                         this.spaceId = '';
                         this.spaceCode = '';
                         this.spaceName = '';
